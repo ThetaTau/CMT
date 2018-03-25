@@ -3,6 +3,7 @@ Install
 
 Install python 3.6
 Install PostgreSQL 10.3
+Install Node 9.9.0 (https://nodejs.org/en/)
 pip install virtualenv
 pip install virtualenvwrapper (Windows: pip install virtualenvwrapper-win)
     export WORKON_HOME=~/Envs
@@ -34,4 +35,8 @@ python manage.py migrate
 
 python manage.py createsuperuser
 
+npm install
 
+npm install compass
+
+npm run dev
