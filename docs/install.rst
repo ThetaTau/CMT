@@ -20,7 +20,7 @@ pip install Django
 pip install -r requirements/local.txt
 
 "C:\Program Files\PostgreSQL\10\pg_env.bat"
-"C:\Program Files\PostgreSQL\10\bin\createdb" thetatauCMT  
+"C:\Program Files\PostgreSQL\10\bin\createdb" thetatauCMT
 
 edit data\pg_hba.conf ("E:\workspace\CMT\data\pg_hba.conf")
     # IPv4 local connections:
@@ -35,8 +35,23 @@ python manage.py migrate
 
 python manage.py createsuperuser
 
+for dev we will use test as the superuser
+
 npm install
 
 npm install compass
 
-npm run dev
+
+## Now to run you need:
+`"C:\Program Files\PostgreSQL\10\pg_env.bat"`
+and then
+`npm run dev`
+
+or edit the activate for virtualenv
+C:\Users\venturf2\Envs\cmt\Scripts\activate.bat
+add the lines at the bottom:
+```
+:: User defined
+"C:\Program Files\PostgreSQL\10\pg_env.bat"
+```
+
