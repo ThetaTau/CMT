@@ -258,6 +258,8 @@ SOCIALACCOUNT_ADAPTER = 'thetatauCMT.users.adapters.SocialAccountAdapter'
 # Your stuff...
 # ------------------------------------------------------------------------------
 SOCIALACCOUNT_QUERY_EMAIL=True
+# https://console.developers.google.com/apis/credentials?project=chaptermanagementtool&authuser=2
+
 SOCIALACCOUNT_PROVIDERS = {
     'google': {
         'SCOPE': [
