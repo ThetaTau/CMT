@@ -1,4 +1,5 @@
 from django.db import models
+from django.conf import settings
 from core.models import TimeStampedModel
 from users.models import User
 
@@ -19,4 +20,4 @@ class Event(TimeStampedModel):
 
 class EventMemberAttendance(models.Model):
     event = models.ForeignKey(Event)
-    user = models.ForeignKey(User)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL)

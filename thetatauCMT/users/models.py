@@ -2,6 +2,7 @@ import datetime
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 from django.urls import reverse
+from django.conf import settings
 from django.utils.translation import ugettext_lazy as _
 from django.core.validators import MinValueValidator, MaxValueValidator,\
     RegexValidator
@@ -39,12 +40,12 @@ class User(AbstractUser):
 
 
 class UserSemesterServiceHours(YearTermModel):
-    user = models.ForeignKey(User)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL)
     service_hours = models.PositiveIntegerField(default=0)
 
 
 class UserSemesterGPA(YearTermModel):
-    user = models.ForeignKey(User)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL)
     gpa = models.FloatField()
 
 
@@ -54,7 +55,7 @@ class UserStatusChange(StartEndModel):
         ('active', 'active'),
         ('pnm', 'prospective'),
     ]
-    user = models.ForeignKey(User)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL)
     status = models.CharField(
         max_length=7,
         choices=STATUS
@@ -62,7 +63,7 @@ class UserStatusChange(StartEndModel):
 
 
 class UserRoleChange(StartEndModel):
-    user = models.ForeignKey(User)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL)
     role = models.CharField(max_length=50)
 
 
@@ -73,7 +74,7 @@ class UserOrgParticipate(StartEndModel):
         ('hon', 'Honor'),
         ('oth', 'Other'),
     ]
-    user = models.ForeignKey(User)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL)
     org_name = models.CharField(max_length=50)
     type = models.CharField(
         max_length=3,
