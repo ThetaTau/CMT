@@ -55,3 +55,7 @@ add the lines at the bottom:
 "C:\Program Files\PostgreSQL\10\pg_env.bat"
 ```
 
+Then add the
+set GOOGLE_DRIVE_STORAGE_JSON_KEY_FILE=%fileinsecretsfolder%
+and
+set GOOGLE_API_KEY=%generatethis%

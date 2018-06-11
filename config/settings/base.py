@@ -71,6 +71,8 @@ THIRD_PARTY_APPS = [
     'allauth.socialaccount.providers.linkedin_oauth2',
     'allauth.socialaccount.providers.facebook',
     'rest_framework',
+    'address',
+    'gdstorage',
 ]
 LOCAL_APPS = [
     'thetatauCMT.users.apps.UsersConfig',
@@ -257,6 +259,9 @@ SOCIALACCOUNT_ADAPTER = 'thetatauCMT.users.adapters.SocialAccountAdapter'
 
 # Your stuff...
 # ------------------------------------------------------------------------------
+GOOGLE_API_KEY = env('GOOGLE_API_KEY', default='')
+GOOGLE_DRIVE_STORAGE_JSON_KEY_FILE = env('GOOGLE_DRIVE_STORAGE_JSON_KEY_FILE', default='')
+
 SOCIALACCOUNT_QUERY_EMAIL=True
 # https://console.developers.google.com/apis/credentials?project=chaptermanagementtool&authuser=2
 
