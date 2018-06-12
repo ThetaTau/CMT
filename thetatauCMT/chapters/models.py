@@ -1,5 +1,6 @@
 from django.db import models
 from address.models import AddressField
+from django.utils.translation import ugettext_lazy as _
 
 
 class Chapter(models.Model):
