@@ -21,3 +21,6 @@ class Chapter(models.Model):
                              help_text="Greek letter abbreviation")
     active = models.BooleanField(default=True)
     school = models.CharField(max_length=50, blank=True)
+
+    def __str__(self):
+        return f"{self.name} in {self.region} Region at {self.school}"

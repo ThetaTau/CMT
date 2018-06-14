@@ -45,6 +45,9 @@ class ScoreType(models.Model):
     member_add = models.FloatField(default=0)
     special = models.CharField(max_length=200)
 
+    def __str__(self):
+        return f"{self.name}: {self.description}"
+
 
 class ScoreChapter(YearTermModel):
     chapter = models.ForeignKey(Chapter, related_name="scores",

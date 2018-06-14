@@ -24,3 +24,6 @@ class Submission(TimeStampedModel):
     score = models.FloatField(default=0)
     chapter = models.ForeignKey(Chapter, related_name="submissions",
                                 on_delete=models.CASCADE)
+
+    def __str__(self):
+        return f"{self.name} from {self.chapter} on {self.date}"

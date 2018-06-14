@@ -10,3 +10,6 @@ class Region(models.Model):
     facebook = models.URLField()
     directors = models.ManyToManyField(
         settings.AUTH_USER_MODEL, related_name='region')
+
+    def __str__(self):
+        return self.name
