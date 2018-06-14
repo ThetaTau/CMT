@@ -30,12 +30,14 @@ class ScoreType(models.Model):
         max_length=3,
         choices=[x.value for x in SECTION]
     )
-    points = models.PositiveIntegerField(default=0)
-    formula = models.CharField(max_length=200)
+    points = models.PositiveIntegerField(default=0,
+                               help_text="Total number of points possible in year")
+    formula = models.CharField(max_length=200,
+                               help_text="Formula for calculating score")
     name_short = models.CharField(max_length=20)
     type = models.CharField(
         max_length=3,
-        choices=[x.value for x in SECTION]
+        choices=[x.value for x in TYPES]
     )
     base_points = models.PositiveIntegerField(default=0)
     attendance_multiplier = models.PositiveIntegerField(default=0)

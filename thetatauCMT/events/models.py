@@ -19,6 +19,12 @@ class Event(TimeStampedModel):
     # Number of non members
     guests = models.PositiveIntegerField(default=0)
     duration = models.PositiveIntegerField(default=0)
-    stem = models.BooleanField(default=False)
-    host = models.BooleanField(default=False)
-    miles = models.PositiveIntegerField(default=0)
+    stem = models.BooleanField(
+        default=False,
+        help_text="Does the event relate to Science Technology Engineering or Math (STEM)?")
+    host = models.BooleanField(
+        default=False,
+        help_text="Did this event host another chapter?")
+    miles = models.PositiveIntegerField(
+        default=0,
+        help_text="Miles traveled to an event hosted by another chapter.")
