@@ -15,7 +15,8 @@ class Region(models.Model):
 
 class Chapter(models.Model):
     name = models.CharField(max_length=50)
-    region = models.ForeignKey(Region, related_name='chapters')
+    region = models.ForeignKey(Region, on_delete=models.PROTECT,
+                               related_name='chapters')
     email = models.EmailField(_('email address'), blank=True)
     website = models.URLField()
     facebook = models.URLField()

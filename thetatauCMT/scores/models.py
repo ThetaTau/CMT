@@ -47,6 +47,9 @@ class ScoreType(models.Model):
 
 
 class ScoreChapter(YearTermModel):
-    chapter = models.ForeignKey(Chapter, related_name="scores")
-    type = models.ForeignKey(ScoreType, related_name="chapters")
+    chapter = models.ForeignKey(Chapter, related_name="scores",
+                                on_delete=models.CASCADE)
+    type = models.ForeignKey(ScoreType,
+                             on_delete=models.PROTECT,
+                             related_name="chapters")
     score = models.FloatField(default=0)

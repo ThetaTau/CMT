@@ -8,9 +8,9 @@ from chapters.models import Chapter
 class Event(TimeStampedModel):
     name = models.CharField(max_length=50)
     date = models.DateTimeField(auto_now_add=True)
-    type = models.ForeignKey(ScoreType,
+    type = models.ForeignKey(ScoreType, on_delete=models.PROTECT,
                              related_name="events")
-    chapter = models.ForeignKey(Chapter,
+    chapter = models.ForeignKey(Chapter, on_delete=models.CASCADE,
                                 related_name="events")
     score = models.FloatField(default=0)
     description = models.CharField(max_length=200)
