@@ -30,22 +30,25 @@ class User(AbstractUser):
         validators=[phone_regex],
         max_length=17, blank=True)
     address = AddressField()
-    chapter = models.ForeignKey(Chapter)
+    chapter = models.ForeignKey(Chapter, related_name="members")
 
     def __str__(self):
         return self.username
 
     def get_absolute_url(self):
-        return reverse('users:detail', kwargs={'username': self.username})
+        return reverse('users:detail',
+                       kwargs={'username': self.username})
 
 
 class UserSemesterServiceHours(YearTermModel):
-    user = models.ForeignKey(settings.AUTH_USER_MODEL)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL,
+                             related_name="service_hours")
     service_hours = models.PositiveIntegerField(default=0)
 
 
 class UserSemesterGPA(YearTermModel):
-    user = models.ForeignKey(settings.AUTH_USER_MODEL)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL,
+                             related_name="gpas")
     gpa = models.FloatField()
 
 
@@ -55,7 +58,8 @@ class UserStatusChange(StartEndModel):
         ('active', 'active'),
         ('pnm', 'prospective'),
     ]
-    user = models.ForeignKey(settings.AUTH_USER_MODEL)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL,
+                             related_name="status")
     status = models.CharField(
         max_length=7,
         choices=STATUS
@@ -63,7 +67,8 @@ class UserStatusChange(StartEndModel):
 
 
 class UserRoleChange(StartEndModel):
-    user = models.ForeignKey(settings.AUTH_USER_MODEL)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL,
+                             related_name="roles")
     role = models.CharField(max_length=50)
 
 
@@ -74,10 +79,11 @@ class UserOrgParticipate(StartEndModel):
         ('hon', 'Honor'),
         ('oth', 'Other'),
     ]
-    user = models.ForeignKey(settings.AUTH_USER_MODEL)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL,
+                             related_name="orgs")
     org_name = models.CharField(max_length=50)
     type = models.CharField(
         max_length=3,
         choices=TYPES
     )
-    officer = models.BooleanField()
+    officer = models.BooleanField(default=False)

@@ -44,6 +44,6 @@ class ScoreType(models.Model):
 
 
 class ScoreChapter(YearTermModel):
-    chapter = models.ForeignKey(Chapter)
-    type = models.ForeignKey(ScoreType)
+    chapter = models.ForeignKey(Chapter, related_name="scores")
+    type = models.ForeignKey(ScoreType, related_name="chapters")
     score = models.PositiveIntegerField(default=0)
