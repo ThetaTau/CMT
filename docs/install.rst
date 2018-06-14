@@ -12,6 +12,7 @@ mkvirtualenv cmt
 cd to location to clone (cd E:\workspace\CMT)
 git clone https://github.com/VenturaFranklin/thetatauCMT.git
 setprojectdir E:\workspace\CMT\thetatauCMT
+add2virtualenv E:\workspace\CMT\thetatauCMT\thetatauCMT
 
 Download MailHog to thetatauCMT folder
 
