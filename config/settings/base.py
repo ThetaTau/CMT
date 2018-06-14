@@ -76,7 +76,10 @@ THIRD_PARTY_APPS = [
 ]
 LOCAL_APPS = [
     'thetatauCMT.users.apps.UsersConfig',
-    # Your stuff: custom apps go here
+    'thetatauCMT.chapters.apps.ChaptersConfig',
+    'thetatauCMT.events.apps.EventsConfig',
+    'thetatauCMT.scores.apps.ScoresConfig',
+    'thetatauCMT.submissions.apps.SubmissionsConfig',
 ]
 # https://docs.djangoproject.com/en/dev/ref/settings/#installed-apps
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
