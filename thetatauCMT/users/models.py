@@ -16,12 +16,13 @@ class User(AbstractUser):
     # around the globe.
     name = models.CharField(_('Name of User'), blank=True, max_length=255)
     modified = models.DateTimeField(auto_now=True)
-    badge_number = models.PositiveIntegerField()
-    major = models.CharField(max_length=50)
+    badge_number = models.PositiveIntegerField(default=999999999)
+    major = models.CharField(max_length=50, blank=True)
     graduation_year = models.PositiveIntegerField(
+        default=datetime.datetime.now().year,
         validators=[
             MinValueValidator(1950),
-            MaxValueValidator(datetime.now().year + 10)],
+            MaxValueValidator(datetime.datetime.now().year + 10)],
         help_text="Use the following format: <YYYY>")
     phone_regex = RegexValidator(
         regex=r'^\+?1?\d{9,15}$',
@@ -29,7 +30,7 @@ class User(AbstractUser):
     phone_number = models.CharField(
         validators=[phone_regex],
         max_length=17, blank=True)
-    address = AddressField()
+    address = AddressField(on_delete=models.SET_NULL, blank=True, null=True, unique=True)
     chapter = models.ForeignKey(Chapter, on_delete=models.CASCADE,
                                 related_name="members")
 

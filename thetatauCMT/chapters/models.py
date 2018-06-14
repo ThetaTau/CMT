@@ -18,14 +18,15 @@ class Chapter(models.Model):
     region = models.ForeignKey(Region, on_delete=models.PROTECT,
                                related_name='chapters')
     email = models.EmailField(_('email address'), blank=True)
-    website = models.URLField()
-    facebook = models.URLField()
-    address = AddressField()
-    balance = models.DecimalField(default=0,
+    website = models.URLField(blank=True)
+    facebook = models.URLField(blank=True)
+    address = AddressField(on_delete=models.SET_NULL, blank=True, null=True, unique=True)
+    balance = models.DecimalField(default=0, decimal_places=2,
+                                  max_digits=7,
                                   help_text="Balance chapter owes.")
     tax = models.PositiveIntegerField(
         help_text="Tax number, if chapter participates in group exemption.")
-    greek = models.CharField(max_length=2,
+    greek = models.CharField(max_length=2, blank=True,
                              help_text="Greek letter abbreviation")
     active = models.BooleanField(default=True)
-    school = models.CharField(max_length=50)
+    school = models.CharField(max_length=50, blank=True)
