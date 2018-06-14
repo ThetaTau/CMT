@@ -32,6 +32,7 @@ class User(AbstractUser):
         max_length=17, blank=True)
     address = AddressField(on_delete=models.SET_NULL, blank=True, null=True, unique=True)
     chapter = models.ForeignKey(Chapter, on_delete=models.CASCADE,
+                                blank=True, null=True, unique=True,
                                 related_name="members")
 
     def __str__(self):
