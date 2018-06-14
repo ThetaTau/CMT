@@ -12,7 +12,7 @@ class Event(TimeStampedModel):
                              related_name="events")
     chapter = models.ForeignKey(Chapter,
                                 related_name="events")
-    score = models.PositiveIntegerField(default=0)
+    score = models.FloatField(default=0)
     description = models.CharField(max_length=200)
     users = models.ManyToManyField(settings.AUTH_USER_MODEL,
                                    related_name="events")

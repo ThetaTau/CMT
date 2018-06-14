@@ -12,5 +12,5 @@ class Submission(TimeStampedModel):
     file = models.FileField(upload_to='/media', storage=gd_storage)
     name = models.CharField(max_length=50)
     type = models.ForeignKey(ScoreType, related_name="submissions")
-    score = models.PositiveIntegerField(default=0)
+    score = models.FloatField(default=0)
     chapter = models.ForeignKey(Chapter, related_name="submissions")

@@ -43,7 +43,7 @@ class User(AbstractUser):
 class UserSemesterServiceHours(YearTermModel):
     user = models.ForeignKey(settings.AUTH_USER_MODEL,
                              related_name="service_hours")
-    service_hours = models.PositiveIntegerField(default=0)
+    service_hours = models.FloatField(default=0)
 
 
 class UserSemesterGPA(YearTermModel):
