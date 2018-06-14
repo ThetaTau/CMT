@@ -16,6 +16,7 @@ class Chapter(models.Model):
                                   max_digits=7,
                                   help_text="Balance chapter owes.")
     tax = models.PositiveIntegerField(
+        blank=True, null=True, unique=True,
         help_text="Tax number, if chapter participates in group exemption.")
     greek = models.CharField(max_length=2, blank=True,
                              help_text="Greek letter abbreviation")
