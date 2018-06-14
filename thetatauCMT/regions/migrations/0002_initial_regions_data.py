@@ -31,7 +31,7 @@ def load_regions(apps, schema_editor):
     region_gulf.save()
     region_midwest = region(id=6, name='Midwest', email='mwrd@thetatau.org',
                             website="http://thetatau.org/midwest-region",
-                            facebook="")
+                            facebook="https://www.facebook.com/groups/ThetaTauMidwest/")
     region_midwest.save()
     region_northeast = region(id=7, name='Northeast',
                               email='northeastRD@thetatau.org',
