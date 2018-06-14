@@ -1,0 +1,35 @@
+name,description,section,points,formula,name_short,type,base_points,attendance_multiplier,member_add,special
+Alumni-Active Social Activities,Activities with a focus on brotherhood between Alumni & Actives,Bro,40,10*(% Attendance) + 1/alumni; 20/semester,Alumni-Active,Evt,0,0,0,1*ALUMNI+10*memberATT
+Gear Article,For every submission of a Gear Article to the RDs,Ops,20,10/submission; 10/semester,Article,Sub,10,0,0,
+Financial Audits,Submission of a completed audit for the chapter,Ops,10,5/audit; 5/semester,Audit,Sub,5,0,0,
+Chapter Awards Submission,Submission of national and/or university recognition programs,Ops,15,15 submission,Awards,Sub,15,0,0,
+Campus sponsored professional event attendance,Members attending an event hosted by the University or another organization focused on professional development,Pro,10,5*(% Attendance),Campus ProDev,Evt,0,5,0,
+Attendance at Convention/Leadership,Sending members to leadership or convention,Ops,15,7.5/member,Conference,Evt,0,0,7.5,
+Chapter GPA,GPA averaged over all members,Pro,40,(Chapter GPA Average / 4.0) x 30 /semester,GPA,Spe,0,0,0,GPA*7.5
+Habitat for Humanity Participation,Either sending members to nationally organized habitat for humanity or organizing a chapter level participation,Ser,50,"50/member or 
+50 chapter participation locally (5+ members)",Habitat,Evt,0,0,50,
+Alumni Hall of Fame Nomination,The chapter should strive to submit a nomination for the alumni hall of fame every year.,Ops,10,10 submission,Hall of Fame,Sub,10,0,0,
+Inter-chapter Events & Visitation,Hosting an event or traveling to an event hosted by another chapter. This does not include regionals.,Bro,50,"25 * [(% Attendance) + (miles / 1000) + (visiting members/100)]
+does NOT include regionals;
+host gets points for traveling members (set visiting chapter members in ""NON-MEMBERS"")",Inter-chapter,Evt,0,0,0,25*((NON-MEMBER/100)*HOST+memberATT*(HOST-1)*(HOST-1)+(MILES/1000))
+Joint professional event with professional org,Organize an event with another organization focused on professional development,Pro,20,10*(% Attendance),Joint ProDev,Evt,0,10,0,
+Lock-In and Goal Setting,Lock-in/retreat to build brotherhood as well as define goals and direction for the chapter,Bro,60,30*(% Attendance) + 20 submission of goals to RD,Lock-In & Goals,Evt,0,30,0,
+Goal Setting,Submit goals developed for the year to your RDs,Bro,40,30*(% Attendance) + 20 submission of goals to RD,Lock-In Goals,Sub,20,0,0,
+Attendance at meetings,Regular meeting attendance,Ops,30,Average % Attendance * 30,Meetings,Evt,0,0,0,15*MEETINGS
+Membership,The growth of a chapter aiming for an average of 50 members/chapter,Ops,50,(Current*MembersIN)/ (2*MembersOUT) /semester,Membership,Spe,0,0,0,(MEMBERS*IN)/(2*OUT)
+Miscellaneous,Event/Activity that the chapter wants to track attendance but does not have a score.,Ops,0,N/A,Misc,Evt,0,0,0,MISC
+Alumni Newsletter,Sending a newsletter to alumni.,Ops,20,5/submission; 10/semester,Newsletter,Sub,5,0,0,
+Outstanding Student Member Program,Chapter should submit their nomination for outstanding student member,Ops,10,10 submission,OSM,Sub,10,0,0,
+Adopted New Member Education Program,Chapter following the National New Member Education Programs,Ops,20,Select list: No = 0pts; Yes = 20pts; Modified = 10 pts; // RD must approve Modified,Pledge Program,Sub,20,0,0,20*UNMODIFIED+10*MODIFIED
+% Pledged vs % Initiated,Ratio of the number of pledges actually initiated,Bro,20,(# Initiated/# Pledged) * 10/semester,Pledge Ratio,Spe,0,0,0,10*(INIT/PLEDGE)
+Professional Development Events (Chapter Only),PD events planned and organized solely for the benefit of members,Pro,40,10*(% Attendance); 20/semester,ProDev Chapter,Evt,0,10,0,
+Professional Development Events (Open to Public),A professional development event organized and executed by the chapter open to the public,Pro,100,2/non-member up to 40/semester,ProDev Open,Evt,0,0,0,2*NON-MEMBER
+Chapter Project,Members creation of a project and then write up and submission of the project execution,Pro,20,20/submission of pictures and gear article (no double dip),Project,Sub,20,0,0,
+Attendance at Regionals,Sending members to regional conferences,Ops,20,1/member; 10/semester,Regionals,Evt,0,0,1,
+Annual Report,Regular updating and completion of the annual report,Ops,20,5/submission; 10/semester,Report,Sub,5,0,0,
+Risk Management Program,On time submission of signed risk management program,Ops,0,N/A,RMP,Sub,0,0,0,
+Scholarship Submission,For each member that submits an application for the National Scholarship program,Ops,10,2 ea member scholarship submission,Scholarship App,Sub,2,0,0,
+Community Service Hours,Members can complete service hours with organized events for the chapter or other events outside of the chapter. Submit other hours on the mebmership tab,Ser,100,50*(% brothers getting 8 hrs/semester),Service Hours,Evt,0,0,0,50*HOURS
+Community Service Project - Sponsored by Chapter,A community service event organized and executed by the chapter open to the public,Ser,100,3/non-member; +25 if STEM,Service Project,Evt,0,0,0,3*NON-MEMBER+25*STEM
+Brotherhood activities,Activities promoting brotherhood between active members,Bro,40,10*(% Attendance); 10/semester,Social Misc,Evt,0,10,0,
+"Honor, Professional & Technical societies","Membership participation in Honor, Professional, or Technical societies/organizations",Pro,20,10 *(%Participating)+(2/officer),Societies,Spe,0,0,0,10*ORG+2*OFFICER
