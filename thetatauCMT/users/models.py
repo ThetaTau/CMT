@@ -17,13 +17,16 @@ class User(AbstractUser):
     name = models.CharField(_('Name of User'), blank=True, max_length=255)
     modified = models.DateTimeField(auto_now=True)
     badge_number = models.PositiveIntegerField(default=999999999)
+    user_id = models.CharField(max_length=20,
+                               unique=True,
+                               help_text="Combination of badge number and chapter abbr, eg. X1311")
     major = models.CharField(max_length=50, blank=True)
     graduation_year = models.PositiveIntegerField(
         default=datetime.datetime.now().year,
         validators=[
             MinValueValidator(1950),
             MaxValueValidator(datetime.datetime.now().year + 10)],
-        help_text="Use the following format: <YYYY>")
+        help_text="Use the following format: YYYY")
     phone_regex = RegexValidator(
         regex=r'^\+?1?\d{9,15}$',
         message="Phone number must be entered in the format: '+999999999'. Up to 15 digits allowed.")
@@ -34,6 +37,13 @@ class User(AbstractUser):
     chapter = models.ForeignKey(Chapter, on_delete=models.CASCADE,
                                 blank=True, null=True, unique=True,
                                 related_name="members")
+
+    def save(self, *args, **kwargs):
+        if not self.id:
+            # Newly created object, so set user_id
+            # Combination of badge number and chapter abbr, eg. X1311
+            self.user_id = f"{self.chapter.greek}{self.badge_number}"
+        super(User, self).save(*args, **kwargs)
 
     def __str__(self):
         return self.username
