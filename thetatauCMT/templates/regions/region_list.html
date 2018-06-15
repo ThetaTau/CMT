@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% load static i18n %}
+{% block title %}Regions{% endblock %}
+
+{% block content %}
+<div class="container">
+  <h2>Regions</h2>
+
+  <div class="list-group">
+    {% for region in region_list %}
+      <a href="{% url 'regions:detail' region.slug %}" class="list-group-item">
+        <h4 class="list-group-item-heading">{{ region.name }}</h4>
+      </a>
+    {% endfor %}
+  </div>
+</div>
+{% endblock content %}
