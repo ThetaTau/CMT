@@ -20,7 +20,7 @@ class User(AbstractUser):
     user_id = models.CharField(max_length=20,
                                unique=True,
                                help_text="Combination of badge number and chapter abbr, eg. X1311")
-    major = models.CharField(max_length=50, blank=True)
+    major = models.CharField(max_length=100, blank=True)
     graduation_year = models.PositiveIntegerField(
         default=datetime.datetime.now().year,
         validators=[
@@ -35,7 +35,7 @@ class User(AbstractUser):
         max_length=17, blank=True)
     address = AddressField(on_delete=models.SET_NULL, blank=True, null=True, unique=True)
     chapter = models.ForeignKey(Chapter, on_delete=models.CASCADE,
-                                blank=True, null=True, unique=True,
+                                default=1,
                                 related_name="members")
 
     def save(self, *args, **kwargs):
