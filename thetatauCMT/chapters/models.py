@@ -15,10 +15,11 @@ class Chapter(models.Model):
     balance = models.DecimalField(default=0, decimal_places=2,
                                   max_digits=7,
                                   help_text="Balance chapter owes.")
+    balance_date = models.DateTimeField(auto_now_add=True)
     tax = models.PositiveIntegerField(
         blank=True, null=True, unique=True,
         help_text="Tax number, if chapter participates in group exemption.")
-    greek = models.CharField(max_length=2, blank=True,
+    greek = models.CharField(max_length=10, blank=True,
                              help_text="Greek letter abbreviation")
     active = models.BooleanField(default=True)
     school = models.CharField(max_length=50, blank=True)
