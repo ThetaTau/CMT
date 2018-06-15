@@ -18,7 +18,9 @@
         <p>{{ object.slug }}</p>
       {% endif %}
       {% for member in object.members.all %}
+      <a href="{% url 'users:detail' member.username %}" class="list-group-item">
           <p>{{ member.name }}</p>
+      </a>
       {% endfor %}
     </div>
   </div>
