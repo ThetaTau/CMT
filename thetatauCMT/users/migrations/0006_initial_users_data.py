@@ -8,20 +8,6 @@ from apiclient.discovery import build
 from httplib2 import Http
 from oauth2client import file, client, tools
 from chapters.models import Chapter
-
-SCOPES = 'https://www.googleapis.com/auth/spreadsheets.readonly'
-id_file = os.path.join(settings.ROOT_DIR.root, r'secrets/GoogleSheetsClient_id.json')
-id_file_out = os.path.join(settings.ROOT_DIR.root, r'secrets/GoogleSheetsClient_id_out.json')
-print(id_file)
-store = file.Storage(id_file_out)
-creds = store.get()
-if not creds or creds.invalid:
-    flow = client.flow_from_clientsecrets(id_file, SCOPES)
-    creds = tools.run_flow(flow, store)
-service = build('sheets', 'v4', http=creds.authorize(Http()))
-
-SPREADSHEET_ID = '1f3bklkSBhpwA29dnNHyH73l8JGIc7rF1YiBjGg6owUY'
-RANGE_NAME = 'Users!A1:M'
 # result = service.spreadsheets().values().get(spreadsheetId=SPREADSHEET_ID,
 #                                                  range=RANGE_NAME).execute()
 # values = result.get('values', [])
@@ -47,6 +33,19 @@ RANGE_NAME = 'Users!A1:M'
 
 
 def load_users(apps, schema_editor):
+    SCOPES = 'https://www.googleapis.com/auth/spreadsheets.readonly'
+    id_file = os.path.join(settings.ROOT_DIR.root, r'secrets/GoogleSheetsClient_id.json')
+    id_file_out = os.path.join(settings.ROOT_DIR.root, r'secrets/GoogleSheetsClient_id_out.json')
+    # print(id_file)
+    store = file.Storage(id_file_out)
+    creds = store.get()
+    if not creds or creds.invalid:
+        flow = client.flow_from_clientsecrets(id_file, SCOPES)
+        creds = tools.run_flow(flow, store)
+    service = build('sheets', 'v4', http=creds.authorize(Http()))
+
+    SPREADSHEET_ID = '1f3bklkSBhpwA29dnNHyH73l8JGIc7rF1YiBjGg6owUY'
+    RANGE_NAME = 'Users!A1:M'
     user = apps.get_model("users", "User")
     chapter = apps.get_model("chapters", "Chapter")
     role = apps.get_model("users", "UserRoleChange")
