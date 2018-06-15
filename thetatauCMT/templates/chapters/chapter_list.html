@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% load static i18n %}
+{% block title %}Chapters{% endblock %}
+
+{% block content %}
+<div class="container">
+  <h2>Chapters</h2>
+
+  <div class="list-group">
+    {% for chapter in chapter_list %}
+      <a href="{% url 'chapters:detail' chapter.slug %}" class="list-group-item">
+        <h4 class="list-group-item-heading">{{ chapter.name }}</h4>
+      </a>
+    {% endfor %}
+  </div>
+</div>
+{% endblock content %}
