@@ -1,6 +1,7 @@
 from django.db import models
 from address.models import AddressField
 from django.utils.translation import ugettext_lazy as _
+from django.utils.text import slugify
 from regions.models import Region
 
 
@@ -8,6 +9,7 @@ class Chapter(models.Model):
     name = models.CharField(max_length=50)
     region = models.ForeignKey(Region, on_delete=models.PROTECT,
                                related_name='chapters')
+    slug = models.SlugField(max_length=50, null=True, default=None, unique=True)
     email = models.EmailField(_('email address'), blank=True)
     website = models.URLField(blank=True)
     facebook = models.URLField(blank=True)
@@ -26,3 +28,7 @@ class Chapter(models.Model):
 
     def __str__(self):
         return f"{self.name} in {self.region} Region at {self.school}"
+
+    def save(self, *args, **kwargs):
+        self.slug = slugify(self.name)
+        super().save(*args, **kwargs)
