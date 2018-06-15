@@ -17,6 +17,11 @@
         <p>{{ object.facebook }}</p>
         <p>{{ object.slug }}</p>
       {% endif %}
+      {% for chapter in object.chapters.all %}
+        <a href="{% url 'chapters:detail' chapter.slug %}" class="list-group-item">
+          <p>{{ chapter.name }}</p>
+        </a>
+      {% endfor %}
     </div>
   </div>
 
