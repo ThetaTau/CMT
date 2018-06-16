@@ -1,5 +1,25 @@
 from django.contrib import admin
 from .models import Region
-# Register your models here.
+from chapters.models import Chapter
 
-admin.site.register(Region)
+
+class ChapterInline(admin.TabularInline):
+    model = Chapter
+    fields = ['name', 'school']
+    readonly_fields = ('name', 'school')
+    can_delete = False
+    ordering = ['name']
+    show_change_link = True
+
+    def has_add_permission(self, _):
+        return False
+
+
+class RegionTypeAdmin(admin.ModelAdmin):
+    inlines = [ChapterInline]
+    list_filter = ['name']
+    search_fields = ['name']
+    ordering = ['name']
+
+
+admin.site.register(Region, RegionTypeAdmin)
