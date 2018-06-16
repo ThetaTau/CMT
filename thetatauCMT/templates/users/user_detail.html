@@ -17,7 +17,13 @@
         <p>{{ object.graduation_year }}</p>
         <p>{{ object.phone_number }}</p>
         <p>{{ object.address }}</p>
+      {% for role in object.roles.all %}
+        <p>{{ role }} {{ role.start }} {{ role.end }}</p>
+      {% endfor %}
       {% endif %}
+      <p>Current Status: {{ object.get_current_status.status.title }}</p>
+      <p>Current Role: {{ object.get_current_role.role }}</p>
+      <p>Current Chapter Officer: {{ object.is_chapter_officer }}</p>
     </div>
   </div>
 

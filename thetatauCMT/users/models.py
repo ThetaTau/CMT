@@ -1,4 +1,5 @@
 import datetime
+from datetime import timedelta, time
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 from django.urls import reverse
@@ -9,6 +10,11 @@ from django.core.validators import MinValueValidator, MaxValueValidator,\
 from address.models import AddressField
 from core.models import StartEndModel, YearTermModel
 from chapters.models import Chapter
+
+TODAY = datetime.datetime.now().date()
+TOMORROW = TODAY + timedelta(1)
+TODAY_START = datetime.datetime.combine(TODAY, time())
+TODAY_END = datetime.datetime.combine(TOMORROW, time())
 
 
 class User(AbstractUser):
@@ -52,6 +58,33 @@ class User(AbstractUser):
         return reverse('users:detail',
                        kwargs={'username': self.username})
 
+    def get_current_status(self):
+        return self.status.filter(start__lte=TODAY_END,
+                                  end__gte=TODAY_END).first()
+
+    def get_current_role(self):
+        return self.roles.filter(start__lte=TODAY_END,
+                                 end__gte=TODAY_END).first()
+
+    def is_chapter_officer(self):
+        role_obj = self.get_current_role()
+        officer = False
+        if role_obj is not None:
+            current_role = {role_obj.role.lower()}
+            officer = not current_role.isdisjoint(UserRoleChange.CHAPTER_OFFICER)
+        return officer
+
+    def is_national_officer(self):
+        role_obj = self.get_current_role()
+        officer = False
+        if role_obj is not None:
+            current_role = {role_obj.role.lower()}
+            officer = not current_role.isdisjoint(UserRoleChange.CHAPTER_OFFICER)
+        return officer
+
+    def is_officer(self):
+        return self.is_chapter_officer() or self.is_national_officer()
+
 
 class UserSemesterServiceHours(YearTermModel):
     user = models.ForeignKey(settings.AUTH_USER_MODEL,
@@ -81,12 +114,52 @@ class UserStatusChange(StartEndModel):
         choices=STATUS
     )
 
+    def __str__(self):
+        return self.status
+
 
 class UserRoleChange(StartEndModel):
+    CHAPTER_OFFICER = {
+        "corresponding secretary",
+        "president",
+        "regent",
+        "scribe",
+        "secretary",
+        "treasurer",
+        "vice president",
+        "vice regent",
+    }
+    NATIONAL_OFFICER = {
+        'regional director',
+        'national director',
+        'national officer'
+    }
+    COMMITTEE_CHAIR = {
+        "alumni adviser",
+        "board member",
+        "committee chair",
+        "employer/ee",
+        "fundraising chair",
+        "house corporation president",
+        "other appointee",
+        "pd chair",
+        "pledge/new member educator",
+        "project chair",
+        "recruitment chair",
+        "risk management chair",
+        "rube goldberg chair",
+        "rush chair",
+        "scholarship chair",
+        "service chair",
+        "social/brotherhood chair",
+        "website/social media chair",
+    }
     user = models.ForeignKey(settings.AUTH_USER_MODEL,
                              on_delete=models.CASCADE,
                              related_name="roles")
     role = models.CharField(max_length=50)
+    def __str__(self):
+        return self.role
 
 
 class UserOrgParticipate(StartEndModel):

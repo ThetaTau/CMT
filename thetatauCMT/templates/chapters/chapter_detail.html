@@ -19,7 +19,8 @@
       {% endif %}
       {% for member in object.members.all %}
       <a href="{% url 'users:detail' member.username %}" class="list-group-item">
-          <p>{{ member.name }}</p>
+          <p>{{ member.name }} {{ member.get_current_role.role }}
+            {{ member.get_current_status.status.title }}</p>
       </a>
       {% endfor %}
     </div>
