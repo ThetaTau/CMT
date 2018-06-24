@@ -5,6 +5,9 @@ from chapters.models import Chapter
 
 
 class ScoreType(models.Model):
+    class Meta:
+        ordering = ['name', ]
+
     class SECTION(Enum):
         brotherhood = ('Bro', 'Brotherhood')
         operate = ('Ops', 'Operate')
@@ -46,7 +49,7 @@ class ScoreType(models.Model):
     special = models.CharField(max_length=200)
 
     def __str__(self):
-        return f"{self.name}: {self.description}"
+        return f"{self.name}"  # : {self.description}"
 
 
 class ScoreChapter(YearTermModel):

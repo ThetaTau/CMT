@@ -6,6 +6,9 @@ from chapters.models import Chapter
 
 
 class Event(TimeStampedModel):
+    class Meta:
+        unique_together = ('name', 'date', 'chapter')
+
     name = models.CharField(max_length=50)
     date = models.DateTimeField(auto_now_add=True)
     type = models.ForeignKey(ScoreType, on_delete=models.PROTECT,
@@ -28,9 +31,6 @@ class Event(TimeStampedModel):
     miles = models.PositiveIntegerField(
         default=0,
         help_text="Miles traveled to an event hosted by another chapter.")
-
-    class Meta:
-        unique_together = ('name', 'date', 'chapter')
 
     def __str__(self):
         return f"{self.name} at {self.chapter} on {self.date}"

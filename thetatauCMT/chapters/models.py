@@ -6,6 +6,9 @@ from regions.models import Region
 
 
 class Chapter(models.Model):
+    class Meta:
+        ordering = ['name', ]
+
     name = models.CharField(max_length=50)
     region = models.ForeignKey(Region, on_delete=models.PROTECT,
                                related_name='chapters')
@@ -27,7 +30,7 @@ class Chapter(models.Model):
     school = models.CharField(max_length=50, blank=True)
 
     def __str__(self):
-        return f"{self.name} in {self.region} Region at {self.school}"
+        return f"{self.name}"  # in {self.region} Region at {self.school}
 
     def save(self, *args, **kwargs):
         self.slug = slugify(self.name)
