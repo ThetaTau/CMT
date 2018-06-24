@@ -60,3 +60,9 @@ Then add the
 set GOOGLE_DRIVE_STORAGE_JSON_KEY_FILE=%fileinsecretsfolder%
 and
 set GOOGLE_API_KEY=%generatethis%
+
+
+To prepopulate data:
+python manage.py makemigrations --empty yourappname --name migrationname
+
+django-admin migrate yourappname
