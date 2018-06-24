@@ -29,5 +29,8 @@ class Event(TimeStampedModel):
         default=0,
         help_text="Miles traveled to an event hosted by another chapter.")
 
+    class Meta:
+        unique_together = ('name', 'date', 'chapter')
+
     def __str__(self):
         return f"{self.name} at {self.chapter} on {self.date}"
