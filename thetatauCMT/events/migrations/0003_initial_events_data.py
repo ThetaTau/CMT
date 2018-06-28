@@ -235,7 +235,8 @@ def add_event(chapter_obj, event_row, apps):
 
 
 def migrate_data_backward(apps, schema_editor):
-    pass
+    event = apps.get_model("events", "Event")
+    event.objects.all().delete()
 
 
 class Migration(migrations.Migration):
