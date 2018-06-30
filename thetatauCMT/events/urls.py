@@ -15,6 +15,11 @@ urlpatterns = [
         name='redirect'
     ),
     url(
+        regex=r'^~update/$',
+        view=views.EventUpdateView.as_view(),
+        name='update'
+    ),
+    url(
         regex=r'^(?P<slug>[\w.@+-]+)/$',
         view=views.EventDetailView.as_view(),
         name='detail'

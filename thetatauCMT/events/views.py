@@ -1,6 +1,6 @@
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.urls import reverse
-from django.views.generic import DetailView, ListView, RedirectView
+from django.views.generic import DetailView, UpdateView, RedirectView
 from core.views import PagedFilteredTableView, RequestConfig
 from .models import Event
 from .tables import EventTable
@@ -21,6 +21,21 @@ class EventRedirectView(LoginRequiredMixin, RedirectView):
     def get_redirect_url(self):
         return reverse('users:detail',
                        kwargs={'username': self.request.user.username})
+
+
+class EventUpdateView(LoginRequiredMixin, UpdateView):
+    fields = ['name', 'date', 'description',
+              'guests', 'duration', 'stem', 'host', 'miles']
+    model = Event
+
+    # send the user back to their own page after a successful update
+    def get_success_url(self):
+        return reverse('events:detail',
+                       kwargs={'username': self.request.user.username})
+
+    def get_object(self):
+        # Only get the User record for the user making the request
+        return Event.objects.get(id=self.request.event.id)
 
 
 class EventListView(LoginRequiredMixin, PagedFilteredTableView):
