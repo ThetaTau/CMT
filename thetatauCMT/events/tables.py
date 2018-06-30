@@ -4,10 +4,6 @@ from .models import Event
 
 
 class EventTable(tables.Table):
-    account_number = tables.LinkColumn('customer-detail', args=[A('pk')])
-    customer_first_name = tables.LinkColumn('customer-detail', args=[A('pk')])
-    customer_last_name = tables.LinkColumn('customer-detail', args=[A('pk')])
-    customer_email = tables.LinkColumn('customer-detail', args=[A('pk')])
 
     class Meta:
         model = Event

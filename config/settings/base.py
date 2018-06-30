@@ -74,6 +74,8 @@ THIRD_PARTY_APPS = [
     'address',
     'gdstorage',
     'django_tables2',
+    'django_filters',
+    'bootstrap4',
 ]
 LOCAL_APPS = [
     'thetatauCMT.users.apps.UsersConfig',
