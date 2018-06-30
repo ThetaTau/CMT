@@ -4,6 +4,8 @@ from .models import Event
 
 
 class EventTable(tables.Table):
+    name = tables.LinkColumn('events:update',
+                             args=[A('pk')])
 
     class Meta:
         model = Event

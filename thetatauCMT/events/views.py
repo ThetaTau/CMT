@@ -10,7 +10,6 @@ from .forms import EventListFormHelper
 
 class EventDetailView(LoginRequiredMixin, DetailView):
     model = Event
-    # These next two lines tell the view to index lookups by username
     slug_field = 'chapter'
     slug_url_kwarg = 'chapter'
 
@@ -19,23 +18,18 @@ class EventRedirectView(LoginRequiredMixin, RedirectView):
     permanent = False
 
     def get_redirect_url(self):
-        return reverse('users:detail',
-                       kwargs={'username': self.request.user.username})
+        return reverse('events:list')
 
 
 class EventUpdateView(LoginRequiredMixin, UpdateView):
-    fields = ['name', 'date', 'description',
+    fields = ['name',
+              # 'date',
+              'description',
               'guests', 'duration', 'stem', 'host', 'miles']
     model = Event
 
-    # send the user back to their own page after a successful update
     def get_success_url(self):
-        return reverse('events:detail',
-                       kwargs={'username': self.request.user.username})
-
-    def get_object(self):
-        # Only get the User record for the user making the request
-        return Event.objects.get(id=self.request.event.id)
+        return reverse('events:list')
 
 
 class EventListView(LoginRequiredMixin, PagedFilteredTableView):
@@ -45,7 +39,6 @@ class EventListView(LoginRequiredMixin, PagedFilteredTableView):
     slug_url_kwarg = 'chapter'
     context_object_name = 'event'
     ordering = ['date']
-    # group_required = u'company-user'
     table_class = EventTable
     filter_class = EventListFilter
     formhelper_class = EventListFormHelper
@@ -62,5 +55,4 @@ class EventListView(LoginRequiredMixin, PagedFilteredTableView):
         table = EventTable(self.get_queryset())
         RequestConfig(self.request, paginate={'per_page': 30}).configure(table)
         context['table'] = table
-
         return context

@@ -15,7 +15,7 @@ urlpatterns = [
         name='redirect'
     ),
     url(
-        regex=r'^~update/$',
+        regex=r'^~update/(?P<pk>\d+)/$',
         view=views.EventUpdateView.as_view(),
         name='update'
     ),

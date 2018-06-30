@@ -33,7 +33,7 @@ class Event(TimeStampedModel):
         help_text="Miles traveled to an event hosted by another chapter.")
 
     def __str__(self):
-        return f"{self.name} at {self.chapter} on {self.date}"
+        return f"{self.name} on {self.date}"
 
     def chapter_events(self, chapter):
         result = self.objects.filter(chapter=chapter)
