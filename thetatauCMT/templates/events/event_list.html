@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% load render_table from django_tables2 %}
+{% load static i18n %}
+{% block title %}Events{% endblock %}
+
+{% block content %}
+  {% render_table table %}
+{#<div class="container">#}
+{#  <h2>Events</h2>#}
+{##}
+{#  <div class="list-group">#}
+{#    {% for event in event_list %}#}
+{#      <a href="{% url 'chapters:detail' chapter.slug %}" class="list-group-item">#}
+{#        <h4 class="list-group-item-heading">{{ event }}</h4>#}
+{#      </a>#}
+{#    {% endfor %}#}
+{#  </div>#}
+{#</div>#}
+{% endblock content %}

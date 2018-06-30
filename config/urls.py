@@ -19,6 +19,7 @@ urlpatterns = [
     # Your stuff: custom urls includes go here
     url(r'^regions/', include('regions.urls', namespace='regions')),
     url(r'^chapters/', include('chapters.urls', namespace='chapters')),
+    url(r'^events/', include('events.urls', namespace='events')),
 
 
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

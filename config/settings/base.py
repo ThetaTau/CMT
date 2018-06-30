@@ -73,6 +73,7 @@ THIRD_PARTY_APPS = [
     'rest_framework',
     'address',
     'gdstorage',
+    'django_tables2',
 ]
 LOCAL_APPS = [
     'thetatauCMT.users.apps.UsersConfig',

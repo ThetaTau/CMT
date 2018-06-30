@@ -34,3 +34,8 @@ class Event(TimeStampedModel):
 
     def __str__(self):
         return f"{self.name} at {self.chapter} on {self.date}"
+
+    def chapter_events(self, chapter):
+        result = self.objects.filter(chapter=chapter)
+        return result
+
