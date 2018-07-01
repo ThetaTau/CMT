@@ -1,6 +1,6 @@
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.urls import reverse
-from django.views.generic import DetailView, UpdateView, RedirectView
+from django.views.generic import DetailView, UpdateView, RedirectView, CreateView
 from core.views import PagedFilteredTableView, RequestConfig
 from .models import Event
 from .tables import EventTable
@@ -12,6 +12,39 @@ class EventDetailView(LoginRequiredMixin, DetailView):
     model = Event
     slug_field = 'chapter'
     slug_url_kwarg = 'chapter'
+
+
+class EventCreateView(LoginRequiredMixin, CreateView):
+    model = Event
+    template_name_suffix = '_create_form'
+    # initial = {
+    #     'type': ScoreType.objects.filter(type='Evt').all()
+    # }
+    fields = ['name',
+              'type', 'description',
+              'duration', 'stem', 'host', 'miles',
+              ]
+
+    def get_success_url(self):
+        return reverse('events:list')
+
+    def get_form(self, form_class=None):
+        form = super().get_form(form_class)
+        form.instance.type = ScoreType.objects.filter(type='Evt').all()
+        return form
+
+    # def get_initial(self):
+    #     initial = super().get_initial()
+    #     print("INITIAL: ", initial)
+    #     initial = initial.copy()
+    #     initial['type'].queryset = ScoreType.objects.filter(type='Evt').all()
+    #     print("TYPES: ", initial['type'])
+    #     return initial
+
+    def form_valid(self, form):
+        form.instance.chapter = self.request.user.chapter
+        response = super().form_valid(form)
+        return response
 
 
 class EventRedirectView(LoginRequiredMixin, RedirectView):

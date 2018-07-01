@@ -10,6 +10,11 @@ urlpatterns = [
         name='list'
     ),
     url(
+        regex=r'^~add/$',
+        view=views.EventCreateView.as_view(),
+        name='add'
+    ),
+    url(
         regex=r'^~redirect/$',
         view=views.EventRedirectView.as_view(),
         name='redirect'
