@@ -3,6 +3,7 @@ from django.urls import reverse
 from django.views.generic import DetailView, UpdateView, RedirectView, CreateView
 from core.views import PagedFilteredTableView, RequestConfig
 from .models import Event
+from scores.models import ScoreType
 from .tables import EventTable
 from .filters import EventListFilter
 from .forms import EventListFormHelper
@@ -30,7 +31,7 @@ class EventCreateView(LoginRequiredMixin, CreateView):
 
     def get_form(self, form_class=None):
         form = super().get_form(form_class)
-        form.instance.type = ScoreType.objects.filter(type='Evt').all()
+        form.fields['type'].queryset = ScoreType.objects.filter(type='Evt').all()
         return form
 
     # def get_initial(self):
