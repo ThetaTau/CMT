@@ -34,14 +34,6 @@ class EventCreateView(LoginRequiredMixin, CreateView):
         form.fields['type'].queryset = ScoreType.objects.filter(type='Evt').all()
         return form
 
-    # def get_initial(self):
-    #     initial = super().get_initial()
-    #     print("INITIAL: ", initial)
-    #     initial = initial.copy()
-    #     initial['type'].queryset = ScoreType.objects.filter(type='Evt').all()
-    #     print("TYPES: ", initial['type'])
-    #     return initial
-
     def form_valid(self, form):
         form.instance.chapter = self.request.user.chapter
         response = super().form_valid(form)
@@ -72,7 +64,7 @@ class EventListView(LoginRequiredMixin, PagedFilteredTableView):
     slug_field = 'chapter'
     slug_url_kwarg = 'chapter'
     context_object_name = 'event'
-    ordering = ['date']
+    ordering = ['-date']
     table_class = EventTable
     filter_class = EventListFilter
     formhelper_class = EventListFormHelper
