@@ -267,7 +267,12 @@ SOCIALACCOUNT_ADAPTER = 'thetatauCMT.users.adapters.SocialAccountAdapter'
 # Your stuff...
 # ------------------------------------------------------------------------------
 GOOGLE_API_KEY = env('GOOGLE_API_KEY', default='')
+if not GOOGLE_API_KEY:
+    # Try and load from secrets file
+    with open("secrets/GOOGLE_API_KEY") as key_file:
+        GOOGLE_API_KEY = key_file.read()
 GOOGLE_DRIVE_STORAGE_JSON_KEY_FILE = env('GOOGLE_DRIVE_STORAGE_JSON_KEY_FILE', default='')
+print("GOOGLE_API_KEY: ", GOOGLE_API_KEY)
 
 SOCIALACCOUNT_QUERY_EMAIL=True
 # https://console.developers.google.com/apis/credentials?project=chaptermanagementtool&authuser=2
