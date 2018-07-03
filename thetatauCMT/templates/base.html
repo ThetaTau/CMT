@@ -55,6 +55,19 @@
           </ul>
           <ul class="nav navbar-nav ml-auto w-100 justify-content-end">
             {% if request.user.is_authenticated %}
+              <div class="dropdown-container">
+              <li>
+              <a class="nav-link dropdown-toggle" href="#" data-toggle="dropdown">{% trans "RegDir" %}</a>
+                <ul class="dropdown-menu">
+                  <li class="active dropdown-submenu">
+                    <a class="nav-link" href="{% url 'chapters:list' %}">{% trans "Chapters" %}</a>
+                  </li>
+                  <li class="active dropdown-submenu">
+                    <a class="nav-link" href="{% url 'regions:list' %}">{% trans "Regions" %}</a>
+                  </li>
+                </ul>
+              </li>
+              </div>
               <li class="nav-item">
                 {# URL provided by django-allauth/account/urls.py #}
                 <a class="nav-link" href="{% url 'users:detail' request.user.username  %}">{% trans "My Profile" %}</a>

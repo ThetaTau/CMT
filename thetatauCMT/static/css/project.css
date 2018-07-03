@@ -7,3 +7,14 @@
   background-color: #f2dede;
   border-color: #eed3d7;
   color: #b94a48; }
+
+.dropdown-container {
+  position: relative;
+}
+
+.dropdown-menu {
+  position: absolute;
+  top: 100%; /* Bottom of button */
+  right: 0;
+  margin-left: -100px; /* More to the left */
+}
