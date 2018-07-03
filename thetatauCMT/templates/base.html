@@ -54,8 +54,11 @@
             </li>
             {% if request.user.is_authenticated %}
               <li class="nav-item">
-              <a class="nav-link" href="{% url 'events:list' %}">Events</a>
-            </li>
+                <a class="nav-link" href="{% url 'events:list' %}">Events</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="{% url 'users:list' %}">Members</a>
+              </li>
             {% endif %}
           </ul>
           <ul class="nav navbar-nav ml-auto w-100 justify-content-end">
