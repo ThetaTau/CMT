@@ -4,6 +4,12 @@ from .models import User
 
 
 class UserTable(tables.Table):
+    # selection = tables.CheckBoxColumn(
+    #     accessor='pk',
+        # This does not work because of autocapitalization
+        # attrs={"th__input": {"onclick": "toggle(this)"}}
+        # https://www.sitepoint.com/quick-tip-persist-checkbox-checked-state-after-page-reload/
+    # )
     name = tables.LinkColumn('users:detail',
                              args=[A('username')])
     status = tables.Column(empty_values=(),
