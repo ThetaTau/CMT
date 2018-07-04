@@ -6,6 +6,8 @@ from django.db import migrations
 
 def load_scores(apps, schema_editor):
     score = apps.get_model("scores", "ScoreType")
+    # Sheet generated:
+    # https://docs.google.com/spreadsheets/d/1vCVKh8MExPxg8eHTEGYx7k-KTu9QUypGwbtfliLm58A/edit#gid=22474166
     with open(f'{os.path.split(__file__)[0]}/data_initial.csv', newline='') as csvfile:
         reader = csv.DictReader(csvfile)
         for id_obj, row in enumerate(reader):

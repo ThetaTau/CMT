@@ -39,3 +39,8 @@ class Event(TimeStampedModel):
         result = self.objects.filter(chapter=chapter)
         return result
 
+    # def save(self):
+    #     cal_score = self.type.calculate_score(self)
+    #     self.score = cal_score
+    #     super().save()
+
