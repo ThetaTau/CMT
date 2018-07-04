@@ -20,6 +20,7 @@ urlpatterns = [
     url(r'^regions/', include('regions.urls', namespace='regions')),
     url(r'^chapters/', include('chapters.urls', namespace='chapters')),
     url(r'^events/', include('events.urls', namespace='events')),
+    url(r'^scores/', include('scores.urls', namespace='scores')),
 
 
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
