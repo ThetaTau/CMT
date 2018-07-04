@@ -50,9 +50,15 @@ class EventRedirectView(LoginRequiredMixin, RedirectView):
 class EventUpdateView(LoginRequiredMixin, UpdateView):
     fields = ['name',
               # 'date',
+              'type',
               'description',
               'guests', 'duration', 'stem', 'host', 'miles']
     model = Event
+
+    def get_form(self, form_class=None):
+        form = super().get_form(form_class)
+        form.fields['type'].queryset = ScoreType.objects.filter(type='Evt').all()
+        return form
 
     def get_success_url(self):
         return reverse('events:list')
