@@ -20,7 +20,7 @@
                 <tr>
                     <th colspan="8">
                         <form method="get" class="form-inline form-search pull-right">
-{#                          {% csrf_token %}#}
+                          {% csrf_token %}
                           {% crispy filter.form filter.form.helper %}
                         </form>
                     </th>
