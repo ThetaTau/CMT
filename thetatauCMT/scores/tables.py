@@ -6,12 +6,17 @@ from .models import ScoreType
 class ScoreTable(tables.Table):
     name = tables.LinkColumn('scores:detail',
                              args=[A('pk')])
-    # score =
+    score = tables.Column(empty_values=(),
+                          verbose_name='Score')
     class Meta:
         model = ScoreType
         fields = ('name', 'description',
                   'section', 'points', 'type',
-                  # 'score',
+                  'score',
                   )
         attrs = {"class": "table-striped table-bordered"}
         empty_text = "There are no score types matching the search criteria..."
+
+    def render_score(self, record, bound_row, table):
+        score = record.chapter_score(self.request.user.chapter)
+        return score

@@ -1,5 +1,6 @@
 from enum import Enum
 from django.db import models
+from django.db.models import Sum
 from core.models import YearTermModel
 from chapters.models import Chapter
 
@@ -56,6 +57,26 @@ class ScoreType(models.Model):
 
     def __str__(self):
         return f"{self.name}"  # : {self.description}"
+
+    def chapter_score(self, chapter):
+        """
+        :param chapter:
+        :return: total (int)
+        """
+        total = 0
+        if self.type == "Evt":
+            # Filter events for chapter
+            events = self.events.filter(chapter=chapter).all()
+            total = events.aggregate(Sum('score'))['score__sum']
+        elif self.type == "Sub":
+            # Filter submissions for chapter
+            submissions = self.submissions.filter(chapter=chapter).all()
+            total = submissions.aggregate(Sum('score'))['score__sum']
+        elif self.type == "Spe":
+            pass
+        if total is None:
+            total = 0
+        return total
 
     def calculate_special(self, obj):
         formula_out = self.special

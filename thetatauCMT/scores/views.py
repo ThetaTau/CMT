@@ -44,7 +44,8 @@ class ScoreListView(LoginRequiredMixin, PagedFilteredTableView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        table = ScoreTable(self.get_queryset())
+        table = ScoreTable(data=self.get_queryset())
+        table.request = self.request
         RequestConfig(self.request, paginate={'per_page': 50}).configure(table)
         context['table'] = table
         return context
