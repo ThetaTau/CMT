@@ -37,12 +37,12 @@ class ScoreType(models.Model):
     points = models.PositiveIntegerField(
         default=0,
         help_text="Total number of points possible in year")
-    # term_points = models.PositiveIntegerField(
-    #     default=0,
-    #     help_text="Total number of points possible in term")
+    term_points = models.PositiveIntegerField(
+        default=0,
+        help_text="Total number of points possible in term")
     formula = models.CharField(max_length=200,
                                help_text="Formula for calculating score")
-    name_short = models.CharField(max_length=20)
+    slug = models.SlugField(unique=True)  # name_short
     type = models.CharField(
         max_length=3,
         choices=[x.value for x in TYPES]
@@ -50,9 +50,9 @@ class ScoreType(models.Model):
     base_points = models.FloatField(default=0)
     attendance_multiplier = models.FloatField(default=0)
     member_add = models.FloatField(default=0)
-    # stem_add = models.FloatField(default=0)
-    # alumni_add = models.FloatField(default=0)
-    # guest_add = models.FloatField(default=0)
+    stem_add = models.FloatField(default=0)
+    alumni_add = models.FloatField(default=0)
+    guest_add = models.FloatField(default=0)
     special = models.CharField(max_length=200)
 
     def __str__(self):
@@ -61,7 +61,7 @@ class ScoreType(models.Model):
     def chapter_score(self, chapter):
         """
         :param chapter:
-        :return: total (int)
+        :return: total (float)
         """
         total = 0
         if self.type == "Evt":

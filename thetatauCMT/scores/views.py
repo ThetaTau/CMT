@@ -11,8 +11,9 @@ from .forms import ScoreListFormHelper
 class ScoreDetailView(LoginRequiredMixin, DetailView):
     model = ScoreType
     # These next two lines tell the view to index lookups by chapter
-    slug_field = 'chapter'
-    slug_url_kwarg = 'chapter'
+    slug_field = 'slug'
+    slug_url_kwarg = 'slug'
+    template_name = 'scores/score_detail.html'
 
 
 class ScoreRedirectView(LoginRequiredMixin, RedirectView):
@@ -27,8 +28,8 @@ class ScoreListView(LoginRequiredMixin, PagedFilteredTableView):
     # These next two lines tell the view to index lookups by username
     model = ScoreType
     template_name = 'scores/score_list.html'
-    slug_field = 'chapter'
-    slug_url_kwarg = 'chapter'
+    slug_field = 'slug'
+    slug_url_kwarg = 'slug'
     context_object_name = 'event'
     ordering = ['name']
     table_class = ScoreTable

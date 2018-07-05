@@ -2,6 +2,7 @@
 import os
 import csv
 from django.db import migrations
+from django.utils.text import slugify
 
 
 def load_scores(apps, schema_editor):
@@ -17,23 +18,32 @@ def load_scores(apps, schema_editor):
                 description=row["description"],
                 section=row["section"],
                 points=int(row["points"]),
+                term_points=float(row["term points"]),
                 formula=row["formula"],
-                name_short=row["name_short"],
+                slug=slugify(row["name_short"]),
                 type=row["type"],
                 base_points=float(row["base_points"]),
                 attendance_multiplier=float(row["attendance_multiplier"]),
+                stem_add=float(row["stem_add"]),
                 member_add=float(row["member_add"]),
+                alumni_add=float(row["alumni_add"]),
+                guest_add=float(row["guest_add"]),
                 special=row["special"],
             )
             score_obj.save()
 
 
+def delete_all_scores(apps, schema_editor):
+    score = apps.get_model("scores", "ScoreType")
+    score.objects.all().delete()
+
+
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('scores', '0001_initial'),
+        ('scores', '0002_auto_20180705_0933'),
     ]
 
     operations = [
-        migrations.RunPython(load_scores),
+        migrations.RunPython(load_scores, delete_all_scores),
     ]

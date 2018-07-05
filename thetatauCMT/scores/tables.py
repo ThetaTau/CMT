@@ -5,7 +5,7 @@ from .models import ScoreType
 
 class ScoreTable(tables.Table):
     name = tables.LinkColumn('scores:detail',
-                             args=[A('pk')])
+                             args=[A('slug')])
     score = tables.Column(empty_values=(),
                           verbose_name='Score')
     class Meta:

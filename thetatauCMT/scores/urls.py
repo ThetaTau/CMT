@@ -15,7 +15,7 @@ urlpatterns = [
         name='redirect'
     ),
     url(
-        regex=r'^(?P<chapter>[\w.@+-]+)/$',
+        regex=r'^(?P<slug>[\w.@+-]+)/$',
         view=views.ScoreDetailView.as_view(),
         name='detail'
     ),
