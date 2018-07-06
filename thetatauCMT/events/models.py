@@ -54,10 +54,9 @@ class Event(TimeStampedModel):
 
     def save(self):
         self.slug = slugify(self.name)
+        cal_score = self.type.calculate_score(self)
+        self.score = cal_score
         super().save()
-    #     cal_score = self.type.calculate_score(self)
-    #     self.score = cal_score
-    #     super().save()
 
     def chapter_events(self, chapter):
         result = self.objects.filter(chapter=chapter)

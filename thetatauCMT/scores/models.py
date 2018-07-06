@@ -1,6 +1,6 @@
 from enum import Enum
 from django.db import models
-from django.db.models import Sum
+from django.db.models import Sum, Count
 from core.models import YearTermModel
 from chapters.models import Chapter
 
@@ -99,7 +99,12 @@ class ScoreType(models.Model):
         if 'MILES' in formula_out:
             formula_out.replace('MILES', obj.miles)
         if 'memberATT' in formula_out:
-            formula_out.replace('memberATT', 0)
+            actives = obj.chapter.get_actives_for_date(obj.date).count()
+            # obj.date  # get_semester
+            percent_attendance = 0
+            if actives:
+                percent_attendance = min(obj.members / actives, 1)
+            formula_out.replace('memberATT', percent_attendance)
         if 'MEETINGS' in formula_out:
             meeting_attend = obj.calculate_meeting_attendance()
             formula_out.replace('MEETINGS', meeting_attend)
@@ -112,17 +117,19 @@ class ScoreType(models.Model):
         # Some events have base points just for having event
         total_score += self.base_points
         if self.type == 'Evt':
-            # filter users for active/pnm
-            total_score += len(obj.users) * self.member_add
+            total_score += obj.members * self.member_add
+            actives = obj.chapter.get_actives_for_date(obj.date).count()
             # obj.date  # get_semester
-            percent_attendance = 0  # needs to be calculated
+            percent_attendance = 0
+            if actives:
+                percent_attendance = min(obj.members / actives, 1)
             attendance_points = percent_attendance * self.attendance_multiplier
             total_score += attendance_points
             # filter users for alumni
-            total_score += len(obj.users) * self.alumni_add
+            total_score += obj.alumni * self.alumni_add
             total_score += obj.guests * self.guest_add
             total_score += obj.stem * self.stem_add
-        return total_score
+        return round(total_score, 2)
 
 
 class ScoreChapter(YearTermModel):

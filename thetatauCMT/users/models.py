@@ -1,5 +1,4 @@
 import datetime
-from datetime import timedelta, time
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 from django.urls import reverse
@@ -8,13 +7,8 @@ from django.utils.translation import ugettext_lazy as _
 from django.core.validators import MinValueValidator, MaxValueValidator,\
     RegexValidator
 from address.models import AddressField
-from core.models import StartEndModel, YearTermModel
+from core.models import StartEndModel, YearTermModel, TODAY_END
 from chapters.models import Chapter
-
-TODAY = datetime.datetime.now().date()
-TOMORROW = TODAY + timedelta(1)
-TODAY_START = datetime.datetime.combine(TODAY, time())
-TODAY_END = datetime.datetime.combine(TOMORROW, time())
 
 
 class User(AbstractUser):

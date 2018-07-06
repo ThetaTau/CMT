@@ -1,6 +1,11 @@
 import datetime
+from datetime import timedelta, time
 from enum import Enum
 from django.db import models
+TODAY = datetime.datetime.now().date()
+TOMORROW = TODAY + timedelta(1)
+TODAY_START = datetime.datetime.combine(TODAY, time())
+TODAY_END = datetime.datetime.combine(TOMORROW, time())
 
 
 class TimeStampedModel(models.Model):

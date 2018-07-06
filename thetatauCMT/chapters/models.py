@@ -2,6 +2,7 @@ from django.db import models
 from address.models import AddressField
 from django.utils.translation import ugettext_lazy as _
 from django.utils.text import slugify
+from core.models import TODAY_END
 from regions.models import Region
 
 
@@ -35,3 +36,9 @@ class Chapter(models.Model):
     def save(self, *args, **kwargs):
         self.slug = slugify(self.name)
         super().save(*args, **kwargs)
+
+    def get_actives_for_date(self, date):
+        return self.members.filter(status__status="active",
+                                   status__start__lte=date,
+                                   status__end__gte=date
+                                   )
