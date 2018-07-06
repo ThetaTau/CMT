@@ -18,12 +18,12 @@ class EventDetailView(LoginRequiredMixin, DetailView):
 class EventCreateView(LoginRequiredMixin, CreateView):
     model = Event
     template_name_suffix = '_create_form'
-    # initial = {
-    #     'type': ScoreType.objects.filter(type='Evt').all()
-    # }
     fields = ['name',
-              'type', 'description',
-              'duration', 'stem', 'host', 'miles',
+              'date',
+              'type',
+              'description',
+              'members', 'pledges', 'alumni',
+              'guests', 'duration', 'stem', 'host', 'miles'
               ]
 
     def get_success_url(self):
@@ -49,9 +49,10 @@ class EventRedirectView(LoginRequiredMixin, RedirectView):
 
 class EventUpdateView(LoginRequiredMixin, UpdateView):
     fields = ['name',
-              # 'date',
+              'date',
               'type',
               'description',
+              'members', 'pledges', 'alumni',
               'guests', 'duration', 'stem', 'host', 'miles']
     model = Event
 
