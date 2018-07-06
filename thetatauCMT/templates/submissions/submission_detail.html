@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Submission: {{ object.name }}{% endblock %}
+
+{% block content %}
+<div class="container">
+
+  <div class="row">
+    <div class="col-sm-12">
+
+      <h2>{{ object.name }}</h2>
+      {% if object.name %}
+        <p>{{ object.name }}</p>
+        <p>{{ object.date }}</p>
+        <p>{{ object.type }}</p>
+        <p>{{ object.chapter }}</p>
+        <p>{{ object.score }}</p>
+        <p>{{ object.description }}</p>
+        <p>{{ object.duration }}</p>
+        <p>{{ object.stem }}</p>
+        <p>{{ object.host }}</p>
+        <p>{{ object.miles }}</p>
+      {% endif %}
+    </div>
+  </div>
+
+{% if object == request.user %}
+<!-- Action buttons -->
+<div class="row">
+
+  <div class="col-sm-12">
+    <a class="btn btn-primary" href="{% url 'users:update' %}" role="button">Update My Info</a>
+    <a class="btn btn-primary" href="{% url 'account_email' %}" role="button">Update E-Mail</a>
+    <!-- Your Stuff: Custom user template urls -->
+  </div>
+
+</div>
+<!-- End Action buttons -->
+{% endif %}
+
+
+</div>
+{% endblock content %}
+

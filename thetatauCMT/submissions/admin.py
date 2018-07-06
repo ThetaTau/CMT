@@ -2,4 +2,9 @@ from django.contrib import admin
 from .models import Submission
 # Register your models here.
 
-admin.site.register(Submission)
+class SubmissionAdmin(admin.ModelAdmin):
+    list_display = ('name', 'date', 'type', 'file')
+    list_filter = ['chapter', 'type']
+    ordering = ['date',]
+
+admin.site.register(Submission, SubmissionAdmin)

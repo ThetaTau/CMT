@@ -54,13 +54,16 @@
             </li>
             {% if request.user.is_authenticated %}
               <li class="nav-item">
-                <a class="nav-link" href="{% url 'events:list' %}">Events</a>
-              </li>
-              <li class="nav-item">
                 <a class="nav-link" href="{% url 'users:list' %}">Members</a>
               </li>
               <li class="nav-item">
                 <a class="nav-link" href="{% url 'scores:list' %}">Scores</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="{% url 'events:list' %}">Events</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="{% url 'submissions:list' %}">Submissions</a>
               </li>
             {% endif %}
           </ul>

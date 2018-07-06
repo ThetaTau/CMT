@@ -21,6 +21,7 @@ urlpatterns = [
     url(r'^chapters/', include('chapters.urls', namespace='chapters')),
     url(r'^events/', include('events.urls', namespace='events')),
     url(r'^scores/', include('scores.urls', namespace='scores')),
+    url(r'^submissions/', include('submissions.urls', namespace='submissions')),
 
 
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

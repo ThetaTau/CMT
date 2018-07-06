@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+
+{% block title %}{{ submission.name }}{% endblock %}
+
+{% block content %}
+  <h1>{{ submission.name }}</h1>
+  <form class="form-horizontal" enctype="multipart/form-data" action="" method="post" id="submission_form" novalidate>
+    {% csrf_token %}
+    {{ form|crispy }}
+    <div class="control-group">
+      <div class="controls">
+        <button type="submit" class="btn" value="Save">Save</button>
+      </div>
+    </div>
+  </form>
+{% endblock %}
