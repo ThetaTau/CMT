@@ -58,6 +58,9 @@ class ScoreType(models.Model):
     def __str__(self):
         return f"{self.name}"  # : {self.description}"
 
+    def chapter_events(self, chapter):
+        return self.events.filter(chapter=chapter).all()
+
     def chapter_score(self, chapter):
         """
         :param chapter:
@@ -66,7 +69,7 @@ class ScoreType(models.Model):
         total = 0
         if self.type == "Evt":
             # Filter events for chapter
-            events = self.events.filter(chapter=chapter).all()
+            events = self.chapter_events(chapter)
             total = events.aggregate(Sum('score'))['score__sum']
         elif self.type == "Sub":
             # Filter submissions for chapter

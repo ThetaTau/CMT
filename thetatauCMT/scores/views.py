@@ -4,6 +4,7 @@ from django.views.generic import DetailView, ListView, RedirectView
 from core.views import PagedFilteredTableView, RequestConfig
 from .models import ScoreType
 from .tables import ScoreTable
+from events.tables import EventTable
 from .filters import ScoreListFilter
 from .forms import ScoreListFormHelper
 
@@ -14,6 +15,14 @@ class ScoreDetailView(LoginRequiredMixin, DetailView):
     slug_field = 'slug'
     slug_url_kwarg = 'slug'
     template_name = 'scores/score_detail.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        chapter_events = context['object'].events.filter(chapter=self.request.user.chapter)
+        table = EventTable(data=chapter_events)
+        RequestConfig(self.request, paginate={'per_page': 50}).configure(table)
+        context['table'] = table
+        return context
 
 
 class ScoreRedirectView(LoginRequiredMixin, RedirectView):
