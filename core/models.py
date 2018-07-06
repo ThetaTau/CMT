@@ -7,6 +7,42 @@ TOMORROW = TODAY + timedelta(1)
 TODAY_START = datetime.datetime.combine(TODAY, time())
 TODAY_END = datetime.datetime.combine(TOMORROW, time())
 
+CHAPTER_OFFICER = {
+    "corresponding secretary",
+    "president",
+    "regent",
+    "scribe",
+    "secretary",
+    "treasurer",
+    "vice president",
+    "vice regent",
+}
+NATIONAL_OFFICER = {
+    'regional director',
+    'national director',
+    'national officer'
+}
+COMMITTEE_CHAIR = {
+    "alumni adviser",
+    "board member",
+    "committee chair",
+    "employer/ee",
+    "fundraising chair",
+    "house corporation president",
+    "other appointee",
+    "pd chair",
+    "pledge/new member educator",
+    "project chair",
+    "recruitment chair",
+    "risk management chair",
+    "rube goldberg chair",
+    "rush chair",
+    "scholarship chair",
+    "service chair",
+    "social/brotherhood chair",
+    "website/social media chair",
+}
+
 
 class TimeStampedModel(models.Model):
     """

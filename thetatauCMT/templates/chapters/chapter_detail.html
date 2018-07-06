@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% load static %}
-
+{% load render_table from django_tables2 %}
 {% block title %}Chapter: {{ object.name }}{% endblock %}
 
 {% block content %}
@@ -17,30 +17,9 @@
         <p>{{ object.facebook }}</p>
         <p>{{ object.slug }}</p>
       {% endif %}
-      {% for member in object.members.all %}
-      <a href="{% url 'users:detail' member.username %}" class="list-group-item">
-          <p>{{ member.name }} {{ member.get_current_role.role }}
-            {{ member.get_current_status.status.title }}</p>
-      </a>
-      {% endfor %}
+      {% render_table table %}
     </div>
   </div>
-
-{% if object == request.user %}
-<!-- Action buttons -->
-<div class="row">
-
-  <div class="col-sm-12">
-    <a class="btn btn-primary" href="{% url 'users:update' %}" role="button">Update My Info</a>
-    <a class="btn btn-primary" href="{% url 'account_email' %}" role="button">Update E-Mail</a>
-    <!-- Your Stuff: Custom user template urls -->
-  </div>
-
-</div>
-<!-- End Action buttons -->
-{% endif %}
-
-
 </div>
 {% endblock content %}
 

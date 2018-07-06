@@ -42,3 +42,8 @@ class Chapter(models.Model):
                                    status__start__lte=date,
                                    status__end__gte=date
                                    )
+
+    def get_current_officers(self):
+        return self.members.filter(roles__start__lte=TODAY_END,
+                                   roles__end__gte=TODAY_END
+                                   )

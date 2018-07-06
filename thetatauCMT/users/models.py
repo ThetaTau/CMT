@@ -113,41 +113,6 @@ class UserStatusChange(StartEndModel):
 
 
 class UserRoleChange(StartEndModel):
-    CHAPTER_OFFICER = {
-        "corresponding secretary",
-        "president",
-        "regent",
-        "scribe",
-        "secretary",
-        "treasurer",
-        "vice president",
-        "vice regent",
-    }
-    NATIONAL_OFFICER = {
-        'regional director',
-        'national director',
-        'national officer'
-    }
-    COMMITTEE_CHAIR = {
-        "alumni adviser",
-        "board member",
-        "committee chair",
-        "employer/ee",
-        "fundraising chair",
-        "house corporation president",
-        "other appointee",
-        "pd chair",
-        "pledge/new member educator",
-        "project chair",
-        "recruitment chair",
-        "risk management chair",
-        "rube goldberg chair",
-        "rush chair",
-        "scholarship chair",
-        "service chair",
-        "social/brotherhood chair",
-        "website/social media chair",
-    }
     user = models.ForeignKey(settings.AUTH_USER_MODEL,
                              on_delete=models.CASCADE,
                              related_name="roles")

@@ -49,10 +49,10 @@
             <li class="nav-item active">
               <a class="nav-link" href="{% url 'home' %}">Home <span class="sr-only">(current)</span></a>
             </li>
-            <li class="nav-item">
-              <a class="nav-link" href="{% url 'about' %}">About</a>
-            </li>
             {% if request.user.is_authenticated %}
+              <li class="nav-item">
+                <a class="nav-link" href="{% url 'chapters:detail' request.user.chapter.slug %}">Chapter</a>
+              </li>
               <li class="nav-item">
                 <a class="nav-link" href="{% url 'users:list' %}">Members</a>
               </li>
