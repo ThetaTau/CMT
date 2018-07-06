@@ -21,7 +21,7 @@ class Submission(TimeStampedModel):
     date = models.DateTimeField(default=timezone.now)
     file = models.FileField(upload_to=get_upload_path, storage=gd_storage)
     name = models.CharField(max_length=50)
-    # slug = models.SlugField(unique=False)
+    slug = models.SlugField(unique=False)
     type = models.ForeignKey(ScoreType, related_name="submissions",
                              on_delete=models.PROTECT)
     score = models.FloatField(default=0)
