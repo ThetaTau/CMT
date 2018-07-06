@@ -33,11 +33,9 @@ class Submission(TimeStampedModel):
 
     def save(self):
         self.slug = slugify(self.name)
+        cal_score = self.type.calculate_score(self)
+        self.score = cal_score
         super().save()
-        print("Done")
-    #     cal_score = self.type.calculate_score(self)
-    #     self.score = cal_score
-    #     super().save()
 
     def chapter_submissions(self, chapter):
         result = self.objects.filter(chapter=chapter)
