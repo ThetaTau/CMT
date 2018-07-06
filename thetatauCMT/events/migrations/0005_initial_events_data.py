@@ -2,7 +2,10 @@
 import os
 import datetime
 from time import sleep
+from django.db import transaction
 from django.utils import timezone
+from django.db.utils import IntegrityError
+from django.utils.text import slugify
 from django.db import migrations
 from django.conf import settings
 import gspread
@@ -119,6 +122,42 @@ CHAPTER_IDS = {
 }
 
 
+SHORT_NAMES = {
+    "old name_short": "name_short",
+    "Pledge Ratio": "Pledge Ratio",
+    "Pledge Program": "Pledge Program",
+    "Hall of Fame": "Hall of Fame",
+    "Newsletter": "Newsletter",
+    "Alumni-Active": "Alumni Active",
+    "Report": "Report",
+    "Convention/Leadership": "Conference",
+    "Meetings": "Meetings",
+    "Regionals": "Regionals",
+    "Social Misc": "Brotherhood",
+    "Campus ProDev": "Prodev Campus",
+    "Awards": "Awards",
+    "GPA": "GPA",
+    "Project": "Project",
+    "Service Hours": "Service Hours",
+    "Service Project": "Service Project",
+    "Audit": "Audit",
+    "Article": "Article",
+    "Lock-In Goals": "Lockin Goals",
+    "Habitat for Humanity": "Habitat",
+    "Societies": "Societies",
+    "Inter-chapter": "Interchapter",
+    "Joint ProDev": "Prodev Joint",
+    "Lock-In & Goals": "Lockin",
+    "Membership": "Membership",
+    "Misc": "Misc",
+    "OSM": "OSM",
+    "ProDev Chapter": "Prodev Chapter",
+    "ProDev Open": "Prodev Open",
+    "RMP": "RMP",
+    "Scholarship App": "Scholarship App",
+}
+
+
 def get_all_chapter_events(apps, schema_editor):
     for chapter_name, chapter_info in CHAPTER_IDS.items():
         print(chapter_name)
@@ -146,16 +185,19 @@ def get_chapter_data(chapter_name, chapter_key, apps):
 
 
 def add_event(chapter_obj, event_row, apps):
-    print("    ", event_row)
+    # print("    ", event_row)
     score_type = apps.get_model("scores", "ScoreType")
     event = apps.get_model("events", "Event")
     event_type = event_row['Type']
     if 'Habitat' in event_type:
         event_type = 'Habitat'
-    if 'Convention/Leadership' in event_type:
+    elif 'Convention/Leadership' in event_type:
         event_type = 'Conference'
-    if not event_type:
+    elif not event_type:
         return
+    else:
+        event_type = SHORT_NAMES.get(event_type, event_type)
+    event_type = slugify(event_type)
     score_obj = 0
     if event_row['Score']:
         try:
@@ -180,6 +222,24 @@ def add_event(chapter_obj, event_row, apps):
             miles_obj = int(event_row['MILES'])
         except ValueError:
             print(f"ERROR: Miles value {event_row['MILES']}")
+    members_obj = 0
+    if event_row['# Members']:
+        try:
+            members_obj = int(event_row['# Members'])
+        except ValueError:
+            print(f"ERROR: members value {event_row['# Members']}")
+    pledges_obj = 0
+    if event_row['# Pledges']:
+        try:
+            pledges_obj = int(event_row['# Pledges'])
+        except ValueError:
+            print(f"ERROR: pledges value {event_row['# Pledges']}")
+    alumni_obj = 0
+    if event_row['# Alumni']:
+        try:
+            alumni_obj = int(event_row['# Alumni'])
+        except ValueError:
+            print(f"ERROR: alumni value {event_row['# Alumni']}")
     if not event_row['Date']:
         return
     if event_row['Date']:
@@ -194,6 +254,7 @@ def add_event(chapter_obj, event_row, apps):
                 try:
                     date_obj = datetime.datetime.strptime(event_row['Date'],
                                                           '%m/%d')
+                    date_obj = date_obj.replace(year=2018)
                 except ValueError:
                     try:
                         date_obj = datetime.datetime.strptime(event_row['Date'],
@@ -209,20 +270,23 @@ def add_event(chapter_obj, event_row, apps):
                             except ValueError:
                                 date_obj = datetime.datetime.strptime(event_row['Date'],
                                                                       '%m-%d-%y')
-    score_type_obj = score_type.objects.get(name_short=event_type)
+    score_type_obj = score_type.objects.get(slug=event_type)
     # event_id = 0
+    name_obj = event_row['Event Name'][0:50]
+    print(name_obj, date_obj, "Should be: ", event_row['Date'])
     new_event = event(
-        name=event_row['Event Name'][0:50],
+        name=name_obj,
         date=date_obj,
+        slug=slugify(name_obj),
         created=timezone.now(),
         modified=timezone.now(),
         type=score_type_obj,
         chapter=chapter_obj,
         score=score_obj,
         description=event_row['Description'][0:200],
-        # '# Members'
-        # '# Pledges'
-        # '# Alumni'
+        members=members_obj,
+        alumni=alumni_obj,
+        pledges=pledges_obj,
         # users = models.ManyToManyField(settings.AUTH_USER_MODEL,
         # Number of non members
         guests=guests_obj,
@@ -231,7 +295,12 @@ def add_event(chapter_obj, event_row, apps):
         host=event_row['HOST'] == "Yes",  # True/False
         miles=miles_obj
     )
-    new_event.save()
+    try:
+        with transaction.atomic():
+            new_event.save()
+    except IntegrityError as e:
+        print("EVENT ALREADY EXISTS", str(e))
+        # new_event.delete()
 
 
 def migrate_data_backward(apps, schema_editor):
@@ -242,9 +311,9 @@ def migrate_data_backward(apps, schema_editor):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('events', '0002_auto_20180614_1127'),
+        ('events', '0004_auto_20180705_1238'),
         ('chapters', '0005_chapter_slug'),
-        ('scores', '0002_initial_scores_data'),
+        ('scores', '0003_initial_scores_data'),
     ]
 
     operations = [
