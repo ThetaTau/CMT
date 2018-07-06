@@ -1,9 +1,8 @@
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.urls import reverse
 from django.views.generic import DetailView, UpdateView, RedirectView, CreateView
-from core.views import PagedFilteredTableView, RequestConfig
+from core.views import PagedFilteredTableView, RequestConfig, TypeFieldFilteredChapterAdd
 from .models import Submission
-from scores.models import ScoreType
 from .tables import SubmissionTable
 from .filters import SubmissionListFilter
 from .forms import SubmissionListFormHelper
@@ -15,8 +14,10 @@ class SubmissionDetailView(LoginRequiredMixin, DetailView):
     slug_url_kwarg = 'slug'
 
 
-class SubmissionCreateView(LoginRequiredMixin, CreateView):
+class SubmissionCreateView(LoginRequiredMixin, CreateView,
+                           TypeFieldFilteredChapterAdd):
     model = Submission
+    score_type = 'Sub'
     template_name_suffix = '_create_form'
     fields = ['name', 'date',
               'type', 'file',
@@ -24,16 +25,6 @@ class SubmissionCreateView(LoginRequiredMixin, CreateView):
 
     def get_success_url(self):
         return reverse('submissions:list')
-
-    def get_form(self, form_class=None):
-        form = super().get_form(form_class)
-        form.fields['type'].queryset = ScoreType.objects.filter(type='Sub').all()
-        return form
-
-    def form_valid(self, form):
-        form.instance.chapter = self.request.user.chapter
-        response = super().form_valid(form)
-        return response
 
 
 class SubmissionRedirectView(LoginRequiredMixin, RedirectView):
@@ -43,18 +34,14 @@ class SubmissionRedirectView(LoginRequiredMixin, RedirectView):
         return reverse('submissions:list')
 
 
-class SubmissionUpdateView(LoginRequiredMixin, UpdateView):
+class SubmissionUpdateView(LoginRequiredMixin, UpdateView,
+                           TypeFieldFilteredChapterAdd):
     fields = ['name',
               'date',
               'type',
               'file',
               ]
     model = Submission
-
-    def get_form(self, form_class=None):
-        form = super().get_form(form_class)
-        form.fields['type'].queryset = ScoreType.objects.filter(type='Sub').all()
-        return form
 
     def get_success_url(self):
         return reverse('submissions:list')

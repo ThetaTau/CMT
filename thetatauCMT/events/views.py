@@ -1,9 +1,8 @@
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.urls import reverse
 from django.views.generic import DetailView, UpdateView, RedirectView, CreateView
-from core.views import PagedFilteredTableView, RequestConfig
+from core.views import PagedFilteredTableView, RequestConfig, TypeFieldFilteredChapterAdd
 from .models import Event
-from scores.models import ScoreType
 from .tables import EventTable
 from .filters import EventListFilter
 from .forms import EventListFormHelper
@@ -15,7 +14,8 @@ class EventDetailView(LoginRequiredMixin, DetailView):
     slug_url_kwarg = 'chapter'
 
 
-class EventCreateView(LoginRequiredMixin, CreateView):
+class EventCreateView(LoginRequiredMixin, CreateView,
+                      TypeFieldFilteredChapterAdd):
     model = Event
     template_name_suffix = '_create_form'
     fields = ['name',
@@ -29,16 +29,6 @@ class EventCreateView(LoginRequiredMixin, CreateView):
     def get_success_url(self):
         return reverse('events:list')
 
-    def get_form(self, form_class=None):
-        form = super().get_form(form_class)
-        form.fields['type'].queryset = ScoreType.objects.filter(type='Evt').all()
-        return form
-
-    def form_valid(self, form):
-        form.instance.chapter = self.request.user.chapter
-        response = super().form_valid(form)
-        return response
-
 
 class EventRedirectView(LoginRequiredMixin, RedirectView):
     permanent = False
@@ -47,7 +37,8 @@ class EventRedirectView(LoginRequiredMixin, RedirectView):
         return reverse('events:list')
 
 
-class EventUpdateView(LoginRequiredMixin, UpdateView):
+class EventUpdateView(LoginRequiredMixin, UpdateView,
+                      TypeFieldFilteredChapterAdd):
     fields = ['name',
               'date',
               'type',
@@ -55,11 +46,6 @@ class EventUpdateView(LoginRequiredMixin, UpdateView):
               'members', 'pledges', 'alumni',
               'guests', 'duration', 'stem', 'host', 'miles']
     model = Event
-
-    def get_form(self, form_class=None):
-        form = super().get_form(form_class)
-        form.fields['type'].queryset = ScoreType.objects.filter(type='Evt').all()
-        return form
 
     def get_success_url(self):
         return reverse('events:list')
