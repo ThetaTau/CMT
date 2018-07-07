@@ -1,3 +1,4 @@
+from django.conf import settings
 import django_tables2 as tables
 from django_tables2.utils import A
 from .models import User
@@ -12,7 +13,7 @@ class UserTable(tables.Table):
                          verbose_name='Role')
 
     class Meta:
-        model = User
+        model = settings.AUTH_USER_MODEL
         fields = ('name', 'badge_number',
                   'major', 'graduation_year', 'phone_number',
                   'status', 'role')
@@ -20,9 +21,7 @@ class UserTable(tables.Table):
         empty_text = "There are no members matching the search criteria..."
 
     def render_status(self, record):
-        if record.status.exists():
-            return record.get_current_status()
+        return record.get_current_status()
 
     def render_role(self, record):
-        if record.status.exists():
-            return record.get_current_role()
+        return record.get_current_role()

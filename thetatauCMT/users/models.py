@@ -11,6 +11,15 @@ from core.models import StartEndModel, YearTermModel, TODAY_END
 from chapters.models import Chapter
 
 
+# class UserSet(models.QuerySet):
+#     def add_current_status(self):
+#         current_status = self.filter(
+#                 status__start__lte=TODAY_END,
+#                 status__end__gte=TODAY_END)
+#         return self.annotate(
+#             current_status=models.Subquery(current_status))
+
+
 class User(AbstractUser):
     # First Name and Last Name do not cover name patterns
     # around the globe.
@@ -37,7 +46,7 @@ class User(AbstractUser):
     chapter = models.ForeignKey(Chapter, on_delete=models.CASCADE,
                                 default=1,
                                 related_name="members")
-
+    # objects = UserSet.as_manager()
     def save(self, *args, **kwargs):
         if not self.id:
             # Newly created object, so set user_id
@@ -117,6 +126,7 @@ class UserRoleChange(StartEndModel):
                              on_delete=models.CASCADE,
                              related_name="roles")
     role = models.CharField(max_length=50)
+
     def __str__(self):
         return self.role
 
