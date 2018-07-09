@@ -1,15 +1,15 @@
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.urls import reverse
-from django.views.generic import DetailView, ListView, RedirectView, UpdateView
+from django.conf import settings
+from django.views.generic import DetailView, FormView, RedirectView, UpdateView
 from core.views import PagedFilteredTableView, RequestConfig
-from .models import User
 from .tables import UserTable
 from .filters import UserListFilter
-from .forms import UserListFormHelper
+from .forms import UserListFormHelper, InitiationForm
 
 
 class UserDetailView(LoginRequiredMixin, DetailView):
-    model = User
+    model = settings.AUTH_USER_MODEL
     # These next two lines tell the view to index lookups by username
     slug_field = 'username'
     slug_url_kwarg = 'username'
@@ -28,7 +28,7 @@ class UserUpdateView(LoginRequiredMixin, UpdateView):
     fields = ['name', 'chapter', 'major', 'graduation_year', 'phone_number', 'address']
 
     # we already imported User in the view code above, remember?
-    model = User
+    model = settings.AUTH_USER_MODEL
 
     # send the user back to their own page after a successful update
     def get_success_url(self):
@@ -41,7 +41,7 @@ class UserUpdateView(LoginRequiredMixin, UpdateView):
 
 
 class UserListView(LoginRequiredMixin, PagedFilteredTableView):
-    model = User
+    model = settings.AUTH_USER_MODEL
     # These next two lines tell the view to index lookups by username
     slug_field = 'username'
     slug_url_kwarg = 'username'
