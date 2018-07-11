@@ -84,6 +84,7 @@ LOCAL_APPS = [
     'thetatauCMT.regions.apps.RegionsConfig',
     'thetatauCMT.scores.apps.ScoresConfig',
     'thetatauCMT.submissions.apps.SubmissionsConfig',
+    'thetatauCMT.forms.apps.FormsConfig',
 ]
 # https://docs.djangoproject.com/en/dev/ref/settings/#installed-apps
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS

@@ -22,6 +22,7 @@ urlpatterns = [
     url(r'^events/', include('events.urls', namespace='events')),
     url(r'^scores/', include('scores.urls', namespace='scores')),
     url(r'^submissions/', include('submissions.urls', namespace='submissions')),
+    url(r'^forms/', include('forms.urls', namespace='forms')),
 
 
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

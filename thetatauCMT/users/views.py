@@ -1,11 +1,11 @@
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.urls import reverse
 from django.conf import settings
-from django.views.generic import DetailView, FormView, RedirectView, UpdateView
+from django.views.generic import DetailView, RedirectView, UpdateView
 from core.views import PagedFilteredTableView, RequestConfig
 from .tables import UserTable
 from .filters import UserListFilter
-from .forms import UserListFormHelper, InitiationForm
+from .forms import UserListFormHelper
 
 
 class UserDetailView(LoginRequiredMixin, DetailView):
