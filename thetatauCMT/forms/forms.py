@@ -5,9 +5,29 @@ from tempus_dominus.widgets import DatePicker
 from .models import Initiation
 
 
-class InitiationForm(ModelForm):
-    user = ModelChoiceField(queryset=[], disabled=True)
-    # roll = DecimalField(widget=NumberInput(attrs={'class': 'col-lg-15'}))
+class InitDeplSelectForm(forms.Form):
+    user = forms.ModelChoiceField(queryset=Initiation.objects.none(), disabled=True)
+    state = forms.ChoiceField(choices=[('Initiate', 'Initiate'),
+                                       ('Depledge', 'Depledge'),
+                                       ('Defer', 'Defer')])
+
+
+class InitDeplSelectFormHelper(FormHelper):
+    template = 'bootstrap4/table_inline_formset.html'
+    form_show_errors = True
+    help_text_inline = False
+    html5_required = True
+    layout = Layout(
+        'user',
+        'state',
+    )
+
+
+class InitiationForm(forms.ModelForm):
+    user = forms.ModelChoiceField(queryset=[], disabled=True)
+    date_graduation = forms.DateField(widget=DatePicker(
+                                      options={"format": "M/YYYY",}
+                                      ))
 
     class Meta:
         model = Initiation

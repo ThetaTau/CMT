@@ -14,6 +14,11 @@ urlpatterns = [
         view=views.InitiationView.as_view(),
         name='initiation'
     ),
+    url(
+        regex=r'^~initiation-selection/$',
+        view=views.InitDeplSelectView.as_view(),
+        name='init_selection'
+    ),
     # url(
     #     regex=r'^~status-change/$',
     #     view=views.StatusChangeView.as_view(),
