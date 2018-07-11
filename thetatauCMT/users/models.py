@@ -55,7 +55,7 @@ class User(AbstractUser):
         super(User, self).save(*args, **kwargs)
 
     def __str__(self):
-        return self.username
+        return self.name
 
     def get_absolute_url(self):
         return reverse('users:detail',

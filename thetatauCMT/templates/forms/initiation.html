@@ -3,9 +3,10 @@
 {% load crispy_forms_tags %}
 {% load crispy_forms_utils %}
 {% load crispy_forms_field %}
-
 {% block title %}Initiation Report{{ object.name }}{% endblock %}
 {% block content %}
+  {{ formset.media }}
+  {{ form.media }}
 {% specialspaceless %}
   <form action="" method="post">
     {% csrf_token %}
@@ -18,8 +19,6 @@
             {% if formset.readonly and not formset.queryset.exists %}
             {% else %}
                 <tr>
-{#                    {% for field in formset.forms.0 %}#}
-{#                        {% if field.label and not field|is_checkbox and not field.is_hidden %}#}
                   <th class="requiredField" style="width: 20%">User<span class="asteriskField">*</span></th>
                     <th class="requiredField" style="width: 10%">Date Graduation<span class="asteriskField">*</span></th>
                   <th class="requiredField" style="width: 8%">Roll<span class="asteriskField">*</span></th>
@@ -28,8 +27,6 @@
                   <th class="requiredField" style="width: 7%">Test B<span class="asteriskField">*</span></th>
                   <th class="requiredField" style="width: 17%">Badge<span class="asteriskField">*</span></th>
                   <th class="requiredField" style="width: 17%">Guard<span class="asteriskField">*</span></th>
-{#                        {% endif %}#}
-{#                    {% endfor %}#}
                 </tr>
             {% endif %}
         </thead>
@@ -40,7 +37,6 @@
                     {% include 'bootstrap4/field.html' with tag="td" form_show_labels=False %}
                 {% endfor %}
             </tr>
-
             {% for form in formset %}
                 {% if form_show_errors and not form.is_extra %}
                     {% include "bootstrap4/errors.html" %}
@@ -48,7 +44,15 @@
 
                 <tr>
                     {% for field in form %}
+                      {% if field.label == "Date graduation" %}
+                        <td>
+                        <div style="position: relative">
+                          {% crispy_field field %}
+                        </div>
+                        </td>
+                      {% else %}
                         {% include 'bootstrap4/field.html' with tag="td" form_show_labels=False %}
+                      {% endif %}
                     {% endfor %}
                 </tr>
             {% endfor %}
@@ -58,4 +62,3 @@
   </form>
 {% endspecialspaceless %}
 {% endblock content %}
-
