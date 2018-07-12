@@ -32,7 +32,7 @@ class InitDeplSelectFormHelper(FormHelper):
 class InitiationForm(forms.ModelForm):
     user = SetUserField(disabled=True)  # forms.ModelChoiceField(queryset=Initiation.objects.none(), disabled=True)
     date_graduation = forms.DateField(widget=DatePicker(
-                                      options={"format": "M/YYYY",},
+                                      options={"format": "M/YYYY"},
                                       attrs={'autocomplete': 'off'}
                                       ))
 
@@ -46,7 +46,8 @@ class InitiationForm(forms.ModelForm):
 
     def clean_user(self):
         data = self.cleaned_data['user']
-        return data
+        user = User.objects.filter(name=data).first()
+        return user.pk
 
     def clean_date_graduation(self):
         data = self.cleaned_data['Graduation date']
@@ -63,6 +64,7 @@ class InitiationFormHelper(FormHelper):
     form_show_errors = True
     help_text_inline = False
     html5_required = True
+    form_tag = False
     layout = Layout(
         'user',
         'date_graduation',
@@ -77,7 +79,8 @@ class InitiationFormHelper(FormHelper):
 
 class DepledgeForm(forms.ModelForm):
     user = SetUserField(disabled=True)  # forms.ModelChoiceField(queryset=Depledge.objects.none(), disabled=True)
-    date = forms.DateField(widget=DatePicker(options={"format": "M/DD/YYYY",}))
+    date = forms.DateField(widget=DatePicker(options={"format": "M/DD/YYYY"},
+                                             attrs={'autocomplete': 'off'}))
 
     class Meta:
         model = Depledge
@@ -101,6 +104,7 @@ class DepledgeFormHelper(FormHelper):
     form_show_errors = True
     help_text_inline = False
     html5_required = True
+    form_tag = False
     layout = Layout(
         'user',
         'reason',

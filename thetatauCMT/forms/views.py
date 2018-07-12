@@ -49,7 +49,6 @@ class InitDeplSelectView(LoginRequiredMixin, FormSetView):
 class InitiationView(LoginRequiredMixin, FormView):
     form_class = InitiationForm
     template_name = "forms/initiation.html"
-    # factory_kwargs = {'extra': 0}
     to_initiate = []
     to_depledge = []
     to_defer = []
@@ -103,10 +102,12 @@ class InitiationView(LoginRequiredMixin, FormView):
         initiate = request.session.get('init-selection', None)
         self.initial_info(initiate)
         formset = InitiationFormSet(request.POST, request.FILES, prefix='initiates')
+        formset.initial = [{'user': user.name} for user in self.to_initiate]
         depledge_formset = DepledgeFormSet(request.POST, request.FILES, prefix='depledges')
         if not formset.is_valid() or not depledge_formset.is_valid():
             return self.render_to_response(self.get_context_data(formset=formset,
-                                                                 depledge_formset=depledge_formset))
+                                                                 depledge_formset=depledge_formset
+                                                                 ))
         return super().post(request, *args, **kwargs)
 
     def form_valid(self, form):
