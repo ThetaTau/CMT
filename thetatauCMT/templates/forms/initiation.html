@@ -12,11 +12,10 @@
     <div>
         {{ formset.management_form|crispy }}
     </div>
-{#    {% crispy formset helper %}#}
+{% if formset.initial %}
+  <h2> Initiation Form:</h2>
   <table{% if form_id %} id="{{ form_id }}_table"{% endif%} class="table table-striped table-sm">
         <thead>
-            {% if formset.readonly and not formset.queryset.exists %}
-            {% else %}
                 <tr>
                   <th class="requiredField" style="width: 20%">User<span class="asteriskField">*</span></th>
                     <th class="requiredField" style="width: 10%">Date Graduation<span class="asteriskField">*</span></th>
@@ -27,9 +26,7 @@
                   <th class="requiredField" style="width: 17%">Badge<span class="asteriskField">*</span></th>
                   <th class="requiredField" style="width: 17%">Guard<span class="asteriskField">*</span></th>
                 </tr>
-            {% endif %}
         </thead>
-
         <tbody>
             <tr class="d-none empty-form">
                 {% for field in formset.empty_form %}
@@ -61,21 +58,20 @@
             {% endfor %}
         </tbody>
     </table>
-
+{% endif %}
 {#  DEPLEDGE TABLE FORM#}
   <div>
       {{ depledge_formset.management_form|crispy }}
     </div>
+{% if depledge_formset.initial %}
+  <h2> Depledge Form:</h2>
   <table{% if form_id %} id="{{ form_id }}_table"{% endif%} class="table table-striped table-sm">
         <thead>
-            {% if depledge_formset.readonly and not depledge_formset.queryset.exists %}
-            {% else %}
                 <tr>
                   <th class="requiredField" style="width: 20%">User<span class="asteriskField">*</span></th>
                     <th class="requiredField" style="width: 20%">Reason<span class="asteriskField">*</span></th>
                   <th class="requiredField" style="width: 8%">Date<span class="asteriskField">*</span></th>
                 </tr>
-            {% endif %}
         </thead>
 
         <tbody>
@@ -109,6 +105,7 @@
             {% endfor %}
         </tbody>
     </table>
+{% endif %}
   <input type="submit" value="Submit">
   </form>
 {% endspecialspaceless %}
