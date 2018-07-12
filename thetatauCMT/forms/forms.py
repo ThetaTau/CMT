@@ -31,10 +31,11 @@ class InitDeplSelectFormHelper(FormHelper):
 
 class InitiationForm(forms.ModelForm):
     user = SetUserField(disabled=True)  # forms.ModelChoiceField(queryset=Initiation.objects.none(), disabled=True)
-    date_graduation = forms.DateField(widget=DatePicker(
-                                      options={"format": "M/YYYY"},
-                                      attrs={'autocomplete': 'off'}
-                                      ))
+    date_graduation = forms.DateField(
+        # input_formats=["%m/%Y"],
+        widget=DatePicker(options={"format": "M/DD/YYYY"},
+                          attrs={'autocomplete': 'off'},
+                          ))
 
     class Meta:
         model = Initiation
@@ -49,9 +50,6 @@ class InitiationForm(forms.ModelForm):
         user = User.objects.filter(name=data).first()
         return user.pk
 
-    def clean_date_graduation(self):
-        data = self.cleaned_data['Graduation date']
-        return data
 
 
 InitiationFormSet = forms.formset_factory(InitiationForm, extra=0)
@@ -80,7 +78,8 @@ class InitiationFormHelper(FormHelper):
 class DepledgeForm(forms.ModelForm):
     user = SetUserField(disabled=True)  # forms.ModelChoiceField(queryset=Depledge.objects.none(), disabled=True)
     date = forms.DateField(widget=DatePicker(options={"format": "M/DD/YYYY"},
-                                             attrs={'autocomplete': 'off'}))
+                                             attrs={'autocomplete': 'off'},
+                                             ))
 
     class Meta:
         model = Depledge

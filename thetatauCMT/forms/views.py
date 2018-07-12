@@ -67,19 +67,8 @@ class InitiationView(LoginRequiredMixin, FormView):
             self.initial_info(initiate)
             return super().get(request, *args, **kwargs)
 
-    # def get_formset(self):
-    #     formset = super().get_formset()
-    #     # formset.form.base_fields['user'].queryset = self.to_initiate
-    #     formset.empty_form = []
-    #     return formset
-
-    # def get_initial(self):
-    #     initial = [{'user': user.name} for user in self.to_initiate]
-    #     return initial
-
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        # helper.add_input(Submit("submit", "Save"))
         formset = kwargs.get('formset', None)
         if formset is None:
             formset = InitiationFormSet(prefix='initiates')
@@ -88,14 +77,10 @@ class InitiationView(LoginRequiredMixin, FormView):
         context['helper'] = InitiationFormHelper()
         depledge_formset = kwargs.get('depledge_formset', None)
         if depledge_formset is None:
-            depledge_formset = InitiationFormSet(
-                prefix='initiates')
             depledge_formset = DepledgeFormSet(prefix='depledges')
         depledge_formset.initial = [{'user': user.name} for user in self.to_depledge]
-        # depledge_formset.form.base_fields['user'].queryset = self.to_depledge
         context['depledge_formset'] = depledge_formset
         context['depledge_helper'] = DepledgeFormHelper()
-        # context['formset'].initial = [{'user': user.name} for user in self.to_initiate]
         return context
 
     def post(self, request, *args, **kwargs):
