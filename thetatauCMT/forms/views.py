@@ -102,10 +102,11 @@ class InitiationView(LoginRequiredMixin, FormView):
             return self.render_to_response(self.get_context_data(formset=formset,
                                                                  depledge_formset=depledge_formset
                                                                  ))
-        return super().post(request, *args, **kwargs)
+        for form in formset:
+            form.save()
+        for form in depledge_formset:
+            form.save()
+        return HttpResponseRedirect(self.get_success_url())
 
-    def form_valid(self, form):
-        return super().formset_valid(form)
-
-    def form_invalid(self, form):
-        return super().formset_invalid(form)
+    def get_success_url(self):
+        return reverse('home')
