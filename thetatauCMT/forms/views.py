@@ -1,11 +1,12 @@
 from copy import deepcopy
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.urls import reverse
+from django.views.generic.edit import FormView
 from django.shortcuts import redirect
 from crispy_forms.layout import Submit
 from extra_views import FormSetView
-from .forms import InitiationForm, InitiationFormHelper, InitDeplSelectForm,\
-    InitDeplSelectFormHelper
+from .forms import InitiationFormSet, InitiationForm, InitiationFormHelper, InitDeplSelectForm,\
+    InitDeplSelectFormHelper, DepledgeFormSet, DepledgeFormHelper
 
 
 class InitDeplSelectView(LoginRequiredMixin, FormSetView):
@@ -45,38 +46,71 @@ class InitDeplSelectView(LoginRequiredMixin, FormSetView):
         return reverse('forms:initiation')
 
 
-class InitiationView(LoginRequiredMixin, FormSetView):
+class InitiationView(LoginRequiredMixin, FormView):
     form_class = InitiationForm
     template_name = "forms/initiation.html"
-    factory_kwargs = {'extra': 0}
+    # factory_kwargs = {'extra': 0}
     to_initiate = []
     to_depledge = []
     to_defer = []
+
+    def initial_info(self, initiate):
+        pledges = self.request.user.chapter.get_pledges()
+        self.to_initiate = pledges.filter(pk__in=initiate['Initiate'])
+        self.to_depledge = pledges.filter(pk__in=initiate['Depledge'])
+        self.to_defer = pledges.filter(pk__in=initiate['Defer'])
 
     def get(self, request, *args, **kwargs):
         initiate = request.session.get('init-selection', None)
         if initiate is None:
             return redirect('forms:init_selection')
         else:
-            pledges = self.request.user.chapter.get_pledges()
-            self.to_initiate = pledges.filter(pk__in=initiate['Initiate'])
-            self.to_depledge = pledges.filter(pk__in=initiate['Depledge'])
-            self.to_defer = pledges.filter(pk__in=initiate['Defer'])
+            self.initial_info(initiate)
             return super().get(request, *args, **kwargs)
 
-    def get_formset(self):
-        formset = super().get_formset()
-        formset.form.base_fields['user'].queryset = self.to_initiate
-        formset.empty_form = []
-        return formset
+    # def get_formset(self):
+    #     formset = super().get_formset()
+    #     # formset.form.base_fields['user'].queryset = self.to_initiate
+    #     formset.empty_form = []
+    #     return formset
 
-    def get_initial(self):
-        initial = [{'user': user.pk} for user in self.to_initiate]
-        return initial
+    # def get_initial(self):
+    #     initial = [{'user': user.name} for user in self.to_initiate]
+    #     return initial
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        helper = InitiationFormHelper()
-        helper.add_input(Submit("submit", "Save"))
-        context['helper'] = helper
+        # helper.add_input(Submit("submit", "Save"))
+        formset = kwargs.get('formset', None)
+        if formset is None:
+            formset = InitiationFormSet(prefix='initiates')
+        formset.initial = [{'user': user.name} for user in self.to_initiate]
+        context['formset'] = formset
+        context['helper'] = InitiationFormHelper()
+        depledge_formset = kwargs.get('depledge_formset', None)
+        if depledge_formset is None:
+            depledge_formset = InitiationFormSet(
+                prefix='initiates')
+            depledge_formset = DepledgeFormSet(prefix='depledges')
+        depledge_formset.initial = [{'user': user.name} for user in self.to_depledge]
+        # depledge_formset.form.base_fields['user'].queryset = self.to_depledge
+        context['depledge_formset'] = depledge_formset
+        context['depledge_helper'] = DepledgeFormHelper()
+        # context['formset'].initial = [{'user': user.name} for user in self.to_initiate]
         return context
+
+    def post(self, request, *args, **kwargs):
+        initiate = request.session.get('init-selection', None)
+        self.initial_info(initiate)
+        formset = InitiationFormSet(request.POST, request.FILES, prefix='initiates')
+        depledge_formset = DepledgeFormSet(request.POST, request.FILES, prefix='depledges')
+        if not formset.is_valid() or not depledge_formset.is_valid():
+            return self.render_to_response(self.get_context_data(formset=formset,
+                                                                 depledge_formset=depledge_formset))
+        return super().post(request, *args, **kwargs)
+
+    def form_valid(self, form):
+        return super().formset_valid(form)
+
+    def form_invalid(self, form):
+        return super().formset_invalid(form)
