@@ -1,5 +1,6 @@
 from enum import Enum
 from django.db import models
+from django.core.validators import MaxValueValidator
 from django.conf import settings
 from django.utils import timezone
 from core.models import TimeStampedModel
@@ -15,6 +16,9 @@ class Badge(models.Model):
     cost = models.DecimalField(default=0, decimal_places=2,
                                max_digits=7,
                                help_text="Cost of item.")
+
+    def __str__(self):
+        return f"{self.name}; ${self.cost}"
 
 
 class Guard(models.Model):
@@ -32,6 +36,9 @@ class Guard(models.Model):
                                max_digits=7,
                                help_text="Cost of item.")
 
+    def __str__(self):
+        return f"{self.name}; ${self.cost}"
+
 
 class Initiation(TimeStampedModel):
     user = models.OneToOneField(settings.AUTH_USER_MODEL,
@@ -41,8 +48,8 @@ class Initiation(TimeStampedModel):
     date = models.DateTimeField(default=timezone.now)
     roll = models.PositiveIntegerField(default=999999999)
     gpa = models.FloatField()
-    test_a = models.FloatField()
-    test_b = models.FloatField()
+    test_a = models.IntegerField(validators=[MaxValueValidator(100)])
+    test_b = models.IntegerField(validators=[MaxValueValidator(100)])
     badge = models.ForeignKey(Badge, on_delete=models.SET_NULL,
                               related_name="initiation",
                               null=True)
@@ -50,8 +57,8 @@ class Initiation(TimeStampedModel):
                               related_name="initiation",
                               null=True)
 
-    # def __str__(self):
-    #     return f"{self.user} initiated on {self.date}"
+    def __str__(self):
+        return f"{self.user} initiated on {self.date}"
 
     def chapter_initiations(self, chapter):
         result = self.objects.filter(user__chapter=chapter)
@@ -81,6 +88,9 @@ class Depledge(TimeStampedModel):
         choices=[x.value for x in REASONS]
     )
     date = models.DateTimeField(default=timezone.now)
+
+    def __str__(self):
+        return f"{self.user} depledged on {self.date}"
 
 
 class StatusChange(TimeStampedModel):
@@ -130,3 +140,6 @@ class StatusChange(TimeStampedModel):
     email_work = models.EmailField(_('email address'), blank=True)
     new_school = models.ForeignKey(Chapter, on_delete=models.CASCADE,
                                    default=1, related_name="transfers")
+
+    def __str__(self):
+        return f"{self.user} {self.reason} on {self.date}"
