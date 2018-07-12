@@ -53,3 +53,7 @@ class Chapter(models.Model):
         return self.members.filter(roles__start__lte=TODAY_END,
                                    roles__end__gte=TODAY_END
                                    )
+
+    def next_badge_number(self):
+        return self.members.filter(~models.Q(status__status='pnm'),
+                                   ~models.Q(badge_number=999999999)).aggregate(models.Max('badge_number'))

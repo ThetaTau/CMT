@@ -58,6 +58,7 @@ class InitiationView(LoginRequiredMixin, FormView):
         self.to_initiate = pledges.filter(pk__in=initiate['Initiate'])
         self.to_depledge = pledges.filter(pk__in=initiate['Depledge'])
         self.to_defer = pledges.filter(pk__in=initiate['Defer'])
+        self.next_badge = self.request.user.chapter.next_badge_number()['badge_number__max']
 
     def get(self, request, *args, **kwargs):
         initiate = request.session.get('init-selection', None)
@@ -72,7 +73,8 @@ class InitiationView(LoginRequiredMixin, FormView):
         formset = kwargs.get('formset', None)
         if formset is None:
             formset = InitiationFormSet(prefix='initiates')
-        formset.initial = [{'user': user.name} for user in self.to_initiate]
+        formset.initial = [{'user': user.name,
+                            'roll': self.next_badge+num} for num, user in enumerate(self.to_initiate)]
         context['formset'] = formset
         context['helper'] = InitiationFormHelper()
         depledge_formset = kwargs.get('depledge_formset', None)
@@ -87,7 +89,8 @@ class InitiationView(LoginRequiredMixin, FormView):
         initiate = request.session.get('init-selection', None)
         self.initial_info(initiate)
         formset = InitiationFormSet(request.POST, request.FILES, prefix='initiates')
-        formset.initial = [{'user': user.name} for user in self.to_initiate]
+        formset.initial = [{'user': user.name,
+                            'roll': self.next_badge+num} for num, user in enumerate(self.to_initiate)]
         depledge_formset = DepledgeFormSet(request.POST, request.FILES, prefix='depledges')
         if not formset.is_valid() or not depledge_formset.is_valid():
             return self.render_to_response(self.get_context_data(formset=formset,
