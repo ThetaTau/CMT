@@ -15,12 +15,12 @@ class InitDeplSelectView(LoginRequiredMixin, FormSetView):
     factory_kwargs = {'extra': 0}
 
     def get_initial(self):
-        pledges = self.request.user.chapter.get_pledges()
+        pledges = self.request.user.chapter.pledges()
         initial = [{'user': user.pk} for user in pledges]
         return initial
 
     def get_formset(self):
-        pledges = self.request.user.chapter.get_pledges()
+        pledges = self.request.user.chapter.pledges()
         formset = super().get_formset()
         formset.form.base_fields['user'].queryset = pledges
         formset.empty_form = []
@@ -54,7 +54,7 @@ class InitiationView(LoginRequiredMixin, FormView):
     to_defer = []
 
     def initial_info(self, initiate):
-        pledges = self.request.user.chapter.get_pledges()
+        pledges = self.request.user.chapter.pledges()
         self.to_initiate = pledges.filter(pk__in=initiate['Initiate'])
         self.to_depledge = pledges.filter(pk__in=initiate['Depledge'])
         self.to_defer = pledges.filter(pk__in=initiate['Defer'])

@@ -43,7 +43,7 @@ class Chapter(models.Model):
                                    status__end__gte=date
                                    )
 
-    def get_pledges(self):
+    def pledges(self):
         return self.members.filter(status__status="pnm",
                                    status__start__lte=TODAY_END,
                                    status__end__gte=TODAY_END
