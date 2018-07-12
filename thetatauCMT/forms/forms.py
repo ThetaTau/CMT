@@ -32,7 +32,12 @@ class InitDeplSelectFormHelper(FormHelper):
 class InitiationForm(forms.ModelForm):
     user = SetUserField(disabled=True)  # forms.ModelChoiceField(queryset=Initiation.objects.none(), disabled=True)
     date_graduation = forms.DateField(
-        # input_formats=["%m/%Y"],
+        label="Graduation Date",
+        widget=DatePicker(options={"format": "M/DD/YYYY"},
+                          attrs={'autocomplete': 'off'},
+                          ))
+    date = forms.DateField(
+        label="Initiation Date",
         widget=DatePicker(options={"format": "M/DD/YYYY"},
                           attrs={'autocomplete': 'off'},
                           ))
@@ -40,7 +45,7 @@ class InitiationForm(forms.ModelForm):
     class Meta:
         model = Initiation
         fields = [
-            'user',
+            'user', 'date',
             'date_graduation',
                   'roll', 'gpa', 'test_a',
                   'test_b', 'badge', 'guard']
@@ -51,20 +56,15 @@ class InitiationForm(forms.ModelForm):
         return user.pk
 
 
-
 InitiationFormSet = forms.formset_factory(InitiationForm, extra=0)
 
 
 class InitiationFormHelper(FormHelper):
     template = 'bootstrap4/table_inline_formset.html'
-    # label_class = 'col-lg-1'
-    # field_class = 'col-lg-9'
-    form_show_errors = True
-    help_text_inline = False
-    html5_required = True
     form_tag = False
     layout = Layout(
         'user',
+        'date',
         'date_graduation',
         'roll',
         'gpa',
@@ -77,7 +77,9 @@ class InitiationFormHelper(FormHelper):
 
 class DepledgeForm(forms.ModelForm):
     user = SetUserField(disabled=True)  # forms.ModelChoiceField(queryset=Depledge.objects.none(), disabled=True)
-    date = forms.DateField(widget=DatePicker(options={"format": "M/DD/YYYY"},
+    date = forms.DateField(
+        label="Depledge Date",
+        widget=DatePicker(options={"format": "M/DD/YYYY"},
                                              attrs={'autocomplete': 'off'},
                                              ))
 
@@ -100,9 +102,6 @@ DepledgeFormSet = forms.formset_factory(DepledgeForm, extra=0)
 
 class DepledgeFormHelper(FormHelper):
     template = 'bootstrap4/table_inline_formset.html'
-    form_show_errors = True
-    help_text_inline = False
-    html5_required = True
     form_tag = False
     layout = Layout(
         'user',

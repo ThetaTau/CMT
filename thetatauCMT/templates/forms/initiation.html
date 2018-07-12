@@ -13,12 +13,21 @@
         {{ formset.management_form|crispy }}
     </div>
 {% if formset.initial %}
+  {% if formset.non_form_errors %}
+    <div class="alert alert-block alert-danger">
+        {% if formset_error_title %}<h4 class="alert-heading">{{ formset_error_title }}</h4>{% endif %}
+        <ul>
+            {{ formset.non_form_errors|unordered_list }}
+        </ul>
+    </div>
+  {% endif %}
   <h2> Initiation Form:</h2>
   <table{% if form_id %} id="{{ form_id }}_table"{% endif%} class="table table-striped table-sm">
         <thead>
                 <tr>
-                  <th class="requiredField" style="width: 20%">User<span class="asteriskField">*</span></th>
-                    <th class="requiredField" style="width: 10%">Date Graduation<span class="asteriskField">*</span></th>
+                  <th class="requiredField" style="width: 15%">User<span class="asteriskField">*</span></th>
+                  <th class="requiredField" style="width: 10%">Initiation Date<span class="asteriskField">*</span></th>
+                  <th class="requiredField" style="width: 10%">Graduation Date<span class="asteriskField">*</span></th>
                   <th class="requiredField" style="width: 8%">Roll<span class="asteriskField">*</span></th>
                   <th class="requiredField" style="width: 7%">GPA<span class="asteriskField">*</span></th>
                   <th class="requiredField" style="width: 7%">Test A<span class="asteriskField">*</span></th>
@@ -40,7 +49,7 @@
 
                 <tr>
                     {% for field in form %}
-                      {% if field.label == "Date graduation" %}
+                      {% if field.label == "Graduation Date" or field.label == "Initiation Date" %}
                         <td>
                         <div style="position: relative">
                           {% crispy_field field %}
@@ -49,6 +58,11 @@
                       {% elif field.label == "User" %}
                         <td>
                           {{ field.value }}
+                        {% if form_show_errors and field.errors %}
+                            {% for error in field.errors %}
+                              <strong style="color:red">{{ error }}</strong>
+                            {% endfor %}
+                        {% endif %}
                         </td>
                       {% else %}
                         {% include 'bootstrap4/field.html' with tag="td" form_show_labels=False %}
@@ -70,7 +84,7 @@
                 <tr>
                   <th class="requiredField" style="width: 20%">User<span class="asteriskField">*</span></th>
                     <th class="requiredField" style="width: 20%">Reason<span class="asteriskField">*</span></th>
-                  <th class="requiredField" style="width: 8%">Date<span class="asteriskField">*</span></th>
+                  <th class="requiredField" style="width: 8%">Depledge Date<span class="asteriskField">*</span></th>
                 </tr>
         </thead>
 
@@ -87,7 +101,7 @@
 
                 <tr>
                     {% for field in form %}
-                      {% if field.label == "Date" %}
+                      {% if field.label == "Depledge Date" %}
                         <td>
                         <div style="position: relative">
                           {% crispy_field field %}
@@ -96,6 +110,11 @@
                       {% elif field.label == "User" %}
                         <td>
                           {{ field.value }}
+                        {% if form_show_errors and field.errors %}
+                            {% for error in field.errors %}
+                              <strong style="color:red">{{ error }}</strong>
+                            {% endfor %}
+                        {% endif %}
                         </td>
                       {% else %}
                         {% include 'bootstrap4/field.html' with tag="td" form_show_labels=False %}

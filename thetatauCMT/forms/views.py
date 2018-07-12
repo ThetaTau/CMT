@@ -3,6 +3,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.urls import reverse
 from django.views.generic.edit import FormView
 from django.shortcuts import redirect
+from django.http import HttpResponseRedirect
 from crispy_forms.layout import Submit
 from extra_views import FormSetView
 from .forms import InitiationFormSet, InitiationForm, InitiationFormHelper, InitDeplSelectForm,\
@@ -83,6 +84,10 @@ class InitiationView(LoginRequiredMixin, FormView):
         depledge_formset.initial = [{'user': user.name} for user in self.to_depledge]
         context['depledge_formset'] = depledge_formset
         context['depledge_helper'] = DepledgeFormHelper()
+        context['form_show_errors'] = True
+        context['error_text_inline'] = True
+        context['help_text_inline'] = True
+        # context['html5_required'] = True  #  If on errors do not show up
         return context
 
     def post(self, request, *args, **kwargs):
@@ -92,6 +97,7 @@ class InitiationView(LoginRequiredMixin, FormView):
         formset.initial = [{'user': user.name,
                             'roll': self.next_badge+num} for num, user in enumerate(self.to_initiate)]
         depledge_formset = DepledgeFormSet(request.POST, request.FILES, prefix='depledges')
+        depledge_formset.initial = [{'user': user.name} for user in self.to_depledge]
         if not formset.is_valid() or not depledge_formset.is_valid():
             return self.render_to_response(self.get_context_data(formset=formset,
                                                                  depledge_formset=depledge_formset
