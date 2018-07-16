@@ -2,7 +2,7 @@ from django import forms
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Layout
 from tempus_dominus.widgets import DatePicker
-from .models import Initiation, Depledge
+from .models import Initiation, Depledge, StatusChange
 from users.models import User
 
 
@@ -30,7 +30,7 @@ class InitDeplSelectFormHelper(FormHelper):
 
 
 class InitiationForm(forms.ModelForm):
-    user = SetUserField(disabled=True)  # forms.ModelChoiceField(queryset=Initiation.objects.none(), disabled=True)
+    user = SetUserField(disabled=True)
     date_graduation = forms.DateField(
         label="Graduation Date",
         widget=DatePicker(options={"format": "M/DD/YYYY"},
@@ -76,7 +76,7 @@ class InitiationFormHelper(FormHelper):
 
 
 class DepledgeForm(forms.ModelForm):
-    user = SetUserField(disabled=True)  # forms.ModelChoiceField(queryset=Depledge.objects.none(), disabled=True)
+    user = SetUserField(disabled=True)
     date = forms.DateField(
         label="Depledge Date",
         widget=DatePicker(options={"format": "M/DD/YYYY"},
@@ -107,4 +107,102 @@ class DepledgeFormHelper(FormHelper):
         'user',
         'reason',
         'date'
+    )
+
+
+class StatusChangeSelectForm(forms.Form):
+    user = forms.ModelChoiceField(queryset=StatusChange.objects.none())
+    state = forms.ChoiceField(choices=[x.value for x in StatusChange.REASONS])
+
+
+class StatusChangeSelectFormHelper(FormHelper):
+    template = 'bootstrap4/table_inline_formset.html'
+    form_show_errors = True
+    help_text_inline = False
+    html5_required = True
+    layout = Layout(
+        'user',
+        'state',
+    )
+
+
+class GraduateForm(forms.ModelForm):
+    user = SetUserField(disabled=True)
+    date_start = forms.DateField(
+        label="Graduation Date",
+        widget=DatePicker(options={"format": "M/DD/YYYY"},
+                          attrs={'autocomplete': 'off'},
+                          ))
+    email_personal = forms.EmailField()
+
+    class Meta:
+        model = StatusChange
+        fields = [
+            'user',
+            'reason',  # Set selected
+            'degree',
+            'date_start',  # Graduation Date
+            'employer',  # label=Employer/<br>School/Location
+            'email_personal',  # get from user model PERSONAL<br>Email Address
+            'email_work',
+                  ]
+
+
+GraduateFormSet = forms.formset_factory(GraduateForm, extra=0)
+
+
+class GraduateFormHelper(FormHelper):
+    template = 'bootstrap4/table_inline_formset.html'
+    form_tag = False
+    layout = Layout(
+        'user',
+        'reason',  # Set selected
+        'degree',
+        'date_start',  # Graduation Date
+        'employer',  # label=Employer/<br>School/Location
+        'email_personal',  # get from user model PERSONAL<br>Email Address
+        'email_work',
+    )
+
+
+class CSMTForm(forms.ModelForm):
+    """
+    For Coop, StudyAbroad, Military, Transfer Forms
+    """
+    user = SetUserField(disabled=True)
+    date_start = forms.DateField(
+        label="Graduation Date",
+        widget=DatePicker(options={"format": "M/DD/YYYY"},
+                          attrs={'autocomplete': 'off'},
+                          ))
+    date_end = forms.DateField(
+        label="Graduation Date",
+        widget=DatePicker(options={"format": "M/DD/YYYY"},
+                          attrs={'autocomplete': 'off'},
+                          ))
+    class Meta:
+        model = StatusChange
+        fields = [
+            'user',
+            'reason',  # Set selected
+            'new_school',  # If transfer
+            'date_start',
+            'date_end',
+            'miles',
+        ]
+
+
+CSMTFormSet = forms.formset_factory(CSMTForm, extra=0)
+
+
+class CSMTFormHelper(FormHelper):
+    template = 'bootstrap4/table_inline_formset.html'
+    form_tag = False
+    layout = Layout(
+        'user',
+        'reason',  # Set selected
+        'new_school',  # If transfer
+        'date_start',
+        'date_end',
+        'miles',
     )
