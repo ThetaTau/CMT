@@ -21,6 +21,8 @@ from chapters.models import Chapter
 
 
 class User(AbstractUser):
+    class Meta:
+        ordering = ['last_name', ]
     # First Name and Last Name do not cover name patterns
     # around the globe.
     name = models.CharField(_('Name of User'), blank=True, max_length=255)
