@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+{% load static %}
+{% load crispy_forms_tags %}
+{% load crispy_forms_utils %}
+{% load crispy_forms_field %}
+{% block title %}Initiation Report{{ object.name }}{% endblock %}
+{% block content %}
+  {{ form.media }}
+{% specialspaceless %}
+  <form action="" method="post">
+    {% csrf_token %}
+    <div>
+        {{ formset.management_form|crispy }}
+    </div>
+{% if formset.initial %}
+  {% if formset.non_form_errors %}
+    <div class="alert alert-block alert-danger">
+        {% if formset_error_title %}<h4 class="alert-heading">{{ formset_error_title }}</h4>{% endif %}
+        <ul>
+            {{ formset.non_form_errors|unordered_list }}
+        </ul>
+    </div>
+  {% endif %}
+  <h2> Initiation Form:</h2>
+  <table{% if form_id %} id="{{ form_id }}_table"{% endif%} class="table table-striped table-sm">
+        <thead>
+                <tr>
+                  <th class="requiredField" style="width: 15%">Member<span class="asteriskField">*</span></th>
+                  <th class="requiredField" style="width: 10%">Status<span class="asteriskField">*</span></th>
+                  <th class="requiredField" style="width: 15%">Degree<span class="asteriskField">*</span></th>
+                  <th class="requiredField" style="width: 10%">Graduation Date<span class="asteriskField">*</span></th>
+                  <th class="requiredField" style="width: 10%">Employer<span class="asteriskField">*</span></th>
+                  <th class="requiredField" style="width: 18%">Personal Email<span class="asteriskField">*</span></th>
+                  <th class="requiredField" style="width: 18%">Work Email<span class="asteriskField">*</span></th>
+                </tr>
+        </thead>
+        <tbody>
+            <tr class="d-none empty-form">
+                {% for field in formset.empty_form %}
+                    {% include 'bootstrap4/field.html' with tag="td" form_show_labels=False %}
+                {% endfor %}
+            </tr>
+            {% for form in formset %}
+                {% if form_show_errors and not form.is_extra %}
+                    {% include "bootstrap4/errors.html" %}
+                {% endif %}
+
+                <tr>
+                    {% for field in form %}
+                      {% if field.label == "Graduation Date" %}
+                        <td>
+                        <div style="position: relative">
+                          {% crispy_field field %}
+                        </div>
+                        </td>
+                      {% elif field.label == "User" %}
+                        <td>
+                          {{ field.value }}
+                        {% if form_show_errors and field.errors %}
+                            {% for error in field.errors %}
+                              <strong style="color:red">{{ error }}</strong>
+                            {% endfor %}
+                        {% endif %}
+                        </td>
+                      {% else %}
+                        {% include 'bootstrap4/field.html' with tag="td" form_show_labels=False %}
+                      {% endif %}
+                    {% endfor %}
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endif %}
+{#  DEPLEDGE TABLE FORM#}
+  <div>
+      {{ csmt_formset.management_form|crispy }}
+    </div>
+{% if csmt_formset.initial %}
+  <h2> Depledge Form:</h2>
+  <table{% if form_id %} id="{{ form_id }}_table"{% endif%} class="table table-striped table-sm">
+        <thead>
+                <tr>
+                  <th class="requiredField" style="width: 10%">Member<span class="asteriskField">*</span></th>
+                  <th class="requiredField" style="width: 10%">Status<span class="asteriskField">*</span></th>
+                  <th class="requiredField" style="width: 20%">Employer/New School<span class="asteriskField">*</span></th>
+                  <th class="requiredField" style="width: 8%">Status Start<span class="asteriskField">*</span></th>
+                  <th class="requiredField" style="width: 8%">Status End<span class="asteriskField">*</span></th>
+                  <th class="requiredField" style="width: 8%">Miles<span class="asteriskField">*</span></th>
+                </tr>
+        </thead>
+
+        <tbody>
+            <tr class="d-none empty-form">
+                {% for field in csmt_formset.empty_form %}
+                    {% include 'bootstrap4/field.html' with tag="td" form_show_labels=False %}
+                {% endfor %}
+            </tr>
+            {% for form in csmt_formset %}
+                {% if form_show_errors and not form.is_extra %}
+                    {% include "bootstrap4/errors.html" %}
+                {% endif %}
+
+                <tr>
+                    {% for field in form %}
+                      {% if field.label == "Start Date" or field.label == "End Date" %}
+                        <td>
+                        <div style="position: relative">
+                          {% crispy_field field %}
+                        </div>
+                        </td>
+                      {% elif field.label == "User" %}
+                        <td>
+                          {{ field.value }}
+                        {% if form_show_errors and field.errors %}
+                            {% for error in field.errors %}
+                              <strong style="color:red">{{ error }}</strong>
+                            {% endfor %}
+                        {% endif %}
+                        </td>
+                      {% else %}
+                        {% include 'bootstrap4/field.html' with tag="td" form_show_labels=False %}
+                      {% endif %}
+                    {% endfor %}
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endif %}
+  <input type="submit" value="Submit">
+  </form>
+{% endspecialspaceless %}
+{% endblock content %}

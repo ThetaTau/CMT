@@ -6,7 +6,7 @@ from .models import Initiation, Depledge, StatusChange
 from users.models import User
 
 
-class SetUserField(forms.CharField):
+class SetNoValidateField(forms.CharField):
     def validate(self, value):
         return
 
@@ -30,7 +30,7 @@ class InitDeplSelectFormHelper(FormHelper):
 
 
 class InitiationForm(forms.ModelForm):
-    user = SetUserField(disabled=True)
+    user = SetNoValidateField(disabled=True)
     date_graduation = forms.DateField(
         label="Graduation Date",
         widget=DatePicker(options={"format": "M/DD/YYYY"},
@@ -76,7 +76,7 @@ class InitiationFormHelper(FormHelper):
 
 
 class DepledgeForm(forms.ModelForm):
-    user = SetUserField(disabled=True)
+    user = SetNoValidateField(disabled=True)
     date = forms.DateField(
         label="Depledge Date",
         widget=DatePicker(options={"format": "M/DD/YYYY"},
@@ -127,13 +127,15 @@ class StatusChangeSelectFormHelper(FormHelper):
 
 
 class GraduateForm(forms.ModelForm):
-    user = SetUserField(disabled=True)
+    user = SetNoValidateField(disabled=True)
+    reason = SetNoValidateField(disabled=True)
     date_start = forms.DateField(
         label="Graduation Date",
         widget=DatePicker(options={"format": "M/DD/YYYY"},
                           attrs={'autocomplete': 'off'},
                           ))
     email_personal = forms.EmailField()
+    email_work = forms.EmailField()
 
     class Meta:
         model = StatusChange
@@ -169,14 +171,15 @@ class CSMTForm(forms.ModelForm):
     """
     For Coop, StudyAbroad, Military, Transfer Forms
     """
-    user = SetUserField(disabled=True)
+    user = SetNoValidateField(disabled=True)
+    reason = SetNoValidateField(disabled=True)
     date_start = forms.DateField(
-        label="Graduation Date",
+        label="Start Date",
         widget=DatePicker(options={"format": "M/DD/YYYY"},
                           attrs={'autocomplete': 'off'},
                           ))
     date_end = forms.DateField(
-        label="Graduation Date",
+        label="End Date",
         widget=DatePicker(options={"format": "M/DD/YYYY"},
                           attrs={'autocomplete': 'off'},
                           ))
@@ -185,6 +188,7 @@ class CSMTForm(forms.ModelForm):
         fields = [
             'user',
             'reason',  # Set selected
+            'employer',  # If Coop only
             'new_school',  # If transfer
             'date_start',
             'date_end',
@@ -201,6 +205,7 @@ class CSMTFormHelper(FormHelper):
     layout = Layout(
         'user',
         'reason',  # Set selected
+        'employer',
         'new_school',  # If transfer
         'date_start',
         'date_end',

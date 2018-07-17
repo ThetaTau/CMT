@@ -118,7 +118,6 @@ class StatusChange(TimeStampedModel):
         def get_value(cls, member):
             return cls[member].value[0]
 
-    date = models.DateTimeField(default=timezone.now)
     user = models.ForeignKey(settings.AUTH_USER_MODEL,
                              on_delete=models.CASCADE,
                              related_name="change")
