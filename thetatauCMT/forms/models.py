@@ -93,6 +93,10 @@ class Depledge(TimeStampedModel):
         return f"{self.user} depledged on {self.date}"
 
 
+def forever():
+    return timezone.now() + timezone.timedelta(days=1000000)
+
+
 class StatusChange(TimeStampedModel):
     class REASONS(Enum):
         graduate = ('graduate', 'Member is graduating')  # Graduated from school
@@ -131,7 +135,7 @@ class StatusChange(TimeStampedModel):
         choices=[x.value for x in DEGREES]
     )
     date_start = models.DateTimeField(default=timezone.now)
-    date_end = models.DateTimeField(default=timezone.now)
+    date_end = models.DateTimeField(default=forever, blank=True)
     employer = models.CharField(max_length=200)
     miles = models.PositiveIntegerField(
         default=0,
