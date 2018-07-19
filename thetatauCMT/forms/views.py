@@ -219,17 +219,17 @@ class StatusChangeView(LoginRequiredMixin, FormView):
             formset = GraduateFormSet(prefix='graduates')
         formset.initial = [{'user': user.name,
                             'email_personal': user.email,
-                            'reason': 'Graduating'} for user in self.to_graduate]
+                            'reason': 'graduate'} for user in self.to_graduate]
         context['formset'] = formset
         context['helper'] = GraduateFormHelper()
         csmt_formset = kwargs.get('csmt_formset', None)
         if csmt_formset is None:
             csmt_formset = CSMTFormSet(prefix='csmt')
             csmt_formset.initial = \
-                [{'user': user.name, 'reason': 'COOP'} for user in self.to_coop] + \
-                [{'user': user.name, 'reason': 'Deployment'} for user in self.to_military] + \
-                [{'user': user.name, 'reason': 'Withdraw'} for user in self.to_withdraw] + \
-                [{'user': user.name, 'reason': 'Transfer'} for user in self.to_transfer]
+                [{'user': user.name, 'reason': 'coop'} for user in self.to_coop] + \
+                [{'user': user.name, 'reason': 'military'} for user in self.to_military] + \
+                [{'user': user.name, 'reason': 'withdraw'} for user in self.to_withdraw] + \
+                [{'user': user.name, 'reason': 'transfer'} for user in self.to_transfer]
         context['csmt_formset'] = csmt_formset
         context['csmt_helper'] = CSMTFormHelper()
         context['form_show_errors'] = True
@@ -243,9 +243,14 @@ class StatusChangeView(LoginRequiredMixin, FormView):
         self.initial_info(status_change)
         formset = GraduateFormSet(request.POST, request.FILES, prefix='graduates')
         formset.initial = [{'user': user.name,
-                            'email_personal': user.email} for user in self.to_graduate]
+                            'email_personal': user.email,
+                            'reason': 'graduate'} for user in self.to_graduate]
         csmt_formset = CSMTFormSet(request.POST, request.FILES, prefix='csmt')
-        csmt_formset.initial = [{'user': user.name} for user in self.to_csmt]
+        csmt_formset.initial = \
+                [{'user': user.name, 'reason': 'coop'} for user in self.to_coop] + \
+                [{'user': user.name, 'reason': 'military'} for user in self.to_military] + \
+                [{'user': user.name, 'reason': 'withdraw'} for user in self.to_withdraw] + \
+                [{'user': user.name, 'reason': 'transfer'} for user in self.to_transfer]
         if not formset.is_valid() or not csmt_formset.is_valid():
             return self.render_to_response(self.get_context_data(formset=formset,
                                                                  csmt_formset=csmt_formset

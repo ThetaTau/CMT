@@ -145,4 +145,4 @@ class StatusChange(TimeStampedModel):
                                    default=1, related_name="transfers")
 
     def __str__(self):
-        return f"{self.user} {self.reason} on {self.date}"
+        return f"{self.user} {self.reason} on {self.date_start}"

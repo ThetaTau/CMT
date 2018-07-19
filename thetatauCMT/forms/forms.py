@@ -149,6 +149,11 @@ class GraduateForm(forms.ModelForm):
             'email_work',
                   ]
 
+    def clean_user(self):
+        data = self.cleaned_data['user']
+        user = User.objects.filter(name=data).first()
+        return user
+
 
 GraduateFormSet = forms.formset_factory(GraduateForm, extra=0)
 
@@ -194,6 +199,40 @@ class CSMTForm(forms.ModelForm):
             'date_end',
             'miles',
         ]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        reason = self.initial.get('reason', None)
+        if reason == 'coop':
+            self.fields['new_school'].widget = forms.HiddenInput()
+        if reason == 'military':
+            self.fields['miles'].widget.attrs['disabled'] = 'true'
+            self.fields['miles'].required = False
+            self.fields['employer'].widget.attrs['disabled'] = 'true'
+            self.fields['employer'].required = False
+            self.fields['new_school'].widget = forms.HiddenInput()
+            self.fields['new_school'].required = False
+        if reason == 'withdraw':
+            self.fields['miles'].widget.attrs['disabled'] = 'true'
+            self.fields['miles'].required = False
+            self.fields['date_end'].widget.attrs['disabled'] = 'true'
+            self.fields['date_end'].required = False
+            self.fields['employer'].widget.attrs['disabled'] = 'true'
+            self.fields['employer'].required = False
+            self.fields['new_school'].widget = forms.HiddenInput()
+            self.fields['new_school'].required = False
+        if reason == 'transfer':
+            self.fields['miles'].widget.attrs['disabled'] = 'true'
+            self.fields['miles'].required = False
+            self.fields['date_end'].widget.attrs['disabled'] = 'true'
+            self.fields['date_end'].required = False
+            self.fields['employer'].widget = forms.HiddenInput()
+            self.fields['employer'].required = False
+
+    def clean_user(self):
+        data = self.cleaned_data['user']
+        user = User.objects.filter(name=data).first()
+        return user
 
 
 CSMTFormSet = forms.formset_factory(CSMTForm, extra=0)
