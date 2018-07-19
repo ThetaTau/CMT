@@ -119,6 +119,7 @@ class StatusChangeSelectView(LoginRequiredMixin, FormSetView):
     form_class = StatusChangeSelectForm
     template_name = "forms/status-select.html"
     factory_kwargs = {'extra': 1}
+    prefix = 'selection'
 
     def get_formset_request(self, request, action):
         formset = forms.formset_factory(StatusChangeSelectForm,
@@ -137,7 +138,7 @@ class StatusChangeSelectView(LoginRequiredMixin, FormSetView):
             formset = formset(prefix='selection', initial=initial)
         else:
             post_data = deepcopy(request.POST)
-            post_data['selection-INITIAL_FORMS'] = '6'
+            post_data['selection-INITIAL_FORMS'] = str(int(post_data['selection-INITIAL_FORMS']) + 1)
             formset = formset(post_data, request.FILES,
                               initial=initial, prefix='selection')
         return formset
