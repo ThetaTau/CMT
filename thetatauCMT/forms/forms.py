@@ -115,6 +115,7 @@ class DepledgeFormHelper(FormHelper):
 class StatusChangeSelectForm(forms.Form):
     user = forms.ModelChoiceField(queryset=StatusChange.objects.none())
     state = forms.ChoiceField(choices=[x.value for x in StatusChange.REASONS])
+    selected = forms.BooleanField(label="Remove", required=False)
 
 
 class StatusChangeSelectFormHelper(FormHelper):
@@ -125,6 +126,7 @@ class StatusChangeSelectFormHelper(FormHelper):
     layout = Layout(
         'user',
         'state',
+        'selected'
     )
 
 
@@ -256,6 +258,7 @@ class CSMTFormHelper(FormHelper):
 
 
 class RoleChangeSelectForm(forms.ModelForm):
+    selected = forms.BooleanField(required=False)
     user = forms.ModelChoiceField(queryset=StatusChange.objects.none())
     role = forms.ChoiceField(choices=sorted([(slugify(x), x.title()) for x in CHAPTER_OFFICER | COMMITTEE_CHAIR]))
     start = forms.DateField(
@@ -276,6 +279,7 @@ class RoleChangeSelectForm(forms.ModelForm):
             'role',
             'start',
             'end',
+            'selected'
         ]
 
 
@@ -289,4 +293,5 @@ class RoleChangeSelectFormHelper(FormHelper):
         'role',
         'start',
         'end',
+        'selected'
     )

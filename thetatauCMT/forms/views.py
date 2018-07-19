@@ -91,7 +91,6 @@ class InitiationView(LoginRequiredMixin, FormView):
         context['form_show_errors'] = True
         context['error_text_inline'] = True
         context['help_text_inline'] = True
-        # context['html5_required'] = True  #  If on errors do not show up
         return context
 
     def post(self, request, *args, **kwargs):
@@ -129,13 +128,21 @@ class StatusChangeSelectView(LoginRequiredMixin, FormSetView):
         initial = []
         for info_name in info:
             if '__prefix__' not in info_name and info_name.endswith('-user'):
-                state_split = info_name.split('-')[0:2]
+                split = info_name.split('-')[0:2]
+                selected_split = deepcopy(split)
+                selected_split.append('selected')
+                selected_name = '-'.join(selected_split)
+                selected = info.get(selected_name, None)
+                if selected == 'on':
+                    continue
+                state_split = deepcopy(split)
                 state_split.append('state')
                 state_name = '-'.join(state_split)
                 if info[info_name] != "":
                     initial.append({'user': info[info_name],
-                                    'state': info[state_name]})
-        if action == '+':
+                                    'state': info[state_name],
+                                    'selected': ''})
+        if action in ['Add Row', 'Delete Selected']:
             formset = formset(prefix='selection', initial=initial)
         else:
             post_data = deepcopy(request.POST)
@@ -146,10 +153,8 @@ class StatusChangeSelectView(LoginRequiredMixin, FormSetView):
 
     def post(self, request, *args, **kwargs):
         formset = self.get_formset_request(request, request.POST['action'])
-        if request.POST['action'] == "+" or not formset.is_valid():
+        if request.POST['action'] in ['Add Row', 'Delete Selected'] or not formset.is_valid():
             return self.render_to_response(self.get_context_data(formset=formset))
-        # if :
-        #     return self.render_to_response(self.get_context_data(formset=formset))
         else:
             return self.formset_valid(formset)
 
@@ -166,14 +171,11 @@ class StatusChangeSelectView(LoginRequiredMixin, FormSetView):
             formset = self.construct_formset()
         context['formset'] = formset
         helper = StatusChangeSelectFormHelper()
-        helper.add_input(Submit("submit", "Save"))
         context['helper'] = helper
-        context['input'] = Submit("action", "Submit")
+        context['input'] = Submit("action", "Next")
         return context
 
     def formset_valid(self, formset):
-        # Must be initial b/c of extra not being validated/cleaned
-        # See: https://docs.djangoproject.com/en/dev/topics/forms/modelforms/#id2
         cleaned_data = deepcopy(formset.cleaned_data)
         selections = {'graduate': [], 'coop': [], 'military': [],
                       'withdraw': [], 'transfer': []}
@@ -281,6 +283,12 @@ class RoleChangeView(LoginRequiredMixin, FormSetView):
         for info_name in info:
             if '__prefix__' not in info_name and info_name.endswith('-user'):
                 split = info_name.split('-')[0:2]
+                selected_split = deepcopy(split)
+                selected_split.append('selected')
+                selected_name = '-'.join(selected_split)
+                selected = info.get(selected_name, None)
+                if selected == 'on':
+                    continue
                 state_split = deepcopy(split)
                 state_split.append('role')
                 state_name = '-'.join(state_split)
@@ -295,7 +303,7 @@ class RoleChangeView(LoginRequiredMixin, FormSetView):
                                     'role': info[state_name],
                                     'start': info[start_name],
                                     'end': info[end_name]})
-        if action == '+':
+        if action in ['Add Row', 'Delete Selected']:
             formset = formset(prefix='selection', initial=initial)
         else:
             post_data = deepcopy(request.POST)
@@ -306,7 +314,7 @@ class RoleChangeView(LoginRequiredMixin, FormSetView):
 
     def post(self, request, *args, **kwargs):
         formset = self.get_formset_request(request, request.POST['action'])
-        if request.POST['action'] == "+" or not formset.is_valid():
+        if request.POST['action'] in ['Add Row', 'Delete Selected'] or not formset.is_valid():
             return self.render_to_response(self.get_context_data(formset=formset))
         else:
             return self.formset_valid(formset)
@@ -327,6 +335,8 @@ class RoleChangeView(LoginRequiredMixin, FormSetView):
         helper.add_input(Submit("submit", "Save"))
         context['helper'] = helper
         context['input'] = Submit("action", "Submit")
+        context['delete'] = Submit("action", "Delete Selected")
+        context['add'] = Submit("action", "Add Row")
         return context
 
     def formset_valid(self, formset):

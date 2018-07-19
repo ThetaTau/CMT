@@ -29,6 +29,7 @@
                   <th class="requiredField" style="width: 30%">New Role<span class="asteriskField">*</span></th>
                   <th class="requiredField" style="width: 15%">Start Date<span class="asteriskField">*</span></th>
                   <th class="requiredField" style="width: 15%">End Date<span class="asteriskField">*</span></th>
+                  <th style="width: 5%">Remove</th>
                 </tr>
             {% endif %}
         </thead>
@@ -50,18 +51,24 @@
                             {% crispy_field field %}
                           </div>
                           </td>
+{#                        {% elif field.label == "Selected" %}#}
+{#                          <td>#}
+{#                          {% if form.initial %}#}
+{#                            <input class="btn btn-danger" type="submit" name="action" value="- {{ form.initial|get_item:'user' }}">#}
+{#                          {% else %}#}
+{#                            <input class="btn btn-success" type="submit" name="action" value="+">#}
+{#                          {% endif %}#}
+{#                          </td>#}
                         {% else %}
                           {% include 'bootstrap4/field.html' with tag="td" form_show_labels=False %}
                         {% endif %}
                       {% endfor %}
-                        <td>
-                          <input class="btn btn-success" type="submit" name="action" value="+">
-                        </td>
                   </tr>
             {% endfor %}
         </tbody>
     </table>
-
+    <input class="btn btn-success" type="submit" name="action" value="Add Row">
+    <input class="btn btn-danger" type="submit" name="action" value="Delete Selected">
     <input type="{{ input.input_type }}"
     name="{% if input.name|wordcount > 1 %}{{ input.name|slugify }}{% else %}{{ input.name }}{% endif %}"
     value="{{ input.value }}"
