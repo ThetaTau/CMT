@@ -5,18 +5,16 @@
 
 {% block content %}
 <div class="container">
-
   <div class="row">
     <div class="col-sm-12">
-
-      <h2>{{ object.name }}</h2>
+      <h2>{{ object.name }} in the {{ object.region }} Region</h2>
       {% if object.name %}
-        <p>{{ object.name }}</p>
-        <p>{{ object.email }}</p>
-        <p>{{ object.website }}</p>
-        <p>{{ object.facebook }}</p>
-        <p>{{ object.slug }}</p>
+        <p>Current chapter balance: ${{ object.balance }} as of {{ object.balance_date }}</p>
+        <p>Chapter email: {{ object.email }}</p>
+        <p>Chapter website: {{ object.website }}</p>
+        <p>Chapter Facebook: {{ object.facebook }}</p>
       {% endif %}
+    <h2>Current Officers:</h2>
       {% render_table table %}
     </div>
   </div>
