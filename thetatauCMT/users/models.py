@@ -7,7 +7,7 @@ from django.utils.translation import ugettext_lazy as _
 from django.core.validators import MinValueValidator, MaxValueValidator,\
     RegexValidator
 from address.models import AddressField
-from core.models import StartEndModel, YearTermModel, TODAY_END
+from core.models import StartEndModel, YearTermModel, TODAY_END, CHAPTER_OFFICER
 from chapters.models import Chapter
 
 
@@ -76,7 +76,7 @@ class User(AbstractUser):
         officer = False
         if role_obj is not None:
             current_role = {role_obj.role.lower()}
-            officer = not current_role.isdisjoint(UserRoleChange.CHAPTER_OFFICER)
+            officer = not current_role.isdisjoint(CHAPTER_OFFICER)
         return officer
 
     def is_national_officer(self):
@@ -84,7 +84,7 @@ class User(AbstractUser):
         officer = False
         if role_obj is not None:
             current_role = {role_obj.role.lower()}
-            officer = not current_role.isdisjoint(UserRoleChange.CHAPTER_OFFICER)
+            officer = not current_role.isdisjoint(CHAPTER_OFFICER)
         return officer
 
     def is_officer(self):
