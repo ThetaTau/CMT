@@ -1,9 +1,11 @@
 from django import forms
+from django.utils.text import slugify
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Layout
 from tempus_dominus.widgets import DatePicker
 from .models import Initiation, Depledge, StatusChange
-from users.models import User
+from users.models import User, UserRoleChange
+from core.models import CHAPTER_OFFICER, COMMITTEE_CHAIR
 
 
 class SetNoValidateField(forms.CharField):
@@ -188,6 +190,7 @@ class CSMTForm(forms.ModelForm):
         widget=DatePicker(options={"format": "M/DD/YYYY"},
                           attrs={'autocomplete': 'off'},
                           ))
+
     class Meta:
         model = StatusChange
         fields = [
@@ -249,4 +252,41 @@ class CSMTFormHelper(FormHelper):
         'date_start',
         'date_end',
         'miles',
+    )
+
+
+class RoleChangeSelectForm(forms.ModelForm):
+    user = forms.ModelChoiceField(queryset=StatusChange.objects.none())
+    role = forms.ChoiceField(choices=sorted([(slugify(x), x.title()) for x in CHAPTER_OFFICER | COMMITTEE_CHAIR]))
+    start = forms.DateField(
+        label="Start Date",
+        widget=DatePicker(options={"format": "M/DD/YYYY"},
+                          attrs={'autocomplete': 'off'},
+                          ))
+    end = forms.DateField(
+        label="End Date",
+        widget=DatePicker(options={"format": "M/DD/YYYY"},
+                          attrs={'autocomplete': 'off'},
+                          ))
+
+    class Meta:
+        model = UserRoleChange
+        fields = [
+            'user',
+            'role',
+            'start',
+            'end',
+        ]
+
+
+class RoleChangeSelectFormHelper(FormHelper):
+    template = 'bootstrap4/table_inline_formset.html'
+    form_show_errors = True
+    help_text_inline = False
+    html5_required = True
+    layout = Layout(
+        'user',
+        'role',
+        'start',
+        'end',
     )

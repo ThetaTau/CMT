@@ -29,6 +29,11 @@ urlpatterns = [
         view=views.StatusChangeSelectView.as_view(),
         name='status_selection'
     ),
+    url(
+        regex=r'^~officer/$',
+        view=views.RoleChangeView.as_view(),
+        name='officer'
+    ),
     # url(
     #     regex=r'^~status-change/$',
     #     view=views.StatusChangeView.as_view(),

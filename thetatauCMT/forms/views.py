@@ -9,7 +9,8 @@ from crispy_forms.layout import Submit
 from extra_views import FormSetView
 from .forms import InitiationFormSet, InitiationForm, InitiationFormHelper, InitDeplSelectForm,\
     InitDeplSelectFormHelper, DepledgeFormSet, DepledgeFormHelper, StatusChangeSelectForm,\
-    StatusChangeSelectFormHelper, GraduateForm, GraduateFormSet, CSMTFormSet, GraduateFormHelper, CSMTFormHelper
+    StatusChangeSelectFormHelper, GraduateForm, GraduateFormSet, CSMTFormSet, GraduateFormHelper, CSMTFormHelper,\
+    RoleChangeSelectForm, RoleChangeSelectFormHelper
 
 
 class InitDeplSelectView(LoginRequiredMixin, FormSetView):
@@ -261,6 +262,77 @@ class StatusChangeView(LoginRequiredMixin, FormView):
         for form in csmt_formset:
             form.save()
         return HttpResponseRedirect(self.get_success_url())
+
+    def get_success_url(self):
+        return reverse('home')
+
+
+class RoleChangeView(LoginRequiredMixin, FormSetView):
+    form_class = RoleChangeSelectForm
+    template_name = "forms/officer.html"
+    factory_kwargs = {'extra': 1}
+    prefix = 'selection'
+
+    def get_formset_request(self, request, action):
+        formset = forms.formset_factory(RoleChangeSelectForm,
+                                        extra=1)
+        info = request.POST.copy()
+        initial = []
+        for info_name in info:
+            if '__prefix__' not in info_name and info_name.endswith('-user'):
+                split = info_name.split('-')[0:2]
+                state_split = deepcopy(split)
+                state_split.append('role')
+                state_name = '-'.join(state_split)
+                start_split = deepcopy(split)
+                start_split.append('start')
+                start_name = '-'.join(start_split)
+                end_split = deepcopy(split)
+                end_split.append('end')
+                end_name = '-'.join(end_split)
+                if info[info_name] != "":
+                    initial.append({'user': info[info_name],
+                                    'role': info[state_name],
+                                    'start': info[start_name],
+                                    'end': info[end_name]})
+        if action == '+':
+            formset = formset(prefix='selection', initial=initial)
+        else:
+            post_data = deepcopy(request.POST)
+            post_data['selection-INITIAL_FORMS'] = str(int(post_data['selection-INITIAL_FORMS']) + 1)
+            formset = formset(post_data, request.FILES,
+                              initial=initial, prefix='selection')
+        return formset
+
+    def post(self, request, *args, **kwargs):
+        formset = self.get_formset_request(request, request.POST['action'])
+        if request.POST['action'] == "+" or not formset.is_valid():
+            return self.render_to_response(self.get_context_data(formset=formset))
+        else:
+            return self.formset_valid(formset)
+
+    def get_formset(self):
+        actives = self.request.user.chapter.actives()
+        formset = super().get_formset()
+        formset.form.base_fields['user'].queryset = actives
+        return formset
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        formset = kwargs.get('formset', None)
+        if formset is None:
+            formset = self.construct_formset()
+        context['formset'] = formset
+        helper = RoleChangeSelectFormHelper()
+        helper.add_input(Submit("submit", "Save"))
+        context['helper'] = helper
+        context['input'] = Submit("action", "Submit")
+        return context
+
+    def formset_valid(self, formset):
+        for form in formset:
+            form.save()
+        return super().formset_valid(formset)
 
     def get_success_url(self):
         return reverse('home')
