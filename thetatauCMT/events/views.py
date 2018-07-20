@@ -14,8 +14,8 @@ class EventDetailView(LoginRequiredMixin, DetailView):
     slug_url_kwarg = 'chapter'
 
 
-class EventCreateView(LoginRequiredMixin, CreateView,
-                      TypeFieldFilteredChapterAdd):
+class EventCreateView(LoginRequiredMixin, TypeFieldFilteredChapterAdd,
+                      CreateView):
     model = Event
     template_name_suffix = '_create_form'
     fields = ['name',
@@ -37,8 +37,8 @@ class EventRedirectView(LoginRequiredMixin, RedirectView):
         return reverse('events:list')
 
 
-class EventUpdateView(LoginRequiredMixin, UpdateView,
-                      TypeFieldFilteredChapterAdd):
+class EventUpdateView(LoginRequiredMixin, TypeFieldFilteredChapterAdd,
+                      UpdateView):
     fields = ['name',
               'date',
               'type',
