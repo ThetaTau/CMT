@@ -90,6 +90,7 @@ class ScoreType(models.Model):
         if any(x in formula_out for x in calcualted_elsewhere):
             # All these should be calculated somewhere else
             formula_out = 0
+            return formula_out
         # We do not create dict/list to loop and do this
         # b/c obj may not contain info
         if 'GUESTS' in formula_out:
