@@ -14,8 +14,8 @@ class SubmissionDetailView(LoginRequiredMixin, DetailView):
     slug_url_kwarg = 'slug'
 
 
-class SubmissionCreateView(LoginRequiredMixin, CreateView,
-                           TypeFieldFilteredChapterAdd):
+class SubmissionCreateView(LoginRequiredMixin, TypeFieldFilteredChapterAdd,
+                           CreateView):
     model = Submission
     score_type = 'Sub'
     template_name_suffix = '_create_form'
@@ -34,8 +34,8 @@ class SubmissionRedirectView(LoginRequiredMixin, RedirectView):
         return reverse('submissions:list')
 
 
-class SubmissionUpdateView(LoginRequiredMixin, UpdateView,
-                           TypeFieldFilteredChapterAdd):
+class SubmissionUpdateView(LoginRequiredMixin, TypeFieldFilteredChapterAdd,
+                           UpdateView):
     fields = ['name',
               'date',
               'type',
