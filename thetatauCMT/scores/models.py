@@ -134,6 +134,8 @@ class ScoreType(models.Model):
 
 
 class ScoreChapter(YearTermModel):
+    class Meta:
+        unique_together = ('term', 'year', 'type', 'chapter')
     chapter = models.ForeignKey(Chapter, related_name="scores",
                                 on_delete=models.CASCADE)
     type = models.ForeignKey(ScoreType,
