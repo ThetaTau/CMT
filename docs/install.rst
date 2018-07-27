@@ -20,7 +20,7 @@ workon cmt
 pip install Django
 pip install -r requirements/local.txt
 
-"C:\Program Files\PostgreSQL\10\pg_env.bat"
+"pg_env.bat"
 "C:\Program Files\PostgreSQL\10\bin\createdb" thetatauCMT
 
 edit data\pg_hba.conf ("E:\workspace\CMT\data\pg_hba.conf")
