@@ -24,4 +24,9 @@ urlpatterns = [
         view=views.UserDetailView.as_view(),
         name='detail'
     ),
+    url(
+        regex=r'^~lookup/$',
+        view=views.UserLookupView.as_view(),
+        name='lookup'
+    ),
 ]

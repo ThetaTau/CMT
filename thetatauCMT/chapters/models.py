@@ -63,3 +63,7 @@ class Chapter(models.Model):
     def next_badge_number(self):
         return self.members.filter(~models.Q(status__status='pnm'),
                                    ~models.Q(badge_number=999999999)).aggregate(models.Max('badge_number'))
+
+    @classmethod
+    def schools(cls):
+        return [(school['pk'], school['school']) for school in cls.objects.values('school', 'pk').order_by('school')]
