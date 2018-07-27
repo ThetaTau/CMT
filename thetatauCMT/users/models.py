@@ -32,6 +32,8 @@ class User(AbstractUser):
                                unique=True,
                                help_text="Combination of badge number and chapter abbr, eg. X1311")
     major = models.CharField(max_length=100, blank=True)
+    employer = models.CharField(max_length=100, blank=True)
+    employer_position = models.CharField(max_length=100, blank=True)
     graduation_year = models.PositiveIntegerField(
         default=datetime.datetime.now().year,
         validators=[
