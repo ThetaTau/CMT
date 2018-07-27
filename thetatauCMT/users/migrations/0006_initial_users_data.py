@@ -90,7 +90,7 @@ def load_users(apps, schema_editor):
                 phone_number_val = int(phone_number_val)
             graduation_year_val = int(row[graduation_year_index])
             user_obj = user(
-                id=id_obj,
+                # id=id_obj,
                 user_id=user_id,
                 username=row[email_index],
                 first_name=row[first_name_index],
@@ -130,6 +130,11 @@ def load_users(apps, schema_editor):
             role_obj.save()
 
 
+def migrate_data_backward(apps, schema_editor):
+    user = apps.get_model("users", "User")
+    user.objects.all().delete()
+
+
 class Migration(migrations.Migration):
 
     dependencies = [
@@ -138,5 +143,6 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RunPython(load_users),
+        migrations.RunPython(load_users,
+                             migrate_data_backward),
     ]
