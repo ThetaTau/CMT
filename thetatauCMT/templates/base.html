@@ -68,6 +68,7 @@
           </ul>
           <ul class="nav navbar-nav ml-auto w-100 justify-content-end">
             {% if request.user.is_authenticated %}
+              {% if request.is_officer %}
               <div class="dropdown-container">
               <li>
               <a class="nav-link dropdown-toggle" href="#" data-toggle="dropdown">{% trans "Forms" %}</a>
@@ -84,6 +85,7 @@
                 </ul>
               </li>
               </div>
+                {% endif %}
               <div class="dropdown-container">
               {% if request.is_nat_officer %}
                 <li>

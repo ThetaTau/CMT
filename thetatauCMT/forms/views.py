@@ -7,16 +7,20 @@ from django.shortcuts import redirect
 from django.http import HttpResponseRedirect
 from crispy_forms.layout import Submit
 from extra_views import FormSetView
+from core.views import OfficerMixin, OfficerRequiredMixin
 from .forms import InitiationFormSet, InitiationForm, InitiationFormHelper, InitDeplSelectForm,\
     InitDeplSelectFormHelper, DepledgeFormSet, DepledgeFormHelper, StatusChangeSelectForm,\
     StatusChangeSelectFormHelper, GraduateForm, GraduateFormSet, CSMTFormSet, GraduateFormHelper, CSMTFormHelper,\
     RoleChangeSelectForm, RoleChangeSelectFormHelper
 
 
-class InitDeplSelectView(LoginRequiredMixin, FormSetView):
+class InitDeplSelectView(OfficerRequiredMixin,
+                         LoginRequiredMixin, OfficerMixin,
+                         FormSetView):
     form_class = InitDeplSelectForm
     template_name = "forms/init-depl-select.html"
     factory_kwargs = {'extra': 0}
+    officer_edit = 'pledge status'
 
     def get_initial(self):
         pledges = self.request.user.chapter.pledges()
@@ -50,13 +54,15 @@ class InitDeplSelectView(LoginRequiredMixin, FormSetView):
         return reverse('forms:initiation')
 
 
-class InitiationView(LoginRequiredMixin, FormView):
+class InitiationView(OfficerRequiredMixin,
+                     LoginRequiredMixin, OfficerMixin, FormView):
     form_class = InitiationForm
     template_name = "forms/initiation.html"
     to_initiate = []
     to_depledge = []
     to_defer = []
     next_badge = 999999
+    officer_edit = 'pledge status'
 
     def initial_info(self, initiate):
         pledges = self.request.user.chapter.pledges()
@@ -115,11 +121,13 @@ class InitiationView(LoginRequiredMixin, FormView):
         return reverse('home')
 
 
-class StatusChangeSelectView(LoginRequiredMixin, FormSetView):
+class StatusChangeSelectView(OfficerRequiredMixin,
+                             LoginRequiredMixin, OfficerMixin, FormSetView):
     form_class = StatusChangeSelectForm
     template_name = "forms/status-select.html"
     factory_kwargs = {'extra': 1}
     prefix = 'selection'
+    officer_edit = 'member status'
 
     def get_formset_request(self, request, action):
         formset = forms.formset_factory(StatusChangeSelectForm,
@@ -189,8 +197,10 @@ class StatusChangeSelectView(LoginRequiredMixin, FormSetView):
         return reverse('forms:status')
 
 
-class StatusChangeView(LoginRequiredMixin, FormView):
+class StatusChangeView(OfficerRequiredMixin,
+                       LoginRequiredMixin, OfficerMixin, FormView):
     form_class = GraduateForm
+    officer_edit = 'member status'
     template_name = "forms/status.html"
     to_graduate = []
     to_coop = []
@@ -269,11 +279,13 @@ class StatusChangeView(LoginRequiredMixin, FormView):
         return reverse('home')
 
 
-class RoleChangeView(LoginRequiredMixin, FormSetView):
+class RoleChangeView(OfficerRequiredMixin,
+                     LoginRequiredMixin, OfficerMixin, FormSetView):
     form_class = RoleChangeSelectForm
     template_name = "forms/officer.html"
     factory_kwargs = {'extra': 1}
     prefix = 'selection'
+    officer_edit = 'member roles'
 
     def get_formset_request(self, request, action):
         formset = forms.formset_factory(RoleChangeSelectForm,

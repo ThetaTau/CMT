@@ -1,24 +1,33 @@
 from django_tables2 import SingleTableView
-from django_tables2.config import RequestConfig
+from django_tables2.config import RequestConfig  # Imported by others
 from django.views.generic.edit import FormMixin
+from django.contrib import messages
 from scores.models import ScoreType
 from .utils import check_officer, check_nat_officer
+from braces.views import GroupRequiredMixin
 
 
-# from django.views.generic import TemplateView
-#
-# from braces.views import GroupRequiredMixin
-#
-#
-# class NatOfficerView(GroupRequiredMixin, TemplateView):
-#     #required
-#     group_required = u"editors"
-#     def check_membership(self, group):
-#         # Check some other system for group membership
-#         if user_in_group:
-#             return True
-#         else:
-#             return False
+class NatOfficerView(GroupRequiredMixin):
+    group_required = u"natoff"
+
+    def get_login_url(self):
+        messages.add_message(
+            self.request, messages.ERROR,
+            f"Only officers can edit submissions")
+        return self.get_success_url()
+
+
+class OfficerRequiredMixin(GroupRequiredMixin):
+    group_required = u"officer"
+    officer_edit = 'this'
+    officer_edit_type = 'edit'
+    redirect_field_name = ""
+
+    def get_login_url(self):
+        messages.add_message(
+            self.request, messages.ERROR,
+            f"Only officers can {self.officer_edit_type} {self.officer_edit}")
+        return self.get_success_url()
 
 
 class OfficerMixin:

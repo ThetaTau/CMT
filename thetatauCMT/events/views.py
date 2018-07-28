@@ -1,26 +1,28 @@
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.contrib import messages
 from django.urls import reverse
 from django.views.generic import DetailView, UpdateView, RedirectView, CreateView
-from braces.views import GroupRequiredMixin
 from core.views import PagedFilteredTableView, RequestConfig, TypeFieldFilteredChapterAdd,\
-    OfficerMixin
+    OfficerMixin, OfficerRequiredMixin
 from .models import Event
 from .tables import EventTable
 from .filters import EventListFilter
 from .forms import EventListFormHelper
 
 
-class EventDetailView(LoginRequiredMixin, DetailView):
+class EventDetailView(LoginRequiredMixin, OfficerMixin, DetailView):
     model = Event
     slug_field = 'chapter'
     slug_url_kwarg = 'chapter'
 
 
-class EventCreateView(LoginRequiredMixin, TypeFieldFilteredChapterAdd,
+class EventCreateView(OfficerRequiredMixin,
+                      LoginRequiredMixin, OfficerMixin,
+                      TypeFieldFilteredChapterAdd,
                       CreateView):
     model = Event
     template_name_suffix = '_create_form'
+    officer_edit = 'events'
+    officer_edit_type = 'create'
     fields = ['name',
               'date',
               'type',
@@ -40,10 +42,12 @@ class EventRedirectView(LoginRequiredMixin, RedirectView):
         return reverse('events:list')
 
 
-class EventUpdateView(GroupRequiredMixin, LoginRequiredMixin,
+class EventUpdateView(OfficerRequiredMixin, OfficerMixin,
+                      LoginRequiredMixin,
                       TypeFieldFilteredChapterAdd,
                       UpdateView):
-    group_required = u"officer"
+    officer_edit = 'events'
+    officer_edit_type = 'edit'
     fields = ['name',
               'date',
               'type',
@@ -54,12 +58,6 @@ class EventUpdateView(GroupRequiredMixin, LoginRequiredMixin,
 
     def get_success_url(self):
         return reverse('events:list')
-
-    def get_login_url(self):
-        messages.add_message(
-            self.request, messages.ERROR,
-            f"Only officers can edit events")
-        return self.get_success_url()
 
 
 class EventListView(LoginRequiredMixin, OfficerMixin,
