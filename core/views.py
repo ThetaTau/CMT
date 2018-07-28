@@ -2,6 +2,30 @@ from django_tables2 import SingleTableView
 from django_tables2.config import RequestConfig
 from django.views.generic.edit import FormMixin
 from scores.models import ScoreType
+from .utils import check_officer, check_nat_officer
+
+
+# from django.views.generic import TemplateView
+#
+# from braces.views import GroupRequiredMixin
+#
+#
+# class NatOfficerView(GroupRequiredMixin, TemplateView):
+#     #required
+#     group_required = u"editors"
+#     def check_membership(self, group):
+#         # Check some other system for group membership
+#         if user_in_group:
+#             return True
+#         else:
+#             return False
+
+
+class OfficerMixin:
+    def dispatch(self, request, *args, **kwargs):
+        request = check_nat_officer(request)
+        request = check_officer(request)
+        return super().dispatch(request, *args, **kwargs)
 
 
 class PagedFilteredTableView(SingleTableView):

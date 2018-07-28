@@ -1,7 +1,10 @@
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib import messages
 from django.urls import reverse
 from django.views.generic import DetailView, UpdateView, RedirectView, CreateView
-from core.views import PagedFilteredTableView, RequestConfig, TypeFieldFilteredChapterAdd
+from braces.views import GroupRequiredMixin
+from core.views import PagedFilteredTableView, RequestConfig, TypeFieldFilteredChapterAdd,\
+    OfficerMixin
 from .models import Event
 from .tables import EventTable
 from .filters import EventListFilter
@@ -37,8 +40,10 @@ class EventRedirectView(LoginRequiredMixin, RedirectView):
         return reverse('events:list')
 
 
-class EventUpdateView(LoginRequiredMixin, TypeFieldFilteredChapterAdd,
+class EventUpdateView(GroupRequiredMixin, LoginRequiredMixin,
+                      TypeFieldFilteredChapterAdd,
                       UpdateView):
+    group_required = u"officer"
     fields = ['name',
               'date',
               'type',
@@ -50,8 +55,15 @@ class EventUpdateView(LoginRequiredMixin, TypeFieldFilteredChapterAdd,
     def get_success_url(self):
         return reverse('events:list')
 
+    def get_login_url(self):
+        messages.add_message(
+            self.request, messages.ERROR,
+            f"Only officers can edit events")
+        return self.get_success_url()
 
-class EventListView(LoginRequiredMixin, PagedFilteredTableView):
+
+class EventListView(LoginRequiredMixin, OfficerMixin,
+                    PagedFilteredTableView):
     # These next two lines tell the view to index lookups by username
     model = Event
     slug_field = 'chapter'
