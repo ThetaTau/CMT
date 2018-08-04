@@ -66,3 +66,11 @@ To prepopulate data:
 python manage.py makemigrations --empty yourappname --name migrationname
 
 django-admin migrate yourappname
+
+
+python manage.py startapp yourappname
+
+then:
+    - config/urls add new connect to yourappname/urls
+    - config/settings/base add new LOCAL_APPS
+    - copy over tests/folder, delete tests.py
