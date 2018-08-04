@@ -10,27 +10,27 @@ urlpatterns = [
     #     name='list'
     # ),
     url(
-        regex=r'^~initiation/$',
+        regex=r'^initiation/$',
         view=views.InitiationView.as_view(),
         name='initiation'
     ),
     url(
-        regex=r'^~initiation-selection/$',
+        regex=r'^initiation-selection/$',
         view=views.InitDeplSelectView.as_view(),
         name='init_selection'
     ),
     url(
-        regex=r'^~status/$',
+        regex=r'^status/$',
         view=views.StatusChangeView.as_view(),
         name='status'
     ),
     url(
-        regex=r'^~status-selection/$',
+        regex=r'^status-selection/$',
         view=views.StatusChangeSelectView.as_view(),
         name='status_selection'
     ),
     url(
-        regex=r'^~officer/$',
+        regex=r'^officer/$',
         view=views.RoleChangeView.as_view(),
         name='officer'
     ),
