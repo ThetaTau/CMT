@@ -22,6 +22,7 @@ NATIONAL_OFFICER = {
     'national director',
     'national officer'
 }
+
 COMMITTEE_CHAIR = {
     "alumni adviser",
     "board member",
@@ -42,6 +43,9 @@ COMMITTEE_CHAIR = {
     "social/brotherhood chair",
     "website/social media chair",
 }
+
+
+ALL_OFFICERS = set.union(CHAPTER_OFFICER, COMMITTEE_CHAIR, NATIONAL_OFFICER)
 
 
 class TimeStampedModel(models.Model):

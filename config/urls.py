@@ -23,6 +23,7 @@ urlpatterns = [
     url(r'^scores/', include('scores.urls', namespace='scores')),
     url(r'^submissions/', include('submissions.urls', namespace='submissions')),
     url(r'^forms/', include('forms.urls', namespace='forms')),
+    url(r'^tasks/', include('tasks.urls', namespace='tasks')),
 
 
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
