@@ -74,3 +74,5 @@ then:
     - config/urls add new connect to yourappname/urls
     - config/settings/base add new LOCAL_APPS
     - copy over tests/folder, delete tests.py
+    - copy over urls.py file from another app
+    - create initial blank views
