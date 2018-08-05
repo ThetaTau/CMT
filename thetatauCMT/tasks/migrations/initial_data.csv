@@ -1,54 +1,54 @@
 task,owner,type,resource,description,school_type,date
+Annual Report Review,scribe,task,,These submissions are for your Regional Director(s) to review to confirm a balanced program and overAll health of your chapter.,semester,9/15/2018
+Annual Report Review,,,,,quarter,10/15/2018
+Annual Report Review,,,,,all,11/15/2018
+Annual Report Review,,,,,all,1/15/2019
+Annual Report Review,,,,,all,3/15/2019
+Annual Report Submission,scribe,sub,,Final submission of the Annual Report,semester,5/15/2019
+Annual Report Submission,,,,,quarter,6/15/2019
+Audit,treasurer,sub,,"An audit is a checks and balances of the chapter's finances to make sure All moneys in and out are accounted for. It is recommended that a chapter do an audit of its finances at the end of every semester. The Treasurer should do this with at least one other individual such as another chapter officer, chapter adviser or alumni.",all,9/15/2018
+Audit,,,,,all,1/15/2019
+Audit,,,,,semester,5/15/2019
+Audit,,,,,quarter,6/15/2019
+Awards,regent,form,,"The Awards Packet is submitted yearly and is made up of submission forms for multiple awards, such as but not limited to: Adviser Award of Excellence, Best Website, Best Newsletter, etc.
+Winners are recognized yearly at the Leadership Academy and National Convention.",all,5/15/2019
+Credentials,regent,sub,,This form is submitted to the Theta Tau Central Office to indicate your chapter's Delegate and Alternate for the upcoming National Convention. (Only done during convention years),all,5/15/2019
+Dues,treasurer,bal,,Semi-annual Dues due,all,11/1/2018
+Dues,,,,,all,3/15/2019
+Gear Article,corresponding secretary,sub,,"The Gear is Theta Tau Fraternity's national magazine. As a member of Theta Tau, you are given a lifetime subscription. Therefore, it is every chapter's duty to submit one or more articles to the Editor-in-Chief of the Gear every school term.",all,10/15/2018
+Gear Article,,,,,all,1/15/2019
+Gear Article,,,,,all,4/15/2019
+Hall of Fame,regent,sub,,"Chapters, alumni associations, and the Executive Council may each nominate one or two for this honor each year. Nominations must be sent to the Director of the Alumni HAll of Fame. Those nominated may be living or deceased, from your own chapter or another chapter of the Fraternity, nominated for service to Theta Tau or to their profession (engineering or something else). There may be a maximum of five inductees each year. Alumni previously nominated will remain eligible for five years from the date of their initial nomination.",all,3/15/2019
+Initiation Report,vice regent,form,,This form reports the initiation of new brothers to the Theta Tau Central Office. Initiation fees and badge costs should be submitted to Theta Tau Central Office in conjunction with this report. This must be done within 2 weeks after initiation or a $10 per initiate late fee will be assessed against the chapter.,all,1/15/2019
+Initiation Report,,,,,semester,5/15/2019
+Initiation Report,,,,,quarter,6/15/2019
+Insurance Payment,treasurer,bal,,Liability Insurance payment due,all,10/15/2018
 Lock-in,regent,sub,,"Lock-Ins are events utilized by chapters to bring chapter members together to strengthen brotherhood. They are also used for chapter officers and chairmen to sit down and organize/plan for the upcoming semester, such as types of events, event dates, rush/pledging preparation and budgeting.",semester,8/15/2018
 Lock-in,,,,,quarter,9/15/2018
-Lock-in,,,,,all,1/15/2016
-Pledge Program,vice regent,sub,,Submit Prospective New Member/Pledge Program to Regional Director for review,semester,8/15/2016
-Pledge Program,,,,,quarter,9/15/2016
+Lock-in,,,,,all,1/15/2019
+Member Updates,scribe,form,,"Submit Updates to: Membership Status Change Report, Officer Election Report, COOP, etc.",semester,9/15/2018
+Member Updates,,,,,quarter,10/15/2018
+Member Updates,,,,,all,1/15/2019
+Member Updates,,,,,semester,5/15/2019
+Member Updates,,,,,quarter,6/15/2019
+Newsletter for Alumni,corresponding secretary,sub,,Send an Alumni Newsletter to chapter alumni,all,11/15/2018
+Newsletter for Alumni,,,,,all,5/15/2019
+Outstanding Student Member,regent,sub,,"Yearly, each chapter selects an active member to honor as their chapter's Outstanding Student Member. A form is submitted to the Theta Tau Central Office, indicating the chapter's selection. Each OSM is mailed a certificate and OSM tangle, as well as entered into the consideration for the National OSM Award.",all,5/15/2019
+Pledge Forms,vice regent,form,,This form is filled out by each pinned pledging member and MUST be done immediately after pinning.,semester,9/15/2018
+Pledge Forms,,,,,quarter,10/15/2018
+Pledge Forms,,,,,semester,2/15/2019
+Pledge Forms,,,,,quarter,4/15/2019
+Pledge Program,vice regent,sub,,Submit Prospective New Member/Pledge Program to Regional Director for review,semester,8/15/2018
+Pledge Program,,,,,quarter,9/15/2018
 Review Inventory,treasurer,sub,,"An inventory comprised of All consumable supplies needed to run a successful chapter. Items such as, but not limited to:
 - Membership Manuals
 - Prospective New Member/Pledge Pins
 - Candles
 - Pages for Roll Book
-- Prospective New Member/Pledge Education Materials",semester,8/15/2016
-Review Inventory,,,,,quarter,9/15/2016
-Review Inventory,,,,,all,1/15/2018
-Member Updates,scribe,form,,"Submit Updates to: Membership Status Change Report, Officer Election Report, COOP, etc.",semester,9/15/2016
-Member Updates,,,,,quarter,10/15/2016
-Member Updates,,,,,all,1/15/2016
-Member Updates,,,,,semester,5/15/2016
-Member Updates,,,,,quarter,6/15/2016
-Annual Report Review,scribe,task,,These submissions are for your Regional Director(s) to review to confirm a balanced program and overAll health of your chapter.,semester,9/15/2016
-Annual Report Review,,,,,quarter,10/15/2016
-Annual Report Review,,,,,all,11/15/2016
-Annual Report Review,,,,,all,1/15/2016
-Annual Report Review,,,,,all,3/15/2016
-Pledge Forms,vice regent,form,,This form is filled out by each pinned pledging member and MUST be done immediately after pinning.,semester,9/15/2016
-Pledge Forms,,,,,quarter,10/15/2016
-Pledge Forms,,,,,semester,2/15/2016
-Pledge Forms,,,,,quarter,4/15/2016
-Risk Management Form,regent,sub,,"The Risk Management Form is a form that each chapter’s officers must review with their chapter and that chapter officers sign. This is done once per year within two weeks of the beginning of the FAll semester. Once signed, the form is to be scanned and emailed to the Regional Director. 
-It is recommended that chapters review the risk management policy once per semester for new members and a review for ongoing members.  ",semester,9/15/2016
-Risk Management Form,,,,,quarter,10/15/2016
-Insurance Payment,treasurer,bal,,Liability Insurance payment due,all,10/15/2016
-Gear Article,corresponding secretary,sub,,"The Gear is Theta Tau Fraternity’s national magazine. As a member of Theta Tau, you are given a lifetime subscription. Therefore, it is every chapter’s duty to submit one or more articles to the Editor-in-Chief of the Gear every school term.",all,10/15/2016
-Gear Article,,,,,all,1/15/2016
-Gear Article,,,,,all,4/15/2016
-Dues,treasurer,bal,,Semi-annual Dues due,all,11/1/2016
-Dues,,,,,all,3/15/2016
-Newsletter for Alumni,corresponding secretary,sub,,Send an Alumni Newsletter to chapter alumni,all,11/15/2017
-Newsletter for Alumni,,,,,all,5/15/2018
-Initiation Report,vice regent,form,,This form reports the initiation of new brothers to the Theta Tau Central Office. Initiation fees and badge costs should be submitted to Theta Tau Central Office in conjunction with this report. This must be done within 2 weeks after initiation or a $10 per initiate late fee will be assessed against the chapter.,all,1/15/2018
-Initiation Report,,,,,semester,5/15/2018
-Initiation Report,,,,,quarter,6/15/2018
-Audit,treasurer,sub,,"An audit is a checks and balances of the chapter’s finances to make sure All moneys in and out are accounted for. It is recommended that a chapter do an audit of its finances at the end of every semester. The Treasurer should do this with at least one other individual such as another chapter officer, chapter adviser or alumni.",all,9/15/2018
-Audit,,,,,all,1/15/2016
-Audit,,,,,semester,5/15/2016
-Audit,,,,,quarter,6/15/2016
-Scholarship,regent,form,,Form submitted by any active student member that applies them to any/All scholarships available through the Theta Tau Educational Foundation.,all,4/15/2016
-Hall of Fame,regent,sub,,"Chapters, alumni associations, and the Executive Council may each nominate one or two for this honor each year. Nominations must be sent to the Director of the Alumni HAll of Fame. Those nominated may be living or deceased, from your own chapter or another chapter of the Fraternity, nominated for service to Theta Tau or to their profession (engineering or something else). There may be a maximum of five inductees each year. Alumni previously nominated will remain eligible for five years from the date of their initial nomination.",all,3/15/2018
-Annual Report Submission,scribe,sub,,Final submission of the Annual Report,semester,5/15/2016
-Annual Report Submission,,,,,quarter,6/15/2016
-Outstanding Student Member,regent,sub,,"Yearly, each chapter selects an active member to honor as their chapter’s Outstanding Student Member. A form is submitted to the Theta Tau Central Office, indicating the chapter’s selection. Each OSM is mailed a certificate and OSM tangle, as well as entered into the consideration for the National OSM Award.",all,5/15/2016
-Credentials,regent,sub,,This form is submitted to the Theta Tau Central Office to indicate your chapter’s Delegate and Alternate for the upcoming National Convention. (Only done during convention years),all,5/15/2016
-Awards,regent,form,,"The Awards Packet is submitted yearly and is made up of submission forms for multiple awards, such as but not limited to: Adviser Award of Excellence, Best Website, Best Newsletter, etc.
-Winners are recognized yearly at the Leadership Academy and National Convention.",all,5/15/2016
+- Prospective New Member/Pledge Education Materials",semester,8/15/2018
+Review Inventory,,,,,quarter,9/15/2018
+Review Inventory,,,,,all,1/15/2019
+Risk Management Form,regent,sub,,"The Risk Management Form is a form that each chapter's officers must review with their chapter and that chapter officers sign. This is done once per year within two weeks of the beginning of the FAll semester. Once signed, the form is to be scanned and emailed to the Regional Director. 
+It is recommended that chapters review the risk management policy once per semester for new members and a review for ongoing members.  ",semester,9/15/2018
+Risk Management Form,,,,,quarter,10/15/2018
+Scholarship,regent,form,,Form submitted by any active student member that applies them to any/All scholarships available through the Theta Tau Educational Foundation.,all,4/15/2019

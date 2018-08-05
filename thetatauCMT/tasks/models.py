@@ -1,4 +1,5 @@
 from django.db import models
+from django.db.models import Q
 from django.utils.text import slugify
 from core.models import ALL_OFFICERS
 from chapters.models import Chapter
@@ -13,7 +14,7 @@ class Task(models.Model):
         ('task', 'Task'),
         ('bal', 'Balance'),
     ]
-    OWNERS = [(officer, officer) for officer in ALL_OFFICERS]
+    OWNERS = [(officer, officer.title()) for officer in ALL_OFFICERS]
     name = models.CharField(max_length=50)
     slug = models.SlugField(unique=True)
     owner = models.CharField(
@@ -31,11 +32,20 @@ class Task(models.Model):
         self.slug = slugify(self.name)
         super().save(*args, **kwargs)
 
+    def date_for_chapter(self, chapter):
+        # chapter.school_type
+        school_type = 'semester'
+        dates = self.dates.filter(Q(school_type=school_type) |
+                                  Q(school_type='all')).all()
+        for date in dates:
+            completions = date.chapters.date
+
+
 
 class TaskDate(models.Model):
     class Meta:
         unique_together = ('task', 'date', 'school_type')
-        ordering = ['-date', ]
+        ordering = ['date', ]
 
     TYPES = [
         ('semester', 'Semester'),
@@ -50,6 +60,15 @@ class TaskDate(models.Model):
         choices=TYPES
     )
     date = models.DateTimeField()
+
+    @classmethod
+    def dates_for_chapter(cls, chapter):
+        # chapter.school_type
+        school_type = 'semester'
+        tasks = cls.objects.filter(Q(school_type=school_type) |
+                                   Q(school_type='all'),
+                                   ~Q(chapters__chapter=chapter)).all()
+        return tasks
 
 
 class TaskChapter(models.Model):
