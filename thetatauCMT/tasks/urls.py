@@ -10,8 +10,8 @@ urlpatterns = [
         name='list'
     ),
     url(
-        regex=r'^~add/$',
+        regex=r'^complete/(?P<pk>\d+)/$',
         view=views.TaskCompleteView.as_view(),
-        name='add'
+        name='complete'
     ),
 ]
