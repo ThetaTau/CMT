@@ -27,10 +27,6 @@ class TaskListFormHelper(FormHelper):
                                 css_class='btn-primary',
                                 style='margin-top:10px;'),
                             Submit('cancel', 'Clear'),
-                            # StrictButton(
-                            #     'Clear',
-                            #     type='clear',
-                            #     css_class='btn')
                         )
                     )
                 ),
