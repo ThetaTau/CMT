@@ -1,12 +1,14 @@
 import os
 import datetime
 from django.db import models
+from django.contrib.contenttypes.fields import GenericRelation
 from gdstorage.storage import GoogleDriveStorage
 from django.utils import timezone
 from django.utils.text import slugify
 from core.models import TimeStampedModel
 from scores.models import ScoreType
 from chapters.models import Chapter
+from tasks.models import TaskChapter
 # Define Google Drive Storage
 gd_storage = GoogleDriveStorage()
 
@@ -27,6 +29,7 @@ class Submission(TimeStampedModel):
     score = models.FloatField(default=0)
     chapter = models.ForeignKey(Chapter, related_name="submissions",
                                 on_delete=models.CASCADE)
+    task = GenericRelation(TaskChapter)
 
     def __str__(self):
         return f"{self.name}"  # from {self.chapter} on {self.date}"

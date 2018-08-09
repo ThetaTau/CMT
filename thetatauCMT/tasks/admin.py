@@ -12,7 +12,7 @@ class TaskDateInline(admin.TabularInline):
 
 class TaskAdmin(admin.ModelAdmin):
     inlines = [TaskDateInline]
-    list_display = ('name', 'owner', 'type')
+    list_display = ('name', 'owner', 'type', 'submission_type')
     list_filter = ['owner', 'type']
     ordering = ['name',]
 

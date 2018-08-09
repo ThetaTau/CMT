@@ -1,5 +1,6 @@
 from enum import Enum
 from django.db import models
+from django.contrib.contenttypes.fields import GenericRelation
 from django.core.validators import MaxValueValidator
 from django.conf import settings
 from django.utils import timezone
@@ -7,6 +8,7 @@ from core.models import TimeStampedModel
 from django.utils.translation import gettext_lazy as _
 from users.models import User
 from chapters.models import Chapter
+from tasks.models import TaskChapter
 
 
 class Badge(models.Model):
@@ -56,6 +58,7 @@ class Initiation(TimeStampedModel):
     guard = models.ForeignKey(Guard, on_delete=models.SET_NULL,
                               related_name="initiation",
                               null=True)
+    task = GenericRelation(TaskChapter)
 
     def __str__(self):
         return f"{self.user} initiated on {self.date}"
@@ -143,6 +146,7 @@ class StatusChange(TimeStampedModel):
     email_work = models.EmailField(_('email address'), blank=True)
     new_school = models.ForeignKey(Chapter, on_delete=models.CASCADE,
                                    default=1, related_name="transfers")
+    task = GenericRelation(TaskChapter)
 
     def __str__(self):
         return f"{self.user} {self.reason} on {self.date_start}"

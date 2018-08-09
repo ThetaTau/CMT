@@ -1,8 +1,11 @@
 from django.db import models
 from django.db.models import Q
+from django.contrib.contenttypes.fields import GenericForeignKey
+from django.contrib.contenttypes.models import ContentType
 from django.utils.text import slugify
 from core.models import ALL_OFFICERS
 from chapters.models import Chapter
+from scores.models import ScoreType
 
 
 class Task(models.Model):
@@ -25,8 +28,11 @@ class Task(models.Model):
         max_length=4,
         choices=TYPES
     )
-    resource = models.URLField(blank=True)
+    resource = models.CharField(max_length=100, blank=True)
     description = models.CharField(max_length=1000)
+    submission_type = models.ForeignKey(ScoreType, on_delete=models.CASCADE,
+                                        related_name="task",
+                                        blank=True, null=True)
 
     def save(self, *args, **kwargs):
         self.slug = slugify(self.name)
@@ -83,3 +89,9 @@ class TaskChapter(models.Model):
     chapter = models.ForeignKey(Chapter, on_delete=models.CASCADE,
                                 related_name="tasks")
     date = models.DateTimeField()
+    # This can only be used for a submission or form
+    # Whatever results in the completion of the task
+    submission_type = models.ForeignKey(ContentType, on_delete=models.CASCADE,
+                                        blank=True, null=True)
+    submission_id = models.PositiveIntegerField(blank=True, null=True)
+    submission_object = GenericForeignKey('submission_type', 'submission_id')
