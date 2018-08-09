@@ -1,8 +1,10 @@
 from django_tables2 import SingleTableView
 from django_tables2.config import RequestConfig  # Imported by others
 from django.views.generic.edit import FormMixin
+from django.utils import timezone
 from django.contrib import messages
 from scores.models import ScoreType
+from tasks.models import TaskChapter
 from .utils import check_officer, check_nat_officer
 from braces.views import GroupRequiredMixin
 
@@ -71,6 +73,16 @@ class TypeFieldFilteredChapterAdd(FormMixin):
         return form
 
     def form_valid(self, form):
-        form.instance.chapter = self.request.user.chapter
-        response = super().form_valid(form)
+        chapter = self.request.user.chapter
+        form.instance.chapter = chapter
+        score_obj = form.instance.type
+        task = score_obj.task.first()
+        if task:
+            next_date = task.incomplete_dates_for_task_chapter(chapter).first()
+        response = super().form_valid(form)  # This saves the form
+        if task:
+            if next_date:
+                TaskChapter(task=next_date, chapter=chapter,
+                            date=timezone.now(),
+                            submission_object=self.object).save()
         return response

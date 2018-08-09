@@ -1,6 +1,7 @@
 from copy import deepcopy
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.urls import reverse
+from django.utils import timezone
 from django import forms
 from django.views.generic.edit import FormView
 from django.shortcuts import redirect
@@ -12,6 +13,7 @@ from .forms import InitiationFormSet, InitiationForm, InitiationFormHelper, Init
     InitDeplSelectFormHelper, DepledgeFormSet, DepledgeFormHelper, StatusChangeSelectForm,\
     StatusChangeSelectFormHelper, GraduateForm, GraduateFormSet, CSMTFormSet, GraduateFormHelper, CSMTFormHelper,\
     RoleChangeSelectForm, RoleChangeSelectFormHelper
+from tasks.models import TaskChapter, Task
 
 
 class InitDeplSelectView(OfficerRequiredMixin,
@@ -115,6 +117,12 @@ class InitiationView(OfficerRequiredMixin,
             form.save()
         for form in depledge_formset:
             form.save()
+        task = Task.objects.get(name="Initiation Report")
+        chapter = self.request.user.chapter
+        next_date = task.incomplete_dates_for_task_chapter(chapter).first()
+        if next_date:
+            TaskChapter(task=next_date, chapter=chapter,
+                        date=timezone.now()).save()
         return HttpResponseRedirect(self.get_success_url())
 
     def get_success_url(self):
@@ -273,6 +281,12 @@ class StatusChangeView(OfficerRequiredMixin,
             form.save()
         for form in csmt_formset:
             form.save()
+        task = Task.objects.get(name="Member Updates")
+        chapter = self.request.user.chapter
+        next_date = task.incomplete_dates_for_task_chapter(chapter).first()
+        if next_date:
+            TaskChapter(task=next_date, chapter=chapter,
+                        date=timezone.now()).save()
         return HttpResponseRedirect(self.get_success_url())
 
     def get_success_url(self):
@@ -354,6 +368,12 @@ class RoleChangeView(OfficerRequiredMixin,
     def formset_valid(self, formset):
         for form in formset:
             form.save()
+        task = Task.objects.get(name="Officer Election Report")
+        chapter = self.request.user.chapter
+        next_date = task.incomplete_dates_for_task_chapter(chapter).first()
+        if next_date:
+            TaskChapter(task=next_date, chapter=chapter,
+                        date=timezone.now()).save()
         return super().formset_valid(formset)
 
     def get_success_url(self):
