@@ -22,6 +22,7 @@ task_to_form = {
     "Initiation Report": "forms:init_selection",
     "Member Updates": "forms:status_selection",
     "Pledge Forms": "http://thetatau.org/pledgeform",
+    "Officer Election Report": "forms:officer"
 }
 
 
@@ -38,6 +39,10 @@ def add_submission_link(apps, schema_editor):
         if form_name:
             task_obj.resource = form_name
         task_obj.save()
+
+
+def delete(apps, schema_editor):
+    pass
 
 
 class Migration(migrations.Migration):
@@ -78,5 +83,5 @@ class Migration(migrations.Migration):
             name='resource',
             field=models.CharField(blank=True, max_length=100),
         ),
-        migrations.RunPython(add_submission_link, ),
+        migrations.RunPython(add_submission_link, delete),
     ]
