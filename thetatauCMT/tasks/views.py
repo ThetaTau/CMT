@@ -55,6 +55,6 @@ class TaskListView(LoginRequiredMixin, OfficerMixin,
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         table = TaskTable(self.get_queryset())
-        RequestConfig(self.request, paginate={'per_page': 30}).configure(table)
+        RequestConfig(self.request, paginate={'per_page': 40}).configure(table)
         context['table'] = table
         return context
