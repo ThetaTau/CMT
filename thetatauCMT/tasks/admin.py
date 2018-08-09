@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Task, TaskDate
+from .models import Task, TaskDate, TaskChapter
 
 
 class TaskDateInline(admin.TabularInline):
@@ -17,4 +17,11 @@ class TaskAdmin(admin.ModelAdmin):
     ordering = ['name',]
 
 
+class TaskChapterAdmin(admin.ModelAdmin):
+    list_display = ('task', 'chapter', 'date', 'submission_type')
+    list_filter = ['chapter', 'date']
+    ordering = ['date',]
+
+
 admin.site.register(Task, TaskAdmin)
+admin.site.register(TaskChapter, TaskChapterAdmin)
