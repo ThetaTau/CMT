@@ -1,15 +1,32 @@
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.shortcuts import redirect, reverse
 from django.views.generic import DetailView, UpdateView, RedirectView, CreateView
 from core.views import PagedFilteredTableView, RequestConfig, TypeFieldFilteredChapterAdd,\
     OfficerMixin, OfficerRequiredMixin
-from .models import TaskChapter, TaskDate
+from .models import TaskChapter, TaskDate, Task
 from .tables import TaskTable
 from .filters import TaskListFilter
 from .forms import TaskListFormHelper
 
 
-class TaskCompleteView(LoginRequiredMixin, OfficerMixin, DetailView):
+class TaskCompleteView(LoginRequiredMixin, OfficerMixin, CreateView):
     model = TaskChapter
+    fields = ['task', 'date']
+    template_name = "tasks/task_complete.html"
+
+    def get(self, request, *args, **kwargs):
+        task_date_id = self.kwargs.get('pk')
+        task = TaskDate.objects.get(pk=task_date_id).task
+        if task.type == 'sub':
+            if task.submission_type:
+                return redirect(reverse('submissions:add-direct', args=(task.submission_type.slug,)))
+        elif task.type == 'form':
+            if task.resource:
+                if 'http' not in task.resource:
+                    return redirect(reverse(task.resource))
+                return redirect(task.resource)
+        self.object = None
+        return super().get(request, *args, **kwargs)
 
 
 class TaskListView(LoginRequiredMixin, OfficerMixin,

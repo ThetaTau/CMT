@@ -15,6 +15,11 @@ urlpatterns = [
         name='add'
     ),
     url(
+        regex=r'^add/(?P<slug>[-\w]+)$',
+        view=views.SubmissionCreateView.as_view(),
+        name='add-direct'
+    ),
+    url(
         regex=r'^redirect/$',
         view=views.SubmissionRedirectView.as_view(),
         name='redirect'

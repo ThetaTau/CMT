@@ -31,6 +31,11 @@ class SubmissionCreateView(OfficerRequiredMixin, OfficerMixin,
     def get_success_url(self):
         return reverse('submissions:list')
 
+    # def get_context_data(self, **kwargs):
+    #     context = super().get_context_data(**kwargs)
+    #     submit_type = self.kwargs.get('slug')
+    #     return context
+
 
 class SubmissionRedirectView(LoginRequiredMixin, RedirectView):
     permanent = False
