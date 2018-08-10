@@ -29,6 +29,10 @@ class TaskCompleteView(LoginRequiredMixin, OfficerMixin, CreateView):
         return super().get(request, *args, **kwargs)
 
 
+class TaskDetailView(LoginRequiredMixin, DetailView):
+    model = TaskChapter
+
+
 class TaskListView(LoginRequiredMixin, OfficerMixin,
                     PagedFilteredTableView):
     model = TaskDate
@@ -39,7 +43,7 @@ class TaskListView(LoginRequiredMixin, OfficerMixin,
     formhelper_class = TaskListFormHelper
 
     def get_queryset(self, **kwargs):
-        qs = TaskDate.dates_for_chapter(self.request.user.chapter)
+        qs = TaskDate.dates_for_chapter()
         self.filter = self.filter_class(self.request.GET,
                                         queryset=qs)
         self.filter.form.helper = self.formhelper_class()
@@ -55,6 +59,7 @@ class TaskListView(LoginRequiredMixin, OfficerMixin,
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         table = TaskTable(self.get_queryset())
+        table.request = self.request
         RequestConfig(self.request, paginate={'per_page': 40}).configure(table)
         context['table'] = table
         return context

@@ -14,4 +14,9 @@ urlpatterns = [
         view=views.TaskCompleteView.as_view(),
         name='complete'
     ),
+    url(
+        regex=r'^detail/(?P<pk>\d+)/$',
+        view=views.TaskDetailView.as_view(),
+        name='detail'
+    ),
 ]

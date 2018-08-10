@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Task: {{ object.task.task.name }}{% endblock %}
+
+{% block content %}
+<div class="container">
+
+  <div class="row">
+    <div class="col-sm-12">
+
+      <h2>{{ object.task.task.name }}</h2>
+      {% if object.task.task.name %}
+        <p>Submission Date: {{ object.date }}</p>
+        <p>Date Due: {{ object.task.date }}</p>
+        <p>{{ object.submission_object }}</p>
+      {% endif %}
+    </div>
+  </div>
+
+{% if object == request.user %}
+<!-- Action buttons -->
+<div class="row">
+
+  <div class="col-sm-12">
+    <a class="btn btn-primary" href="{% url 'users:update' %}" role="button">Update My Info</a>
+    <a class="btn btn-primary" href="{% url 'account_email' %}" role="button">Update E-Mail</a>
+    <!-- Your Stuff: Custom user template urls -->
+  </div>
+
+</div>
+<!-- End Action buttons -->
+{% endif %}
+
+
+</div>
+{% endblock content %}
+

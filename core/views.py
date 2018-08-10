@@ -1,10 +1,13 @@
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django_tables2 import SingleTableView
 from django_tables2.config import RequestConfig  # Imported by others
 from django.views.generic.edit import FormMixin
+from django.views.generic import TemplateView
 from django.utils import timezone
 from django.contrib import messages
 from scores.models import ScoreType
-from tasks.models import TaskChapter
+from tasks.models import TaskChapter, TaskDate
+from tasks.tables import TaskIncompleteTable
 from .utils import check_officer, check_nat_officer
 from braces.views import GroupRequiredMixin
 
@@ -86,3 +89,15 @@ class TypeFieldFilteredChapterAdd(FormMixin):
                             date=timezone.now(),
                             submission_object=self.object).save()
         return response
+
+
+class HomeView(LoginRequiredMixin, TemplateView):
+    template_name = 'pages/home.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        qs = TaskDate.incomplete_dates_for_chapter(self.request.user.chapter)
+        table = TaskIncompleteTable(qs)
+        RequestConfig(self.request, paginate={'per_page': 40}).configure(table)
+        context['table'] = table
+        return context
