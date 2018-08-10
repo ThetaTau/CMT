@@ -15,7 +15,7 @@ class ChapterDetailView(LoginRequiredMixin, DetailView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        chapter_officers = self.request.user.chapter.get_current_officers().all()
+        chapter_officers = self.object.get_current_officers().all()
         table = UserTable(data=chapter_officers)
         RequestConfig(self.request, paginate={'per_page': 100}).configure(table)
         context['table'] = table
