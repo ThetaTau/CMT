@@ -1,6 +1,7 @@
 from django.conf import settings
 from django.conf.urls import include, url
 from django.conf.urls.static import static
+from django.contrib.auth.views import PasswordResetConfirmView
 from django.contrib import admin
 from django.views.generic import TemplateView
 from core.views import HomeView
@@ -9,7 +10,9 @@ from django.views import defaults as default_views
 urlpatterns = [
     url(r'^$', HomeView.as_view(template_name='pages/home.html'), name='home'),
     url(r'^about/$', TemplateView.as_view(template_name='pages/about.html'), name='about'),
-
+    url(r'^reset_password/confirm/(?P<uidb64>[0-9A-Za-z_\-]+)/(?P<token>[0-9A-Za-z]{1,13}-[0-9A-Za-z]{1,20})/$',
+        PasswordResetConfirmView.as_view(template_name='password_reset_confirm.html',),
+        name='password_reset_confirm'),
     # Django Admin, use {% url 'admin:index' %}
     url(settings.ADMIN_URL, admin.site.urls),
 

@@ -85,6 +85,8 @@ class UserLookupView(FormView):
                 self.request, messages.INFO,
                 f"Email for account is: {email}")
             form = PasswordResetFormNotActive({'email': orig_email})
+            # This does not work because not active user
+            # form = PasswordResetForm({'email': orig_email})
             form.is_valid()
             form.save()
         return super().form_valid(form)
