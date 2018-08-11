@@ -4,6 +4,7 @@ import os
 import datetime
 from urllib.request import urlopen
 from time import sleep
+from django.db import transaction
 from django.utils import timezone
 from django.utils.text import slugify
 from django.db import migrations
@@ -204,7 +205,8 @@ def add_user_submission(chapter_obj, submit_row, apps):
         chapter=chapter_obj
     )
     try:
-        new_submission.save()
+        with transaction.atomic():
+            new_submission.save()
     except googleapiclient.errors.HttpError:
         print(f"Error uploading file: {submit_row['File Name'][:49]}")
 
