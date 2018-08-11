@@ -9,7 +9,7 @@ Install PostgreSQL 10.X (https://www.postgresql.org/download/)
         Data Directory: Put in data folder above cloned folder
             (For example: E:\\workspace\\CMT\\data and my cloned dir is E:\\workspace\\CMT\\thetatauCMT)
 
-Install Node 9.9.0 (https://nodejs.org/en/)
+Install Node 9.9.0 (or latest) (https://nodejs.org/en/)
 
 pip install virtualenv
 
@@ -39,8 +39,7 @@ pip install Django
 
 pip install -r requirements/local.txt (Postgres needs to be installed first)
 
-
-"pg_env.bat"
+"C:\Program Files\PostgreSQL\10\pg_env.bat"
 
 "C:\Program Files\PostgreSQL\10\bin\createdb" thetatauCMT
 
@@ -83,6 +82,13 @@ and
 set GOOGLE_API_KEY=%generatethis%
 
 
+To setup pycharm:
+    - Add project from existing pycharm files in cloned directory
+    - Ignore Django facet issue (unless you have pycharm pro)
+    - File --> Settings --> Project: thetatauCMT --> Project Interpreter
+        Add virtualenv configured above, set as env for project
+
+
 To prepopulate data:
 python manage.py makemigrations --empty yourappname --name migrationname
 
@@ -109,3 +115,7 @@ To Add existing user as superuser from cmd line:
     me.is_superuser=True
     me.is_staff=True
     me.save()
+
+
+Post activate file for environment variables in prod:
+    /home/Venturafranklin/.virtualenvs/thetatauCMT/bin/postactivate
