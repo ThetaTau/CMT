@@ -7,7 +7,7 @@ Install PostgreSQL 10.X (https://www.postgresql.org/download/)
 
     During install:
         Data Directory: Put in data folder above cloned folder
-            (For example: E:\workspace\CMT\data and my cloned dir is E:\workspace\CMT\thetatauCMT)
+            `(For example: E:\workspace\CMT\data and my cloned dir is E:\workspace\CMT\thetatauCMT)`
 
 Install Node 9.9.0 (https://nodejs.org/en/)
 
