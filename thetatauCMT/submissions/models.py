@@ -15,7 +15,7 @@ gd_storage = GoogleDriveStorage()
 
 def get_upload_path(instance, filename):
     return os.path.join(
-        'media/submissions',
+        'media',
         datetime.datetime.now().date().strftime("%Y/%m/%d"), filename)
 
 
