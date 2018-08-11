@@ -18,17 +18,16 @@
             {% block table.thead %}
             <thead>
                 <tr>
+                  {% if request.is_officer %}
                     <th>
-                      {% if request.is_officer %}
                       <a href="{% url "events:add" %}" class="btn btn-small btn-primary dark">
 {#                        <span class="hidden-phone">#}
                           <i class="fas fa-calendar-alt"></i>
                           Add Event
 {#                        </span>#}
                       </a>
-                      {% endif %}
-
                     </th>
+                  {% endif %}
                     <th colspan="11">
                         <form method="get" class="form-inline form-search pull-right">
 {#                          {% csrf_token %}#}
