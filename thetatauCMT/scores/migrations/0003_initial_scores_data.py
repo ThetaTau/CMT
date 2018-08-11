@@ -13,7 +13,7 @@ def load_scores(apps, schema_editor):
         reader = csv.DictReader(csvfile)
         for id_obj, row in enumerate(reader):
             score_obj = score(
-                id=id_obj,
+                id=id_obj + 1,
                 name=row["name"],
                 description=row["description"],
                 section=row["section"],
