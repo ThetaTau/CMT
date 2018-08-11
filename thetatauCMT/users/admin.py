@@ -43,6 +43,6 @@ class MyUserAdmin(AuthUserAdmin):
     fieldsets = (
             ('User Profile', {'fields': ('name',)}),
     ) + AuthUserAdmin.fieldsets
-    list_display = ('username', 'name', 'last_login')
+    list_display = ('username', 'name', 'last_login', 'user_id')
     list_filter = ('is_superuser', 'last_login', 'groups')
     search_fields = ['name', 'username', 'chapter']
