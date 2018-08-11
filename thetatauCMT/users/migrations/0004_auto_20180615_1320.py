@@ -14,7 +14,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='user',
             name='chapter',
-            field=models.ForeignKey(default=0, on_delete=django.db.models.deletion.CASCADE, related_name='members', to='chapters.Chapter'),
+            field=models.ForeignKey(default=1, on_delete=django.db.models.deletion.CASCADE, related_name='members', to='chapters.Chapter'),
             preserve_default=False,
         ),
     ]
