@@ -8,7 +8,8 @@
 {% block inner %}
 <h1>{% trans "Lookup Username" %}</h1>
 
-<p>{% blocktrans %}If an account is found, this lookup will send you an email. <br> Already have an account? Then please <a href="{{ login_url }}">sign in</a>.{% endblocktrans %}</p>
+<p>If an account is found, this lookup will send you an email.
+  <br> Already have an account? Then please <a href="{% url 'account_login' %}">sign in</a>.</p>
 
 
 <form class="signup" id="signup_form" method="post" action="{% url 'users:lookup' %}">
