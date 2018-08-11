@@ -5,6 +5,7 @@ from core.views import PagedFilteredTableView, RequestConfig
 from .models import ScoreType
 from .tables import ScoreTable
 from events.tables import EventTable
+from submissions.tables import SubmissionTable
 from .filters import ScoreListFilter
 from .forms import ScoreListFormHelper
 
@@ -18,8 +19,15 @@ class ScoreDetailView(LoginRequiredMixin, DetailView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        chapter_events = context['object'].events.filter(chapter=self.request.user.chapter)
-        table = EventTable(data=chapter_events)
+        if context['object'].type == "Evt":
+            chapter_events = context['object'].events.filter(chapter=self.request.user.chapter)
+            table = EventTable(data=chapter_events)
+        elif context['object'].type == "Sub":
+            chapter_submissions = context['object'].submissions.filter(chapter=self.request.user.chapter)
+            table = SubmissionTable(data=chapter_submissions)
+        else:
+            context['table'] = ScoreType.objects.none()
+            return context
         RequestConfig(self.request, paginate={'per_page': 50}).configure(table)
         context['table'] = table
         return context
