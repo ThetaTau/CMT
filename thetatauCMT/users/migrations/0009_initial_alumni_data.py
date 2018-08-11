@@ -15,7 +15,7 @@ def load_alumni(apps, schema_editor):
     with open(file_path, 'r') as csv_file:
         reader = DictReader(csv_file)
         for row in reader:
-            print(row)
+            # print(row)
             if row['email'] == "":
                 continue
             try:
