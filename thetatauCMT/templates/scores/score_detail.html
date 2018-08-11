@@ -11,19 +11,48 @@
 
       <h2>{{ object.name }}</h2>
       {% if object.name %}
-        <p>{{ object.name }}</p>
-        <p>{{ object.description }}</p>
-        <p>{{ object.section }}</p>
-        <p>{{ object.points }}</p>
-        <p>{{ object.formula }}</p>
-        <p>{{ object.slug }}</p>
-        <p>{{ object.type }}</p>
-        <p>{{ object.base_points }}</p>
-        <p>{{ object.attendance_multiplier }}</p>
-        <p>{{ object.member_add }}</p>
-        <p>{{ object.special }}</p>
+        <table class="table">
+          <tr>
+            <td>
+              Description
+            </td>
+            <td>
+              {{ object.description }}
+            </td>
+          </tr>
+        <tr>
+            <td>
+              Score Section
+            </td>
+            <td>
+              {{ object.section }}
+            </td>
+          </tr>
+        <tr>
+            <td>
+              Possible Points
+            </td>
+            <td>
+              {{ object.points }}
+            </td>
+          </tr>
+        <tr>
+            <td>
+              Score Calculation
+            </td>
+            <td>
+              {{ object.formula }}
+            </td>
+          </tr>
+        </table>
       {% endif %}
       {% if table %}
+        <br>
+        {% if object.type == 'Sub' %}
+          <h3>Related Submissions:</h3>
+        {% else %}
+          <h3>Related Events:</h3>
+        {% endif %}
         {% render_table table %}
       {% endif %}
     </div>
