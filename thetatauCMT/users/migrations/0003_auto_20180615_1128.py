@@ -14,7 +14,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='user',
             name='user_id',
-            field=models.CharField(default='TEST1311', help_text='Combination of badge number and chapter abbr, eg. X1311', max_length=20, unique=True),
+            field=models.CharField(default='TEST999999', help_text='Combination of badge number and chapter abbr, eg. X1311', max_length=20, unique=True),
             preserve_default=False,
         ),
         migrations.AlterField(
