@@ -10,6 +10,11 @@ class Chapter(models.Model):
     class Meta:
         ordering = ['name', ]
 
+    TYPES = [
+        ('semester', 'Semester'),
+        ('quarter', 'Quarter'),
+    ]
+
     name = models.CharField(max_length=50)
     region = models.ForeignKey(Region, on_delete=models.PROTECT,
                                related_name='chapters')
@@ -29,6 +34,11 @@ class Chapter(models.Model):
                              help_text="Greek letter abbreviation")
     active = models.BooleanField(default=True)
     school = models.CharField(max_length=50, blank=True)
+    school_type = models.CharField(
+        default='semester',
+        max_length=10,
+        choices=TYPES
+    )
 
     def __str__(self):
         return f"{self.name}"  # in {self.region} Region at {self.school}

@@ -43,7 +43,7 @@ class TaskListView(LoginRequiredMixin, OfficerMixin,
     formhelper_class = TaskListFormHelper
 
     def get_queryset(self, **kwargs):
-        qs = TaskDate.dates_for_chapter()
+        qs = TaskDate.dates_for_chapter(self.request.user.chapter)
         self.filter = self.filter_class(self.request.GET,
                                         queryset=qs)
         self.filter.form.helper = self.formhelper_class()

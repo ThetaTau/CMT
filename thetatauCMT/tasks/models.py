@@ -41,14 +41,14 @@ class Task(models.Model):
         self.slug = slugify(self.name)
         super().save(*args, **kwargs)
 
-    def all_dates_for_task_chapter(self):
-        school_type = 'semester'
+    def all_dates_for_task_chapter(self, chapter):
+        school_type = chapter.school_type
         dates = self.dates.filter(Q(school_type=school_type) |
                                   Q(school_type='all')).all()
         return dates
 
     def incomplete_dates_for_task_chapter(self, chapter):
-        school_type = 'semester'
+        school_type = chapter.school_type
         dates = self.dates.filter(Q(school_type=school_type) |
                                   Q(school_type='all'),
                                   ~Q(chapters__chapter=chapter)).all()
@@ -83,15 +83,15 @@ class TaskDate(models.Model):
 
     @classmethod
     def incomplete_dates_for_chapter(cls, chapter):
-        school_type = 'semester'
+        school_type = chapter.school_type
         tasks = cls.objects.filter(Q(school_type=school_type) |
                                    Q(school_type='all'),
                                    ~Q(chapters__chapter=chapter)).all()
         return tasks
 
     @classmethod
-    def dates_for_chapter(cls):
-        school_type = 'semester'
+    def dates_for_chapter(cls, chapter):
+        school_type = chapter.school_type
         tasks = cls.objects.filter(Q(school_type=school_type) |
                                    Q(school_type='all')).all()
         return tasks
