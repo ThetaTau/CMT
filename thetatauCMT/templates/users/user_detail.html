@@ -11,19 +11,50 @@
 
       <h2>{{ object.username }}</h2>
       {% if object.name %}
-        <p>{{ object.name }}</p>
-        <p>{{ object.chapter }}</p>
-        <p>{{ object.major }}</p>
-        <p>{{ object.graduation_year }}</p>
-        <p>{{ object.phone_number }}</p>
-        <p>{{ object.address }}</p>
+        <table class="table">
+          <tr>
+            <td>Name</td>
+            <td>{{ object.name }}</td>
+          </tr>
+          <tr>
+            <td>Chapter</td>
+            <td>{{ object.chapter }}</td>
+          </tr>
+          <tr>
+            <td>Major</td>
+            <td>{{ object.major }}</td>
+          </tr>
+          <tr>
+            <td>Graduation Year</td>
+            <td>{{ object.graduation_year }}</td>
+          </tr>
+          <tr>
+            <td>Phone</td>
+            <td>{{ object.phone_number }}</td>
+          </tr>
+          <tr>
+            <td>Address</td>
+            <td>{{ object.address }}</td>
+          </tr>
+          <tr>
+            <td>Current Status</td>
+            <td>{{ object.get_current_status.status.title }}</td>
+          </tr>
+          <tr>
+            <td>Current Role</td>
+            <td>{{ object.get_current_role.role }}</td>
+          </tr>
+          <tr>
+            <td>Current Chapter Officer</td>
+            <td>{{ object.is_chapter_officer }}</td>
+          </tr>
+        </table>
+      <br>
+        <h3>Current/Previous Roles:</h3>
       {% for role in object.roles.all %}
         <p>{{ role }} {{ role.start }} {{ role.end }}</p>
       {% endfor %}
       {% endif %}
-      <p>Current Status: {{ object.get_current_status.status.title }}</p>
-      <p>Current Role: {{ object.get_current_role.role }}</p>
-      <p>Current Chapter Officer: {{ object.is_chapter_officer }}</p>
     </div>
   </div>
 
