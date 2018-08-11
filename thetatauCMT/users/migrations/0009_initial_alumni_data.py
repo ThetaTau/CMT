@@ -12,7 +12,7 @@ def load_alumni(apps, schema_editor):
     role = apps.get_model("users", "UserRoleChange")
     status = apps.get_model("users", "UserStatusChange")
     file_path = "secrets/20180725_all_all.CSV"
-    with open(file_path, 'rb') as csv_file:
+    with open(file_path, 'r') as csv_file:
         reader = DictReader(csv_file)
         for row in reader:
             print(row)
