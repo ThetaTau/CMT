@@ -7,7 +7,6 @@ from django.db import migrations
 from apiclient.discovery import build
 from httplib2 import Http
 from oauth2client import file, client, tools
-from chapters.models import Chapter
 # result = service.spreadsheets().values().get(spreadsheetId=SPREADSHEET_ID,
 #                                                  range=RANGE_NAME).execute()
 # values = result.get('values', [])
@@ -121,18 +120,27 @@ def load_users(apps, schema_editor):
                 end = datetime.datetime.strptime(row[end_index], '%m/%d/%Y')
             else:
                 end = timezone.now() + timezone.timedelta(weeks=52)
-            role_obj = role(
-                user=user_obj,
-                role=row[role_index],
-                start=start,
-                end=end
-            )
-            role_obj.save()
+            try:
+                # We need to check if exact role already exists
+                role.objects.get(user=user_obj, role=row[role_index],
+                                 start=start, end=end)
+            except role.DoesNotExist:
+                role_obj = role(
+                    user=user_obj,
+                    role=row[role_index],
+                    start=start,
+                    end=end
+                )
+                role_obj.save()
 
 
 def migrate_data_backward(apps, schema_editor):
     user = apps.get_model("users", "User")
     user.objects.all().delete()
+    role = apps.get_model("users", "UserRoleChange")
+    role.objects.all().delete()
+    status = apps.get_model("users", "UserStatusChange")
+    status.objects.all().delete()
 
 
 class Migration(migrations.Migration):

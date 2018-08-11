@@ -3,6 +3,7 @@ import datetime
 from django.db import migrations
 from django.utils import timezone
 from csv import DictReader
+from django.contrib.auth.models import Group
 
 
 def load_alumni(apps, schema_editor):
@@ -81,13 +82,71 @@ def load_alumni(apps, schema_editor):
                         end = datetime.datetime.strptime(row['end'], '%m/%d/%Y')
                     else:
                         end = timezone.now() + timezone.timedelta(weeks=52)
-                    role_obj = role(
-                        user=user_obj,
-                        role=row['role'],
-                        start=start,
-                        end=end
-                    )
-                    role_obj.save()
+                    try:
+                        # We need to check if exact role already exists
+                        role.objects.get(user=user_obj, role=row['role'],
+                                         start=start, end=end)
+                    except role.DoesNotExist:
+                        role_obj = role(
+                            user=user_obj,
+                            role=row['role'],
+                            start=start,
+                            end=end
+                        )
+                        role_obj.save()
+    me = user.objects.get(username='venturafranklin@gmail.com')
+    me.is_superuser = True
+    me.is_staff = True
+    me.save()
+
+    #This did not work for some reason
+    # nat_group, created = Group.objects.get_or_create(name='natoff')
+    # off_group, created = Group.objects.get_or_create(name='officer')
+    # file_path = r"secrets/natoff.csv"
+    # with open(file_path, 'r') as csv_file:
+    #     reader = DictReader(csv_file)
+    #     for row in reader:
+    #         print("OFFICER", row)
+    #         try:
+    #             user_obj = user.objects.get(email=row["Email"])
+    #         except user.DoesNotExist:
+    #             user_obj = None
+    #         if user_obj is not None:
+    #             off_group.user_set.add(user_obj)
+    #             nat_group.user_set.add(user_obj)
+    #             continue
+    #         try:
+    #             user_obj = user.objects.get(
+    #                 first_name=row["First Name"],
+    #                 last_name=row["Last Name"])
+    #         except user.DoesNotExist:
+    #             user_obj = None
+    #         if user_obj is not None:
+    #             off_group.user_set.add(user_obj)
+    #             nat_group.user_set.add(user_obj)
+    #             continue
+    #         try:
+    #             user_obj = user.objects.get(
+    #                 last_name=row["Last Name"])
+    #         except user.DoesNotExist:
+    #             user_obj = None
+    #         except user_obj.MultipleObjectsReturned:
+    #             user_obj = None
+    #             users = user.objects.filter(last_name=row["Last Name"])
+    #             print(users)
+    #         if user_obj is not None:
+    #             off_group.user_set.add(user_obj)
+    #             nat_group.user_set.add(user_obj)
+    #             continue
+    #         print("User not found", row)
+    # all_users = user.objects.all()
+    # for user_obj in all_users:
+    #     if user_obj.is_chapter_officer():
+    #         off_group.user_set.add(user_obj)
+
+
+def delete(apps, schema_editor):
+    Group.objects.all().delete()
 
 
 class Migration(migrations.Migration):
@@ -98,5 +157,5 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RunPython(load_alumni),
+        migrations.RunPython(load_alumni, delete),
     ]
