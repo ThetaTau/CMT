@@ -16,7 +16,7 @@ def load_chapters(apps, schema_editor):
             if row["tax"] != "":
                 tax_val = int(row["tax"])
             chapter_obj = chapter(
-                id=id_obj,
+                id=id_obj + 1,
                 name=row["name"],
                 region=region_obj,
                 email=row["email"],
