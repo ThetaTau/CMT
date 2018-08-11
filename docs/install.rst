@@ -1,27 +1,41 @@
 Install
 =========
 
-Install python 3.6<br/>
-Install PostgreSQL 10.3<br/>
-Install Node 9.9.0 (https://nodejs.org/en/)<br/>
-pip install virtualenv<br/>
-pip install virtualenvwrapper (Windows: pip install virtualenvwrapper-win)<br/>
-    export WORKON_HOME=~/Envs<br/>
+Install python 3.6
 
-mkvirtualenv cmt<br/>
-cd to location to clone (For example: cd E:\workspace\CMT)<br/>
-git clone https://github.com/VenturaFranklin/thetatauCMT.git<br/>
-setprojectdir E:\workspace\CMT\thetatauCMT<br/>
-add2virtualenv E:\workspace\CMT\thetatauCMT\thetatauCMT<br/>
+Install PostgreSQL 10.3
+
+Install Node 9.9.0 (https://nodejs.org/en/)
+
+pip install virtualenv
+
+pip install virtualenvwrapper (Windows: pip install virtualenvwrapper-win)
+
+    export WORKON_HOME=~/Envs
+
+mkvirtualenv cmt
+
+cd to location to clone (For example: cd E:\workspace\CMT)
+
+git clone https://github.com/VenturaFranklin/thetatauCMT.git
+
+setprojectdir E:\workspace\CMT\thetatauCMT
+
+add2virtualenv E:\workspace\CMT\thetatauCMT\thetatauCMT
+
 
 Download MailHog to thetatauCMT folder
 
-workon cmt<br/>
-pip install Django<br/>
-pip install -r requirements/local.<br/>
+workon cmt
 
-"pg_env.bat"<br/>
-"C:\Program Files\PostgreSQL\10\bin\createdb" thetatauCMT<br/>
+pip install Django
+
+pip install -r requirements/local.
+
+
+"pg_env.bat"
+
+"C:\Program Files\PostgreSQL\10\bin\createdb" thetatauCMT
 
 edit data\pg_hba.conf ("E:\workspace\CMT\data\pg_hba.conf")
     # IPv4 local connections:
