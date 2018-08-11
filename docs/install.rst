@@ -9,7 +9,7 @@ pip install virtualenvwrapper (Windows: pip install virtualenvwrapper-win)
     export WORKON_HOME=~/Envs
 
 mkvirtualenv cmt
-cd to location to clone (cd E:\workspace\CMT)
+cd to location to clone (For example: cd E:\workspace\CMT)
 git clone https://github.com/VenturaFranklin/thetatauCMT.git
 setprojectdir E:\workspace\CMT\thetatauCMT
 add2virtualenv E:\workspace\CMT\thetatauCMT\thetatauCMT
@@ -18,7 +18,7 @@ Download MailHog to thetatauCMT folder
 
 workon cmt
 pip install Django
-pip install -r requirements/local.txt
+pip install -r requirements/local.
 
 "pg_env.bat"
 "C:\Program Files\PostgreSQL\10\bin\createdb" thetatauCMT
