@@ -10,7 +10,7 @@ from django.db import migrations
 from django.conf import settings
 from django.core.files import File
 from django.core.files.temp import NamedTemporaryFile
-
+import googleapiclient
 
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
@@ -203,7 +203,10 @@ def add_user_submission(chapter_obj, submit_row, apps):
         score=submit_row['Score'],
         chapter=chapter_obj
     )
-    new_submission.save()
+    try:
+        new_submission.save()
+    except googleapiclient.errors.HttpError:
+        print(f"Error uploading file: {submit_row['File Name'][:49]}")
 
 
 def migrate_data_backward(apps, schema_editor):
