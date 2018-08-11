@@ -5,6 +5,10 @@ Install python 3.6
 
 Install PostgreSQL 10.X (https://www.postgresql.org/download/)
 
+    During install:
+        Data Directory: Put in data folder above cloned folder
+            (For example: E:\workspace\CMT\data and my cloned dir is E:\workspace\CMT\thetatauCMT)
+
 Install Node 9.9.0 (https://nodejs.org/en/)
 
 pip install virtualenv
@@ -14,6 +18,8 @@ pip install virtualenvwrapper (Windows: pip install virtualenvwrapper-win)
     export WORKON_HOME=~/Envs (Windows: set WORKON_HOME=~/Envs)
 
 mkvirtualenv cmt
+
+workon cmt
 
 cd to location to clone (For example: cd E:\workspace\CMT)
 
@@ -31,7 +37,7 @@ workon cmt
 
 pip install Django
 
-pip install -r requirements/local.txt
+pip install -r requirements/local.txt (Postgres needs to be installed first)
 
 
 "pg_env.bat"
