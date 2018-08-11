@@ -273,8 +273,10 @@ if not GOOGLE_API_KEY:
     # Try and load from secrets file
     with open("secrets/GOOGLE_API_KEY") as key_file:
         GOOGLE_API_KEY = key_file.read()
-GOOGLE_DRIVE_STORAGE_JSON_KEY_FILE = env('GOOGLE_DRIVE_STORAGE_JSON_KEY_FILE', default='')
+GOOGLE_DRIVE_STORAGE_JSON_KEY_FILE = env('GOOGLE_DRIVE_STORAGE_JSON_KEY_FILE',
+                                         default='secrets/ChapterManagementTool-b239bceff1a7.json')
 print("GOOGLE_API_KEY: ", GOOGLE_API_KEY)
+print('GOOGLE_DRIVE_STORAGE_JSON_KEY_FILE', GOOGLE_DRIVE_STORAGE_JSON_KEY_FILE)
 
 SOCIALACCOUNT_QUERY_EMAIL=True
 # https://console.developers.google.com/apis/credentials?project=chaptermanagementtool&authuser=2
