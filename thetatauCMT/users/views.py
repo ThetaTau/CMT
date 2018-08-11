@@ -3,7 +3,7 @@ from django.contrib.auth.forms import PasswordResetForm
 from django.urls import reverse
 from django.contrib import messages
 from django.views.generic import DetailView, RedirectView, UpdateView, FormView
-from core.views import PagedFilteredTableView, RequestConfig
+from core.views import PagedFilteredTableView, RequestConfig, OfficerMixin
 from .models import User
 from .tables import UserTable
 from .filters import UserListFilter
@@ -11,7 +11,7 @@ from .forms import UserListFormHelper, UserLookupForm
 from chapters.models import Chapter
 
 
-class UserDetailView(LoginRequiredMixin, DetailView):
+class UserDetailView(LoginRequiredMixin, OfficerMixin, DetailView):
     model = User
     # These next two lines tell the view to index lookups by username
     slug_field = 'username'
@@ -26,7 +26,7 @@ class UserRedirectView(LoginRequiredMixin, RedirectView):
                        kwargs={'username': self.request.user.username})
 
 
-class UserUpdateView(LoginRequiredMixin, UpdateView):
+class UserUpdateView(LoginRequiredMixin, OfficerMixin, UpdateView):
 
     fields = ['name', 'chapter', 'major', 'graduation_year', 'phone_number', 'address']
 
@@ -43,7 +43,7 @@ class UserUpdateView(LoginRequiredMixin, UpdateView):
         return User.objects.get(username=self.request.user.username)
 
 
-class UserListView(LoginRequiredMixin, PagedFilteredTableView):
+class UserListView(LoginRequiredMixin, OfficerMixin, PagedFilteredTableView):
     model = User
     # These next two lines tell the view to index lookups by username
     slug_field = 'username'

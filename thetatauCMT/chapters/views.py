@@ -7,7 +7,7 @@ from .models import Chapter
 from users.tables import UserTable
 
 
-class ChapterDetailView(LoginRequiredMixin, DetailView):
+class ChapterDetailView(LoginRequiredMixin, OfficerMixin, DetailView):
     model = Chapter
     # These next two lines tell the view to index lookups by username
     slug_field = 'slug'
