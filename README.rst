@@ -11,7 +11,8 @@ App for the Theta Tau Chapter Management Tool
 :License: GPLv3
 
 
-Installation
+Development Installation
 --------
 
-See the installation instructions here: [Installation](docs/install.rst)
+See the installation instructions here: `Installation <docs/install.rst>`_
+
