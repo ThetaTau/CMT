@@ -68,7 +68,7 @@ class Chapter(models.Model):
     def get_current_officers(self):
         return self.members.filter(roles__start__lte=TODAY_END,
                                    roles__end__gte=TODAY_END
-                                   )
+                                   ).distinct()
 
     def next_badge_number(self):
         return self.members.filter(~models.Q(status__status='pnm'),
