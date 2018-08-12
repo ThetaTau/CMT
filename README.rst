@@ -11,8 +11,11 @@ App for the Theta Tau Chapter Management Tool
 :License: GPLv3
 
 
+Contributing
+--------
+See the contributing instructions here: `Contributing <CONTRIBUTING.md>`_
+
 Development Installation
 --------
 
 See the installation instructions here: `Installation <docs/install.md>`_
-
