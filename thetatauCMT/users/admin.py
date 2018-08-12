@@ -6,11 +6,32 @@ from .models import User, UserRoleChange, UserStatusChange, UserOrgParticipate,\
     UserSemesterGPA, UserSemesterServiceHours
 
 
-admin.site.register(UserRoleChange)
 admin.site.register(UserStatusChange)
 admin.site.register(UserOrgParticipate)
 admin.site.register(UserSemesterGPA)
 admin.site.register(UserSemesterServiceHours)
+
+
+class MemberInline(admin.TabularInline):
+    model = User
+    fields = ['name', 'user_id']
+    readonly_fields = ('name', 'user_id')
+    can_delete = False
+    ordering = ['name']
+    show_change_link = True
+
+    def has_add_permission(self, _):
+        return False
+
+
+class UserRoleChangeAdmin(admin.ModelAdmin):
+    # inlines = [MemberInline]
+    list_display = ('user', 'role', 'start', 'end')
+    list_filter = ['start', 'end', 'role']
+    ordering = ['-end',]
+
+
+admin.site.register(UserRoleChange, UserRoleChangeAdmin)
 
 
 class MyUserChangeForm(UserChangeForm):
