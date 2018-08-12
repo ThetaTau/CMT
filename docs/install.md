@@ -4,6 +4,7 @@ Install
 Install python 3.6
 
 Install PostgreSQL 10.X (https://www.postgresql.org/download/)
+    __Remember where you set the data folder!__
 
 Install Node 9.9.0 (or latest) (https://nodejs.org/en/)
 
@@ -33,11 +34,11 @@ pip install Django
 
 pip install -r requirements/local.txt (Postgres needs to be installed first)
 
-"C:\Program Files\PostgreSQL\10\pg_env.bat"
+run from command line the postgress bat file: "C:\Program Files\PostgreSQL\10\pg_env.bat"
 
-"C:\Program Files\PostgreSQL\10\bin\createdb" thetatauCMT
+run from command line the postgress create bat file: "C:\Program Files\PostgreSQL\10\bin\createdb" thetatauCMT
 
-edit data\pg_hba.conf ("E:\workspace\CMT\data\pg_hba.conf")
+edit wherever you installed postgress data folder: data\pg_hba.conf (For example: "E:\workspace\CMT\data\pg_hba.conf")
     # IPv4 local connections:
     host    all             all             127.0.0.1/32            md5
 change to:
@@ -45,6 +46,8 @@ change to:
     host    all             all             127.0.0.1/32            trust
 
 restart the postgres service
+
+workon cmt
 
 python manage.py migrate
 
@@ -57,7 +60,7 @@ npm install
 npm install compass
 
 
-## Now to run you need:
+#### Now to run you need:
 `"C:\Program Files\PostgreSQL\10\pg_env.bat"`
 and then
 `npm run dev`
@@ -70,46 +73,14 @@ add the lines at the bottom:
 "C:\Program Files\PostgreSQL\10\pg_env.bat"
 ```
 
-Then add the
-set GOOGLE_DRIVE_STORAGE_JSON_KEY_FILE=%fileinsecretsfolder%
-and
-set GOOGLE_API_KEY=%generatethis%
+#### Then add the following:
+    - set GOOGLE_DRIVE_STORAGE_JSON_KEY_FILE=%fileinsecretsfolder%
+        - (For example: set GOOGLE_DRIVE_STORAGE_JSON_KEY_FILE="E:\workspace\CMT\thetatauCMT\secrets\ChapterManagementTool-b239bceff1a7.json")
+    - set GOOGLE_API_KEY=%generatethis%
+        - (Please contact franklin.ventura@thetatau.org for this)
 
-
-To setup pycharm:
+#### To setup pycharm:
     - Add project from existing pycharm files in cloned directory
     - Ignore Django facet issue (unless you have pycharm pro)
     - File --> Settings --> Project: thetatauCMT --> Project Interpreter
         Add virtualenv configured above, set as env for project
-
-
-To prepopulate data:
-python manage.py makemigrations --empty yourappname --name migrationname
-
-django-admin migrate yourappname
-
-
-python manage.py startapp yourappname
-
-then:
-    - config/urls add new connect to yourappname/urls
-    - config/settings/base add new LOCAL_APPS
-    - copy over tests/folder, delete tests.py
-    - copy over urls.py file from another app
-    - create initial blank views
-
-If delete users, need to add back the officers:
-    python manage.py officer_groups
-
-
-To Add existing user as superuser from cmd line:
-    python manage.py shell
-    from users.models import User
-    me = User.objects.get(username='venturafranklin@gmail.com')
-    me.is_superuser=True
-    me.is_staff=True
-    me.save()
-
-
-Post activate file for environment variables in prod:
-    /home/Venturafranklin/.virtualenvs/thetatauCMT/bin/postactivate
