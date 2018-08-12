@@ -14,5 +14,5 @@ App for the Theta Tau Chapter Management Tool
 Development Installation
 --------
 
-See the installation instructions here: `Installation <docs/install.rst>`_
+See the installation instructions here: `Installation <docs/install.md>`_
 
