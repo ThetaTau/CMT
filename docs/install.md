@@ -84,3 +84,6 @@ add the lines at the bottom:
     - Ignore Django facet issue (unless you have pycharm pro)
     - File --> Settings --> Project: thetatauCMT --> Project Interpreter
         Add virtualenv configured above, set as env for project
+
+
+## [Now see helpful functions](useful_functions.md)
