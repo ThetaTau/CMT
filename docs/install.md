@@ -5,17 +5,11 @@ Install python 3.6
 
 Install PostgreSQL 10.X (https://www.postgresql.org/download/)
 
-    During install:
-        Data Directory: Put in data folder above cloned folder
-            (For example: E:\\workspace\\CMT\\data and my cloned dir is E:\\workspace\\CMT\\thetatauCMT)
-
 Install Node 9.9.0 (or latest) (https://nodejs.org/en/)
 
 pip install virtualenv
 
 pip install virtualenvwrapper (Windows: pip install virtualenvwrapper-win)
-
-    export WORKON_HOME=~/Envs (Windows: set WORKON_HOME=~/Envs)
 
 mkvirtualenv cmt
 
@@ -25,11 +19,11 @@ cd to location to clone (For example: cd E:\workspace\CMT)
 
 git clone https://github.com/VenturaFranklin/thetatauCMT.git
 
-setprojectdir Your_project_dir (For example: E:\workspace\CMT\thetatauCMT)
+setprojectdir Your_project_dir (For example: setprojectdir E:\workspace\CMT\thetatauCMT)
 
 add2virtualenv Your_project_app_dir
 
-    (THIS IS NOT THE SAME FOLDER AS ABOVE, BUT A SUBDIRECTORY For example E:\workspace\CMT\thetatauCMT\thetatauCMT)
+    (THIS IS NOT THE SAME FOLDER AS ABOVE, BUT A SUBDIRECTORY For example setprojectdir E:\workspace\CMT\thetatauCMT\thetatauCMT)
 
 Download MailHog to thetatauCMT folder (https://github.com/mailhog/MailHog/releases/v1.0.0)
 
