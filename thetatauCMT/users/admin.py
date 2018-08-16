@@ -7,9 +7,36 @@ from .models import User, UserRoleChange, UserStatusChange, UserOrgParticipate,\
 
 
 admin.site.register(UserStatusChange)
-admin.site.register(UserOrgParticipate)
-admin.site.register(UserSemesterGPA)
-admin.site.register(UserSemesterServiceHours)
+
+class UserOrgParticipateAdmin(admin.ModelAdmin):
+    raw_id_fields = ['user']
+    list_display = ('user', 'org_name', 'type', 'officer', 'start', 'end')
+    list_filter = ['start', 'end', 'officer', 'type']
+    ordering = ['-start',]
+
+
+admin.site.register(UserOrgParticipate, UserOrgParticipateAdmin)
+
+
+class UserSemesterGPAAdmin(admin.ModelAdmin):
+    raw_id_fields = ['user']
+    list_display = ('user', 'gpa', 'year', 'term')
+    list_filter = ['year', 'term']
+    ordering = ['-year',]
+
+
+admin.site.register(UserSemesterGPA, UserSemesterGPAAdmin)
+
+
+class UserSemesterServiceHoursAdmin(admin.ModelAdmin):
+    raw_id_fields = ['user']
+    list_display = ('user', 'service_hours', 'year', 'term')
+    list_filter = ['year', 'term']
+    ordering = ['-year',]
+
+
+admin.site.register(UserSemesterServiceHours,
+                    UserSemesterServiceHoursAdmin)
 
 
 class MemberInline(admin.TabularInline):
@@ -25,7 +52,6 @@ class MemberInline(admin.TabularInline):
 
 
 class UserRoleChangeAdmin(admin.ModelAdmin):
-    # inlines = [MemberInline]
     list_display = ('user', 'role', 'start', 'end')
     list_filter = ['start', 'end', 'role']
     ordering = ['-end',]
