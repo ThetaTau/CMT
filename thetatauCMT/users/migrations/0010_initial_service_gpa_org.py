@@ -202,6 +202,8 @@ def add_user_info(user_row, apps):
             except ValueError:
                 print(f"ERROR {column}: value {user_val}")
                 continue
+        if value < 1:
+            continue
         column = column.lower()
         if 'fall' in column:
             term = 'fa'
@@ -237,6 +239,19 @@ def add_user_info(user_row, apps):
                 if isinstance(officer_val, str):
                     officer = officer_val.lower() == "yes"
             org_name = user_val
+            if (org_name in [
+                'none', 'None', 'non', 'Non', 'no', '?', 'No',
+                ' None', 'Nonr', 'none ', ' none', '1', '2', '3',
+                '4', '5', '6', 'Maybe', 'N/A', 'n0ne',
+                'NA', 'No ', 'NONe', 'NONE', 'None ',
+                    'None.', 'None. ', 'Nonr', 'Nons', 'Nope', 'yes', 'Yes']):
+                continue
+            if isinstance(org_name, str):
+                if 'theta tau' in org_name.lower():
+                    continue
+            else:
+                # We only want strings
+                continue
             orgs.append((org_name, org_type, officer))
     for org_info in orgs:
         org_name, org_type, officer = org_info
