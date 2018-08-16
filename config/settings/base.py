@@ -280,6 +280,8 @@ print('GOOGLE_DRIVE_STORAGE_JSON_KEY_FILE', GOOGLE_DRIVE_STORAGE_JSON_KEY_FILE)
 
 SOCIALACCOUNT_QUERY_EMAIL=True
 # https://console.developers.google.com/apis/credentials?project=chaptermanagementtool&authuser=2
+# https://www.linkedin.com/developer/apps/5538166/auth
+# https://developers.facebook.com/apps/1896435477053569/dashboard/
 
 SOCIALACCOUNT_PROVIDERS = {
     'google': {
