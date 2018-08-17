@@ -1,18 +1,27 @@
 from django.conf import settings
 from django.conf.urls import include, url
 from django.conf.urls.static import static
-from django.contrib.auth.views import PasswordResetConfirmView
+from django.contrib.auth.views import PasswordResetConfirmView, PasswordResetCompleteView, PasswordResetView, \
+    PasswordResetDoneView
 from django.contrib import admin
-from django.views.generic import TemplateView
+from django.views.generic import TemplateView, RedirectView
 from core.views import HomeView
 from django.views import defaults as default_views
 
 urlpatterns = [
     url(r'^$', HomeView.as_view(template_name='pages/home.html'), name='home'),
+    # url('^', include('django.contrib.auth.urls')),
     url(r'^about/$', TemplateView.as_view(template_name='pages/about.html'), name='about'),
     url(r'^reset_password/confirm/(?P<uidb64>[0-9A-Za-z_\-]+)/(?P<token>[0-9A-Za-z]{1,13}-[0-9A-Za-z]{1,20})/$',
-        PasswordResetConfirmView.as_view(template_name='password_reset_confirm.html',),
+        PasswordResetConfirmView.as_view(template_name='account/password_reset_confirm.html', ),
         name='password_reset_confirm'),
+    url(r'^reset/done/$',
+        PasswordResetCompleteView.as_view(template_name='account/password_reset_complete.html'),
+        name='password_reset_complete',),
+    url(r'^password_reset/$',
+        PasswordResetView.as_view(template_name='account/password_reset.html'), name='password_reset',),
+    url(r'^password_reset/done/$',
+        PasswordResetDoneView.as_view(template_name='account/password_reset_done.html'), name='password_reset_done',),
     # Django Admin, use {% url 'admin:index' %}
     url(settings.ADMIN_URL, admin.site.urls),
 
@@ -28,6 +37,18 @@ urlpatterns = [
     url(r'^submissions/', include('submissions.urls', namespace='submissions')),
     url(r'^forms/', include('forms.urls', namespace='forms')),
     url(r'^tasks/', include('tasks.urls', namespace='tasks')),
+    url(r'^rmp/$',
+        RedirectView.as_view(pattern_name='forms:rmp',
+                             permanent=True)),
+    url(r'^initiation/$',
+        RedirectView.as_view(pattern_name='forms:initiation',
+                             permanent=True)),
+    url(r'^officer/$',
+        RedirectView.as_view(pattern_name='forms:officer',
+                             permanent=True)),
+    url(r'^status/$',
+        RedirectView.as_view(pattern_name='forms:status',
+                             permanent=True)),
 
 
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
