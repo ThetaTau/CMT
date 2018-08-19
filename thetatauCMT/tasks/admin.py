@@ -25,3 +25,4 @@ class TaskChapterAdmin(admin.ModelAdmin):
 
 admin.site.register(Task, TaskAdmin)
 admin.site.register(TaskChapter, TaskChapterAdmin)
+admin.site.register(TaskDate)
