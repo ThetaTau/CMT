@@ -3,7 +3,7 @@ from django.utils.text import slugify
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Layout
 from tempus_dominus.widgets import DatePicker
-from .models import Initiation, Depledge, StatusChange
+from .models import Initiation, Depledge, StatusChange, RiskManagement
 from users.models import User, UserRoleChange
 from core.models import CHAPTER_OFFICER, COMMITTEE_CHAIR
 
@@ -295,3 +295,43 @@ class RoleChangeSelectFormHelper(FormHelper):
         'end',
         'selected'
     )
+
+
+class RiskManagementForm(forms.ModelForm):
+    alcohol = forms.BooleanField(label="I understand the Policy on Alcoholic Beverages")
+    hosting = forms.BooleanField(label="I understand the Policy on Hosting an event")
+    monitoring = forms.BooleanField(label="I understand the Policy on Organizing/Monitoring an event")
+    member = forms.BooleanField(label="I understand the Policy on Member Responsibilities")
+    officer = forms.BooleanField(label="I understand the Policy on Officer Responsibilities")
+    abusive = forms.BooleanField(label="I understand the Policy on Abusive Behavior")
+    hazing = forms.BooleanField(label="I understand the Policy on Hazing")
+    substances = forms.BooleanField(label="I understand the Policy on Controlled Substances")
+    high_risk = forms.BooleanField(label="I understand the Policy on High‐Risk Events")
+    transportation = forms.BooleanField(label="I understand the Policy on Transportation")
+    property_management = forms.BooleanField(label="I understand the Policy on Property Management")
+    guns = forms.BooleanField(label="I understand the Policy on Gun Safety")
+    trademark = forms.BooleanField(label="I understand the Trademark Policy")
+    social = forms.BooleanField(label="I understand the Website & Social Media Policy")
+    indemnification = forms.BooleanField(label="I understand the Indemnification, Authority, and Signatory Policy")
+    agreement = forms.BooleanField(label="I agree")
+
+    class Meta:
+        model = RiskManagement
+        fields = [
+            'alcohol',
+            'hosting',
+            'monitoring',
+            'member',
+            'officer',
+            'abusive',
+            'hazing',
+            'substances',
+            'high_risk',
+            'transportation',
+            'property_management',
+            'guns',
+            'trademark',
+            'social',
+            'indemnification',
+            'agreement',
+        ]

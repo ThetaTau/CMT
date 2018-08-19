@@ -4,7 +4,7 @@ from django.contrib.contenttypes.fields import GenericRelation
 from django.core.validators import MaxValueValidator
 from django.conf import settings
 from django.utils import timezone
-from core.models import TimeStampedModel
+from core.models import TimeStampedModel, YearTermModel
 from django.utils.translation import gettext_lazy as _
 from users.models import User
 from chapters.models import Chapter
@@ -150,3 +150,26 @@ class StatusChange(TimeStampedModel):
 
     def __str__(self):
         return f"{self.user} {self.reason} on {self.date_start}"
+
+
+class RiskManagement(YearTermModel):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL,
+                             on_delete=models.CASCADE,
+                             related_name="risk_form")
+    date = models.DateTimeField(default=timezone.now)
+    alcohol = models.BooleanField()
+    hosting = models.BooleanField()
+    monitoring = models.BooleanField()
+    member = models.BooleanField()
+    officer = models.BooleanField()
+    abusive = models.BooleanField()
+    hazing = models.BooleanField()
+    substances = models.BooleanField()
+    high_risk = models.BooleanField()
+    transportation = models.BooleanField()
+    property_management = models.BooleanField()
+    guns = models.BooleanField()
+    trademark = models.BooleanField()
+    social = models.BooleanField()
+    indemnification = models.BooleanField()
+    agreement = models.BooleanField()
