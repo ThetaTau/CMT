@@ -46,3 +46,5 @@ class TaskIncompleteTable(tables.Table):
         resource = record.task.resource
         if 'http' in resource:
             return resource
+        elif ':' in resource:
+            return mark_safe('<a href='+reverse(resource)+'>Form</a>')

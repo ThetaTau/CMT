@@ -38,7 +38,7 @@ class Task(models.Model):
         return f"{self.name}"
 
     def save(self, *args, **kwargs):
-        self.slug = slugify(self.name)
+        self.slug = slugify(self.name + self.owner)
         super().save(*args, **kwargs)
 
     def all_dates_for_task_chapter(self, chapter):
