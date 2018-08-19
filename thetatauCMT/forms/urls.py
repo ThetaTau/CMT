@@ -34,6 +34,11 @@ urlpatterns = [
         view=views.RoleChangeView.as_view(),
         name='officer'
     ),
+    url(
+        regex=r'^rmp/$',
+        view=views.RiskManagementFormView.as_view(),
+        name='rmp'
+    ),
     # url(
     #     regex=r'^~status-change/$',
     #     view=views.StatusChangeView.as_view(),

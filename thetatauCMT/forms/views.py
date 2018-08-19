@@ -1,5 +1,8 @@
 from copy import deepcopy
+from django.utils.decorators import method_decorator
+from django.views.decorators.debug import sensitive_post_parameters
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib import messages
 from django.urls import reverse
 from django.utils import timezone
 from django import forms
@@ -12,8 +15,13 @@ from core.views import OfficerMixin, OfficerRequiredMixin
 from .forms import InitiationFormSet, InitiationForm, InitiationFormHelper, InitDeplSelectForm,\
     InitDeplSelectFormHelper, DepledgeFormSet, DepledgeFormHelper, StatusChangeSelectForm,\
     StatusChangeSelectFormHelper, GraduateForm, GraduateFormSet, CSMTFormSet, GraduateFormHelper, CSMTFormHelper,\
-    RoleChangeSelectForm, RoleChangeSelectFormHelper
+    RoleChangeSelectForm, RoleChangeSelectFormHelper, RiskManagementForm
 from tasks.models import TaskChapter, Task
+from core.models import CHAPTER_OFFICER, COL_OFFICER_ALIGN
+
+
+sensitive_post_parameters_m = method_decorator(
+    sensitive_post_parameters('password', 'password1', 'password2'))
 
 
 class InitDeplSelectView(OfficerRequiredMixin,
@@ -375,6 +383,39 @@ class RoleChangeView(OfficerRequiredMixin,
             TaskChapter(task=next_date, chapter=chapter,
                         date=timezone.now()).save()
         return super().formset_valid(formset)
+
+    def get_success_url(self):
+        return reverse('home')
+
+
+class RiskManagementFormView(OfficerRequiredMixin,
+                             LoginRequiredMixin, FormView,
+                             OfficerMixin):
+    form_class = RiskManagementForm
+    template_name = "forms/rmp.html"
+
+    def form_valid(self, form):
+        form.instance.user = self.request.user
+        form.save()
+        current_role = self.request.user.get_current_role()
+        if current_role not in CHAPTER_OFFICER:
+            messages.add_message(
+                self.request, messages.ERROR,
+                f"Only executive officers can sign RMP: {CHAPTER_OFFICER}\n"
+                f"Your current role is: {current_role}")
+        else:
+            if current_role in COL_OFFICER_ALIGN:
+                current_role = COL_OFFICER_ALIGN[current_role]
+            task = Task.objects.get(name="Risk Management Form",
+                                    owner=current_role)
+            chapter = self.request.user.chapter
+            next_date = task.incomplete_dates_for_task_chapter(chapter).first()
+            if next_date:
+                task_obj = TaskChapter(task=next_date, chapter=chapter,
+                                date=timezone.now(),)
+                task_obj.submission_object = form.instance
+                task_obj.save()
+        return super().form_valid(form)
 
     def get_success_url(self):
         return reverse('home')
