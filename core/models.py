@@ -7,6 +7,22 @@ TOMORROW = TODAY + timedelta(1)
 TODAY_START = datetime.datetime.combine(TODAY, time())
 TODAY_END = datetime.datetime.combine(TOMORROW, time())
 
+SEMESTER = {
+    0: 'sp',
+    1: 'sp',
+    2: 'sp',
+    3: 'sp',
+    4: 'sp',
+    5: 'sp',
+    6: 'sp',
+    7: 'fa',
+    8: 'fa',
+    9: 'fa',
+    10: 'fa',
+    11: 'fa',
+    12: 'fa',
+}
+
 CHAPTER_OFFICER = {
     "corresponding secretary",
     "president",
@@ -17,6 +33,13 @@ CHAPTER_OFFICER = {
     "vice president",
     "vice regent",
 }
+
+COL_OFFICER_ALIGN = {
+    "president": "regent",
+    "secretary": "scribe",
+    "vice president": "vice regent",
+}
+
 NATIONAL_OFFICER = {
     'regional director',
     'national director',
@@ -101,3 +124,7 @@ class YearTermModel(models.Model):
 
     class Meta:
         abstract = True
+
+    def save(self, *args, **kwargs):
+        self.term = SEMESTER[datetime.datetime.now().month]
+        super().save(*args, **kwargs)
