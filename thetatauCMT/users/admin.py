@@ -6,7 +6,16 @@ from .models import User, UserRoleChange, UserStatusChange, UserOrgParticipate,\
     UserSemesterGPA, UserSemesterServiceHours
 
 
-admin.site.register(UserStatusChange)
+class UserStatusChangeAdmin(admin.ModelAdmin):
+    raw_id_fields = ['user']
+    list_display = ('user', 'status')
+    list_filter = ['status']
+    ordering = ['user',]
+    search_fields = ['user']
+
+
+admin.site.register(UserStatusChange, UserStatusChangeAdmin)
+
 
 class UserOrgParticipateAdmin(admin.ModelAdmin):
     raw_id_fields = ['user']
@@ -83,12 +92,29 @@ class MyUserCreationForm(UserCreationForm):
         raise forms.ValidationError(self.error_messages['duplicate_username'])
 
 
+class StatusInline(admin.TabularInline):
+    model = UserStatusChange
+    fields = ['status', 'start', 'end']
+    show_change_link = True
+    ordering = ['end']
+    extra = 1
+
+
+class RoleInline(admin.TabularInline):
+    model = UserRoleChange
+    fields = ['role', 'start', 'end']
+    show_change_link = True
+    ordering = ['end']
+    extra = 1
+
+
 @admin.register(User)
 class MyUserAdmin(AuthUserAdmin):
+    inlines = [StatusInline, RoleInline]
     form = MyUserChangeForm
     add_form = MyUserCreationForm
     fieldsets = (
             ('User Profile', {'fields': ('name', 'chapter')}),
     ) + AuthUserAdmin.fieldsets
-    list_display = ('username', 'name', 'last_login', 'user_id')
-    list_filter = ('is_superuser', 'last_login', 'groups')
+    list_display = ('username', 'name', 'last_login', 'user_id', 'chapter')
+    list_filter = ('is_superuser', 'last_login', 'groups', 'chapter')

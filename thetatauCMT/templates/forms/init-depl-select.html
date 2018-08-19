@@ -7,12 +7,19 @@
 {% block title %}Initiation Report Selection{{ object.name }}{% endblock %}
 {% block content %}
 {% specialspaceless %}
-  <h1>Please select new members to be initiated:</h1>
-  <form action="" method="post">
-    {% csrf_token %}
-    <div>{{ formset.management_form|crispy }}</div>
-    {% crispy formset helper %}
-  </form>
+  {% if formset.initial_forms %}
+    <h1>Please select new members to be initiated:</h1>
+    <form action="" method="post">
+      {% csrf_token %}
+      <div>{{ formset.management_form|crispy }}</div>
+      {% crispy formset helper %}
+    </form>
+  {% else %}
+    <h1>No Prospective New Members</h1>
+    <p>Your chapter currently has no prospective new members.<br>
+    If this is incorrect, those members should fill out the pledge form ASAP!<br>
+    <a href="http://thetatau.org/pledgeform" target="_blank">Pledge Form</a> </p>
+  {% endif %}
 {% endspecialspaceless %}
 {% endblock content %}
 
