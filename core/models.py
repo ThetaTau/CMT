@@ -47,12 +47,14 @@ NATIONAL_OFFICER = {
 }
 
 COMMITTEE_CHAIR = {
-    "alumni adviser",
+    'adviser',
     "board member",
     "committee chair",
     "employer/ee",
     "fundraising chair",
     "house corporation president",
+    "house corporation treasurer"
+    "housing chair",
     "other appointee",
     "pd chair",
     "pledge/new member educator",
@@ -65,10 +67,15 @@ COMMITTEE_CHAIR = {
     "service chair",
     "social/brotherhood chair",
     "website/social media chair",
+    'parent',
+    'faculty adviser',
 }
 
 
-ALL_OFFICERS = set.union(CHAPTER_OFFICER, COMMITTEE_CHAIR, NATIONAL_OFFICER)
+ALL_OFFICERS = sorted(set.union(CHAPTER_OFFICER, COMMITTEE_CHAIR, NATIONAL_OFFICER))
+
+
+ALL_OFFICERS_CHOICES = [(officer, officer.title()) for officer in ALL_OFFICERS]
 
 
 class TimeStampedModel(models.Model):
