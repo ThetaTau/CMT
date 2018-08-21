@@ -7,7 +7,8 @@ from django.utils.translation import ugettext_lazy as _
 from django.core.validators import MinValueValidator, MaxValueValidator,\
     RegexValidator
 from address.models import AddressField
-from core.models import StartEndModel, YearTermModel, TODAY_END, CHAPTER_OFFICER
+from core.models import StartEndModel, YearTermModel, TODAY_END, CHAPTER_OFFICER, \
+    ALL_OFFICERS_CHOICES
 from chapters.models import Chapter
 
 
@@ -92,6 +93,11 @@ class User(AbstractUser):
     def is_officer(self):
         return self.is_chapter_officer() or self.is_national_officer()
 
+    def is_officer_group(self):
+        groups = ['officer', 'natoff']
+        user_groups = self.groups.values_list("name", flat=True)
+        return set(groups).intersection(set(user_groups))
+
 
 class UserSemesterServiceHours(YearTermModel):
     user = models.ForeignKey(settings.AUTH_USER_MODEL,
@@ -126,13 +132,21 @@ class UserStatusChange(StartEndModel):
 
 
 class UserRoleChange(StartEndModel):
+    ROLES = ALL_OFFICERS_CHOICES
     user = models.ForeignKey(settings.AUTH_USER_MODEL,
                              on_delete=models.CASCADE,
                              related_name="roles")
-    role = models.CharField(max_length=50)
+    role = models.CharField(max_length=50,
+                            choices=ROLES)
 
     def __str__(self):
         return self.role
+
+    @classmethod
+    def get_current_roles(cls, user):
+        return cls.objects.filter(
+            user__chapter=user.chapter,
+            start__lte=TODAY_END, end__gte=TODAY_END).order_by('user__last_name')
 
 
 class UserOrgParticipate(StartEndModel):
