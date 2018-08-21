@@ -1,5 +1,6 @@
 from django import forms
-from django.utils.text import slugify
+from django.utils import timezone
+from dal import autocomplete
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Layout
 from tempus_dominus.widgets import DatePicker
@@ -258,15 +259,17 @@ class CSMTFormHelper(FormHelper):
 
 
 class RoleChangeSelectForm(forms.ModelForm):
-    selected = forms.BooleanField(required=False)
-    user = forms.ModelChoiceField(queryset=StatusChange.objects.none())
-    role = forms.ChoiceField(choices=sorted([(slugify(x), x.title()) for x in CHAPTER_OFFICER | COMMITTEE_CHAIR]))
+    user = forms.ModelChoiceField(queryset=User.objects.all(),
+                                  widget=autocomplete.ModelSelect2(url='users:autocomplete'))
+    role = forms.ChoiceField(choices=sorted([(x, x.title()) for x in CHAPTER_OFFICER | COMMITTEE_CHAIR]))
     start = forms.DateField(
+        initial=timezone.now(),
         label="Start Date",
         widget=DatePicker(options={"format": "M/DD/YYYY"},
                           attrs={'autocomplete': 'off'},
                           ))
     end = forms.DateField(
+        initial=timezone.now() + timezone.timedelta(days=365),
         label="End Date",
         widget=DatePicker(options={"format": "M/DD/YYYY"},
                           attrs={'autocomplete': 'off'},
@@ -279,7 +282,6 @@ class RoleChangeSelectForm(forms.ModelForm):
             'role',
             'start',
             'end',
-            'selected'
         ]
 
 
@@ -293,7 +295,6 @@ class RoleChangeSelectFormHelper(FormHelper):
         'role',
         'start',
         'end',
-        'selected'
     )
 
 
