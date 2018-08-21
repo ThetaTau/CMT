@@ -10,7 +10,7 @@ from django.views.generic.edit import FormView
 from django.shortcuts import redirect
 from django.http import HttpResponseRedirect
 from crispy_forms.layout import Submit
-from extra_views import FormSetView
+from extra_views import FormSetView, ModelFormSetView
 from core.views import OfficerMixin, OfficerRequiredMixin
 from .forms import InitiationFormSet, InitiationForm, InitiationFormHelper, InitDeplSelectForm,\
     InitDeplSelectFormHelper, DepledgeFormSet, DepledgeFormHelper, StatusChangeSelectForm,\
@@ -18,6 +18,7 @@ from .forms import InitiationFormSet, InitiationForm, InitiationFormHelper, Init
     RoleChangeSelectForm, RoleChangeSelectFormHelper, RiskManagementForm
 from tasks.models import TaskChapter, Task
 from core.models import CHAPTER_OFFICER, COL_OFFICER_ALIGN
+from users.models import UserRoleChange
 
 
 sensitive_post_parameters_m = method_decorator(
@@ -302,62 +303,34 @@ class StatusChangeView(OfficerRequiredMixin,
 
 
 class RoleChangeView(OfficerRequiredMixin,
-                     LoginRequiredMixin, OfficerMixin, FormSetView):
+                     LoginRequiredMixin, OfficerMixin, ModelFormSetView):
     form_class = RoleChangeSelectForm
     template_name = "forms/officer.html"
-    factory_kwargs = {'extra': 1}
+    factory_kwargs = {'extra': 1, 'can_delete': True}
     prefix = 'selection'
     officer_edit = 'member roles'
-
-    def get_formset_request(self, request, action):
-        formset = forms.formset_factory(RoleChangeSelectForm,
-                                        extra=1)
-        info = request.POST.copy()
-        initial = []
-        for info_name in info:
-            if '__prefix__' not in info_name and info_name.endswith('-user'):
-                split = info_name.split('-')[0:2]
-                selected_split = deepcopy(split)
-                selected_split.append('selected')
-                selected_name = '-'.join(selected_split)
-                selected = info.get(selected_name, None)
-                if selected == 'on':
-                    continue
-                state_split = deepcopy(split)
-                state_split.append('role')
-                state_name = '-'.join(state_split)
-                start_split = deepcopy(split)
-                start_split.append('start')
-                start_name = '-'.join(start_split)
-                end_split = deepcopy(split)
-                end_split.append('end')
-                end_name = '-'.join(end_split)
-                if info[info_name] != "":
-                    initial.append({'user': info[info_name],
-                                    'role': info[state_name],
-                                    'start': info[start_name],
-                                    'end': info[end_name]})
-        if action in ['Add Row', 'Delete Selected']:
-            formset = formset(prefix='selection', initial=initial)
-        else:
-            post_data = deepcopy(request.POST)
-            post_data['selection-INITIAL_FORMS'] = str(int(post_data['selection-INITIAL_FORMS']) + 1)
-            formset = formset(post_data, request.FILES,
-                              initial=initial, prefix='selection')
-        return formset
+    model = UserRoleChange
 
     def post(self, request, *args, **kwargs):
-        formset = self.get_formset_request(request, request.POST['action'])
-        if request.POST['action'] in ['Add Row', 'Delete Selected'] or not formset.is_valid():
+        self.object_list = self.get_queryset()
+        formset = self.construct_formset()
+        action = request.POST['action']
+        if action != 'Add Row' and not formset.is_valid():
+            # Need to check if last extra form is causing issues
+            if 'user' in formset.extra_forms[-1].errors:
+                # We should remove this form
+                formset = self.remove_extra_form(formset)
+        if action == 'Add Row' or not formset.is_valid():
+            if action == 'Add Row':
+                formset = self.add_form(formset)
             return self.render_to_response(self.get_context_data(formset=formset))
+        elif action == 'Delete Selected':
+            return self.formset_valid(formset, delete_only=True)
         else:
             return self.formset_valid(formset)
 
-    def get_formset(self):
-        actives = self.request.user.chapter.actives()
-        formset = super().get_formset()
-        formset.form.base_fields['user'].queryset = actives
-        return formset
+    def get_queryset(self):
+        return UserRoleChange.get_current_roles(self.request.user)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -373,19 +346,54 @@ class RoleChangeView(OfficerRequiredMixin,
         context['add'] = Submit("action", "Add Row")
         return context
 
-    def formset_valid(self, formset):
-        for form in formset:
-            form.save()
-        task = Task.objects.get(name="Officer Election Report")
-        chapter = self.request.user.chapter
-        next_date = task.incomplete_dates_for_task_chapter(chapter).first()
-        if next_date:
-            TaskChapter(task=next_date, chapter=chapter,
-                        date=timezone.now()).save()
-        return super().formset_valid(formset)
+    def add_form(self, formset, **kwargs):
+        # add the form
+        tfc = formset.total_form_count()
+        formset.forms.append(formset._construct_form(tfc, **kwargs))
+        formset.forms[tfc].is_bound = False
+        data = formset.data
+        # increase hidden form counts
+        total_count_name = '%s-%s' % (formset.management_form.prefix, 'TOTAL_FORMS')
+        initial_count_name = '%s-%s' % (formset.management_form.prefix, 'INITIAL_FORMS')
+        data[total_count_name] = formset.management_form.cleaned_data['TOTAL_FORMS'] + 1
+        data[initial_count_name] = formset.management_form.cleaned_data['INITIAL_FORMS'] + 1
+        formset.data = data
+        return formset
+
+    def remove_extra_form(self, formset, **kwargs):
+        # add the form
+        tfc = formset.total_form_count()
+        del formset.forms[tfc - 1]
+        data = formset.data
+        # increase hidden form counts
+        total_count_name = '%s-%s' % (formset.management_form.prefix, 'TOTAL_FORMS')
+        initial_count_name = '%s-%s' % (formset.management_form.prefix, 'INITIAL_FORMS')
+        formset.management_form.cleaned_data['TOTAL_FORMS'] -= 1
+        formset.management_form.cleaned_data['INITIAL_FORMS'] -= 1
+        data[total_count_name] = formset.management_form.cleaned_data['TOTAL_FORMS'] - 1
+        data[initial_count_name] = formset.management_form.cleaned_data['INITIAL_FORMS'] - 1
+        formset.data = data
+        return formset
+
+    def formset_valid(self, formset, delete_only=False):
+        for obj in formset.deleted_forms:
+            # We don't want to delete the value, just make them not current
+            obj.instance.end = timezone.now() - timezone.timedelta(days=2)
+            obj.save()
+        if not delete_only:
+            instances = formset.save(commit=False)
+            for instance in instances:
+                instance.save()
+            task = Task.objects.get(name="Officer Election Report")
+            chapter = self.request.user.chapter
+            next_date = task.incomplete_dates_for_task_chapter(chapter).first()
+            if next_date:
+                TaskChapter(task=next_date, chapter=chapter,
+                            date=timezone.now()).save()
+        return HttpResponseRedirect(self.get_success_url())
 
     def get_success_url(self):
-        return reverse('home')
+        return reverse("forms:officer")
 
 
 class RiskManagementFormView(OfficerRequiredMixin,

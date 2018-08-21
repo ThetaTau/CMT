@@ -5,6 +5,7 @@
 {% load crispy_forms_field %}
 {% block title %}Officer Election Report{{ object.name }}{% endblock %}
 {% block content %}
+  <script type="text/javascript" src="{% static 'admin/js/vendor/jquery/jquery.js' %}"></script>
   {{ formset.media }}
 {% specialspaceless %}
   <h1>Please select members to update role:</h1>
@@ -80,5 +81,9 @@
     />
   </form>
 {% endspecialspaceless %}
+  {% block footer %}
+{#    <script type="text/javascript" src="{% static 'admin/js/vendor/jquery/jquery.js' %}"></script>#}
+{#    {{ formset.media }}#}
+  {% endblock %}
 {% endblock content %}
 
