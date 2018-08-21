@@ -4,6 +4,7 @@ from django.urls import reverse
 from django.contrib import messages
 from django.views.generic import DetailView, RedirectView, UpdateView, FormView
 from core.views import PagedFilteredTableView, RequestConfig, OfficerMixin
+from dal import autocomplete
 from .models import User
 from .tables import UserTable
 from .filters import UserListFilter
@@ -98,3 +99,14 @@ class UserLookupView(FormView):
 
     def get_success_url(self):
         return reverse('users:lookup')
+
+
+class UserAutocomplete(autocomplete.Select2QuerySetView):
+    def get_queryset(self):
+        if (not self.request.user.is_authenticated or
+                not self.request.user.is_officer_group()):
+            return User.objects.none()
+        qs = User.objects.filter(chapter=self.request.user.chapter)
+        if self.q:
+            qs = qs.filter(name__istartswith=self.q)
+        return qs

@@ -29,4 +29,9 @@ urlpatterns = [
         view=views.UserLookupView.as_view(),
         name='lookup'
     ),
+    url(
+        regex=r'^autocomplete/$',
+        view=views.UserAutocomplete.as_view(),
+        name='autocomplete'
+    ),
 ]
