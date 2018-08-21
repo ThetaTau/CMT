@@ -64,6 +64,7 @@ class UserRoleChangeAdmin(admin.ModelAdmin):
     list_display = ('user', 'role', 'start', 'end')
     list_filter = ['start', 'end', 'role']
     ordering = ['-end',]
+    raw_id_fields = ['user']
 
 
 admin.site.register(UserRoleChange, UserRoleChangeAdmin)
