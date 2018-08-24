@@ -56,12 +56,12 @@ class Migration(migrations.Migration):
             name='task',
             field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='chapters', to='tasks.TaskDate'),
         ),
-        migrations.AlterUniqueTogether(
-            name='taskdate',
-            unique_together={('task', 'date', 'school_type')},
-        ),
-        migrations.AlterUniqueTogether(
-            name='taskchapter',
-            unique_together={('task', 'date', 'chapter')},
-        ),
+        # migrations.AlterUniqueTogether(
+        #     name='taskdate',
+        #     unique_together={('task', 'date', 'school_type')},
+        # ),
+        # migrations.AlterUniqueTogether(
+        #     name='taskchapter',
+        #     unique_together={('task', 'date', 'chapter')},
+        # ),
     ]
