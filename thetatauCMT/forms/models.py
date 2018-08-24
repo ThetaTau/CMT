@@ -4,7 +4,7 @@ from django.contrib.contenttypes.fields import GenericRelation
 from django.core.validators import MaxValueValidator
 from django.conf import settings
 from django.utils import timezone
-from core.models import TimeStampedModel, YearTermModel
+from core.models import TimeStampedModel, YearTermModel, forever
 from django.utils.translation import gettext_lazy as _
 from users.models import User
 from chapters.models import Chapter
@@ -94,10 +94,6 @@ class Depledge(TimeStampedModel):
 
     def __str__(self):
         return f"{self.user} depledged on {self.date}"
-
-
-def forever():
-    return timezone.now() + timezone.timedelta(days=1000000)
 
 
 class StatusChange(TimeStampedModel):
