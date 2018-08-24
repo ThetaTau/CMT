@@ -2,10 +2,16 @@ import datetime
 from datetime import timedelta, time
 from enum import Enum
 from django.db import models
+from django.utils import timezone
 TODAY = datetime.datetime.now().date()
 TOMORROW = TODAY + timedelta(1)
 TODAY_START = datetime.datetime.combine(TODAY, time())
 TODAY_END = datetime.datetime.combine(TOMORROW, time())
+
+
+def forever():
+    return timezone.now() + timezone.timedelta(days=1000000)
+
 
 SEMESTER = {
     0: 'sp',
@@ -135,3 +141,50 @@ class YearTermModel(models.Model):
     def save(self, *args, **kwargs):
         self.term = SEMESTER[datetime.datetime.now().month]
         super().save(*args, **kwargs)
+
+
+def combine_annotations(user_queryset):
+    uniques = {user.pk: user for user in
+               user_queryset.order_by('pk').distinct('pk')}
+    duplicates = user_queryset.values('pk',
+                                      ).annotate(models.Count('id')
+                                                 ).order_by(
+    ).filter(id__count__gt=1)
+    # convert uniques to list and then update
+    for duplicate in duplicates:
+        pk = duplicate['pk']
+        duplicate_objs = user_queryset.filter(pk=pk)
+        for duplicate_obj in duplicate_objs:
+            if duplicate_obj.role is not None:
+                if uniques[pk].role is not None:
+                    if duplicate_obj.role not in uniques[pk].role:
+                        uniques[pk].role = ', '.join(
+                            [duplicate_obj.role, uniques[pk].role])
+                else:
+                    uniques[pk].role = duplicate_obj.role
+            if duplicate_obj.current_status is not None:
+                if uniques[pk].current_status is not None:
+                    if duplicate_obj.current_status not in uniques[pk].current_status:
+                        uniques[pk].current_status = ', '.join(
+                            [duplicate_obj.current_status, uniques[pk].current_status])
+                else:
+                    uniques[pk].current_status = duplicate_obj.current_status
+    return list(uniques.values())
+
+
+def annotate_role_status(queryset):
+    return queryset.annotate(
+        role=models.Case(
+            models.When(
+                models.Q(roles__start__lte=TODAY_END) &
+                models.Q(roles__end__gte=TODAY_END), models.F("roles__role")
+                ),
+            )
+        ).annotate(
+            current_status=models.Case(
+                models.When(
+                    models.Q(status__start__lte=TODAY_END) &
+                    models.Q(status__end__gte=TODAY_END), models.F("status__status")
+                )
+            )
+    )
