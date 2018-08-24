@@ -173,7 +173,7 @@ def combine_annotations(user_queryset):
 
 
 def annotate_role_status(queryset):
-    return queryset.annotate(
+    return combine_annotations(queryset.annotate(
         role=models.Case(
             models.When(
                 models.Q(roles__start__lte=TODAY_END) &
@@ -187,4 +187,4 @@ def annotate_role_status(queryset):
                     models.Q(status__end__gte=TODAY_END), models.F("status__status")
                 )
             )
-    )
+    ))
