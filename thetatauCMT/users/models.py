@@ -8,17 +8,8 @@ from django.core.validators import MinValueValidator, MaxValueValidator,\
     RegexValidator
 from address.models import AddressField
 from core.models import StartEndModel, YearTermModel, TODAY_END, CHAPTER_OFFICER, \
-    ALL_OFFICERS_CHOICES
+    ALL_OFFICERS_CHOICES, TimeStampedModel
 from chapters.models import Chapter
-
-
-# class UserSet(models.QuerySet):
-#     def add_current_status(self):
-#         current_status = self.filter(
-#                 status__start__lte=TODAY_END,
-#                 status__end__gte=TODAY_END)
-#         return self.annotate(
-#             current_status=models.Subquery(current_status))
 
 
 class User(AbstractUser):
@@ -113,7 +104,7 @@ class UserSemesterGPA(YearTermModel):
     gpa = models.FloatField()
 
 
-class UserStatusChange(StartEndModel):
+class UserStatusChange(StartEndModel, TimeStampedModel):
     STATUS = [
         ('alumni', 'alumni'),
         ('active', 'active'),
@@ -131,7 +122,7 @@ class UserStatusChange(StartEndModel):
         return self.status
 
 
-class UserRoleChange(StartEndModel):
+class UserRoleChange(StartEndModel, TimeStampedModel):
     ROLES = ALL_OFFICERS_CHOICES
     user = models.ForeignKey(settings.AUTH_USER_MODEL,
                              on_delete=models.CASCADE,
