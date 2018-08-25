@@ -48,25 +48,25 @@ class Chapter(models.Model):
         super().save(*args, **kwargs)
 
     def get_actives_for_date(self, date):
-        return annotate_role_status(
-            self.members.filter(status__status="active",
-                                status__start__lte=date,
-                                status__end__gte=date
-                                ))
+        # Do not annotate, need the queryset not a list
+        return self.members.filter(status__status="active",
+                                   status__start__lte=date,
+                                   status__end__gte=date
+                                   )
 
     def actives(self):
-        return annotate_role_status(
-            self.members.filter(status__status="active",
-                                status__start__lte=TODAY_END,
-                                status__end__gte=TODAY_END
-                                ))
+        # Do not annotate, need the queryset not a list
+        return self.members.filter(status__status="active",
+                                   status__start__lte=TODAY_END,
+                                   status__end__gte=TODAY_END
+                                   )
 
     def pledges(self):
-        return annotate_role_status(
-            self.members.filter(status__status="pnm",
-                                status__start__lte=TODAY_END,
-                                status__end__gte=TODAY_END
-                                ))
+        # Do not annotate, need the queryset not a list
+        return self.members.filter(status__status="pnm",
+                                   status__start__lte=TODAY_END,
+                                   status__end__gte=TODAY_END
+                                   )
 
     def get_current_officers(self):
         return annotate_role_status(
