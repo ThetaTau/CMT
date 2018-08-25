@@ -397,8 +397,8 @@ class RoleChangeView(OfficerRequiredMixin,
 
 
 class RiskManagementFormView(OfficerRequiredMixin,
-                             LoginRequiredMixin, FormView,
-                             OfficerMixin):
+                             LoginRequiredMixin, OfficerMixin,
+                             FormView):
     form_class = RiskManagementForm
     template_name = "forms/rmp.html"
 
