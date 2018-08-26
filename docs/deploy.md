@@ -25,3 +25,13 @@ For the requirements install step, must use:
 #### Renew:
     cd ~/letsencrypt
     ~/dehydrated/dehydrated --cron --domain cmt.thetatau.org --out . --challenge http-01
+
+### Database Setup
+CREATE USER thetatau;
+ALTER USER thetatau WITH PASSWORD 'XXXXX';
+CREATE DATABASE thetatauCMT OWNER thetatau;
+
+### Database dump;
+```python manage.py dumpdata --natural-foreign \
+   --exclude auth.permission --exclude contenttypes \
+   --indent 4 > data.json```
