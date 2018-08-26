@@ -1,5 +1,7 @@
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.shortcuts import redirect, reverse
+from django.utils.html import mark_safe
+from django.db import models
 from django.views.generic import DetailView, UpdateView, RedirectView, CreateView
 from core.views import PagedFilteredTableView, RequestConfig, TypeFieldFilteredChapterAdd,\
     OfficerMixin, OfficerRequiredMixin
@@ -46,6 +48,7 @@ class TaskListView(LoginRequiredMixin, OfficerMixin,
         qs = TaskDate.dates_for_chapter(self.request.user.chapter)
         self.filter = self.filter_class(self.request.GET,
                                         queryset=qs)
+        self.filter.request = self.request
         self.filter.form.helper = self.formhelper_class()
         cancel = self.request.GET.get('cancel', False)
         qs_out = self.filter.qs
@@ -58,7 +61,27 @@ class TaskListView(LoginRequiredMixin, OfficerMixin,
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        table = TaskTable(self.get_queryset())
+        chapter = self.request.user.chapter
+        qs = self.get_queryset()
+        qs = qs.annotate(
+                complete_link=models.Case(
+                    models.When(
+                        models.Q(chapters__chapter=chapter),
+                        models.F('chapters__pk')
+                    ),
+                    default=models.Value(0),
+                )
+            ).annotate(
+            complete_result=models.Case(
+                models.When(
+                    models.Q(chapters__chapter=chapter),
+                    models.Value('True')
+                ),
+                default=models.Value(''),
+                output_field=models.CharField()
+            )
+        )
+        table = TaskTable(qs)
         table.request = self.request
         RequestConfig(self.request, paginate={'per_page': 40}).configure(table)
         context['table'] = table

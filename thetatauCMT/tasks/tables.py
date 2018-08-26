@@ -10,22 +10,17 @@ class TaskTable(tables.Table):
                                   accessor='task.name',
                                   args=[A('pk')])
     date = tables.DateColumn(verbose_name="Due Date")
-    complete = tables.BooleanColumn(
-        accessor='chapters.submission_object',
+    complete_result = tables.LinkColumn(
+        'tasks:detail',
+        args=[A('complete_link')],
         verbose_name="Complete", empty_values=())
 
     class Meta:
         model = TaskDate
         fields = ('task_name', 'date', 'task.owner',
-                  'task.description', 'complete')
+                  'task.description', 'complete_result')
         attrs = {"class": "table-striped table-bordered"}
         empty_text = "There are no tasks matching the search criteria..."
-
-    def render_complete(self, record):
-        complete = record.complete(self.request.user.chapter)
-        if complete:
-            return mark_safe('<a href='+reverse("tasks:detail", args=[complete[0].pk])+'>True</a>')
-        return ''
 
 
 class TaskIncompleteTable(tables.Table):

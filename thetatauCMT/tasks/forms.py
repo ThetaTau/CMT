@@ -20,6 +20,7 @@ class TaskListFormHelper(FormHelper):
                         InlineField('task__owner__icontains'),
                         InlineField('date__lt'),
                         InlineField('date__gt'),
+                        InlineField('complete'),
                         FormActions(
                             StrictButton(
                                 '<i class="fa fa-search"></i> Search',
