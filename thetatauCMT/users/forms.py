@@ -20,11 +20,9 @@ class UserListFormHelper(FormHelper):
                     '<i class="fas fa-search"></i> Filter Members',
                     Row(
                         InlineField('name'),
-                        InlineField('badge_number'),
+                        InlineField('current_status'),
                         InlineField('major'),
                         InlineField('graduation_year'),
-                        # InlineField('status'),
-                        # InlineField('role'),
                         FormActions(
                             StrictButton(
                                 '<i class="fa fa-search"></i> Filter',

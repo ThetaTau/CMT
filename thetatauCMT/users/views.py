@@ -5,7 +5,7 @@ from django.urls import reverse
 from django.contrib import messages
 from django.views.generic import DetailView, RedirectView, UpdateView, FormView
 from core.views import PagedFilteredTableView, RequestConfig, OfficerMixin
-from core.models import TODAY_END, annotate_role_status
+from core.models import TODAY_END, annotate_role_status, combine_annotations
 from dal import autocomplete
 from .models import User
 from .tables import UserTable
@@ -59,19 +59,29 @@ class UserListView(LoginRequiredMixin, OfficerMixin, PagedFilteredTableView):
     template_name = "users/user_list.html"
 
     def get_queryset(self):
-        qs = super().get_queryset()
+        qs = self.model._default_manager.all()
+        ordering = self.get_ordering()
+        if ordering:
+            if isinstance(ordering, str):
+                ordering = (ordering,)
+                qs = qs.order_by(*ordering)
         members = annotate_role_status(qs.filter(
             chapter=self.request.user.chapter,
             status__status="active",
             status__start__lte=TODAY_END,
-            status__end__gte=TODAY_END))
+            status__end__gte=TODAY_END), combine=False)
         pledges = annotate_role_status(qs.filter(
             chapter=self.request.user.chapter,
             status__status="pnm",
             status__start__lte=TODAY_END,
             status__end__gte=TODAY_END
-            ))
-        return members + pledges
+            ), combine=False)
+        qs = members | pledges
+        self.filter = self.filter_class(self.request.GET,
+                                        queryset=qs)
+        self.filter.form.helper = self.formhelper_class()
+        qs = combine_annotations(self.filter.qs)
+        return qs
 
 
 class PasswordResetFormNotActive(PasswordResetForm):
