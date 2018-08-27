@@ -9,6 +9,8 @@ from core.views import OfficerMixin
 from .models import Region
 from tasks.models import TaskDate
 from .tables import RegionChapterTaskTable
+from .filters import RegionChapterTaskFilter
+from .forms import RegionChapterTaskFormHelper
 
 
 class RegionDetailView(LoginRequiredMixin, OfficerMixin, DetailView):
@@ -16,16 +18,26 @@ class RegionDetailView(LoginRequiredMixin, OfficerMixin, DetailView):
     # These next two lines tell the view to index lookups by username
     slug_field = 'slug'
     slug_url_kwarg = 'slug'
+    filter_class = RegionChapterTaskFilter
+    formhelper_class = RegionChapterTaskFormHelper
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        all_chapters_tasks = {task.pk: defaultdict(lambda: 0) for task in TaskDate.objects.all()}
+        qs = TaskDate.objects.all()
+        cancel = self.request.GET.get('cancel', False)
+        request_get = self.request.GET.copy()
+        if cancel:
+            for item in ['task__name__icontains', 'date__lt', 'date__gt']:
+                request_get[item] = ''
+        self.filter = self.filter_class(request_get, queryset=qs)
+        self.filter.form.helper = self.formhelper_class()
+        all_chapters_tasks = {task.pk: defaultdict(lambda: 0) for task in self.filter.qs}
         [all_chapters_tasks[task.id].update(
             {'task_name': task.task.name,
              'task_owner': task.task.owner,
              'school_type': task.school_type,
              'date': task.date})
-            for task in TaskDate.objects.all()]
+            for task in self.filter.qs]
         extra_columns = []
         for chapter in self.object.chapters.all():
             qs = TaskDate.dates_for_chapter(chapter)
@@ -63,7 +75,7 @@ class RegionDetailView(LoginRequiredMixin, OfficerMixin, DetailView):
             chapter_task_dict = qs.values(
                 'pk', column_name, column_link, column_result)
             [all_chapters_tasks[chapter_task['id']].update(chapter_task)
-             for chapter_task in chapter_task_dict.values()]
+             for chapter_task in chapter_task_dict.values() if chapter_task['id'] in all_chapters_tasks]
             extra_columns.append(
                 (column_result,
                  tables.LinkColumn(
@@ -71,10 +83,12 @@ class RegionDetailView(LoginRequiredMixin, OfficerMixin, DetailView):
                      verbose_name=chapter_name.replace('_', ' '),
                      args=[A(column_link)],
                      empty_values=())))
+        all_chapters_tasks = all_chapters_tasks.values()
         table = RegionChapterTaskTable(
-            data=all_chapters_tasks.values(),
+            data=all_chapters_tasks,
             extra_columns=extra_columns)
         context['table'] = table
+        context['filter'] = self.filter
         return context
 
 
