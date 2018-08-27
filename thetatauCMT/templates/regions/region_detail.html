@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% load static %}
+{% load render_table from django_tables2 %}
 
 {% block title %}Region: {{ object.name }}{% endblock %}
 
@@ -17,11 +18,7 @@
         <p>{{ object.facebook }}</p>
         <p>{{ object.slug }}</p>
       {% endif %}
-      {% for chapter in object.chapters.all %}
-        <a href="{% url 'chapters:detail' chapter.slug %}" class="list-group-item">
-          <p>{{ chapter.name }}</p>
-        </a>
-      {% endfor %}
+      {% render_table table %}
     </div>
   </div>
 
