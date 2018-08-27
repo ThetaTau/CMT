@@ -1,8 +1,9 @@
 import datetime
-from django.contrib.auth.models import AbstractUser
+from django.contrib.auth.models import AbstractUser, Group
 from django.db import models
 from django.urls import reverse
 from django.conf import settings
+from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 from django.core.validators import MinValueValidator, MaxValueValidator,\
     RegexValidator
@@ -132,6 +133,18 @@ class UserRoleChange(StartEndModel, TimeStampedModel):
 
     def __str__(self):
         return self.role
+
+    def save(self, *args, **kwargs):
+        off_group, created = Group.objects.get_or_create(name='officer')
+        super().save(*args, **kwargs)
+        # Need to check current role, b/c user could have multiple
+        current_role = self.user.get_current_role()
+        if current_role:
+            off_group.user_set.add(self.user)
+        else:
+            self.user.groups.remove(off_group)
+            off_group.user_set.remove(self.user)
+            self.user.save()
 
     @classmethod
     def get_current_roles(cls, user):

@@ -7,7 +7,8 @@
   "license": "GPL-3.0-or-later",
   "version": "0.1.0",
   "dependencies": {
-    "compass": "^0.1.1"
+    "compass": "^0.1.1",
+    "floatthead": "^2.1.2"
   },
   "devDependencies": {
     "bootstrap": "^4.0.0",
