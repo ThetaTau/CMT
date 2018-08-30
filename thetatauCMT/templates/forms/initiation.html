@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% load static %}
+{% load render_table from django_tables2 %}
 {% load crispy_forms_tags %}
 {% load crispy_forms_utils %}
 {% load crispy_forms_field %}
@@ -156,5 +157,34 @@ function update_dates() {
 {% endif %}
   <input type="submit" value="Submit">
   </form>
+<small>
+<p>Additional useful information for chapter Treasurers:
+  <ul>
+  <li>No order for jewelry will be honored until approved by the Executive Director.</li>
+  <li>Approval will be withheld until procedural details have been completed for the entire initiation class.</li>
+  <li>Usual delivery time for badges is 4-6 weeks after all procedural details have been completed.</li>
+  <li>Jewelry orders received during late spring and summer will be held for delivery until Fall classes resume.</li>
+  <li>Pledge Fees ($30 each) are doubled ($60 each) as penalty if not sent within two weeks of pledging</li>
+  <li>A single check may cover initiation fees ($75 each) and the cost of jewelry ordered.</li>
+  <li>The initiation fee is raised to $100 each if not submitted within 2 weeks of the initiation date.</li>
+</ul>
+</small>
+<div class="container">
+  <div class="row">
+    <div class="col-md-6">
+  <h3>Badge Descriptions:</h3>
+  {% render_table badge_table %}
+    <small>
+    # Guaranteed from defect by the jeweler and engraved with member's last name, chapter, & roll<br>
+    * Item normally stocked in the Central Office available for immediate delivery<br>
+    † May be worn by members only<br><br>
+    </small>
+    </div>
+    <div class="col-md-6">
+  <h3>Guard Descriptions:</h3>
+  {% render_table guard_table %}
+    </div>
+  </div>
+</div>
 {% endspecialspaceless %}
 {% endblock content %}
