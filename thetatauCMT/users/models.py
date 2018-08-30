@@ -84,6 +84,9 @@ class User(AbstractUser):
             officer = not current_role.isdisjoint(CHAPTER_OFFICER)
         return officer
 
+    def is_national_officer_group(self):
+        return self.groups.filter(name='natoff').exists()
+
     def is_national_officer(self):
         role_obj = self.get_current_role()
         officer = False
