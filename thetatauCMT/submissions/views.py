@@ -75,7 +75,7 @@ class SubmissionListView(LoginRequiredMixin, OfficerMixin,
 
     def get_queryset(self):
         qs = super().get_queryset()
-        return qs.filter(chapter=self.request.user.chapter)
+        return qs.filter(chapter=self.request.user.current_chapter)
 
     def post(self, request, *args, **kwargs):
         return PagedFilteredTableView.as_view()(request)

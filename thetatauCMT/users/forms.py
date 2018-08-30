@@ -3,6 +3,7 @@ from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Layout, Fieldset, Row
 from crispy_forms.bootstrap import FormActions, InlineField, StrictButton
 from chapters.models import Chapter
+from .models import UserAlterChapter
 
 
 class UserListFormHelper(FormHelper):
@@ -38,3 +39,9 @@ class UserListFormHelper(FormHelper):
 class UserLookupForm(forms.Form):
     university = forms.ChoiceField(choices=Chapter.schools())
     badge_number = forms.IntegerField()
+
+
+class UserAlterForm(forms.ModelForm):
+    class Meta:
+        model = UserAlterChapter
+        fields = ['chapter']

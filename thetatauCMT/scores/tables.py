@@ -18,5 +18,5 @@ class ScoreTable(tables.Table):
         empty_text = "There are no score types matching the search criteria..."
 
     def render_score(self, record, bound_row, table):
-        score = record.chapter_score(self.request.user.chapter)
+        score = record.chapter_score(self.request.user.current_chapter)
         return score

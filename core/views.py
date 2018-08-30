@@ -12,13 +12,13 @@ from .utils import check_officer, check_nat_officer
 from braces.views import GroupRequiredMixin
 
 
-class NatOfficerView(GroupRequiredMixin):
+class NatOfficerRequiredMixin(GroupRequiredMixin):
     group_required = u"natoff"
 
     def get_login_url(self):
         messages.add_message(
             self.request, messages.ERROR,
-            f"Only officers can edit submissions")
+            f"Only National officers can edit this.")
         return self.get_success_url()
 
 
@@ -76,7 +76,7 @@ class TypeFieldFilteredChapterAdd(FormMixin):
         return form
 
     def form_valid(self, form):
-        chapter = self.request.user.chapter
+        chapter = self.request.user.current_chapter
         form.instance.chapter = chapter
         score_obj = form.instance.type
         task = score_obj.task.first()
@@ -96,7 +96,7 @@ class HomeView(LoginRequiredMixin, OfficerMixin, TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        qs = TaskDate.incomplete_dates_for_chapter(self.request.user.chapter)
+        qs = TaskDate.incomplete_dates_for_chapter(self.request.user.current_chapter)
         table = TaskIncompleteTable(qs)
         RequestConfig(self.request, paginate={'per_page': 40}).configure(table)
         context['table'] = table

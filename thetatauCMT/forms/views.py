@@ -11,7 +11,7 @@ from django.shortcuts import redirect
 from django.http import HttpResponseRedirect
 from crispy_forms.layout import Submit
 from extra_views import FormSetView, ModelFormSetView
-from core.views import OfficerMixin, OfficerRequiredMixin
+from core.views import OfficerMixin, OfficerRequiredMixin, RequestConfig
 from .forms import InitiationFormSet, InitiationForm, InitiationFormHelper, InitDeplSelectForm,\
     InitDeplSelectFormHelper, DepledgeFormSet, DepledgeFormHelper, StatusChangeSelectForm,\
     StatusChangeSelectFormHelper, GraduateForm, GraduateFormSet, CSMTFormSet, GraduateFormHelper, CSMTFormHelper,\
@@ -19,6 +19,8 @@ from .forms import InitiationFormSet, InitiationForm, InitiationFormHelper, Init
 from tasks.models import TaskChapter, Task
 from core.models import CHAPTER_OFFICER, COL_OFFICER_ALIGN
 from users.models import UserRoleChange
+from .tables import GuardTable, BadgeTable
+from .models import Guard, Badge
 
 
 sensitive_post_parameters_m = method_decorator(
@@ -34,12 +36,12 @@ class InitDeplSelectView(OfficerRequiredMixin,
     officer_edit = 'pledge status'
 
     def get_initial(self):
-        pledges = self.request.user.chapter.pledges()
+        pledges = self.request.user.current_chapter.pledges()
         initial = [{'user': user.pk} for user in pledges]
         return initial
 
     def get_formset(self):
-        pledges = self.request.user.chapter.pledges()
+        pledges = self.request.user.current_chapter.pledges()
         formset = super().get_formset()
         formset.form.base_fields['user'].queryset = pledges
         formset.empty_form = []
@@ -76,11 +78,11 @@ class InitiationView(OfficerRequiredMixin,
     officer_edit = 'pledge status'
 
     def initial_info(self, initiate):
-        pledges = self.request.user.chapter.pledges()
+        pledges = self.request.user.current_chapter.pledges()
         self.to_initiate = pledges.filter(pk__in=initiate['Initiate'])
         self.to_depledge = pledges.filter(pk__in=initiate['Depledge'])
         self.to_defer = pledges.filter(pk__in=initiate['Defer'])
-        self.next_badge = self.request.user.chapter.next_badge_number()['badge_number__max']
+        self.next_badge = self.request.user.current_chapter.next_badge_number()['badge_number__max']
 
     def get(self, request, *args, **kwargs):
         initiate = request.session.get('init-selection', None)
@@ -108,6 +110,12 @@ class InitiationView(OfficerRequiredMixin,
         context['form_show_errors'] = True
         context['error_text_inline'] = True
         context['help_text_inline'] = True
+        guards = GuardTable(Guard.objects.all().order_by('name'))
+        badges = BadgeTable(Badge.objects.all().order_by('name'))
+        RequestConfig(self.request).configure(guards)
+        RequestConfig(self.request).configure(badges)
+        context['guard_table'] = guards
+        context['badge_table'] = badges
         return context
 
     def post(self, request, *args, **kwargs):
@@ -127,7 +135,7 @@ class InitiationView(OfficerRequiredMixin,
         for form in depledge_formset:
             form.save()
         task = Task.objects.get(name="Initiation Report")
-        chapter = self.request.user.chapter
+        chapter = self.request.user.current_chapter
         next_date = task.incomplete_dates_for_task_chapter(chapter).first()
         if next_date:
             TaskChapter(task=next_date, chapter=chapter,
@@ -184,7 +192,7 @@ class StatusChangeSelectView(OfficerRequiredMixin,
             return self.formset_valid(formset)
 
     def get_formset(self):
-        actives = self.request.user.chapter.actives()
+        actives = self.request.user.current_chapter.actives()
         formset = super().get_formset()
         formset.form.base_fields['user'].queryset = actives
         return formset
@@ -227,7 +235,7 @@ class StatusChangeView(OfficerRequiredMixin,
     to_csmt = []
 
     def initial_info(self, status_change):
-        actives = self.request.user.chapter.actives()
+        actives = self.request.user.current_chapter.actives()
         self.to_graduate = actives.filter(pk__in=status_change['graduate'])
         self.to_coop = actives.filter(pk__in=status_change['coop'])
         self.to_military = actives.filter(pk__in=status_change['military'])
@@ -291,7 +299,7 @@ class StatusChangeView(OfficerRequiredMixin,
         for form in csmt_formset:
             form.save()
         task = Task.objects.get(name="Member Updates")
-        chapter = self.request.user.chapter
+        chapter = self.request.user.current_chapter
         next_date = task.incomplete_dates_for_task_chapter(chapter).first()
         if next_date:
             TaskChapter(task=next_date, chapter=chapter,
@@ -385,7 +393,7 @@ class RoleChangeView(OfficerRequiredMixin,
             for instance in instances:
                 instance.save()
             task = Task.objects.get(name="Officer Election Report")
-            chapter = self.request.user.chapter
+            chapter = self.request.user.current_chapter
             next_date = task.incomplete_dates_for_task_chapter(chapter).first()
             if next_date:
                 TaskChapter(task=next_date, chapter=chapter,
@@ -416,7 +424,7 @@ class RiskManagementFormView(OfficerRequiredMixin,
                 current_role = COL_OFFICER_ALIGN[current_role]
             task = Task.objects.get(name="Risk Management Form",
                                     owner=current_role)
-            chapter = self.request.user.chapter
+            chapter = self.request.user.current_chapter
             next_date = task.incomplete_dates_for_task_chapter(chapter).first()
             if next_date:
                 task_obj = TaskChapter(task=next_date, chapter=chapter,

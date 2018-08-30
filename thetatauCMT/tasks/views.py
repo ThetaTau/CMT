@@ -45,7 +45,7 @@ class TaskListView(LoginRequiredMixin, OfficerMixin,
     formhelper_class = TaskListFormHelper
 
     def get_queryset(self, **kwargs):
-        qs = TaskDate.dates_for_chapter(self.request.user.chapter)
+        qs = TaskDate.dates_for_chapter(self.request.user.current_chapter)
         self.filter = self.filter_class(self.request.GET,
                                         queryset=qs)
         self.filter.request = self.request
@@ -61,7 +61,7 @@ class TaskListView(LoginRequiredMixin, OfficerMixin,
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        chapter = self.request.user.chapter
+        chapter = self.request.user.current_chapter
         qs = self.get_queryset()
         qs = qs.annotate(
                 complete_link=models.Case(

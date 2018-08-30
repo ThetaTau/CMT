@@ -24,7 +24,7 @@ class TaskListFilter(django_filters.FilterSet):
 
     def filter_complete(self, queryset, field_name, value):
         if value:
-            chapter = self.request.user.chapter
+            chapter = self.request.user.current_chapter
             queryset = queryset.annotate(
                 complete_result=models.Case(
                     models.When(

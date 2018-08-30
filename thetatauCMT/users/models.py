@@ -43,7 +43,7 @@ class User(AbstractUser):
     chapter = models.ForeignKey(Chapter, on_delete=models.CASCADE,
                                 default=1,
                                 related_name="members")
-    # objects = UserSet.as_manager()
+
     def save(self, *args, **kwargs):
         if not self.id:
             # Newly created object, so set user_id
@@ -53,6 +53,16 @@ class User(AbstractUser):
 
     def __str__(self):
         return self.name
+
+    @property
+    def current_chapter(self):
+        # This allows for national officers to change their chapter
+        # without actually changing their chapter
+        chapter = self.chapter
+        if self.groups.filter(name='natoff').exists():
+            if self.altered_chapter.all():
+                chapter = self.altered_chapter.first().chapter
+        return chapter
 
     def get_absolute_url(self):
         return reverse('users:detail',
@@ -89,6 +99,19 @@ class User(AbstractUser):
         groups = ['officer', 'natoff']
         user_groups = self.groups.values_list("name", flat=True)
         return set(groups).intersection(set(user_groups))
+
+
+class UserAlterChapter(models.Model):
+    '''
+    This is used for altering things for natoffs
+    ie. when a natoff wants to check things for another chapter
+    '''
+    user = models.ForeignKey(settings.AUTH_USER_MODEL,
+                             on_delete=models.CASCADE,
+                             related_name="altered_chapter")
+    chapter = models.ForeignKey(Chapter, on_delete=models.CASCADE,
+                                default=1,
+                                related_name="altered_member")
 
 
 class UserSemesterServiceHours(YearTermModel):
@@ -149,7 +172,7 @@ class UserRoleChange(StartEndModel, TimeStampedModel):
     @classmethod
     def get_current_roles(cls, user):
         return cls.objects.filter(
-            user__chapter=user.chapter,
+            user__chapter=user.current_chapter,
             start__lte=TODAY_END, end__gte=TODAY_END).order_by('user__last_name')
 
 

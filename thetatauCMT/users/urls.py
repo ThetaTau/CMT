@@ -34,4 +34,9 @@ urlpatterns = [
         view=views.UserAutocomplete.as_view(),
         name='autocomplete'
     ),
+    url(
+        regex=r'^alterchapter/$',
+        view=views.UserAlterView.as_view(),
+        name='alterchapter'
+    ),
 ]

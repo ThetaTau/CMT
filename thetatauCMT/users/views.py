@@ -2,15 +2,18 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.forms import PasswordResetForm
 from django.db import models
 from django.urls import reverse
+from django.shortcuts import redirect
+from django.utils.http import is_safe_url
 from django.contrib import messages
 from django.views.generic import DetailView, RedirectView, UpdateView, FormView
-from core.views import PagedFilteredTableView, RequestConfig, OfficerMixin
+from core.views import PagedFilteredTableView, RequestConfig, OfficerMixin,\
+    NatOfficerRequiredMixin
 from core.models import TODAY_END, annotate_role_status, combine_annotations
 from dal import autocomplete
-from .models import User
+from .models import User, UserAlterChapter
 from .tables import UserTable
 from .filters import UserListFilter
-from .forms import UserListFormHelper, UserLookupForm
+from .forms import UserListFormHelper, UserLookupForm, UserAlterForm
 from chapters.models import Chapter
 
 
@@ -66,12 +69,12 @@ class UserListView(LoginRequiredMixin, OfficerMixin, PagedFilteredTableView):
                 ordering = (ordering,)
                 qs = qs.order_by(*ordering)
         members = annotate_role_status(qs.filter(
-            chapter=self.request.user.chapter,
+            chapter=self.request.user.current_chapter,
             status__status="active",
             status__start__lte=TODAY_END,
             status__end__gte=TODAY_END), combine=False)
         pledges = annotate_role_status(qs.filter(
-            chapter=self.request.user.chapter,
+            chapter=self.request.user.current_chapter,
             status__status="pnm",
             status__start__lte=TODAY_END,
             status__end__gte=TODAY_END
@@ -130,7 +133,37 @@ class UserAutocomplete(autocomplete.Select2QuerySetView):
         if (not self.request.user.is_authenticated or
                 not self.request.user.is_officer_group()):
             return User.objects.none()
-        qs = User.objects.filter(chapter=self.request.user.chapter)
+        qs = User.objects.filter(chapter=self.request.user.current_chapter)
         if self.q:
             qs = qs.filter(name__istartswith=self.q)
         return qs
+
+
+class UserAlterView(NatOfficerRequiredMixin, LoginRequiredMixin, FormView):
+    model = UserAlterChapter
+    form_class = UserAlterForm
+
+    def get_success_url(self):
+        redirect_to = self.request.POST.get('next', '')
+        url_is_safe = is_safe_url(redirect_to)
+        if redirect_to and url_is_safe:
+            return redirect_to
+        return reverse('chapters:detail',
+                       kwargs={'slug': self.request.user.current_chapter.slug})
+
+    def form_valid(self, form):
+        user = self.request.user
+        form.instance.user = user
+        try:
+            instance = UserAlterChapter.objects.get(user=user)
+        except UserAlterChapter.DoesNotExist:
+            instance = None
+        if self.request.POST['alter-action'] == 'Reset':
+            form.instance.chapter = self.request.user.chapter  # This should remain origin chapter
+        form.is_valid()
+        if instance:
+            instance.chapter = form.instance.chapter
+            instance.save()
+        else:
+            form.save()
+        return super().form_valid(form)
