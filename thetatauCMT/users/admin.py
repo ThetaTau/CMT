@@ -8,8 +8,8 @@ from .models import User, UserRoleChange, UserStatusChange, UserOrgParticipate,\
 
 class UserStatusChangeAdmin(admin.ModelAdmin):
     raw_id_fields = ['user']
-    list_display = ('user', 'status')
-    list_filter = ['status']
+    list_display = ('user', 'status', 'created')
+    list_filter = ['status', 'created']
     ordering = ['user',]
     search_fields = ['user']
 
@@ -61,8 +61,8 @@ class MemberInline(admin.TabularInline):
 
 
 class UserRoleChangeAdmin(admin.ModelAdmin):
-    list_display = ('user', 'role', 'start', 'end')
-    list_filter = ['start', 'end', 'role']
+    list_display = ('user', 'role', 'start', 'end', 'created')
+    list_filter = ['start', 'end', 'role', 'created']
     ordering = ['-end',]
     raw_id_fields = ['user']
 
