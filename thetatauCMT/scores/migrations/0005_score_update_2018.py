@@ -16,7 +16,7 @@ def scores_2018(apps, schema_editor):
     score_obj.special = "50*(HOURS/(MEMBERS*16))"
     score_obj.save()
     score_obj = score(
-        id=32,
+        id=31,
         name="Community Service Activity",
         description="Members can complete service hours with organized events for the chapter.",
         section="Ser",
@@ -27,6 +27,25 @@ def scores_2018(apps, schema_editor):
         type="Evt",
         base_points=0,
         attendance_multiplier=20.0,
+        stem_add=0,
+        member_add=0,
+        alumni_add=0,
+        guest_add=0,
+        special="",
+    )
+    score_obj.save()
+    score_obj = score(
+        id=32,
+        name="National Scholarship Application Submissions",
+        description="For each member that submits an application for the National Scholarship program.",
+        section="Ops",
+        points=10,
+        term_points=10,
+        formula="2 per member submitting scholarship application",
+        slug="scholarship-app",
+        type="Sub",
+        base_points=2,
+        attendance_multiplier=0,
         stem_add=0,
         member_add=0,
         alumni_add=0,
@@ -69,10 +88,6 @@ def scores_2018(apps, schema_editor):
     score_obj.save()
     score_obj = score.objects.get(slug=slugify("Audit"))
     score_obj.formula = "5 per audit"
-    score_obj.save()
-    score_obj = score.objects.get(slug='scholarship-app')
-    score_obj.formula = "2 per member submitting scholarship application"
-    score_obj.name = "National Scholarship Application Submissions"
     score_obj.save()
     score_obj = score.objects.get(slug=slugify("Conference"))
     score_obj.formula = "5 per member"
