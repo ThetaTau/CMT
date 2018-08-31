@@ -414,7 +414,7 @@ class RiskManagementFormView(OfficerRequiredMixin,
         form.instance.user = self.request.user
         form.save()
         current_role = self.request.user.get_current_role()
-        if current_role not in CHAPTER_OFFICER:
+        if current_role.role not in CHAPTER_OFFICER:
             messages.add_message(
                 self.request, messages.ERROR,
                 f"Only executive officers can sign RMP: {CHAPTER_OFFICER}\n"
