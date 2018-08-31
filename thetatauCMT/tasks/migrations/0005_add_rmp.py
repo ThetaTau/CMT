@@ -24,7 +24,10 @@ def add_rmp(apps, schema_editor):
 
 
 def delete(apps, schema_editor):
-    pass
+    task = apps.get_model("tasks", "Task")
+    task.objects.filter(name="Risk Management Form",
+                        owner__in=['scribe', 'vice regent',
+                                   'corresponding secretary', 'treasurer']).delete()
 
 
 class Migration(migrations.Migration):
