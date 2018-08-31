@@ -148,7 +148,7 @@ class Command(BaseCommand):
             if 'pledge' in status:
                 status = 'pnm'
             else:
-                status = 'student'
+                status = 'active'
             try:
                 status_obj = UserStatusChange.objects.get(
                     user=user_obj,
