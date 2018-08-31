@@ -70,7 +70,7 @@ def scores_2018(apps, schema_editor):
     score_obj = score.objects.get(slug=slugify("Audit"))
     score_obj.formula = "5 per audit"
     score_obj.save()
-    score_obj = score.objects.get(slug=slugify("Scholarship App"))
+    score_obj = score.objects.get(slug='scholarship-app')
     score_obj.formula = "2 per member submitting scholarship application"
     score_obj.name = "National Scholarship Application Submissions"
     score_obj.save()
