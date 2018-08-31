@@ -101,8 +101,8 @@ class StartEndModel(models.Model):
     An abstract base class model that provides
     start and end dates.
     """
-    start = models.DateTimeField()
-    end = models.DateTimeField()
+    start = models.DateField()
+    end = models.DateField()
 
     class Meta:
         abstract = True
