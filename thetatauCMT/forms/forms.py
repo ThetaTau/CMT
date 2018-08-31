@@ -261,7 +261,6 @@ class CSMTFormHelper(FormHelper):
 class RoleChangeSelectForm(forms.ModelForm):
     user = forms.ModelChoiceField(queryset=User.objects.all(),
                                   widget=autocomplete.ModelSelect2(url='users:autocomplete'))
-    role = forms.ChoiceField(choices=sorted([(x, x.title()) for x in CHAPTER_OFFICER | COMMITTEE_CHAIR]))
     start = forms.DateField(
         initial=timezone.now(),
         label="Start Date",
@@ -283,6 +282,7 @@ class RoleChangeSelectForm(forms.ModelForm):
             'start',
             'end',
         ]
+        exclude = ['id']
 
 
 class RoleChangeSelectFormHelper(FormHelper):

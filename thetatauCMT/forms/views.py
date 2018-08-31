@@ -50,7 +50,7 @@ class InitDeplSelectView(OfficerRequiredMixin,
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         helper = InitDeplSelectFormHelper()
-        helper.add_input(Submit("submit", "Save"))
+        helper.add_input(Submit("submit", "Next"))
         context['helper'] = helper
         return context
 
@@ -130,16 +130,30 @@ class InitiationView(OfficerRequiredMixin,
             return self.render_to_response(self.get_context_data(formset=formset,
                                                                  depledge_formset=depledge_formset
                                                                  ))
+        update_list = []
+        depledge_list = []
         for form in formset:
             form.save()
+            update_list.append(form.instance.user)
         for form in depledge_formset:
             form.save()
+            depledge_list.append(form.instance.user)
         task = Task.objects.get(name="Initiation Report")
         chapter = self.request.user.current_chapter
         next_date = task.incomplete_dates_for_task_chapter(chapter).first()
         if next_date:
             TaskChapter(task=next_date, chapter=chapter,
                         date=timezone.now()).save()
+        if update_list:
+            messages.add_message(
+                request, messages.INFO,
+                f"You successfully submitted initiation report for:\n"
+                f"{update_list}")
+        if depledge_list:
+            messages.add_message(
+                request, messages.INFO,
+                f"You successfully submitted depledge report for:\n"
+                f"{depledge_list}")
         return HttpResponseRedirect(self.get_success_url())
 
     def get_success_url(self):
@@ -294,16 +308,23 @@ class StatusChangeView(OfficerRequiredMixin,
             return self.render_to_response(self.get_context_data(formset=formset,
                                                                  csmt_formset=csmt_formset
                                                                  ))
+        update_list = []
         for form in formset:
             form.save()
+            update_list.append(form.instance.user)
         for form in csmt_formset:
             form.save()
+            update_list.append(form.instance.user)
         task = Task.objects.get(name="Member Updates")
         chapter = self.request.user.current_chapter
         next_date = task.incomplete_dates_for_task_chapter(chapter).first()
         if next_date:
             TaskChapter(task=next_date, chapter=chapter,
                         date=timezone.now()).save()
+        messages.add_message(
+            self.request, messages.INFO,
+            f"You successfully updated the status of members:\n"
+            f"{update_list}")
         return HttpResponseRedirect(self.get_success_url())
 
     def get_success_url(self):
@@ -323,11 +344,15 @@ class RoleChangeView(OfficerRequiredMixin,
         self.object_list = self.get_queryset()
         formset = self.construct_formset()
         action = request.POST['action']
+        for form in formset.forms:
+            form.fields['id'].required = False
+            form.empty_permitted = True
         if action != 'Add Row' and not formset.is_valid():
             # Need to check if last extra form is causing issues
             if 'user' in formset.extra_forms[-1].errors:
                 # We should remove this form
                 formset = self.remove_extra_form(formset)
+        # formset = self.remove_id_field(formset)
         if action == 'Add Row' or not formset.is_valid():
             if action == 'Add Row':
                 formset = self.add_form(formset)
@@ -359,6 +384,7 @@ class RoleChangeView(OfficerRequiredMixin,
         tfc = formset.total_form_count()
         formset.forms.append(formset._construct_form(tfc, **kwargs))
         formset.forms[tfc].is_bound = False
+        formset.forms[tfc].empty_permitted = True
         data = formset.data
         # increase hidden form counts
         total_count_name = '%s-%s' % (formset.management_form.prefix, 'TOTAL_FORMS')
@@ -383,21 +409,39 @@ class RoleChangeView(OfficerRequiredMixin,
         formset.data = data
         return formset
 
+    # def remove_id_field(self, formset):
+    #     for form in formset.forms:
+    #         form.fields
+
     def formset_valid(self, formset, delete_only=False):
+        delete_list = []
         for obj in formset.deleted_forms:
             # We don't want to delete the value, just make them not current
             obj.instance.end = timezone.now() - timezone.timedelta(days=2)
             obj.save()
+            delete_list.append(obj.instance.user)
+        if delete_only:
+            messages.add_message(
+                self.request, messages.INFO,
+                f"You successfully removed the officers:\n"
+                f"{delete_list}")
         if not delete_only:
-            instances = formset.save(commit=False)
-            for instance in instances:
-                instance.save()
+            # instances = formset.save(commit=False)
+            update_list = []
+            for form in formset.forms:
+                if form.changed_data:
+                    form.save()
+                    update_list.append(form.instance.user)
             task = Task.objects.get(name="Officer Election Report")
             chapter = self.request.user.current_chapter
             next_date = task.incomplete_dates_for_task_chapter(chapter).first()
             if next_date:
                 TaskChapter(task=next_date, chapter=chapter,
                             date=timezone.now()).save()
+            messages.add_message(
+                self.request, messages.INFO,
+                f"You successfully updated the officers:\n"
+                f"{update_list}")
         return HttpResponseRedirect(self.get_success_url())
 
     def get_success_url(self):
@@ -431,6 +475,10 @@ class RiskManagementFormView(OfficerRequiredMixin,
                                 date=timezone.now(),)
                 task_obj.submission_object = form.instance
                 task_obj.save()
+            messages.add_message(
+                self.request, messages.INFO,
+                f"You successfully signed the RMP!\n"
+                f"Your current role is: {current_role}")
         return super().form_valid(form)
 
     def get_success_url(self):
