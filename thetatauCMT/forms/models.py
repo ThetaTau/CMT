@@ -58,7 +58,7 @@ class Initiation(TimeStampedModel):
     guard = models.ForeignKey(Guard, on_delete=models.SET_NULL,
                               related_name="initiation",
                               null=True)
-    task = GenericRelation(TaskChapter)
+    # task = GenericRelation(TaskChapter)  We are currently not using this
 
     def __str__(self):
         return f"{self.user} initiated on {self.date}"
