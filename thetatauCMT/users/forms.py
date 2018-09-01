@@ -20,10 +20,10 @@ class UserListFormHelper(FormHelper):
                 Fieldset(
                     '<i class="fas fa-search"></i> Filter Members',
                     Row(
-                        InlineField('name'),
+                        InlineField('name__icontains'),
                         InlineField('current_status'),
-                        InlineField('major'),
-                        InlineField('graduation_year'),
+                        InlineField('major__icontains'),
+                        InlineField('graduation_year__icontains'),
                         FormActions(
                             StrictButton(
                                 '<i class="fa fa-search"></i> Filter',
