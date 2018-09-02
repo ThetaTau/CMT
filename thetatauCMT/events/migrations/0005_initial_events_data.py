@@ -27,7 +27,6 @@ id_file = os.path.join(settings.ROOT_DIR.root,
                        r'secrets/ChapterManagementTool-b239bceff1a7.json')
 creds = ServiceAccountCredentials.from_json_keyfile_name(id_file, scope)
 
-gspread_client = gspread.authorize(creds)
 
 CHAPTER_IDS = {
     "Alpha": ("0B96Hi_WlZHjiVUZtRHhJczQ0TmM", "1oNzRdTXUaN_LviYhfCgsFUgikUl3UQ1RgV9-m1VuORU"),
@@ -169,6 +168,7 @@ def get_all_chapter_events(apps, schema_editor):
 
 
 def get_chapter_data(chapter_name, chapter_key, apps):
+    gspread_client = gspread.authorize(creds)
     chapter = apps.get_model("chapters", "Chapter")
     sleep(1)
     spreadsheet = gspread_client.open_by_key(chapter_key)
