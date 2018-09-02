@@ -132,8 +132,17 @@
           </ul>
         </div>
       </nav>
-    {% if user_alter_form %}
-      <nav class="navbar navbar-light bg-light">
+    {% if request.is_nat_officer %}
+      <nav class="navbar navbar-fixed-top navbar-light navbar-inverse bg-light">
+      <a class="navbar-brand" href="{% url 'regions:detail' request.user.current_chapter.region.slug %}">{{ request.user.current_chapter.region.name }} Region</a>
+        <a class="nav-item nav-link" href="{% url 'regions:officers' request.user.current_chapter.region.slug  %}">Officers</a>
+  {#        <li class="nav-item">#}
+  {#          <a class="nav-link" href="{% url 'regions:events' request.user.current_chapter.region.slug %}">Events</a>#}
+  {#        </li>#}
+  {#        <li class="nav-item">#}
+  {#          <a class="nav-link" href="{% url 'regions:submissions' request.user.current_chapter.region.slug %}">Submissions</a>#}
+  {#        </li>#}
+        <a class="nav-item nav-link" href="{% url 'regions:tasks' request.user.current_chapter.region.slug %}">Tasks</a>
         <form class="form-inline ml-auto" action="{% url 'users:alterchapter' %}" method="post">
           {% csrf_token %}
           {{ user_alter_form|crispy }}

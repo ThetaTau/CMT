@@ -1,25 +1,76 @@
 from collections import defaultdict
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.urls import reverse
+from django.http.request import QueryDict
 from django.db import models
 from django.views.generic import DetailView, ListView, RedirectView
 import django_tables2 as tables
 from django_tables2.utils import A
-from core.views import OfficerMixin
+from core.views import OfficerMixin, NatOfficerRequiredMixin, RequestConfig
+from core.models import combine_annotations
 from .models import Region
 from tasks.models import TaskDate
 from .tables import RegionChapterTaskTable
 from .filters import RegionChapterTaskFilter
 from .forms import RegionChapterTaskFormHelper
+from users.tables import UserTable
+from users.models import User
+from users.filters import UserRoleListFilter
+from users.forms import UserRoleListFormHelper
 
 
-class RegionDetailView(LoginRequiredMixin, OfficerMixin, DetailView):
+class RegionOfficerView(NatOfficerRequiredMixin,
+                        LoginRequiredMixin, OfficerMixin, DetailView):
     model = Region
-    # These next two lines tell the view to index lookups by username
+    slug_field = 'slug'
+    slug_url_kwarg = 'slug'
+    filter_class = UserRoleListFilter
+    formhelper_class = UserRoleListFormHelper
+    template_name = "regions/officer_list.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        all_chapter_officers = User.objects.none()
+        for chapter in self.object.chapters.all():
+            context = super().get_context_data(**kwargs)
+            chapter_officers = chapter.get_current_officers(combine=False)
+            all_chapter_officers = chapter_officers | all_chapter_officers
+        cancel = self.request.GET.get('cancel', False)
+        request_get = self.request.GET.copy()
+        if cancel:
+            request_get = QueryDict()
+        self.filter = self.filter_class(request_get,
+                                        queryset=all_chapter_officers)
+        self.filter.form.helper = self.formhelper_class()
+        all_chapter_officers = combine_annotations(self.filter.qs)
+        self.filter.form.base_fields['chapter'].queryset = self.object.chapters.all()
+        table = UserTable(
+            data=all_chapter_officers,
+            extra_columns=[('chapter',
+                            tables.LinkColumn(
+                                'chapters:detail',
+                                args=[A('chapter.slug')]))])
+        RequestConfig(self.request, paginate={'per_page': 50}).configure(table)
+        context['table'] = table
+        context['filter'] = self.filter
+        return context
+
+
+class RegionDetailView(NatOfficerRequiredMixin,
+                       LoginRequiredMixin, OfficerMixin, DetailView):
+    model = Region
+    slug_field = 'slug'
+    slug_url_kwarg = 'slug'
+
+
+class RegionTaskView(NatOfficerRequiredMixin,
+                     LoginRequiredMixin, OfficerMixin, DetailView):
+    model = Region
     slug_field = 'slug'
     slug_url_kwarg = 'slug'
     filter_class = RegionChapterTaskFilter
     formhelper_class = RegionChapterTaskFormHelper
+    template_name = "regions/task_list.html"
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -27,8 +78,7 @@ class RegionDetailView(LoginRequiredMixin, OfficerMixin, DetailView):
         cancel = self.request.GET.get('cancel', False)
         request_get = self.request.GET.copy()
         if cancel:
-            for item in ['task__name__icontains', 'date__lt', 'date__gt']:
-                request_get[item] = ''
+            request_get = QueryDict()
         self.filter = self.filter_class(request_get, queryset=qs)
         self.filter.form.helper = self.formhelper_class()
         all_chapters_tasks = {task.pk: defaultdict(lambda: 0) for task in self.filter.qs}

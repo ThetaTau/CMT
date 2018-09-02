@@ -68,11 +68,11 @@ class Chapter(models.Model):
                                    status__end__gte=TODAY_END
                                    )
 
-    def get_current_officers(self):
+    def get_current_officers(self, combine=True):
         return annotate_role_status(
             self.members.filter(
                 roles__start__lte=TODAY_END, roles__end__gte=TODAY_END
-            ))
+            ), combine=combine)
 
     def next_badge_number(self):
         return self.members.filter(~models.Q(status__status='pnm'),

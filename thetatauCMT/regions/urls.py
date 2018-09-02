@@ -19,4 +19,14 @@ urlpatterns = [
         view=views.RegionDetailView.as_view(),
         name='detail'
     ),
+    url(
+        regex=r'^(?P<slug>[\w.@+-]+)/officers/$',
+        view=views.RegionOfficerView.as_view(),
+        name='officers'
+    ),
+    url(
+        regex=r'^(?P<slug>[\w.@+-]+)/tasks/$',
+        view=views.RegionTaskView.as_view(),
+        name='tasks'
+    ),
 ]
