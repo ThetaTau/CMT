@@ -13,6 +13,7 @@ from core.models import ALL_OFFICERS
 from chapters.models import Chapter
 from pydrive.drive import GoogleDrive
 from pydrive.auth import GoogleAuth, AuthenticationError
+from django.core.mail import send_mail
 
 
 class Command(BaseCommand):
@@ -21,6 +22,8 @@ class Command(BaseCommand):
 
     # A command must define handle()
     def handle(self, *args, **options):
+        run_time = datetime.datetime.now()
+        change_messages = []
         id_file = os.path.join(settings.ROOT_DIR.root, r'secrets/GoogleSheetsClient_id.json')
         id_file_out = os.path.join(settings.ROOT_DIR.root, r'secrets/GoogleSheetsClient_id_out.json')
         GoogleAuth.DEFAULT_SETTINGS['client_config_file'] = id_file
@@ -48,8 +51,7 @@ class Command(BaseCommand):
                     last_date = this_date
                     final_file = file_name
                     file = item
-            print(f"{file_name} ({file})")
-        print(f"Found file: {final_file} id: {file}")
+        change_messages.append(f"Update file: {final_file} id: {file}")
         content = file.GetContentString(mimetype='text/csv', encoding='latin_1')
         reader = csv.DictReader(io.StringIO(content))
         trans = {
@@ -72,21 +74,29 @@ class Command(BaseCommand):
             'role2': 'Organization Relation Position'}
         for id_obj, row in enumerate(reader):
             user_id = row[trans['badge']]
+            check_badge = False
             if user_id.startswith('UA'):
                 user_id = user_id.replace('UA', 'Albany')
+            elif user_id.startswith('CFS'):
+                user_id = user_id.replace('CFS', 'CSF')
             try:
                 user_obj = User.objects.get(user_id=user_id)
             except User.DoesNotExist:
-                # Maybe the user was a pledge last? Let's get by email
+                # Maybe the user was a pledge last? Check if badge number
                 try:
-                    user_obj = User.objects.get(username=row[trans['email']])
-                    check_badge = True
-                except User.DoesNotExist:
+                    int(user_id)
+                    user_obj = User.objects.get(badge_number=user_id)
+                except (User.DoesNotExist, ValueError):
                     try:
-                        # Maybe something has been mixed up and the badge2 is right?
-                        user_obj = User.objects.get(user_id=row[trans['badge2']])
+                        # Let's try to get by email
+                        user_obj = User.objects.get(username=row[trans['email']])
+                        check_badge = True
                     except User.DoesNotExist:
-                        user_obj = None
+                        try:
+                            # Maybe something has been mixed up and the badge2 is right?
+                            user_obj = User.objects.get(user_id=row[trans['badge2']])
+                        except User.DoesNotExist:
+                            user_obj = None
             phone = row[trans['phone']]
             if phone != "" and 'x' not in phone and (8 < len(phone) < 18):
                 rep = {"_": "", "(": "", ")": " ", "-": "", ' ': '', '1 ': '', '+': '', " ": ""}
@@ -96,6 +106,7 @@ class Command(BaseCommand):
                 phone = phone.replace(" ", "")
                 try:
                     phone = int(phone)
+                    phone = str(phone)
                 except ValueError:
                     phone = ''
             else:
@@ -120,7 +131,7 @@ class Command(BaseCommand):
                 if roll:
                     roll = int(roll)
             if user_obj is None:
-                print(f"No user found create one now: {row}")
+                change_messages.append(f"No user found, create one now: {row}")
                 user_obj = User(
                     username=row[trans['email']],
                     first_name=row[trans['first']],
@@ -135,47 +146,72 @@ class Command(BaseCommand):
                 )
                 user_obj.save()
             else:
-                user_obj.email = row[trans['email']]
+                email = row[trans['email']]
+                if user_obj.email != email:
+                    change_messages.append(f"Update User: {user_obj}"
+                                           f" Change: email, username; old: {user_obj.email} new: {email}")
+                user_obj.email = email
+                if user_obj.phone_number != phone:
+                    change_messages.append(f"Update User: {user_obj}"
+                                           f" Change: phone; old: {user_obj.phone_number} new: {phone}")
                 user_obj.phone_number = phone
-                user_obj.major = row[trans['major']]
+                major = row[trans['major']]
+                if user_obj.major != major:
+                    change_messages.append(f"Update User: {user_obj}"
+                                           f" Change: major; old: {user_obj.major} new: {major}")
+                user_obj.major = major
+                if user_obj.graduation_year != graduation:
+                    change_messages.append(f"Update User: {user_obj}"
+                                           f" Change: graduation_year; "
+                                           f" old: {user_obj.graduation_year} new: {graduation}")
                 user_obj.graduation_year = graduation
                 if check_badge:
                     if user_obj.user_id != user_id:
-                        user_obj.user_id = f"{chapter_obj.greek}{roll}"
-                        user_obj.badge_number = roll
+                        if user_obj.user_id != f"{chapter_obj.greek}{roll}":
+                            user_obj.user_id = f"{chapter_obj.greek}{roll}"
+                            user_obj.badge_number = roll
+                            change_messages.append(f"Update User: {user_obj}"
+                                                   f" Change: user_id, badge_number;"
+                                                   f" old: {user_id} new: {user_obj.user_id}")
                 user_obj.save()
             status = row[trans['status']]
             if 'pledge' in status:
                 status = 'pnm'
             else:
                 status = 'active'
+            end = datetime.date(graduation, 7, 1)
             try:
                 status_obj = UserStatusChange.objects.get(
                     user=user_obj,
                     status=status
                 )
             except UserStatusChange.DoesNotExist:
-                print(f"New status for user {user_obj} {status}")
+                change_messages.append(f"New status for user {user_obj} {status}")
                 status_obj = UserStatusChange(
                     user=user_obj,
                     status=status,
                     start=timezone.now(),
-                    end=datetime.date(graduation, 7, 1)
+                    end=end
                 )
                 status_obj.save()
             else:
                 # status_obj.start = timezone.now(),
-                status_obj.end = datetime.date(graduation, 7, 1)
+                if status_obj.end != end:
+                    change_messages.append(f"Update Status: {status_obj} for {status_obj.user}"
+                                           f" Change: end; old: {status_obj.end} new: {end}")
+                status_obj.end = end
                 status_obj.save()
             if row[trans['role']] != '':
                 if row[trans['start']] == '':
-                    start = timezone.now()
+                    start = datetime.datetime.now()
                 else:
                     start = datetime.datetime.strptime(row[trans['start']], '%m/%d/%Y')
+                start = start.date()
                 if row[trans['end']] == '':
-                    end = timezone.now() + timezone.timedelta(days=90)
+                    end = datetime.datetime.now() + datetime.timedelta(days=90)
                 else:
                     end = datetime.datetime.strptime(row[trans['end']], '%m/%d/%Y')
+                end = end.date()
                 final_role = row[trans['role']].lower()
                 if final_role not in ALL_OFFICERS:
                     # Find the best matching name
@@ -216,7 +252,7 @@ class Command(BaseCommand):
                         except UserRoleChange.MultipleObjectsReturned:
                             continue
                 if role_obj is None:
-                    print(f"New role for user {user_obj} {final_role}")
+                    change_messages.append(f"New role for user {user_obj} {final_role}")
                     role_obj = UserRoleChange(
                         user=user_obj,
                         role=final_role,
@@ -225,6 +261,18 @@ class Command(BaseCommand):
                     )
                     role_obj.save()
                 else:
+                    if role_obj.start != start:
+                        change_messages.append(f"Update Role: {role_obj} for {role_obj.user}"
+                                               f" Change: start; old: {role_obj.start} new: {start}")
                     role_obj.start = start
+                    if role_obj.end != end:
+                        change_messages.append(f"Update Role: {role_obj} for {role_obj.user}"
+                                               f" Change: end; old: {role_obj.end} new: {end}")
                     role_obj.end = end
                     role_obj.save()
+        change_message = '\n'.join(change_messages)
+        send_mail(f'CMT Sync {run_time}',
+                  f'Updated:\n{change_message}',
+                  'cmt@thetatau.org',
+                  ['cmt@thetatau.org'],
+                  fail_silently=True)
