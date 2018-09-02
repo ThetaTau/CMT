@@ -59,7 +59,7 @@ COMMITTEE_CHAIR = {
     "employer/ee",
     "fundraising chair",
     "house corporation president",
-    "house corporation treasurer"
+    "house corporation treasurer",
     "housing chair",
     "other appointee",
     "pd chair",
