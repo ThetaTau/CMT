@@ -1,49 +1,51 @@
 {% extends "account/base.html" %}
-
 {% load i18n %}
 {% load account socialaccount %}
 {% load crispy_forms_tags %}
-
 {% block head_title %}{% trans "Sign In" %}{% endblock %}
-
-{% block inner %}
-
+{% block content %}
+<div class="container">
+  <div class="row">
+    <div class="col-md-6">
 <h1>{% trans "Sign In" %}</h1>
-
 {% get_providers as socialaccount_providers %}
-
-{% if socialaccount_providers %}
-<p>Please sign in with one of your existing third party accounts
+<p>Please sign in with one of your existing third party account
   that has the <b>same email</b> as your account.
-  <br>If you do not know your <b>email</b>, <a href="{% url 'users:lookup' %}">look up</a>
-  your {{ site.name }} <b>email</b> and then sign in below.</p>
-
 <div class="socialaccount_ballot">
-
   <ul class="socialaccount_providers">
     {% include "socialaccount/snippets/provider_list.html" with process="login" %}
   </ul>
-
-  <div class="login-or">{% trans 'or' %}</div>
-
 </div>
-
 {% include "socialaccount/snippets/login_extra.html" %}
-
-{% else %}
-<p>If you do not know your email,
-  <a href="{% url 'users:lookup' %}">look up</a>
-your {{ site.name }} email and then sign in below.</p>
-{% endif %}
-
+    <h4>Your username is your email address.</h4>
 <form class="login" method="POST" action="{% url 'account_login' %}">
   {% csrf_token %}
   {{ form|crispy }}
   {% if redirect_field_value %}
   <input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}" />
   {% endif %}
-  <a class="button secondaryAction" href="{% url 'account_reset_password' %}">{% trans "Forgot Password?" %}</a>
+  <a class="button secondaryAction" href="{% url 'account_reset_password' %}">{% trans "Forgot/Reset Password?" %}</a>
   <button class="primaryAction btn btn-primary" type="submit">{% trans "Sign In" %}</button>
 </form>
-
-{% endblock %}
+    </div>
+  <div class="col-md-6">
+    <h1>{% trans "Lookup Username/Email" %}</h1>
+    <br>If you do not know the <b>email</b> used for your account, look up
+  your {{ site.name }} <b>email</b> and then sign in with your email as your username.</p>
+<p>If an account is found, this lookup will send you a password reset email automatically.
+<form class="signup" id="lookup_form" method="post" action="{% url 'users:lookup' %}">
+  {% csrf_token %}
+  {{ lookup_form|crispy }}
+  {% if redirect_field_value %}
+  <input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}" />
+  {% endif %}
+  <button class="btn btn-primary" type="submit">{% trans "Lookup" %} &raquo;</button>
+</form>
+  <br>
+  <h1>{% trans "Lookup Password" %}</h1>
+  <p>If you do not know, or if you have never set a password, <br>click on
+    <a class="button secondaryAction" href="{% url 'account_reset_password' %}">{% trans "Forgot/Reset Password?" %}</a></p>
+  </div>
+  </div>
+</div>
+{% endblock content %}

@@ -6,6 +6,7 @@ from django.shortcuts import redirect
 from django.utils.http import is_safe_url
 from django.contrib import messages
 from django.views.generic import DetailView, RedirectView, UpdateView, FormView
+from allauth.account.views import LoginView
 from core.views import PagedFilteredTableView, RequestConfig, OfficerMixin,\
     NatOfficerRequiredMixin
 from core.models import TODAY_END, annotate_role_status, combine_annotations
@@ -92,6 +93,13 @@ class PasswordResetFormNotActive(PasswordResetForm):
         return [User.objects.get(email=email)]
 
 
+class UserLookupLoginView(LoginView):
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['lookup_form'] = UserLookupForm()
+        return context
+
+
 class UserLookupView(FormView):
     form_class = UserLookupForm
     template_name = "users/lookup.html"
@@ -125,7 +133,7 @@ class UserLookupView(FormView):
         return ''.join([email_start, "****@", email_domain])
 
     def get_success_url(self):
-        return reverse('users:lookup')
+        return reverse('login')
 
 
 class UserAutocomplete(autocomplete.Select2QuerySetView):

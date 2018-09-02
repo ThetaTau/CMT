@@ -6,6 +6,7 @@ from django.contrib.auth.views import PasswordResetConfirmView, PasswordResetCom
 from django.contrib import admin
 from django.views.generic import TemplateView, RedirectView
 from core.views import HomeView
+from users.views import UserLookupLoginView
 from django.views import defaults as default_views
 
 urlpatterns = [
@@ -27,6 +28,7 @@ urlpatterns = [
 
     # User management
     url(r'^users/', include('users.urls', namespace='users')),
+    url(r'^accounts/login/$', UserLookupLoginView.as_view(), name='login'),
     url(r'^accounts/', include('allauth.urls')),
 
     # Your stuff: custom urls includes go here
