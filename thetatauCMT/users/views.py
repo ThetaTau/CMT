@@ -1,6 +1,6 @@
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.forms import PasswordResetForm
-from django.db import models
+from django.http.request import QueryDict
 from django.urls import reverse
 from django.shortcuts import redirect
 from django.utils.http import is_safe_url
@@ -81,7 +81,11 @@ class UserListView(LoginRequiredMixin, OfficerMixin, PagedFilteredTableView):
             status__end__gte=TODAY_END
             ), combine=False)
         qs = members | pledges
-        self.filter = self.filter_class(self.request.GET,
+        cancel = self.request.GET.get('cancel', False)
+        request_get = self.request.GET.copy()
+        if cancel:
+            request_get = QueryDict()
+        self.filter = self.filter_class(request_get,
                                         queryset=qs)
         self.filter.form.helper = self.formhelper_class()
         qs = combine_annotations(self.filter.qs)

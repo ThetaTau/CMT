@@ -23,11 +23,13 @@ class TaskListFormHelper(FormHelper):
                         InlineField('complete'),
                         FormActions(
                             StrictButton(
-                                '<i class="fa fa-search"></i> Search',
+                                '<i class="fa fa-search"></i> Filter',
                                 type='submit',
-                                css_class='btn-primary',
-                                style='margin-top:10px;'),
-                            Submit('cancel', 'Clear'),
+                                css_class='btn-primary',),
+                            Submit(
+                                'cancel',
+                                'Clear',
+                                css_class='btn-primary'),
                         )
                     )
                 ),

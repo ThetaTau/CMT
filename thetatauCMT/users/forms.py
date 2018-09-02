@@ -28,8 +28,11 @@ class UserListFormHelper(FormHelper):
                             StrictButton(
                                 '<i class="fa fa-search"></i> Filter',
                                 type='submit',
-                                css_class='btn-primary',
-                                style='margin-top:10px;')
+                                css_class='btn-primary',),
+                            Submit(
+                                'cancel',
+                                'Clear',
+                                css_class='btn-primary'),
                         )
                     )
                 ),

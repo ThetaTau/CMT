@@ -1,4 +1,5 @@
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.http.request import QueryDict
 from django_tables2 import SingleTableView
 from django_tables2.config import RequestConfig  # Imported by others
 from django.views.generic.edit import FormMixin
@@ -49,7 +50,11 @@ class PagedFilteredTableView(SingleTableView):
 
     def get_queryset(self, **kwargs):
         qs = super(PagedFilteredTableView, self).get_queryset()
-        self.filter = self.filter_class(self.request.GET,
+        cancel = self.request.GET.get('cancel', False)
+        request_get = self.request.GET.copy()
+        if cancel:
+            request_get = QueryDict()
+        self.filter = self.filter_class(request_get,
                                         queryset=qs)
         self.filter.form.helper = self.formhelper_class()
         return self.filter.qs

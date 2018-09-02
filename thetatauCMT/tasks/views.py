@@ -1,6 +1,6 @@
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.shortcuts import redirect, reverse
-from django.utils.html import mark_safe
+from django.http.request import QueryDict
 from django.db import models
 from django.views.generic import DetailView, UpdateView, RedirectView, CreateView
 from core.views import PagedFilteredTableView, RequestConfig, TypeFieldFilteredChapterAdd,\
@@ -46,15 +46,15 @@ class TaskListView(LoginRequiredMixin, OfficerMixin,
 
     def get_queryset(self, **kwargs):
         qs = TaskDate.dates_for_chapter(self.request.user.current_chapter)
-        self.filter = self.filter_class(self.request.GET,
+        cancel = self.request.GET.get('cancel', False)
+        request_get = self.request.GET.copy()
+        if cancel:
+            request_get = QueryDict()
+        self.filter = self.filter_class(request_get,
                                         queryset=qs)
         self.filter.request = self.request
         self.filter.form.helper = self.formhelper_class()
-        cancel = self.request.GET.get('cancel', False)
-        qs_out = self.filter.qs
-        if cancel:
-            qs_out = qs
-        return qs_out
+        return self.filter.qs
 
     def post(self, request, *args, **kwargs):
         return PagedFilteredTableView.as_view()(request)

@@ -25,9 +25,11 @@ class RegionChapterTaskFormHelper(FormHelper):
                             StrictButton(
                                 '<i class="fa fa-search"></i> Search',
                                 type='submit',
-                                css_class='btn-primary',
-                                style='margin-top:10px;'),
-                            Submit('cancel', 'Clear'),
+                                css_class='btn-primary',),
+                            Submit(
+                                'cancel',
+                                'Clear',
+                                css_class='btn-primary'),
                         )
                     )
                 ),
