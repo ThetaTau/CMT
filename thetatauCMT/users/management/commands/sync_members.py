@@ -109,7 +109,7 @@ class Command(BaseCommand):
             except Chapter.DoesNotExist:
                 chapter_obj = Chapter.objects.get(school=row[trans['school']])
             if row[trans['email']] == '':
-                warnings.warn(f"No email for user: {row}")
+                # warnings.warn(f"No email for user: {row}")
                 continue
             roll = row[trans['roll']]
             if roll == '':
@@ -160,12 +160,12 @@ class Command(BaseCommand):
                     user=user_obj,
                     status=status,
                     start=timezone.now(),
-                    end=datetime.datetime(graduation, 7, 1)
+                    end=datetime.date(graduation, 7, 1)
                 )
                 status_obj.save()
             else:
                 # status_obj.start = timezone.now(),
-                status_obj.end = str(datetime.datetime(graduation, 7, 1))
+                status_obj.end = datetime.date(graduation, 7, 1)
                 status_obj.save()
             if row[trans['role']] != '':
                 if row[trans['start']] == '':
