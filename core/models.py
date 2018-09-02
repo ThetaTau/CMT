@@ -53,15 +53,19 @@ NATIONAL_OFFICER = {
 }
 
 COMMITTEE_CHAIR = {
+    'academic chair',
     'adviser',
     "board member",
     "committee chair",
     "employer/ee",
+    'events chair',
+    'faculty adviser',
     "fundraising chair",
     "house corporation president",
     "house corporation treasurer",
     "housing chair",
     "other appointee",
+    'parent',
     "pd chair",
     "pledge/new member educator",
     "project chair",
@@ -73,8 +77,6 @@ COMMITTEE_CHAIR = {
     "service chair",
     "social/brotherhood chair",
     "website/social media chair",
-    'parent',
-    'faculty adviser',
 }
 
 
