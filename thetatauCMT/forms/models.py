@@ -46,8 +46,8 @@ class Initiation(TimeStampedModel):
     user = models.OneToOneField(settings.AUTH_USER_MODEL,
                                 on_delete=models.CASCADE,
                                 related_name="initiation")
-    date_graduation = models.DateTimeField(default=timezone.now)
-    date = models.DateTimeField(default=timezone.now)
+    date_graduation = models.DateField(default=timezone.now)
+    date = models.DateField(default=timezone.now)
     roll = models.PositiveIntegerField(default=999999999)
     gpa = models.FloatField()
     test_a = models.IntegerField(validators=[MaxValueValidator(100)])
@@ -90,7 +90,7 @@ class Depledge(TimeStampedModel):
         max_length=10,
         choices=[x.value for x in REASONS]
     )
-    date = models.DateTimeField(default=timezone.now)
+    date = models.DateField(default=timezone.now)
 
     def __str__(self):
         return f"{self.user} depledged on {self.date}"
@@ -123,7 +123,7 @@ class StatusChange(TimeStampedModel):
 
     user = models.ForeignKey(settings.AUTH_USER_MODEL,
                              on_delete=models.CASCADE,
-                             related_name="change")
+                             related_name="status_changes")
     reason = models.CharField(
         max_length=10,
         choices=[x.value for x in REASONS]
@@ -133,8 +133,8 @@ class StatusChange(TimeStampedModel):
         max_length=4,
         choices=[x.value for x in DEGREES]
     )
-    date_start = models.DateTimeField(default=timezone.now)
-    date_end = models.DateTimeField(default=forever, blank=True)
+    date_start = models.DateField(default=timezone.now)
+    date_end = models.DateField(default=forever, blank=True)
     employer = models.CharField(max_length=200)
     miles = models.PositiveIntegerField(
         default=0,
