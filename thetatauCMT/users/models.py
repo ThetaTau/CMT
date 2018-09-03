@@ -136,6 +136,8 @@ class UserStatusChange(StartEndModel, TimeStampedModel):
         ('alumni', 'alumni'),
         ('active', 'active'),
         ('pnm', 'prospective'),
+        ('away', 'away'),
+        ('depledge', 'depledge'),
     ]
     user = models.ForeignKey(settings.AUTH_USER_MODEL,
                              on_delete=models.CASCADE,
