@@ -143,7 +143,7 @@ class UserStatusChange(StartEndModel, TimeStampedModel):
                              on_delete=models.CASCADE,
                              related_name="status")
     status = models.CharField(
-        max_length=7,
+        max_length=10,
         choices=STATUS
     )
 
