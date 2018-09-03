@@ -1,3 +1,4 @@
+import datetime
 from enum import Enum
 from django.db import models
 from django.contrib.contenttypes.fields import GenericRelation
@@ -6,7 +7,8 @@ from django.conf import settings
 from django.utils import timezone
 from core.models import TimeStampedModel, YearTermModel, forever
 from django.utils.translation import gettext_lazy as _
-from users.models import User
+from core.models import forever
+from users.models import User, UserStatusChange
 from chapters.models import Chapter
 from tasks.models import TaskChapter
 
@@ -63,6 +65,45 @@ class Initiation(TimeStampedModel):
     def __str__(self):
         return f"{self.user} initiated on {self.date}"
 
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        # Need to adjust old status pnm, save new status active
+        new_user_id = f"{self.user.chapter.greek}{self.roll}"
+        if self.user.user_id != new_user_id:
+            self.user.badge_number = self.roll
+            self.user.user_id = new_user_id
+            self.user.save()
+        try:
+            pnm = self.user.status.get(status='pnm')
+        except UserStatusChange.DoesNotExist:
+            print(f"There was no pledge status for user {self.user}")
+            UserStatusChange(
+                user=self.user,
+                status='pnm',
+                created=self.created,
+                start=self.date - datetime.timedelta(days=120),
+                end=self.date,
+            ).save()
+        else:
+            pnm.end = self.date
+            pnm.created = self.created
+            pnm.save()
+        try:
+            active = self.user.status.get(status='active')
+        except UserStatusChange.DoesNotExist:
+            UserStatusChange(
+                user=self.user,
+                created=self.created,
+                status='active',
+                start=self.date,
+                end=self.date_graduation,
+            ).save()
+        else:
+            active.start = self.date
+            active.created = self.created
+            active.end = self.date_graduation
+            active.save()
+
     def chapter_initiations(self, chapter):
         result = self.objects.filter(user__chapter=chapter)
         return result
@@ -94,6 +135,32 @@ class Depledge(TimeStampedModel):
 
     def __str__(self):
         return f"{self.user} depledged on {self.date}"
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        # Need to adjust old status pnm, save new status depledge
+        try:
+            pnm = self.user.status.get(status='pnm')
+        except UserStatusChange.DoesNotExist:
+            print(f"There was no pledge status for user {self.user}")
+            UserStatusChange(
+                user=self.user,
+                status='pnm',
+                created=self.created,
+                start=self.date - datetime.timedelta(days=120),
+                end=self.date,
+            ).save()
+        else:
+            pnm.end = self.date
+            pnm.created = self.created
+            pnm.save()
+        UserStatusChange(
+            user=self.user,
+            status='depledge',
+            created=self.created,
+            start=self.date,
+            end=forever(),
+        ).save()
 
 
 class StatusChange(TimeStampedModel):
@@ -146,6 +213,61 @@ class StatusChange(TimeStampedModel):
 
     def __str__(self):
         return f"{self.user} {self.reason} on {self.date_start}"
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        # if graduate, withdraw, transfer
+        # Need to adjust old status active, save new status alumni
+        # if coop, military
+        # Need to adjust old status active, save new status away
+        try:
+            active = self.user.status.order_by('-end')\
+                .filter(status='active').first()
+        except UserStatusChange.DoesNotExist:
+            print(f"There was no active status for user {self.user}")
+            UserStatusChange(
+                user=self.user,
+                status='active',
+                created=self.created,
+                start=self.date_start - datetime.timedelta(days=365),
+                end=self.date_start,
+            ).save()
+        else:
+            active.end = self.date_start
+            active.created = self.created
+            active.save()
+        if self.reason in ['graduate', 'withdraw', 'transfer']:
+            try:
+                alumni = self.user.status.get(status='alumni')
+            except UserStatusChange.DoesNotExist:
+                UserStatusChange(
+                    user=self.user,
+                    created=self.created,
+                    status='alumni',
+                    start=self.date_start,
+                    end=forever(),
+                ).save()
+            else:
+                alumni.start = self.date_start
+                alumni.end = forever()
+                alumni.created = self.created
+                alumni.save()
+        else:
+            try:
+                away = self.user.status.get(status='away')
+            except UserStatusChange.DoesNotExist:
+                UserStatusChange(
+                    user=self.user,
+                    created=self.created,
+                    status='away',
+                    start=self.date_start,
+                    end=self.date_end,
+                ).save()
+            else:
+                away.start = self.date_start
+                away.end = self.date_end
+                away.created = self.created
+                away.save()
 
 
 class RiskManagement(YearTermModel):
