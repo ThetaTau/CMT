@@ -151,6 +151,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'rollbar.contrib.django.middleware.RollbarNotifierMiddleware',  # Last
 ]
 
 # STATIC
@@ -270,6 +271,13 @@ SOCIALACCOUNT_ADAPTER = 'users.adapters.SocialAccountAdapter'
 
 # Your stuff...
 # ------------------------------------------------------------------------------
+ROLLBAR = {
+    'access_token': env('ROLLBAR_ACCESS', default=''),
+    'environment': 'development' if DEBUG else 'production',
+    'root': ROOT_DIR,
+}
+import rollbar
+rollbar.init(**ROLLBAR)
 GOOGLE_API_KEY = env('GOOGLE_API_KEY', default='')
 if not GOOGLE_API_KEY:
     # Try and load from secrets file
