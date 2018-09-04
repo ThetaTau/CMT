@@ -107,7 +107,8 @@ class ScoreType(models.Model):
                 percent_attendance = min(obj.members / actives, 1)
             formula_out.replace('memberATT', percent_attendance)
         if 'MEETINGS' in formula_out:
-            meeting_attend = obj.calculate_meeting_attendance()
+            # meeting_attend = obj.calculate_meeting_attendance()
+            meeting_attend = 0
             formula_out.replace('MEETINGS', meeting_attend)
         return eval(formula_out)
 
