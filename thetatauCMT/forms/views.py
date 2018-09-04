@@ -419,9 +419,10 @@ class RoleChangeView(OfficerRequiredMixin,
                 instance = obj.clean()['id']
             except KeyError:
                 continue
-            instance.end = timezone.now() - timezone.timedelta(days=2)
-            instance.save()
-            delete_list.append(instance.user)
+            if instance:
+                instance.end = timezone.now() - timezone.timedelta(days=2)
+                instance.save()
+                delete_list.append(instance.user)
         if delete_list:
             messages.add_message(
                 self.request, messages.INFO,
