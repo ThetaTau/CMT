@@ -410,18 +410,19 @@ class RoleChangeView(OfficerRequiredMixin,
         formset.data = data
         return formset
 
-    # def remove_id_field(self, formset):
-    #     for form in formset.forms:
-    #         form.fields
-
     def formset_valid(self, formset, delete_only=False):
         delete_list = []
         for obj in formset.deleted_forms:
             # We don't want to delete the value, just make them not current
-            obj.instance.end = timezone.now() - timezone.timedelta(days=2)
-            obj.save()
-            delete_list.append(obj.instance.user)
-        if delete_only:
+            # We also do not care about form, just get obj
+            try:
+                instance = obj.clean()['id']
+            except KeyError:
+                continue
+            instance.end = timezone.now() - timezone.timedelta(days=2)
+            instance.save()
+            delete_list.append(instance.user)
+        if delete_list:
             messages.add_message(
                 self.request, messages.INFO,
                 f"You successfully removed the officers:\n"
@@ -430,7 +431,7 @@ class RoleChangeView(OfficerRequiredMixin,
             # instances = formset.save(commit=False)
             update_list = []
             for form in formset.forms:
-                if form.changed_data:
+                if form.changed_data and 'DELETE' not in form.changed_data:
                     form.save()
                     update_list.append(form.instance.user)
             task = Task.objects.get(name="Officer Election Report")

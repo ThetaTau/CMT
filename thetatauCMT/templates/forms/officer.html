@@ -50,6 +50,11 @@
                           <td>
                           <div style="position: relative">
                             {% crispy_field field %}
+                            {% if field.errors %}
+                              {% for error in field.errors %}
+                                <strong style="color:red">{{ error }}</strong>
+                              {% endfor %}
+                            {% endif %}
                           </div>
                           </td>
 {#                        {% elif field.label == "Selected" %}#}
@@ -62,6 +67,11 @@
 {#                          </td>#}
                         {% else %}
                           {% include 'bootstrap4/field.html' with tag="td" form_show_labels=False %}
+                          {% if field.errors %}
+                            {% for error in field.errors %}
+                              <strong style="color:red">{{ error }}</strong>
+                            {% endfor %}
+                        {% endif %}
                         {% endif %}
                       {% endfor %}
                   </tr>

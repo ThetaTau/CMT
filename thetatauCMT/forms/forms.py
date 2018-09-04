@@ -25,7 +25,8 @@ class InitDeplSelectFormHelper(FormHelper):
     template = 'bootstrap4/table_inline_formset.html'
     form_show_errors = True
     help_text_inline = False
-    html5_required = True
+    error_text_inline = True
+    html5_required = False
     layout = Layout(
         'user',
         'state',
@@ -123,7 +124,8 @@ class StatusChangeSelectFormHelper(FormHelper):
     template = 'bootstrap4/table_inline_formset.html'
     form_show_errors = True
     help_text_inline = False
-    html5_required = True
+    error_text_inline = True
+    html5_required = False
     layout = Layout(
         'user',
         'state',
@@ -289,7 +291,8 @@ class RoleChangeSelectFormHelper(FormHelper):
     template = 'bootstrap4/table_inline_formset.html'
     form_show_errors = True
     help_text_inline = False
-    html5_required = True
+    error_text_inline = True
+    html5_required = False
     layout = Layout(
         'user',
         'role',
