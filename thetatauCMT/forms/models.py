@@ -208,7 +208,8 @@ class StatusChange(TimeStampedModel):
         help_text="Miles from campus.")
     email_work = models.EmailField(_('email address'), blank=True)
     new_school = models.ForeignKey(Chapter, on_delete=models.CASCADE,
-                                   default=1, related_name="transfers")
+                                   default=1, related_name="transfers",
+                                   null=True)
     task = GenericRelation(TaskChapter)
 
     def __str__(self):
