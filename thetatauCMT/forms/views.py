@@ -415,6 +415,7 @@ class RoleChangeView(OfficerRequiredMixin,
         for obj in formset.deleted_forms:
             # We don't want to delete the value, just make them not current
             # We also do not care about form, just get obj
+            instance = None
             try:
                 instance = obj.clean()['id']
             except KeyError:
