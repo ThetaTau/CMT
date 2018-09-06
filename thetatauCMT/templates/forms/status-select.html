@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% load static %}
+{% load render_table from django_tables2 %}
 {% load crispy_forms_tags %}
 {% load crispy_forms_utils %}
 {% load crispy_forms_field %}
@@ -73,6 +74,8 @@
     {{ input.flat_attrs|safe }}
     />
   </form>
+<h2>Previously submitted status forms:</h2>
+{% render_table status_table %}
 {% endspecialspaceless %}
 {% endblock content %}
 

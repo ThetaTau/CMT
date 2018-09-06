@@ -19,8 +19,9 @@ from .forms import InitiationFormSet, InitiationForm, InitiationFormHelper, Init
 from tasks.models import TaskChapter, Task
 from core.models import CHAPTER_OFFICER, COL_OFFICER_ALIGN
 from users.models import UserRoleChange
-from .tables import GuardTable, BadgeTable
-from .models import Guard, Badge
+from .tables import GuardTable, BadgeTable, InitiationTable, DepledgeTable, \
+    StatusChangeTable
+from .models import Guard, Badge, Initiation, Depledge, StatusChange
 
 
 sensitive_post_parameters_m = method_decorator(
@@ -37,7 +38,14 @@ class InitDeplSelectView(OfficerRequiredMixin,
 
     def get_initial(self):
         pledges = self.request.user.current_chapter.pledges()
-        initial = [{'user': user.pk} for user in pledges]
+        inits = Initiation.objects.filter(
+            user__chapter=self.request.user.current_chapter).order_by('-date')
+        inits = [init.user.pk for init in inits]
+        depledges = Depledge.objects.filter(
+            user__chapter=self.request.user.current_chapter).order_by('-date')
+        depledges = [depledge.user.pk for depledge in depledges]
+        init_depl = inits + depledges
+        initial = [{'user': user.pk} for user in pledges if user.pk not in init_depl]
         return initial
 
     def get_formset(self):
@@ -52,6 +60,14 @@ class InitDeplSelectView(OfficerRequiredMixin,
         helper = InitDeplSelectFormHelper()
         helper.add_input(Submit("submit", "Next"))
         context['helper'] = helper
+        inits = InitiationTable(Initiation.objects.filter(
+            user__chapter=self.request.user.current_chapter).order_by('-date'))
+        depledges = DepledgeTable(Depledge.objects.filter(
+            user__chapter=self.request.user.current_chapter).order_by('-date'))
+        RequestConfig(self.request).configure(inits)
+        RequestConfig(self.request).configure(depledges)
+        context['init_table'] = inits
+        context['depledge_table'] = depledges
         return context
 
     def formset_valid(self, formset):
@@ -221,6 +237,10 @@ class StatusChangeSelectView(OfficerRequiredMixin,
         helper = StatusChangeSelectFormHelper()
         context['helper'] = helper
         context['input'] = Submit("action", "Next")
+        status = StatusChangeTable(StatusChange.objects.filter(
+            user__chapter=self.request.user.current_chapter).order_by('-created'))
+        RequestConfig(self.request).configure(status)
+        context['status_table'] = status
         return context
 
     def formset_valid(self, formset):
