@@ -58,10 +58,27 @@ class ScoreType(models.Model):
     def __str__(self):
         return f"{self.name}"  # : {self.description}"
 
-    def chapter_events(self, chapter):
-        return self.events.filter(chapter=chapter).all()
+    def chapter_events(self, chapter, date=None):
+        if date is None:
+            qs = self.events.filter(chapter=chapter).all()
+        else:
+            date_start, date_end = YearTermModel.date_range(date)
+            qs = self.events.filter(chapter=chapter,
+                                    date__gt=date_start,
+                                    date__lt=date_end).all()
+        return qs
 
-    def chapter_score(self, chapter):
+    def chapter_submissions(self, chapter, date=None):
+        if date is None:
+            qs = self.submissions.filter(chapter=chapter).all()
+        else:
+            date_start, date_end = YearTermModel.date_range(date)
+            qs = self.submissions.filter(chapter=chapter,
+                                         date__gt=date_start,
+                                         date__lt=date_end).all()
+        return qs
+
+    def chapter_score(self, chapter, date=None):
         """
         :param chapter:
         :return: total (float)
@@ -69,17 +86,30 @@ class ScoreType(models.Model):
         total = 0
         if self.type == "Evt":
             # Filter events for chapter
-            events = self.chapter_events(chapter)
+            events = self.chapter_events(chapter, date=date)
             total = events.aggregate(Sum('score'))['score__sum']
         elif self.type == "Sub":
             # Filter submissions for chapter
-            submissions = self.submissions.filter(chapter=chapter).all()
+            submissions = self.chapter_submissions(chapter, date=date)
             total = submissions.aggregate(Sum('score'))['score__sum']
         elif self.type == "Spe":
             pass
         if total is None:
             total = 0
         return total
+
+    @classmethod
+    def annotate_chapter_score(cls, chapter, qs=None):
+        if qs is None:
+            qs = cls.objects.all()
+        scores_values = qs.filter(
+            chapters__chapter=chapter).annotate(score=models.Sum('chapters__score'))
+        scores = qs.filter(~models.Q(id__in=scores_values)).annotate(
+            score=models.Value(0.0, output_field=models.FloatField()))
+        scores_values = scores_values.values('score', 'type', 'points', 'section', 'description', 'name', 'slug', 'id')
+        scores = scores.values('score', 'type', 'points', 'section', 'description', 'name', 'slug', 'id')
+        # If you combine the querysets it will rerun the query and you'll end up will all chapters scores
+        return list(scores_values) + list(scores)
 
     def calculate_special(self, obj):
         formula_out = self.special
@@ -94,22 +124,22 @@ class ScoreType(models.Model):
         # We do not create dict/list to loop and do this
         # b/c obj may not contain info
         if 'GUESTS' in formula_out:
-            formula_out = formula_out.replace('GUESTS', obj.guests)
+            formula_out = formula_out.replace('GUESTS', str(obj.guests))
         if 'HOST' in formula_out:
-            formula_out = formula_out.replace('HOST', obj.host)
+            formula_out = formula_out.replace('HOST', str(obj.host))
         if 'MILES' in formula_out:
-            formula_out = formula_out.replace('MILES', obj.miles)
+            formula_out = formula_out.replace('MILES', str(obj.miles))
         if 'memberATT' in formula_out:
             actives = obj.chapter.get_actives_for_date(obj.date).count()
             # obj.date  # get_semester
             percent_attendance = 0
             if actives:
                 percent_attendance = min(obj.members / actives, 1)
-            formula_out = formula_out.replace('memberATT', percent_attendance)
+            formula_out = formula_out.replace('memberATT', str(percent_attendance))
         if 'MEETINGS' in formula_out:
             # meeting_attend = obj.calculate_meeting_attendance()
             meeting_attend = '0'
-            formula_out = formula_out.replace('MEETINGS', meeting_attend)
+            formula_out = formula_out.replace('MEETINGS', str(meeting_attend))
         return eval(formula_out)
 
     def calculate_score(self, obj):
@@ -132,6 +162,28 @@ class ScoreType(models.Model):
             total_score += obj.guests * self.guest_add
             total_score += obj.stem * self.stem_add
         return round(total_score, 2)
+
+    def update_chapter_score(self, chapter, date):
+        """
+        This should be separate from calculate_score b/c it needs to include
+        the score that is being calculated after the save of that obj
+        :param chapter:
+        :param date:
+        :return:
+        """
+        term = ScoreChapter.get_term(date)
+        try:
+            score_chapter = self.chapters.get(
+                chapter=chapter, year=date.year, term=term)
+        except ScoreChapter.DoesNotExist:
+            score_chapter = ScoreChapter(
+                chapter=chapter,
+                type=self,
+                year=date.year,
+                term=term
+            )
+        score_chapter.score = self.chapter_score(chapter)
+        score_chapter.save()
 
 
 class ScoreChapter(YearTermModel):

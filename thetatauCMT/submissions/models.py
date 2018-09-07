@@ -45,6 +45,7 @@ class Submission(TimeStampedModel):
         cal_score = self.type.calculate_score(self)
         self.score = cal_score
         super().save()
+        self.type.update_chapter_score(self.chapter, self.date)
 
     def chapter_submissions(self, chapter):
         result = self.objects.filter(chapter=chapter)

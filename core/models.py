@@ -141,8 +141,25 @@ class YearTermModel(models.Model):
         abstract = True
 
     def save(self, *args, **kwargs):
-        self.term = SEMESTER[datetime.datetime.now().month]
+        if self.term is None:
+            self.term = SEMESTER[datetime.datetime.now().month]
         super().save(*args, **kwargs)
+
+    @staticmethod
+    def get_term(date):
+        return SEMESTER[date.month]
+
+    @staticmethod
+    def date_range(date):
+        """
+        Date range for semester that encompasses date
+        :param date: datetime date
+        :return: start_date, end_date
+        """
+        month = date.month
+        term = SEMESTER[month]
+        min_month, max_month = {'sp': (0, 6), 'fa': (7, 12)}[term]
+        return datetime.date(date.year, min_month, 1), datetime.date(date.year, max_month, 1)
 
 
 def combine_annotations(user_queryset):

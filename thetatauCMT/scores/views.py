@@ -1,4 +1,5 @@
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.http.request import QueryDict
 from django.urls import reverse
 from django.views.generic import DetailView, ListView, RedirectView
 from core.views import PagedFilteredTableView, RequestConfig, OfficerMixin
@@ -54,8 +55,15 @@ class ScoreListView(LoginRequiredMixin, OfficerMixin, PagedFilteredTableView):
     formhelper_class = ScoreListFormHelper
 
     def get_queryset(self):
-        qs = super().get_queryset()
-        return qs.filter()
+        qs = super(PagedFilteredTableView, self).get_queryset()
+        cancel = self.request.GET.get('cancel', False)
+        request_get = self.request.GET.copy()
+        if cancel:
+            request_get = QueryDict()
+        self.filter = self.filter_class(request_get, queryset=qs)
+        score_list = self.model.annotate_chapter_score(self.request.user.current_chapter, self.filter.qs)
+        self.filter.form.helper = self.formhelper_class()
+        return score_list
 
     def post(self, request, *args, **kwargs):
         return PagedFilteredTableView.as_view()(request)
