@@ -26,6 +26,10 @@
   {% endif %}
   <a class="button secondaryAction" href="{% url 'account_reset_password' %}">{% trans "Forgot/Reset Password?" %}</a>
   <button class="primaryAction btn btn-primary" type="submit">{% trans "Sign In" %}</button>
+<br>
+  <h1>{% trans "Lookup Password" %}</h1>
+  <p>If you do not know, or if you have never set a password, <br>click on
+    <a class="button secondaryAction" href="{% url 'account_reset_password' %}">{% trans "Forgot/Reset Password?" %}</a></p>
 </form>
     </div>
   <div class="col-md-6">
@@ -42,9 +46,12 @@
   <button class="btn btn-primary" type="submit">{% trans "Lookup" %} &raquo;</button>
 </form>
   <br>
-  <h1>{% trans "Lookup Password" %}</h1>
-  <p>If you do not know, or if you have never set a password, <br>click on
-    <a class="button secondaryAction" href="{% url 'account_reset_password' %}">{% trans "Forgot/Reset Password?" %}</a></p>
+  <h1>{% trans "Email Access Issues" %}</h1>
+  <p>If you do not know, or if you no longer have access to your email that you signed up with
+    as a pledge, please email us with your name, chapter, badge number, and new email at
+    <a class="button secondaryAction"
+       href="mailto:cmt@thetatau.org?subject=CMT Email Reset&body=Name: %0D%0AChapter: %0D%0ABadge Number: %0D%0AOld Email: %0D%0ANew Email: ">
+      cmt@thetatau.org</a></p>
   </div>
   </div>
 </div>
