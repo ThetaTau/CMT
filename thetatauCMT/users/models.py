@@ -134,7 +134,9 @@ class UserSemesterGPA(YearTermModel):
 class UserStatusChange(StartEndModel, TimeStampedModel):
     STATUS = [
         ('alumni', 'alumni'),
+        ('alumnipend', 'alumni pending'),
         ('active', 'active'),
+        ('activepend', 'active pending'),
         ('pnm', 'prospective'),
         ('away', 'away'),
         ('depledge', 'depledge'),

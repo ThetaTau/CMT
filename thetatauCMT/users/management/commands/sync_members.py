@@ -8,8 +8,9 @@ import warnings
 from django.core.management import BaseCommand
 from django.utils import timezone
 from django.conf import settings
+from django.db import models
 from users.models import User, UserRoleChange, UserStatusChange
-from core.models import ALL_OFFICERS
+from core.models import ALL_OFFICERS, TODAY_END, forever
 from chapters.models import Chapter
 from pydrive.drive import GoogleDrive
 from pydrive.auth import GoogleAuth, AuthenticationError
@@ -72,7 +73,10 @@ class Command(BaseCommand):
             'end': 'Organization Relation To Date',
             'role': 'Organization Relation Relationship',
             'role2': 'Organization Relation Position'}
+        alumni_pending = []
+        active_list = []
         for id_obj, row in enumerate(reader):
+            print(id_obj)
             user_id = row[trans['badge']]
             check_badge = False
             if user_id.startswith('UA'):
@@ -175,10 +179,12 @@ class Command(BaseCommand):
                                                    f" old: {user_id} new: {user_obj.user_id}")
                 user_obj.save()
             status = row[trans['status']]
-            if 'pledge' in status:
+            if 'pledge' in status.lower():
                 status = 'pnm'
             else:
                 status = 'active'
+            if status == 'active':
+                active_list.append(user_obj.pk)
             end = datetime.date(graduation, 7, 1)
             try:
                 status_obj = UserStatusChange.objects.get(
@@ -201,6 +207,39 @@ class Command(BaseCommand):
                                            f" Change: end; old: {status_obj.end} new: {end}")
                 status_obj.end = end
                 status_obj.save()
+            # Need to find other status that is not this one
+            # and update it if it is a current status
+            other_statuss = user_obj.status.filter(
+                ~models.Q(pk=status_obj.pk),
+                start__lte=TODAY_END,
+                end__gte=TODAY_END
+            )
+            # at the end we need to check all alumnipend not kept to update to alumni?
+            for other_status in other_statuss:
+                if other_status.status.lower() == 'colony':
+                    other_status.delete()
+                    continue
+                if other_status.status == 'alumnipend':
+                    # If the central status is active
+                    # and the current status is alumnipend, keep alumnipend
+                    alumni_pending.append(user_obj.pk)
+                    if status_obj.status == 'active':
+                        status_obj.delete()
+                        change_messages.append(f"Remove active status because alumnipend {user_obj}")
+                        continue
+                elif other_status.status == 'activepend':
+                    # If the central status is pledge
+                    # and the current status is activepend, keep activepend
+                    if status_obj.status == 'pledge':
+                        status_obj.delete()
+                        change_messages.append(f"Remove pledge status because activepend {user_obj}")
+                        continue
+                # The remaining status should be pledge or
+                # activepend that is no longer pending
+                # If the central is active and current is activepend; update
+                other_status.end = status_obj.start - datetime.timedelta(days=1)
+                other_status.save()
+                change_messages.append(f"Remove old status {other_status} for new {status_obj} for {user_obj}")
             if row[trans['role']] != '':
                 if row[trans['start']] == '':
                     start = datetime.datetime.now()
@@ -270,6 +309,38 @@ class Command(BaseCommand):
                                                f" Change: end; old: {role_obj.end} new: {end}")
                     role_obj.end = end
                     role_obj.save()
+            alumnipends = UserStatusChange.objects.filter(
+                ~models.Q(user__pk__in=alumni_pending),
+                status='alumnipend',
+                start__lte=TODAY_END,
+                end__gte=TODAY_END)
+            # If we are not keeping alumni_pending, need to add as alumni
+            for alumnipend in alumnipends:
+                UserStatusChange(
+                    user=alumnipend.user,
+                    status='alumni',
+                    start=datetime.date.today(),
+                    end=forever()
+                ).save()
+                change_messages.append(f"Removing left alumnipend {alumnipend.user}")
+                alumnipend.end = datetime.date.today() - datetime.timedelta(days=1)
+                alumnipend.save()
+            all_old_actives = UserStatusChange.objects.filter(
+                ~models.Q(user__pk__in=active_list),
+                status='active',
+                start__lte=TODAY_END,
+                end__gte=TODAY_END)
+            # If actives are not in CRM export, and in CMT as active, need to alumni
+            for active in all_old_actives:
+                UserStatusChange(
+                    user=active.user,
+                    status='alumni',
+                    start=datetime.date.today(),
+                    end=forever()
+                ).save()
+                change_messages.append(f"Removing left active {active.user}")
+                active.end = datetime.date.today() - datetime.timedelta(days=1)
+                active.save()
         change_message = '\n'.join(change_messages)
         send_mail(f'CMT Sync {run_time}',
                   f'Updated:\n{change_message}',

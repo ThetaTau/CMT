@@ -1,6 +1,7 @@
 import datetime
 from enum import Enum
-from django.db import models
+from django.db import models, transaction
+from django.db.utils import IntegrityError
 from django.contrib.contenttypes.fields import GenericRelation
 from django.core.validators import MaxValueValidator
 from django.conf import settings
@@ -72,7 +73,11 @@ class Initiation(TimeStampedModel):
         if self.user.user_id != new_user_id:
             self.user.badge_number = self.roll
             self.user.user_id = new_user_id
-            self.user.save()
+            try:
+                with transaction.atomic():
+                    self.user.save()
+            except IntegrityError as e:
+                print("User ALREADY EXISTS", str(e))
         try:
             pnm = self.user.status.get(status='pnm')
         except UserStatusChange.DoesNotExist:
@@ -88,21 +93,29 @@ class Initiation(TimeStampedModel):
             pnm.end = self.date
             pnm.created = self.created
             pnm.save()
-        try:
-            active = self.user.status.get(status='active')
-        except UserStatusChange.DoesNotExist:
+        actives = self.user.status.filter(status='active')
+        for active in actives:
+            active.delete()
+        alumnis = self.user.status.filter(status='alumni')
+        for alumni in alumnis:
+            alumni.delete()
+        activepends = self.user.status.filter(status='activepend')
+        if activepends:
+            activepend = activepends[0]
+            activepend.start = self.date
+            activepend.created = self.created
+            activepend.end = self.date_graduation
+            activepend.save()
+            for activepend in activepends[1:]:
+                activepend.delete()
+        else:
             UserStatusChange(
                 user=self.user,
                 created=self.created,
-                status='active',
+                status='activepend',
                 start=self.date,
                 end=self.date_graduation,
             ).save()
-        else:
-            active.start = self.date
-            active.created = self.created
-            active.end = self.date_graduation
-            active.save()
 
     def chapter_initiations(self, chapter):
         result = self.objects.filter(user__chapter=chapter)
@@ -154,13 +167,29 @@ class Depledge(TimeStampedModel):
             pnm.end = self.date
             pnm.created = self.created
             pnm.save()
-        UserStatusChange(
-            user=self.user,
-            status='depledge',
-            created=self.created,
-            start=self.date,
-            end=forever(),
-        ).save()
+        actives = self.user.status.filter(status='active')
+        for active in actives:
+            active.delete()
+        alumnis = self.user.status.filter(status='alumni')
+        for alumni in alumnis:
+            alumni.delete()
+        depledges = self.user.status.filter(status='depledge')
+        if depledges:
+            depledge = depledges[0]
+            depledge.start = self.date
+            depledge.created = self.created
+            depledge.end = forever()
+            depledge.save()
+            for depledge in depledges[1:]:
+                depledge.delete()
+        else:
+            UserStatusChange(
+                user=self.user,
+                status='depledge',
+                created=self.created,
+                start=self.date,
+                end=forever(),
+            ).save()
 
 
 class StatusChange(TimeStampedModel):
@@ -210,7 +239,7 @@ class StatusChange(TimeStampedModel):
     new_school = models.ForeignKey(Chapter, on_delete=models.CASCADE,
                                    default=1, related_name="transfers",
                                    null=True)
-    task = GenericRelation(TaskChapter)
+    # task = GenericRelation(TaskChapter)
 
     def __str__(self):
         return f"{self.user} {self.reason} on {self.date_start}"
@@ -221,10 +250,9 @@ class StatusChange(TimeStampedModel):
         # Need to adjust old status active, save new status alumni
         # if coop, military
         # Need to adjust old status active, save new status away
-        try:
-            active = self.user.status.order_by('-end')\
-                .filter(status='active').first()
-        except UserStatusChange.DoesNotExist:
+        active = self.user.status.order_by('-end')\
+            .filter(status='active').first()
+        if not active:
             print(f"There was no active status for user {self.user}")
             UserStatusChange(
                 user=self.user,
@@ -238,25 +266,40 @@ class StatusChange(TimeStampedModel):
             active.created = self.created
             active.save()
         if self.reason in ['graduate', 'withdraw', 'transfer']:
-            try:
-                alumni = self.user.status.get(status='alumni')
-            except UserStatusChange.DoesNotExist:
+            alumnis = self.user.status.filter(status='alumni')
+            for alumni in alumnis:
+                alumni.delete()
+            alumnipends = self.user.status.filter(status='alumnipend')
+            if alumnipends:
+                alumnipend = alumnipends[0]
+                alumnipend.start = self.date_start
+                alumnipend.end = forever()
+                alumnipend.created = self.created
+                alumnipend.save()
+                for alumnipend in alumnipends[1:]:
+                    alumnipend.delete()
+            else:
                 UserStatusChange(
                     user=self.user,
                     created=self.created,
-                    status='alumni',
+                    status='alumnipend',
                     start=self.date_start,
                     end=forever(),
                 ).save()
-            else:
-                alumni.start = self.date_start
-                alumni.end = forever()
-                alumni.created = self.created
-                alumni.save()
         else:
-            try:
-                away = self.user.status.get(status='away')
-            except UserStatusChange.DoesNotExist:
+            alumnis = self.user.status.filter(status='alumni')
+            for alumni in alumnis:
+                alumni.delete()
+            aways = self.user.status.filter(status='away')
+            if aways:
+                away = aways[0]
+                away.start = self.date_start
+                away.end = self.date_end
+                away.created = self.created
+                away.save()
+                for away in aways[1:]:
+                    away.delete()
+            else:
                 UserStatusChange(
                     user=self.user,
                     created=self.created,
@@ -264,11 +307,6 @@ class StatusChange(TimeStampedModel):
                     start=self.date_start,
                     end=self.date_end,
                 ).save()
-            else:
-                away.start = self.date_start
-                away.end = self.date_end
-                away.created = self.created
-                away.save()
 
 
 class RiskManagement(YearTermModel):
