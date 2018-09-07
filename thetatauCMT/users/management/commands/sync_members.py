@@ -8,8 +8,9 @@ import warnings
 from django.core.management import BaseCommand
 from django.utils import timezone
 from django.conf import settings
-from django.db import models
 from users.models import User, UserRoleChange, UserStatusChange
+from django.db import models, transaction
+from django.db.utils import IntegrityError
 from core.models import ALL_OFFICERS, TODAY_END, forever
 from chapters.models import Chapter
 from pydrive.drive import GoogleDrive
@@ -84,12 +85,14 @@ class Command(BaseCommand):
             elif user_id.startswith('CFS'):
                 user_id = user_id.replace('CFS', 'CSF')
             try:
-                user_obj = User.objects.get(user_id=user_id)
+                user_obj = User.objects.get(user_id=user_id,
+                                            first_name=row[trans['first']])
             except User.DoesNotExist:
                 # Maybe the user was a pledge last? Check if badge number
                 try:
                     int(user_id)
-                    user_obj = User.objects.get(badge_number=user_id)
+                    user_obj = User.objects.get(
+                        badge_number=user_id, first_name=row[trans['first']])
                 except (User.DoesNotExist, ValueError):
                     try:
                         # Let's try to get by email
@@ -123,9 +126,6 @@ class Command(BaseCommand):
                 chapter_obj = Chapter.objects.get(name=row[trans['chapter']])
             except Chapter.DoesNotExist:
                 chapter_obj = Chapter.objects.get(school=row[trans['school']])
-            if row[trans['email']] == '':
-                # warnings.warn(f"No email for user: {row}")
-                continue
             roll = row[trans['roll']]
             if roll == '':
                 # This is likely a pledge, need to get value from badge
@@ -136,6 +136,9 @@ class Command(BaseCommand):
                     roll = int(roll)
             if user_obj is None:
                 change_messages.append(f"No user found, create one now: {row}")
+                if row[trans['email']] == '':
+                    # warnings.warn(f"No email for user: {row}")
+                    continue
                 user_obj = User(
                     username=row[trans['email']],
                     first_name=row[trans['first']],
@@ -151,24 +154,24 @@ class Command(BaseCommand):
                 user_obj.save()
             else:
                 email = row[trans['email']]
-                if user_obj.email != email:
+                if user_obj.email != email and email != '':
                     change_messages.append(f"Update User: {user_obj}"
                                            f" Change: email, username; old: {user_obj.email} new: {email}")
-                user_obj.email = email
-                if user_obj.phone_number != phone:
+                    user_obj.email = email
+                if user_obj.phone_number != phone and phone != '':
                     change_messages.append(f"Update User: {user_obj}"
                                            f" Change: phone; old: {user_obj.phone_number} new: {phone}")
-                user_obj.phone_number = phone
+                    user_obj.phone_number = phone
                 major = row[trans['major']]
-                if user_obj.major != major:
+                if user_obj.major != major and major != '':
                     change_messages.append(f"Update User: {user_obj}"
                                            f" Change: major; old: {user_obj.major} new: {major}")
-                user_obj.major = major
-                if user_obj.graduation_year != graduation:
+                    user_obj.major = major
+                if user_obj.graduation_year != graduation and graduation != '':
                     change_messages.append(f"Update User: {user_obj}"
                                            f" Change: graduation_year; "
                                            f" old: {user_obj.graduation_year} new: {graduation}")
-                user_obj.graduation_year = graduation
+                    user_obj.graduation_year = graduation
                 if check_badge:
                     if user_obj.user_id != user_id:
                         if user_obj.user_id != f"{chapter_obj.greek}{roll}":
@@ -177,7 +180,13 @@ class Command(BaseCommand):
                             change_messages.append(f"Update User: {user_obj}"
                                                    f" Change: user_id, badge_number;"
                                                    f" old: {user_id} new: {user_obj.user_id}")
-                user_obj.save()
+                            try:
+                                with transaction.atomic():
+                                    user_obj.save()
+                            except IntegrityError as e:
+                                pass
+                else:
+                    user_obj.save()
             status = row[trans['status']]
             if 'pledge' in status.lower():
                 status = 'pnm'
@@ -211,8 +220,8 @@ class Command(BaseCommand):
             # and update it if it is a current status
             other_statuss = user_obj.status.filter(
                 ~models.Q(pk=status_obj.pk),
-                start__lte=TODAY_END,
-                end__gte=TODAY_END
+                # start__lte=TODAY_END,
+                # end__gte=TODAY_END
             )
             # at the end we need to check all alumnipend not kept to update to alumni?
             for other_status in other_statuss:
@@ -224,15 +233,30 @@ class Command(BaseCommand):
                     # and the current status is alumnipend, keep alumnipend
                     alumni_pending.append(user_obj.pk)
                     if status_obj.status == 'active':
-                        status_obj.delete()
+                        status_obj.end = other_status.start - datetime.timedelta(days=1)
+                        status_obj.save()
+                        other_status.end = forever()
+                        other_status.save()
                         change_messages.append(f"Remove active status because alumnipend {user_obj}")
                         continue
                 elif other_status.status == 'activepend':
                     # If the central status is pledge
                     # and the current status is activepend, keep activepend
-                    if status_obj.status == 'pledge':
-                        status_obj.delete()
+                    if status_obj.status == 'pnm':
+                        status_obj.end = other_status.start - datetime.timedelta(days=1)
+                        status_obj.save()
+                        other_status.end = forever()
+                        other_status.save()
                         change_messages.append(f"Remove pledge status because activepend {user_obj}")
+                        continue
+                elif other_status.status == 'alumni':
+                    # A current active/pledge should not have alumni status
+                    other_status.delete()
+                    continue
+                elif other_status.status == 'active':
+                    if status_obj.status == 'pnm':
+                        # A current pledge should not have other active status
+                        other_status.delete()
                         continue
                 # The remaining status should be pledge or
                 # activepend that is no longer pending

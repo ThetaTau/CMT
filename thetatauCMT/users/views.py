@@ -71,7 +71,7 @@ class UserListView(LoginRequiredMixin, OfficerMixin, PagedFilteredTableView):
                 qs = qs.order_by(*ordering)
         members = annotate_role_status(qs.filter(
             chapter=self.request.user.current_chapter,
-            status__status="active",
+            status__status__in=["active", "activepend", "alumnipend"],
             status__start__lte=TODAY_END,
             status__end__gte=TODAY_END), combine=False)
         pledges = annotate_role_status(qs.filter(
