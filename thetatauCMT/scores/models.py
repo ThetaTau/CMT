@@ -94,22 +94,22 @@ class ScoreType(models.Model):
         # We do not create dict/list to loop and do this
         # b/c obj may not contain info
         if 'GUESTS' in formula_out:
-            formula_out.replace('GUESTS', obj.guests)
+            formula_out = formula_out.replace('GUESTS', obj.guests)
         if 'HOST' in formula_out:
-            formula_out.replace('HOST', obj.host)
+            formula_out = formula_out.replace('HOST', obj.host)
         if 'MILES' in formula_out:
-            formula_out.replace('MILES', obj.miles)
+            formula_out = formula_out.replace('MILES', obj.miles)
         if 'memberATT' in formula_out:
             actives = obj.chapter.get_actives_for_date(obj.date).count()
             # obj.date  # get_semester
             percent_attendance = 0
             if actives:
                 percent_attendance = min(obj.members / actives, 1)
-            formula_out.replace('memberATT', percent_attendance)
+            formula_out = formula_out.replace('memberATT', percent_attendance)
         if 'MEETINGS' in formula_out:
             # meeting_attend = obj.calculate_meeting_attendance()
             meeting_attend = '0'
-            formula_out.replace('MEETINGS', meeting_attend)
+            formula_out = formula_out.replace('MEETINGS', meeting_attend)
         return eval(formula_out)
 
     def calculate_score(self, obj):
