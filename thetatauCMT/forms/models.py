@@ -104,7 +104,7 @@ class Initiation(TimeStampedModel):
             activepend = activepends[0]
             activepend.start = self.date
             activepend.created = self.created
-            activepend.end = self.date_graduation
+            activepend.end = forever()
             activepend.save()
             for activepend in activepends[1:]:
                 activepend.delete()
@@ -114,7 +114,7 @@ class Initiation(TimeStampedModel):
                 created=self.created,
                 status='activepend',
                 start=self.date,
-                end=self.date_graduation,
+                end=forever(),
             ).save()
 
     def chapter_initiations(self, chapter):

@@ -194,7 +194,7 @@ class Command(BaseCommand):
                 status = 'active'
             if status == 'active':
                 active_list.append(user_obj.pk)
-            end = datetime.date(graduation, 7, 1)
+            end = forever()  # datetime.date(graduation, 7, 1)
             try:
                 status_obj = UserStatusChange.objects.get(
                     user=user_obj,
