@@ -81,7 +81,13 @@ class TaskListView(LoginRequiredMixin, OfficerMixin,
                 output_field=models.CharField()
             )
         )
-        table = TaskTable(qs)
+        # Annotate is duplicating things
+        qs = qs.distinct()
+        # Distinct sees incomplete/complete as different, so need to combine
+        complete = qs.filter(complete_result=True)
+        incomplete = qs.filter(~models.Q(pk__in=complete), complete_result='')
+        all_tasks = complete | incomplete
+        table = TaskTable(all_tasks)
         table.request = self.request
         RequestConfig(self.request, paginate={'per_page': 40}).configure(table)
         context['table'] = table
