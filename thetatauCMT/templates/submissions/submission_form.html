@@ -1,10 +1,10 @@
 {% extends "base.html" %}
 {% load crispy_forms_tags %}
 
-{% block title %}{{ submission.name }}{% endblock %}
+{% block title %}Update Submission: {{ submission.name }}{% endblock %}
 
 {% block content %}
-  <h1>{{ submission.name }}</h1>
+  <h1>Update Submission: {{ submission.name }}</h1>
   <form class="form-horizontal" method="post" action="{% url 'submissions:update' submission.id %}">
     {% csrf_token %}
     {{ form|crispy }}
