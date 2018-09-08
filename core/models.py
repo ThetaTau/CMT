@@ -10,7 +10,8 @@ TODAY_END = datetime.datetime.combine(TOMORROW, time())
 
 
 def forever():
-    return timezone.now() + timezone.timedelta(days=1000000)
+    # Should be rooted so we can compare
+    return datetime.datetime(2018, 1, 1) + timezone.timedelta(days=1000000)
 
 
 SEMESTER = {
