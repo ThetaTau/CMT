@@ -4,6 +4,7 @@ from django.contrib.auth.admin import UserAdmin as AuthUserAdmin
 from django.contrib.auth.forms import UserChangeForm, UserCreationForm
 from .models import User, UserRoleChange, UserStatusChange, UserOrgParticipate,\
     UserSemesterGPA, UserSemesterServiceHours
+from forms.models import Depledge, Initiation, StatusChange
 
 
 class UserStatusChangeAdmin(admin.ModelAdmin):
@@ -109,9 +110,32 @@ class RoleInline(admin.TabularInline):
     extra = 1
 
 
+class DepledgeInline(admin.TabularInline):
+    model = Depledge
+    fields = ['reason', 'date', 'created']
+    show_change_link = True
+    ordering = ['date']
+    extra = 0
+
+
+class StatusChangeInline(admin.TabularInline):
+    model = StatusChange
+    fields = ['reason', 'date_start', 'date_end', 'created']
+    show_change_link = True
+    ordering = ['date_end']
+    extra = 0
+
+
+class InitiationInline(admin.TabularInline):
+    model = Initiation
+    fields = ['date', 'created', 'roll', 'date_graduation']
+    show_change_link = True
+    ordering = ['date']
+    extra = 0
+
 @admin.register(User)
 class MyUserAdmin(AuthUserAdmin):
-    inlines = [StatusInline, RoleInline]
+    inlines = [StatusInline, RoleInline, InitiationInline, StatusChangeInline, DepledgeInline]
     form = MyUserChangeForm
     add_form = MyUserCreationForm
     fieldsets = (
