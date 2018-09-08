@@ -50,7 +50,7 @@ class Initiation(TimeStampedModel):
                                 on_delete=models.CASCADE,
                                 related_name="initiation")
     date_graduation = models.DateField(default=timezone.now)
-    date = models.DateField(default=timezone.now)
+    date = models.DateField("Initiation Date", default=timezone.now)
     roll = models.PositiveIntegerField(default=999999999)
     gpa = models.FloatField()
     test_a = models.IntegerField(validators=[MaxValueValidator(100)])
@@ -144,7 +144,7 @@ class Depledge(TimeStampedModel):
         max_length=10,
         choices=[x.value for x in REASONS]
     )
-    date = models.DateField(default=timezone.now)
+    date = models.DateField("Depledge Date", default=timezone.now)
 
     def __str__(self):
         return f"{self.user} depledged on {self.date}"
@@ -229,8 +229,8 @@ class StatusChange(TimeStampedModel):
         max_length=4,
         choices=[x.value for x in DEGREES]
     )
-    date_start = models.DateField(default=timezone.now)
-    date_end = models.DateField(default=forever, blank=True)
+    date_start = models.DateField("Start Date", default=timezone.now)
+    date_end = models.DateField("End Date", default=forever, blank=True)
     employer = models.CharField(max_length=200)
     miles = models.PositiveIntegerField(
         default=0,
@@ -313,7 +313,7 @@ class RiskManagement(YearTermModel):
     user = models.ForeignKey(settings.AUTH_USER_MODEL,
                              on_delete=models.CASCADE,
                              related_name="risk_form")
-    date = models.DateTimeField(default=timezone.now)
+    date = models.DateField("Submit Date", default=timezone.now)
     alcohol = models.BooleanField()
     hosting = models.BooleanField()
     monitoring = models.BooleanField()

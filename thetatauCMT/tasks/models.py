@@ -72,7 +72,7 @@ class TaskDate(models.Model):
         max_length=10,
         choices=TYPES
     )
-    date = models.DateTimeField()
+    date = models.DateField("Due Date")
 
     def __str__(self):
         return f"{self.task.name} on {self.date}"
@@ -108,7 +108,7 @@ class TaskChapter(models.Model):
                              related_name="chapters")
     chapter = models.ForeignKey(Chapter, on_delete=models.CASCADE,
                                 related_name="tasks")
-    date = models.DateTimeField()
+    date = models.DateField("Task Completed Date")
     # This can only be used for a submission or form
     # Whatever results in the completion of the task
     submission_type = models.ForeignKey(ContentType, on_delete=models.CASCADE,

@@ -26,7 +26,7 @@ class Chapter(models.Model):
     balance = models.DecimalField(default=0, decimal_places=2,
                                   max_digits=7,
                                   help_text="Balance chapter owes.")
-    balance_date = models.DateTimeField(auto_now_add=True)
+    balance_date = models.DateField(auto_now_add=True)
     tax = models.PositiveIntegerField(
         blank=True, null=True, unique=True,
         help_text="Tax number, if chapter participates in group exemption.")

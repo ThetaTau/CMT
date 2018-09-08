@@ -26,7 +26,7 @@ def get_upload_path(instance, filename):
 
 
 class Submission(TimeStampedModel):
-    date = models.DateTimeField(default=timezone.now)
+    date = models.DateField("Submission Date", default=timezone.now)
     file = models.FileField(upload_to=get_upload_path, storage=gd_storage)
     name = models.CharField(max_length=50)
     slug = models.SlugField(unique=False)
