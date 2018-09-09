@@ -11,6 +11,7 @@
       <env name="PGUSER" value="postgres" />
       <env name="PGPORT" value="5433" />
       <env name="PGLOCALEDIR" value="C:\Program Files\PostgreSQL\10\share\locale" />
+      <env name="DJANGO_DEBUG" value="TRUE" />
     </envs>
     <option name="SDK_HOME" value="C:\Users\venturf2\Envs\cmt\Scripts\python.exe" />
     <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
