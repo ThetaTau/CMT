@@ -18,18 +18,18 @@ class Command(BaseCommand):
         from users.models import User, UserStatusChange
         from django.db import models
         from core.models import TODAY_END, forever
-        users = User.objects.filter(
-            status__status='active',
-            status__end__lte=TODAY_END) \
-            .annotate(models.Count('status')) \
-            .order_by() \
-            .filter(status__count=1)
-        User.objects.filter(
-            status__start_lte=TODAY_END,
-            status__end__lte=TODAY_END) \
-            .annotate(models.Count('status')) \
-            .order_by() \
-            .filter(status__count=1)
+        # users = User.objects.filter(
+        #            status__status='active',
+        #            status__end__lte=TODAY_END)\
+        #                .annotate(models.Count('status'))\
+        #                .order_by()\
+        #                .filter(status__count=1)
+        # User.objects.filter(
+        #            status__start__lte=TODAY_END,
+        #            status__end__lte=TODAY_END)\
+        #                .annotate(models.Count('status'))\
+        #                .order_by()\
+        #                .filter(status__count=1)
         # Only have one status, and it is not current, need to fix
         users = User.objects.all() \
             .annotate(models.Count('status')) \
