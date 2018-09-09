@@ -122,7 +122,12 @@ class RegionTaskView(NatOfficerRequiredMixin,
                     output_field=models.CharField()
                 )}
             )
-            chapter_task_dict = qs.values(
+            qs = qs.distinct()
+            # Distinct sees incomplete/complete as different, so need to combine
+            complete = qs.filter(**{column_result: True})
+            incomplete = qs.filter(~models.Q(pk__in=complete), **{column_result: ""})
+            all_tasks = complete | incomplete
+            chapter_task_dict = all_tasks.values(
                 'pk', column_name, column_link, column_result)
             [all_chapters_tasks[chapter_task['id']].update(chapter_task)
              for chapter_task in chapter_task_dict.values() if chapter_task['id'] in all_chapters_tasks]
