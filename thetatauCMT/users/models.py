@@ -9,7 +9,7 @@ from django.core.validators import MinValueValidator, MaxValueValidator,\
     RegexValidator
 from address.models import AddressField
 from core.models import StartEndModel, YearTermModel, TODAY_END, CHAPTER_OFFICER, \
-    ALL_OFFICERS_CHOICES, TimeStampedModel
+    ALL_OFFICERS_CHOICES, TimeStampedModel, NATIONAL_OFFICER
 from chapters.models import Chapter
 
 
@@ -92,9 +92,10 @@ class User(AbstractUser):
         officer = False
         if role_obj is not None:
             current_role = {role_obj.role.lower()}
-            officer = not current_role.isdisjoint(CHAPTER_OFFICER)
+            officer = not current_role.isdisjoint(NATIONAL_OFFICER)
         return officer
 
+    @property
     def is_officer(self):
         return self.is_chapter_officer() or self.is_national_officer()
 
