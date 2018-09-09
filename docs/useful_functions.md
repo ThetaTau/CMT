@@ -27,3 +27,12 @@ python manage.py startapp yourappname
     me.is_superuser=True
     me.is_staff=True
     me.save()
+    
+    me.set_password('_new_password_')
+    
+#### If delete/reload everything
+    * Need to fix social accounts
+    Go to: https://console.developers.google.com/apis/credentials/oauthclient/
+    Make sure to get ChapterManagementTool
+    Fix the creds here: http://localhost:8000/admin/socialaccount/socialapp/
+    
