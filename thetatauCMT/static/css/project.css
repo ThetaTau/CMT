@@ -18,3 +18,15 @@
   right: 0;
   margin-left: -100px; /* More to the left */
 }
+
+td[complete='False'] {
+    background-color: #FFB6C1;
+}
+
+td[complete='N/A'] {
+    background-color: #A9A9A9;
+}
+
+td[complete='True'] {
+    background-color: #98FB98;
+}
