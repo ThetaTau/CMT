@@ -18,7 +18,23 @@
     <![endif]-->
 
     {% block css %}
-
+    <style>
+      .est {
+        background: url('{% static 'images/established.png' %}') no-repeat top left;
+      }
+      .gear > li {
+        list-style-image: url('{% static 'images/gear.png' %}');
+        padding-bottom: 5px;
+      }
+      #MPOuterHeader {
+        background-image: url('{% static 'images/header-bg.jpg' %}');
+        background-repeat: repeat;
+      }
+      body {
+        background-image: url('{% static 'images/background.png' %}');
+        background-repeat: repeat;
+      }
+    </style>
     <!-- Latest compiled and minified Bootstrap 4 beta CSS -->
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta/css/bootstrap.min.css" integrity="sha384-/Y6pD6FV/Vv2HJnA6t+vslU6fwYXjCFtcEpHbNJ0lyAFsXTsjBbfaDjzALeQsN6M" crossorigin="anonymous">
 
@@ -30,7 +46,8 @@
 {#    <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>#}
     <script crossorigin="anonymous" integrity="sha384-xBuQ/xzmlsLoJpyjoggmTEz8OWUFM0/RC5BsqQBDX2v5cMvDHcMakNTNrHIW2I5f" src="https://code.jquery.com/jquery-3.2.1.min.js"></script>
     {% endblock %}
-
+  <link rel="icon" href="{% static 'images/favicon.png' %}" type="image/x-icon" />
+    <link rel="shortcut icon" href="{% static 'images/favicon.png' %}" type="image/x-icon" />
   </head>
 
   <body>
@@ -39,7 +56,7 @@
         <div class="col-md-12">
             <div id="DesktopLogoDiv" class="LogoImg inline">
                 <a href="{% url 'home' %}" style=''>
-                    <img class="img-responsive" src='/static/images/header.png' alt="Theta Tau Fraternity" /></a>
+                    <img class="img-responsive" src="{% static 'images/header.png' %}" alt="Theta Tau Fraternity" /></a>
             </div>
             <div class="SloganText inline">
             <h1>

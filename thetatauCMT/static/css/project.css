@@ -24,21 +24,6 @@ td[complete='True'] {
     background-color: #98FB98;
 }
 
-body {
-    background-image: url('/static/images/background.png');
-    background-repeat: repeat;
-}
-
-#MPOuterHeader {
-    background-image: url('/static/images/header-bg.jpg');
-    background-repeat: repeat;
-}
-
-.gear > li {
-    list-style-image: url('/static/images/gear.png');
-    padding-bottom: 5px;
-}
-
 .triangle-down {
 	top: 100%;
 	left: 50%;
@@ -138,7 +123,6 @@ body {
 }
 
 .est {
-    background: url('/static/images/established.png') no-repeat top left;
     width: 94px;
     height: 107px;
     position: absolute;
