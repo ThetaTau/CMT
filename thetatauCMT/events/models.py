@@ -11,7 +11,7 @@ class Event(TimeStampedModel):
     class Meta:
         unique_together = ('name', 'date', 'chapter')
 
-    name = models.CharField(max_length=50)
+    name = models.CharField("Event Name", max_length=50)
     date = models.DateField("Event Date", default=timezone.now)
     slug = models.SlugField(unique=False)
     type = models.ForeignKey(ScoreType, on_delete=models.PROTECT,
