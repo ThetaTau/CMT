@@ -7,11 +7,54 @@
   <h1>Create New Event</h1>
   <form class="form-horizontal" method="post">
     {% csrf_token %}
-    {{ form|crispy }}
+    {% for field in form %}
+      {{ field|as_crispy_field }}
+      {% if field.name == "type" %}
+        <h4>Event Type Description: </h4>
+          <h5>
+        {% for description in descriptions %}
+          <div id="{{ description.id }}" class="group">
+          <table class="table">
+            <thead>
+            <tr>
+              <th>Type Description</th>
+              <th>Formula</th>
+              <th>Points Per Year</th>
+              <th>Detail Link</th>
+            </tr>
+            </thead>
+            <tr>
+              <td>{{ description.description }}</td>
+              <td>{{ description.formula }}</td>
+              <td>{{ description.points }}</td>
+              <td><a class="nav-link" href="{% url 'scores:detail' description.slug %}">Details</a></td>
+          </table>
+          </div>
+        {% endfor %}
+          </h5>
+      {% endif %}
+    {% endfor %}
     <div class="control-group">
       <div class="controls">
         <button type="submit" class="btn" value="Save">Save</button>
       </div>
     </div>
   </form>
+{#  This was used to determine the type of pledge program#}
+{#        <? if (desc_id == "Pledge"){ ?>#}
+{#        <br>Program type: #}
+{#        <select name="program" id="program" form="submissions">#}
+{#          <option value="unmodified">Unmodified</option>#}
+{#          <option value="modified">Modified</option>#}
+{#        </select><? } ?>#}
+<script >
+$(function () {
+  $('.group').hide();
+  $('#id_type').change(function () {
+  var value = $('#id_type').find(":selected")[0].value;
+  $('.group').hide();
+  $('#'+value).show();
+  })
+});
+</script>
 {% endblock %}

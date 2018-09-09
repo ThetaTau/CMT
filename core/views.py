@@ -95,6 +95,14 @@ class TypeFieldFilteredChapterAdd(FormMixin):
                             submission_object=self.object).save()
         return response
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        descriptions = ScoreType.objects.filter(
+            type=self.score_type).all().values(
+                'id', 'description', 'formula', 'points', 'slug')
+        context['descriptions'] = descriptions
+        return context
+
 
 class HomeView(LoginRequiredMixin, OfficerMixin, TemplateView):
     template_name = 'pages/home.html'
