@@ -34,22 +34,35 @@
   </head>
 
   <body>
-
-    <div class="m-b-1">
+  <section class="header">
+    <div id="MPOuterHeader" class="row" role="banner">
+        <div class="col-md-12">
+            <div id="DesktopLogoDiv" class="LogoImg inline">
+                <a href="{% url 'home' %}" style=''>
+                    <img class="img-responsive" src='/static/images/header.png' alt="Theta Tau Fraternity" /></a>
+            </div>
+            <div class="SloganText inline">
+            <h1>
+              <a class="SloganText inline" href="{% url 'home' %}">
+                {% if request.user.is_authenticated %}
+                  {{ request.user.current_chapter }}
+                {% else %}
+                  Theta Tau
+                {% endif %}
+              Chapter Management Tool</a>
+            </h1>
+            </div>
+        </div>
+    </div>
+  </section>
+    <div id="NAV" class="m-b-1">
       <nav class="navbar navbar-expand-md navbar-light bg-light">
         <button class="navbar-toggler navbar-toggler-right" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
           <span class="navbar-toggler-icon"></span>
         </button>
-        <a class="navbar-brand" href="{% url 'home' %}">
-          {% if request.user.is_authenticated %}
-            {{ request.user.current_chapter }}
-          {% else %}
-            Theta Tau
-          {% endif %}
-        Chapter Management Tool</a>
         <div class="collapse navbar-collapse" id="navbarSupportedContent">
           <ul class="navbar-nav mr-auto">
-            <li class="nav-item active">
+            <li class="nav-item">
               <a class="nav-link" href="{% url 'home' %}">Home <span class="sr-only">(current)</span></a>
             </li>
             {% if request.user.is_authenticated %}
@@ -127,6 +140,15 @@
             {% endif %}
           </ul>
         </div>
+      <a class="hidden-title" href="{% url 'home' %}">
+        <h5>
+          {% if request.user.is_authenticated %}
+            {{ request.user.current_chapter }}
+          {% else %}
+            Theta Tau
+          {% endif %}
+          Chapter Management Tool</a>
+        </h5>
       </nav>
     {% if request.is_nat_officer %}
       <nav class="navbar navbar-fixed-top navbar-light navbar-inverse bg-light">
@@ -152,25 +174,83 @@
       </form>
       </nav>
     {% endif %}
-
     </div>
-
     <div class="container">
-
       {% if messages %}
           {% for message in messages %}
               <div class="alert {% if message.tags %}alert-{{ message.tags }}{% endif %}">{{ message }}</div>
           {% endfor %}
       {% endif %}
-
       {% block content %}
-        <p>Use this document as a way to quick start any new project.</p>
       {% endblock content %}
-
     </div> <!-- /container -->
-
     {% block modal %}{% endblock modal %}
+    <hr>
+    <div class="est"></div>
+    <!-- Footer -->
+<section class="footer page-footer font-small stylish-color-dark pt-4">
+    <!-- Footer Links -->
+    <div class="container text-center text-md-left">
+      <!-- Grid row -->
+      <div class="row">
+        <div class="col-md-4" style="position: relative; font-size: 16px;">
+          <h5 class="font-weight-bold text-uppercase mt-3 mb-4">Contact Info</h5>
+          <i class="fas fa-phone"></i> 512.472.1904<br>
+          <i class="fas fa-envelope"></i>
+          <a href="mailto:central.office@thetatau.org"> central.office@thetatau.org</a><br>
+          <i class="fas fa-map-marker-alt"></i>
+            Theta Tau Central Office<br>
+            1011 San Jacinto, Suite 205<br>
+            Austin, TX 78701
+        </div>
+        <!-- Grid column -->
+        <hr class="clearfix w-100 d-md-none">
+        <div class="col-md-4 mx-auto">
+          <!-- Content -->
+          <h5 class="font-weight-bold text-uppercase mt-3 mb-4">We need your help!</h5>
+          <p>Interested in contributing to the Chapter Management Tool?<br>
+            <a href="https://github.com/VenturaFranklin/thetatauCMT/blob/master/CONTRIBUTING.md">Please see contributing instructions here.</a></p>
+        </div>
+        <!-- Grid column -->
+        <hr class="clearfix w-100 d-md-none">
+        <!-- Grid column -->
+        <div class="col-md-4 mx-auto">
+          <h5 class="font-weight-bold text-uppercase mt-3 mb-4">Having Issues?</h5>
+          <p>Or if you have ideas for features/improvements.<br><a href="https://github.com/VenturaFranklin/thetatauCMT/issues">Please let us know, by submitting an issue/feature request here.</a></p>
+        </div>
+        <!-- Grid column -->
+      </div>
+      <!-- Grid row -->
+    </div>
+    <!-- Footer Links -->
+    <hr>
+    <!-- Social buttons -->
+    <ul class="list-unstyled list-inline text-center">
+      <li class="social list-inline-item">
+        <a class="btn-floating" href="https://www.facebook.com/thetatau">
+          <i class="fab fa-facebook fa-3x"> </i>
+        </a>
+      </li>
+      <li class="social list-inline-item">
+        <a class="btn-floating" href="https://twitter.com/theta_tau">
+          <i class="fab fa-twitter fa-3x"> </i>
+        </a>
+      </li>
+      <li class="social list-inline-item">
+        <a class="btn-floating" href="https://www.linkedin.com/company/thetatau/">
+          <i class="fab fa-linkedin fa-3x"> </i>
+        </a>
+      </li>
+    </ul>
+    <!-- Social buttons -->
 
+    <!-- Copyright -->
+    <div class="footer-copyright text-center py-3">© 2018 Copyright:
+      <a href="http://thetatau.org"> thetatau.org</a>
+    </div>
+    <!-- Copyright -->
+
+    </section>
     <!-- Le javascript
     ================================================== -->
     <!-- Placed at the end of the document so the pages load faster -->
