@@ -1,37 +1,37 @@
 {% extends "base.html" %}
-{% load static %}
+{% load crispy_forms_tags %}
 
-{% block title %}Task: {{ object.task }}{% endblock %}
+{% block title %}Complete Task: {{ task.name }}{% endblock %}
 
 {% block content %}
-<div class="container">
-
-  <div class="row">
-    <div class="col-sm-12">
-
-      <h2>{{ object.name }}</h2>
-{#      {% if object.name %}#}
-        <p>{{ object.task }}</p>
-        <p>{{ object.date }}</p>
-{#      {% endif %}#}
-    </div>
-  </div>
-
-{% if object == request.user %}
-<!-- Action buttons -->
-<div class="row">
-
-  <div class="col-sm-12">
-    <a class="btn btn-primary" href="{% url 'users:update' %}" role="button">Update My Info</a>
-    <a class="btn btn-primary" href="{% url 'account_email' %}" role="button">Update E-Mail</a>
-    <!-- Your Stuff: Custom user template urls -->
-  </div>
-
-</div>
-<!-- End Action buttons -->
-{% endif %}
-
-
-</div>
+  <h1>Mark Task As Complete</h1>
+  <table class="table">
+    <tr>
+      <th>Task Name</th>
+      <td>{{ task.name }}</td>
+    </tr>
+    <tr>
+      <th>Task Owner</th>
+      <td>{{ task.owner|title }}</td>
+    </tr>
+    <tr>
+      <th>Task Description</th>
+      <td>{{ task.description }}</td>
+    </tr>
+    <tr>
+      <th></th>
+      <td>
+        <form class="form-horizontal" method="post">
+          {% csrf_token %}
+          {{ form|crispy }}
+          <div class="control-group">
+            <div class="controls">
+              <button type="submit" class="btn-primary" value="Save"><i class="fas fa-check"></i> Complete</button>
+            </div>
+          </div>
+        </form>
+      </td>
+    </tr>
+  </table>
 {% endblock content %}
 

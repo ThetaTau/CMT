@@ -1,7 +1,10 @@
+import datetime
+from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.shortcuts import redirect, reverse
 from django.http.request import QueryDict
-from django.db import models
+from django.db import models, transaction
+from django.db.utils import IntegrityError
 from django.views.generic import DetailView, UpdateView, RedirectView, CreateView
 from core.views import PagedFilteredTableView, RequestConfig, TypeFieldFilteredChapterAdd,\
     OfficerMixin, OfficerRequiredMixin
@@ -11,9 +14,10 @@ from .filters import TaskListFilter
 from .forms import TaskListFormHelper
 
 
-class TaskCompleteView(LoginRequiredMixin, OfficerMixin, CreateView):
+class TaskCompleteView(OfficerRequiredMixin,
+                       LoginRequiredMixin, OfficerMixin, CreateView):
     model = TaskChapter
-    fields = ['task', 'date']
+    fields = []
     template_name = "tasks/task_complete.html"
 
     def get(self, request, *args, **kwargs):
@@ -30,13 +34,52 @@ class TaskCompleteView(LoginRequiredMixin, OfficerMixin, CreateView):
         self.object = None
         return super().get(request, *args, **kwargs)
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        task_date_id = self.kwargs.get('pk')
+        task = TaskDate.objects.get(pk=task_date_id).task
+        context['task'] = task
+        return context
+
+    def form_valid(self, form):
+        task_date_id = self.kwargs.get('pk')
+        task_date = TaskDate.objects.get(pk=task_date_id)
+        task = task_date.task
+        owner = task.owner.lower()
+        user_role = self.request.user.get_current_role().role.lower()
+        if owner != user_role:
+            messages.add_message(
+                self.request, messages.ERROR,
+                f"Only the task owner, {owner}, can mark a task complete."
+                f" Your role is: {user_role}")
+            return super().form_invalid(form)
+        form.instance.chapter = self.request.user.current_chapter
+        form.instance.date = datetime.datetime.today()
+        form.instance.task = task_date
+        try:
+            with transaction.atomic():
+                result = super().form_valid(form)
+        except IntegrityError as e:
+            messages.add_message(
+                self.request, messages.ERROR,
+                f"The task only needs to be complete once")
+            result = super().form_invalid(form)
+        else:
+            messages.add_message(
+                self.request, messages.INFO,
+                f"Task {task.name} marked as complete.")
+        return result
+
+    def get_success_url(self):
+        return reverse('tasks:list')
+
 
 class TaskDetailView(LoginRequiredMixin, DetailView):
     model = TaskChapter
 
 
 class TaskListView(LoginRequiredMixin, OfficerMixin,
-                    PagedFilteredTableView):
+                   PagedFilteredTableView):
     model = TaskDate
     template_name = "tasks/task_list.html"
     context_object_name = 'task'
