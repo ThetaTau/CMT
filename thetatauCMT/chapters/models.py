@@ -82,3 +82,10 @@ class Chapter(models.Model):
     @classmethod
     def schools(cls):
         return [(school['pk'], school['school']) for school in cls.objects.values('school', 'pk').order_by('school')]
+
+
+class ChapterCurricula(models.Model):
+    chapter = models.ForeignKey(Chapter,
+                                on_delete=models.CASCADE,
+                                related_name="curricula")
+    major = models.CharField(max_length=100)

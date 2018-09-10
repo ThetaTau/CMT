@@ -1,0 +1,910 @@
+id,major,chapter
+1,Aerospace Engineering and Mechanics,Alpha
+2,Agricultural Engineering,Alpha
+3,Biomedical Engineering,Alpha
+4,Bioproducts and Biosystems Engineering,Alpha
+5,Chemical Engineering,Alpha
+6,Civil Engineering,Alpha
+7,Computer Engineering,Alpha
+8,Computer Science,Alpha
+9,Electrical Engineering,Alpha
+10,Geo-Engineering,Alpha
+11,Materials Science and Engineering,Alpha
+12,Mechanical Engineering,Alpha
+13,Mineral Engineering,Alpha
+15,Chemical Engineering,Beta
+16,Civil Engineering,Beta
+17,Electrical Engineering,Beta
+18,Geological Engineering,Beta
+19,Mechanical Engineering,Beta
+20,Metallurgical Engineering,Beta
+21,Mining Engineering,Beta
+22,Engineering (undesignated),Beta
+24,Aerospace Engineering,Delta
+25,Biomedical Engineering,Delta
+26,Chemical Engineering,Delta
+27,Civil Engineering,Delta
+28,Computer Engineering,Delta
+29,Computer Science,Delta
+30,Electrical Engineering,Delta
+31,Engineering Physics,Delta
+32,Macromolecular Science and Engineering,Delta
+33,Materials Science and Engineering,Delta
+34,Mechanical Engineering,Delta
+35,Polymer Science and Engineering,Delta
+36,Systems and Control Engineering,Delta
+38,Bioengineering,Epsilon
+39,Computer Science and Engineering,Epsilon
+40,Chemical Engineering,Epsilon
+41,Civil Engineering,Epsilon
+42,Computational Engineering Science,Epsilon
+43,Computer Engineering,Epsilon
+44,Electrical and Computer Engineering,Epsilon
+45,Engineering Mathematics and Statistics,Epsilon
+46,Engineering Physics,Epsilon
+47,Environmental Engineering Science,Epsilon
+48,Industrial Engineering & Operations Research,Epsilon
+49,Material Science and Engineering,Epsilon
+50,Mechanical Engineering,Epsilon
+51,Nuclear Engineering,Epsilon
+52,Operations Research Management,Epsilon
+54,Aerospace Engineering,Zeta
+55,Architectural Engineering,Zeta
+56,Chemical Engineering,Zeta
+57,Civil Engineering,Zeta
+58,Computer Engineering,Zeta
+59,Computer Science,Zeta
+60,Electrical Engineering,Zeta
+61,Engineering Physics,Zeta
+62,Interdisciplinary Computing,Zeta
+63,Mechanical Engineering,Zeta
+64,Petroleum Engineering,Zeta
+66,Aeronautical/Astronautical Engineering,Eta
+67,Biological Engineering,Eta
+68,Biology,Eta
+69,Brain and Cognitive Science,Eta
+70,Chemical Engineering,Eta
+71,Chemistry,Eta
+72,Civil and Environmental Engineering,Eta
+73,Economics,Eta
+74,Electrical Engineering and Computer Science,Eta
+75,Management,Eta
+76,Materials Science and Engineering,Eta
+77,Mathematics,Eta
+78,Mechanical Engineering ,Eta
+79,Nuclear Science and Engineering,Eta
+80,Physics,Eta
+82,Aeronautical & Astronautical Engineering,Kappa
+83,Agricultural Engineering,Kappa
+84,Bioengineering,Kappa
+85,Chemical Engineering,Kappa
+86,Civil Engineering,Kappa
+87,Computer Engineering,Kappa
+88,Computer Science,Kappa
+89,Electrical Engineering,Kappa
+90,Engineering Mechanics,Kappa
+91,Engineering Physics,Kappa
+92,General Engineering,Kappa
+93,Industrial Engineering,Kappa
+94,Materials Science and Engineering,Kappa
+95,Mechanical Engineering,Kappa
+96,Nuclear Engineering,Kappa
+98,Aerospace Engineering,Mu
+99,Chemical Engineering,Mu
+100,Civil Engineering,Mu
+101,Civil Engineering Technology,Mu
+102,Computer Science,Mu
+103,Electrical Engineering,Mu
+104,Electrical Engineering Technology,Mu
+105,Industrial Engineering,Mu
+106,Mechanical Engineering,Mu
+107,Metallurgical Engineering,Mu
+108,Mineral Engineering,Mu
+110,Aerospace Engineering,Xi
+111,Agricultural and Biosystems Engineering,Xi
+112,Chemical Engineering,Xi
+113,Civil Engineering,Xi
+114,Computer Engineering,Xi
+115,Electrical Engineering,Xi
+116,Energy Engineering,Xi
+117,Engineering Mathematics,Xi
+118,Geological Engineering,Xi
+119,Industrial Engineering,Xi
+120,Materials Science and Engineering,Xi
+121,Mechanical Engineering,Xi
+122,Mining Engineering,Xi
+123,Nuclear Engineering,Xi
+124,Optical Science & Engineering,Xi
+125,Systems Engineering,Xi
+127,Biomedical Engineering,Omicron
+128,Chemical Engineering (Chemical & Materials Engineering),Omicron
+129,Civil Engineering (Civil & Environmental Engineering),Omicron
+130,Electrical Engineering (Electrical & Computer Engineering),Omicron
+131,Engineering,Omicron
+132,Industrial Engineering (Industrial & Management Engineering),Omicron
+133,Mechanical Engineering,Omicron
+134,Mineral Engineering,Omicron
+136,Aerospace Engineering,Pi
+137,Chemical Engineering,Pi
+138,Civil Engineering,Pi
+139,Computer Science,Pi
+140,Electrical Engineering,Pi
+141,Engineering Science,Pi
+142,Mechanical Engineering,Pi
+143,Nuclear Engineering,Pi
+144,Systems Engineering,Pi
+146,Aerospace Engineering,Rho
+147,Biological & Agricultural Engineering,Rho
+148,Chemical Engineering,Rho
+149,Civil Engineering,Rho
+150,Computer Engineering,Rho
+151,Computer Science,Rho
+152,Electrical Engineering,Rho
+153,Engineering Operations,Rho
+154,Environmental Engineering,Rho
+155,Furniture Manufacturing & Management,Rho
+156,Industrial Engineering,Rho
+157,Materials Engineering,Rho
+158,Mechanical Engineering,Rho
+159,Nuclear Engineering,Rho
+160,Textile Engineering,Rho
+162,Aeronautical & Astronautical Engineering,Sigma
+163,Biomedical Engineering,Sigma
+164,"Food, Agricultural, & Biological Engineering",Sigma
+165,Chemical Engineering,Sigma
+166,Computer Science & Engineering,Sigma
+167,Civil Engineering,Sigma
+168,Electrical and Computer Engineering,Sigma
+169,Engineering Physics,Sigma
+170,Environmental Engineering,Sigma
+171,Industrial & Systems Engineering,Sigma
+172,Materials Science and Engineering,Sigma
+173,Mechanical Engineering,Sigma
+174,Welding Engineering,Sigma
+175,Computer & Information Science,Sigma
+176,Aviation,Sigma
+178,Computer Science,Tau
+179,Aerospace Engineering,Tau
+180,Bio-Engineering,Tau
+181,Chemical Engineering,Tau
+182,Civil Engineering,Tau
+183,Computer Engineering,Tau
+184,Electrical Engineering,Tau
+185,Environmental Engineering,Tau
+186,Mechanical Engineering,Tau
+187,Systems and Information Science ,Tau
+189,Agricultural Engineering,Upsilon
+190,Chemical Engineering,Upsilon
+191,Civil Engineering,Upsilon
+192,Electrical Engineering,Upsilon
+193,Industrial Engineering,Upsilon
+194,Mechanical Engineering,Upsilon
+195,Computer Engineering,Upsilon
+197,Aeronautical & Astronautical Engineering,Phi
+198,Agricultural Engineering,Phi
+199,Biomedical Engineering,Phi
+200,Chemical Engineering,Phi
+201,Civil Engineering,Phi
+202,Computer & Electrical Engineering,Phi
+203,Construction Engineering & Management,Phi
+204,Electrical Engineering,Phi
+205,Industrial Engineering,Phi
+206,Land Surveying Engineering,Phi
+207,Materials Science and Engineering,Phi
+208,Mechanical Engineering,Phi
+209,Nuclear Engineering,Phi
+211,Aerospace Engineering,Chi
+212,Agricultural and Biosystems Engineering,Chi
+213,Chemical Engineering,Chi
+214,Civil Engineering,Chi
+215,Computer Engineering,Chi
+216,Electrical Engineering,Chi
+217,Energy Engineering,Chi
+218,Engineering Mathematics,Chi
+219,Geological Engineering,Chi
+220,Industrial Engineering,Chi
+221,Materials Science and Engineering,Chi
+222,Mechanical Engineering,Chi
+223,Mining Engineering,Chi
+224,Nuclear Engineering,Chi
+225,Optical Science & Engineering,Chi
+226,Systems Engineering,Chi
+228,Chemical Engineering,Omega
+229,Civil Engineering,Omega
+230,Computer Engineering,Omega
+231,Electrical Engineering,Omega
+232,Geological Engineering,Omega
+233,Industrial Engineering,Omega
+234,Mechanical Engineering,Omega
+235,Metallurgical Engineering,Omega
+236,Mining Engineering,Omega
+238,Civil Engineering,Gamma Beta
+239,Computer Engineering,Gamma Beta
+240,Computer Science,Gamma Beta
+241,Electrical Engineering,Gamma Beta
+242,Mechanical Engineering,Gamma Beta
+243,Systems Analysis & Engineering,Gamma Beta
+245,Chemical Engineering,Epsilon Beta
+246,Civil Engineering,Epsilon Beta
+247,Electrical & Computer Engineering,Epsilon Beta
+248,Industrial Engineering,Epsilon Beta
+249,Mechanical Engineering,Epsilon Beta
+250,Metallurgical Engineering,Epsilon Beta
+251,Electrical/Electronic Engineering Technology,Epsilon Beta
+252,Manufacturing/Industrial Engineering Technology,Epsilon Beta
+253,Mechanical Component Engineering Technology,Epsilon Beta
+255,Aerospace Engineering,Kappa Beta
+256,Agricultural Engineering,Kappa Beta
+257,Biological Engineering,Kappa Beta
+258,Chemical Engineering,Kappa Beta
+259,Computer Science,Kappa Beta
+260,Electrical Engineering,Kappa Beta
+261,Industrial Engineering,Kappa Beta
+262,Mechanical Engineering,Kappa Beta
+263,Nuclear Engineering,Kappa Beta
+264,Petroleum Engineering,Kappa Beta
+265,Software Engineering,Kappa Beta
+266,Construction Engineering Technology,Kappa Beta
+267,Electronic Engineering Technology,Kappa Beta
+269,Agricultural Engineering Technology,Lambda Beta
+270,Chemical Engineering,Lambda Beta
+271,Civil Engineering,Lambda Beta
+272,Computer Engineering,Lambda Beta
+273,Electrical Engineering,Lambda Beta
+274,Industrial Engineering,Lambda Beta
+275,Engineering Technology (Manufacturing & Industrial),Lambda Beta
+276,Mechanical Engineering,Lambda Beta
+278,Civil Engineering,Xi Beta
+279,Computer Engineering,Xi Beta
+280,Construction Engineering Technology,Xi Beta
+281,Electrical Engineering,Xi Beta
+282,Electrical Engineering Technology,Xi Beta
+283,Manufacturing/Industrial Engineering Technology,Xi Beta
+284,Mechanical Engineering,Xi Beta
+285,Mechanical Engineering Technology,Xi Beta
+286,Physics (Mechanical Industrial Option),Xi Beta
+287,Physics (Electrical Industrial Option),Xi Beta
+289,Computer & Information Science,Omicron Beta
+290,Computer Engineering,Omicron Beta
+291,Electrical Engineering,Omicron Beta
+292,Industrial & Systems Engineering,Omicron Beta
+293,Manufacturing Engineering,Omicron Beta
+294,Mechanical Engineering,Omicron Beta
+295,Software Engineering,Omicron Beta
+296,Data Science,Omicron Beta
+297,Bioengineering,Omicron Beta
+298,Robotics Engineering,Omicron Beta
+299,Cyber Security & Information Assurance,Omicron Beta
+301,Chemical Engineering,Rho Beta
+302,Civil Engineering,Rho Beta
+303,Computer Science,Rho Beta
+304,Electrical and Computer Engineering,Rho Beta
+305,Industrial and Systems Engineering,Rho Beta
+306,Industrial Technology,Rho Beta
+307,Mechanical Engineering,Rho Beta
+309,Civil Engineering,Tau Beta
+310,Computer Engineering,Tau Beta
+311,Computer Science,Tau Beta
+312,Electrical Engineering,Tau Beta
+313,"Engineering Management, Information, and Systems (BS)",Tau Beta
+314,Engineering Management (MS) ,Tau Beta
+315,Environmental Engineering,Tau Beta
+316,Mechanical Engineering,Tau Beta
+318,Aerospace Engineering,Upsilon Beta
+319,Bioengineering Engineering,Upsilon Beta
+320,Biomedical Engineering,Upsilon Beta
+321,Chemical Engineering,Upsilon Beta
+322,Civil Engineering,Upsilon Beta
+323,Computer Science,Upsilon Beta
+324,Computer Science and Engineering,Upsilon Beta
+325,Electrical Engineering,Upsilon Beta
+326,Materials Engineering,Upsilon Beta
+327,Mechanical Engineering,Upsilon Beta
+329,Bioengineering,Chi Beta
+330,Chemical Engineering,Chi Beta
+331,Civil Engineering,Chi Beta
+332,Computer Science & Engineering Technology (BS),Chi Beta
+333,Construction Engineering Technology (BS),Chi Beta
+334,Electrical Engineering,Chi Beta
+335,Engineering Physics,Chi Beta
+336,Industrial Engineering,Chi Beta
+337,Mechanical Engineering,Chi Beta
+338,Electronics Engineering Technology,Chi Beta
+339,Mechanical Engineering Technology,Chi Beta
+341,Aerospace Engineering,Psi Beta
+342,Architectural Engineering,Psi Beta
+343,Biomedical Engineering,Psi Beta
+344,Chemical Engineering,Psi Beta
+345,Civil Engineering,Psi Beta
+346,Electrical Engineering,Psi Beta
+347,Geosystems Engineering & Hydrology Degree,Psi Beta
+348,Mechanical Engineering,Psi Beta
+349,Petroleum Engineering,Psi Beta
+351,Computer Engineering,Omega Beta
+352,Electrical Engineering,Omega Beta
+353,Industrial Engineering,Omega Beta
+354,Mechanical Engineering,Omega Beta
+355,Engineering Science (BE),Omega Beta
+357,Aerospace Engineering,Delta Gamma
+358,Bioengineering,Delta Gamma
+359,Chemical Engineering,Delta Gamma
+360,Civil and Environmental Engineering,Delta Gamma
+361,Computer Science,Delta Gamma
+362,Computer Systems Engineering,Delta Gamma
+363,Construction Engineering,Delta Gamma
+364,Construction Management,Delta Gamma
+365,Electrical Engineering,Delta Gamma
+366,Engineering Interdisciplinary Studies,Delta Gamma
+367,Engineering Special Studies,Delta Gamma
+368,Engineering Management,Delta Gamma
+369,Industrial Engineering,Delta Gamma
+370,Materials Science and Engineering,Delta Gamma
+371,Mechanical Engineering,Delta Gamma
+372,Software Engineering,Delta Gamma
+373,Engineering (Electrical Systems),Delta Gamma
+374,Electrical Engineering,Delta Gamma
+376,Aerospace Engineering,Zeta Gamma
+377,Agricultural Engineering,Zeta Gamma
+378,Chemical Engineering,Zeta Gamma
+379,Civil Engineering,Zeta Gamma
+380,Coastal and Oceanographic Engineering (M.S.),Zeta Gamma
+381,Computer Engineering,Zeta Gamma
+382,Electrical Engineering,Zeta Gamma
+383,Engineering Science,Zeta Gamma
+384,Environmental Engineering,Zeta Gamma
+385,Industrial and Systems Engineering,Zeta Gamma
+386,Materials Science and Engineering,Zeta Gamma
+387,Mechanical Engineering,Zeta Gamma
+388,Nuclear Engineering,Zeta Gamma
+390,Aerospace Engineering,Eta Gamma
+391,Applied Mathematics,Eta Gamma
+392,Architectural Engineering,Eta Gamma
+393,Biological Engineering,Eta Gamma
+394,Chemical Engineering,Eta Gamma
+395,Civil Engineering,Eta Gamma
+396,Computer Science,Eta Gamma
+397,Electrical Engineering,Eta Gamma
+398,Electrical & Computer Engineering,Eta Gamma
+399,Engineering Physics,Eta Gamma
+400,Mechanical Engineering,Eta Gamma
+402,Aerospace Engineering,Theta Gamma
+403,"Atmospheric, Oceanic & Space Sciences",Theta Gamma
+404,Biomedical Engineering,Theta Gamma
+405,Chemical Engineering,Theta Gamma
+406,Civil Engineering,Theta Gamma
+407,Computer Engineering,Theta Gamma
+408,Computer Science,Theta Gamma
+409,Electrical Engineering,Theta Gamma
+410,Engineering Physics,Theta Gamma
+411,Environmental Engineering,Theta Gamma
+412,Industrial and Operations Engineering,Theta Gamma
+413,Materials Science and Engineering,Theta Gamma
+414,Mechanical Engineering,Theta Gamma
+415,Naval Architecture and Marine Engineering,Theta Gamma
+416,Nuclear Engineering,Theta Gamma
+418,Aerospace Engineering,Iota Gamma
+419,Biomedical Engineering,Iota Gamma
+420,Chemical Engineering,Iota Gamma
+421,Civil Engineering,Iota Gamma
+422,Computer Engineering,Iota Gamma
+423,Computer Science,Iota Gamma
+424,Electrical Engineering,Iota Gamma
+425,Engineering Mechanics,Iota Gamma
+426,Environmental Engineering,Iota Gamma
+427,Industrial Engineering,Iota Gamma
+428,Materials Engineering,Iota Gamma
+429,Mechanical Engineering,Iota Gamma
+430,Nuclear and Power Engineering,Iota Gamma
+432,Biomedical Engineering,Kappa Gamma
+433,Chemical and Life Science Engineering,Kappa Gamma
+434,Computer Science,Kappa Gamma
+435,Electrical and Computer Engineering,Kappa Gamma
+436,Mechanical Engineering,Kappa Gamma
+438,Bioengineering,Lambda Gamma
+439,Biosystems Engineering,Lambda Gamma
+440,Ceramic and Materials Engineering,Lambda Gamma
+441,Chemical Engineering,Lambda Gamma
+442,Civil Engineering,Lambda Gamma
+443,Computer Engineering,Lambda Gamma
+444,Computer Science,Lambda Gamma
+445,Electrical Engineering,Lambda Gamma
+446,Environmental Systems Engineering,Lambda Gamma
+447,General Engineering,Lambda Gamma
+448,Industrial Engineering,Lambda Gamma
+449,Mechanical Engineering,Lambda Gamma
+451,Aerospace Engineering,Mu Gamma
+452,Chemical Engineering,Mu Gamma
+453,Civil Engineering,Mu Gamma
+454,Computer Engineering,Mu Gamma
+455,Electrical Engineering,Mu Gamma
+456,Industrial Engineering,Mu Gamma
+457,Mechanical Engineering,Mu Gamma
+459,Bioengineering,Nu Gamma
+460,Computer Engineering,Nu Gamma
+461,Industrial and Systems Engineering,Nu Gamma
+462,Electrical Engineering,Nu Gamma
+463,Mechanical Engineering,Nu Gamma
+465,Aerospace Engineering ,Xi Gamma
+466,Agricultural Engineering ,Xi Gamma
+467,Bioengineering ,Xi Gamma
+468,Chemical Engineering ,Xi Gamma
+469,Civil Engineering ,Xi Gamma
+470,Computer Engineering ,Xi Gamma
+471,Computer Science,Xi Gamma
+472,Electrical Engineering ,Xi Gamma
+473,Electronics Engineering Technology,Xi Gamma
+474,Industrial Distribution,Xi Gamma
+475,Industrial Engineering ,Xi Gamma
+476,Manufacturing Engineering Technology,Xi Gamma
+477,Mechanical Engineering ,Xi Gamma
+478,Mechanical Engineering Technology,Xi Gamma
+479,Nuclear Engineering ,Xi Gamma
+480,Ocean Engineering ,Xi Gamma
+481,Petroleum Engineering ,Xi Gamma
+482,Radiological Health Engineering ,Xi Gamma
+483,Telecommunications Engineering Technology,Xi Gamma
+485,Aerospace Science and Engineering,Omicron Gamma
+486,Biochemical Engineering,Omicron Gamma
+487,Biological Systems Engineering,Omicron Gamma
+488,Biomedical Engineering,Omicron Gamma
+489,Chemical Engineering,Omicron Gamma
+490,Civil Engineering,Omicron Gamma
+491,Computer Engineering,Omicron Gamma
+492,Computer Science,Omicron Gamma
+493,Construction Management,Omicron Gamma
+494,Electrical Engineering,Omicron Gamma
+495,Environmental Engineering,Omicron Gamma
+496,Industrial and Systems Engineering,Omicron Gamma
+497,Materials Science and Engineering,Omicron Gamma
+498,Mechanical Engineering,Omicron Gamma
+500,Civil Engineering,Pi Gamma
+501,Computer Engineering,Pi Gamma
+502,Construction Management,Pi Gamma
+503,Electrical Engineering,Pi Gamma
+504,Engineering Technology,Pi Gamma
+505,Mechanical Engineering,Pi Gamma
+507,Aerospace Engineering,Rho Gamma
+508,Civil Engineering,Rho Gamma
+509,Computer Engineering,Rho Gamma
+510,Computer Science,Rho Gamma
+511,Electrical Engineering,Rho Gamma
+512,Electrical Engineering Technology,Rho Gamma
+513,Engineering Technology,Rho Gamma
+514,Environmental Engineering,Rho Gamma
+515,Industrial Engineering,Rho Gamma
+516,Information Systems Technology,Rho Gamma
+517,Mechanical Engineering,Rho Gamma
+518,Photonic Science and Engineering,Rho Gamma
+519,Optics,Rho Gamma
+521,Chemical Engineering,Sigma Gamma
+522,Civil Engineering,Sigma Gamma
+523,Computer Engineering,Sigma Gamma
+524,Electrical Engineering,Sigma Gamma
+525,Industrial Engineering,Sigma Gamma
+526,Manufacturing Engineering,Sigma Gamma
+527,Mechanical Engineering,Sigma Gamma
+528,Ocean Engineering,Sigma Gamma
+530,Bioengineering ,Tau Gamma
+531,Chemical and Biomolecular Engineering,Tau Gamma
+532,Civil Engineering Systems,Tau Gamma
+533,Computer and Telecommunications Engineering,Tau Gamma
+534,Digital Media Design,Tau Gamma
+535,Electrical Engineering,Tau Gamma
+536,Market and Social Systems Engineering,Tau Gamma
+537,Materials Science Engineering,Tau Gamma
+538,Mechanical Engineering and Applied Mechanics,Tau Gamma
+539,Systems Science and Engineering,Tau Gamma
+541,Biomedical Engineering,Upsilon Gamma
+542,Chemical Engineering,Upsilon Gamma
+543,Civil Engineering,Upsilon Gamma
+544,Computer Engineering,Upsilon Gamma
+545,Computer Science,Upsilon Gamma
+546,Electrical Engineering,Upsilon Gamma
+547,Industrial Engineering,Upsilon Gamma
+548,Information Systems,Upsilon Gamma
+549,Mechanical Engineering,Upsilon Gamma
+551,Aerospace Engineering,Phi Gamma
+552,Architectural Engineering,Phi Gamma
+553,Biosystems Engineering,Phi Gamma
+554,Chemical Engineering,Phi Gamma
+555,Civil Engineering,Phi Gamma
+556,Electrical Engineering,Phi Gamma
+557,Industrial Engineering and Management,Phi Gamma
+558,Mechanical Engineering,Phi Gamma
+560,Aerospace Engineering ,Chi Gamma
+561,Biomedical Engineering,Chi Gamma
+562,Biosystems Engineering,Chi Gamma
+563,Chemical Engineering,Chi Gamma
+564,Civil Engineering,Chi Gamma
+565,Computer Engineering,Chi Gamma
+566,Electrical Engineering,Chi Gamma
+567,Industrial Engineering,Chi Gamma
+568,Materials Science and Engineering,Chi Gamma
+569,Mechanical Engineering,Chi Gamma
+570,Nuclear Engineering,Chi Gamma
+572,Computer Science,Psi Gamma
+573,Aerospace Engineering,Psi Gamma
+574,Biological Systems Engineering,Psi Gamma
+575,Chemical Engineering,Psi Gamma
+576,Civil Engineering,Psi Gamma
+577,Computer Engineering,Psi Gamma
+578,Construction Engineering and Management,Psi Gamma
+579,Electrical Engineering,Psi Gamma
+580,Engineering Science and Mechanics,Psi Gamma
+581,Environmental Engineering,Psi Gamma
+582,Industrial and Systems Engineering,Psi Gamma
+583,Materials Science and Engineering,Psi Gamma
+584,Mechanical Engineering,Psi Gamma
+585,Mining Engineering,Psi Gamma
+586,Ocean Engineering,Psi Gamma
+588,Biomedical Engineering,Omega Gamma
+589,Civil Engineering,Omega Gamma
+590,Computer Engineering,Omega Gamma
+591,Computer Science,Omega Gamma
+592,Construction Management,Omega Gamma
+593,Electrical Engineering,Omega Gamma
+594,Industrial and Systems Engineering,Omega Gamma
+595,Mechanical and Materials Engineering,Omega Gamma
+597,Aerospace Engineering ,Epsilon Delta
+598,Bioengineering (Biotechnology),Epsilon Delta
+599,Bioengineering ,Epsilon Delta
+600,Chemical Engineering ,Epsilon Delta
+601,Computer Science (BS degree only),Epsilon Delta
+602,Computer Engineering,Epsilon Delta
+603,Electrical Engineering,Epsilon Delta
+604,Engineering Physics,Epsilon Delta
+605,Environmental Engineering,Epsilon Delta
+606,Mechanical Engineering ,Epsilon Delta
+607,Structural Engineering,Epsilon Delta
+609,Biomedical Engineering,Zeta Delta
+610,Chemical Engineering,Zeta Delta
+611,Civil and Environmental Engineering,Zeta Delta
+612,Computer Engineering,Zeta Delta
+613,Electrical Engineering,Zeta Delta
+614,Mechanical Engineering,Zeta Delta
+616,Aerospace Engineering,Eta Delta
+617,Bioengineering,Eta Delta
+618,Biological Resources Engineering,Eta Delta
+619,Chemical and Biomolecular Engineering,Eta Delta
+620,Civil and Environmental Engineering,Eta Delta
+621,Computer Engineering,Eta Delta
+622,Electrical Engineering,Eta Delta
+623,Fire Protection Engineering,Eta Delta
+624,Materials Science and Engineering,Eta Delta
+625,Mechanical Engineering,Eta Delta
+627,Applied Mathematics and Statistics,Theta Delta
+628,Biomedical Engineering,Theta Delta
+629,Chemical and Biomolecular Engineering,Theta Delta
+630,Civil Engineering,Theta Delta
+631,Computer Engineering,Theta Delta
+632,Computer Science  (BS degree and higher only),Theta Delta
+633,Electrical Engineering,Theta Delta
+634,Engineering Mechanics,Theta Delta
+635,Environmental Engineering,Theta Delta
+636,Materials Science and Engineering,Theta Delta
+637,Mechanical Engineering,Theta Delta
+639,Biomedical Engineering,Iota Delta
+640,Chemical Engineering,Iota Delta
+641,Civil Engineering,Iota Delta
+642,Computer Engineering,Iota Delta
+643,Computer Science,Iota Delta
+644,Electrical Engineering,Iota Delta
+645,Engineering Science,Iota Delta
+646,Mechanical Engineering,Iota Delta
+648,Biological Engineering,Kappa Delta
+649,Biomedical Engineering,Kappa Delta
+650,Chemical Engineering,Kappa Delta
+651,Civil Engineering,Kappa Delta
+652,Computer Science (BS in Engineering only),Kappa Delta
+653,Electrical and Computer Engineering,Kappa Delta
+654,Environmental Engineering ,Kappa Delta
+655,Information Science Systems & Technology,Kappa Delta
+656,Materials Science and Engineering,Kappa Delta
+657,Mechanical Engineering,Kappa Delta
+658,Operations Research,Kappa Delta
+659,Science of Earth Systems,Kappa Delta
+660,Systems Engineering,Kappa Delta
+662,Bioengineering,Lambda Delta
+663,Civil Engineering,Lambda Delta
+664,Computer Engineering,Lambda Delta
+665,Computer Science,Lambda Delta
+666,Electrical Engineering,Lambda Delta
+667,Engineering Management,Lambda Delta
+668,Engineering Physics,Lambda Delta
+669,Mechanical Engineering,Lambda Delta
+671,Bioengineering,Mu Delta
+672,Computer Science and Engineering,Mu Delta
+673,Environmental Engineering,Mu Delta
+674,Material Science and Engineering,Mu Delta
+675,Mechanical Engineering,Mu Delta
+677,Bioengineering and Biomedical Engineering,Nu Delta
+678,Chemical Engineering,Nu Delta
+679,Civil Engineering,Nu Delta
+680,Computer Engineering,Nu Delta
+681,Computer Science,Nu Delta
+682,Electrical and Electronics Engineering,Nu Delta
+683,"Engineering, Engineering Physics & Engineering Science Engineering",Nu Delta
+684,Industrial Engineering,Nu Delta
+685,Materials Engineering,Nu Delta
+686,Mechanical Engineering,Nu Delta
+688,Applied Computer Science,Xi Delta
+689,Bioengineering,Xi Delta
+690,Civil and Infrastructure Engineering,Xi Delta
+691,Computer Engineering,Xi Delta
+692,Computer Science,Xi Delta
+693,Cyber Security Engineering,Xi Delta
+694,Electrical Engineering,Xi Delta
+695,Information Technology,Xi Delta
+696,Mechanical Engineering,Xi Delta
+697,Systems Engineering,Xi Delta
+699,Bioenvironmental Engineering,Omicron Delta
+700,Biomedical Engineering,Omicron Delta
+701,Ceramic Engineering,Omicron Delta
+702,Chemical Engineering,Omicron Delta
+703,Civil and Environmental Engineering,Omicron Delta
+704,Electrical and Computer Engineering,Omicron Delta
+705,Industrial Engineering,Omicron Delta
+706,Materials Science and Engineering,Omicron Delta
+707,Mechanical Engineering,Omicron Delta
+708,Packaging Engineering,Omicron Delta
+710,Aerospace Engineering,Pi Delta
+711,Bioengineering and Biomedical Engineering,Pi Delta
+712,Chemical Engineering,Pi Delta
+713,Civil Engineering,Pi Delta
+714,Computer Engineering,Pi Delta
+715,Electrical and Electronics Engineering,Pi Delta
+716,Environmental Engineering,Pi Delta
+717,Materials Engineering,Pi Delta
+718,Mechanical Engineering,Pi Delta
+719,Software Engineering,Pi Delta
+720,Computer Science,Pi Delta
+722,Biomedical Engineering,Rho Delta
+723,Chemical Engineering,Rho Delta
+724,Civil Engineering,Rho Delta
+725,Computer Science & Engineering,Rho Delta
+726,Electrical Engineering,Rho Delta
+727,Engineering Physics,Rho Delta
+728,Environmental Engineering,Rho Delta
+729,Geological Engineering,Rho Delta
+730,Materials Science and Engineering,Rho Delta
+731,Mechanical Engineering,Rho Delta
+732,Mining Engineering,Rho Delta
+734,Bioengineering,Sigma Delta
+735,Chemical Engineering,Sigma Delta
+736,Computer Engineering,Sigma Delta
+737,Computer Science,Sigma Delta
+738,Electrical Engineering,Sigma Delta
+739,Environmental Engineering,Sigma Delta
+740,Materials Science and Engineering,Sigma Delta
+741,Mechanical Engineering,Sigma Delta
+743,Bioengineering,Tau Delta
+744,Chemical Engineering,Tau Delta
+745,Computer Engineering,Tau Delta
+746,Computer Science,Tau Delta
+747,Electrical Engineering,Tau Delta
+748,Engineering Management ,Tau Delta
+749,General Engineering,Tau Delta
+750,Manufacturing Engineering,Tau Delta
+751,Mechanical Engineering,Tau Delta
+752,Software Engineering,Tau Delta
+754,Aerospace Engineering,Upsilon Delta
+755,Bioengineering Engineering,Upsilon Delta
+756,Biomedical Engineering,Upsilon Delta
+757,Chemical Engineering,Upsilon Delta
+758,Civil Engineering,Upsilon Delta
+759,Computer Science,Upsilon Delta
+760,Computer Science and Engineering,Upsilon Delta
+761,Electrical Engineering,Upsilon Delta
+762,Materials Engineering,Upsilon Delta
+763,Mechanical Engineering,Upsilon Delta
+765,Biomedical Engineering,Phi Delta
+766,Chemical Engineering,Phi Delta
+767,Chemical-Materials Engineering,Phi Delta
+768,Civil Engineering,Phi Delta
+769,Computer Engineering,Phi Delta
+770,Electrical Engineering,Phi Delta
+771,Environmental Engineering,Phi Delta
+772,Industrial Engineering,Phi Delta
+773,Mechanical Engineering,Phi Delta
+775,Computer Science,Chi Delta
+776,Engineering,Chi Delta
+777,Mechanical Engineering,Chi Delta
+778,Safety Technology,Chi Delta
+780,Aerospace Engineering,Psi Delta
+781,Biomedical Engineering,Psi Delta
+782,Civil Engineering,Psi Delta
+783,Computer Engineering,Psi Delta
+784,Electrical Engineering,Psi Delta
+785,Energy Technologies and Environmental Engineering,Psi Delta
+786,Materials Science and Engineering,Psi Delta
+787,Manufacturing Engineering,Psi Delta
+788,Mechanical Engineering,Psi Delta
+789,Nanotechnology,Psi Delta
+790,Photonics,Psi Delta
+791,Systems Engineering,Psi Delta
+793,Biochemical Engineering,Omega Delta
+794,Chemical Engineering,Omega Delta
+795,Civil Engineering,Omega Delta
+796,Computer Engineering,Omega Delta
+797,Cyber Security and Digital Forensics,Omega Delta
+798,Electrical Engineering,Omega Delta
+799,Engineering Management,Omega Delta
+800,Engineering Physics,Omega Delta
+801,Information Management Packaging,Omega Delta
+802,Mechanical Engineering,Omega Delta
+804,Applied Mathematics & Statistics ,Zeta Epsilon
+805,"Biomedical Engineering,",Zeta Epsilon
+806,Chemical and Molecular Engineering,Zeta Epsilon
+807,Civil Engineering ,Zeta Epsilon
+808,Computer Engineering,Zeta Epsilon
+809,Computer Science,Zeta Epsilon
+810,Electrical Engineering,Zeta Epsilon
+811,Engineering Chemistry,Zeta Epsilon
+812,Engineering Science,Zeta Epsilon
+813,Information Systems,Zeta Epsilon
+814,Materials Science and Engineering,Zeta Epsilon
+815,Mechanical Engineering,Zeta Epsilon
+816,Optoelectromechanical Systems Engineering,Zeta Epsilon
+817,Technological Systems Management ,Zeta Epsilon
+819,Computer Science,Eta Epsilon
+820,Biological Engineering,Eta Epsilon
+821,Agricultural Engineering,Eta Epsilon
+822,Chemical Engineering,Eta Epsilon
+823,Civil Engineering,Eta Epsilon
+824,Computer Engineering,Eta Epsilon
+825,Electrical Engineering,Eta Epsilon
+826,Electrical and Electronics Engineering,Eta Epsilon
+827,Engineering Physics & Engineering Science ,Eta Epsilon
+828,Mechanical Engineering,Eta Epsilon
+829,Construction Management Technology,Eta Epsilon
+830,Construction Engineering Technology,Eta Epsilon
+831,Electrical Engineering Technology,Eta Epsilon
+832,Electrical and Electronics Engineering Technology,Eta Epsilon
+833,Mechanical Engineering Technology,Eta Epsilon
+834,Surveying Engineering Technology,Eta Epsilon
+835,Surveying and Geomatics Engineering Technology,Eta Epsilon
+837,Applied Physics,Theta Epsilon
+838,Biomolecular Science,Theta Epsilon
+839,Business and Technology Management,Theta Epsilon
+840,Chemical and Biomolecular Engineering,Theta Epsilon
+841,Civil Engineering,Theta Epsilon
+842,Computer Engineering,Theta Epsilon
+843,Computer Science,Theta Epsilon
+844,Construction Management,Theta Epsilon
+845,Electrical Engineering,Theta Epsilon
+846,Mechanical Engineering,Theta Epsilon
+848,Agricultural Engineering,Iota Epsilon
+849,Biochemical Engineering,Iota Epsilon
+850,Biological Engineering,Iota Epsilon
+851,Civil Engineering,Iota Epsilon
+852,Computer Science,Iota Epsilon
+853,Computer Systems Engineering,Iota Epsilon
+854,Electrical and Electronics Engineering,Iota Epsilon
+855,Environmental Engineering,Iota Epsilon
+856,Mechanical Engineering,Iota Epsilon
+858,Aerospace Engineering,Kappa Epsilon
+859,Astronautical Engineering,Kappa Epsilon
+860,Biomedical Engineering,Kappa Epsilon
+861,Chemical Engineering,Kappa Epsilon
+862,Civil Engineering,Kappa Epsilon
+863,Computer Engineering and Computer Science,Kappa Epsilon
+864,Computer Science,Kappa Epsilon
+865,Electrical Engineering,Kappa Epsilon
+866,Environmental Computer Engineering and Computer Science,Kappa Epsilon
+867,Industrial & Systems Engineering,Kappa Epsilon
+868,Mechanical Engineering,Kappa Epsilon
+870,Electrical Engineering,Lambda Epsilon
+871,Industrial & Systems Engineering,Lambda Epsilon
+872,Mechanical Engineering,Lambda Epsilon
+873,Computer Science,Lambda Epsilon
+874,Physics,Lambda Epsilon
+876,Computer Science (BS degree only),Mu Epsilon
+877,Electrical and Computer Engineering,Mu Epsilon
+878,Bioinformatics,Mu Epsilon
+879,Mechanical Engineering,Mu Epsilon
+880,Engineering,Mu Epsilon
+882,Biomedical Engineering,Nu Epsilon
+883,Chemical Engineering,Nu Epsilon
+884,Engineering Physics,Nu Epsilon
+885,Industrial Hygiene,Nu Epsilon
+887,Bioengineering,TU Colony
+888,Civil Engineering,TU Colony
+889,Computer Engineering,TU Colony
+890,Construction Management Technology,TU Colony
+891,Electrical Engineering,TU Colony
+892,Engineering Technology,TU Colony
+893,Environmental Engineering,TU Colony
+894,Mechanical Engineering,TU Colony
+896,Computer Science,UA Colony
+897,Computer Engineering,UA Colony
+898,Informatics,UA Colony
+899,Nanoscale Engineering,UA Colony
+900,Nanoscale Science,UA Colony
+902,Chemical Engineering,Drexel Colony
+903,Civil Engineering,Drexel Colony
+904,Computer Science,Drexel Colony
+905,Electrical Engineering,Drexel Colony
+906,Geological Engineering,Drexel Colony
+907,General Engineering,Drexel Colony
+908,Mechanical Engineering,Drexel Colony
+910,Biomedical Engineering,Victoria Colony
+911,Civil Engineering,Victoria Colony
+912,Computer Engineering,Victoria Colony
+913,Computer Science,Victoria Colony
+914,Electrical Engineering,Victoria Colony
+915,Mechanical Engineering,Victoria Colony
+916,Software Engineering,Victoria Colony
+918,Bioengineering,SCU Colony
+919,Civil Engineering ,SCU Colony
+920,Computer Engineering,SCU Colony
+921,Electrical Engineering,SCU Colony
+922,Mechanical Engineering,SCU Colony
+923,Web Design Engineering,SCU Colony
+925,Chemical Engineering,UCSB Colony
+926,Computer Engineering,UCSB Colony
+927,Computer Science,UCSB Colony
+928,Computing,UCSB Colony
+929,Electrical Engineering,UCSB Colony
+930,Mechanical Engineering,UCSB Colony
+932,Biomedical Engineering,ROW Colony
+933,Chemical Engineering,ROW Colony
+934,Civil and Environmental Engineering,ROW Colony
+935,Computer Science,ROW Colony
+936,Electrical and Computer Engineering,ROW Colony
+937,Management Information Science,ROW Colony
+938,Mechanical Engineering,ROW Colony
+940,Aerospace Engineering,CSLB Colony
+941,Biomedical Engineering,CSLB Colony
+942,Chemical Engineering,CSLB Colony
+943,Civil Engineering,CSLB Colony
+944,Computer Engineering,CSLB Colony
+945,Computer Science,CSLB Colony
+946,Construction Engineering Management ,CSLB Colony
+947,Electrical Engineering,CSLB Colony
+948,Electronics Engineering Technology,CSLB Colony
+949,Computer Engineering Technology,CSLB Colony
+950,Mechanical Engineering,CSLB Colony
+952,Civil Engineering,NAU Colony
+953,Computer Engineering,NAU Colony
+954,Computer Science,NAU Colony
+955,Applied Computer Science,NAU Colony
+956,Construction Management,NAU Colony
+957,Electrical Engineering,NAU Colony
+958,Environmental Engineering,NAU Colony
+959,Mechanical Engineering,NAU Colony
+961,Biomedical Engineering,NJIT Colony
+962,Chemical Engineering,NJIT Colony
+963,Civil Engineering,NJIT Colony
+964,Computer Engineering,NJIT Colony
+965,Electrical Engineering,NJIT Colony
+966,Engineering Science,NJIT Colony
+967,Industrial Engineering,NJIT Colony
+968,Mechanical Engineering,NJIT Colony
+969,Information Systems,NJIT Colony
+970,Computer Science ,NJIT Colony
+971,Engineering Technology,NJIT Colony
+973,Chemical Engineering,UNH Colony
+974,Civil Engineering,UNH Colony
+975,Computer Engineering,UNH Colony
+976,Computer Science (BS degree only),UNH Colony
+977,Cyber Systems,UNH Colony
+978,Electrical Engineering,UNH Colony
+979,Industrial and Systems Engineering,UNH Colony
+980,General Engineering,UNH Colony
+981,Mechanical Engineering,UNH Colony
+983,Aerospace Engineering,FIT Colony
+984,Biomedical Engineering,FIT Colony
+985,Chemical Engineering,FIT Colony
+986,Civil Engineering,FIT Colony
+987,Computer Engineering,FIT Colony
+988,Computer Science,FIT Colony
+989,Construction Management,FIT Colony
+990,Electrical Engineering,FIT Colony
+991,Engineering Systems,FIT Colony
+992,Industrial Engineering,FIT Colony
+993,Mechanical Engineering,FIT Colony
+994,Ocean Engineering,FIT Colony
+995,Software Engineering,FIT Colony
+997,Computer Information Systems,JMU Colony
+998,Engineering,JMU Colony
+999,Integrated Science and Technology,JMU Colony
