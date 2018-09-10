@@ -7,7 +7,7 @@ from django.db import migrations
 def load_chapters(apps, schema_editor):
     chapter = apps.get_model("chapters", "Chapter")
     chapter_curricula = apps.get_model("chapters", "ChapterCurricula")
-    with open(f'{os.path.split(__file__)[0]}/curricula.csv', newline='') as csvfile:
+    with open(f'{os.path.split(__file__)[0]}/curricula.csv', newline='', encoding='windows-1252') as csvfile:
         reader = csv.DictReader(csvfile)
         for id_obj, row in enumerate(reader):
             try:
