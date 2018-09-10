@@ -8,13 +8,39 @@
 
   <div class="row">
     <div class="col-sm-12">
-
-      <h2>{{ object.task.task.name }}</h2>
-      {% if object.task.task.name %}
-        <p>Submission Date: {{ object.date }}</p>
-        <p>Date Due: {{ object.task.date }}</p>
-        <p>{{ object.submission_object }}</p>
-      {% endif %}
+      <h1>Completed Task Information</h1>
+    <table class="table">
+    <tr>
+      <th>Task Name</th>
+      <td>{{ object.task.task.name }}</td>
+    </tr>
+    <tr>
+      <th>Task Owner</th>
+      <td>{{ object.task.task.owner|title }}</td>
+    </tr>
+    <tr>
+      <th>Task Description</th>
+      <td>{{ object.task.task.description }}</td>
+    </tr>
+    <tr>
+      <th>Due Date</th>
+      <td>{{ object.task.date }}</td>
+    </tr>
+    <tr>
+      <th>Submission Date</th>
+      <td>{{ object.date }}</td>
+    </tr>
+    <tr>
+      <th>Related Submission</th>
+      <td>
+        {% if object.submission_object %}
+          <a href="{% url 'submissions:update' object.submission_id %}">{{ object.submission_object }}</a>
+        {% else %}
+          Submission not available/applicable
+        {% endif %}
+      </td>
+    </tr>
+    </table>
     </div>
   </div>
 
