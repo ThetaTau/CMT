@@ -49,6 +49,7 @@ class SubmissionUpdateView(OfficerRequiredMixin,
               'file',
               ]
     model = Submission
+    score_type = 'Sub'
     officer_edit = 'submissions'
     officer_edit_type = 'edit'
 
