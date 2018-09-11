@@ -467,10 +467,10 @@ class RoleChangeView(OfficerRequiredMixin,
                 self.request, messages.INFO,
                 f"You successfully updated the officers:\n"
                 f"{update_list}")
-        return HttpResponseRedirect(self.get_success_url())
+        return HttpResponseRedirect(reverse("forms:officer"))
 
     def get_success_url(self):
-        return reverse("forms:officer")
+        return reverse("home")  # If this is the same view, login redirect loops
 
 
 class RiskManagementFormView(OfficerRequiredMixin,
