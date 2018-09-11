@@ -19,6 +19,8 @@ class TaskCompleteView(OfficerRequiredMixin,
     model = TaskChapter
     fields = []
     template_name = "tasks/task_complete.html"
+    officer_edit = 'tasks'
+    officer_edit_type = 'complete'
 
     def get(self, request, *args, **kwargs):
         task_date_id = self.kwargs.get('pk')
