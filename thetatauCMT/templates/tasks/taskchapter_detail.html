@@ -34,7 +34,11 @@
       <th>Related Submission</th>
       <td>
         {% if object.submission_object %}
-          <a href="{% url 'submissions:update' object.submission_id %}">{{ object.submission_object }}</a>
+          {% if object.submission_type.name == "risk management" %}
+            <a href="{% url 'forms:rmp_complete' object.submission_id %}">{{ object.submission_object.user }}</a>
+          {% else %}
+            <a href="{% url 'submissions:update' object.submission_id %}">{{ object.submission_object }}</a>
+          {% endif %}
         {% else %}
           Submission not available/applicable
         {% endif %}

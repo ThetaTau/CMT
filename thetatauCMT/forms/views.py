@@ -6,6 +6,7 @@ from django.contrib import messages
 from django.urls import reverse
 from django.utils import timezone
 from django import forms
+from django.views.generic import DetailView
 from django.views.generic.edit import FormView
 from django.shortcuts import redirect
 from django.http import HttpResponseRedirect
@@ -21,7 +22,7 @@ from core.models import CHAPTER_OFFICER, COL_OFFICER_ALIGN
 from users.models import UserRoleChange
 from .tables import GuardTable, BadgeTable, InitiationTable, DepledgeTable, \
     StatusChangeTable
-from .models import Guard, Badge, Initiation, Depledge, StatusChange
+from .models import Guard, Badge, Initiation, Depledge, StatusChange, RiskManagement
 
 
 sensitive_post_parameters_m = method_decorator(
@@ -507,3 +508,9 @@ class RiskManagementFormView(OfficerRequiredMixin,
 
     def get_success_url(self):
         return reverse('home')
+
+
+class RiskManagementDetailView(LoginRequiredMixin, OfficerMixin,
+                                DetailView):
+    model = RiskManagement
+    template_name = "forms/rmp_complete.html"
