@@ -115,7 +115,7 @@ class DepledgeFormHelper(FormHelper):
 
 
 class StatusChangeSelectForm(forms.Form):
-    user = forms.ModelChoiceField(queryset=StatusChange.objects.none())
+    user = forms.ModelChoiceField(queryset=User.objects.none())
     state = forms.ChoiceField(choices=[x.value for x in StatusChange.REASONS])
     selected = forms.BooleanField(label="Remove", required=False)
 
