@@ -1,5 +1,6 @@
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http.request import QueryDict
+from django.urls import reverse
 from django_tables2 import SingleTableView
 from django_tables2.config import RequestConfig  # Imported by others
 from django.views.generic.edit import FormMixin
@@ -22,6 +23,9 @@ class NatOfficerRequiredMixin(GroupRequiredMixin):
             f"Only National officers can edit this.")
         return self.get_success_url()
 
+    def get_success_url(self):
+        return reverse('home')
+
 
 class OfficerRequiredMixin(GroupRequiredMixin):
     group_required = u"officer"
@@ -34,6 +38,9 @@ class OfficerRequiredMixin(GroupRequiredMixin):
             self.request, messages.ERROR,
             f"Only officers can {self.officer_edit_type} {self.officer_edit}")
         return self.get_success_url()
+
+    def get_success_url(self):
+        return reverse('home')
 
 
 class OfficerMixin:
