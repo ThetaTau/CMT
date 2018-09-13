@@ -106,6 +106,9 @@
           <ul class="nav navbar-nav ml-auto w-100 justify-content-end">
             {% if request.user.is_authenticated %}
               {% if request.is_officer %}
+              <li class="active dropdown-submenu">
+                <a class="nav-link" href="{% url 'chapters:list' %}">{% trans "Chapters" %}</a>
+              </li>
               <div class="dropdown-container">
               <li>
               <a class="nav-link dropdown-toggle" href="#" data-toggle="dropdown">{% trans "Forms" %}</a>
@@ -131,9 +134,6 @@
                 <li>
                 <a class="nav-link dropdown-toggle" href="#" data-toggle="dropdown">{% trans "RegDir" %}</a>
                   <ul class="dropdown-menu">
-                    <li class="active dropdown-submenu">
-                      <a class="nav-link" href="{% url 'chapters:list' %}">{% trans "Chapters" %}</a>
-                    </li>
                     <li class="active dropdown-submenu">
                       <a class="nav-link" href="{% url 'regions:list' %}">{% trans "Regions" %}</a>
                     </li>
