@@ -158,7 +158,7 @@ class UserAlterView(NatOfficerRequiredMixin, LoginRequiredMixin, FormView):
     def get_success_url(self):
         redirect_to = self.request.POST.get('next', '')
         url_is_safe = is_safe_url(redirect_to)
-        if redirect_to and url_is_safe:
+        if redirect_to and url_is_safe and 'chapters' not in redirect_to:
             return redirect_to
         return reverse('chapters:detail',
                        kwargs={'slug': self.request.user.current_chapter.slug})
