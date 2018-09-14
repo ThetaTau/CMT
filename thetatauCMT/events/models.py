@@ -41,7 +41,6 @@ class Event(TimeStampedModel):
     def __str__(self):
         return f"{self.name} on {self.date}"
 
-    @models.permalink
     def get_absolute_url(self):
         return (
             'events:detail', (), {
