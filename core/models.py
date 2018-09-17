@@ -124,7 +124,7 @@ class YearTermModel(models.Model):
 
         @classmethod
         def get_value(cls, member):
-            return cls[member].value[0]
+            return cls[member].value[1]
 
     YEARS = []
     for r in range(2016, (datetime.datetime.now().year + 8)):

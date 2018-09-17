@@ -17,7 +17,7 @@ class ScoreType(models.Model):
 
         @classmethod
         def get_value(cls, member):
-            return cls[member].value[0]
+            return cls[member].value[1]
 
     class TYPES(Enum):
         event = ('Evt', 'Event')
@@ -26,7 +26,7 @@ class ScoreType(models.Model):
 
         @classmethod
         def get_value(cls, member):
-            return cls[member].value[0]
+            return cls[member].value[1]
 
     name = models.CharField(max_length=50)
     description = models.CharField(max_length=200)

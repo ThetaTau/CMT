@@ -135,7 +135,7 @@ class Depledge(TimeStampedModel):
 
         @classmethod
         def get_value(cls, member):
-            return cls[member].value[0]
+            return cls[member].value[1]
 
     user = models.OneToOneField(settings.AUTH_USER_MODEL,
                                 on_delete=models.CASCADE,
@@ -197,12 +197,12 @@ class StatusChange(TimeStampedModel):
         graduate = ('graduate', 'Member is graduating')  # Graduated from school
         coop = ('coop', 'Member is going on CoOp or Study abroad')  # Co-Op/Internship
         military = ('military', 'Member is being deployed')  # Called to Active/Reserve Military Duty
-        withdrew = ('withdraw', 'Member is withdrawing from school')  # Withdrawing from school
+        withdraw = ('withdraw', 'Member is withdrawing from school')  # Withdrawing from school
         transfer = ('transfer', 'Member is transferring to another school')  # Transferring to another school
 
         @classmethod
         def get_value(cls, member):
-            return cls[member].value[0]
+            return cls[member].value[1]
 
     class DEGREES(Enum):
         BS = ('bs', 'Bachelor of Science')
@@ -215,7 +215,7 @@ class StatusChange(TimeStampedModel):
 
         @classmethod
         def get_value(cls, member):
-            return cls[member].value[0]
+            return cls[member].value[1]
 
     user = models.ForeignKey(settings.AUTH_USER_MODEL,
                              on_delete=models.CASCADE,
