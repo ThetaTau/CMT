@@ -6,6 +6,8 @@ from django_tables2.config import RequestConfig  # Imported by others
 from django.views.generic.edit import FormMixin
 from django.views.generic import TemplateView
 from django.utils import timezone
+from django.db import transaction
+from django.db.utils import IntegrityError
 from django.contrib import messages
 from scores.models import ScoreType
 from tasks.models import TaskChapter, TaskDate
@@ -94,7 +96,20 @@ class TypeFieldFilteredChapterAdd(FormMixin):
         task = score_obj.task.first()
         if task:
             next_date = task.incomplete_dates_for_task_chapter(chapter).first()
-        response = super().form_valid(form)  # This saves the form
+        try:
+            with transaction.atomic():
+                response = super().form_valid(form)  # This saves the form
+        except IntegrityError as e:
+            messages.add_message(
+                self.request, messages.ERROR,
+                f"Name, date, and type together must be unique."
+                " You can have the same name on different dates or different type.")
+            message = f"Name, date, and type together must be unique. " +\
+                      f"Another {self.officer_edit} has the same name & date & type."
+            form.add_error('name', message)
+            form.add_error('date', message)
+            form.add_error('type', message)
+            return self.render_to_response(self.get_context_data(form=form))
         if task:
             if next_date:
                 TaskChapter(task=next_date, chapter=chapter,
