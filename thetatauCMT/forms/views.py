@@ -234,6 +234,8 @@ class StatusChangeSelectView(OfficerRequiredMixin,
         formset = kwargs.get('formset', None)
         if formset is None:
             formset = self.construct_formset()
+        actives = self.request.user.current_chapter.actives()
+        formset.form.base_fields['user'].queryset = actives
         context['formset'] = formset
         helper = StatusChangeSelectFormHelper()
         context['helper'] = helper
