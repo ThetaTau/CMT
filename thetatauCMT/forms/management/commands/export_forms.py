@@ -253,7 +253,7 @@ class Command(BaseCommand):
         sender = 'Frank.Ventura@ThetaTau.org'
         gmail_password = password
         recipients = [
-            # 'central.office@thetatau.org',
+            'central.office@thetatau.org',
             sender,
         ]
         outer = MIMEMultipart()
