@@ -13,6 +13,7 @@ urlpatterns = [
     url(r'^$', HomeView.as_view(template_name='pages/home.html'), name='home'),
     # url('^', include('django.contrib.auth.urls')),
     url(r'^about/$', TemplateView.as_view(template_name='pages/about.html'), name='about'),
+    url(r'^help/$', TemplateView.as_view(template_name='pages/help.html'), name='help'),
     url(r'^reset_password/confirm/(?P<uidb64>[0-9A-Za-z_\-]+)/(?P<token>[0-9A-Za-z]{1,13}-[0-9A-Za-z]{1,20})/$',
         PasswordResetConfirmView.as_view(template_name='account/password_reset_confirm.html', ),
         name='password_reset_confirm'),
