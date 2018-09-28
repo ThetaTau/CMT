@@ -70,6 +70,8 @@ class Command(BaseCommand):
         exclude = options.get('exclude', "")
         if exclude:
             exclude = exclude[0]
+        else:
+            exclude = ""
         print("Exluding", exclude)
         initiations = Initiation.objects.filter(
             created__gte=date_start,
@@ -126,7 +128,7 @@ class Command(BaseCommand):
                         "Graduation Year": initiation.user.graduation_year,
                         "Roll Number": initiation.roll,
                         "First Name": initiation.user.first_name,
-                        "Middle Name": initiation,
+                        "Middle Name": "",
                         "Last Name": initiation.user.last_name,
                         "Overall GPA": initiation.gpa,
                         "A Pledge Test Scores": initiation.test_a,
