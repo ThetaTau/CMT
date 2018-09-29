@@ -49,14 +49,14 @@ class Chapter(models.Model):
 
     def get_actives_for_date(self, date):
         # Do not annotate, need the queryset not a list
-        return self.members.filter(status__status="active",
+        return self.members.filter(status__status__in=["active", "activepend", "alumnipend"],
                                    status__start__lte=date,
                                    status__end__gte=date
                                    )
 
     def actives(self):
         # Do not annotate, need the queryset not a list
-        return self.members.filter(status__status="active",
+        return self.members.filter(status__status__in=["active", "activepend", "alumnipend"],
                                    status__start__lte=TODAY_END,
                                    status__end__gte=TODAY_END
                                    )
