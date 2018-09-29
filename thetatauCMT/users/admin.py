@@ -139,7 +139,8 @@ class MyUserAdmin(AuthUserAdmin):
     form = MyUserChangeForm
     add_form = MyUserCreationForm
     fieldsets = (
-            ('User Profile', {'fields': ('name', 'chapter', 'badge_number')}),
+            ('User Profile', {'fields': ('name', 'chapter', 'badge_number', 'user_id')}),
     ) + AuthUserAdmin.fieldsets
     list_display = ('username', 'name', 'last_login', 'user_id', 'badge_number', 'chapter')
     list_filter = ('is_superuser', 'last_login', 'groups', 'chapter')
+    search_fields = ('user_id', 'badge_number') + AuthUserAdmin.search_fields
