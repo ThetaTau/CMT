@@ -356,7 +356,7 @@ class Command(BaseCommand):
                 cmt = set(sorted(map(str, list(current_members))))
                 if central != cmt:
                     change_messages.append(f"Chapter count ERROR {chapter_obj}")
-                    change_messages.append(central ^ cmt)
+                    change_messages.append(f"{central ^ cmt}")
                     change_messages.append("  CENTRAL NOT CMT")
                     change_messages.append("\n    ".join(central - cmt))
                     change_messages.append("  CMT NOT CENTRAL")
