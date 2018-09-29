@@ -4,7 +4,7 @@ import os
 import csv
 import re
 import datetime
-import warnings
+import random
 from collections import defaultdict
 from django.core.management import BaseCommand
 from django.utils import timezone
@@ -167,16 +167,25 @@ class Command(BaseCommand):
                         if user_obj.user_id != user_id:
                             old_userid = user_obj.user_id
                             if user_obj.user_id != f"{chapter_obj.greek}{roll}":
-                                user_obj.user_id = f"{chapter_obj.greek}{roll}"
+                                new_userid = f"{chapter_obj.greek}{roll}"
+                                user_obj.user_id = new_userid
                                 user_obj.badge_number = roll
                                 change_messages.append(f"Update User: {user_obj}, roll: {roll}"
                                                        f" Change: user_id, badge_number;"
-                                                       f" old: {old_userid} new: {user_obj.user_id}")
+                                                       f" old: {old_userid} new: {new_userid}")
                                 try:
                                     with transaction.atomic():
                                         user_obj.save()
                                 except IntegrityError as e:
-                                    change_messages.append(f"Unable to update user_id, {e}")
+                                    change_messages.append(f"Another user has user_id, {new_userid}!")
+                                    other_user_obj = User.objects.get(user_id=new_userid)
+                                    rand = random.randint(0, 9990)
+                                    new_roll = int(str(99999) + str(rand))
+                                    other_user_obj.badge_number = new_roll
+                                    other_user_obj.user_id = f"{chapter_obj.greek}{new_roll}"
+                                    other_user_obj.save()
+                                    user_obj.save()
+                                    change_messages.append(f"UserID upset: {other_user_obj} to {new_roll}")
                 if user_obj in chapter_count[chapter_obj]:
                     # A user will have multiple rows because of their many roles
                     # Only need the first
@@ -341,21 +350,17 @@ class Command(BaseCommand):
                 active.end = datetime.date.today() - datetime.timedelta(days=1)
                 active.save()
             # We are going to double check list from above with current chapter list
-            error = False
             for chapter_obj in chapter_count:
                 current_members = chapter_obj.actives() | chapter_obj.pledges()
                 central = set(sorted(map(str, chapter_count[chapter_obj])))
                 cmt = set(sorted(map(str, list(current_members))))
                 if central != cmt:
-                    print(f"Chapter count ERROR {chapter_obj}")
-                    print(central ^ cmt)
-                    print("  CENTRAL NOT CMT")
-                    print("\n    ".join(central - cmt))
-                    print("  CMT NOT CENTRAL")
-                    print("\n    ".join(cmt - central))
-                    error = True
-            if error:
-                raise ValueError("Chapter count error")
+                    change_messages.append(f"Chapter count ERROR {chapter_obj}")
+                    change_messages.append(central ^ cmt)
+                    change_messages.append("  CENTRAL NOT CMT")
+                    change_messages.append("\n    ".join(central - cmt))
+                    change_messages.append("  CMT NOT CENTRAL")
+                    change_messages.append("\n    ".join(cmt - central))
         except Exception as e:
             print('\n'.join(change_messages))
             print(f"ERROR:\n{e}")
