@@ -5,6 +5,7 @@ import csv
 import re
 import datetime
 import warnings
+from collections import defaultdict
 from django.core.management import BaseCommand
 from django.utils import timezone
 from django.conf import settings
@@ -75,7 +76,9 @@ class Command(BaseCommand):
             'role': 'Organization Relation Relationship',
             'role2': 'Organization Relation Position'}
         alumni_pending = []
+        active_pending = []
         active_list = []
+        chapter_count = defaultdict(list)
         try:
             for id_obj, row in enumerate(reader):
                 print(id_obj)
@@ -142,10 +145,10 @@ class Command(BaseCommand):
                 except ValueError:
                     roll = ''.join([s for s in list(roll) if s.isdigit()])
                 if user_obj is None:
-                    change_messages.append(f"No user found, create one now: {row}")
                     if row[trans['email']] == '':
-                        # warnings.warn(f"No email for user: {row}")
+                        change_messages.append(f"No email for user found, skip user! {chapter_obj} {row[trans['last']]}")
                         continue
+                    change_messages.append(f"No user found, create one now: {row}")
                     user_obj = User(
                         username=row[trans['email']],
                         first_name=row[trans['first']],
@@ -173,7 +176,12 @@ class Command(BaseCommand):
                                     with transaction.atomic():
                                         user_obj.save()
                                 except IntegrityError as e:
-                                    warnings.warn(f"Issue updating user {user_obj} with {user_id}")
+                                    change_messages.append(f"Unable to update user_id, {e}")
+                if user_obj in chapter_count[chapter_obj]:
+                    # A user will have multiple rows because of their many roles
+                    # Only need the first
+                    continue
+                chapter_count[chapter_obj].append(user_obj)
                 status = row[trans['status']]
                 if 'pledge' in status.lower():
                     status = 'pnm'
@@ -211,40 +219,70 @@ class Command(BaseCommand):
                     end__gte=TODAY_END
                 )
                 # at the end we need to check all alumnipend not kept to update to alumni?
+                # Options other:   pnm, activepend, active, alumnipend, alumni
+                # Options current: pnm, active
+                # other_status    current_status
+                # pnm              pnm            delete other_status; duplicate
+                # pnm              active         pass through
+                # activepend       pnm            delete curent_status; keep activepend
+                # activepend       active         pass through
+                # active           pnm            delete other_status; pledge can't be active
+                # active           active         delete other_status; duplicate
+                # alumnipend       pnm            delete other_status; pledge can't be active
+                # alumnipend       active         delete curent_status; keep alumnipend
+                # alumni           active/pnm     delete other_status; active/pnm can't be alumni
                 for other_status in other_statuss:
                     if other_status.status.lower() == 'colony':
+                        # This should just not happen
                         other_status.delete()
                         continue
+                    if other_status.status == status_obj.status:
+                        # There is a duplicate, delete other
+                        # pnm              pnm            delete other_status; duplicate
+                        # active           active         delete other_status; duplicate
+                        other_status.delete()
+                        continue
+                    if other_status.status == 'activepend':
+                        # If the central status is pledge
+                        # and the current status is activepend, keep activepend
+                        # activepend       pnm            delete curent_status; keep activepend
+                        if status_obj.status == 'pnm':
+                            active_pending.append(user_obj.pk)
+                            status_obj.end = other_status.start - datetime.timedelta(days=1)
+                            status_obj.save()
+                            other_status.end = forever()
+                            other_status.save()
+                            change_messages.append(f"    Remove pledge status because activepend {user_obj}")
+                            continue
+                        # else pass through to remove activepend
                     if other_status.status == 'alumnipend':
                         # If the central status is active
                         # and the current status is alumnipend, keep alumnipend
-                        alumni_pending.append(user_obj.pk)
                         if status_obj.status == 'active':
+                            # alumnipend       active         delete curent_status; keep alumnipend
+                            alumni_pending.append(user_obj.pk)
                             status_obj.end = other_status.start - datetime.timedelta(days=1)
                             status_obj.save()
                             other_status.end = forever()
                             other_status.save()
-                            change_messages.append(f"Remove active status because alumnipend {user_obj}")
+                            change_messages.append(f"    Remove active status because alumnipend {user_obj}")
                             continue
-                    elif other_status.status == 'activepend':
-                        # If the central status is pledge
-                        # and the current status is activepend, keep activepend
-                        if status_obj.status == 'pnm':
-                            status_obj.end = other_status.start - datetime.timedelta(days=1)
-                            status_obj.save()
-                            other_status.end = forever()
-                            other_status.save()
-                            change_messages.append(f"Remove pledge status because activepend {user_obj}")
+                        else:
+                            # status_obj is pnm, this should not happen
+                            # alumnipend       pnm            delete other_status; pledge can't be active
+                            other_status.delete()
                             continue
-                    elif other_status.status == 'alumni':
+                    if other_status.status == 'alumni':
                         # A current active/pledge should not have alumni status
                         other_status.delete()
                         continue
-                    elif other_status.status == 'active':
+                    if other_status.status == 'active':
                         if status_obj.status == 'pnm':
+                            # active           pnm            delete other_status; pledge can't be active
                             # A current pledge should not have other active status
                             other_status.delete()
                             continue
+                    # activepend       active         pass through
                     # The remaining status should be pledge or
                     # activepend that is no longer pending
                     # If the central is active and current is activepend; update
@@ -256,6 +294,7 @@ class Command(BaseCommand):
                 status='alumnipend',
                 start__lte=TODAY_END,
                 end__gte=TODAY_END)
+            change_messages.append(f"OLD Alumni Peding {alumnipends}")
             # If we are not keeping alumni_pending, need to add as alumni
             for alumnipend in alumnipends:
                 UserStatusChange(
@@ -273,6 +312,7 @@ class Command(BaseCommand):
                 start__lte=TODAY_END,
                 end__gte=TODAY_END)
             # If actives are not in CRM export, and in CMT as active, need to alumni
+            change_messages.append(f"OLD ACTIVES {all_old_actives}")
             for active in all_old_actives:
                 UserStatusChange(
                     user=active.user,
@@ -283,6 +323,39 @@ class Command(BaseCommand):
                 change_messages.append(f"Removing left active {active.user}")
                 active.end = datetime.date.today() - datetime.timedelta(days=1)
                 active.save()
+            all_old_activepends = UserStatusChange.objects.filter(
+                ~models.Q(user__pk__in=active_pending),
+                status='activepend',
+                start__lte=TODAY_END,
+                end__gte=TODAY_END)
+            # If actives are not in CRM export, and in CMT as active, need to alumni
+            change_messages.append(f"OLD ACTIVE PENDS {all_old_activepends}")
+            for active in all_old_activepends:
+                UserStatusChange(
+                    user=active.user,
+                    status='alumni',
+                    start=datetime.date.today(),
+                    end=forever()
+                ).save()
+                change_messages.append(f"Removing left active {active.user}")
+                active.end = datetime.date.today() - datetime.timedelta(days=1)
+                active.save()
+            # We are going to double check list from above with current chapter list
+            error = False
+            for chapter_obj in chapter_count:
+                current_members = chapter_obj.actives() | chapter_obj.pledges()
+                central = set(sorted(map(str, chapter_count[chapter_obj])))
+                cmt = set(sorted(map(str, list(current_members))))
+                if central != cmt:
+                    print(f"Chapter count ERROR {chapter_obj}")
+                    print(central ^ cmt)
+                    print("  CENTRAL NOT CMT")
+                    print("\n    ".join(central - cmt))
+                    print("  CMT NOT CENTRAL")
+                    print("\n    ".join(cmt - central))
+                    error = True
+            if error:
+                raise ValueError("Chapter count error")
         except Exception as e:
             print('\n'.join(change_messages))
             print(f"ERROR:\n{e}")
