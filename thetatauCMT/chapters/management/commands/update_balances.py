@@ -2,7 +2,7 @@
 import csv
 from django.core.management import BaseCommand
 from django.utils import timezone
-from chapters.models import Chapter
+from chapters.models import Chapter, GREEK_ABR
 
 
 class Command(BaseCommand):
@@ -20,7 +20,10 @@ class Command(BaseCommand):
             reader = csv.DictReader(csvfile)
             for row in reader:
                 balance = row['Balance'].replace(",", "")
-                balances[row['Chapter'].lower()] = float(balance)
+                chapter_name = row['Chapter'].lower()
+                if chapter_name in GREEK_ABR:
+                    chapter_name = GREEK_ABR[chapter_name]
+                balances[chapter_name] = float(balance)
         for chapter in Chapter.objects.all():
             chapter.balance = balances.get(chapter.name.lower(), 0)
             chapter.balance_date = timezone.now()
