@@ -54,7 +54,6 @@ NATIONAL_OFFICER = {
 }
 
 COMMITTEE_CHAIR = {
-    'academic chair',
     'adviser',
     "board member",
     "committee chair",
@@ -73,7 +72,7 @@ COMMITTEE_CHAIR = {
     "recruitment chair",
     "risk management chair",
     "rube goldberg chair",
-    "rush chair",
+    "recruitment chair",
     "scholarship chair",
     "service chair",
     "social/brotherhood chair",

@@ -142,7 +142,8 @@ class GraduateForm(forms.ModelForm):
                           attrs={'autocomplete': 'off'},
                           ))
     email_personal = forms.EmailField()
-    email_work = forms.EmailField()
+    email_work = forms.EmailField(required=False)
+    employer = forms.CharField(required=False)
 
     class Meta:
         model = StatusChange

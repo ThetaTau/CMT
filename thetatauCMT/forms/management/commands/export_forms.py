@@ -56,12 +56,14 @@ class Command(BaseCommand):
         parser.add_argument('-date_end', nargs=1, type=str)
         parser.add_argument('-exclude', nargs=1, type=str,
                             help='mscr, init, depledge, coop, oer')
+        parser.add_argument('-no-email', action='store_true')
 
     # A command must define handle()
     def handle(self, *args, **options):
         password = options['password'][0]
         date_start = datetime.datetime.strptime(options['date_start'][0], '%Y%m%d')
         date_end_str = options.get('date_end', None)
+        no_email = options.get('no_email', False)
         if date_end_str:
             date_end_str = date_end_str[0]
             date_end = datetime.datetime.strptime(date_end_str, '%Y%m%d') + datetime.timedelta(days=1)
@@ -168,7 +170,7 @@ class Command(BaseCommand):
                         "Submitted by": "",
                         "Date Submitted": officer.created,
                         "Chapter Name": officer.user.chapter.name,
-                        "Office": officer.role,
+                        "Office": officer.role.capitalize(),
                         "Term Begins (M/D/YYYY)": officer.start.strftime("%m/%d/%Y"),
                         "Term Ends (M/D/YYYY)": officer.end.strftime("%m/%d/%Y"),
                         "*ChapRoll": officer.user.user_id,
@@ -189,6 +191,8 @@ class Command(BaseCommand):
                     coop_writer = csv.DictWriter(coop_file, fieldnames=COOP)
                     coop_writer.writeheader()
                     for status in statuses:
+                        if 'test' in status.user.chapter.school.lower():
+                            continue
                         main_row = {
                             "Submitted by": "",
                             "Date Submitted": status.created,
@@ -201,10 +205,9 @@ class Command(BaseCommand):
                             if 'mscr' in exclude:
                                 continue
                             mscr_true = True
+                            new_school = ""
                             if status.new_school:
                                 new_school = status.new_school.school
-                            else:
-                                new_school = ""
                             transfer_date = ""
                             withdraw_date = ""
                             withdraw = ""
@@ -249,7 +252,8 @@ class Command(BaseCommand):
                 file_paths_out.append(f"exports//{TODAY_DATE}_mscr.csv")
             if coop_true:
                 file_paths_out.append(f"exports//{TODAY_DATE}_coop.csv")
-        self.send_email(file_paths_out, password)
+        if not no_email:
+            self.send_email(file_paths_out, password)
 
     def send_email(self, attachments, password):
         sender = 'Frank.Ventura@ThetaTau.org'
