@@ -168,7 +168,7 @@ class Command(BaseCommand):
                         "Submitted by": "",
                         "Date Submitted": officer.created,
                         "Chapter Name": officer.user.chapter.name,
-                        "Office": officer.role,
+                        "Office": officer.role.capitalize(),
                         "Term Begins (M/D/YYYY)": officer.start.strftime("%m/%d/%Y"),
                         "Term Ends (M/D/YYYY)": officer.end.strftime("%m/%d/%Y"),
                         "*ChapRoll": officer.user.user_id,
