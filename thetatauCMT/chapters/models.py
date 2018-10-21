@@ -19,6 +19,7 @@ GREEK_ABR = {
     'e': 'epsilon',
     'eb': 'epsilon beta',
     'ed': 'epsilon delta',
+    "eg": "epsilon gamma",
     'fit': 'fit colony',
     'gb': 'gamma beta',
     'h': 'eta',
