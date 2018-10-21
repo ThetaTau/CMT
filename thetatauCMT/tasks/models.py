@@ -109,7 +109,7 @@ class TaskChapter(models.Model):
                              related_name="chapters")
     chapter = models.ForeignKey(Chapter, on_delete=models.CASCADE,
                                 related_name="tasks")
-    date = models.DateField("Task Completed Date", default=datetime.datetime.now())
+    date = models.DateField("Task Completed Date", default=datetime.date.today)
     # This can only be used for a submission or form
     # Whatever results in the completion of the task
     submission_type = models.ForeignKey(ContentType, on_delete=models.CASCADE,
