@@ -7,6 +7,7 @@
   "license": "GPL-3.0-or-later",
   "version": "0.1.0",
   "dependencies": {
+    "clipboard": "^2.0.1",
     "compass": "^0.1.1",
     "floatthead": "^2.1.2"
   },

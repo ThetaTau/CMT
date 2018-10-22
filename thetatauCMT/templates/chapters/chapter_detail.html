@@ -29,10 +29,16 @@
         </table>
       {% endif %}
     <h3>Current Officers:</h3>
-      <p>Missing officers? Any officer listed below can submit an <a href="{% url 'forms:officer' %}"> officer election report.</a></p>
+      <p>Missing officers? Any officer listed below can submit an <a href="{% url 'forms:officer' %}"> officer election report.</a>
+      <button class="clipboard button btn btn-primary" style="float: right;"
+            data-clipboard-text="{{ email_list }}">
+      Copy emails to clipboard
+    </button>
+      </p>
       {% render_table table %}
     </div>
   </div>
 </div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/1.5.10/clipboard.min.js"></script>
 {% endblock content %}
 

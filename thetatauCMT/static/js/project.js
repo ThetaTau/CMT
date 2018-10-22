@@ -19,3 +19,38 @@ Issues with the above approach:
 4. Undocumented: No mention in the documentation, or it's too hard for me to find
 */
 $('.form-group').removeClass('row');
+
+$('.clipboard').tooltip({
+  trigger: 'click',
+  placement: 'bottom'
+});
+
+function setTooltip(message) {
+  $('.clipboard').tooltip('hide')
+    .attr('data-original-title', message)
+    .tooltip('show');
+}
+
+function hideTooltip() {
+  setTimeout(function() {
+    $('.clipboard').tooltip('hide');
+  }, 1000);
+}
+
+// Clipboard
+
+var clipboard = new Clipboard('.clipboard', {
+  target: function (trigger) {
+    return trigger.previousElementSibling;
+  }
+});
+
+clipboard.on('success', function(e) {
+  setTooltip('Copied!');
+  hideTooltip();
+});
+
+clipboard.on('error', function(e) {
+  setTooltip('Failed!');
+  hideTooltip();
+});

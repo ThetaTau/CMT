@@ -1,4 +1,7 @@
+import csv
+import datetime
 from collections import defaultdict
+from django.http import HttpResponse
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.urls import reverse
 from django.http.request import QueryDict
@@ -28,6 +31,22 @@ class RegionOfficerView(NatOfficerRequiredMixin,
     formhelper_class = UserRoleListFormHelper
     template_name = "regions/officer_list.html"
 
+    def get(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        context = self.get_context_data(object=self.object)
+        if request.GET.get('csv', 'False').lower() == 'download csv':
+            response = HttpResponse(content_type='text/csv')
+            time_name = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename = f"ThetaTauOfficerExport_{time_name}.csv"
+            response['Content-Disposition'] = f'attachment; filename="{filename}"'
+            writer = csv.writer(response)
+            emails = context['email_list']
+            for row in context['table'].as_values():
+                if row[2] in emails:
+                    writer.writerow(row)
+            return response
+        return self.render_to_response(context)
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         all_chapter_officers = User.objects.none()
@@ -47,6 +66,7 @@ class RegionOfficerView(NatOfficerRequiredMixin,
         self.filter = self.filter_class(request_get,
                                         queryset=all_chapter_officers)
         self.filter.form.helper = self.formhelper_class()
+        email_list = ', '.join([x[0] for x in self.filter.qs.values_list('email').distinct()])
         all_chapter_officers = combine_annotations(self.filter.qs)
         self.filter.form.base_fields['chapter'].queryset = self.object.chapters.all()
         table = UserTable(
@@ -58,6 +78,7 @@ class RegionOfficerView(NatOfficerRequiredMixin,
         RequestConfig(self.request, paginate={'per_page': 50}).configure(table)
         context['table'] = table
         context['filter'] = self.filter
+        context['email_list'] = email_list
         return context
 
 

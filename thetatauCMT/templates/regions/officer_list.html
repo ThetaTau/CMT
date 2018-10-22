@@ -11,6 +11,15 @@
   <div class="row">
     <div class="col-sm-12">
       <h2>{{ object.name }} Region Officers:</h2>
+    <form action='' method='GET'>
+        {% csrf_token %}
+        <input type='hidden'>
+        <input type='submit' class="btn btn-primary" name="csv" value="Download CSV" style="float: right;">
+    </form>
+    <button class="clipboard button btn btn-primary" style="float: right;"
+            data-clipboard-text="{{ email_list }}">
+      Copy emails to clipboard
+    </button>
 {% if table.page %}
   <div class="table-container">
 {% endif %}
@@ -82,5 +91,6 @@
     </div>
   </div>
 </div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/1.5.10/clipboard.min.js"></script>
 {% endblock content %}
 

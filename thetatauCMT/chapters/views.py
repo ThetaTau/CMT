@@ -18,6 +18,8 @@ class ChapterDetailView(LoginRequiredMixin, OfficerMixin, DetailView):
         table = UserTable(data=chapter_officers)
         RequestConfig(self.request, paginate={'per_page': 100}).configure(table)
         context['table'] = table
+        email_list = ', '.join([x.email for x in chapter_officers])
+        context['email_list'] = email_list
         return context
 
 
