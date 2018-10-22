@@ -48,7 +48,9 @@ class TaskCompleteView(OfficerRequiredMixin,
         task_date = TaskDate.objects.get(pk=task_date_id)
         task = task_date.task
         owner = task.owner.lower()
-        user_role = self.request.user.get_current_role().role.lower()
+        user_role = self.request.user.get_current_role()
+        if user_role:
+            user_role = user_role.role.lower()
         if owner != user_role:
             messages.add_message(
                 self.request, messages.ERROR,
