@@ -64,7 +64,14 @@
             </tbody>
             {% endblock table.tbody %}
             {% block table.tfoot %}
-            <tfoot></tfoot>
+            <tfoot>
+            <tr>
+              <td colspan="100%">
+              Alumnipend: <a href="{% url 'forms:status_selection' %}">graduation form</a> is waiting to be processed.<br>
+              Activepend <a href="{% url 'forms:init_selection' %}">initiation form</a> is waiting to be processed.<br>
+              </td>
+            </tr>
+            </tfoot>
             {% endblock table.tfoot %}
         </table>
     </div>
