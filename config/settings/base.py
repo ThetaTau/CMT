@@ -78,6 +78,7 @@ THIRD_PARTY_APPS = [
     'django_tables2',
     'django_filters',
     'bootstrap4',
+    'django_extensions',  # https://github.com/pydanny/cookiecutter-django/issues/417
 ]
 LOCAL_APPS = [
     'thetatauCMT.users.apps.UsersConfig',
