@@ -56,7 +56,8 @@ class InitiationForm(forms.ModelForm):
 
     def clean_user(self):
         data = self.cleaned_data['user']
-        user = User.objects.filter(name=data).first()
+        user = User.objects.filter(
+            name=data, chapter__name=self.data['chapter']).last()
         return user.pk
 
 
@@ -97,7 +98,8 @@ class DepledgeForm(forms.ModelForm):
 
     def clean_user(self):
         data = self.cleaned_data['user']
-        user = User.objects.filter(name=data).first()
+        user = User.objects.filter(
+            name=data, chapter__name=self.data['chapter']).last()
         return user.pk
 
 
@@ -159,7 +161,8 @@ class GraduateForm(forms.ModelForm):
 
     def clean_user(self):
         data = self.cleaned_data['user']
-        user = User.objects.filter(name=data).first()
+        user = User.objects.filter(
+            name=data, chapter__name=self.data['chapter']).last()
         return user
 
 
@@ -240,7 +243,8 @@ class CSMTForm(forms.ModelForm):
 
     def clean_user(self):
         data = self.cleaned_data['user']
-        user = User.objects.filter(name=data).first()
+        user = User.objects.filter(
+            name=data, chapter__name=self.data['chapter']).last()
         return user
 
 

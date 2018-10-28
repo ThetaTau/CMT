@@ -20,6 +20,7 @@ function update_dates() {
 {% specialspaceless %}
   <form action="" method="post">
     {% csrf_token %}
+    <input type="hidden" id="chapter" name="chapter" value="{{ user.current_chapter }}">
     <div>
         {{ formset.management_form|crispy }}
     </div>
