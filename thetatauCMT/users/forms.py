@@ -1,6 +1,6 @@
 from django import forms
 from crispy_forms.helper import FormHelper
-from crispy_forms.layout import Layout, Fieldset, Row, Submit, Button
+from crispy_forms.layout import Layout, Fieldset, Row, Column, Submit, Button
 from crispy_forms.bootstrap import FormActions, InlineField, StrictButton
 from chapters.models import Chapter
 from .models import UserAlterChapter
@@ -53,12 +53,12 @@ class UserRoleListFormHelper(FormHelper):
                 Fieldset(
                     '<i class="fas fa-search"></i> Filter Members',
                     Row(
-                        InlineField('name__icontains'),
-                        InlineField('current_status'),
-                        InlineField('major__icontains'),
-                        InlineField('graduation_year__icontains'),
-                        InlineField('chapter'),
-                        FormActions(
+                        Column(InlineField('name__icontains')),
+                        Column(InlineField('current_status')),
+                        Column(InlineField('major__icontains')),
+                        Column(InlineField('graduation_year__icontains')),
+                        Column(InlineField('chapter')),
+                        Column(FormActions(
                             StrictButton(
                                 '<i class="fa fa-search"></i> Filter',
                                 type='submit',
@@ -67,8 +67,8 @@ class UserRoleListFormHelper(FormHelper):
                                 'cancel',
                                 'Clear',
                                 css_class='btn-primary'),
-                        ),
-                        InlineField('role'),
+                        )),
+                        Column(InlineField('role')),
                     )
                 ),
     )

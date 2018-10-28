@@ -41,7 +41,7 @@ function hideTooltip() {
 
 var clipboard = new Clipboard('.clipboard', {
   target: function (trigger) {
-    return trigger.previousElementSibling;
+    return trigger;
   }
 });
 
