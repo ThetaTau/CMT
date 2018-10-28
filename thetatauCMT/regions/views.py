@@ -3,6 +3,7 @@ import datetime
 from collections import defaultdict
 from django.http import HttpResponse
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib import messages
 from django.urls import reverse
 from django.http.request import QueryDict
 from django.db import models
@@ -41,10 +42,16 @@ class RegionOfficerView(NatOfficerRequiredMixin,
             response['Content-Disposition'] = f'attachment; filename="{filename}"'
             writer = csv.writer(response)
             emails = context['email_list']
-            for row in context['table'].as_values():
-                if row[2] in emails:
-                    writer.writerow(row)
-            return response
+            if emails != "":
+                writer.writerow(context['table'].columns.names())
+                for row in context['table'].as_values():
+                    if row[2] in emails:
+                        writer.writerow(row)
+                return response
+            else:
+                messages.add_message(
+                    self.request, messages.ERROR,
+                    f"All officers are filtered! Clear or change filter.")
         return self.render_to_response(context)
 
     def get_context_data(self, **kwargs):
