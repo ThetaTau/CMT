@@ -240,6 +240,7 @@ class Command(BaseCommand):
                 # alumnipend       pnm            delete other_status; pledge can't be active
                 # alumnipend       active         delete curent_status; keep alumnipend
                 # alumni           active/pnm     delete other_status; active/pnm can't be alumni
+                # depledge         active/pnm     delete current_status;
                 for other_status in other_statuss:
                     if other_status.status.lower() == 'colony':
                         # This should just not happen
@@ -250,6 +251,16 @@ class Command(BaseCommand):
                         # pnm              pnm            delete other_status; duplicate
                         # active           active         delete other_status; duplicate
                         other_status.delete()
+                        continue
+                    if other_status.status == 'depledge':
+                        # If the central status is pledge or active
+                        # but a depledge status has been submitted, should keep depledge status
+                        # and remove the other status
+                        status_obj.end = other_status.start - datetime.timedelta(days=1)
+                        status_obj.save()
+                        other_status.end = forever()
+                        other_status.save()
+                        change_messages.append(f"    Remove pledge/active status because depledge {user_obj}")
                         continue
                     if other_status.status == 'activepend':
                         # If the central status is pledge
