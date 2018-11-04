@@ -26,11 +26,10 @@ to go back in time:
     python manage.py shell
 from users.models import User
 me = User.objects.get(username='venturafranklin@gmail.com')
-        me.is_superuser=True
-    me.is_staff=True
-    me.save()
-    
-    me.set_password('_new_password_')
+me.is_superuser=True
+me.is_staff=True
+me.set_password('_new_password_')
+me.save()
     
 #### If delete/reload everything
 Need to fix social accounts
