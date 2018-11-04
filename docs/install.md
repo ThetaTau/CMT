@@ -38,7 +38,7 @@ run from command line the postgress bat file: "C:\Program Files\PostgreSQL\10\pg
 
 run from command line the postgress create bat file: "C:\Program Files\PostgreSQL\10\bin\createdb" thetatauCMT
 
-edit wherever you installed postgress data folder: data\pg_hba.conf (For example: "E:\workspace\CMT\data\pg_hba.conf")
+edit wherever you installed postgress data folder: data\pg_hba.conf (For example: ""C:\Program Files\PostgreSQL\10\data\pg_hba.conf"")
     # IPv4 local connections:
     host    all             all             127.0.0.1/32            md5
 change to:
@@ -84,6 +84,8 @@ add the lines at the bottom:
     - Ignore Django facet issue (unless you have pycharm pro)
     - File --> Settings --> Project: thetatauCMT --> Project Interpreter
         Add virtualenv configured above, set as env for project
+    - Set the environment variables
+        - 
 
 
 ## [Now see helpful functions](useful_functions.md)

@@ -26,6 +26,9 @@ django-filter==1.1.0
 django-jquery-js==3.1.1
 django-tables2==1.21.2
 django-tempus-dominus==0.1.4
+rollbar==0.14.5
+django-autocomplete-light==3.3.2
+
 
 # Django REST Framework
 djangorestframework==3.7.7  # https://github.com/encode/django-rest-framework
