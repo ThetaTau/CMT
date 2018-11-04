@@ -158,6 +158,7 @@ SHORT_NAMES = {
 
 
 def get_all_chapter_events(apps, schema_editor):
+    return
     for chapter_name, chapter_info in CHAPTER_IDS.items():
         print(chapter_name)
         if not chapter_info[1]:

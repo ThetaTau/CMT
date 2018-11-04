@@ -32,6 +32,7 @@ from oauth2client import file, client, tools
 
 
 def load_users(apps, schema_editor):
+    return
     SCOPES = 'https://www.googleapis.com/auth/spreadsheets.readonly'
     id_file = os.path.join(settings.ROOT_DIR.root, r'secrets/GoogleSheetsClient_id.json')
     id_file_out = os.path.join(settings.ROOT_DIR.root, r'secrets/GoogleSheetsClient_id_out.json')

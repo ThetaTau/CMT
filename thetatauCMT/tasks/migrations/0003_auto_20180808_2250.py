@@ -27,6 +27,7 @@ task_to_form = {
 
 
 def add_submission_link(apps, schema_editor):
+    return
     task = apps.get_model("tasks", "Task")
     submit_type = apps.get_model("scores", "ScoreType")
     for task_obj in task.objects.all():

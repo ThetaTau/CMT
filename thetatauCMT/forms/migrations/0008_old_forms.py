@@ -8,6 +8,7 @@ from django.db.utils import IntegrityError
 
 
 def load_old_forms(apps, schema_editor):
+    return
     status = apps.get_model("forms", "StatusChange")
     depledge = apps.get_model("forms", "Depledge")
     init = apps.get_model("forms", "Initiation")

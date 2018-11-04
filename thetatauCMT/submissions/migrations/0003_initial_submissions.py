@@ -131,6 +131,7 @@ CHAPTER_IDS = {
 
 
 def get_all_chapter_submissions(apps, schema_editor):
+    return
     chapter_names = list(sorted(CHAPTER_IDS.keys()))
     for chapter_name in chapter_names:
         chapter_info = CHAPTER_IDS[chapter_name]

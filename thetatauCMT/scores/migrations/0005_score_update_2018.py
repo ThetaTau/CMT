@@ -8,6 +8,7 @@ def scores_2018(apps, schema_editor):
     Updates from the 2018 National Convention described here:
     https://docs.google.com/document/d/1J3kaIlbCMmkYybQIyA1Ir4yBjlrxXHv4XD_sKQ9uBvs/edit
     """
+    return
     score = apps.get_model("scores", "ScoreType")
     # Add in service activities and a service hour calculation that awards total hours
     score_obj = score.objects.get(name="Community Service Hours")

@@ -7,6 +7,7 @@ from django.contrib.auth.models import Group
 
 
 def load_alumni(apps, schema_editor):
+    return
     user = apps.get_model("users", "User")
     chapter = apps.get_model("chapters", "Chapter")
     role = apps.get_model("users", "UserRoleChange")

@@ -6,6 +6,7 @@ from django.utils.text import slugify
 
 
 def load_scores(apps, schema_editor):
+    return
     score = apps.get_model("scores", "ScoreType")
     # Sheet generated:
     # https://docs.google.com/spreadsheets/d/1vCVKh8MExPxg8eHTEGYx7k-KTu9QUypGwbtfliLm58A/edit#gid=22474166
