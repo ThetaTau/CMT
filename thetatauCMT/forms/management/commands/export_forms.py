@@ -166,11 +166,15 @@ class Command(BaseCommand):
                 writer = csv.DictWriter(oer_file, fieldnames=OER)
                 writer.writeheader()
                 for officer in officers:
+                    if 'pd' in officer.role:
+                        role = 'PD Chair'
+                    else:
+                        role = officer.role.title()
                     row = {
                         "Submitted by": "",
                         "Date Submitted": officer.created,
                         "Chapter Name": officer.user.chapter.name,
-                        "Office": officer.role.capitalize(),
+                        "Office": role,
                         "Term Begins (M/D/YYYY)": officer.start.strftime("%m/%d/%Y"),
                         "Term Ends (M/D/YYYY)": officer.end.strftime("%m/%d/%Y"),
                         "*ChapRoll": officer.user.user_id,
