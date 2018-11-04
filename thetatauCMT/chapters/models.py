@@ -1,4 +1,6 @@
+import warnings
 from django.db import models
+from django.db.utils import ProgrammingError
 from address.models import AddressField
 from django.utils.translation import ugettext_lazy as _
 from django.utils.text import slugify
@@ -181,7 +183,12 @@ class Chapter(models.Model):
 
     @classmethod
     def schools(cls):
-        return [(school['pk'], school['school']) for school in cls.objects.values('school', 'pk').order_by('school')]
+        try:
+            return [(school['pk'], school['school']) for school in cls.objects.values('school', 'pk').order_by('school')]
+        except ProgrammingError:
+            warnings.warn("Could not find school relation")
+            return []
+
 
 
 class ChapterCurricula(models.Model):
