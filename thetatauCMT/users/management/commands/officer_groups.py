@@ -4,8 +4,6 @@ from csv import DictReader
 from django.contrib.auth.models import Group, Permission
 # from django.contrib.contenttypes.models import ContentType
 from users.models import User
-nat_group, created = Group.objects.get_or_create(name='natoff')
-off_group, created = Group.objects.get_or_create(name='officer')
 # ct = ContentType.objects.get_for_model(User)
 # permission = Permission.objects.create(
 #     codename='can_add_project', name='Can add project',
@@ -20,6 +18,8 @@ class Command(BaseCommand):
 
     # A command must define handle()
     def handle(self, *args, **options):
+        nat_group, created = Group.objects.get_or_create(name='natoff')
+        off_group, created = Group.objects.get_or_create(name='officer')
         with open(file_path, 'r') as csv_file:
             reader = DictReader(csv_file)
             for row in reader:
