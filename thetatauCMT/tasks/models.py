@@ -1,10 +1,11 @@
 import datetime
+from datetime import timedelta
 from django.db import models
 from django.db.models import Q
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
 from django.utils.text import slugify
-from core.models import ALL_OFFICERS_CHOICES
+from core.models import ALL_OFFICERS_CHOICES, TODAY_END
 from chapters.models import Chapter
 from scores.models import ScoreType
 
@@ -88,6 +89,26 @@ class TaskDate(models.Model):
         tasks = cls.objects.filter(Q(school_type=school_type) |
                                    Q(school_type='all'),
                                    ~Q(chapters__chapter=chapter)).all()
+        return tasks
+
+    @classmethod
+    def incomplete_dates_for_chapter_next_month(cls, chapter):
+        school_type = chapter.school_type
+        tasks = cls.objects.filter(Q(school_type=school_type) |
+                                   Q(school_type='all'),
+                                   ~Q(chapters__chapter=chapter),
+                                   Q(date__gte=TODAY_END),
+                                   Q(date__lte=TODAY_END + timedelta(30)),
+                                   ).all()
+        return tasks
+
+    @classmethod
+    def incomplete_dates_for_chapter_past(cls, chapter):
+        school_type = chapter.school_type
+        tasks = cls.objects.filter(Q(school_type=school_type) |
+                                   Q(school_type='all'),
+                                   ~Q(chapters__chapter=chapter),
+                                   Q(date__lte=TODAY_END)).all()
         return tasks
 
     @classmethod
