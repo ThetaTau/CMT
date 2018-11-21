@@ -70,3 +70,7 @@ if settings.DEBUG:
         urlpatterns = [
             url(r'^__debug__/', include(debug_toolbar.urls)),
         ] + urlpatterns
+
+    urlpatterns += [
+        url(r'^herald/', include('herald.urls')),
+    ]
