@@ -4,8 +4,7 @@
     <inspection_tool class="PyPackageRequirementsInspection" enabled="true" level="WARNING" enabled_by_default="true">
       <option name="ignoredPackages">
         <value>
-          <list size="1">
-            <item index="0" class="java.lang.String" itemvalue="django-allauth" />
+          <list size="0">
           </list>
         </value>
       </option>
