@@ -86,6 +86,18 @@ ALL_OFFICERS = sorted(set.union(CHAPTER_OFFICER, COMMITTEE_CHAIR, NATIONAL_OFFIC
 ALL_OFFICERS_CHOICES = [(officer, officer.title()) for officer in ALL_OFFICERS]
 
 
+def semester_start_date():
+    '''
+    Determine the starting date of the current semester
+    :return: date
+    '''
+    semester = SEMESTER[datetime.datetime.now().month]
+    start_month = 1
+    if semester == 'fa':
+        start_month = 7
+    return datetime.datetime(TODAY_END.year, start_month, 1)
+
+
 class TimeStampedModel(models.Model):
     """
     An abstract base class model that provides self-
