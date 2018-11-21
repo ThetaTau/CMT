@@ -1,10 +1,11 @@
 import warnings
+from datetime import timedelta
 from django.db import models
 from django.db.utils import ProgrammingError
 from address.models import AddressField
 from django.utils.translation import ugettext_lazy as _
 from django.utils.text import slugify
-from core.models import TODAY_END, annotate_role_status
+from core.models import TODAY_END, annotate_role_status, CHAPTER_OFFICER, semester_start_date
 from regions.models import Region
 
 
@@ -156,6 +157,13 @@ class Chapter(models.Model):
                                    status__end__gte=date
                                    )
 
+    def events_last_month(self):
+        return self.events.filter(date__lte=TODAY_END, date__gte=TODAY_END - timedelta(30))
+
+    def events_semester(self):
+        semester_start = semester_start_date()
+        return self.events.filter(date__lte=TODAY_END, date__gte=semester_start)
+
     def actives(self):
         # Do not annotate, need the queryset not a list
         return self.members.filter(status__status__in=["active", "activepend", "alumnipend"],
@@ -173,6 +181,13 @@ class Chapter(models.Model):
     def get_current_officers(self, combine=True):
         return annotate_role_status(
             self.members.filter(
+                roles__start__lte=TODAY_END, roles__end__gte=TODAY_END
+            ), combine=combine)
+
+    def get_current_officers_council(self, combine=True):
+        return annotate_role_status(
+            self.members.filter(
+                roles__role__in=CHAPTER_OFFICER,
                 roles__start__lte=TODAY_END, roles__end__gte=TODAY_END
             ), combine=combine)
 
