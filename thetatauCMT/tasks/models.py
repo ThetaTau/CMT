@@ -77,7 +77,7 @@ class TaskDate(models.Model):
     date = models.DateField("Due Date")
 
     def __str__(self):
-        return f"{self.task.name} on {self.date}"
+        return f"{self.task.name} due on {self.date}"
 
     def complete(self, chapter):
         tasks = self.chapters.filter(chapter=chapter).all()
@@ -98,7 +98,7 @@ class TaskDate(models.Model):
                                    Q(school_type='all'),
                                    ~Q(chapters__chapter=chapter),
                                    Q(date__gte=TODAY_END),
-                                   Q(date__lte=TODAY_END + timedelta(30)),
+                                   Q(date__lte=TODAY_END + timedelta(60)),
                                    ).all()
         return tasks
 
