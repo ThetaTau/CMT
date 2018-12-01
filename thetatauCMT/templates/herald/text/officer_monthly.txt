@@ -1,0 +1,45 @@
+** CMT Monthly Email
+------------------------------------------------------------
+Dear Theta Tau {{ chapter }} Officers,
+Your are getting this message because you are listed as an officer for your chapter.
+If you are no longer an officer, you or any officer can update the officer list here: http://cmt.thetatau.org/officer
+
+{% if region_announcements %}
+** Region Announcements:
+------------------------------------------------------------
+{{ region_announcements }}
+{% endif %}** Current chapter information:
+------------------------------------------------------------
+* Your chapter had {{ last_month_events }} events last month, {{ semester_events }} events this semester cmt.thetatau.org{% url 'events:list' %}
+* Your chapter currently has {{ count_members }} members cmt.thetatau.org{% url 'users:list' %}
+* Your chapter currently has {{ count_pledges }} pledges cmt.thetatau.org{% url 'forms:init_selection' %}
+* Your chapter currently has a balance due of ${{ balance }} as of {{ balance_date }}
+* A current list of members is here: cmt.thetatau.org{% url 'users:list' %}
+
+If any of these are incorrect, the basic forms and reports are to be filled out and submitted.
+* Officer Election Report: cmt.thetatau.org{% url 'forms:officer' %}
+* Initiation Report: cmt.thetatau.org{% url 'forms:init_selection' %}
+* Member Status Change Report: cmt.thetatau.org{% url 'forms:status_selection' %}
+{% if tasks_upcoming %}
+** Upcoming Tasks: cmt.thetatau.org{% url 'tasks:list' %}
+------------------------------------------------------------
+{% for task in tasks_upcoming %}* {{ task }}
+{% endfor %}
+{% endif %}{% if tasks_upcoming %}** Past Overdue Tasks: cmt.thetatau.org{% url 'tasks:list' %}
+------------------------------------------------------------
+{% for task in tasks_overdue %}* {{ task }}
+{% endfor %}
+{% endif %}** Risk Management:
+------------------------------------------------------------
+If you see something, speak up!
+Do not hesitate to reach out to your regional directors, or the risk management chair.
+Stuart.Kardian@thetatau.org, 804-909-3486
+
+============================================================
+** Facebook (https://www.facebook.com/thetatau/)
+** Theta Tau (thetatau.org)
+** Email (mailto:cmt@thetatau.org)
+Copyright 2018 Theta Tau, All rights reserved.
+
+The purpose of Theta Tau is to develop and maintain a high standard of professional interest among its members,
+and to unite them in a strong bond of fraternal fellowship.
