@@ -470,7 +470,8 @@
 Dear Theta Tau {{ chapter }} Officers,
 <br>
 Your are getting this message because you are listed as an officer for your chapter.<br>
-If you are no longer an officer, you or any officer can update the officer list here: http://cmt.thetatau.org/officer 
+If you are no longer an officer, you or any officer can update the officer list here:
+<a href="{% url 'forms:officer' %}">cmt.thetatau.org{% url 'forms:officer' %}</a>
 {% if region_announcements %}
   <h2 class="mc-toc-title" style="margin: 0;padding: 0;display: block;font-family: Helvetica;font-size: 26px;font-style: normal;font-weight: bold;line-height: 125%;letter-spacing: -.75px;text-align: left;color: #404040 !important;">Region Announcements:</h2>
   {{ region_announcements }}
@@ -490,7 +491,7 @@ If you are no longer an officer, you or any officer can update the officer list 
     Your chapter currently has a balance due of ${{ balance }} as of {{ balance_date }}
   </li>
   <li style="-ms-text-size-adjust: 100%;-webkit-text-size-adjust: 100%;">
-    A current list of members is here: <a href="{% url 'users:list' %}">cmt.thetatau.org/users</a>
+    A current list of members is here: <a href="{% url 'users:list' %}">cmt.thetatau.org{% url 'users:list' %}</a>
   </li>
 </ul>
 If any of these are incorrect, the basic forms:
