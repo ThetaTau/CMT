@@ -502,7 +502,8 @@ If any of these are incorrect, the basic forms:
     <ul>
     {% for task in tasks_upcoming %}
       <li style="-ms-text-size-adjust: 100%;-webkit-text-size-adjust: 100%;">
-        <a href="" target="_blank" style="word-wrap: break-word;-ms-text-size-adjust: 100%;-webkit-text-size-adjust: 100%;color: #6DC6DD;font-weight: normal;text-decoration: underline;">{{ task }}</a>
+        <a href="{% url 'tasks:complete' task.pk %}" target="_blank" style="word-wrap: break-word;-ms-text-size-adjust: 100%;-webkit-text-size-adjust: 100%;color: #6DC6DD;font-weight: normal;text-decoration: underline;">
+          {{ task }}</a>
       </li>
     {% endfor %}
     </ul>
@@ -512,7 +513,8 @@ If any of these are incorrect, the basic forms:
   <ul>
   {% for task in tasks_overdue %}
     <li style="-ms-text-size-adjust: 100%;-webkit-text-size-adjust: 100%;">
-      <a href="" target="_blank" style="word-wrap: break-word;-ms-text-size-adjust: 100%;-webkit-text-size-adjust: 100%;color: #6DC6DD;font-weight: normal;text-decoration: underline;">{{ task }}</a>
+      <a href="{% url 'tasks:complete' task.pk %}" target="_blank" style="word-wrap: break-word;-ms-text-size-adjust: 100%;-webkit-text-size-adjust: 100%;color: #6DC6DD;font-weight: normal;text-decoration: underline;">
+        {{ task }}</a>
     </li>
   {% endfor %}
   </ul>
