@@ -10,6 +10,10 @@ urlpatterns = [
     #     name='list'
     # ),
     url(
+        regex=r'^pledgeform/$',
+        view=views.pledge_form,
+        name='pledge_form'),
+    url(
         regex=r'^initiation/$',
         view=views.InitiationView.as_view(),
         name='initiation'

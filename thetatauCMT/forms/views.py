@@ -1,3 +1,4 @@
+import json
 from copy import deepcopy
 from django.utils.decorators import method_decorator
 from django.views.decorators.debug import sensitive_post_parameters
@@ -8,10 +9,13 @@ from django.utils import timezone
 from django import forms
 from django.views.generic import DetailView
 from django.views.generic.edit import FormView
+from django.views.decorators.http import require_POST
+from django.views.decorators.csrf import csrf_exempt
 from django.shortcuts import redirect
-from django.http import HttpResponseRedirect
+from django.http import HttpResponseRedirect, HttpResponse, HttpResponseBadRequest
 from crispy_forms.layout import Submit
 from extra_views import FormSetView, ModelFormSetView
+from ipaddress import ip_address, ip_network
 from core.views import OfficerMixin, OfficerRequiredMixin, RequestConfig
 from .forms import InitiationFormSet, InitiationForm, InitiationFormHelper, InitDeplSelectForm,\
     InitDeplSelectFormHelper, DepledgeFormSet, DepledgeFormHelper, StatusChangeSelectForm,\
@@ -20,13 +24,33 @@ from .forms import InitiationFormSet, InitiationForm, InitiationFormHelper, Init
 from tasks.models import TaskChapter, Task
 from core.models import CHAPTER_OFFICER, COL_OFFICER_ALIGN
 from users.models import UserRoleChange
+from chapters.models import Chapter
 from .tables import GuardTable, BadgeTable, InitiationTable, DepledgeTable, \
     StatusChangeTable
-from .models import Guard, Badge, Initiation, Depledge, StatusChange, RiskManagement
+from .models import Guard, Badge, Initiation, Depledge, StatusChange, RiskManagement, PledgeForm
 
 
 sensitive_post_parameters_m = method_decorator(
     sensitive_post_parameters('password', 'password1', 'password2'))
+
+
+@require_POST
+@csrf_exempt
+def pledge_form(request):
+    if 'rawRequest' not in request.POST:
+        return HttpResponseBadRequest('POST must contain right information')
+    data = json.loads(request.POST['rawRequest'])
+    name = f"{data['q35_name']['first']} {data['q35_name']['middle']} {data['q35_name']['last']}"
+    email = data['q36_schoolEmail']
+    school = data['q37_schoolName']
+    chapter = Chapter.get_school_chapter(school)
+    form = PledgeForm(
+        name=name,
+        email=email,
+        chapter=chapter
+    )
+    form.save()
+    return HttpResponse('Webhook received', status=200)
 
 
 class InitDeplSelectView(OfficerRequiredMixin,
