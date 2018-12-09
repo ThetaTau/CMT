@@ -1,5 +1,5 @@
 import django_tables2 as tables
-from .models import Guard, Badge, Initiation, Depledge, StatusChange
+from .models import Guard, Badge, Initiation, Depledge, StatusChange, PledgeForm
 
 
 class GuardTable(tables.Table):
@@ -19,10 +19,19 @@ class BadgeTable(tables.Table):
         attrs = {"class": "table-striped table-bordered"}
 
 
+class PledgeFormTable(tables.Table):
+    created = tables.DateColumn(verbose_name="Submitted")
+
+    class Meta:
+        model = PledgeForm
+        fields = ('name', 'created')
+        attrs = {"class": "table-striped table-bordered"}
+
+
 class InitiationTable(tables.Table):
     user = tables.Column(accessor='user.name')
     date = tables.DateColumn(verbose_name="Initiation Date")
-    created = tables.DateColumn(verbose_name="Form Submitted")
+    created = tables.DateColumn(verbose_name="Submitted")
 
     class Meta:
         model = Initiation
@@ -33,7 +42,7 @@ class InitiationTable(tables.Table):
 class DepledgeTable(tables.Table):
     user = tables.Column(accessor='user.name')
     date = tables.DateColumn(verbose_name="Depledge Date")
-    created = tables.DateColumn(verbose_name="Form Submitted")
+    created = tables.DateColumn(verbose_name="Submitted")
 
     class Meta:
         model = Depledge

@@ -24,12 +24,16 @@
 <h2>Previously submitted forms:</h2>
 <div class="container">
   <div class="row">
-    <div class="col-md-6">
-  <h3>Initiations:</h3>
+    <div class="col-md-3">
+  <h3>Pledge Forms:</h3>
+  {% render_table pledges_table %}
+    </div>
+    <div class="col-md-4">
+  <h3>Initiation Forms:</h3>
   {% render_table init_table %}
     </div>
-    <div class="col-md-6">
-  <h3>Depledges:</h3>
+    <div class="col-md-4">
+  <h3>Depledge Forms:</h3>
   {% render_table depledge_table %}
     </div>
   </div>

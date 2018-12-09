@@ -18,7 +18,7 @@ class User(AbstractUser):
         ordering = ['last_name', ]
     # First Name and Last Name do not cover name patterns
     # around the globe.
-    name = models.CharField(_('Name of User'), blank=True, max_length=255)
+    name = models.CharField(_('Member Name'), blank=True, max_length=255)
     modified = models.DateTimeField(auto_now=True)
     badge_number = models.PositiveIntegerField(default=999999999)
     user_id = models.CharField(max_length=20,

@@ -26,7 +26,7 @@ from core.models import CHAPTER_OFFICER, COL_OFFICER_ALIGN
 from users.models import UserRoleChange
 from chapters.models import Chapter
 from .tables import GuardTable, BadgeTable, InitiationTable, DepledgeTable, \
-    StatusChangeTable
+    StatusChangeTable, PledgeFormTable
 from .models import Guard, Badge, Initiation, Depledge, StatusChange, RiskManagement, PledgeForm
 
 
@@ -85,12 +85,15 @@ class InitDeplSelectView(OfficerRequiredMixin,
         helper = InitDeplSelectFormHelper()
         helper.add_input(Submit("submit", "Next"))
         context['helper'] = helper
+        pledges = PledgeFormTable(PledgeForm.objects.filter(
+            chapter=self.request.user.current_chapter).order_by('-created'))
         inits = InitiationTable(Initiation.objects.filter(
             user__chapter=self.request.user.current_chapter).order_by('-date'))
         depledges = DepledgeTable(Depledge.objects.filter(
             user__chapter=self.request.user.current_chapter).order_by('-date'))
         RequestConfig(self.request).configure(inits)
         RequestConfig(self.request).configure(depledges)
+        context['pledges_table'] = pledges
         context['init_table'] = inits
         context['depledge_table'] = depledges
         return context
