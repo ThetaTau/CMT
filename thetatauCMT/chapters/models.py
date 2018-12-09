@@ -204,6 +204,16 @@ class Chapter(models.Model):
             warnings.warn("Could not find school relation")
             return []
 
+    @classmethod
+    def get_school_chapter(cls, school_name):
+        try:
+            return cls.objects.get(
+                school=school_name,
+            )
+        except cls.DoesNotExist:
+            warnings.warn("Could not find school")
+            return None
+
 
 
 class ChapterCurricula(models.Model):
