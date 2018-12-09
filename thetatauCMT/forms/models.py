@@ -45,6 +45,13 @@ class Guard(models.Model):
         return f"{self.name}; ${self.cost}"
 
 
+class PledgeForm(TimeStampedModel):
+    name = models.CharField(_('Name of Pledge'), max_length=255)
+    chapter = models.ForeignKey(Chapter, on_delete=models.CASCADE,
+                                related_name="pledge_forms")
+    email = models.EmailField(_('email address'), blank=True)
+
+
 class Initiation(TimeStampedModel):
     user = models.OneToOneField(settings.AUTH_USER_MODEL,
                                 on_delete=models.CASCADE,
