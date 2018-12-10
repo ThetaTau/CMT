@@ -46,6 +46,8 @@ class Guard(models.Model):
 
 
 class PledgeForm(TimeStampedModel):
+    class Meta:
+        unique_together = ('name', 'email',)
     name = models.CharField(_('Pledge Name'), max_length=255)
     chapter = models.ForeignKey(Chapter, on_delete=models.CASCADE,
                                 related_name="pledge_forms")
