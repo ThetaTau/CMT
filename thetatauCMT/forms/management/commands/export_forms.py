@@ -223,12 +223,18 @@ class Command(BaseCommand):
                                 transfer_date = status.date_start.strftime("%m/%d/%Y")
                             elif reason == 'graduate':
                                 grad_date = status.date_start.strftime("%m/%d/%Y")
+                            degree = status.degree
+                            if degree:
+                                if degree == 'phd':
+                                    degree = 'PhD'
+                                else:
+                                    degree = degree.upper()
                             row = {
                                 "School Name": status.user.chapter.school,
                                 "Mobile Phone": status.user.phone_number,
                                 "EmailAddress": status.user.email,
                                 "Reason for Status Change": status.REASONS.get_value(reason),
-                                "Degree Received": status.degree,
+                                "Degree Received": degree,
                                 "Graduation Date (M/D/YYYY)": grad_date,
                                 "Employer": status.employer,
                                 "Work Email": status.email_work,
