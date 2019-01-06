@@ -1,8 +1,11 @@
 import datetime
+import httplib2
+import warnings
 from datetime import timedelta, time
 from enum import Enum
 from django.db import models
 from django.utils import timezone
+from gdstorage.storage import GoogleDriveStorage
 TODAY = datetime.datetime.now().date()
 TOMORROW = TODAY + timedelta(1)
 TODAY_START = datetime.datetime.combine(TODAY, time())
@@ -153,13 +156,21 @@ class YearTermModel(models.Model):
         abstract = True
 
     def save(self, *args, **kwargs):
-        if self.term is None:
+        if self.term is None or self.term == '':
             self.term = SEMESTER[datetime.datetime.now().month]
         super().save(*args, **kwargs)
 
     @staticmethod
     def get_term(date):
         return SEMESTER[date.month]
+
+    @classmethod
+    def current_term(cls):
+        return SEMESTER[datetime.datetime.now().month]
+
+    @classmethod
+    def current_year(cls):
+        return datetime.datetime.now().year
 
     @staticmethod
     def date_range(date):
