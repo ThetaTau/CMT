@@ -1,22 +1,13 @@
 import os
 import datetime
-import httplib2
-import warnings
 from django.db import models
 from django.contrib.contenttypes.fields import GenericRelation
-from gdstorage.storage import GoogleDriveStorage
 from django.utils import timezone
 from django.utils.text import slugify
-from core.models import TimeStampedModel
+from core.models import TimeStampedModel, gd_storage
 from scores.models import ScoreType
 from chapters.models import Chapter
 from tasks.models import TaskChapter
-try:
-    # Define Google Drive Storage
-    gd_storage = GoogleDriveStorage()
-except httplib2.ServerNotFoundError as e:
-    gd_storage = None
-    warnings.warn(f'Unable to connect to Google drive!\n{e}')
 
 
 def get_upload_path(instance, filename):

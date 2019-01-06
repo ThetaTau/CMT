@@ -12,6 +12,14 @@ TODAY_START = datetime.datetime.combine(TODAY, time())
 TODAY_END = datetime.datetime.combine(TOMORROW, time())
 
 
+try:
+    # Define Google Drive Storage
+    gd_storage = GoogleDriveStorage()
+except httplib2.ServerNotFoundError as e:
+    gd_storage = None
+    warnings.warn(f'Unable to connect to Google drive!\n{e}')
+
+
 def forever():
     # Should be rooted so we can compare
     return datetime.datetime(2018, 1, 1) + timezone.timedelta(days=1000000)
