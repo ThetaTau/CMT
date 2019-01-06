@@ -1,0 +1,88 @@
+{% extends "account/base.html" %}
+
+{% load i18n %}
+{% load crispy_forms_tags %}
+
+{% block head_title %}{% trans "Pledge Program" %}{% endblock %}
+{% block content %}
+<div class="jumbotron"><div class="container">
+<h2>{% trans "Chapter Adoption of the New Member Education Manual" %}</h2>
+After a multi-year effort that included education professionals interviewing students
+  at the 2012 Convention in Boston, and phone interviews with other students at their campuses,
+  Theta Tau, working with RISE Partnerships, published the New Member Education Manual in Fall 2013.</div>
+</div>
+  <p>These Manuals come in three versions:</p>
+    <ol>
+      <li>
+        Basic – suggested for struggling chapters and new colonies.
+        It also provides a basis for replacing a chapter’s problematic pledge education practices with a safe,
+        creative, and supportive program.
+      </li>
+      <li>
+        Non-traditional – suggested for commuter schools or campuses with a number of part-time,
+        night-time, and returning students.
+        It suggests ways to organize activities/events when campus space is not readily available.
+      </li>
+      <li>
+        Standard – suggested for chapters that are healthy,
+        and on campuses that have an active, supportive,
+        and that operate in a traditional manner with support of the IFC/RSO office.
+        It also serves to filter out unhealthy practices.
+      </li>
+    </ol>
+  <p>
+  These Manuals and workbooks for each module can be found here: <a href="http://thetatau.org/member-education">http://thetatau.org/member-education</a>
+  </p>
+  <p>
+  Over the past few years, Theta Tau chapters and members have repeatedly been harassed, investigated, and punished by
+    school administrators even for activities that chapter members thought were innocent or fun.
+    In some instances, accusations against chapters were later proven false but still took a serious toll
+    on the chapter’s time and morale. Following a well-documented program such as those contained in these manuals is
+    key to avoiding such troubles and in being able to defend yourselves in the event that accusations do arise.
+  </p>
+<div {% if not current_program %}hidden{% endif %}>
+  <b>Your chapter has already selected a pledge program for this school year.</b><br>
+  <div style="text-indent: 50px;">Your chapter is using the {{ current_program.get_manual_display }} manual.<br>
+  If your chapter will change programs, please email <a href="mailto:cmt@thetatau.org">cmt@thetatau.org</a></div>
+</div>
+<div {% if current_program %}hidden{% endif %}>
+  <form method="POST">
+    <b>Select which manual version your chapter is using for the school year:</b>
+  {{ form.manual|as_crispy_field }}
+    {% if form.manual.errors %}
+        {% for error in form.manual.errors %}
+          <strong style="color:red">{{ error }}</strong>
+        {% endfor %}
+    {% endif %}
+    <div id="other_manual" class="group">
+      Chapters not following one of the 3 models for new member education will be assessed a 5% penalty on the annual
+      liability insurance invoices for the school year.<br>
+    You must submit a copy of the manual that you will be following:
+      {{ form.other_manual|as_crispy_field }}
+    {% if form.other_manual.errors %}
+        {% for error in form.other_manual.errors %}
+          <strong style="color:red">{{ error }}</strong>
+        {% endfor %}
+    {% endif %}
+    </div>
+    {% csrf_token %}
+    <button class="primaryAction btn btn-primary" type="submit">{% trans "Submit" %}</button>
+  </form>
+</div>
+<script >
+$(function () {
+  var value = $('#id_manual').find(":selected")[0].value;
+  if (value != 'other') {
+    $('.group').hide();
+  }
+  $('#id_manual').change(function () {
+    var value = $('#id_manual').find(":selected")[0].value;
+    if (value == 'other'){
+      $('#other_manual').show();
+    } else {
+      $('.group').hide();
+    }
+  })
+});
+</script>
+{% endblock %}

@@ -1,10 +1,31 @@
 from django.contrib import admin
-from .models import Badge, Guard, Initiation, Depledge, StatusChange, PledgeForm
+from .models import Badge, Guard, Initiation, Depledge, StatusChange,\
+    PledgeForm, RiskManagement, PledgeProgram
 from core.admin import user_chapter
 
 
 admin.site.register(Badge)
 admin.site.register(Guard)
+
+
+class PledgeProgramAdmin(admin.ModelAdmin):
+    list_display = ('chapter', 'manual', 'year', 'term', )
+    list_filter = ['chapter', 'manual', 'year', ]
+    ordering = ['-year', ]
+
+
+admin.site.register(PledgeProgram, PledgeProgramAdmin)
+
+
+class RiskManagementAdmin(admin.ModelAdmin):
+    raw_id_fields = ['user']
+    list_display = ('user', 'date', 'year', 'term', )
+    list_filter = ['user__chapter', 'year', 'term', ]
+    ordering = ['-date', ]
+    search_fields = ['user', ]
+
+
+admin.site.register(RiskManagement, RiskManagementAdmin)
 
 
 class PledgeFormAdmin(admin.ModelAdmin):

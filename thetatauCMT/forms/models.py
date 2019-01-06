@@ -1,12 +1,12 @@
+import os
 import datetime
 from enum import Enum
 from django.db import models, transaction
 from django.db.utils import IntegrityError
-from django.contrib.contenttypes.fields import GenericRelation
 from django.core.validators import MaxValueValidator
 from django.conf import settings
 from django.utils import timezone
-from core.models import TimeStampedModel, YearTermModel, forever
+from core.models import TimeStampedModel, YearTermModel, gd_storage
 from django.utils.translation import gettext_lazy as _
 from core.models import forever
 from users.models import User, UserStatusChange
@@ -52,6 +52,59 @@ class PledgeForm(TimeStampedModel):
     chapter = models.ForeignKey(Chapter, on_delete=models.CASCADE,
                                 related_name="pledge_forms")
     email = models.EmailField(_('email address'), blank=True)
+
+
+def get_pledge_program_upload_path(instance, filename):
+    return os.path.join(
+        'media', 'pledge_programs', instance.chapter.slug,
+        f"{instance.year}_{instance.term}_{filename}")
+
+
+class PledgeProgram(YearTermModel, TimeStampedModel):
+    class Meta:
+        unique_together = ('chapter', 'year', 'term', )
+
+    class MANUALS(Enum):
+        basic = ('basic', 'Basic')
+        nontrad = ('nontrad', 'Non-traditional')
+        standard = ('standard', 'Standard')
+        other = ('other', 'Other')
+
+        @classmethod
+        def get_value(cls, member):
+            return cls[member].value[1]
+
+    chapter = models.ForeignKey(Chapter, on_delete=models.CASCADE,
+                                related_name="pledge_programs")
+    manual = models.CharField(
+        max_length=10,
+        choices=[x.value for x in MANUALS]
+    )
+    other_manual = models.FileField(
+        upload_to=get_pledge_program_upload_path,
+        storage=gd_storage, null=True, blank=True)
+
+    @classmethod
+    def form_chapter_term(cls, chapter):
+        """
+        If the current term is the spring, the form could have been submitted
+        in the fall of last year.
+        :param chapter:
+        :return: form for current year, semester for chapter
+        """
+        program_fa = None
+        if YearTermModel.current_term() == 'sp':
+            program_fa = cls.objects.filter(
+                chapter=chapter,
+                year=YearTermModel.current_year() - 1,
+                term='fa',
+            ).first()
+        program = cls.objects.filter(
+            chapter=chapter,
+            year=YearTermModel.current_year(),
+            term=YearTermModel.current_term(),
+            ).first()
+        return program or program_fa
 
 
 class Initiation(TimeStampedModel):

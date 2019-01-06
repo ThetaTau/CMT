@@ -4,7 +4,7 @@ from dal import autocomplete
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Layout
 from tempus_dominus.widgets import DatePicker
-from .models import Initiation, Depledge, StatusChange, RiskManagement
+from .models import Initiation, Depledge, StatusChange, RiskManagement, PledgeProgram
 from users.models import User, UserRoleChange
 from core.models import CHAPTER_OFFICER, COMMITTEE_CHAIR
 
@@ -344,3 +344,21 @@ class RiskManagementForm(forms.ModelForm):
             'indemnification',
             'agreement',
         ]
+
+
+class PledgeProgramForm(forms.ModelForm):
+    class Meta:
+        model = PledgeProgram
+        fields = [
+            'manual', 'other_manual'
+        ]
+
+    def clean_other_manual(self):
+        if (self.cleaned_data.get('manual') == 'other' and
+                self.data.get('other_manual') is None):
+                    raise forms.ValidationError(
+                        'You must submit the other manual your chapter is '
+                        'following if not one of the approved models.'
+                    )
+        return self.data['other_manual']
+

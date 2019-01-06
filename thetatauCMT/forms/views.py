@@ -1,4 +1,5 @@
 import json
+import datetime
 from copy import deepcopy
 from django.utils.decorators import method_decorator
 from django.views.decorators.debug import sensitive_post_parameters
@@ -15,19 +16,19 @@ from django.shortcuts import redirect
 from django.http import HttpResponseRedirect, HttpResponse, HttpResponseBadRequest
 from crispy_forms.layout import Submit
 from extra_views import FormSetView, ModelFormSetView
-from ipaddress import ip_address, ip_network
 from core.views import OfficerMixin, OfficerRequiredMixin, RequestConfig
 from .forms import InitiationFormSet, InitiationForm, InitiationFormHelper, InitDeplSelectForm,\
     InitDeplSelectFormHelper, DepledgeFormSet, DepledgeFormHelper, StatusChangeSelectForm,\
     StatusChangeSelectFormHelper, GraduateForm, GraduateFormSet, CSMTFormSet, GraduateFormHelper, CSMTFormHelper,\
-    RoleChangeSelectForm, RoleChangeSelectFormHelper, RiskManagementForm
+    RoleChangeSelectForm, RoleChangeSelectFormHelper, RiskManagementForm, PledgeProgramForm
 from tasks.models import TaskChapter, Task
 from core.models import CHAPTER_OFFICER, COL_OFFICER_ALIGN
 from users.models import UserRoleChange
 from chapters.models import Chapter
 from .tables import GuardTable, BadgeTable, InitiationTable, DepledgeTable, \
     StatusChangeTable, PledgeFormTable
-from .models import Guard, Badge, Initiation, Depledge, StatusChange, RiskManagement, PledgeForm
+from .models import Guard, Badge, Initiation, Depledge, StatusChange, RiskManagement,\
+    PledgeForm, PledgeProgram
 
 
 sensitive_post_parameters_m = method_decorator(
@@ -543,3 +544,48 @@ class RiskManagementDetailView(LoginRequiredMixin, OfficerMixin,
                                 DetailView):
     model = RiskManagement
     template_name = "forms/rmp_complete.html"
+
+
+class PledgeProgramFormView(OfficerRequiredMixin,
+                            LoginRequiredMixin, OfficerMixin,
+                            FormView):
+    form_class = PledgeProgramForm
+    template_name = "forms/pledge_program.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        program = PledgeProgram.form_chapter_term(
+            chapter=self.request.user.current_chapter)
+        context['current_program'] = program
+        return context
+
+    def form_valid(self, form):
+        form.instance.chapter = self.request.user.current_chapter
+        form.instance.year = datetime.datetime.now().year
+        current_role = self.request.user.get_current_role().role.lower()
+        if current_role not in CHAPTER_OFFICER:
+            messages.add_message(
+                self.request, messages.ERROR,
+                f"Only executive officers can sign submit pledge program: {CHAPTER_OFFICER}\n"
+                f"Your current role is: {current_role}")
+        else:
+            form.save()
+            if current_role in COL_OFFICER_ALIGN:
+                current_role = COL_OFFICER_ALIGN[current_role]
+            task = Task.objects.get(name="Risk Management Form",
+                                    owner=current_role)
+            chapter = self.request.user.current_chapter
+            next_date = task.incomplete_dates_for_task_chapter(chapter).first()
+            if next_date:
+                task_obj = TaskChapter(task=next_date, chapter=chapter,
+                                date=timezone.now(),)
+                task_obj.submission_object = form.instance
+                task_obj.save()
+            messages.add_message(
+                self.request, messages.INFO,
+                f"You successfully submitted the Pledge Program!\n"
+                f"Your current role is: {current_role}")
+        return super().form_valid(form)
+
+    def get_success_url(self):
+        return reverse('home')
