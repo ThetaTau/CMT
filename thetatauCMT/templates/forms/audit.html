@@ -1,0 +1,219 @@
+{% extends "account/base.html" %}
+
+{% load i18n %}
+{% load crispy_forms_tags %}
+
+{% block head_title %}{% trans "Chapter Financial Audit" %}{% endblock %}
+{% block content %}
+<div class="jumbotron"><div class="container">
+<h2>{% trans "Review of Chapter Finances" %}</h2>
+Several separate items must be reviewed to ensure that the financial
+  records kept by the Treasurer are accurate and up-to-date.
+  These are: a cashbook, a check book register, and a member's accounting page.</div>
+</div>
+  <p>
+<form method="POST">
+<div class="container">
+  <div class="row">
+    <div class="col-lg-12">
+    <h3>Cashbook</h3>
+    <h6><i>Where funds collected from all sources and deposited to the bank are recorded</i></h6>
+    <p>In the cashbook, the Treasurer should record all monies received by the
+  chapter from any and all sources.
+  These monies should be summed so that a running tally is maintained.
+  When those funds are taken to the bank and deposited,
+  the running tally should be then zero, and the amount shown in the cash book
+  taken to the bank for deposit should match the amount recorded in the
+  checkbook register as a deposit.  A new running tally should then be started
+  in the cash book when additional monies are paid to the chapter.
+  Cash should never be taken from these funds or subtracted from the
+  cashbook to reimburse members; that should be done by a chapter check only.</p>
+      <br>
+  <table>
+  <tr>
+    <th>Does your chapter have a Cashbook?</th>
+    <td>
+      {{ form.cash_book|as_crispy_field }}
+      {% if form.cash_book.errors %}
+          {% for error in form.cash_book.errors %}
+            <strong style="color:red">{{ error }}</strong>
+          {% endfor %}
+      {% endif %}
+    </td>
+  </tr>
+  <tr>
+    <th>I have reviewed the Cashbook</th>
+    <td>
+      {{ form.cash_book_reviewed|as_crispy_field }}
+      {% if form.cash_book_reviewed.errors %}
+          {% for error in form.cash_book_reviewed.errors %}
+            <strong style="color:red">{{ error }}</strong>
+          {% endfor %}
+      {% endif %}
+    </td>
+  </tr>
+  </table>
+    <hr />
+  <h3>Member Accounting Page</h3>
+  <h6><i>Where sums due and paid for each member are recorded</i></h6>
+    <p> The member accounting page should be distributed to each member as
+      soon as possible to assure that it is up-to-date and that the amount
+      shown as balance due (hopefully zero) is accurate.
+      The amount shown as having been paid on each accounting page,
+      should match in date, amount, and member to an entry line in the cashbook.
+      This aspect of reviewing chapter finances falls to each member to ensure
+      that his account is being properly maintained.
+</p>
+      <br>
+  <table>
+  <tr>
+    <th>Does your chapter have a Member Accounting Page?</th>
+    <td>
+      {{ form.member_account|as_crispy_field }}
+      {% if form.member_account.errors %}
+          {% for error in form.member_account.errors %}
+            <strong style="color:red">{{ error }}</strong>
+          {% endfor %}
+      {% endif %}
+    </td>
+  </tr>
+  <tr>
+    <th>I have reviewed the Member Accounting Page</th>
+    <td>
+      {{ form.member_account_reviewed|as_crispy_field }}
+      {% if form.member_account_reviewed.errors %}
+          {% for error in form.member_account_reviewed.errors %}
+            <strong style="color:red">{{ error }}</strong>
+          {% endfor %}
+      {% endif %}
+    </td>
+  </tr>
+  </table>
+    <hr />
+  <h3>Checkbook Register</h3>
+  <h6><i>Where monies deposited and checks written are recorded</i></h6>
+  The checkbook register must be balanced/reconciled each month.
+  Balancing the checkbook is the only way to ensure that the amounts
+  deposited and paid out reported by the Treasurer are accurate,
+  and that some false balances and deposits are not being maintained in a
+  ‘second set of books.”  Each check recorded in the register should be
+  matched to an actual cancelled check, an image of that cancelled check,
+  or the check number and amount shown on the bank account statement
+  (the last of these three being the least helpful since the bank statement
+  will never show who the payee is, and as a result one could write a check
+  to himself while showing it in the register as having been paid to
+  some other entity).  Deposits recorded in the checkbook register,
+  in the cash book, and on the bank statement should all match.
+      <br>
+  <table>
+  <tr>
+    <th>Does your chapter have a Checkbook Register?</th>
+    <td>
+      {{ form.cash_register|as_crispy_field }}
+      {% if form.cash_register.errors %}
+          {% for error in form.cash_register.errors %}
+            <strong style="color:red">{{ error }}</strong>
+          {% endfor %}
+      {% endif %}
+    </td>
+  </tr>
+  <tr>
+    <th>I have reviewed the Checkbook Register</th>
+    <td>
+      {{ form.cash_register_reviewed|as_crispy_field }}
+      {% if form.cash_register_reviewed.errors %}
+          {% for error in form.cash_register_reviewed.errors %}
+            <strong style="color:red">{{ error }}</strong>
+          {% endfor %}
+      {% endif %}
+    </td>
+  </tr>
+  </table>
+    <hr />
+<p>
+If all these three things are reviewed, you will have conducted a satisfactory
+  review of your chapter finances.
+  This assumes that you have just one chapter bank account.
+  If you have a savings account in addition to a checking,
+  you should also reconcile it with its monthly statements and review transfers
+  in and out of the account.
+</p>
+  <p>In addition, however, you can also do the following more over-arching review:</p>
+  <p>
+  Add up all sums paid recorded on each member’s accounting page,
+    add that number to the balance (per the bank statement, not your checkbook)
+    in your chapter bank accounts on January 1, 2001 (as an example),
+    subtract from that number all checks written out of the account
+    since January 1, 2001.  That value should then equal the balance
+    in your bank accounts on today’s date (per the bank statement,
+    and assuming that all checks written out have cleared the bank and
+    all deposits to the bank have been credited).
+  </p>
+    </div>
+  </div>
+</div>
+  <h2>Additional Chapter Financial Information</h2>
+  {{ form.dues_member|as_crispy_field }}
+{% if form.dues_member.errors %}
+  {% for error in form.dues_member.errors %}
+    <strong style="color:red">{{ error }}</strong>
+  {% endfor %}
+{% endif %}
+{{ form.frequency|as_crispy_field }}
+{% if form.frequency.errors %}
+  {% for error in form.frequency.errors %}
+    <strong style="color:red">{{ error }}</strong>
+  {% endfor %}
+{% endif %}
+  {{ form.dues_pledge|as_crispy_field }}
+{% if form.dues_pledge.errors %}
+  {% for error in form.dues_pledge.errors %}
+    <strong style="color:red">{{ error }}</strong>
+  {% endfor %}
+{% endif %}
+  {{ form.payment_plan|as_crispy_field }}
+{% if form.payment_plan.errors %}
+  {% for error in form.payment_plan.errors %}
+    <strong style="color:red">{{ error }}</strong>
+  {% endfor %}
+{% endif %}
+  {{ form.balance_checking|as_crispy_field }}
+{% if form.balance_checking.errors %}
+  {% for error in form.balance_checking.errors %}
+    <strong style="color:red">{{ error }}</strong>
+  {% endfor %}
+{% endif %}
+  {{ form.balance_savings|as_crispy_field }}
+{% if form.balance_savings.errors %}
+  {% for error in form.balance_savings.errors %}
+    <strong style="color:red">{{ error }}</strong>
+  {% endfor %}
+{% endif %}
+  {{ form.debit_card|as_crispy_field }}
+{% if form.debit_card.errors %}
+  {% for error in form.debit_card.errors %}
+    <strong style="color:red">{{ error }}</strong>
+  {% endfor %}
+{% endif %}
+  {{ form.debit_card_access|as_crispy_field }}
+{% if form.debit_card_access.errors %}
+  {% for error in form.debit_card_access.errors %}
+    <strong style="color:red">{{ error }}</strong>
+  {% endfor %}
+{% endif %}
+  <div class="jumbotron">
+  <p><h5>As a principal officer of my chapter, I hereby certify that a review
+    of our chapter’s finances (as outlined above) has shown no misappropriation
+    of funds and that all records are now being maintained by the standards
+    outlined by the national Fraternity.</h5></p>
+{{ form.agreement|as_crispy_field }}
+{% if form.agreement.errors %}
+  {% for error in form.agreement.errors %}
+    <strong style="color:red">{{ error }}</strong>
+  {% endfor %}
+{% endif %}
+  {% csrf_token %}
+  <button class="primaryAction btn btn-primary" type="submit">{% trans "Sign" %}</button>
+</form>
+</div>
+{% endblock %}

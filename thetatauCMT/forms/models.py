@@ -8,7 +8,8 @@ from django.conf import settings
 from django.utils import timezone
 from core.models import TimeStampedModel, YearTermModel, gd_storage
 from django.utils.translation import gettext_lazy as _
-from core.models import forever
+from multiselectfield import MultiSelectField
+from core.models import forever, ALL_OFFICERS_CHOICES
 from users.models import User, UserStatusChange
 from chapters.models import Chapter
 from tasks.models import TaskChapter
@@ -394,4 +395,32 @@ class RiskManagement(YearTermModel):
     trademark = models.BooleanField()
     social = models.BooleanField()
     indemnification = models.BooleanField()
+    agreement = models.BooleanField()
+
+
+class Audit(YearTermModel, TimeStampedModel):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL,
+                             on_delete=models.CASCADE,
+                             related_name="audit_form")
+    dues_member = models.FloatField("Member Dues")
+    dues_pledge = models.FloatField("Potential New Member Pledging Fees/Dues")
+    frequency = models.CharField(
+        "What is the frequency of member dues",
+        max_length=10,
+        choices=[('month', 'month'), ('semester', 'semester'),
+                 ('quarter', 'quarter'), ('year', 'year'), ]
+    )
+    payment_plan = models.BooleanField()
+    cash_book = models.BooleanField()
+    cash_register = models.BooleanField()
+    member_account = models.BooleanField()
+    cash_book_reviewed = models.BooleanField()
+    cash_register_reviewed = models.BooleanField()
+    member_account_reviewed = models.BooleanField()
+    balance_checking = models.FloatField("Balance of chapter checking account")
+    balance_savings = models.FloatField("Balance of chapter savings account")
+    debit_card = models.BooleanField()
+    debit_card_access = MultiSelectField(
+        "Which members have access to the chapter debit card? Select all that apply.",
+        choices=[('None', 'None')] + ALL_OFFICERS_CHOICES)
     agreement = models.BooleanField()

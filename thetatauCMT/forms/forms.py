@@ -4,7 +4,8 @@ from dal import autocomplete
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Layout
 from tempus_dominus.widgets import DatePicker
-from .models import Initiation, Depledge, StatusChange, RiskManagement, PledgeProgram
+from .models import Initiation, Depledge, StatusChange, RiskManagement,\
+    PledgeProgram, Audit
 from users.models import User, UserRoleChange
 from core.models import CHAPTER_OFFICER, COMMITTEE_CHAIR
 
@@ -361,4 +362,36 @@ class PledgeProgramForm(forms.ModelForm):
                         'following if not one of the approved models.'
                     )
         return self.data['other_manual']
+
+
+class AuditForm(forms.ModelForm):
+    payment_plan = forms.TypedChoiceField(
+        label="Does the chapter offer a Payment Plan for members?",
+        coerce=lambda x: x == 'True', choices=((False, 'No'), (True, 'Yes')))
+    cash_book = forms.TypedChoiceField(
+        coerce=lambda x: x == 'True', choices=((False, 'No'), (True, 'Yes')))
+    cash_register = forms.TypedChoiceField(
+        coerce=lambda x: x == 'True', choices=((False, 'No'), (True, 'Yes')))
+    member_account = forms.TypedChoiceField(
+        coerce=lambda x: x == 'True', choices=((False, 'No'), (True, 'Yes')))
+    debit_card = forms.TypedChoiceField(
+        label="Does the chapter have a debit card used by members?",
+        coerce=lambda x: x == 'True', choices=((False, 'No'), (True, 'Yes')))
+
+    class Meta:
+        model = Audit
+        exclude = ['user', 'term', 'created', 'year', 'modified']
+
+    def clean(self):
+        cleaned_data = super().clean()
+        required_fields = ['cash_book_reviewed', 'cash_register_reviewed',
+                           'member_account_reviewed', 'agreement']
+        for field in required_fields:
+            value = cleaned_data.get(field)
+            if not value:
+                self.add_error(
+                    field,
+                    f"{field.replace('_', ' ')} is required to be completed.")
+        return self.cleaned_data
+
 

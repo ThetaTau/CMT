@@ -30,6 +30,7 @@ django-tables2==1.21.2
 django-tempus-dominus==0.1.4
 rollbar==0.14.5
 django-autocomplete-light==3.3.2
+django-multiselectfield==0.1.8
 
 
 # Django REST Framework

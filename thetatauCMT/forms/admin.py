@@ -1,6 +1,6 @@
 from django.contrib import admin
 from .models import Badge, Guard, Initiation, Depledge, StatusChange,\
-    PledgeForm, RiskManagement, PledgeProgram
+    PledgeForm, RiskManagement, PledgeProgram, Audit
 from core.admin import user_chapter
 
 
@@ -26,6 +26,17 @@ class RiskManagementAdmin(admin.ModelAdmin):
 
 
 admin.site.register(RiskManagement, RiskManagementAdmin)
+
+
+class AuditAdmin(admin.ModelAdmin):
+    raw_id_fields = ['user']
+    list_display = ('user', 'created', 'year', 'term', )
+    list_filter = ['user__chapter', 'year', 'term', ]
+    ordering = ['-created', ]
+    search_fields = ['user', ]
+
+
+admin.site.register(Audit, AuditAdmin)
 
 
 class PledgeFormAdmin(admin.ModelAdmin):

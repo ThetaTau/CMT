@@ -82,6 +82,7 @@ THIRD_PARTY_APPS = [
     'bootstrap4',
     'django_extensions',  # https://github.com/pydanny/cookiecutter-django/issues/417
     'herald',
+    'multiselectfield',
 ]
 LOCAL_APPS = [
     'thetatauCMT.users.apps.UsersConfig',

@@ -20,7 +20,8 @@ from core.views import OfficerMixin, OfficerRequiredMixin, RequestConfig
 from .forms import InitiationFormSet, InitiationForm, InitiationFormHelper, InitDeplSelectForm,\
     InitDeplSelectFormHelper, DepledgeFormSet, DepledgeFormHelper, StatusChangeSelectForm,\
     StatusChangeSelectFormHelper, GraduateForm, GraduateFormSet, CSMTFormSet, GraduateFormHelper, CSMTFormHelper,\
-    RoleChangeSelectForm, RoleChangeSelectFormHelper, RiskManagementForm, PledgeProgramForm
+    RoleChangeSelectForm, RoleChangeSelectFormHelper, RiskManagementForm,\
+    PledgeProgramForm, AuditForm
 from tasks.models import TaskChapter, Task
 from core.models import CHAPTER_OFFICER, COL_OFFICER_ALIGN
 from users.models import UserRoleChange
@@ -572,7 +573,7 @@ class PledgeProgramFormView(OfficerRequiredMixin,
             form.save()
             if current_role in COL_OFFICER_ALIGN:
                 current_role = COL_OFFICER_ALIGN[current_role]
-            task = Task.objects.get(name="Risk Management Form",
+            task = Task.objects.get(name="Pledge Program",
                                     owner=current_role)
             chapter = self.request.user.current_chapter
             next_date = task.incomplete_dates_for_task_chapter(chapter).first()
@@ -584,6 +585,50 @@ class PledgeProgramFormView(OfficerRequiredMixin,
             messages.add_message(
                 self.request, messages.INFO,
                 f"You successfully submitted the Pledge Program!\n"
+                f"Your current role is: {current_role}")
+        return super().form_valid(form)
+
+    def get_success_url(self):
+        return reverse('home')
+
+
+class AuditFormView(OfficerRequiredMixin, LoginRequiredMixin, OfficerMixin,
+                    FormView):
+    form_class = AuditForm
+    template_name = "forms/audit.html"
+
+    def post(self, request, *args, **kwargs):
+        form = self.get_form()
+        if form.is_valid():
+            return self.form_valid(form)
+        else:
+            return self.form_invalid(form)
+
+    def form_valid(self, form):
+        form.instance.year = datetime.datetime.now().year
+        form.instance.user = self.request.user
+        current_role = self.request.user.get_current_role().role.lower()
+        if current_role not in CHAPTER_OFFICER:
+            messages.add_message(
+                self.request, messages.ERROR,
+                f"Only executive officers can submit an audit: {CHAPTER_OFFICER}\n"
+                f"Your current role is: {current_role}")
+        else:
+            form.save()
+            if current_role in COL_OFFICER_ALIGN:
+                current_role = COL_OFFICER_ALIGN[current_role]
+            task = Task.objects.get(name="Audit",
+                                    owner=current_role)
+            chapter = self.request.user.current_chapter
+            next_date = task.incomplete_dates_for_task_chapter(chapter).first()
+            if next_date:
+                task_obj = TaskChapter(task=next_date, chapter=chapter,
+                                date=timezone.now(),)
+                task_obj.submission_object = form.instance
+                task_obj.save()
+            messages.add_message(
+                self.request, messages.INFO,
+                f"You successfully submitted the Audit Form!\n"
                 f"Your current role is: {current_role}")
         return super().form_valid(form)
 
