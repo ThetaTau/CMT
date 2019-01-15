@@ -48,7 +48,7 @@ Events with alcohol must be organized in one of the following manners:
   </ol>
       {{ form.hosting|as_crispy_field }}
       {% if form.hosting.errors %}
-          {% for error in form.alcohol.errors %}
+          {% for error in form.hosting.errors %}
             <strong style="color:red">{{ error }}</strong>
           {% endfor %}
       {% endif %}
@@ -66,7 +66,7 @@ Events with alcohol must be organized in one of the following manners:
   </ul>
       {{ form.monitoring|as_crispy_field }}
       {% if form.monitoring.errors %}
-          {% for error in form.alcohol.errors %}
+          {% for error in form.monitoring.errors %}
             <strong style="color:red">{{ error }}</strong>
           {% endfor %}
       {% endif %}
@@ -99,7 +99,7 @@ use the following guidelines:
 </ol>
       {{ form.member|as_crispy_field }}
       {% if form.member.errors %}
-          {% for error in form.alcohol.errors %}
+          {% for error in form.member.errors %}
             <strong style="color:red">{{ error }}</strong>
           {% endfor %}
       {% endif %}
@@ -121,7 +121,7 @@ once per year in each of the following areas:
         all Theta Tau functions.</p>
       {{ form.officer|as_crispy_field }}
       {% if form.officer.errors %}
-          {% for error in form.alcohol.errors %}
+          {% for error in form.officer.errors %}
             <strong style="color:red">{{ error }}</strong>
           {% endfor %}
       {% endif %}
@@ -135,7 +135,7 @@ once per year in each of the following areas:
     friends, or guests.
       {{ form.abusive|as_crispy_field }}
       {% if form.abusive.errors %}
-          {% for error in form.alcohol.errors %}
+          {% for error in form.abusive.errors %}
             <strong style="color:red">{{ error }}</strong>
           {% endfor %}
       {% endif %}
@@ -152,7 +152,7 @@ once per year in each of the following areas:
     policies of the educational institution, or applicable laws.
       {{ form.hazing|as_crispy_field }}
       {% if form.hazing.errors %}
-          {% for error in form.alcohol.errors %}
+          {% for error in form.hazing.errors %}
             <strong style="color:red">{{ error }}</strong>
           {% endfor %}
       {% endif %}
@@ -170,7 +170,7 @@ once per year in each of the following areas:
     </ol>
       {{ form.substances|as_crispy_field }}
       {% if form.substances.errors %}
-          {% for error in form.alcohol.errors %}
+          {% for error in form.substances.errors %}
             <strong style="color:red">{{ error }}</strong>
           {% endfor %}
       {% endif %}
@@ -182,7 +182,7 @@ once per year in each of the following areas:
     understanding of the inherent risks associated with them.
       {{ form.high_risk|as_crispy_field }}
       {% if form.high_risk.errors %}
-          {% for error in form.alcohol.errors %}
+          {% for error in form.high_risk.errors %}
             <strong style="color:red">{{ error }}</strong>
           {% endfor %}
       {% endif %}
@@ -196,7 +196,7 @@ once per year in each of the following areas:
     used.
       {{ form.transportation|as_crispy_field }}
       {% if form.transportation.errors %}
-          {% for error in form.alcohol.errors %}
+          {% for error in form.transportation.errors %}
             <strong style="color:red">{{ error }}</strong>
           {% endfor %}
       {% endif %}
@@ -211,7 +211,7 @@ once per year in each of the following areas:
     savings toward significant renovations and/or new facilities.
       {{ form.property_management|as_crispy_field }}
       {% if form.property_management.errors %}
-          {% for error in form.alcohol.errors %}
+          {% for error in form.property_management.errors %}
             <strong style="color:red">{{ error }}</strong>
           {% endfor %}
       {% endif %}
@@ -229,7 +229,7 @@ once per year in each of the following areas:
     chapter premises or as part of any chapter activity.
       {{ form.guns|as_crispy_field }}
       {% if form.guns.errors %}
-          {% for error in form.alcohol.errors %}
+          {% for error in form.guns.errors %}
             <strong style="color:red">{{ error }}</strong>
           {% endfor %}
       {% endif %}
@@ -255,7 +255,7 @@ once per year in each of the following areas:
     manner, or media in which trademarked property may appear or be rendered.
   {{ form.trademark|as_crispy_field }}
   {% if form.trademark.errors %}
-      {% for error in form.alcohol.errors %}
+      {% for error in form.trademark.errors %}
         <strong style="color:red">{{ error }}</strong>
       {% endfor %}
   {% endif %}
@@ -286,7 +286,7 @@ once per year in each of the following areas:
 </ul>
   {{ form.social|as_crispy_field }}
   {% if form.social.errors %}
-      {% for error in form.alcohol.errors %}
+      {% for error in form.social.errors %}
         <strong style="color:red">{{ error }}</strong>
       {% endfor %}
   {% endif %}
@@ -312,7 +312,7 @@ once per year in each of the following areas:
   such agreement.
   {{ form.indemnification|as_crispy_field }}
   {% if form.indemnification.errors %}
-      {% for error in form.alcohol.errors %}
+      {% for error in form.indemnification.errors %}
         <strong style="color:red">{{ error }}</strong>
       {% endfor %}
   {% endif %}
@@ -325,7 +325,7 @@ will abide by these policies and will also help fellow members abide by these
   policies.</h5></p>
 {{ form.agreement|as_crispy_field }}
 {% if form.agreement.errors %}
-  {% for error in form.alcohol.errors %}
+  {% for error in form.agreement.errors %}
     <strong style="color:red">{{ error }}</strong>
   {% endfor %}
 {% endif %}
