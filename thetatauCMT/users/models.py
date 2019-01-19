@@ -192,6 +192,7 @@ class UserRoleChange(StartEndModel, TimeStampedModel):
     def save(self, *args, **kwargs):
         off_group, created = Group.objects.get_or_create(name='officer')
         super().save(*args, **kwargs)
+        self.clean_group_role()
         # Need to check current role, b/c user could have multiple
         current_role = self.user.get_current_role()
         if current_role:
@@ -200,6 +201,26 @@ class UserRoleChange(StartEndModel, TimeStampedModel):
             self.user.groups.remove(off_group)
             off_group.user_set.remove(self.user)
             self.user.save()
+
+    def clean_group_role(self):
+        """
+        This cleans up the officer group when the role is updated
+        This will leave a user in officer group until a replacement is elected
+        :return:
+        """
+        off_group, created = Group.objects.get_or_create(name='officer')
+        previuos_users = UserRoleChange.get_role_members(self.user, self.role)
+        for user in previuos_users:
+            user.groups.remove(off_group)
+            off_group.user_set.remove(user)
+            user.save()
+
+    @classmethod
+    def get_role_members(cls, user, role):
+        return cls.objects.filter(
+            role=role,
+            user__chapter=user.current_chapter,
+            end__lte=TODAY_END)
 
     @classmethod
     def get_current_roles(cls, user):
