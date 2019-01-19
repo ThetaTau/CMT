@@ -11,6 +11,6 @@ class UserTable(tables.Table):
         model = settings.AUTH_USER_MODEL
         fields = ('name', 'badge_number', 'email',
                   'major', 'graduation_year', 'phone_number',
-                  'current_status', 'role')
+                  'current_status', 'role', 'role_end')
         attrs = {"class": "table-striped table-bordered"}
         empty_text = "There are no members matching the search criteria..."

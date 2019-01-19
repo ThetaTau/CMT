@@ -179,17 +179,40 @@ class Chapter(models.Model):
                                    )
 
     def get_current_officers(self, combine=True):
-        return annotate_role_status(
-            self.members.filter(
-                roles__start__lte=TODAY_END, roles__end__gte=TODAY_END
-            ), combine=combine)
+        officers = self.members.filter(
+            roles__start__lte=TODAY_END, roles__end__gte=TODAY_END)
+        previous = False
+        date = TODAY_END
+        if officers.count() < 2:
+            # If there are not enough previous officers
+            # get officers from last 8 months
+            previous_officers = self.members.filter(
+                roles__end__gte=TODAY_END - timedelta(30 * 8))
+            officers = previous_officers | officers
+            previous = True
+            date = TODAY_END - timedelta(30 * 8)
+        return annotate_role_status(officers, combine=combine,
+                                    date=date), previous
 
     def get_current_officers_council(self, combine=True):
-        return annotate_role_status(
-            self.members.filter(
+        officers = self.members.filter(
                 roles__role__in=CHAPTER_OFFICER,
                 roles__start__lte=TODAY_END, roles__end__gte=TODAY_END
-            ), combine=combine)
+            )
+        previous = False
+        date = TODAY_END
+        if officers.count() < 2:
+            # If there are not enough previous officers
+            # get officers from last 8 months
+            previous_officers = self.members.filter(
+                roles__role__in=CHAPTER_OFFICER,
+                roles__end__gte=TODAY_END - timedelta(30 * 8)
+            )
+            officers = previous_officers | officers
+            previous = True
+            date = TODAY_END - timedelta(30 * 8)
+        return annotate_role_status(officers, combine=combine,
+                                    date=date), previous
 
     def next_badge_number(self):
         return self.members.filter(~models.Q(status__status='pnm'),

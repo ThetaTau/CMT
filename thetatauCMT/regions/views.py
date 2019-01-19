@@ -59,7 +59,7 @@ class RegionOfficerView(NatOfficerRequiredMixin,
         all_chapter_officers = User.objects.none()
         for chapter in self.object.chapters.all():
             context = super().get_context_data(**kwargs)
-            chapter_officers = chapter.get_current_officers(combine=False)
+            chapter_officers, _ = chapter.get_current_officers(combine=False)
             all_chapter_officers = chapter_officers | all_chapter_officers
         cancel = self.request.GET.get('cancel', False)
         request_get = self.request.GET.copy()

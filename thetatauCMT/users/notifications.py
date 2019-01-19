@@ -10,7 +10,7 @@ class OfficerMonthly(EmailNotification):  # extend from EmailNotification for em
 
     def __init__(self, chapter):  # optionally customize the initialization
         self.context = {'user': chapter}  # set context for the template rendering
-        officer_list = chapter.get_current_officers_council(False)
+        officer_list, previous = chapter.get_current_officers_council(False)
         self.to_emails = [officer.email for officer in officer_list]  # set list of emails to send to
         self.cc = [chapter.region.email]
         self.reply_to = chapter.region.email
@@ -19,6 +19,7 @@ class OfficerMonthly(EmailNotification):  # extend from EmailNotification for em
         else:
             chapter_name = chapter.name
         self.context = {
+            "previous_officers": previous,
             "chapter": chapter_name,
             "last_month_events": chapter.events_last_month().count(),
             "semester_events": chapter.events_semester().count(),

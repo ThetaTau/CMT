@@ -222,13 +222,20 @@ def combine_annotations(user_queryset):
     return list(uniques.values())
 
 
-def annotate_role_status(queryset, combine=True):
+def annotate_role_status(queryset, combine=True, date=TODAY_END):
     qs = queryset.annotate(
         role=models.Case(
             models.When(
-                models.Q(roles__start__lte=TODAY_END) &
-                models.Q(roles__end__gte=TODAY_END), models.F("roles__role")
+                models.Q(roles__start__lte=date) &
+                models.Q(roles__end__gte=date), models.F("roles__role")
                 ),
+            )
+        ).annotate(
+            role_end=models.Case(
+                models.When(
+                    models.Q(roles__start__lte=date) &
+                    models.Q(roles__end__gte=date), models.F("roles__end")
+                )
             )
         ).annotate(
             current_status=models.Case(

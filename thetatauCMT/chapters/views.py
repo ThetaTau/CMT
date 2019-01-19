@@ -14,12 +14,14 @@ class ChapterDetailView(LoginRequiredMixin, OfficerMixin, DetailView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        chapter_officers = self.object.get_current_officers()
+        chapter_officers, previous = self.object.get_current_officers()
         table = UserTable(data=chapter_officers)
+        table.exclude = ('badge_number', 'graduation_year')
         RequestConfig(self.request, paginate={'per_page': 100}).configure(table)
         context['table'] = table
         email_list = ', '.join([x.email for x in chapter_officers])
         context['email_list'] = email_list
+        context['previous_officers'] = previous
         return context
 
 

@@ -91,6 +91,14 @@ class UserListView(LoginRequiredMixin, OfficerMixin, PagedFilteredTableView):
         qs = combine_annotations(self.filter.qs)
         return qs
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        table = UserTable(self.get_queryset())
+        table.exclude = ('role', 'role_end')
+        RequestConfig(self.request, paginate={'per_page': 30}).configure(table)
+        context['table'] = table
+        return context
+
 
 class PasswordResetFormNotActive(PasswordResetForm):
     def get_users(self, email):
