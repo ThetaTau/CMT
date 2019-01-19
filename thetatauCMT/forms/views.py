@@ -513,28 +513,26 @@ class RiskManagementFormView(OfficerRequiredMixin,
     def form_valid(self, form):
         form.instance.user = self.request.user
         form.save()
-        current_role = self.request.user.get_current_role().role.lower()
-        if current_role not in CHAPTER_OFFICER:
+        current_roles = self.request.user.chapter_officer()
+        if not current_roles:
             messages.add_message(
                 self.request, messages.ERROR,
                 f"Only executive officers can sign RMP: {CHAPTER_OFFICER}\n"
-                f"Your current role is: {current_role}")
+                f"Your current roles are: {current_roles}")
         else:
-            if current_role in COL_OFFICER_ALIGN:
-                current_role = COL_OFFICER_ALIGN[current_role]
             task = Task.objects.get(name="Risk Management Form",
-                                    owner=current_role)
+                                    owner_in=current_roles)
             chapter = self.request.user.current_chapter
             next_date = task.incomplete_dates_for_task_chapter(chapter).first()
             if next_date:
                 task_obj = TaskChapter(task=next_date, chapter=chapter,
-                                date=timezone.now(),)
+                                       date=timezone.now(),)
                 task_obj.submission_object = form.instance
                 task_obj.save()
             messages.add_message(
                 self.request, messages.INFO,
                 f"You successfully signed the RMP!\n"
-                f"Your current role is: {current_role}")
+                f"Your current roles are: {current_roles}")
         return super().form_valid(form)
 
     def get_success_url(self):
@@ -563,29 +561,27 @@ class PledgeProgramFormView(OfficerRequiredMixin,
     def form_valid(self, form):
         form.instance.chapter = self.request.user.current_chapter
         form.instance.year = datetime.datetime.now().year
-        current_role = self.request.user.get_current_role().role.lower()
-        if current_role not in CHAPTER_OFFICER:
+        current_roles = self.request.user.chapter_officer()
+        if not current_roles:
             messages.add_message(
                 self.request, messages.ERROR,
                 f"Only executive officers can sign submit pledge program: {CHAPTER_OFFICER}\n"
-                f"Your current role is: {current_role}")
+                f"Your current roles are: {current_roles}")
         else:
             form.save()
-            if current_role in COL_OFFICER_ALIGN:
-                current_role = COL_OFFICER_ALIGN[current_role]
             task = Task.objects.get(name="Pledge Program",
-                                    owner=current_role)
+                                    owner_in=current_roles)
             chapter = self.request.user.current_chapter
             next_date = task.incomplete_dates_for_task_chapter(chapter).first()
             if next_date:
                 task_obj = TaskChapter(task=next_date, chapter=chapter,
-                                date=timezone.now(),)
+                                       date=timezone.now(),)
                 task_obj.submission_object = form.instance
                 task_obj.save()
             messages.add_message(
                 self.request, messages.INFO,
                 f"You successfully submitted the Pledge Program!\n"
-                f"Your current role is: {current_role}")
+                f"Your current roles are: {current_roles}")
         return super().form_valid(form)
 
     def get_success_url(self):
@@ -607,23 +603,21 @@ class AuditFormView(OfficerRequiredMixin, LoginRequiredMixin, OfficerMixin,
     def form_valid(self, form):
         form.instance.year = datetime.datetime.now().year
         form.instance.user = self.request.user
-        current_role = self.request.user.get_current_role().role.lower()
-        if current_role not in CHAPTER_OFFICER:
+        current_roles = self.request.user.chapter_officer()
+        if not current_roles:
             messages.add_message(
                 self.request, messages.ERROR,
                 f"Only executive officers can submit an audit: {CHAPTER_OFFICER}\n"
-                f"Your current role is: {current_role}")
+                f"Your current roles are: {current_roles}")
         else:
             form.save()
-            if current_role in COL_OFFICER_ALIGN:
-                current_role = COL_OFFICER_ALIGN[current_role]
             task = Task.objects.get(name="Audit",
-                                    owner=current_role)
+                                    owner_in=current_roles)
             chapter = self.request.user.current_chapter
             next_date = task.incomplete_dates_for_task_chapter(chapter).first()
             if next_date:
                 task_obj = TaskChapter(task=next_date, chapter=chapter,
-                                date=timezone.now(),)
+                                       date=timezone.now(),)
                 task_obj.submission_object = form.instance
                 task_obj.save()
             messages.add_message(

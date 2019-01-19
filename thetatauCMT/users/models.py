@@ -9,7 +9,7 @@ from django.core.validators import MinValueValidator, MaxValueValidator,\
     RegexValidator
 from address.models import AddressField
 from core.models import StartEndModel, YearTermModel, TODAY_END, CHAPTER_OFFICER, \
-    ALL_OFFICERS_CHOICES, TimeStampedModel, NATIONAL_OFFICER
+    ALL_OFFICERS_CHOICES, TimeStampedModel, NATIONAL_OFFICER, COL_OFFICER_ALIGN
 from chapters.models import Chapter
 
 
@@ -75,13 +75,26 @@ class User(AbstractUser):
     def get_current_role(self):
         return self.roles.filter(end__gte=TODAY_END).first()
 
-    def is_chapter_officer(self):
-        role_obj = self.get_current_role()
-        officer = False
-        if role_obj is not None:
-            current_role = {role_obj.role.lower()}
-            officer = not current_role.isdisjoint(CHAPTER_OFFICER)
-        return officer
+    def get_current_roles(self):
+        return self.roles.filter(end__gte=TODAY_END)
+
+    def chapter_officer(self):
+        """
+        An member can have multiple roles need to see if any are officer
+        :return: Bool if officer, set of officer roles
+        """
+        role_objs = self.get_current_roles()
+        officer_roles = {}
+        current_roles = {}
+        if role_objs is not None:
+            for role_obj in role_objs:
+                role_name = role_obj.role.lower()
+                if role_name in COL_OFFICER_ALIGN:
+                    role_name = COL_OFFICER_ALIGN[role_name]
+                current_roles.add(role_name)
+            # officer = not current_roles.isdisjoint(CHAPTER_OFFICER)
+            officer_roles = CHAPTER_OFFICER & current_roles
+        return officer_roles
 
     @property
     def is_national_officer_group(self):
@@ -92,16 +105,23 @@ class User(AbstractUser):
         return self.groups.filter(name='officer').exists()
 
     def is_national_officer(self):
-        role_obj = self.get_current_role()
+        role_objs = self.get_current_roles()
         officer = False
-        if role_obj is not None:
-            current_role = {role_obj.role.lower()}
-            officer = not current_role.isdisjoint(NATIONAL_OFFICER)
+        officer_roles = {}
+        current_roles = {}
+        if role_objs is not None:
+            for role_obj in role_objs:
+                role_name = role_obj.role.lower()
+                if role_name in COL_OFFICER_ALIGN:
+                    role_name = COL_OFFICER_ALIGN[role_name]
+                current_roles.add(role_name)
+            officer = not current_roles.isdisjoint(NATIONAL_OFFICER)
+            officer_roles = NATIONAL_OFFICER & current_roles
         return officer
 
     @property
     def is_officer(self):
-        return self.is_chapter_officer() or self.is_national_officer()
+        return len(self.chapter_officer()) > 0 or self.is_national_officer()
 
     def is_officer_group(self):
         groups = ['officer', 'natoff']
