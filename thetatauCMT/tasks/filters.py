@@ -1,5 +1,7 @@
 # filters.py
 import django_filters
+from core.filters import DateRangeFilter
+from core.models import CHAPTER_OFFICER_CHOICES
 from .models import TaskDate, Task
 from django.db import models
 
@@ -13,13 +15,16 @@ class TaskListFilter(django_filters.FilterSet):
                ('', 'All'),
         )
     )
+    date = DateRangeFilter(name='date')
+    task__owner = django_filters.MultipleChoiceFilter(
+        choices=CHAPTER_OFFICER_CHOICES)
 
     class Meta:
         model = TaskDate
-        fields = {'task__owner': ['icontains'],
-                  'date': ['lt', 'gt'],
-                  'complete': ['iexact']
-                  }
+        fields = ['task__owner',
+                  'complete',
+                  'date',
+                  ]
         order_by = ['date']
 
     def filter_complete(self, queryset, field_name, value):

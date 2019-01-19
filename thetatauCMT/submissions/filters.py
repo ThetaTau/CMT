@@ -1,12 +1,13 @@
 # filters.py
 import django_filters
+from core.filters import DateRangeFilter
 from .models import Submission
 from scores.models import ScoreType
 
 
 class SubmissionListFilter(django_filters.FilterSet):
     name = django_filters.CharFilter(lookup_expr='icontains')
-    date = django_filters.NumberFilter(name='date', lookup_expr='year')
+    date = DateRangeFilter(name='date')
     type = django_filters.ModelChoiceFilter(
         queryset=ScoreType.objects.filter(type="Sub").all())
 

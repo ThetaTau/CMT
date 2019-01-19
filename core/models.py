@@ -95,6 +95,7 @@ ALL_OFFICERS = sorted(set.union(CHAPTER_OFFICER, COMMITTEE_CHAIR, NATIONAL_OFFIC
 
 
 ALL_OFFICERS_CHOICES = [(officer, officer.title()) for officer in ALL_OFFICERS]
+CHAPTER_OFFICER_CHOICES = [(officer, officer.title()) for officer in CHAPTER_OFFICER]
 
 
 def semester_start_date():

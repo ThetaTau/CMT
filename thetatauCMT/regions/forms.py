@@ -17,10 +17,9 @@ class RegionChapterTaskFormHelper(FormHelper):
                 Fieldset(
                     '<i class="fas fa-search"></i> Filter Tasks',
                     Row(
-                        InlineField('task__name__icontains'),
-                        InlineField('task__owner__icontains'),
-                        InlineField('date__lt'),
-                        InlineField('date__gt'),
+                        InlineField('task__name'),
+                        InlineField('task__owner'),
+                        InlineField('date'),
                         FormActions(
                             StrictButton(
                                 '<i class="fa fa-search"></i> Search',

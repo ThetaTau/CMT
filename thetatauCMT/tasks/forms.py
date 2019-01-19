@@ -17,9 +17,8 @@ class TaskListFormHelper(FormHelper):
                 Fieldset(
                     '<i class="fas fa-search"></i> Filter Tasks',
                     Row(
-                        InlineField('task__owner__icontains'),
-                        InlineField('date__lt'),
-                        InlineField('date__gt'),
+                        InlineField('task__owner'),
+                        InlineField('date'),
                         InlineField('complete'),
                         FormActions(
                             StrictButton(
