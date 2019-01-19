@@ -5,7 +5,12 @@ from .models import Submission
 
 class FileURLColumn(tables.LinkColumn):
     def compose_url(self, record, *args, **kwargs):
-        return record.file.url
+        out_url = ""
+        try:
+            out_url = record.file.url
+        except TimeoutError:
+            pass  # Really want to remove all file uploads, ignore for now
+        return out_url
 
 
 class SubmissionTable(tables.Table):
