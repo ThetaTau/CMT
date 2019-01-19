@@ -10,6 +10,6 @@ def user_alter_form(context):
     request = context.get('request', None)
     if request:
         user = context['request'].user
-        if not user.is_anonymous and user.is_national_officer_group():
+        if not user.is_anonymous and user.is_national_officer_group:
             return UserAlterForm(data={'chapter': user.current_chapter.pk})
     return None

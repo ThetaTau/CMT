@@ -73,8 +73,7 @@ class User(AbstractUser):
                                   end__gte=TODAY_END).first()
 
     def get_current_role(self):
-        return self.roles.filter(start__lte=TODAY_END,
-                                 end__gte=TODAY_END).first()
+        return self.roles.filter(end__gte=TODAY_END).first()
 
     def is_chapter_officer(self):
         role_obj = self.get_current_role()
@@ -84,8 +83,13 @@ class User(AbstractUser):
             officer = not current_role.isdisjoint(CHAPTER_OFFICER)
         return officer
 
+    @property
     def is_national_officer_group(self):
         return self.groups.filter(name='natoff').exists()
+
+    @property
+    def is_chapter_officer_group(self):
+        return self.groups.filter(name='officer').exists()
 
     def is_national_officer(self):
         role_obj = self.get_current_role()
