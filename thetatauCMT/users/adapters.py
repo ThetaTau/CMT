@@ -30,12 +30,16 @@ class SocialAccountAdapter(DefaultSocialAccountAdapter):
         # some social logins don't have an email address, e.g. facebook accounts
         # with mobile numbers only, but allauth takes care of this case so just
         # ignore it
-        if 'email' not in sociallogin.account.extra_data:
+        if 'email' in sociallogin.account.extra_data:
+            email_name = 'email'
+        if 'emailAddress' in sociallogin.account.extra_data:
+            email_name = 'emailAddress'
+        else:
             return
         # check if given email address already exists.
         # Note: __iexact is used to ignore cases
         try:
-            email = sociallogin.account.extra_data['email'].lower()
+            email = sociallogin.account.extra_data[email_name].lower()
             user = User.objects.get(email__iexact=email)
         # if it does not, let allauth take care of this new social account
         except User.DoesNotExist:
