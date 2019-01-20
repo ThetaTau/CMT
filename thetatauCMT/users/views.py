@@ -102,7 +102,7 @@ class UserListView(LoginRequiredMixin, OfficerMixin, PagedFilteredTableView):
 
 class PasswordResetFormNotActive(PasswordResetForm):
     def get_users(self, email):
-        return [User.objects.get(email=email)]
+        return [User.objects.filter(email=email).first()]
 
 
 class UserLookupLoginView(LoginView):
