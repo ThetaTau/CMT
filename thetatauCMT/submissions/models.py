@@ -39,6 +39,8 @@ class Submission(TimeStampedModel):
             super().save()
         except TimeoutError:
             pass  # Really want to remove all file uploads, ignore for now
+        except BrokenPipeError:
+            pass
         self.type.update_chapter_score(self.chapter, self.date)
 
     def chapter_submissions(self, chapter):

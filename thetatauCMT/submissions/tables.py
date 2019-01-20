@@ -13,6 +13,8 @@ class FileURLColumn(tables.LinkColumn):
             pass  # Really want to remove all file uploads, ignore for now
         except HttpError:
             pass  # Really want to remove all file uploads, ignore for now
+        except BrokenPipeError:
+            pass
         return out_url
 
 
