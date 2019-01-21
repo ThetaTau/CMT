@@ -1,55 +1,32 @@
 {% extends "base.html" %}
 {% load static %}
-
-{% block title %}User: {{ object.username }}{% endblock %}
+{% load crispy_forms_tags %}
+{% block title %}Member: {{ object.username }}{% endblock %}
 
 {% block content %}
 <div class="container">
-
   <div class="row">
     <div class="col-sm-12">
-
-      <h2>{{ object.username }}</h2>
+      <h2>{{ object.name }}</h2>
       {% if object.name %}
         <table class="table">
           <tr>
-            <td>Name</td>
-            <td>{{ object.name }}</td>
+            <td>Username</td>
+            <td>{{ object.username }}</td>
           </tr>
           <tr>
             <td>Chapter</td>
             <td>{{ object.chapter }}</td>
           </tr>
           <tr>
-            <td>Major</td>
-            <td>{{ object.major }}</td>
-          </tr>
-          <tr>
-            <td>Graduation Year</td>
-            <td>{{ object.graduation_year }}</td>
-          </tr>
-          <tr>
-            <td>Phone</td>
-            <td>{{ object.phone_number }}</td>
-          </tr>
-          <tr>
-            <td>Address</td>
-            <td>{{ object.address }}</td>
-          </tr>
-          <tr>
             <td>Current Status</td>
             <td>{{ object.get_current_status.status.title }}</td>
-          </tr>
-          <tr>
-            <td>Current Role</td>
-            <td>{{ object.get_current_roles }}</td>
           </tr>
           <tr>
             <td>Current Chapter Officer</td>
             <td>{{ object.is_chapter_officer }}</td>
           </tr>
         </table>
-      <br>
         <h3>Current/Previous Roles:</h3>
       {% for role in object.roles.all %}
         <p>{{ role }} {{ role.start }} {{ role.end }}</p>
@@ -57,21 +34,38 @@
       {% endif %}
     </div>
   </div>
-
+<h3>Update Member Information:</h3>
 {% if object == request.user %}
 <!-- Action buttons -->
 <div class="row">
-
   <div class="col-sm-12">
-    <a class="btn btn-primary" href="{% url 'users:update' %}" role="button">Update My Info</a>
     <a class="btn btn-primary" href="{% url 'account_email' %}" role="button">Update E-Mail</a>
-    <!-- Your Stuff: Custom user template urls -->
   </div>
-
 </div>
 <!-- End Action buttons -->
 {% endif %}
-
+<form class="user" method="POST">
+    {% csrf_token %}
+    {{ forms.user|crispy }}
+    <button name='action' value='user' type="submit">Update Member</button>
+</form>
+<h4>Update Member GPA:</h4>
+<form class="gpa" method="POST">
+    {% csrf_token %}
+  <table>
+    <tr>
+        {% for header in table_headers %}
+          <th>{{ header }}</th>
+        {% endfor %}
+    </tr>
+          <tr>
+            {% for field in forms.gpa %}
+              <td>{{ field|as_crispy_field }}</td>
+            {% endfor %}
+          </tr>
+    </table>
+    <button name='action' value='gpa' type="submit">Update GPA</button>
+</form>
 
 </div>
 {% endblock content %}

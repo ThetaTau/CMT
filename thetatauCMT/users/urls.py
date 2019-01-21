@@ -20,13 +20,8 @@ url(
         name='redirect'
     ),
     url(
-        regex=r'^update/$',
-        view=views.UserUpdateView.as_view(),
-        name='update'
-    ),
-    url(
         regex=r'^~(?P<username>[\w.@+-]+)/$',
-        view=views.UserDetailView.as_view(),
+        view=views.UserDetailUpdateView.as_view(),
         name='detail'
     ),
     url(

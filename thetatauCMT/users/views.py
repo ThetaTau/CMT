@@ -10,6 +10,7 @@ from allauth.account.views import LoginView
 from extra_views import FormSetView
 from core.views import PagedFilteredTableView, RequestConfig, OfficerMixin,\
     NatOfficerRequiredMixin, OfficerRequiredMixin
+from core.forms import MultiFormsView
 from core.models import TODAY_END, annotate_role_status, combine_annotations,\
     BIENNIUM_YEARS
 from dal import autocomplete
@@ -17,15 +18,8 @@ from .models import User, UserAlterChapter, UserSemesterGPA
 from .tables import UserTable
 from .filters import UserListFilter
 from .forms import UserListFormHelper, UserLookupForm, UserAlterForm,\
-    UserGPAForm
+    UserGPAForm, UserForm
 from chapters.models import Chapter
-
-
-class UserDetailView(LoginRequiredMixin, OfficerMixin, DetailView):
-    model = User
-    # These next two lines tell the view to index lookups by username
-    slug_field = 'username'
-    slug_url_kwarg = 'username'
 
 
 class UserRedirectView(LoginRequiredMixin, RedirectView):
@@ -36,17 +30,72 @@ class UserRedirectView(LoginRequiredMixin, RedirectView):
                        kwargs={'username': self.request.user.username})
 
 
-class UserUpdateView(LoginRequiredMixin, OfficerMixin, UpdateView):
-
-    fields = ['name', 'chapter', 'major', 'graduation_year', 'phone_number', 'address']
-
-    # we already imported User in the view code above, remember?
-    model = User
+class UserDetailUpdateView(LoginRequiredMixin, OfficerMixin, MultiFormsView):
+    template_name = 'users/user_detail.html'
+    form_classes = {
+        'gpa': UserGPAForm,
+        'user': UserForm
+    }
 
     # send the user back to their own page after a successful update
     def get_success_url(self):
         return reverse('users:detail',
                        kwargs={'username': self.request.user.username})
+
+    def get_gpa_initial(self):
+        user = self.request.user
+        initial = {"user": user.name}
+        user_gpas = user.gpas.filter(
+            year__gte=BIENNIUM_YEARS[0]).values('year', 'term', 'gpa')
+        if user_gpas:
+            for i in range(4):
+                semester = 'sp' if i % 2 else 'fa'
+                year = BIENNIUM_YEARS[i]
+                try:
+                    gpa = user_gpas.get(
+                        term=semester,
+                        year=year
+                    )
+                except UserSemesterGPA.DoesNotExist:
+                    continue
+                else:
+                    initial[f"gpa{i + 1}"] = gpa['gpa']
+        for key in ["gpa1", "gpa2", "gpa3", "gpa4"]:
+            if key not in initial:
+                initial[key] = 0.0
+        return initial
+
+    def gpa_form_valid(self, form):
+        if form.has_changed():
+            form.save()
+        return form.gpa(self.request, redirect_url=self.get_success_url())
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context.update({
+            "object": self.get_object(),
+                       })
+        headers = [""]
+        for i in range(4):
+            year = BIENNIUM_YEARS[i]
+            semester = 'Spring' if i % 2 else 'Fall'
+            headers.append(f"{semester} {year}")
+        context['table_headers'] = headers
+        return context
+
+    def get_form_kwargs(self, form_name, bind_form=False):
+        kwargs = super().get_form_kwargs(form_name, bind_form)
+        if form_name == 'user':
+            kwargs.update(
+                {'instance': self.get_object(),
+                 }
+            )
+        if form_name == 'gpa':
+            kwargs.update(
+                {'hide_user': True,
+                 }
+            )
+        return kwargs
 
     def get_object(self):
         # Only get the User record for the user making the request

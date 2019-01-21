@@ -4,7 +4,7 @@ from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Layout, Fieldset, Row, Column, Submit, Button
 from crispy_forms.bootstrap import FormActions, InlineField, StrictButton
 from core.models import BIENNIUM_YEARS
-from chapters.models import Chapter
+from chapters.models import Chapter, ChapterCurricula
 from .models import UserAlterChapter, User, UserSemesterGPA
 
 
@@ -87,6 +87,12 @@ class UserAlterForm(forms.ModelForm):
         fields = ['chapter']
 
 
+class UserForm(forms.ModelForm):
+    class Meta:
+        model = User
+        fields = ['name', 'major', 'graduation_year', 'phone_number', 'address']
+
+
 class UserGPAForm(forms.Form):
     user = forms.CharField(label="",
                            widget=forms.TextInput(
@@ -95,6 +101,12 @@ class UserGPAForm(forms.Form):
     gpa2 = forms.FloatField(label="")  # Spring 2019
     gpa3 = forms.FloatField(label="")  # Fall 2019
     gpa4 = forms.FloatField(label="")  # Spring 2020
+
+    def __init__(self, *args, **kwargs):
+        hide_user = kwargs.pop('hide_user', False)
+        super().__init__(*args, **kwargs)
+        if hide_user:
+            self.fields['user'].widget = forms.HiddenInput()
 
     def save(self):
         user_name = self.cleaned_data["user"]
