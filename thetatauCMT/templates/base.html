@@ -78,7 +78,7 @@
           <span class="navbar-toggler-icon"></span>
         </button>
         <div class="collapse navbar-collapse" id="navbarSupportedContent">
-          <ul class="navbar-nav mr-auto">
+          <ul class="nav navbar-nav mr-auto">
             <li class="nav-item">
               <a class="nav-link" href="{% url 'home' %}">Home <span class="sr-only">(current)</span></a>
             </li>
@@ -86,9 +86,21 @@
               <li class="nav-item">
                 <a class="nav-link" href="{% url 'chapters:detail' request.user.current_chapter.slug %}">Chapter</a>
               </li>
-              <li class="nav-item">
-                <a class="nav-link" href="{% url 'users:list' %}">Members</a>
-              </li>
+              <div class="dropdown-container">
+                <li>
+                <a class="nav-link dropdown-toggle" href="#" data-toggle="dropdown">{% trans "Members" %}</a>
+                  <ul class="dropdown-menu">
+                    <li class="active dropdown-submenu">
+                      <a class="nav-link" href="{% url 'users:list' %}">{% trans "List" %}</a>
+                    </li>
+                    {% if request.is_officer %}
+                    <li class="active dropdown-submenu">
+                      <a class="nav-link" href="{% url 'users:gpas' %}">{% trans "GPAs" %}</a>
+                    </li>
+                    {% endif %}
+                  </ul>
+                </li>
+              </div>
               <li class="nav-item">
                 <a class="nav-link" href="{% url 'scores:list' %}">Scores</a>
               </li>
@@ -103,7 +115,7 @@
               </li>
             {% endif %}
           </ul>
-          <ul class="nav navbar-nav ml-auto w-100 justify-content-end">
+          <ul class="nav navbar-nav justify-content-end">
             {% if request.user.is_authenticated %}
               {% if request.is_officer %}
               <li class="nav-item">
