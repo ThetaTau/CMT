@@ -9,6 +9,11 @@ urlpatterns = [
         view=views.UserListView.as_view(),
         name='list'
     ),
+url(
+        regex=r'gpas/$',
+        view=views.UserGPAFormSetView.as_view(),
+        name='gpas'
+    ),
     url(
         regex=r'^redirect/$',
         view=views.UserRedirectView.as_view(),

@@ -5,7 +5,8 @@ from django.db.utils import ProgrammingError
 from address.models import AddressField
 from django.utils.translation import ugettext_lazy as _
 from django.utils.text import slugify
-from core.models import TODAY_END, annotate_role_status, CHAPTER_OFFICER, semester_start_date
+from core.models import TODAY_END, annotate_role_status, CHAPTER_OFFICER,\
+    semester_start_date, BIENNIUM_START
 from regions.models import Region
 
 
@@ -164,6 +165,9 @@ class Chapter(models.Model):
         semester_start = semester_start_date()
         return self.events.filter(date__lte=TODAY_END, date__gte=semester_start)
 
+    def current_members(self):
+        return self.actives() | self.pledges()
+
     def actives(self):
         # Do not annotate, need the queryset not a list
         return self.members.filter(status__status__in=["active", "activepend", "alumnipend"],
@@ -177,6 +181,11 @@ class Chapter(models.Model):
                                    status__start__lte=TODAY_END,
                                    status__end__gte=TODAY_END
                                    )
+
+    def gpas(self):
+        return self.current_members().filter(
+            gpas__year__gte=BIENNIUM_START
+        )
 
     def get_current_officers(self, combine=True):
         officers = self.members.filter(

@@ -41,6 +41,26 @@ SEMESTER = {
     12: 'fa',
 }
 
+
+current_year = datetime.datetime.now().year
+if current_year % 2:
+    # If the current year is odd, then first year of biennium is last year
+    BIENNIUM_START = current_year - 1
+else:
+    # If the current year is even, then first year of biennium is
+    # this year if current semester is fall otherwise two years ago
+    current_month = datetime.datetime.now().month
+    semester = SEMESTER[current_month]
+    if semester == 'sp':
+        BIENNIUM_START = current_year - 2
+    else:
+        BIENNIUM_START = current_year
+
+
+BIENNIUM_YEARS = [BIENNIUM_START, BIENNIUM_START + 1,
+                  BIENNIUM_START + 1, BIENNIUM_START + 2]
+
+
 CHAPTER_OFFICER = {
     "corresponding secretary",
     "president",

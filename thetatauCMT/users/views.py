@@ -7,14 +7,17 @@ from django.utils.http import is_safe_url
 from django.contrib import messages
 from django.views.generic import DetailView, RedirectView, UpdateView, FormView
 from allauth.account.views import LoginView
+from extra_views import FormSetView
 from core.views import PagedFilteredTableView, RequestConfig, OfficerMixin,\
-    NatOfficerRequiredMixin
-from core.models import TODAY_END, annotate_role_status, combine_annotations
+    NatOfficerRequiredMixin, OfficerRequiredMixin
+from core.models import TODAY_END, annotate_role_status, combine_annotations,\
+    BIENNIUM_YEARS
 from dal import autocomplete
-from .models import User, UserAlterChapter
+from .models import User, UserAlterChapter, UserSemesterGPA
 from .tables import UserTable
 from .filters import UserListFilter
-from .forms import UserListFormHelper, UserLookupForm, UserAlterForm
+from .forms import UserListFormHelper, UserLookupForm, UserAlterForm,\
+    UserGPAForm
 from chapters.models import Chapter
 
 
@@ -187,3 +190,56 @@ class UserAlterView(NatOfficerRequiredMixin, LoginRequiredMixin, FormView):
         else:
             form.save()
         return super().form_valid(form)
+
+
+class UserGPAFormSetView(OfficerRequiredMixin,
+                         LoginRequiredMixin, OfficerMixin, FormSetView):
+    template_name = 'users/gpa_formset.html'
+    form_class = UserGPAForm
+    factory_kwargs = {'extra': 0}
+
+    def get_initial(self):
+        # return whatever you'd normally use as the initial data for your formset.
+        users_with_gpas = self.request.user.current_chapter.gpas()
+        all_members = self.request.user.current_chapter.current_members()
+        initials = []
+        for user in all_members:
+            init_dict = {"user": user.name}
+            if user in users_with_gpas:
+                user_gpas = user.gpas.filter(
+                    year__gte=BIENNIUM_YEARS[0]
+                ).values('year', 'term', 'gpa')
+                if user_gpas:
+                    for i in range(4):
+                        semester = 'sp' if i % 2 else 'fa'
+                        year = BIENNIUM_YEARS[i]
+                        try:
+                            gpa = user_gpas.get(
+                                term=semester,
+                                year=year
+                            )
+                        except UserSemesterGPA.DoesNotExist:
+                            continue
+                        else:
+                            init_dict[f"gpa{i + 1}"] = gpa['gpa']
+            for key in ["gpa1", "gpa2", "gpa3", "gpa4"]:
+                if key not in init_dict:
+                    init_dict[key] = 0.0
+            initials.append(init_dict)
+        return initials
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        headers = ["Member Name"]
+        for i in range(4):
+            year = BIENNIUM_YEARS[i]
+            semester = 'Spring' if i % 2 else 'Fall'
+            headers.append(f"{semester} {year}")
+        context['table_headers'] = headers
+        return context
+
+    def formset_valid(self, formset):
+        for form in formset:
+            if form.has_changed():
+                form.save()
+        return super().formset_valid(formset)
