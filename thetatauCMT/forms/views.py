@@ -129,6 +129,8 @@ class InitiationView(OfficerRequiredMixin,
         self.to_depledge = pledges.filter(pk__in=initiate['Depledge'])
         self.to_defer = pledges.filter(pk__in=initiate['Defer'])
         self.next_badge = self.request.user.current_chapter.next_badge_number()['badge_number__max']
+        if self.next_badge is None:
+            self.next_badge = 0
         self.next_badge += 1
 
     def get(self, request, *args, **kwargs):

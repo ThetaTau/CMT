@@ -136,3 +136,7 @@ td[complete='True'] {
   position: relative;
   top: 105px;
 }
+
+.form-control {
+  padding: .5rem .25rem;
+}
