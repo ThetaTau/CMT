@@ -114,6 +114,8 @@ class UserGPAForm(forms.Form):
             name=user_name, chapter__name=self.data['chapter']).last()
         for i in range(4):
             gpa = self.cleaned_data[f"gpa{i + 1}"]
+            if gpa == 0:
+                continue
             semester = 'sp' if i % 2 else 'fa'
             year = BIENNIUM_YEARS[i]
             try:

@@ -1,6 +1,7 @@
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.forms import PasswordResetForm
 from django.http.request import QueryDict
+from django.http.response import HttpResponseRedirect
 from django.urls import reverse
 from django.shortcuts import redirect
 from django.utils.http import is_safe_url
@@ -68,7 +69,7 @@ class UserDetailUpdateView(LoginRequiredMixin, OfficerMixin, MultiFormsView):
     def gpa_form_valid(self, form):
         if form.has_changed():
             form.save()
-        return form.gpa(self.request, redirect_url=self.get_success_url())
+        return HttpResponseRedirect(self.get_success_url())
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)

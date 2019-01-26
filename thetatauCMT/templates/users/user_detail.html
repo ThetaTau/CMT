@@ -52,6 +52,7 @@
 <h4>Update Member GPA:</h4>
 <form class="gpa" method="POST">
     {% csrf_token %}
+    <input type="hidden" id="chapter" name="chapter" value="{{ user.chapter }}">
   <table>
     <tr>
         {% for header in table_headers %}
