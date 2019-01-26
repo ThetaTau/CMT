@@ -252,6 +252,12 @@ class UserGPAFormSetView(OfficerRequiredMixin,
         # return whatever you'd normally use as the initial data for your formset.
         users_with_gpas = self.request.user.current_chapter.gpas()
         all_members = self.request.user.current_chapter.current_members()
+        cancel = self.request.GET.get('cancel', False)
+        request_get = self.request.GET.copy()
+        if cancel:
+            request_get = QueryDict()
+        self.filter = UserListFilter(request_get, queryset=all_members)
+        all_members = self.filter.qs
         initials = []
         for user in all_members:
             init_dict = {"user": user.name}
@@ -286,6 +292,8 @@ class UserGPAFormSetView(OfficerRequiredMixin,
             semester = 'Spring' if i % 2 else 'Fall'
             headers.append(f"{semester} {year}")
         context['table_headers'] = headers
+        self.filter.form.helper = UserListFormHelper()
+        context['filter'] = self.filter
         return context
 
     def formset_valid(self, formset):

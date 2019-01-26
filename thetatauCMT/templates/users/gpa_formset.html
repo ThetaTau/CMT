@@ -4,6 +4,12 @@
 {% block title %}GPA Update{% endblock %}
 
 {% block content %}
+  <div class="d-flex justify-content-center">
+    <form method="get" class="form-inline form-search pull-right">
+      {% csrf_token %}
+      {% crispy filter.form filter.form.helper %}
+    </form>
+  </div>
   <form method="post">
   {% csrf_token %}
   <input type="hidden" id="chapter" name="chapter" value="{{ user.current_chapter }}">
