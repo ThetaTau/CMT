@@ -97,10 +97,10 @@ class UserGPAForm(forms.Form):
     user = forms.CharField(label="",
                            widget=forms.TextInput(
                                attrs={'readonly': 'readonly'}))
-    gpa1 = forms.FloatField(label="")  # Fall 2018
-    gpa2 = forms.FloatField(label="")  # Spring 2019
-    gpa3 = forms.FloatField(label="")  # Fall 2019
-    gpa4 = forms.FloatField(label="")  # Spring 2020
+    gpa1 = forms.FloatField(label="", max_value=5.0, min_value=0)  # Fall 2018
+    gpa2 = forms.FloatField(label="", max_value=5.0, min_value=0)  # Spring 2019
+    gpa3 = forms.FloatField(label="", max_value=5.0, min_value=0)  # Fall 2019
+    gpa4 = forms.FloatField(label="", max_value=5.0, min_value=0)  # Spring 2020
 
     def __init__(self, *args, **kwargs):
         hide_user = kwargs.pop('hide_user', False)
