@@ -5,7 +5,8 @@ from crispy_forms.layout import Layout, Fieldset, Row, Column, Submit, Button
 from crispy_forms.bootstrap import FormActions, InlineField, StrictButton
 from core.models import BIENNIUM_YEARS
 from chapters.models import Chapter, ChapterCurricula
-from .models import UserAlterChapter, User, UserSemesterGPA
+from .models import UserAlterChapter, User, UserSemesterGPA,\
+    UserSemesterServiceHours
 
 
 class UserListFormHelper(FormHelper):
@@ -129,4 +130,45 @@ class UserGPAForm(forms.Form):
                     term=semester,
                 )
             obj.gpa = gpa
+            obj.save()
+
+
+class UserServiceForm(forms.Form):
+    user = forms.CharField(label="",
+                           widget=forms.TextInput(
+                               attrs={'readonly': 'readonly'}))
+    service1 = forms.FloatField(label="", min_value=0)  # Fall 2018
+    service2 = forms.FloatField(label="", min_value=0)  # Spring 2019
+    service3 = forms.FloatField(label="", min_value=0)  # Fall 2019
+    service4 = forms.FloatField(label="", min_value=0)  # Spring 2020
+
+    def __init__(self, *args, **kwargs):
+        hide_user = kwargs.pop('hide_user', False)
+        super().__init__(*args, **kwargs)
+        if hide_user:
+            self.fields['user'].widget = forms.HiddenInput()
+
+    def save(self):
+        user_name = self.cleaned_data["user"]
+        user = User.objects.filter(
+            name=user_name, chapter__name=self.data['chapter']).last()
+        for i in range(4):
+            service = self.cleaned_data[f"service{i + 1}"]
+            if service == 0:
+                continue
+            semester = 'sp' if i % 2 else 'fa'
+            year = BIENNIUM_YEARS[i]
+            try:
+                obj = UserSemesterServiceHours.objects.get(
+                    user=user,
+                    year=year,
+                    term=semester,
+                )
+            except UserSemesterServiceHours.DoesNotExist:
+                obj = UserSemesterServiceHours(
+                    user=user,
+                    year=year,
+                    term=semester,
+                )
+            obj.service_hours = service
             obj.save()

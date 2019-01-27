@@ -47,26 +47,45 @@
 <form class="user" method="POST">
     {% csrf_token %}
     {{ forms.user|crispy }}
-    <button name='action' value='user' type="submit">Update Member</button>
+    <button class="btn btn-primary" name='action' value='user' type="submit">Update Member Information</button>
 </form>
-<h4>Update Member GPA:</h4>
-<form class="gpa" method="POST">
-    {% csrf_token %}
-    <input type="hidden" id="chapter" name="chapter" value="{{ user.chapter }}">
+<br>
+<h4>Update Member GPA / Service Hours:</h4>
   <table>
     <tr>
+        <th></th>
         {% for header in table_headers %}
           <th>{{ header }}</th>
         {% endfor %}
+        <th></th>
     </tr>
-          <tr>
+        <tr  style="vertical-align:top">
+          <form class="gpa" method="POST">
+          {% csrf_token %}
+          <input type="hidden" id="chapter" name="chapter" value="{{ user.chapter }}">
+          <th>GPA</th>
             {% for field in forms.gpa %}
               <td>{{ field|as_crispy_field }}</td>
             {% endfor %}
-          </tr>
+            <td>
+              <button class="btn btn-primary" name='action' value='gpa' type="submit">Update</button>
+            </td>
+          </form>
+        </tr>
+        <tr style="vertical-align:top">
+          <form class="service" method="POST">
+          {% csrf_token %}
+          <input type="hidden" id="chapter" name="chapter" value="{{ user.chapter }}">
+          <th>Service</th>
+            {% for field in forms.service %}
+              <td>{{ field|as_crispy_field }}</td>
+            {% endfor %}
+            <td>
+              <button class="btn btn-primary"  name='action' value='service' type="submit">Update</button>
+            </td>
+          </form>
+        </tr>
     </table>
-    <button name='action' value='gpa' type="submit">Update GPA</button>
-</form>
 
 </div>
 {% endblock content %}

@@ -187,6 +187,11 @@ class Chapter(models.Model):
             gpas__year__gte=BIENNIUM_START
         )
 
+    def service_hours(self):
+        return self.current_members().filter(
+            service_hours__year__gte=BIENNIUM_START
+        )
+
     def get_current_officers(self, combine=True):
         officers = self.members.filter(
             roles__start__lte=TODAY_END, roles__end__gte=TODAY_END)

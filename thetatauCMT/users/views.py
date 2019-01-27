@@ -15,11 +15,12 @@ from core.forms import MultiFormsView
 from core.models import TODAY_END, annotate_role_status, combine_annotations,\
     BIENNIUM_YEARS
 from dal import autocomplete
-from .models import User, UserAlterChapter, UserSemesterGPA
+from .models import User, UserAlterChapter, UserSemesterGPA,\
+    UserSemesterServiceHours
 from .tables import UserTable
 from .filters import UserListFilter
 from .forms import UserListFormHelper, UserLookupForm, UserAlterForm,\
-    UserGPAForm, UserForm
+    UserGPAForm, UserForm, UserServiceForm
 from chapters.models import Chapter
 
 
@@ -35,6 +36,7 @@ class UserDetailUpdateView(LoginRequiredMixin, OfficerMixin, MultiFormsView):
     template_name = 'users/user_detail.html'
     form_classes = {
         'gpa': UserGPAForm,
+        'service': UserServiceForm,
         'user': UserForm
     }
 
@@ -71,6 +73,34 @@ class UserDetailUpdateView(LoginRequiredMixin, OfficerMixin, MultiFormsView):
             form.save()
         return HttpResponseRedirect(self.get_success_url())
 
+    def get_service_initial(self):
+        user = self.request.user
+        initial = {"user": user.name}
+        user_service = user.service_hours.filter(
+            year__gte=BIENNIUM_YEARS[0]).values('year', 'term', 'service_hours')
+        if user_service:
+            for i in range(4):
+                semester = 'sp' if i % 2 else 'fa'
+                year = BIENNIUM_YEARS[i]
+                try:
+                    service = user_service.get(
+                        term=semester,
+                        year=year
+                    )
+                except UserSemesterServiceHours.DoesNotExist:
+                    continue
+                else:
+                    initial[f"service{i + 1}"] = service['service_hours']
+        for key in ["service1", "service2", "service3", "service4"]:
+            if key not in initial:
+                initial[key] = 0.0
+        return initial
+
+    def service_form_valid(self, form):
+        if form.has_changed():
+            form.save()
+        return HttpResponseRedirect(self.get_success_url())
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context.update({
@@ -91,7 +121,7 @@ class UserDetailUpdateView(LoginRequiredMixin, OfficerMixin, MultiFormsView):
                 {'instance': self.get_object(),
                  }
             )
-        if form_name == 'gpa':
+        if form_name in ['gpa', 'service']:
             kwargs.update(
                 {'hide_user': True,
                  }
@@ -247,6 +277,10 @@ class UserGPAFormSetView(OfficerRequiredMixin,
     template_name = 'users/gpa_formset.html'
     form_class = UserGPAForm
     factory_kwargs = {'extra': 0}
+    success_url = 'users:gpas'
+
+    def get_success_url(self):
+        return self.request.get_full_path()
 
     def get_initial(self):
         # return whatever you'd normally use as the initial data for your formset.
@@ -279,6 +313,71 @@ class UserGPAFormSetView(OfficerRequiredMixin,
                         else:
                             init_dict[f"gpa{i + 1}"] = gpa['gpa']
             for key in ["gpa1", "gpa2", "gpa3", "gpa4"]:
+                if key not in init_dict:
+                    init_dict[key] = 0.0
+            initials.append(init_dict)
+        return initials
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        headers = ["Member Name"]
+        for i in range(4):
+            year = BIENNIUM_YEARS[i]
+            semester = 'Spring' if i % 2 else 'Fall'
+            headers.append(f"{semester} {year}")
+        context['table_headers'] = headers
+        self.filter.form.helper = UserListFormHelper()
+        context['filter'] = self.filter
+        return context
+
+    def formset_valid(self, formset):
+        for form in formset:
+            if form.has_changed():
+                form.save()
+        return super().formset_valid(formset)
+
+
+class UserServiceFormSetView(OfficerRequiredMixin,
+                             LoginRequiredMixin, OfficerMixin, FormSetView):
+    template_name = 'users/service_formset.html'
+    form_class = UserServiceForm
+    factory_kwargs = {'extra': 0}
+    success_url = 'users:service'
+
+    def get_success_url(self):
+        return self.request.get_full_path()
+
+    def get_initial(self):
+        # return whatever you'd normally use as the initial data for your formset.
+        users_with_service = self.request.user.current_chapter.service_hours()
+        all_members = self.request.user.current_chapter.current_members()
+        cancel = self.request.GET.get('cancel', False)
+        request_get = self.request.GET.copy()
+        if cancel:
+            request_get = QueryDict()
+        self.filter = UserListFilter(request_get, queryset=all_members)
+        all_members = self.filter.qs
+        initials = []
+        for user in all_members:
+            init_dict = {"user": user.name}
+            if user in users_with_service:
+                user_service_hours = user.service_hours.filter(
+                    year__gte=BIENNIUM_YEARS[0]
+                ).values('year', 'term', 'service_hours')
+                if user_service_hours:
+                    for i in range(4):
+                        semester = 'sp' if i % 2 else 'fa'
+                        year = BIENNIUM_YEARS[i]
+                        try:
+                            service = user_service_hours.get(
+                                term=semester,
+                                year=year
+                            )
+                        except UserSemesterServiceHours.DoesNotExist:
+                            continue
+                        else:
+                            init_dict[f"service{i + 1}"] = service['service_hours']
+            for key in ["service1", "service2", "service3", "service4"]:
                 if key not in init_dict:
                     init_dict[key] = 0.0
             initials.append(init_dict)
