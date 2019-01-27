@@ -210,10 +210,10 @@ class UserRoleChange(StartEndModel, TimeStampedModel):
         """
         off_group, created = Group.objects.get_or_create(name='officer')
         previuos_users = UserRoleChange.get_role_members(self.user, self.role)
-        for user in previuos_users:
-            user.groups.remove(off_group)
-            off_group.user_set.remove(user)
-            user.save()
+        for user_role in previuos_users:
+            user_role.user.groups.remove(off_group)
+            off_group.user_set.remove(user_role.user)
+            user_role.user.save()
 
     @classmethod
     def get_role_members(cls, user, role):
