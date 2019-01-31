@@ -17,7 +17,6 @@
   </ul>
 </div>
 {% include "socialaccount/snippets/login_extra.html" %}
-    <h4>Your username is your email address.</h4>
 <form class="login" method="POST" action="{% url 'account_login' %}">
   {% csrf_token %}
   {{ form|crispy }}
@@ -33,9 +32,9 @@
 </form>
     </div>
   <div class="col-md-6">
-    <h1>{% trans "Lookup Username/Email" %}</h1>
+    <h1>{% trans "Lookup Email" %}</h1>
     <br>If you do not know the <b>email</b> used for your account, look up
-  your {{ site.name }} <b>email</b> and then sign in with your email as your username.</p>
+  your {{ site.name }} <b>email</b> and then sign in with your email.</p>
 <p>If an account is found, this lookup will send you a password reset email automatically.
 <form class="signup" id="lookup_form" method="post" action="{% url 'users:lookup' %}">
   {% csrf_token %}
