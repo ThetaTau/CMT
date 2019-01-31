@@ -57,6 +57,7 @@ else:
         BIENNIUM_START = current_year
 
 
+BIENNIUM_START_DATE = datetime.date(BIENNIUM_START, 7, 1)
 BIENNIUM_YEARS = [BIENNIUM_START, BIENNIUM_START + 1,
                   BIENNIUM_START + 1, BIENNIUM_START + 2]
 

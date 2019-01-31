@@ -7,8 +7,9 @@ from django.shortcuts import redirect
 from django.utils.http import is_safe_url
 from django.contrib import messages
 from django.views.generic import DetailView, RedirectView, UpdateView, FormView
+from crispy_forms.layout import Submit
 from allauth.account.views import LoginView
-from extra_views import FormSetView
+from extra_views import FormSetView, ModelFormSetView
 from core.views import PagedFilteredTableView, RequestConfig, OfficerMixin,\
     NatOfficerRequiredMixin, OfficerRequiredMixin
 from core.forms import MultiFormsView
@@ -16,11 +17,11 @@ from core.models import TODAY_END, annotate_role_status, combine_annotations,\
     BIENNIUM_YEARS
 from dal import autocomplete
 from .models import User, UserAlterChapter, UserSemesterGPA,\
-    UserSemesterServiceHours
+    UserSemesterServiceHours, UserOrgParticipate
 from .tables import UserTable
 from .filters import UserListFilter
 from .forms import UserListFormHelper, UserLookupForm, UserAlterForm,\
-    UserGPAForm, UserForm, UserServiceForm
+    UserGPAForm, UserForm, UserServiceForm, UserOrgForm
 from chapters.models import Chapter
 
 
@@ -400,3 +401,56 @@ class UserServiceFormSetView(OfficerRequiredMixin,
             if form.has_changed():
                 form.save()
         return super().formset_valid(formset)
+
+
+class UserOrgsFormSetView(OfficerRequiredMixin,
+                          LoginRequiredMixin, OfficerMixin, ModelFormSetView):
+    template_name = 'users/orgs_formset.html'
+    model = UserOrgParticipate
+    form_class = UserOrgForm
+    factory_kwargs = {'extra': 0, 'can_delete': True}
+
+    def get_success_url(self):
+        return self.request.get_full_path()
+
+    def get_factory_kwargs(self):
+        kwargs = super().get_factory_kwargs()
+        if self.get_queryset():
+            kwargs['extra'] = 0
+        else:
+            kwargs['extra'] = 1
+        return kwargs
+
+    def post(self, request, *args, **kwargs):
+        """
+        Handles POST requests, instantiating a formset instance with the passed
+        POST variables and then checked for validity.
+        """
+        self.object_list = self.get_queryset()
+        formset = self.construct_formset()
+        if formset.is_valid():
+            return self.formset_valid(formset)
+        else:
+            return self.formset_invalid(formset)
+
+    def get_formset(self):
+        actives = self.request.user.current_chapter.actives()
+        formset = super().get_formset()
+        formset.form.base_fields['user'].queryset = actives
+        return formset
+
+    def get_queryset(self):
+        users_with_orgs = self.request.user.current_chapter.orgs()
+        orgs = UserOrgParticipate.objects.filter(user__in=users_with_orgs)
+        return orgs
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        formset = kwargs.get('formset', None)
+        if formset is None:
+            formset = self.construct_formset()
+        actives = self.request.user.current_chapter.actives()
+        formset.form.base_fields['user'].queryset = actives
+        context['formset'] = formset
+        context['input'] = Submit("action", "Submit")
+        return context

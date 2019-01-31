@@ -20,6 +20,11 @@ urlpatterns = [
         name='service'
     ),
     url(
+        regex=r'orgs/$',
+        view=views.UserOrgsFormSetView.as_view(),
+        name='orgs'
+    ),
+    url(
         regex=r'^redirect/$',
         view=views.UserRedirectView.as_view(),
         name='redirect'

@@ -6,7 +6,7 @@ from address.models import AddressField
 from django.utils.translation import ugettext_lazy as _
 from django.utils.text import slugify
 from core.models import TODAY_END, annotate_role_status, CHAPTER_OFFICER,\
-    semester_start_date, BIENNIUM_START
+    semester_start_date, BIENNIUM_START, BIENNIUM_START_DATE
 from regions.models import Region
 
 
@@ -185,6 +185,11 @@ class Chapter(models.Model):
     def gpas(self):
         return self.current_members().filter(
             gpas__year__gte=BIENNIUM_START
+        )
+
+    def orgs(self):
+        return self.current_members().filter(
+            orgs__end__gte=BIENNIUM_START_DATE
         )
 
     def service_hours(self):

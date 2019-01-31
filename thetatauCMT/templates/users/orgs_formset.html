@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+{% load static %}
+{% load render_table from django_tables2 %}
+{% load crispy_forms_tags %}
+{% load crispy_forms_utils %}
+{% load crispy_forms_field %}
+
+{% block title %}Member Org Participation{% endblock %}
+{% block content %}
+  <script type="text/javascript" src="{% static 'admin/js/vendor/jquery/jquery.js' %}"></script>
+  {{ formset.media }}
+{% specialspaceless %}
+  <h1>Please select members to update organization participation:</h1>
+  <form action="" method="post">
+    {% csrf_token %}
+    <div>{{ formset.management_form|crispy }}</div>
+    {% if formset.non_form_errors %}
+    <div class="alert alert-block alert-danger">
+        {% if formset_error_title %}<h4 class="alert-heading">{{ formset_error_title }}</h4>{% endif %}
+        <ul>
+            {{ formset.non_form_errors|unordered_list }}
+        </ul>
+    </div>
+  {% endif %}
+  <table{% if form_id %} id="{{ form_id }}_table"{% endif%} class="table table-striped table-sm">
+        <thead>
+            {% if formset.readonly and not formset.queryset.exists %}
+            {% else %}
+                <tr>
+                    {% for field in formset.forms.0 %}
+                        {% if field.label and not field.is_hidden and field.label != "Delete" %}
+                            <th for="{{ field.auto_id }}" class="col-form-label {% if field.field.required %}requiredField{% endif %}">
+                                {{ field.label|safe }}{% if field.field.required %}<span class="asteriskField">*</span>{% endif %}
+                            </th>
+                        {% endif %}
+                    {% endfor %}
+                <th>Add / <br>Remove</th>
+                </tr>
+            {% endif %}
+        </thead>
+        <tbody>
+            {% for form in formset %}
+                  <tr class="row_form">
+                  <div class="input-group">
+                      {% for field in form %}
+                        {% if field.label == "Delete" %}
+                          <td class="hidden" style="display: none;">
+                              {{ field }}
+                          </td>
+                        {% elif field.label == "Start Date" or field.label == "End Date"%}
+                          <td>
+                          <div style="position: relative">
+                            {% crispy_field field %}
+                            {% if field.errors %}
+                              {% for error in field.errors %}
+                                <strong style="color:red">{{ error }}</strong>
+                              {% endfor %}
+                            {% endif %}
+                          </div>
+                          </td>
+                        {% else %}
+                          {% include 'bootstrap4/field.html' with tag="td" form_show_labels=False form_show_errors=True%}
+                        {% endif %}
+                      {% endfor %}
+                  <td>
+                  <div class="input-group-append">
+                      <button class="btn btn-success add-row_form">+</button>
+                  </div>
+                  </td>
+                  </div>
+                  </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <input class="btn btn-success" type="submit" name="action" value="Add Row">
+    <input type="{{ input.input_type }}"
+    name="{% if input.name|wordcount > 1 %}{{ input.name|slugify }}{% else %}{{ input.name }}{% endif %}"
+    value="{{ input.value }}"
+    {% if input.input_type != "hidden" %}
+        class="{{ input.field_classes }}"
+        id="{% if input.id %}{{ input.id }}{% else %}{{ input.input_type }}-id-{{ input.name|slugify }}{% endif %}"
+    {% endif %}
+    {{ input.flat_attrs|safe }}
+    />
+  </form>
+{% endspecialspaceless %}
+{% endblock content %}
+{% block javascript %}
+{{ block.super }}
+<script type="text/javascript">
+function updateConditionRow(){
+  var conditionRow = $('.row_form:not(:last)');
+    conditionRow.find('.btn.add-row_form')
+    .removeClass('btn-success').addClass('btn-danger')
+    .removeClass('add-row_form').addClass('remove-row_form')
+    .html('-');
+}
+$(function(){
+  var dels = $('.row_form input[id $= "-DELETE"]:checked');
+  if (dels.length){
+    dels.each(function() {
+        var row = $(this).closest('.row_form');
+        row.hide();
+    });
+  }
+})
+$(document).ready(updateConditionRow);
+function cloneMore(selector, prefix) {
+    var newElement = $(selector).clone();
+    var total = $('#id_' + prefix + '-TOTAL_FORMS').val();
+    newElement.find('.form-control').each(function() {
+        var old_name = $(this).attr('name');
+        var name = $(this).attr('name').replace('-' + (total-1) + '-', '-' + total + '-');
+        var id = 'id_' + name;
+        $(this).attr({'name': name, 'id': id}).val('').removeAttr('checked');
+        if ($(this).attr('data-target')){
+          var old_id = '#id_' + old_name;
+          $(this).attr({'data-target': "#" + id});
+          var old_text = $(this).parent('div').find('script')[0].text;
+          $(this).parent('div').find('script')[0].text = old_text.replace(old_id, "#" + id);
+          $(this).datetimepicker({"format": "M/DD/YYYY", "date": "2019-01-27"})
+        }
+    });
+    total++;
+    $('#id_' + prefix + '-TOTAL_FORMS').val(total);
+    $(selector).after(newElement);
+    updateConditionRow();
+    return false;
+}
+function deleteForm(prefix, btn) {
+    var total = parseInt($('#id_' + prefix + '-TOTAL_FORMS').val());
+    if (total > 1){
+        var row = btn.closest('.row_form');
+        row.hide();
+        var del = row.find('input[id $= "-DELETE"]');
+        del.prop('checked', true);
+{#      https://github.com/elo80ka/django-dynamic-formset/blob/master/src/jquery.formset.js #}
+    }
+    return false;
+}
+$(document).on('click', '.add-row_form', function(e){
+    e.preventDefault();
+    cloneMore('.row_form:last', 'form');
+    return false;
+});
+$(document).on('click', '.remove-row_form', function(e){
+    e.preventDefault();
+    deleteForm('form', $(this));
+    return false;
+});
+</script>
+{% endblock %}
+

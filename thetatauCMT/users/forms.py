@@ -1,12 +1,14 @@
 import datetime
 from django import forms
+from django.utils import timezone
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Layout, Fieldset, Row, Column, Submit, Button
 from crispy_forms.bootstrap import FormActions, InlineField, StrictButton
+from tempus_dominus.widgets import DatePicker
 from core.models import BIENNIUM_YEARS
 from chapters.models import Chapter, ChapterCurricula
 from .models import UserAlterChapter, User, UserSemesterGPA,\
-    UserSemesterServiceHours
+    UserSemesterServiceHours, UserOrgParticipate
 
 
 class UserListFormHelper(FormHelper):
@@ -172,3 +174,31 @@ class UserServiceForm(forms.Form):
                 )
             obj.service_hours = service
             obj.save()
+
+
+class UserOrgForm(forms.ModelForm):
+    user = forms.ModelChoiceField(queryset=User.objects.none())
+    start = forms.DateField(
+        initial=timezone.now(),
+        label="Start Date",
+        widget=DatePicker(options={"format": "M/DD/YYYY"},
+                          attrs={'autocomplete': 'off'},
+                          ))
+    end = forms.DateField(
+        initial=timezone.now() + timezone.timedelta(days=365),
+        label="End Date",
+        widget=DatePicker(options={"format": "M/DD/YYYY"},
+                          attrs={'autocomplete': 'off'},
+                          ))
+    officer = forms.TypedChoiceField(coerce=lambda x: x == 'True',
+                                     choices=((False, 'No'), (True, 'Yes')))
+
+    class Meta:
+        model = UserOrgParticipate
+        fields = ['user', 'org_name', 'type', 'officer', 'start', 'end']
+
+    def __init__(self, *args, **kwargs):
+        hide_user = kwargs.pop('hide_user', False)
+        super().__init__(*args, **kwargs)
+        if hide_user:
+            self.fields['user'].widget = forms.HiddenInput()
