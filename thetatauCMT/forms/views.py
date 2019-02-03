@@ -625,7 +625,7 @@ class AuditFormView(OfficerRequiredMixin, LoginRequiredMixin, OfficerMixin,
             messages.add_message(
                 self.request, messages.INFO,
                 f"You successfully submitted the Audit Form!\n"
-                f"Your current role is: {current_role}")
+                f"Your current role is: {current_roles}")
         return super().form_valid(form)
 
     def get_success_url(self):
