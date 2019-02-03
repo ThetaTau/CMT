@@ -3,10 +3,10 @@ from django.contrib.auth.forms import PasswordResetForm
 from django.http.request import QueryDict
 from django.http.response import HttpResponseRedirect
 from django.urls import reverse
-from django.shortcuts import redirect
+from django.forms.models import modelformset_factory
 from django.utils.http import is_safe_url
 from django.contrib import messages
-from django.views.generic import DetailView, RedirectView, UpdateView, FormView
+from django.views.generic import RedirectView, FormView
 from crispy_forms.layout import Submit
 from allauth.account.views import LoginView
 from extra_views import FormSetView, ModelFormSetView
@@ -38,7 +38,8 @@ class UserDetailUpdateView(LoginRequiredMixin, OfficerMixin, MultiFormsView):
     form_classes = {
         'gpa': UserGPAForm,
         'service': UserServiceForm,
-        'user': UserForm
+        'user': UserForm,
+        'orgs': None,
     }
 
     # send the user back to their own page after a successful update
@@ -72,7 +73,40 @@ class UserDetailUpdateView(LoginRequiredMixin, OfficerMixin, MultiFormsView):
     def gpa_form_valid(self, form):
         if form.has_changed():
             form.save()
-        return HttpResponseRedirect(self.get_success_url())
+        return HttpResponseRedirect(self.get_success_url() +
+                                    "#member_gpaservice")
+
+    def orgs_form_valid(self, formset):
+        if formset.has_changed():
+            formset.save()
+        return HttpResponseRedirect(self.get_success_url() + "#member_orgs")
+
+    def create_orgs_form(self, **kwargs):
+        orgs = self.request.user.orgs.all()
+        extra = 0
+        if not orgs:
+            extra = 1
+        factory = modelformset_factory(
+            UserOrgParticipate,
+            form=UserOrgForm,
+            **{
+                'can_delete': True,
+                'extra': extra
+            })
+        factory.form.base_fields['user'].queryset = User.objects.filter(
+            pk=self.request.user.pk)
+        formset_kwargs = {
+            'queryset': orgs,
+            'form_kwargs': {
+                'hide_user': True,
+                'initial': {'user': self.request.user}
+            }
+        }
+        if self.request.method in ('POST', 'PUT'):
+            formset_kwargs.update({
+                'data': self.request.POST.copy(),
+            })
+        return factory(**formset_kwargs)
 
     def get_service_initial(self):
         user = self.request.user
@@ -100,7 +134,8 @@ class UserDetailUpdateView(LoginRequiredMixin, OfficerMixin, MultiFormsView):
     def service_form_valid(self, form):
         if form.has_changed():
             form.save()
-        return HttpResponseRedirect(self.get_success_url())
+        return HttpResponseRedirect(self.get_success_url() +
+                                    "#member_gpaservice")
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
