@@ -72,7 +72,6 @@
             {% endfor %}
         </tbody>
     </table>
-    <input class="btn btn-success" type="submit" name="action" value="Add Row">
     <input type="{{ input.input_type }}"
     name="{% if input.name|wordcount > 1 %}{{ input.name|slugify }}{% else %}{{ input.name }}{% endif %}"
     value="{{ input.value }}"
