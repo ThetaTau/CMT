@@ -84,8 +84,8 @@ class User(AbstractUser):
         :return: Bool if officer, set of officer roles
         """
         role_objs = self.get_current_roles()
-        officer_roles = {}
-        current_roles = {}
+        officer_roles = set()
+        current_roles = set()
         if role_objs is not None:
             for role_obj in role_objs:
                 role_name = role_obj.role.lower()
@@ -107,8 +107,8 @@ class User(AbstractUser):
     def is_national_officer(self):
         role_objs = self.get_current_roles()
         officer = False
-        officer_roles = {}
-        current_roles = {}
+        officer_roles = set()
+        current_roles = set()
         if role_objs is not None:
             for role_obj in role_objs:
                 role_name = role_obj.role.lower()
