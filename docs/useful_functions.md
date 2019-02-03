@@ -49,7 +49,7 @@ On restore: Need to fix the social accounts in development
 
     python manage.py dumpdata --natural-foreign \
     --exclude auth.permission --exclude contenttypes \
-    --indent 4 > database_backups/20181102.json
+    --indent 4 > database_backups/20190202.json
 #### Restore
     python manage.py flush
     python manage.py loaddata database_backups\$date$.json
