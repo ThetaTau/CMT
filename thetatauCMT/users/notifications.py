@@ -13,7 +13,7 @@ class OfficerMonthly(EmailNotification):  # extend from EmailNotification for em
         officer_list, previous = chapter.get_current_officers_council(False)
         self.to_emails = [officer.email for officer in officer_list]  # set list of emails to send to
         self.cc = [chapter.region.email, "cmt@thetatau.org"]
-        self.reply_to = "cmt@thetatau.org"
+        self.reply_to = self.cc
         if 'colony' not in chapter.name.lower():
             chapter_name = chapter.name + " Chapter"
         else:
