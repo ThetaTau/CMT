@@ -7,19 +7,20 @@
   "license": "GPL-3.0-or-later",
   "version": "0.1.0",
   "dependencies": {
+    "atob": "^2.1.2",
     "clipboard": "^2.0.1",
     "compass": "^0.1.1",
     "floatthead": "^2.1.2"
   },
   "devDependencies": {
-    "bootstrap": "^4.0.0",
+    "bootstrap": "^4.2.1",
     "browser-sync": "^2.26.3",
     "del": "^3.0.0",
-    "gulp": "^3.9.1",
+    "gulp": "^4.0.0",
     "gulp-autoprefixer": "^5.0.0",
     "gulp-concat": "^2.6.1",
     "gulp-cssnano": "^2.1.2",
-    "gulp-imagemin": "^4.1.0",
+    "gulp-imagemin": "^5.0.3",
     "gulp-pixrem": "^1.0.0",
     "gulp-plumber": "^1.1.0",
     "gulp-rename": "^1.2.2",
@@ -27,7 +28,7 @@
     "gulp-uglify": "^3.0.0",
     "gulp-util": "^3.0.7",
     "jquery": "^3.2.1-slim",
-    "popper.js": "^1.12.3",
+    "popper.js": "^1.14.7",
     "run-sequence": "^2.1.1"
   },
   "engines": {

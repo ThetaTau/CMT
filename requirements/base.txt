@@ -1,3 +1,5 @@
+urllib3==1.24.1
+requests==2.21.0
 pytz==2018.7  # https://github.com/stub42/pytz
 awesome-slugify==1.6.5  # https://github.com/dimka665/awesome-slugify
 Pillow==5.0.0  # https://github.com/python-pillow/Pillow
