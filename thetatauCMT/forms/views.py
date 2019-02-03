@@ -523,7 +523,7 @@ class RiskManagementFormView(OfficerRequiredMixin,
                 f"Your current roles are: {current_roles}")
         else:
             task = Task.objects.get(name="Risk Management Form",
-                                    owner_in=current_roles)
+                                    owner__in=current_roles)
             chapter = self.request.user.current_chapter
             next_date = task.incomplete_dates_for_task_chapter(chapter).first()
             if next_date:
@@ -572,7 +572,7 @@ class PledgeProgramFormView(OfficerRequiredMixin,
         else:
             form.save()
             task = Task.objects.get(name="Pledge Program",
-                                    owner_in=current_roles)
+                                    owner__in=current_roles)
             chapter = self.request.user.current_chapter
             next_date = task.incomplete_dates_for_task_chapter(chapter).first()
             if next_date:
@@ -614,7 +614,7 @@ class AuditFormView(OfficerRequiredMixin, LoginRequiredMixin, OfficerMixin,
         else:
             form.save()
             task = Task.objects.get(name="Audit",
-                                    owner_in=current_roles)
+                                    owner__in=current_roles)
             chapter = self.request.user.current_chapter
             next_date = task.incomplete_dates_for_task_chapter(chapter).first()
             if next_date:
