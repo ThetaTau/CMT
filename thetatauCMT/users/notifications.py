@@ -11,9 +11,9 @@ class OfficerMonthly(EmailNotification):  # extend from EmailNotification for em
     def __init__(self, chapter):  # optionally customize the initialization
         self.context = {'user': chapter}  # set context for the template rendering
         officer_list, previous = chapter.get_current_officers_council(False)
-        self.to_emails = [officer.email for officer in officer_list]  # set list of emails to send to
+        self.to_emails = set([officer.email for officer in officer_list])  # set list of emails to send to
         self.cc = [chapter.region.email, "cmt@thetatau.org"]
-        self.reply_to = ["cmt@thetatau.org"]
+        self.reply_to = ["cmt@thetatau.org", ]
         if 'colony' not in chapter.name.lower():
             chapter_name = chapter.name + " Chapter"
         else:
