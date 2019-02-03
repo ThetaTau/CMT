@@ -15,6 +15,17 @@ $(function(){
   }
 })
 $(document).ready(updateConditionRow);
+function todayDate(year_add) {
+    var d = new Date(),
+        month = '' + (d.getMonth() + 1),
+        day = '' + d.getDate(),
+        year = d.getFullYear() + year_add;
+
+    if (month.length < 2) month = '0' + month;
+    if (day.length < 2) day = '0' + day;
+
+    return [year, month, day].join('-');
+}
 function cloneMore(selector, prefix) {
     var newElement = $(selector).clone();
     var total = $('#id_' + prefix + '-TOTAL_FORMS').val();
@@ -28,7 +39,8 @@ function cloneMore(selector, prefix) {
           $(this).attr({'data-target': "#" + id});
           var old_text = $(this).parent('div').find('script')[0].text;
           $(this).parent('div').find('script')[0].text = old_text.replace(old_id, "#" + id);
-          $(this).datetimepicker({"format": "M/DD/YYYY", "date": "2019-01-27"})
+          var date = $(this)[0].id.includes('start') ? todayDate(0):todayDate(1);
+          $(this).datetimepicker({"format": "M/DD/YYYY", "date": date})
         }
     });
     total++;
