@@ -470,6 +470,10 @@
 Dear Theta Tau {{ chapter }} Officers,
 <br>
 Your are getting this message because you are listed as an officer for your chapter.<br>
+{% if previous_officers %}
+  <strong><b>Your chapter officer list is out of date, please update ASAP!</b></strong>
+  <br>
+{% endif %}
 If you are no longer an officer, you or any officer can update the officer list here:
 <a href="{% url 'forms:officer' %}">cmt.thetatau.org{% url 'forms:officer' %}</a>
 {% if region_announcements %}
