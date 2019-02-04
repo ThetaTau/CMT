@@ -13,7 +13,7 @@ If you are no longer an officer, you or any officer can update the officer list 
 * Your chapter had {{ last_month_events }} events last month, {{ semester_events }} events this semester cmt.thetatau.org{% url 'events:list' %}
 * Your chapter currently has {{ count_members }} members cmt.thetatau.org{% url 'users:list' %}
 * Your chapter currently has {{ count_pledges }} pledges cmt.thetatau.org{% url 'forms:init_selection' %}
-* Your chapter currently has a balance due of ${{ balance }} as of {{ balance_date }}
+* On {balance_date} your chapter had a balance of ${balance}, however, this may not be your current balance.
 * A current list of members is here: cmt.thetatau.org{% url 'users:list' %}
 
 If any of these are incorrect, the basic forms and reports are to be filled out and submitted.

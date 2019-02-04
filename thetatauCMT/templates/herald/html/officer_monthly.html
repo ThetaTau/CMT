@@ -492,7 +492,7 @@ If you are no longer an officer, you or any officer can update the officer list 
     Your chapter currently has {{ count_pledges }} <a href="https://cmt.thetatau.org{% url 'forms:init_selection' %}">pledges</a>
   </li>
   <li style="-ms-text-size-adjust: 100%;-webkit-text-size-adjust: 100%;">
-    Your chapter currently has a balance due of ${{ balance }} as of {{ balance_date }}
+    On {balance_date} your chapter had a balance of ${balance}, however, this may not be your current balance.
   </li>
   <li style="-ms-text-size-adjust: 100%;-webkit-text-size-adjust: 100%;">
     A current list of members is here: <a href="https://cmt.thetatau.org{% url 'users:list' %}">cmt.thetatau.org{% url 'users:list' %}</a>
