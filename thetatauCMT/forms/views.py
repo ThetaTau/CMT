@@ -571,8 +571,7 @@ class PledgeProgramFormView(OfficerRequiredMixin,
                 f"Your current roles are: {current_roles}")
         else:
             form.save()
-            task = Task.objects.get(name="Pledge Program",
-                                    owner__in=current_roles)
+            task = Task.objects.get(name="Pledge Program")
             chapter = self.request.user.current_chapter
             next_date = task.incomplete_dates_for_task_chapter(chapter).first()
             if next_date:
@@ -625,7 +624,7 @@ class AuditFormView(OfficerRequiredMixin, LoginRequiredMixin, OfficerMixin,
             messages.add_message(
                 self.request, messages.INFO,
                 f"You successfully submitted the Audit Form!\n"
-                f"Your current role is: {current_roles}")
+                f"Your current roles are: {current_roles}")
         return super().form_valid(form)
 
     def get_success_url(self):
