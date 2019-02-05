@@ -67,7 +67,7 @@ from django.contrib.auth.models import Group
 from users.models import User
 off_group, created = Group.objects.get_or_create(name='officer')
 for user in User.objects.all():
-    if user.is_chapter_officer():
+    if user.chapter_officer():
         if user not in off_group.user_set.all():
             print(f"Missing user: {user}")
             off_group.user_set.add(user)
