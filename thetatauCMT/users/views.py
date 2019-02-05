@@ -326,8 +326,10 @@ class UserGPAFormSetView(OfficerRequiredMixin,
         request_get = self.request.GET.copy()
         if cancel:
             request_get = QueryDict()
-        self.filter = UserListFilter(request_get, queryset=all_members)
-        all_members = self.filter.qs
+        self.filter = UserListFilter(
+            request_get,
+            queryset=annotate_role_status(all_members, combine=False))
+        all_members = combine_annotations(self.filter.qs)
         initials = []
         for user in all_members:
             init_dict = {"user": user.name}
@@ -391,8 +393,10 @@ class UserServiceFormSetView(OfficerRequiredMixin,
         request_get = self.request.GET.copy()
         if cancel:
             request_get = QueryDict()
-        self.filter = UserListFilter(request_get, queryset=all_members)
-        all_members = self.filter.qs
+        self.filter = UserListFilter(
+            request_get,
+            queryset=annotate_role_status(all_members, combine=False))
+        all_members = combine_annotations(self.filter.qs)
         initials = []
         for user in all_members:
             init_dict = {"user": user.name}
