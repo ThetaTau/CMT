@@ -1,6 +1,6 @@
 import os
 import datetime
-from django.db import models
+from django.db import models, transaction
 from django.contrib.contenttypes.fields import GenericRelation
 from django.utils import timezone
 from django.utils.text import slugify
@@ -36,7 +36,8 @@ class Submission(TimeStampedModel):
         cal_score = self.type.calculate_score(self)
         self.score = cal_score
         try:
-            super().save()
+            with transaction.atomic():
+                super().save()
         except TimeoutError:
             pass  # Really want to remove all file uploads, ignore for now
         except BrokenPipeError:
