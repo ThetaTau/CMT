@@ -10,6 +10,9 @@
   {{ form.media }}
 {% specialspaceless %}
   <h1>Please select members to update status:</h1>
+  <p>This form is not to be used for members Resigning or Early Alumnus. <br>
+    See Policy and Procedures Manual for details on these status:
+    <a href="http://thetatau.org/policies">http://thetatau.org/policies</a></p>
   <form action="" method="post">
     {% csrf_token %}
     <div>{{ formset.management_form|crispy }}</div>
