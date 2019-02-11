@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% load static %}
+{% load crispy_forms_tags %}
 {% load render_table from django_tables2 %}
 {% block title %}Chapter: {{ object.name }}{% endblock %}
 
@@ -11,24 +12,47 @@
       {% if object.name %}
         <table class="table">
           <tr>
-            <th>Current chapter balance</th>
+            <th>School</th>
+            <td>{{ object.school }}</td>
+          </tr>
+          <tr>
+            <th>Current balance</th>
             <td>On {{ object.balance_date }} your chapter had a balance of ${{ object.balance }}, however, this may not be your current balance.</td>
             <td>For balance questions/invoices contact central.office@thetatau.org</td>
           </tr>
           <tr>
-            <th>Chapter email</th>
-            <td>{{ object.email }}</td>
-          </tr>
-          <tr>
-            <th>Chapter website</th>
-            <td>{{ object.website }}</td>
-          </tr>
-          <tr>
-            <th>Chapter Facebook</th>
-            <td>{{ object.facebook }}</td>
+            <th>Tax ID</th>
+            {% if object.tax %}
+              <td>{{ object.tax }}</td>
+            {% else %}
+              <td colspan="2">Your chapter does not have a group tax ID.
+                If your chapter would like to become part of that group, please complete <a href="http://thetatau.org/Websites/thetatauhq/images/Chapter_Group_Exemption_Application.docx">
+                  this form</a>.
+                Please contact the Central Office if you have any questions.</td>
+            {% endif %}
           </tr>
         </table>
       {% endif %}
+    <h3>Update Chapter Information:</h3>
+    <form class="chapter" method="POST">
+      {% csrf_token %}
+      <fieldset
+        {% if not request.is_officer or request.user.current_chapter != object %}
+          disabled
+        {% endif %}
+      >
+        {{ forms.chapter|crispy }}
+      </fieldset>
+    {% if request.is_officer and request.user.current_chapter == object %}
+      <button class="btn btn-primary" name='action' value='chapter' type="submit">Update Chapter Information</button>
+    {% endif %}
+    </form>
+      <br>
+    <h3>Approved Majors:</h3>
+      <p>If your chapter would like to add majors,
+        please follow the process outlined under "Curriculum Requirements" in the <a href="http://thetatau.org/policies">Policy and Procedures Manual</a></p>
+      {% render_table majors %}
+    <br>
     <h3>Current Officers:</h3>
       <p>Missing officers? Any officer listed below can submit an <a href="{% url 'forms:officer' %}"> officer election report.</a>
       <button class="clipboard button btn btn-primary" style="float: right;"
