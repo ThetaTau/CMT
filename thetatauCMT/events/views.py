@@ -35,6 +35,26 @@ class EventCreateView(OfficerRequiredMixin,
         return reverse('events:list')
 
 
+class EventCopyView(EventCreateView):
+    def get_initial(self):
+        event = Event.objects.get(pk=self.kwargs['pk'])
+        self.initial = {
+            'name': event.name,
+            'date': event.date,
+            'type': event.type,
+            'description': event.description,
+            'members': event.members,
+            'pledges': event.pledges,
+            'alumni': event.alumni,
+            'guests': event.guests,
+            'duration': event.duration,
+            'stem': event.stem,
+            'host': event.host,
+            'miles': event.miles
+        }
+        return self.initial
+
+
 class EventRedirectView(LoginRequiredMixin, RedirectView):
     permanent = False
 

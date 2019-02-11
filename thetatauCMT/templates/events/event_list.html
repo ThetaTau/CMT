@@ -62,6 +62,13 @@
                   <tr class="{% cycle "odd" "even" %}">
                       {% for column, cell in row.items %}
                           <td {{ column.attrs.td.as_html }}>
+                          {% if column.name == "name" %}
+                            <a href="{% url "events:copy" row.record.id %}" class="btn btn-link btn-xs btn">
+                            <span title="Copy Event">
+                                <i class="far fa-copy" ></i>
+                              </span>
+                      </a>
+                          {% endif %}
                             {{ cell }}
                           </td>
                       {% endfor %}

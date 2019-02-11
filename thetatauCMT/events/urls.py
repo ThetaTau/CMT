@@ -15,6 +15,11 @@ urlpatterns = [
         name='add'
     ),
     url(
+        regex=r'^copy/(?P<pk>\d+)/$',
+        view=views.EventCopyView.as_view(),
+        name='copy'
+    ),
+    url(
         regex=r'^redirect/$',
         view=views.EventRedirectView.as_view(),
         name='redirect'
