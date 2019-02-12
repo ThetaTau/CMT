@@ -1,7 +1,7 @@
 from enum import Enum
 from django.db import models
-from django.db.models import Sum, Count
-from core.models import YearTermModel
+from django.db.models import Sum
+from core.models import YearTermModel, BIENNIUM_YEARS
 from chapters.models import Chapter
 
 
@@ -10,23 +10,23 @@ class ScoreType(models.Model):
         ordering = ['name', ]
 
     class SECTION(Enum):
-        brotherhood = ('Bro', 'Brotherhood')
-        operate = ('Ops', 'Operate')
-        professional = ('Pro', 'Professional')
-        service = ('Ser', 'Service')
+        bro = ('Bro', 'Brotherhood')
+        ops = ('Ops', 'Operate')
+        pro = ('Pro', 'Professional')
+        ser = ('Ser', 'Service')
 
         @classmethod
         def get_value(cls, member):
-            return cls[member].value[1]
+            return cls[member.lower()].value[1]
 
     class TYPES(Enum):
-        event = ('Evt', 'Event')
-        submit = ('Sub', 'Submit')
-        special = ('Spe', 'Special')
+        evt = ('Evt', 'Event')
+        sub = ('Sub', 'Submit')
+        spe = ('Spe', 'Special')
 
         @classmethod
         def get_value(cls, member):
-            return cls[member].value[1]
+            return cls[member.lower()].value[1]
 
     name = models.CharField(max_length=50)
     description = models.CharField(max_length=200)
@@ -103,13 +103,33 @@ class ScoreType(models.Model):
         if qs is None:
             qs = cls.objects.all()
         scores_values = qs.filter(
-            chapters__chapter=chapter).annotate(score=models.Sum('chapters__score'))
-        scores = qs.filter(~models.Q(id__in=scores_values)).annotate(
-            score=models.Value(0.0, output_field=models.FloatField()))
-        scores_values = scores_values.values('score', 'type', 'points', 'section', 'description', 'name', 'slug', 'id')
-        scores = scores.values('score', 'type', 'points', 'section', 'description', 'name', 'slug', 'id')
-        # If you combine the querysets it will rerun the query and you'll end up will all chapters scores
-        return list(scores_values) + list(scores)
+            chapters__chapter=chapter,
+            chapters__year__gte=BIENNIUM_YEARS[0]).values('chapters__year', 'chapters__score', 'chapters__term', 'id')
+        score_values_ids = set(scores_values.values_list('id', flat=True))
+        score_types = qs.all().values('type', 'points', 'section', 'description', 'name', 'slug', 'id')
+        score_types_out = []
+        for score_info in score_types:
+            if score_info['id'] in score_values_ids:
+                for score_value in scores_values.filter(id=score_info['id']):
+                    year = score_value['chapters__year'] - BIENNIUM_YEARS[0]
+                    # if year = 0 or 2 continue
+                    offset = {0: 1, 2: 4}
+                    if year in offset:
+                        if year == 0 and [score_value['chapters__term']] == 'sp':
+                            continue
+                        offset = offset[year]
+                    else:
+                        offset = {'fa': 3, 'sp': 2}[score_value['chapters__term']]
+                    score_info[f"score{offset}"] = score_value['chapters__score']
+            total = 0.0
+            for key in ["score1", "score2", "score3", "score4"]:
+                if key not in score_info:
+                    score_info[key] = 0.0
+                else:
+                    total += score_info[key]
+            score_info['total'] = total
+            score_types_out.append(score_info)
+        return score_types_out
 
     def calculate_special(self, obj):
         formula_out = self.special

@@ -1,7 +1,7 @@
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http.request import QueryDict
 from django.urls import reverse
-from django.views.generic import DetailView, ListView, RedirectView
+from django.views.generic import DetailView, RedirectView
 from core.views import PagedFilteredTableView, RequestConfig, OfficerMixin
 from .models import ScoreType
 from .tables import ScoreTable
@@ -43,7 +43,6 @@ class ScoreRedirectView(LoginRequiredMixin, RedirectView):
 
 
 class ScoreListView(LoginRequiredMixin, OfficerMixin, PagedFilteredTableView):
-    # These next two lines tell the view to index lookups by username
     model = ScoreType
     template_name = 'scores/score_list.html'
     slug_field = 'slug'
