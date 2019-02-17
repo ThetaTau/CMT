@@ -5,7 +5,7 @@ from django.db.models import Q
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
 from django.utils.text import slugify
-from core.models import ALL_OFFICERS_CHOICES, TODAY_END
+from core.models import ALL_ROLES_CHOICES, TODAY_END
 from chapters.models import Chapter
 from scores.models import ScoreType
 
@@ -19,7 +19,7 @@ class Task(models.Model):
         ('task', 'Task'),
         ('bal', 'Balance'),
     ]
-    OWNERS = ALL_OFFICERS_CHOICES
+    OWNERS = ALL_ROLES_CHOICES
     name = models.CharField(max_length=50)
     slug = models.SlugField(unique=True)
     owner = models.CharField(

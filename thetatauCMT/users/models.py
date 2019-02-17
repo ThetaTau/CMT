@@ -9,7 +9,7 @@ from django.core.validators import MinValueValidator, MaxValueValidator,\
     RegexValidator
 from address.models import AddressField
 from core.models import StartEndModel, YearTermModel, TODAY_END, CHAPTER_OFFICER, \
-    ALL_OFFICERS_CHOICES, TimeStampedModel, NATIONAL_OFFICER, COL_OFFICER_ALIGN
+    CHAPTER_ROLES_CHOICES, TimeStampedModel, NATIONAL_OFFICER, COL_OFFICER_ALIGN
 from chapters.models import Chapter
 
 
@@ -179,7 +179,7 @@ class UserStatusChange(StartEndModel, TimeStampedModel):
 
 
 class UserRoleChange(StartEndModel, TimeStampedModel):
-    ROLES = ALL_OFFICERS_CHOICES
+    ROLES = CHAPTER_ROLES_CHOICES
     user = models.ForeignKey(settings.AUTH_USER_MODEL,
                              on_delete=models.CASCADE,
                              related_name="roles")

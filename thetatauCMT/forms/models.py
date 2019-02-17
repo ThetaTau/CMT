@@ -9,7 +9,7 @@ from django.utils import timezone
 from core.models import TimeStampedModel, YearTermModel, gd_storage
 from django.utils.translation import gettext_lazy as _
 from multiselectfield import MultiSelectField
-from core.models import forever, ALL_OFFICERS_CHOICES
+from core.models import forever, CHAPTER_ROLES_CHOICES
 from users.models import User, UserStatusChange
 from chapters.models import Chapter
 from tasks.models import TaskChapter
@@ -422,5 +422,5 @@ class Audit(YearTermModel, TimeStampedModel):
     debit_card = models.BooleanField()
     debit_card_access = MultiSelectField(
         "Which members have access to the chapter debit card? Select all that apply.",
-        choices=[('None', 'None')] + ALL_OFFICERS_CHOICES)
+        choices=[('None', 'None')] + CHAPTER_ROLES_CHOICES)
     agreement = models.BooleanField()

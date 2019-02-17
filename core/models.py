@@ -64,12 +64,9 @@ BIENNIUM_YEARS = [BIENNIUM_START, BIENNIUM_START + 1,
 
 CHAPTER_OFFICER = {
     "corresponding secretary",
-    "president",
     "regent",
     "scribe",
-    "secretary",
     "treasurer",
-    "vice president",
     "vice regent",
 }
 
@@ -112,11 +109,14 @@ COMMITTEE_CHAIR = {
 }
 
 
-ALL_OFFICERS = sorted(set.union(CHAPTER_OFFICER, COMMITTEE_CHAIR, NATIONAL_OFFICER))
-
+ALL_OFFICERS = sorted(set.union(CHAPTER_OFFICER, NATIONAL_OFFICER))
+ALL_ROLES = sorted(set.union(CHAPTER_OFFICER, COMMITTEE_CHAIR, NATIONAL_OFFICER))
+CHAPTER_ROLES = sorted(set.union(CHAPTER_OFFICER, COMMITTEE_CHAIR))
 
 ALL_OFFICERS_CHOICES = [(officer, officer.title()) for officer in ALL_OFFICERS]
 CHAPTER_OFFICER_CHOICES = [(officer, officer.title()) for officer in CHAPTER_OFFICER]
+ALL_ROLES_CHOICES = [(role, role.title()) for role in ALL_ROLES]
+CHAPTER_ROLES_CHOICES = [(role, role.title()) for role in CHAPTER_ROLES]
 
 
 def semester_start_date():
