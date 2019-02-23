@@ -60,6 +60,22 @@ else:
 BIENNIUM_START_DATE = datetime.date(BIENNIUM_START, 7, 1)
 BIENNIUM_YEARS = [BIENNIUM_START, BIENNIUM_START + 1,
                   BIENNIUM_START + 1, BIENNIUM_START + 2]
+BIENNIUM_DATES = {}
+for i, year in enumerate(BIENNIUM_YEARS):
+    year = BIENNIUM_YEARS[i]
+    semester = 'Spring' if i % 2 else 'Fall'
+    if semester == 'Spring':
+        month_start = 1
+        month_end = 6
+        days = 30
+    else:
+        month_start = 7
+        month_end = 12
+        days = 31
+    BIENNIUM_DATES[f"{semester} {year}"] = {
+        'start': datetime.datetime(year, month_start, 1),
+        'end': datetime.datetime(year, month_end, days),
+    }
 
 
 CHAPTER_OFFICER = {
