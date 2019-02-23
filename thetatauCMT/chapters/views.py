@@ -1,12 +1,14 @@
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.urls import reverse
 from django.http.response import HttpResponseRedirect
-from django.views.generic import ListView, RedirectView
-from core.views import RequestConfig, OfficerMixin, OfficerRequiredMixin
+from django.views.generic import RedirectView
+from core.views import RequestConfig, OfficerMixin, OfficerRequiredMixin,\
+    PagedFilteredTableView
 from core.forms import MultiFormsView
 from .models import Chapter
-from .forms import ChapterForm
-from .tables import ChapterCurriculaTable
+from .forms import ChapterForm, ChapterFormHelper
+from .filters import ChapterListFilter
+from .tables import ChapterCurriculaTable, ChapterTable
 from users.tables import UserTable
 
 
@@ -67,8 +69,10 @@ class ChapterRedirectView(LoginRequiredMixin, RedirectView):
 
 
 class ChapterListView(OfficerRequiredMixin,
-                      LoginRequiredMixin, OfficerMixin, ListView):
+                      LoginRequiredMixin, OfficerMixin, PagedFilteredTableView):
     model = Chapter
-    # These next two lines tell the view to index lookups by username
-    slug_field = 'slug'
-    slug_url_kwarg = 'slug'
+    context_object_name = 'chapter'
+    ordering = ['name']
+    table_class = ChapterTable
+    filter_class = ChapterListFilter
+    formhelper_class = ChapterFormHelper
