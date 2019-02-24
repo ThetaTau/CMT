@@ -18,6 +18,7 @@ class OfficerMonthly(EmailNotification):  # extend from EmailNotification for em
             chapter_name = chapter.name + " Chapter"
         else:
             chapter_name = chapter.name
+        self.subject = f'CMT Monthly Update {chapter_name}'
         self.context = {
             "previous_officers": previous,
             "chapter": chapter_name,
