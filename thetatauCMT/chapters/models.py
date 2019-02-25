@@ -6,7 +6,7 @@ from address.models import AddressField
 from django.utils.translation import ugettext_lazy as _
 from django.utils.text import slugify
 from core.models import TODAY_END, annotate_role_status, CHAPTER_OFFICER,\
-    semester_start_date, BIENNIUM_START, BIENNIUM_START_DATE
+    semester_start_date, BIENNIUM_START, BIENNIUM_START_DATE, BIENNIUM_DATES
 from regions.models import Region
 
 
@@ -158,6 +158,14 @@ class Chapter(models.Model):
                                    status__end__gte=date
                                    )
 
+    def events_by_semester_biennium(self):
+        semester_events = {}
+        for names, dates in BIENNIUM_DATES.items():
+            events = self.events.filter(
+                date__lte=dates['end'],
+                date__gte=dates['start'])
+            semester_events[names] = events
+
     def events_last_month(self):
         return self.events.filter(date__lte=TODAY_END, date__gte=TODAY_END - timedelta(30))
 
@@ -181,6 +189,9 @@ class Chapter(models.Model):
                                    status__start__lte=TODAY_END,
                                    status__end__gte=TODAY_END
                                    )
+
+    def depledges(self):
+        return self.members.exclude(depledge__isnull=True,)
 
     def gpas(self):
         return self.current_members().filter(
