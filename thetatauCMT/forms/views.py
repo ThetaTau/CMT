@@ -8,7 +8,7 @@ from django.contrib import messages
 from django.urls import reverse
 from django.utils import timezone
 from django import forms
-from django.views.generic import DetailView
+from django.views.generic import DetailView, UpdateView
 from django.views.generic.edit import FormView
 from django.views.decorators.http import require_POST
 from django.views.decorators.csrf import csrf_exempt
@@ -29,7 +29,7 @@ from chapters.models import Chapter
 from .tables import GuardTable, BadgeTable, InitiationTable, DepledgeTable, \
     StatusChangeTable, PledgeFormTable
 from .models import Guard, Badge, Initiation, Depledge, StatusChange, RiskManagement,\
-    PledgeForm, PledgeProgram
+    PledgeForm, PledgeProgram, Audit
 
 
 sensitive_post_parameters_m = method_decorator(
@@ -590,16 +590,32 @@ class PledgeProgramFormView(OfficerRequiredMixin,
 
 
 class AuditFormView(OfficerRequiredMixin, LoginRequiredMixin, OfficerMixin,
-                    FormView):
+                    UpdateView):
     form_class = AuditForm
     template_name = "forms/audit.html"
+    model = Audit
 
-    def post(self, request, *args, **kwargs):
-        form = self.get_form()
-        if form.is_valid():
-            return self.form_valid(form)
+    def get_object(self, queryset=None):
+        current_roles = self.request.user.chapter_officer()
+        if not current_roles:
+            messages.add_message(
+                self.request, messages.ERROR,
+                f"Only executive officers can submit an audit: {CHAPTER_OFFICER}\n"
+                f"Your current roles are: {current_roles}")
+            return None
         else:
-            return self.form_invalid(form)
+            task = Task.objects.get(name="Audit",
+                                    owner__in=current_roles)
+            chapter = self.request.user.current_chapter
+            next_date = task.incomplete_dates_for_task_chapter(chapter).first()
+            if next_date:
+                messages.add_message(
+                    self.request, messages.INFO,
+                    "You must submit an updated audit."
+                )
+                return None
+            else:
+                return self.request.user.audit_form.last()
 
     def form_valid(self, form):
         form.instance.year = datetime.datetime.now().year
