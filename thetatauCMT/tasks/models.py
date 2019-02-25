@@ -30,6 +30,7 @@ class Task(models.Model):
         max_length=4,
         choices=TYPES
     )
+    days_advance = models.PositiveIntegerField(default=90)
     resource = models.CharField(max_length=100, blank=True)
     description = models.CharField(max_length=1000)
     submission_type = models.ForeignKey(ScoreType, on_delete=models.CASCADE,
@@ -51,9 +52,14 @@ class Task(models.Model):
 
     def incomplete_dates_for_task_chapter(self, chapter):
         school_type = chapter.school_type
+        max_date = TODAY_END + timedelta(self.days_advance)
+        # (Todays date + days_advance) > due date
+        # Mar 16 + 30 days -> April 15,
+        # if due date is April 15 then lte max_date and is a due date
         dates = self.dates.filter(Q(school_type=school_type) |
                                   Q(school_type='all'),
-                                  ~Q(chapters__chapter=chapter)).all()
+                                  ~Q(chapters__chapter=chapter),
+                                  Q(date__lte=max_date)).all()
         return dates
 
 
