@@ -17,9 +17,10 @@
       <div>{{ formset.management_form|crispy }}</div>
       {% crispy formset helper %}
     </form>
+    <p>If there is a potential new member listed above that you are certain is not and has never been a pledge, please email cmt@thetatau.org.</p>
   {% else %}
-    <h1>No Prospective New Members</h1>
-    <p>Your chapter currently has no prospective new members.<br>
+    <h1>No Potential New Members</h1>
+    <p>Your chapter currently has no potential new members.<br>
     If this is incorrect, those members should fill out the pledge form ASAP!<br>
     <a href="http://thetatau.org/pledgeform" target="_blank">Pledge Form</a> </p>
   {% endif %}
