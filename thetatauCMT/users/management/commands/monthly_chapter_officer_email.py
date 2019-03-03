@@ -23,6 +23,8 @@ class Command(BaseCommand):
         if today == 1:
             change_messages = []
             for chapter in Chapter.objects.all():
+                if not chapter.active:
+                    continue
                 result = OfficerMonthly(chapter).send()
                 change_messages.append(f"{result}: {chapter}")
             change_message = '\n'.join(change_messages)
