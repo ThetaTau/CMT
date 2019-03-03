@@ -36,7 +36,7 @@
       {% endif %}
     </div>
   </div>
-<h3>Update Member Information:</h3>
+<h3 id="user">Update Member Information:</h3>
 {% if object == request.user %}
 <!-- Action buttons -->
 <div class="row">
@@ -48,11 +48,12 @@
 {% endif %}
 <form class="user" method="POST">
     {% csrf_token %}
+    {{ forms.user.management_form|crispy }}
     {{ forms.user|crispy }}
     <button class="btn btn-primary" name='action' value='user' type="submit">Update Member Information</button>
 </form>
 <br>
-<h4  id="member_gpaservice">Update Member GPA / Service Hours:</h4>
+<h4 id="member_gpaservice">Update Member GPA / Service Hours:</h4>
   <table>
     <tr>
         <th></th>

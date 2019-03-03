@@ -76,6 +76,12 @@ class UserDetailUpdateView(LoginRequiredMixin, OfficerMixin, MultiFormsView):
         return HttpResponseRedirect(self.get_success_url() +
                                     "#member_gpaservice")
 
+    def user_form_valid(self, form):
+        if form.has_changed():
+            form.save()
+        return HttpResponseRedirect(self.get_success_url() +
+                                    "#user")
+
     def orgs_form_valid(self, formset):
         if formset.has_changed():
             formset.save()
