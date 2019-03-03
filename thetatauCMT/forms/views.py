@@ -655,13 +655,12 @@ class AuditListView(NatOfficerRequiredMixin,
                     LoginRequiredMixin, OfficerMixin, PagedFilteredTableView):
     model = Audit
     context_object_name = 'audit'
-    ordering = ['-modified']
     table_class = AuditTable
     filter_class = AuditListFilter
     formhelper_class = AuditListFormHelper
 
     def get_queryset(self, **kwargs):
-        qs = Audit.objects.all().distinct('user__chapter')
+        qs = Audit.objects.all()
         cancel = self.request.GET.get('cancel', False)
         request_get = self.request.GET.copy()
         if cancel:
