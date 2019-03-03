@@ -25,3 +25,19 @@ class ChapterTable(tables.Table):
             'website',
             'facebook',
         )
+
+
+class AuditTable(tables.Table):
+    item = tables.Column(
+        "", attrs={'td': {'align': 'left', 'style': "font-weight:bold"}})
+    corresponding_secretary = tables.Column("Corr Sec")
+    treasurer = tables.Column()
+    scribe = tables.Column()
+    vice_regent = tables.Column()
+    regent = tables.Column()
+
+    class Meta:
+        attrs = {"class": "table-striped table-bordered",
+                 "td": {"align": "center"},
+                 "th": {"class": "text-center"},}
+        orderable = False

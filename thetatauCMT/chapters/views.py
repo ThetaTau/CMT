@@ -8,8 +8,9 @@ from core.forms import MultiFormsView
 from .models import Chapter
 from .forms import ChapterForm, ChapterFormHelper
 from .filters import ChapterListFilter
-from .tables import ChapterCurriculaTable, ChapterTable
+from .tables import ChapterCurriculaTable, ChapterTable, AuditTable
 from users.tables import UserTable
+from tasks.models import Task
 
 
 class ChapterDetailView(LoginRequiredMixin, OfficerMixin, MultiFormsView):
@@ -29,6 +30,41 @@ class ChapterDetailView(LoginRequiredMixin, OfficerMixin, MultiFormsView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        audit_tasks = Task.objects.filter(name="Audit")
+        chapter = self.request.user.current_chapter
+        audit_items = [
+            'user',
+            'modified',
+            'dues_member',
+            'dues_pledge',
+            'frequency',
+            'payment_plan',
+            'cash_book',
+            'cash_book_reviewed',
+            'cash_register',
+            'cash_register_reviewed',
+            'member_account',
+            'member_account_reviewed',
+            'balance_checking',
+            'balance_savings',
+            'debit_card',
+            'debit_card_access',]
+        audit_data = [{"item": item} for item in audit_items]
+        for task in audit_tasks:
+            complete = task.completed_last(chapter=chapter)
+            if complete:
+                [item.update(
+                    {task.owner.replace(' ', '_'): getattr(complete,
+                                                           item['item'])})
+                 for item in audit_data]
+            else:
+                [item.update({task.owner.replace(' ', '_'): "Incomplete"})
+                 for item in audit_data]
+        [item.update({'item': item['item'].replace('_', ' ').title()})
+         for item in audit_data]
+        audit_table = AuditTable(data=audit_data)
+        RequestConfig(self.request).configure(audit_table)
+        context['audit_table'] = audit_table
         chapter = self.get_object()
         context.update({
             "object": chapter,

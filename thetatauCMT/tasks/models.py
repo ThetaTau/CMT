@@ -62,6 +62,14 @@ class Task(models.Model):
                                   Q(date__lte=max_date)).all()
         return dates
 
+    def completed_last(self, chapter):
+        completed = TaskChapter.objects.filter(
+            id__in=self.dates.filter(
+                chapters__chapter=chapter).values_list(
+                'chapters', flat=True)).last()
+        if completed:
+            return completed.submission_object
+
 
 class TaskDate(models.Model):
     class Meta:
