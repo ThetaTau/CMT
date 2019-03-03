@@ -11,6 +11,7 @@ from .filters import ChapterListFilter
 from .tables import ChapterCurriculaTable, ChapterTable, AuditTable
 from users.tables import UserTable
 from tasks.models import Task
+from submissions.models import Submission
 
 
 class ChapterDetailView(LoginRequiredMixin, OfficerMixin, MultiFormsView):
@@ -52,6 +53,8 @@ class ChapterDetailView(LoginRequiredMixin, OfficerMixin, MultiFormsView):
         audit_data = [{"item": item} for item in audit_items]
         for task in audit_tasks:
             complete = task.completed_last(chapter=chapter)
+            if type(complete) is Submission:
+                complete = None
             if complete:
                 [item.update(
                     {task.owner.replace(' ', '_'): getattr(complete,
