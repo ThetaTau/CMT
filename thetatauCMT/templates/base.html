@@ -159,10 +159,13 @@
               <div class="dropdown-container">
               {% if request.is_nat_officer %}
                 <li>
-                <a class="nav-link dropdown-toggle" href="#" data-toggle="dropdown">{% trans "RegDir" %}</a>
+                <a class="nav-link dropdown-toggle" href="#" data-toggle="dropdown">{% trans "NatOff" %}</a>
                   <ul class="dropdown-menu">
                     <li class="active dropdown-submenu">
                       <a class="nav-link" href="{% url 'regions:list' %}">{% trans "Regions" %}</a>
+                    </li>
+                    <li class="active dropdown-submenu">
+                      <a class="nav-link" href="{% url 'forms:audit_list' %}">{% trans "All Audits" %}</a>
                     </li>
                   </ul>
                 </li>

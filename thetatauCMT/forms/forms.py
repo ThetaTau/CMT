@@ -2,7 +2,8 @@ from django import forms
 from django.utils import timezone
 from dal import autocomplete
 from crispy_forms.helper import FormHelper
-from crispy_forms.layout import Layout
+from crispy_forms.layout import Layout, Fieldset, Row, Submit
+from crispy_forms.bootstrap import FormActions, Field, InlineField, StrictButton
 from tempus_dominus.widgets import DatePicker
 from .models import Initiation, Depledge, StatusChange, RiskManagement,\
     PledgeProgram, Audit
@@ -395,3 +396,34 @@ class AuditForm(forms.ModelForm):
         return self.cleaned_data
 
 
+class AuditListFormHelper(FormHelper):
+    form_method = 'GET'
+    form_id = 'event-search-form'
+    form_class = 'form-inline'
+    field_template = 'bootstrap3/layout/inline_field.html'
+    field_class = 'col-xs-3'
+    label_class = 'col-xs-3'
+    form_show_errors = True
+    help_text_inline = False
+    html5_required = True
+    layout = Layout(
+                Fieldset(
+                    '<i class="fas fa-search"></i> Filter Audits',
+                    Row(
+                        Field('user__chapter'),
+                        Field('user__chapter__region'),
+                        InlineField('modified'),
+                        Field('debit_card'),
+                        FormActions(
+                            StrictButton(
+                                '<i class="fa fa-search"></i> Filter',
+                                type='submit',
+                                css_class='btn-primary',),
+                            Submit(
+                                'cancel',
+                                'Clear',
+                                css_class='btn-primary'),
+                        )
+                    )
+                ),
+    )

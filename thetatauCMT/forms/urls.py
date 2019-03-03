@@ -14,6 +14,10 @@ urlpatterns = [
         view=views.AuditFormView.as_view(),
         name='audit'),
     url(
+        regex=r'^audit-list/$',
+        view=views.AuditListView.as_view(),
+        name='audit_list'),
+    url(
         regex=r'^pledgeform/$',
         view=views.pledge_form,
         name='pledge_form'),

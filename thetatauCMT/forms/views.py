@@ -2,6 +2,7 @@ import json
 import datetime
 from copy import deepcopy
 from django.utils.decorators import method_decorator
+from django.http.request import QueryDict
 from django.views.decorators.debug import sensitive_post_parameters
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib import messages
@@ -16,7 +17,8 @@ from django.shortcuts import redirect
 from django.http import HttpResponseRedirect, HttpResponse, HttpResponseBadRequest
 from crispy_forms.layout import Submit
 from extra_views import FormSetView, ModelFormSetView
-from core.views import OfficerMixin, OfficerRequiredMixin, RequestConfig
+from core.views import OfficerMixin, OfficerRequiredMixin, RequestConfig,\
+    PagedFilteredTableView, NatOfficerRequiredMixin
 from .forms import InitiationFormSet, InitiationForm, InitiationFormHelper, InitDeplSelectForm,\
     InitDeplSelectFormHelper, DepledgeFormSet, DepledgeFormHelper, StatusChangeSelectForm,\
     StatusChangeSelectFormHelper, GraduateForm, GraduateFormSet, CSMTFormSet, GraduateFormHelper, CSMTFormHelper,\
@@ -27,9 +29,11 @@ from core.models import CHAPTER_OFFICER, COL_OFFICER_ALIGN
 from users.models import UserRoleChange
 from chapters.models import Chapter
 from .tables import GuardTable, BadgeTable, InitiationTable, DepledgeTable, \
-    StatusChangeTable, PledgeFormTable
+    StatusChangeTable, PledgeFormTable, AuditTable
 from .models import Guard, Badge, Initiation, Depledge, StatusChange, RiskManagement,\
     PledgeForm, PledgeProgram, Audit
+from .filters import AuditListFilter
+from .forms import AuditListFormHelper
 
 
 sensitive_post_parameters_m = method_decorator(
@@ -645,3 +649,25 @@ class AuditFormView(OfficerRequiredMixin, LoginRequiredMixin, OfficerMixin,
 
     def get_success_url(self):
         return reverse('home')
+
+
+class AuditListView(NatOfficerRequiredMixin,
+                    LoginRequiredMixin, OfficerMixin, PagedFilteredTableView):
+    model = Audit
+    context_object_name = 'audit'
+    ordering = ['-modified']
+    table_class = AuditTable
+    filter_class = AuditListFilter
+    formhelper_class = AuditListFormHelper
+
+    def get_queryset(self, **kwargs):
+        qs = Audit.objects.all().distinct('user__chapter')
+        cancel = self.request.GET.get('cancel', False)
+        request_get = self.request.GET.copy()
+        if cancel:
+            request_get = QueryDict()
+        self.filter = self.filter_class(request_get,
+                                        queryset=qs)
+        self.filter.request = self.request
+        self.filter.form.helper = self.formhelper_class()
+        return self.filter.qs

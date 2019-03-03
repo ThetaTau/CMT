@@ -1,5 +1,6 @@
 import django_tables2 as tables
-from .models import Guard, Badge, Initiation, Depledge, StatusChange, PledgeForm
+from .models import Guard, Badge, Initiation, Depledge, StatusChange,\
+    PledgeForm, Audit
 
 
 class GuardTable(tables.Table):
@@ -59,3 +60,30 @@ class StatusChangeTable(tables.Table):
         model = StatusChange
         fields = ('user', 'date_start', 'created', 'reason', 'date_end')
         attrs = {"class": "table-striped table-bordered"}
+
+
+class AuditTable(tables.Table):
+    debit_card_access = tables.Column("Debit Card Access")
+
+    class Meta:
+        model = Audit
+        attrs = {"class": "table-striped table-bordered"}
+        fields = [
+            'user.chapter',
+            'user.chapter.region',
+            'modified',
+            'dues_member',
+            'dues_pledge',
+            'frequency',
+            'balance_checking',
+            'balance_savings',
+            'debit_card',
+            'debit_card_access',
+            'payment_plan',
+            'cash_book',
+            'cash_book_reviewed',
+            'cash_register',
+            'cash_register_reviewed',
+            'member_account',
+            'member_account_reviewed',
+        ]
