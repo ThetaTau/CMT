@@ -54,6 +54,7 @@ class Command(BaseCommand):
         parser.add_argument('password', nargs=1, type=str)
         parser.add_argument('date_start', nargs=1, type=str)
         parser.add_argument('-date_end', nargs=1, type=str)
+        parser.add_argument('-chapter', nargs=1, type=str)
         parser.add_argument('-exclude', nargs=1, type=str,
                             help='mscr, init, depledge, coop, oer')
         parser.add_argument('-no-email', action='store_true')
@@ -63,6 +64,7 @@ class Command(BaseCommand):
         password = options['password'][0]
         date_start = datetime.datetime.strptime(options['date_start'][0], '%Y%m%d')
         date_end_str = options.get('date_end', None)
+        chapter = options.get('chapter', None)
         no_email = options.get('no_email', False)
         if date_end_str:
             date_end_str = date_end_str[0]
@@ -75,27 +77,24 @@ class Command(BaseCommand):
         else:
             exclude = ""
         print("Exluding", exclude)
-        initiations = Initiation.objects.filter(
-            created__gte=date_start,
-            created__lte=date_end
-        )
-        depledges = Depledge.objects.filter(
-            created__gte=date_start,
-            created__lte=date_end
-        )
-        officers = UserRoleChange.objects.filter(
-            created__gte=date_start,
-            created__lte=date_end
-        )
-        statuses = StatusChange.objects.filter(
-            created__gte=date_start,
-            created__lte=date_end
-        )
+        query = {
+            'created__gte': date_start,
+            'created__lte': date_end
+        }
+        file_path = f"exports//{TODAY_DATE}"
+        if chapter is not None:
+            chapter = chapter[0]
+            print(f"Only for chapter {chapter}")
+            query.update({'user__chapter__name': chapter})
+            file_path += f"_{chapter.upper().replace(' ', '_')}"
+        initiations = Initiation.objects.filter(**query)
+        depledges = Depledge.objects.filter(**query)
+        officers = UserRoleChange.objects.filter(**query)
+        statuses = StatusChange.objects.filter(**query)
         file_paths_out = []
-
         if initiations and 'init' not in exclude:
-            file_paths_out.append(f"exports//{TODAY_DATE}_init.csv")
-            with open(f"exports//{TODAY_DATE}_init.csv", 'w', newline='') as init_file:
+            file_paths_out.append(f"{file_path}_init.csv")
+            with open(f"{file_path}_init.csv", 'w', newline='') as init_file:
                 writer = csv.DictWriter(init_file, fieldnames=INIT)
                 writer.writeheader()
                 for initiation in initiations:
@@ -145,8 +144,8 @@ class Command(BaseCommand):
                     }
                     writer.writerow(row)
         if depledges and 'depledge' not in exclude:
-            file_paths_out.append(f"exports//{TODAY_DATE}_depledge.csv")
-            with open(f"exports//{TODAY_DATE}_depledge.csv", 'w', newline='') as depledge_file:
+            file_paths_out.append(f"{file_path}_depledge.csv")
+            with open(f"{file_path}_depledge.csv", 'w', newline='') as depledge_file:
                 writer = csv.DictWriter(depledge_file, fieldnames=DEPLEDGE)
                 writer.writeheader()
                 for depledge in depledges:
@@ -161,8 +160,8 @@ class Command(BaseCommand):
                     }
                     writer.writerow(row)
         if officers and 'oer' not in exclude:
-            file_paths_out.append(f"exports//{TODAY_DATE}_oer.csv")
-            with open(f"exports//{TODAY_DATE}_oer.csv", 'w', newline='') as oer_file:
+            file_paths_out.append(f"{file_path}_oer.csv")
+            with open(f"{file_path}_oer.csv", 'w', newline='') as oer_file:
                 writer = csv.DictWriter(oer_file, fieldnames=OER)
                 writer.writeheader()
                 for officer in officers:
@@ -188,10 +187,10 @@ class Command(BaseCommand):
         mscr_true = False
         coop_true = False
         if statuses:
-            with open(f"exports//{TODAY_DATE}_mscr.csv", 'w', newline='') as mscr_file:
+            with open(f"{file_path}_mscr.csv", 'w', newline='') as mscr_file:
                 mscr_writer = csv.DictWriter(mscr_file, fieldnames=MSCR)
                 mscr_writer.writeheader()
-                with open(f"exports//{TODAY_DATE}_coop.csv", 'w', newline='') as coop_file:
+                with open(f"{file_path}_coop.csv", 'w', newline='') as coop_file:
                     coop_writer = csv.DictWriter(coop_file, fieldnames=COOP)
                     coop_writer.writeheader()
                     for status in statuses:
@@ -259,13 +258,13 @@ class Command(BaseCommand):
                             row.update(main_row)
                             coop_writer.writerow(row)
             if mscr_true:
-                file_paths_out.append(f"exports//{TODAY_DATE}_mscr.csv")
+                file_paths_out.append(f"{file_path}_mscr.csv")
             if coop_true:
-                file_paths_out.append(f"exports//{TODAY_DATE}_coop.csv")
+                file_paths_out.append(f"{file_path}_coop.csv")
         if not no_email:
-            self.send_email(file_paths_out, password)
+            self.send_email(file_paths_out, password, chapter=chapter)
 
-    def send_email(self, attachments, password):
+    def send_email(self, attachments, password, chapter=None):
         sender = 'Frank.Ventura@ThetaTau.org'
         gmail_password = password
         recipients = [
@@ -278,6 +277,9 @@ class Command(BaseCommand):
         outer['From'] = sender
         outer.preamble = 'You will not see this in a MIME-aware mail reader.\n'
         text = f"Attached are the form submission up to {TODAY_DATE}"
+        if chapter is not None:
+            outer['Subject'] += f" {chapter} Chapter"
+            text += f" for {chapter} Chapter"
         outer.attach(MIMEText(text, 'plain'))
         for file in attachments:
             with open(file, 'rb') as fp:
