@@ -272,14 +272,15 @@ class Command(BaseCommand):
             sender,
         ]
         outer = MIMEMultipart()
-        outer['Subject'] = f'Form Submissions to {TODAY_DATE}'
         outer['To'] = ', '.join(recipients)
         outer['From'] = sender
         outer.preamble = 'You will not see this in a MIME-aware mail reader.\n'
         text = f"Attached are the form submission up to {TODAY_DATE}"
         if chapter is not None:
-            outer['Subject'] += f" {chapter} Chapter"
+            outer['Subject'] = f'Form Submissions to {TODAY_DATE} {chapter} Chapter'
             text += f" for {chapter} Chapter"
+        else:
+            outer['Subject'] = f'Form Submissions to {TODAY_DATE}'
         outer.attach(MIMEText(text, 'plain'))
         for file in attachments:
             with open(file, 'rb') as fp:
