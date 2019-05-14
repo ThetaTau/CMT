@@ -30,7 +30,7 @@ class NatOfficerRequiredMixin(GroupRequiredMixin):
 
 
 class OfficerRequiredMixin(GroupRequiredMixin):
-    group_required = u"officer"
+    group_required = [u"officer", u"natoff"]
     officer_edit = 'this'
     officer_edit_type = 'edit'
     redirect_field_name = ""
