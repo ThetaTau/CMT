@@ -13,13 +13,13 @@
     "floatthead": "^2.1.2"
   },
   "devDependencies": {
-    "bootstrap": "^4.2.1",
-    "browser-sync": "^2.26.3",
+    "bootstrap": "^4.3.1",
+    "browser-sync": "^2.26.7",
     "del": "^3.0.0",
     "gulp": "^4.0.0",
     "gulp-autoprefixer": "^5.0.0",
     "gulp-concat": "^2.6.1",
-    "gulp-cssnano": "^2.1.2",
+    "gulp-cssnano": "^2.1.3",
     "gulp-imagemin": "^5.0.3",
     "gulp-pixrem": "^1.0.0",
     "gulp-plumber": "^1.1.0",
@@ -27,7 +27,7 @@
     "gulp-sass": "^4.0.1",
     "gulp-uglify": "^3.0.0",
     "gulp-util": "^3.0.7",
-    "jquery": "^3.2.1-slim",
+    "jquery": "^3.4.1",
     "popper.js": "^1.14.7",
     "run-sequence": "^2.1.1"
   },
