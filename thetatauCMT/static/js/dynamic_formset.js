@@ -37,8 +37,8 @@ function cloneMore(selector, prefix) {
         if ($(this).attr('data-target')){
           var old_id = '#id_' + old_name;
           $(this).attr({'data-target': "#" + id});
-          var old_text = $(this).parent('div').find('script')[0].text;
-          $(this).parent('div').find('script')[0].text = old_text.replace(old_id, "#" + id);
+          var old_text = $(this).parent('div').parent('div').find('script')[0].text;
+          $(this).parent('div').parent('div').find('script')[0].text = old_text.replace(old_id, "#" + id);
           var date = $(this)[0].id.includes('start') ? todayDate(0):todayDate(1);
           $(this).datetimepicker({"format": "M/DD/YYYY", "date": date})
         }

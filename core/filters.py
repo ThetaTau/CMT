@@ -2,10 +2,11 @@ from django.utils.timezone import now
 from django_filters import DateRangeFilter
 from .models import BIENNIUM_DATES
 
-DateRangeFilter.options[6] = (
-    'Last Year', lambda qs, name: qs.filter(**{
-        '%s__year' % name: now().year - 1,
-    }))
+
+DateRangeFilter.filters['year_last'] = lambda qs, name:\
+    qs.filter(**{'%s__year' % name: now().year - 1, })
+DateRangeFilter.choices.append(('year_last', 'Last Year'))
+
 
 if now().month == 1:
     month = 12
@@ -15,11 +16,10 @@ else:
     year = now().year
 
 
-DateRangeFilter.options[7] = (
-    'Last month', lambda qs, name: qs.filter(**{
-        '%s__year' % name: year,
-        '%s__month' % name: month
-    }))
+DateRangeFilter.filters['month_last'] = lambda qs, name:\
+    qs.filter(**{'%s__year' % name: year, '%s__month' % name: month})
+DateRangeFilter.choices.append(('month_last', 'Last Month'))
+
 
 if now().month == 12:
     month = 1
@@ -28,11 +28,9 @@ else:
     month = now().month
     year = now().year
 
-DateRangeFilter.options[8] = (
-    'Next month', lambda qs, name: qs.filter(**{
-        '%s__year' % name: year,
-        '%s__month' % name: month
-    }))
+DateRangeFilter.filters['month_next'] = lambda qs, name:\
+    qs.filter(**{'%s__year' % name: year, '%s__month' % name: month})
+DateRangeFilter.choices.append(('month_next', 'Next Month'))
 
 
 def filter_qs_dates(start, end):
@@ -43,9 +41,8 @@ def filter_qs_dates(start, end):
         })
 
 
-ind = 9
 for date_name, date_info in BIENNIUM_DATES.items():
-    DateRangeFilter.options[ind] = (
-        date_name, filter_qs_dates(date_info['start'].date(),
-                                   date_info['end'].date()))
-    ind += 1
+    date_name_slug = date_name.replace(' ', '_')
+    DateRangeFilter.filters[date_name_slug] = filter_qs_dates(
+        date_info['start'].date(), date_info['end'].date())
+    DateRangeFilter.choices.append((date_name_slug, date_name))

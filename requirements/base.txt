@@ -1,12 +1,12 @@
-urllib3==1.24.1
-requests==2.21.0
-pytz==2018.7  # https://github.com/stub42/pytz
-awesome-slugify==1.6.5  # https://github.com/dimka665/awesome-slugify
-Pillow==5.0.0  # https://github.com/python-pillow/Pillow
-argon2-cffi==18.1.0  # https://github.com/hynek/argon2_cffi
+urllib3==1.25.3
+requests==2.22.0
+pytz==2019.1  # https://github.com/stub42/pytz
+python-slugify==3.0.2  # https://github.com/un33k/python-slugify
+Pillow==6.1.0  # https://github.com/python-pillow/Pillow
+argon2-cffi==19.1.0  # https://github.com/hynek/argon2_cffi
 whitenoise==3.3.1  # https://github.com/evansd/whitenoise
-redis>=2.10.5  # https://github.com/antirez/redis
-celery==3.1.25  # pyup: <4.0  # https://github.com/celery/celery
+redis==3.2.1  # https://github.com/antirez/redis
+celery==4.3.0  # pyup: < 5.0  # https://github.com/celery/celery
 google-api-python-client==1.7.4
 gspread==3.0.0
 PyDrive==1.3.1
@@ -14,27 +14,28 @@ django-herald==0.2
 
 # Django
 # ------------------------------------------------------------------------------
-django==2.0.3  # pyup: < 2.1  # https://www.djangoproject.com/
-django-environ==0.4.4  # https://github.com/joke2k/django-environ
-django-model-utils==3.1.1  # https://github.com/jazzband/django-model-utils
-django-allauth==0.38.0  # https://github.com/pennersr/django-allauth
+django==2.2.3  # pyup: < 3.0  # https://www.djangoproject.com/
+django-environ==0.4.5  # https://github.com/joke2k/django-environ
+django-model-utils==3.2.0  # https://github.com/jazzband/django-model-utils
+django-allauth==0.39.1  # https://github.com/pennersr/django-allauth
 django-crispy-forms==1.7.2  # https://github.com/django-crispy-forms/django-crispy-forms
-django-redis==4.9.0  # https://github.com/niwinz/django-redis
+django-redis==4.10.0  # https://github.com/niwinz/django-redis
 django-address==0.2.0  # https://github.com/furious-luke/django-address
 django-googledrive-storage==1.3.4  # http://django-googledrive-storage.readthedocs.io
 django-bootstrap-datepicker==1.3
 django-bootstrap4==0.0.6
 django-braces==1.13.0
 django-extra-views==0.11.0
-django-filter==1.1.0
+django-filter==2.1.0  # https://django-filter.readthedocs.io/
 django-jquery-js==3.1.1
 django-tables2==1.21.2
-django-tempus-dominus==0.1.4
+django-tempus-dominus==5.1.2.5  # https://github.com/FlipperPA/django-tempus-dominus
 rollbar==0.14.5
-django-autocomplete-light==3.3.2
+django-autocomplete-light==3.3.5  # https://github.com/yourlabs/django-autocomplete-light
 django-multiselectfield==0.1.8
+django-celery-beat==1.5.0  # https://github.com/celery/django-celery-beat
 
 
 # Django REST Framework
-djangorestframework==3.7.7  # https://github.com/encode/django-rest-framework
+djangorestframework==3.9.4  # https://github.com/encode/django-rest-framework
 coreapi==2.3.3  # https://github.com/core-api/python-client

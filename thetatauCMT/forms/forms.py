@@ -271,13 +271,13 @@ class RoleChangeSelectForm(forms.ModelForm):
     user = forms.ModelChoiceField(queryset=User.objects.all(),
                                   widget=autocomplete.ModelSelect2(url='users:autocomplete'))
     start = forms.DateField(
-        initial=timezone.now(),
+        initial=timezone.now().date(),
         label="Start Date",
         widget=DatePicker(options={"format": "M/DD/YYYY"},
                           attrs={'autocomplete': 'off'},
                           ))
     end = forms.DateField(
-        initial=timezone.now() + timezone.timedelta(days=365),
+        initial=timezone.now().date() + timezone.timedelta(days=365),
         label="End Date",
         widget=DatePicker(options={"format": "M/DD/YYYY"},
                           attrs={'autocomplete': 'off'},

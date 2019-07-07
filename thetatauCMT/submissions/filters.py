@@ -7,7 +7,7 @@ from scores.models import ScoreType
 
 class SubmissionListFilter(django_filters.FilterSet):
     name = django_filters.CharFilter(lookup_expr='icontains')
-    date = DateRangeFilter(name='date')
+    date = DateRangeFilter(field_name='date')
     type = django_filters.ModelChoiceFilter(
         queryset=ScoreType.objects.filter(type="Sub").all())
 

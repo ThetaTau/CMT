@@ -15,7 +15,7 @@ class TaskListFilter(django_filters.FilterSet):
                ('', 'All'),
         )
     )
-    date = DateRangeFilter(name='date')
+    date = DateRangeFilter(field_name='date')
     task__owner = django_filters.MultipleChoiceFilter(
         choices=ALL_ROLES_CHOICES)
 

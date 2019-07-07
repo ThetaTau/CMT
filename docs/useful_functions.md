@@ -43,18 +43,24 @@ Need to fix social accounts
 #### Dump 
 make sure to change date; `^ instead of \ in windows`
 
-This currently takes 4 minutes and is 38 MB on 20180927
+This currently takes 5 minutes and is 44.9 MB on 20190303
 
 On restore: Need to fix the social accounts in development 
 
     python manage.py dumpdata --natural-foreign \
     --exclude auth.permission --exclude contenttypes \
-    --indent 4 > database_backups/20190202.json
+    --indent 4 > database_backups/20190303.json
 #### Restore
     python manage.py flush
     python manage.py loaddata database_backups\$date$.json
 ### Postgres commands (Not tested, only have used django commands)
 #### Dump
-    psql -U user_name -h host_name db_name < pgsql_dump_file
+    pg_dump --format c --no-owner --oids \
+    --host venturafranklin-874.postgres.pythonanywhere-services.com \
+    --port 10874 --username thetatau --dbname thetataucmt \
+    --file=database_backups/20190513.bak
 #### Restore
-    psql -U user_name -h host_name db_name < pgsql_dump_file
+    dropdb thetatauCMT
+    createdb thetatauCMT
+    pg_restore --no-owner --dbname=thetatauCMT \
+    --username=postgres --format=c database_backups/20190303.bak

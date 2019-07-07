@@ -16,6 +16,10 @@ td[complete='False'] {
     background-color: #FFB6C1;
 }
 
+.select2-container--default .select2-selection--single {
+    height: 45px;
+}
+
 td[complete='N/A'] {
     background-color: #A9A9A9;
 }

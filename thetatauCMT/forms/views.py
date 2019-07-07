@@ -430,9 +430,9 @@ class RoleChangeView(OfficerRequiredMixin,
         if formset is None:
             formset = self.construct_formset()
         context['formset'] = formset
-        helper = RoleChangeSelectFormHelper()
-        helper.add_input(Submit("submit", "Save"))
-        context['helper'] = helper
+        # helper = RoleChangeSelectFormHelper()
+        # helper.add_input(Submit("submit", "Save"))
+        # context['helper'] = helper
         context['input'] = Submit("action", "Submit")
         context['delete'] = Submit("action", "Delete Selected")
         context['add'] = Submit("action", "Add Row")

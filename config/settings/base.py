@@ -83,6 +83,7 @@ THIRD_PARTY_APPS = [
     'django_extensions',  # https://github.com/pydanny/cookiecutter-django/issues/417
     'herald',
     'multiselectfield',
+    'tempus_dominus',
 ]
 LOCAL_APPS = [
     'thetatauCMT.users.apps.UsersConfig',
