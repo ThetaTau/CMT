@@ -27,7 +27,7 @@ django-braces==1.13.0  # https://github.com/brack3t/django-braces/
 django-extra-views==0.12.0  # https://github.com/AndrewIngram/django-extra-views
 django-filter==2.1.0  # https://django-filter.readthedocs.io/
 django-jquery-js==3.1.1  # https://bitbucket.org/tim_heap/django-jquery/src/master/
-django-tables2==1.21.2
+django-tables2==2.0.6  # https://github.com/jieter/django-tables2/
 django-tempus-dominus==5.1.2.5  # https://github.com/FlipperPA/django-tempus-dominus
 rollbar==0.14.7  # https://github.com/rollbar/pyrollbar
 django-autocomplete-light==3.3.5  # https://github.com/yourlabs/django-autocomplete-light
