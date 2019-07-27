@@ -64,7 +64,7 @@ class Command(BaseCommand):
         password = options['password'][0]
         date_start = datetime.datetime.strptime(options['date_start'][0], '%Y%m%d')
         date_end_str = options.get('date_end', None)
-        chapter = options.get('chapter', None)
+        chapter_only = options.get('chapter', None)
         no_email = options.get('no_email', False)
         if date_end_str:
             date_end_str = date_end_str[0]
@@ -82,11 +82,11 @@ class Command(BaseCommand):
             'created__lte': date_end
         }
         file_path = f"exports//{TODAY_DATE}"
-        if chapter is not None:
-            chapter = chapter[0]
-            print(f"Only for chapter {chapter}")
-            query.update({'user__chapter__name': chapter})
-            file_path += f"_{chapter.upper().replace(' ', '_')}"
+        if chapter_only is not None:
+            chapter_only = chapter_only[0]
+            print(f"Only for chapter {chapter_only}")
+            query.update({'user__chapter__name': chapter_only})
+            file_path += f"_{chapter_only.upper().replace(' ', '_')}"
         initiations = Initiation.objects.filter(**query)
         depledges = Depledge.objects.filter(**query)
         officers = UserRoleChange.objects.filter(**query)
@@ -262,7 +262,7 @@ class Command(BaseCommand):
             if coop_true:
                 file_paths_out.append(f"{file_path}_coop.csv")
         if not no_email:
-            self.send_email(file_paths_out, password, chapter=chapter)
+            self.send_email(file_paths_out, password, chapter=chapter_only)
 
     def send_email(self, attachments, password, chapter=None):
         sender = 'Frank.Ventura@ThetaTau.org'
