@@ -370,12 +370,18 @@ class Command(BaseCommand):
                 central = set(sorted(map(str, chapter_count[chapter_obj])))
                 cmt = set(sorted(map(str, list(current_members))))
                 if central != cmt:
+                    cmt_mising = central - cmt
+                    central_missing = cmt - central
                     change_messages.append(f"Chapter count ERROR {chapter_obj}")
-                    change_messages.append(f"{central ^ cmt}")
-                    change_messages.append("  CENTRAL NOT CMT")
-                    change_messages.append("\n    ".join(central - cmt))
-                    change_messages.append("  CMT NOT CENTRAL")
-                    change_messages.append("\n    ".join(cmt - central))
+                    if cmt_mising:
+                        change_messages.append("\n")
+                        change_messages.append("  CENTRAL NOT CMT")
+                        change_messages.append("\n    ".join(cmt_mising))
+                        change_messages.append("\n")
+                    if central_missing:
+                        change_messages.append("  CMT NOT CENTRAL")
+                        change_messages.append("\n    ".join(central_missing))
+                        change_messages.append("\n")
         except Exception as e:
             print('\n'.join(change_messages))
             print(f"ERROR:\n{e}")
