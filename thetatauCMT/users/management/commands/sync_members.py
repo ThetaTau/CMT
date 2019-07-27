@@ -131,7 +131,11 @@ class Command(BaseCommand):
                 try:
                     chapter_obj = Chapter.objects.get(name=chapter_name)
                 except Chapter.DoesNotExist:
-                    chapter_obj = Chapter.objects.get(school=row[trans['school']])
+                    print(f"There was no chapter name {chapter_name}!")
+                    try:
+                        chapter_obj = Chapter.objects.get(school=row[trans['school']])
+                    except Chapter.DoesNotExist:
+                        raise ValueError(f"Chapter does not exist {chapter_name} {row[trans['school']]}")
                 roll = row[trans['roll']]
                 if roll == '':
                     # This is likely a pledge, need to get value from badge
