@@ -12,7 +12,7 @@ class ChapterCurriculaInline(admin.TabularInline):
 
 class ChapterAdmin(admin.ModelAdmin):
     inlines = [ChapterCurriculaInline,]
-    list_display = ('name', 'region', 'school')
+    list_display = ('name', 'region', 'school', 'greek')
     list_filter = ['region']
     ordering = ['name',]
 
