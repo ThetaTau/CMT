@@ -25,14 +25,14 @@ class TaskCompleteView(OfficerRequiredMixin,
     def get(self, request, *args, **kwargs):
         task_date_id = self.kwargs.get('pk')
         task = TaskDate.objects.get(pk=task_date_id).task
+        if task.resource:
+            if 'http' not in task.resource:
+                return redirect(reverse(task.resource))
+            else:
+                return redirect(task.resource)
         if task.type == 'sub':
             if task.submission_type:
                 return redirect(reverse('submissions:add-direct', args=(task.submission_type.slug,)))
-        elif task.type == 'form':
-            if task.resource:
-                if 'http' not in task.resource:
-                    return redirect(reverse(task.resource))
-                return redirect(task.resource)
         self.object = None
         return super().get(request, *args, **kwargs)
 
