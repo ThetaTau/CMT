@@ -10,6 +10,7 @@ fields = [
     'Mobile Phone',
     'School Email',
     'Other Email',
+    'Term End',
 ]
 
 
@@ -22,10 +23,12 @@ def run():
             roles = user.chapter_officer()
             if roles:
                 print(f"Found officer {user}")
+                first_role = roles.pop()
+                role = user.get_current_roles().first()
                 writer.writerow(
                     {
                         'Chapter': user.chapter.name,
-                        'Office': roles.pop(),
+                        'Office': first_role,
                         'ConstID': user.user_id,
                         'First Name': user.first_name,
                         'Middle Name': "",
@@ -33,5 +36,6 @@ def run():
                         'Mobile Phone': user.phone_number,
                         'School Email': "",
                         'Other Email': user.email,
+                        'Term End': role.end.strftime("%m/%d/%Y"),
                     }
                 )
