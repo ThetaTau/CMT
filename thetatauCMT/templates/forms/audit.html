@@ -5,12 +5,20 @@
 
 {% block head_title %}{% trans "Chapter Financial Audit" %}{% endblock %}
 {% block content %}
-<div class="jumbotron"><div class="container">
-<h2>{% trans "Review of Chapter Finances" %}</h2>
-Several separate items must be reviewed to ensure that the financial
-  records kept by the Treasurer are accurate and up-to-date.
-  These are: a cashbook, a check book register, and a member's accounting page.</div>
-</div>
+  {% if complete %}
+    <div class="jumbotron"><div class="container">
+      <h2>{% trans "Audit complete" %}</h2>
+      This audit was completed on {{ audit.created }} by {{ audit.user }}
+      <br>Please check task list for next audit due date.</div>
+      </div>
+  {% else %}
+    <div class="jumbotron"><div class="container">
+    <h2>{% trans "Review of Chapter Finances" %}</h2>
+    Several separate items must be reviewed to ensure that the financial
+      records kept by the Treasurer are accurate and up-to-date.
+      These are: a cashbook, a check book register, and a member's accounting page.</div>
+    </div>
+  {% endif %}
   <p>
 <form method="POST">
 <div class="container">
@@ -213,7 +221,8 @@ If all these three things are reviewed, you will have conducted a satisfactory
   {% endfor %}
 {% endif %}
   {% csrf_token %}
-  <button class="primaryAction btn btn-primary" type="submit">{% trans "Sign" %}</button>
+  <button class="primaryAction btn btn-primary" type="submit"
+    {% if complete %} disabled {% endif %}>{% trans "Sign" %}</button>
 </form>
 </div>
 {% endblock %}

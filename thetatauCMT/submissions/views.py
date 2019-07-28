@@ -57,7 +57,13 @@ class SubmissionUpdateView(OfficerRequiredMixin,
         submission_id = self.kwargs.get('pk')
         submission = Submission.objects.get(pk=submission_id)
         if "forms:" in submission.file.name:
-            return redirect(reverse(submission.file.name))
+            path, args = submission.file.name, None
+            if ' ' in path:
+                path, args = path.split(' ')
+                url = reverse(path, args=[args])
+            else:
+                url = reverse(path)
+            return redirect(url)
         return super().get(request, *args, **kwargs)
 
     def get_success_url(self):

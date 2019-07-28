@@ -611,6 +611,17 @@ class AuditFormView(OfficerRequiredMixin, LoginRequiredMixin, OfficerMixin,
     template_name = "forms/audit.html"
     model = Audit
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        complete = False
+        if 'object' in context:
+            form = context['form']
+            for field_name, field in form.fields.items():
+                field.disabled = True
+            complete = True
+        context['complete'] = complete
+        return context
+
     def get_object(self, queryset=None):
         current_roles = self.request.user.chapter_officer()
         if not current_roles:
@@ -620,6 +631,16 @@ class AuditFormView(OfficerRequiredMixin, LoginRequiredMixin, OfficerMixin,
                 f"Your current roles are: {current_roles}")
             return None
         else:
+            if 'pk' in self.kwargs:
+                audit = Audit.objects.get(pk=self.kwargs['pk'])
+                audit_chapter = audit.user.chapter
+                if audit_chapter == self.request.user.chapter:
+                    return audit
+                else:
+                    messages.add_message(
+                        self.request, messages.ERROR,
+                        f"Requested audit is for {audit_chapter} Chapter not your chapter."
+                    )
             task = Task.objects.get(name="Audit",
                                     owner__in=current_roles)
             chapter = self.request.user.current_chapter
@@ -643,7 +664,7 @@ class AuditFormView(OfficerRequiredMixin, LoginRequiredMixin, OfficerMixin,
                 f"Only executive officers can submit an audit: {CHAPTER_OFFICER}\n"
                 f"Your current roles are: {current_roles}")
         else:
-            form.save()
+            saved_audit = form.save()
             task = Task.objects.get(name="Audit",
                                     owner__in=current_roles)
             chapter = self.request.user.current_chapter
@@ -651,7 +672,16 @@ class AuditFormView(OfficerRequiredMixin, LoginRequiredMixin, OfficerMixin,
             if next_date:
                 task_obj = TaskChapter(task=next_date, chapter=chapter,
                                        date=timezone.now(),)
-                task_obj.submission_object = form.instance
+                score_type = ScoreType.objects.filter(
+                    slug="audit").first()
+                submit_obj = Submission(
+                    file=f"forms:audit_complete {saved_audit.pk}",
+                    name=f"Audit by {task.owner}",
+                    type=score_type,
+                    chapter=self.request.user.current_chapter,
+                )
+                submit_obj.save()
+                task_obj.submission_object = submit_obj
                 task_obj.save()
             messages.add_message(
                 self.request, messages.INFO,
