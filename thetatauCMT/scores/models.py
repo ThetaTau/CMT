@@ -131,11 +131,11 @@ class ScoreType(models.Model):
             score_types_out.append(score_info)
         return score_types_out
 
-    def calculate_special(self, obj):
+    def calculate_special(self, obj, extra_info=None):
         formula_out = self.special
         calcualted_elsewhere = [
             'HOURS', 'GPA', 'MEMBERS',
-            'PLEDGE', 'OFFICER', 'MODIFIED',
+            'PLEDGE', 'OFFICER',
         ]
         if any(x in formula_out for x in calcualted_elsewhere):
             # All these should be calculated somewhere else
@@ -160,12 +160,23 @@ class ScoreType(models.Model):
             # meeting_attend = obj.calculate_meeting_attendance()
             meeting_attend = '0'
             formula_out = formula_out.replace('MEETINGS', str(meeting_attend))
+        if 'MODIFIED' in formula_out:
+            # 20*UNMODIFIED+10*MODIFIED
+            unmodified = extra_info.get('unmodified', False)
+            if unmodified:
+                unmod = 1
+                mod = 0
+            else:
+                unmod = 0
+                mod = 1
+            formula_out = formula_out.replace('UNMODIFIED', str(unmod))
+            formula_out = formula_out.replace('MODIFIED', str(mod))
         return eval(formula_out)
 
-    def calculate_score(self, obj):
+    def calculate_score(self, obj, extra_info=None):
         total_score = 0
         if self.special:
-            return self.calculate_special(obj)
+            return self.calculate_special(obj, extra_info=extra_info)
         # Some events have base points just for having event
         total_score += self.base_points
         if self.type == 'Evt':

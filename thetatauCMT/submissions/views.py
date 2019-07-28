@@ -1,6 +1,6 @@
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib import messages
-from django.urls import reverse
+from django.shortcuts import redirect, reverse
 from django.views.generic import DetailView, UpdateView, RedirectView, CreateView
 from core.views import PagedFilteredTableView, RequestConfig, TypeFieldFilteredChapterAdd,\
     OfficerMixin, OfficerRequiredMixin
@@ -52,6 +52,13 @@ class SubmissionUpdateView(OfficerRequiredMixin,
     score_type = 'Sub'
     officer_edit = 'submissions'
     officer_edit_type = 'edit'
+
+    def get(self, request, *args, **kwargs):
+        submission_id = self.kwargs.get('pk')
+        submission = Submission.objects.get(pk=submission_id)
+        if "forms:" in submission.file.name:
+            return redirect(reverse(submission.file.name))
+        return super().get(request, *args, **kwargs)
 
     def get_success_url(self):
         return reverse('submissions:list')

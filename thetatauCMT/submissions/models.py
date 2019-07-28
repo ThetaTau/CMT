@@ -31,9 +31,9 @@ class Submission(TimeStampedModel):
     def __str__(self):
         return f"{self.name}"  # from {self.chapter} on {self.date}"
 
-    def save(self):
+    def save(self, extra_info=None):
         self.slug = slugify(self.name)
-        cal_score = self.type.calculate_score(self)
+        cal_score = self.type.calculate_score(self, extra_info=extra_info)
         self.score = cal_score
         try:
             with transaction.atomic():

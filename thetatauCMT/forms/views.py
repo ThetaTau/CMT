@@ -25,6 +25,8 @@ from .forms import InitiationFormSet, InitiationForm, InitiationFormHelper, Init
     RoleChangeSelectForm, RoleChangeSelectFormHelper, RiskManagementForm,\
     PledgeProgramForm, AuditForm
 from tasks.models import TaskChapter, Task
+from scores.models import ScoreType
+from submissions.models import Submission
 from core.models import CHAPTER_OFFICER, COL_OFFICER_ALIGN
 from users.models import UserRoleChange
 from chapters.models import Chapter
@@ -581,7 +583,17 @@ class PledgeProgramFormView(OfficerRequiredMixin,
             if next_date:
                 task_obj = TaskChapter(task=next_date, chapter=chapter,
                                        date=timezone.now(),)
-                task_obj.submission_object = form.instance
+                score_type = ScoreType.objects.filter(
+                    slug="pledge-program").first()
+                submit_obj = Submission(
+                    file="forms:pledge_program",
+                    name="Pledge program",
+                    type=score_type,
+                    chapter=self.request.user.current_chapter,
+                )
+                submit_obj.save(
+                    extra_info={'unmodified': form.instance.manual != 'other'})
+                task_obj.submission_object = submit_obj
                 task_obj.save()
             messages.add_message(
                 self.request, messages.INFO,
