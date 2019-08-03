@@ -17,6 +17,7 @@ class ChapterInline(admin.TabularInline):
 
 class RegionTypeAdmin(admin.ModelAdmin):
     inlines = [ChapterInline]
+    raw_id_fields = ['directors']
     list_filter = ['name']
     search_fields = ['name']
     ordering = ['name']
