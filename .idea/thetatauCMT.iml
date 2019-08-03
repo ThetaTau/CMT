@@ -17,7 +17,7 @@
       <sourceFolder url="file://$MODULE_DIR$/thetatauCMT" isTestSource="false" />
       <excludeFolder url="file://$MODULE_DIR$/node_modules" />
     </content>
-    <orderEntry type="jdk" jdkName="Python 3.6 virtualenv at D:\workspace\.virtualenvs\cmt" jdkType="Python SDK" />
+    <orderEntry type="jdk" jdkName="Python 3.6 (cmt)" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
   </component>
   <component name="PackageRequirementsSettings">
