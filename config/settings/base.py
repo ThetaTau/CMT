@@ -84,6 +84,7 @@ THIRD_PARTY_APPS = [
     'herald',
     'multiselectfield',
     'tempus_dominus',
+    'easy_pdf',
 ]
 LOCAL_APPS = [
     'thetatauCMT.users.apps.UsersConfig',

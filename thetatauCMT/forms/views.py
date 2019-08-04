@@ -5,6 +5,7 @@ from django.utils.decorators import method_decorator
 from django.http.request import QueryDict
 from django.views.decorators.debug import sensitive_post_parameters
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.core.files.base import ContentFile
 from django.contrib import messages
 from django.urls import reverse
 from django.utils import timezone
@@ -17,6 +18,7 @@ from django.shortcuts import redirect
 from django.http import HttpResponseRedirect, HttpResponse, HttpResponseBadRequest
 from crispy_forms.layout import Submit
 from extra_views import FormSetView, ModelFormSetView
+from easy_pdf.views import PDFTemplateResponseMixin
 from core.views import OfficerMixin, OfficerRequiredMixin, RequestConfig,\
     PagedFilteredTableView, NatOfficerRequiredMixin
 from .forms import InitiationFormSet, InitiationForm, InitiationFormHelper, InitDeplSelectForm,\
@@ -535,12 +537,29 @@ class RiskManagementFormView(OfficerRequiredMixin,
             if next_date:
                 task_obj = TaskChapter(task=next_date, chapter=chapter,
                                        date=timezone.now(),)
-                task_obj.submission_object = form.instance
+                score_type = ScoreType.objects.filter(
+                    slug="rmp").first()
+                view = RiskManagementDetailView.as_view()
+                new_request = self.request
+                new_request.path = f'/forms/rmp-complete/{form.instance.id}'
+                new_request.method = 'GET'
+                risk_file = view(new_request, pk=form.instance.id)
+                submit_obj = Submission(
+                    name=f"Risk Management Form {self.request.user}",
+                    type=score_type,
+                    chapter=self.request.user.current_chapter,
+                )
+                submit_obj.file.save(f"Risk Management Form {self.request.user}.pdf",
+                                     ContentFile(risk_file.content))
+                submit_obj.save()
+                form.instance.submission = submit_obj
+                form.save()
+                task_obj.submission_object = submit_obj
                 task_obj.save()
-            messages.add_message(
-                self.request, messages.INFO,
-                f"You successfully signed the RMP!\n"
-                f"Your current roles are: {current_roles}")
+                messages.add_message(
+                    self.request, messages.INFO,
+                    f"You successfully signed the RMP!\n"
+                    f"Your current roles are: {current_roles}")
         return super().form_valid(form)
 
     def get_success_url(self):
@@ -548,9 +567,10 @@ class RiskManagementFormView(OfficerRequiredMixin,
 
 
 class RiskManagementDetailView(LoginRequiredMixin, OfficerMixin,
-                                DetailView):
+                               PDFTemplateResponseMixin, UpdateView):
     model = RiskManagement
-    template_name = "forms/rmp_complete.html"
+    form_class = RiskManagementForm
+    template_name = "forms/rmp_pdf.html"
 
 
 class PledgeProgramFormView(OfficerRequiredMixin,

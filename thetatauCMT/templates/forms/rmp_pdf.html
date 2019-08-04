@@ -1,0 +1,6 @@
+{% extends "easy_pdf/base.html" %}
+
+{% load i18n %}
+{% block content %}
+    {% include "forms/rmp_details.html" with form=form complete_form=object%}
+{% endblock %}

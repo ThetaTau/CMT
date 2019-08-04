@@ -13,6 +13,7 @@ from core.models import forever, CHAPTER_ROLES_CHOICES
 from users.models import User, UserStatusChange
 from chapters.models import Chapter
 from tasks.models import TaskChapter
+from submissions.models import Submission
 
 
 class Badge(models.Model):
@@ -379,6 +380,9 @@ class RiskManagement(YearTermModel):
     user = models.ForeignKey(settings.AUTH_USER_MODEL,
                              on_delete=models.CASCADE,
                              related_name="risk_form")
+    submission = models.ForeignKey(Submission, on_delete=models.CASCADE,
+                                   related_name="risk_management_forms",
+                                   null=True)
     date = models.DateField("Submit Date", default=timezone.now)
     alcohol = models.BooleanField()
     hosting = models.BooleanField()
@@ -396,6 +400,9 @@ class RiskManagement(YearTermModel):
     social = models.BooleanField()
     indemnification = models.BooleanField()
     agreement = models.BooleanField()
+    electronic_agreement = models.BooleanField()
+    terms_agreement = models.BooleanField()
+    typed_name = models.CharField(max_length=255)
 
 
 class Audit(YearTermModel, TimeStampedModel):

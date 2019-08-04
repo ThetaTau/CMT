@@ -317,13 +317,15 @@ class RiskManagementForm(forms.ModelForm):
     abusive = forms.BooleanField(label="I understand the Policy on Abusive Behavior")
     hazing = forms.BooleanField(label="I understand the Policy on Hazing")
     substances = forms.BooleanField(label="I understand the Policy on Controlled Substances")
-    high_risk = forms.BooleanField(label="I understand the Policy on High‐Risk Events")
+    high_risk = forms.BooleanField(label="I understand the Policy on High Risk Events")
     transportation = forms.BooleanField(label="I understand the Policy on Transportation")
     property_management = forms.BooleanField(label="I understand the Policy on Property Management")
     guns = forms.BooleanField(label="I understand the Policy on Gun Safety")
     trademark = forms.BooleanField(label="I understand the Trademark Policy")
     social = forms.BooleanField(label="I understand the Website & Social Media Policy")
     indemnification = forms.BooleanField(label="I understand the Indemnification, Authority, and Signatory Policy")
+    electronic_agreement = forms.BooleanField(label="I agree ")
+    terms_agreement = forms.BooleanField(label="I accept the Electronic Terms of Service")
     agreement = forms.BooleanField(label="I agree")
 
     class Meta:
@@ -345,6 +347,9 @@ class RiskManagementForm(forms.ModelForm):
             'social',
             'indemnification',
             'agreement',
+            'electronic_agreement',
+            'terms_agreement',
+            'typed_name',
         ]
 
 

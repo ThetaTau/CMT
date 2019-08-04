@@ -55,11 +55,11 @@ urlpatterns = [
         view=views.RoleChangeView.as_view(),
         name='officer'
     ),
-    # url(
-    #     regex=r'^rmp/$',
-    #     view=views.RiskManagementFormView.as_view(),
-    #     name='rmp'
-    # ),
+    url(
+        regex=r'^rmp/$',
+        view=views.RiskManagementFormView.as_view(),
+        name='rmp'
+    ),
     url(
         regex=r'^rmp-complete/(?P<pk>\d+)/$',
         view=views.RiskManagementDetailView.as_view(),
