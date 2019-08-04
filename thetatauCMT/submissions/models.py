@@ -1,5 +1,6 @@
 import os
 import datetime
+from django.conf import settings
 from django.db import models, transaction
 from django.contrib.contenttypes.fields import GenericRelation
 from django.utils import timezone
@@ -17,6 +18,10 @@ def get_upload_path(instance, filename):
 
 
 class Submission(TimeStampedModel):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL,
+                             on_delete=models.CASCADE,
+                             related_name="submissions",
+                             null=True,)
     date = models.DateField("Submission Date", default=timezone.now)
     file = models.FileField(upload_to=get_upload_path, storage=gd_storage)
     name = models.CharField("Submission Name", max_length=50)

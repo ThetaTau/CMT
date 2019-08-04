@@ -92,6 +92,8 @@ class TypeFieldFilteredChapterAdd(FormMixin):
     def form_valid(self, form):
         chapter = self.request.user.current_chapter
         form.instance.chapter = chapter
+        if hasattr(form.instance, 'user'):
+            form.instance.user = self.request.user
         score_obj = form.instance.type
         task = score_obj.task.first()
         if task:

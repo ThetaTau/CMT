@@ -23,6 +23,8 @@ from .filters import UserListFilter
 from .forms import UserListFormHelper, UserLookupForm, UserAlterForm,\
     UserGPAForm, UserForm, UserServiceForm, UserOrgForm
 from chapters.models import Chapter
+from submissions.models import Submission
+from submissions.tables import SubmissionTable
 
 
 class UserRedirectView(LoginRequiredMixin, RedirectView):
@@ -154,6 +156,10 @@ class UserDetailUpdateView(LoginRequiredMixin, OfficerMixin, MultiFormsView):
             semester = 'Spring' if i % 2 else 'Fall'
             headers.append(f"{semester} {year}")
         context['table_headers'] = headers
+        submissions = self.request.user.submissions.all()
+        table = SubmissionTable(submissions)
+        RequestConfig(self.request, paginate={'per_page': 30}).configure(table)
+        context['submission_table'] = table
         return context
 
     def get_form_kwargs(self, form_name, bind_form=False):

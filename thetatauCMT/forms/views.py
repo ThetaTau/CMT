@@ -547,6 +547,7 @@ class RiskManagementFormView(OfficerRequiredMixin,
                 risk_file = view(new_request, pk=form.instance.id)
                 file_name = f"Risk Management Form {self.request.user}"
                 submit_obj = Submission(
+                    user=self.request.user,
                     name=file_name,
                     type=score_type,
                     chapter=self.request.user.current_chapter,
@@ -609,6 +610,7 @@ class PledgeProgramFormView(OfficerRequiredMixin,
                 score_type = ScoreType.objects.filter(
                     slug="pledge-program").first()
                 submit_obj = Submission(
+                    user=self.request.user,
                     file="forms:pledge_program",
                     name="Pledge program",
                     type=score_type,
@@ -698,6 +700,7 @@ class AuditFormView(OfficerRequiredMixin, LoginRequiredMixin, OfficerMixin,
                 score_type = ScoreType.objects.filter(
                     slug="audit").first()
                 submit_obj = Submission(
+                    user=self.request.user,
                     file=f"forms:audit_complete {saved_audit.pk}",
                     name=f"Audit by {task.owner}",
                     type=score_type,
