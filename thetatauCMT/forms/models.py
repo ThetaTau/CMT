@@ -9,7 +9,8 @@ from django.utils import timezone
 from core.models import TimeStampedModel, YearTermModel, gd_storage
 from django.utils.translation import gettext_lazy as _
 from multiselectfield import MultiSelectField
-from core.models import forever, CHAPTER_ROLES_CHOICES
+from core.models import forever, CHAPTER_ROLES_CHOICES,\
+    academic_encompass_start_end_date
 from users.models import User, UserStatusChange
 from chapters.models import Chapter
 from tasks.models import TaskChapter
@@ -380,6 +381,7 @@ class RiskManagement(YearTermModel):
     user = models.ForeignKey(settings.AUTH_USER_MODEL,
                              on_delete=models.CASCADE,
                              related_name="risk_form")
+    role = models.CharField(max_length=50)
     submission = models.ForeignKey(Submission, on_delete=models.CASCADE,
                                    related_name="risk_management_forms",
                                    null=True)
