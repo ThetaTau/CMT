@@ -38,6 +38,7 @@ from .models import Guard, Badge, Initiation, Depledge, StatusChange, RiskManage
     PledgeForm, PledgeProgram, Audit
 from .filters import AuditListFilter
 from .forms import AuditListFormHelper
+from .notifications import EmailRMPSigned
 
 
 sensitive_post_parameters_m = method_decorator(
@@ -544,18 +545,20 @@ class RiskManagementFormView(OfficerRequiredMixin,
                 new_request.path = f'/forms/rmp-complete/{form.instance.id}'
                 new_request.method = 'GET'
                 risk_file = view(new_request, pk=form.instance.id)
+                file_name = f"Risk Management Form {self.request.user}"
                 submit_obj = Submission(
-                    name=f"Risk Management Form {self.request.user}",
+                    name=file_name,
                     type=score_type,
                     chapter=self.request.user.current_chapter,
                 )
-                submit_obj.file.save(f"Risk Management Form {self.request.user}.pdf",
+                submit_obj.file.save(f"{file_name}.pdf",
                                      ContentFile(risk_file.content))
                 submit_obj.save()
                 form.instance.submission = submit_obj
                 form.save()
                 task_obj.submission_object = submit_obj
                 task_obj.save()
+                EmailRMPSigned(self.request.user, risk_file.content, file_name).send()
                 messages.add_message(
                     self.request, messages.INFO,
                     f"You successfully signed the RMP!\n"
