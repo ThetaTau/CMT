@@ -147,6 +147,28 @@ def semester_start_date():
     return datetime.datetime(TODAY_END.year, start_month, 1)
 
 
+def academic_encompass_start_end_date(given_date=None):
+    '''
+    Determine the start and end date of the academic year including given date
+    :return: date
+    '''
+    if given_date is None:
+        given_date = datetime.datetime.now()
+    if isinstance(given_date, str) or isinstance(given_date, int):
+        start_year = int(given_date)
+        end_year = start_year + 1
+    else:
+        if SEMESTER[given_date.month] == 'sp':
+            # If given spring semester then started last year
+            start_year = given_date.year - 1
+            end_year = given_date.year
+        else:
+            start_year = given_date.year
+            end_year = given_date.year + 1
+    return (datetime.datetime(start_year, 7, 1),
+            datetime.datetime(end_year, 7, 1), )
+
+
 class TimeStampedModel(models.Model):
     """
     An abstract base class model that provides self-
