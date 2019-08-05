@@ -3,6 +3,7 @@ import datetime
 from enum import Enum
 from django.db import models, transaction
 from django.db.utils import IntegrityError
+from django.contrib.auth.models import Group
 from django.core.validators import MaxValueValidator
 from django.conf import settings
 from django.utils import timezone
@@ -405,6 +406,21 @@ class RiskManagement(YearTermModel):
     electronic_agreement = models.BooleanField()
     terms_agreement = models.BooleanField()
     typed_name = models.CharField(max_length=255)
+
+    @staticmethod
+    def risk_forms_chapter_year(chapter, year):
+        chapter_officers = chapter.get_current_officers_council()
+        start, end = academic_encompass_start_end_date(year)
+        return RiskManagement.objects.filter(
+            user__in=chapter_officers, date__gte=start, date__lte=end)
+
+    @staticmethod
+    def risk_forms_year(year):
+        off_group, _ = Group.objects.get_or_create(name='officer')
+        chapter_officers = off_group.user_set.all()
+        start, end = academic_encompass_start_end_date(year)
+        return RiskManagement.objects.filter(
+            user__in=chapter_officers, date__gte=start, date__lte=end)
 
 
 class Audit(YearTermModel, TimeStampedModel):

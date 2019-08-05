@@ -8,6 +8,7 @@ from tempus_dominus.widgets import DatePicker
 from .models import Initiation, Depledge, StatusChange, RiskManagement,\
     PledgeProgram, Audit
 from users.models import User, UserRoleChange
+from regions.models import Region
 from core.models import CHAPTER_OFFICER, COMMITTEE_CHAIR
 
 
@@ -403,7 +404,7 @@ class AuditForm(forms.ModelForm):
 
 class AuditListFormHelper(FormHelper):
     form_method = 'GET'
-    form_id = 'event-search-form'
+    form_id = 'audit-search-form'
     form_class = 'form-inline'
     field_template = 'bootstrap3/layout/inline_field.html'
     field_class = 'col-xs-3'
@@ -432,3 +433,44 @@ class AuditListFormHelper(FormHelper):
                     )
                 ),
     )
+
+
+class RiskListFormHelper(FormHelper):
+    form_method = 'GET'
+    form_id = 'risk-search-form'
+    form_class = 'form-inline'
+    field_template = 'bootstrap3/layout/inline_field.html'
+    field_class = 'col-xs-3'
+    label_class = 'col-xs-3'
+    form_show_errors = True
+    help_text_inline = False
+    html5_required = True
+    layout = Layout(
+                Fieldset(
+                    '<i class="fas fa-search"></i> Filter Risk Forms',
+                    Row(
+                        Field('region', label='Region'),
+                        Field('year'),
+                        Field('all_complete_status', label='Status All Complete'),
+                        FormActions(
+                            StrictButton(
+                                '<i class="fa fa-search"></i> Filter',
+                                type='submit',
+                                css_class='btn-primary',),
+                            Submit(
+                                'cancel',
+                                'Clear',
+                                css_class='btn-primary'),
+                        )
+                    )
+                ),
+    )
+
+
+class RiskListFilter(forms.Form):
+    helper = RiskListFormHelper
+    year = forms.ChoiceField(choices=[(2018, '2018'), (2019, '2019')])
+    all_complete_status = forms.ChoiceField(
+        choices=[(0, 'All'), (1, 'Complete'), (2, 'Incomplete')])
+    region = forms.ModelChoiceField(required=False,
+                                    queryset=Region.objects.order_by('name').all())

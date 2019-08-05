@@ -65,6 +65,10 @@ urlpatterns = [
         view=views.RiskManagementDetailView.as_view(),
         name='rmp_complete'
     ),
+    url(
+        regex=r'^rmp-list/$',
+        view=views.RiskManagementListView.as_view(),
+        name='risk_list'),
     # url(
     #     regex=r'^~status-change/$',
     #     view=views.StatusChangeView.as_view(),

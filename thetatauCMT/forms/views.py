@@ -10,7 +10,7 @@ from django.contrib import messages
 from django.urls import reverse
 from django.utils import timezone
 from django import forms
-from django.views.generic import DetailView, UpdateView
+from django.views.generic import UpdateView
 from django.views.generic.edit import FormView
 from django.views.decorators.http import require_POST
 from django.views.decorators.csrf import csrf_exempt
@@ -24,20 +24,21 @@ from core.views import OfficerMixin, OfficerRequiredMixin, RequestConfig,\
 from .forms import InitiationFormSet, InitiationForm, InitiationFormHelper, InitDeplSelectForm,\
     InitDeplSelectFormHelper, DepledgeFormSet, DepledgeFormHelper, StatusChangeSelectForm,\
     StatusChangeSelectFormHelper, GraduateForm, GraduateFormSet, CSMTFormSet, GraduateFormHelper, CSMTFormHelper,\
-    RoleChangeSelectForm, RoleChangeSelectFormHelper, RiskManagementForm,\
+    RoleChangeSelectForm, RiskManagementForm,\
     PledgeProgramForm, AuditForm
 from tasks.models import TaskChapter, Task
 from scores.models import ScoreType
 from submissions.models import Submission
-from core.models import CHAPTER_OFFICER, COL_OFFICER_ALIGN
+from core.models import CHAPTER_OFFICER
 from users.models import UserRoleChange
 from chapters.models import Chapter
+from regions.models import Region
 from .tables import GuardTable, BadgeTable, InitiationTable, DepledgeTable, \
-    StatusChangeTable, PledgeFormTable, AuditTable
+    StatusChangeTable, PledgeFormTable, AuditTable, RiskFormTable
 from .models import Guard, Badge, Initiation, Depledge, StatusChange, RiskManagement,\
     PledgeForm, PledgeProgram, Audit
 from .filters import AuditListFilter
-from .forms import AuditListFormHelper
+from .forms import AuditListFormHelper, RiskListFilter
 from .notifications import EmailRMPSigned
 
 
@@ -576,6 +577,83 @@ class RiskManagementDetailView(LoginRequiredMixin, OfficerMixin,
     model = RiskManagement
     form_class = RiskManagementForm
     template_name = "forms/rmp_pdf.html"
+
+
+class RiskManagementListView(NatOfficerRequiredMixin,
+                             LoginRequiredMixin, OfficerMixin,
+                             PagedFilteredTableView):
+    model = RiskManagement
+    context_object_name = 'risk'
+    template_name = "forms/rmp_list.html"
+    table_class = RiskFormTable
+    filter_class = RiskListFilter
+
+    def get_queryset(self, **kwargs):
+        cancel = self.request.GET.get('cancel', False)
+        request_get = self.request.GET.copy()
+        if cancel:
+            request_get = QueryDict()
+        if not request_get:
+            request_get = None
+        self.filter = self.filter_class(request_get)
+        self.all_complete_status = 0
+        self.region_filter = list(Region.objects.all())
+        if self.filter.is_bound and self.filter.is_valid():
+            qs = RiskManagement.risk_forms_year(self.filter.cleaned_data['year'])
+            region = self.filter.cleaned_data['region']
+            if region:
+                qs = qs.filter(user__chapter__region=region)
+                self.region_filter = [region]
+            self.all_complete_status = int(self.filter.cleaned_data['all_complete_status'])
+        else:
+            qs = RiskManagement.risk_forms_year('2018')
+        return qs
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        all_forms = self.object_list
+        roles = ['regent', 'vice_regent', 'corresponding_secretary',
+                 'treasurer', 'scribe', ]
+        start_dic = {role: '' for role in roles}
+        start_dic.update({f'{role}_pk': 0 for role in roles})
+        chapter_risk_form_data = {
+            chapter.name:
+                {'chapter': chapter.name, 'region': chapter.region.name,
+                 'all_complete': False, **start_dic}
+            for chapter in Chapter.objects.filter(region__in=self.region_filter)}
+        risk_form_values = all_forms.values('pk', 'user__chapter__name', 'role', 'submission')
+        # {
+        #     'chapter': 'Chi',
+        #     'all_complete': True,
+        #     'corresponding_secretary': 'Complete',
+        #     'treasurer': 'Complete',
+        #     'scribe': 'Complete',
+        #     'vice_regent': 'Complete',
+        #     'regent': 'Complete',
+        # }
+        for risk_form in risk_form_values:
+            chapter_risk_form_data[risk_form['user__chapter__name']][risk_form['role']] = 'Complete'
+            chapter_risk_form_data[
+                risk_form['user__chapter__name']][risk_form['role'] + "_pk"] = risk_form['pk']
+        risk_data = []
+        for chapter in chapter_risk_form_data:
+            test = list(chapter_risk_form_data[chapter].values())
+            if test.count('Complete') == 5:
+                chapter_risk_form_data[chapter]['all_complete'] = True
+                if self.all_complete_status == 1:
+                    # We want only complete so keep this
+                    risk_data.append(chapter_risk_form_data[chapter])
+            else:
+                if self.all_complete_status == 2:
+                    # We want only incomplete so keep this
+                    risk_data.append(chapter_risk_form_data[chapter])
+            if self.all_complete_status == 0:
+                # We want to keep everything
+                risk_data.append(chapter_risk_form_data[chapter])
+        risk_table = RiskFormTable(data=risk_data)
+        RequestConfig(self.request, paginate={'per_page': 100}).configure(risk_table)
+        context['table'] = risk_table
+        return context
 
 
 class PledgeProgramFormView(OfficerRequiredMixin,
