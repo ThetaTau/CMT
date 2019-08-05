@@ -64,6 +64,14 @@ class ChapterDetailView(LoginRequiredMixin, OfficerMixin, MultiFormsView):
                 [item.update({task.owner.replace(' ', '_'): "Incomplete"})
                  for item in audit_data]
         [item.update({'item': item['item'].replace('_', ' ').title()})
+         # {
+         #     'item': 'Debit Card Access',
+         #     'corresponding_secretary': 'Incomplete',
+         #     'treasurer': ['regent', 'treasurer'],
+         #     'scribe': 'Incomplete',
+         #     'vice_regent': ['regent', 'treasurer'],
+         #     'regent': ['regent', 'treasurer']
+         # }
          for item in audit_data]
         audit_table = AuditTable(data=audit_data)
         RequestConfig(self.request).configure(audit_table)
