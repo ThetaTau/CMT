@@ -68,7 +68,7 @@ urlpatterns = [
     url(
         regex=r'^rmp-list/$',
         view=views.RiskManagementListView.as_view(),
-        name='risk_list'),
+        name='rmp_list'),
     # url(
     #     regex=r'^~status-change/$',
     #     view=views.StatusChangeView.as_view(),
