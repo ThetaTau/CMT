@@ -42,7 +42,7 @@ class OfficerMonthly(EmailNotification):  # extend from EmailNotification for em
 @registry.register_decorator()
 class NewOfficers(EmailNotification):  # extend from EmailNotification for emails
     template_name = 'officer_new'  # name of template, without extension
-    subject = 'Welcome New Officers'  # subject of email
+    subject = 'Welcome New Theta Tau Officers'  # subject of email
 
     def __init__(self, new_officers):  # optionally customize the initialization
         self.to_emails = set([officer.email for officer in new_officers])  # set list of emails to send to

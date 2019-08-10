@@ -29,8 +29,9 @@ from .forms import InitiationFormSet, InitiationForm, InitiationFormHelper, Init
 from tasks.models import TaskChapter, Task
 from scores.models import ScoreType
 from submissions.models import Submission
-from core.models import CHAPTER_OFFICER
+from core.models import CHAPTER_OFFICER, COL_OFFICER_ALIGN
 from users.models import UserRoleChange
+from users.notifications import NewOfficers
 from chapters.models import Chapter
 from regions.models import Region
 from .tables import GuardTable, BadgeTable, InitiationTable, DepledgeTable, \
@@ -496,16 +497,23 @@ class RoleChangeView(OfficerRequiredMixin,
         if not delete_only:
             # instances = formset.save(commit=False)
             update_list = []
+            officer_list = []
             for form in formset.forms:
                 if form.changed_data and 'DELETE' not in form.changed_data:
                     form.save()
                     update_list.append(form.instance.user)
+                    role_name = form.instance.role
+                    if role_name in COL_OFFICER_ALIGN:
+                        role_name = COL_OFFICER_ALIGN[role_name]
+                    if role_name in CHAPTER_OFFICER:
+                        officer_list.append(form.instance.user)
             task = Task.objects.get(name="Officer Election Report")
             chapter = self.request.user.current_chapter
             next_date = task.incomplete_dates_for_task_chapter(chapter).first()
             if next_date:
                 TaskChapter(task=next_date, chapter=chapter,
                             date=timezone.now()).save()
+            NewOfficers(new_officers=officer_list).send()
             messages.add_message(
                 self.request, messages.INFO,
                 f"You successfully updated the officers:\n"
