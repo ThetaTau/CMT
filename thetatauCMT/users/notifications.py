@@ -37,3 +37,26 @@ class OfficerMonthly(EmailNotification):  # extend from EmailNotification for em
     def get_demo_args():  # define a static method to return list of args needed to initialize class for testing
         from users.models import User
         return [User.objects.order_by('?')[0].chapter]
+
+
+@registry.register_decorator()
+class NewOfficers(EmailNotification):  # extend from EmailNotification for emails
+    template_name = 'officer_new'  # name of template, without extension
+    subject = 'Welcome New Officers'  # subject of email
+
+    def __init__(self, new_officers):  # optionally customize the initialization
+        self.to_emails = set([officer.email for officer in new_officers])  # set list of emails to send to
+        self.reply_to = ["cmt@thetatau.org", ]
+        chapter = new_officers[0].current_chapter
+        self.context = {
+            'chapter': chapter,
+            "region_facebook": chapter.region.facebook,
+            "region_web": chapter.region.website,
+            "director_emails": chapter.region.email,
+        }
+
+    @staticmethod
+    def get_demo_args():  # define a static method to return list of args needed to initialize class for testing
+        from users.models import User
+        return [[User.objects.order_by('?')[0], User.objects.order_by('?')[0],
+                 User.objects.order_by('?')[0]]]
