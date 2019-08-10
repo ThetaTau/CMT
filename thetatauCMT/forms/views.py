@@ -533,7 +533,7 @@ class RiskManagementFormView(OfficerRequiredMixin,
     def form_valid(self, form):
         form.instance.user = self.request.user
         current_roles = self.request.user.chapter_officer()
-        form.instance.role = current_roles[0]
+        form.instance.role = list(current_roles)[0]
         form.save()
         if not current_roles:
             messages.add_message(
