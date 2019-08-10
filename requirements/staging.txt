@@ -1,0 +1,4 @@
+-r production.txt
+
+django-email-bandit==1.5  #
+django-middleware-global-request==0.1.2  # https://github.com/appstore-zencore/django-middleware-global-request
