@@ -1,0 +1,42 @@
+** CMT Monthly Email
+------------------------------------------------------------
+Dear Theta Tau New Officers,
+Thank you for your commitment to your chapter. Being an officer is not only a position of authority,
+but a position of service to your chapter and our profession.
+By electing you as chapter officers, the members have confidence that you will unselfishly serve and
+conduct the business of Theta Tau according to our policies and bylaws.
+
+The first task you should do is read and sign the Risk Management Policies at: https://cmt.thetatau.org/rmp
+
+** Important contacts:
+------------------------------------------------------------
+* Your regional directors can be reached at {{ director_emails }}
+* Risk management committee at risk.management@thetatau.org
+
+** Resources specific to your role in the chapter:
+------------------------------------------------------------
+* All tasks are outlined here: https://cmt.thetatau.org/tasks
+* The chapter management tool will handle many forms/tasks for your chapter, please login and review it now at https://cmt.thetatau.org
+* The latest policy and procedures manual is here: http://thetatau.org/policies
+* A list of manuals and resources are available here: http://thetatau.org/forms-manuals-resources
+* All overnight pledge events must be approved by emailing risk.management@thetatau.org
+
+** Notes for your region:
+------------------------------------------------------------
+* Your Regional Website is at {{ region_web }}
+* Your Regional Facebook Group is here: {{ region_facebook }}
+
+** Risk Management:
+------------------------------------------------------------
+If you see something, speak up!
+Do not hesitate to reach out to your regional directors, or the risk management chair.
+Stuart.Kardian@thetatau.org, 804-909-3486
+
+============================================================
+** Facebook (https://www.facebook.com/thetatau/)
+** Theta Tau (thetatau.org)
+** Email (mailto:cmt@thetatau.org)
+Copyright 2018 Theta Tau, All rights reserved.
+
+The purpose of Theta Tau is to develop and maintain a high standard of professional interest among its members,
+and to unite them in a strong bond of fraternal fellowship.
