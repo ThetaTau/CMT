@@ -513,11 +513,13 @@ class RoleChangeView(OfficerRequiredMixin,
             if next_date:
                 TaskChapter(task=next_date, chapter=chapter,
                             date=timezone.now()).save()
-            NewOfficers(new_officers=officer_list).send()
-            messages.add_message(
-                self.request, messages.INFO,
-                f"You successfully updated the officers:\n"
-                f"{update_list}")
+            if officer_list:
+                NewOfficers(new_officers=officer_list).send()
+            if update_list:
+                messages.add_message(
+                    self.request, messages.INFO,
+                    f"You successfully updated the officers:\n"
+                    f"{update_list}")
         return HttpResponseRedirect(reverse("forms:officer"))
 
     def get_success_url(self):
