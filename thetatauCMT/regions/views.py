@@ -14,6 +14,7 @@ from core.views import OfficerMixin, NatOfficerRequiredMixin, RequestConfig
 from core.models import combine_annotations
 from .models import Region
 from tasks.models import TaskDate
+from chapters.models import Chapter
 from .tables import RegionChapterTaskTable
 from .filters import RegionChapterTaskFilter
 from .forms import RegionChapterTaskFormHelper
@@ -33,7 +34,10 @@ class RegionOfficerView(NatOfficerRequiredMixin,
     template_name = "regions/officer_list.html"
 
     def get(self, request, *args, **kwargs):
-        self.object = self.get_object()
+        if kwargs['slug'] == 'national':
+            self.object = Region.objects.all()
+        else:
+            self.object = [self.get_object()]
         context = self.get_context_data(object=self.object)
         if request.GET.get('csv', 'False').lower() == 'download csv':
             response = HttpResponse(content_type='text/csv')
@@ -57,7 +61,8 @@ class RegionOfficerView(NatOfficerRequiredMixin,
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         all_chapter_officers = User.objects.none()
-        for chapter in self.object.chapters.all():
+        chapters = Chapter.objects.filter(region__in=self.object).all()
+        for chapter in chapters:
             context = super().get_context_data(**kwargs)
             chapter_officers, _ = chapter.get_current_officers(combine=False)
             all_chapter_officers = chapter_officers | all_chapter_officers
@@ -75,7 +80,7 @@ class RegionOfficerView(NatOfficerRequiredMixin,
         self.filter.form.helper = self.formhelper_class()
         email_list = ', '.join([x[0] for x in self.filter.qs.values_list('email').distinct()])
         all_chapter_officers = combine_annotations(self.filter.qs)
-        self.filter.form.base_fields['chapter'].queryset = self.object.chapters.all()
+        self.filter.form.base_fields['chapter'].queryset = chapters
         table = UserTable(
             data=all_chapter_officers,
             extra_columns=[('chapter',

@@ -160,6 +160,9 @@
                       <a class="nav-link" href="{% url 'regions:list' %}">{% trans "Regions" %}</a>
                     </li>
                     <li class="active dropdown-submenu">
+                      <a class="nav-link" href="{% url 'regions:officers' 'national' %}">{% trans "All Officers" %}</a>
+                    </li>
+                    <li class="active dropdown-submenu">
                       <a class="nav-link" href="{% url 'forms:audit_list' %}">{% trans "All Audits" %}</a>
                     </li>
                     <li class="active dropdown-submenu">
