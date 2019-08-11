@@ -543,8 +543,8 @@ class RiskManagementFormView(OfficerRequiredMixin,
             form.instance.user = self.request.user
             form.instance.role = list(current_roles)[0]
             form.save()
-            task = Task.objects.get(name="Risk Management Form",
-                                    owner__in=current_roles)
+            task = Task.objects.filter(name="Risk Management Form",
+                                       owner__in=current_roles).first()
             chapter = self.request.user.current_chapter
             next_date = task.incomplete_dates_for_task_chapter(chapter).first()
             if next_date:
@@ -755,8 +755,8 @@ class AuditFormView(OfficerRequiredMixin, LoginRequiredMixin, OfficerMixin,
                         self.request, messages.ERROR,
                         f"Requested audit is for {audit_chapter} Chapter not your chapter."
                     )
-            task = Task.objects.get(name="Audit",
-                                    owner__in=current_roles)
+            task = Task.objects.filter(name="Audit",
+                                       owner__in=current_roles).first()
             chapter = self.request.user.current_chapter
             next_date = task.incomplete_dates_for_task_chapter(chapter).first()
             if next_date:
@@ -779,8 +779,8 @@ class AuditFormView(OfficerRequiredMixin, LoginRequiredMixin, OfficerMixin,
                 f"Your current roles are: {current_roles}")
         else:
             saved_audit = form.save()
-            task = Task.objects.get(name="Audit",
-                                    owner__in=current_roles)
+            task = Task.objects.filter(name="Audit",
+                                       owner__in=current_roles).first()
             chapter = self.request.user.current_chapter
             next_date = task.incomplete_dates_for_task_chapter(chapter).first()
             if next_date:
