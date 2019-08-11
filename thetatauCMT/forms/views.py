@@ -533,16 +533,16 @@ class RiskManagementFormView(OfficerRequiredMixin,
     template_name = "forms/rmp.html"
 
     def form_valid(self, form):
-        form.instance.user = self.request.user
         current_roles = self.request.user.chapter_officer()
-        form.instance.role = list(current_roles)[0]
-        form.save()
         if not current_roles:
             messages.add_message(
                 self.request, messages.ERROR,
                 f"Only executive officers can sign RMP: {CHAPTER_OFFICER}\n"
                 f"Your current roles are: {current_roles}")
         else:
+            form.instance.user = self.request.user
+            form.instance.role = list(current_roles)[0]
+            form.save()
             task = Task.objects.get(name="Risk Management Form",
                                     owner__in=current_roles)
             chapter = self.request.user.current_chapter
