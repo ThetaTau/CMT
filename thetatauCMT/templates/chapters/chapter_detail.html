@@ -15,11 +15,13 @@
             <th>School</th>
             <td>{{ object.school }}</td>
           </tr>
+        {% if request.user.current_chapter == object %}
           <tr>
             <th>Current balance</th>
             <td>On {{ object.balance_date }} your chapter had a balance of ${{ object.balance }}, however, this may not be your current balance.</td>
             <td>For balance questions/invoices contact accounting@thetatau.org</td>
           </tr>
+        {% endif %}
           <tr>
             <th>Tax ID</th>
             {% if object.tax %}
