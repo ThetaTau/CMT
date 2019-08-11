@@ -7,7 +7,7 @@ from crispy_forms.bootstrap import FormActions, InlineField, StrictButton
 from tempus_dominus.widgets import DatePicker
 from core.models import BIENNIUM_YEARS
 from chapters.models import Chapter, ChapterCurricula
-from .models import UserAlterChapter, User, UserSemesterGPA,\
+from .models import UserAlter, User, UserSemesterGPA,\
     UserSemesterServiceHours, UserOrgParticipate
 
 
@@ -83,9 +83,11 @@ class UserLookupForm(forms.Form):
 
 
 class UserAlterForm(forms.ModelForm):
+    role = forms.ChoiceField(choices=UserAlter.ROLES, required=False)
+
     class Meta:
-        model = UserAlterChapter
-        fields = ['chapter']
+        model = UserAlter
+        fields = ['chapter', 'role']
 
 
 class UserForm(forms.ModelForm):

@@ -1,6 +1,5 @@
 from django import template
 from ..forms import UserAlterForm
-from ..models import UserAlterChapter
 
 register = template.Library()
 
@@ -11,5 +10,10 @@ def user_alter_form(context):
     if request:
         user = context['request'].user
         if not user.is_anonymous and user.is_national_officer_group:
-            return UserAlterForm(data={'chapter': user.current_chapter.pk})
+            new_role = None
+            if user.altered.all():
+                new_role = user.altered.first().role
+            return UserAlterForm(
+                data={'chapter': user.current_chapter.pk,
+                      'role': new_role, })
     return None

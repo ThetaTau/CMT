@@ -16,7 +16,7 @@ from core.forms import MultiFormsView
 from core.models import TODAY_END, annotate_role_status, combine_annotations,\
     BIENNIUM_YEARS
 from dal import autocomplete
-from .models import User, UserAlterChapter, UserSemesterGPA,\
+from .models import User, UserAlter, UserSemesterGPA,\
     UserSemesterServiceHours, UserOrgParticipate
 from .tables import UserTable
 from .filters import UserListFilter
@@ -291,7 +291,7 @@ class UserAutocomplete(autocomplete.Select2QuerySetView):
 
 
 class UserAlterView(NatOfficerRequiredMixin, LoginRequiredMixin, FormView):
-    model = UserAlterChapter
+    model = UserAlter
     form_class = UserAlterForm
 
     def get_success_url(self):
@@ -306,14 +306,16 @@ class UserAlterView(NatOfficerRequiredMixin, LoginRequiredMixin, FormView):
         user = self.request.user
         form.instance.user = user
         try:
-            instance = UserAlterChapter.objects.get(user=user)
-        except UserAlterChapter.DoesNotExist:
+            instance = UserAlter.objects.get(user=user)
+        except UserAlter.DoesNotExist:
             instance = None
         if self.request.POST['alter-action'] == 'Reset':
             form.instance.chapter = self.request.user.chapter  # This should remain origin chapter
+            form.instance.role = None
         form.is_valid()
         if instance:
             instance.chapter = form.instance.chapter
+            instance.role = form.instance.role
             instance.save()
         else:
             form.save()

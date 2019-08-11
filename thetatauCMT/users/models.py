@@ -9,7 +9,8 @@ from django.core.validators import MinValueValidator, MaxValueValidator,\
     RegexValidator
 from address.models import AddressField
 from core.models import StartEndModel, YearTermModel, TODAY_END, CHAPTER_OFFICER, \
-    CHAPTER_ROLES_CHOICES, TimeStampedModel, NATIONAL_OFFICER, COL_OFFICER_ALIGN
+    CHAPTER_ROLES_CHOICES, TimeStampedModel, NATIONAL_OFFICER, COL_OFFICER_ALIGN,\
+    CHAPTER_OFFICER_CHOICES
 from chapters.models import Chapter
 
 
@@ -60,8 +61,8 @@ class User(AbstractUser):
         # without actually changing their chapter
         chapter = self.chapter
         if self.groups.filter(name='natoff').exists():
-            if self.altered_chapter.all():
-                chapter = self.altered_chapter.first().chapter
+            if self.altered.all():
+                chapter = self.altered.first().chapter
         return chapter
 
     def get_absolute_url(self):
@@ -94,6 +95,12 @@ class User(AbstractUser):
                 current_roles.add(role_name)
             # officer = not current_roles.isdisjoint(CHAPTER_OFFICER)
             officer_roles = CHAPTER_OFFICER & current_roles
+        if self.is_national_officer_group:
+            if 'local' in settings.SETTINGS_MODULE or 'staging' in settings.SETTINGS_MODULE:
+                if self.altered.all():
+                    new_role = self.altered.first().role
+                    if new_role is not None:
+                        officer_roles.add(new_role)
         return officer_roles
 
     @property
@@ -103,6 +110,10 @@ class User(AbstractUser):
     @property
     def is_chapter_officer_group(self):
         return self.groups.filter(name='officer').exists()
+
+    @property
+    def is_officer_group(self):
+        return self.is_national_officer_group or self.is_chapter_officer_group
 
     def is_national_officer(self):
         role_objs = self.get_current_roles()
@@ -129,17 +140,19 @@ class User(AbstractUser):
         return set(groups).intersection(set(user_groups))
 
 
-class UserAlterChapter(models.Model):
+class UserAlter(models.Model):
     '''
     This is used for altering things for natoffs
     ie. when a natoff wants to check things for another chapter
     '''
     user = models.ForeignKey(settings.AUTH_USER_MODEL,
                              on_delete=models.CASCADE,
-                             related_name="altered_chapter")
+                             related_name="altered")
     chapter = models.ForeignKey(Chapter, on_delete=models.CASCADE,
                                 default=1,
                                 related_name="altered_member")
+    ROLES = CHAPTER_OFFICER_CHOICES + [(None, '------------')]
+    role = models.CharField(max_length=50, choices=ROLES, null=True)
 
 
 class UserSemesterServiceHours(YearTermModel):
