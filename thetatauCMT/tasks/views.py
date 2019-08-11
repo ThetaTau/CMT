@@ -47,14 +47,12 @@ class TaskCompleteView(OfficerRequiredMixin,
         task_date_id = self.kwargs.get('pk')
         task_date = TaskDate.objects.get(pk=task_date_id)
         task = task_date.task
-        owner = task.owner.lower()
-        user_roles = self.request.user.get_current_roles()
-        user_roles = {user_role.role.lower() for user_role in user_roles}
-        if owner not in user_roles:
+        current_roles = self.request.user.chapter_officer()
+        if not current_roles:
             messages.add_message(
                 self.request, messages.ERROR,
-                f"Only the task owner, {owner}, can mark a task complete."
-                f" Your current roles are: {user_roles}")
+                f"Only executive officers can sign off tasks. "
+                f"Your current roles are: {current_roles}")
             return super().form_invalid(form)
         form.instance.chapter = self.request.user.current_chapter
         form.instance.date = datetime.datetime.today()
