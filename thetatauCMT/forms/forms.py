@@ -469,7 +469,7 @@ class RiskListFormHelper(FormHelper):
 
 class RiskListFilter(forms.Form):
     helper = RiskListFormHelper
-    year = forms.ChoiceField(choices=[(2018, '2018'), (2019, '2019')])
+    year = forms.ChoiceField(choices=[(2019, '2019'), (2018, '2018')])
     all_complete_status = forms.ChoiceField(
         choices=[(0, 'All'), (1, 'Complete'), (2, 'Incomplete')])
     region = forms.ModelChoiceField(required=False,

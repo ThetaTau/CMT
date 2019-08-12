@@ -626,7 +626,7 @@ class RiskManagementListView(NatOfficerRequiredMixin,
                 self.region_filter = [region]
             self.all_complete_status = int(self.filter.cleaned_data['all_complete_status'])
         else:
-            qs = RiskManagement.risk_forms_year('2018')
+            qs = RiskManagement.risk_forms_year('2019')
         return qs
 
     def get_context_data(self, **kwargs):

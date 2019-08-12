@@ -416,11 +416,34 @@ class RiskManagement(YearTermModel):
 
     @staticmethod
     def risk_forms_year(year):
+        if str(year) == str(datetime.datetime.now().year):
+            return RiskManagement.risk_forms_current_year()
+        else:
+            return RiskManagement.risk_forms_previous_year(year)
+
+    @staticmethod
+    def risk_forms_current_year():
+        """
+        Current year, all those officers who are currently in list of officers
+        :return:
+        """
         off_group, _ = Group.objects.get_or_create(name='officer')
         chapter_officers = off_group.user_set.all()
-        start, end = academic_encompass_start_end_date(year)
+        start, end = academic_encompass_start_end_date()
         return RiskManagement.objects.filter(
             user__in=chapter_officers, date__gte=start, date__lte=end)
+
+    @staticmethod
+    def risk_forms_previous_year(year):
+        """
+        Previous officers are those who had role at time of submission
+        :param year:
+        :return:
+        """
+        off_group, _ = Group.objects.get_or_create(name='officer')
+        start, end = academic_encompass_start_end_date(year)
+        return RiskManagement.objects.filter(
+            date__gte=start, date__lte=end)
 
     @staticmethod
     def user_signed_this_year(user):
