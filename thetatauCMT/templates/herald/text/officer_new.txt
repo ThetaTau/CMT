@@ -6,7 +6,7 @@ but a position of service to your chapter and our profession.
 By electing you as chapter officers, the members have confidence that you will unselfishly serve and
 conduct the business of Theta Tau according to our policies and bylaws.
 
-The first task you should do is read and sign the Risk Management Policies at: https://cmt.thetatau.org/rmp
+The first task you should do is read and sign the Risk Management Policies at: {{ host }}/rmp
 
 ** Important contacts:
 ------------------------------------------------------------
@@ -15,8 +15,8 @@ The first task you should do is read and sign the Risk Management Policies at: h
 
 ** Resources specific to your role in the chapter:
 ------------------------------------------------------------
-* All tasks are outlined here: https://cmt.thetatau.org/tasks
-* The chapter management tool will handle many forms/tasks for your chapter, please login and review it now at https://cmt.thetatau.org
+* All tasks are outlined here: {{ host }}/tasks
+* The chapter management tool will handle many forms/tasks for your chapter, please login and review it now at {{ host }}
 * The latest policy and procedures manual is here: http://thetatau.org/policies
 * A list of manuals and resources are available here: http://thetatau.org/forms-manuals-resources
 * All overnight pledge events must be approved by emailing risk.management@thetatau.org

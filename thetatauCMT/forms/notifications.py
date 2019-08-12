@@ -1,6 +1,6 @@
 from herald import registry
 from herald.base import EmailNotification
-from tasks.models import TaskDate
+from django.conf import settings
 
 
 @registry.register_decorator()
@@ -15,6 +15,7 @@ class EmailRMPSigned(EmailNotification):  # extend from EmailNotification for em
         self.context = {
             'user': user,
             'file_name': file_name,
+            'host': settings.CURRENT_URL,
         }
         # https://github.com/worthwhile/django-herald#email-attachments
         self.attachments = [

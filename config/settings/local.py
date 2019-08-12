@@ -13,7 +13,7 @@ ALLOWED_HOSTS = [
     "0.0.0.0",
     "127.0.0.1",
 ]
-
+CURRENT_URL = 'http://localhost:8000'
 # CACHES
 # ------------------------------------------------------------------------------
 # https://docs.djangoproject.com/en/dev/ref/settings/#caches

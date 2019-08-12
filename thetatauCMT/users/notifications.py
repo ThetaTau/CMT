@@ -1,6 +1,7 @@
 from herald import registry
 from herald.base import EmailNotification
 from tasks.models import TaskDate
+from django.conf import settings
 
 
 @registry.register_decorator()
@@ -53,6 +54,7 @@ class NewOfficers(EmailNotification):  # extend from EmailNotification for email
             "region_facebook": chapter.region.facebook,
             "region_web": chapter.region.website,
             "director_emails": chapter.region.email,
+            'host': settings.CURRENT_URL,
         }
 
     @staticmethod
