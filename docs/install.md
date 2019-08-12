@@ -26,8 +26,6 @@ add2virtualenv Your_project_app_dir
 
     (THIS IS NOT THE SAME FOLDER AS ABOVE, BUT A SUBDIRECTORY For example setprojectdir E:\workspace\CMT\thetatauCMT\thetatauCMT)
 
-Download MailHog to thetatauCMT folder (https://github.com/mailhog/MailHog/releases/v1.0.0)
-
 workon cmt
 
 pip install Django
