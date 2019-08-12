@@ -22,6 +22,7 @@ django-model-utils==3.2.0  # https://github.com/jazzband/django-model-utils
 django-allauth==0.39.1  # https://github.com/pennersr/django-allauth
 django-crispy-forms==1.7.2  # https://github.com/django-crispy-forms/django-crispy-forms
 django-redis==4.10.0  # https://github.com/niwinz/django-redis
+django-extensions==2.1.9  # https://github.com/django-extensions/django-extensions
 django-address==0.2.0  # https://github.com/furious-luke/django-address
 django-googledrive-storage==1.3.4  # http://django-googledrive-storage.readthedocs.io
 django-bootstrap4==0.0.8  # https://github.com/zostera/django-bootstrap4
