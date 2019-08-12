@@ -551,7 +551,7 @@ class RiskManagementFormView(OfficerRequiredMixin,
                 f"Your current roles are: {current_roles}")
         else:
             form.instance.user = self.request.user
-            form.instance.role = list(current_roles)[0]
+            form.instance.role = list(current_roles)[0].replace(' ', '_')
             form.save()
             task = Task.objects.filter(name="Risk Management Form",
                                        owner__in=current_roles).first()
