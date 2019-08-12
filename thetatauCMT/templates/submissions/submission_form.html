@@ -5,12 +5,20 @@
 
 {% block content %}
   <h1>Update Submission: {{ submission.name }}</h1>
+    {% if locked %}
+    <div class="jumbotron">
+        <div class="container">
+          <h2>Submission locked</h2>
+          If you would like to edit this submission, please contact cmt@thetatau.org
+        </div>
+      </div>
+    {% endif %}
   <form class="form-horizontal" method="post" action="{% url 'submissions:update' submission.id %}">
     {% csrf_token %}
     {{ form|crispy }}
     <div class="control-group">
       <div class="controls">
-        <button type="submit" class="btn">Update</button>
+        <button type="submit" class="btn-primary" {% if locked %} disabled {% endif %}>Update</button>
       </div>
     </div>
   </form>

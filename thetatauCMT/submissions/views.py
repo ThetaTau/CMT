@@ -66,6 +66,19 @@ class SubmissionUpdateView(OfficerRequiredMixin,
             return redirect(url)
         return super().get(request, *args, **kwargs)
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        locked = False
+        if 'object' in context:
+            if self.object.type.name in ['Adopted New Member Education Program',
+                                         'Risk Management Program', ]:
+                form = context['form']
+                for field_name, field in form.fields.items():
+                    field.disabled = True
+                locked = True
+        context['locked'] = locked
+        return context
+
     def get_success_url(self):
         return reverse('submissions:list')
 
