@@ -1,4 +1,5 @@
 from django.conf import settings
+from django.template.loader import render_to_string
 from sendgrid_backend import SendgridBackend
 # from django.core.mail.backends.console import EmailBackend
 from bandit.backends.base import HijackBackendMixin
@@ -17,4 +18,18 @@ class MyHijackBackend(HijackBackendMixin, SendgridBackend):
                                            'test@thetatau.org'])
         for message in email_messages:
             message.subject = f"[TEST] {message.subject}"
+            context = {
+                'message': '',
+                'previous_recipients': message.to,
+                'previous_cc': message.cc,
+                'previous_bcc': message.bcc
+            }
+            try:
+                message.alternatives = [(
+                    message.alternatives[0][0].replace(
+                        '<div id="hijacked"></div>',
+                        render_to_string("bandit/hijacked-email-log-message.txt", context)),
+                    'text/html')]
+            except:
+                pass
         super().send_messages(email_messages)
