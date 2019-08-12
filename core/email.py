@@ -12,7 +12,9 @@ class MyHijackBackend(HijackBackendMixin, SendgridBackend):
     """
     def send_messages(self, email_messages):
         request = get_request()
-        setattr(settings, 'BANDIT_EMAIL', request.user.email)
+        # Test is needed to trick bandit with an unapproved email
+        setattr(settings, 'BANDIT_EMAIL', [request.user.email,
+                                           'test@thetatau.org'])
         for message in email_messages:
             message.subject = f"[TEST] {message.subject}"
         super().send_messages(email_messages)
