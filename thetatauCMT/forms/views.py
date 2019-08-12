@@ -532,6 +532,16 @@ class RiskManagementFormView(OfficerRequiredMixin,
     form_class = RiskManagementForm
     template_name = "forms/rmp.html"
 
+    def get(self, request, *args, **kwargs):
+        if RiskManagement.user_signed_this_year(self.request.user):
+            messages.add_message(
+                self.request, messages.INFO,
+                f"RMP Previously signed this year, see previous submissions.")
+            return redirect(reverse('users:detail',
+                                    kwargs={'username': request.user.username})
+                            + '#submissions')
+        return super().get(request, *args, **kwargs)
+
     def form_valid(self, form):
         current_roles = self.request.user.chapter_officer()
         if not current_roles:

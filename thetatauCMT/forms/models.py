@@ -422,6 +422,14 @@ class RiskManagement(YearTermModel):
         return RiskManagement.objects.filter(
             user__in=chapter_officers, date__gte=start, date__lte=end)
 
+    @staticmethod
+    def user_signed_this_year(user):
+        current_roles = user.chapter_officer()
+        start, end = academic_encompass_start_end_date()
+        signed_before = user.risk_form.filter(
+            role__in=current_roles, date__gte=start, date__lte=end)
+        return signed_before
+
 
 class Audit(YearTermModel, TimeStampedModel):
     user = models.ForeignKey(settings.AUTH_USER_MODEL,
