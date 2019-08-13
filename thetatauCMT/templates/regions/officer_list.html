@@ -3,7 +3,7 @@
 {% load bootstrap4 %}
 {% load crispy_forms_tags %}
 {% load static i18n %}
-{% block title %}{{ object.name }} Region Officers{% endblock %}
+{% block title %}Officers{% endblock %}
 
 {% block content %}
 <div class="container">
@@ -11,7 +11,7 @@
     <div class="col-sm-12">
       <table>
       <tr>
-        <td><h2>{{ object.name }} Region Officers:</h2></td>
+        <td><h2>Officers:</h2></td>
         <td>
           <button class="clipboard button btn btn-primary"
             data-clipboard-text="{{ email_list }}">

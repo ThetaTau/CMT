@@ -617,13 +617,16 @@ class RiskManagementListView(NatOfficerRequiredMixin,
             request_get = None
         self.filter = self.filter_class(request_get)
         self.all_complete_status = 0
-        self.region_filter = list(Region.objects.all())
+        self.chapters_list = Chapter.objects.all()
         if self.filter.is_bound and self.filter.is_valid():
             qs = RiskManagement.risk_forms_year(self.filter.cleaned_data['year'])
-            region = self.filter.cleaned_data['region']
+            region_slug = self.filter.cleaned_data['region']
+            region = Region.objects.filter(slug=region_slug).first()
             if region:
-                qs = qs.filter(user__chapter__region=region)
-                self.region_filter = [region]
+                self.chapters_list = Chapter.objects.filter(region__in=[region])
+            elif region_slug == 'colony':
+                self.chapters_list = Chapter.objects.filter(colony=True)
+            qs = qs.filter(user__chapter__in=self.chapters_list)
             self.all_complete_status = int(self.filter.cleaned_data['all_complete_status'])
         else:
             qs = RiskManagement.risk_forms_year('2019')
@@ -640,7 +643,7 @@ class RiskManagementListView(NatOfficerRequiredMixin,
             chapter.name:
                 {'chapter': chapter.name, 'region': chapter.region.name,
                  'all_complete': False, **start_dic}
-            for chapter in Chapter.objects.filter(region__in=self.region_filter)}
+            for chapter in self.chapters_list}
         risk_form_values = all_forms.values('pk', 'user__chapter__name', 'role', 'submission')
         # {
         #     'chapter': 'Chi',

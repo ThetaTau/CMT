@@ -137,7 +137,12 @@ class Chapter(models.Model):
     greek = models.CharField(max_length=10, blank=True,
                              help_text="Greek letter abbreviation")
     active = models.BooleanField(default=True)
+    colony = models.BooleanField(default=False)
     school = models.CharField(max_length=50, blank=True)
+    latitude = models.DecimalField(max_digits=22, decimal_places=16,
+                                   blank=True, null=True)
+    longitude = models.DecimalField(max_digits=22, decimal_places=16,
+                                    blank=True, null=True)
     school_type = models.CharField(
         default='semester',
         max_length=10,

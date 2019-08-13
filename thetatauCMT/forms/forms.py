@@ -472,5 +472,5 @@ class RiskListFilter(forms.Form):
     year = forms.ChoiceField(choices=[(2019, '2019'), (2018, '2018')])
     all_complete_status = forms.ChoiceField(
         choices=[(0, 'All'), (1, 'Complete'), (2, 'Incomplete')])
-    region = forms.ModelChoiceField(required=False,
-                                    queryset=Region.objects.order_by('name').all())
+    region = forms.ChoiceField(required=False,
+                               choices=Region.region_choices())

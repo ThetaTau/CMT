@@ -19,3 +19,11 @@ class Region(models.Model):
     def save(self, *args, **kwargs):
         self.slug = slugify(self.name)
         super().save(*args, **kwargs)
+
+    @classmethod
+    def region_choices(cls):
+        regions = [(region.slug, region.name.title()) for region in cls.objects.all()]
+        regions = regions + [('colony', 'Colony')]
+        regions.sort(key=lambda tup: tup[1])
+        regions = [('national', 'National')] + regions
+        return regions

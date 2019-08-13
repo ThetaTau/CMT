@@ -60,6 +60,7 @@ class UserRoleListFormHelper(FormHelper):
                         Column(InlineField('current_status')),
                         Column(InlineField('major__icontains')),
                         Column(InlineField('graduation_year__icontains')),
+                        Column(InlineField('region')),
                         Column(InlineField('chapter')),
                         Column(FormActions(
                             StrictButton(

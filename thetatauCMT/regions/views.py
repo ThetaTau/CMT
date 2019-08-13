@@ -34,11 +34,8 @@ class RegionOfficerView(NatOfficerRequiredMixin,
     template_name = "regions/officer_list.html"
 
     def get(self, request, *args, **kwargs):
-        if kwargs['slug'] == 'national':
-            self.object = Region.objects.all()
-        else:
-            self.object = [self.get_object()]
-        context = self.get_context_data(object=self.object)
+        self.object = kwargs['slug']
+        context = self.get_context_data(object=kwargs['slug'])
         if request.GET.get('csv', 'False').lower() == 'download csv':
             response = HttpResponse(content_type='text/csv')
             time_name = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -60,12 +57,6 @@ class RegionOfficerView(NatOfficerRequiredMixin,
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        all_chapter_officers = User.objects.none()
-        chapters = Chapter.objects.filter(region__in=self.object).all()
-        for chapter in chapters:
-            context = super().get_context_data(**kwargs)
-            chapter_officers, _ = chapter.get_current_officers(combine=False)
-            all_chapter_officers = chapter_officers | all_chapter_officers
         cancel = self.request.GET.get('cancel', False)
         request_get = self.request.GET.copy()
         if cancel:
@@ -75,18 +66,33 @@ class RegionOfficerView(NatOfficerRequiredMixin,
             # Create a mutable QueryDict object, default is immutable
             request_get = QueryDict(mutable=True)
             request_get.setlist("role", ['corresponding secretary', 'regent', 'scribe', 'treasurer', 'vice regent'])
+            request_get.setlist('region', [self.object])
+        self.filter = self.filter_class(request_get)
+        chapters = Chapter.objects.all()
+        if self.filter.is_bound and self.filter.is_valid():
+            region_slug = self.filter.form.cleaned_data['region']
+            region = Region.objects.filter(slug=region_slug).first()
+            if region:
+                chapters = Chapter.objects.filter(region__in=[region])
+            elif region_slug == 'colony':
+                chapters = Chapter.objects.filter(colony=True)
+        all_chapter_officers = User.objects.none()
+        for chapter in chapters:
+            chapter_officers, _ = chapter.get_current_officers(combine=False)
+            all_chapter_officers = chapter_officers | all_chapter_officers
         self.filter = self.filter_class(request_get,
                                         queryset=all_chapter_officers)
         self.filter.form.helper = self.formhelper_class()
         email_list = ', '.join([x[0] for x in self.filter.qs.values_list('email').distinct()])
         all_chapter_officers = combine_annotations(self.filter.qs)
-        self.filter.form.base_fields['chapter'].queryset = chapters
+        self.filter.form.fields['chapter'].queryset = chapters
         table = UserTable(
             data=all_chapter_officers,
             extra_columns=[('chapter',
                             tables.LinkColumn(
                                 'chapters:detail',
-                                args=[A('chapter.slug')]))])
+                                args=[A('chapter.slug')])),
+                           ('chapter.region', tables.Column('Region')), ])
         RequestConfig(self.request, paginate={'per_page': 50}).configure(table)
         context['table'] = table
         context['filter'] = self.filter

@@ -1,6 +1,7 @@
 # filters.py
 import django_filters
 from .models import User, UserStatusChange, UserRoleChange
+from regions.models import Region
 
 
 class UserListFilter(django_filters.FilterSet):
@@ -39,6 +40,10 @@ class UserRoleListFilter(django_filters.FilterSet):
         choices=UserRoleChange.ROLES,
         method='filter_role'
     )
+    region = django_filters.ChoiceFilter(
+        choices=Region.region_choices(),
+        method='filter_region'
+    )
 
     class Meta:
         model = User
@@ -58,4 +63,13 @@ class UserRoleListFilter(django_filters.FilterSet):
     def filter_role(self, queryset, field_name, value):
         if value:
             queryset = queryset.filter(role__in=value)
+        return queryset
+
+    def filter_region(self, queryset, field_name, value):
+        if value == 'national':
+            return queryset
+        elif value == 'colony':
+            queryset = queryset.filter(chapter__colony=True)
+        else:
+            queryset = queryset.filter(chapter__region__slug=value)
         return queryset
