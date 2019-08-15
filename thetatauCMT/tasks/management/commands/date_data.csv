@@ -1,0 +1,63 @@
+task,owner,school_type,date
+Annual Report Review,scribe,semester,9/15
+Annual Report Review,scribe,quarter,10/15
+Annual Report Review,scribe,all,11/15
+Annual Report Review,scribe,all,1/15
+Annual Report Review,scribe,all,3/15
+Annual Report Submission,scribe,semester,5/15
+Annual Report Submission,scribe,quarter,6/15
+Awards,regent,all,5/15
+Credentials,regent,all,5/15
+Dues,treasurer,all,11/1
+Dues,treasurer,all,3/15
+Gear Article,corresponding secretary,all,10/15
+Gear Article,corresponding secretary,all,1/15
+Gear Article,corresponding secretary,all,4/15
+Hall of Fame,regent,all,3/15
+Initiation Report,vice regent,all,1/15
+Initiation Report,vice regent,semester,5/15
+Initiation Report,vice regent,quarter,6/15
+Insurance Payment,treasurer,all,10/15
+Lock-in,regent,semester,8/15
+Lock-in,regent,quarter,9/15
+Lock-in,regent,all,1/15
+Member Updates,scribe,semester,9/15
+Member Updates,scribe,quarter,10/15
+Member Updates,scribe,all,1/15
+Member Updates,scribe,semester,5/15
+Member Updates,scribe,quarter,6/15
+Newsletter for Alumni,corresponding secretary,all,11/15
+Newsletter for Alumni,corresponding secretary,all,5/15
+Outstanding Student Member,regent,all,5/15
+Pledge Forms,vice regent,semester,9/15
+Pledge Forms,vice regent,quarter,10/15
+Pledge Forms,vice regent,semester,2/15
+Pledge Forms,vice regent,quarter,4/15
+Pledge Program,vice regent,semester,8/15
+Pledge Program,vice regent,quarter,9/15
+Review Inventory,treasurer,semester,8/15
+Review Inventory,treasurer,quarter,9/15
+Review Inventory,treasurer,all,1/15
+Scholarship,regent,all,4/15
+Officer Election Report,scribe,all,9/15
+Officer Election Report,scribe,all,4/15
+Audit,regent,all,9/15
+Audit,vice regent,all,9/15
+Audit,scribe,all,9/15
+Audit,treasurer,all,9/15
+Audit,corresponding secretary,all,9/15
+Audit,regent,all,1/15
+Audit,vice regent,all,1/15
+Audit,scribe,all,1/15
+Audit,treasurer,all,1/15
+Audit,corresponding secretary,all,1/15
+Audit,regent,semester,5/15
+Audit,vice regent,semester,5/15
+Audit,scribe,semester,5/15
+Audit,treasurer,semester,5/15
+Audit,corresponding secretary,semester,5/15
+Audit,regent,quarter,6/15
+Audit,vice regent,quarter,6/15
+Audit,scribe,quarter,6/15
+Audit,treasurer,quarter,6/15
+Audit,corresponding secretary,quarter,6/15
