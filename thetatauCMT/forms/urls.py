@@ -31,6 +31,10 @@ urlpatterns = [
         view=views.PledgeProgramFormView.as_view(),
         name='pledge_program'),
     url(
+        regex=r'^pledge-program-list/$',
+        view=views.PledgeProgramListView.as_view(),
+        name='pledge_program_list'),
+    url(
         regex=r'^initiation/$',
         view=views.InitiationView.as_view(),
         name='initiation'

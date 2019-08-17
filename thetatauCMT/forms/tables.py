@@ -1,7 +1,7 @@
 import django_tables2 as tables
 from django_tables2.utils import A
 from .models import Guard, Badge, Initiation, Depledge, StatusChange,\
-    PledgeForm, Audit
+    PledgeForm, Audit, PledgeProgram
 
 
 class GuardTable(tables.Table):
@@ -87,6 +87,20 @@ class AuditTable(tables.Table):
             'cash_register_reviewed',
             'member_account',
             'member_account_reviewed',
+        ]
+
+
+class PledgeProgramTable(tables.Table):
+    class Meta:
+        model = PledgeProgram
+        order_by = 'chapter'
+        attrs = {"class": "table-striped table-bordered"}
+        fields = [
+            'chapter',
+            'region',
+            'year',
+            'term',
+            'manual',
         ]
 
 

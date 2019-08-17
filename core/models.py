@@ -199,10 +199,10 @@ class YearTermModel(models.Model):
     start and end dates.
     """
     class TERMS(Enum):
-        fall = ('fa', 'Fall')
-        spring = ('sp', 'Spring')
-        winter = ('wi', 'Winter')
-        summer = ('su', 'Summer')
+        fa = ('fa', 'Fall')
+        sp = ('sp', 'Spring')
+        wi = ('wi', 'Winter')
+        su = ('su', 'Summer')
 
         @classmethod
         def get_value(cls, member):
