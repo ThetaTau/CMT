@@ -211,11 +211,26 @@ class UserListView(LoginRequiredMixin, OfficerMixin, PagedFilteredTableView):
             status__start__lte=TODAY_END,
             status__end__gte=TODAY_END
             ), combine=False)
-        qs = members | pledges
+        alumni = User.objects.none()
+        if self.request.user.chapter_officer():
+            alumni = annotate_role_status(qs.filter(
+                chapter=self.request.user.current_chapter,
+                status__status__in=["alumni"],
+                status__start__lte=TODAY_END,
+                status__end__gte=TODAY_END), combine=False)
+        qs = members | pledges | alumni
         cancel = self.request.GET.get('cancel', False)
         request_get = self.request.GET.copy()
         if cancel:
             request_get = QueryDict()
+        if not request_get:
+            # Create a mutable QueryDict object, default is immutable
+            request_get = QueryDict(mutable=True)
+            request_get.setlist("current_status", ['active', 'pnm', 'activepend', 'alumnipend',])
+        if not cancel:
+            if request_get['current_status'] == '':
+                request_get.setlist("current_status",
+                                    ['active', 'pnm', 'activepend', 'alumnipend', ])
         self.filter = self.filter_class(request_get,
                                         queryset=qs)
         self.filter.form.helper = self.formhelper_class()
@@ -224,7 +239,7 @@ class UserListView(LoginRequiredMixin, OfficerMixin, PagedFilteredTableView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        table = UserTable(self.get_queryset())
+        table = UserTable(self.object_list)
         table.exclude = ('role', 'role_end')
         RequestConfig(self.request, paginate={'per_page': 30}).configure(table)
         context['table'] = table

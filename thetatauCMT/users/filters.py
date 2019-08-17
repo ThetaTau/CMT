@@ -5,12 +5,15 @@ from regions.models import Region
 
 
 class UserListFilter(django_filters.FilterSet):
-    current_status = django_filters.ChoiceFilter(
+    current_status = django_filters.MultipleChoiceFilter(
         choices=[
             ('active', 'active'),
             ('pnm', 'prospective'),
+            ('alumni', 'alumni'),
+            ("activepend", 'activepend'),
+            ("alumnipend", 'alumnipend'),
             ],
-        method='filter_current_status'
+        method='filter_current_status',
     )
 
     class Meta:
@@ -24,7 +27,7 @@ class UserListFilter(django_filters.FilterSet):
 
     def filter_current_status(self, queryset, field_name, value):
         if value:
-            queryset = queryset.filter(current_status=value)
+            queryset = queryset.filter(current_status__in=value)
         return queryset
 
 

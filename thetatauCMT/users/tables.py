@@ -14,4 +14,5 @@ class UserTable(tables.Table):
                   'major', 'graduation_year', 'phone_number',
                   'current_status', 'role', 'role_end')
         attrs = {"class": "table-striped table-bordered"}
-        empty_text = "There are no members matching the search criteria..."
+        empty_text = "There are no members matching the search criteria...\n" +\
+                     "Only officers can view alumni contact information."

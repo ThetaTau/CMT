@@ -695,7 +695,6 @@ class PledgeProgramListView(NatOfficerRequiredMixin,
         if cancel:
             request_get = QueryDict()
         if not request_get:
-            ####### WARNING: this is a hack to enable initial filter field selection in django-filters########
             # Create a mutable QueryDict object, default is immutable
             request_get = QueryDict(mutable=True)
             request_get.setlist("year", [''])

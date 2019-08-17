@@ -26,17 +26,21 @@ class UserListFormHelper(FormHelper):
                     '<i class="fas fa-search"></i> Filter Members',
                     Row(
                         InlineField('name__icontains'),
-                        InlineField('current_status'),
                         InlineField('major__icontains'),
                         InlineField('graduation_year__icontains'),
-                        StrictButton(
-                            '<i class="fa fa-search"></i> Filter',
-                            type='submit',
-                            css_class='btn-primary',),
-                        Submit(
-                            'cancel',
-                            'Clear',
-                            css_class='btn-primary'),
+                        FormActions(
+                            StrictButton(
+                                '<i class="fa fa-search"></i> Filter',
+                                type='submit',
+                                css_class='btn-primary',),
+                            Submit(
+                                'cancel',
+                                'Clear',
+                                css_class='btn-primary'),
+                        ),
+                    ),
+                    Row(
+                        InlineField('current_status'),
                     )
                 ),
     )
