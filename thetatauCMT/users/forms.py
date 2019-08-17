@@ -37,6 +37,12 @@ class UserListFormHelper(FormHelper):
                                 'cancel',
                                 'Clear',
                                 css_class='btn-primary'),
+                            StrictButton(
+                                '<i class="fa fa-search"></i> Download CSV',
+                                type='submit',
+                                value='Download CSV',
+                                name='csv',
+                                css_class='btn-secondary', ),
                         ),
                     ),
                     Row(

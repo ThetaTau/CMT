@@ -1,7 +1,10 @@
+import csv
+import datetime
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.forms import PasswordResetForm
 from django.http.request import QueryDict
 from django.http.response import HttpResponseRedirect
+from django.http import HttpResponse
 from django.urls import reverse
 from django.forms.models import modelformset_factory
 from django.utils.http import is_safe_url
@@ -192,6 +195,26 @@ class UserListView(LoginRequiredMixin, OfficerMixin, PagedFilteredTableView):
     filter_class = UserListFilter
     formhelper_class = UserListFormHelper
     template_name = "users/user_list.html"
+
+    def get(self, request, *args, **kwargs):
+        if request.GET.get('csv', 'False').lower() == 'download csv':
+            self.object_list = self.get_queryset()
+            context = self.get_context_data()
+            response = HttpResponse(content_type='text/csv')
+            time_name = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename = f"ThetaTauMemberExport_{time_name}.csv"
+            response['Content-Disposition'] = f'attachment; filename="{filename}"'
+            writer = csv.writer(response)
+            if self.object_list:
+                table = context['table']
+                writer.writerows(table.as_values())
+                return response
+            else:
+                messages.add_message(
+                    self.request, messages.ERROR,
+                    f"All members are filtered! Clear or change filter.")
+        else:
+            return super().get(request, *args, **kwargs)
 
     def get_queryset(self):
         qs = self.model._default_manager.all()
