@@ -130,7 +130,7 @@ ALL_ROLES = sorted(set.union(CHAPTER_OFFICER, COMMITTEE_CHAIR, NATIONAL_OFFICER)
 CHAPTER_ROLES = sorted(set.union(CHAPTER_OFFICER, COMMITTEE_CHAIR))
 
 ALL_OFFICERS_CHOICES = [(officer, officer.title()) for officer in ALL_OFFICERS]
-CHAPTER_OFFICER_CHOICES = [(officer, officer.title()) for officer in CHAPTER_OFFICER]
+CHAPTER_OFFICER_CHOICES = [(officer, officer.title()) for officer in sorted(CHAPTER_OFFICER)]
 ALL_ROLES_CHOICES = [(role, role.title()) for role in ALL_ROLES]
 CHAPTER_ROLES_CHOICES = [(role, role.title()) for role in CHAPTER_ROLES]
 
