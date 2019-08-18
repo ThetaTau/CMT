@@ -52,25 +52,10 @@ class ScoreListView(LoginRequiredMixin, OfficerMixin, PagedFilteredTableView):
     table_class = ScoreTable
     filter_class = ScoreListFilter
     formhelper_class = ScoreListFormHelper
+    table_pagination = {'per_page': 50}
 
     def get_queryset(self):
-        qs = super(PagedFilteredTableView, self).get_queryset()
-        cancel = self.request.GET.get('cancel', False)
-        request_get = self.request.GET.copy()
-        if cancel:
-            request_get = QueryDict()
-        self.filter = self.filter_class(request_get, queryset=qs)
-        score_list = self.model.annotate_chapter_score(self.request.user.current_chapter, self.filter.qs)
-        self.filter.form.helper = self.formhelper_class()
+        qs = super().get_queryset()
+        score_list = self.model.annotate_chapter_score(
+            self.request.user.current_chapter, qs)
         return score_list
-
-    def post(self, request, *args, **kwargs):
-        return PagedFilteredTableView.as_view()(request)
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        table = ScoreTable(data=self.get_queryset())
-        table.request = self.request
-        RequestConfig(self.request, paginate={'per_page': 50}).configure(table)
-        context['table'] = table
-        return context

@@ -896,15 +896,3 @@ class AuditListView(NatOfficerRequiredMixin,
     table_class = AuditTable
     filter_class = AuditListFilter
     formhelper_class = AuditListFormHelper
-
-    def get_queryset(self, **kwargs):
-        qs = Audit.objects.all()
-        cancel = self.request.GET.get('cancel', False)
-        request_get = self.request.GET.copy()
-        if cancel:
-            request_get = QueryDict()
-        self.filter = self.filter_class(request_get,
-                                        queryset=qs)
-        self.filter.request = self.request
-        self.filter.form.helper = self.formhelper_class()
-        return self.filter.qs

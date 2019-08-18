@@ -56,17 +56,27 @@ class PagedFilteredTableView(SingleTableView):
     filter_class = None
     formhelper_class = None
     context_filter_name = 'filter'
+    filter_chapter = False
 
     def get_queryset(self, **kwargs):
-        qs = super(PagedFilteredTableView, self).get_queryset()
+        other_qs = kwargs.get('other_qs', None)
+        if other_qs is None:
+            qs = super(PagedFilteredTableView, self).get_queryset()
+        else:
+            qs = other_qs
         cancel = self.request.GET.get('cancel', False)
         request_get = self.request.GET.copy()
         if cancel:
             request_get = QueryDict()
+        if self.filter_chapter:
+            qs = qs.filter(chapter=self.request.user.current_chapter)
         self.filter = self.filter_class(request_get,
                                         queryset=qs)
         self.filter.form.helper = self.formhelper_class()
         return self.filter.qs
+
+    def post(self, request, *args, **kwargs):
+        return PagedFilteredTableView.as_view()(request)
 
     def get_context_data(self, **kwargs):
         context = super(PagedFilteredTableView, self).get_context_data()

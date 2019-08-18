@@ -90,18 +90,8 @@ class TaskListView(LoginRequiredMixin, OfficerMixin,
 
     def get_queryset(self, **kwargs):
         qs = TaskDate.dates_for_chapter(self.request.user.current_chapter)
-        cancel = self.request.GET.get('cancel', False)
-        request_get = self.request.GET.copy()
-        if cancel:
-            request_get = QueryDict()
-        self.filter = self.filter_class(request_get,
-                                        queryset=qs)
-        self.filter.request = self.request
-        self.filter.form.helper = self.formhelper_class()
-        return self.filter.qs
-
-    def post(self, request, *args, **kwargs):
-        return PagedFilteredTableView.as_view()(request)
+        qs = super().get_queryset(other_qs=qs)
+        return qs
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
