@@ -37,6 +37,7 @@ urlpatterns = [
     url(r'^regions/', include('regions.urls', namespace='regions')),
     url(r'^chapters/', include('chapters.urls', namespace='chapters')),
     url(r'^events/', include('events.urls', namespace='events')),
+    url(r'^finances/', include('finances.urls', namespace='finances')),
     url(r'^scores/', include('scores.urls', namespace='scores')),
     url(r'^submissions/', include('submissions.urls', namespace='submissions')),
     url(r'^forms/', include('forms.urls', namespace='forms')),

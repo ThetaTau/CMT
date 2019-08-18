@@ -85,6 +85,7 @@ THIRD_PARTY_APPS = [
     'multiselectfield',
     'tempus_dominus',
     'easy_pdf',
+    'djmoney',
 ]
 LOCAL_APPS = [
     'thetatauCMT.users.apps.UsersConfig',
@@ -95,6 +96,7 @@ LOCAL_APPS = [
     'thetatauCMT.submissions.apps.SubmissionsConfig',
     'thetatauCMT.forms.apps.FormsConfig',
     'thetatauCMT.tasks.apps.TasksConfig',
+    'thetatauCMT.finances.apps.FinancesConfig',
 ]
 # https://docs.djangoproject.com/en/dev/ref/settings/#installed-apps
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
