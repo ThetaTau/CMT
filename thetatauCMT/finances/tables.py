@@ -9,3 +9,9 @@ class TransactionTable(tables.Table):
                   )
         attrs = {"class": "table-striped table-bordered"}
         empty_text = "There are no transactions matching the search criteria..."
+
+
+class ChapterBalanceTable(tables.Table):
+    class Meta:
+        model = Transaction
+        fields = ('chapter', 'region', 'balance', )

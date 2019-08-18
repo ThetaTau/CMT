@@ -9,4 +9,9 @@ urlpatterns = [
         view=views.TransactionListView.as_view(),
         name='list'
     ),
+    url(
+        regex=r'^chapters/$',
+        view=views.ChapterBalancesListView.as_view(),
+        name='chapters'
+    ),
 ]

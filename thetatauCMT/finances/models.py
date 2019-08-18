@@ -53,6 +53,16 @@ class Transaction(TimeStampedModel):
             balance = 0
         return round(balance, 2)
 
+    @classmethod
+    def open_balances_all(cls):
+        return cls.objects.values('chapter__name', 'chapter__region__name',
+                                  'chapter__colony', 'chapter__region__slug').\
+            filter(paid=False).annotate(
+            chapter=models.F('chapter__name'),
+            colony=models.F('chapter__colony'),
+            region=models.F('chapter__region__name'),
+            region_slug=models.F('chapter__region__slug'),
+            balance=models.Sum('total'))
 
 """
 Colony Dues are $30/member, due 11/1 and 3/15 of each year.
