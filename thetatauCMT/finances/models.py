@@ -31,6 +31,7 @@ class Transaction(TimeStampedModel):
     chapter = models.ForeignKey(Chapter, on_delete=models.CASCADE,
                                 default=1,
                                 related_name="finances")
+    estimate = models.BooleanField(default=False)
 
     def save(self, *args, **kwargs):
         self.total = self.unit_cost * self.quantity
@@ -48,7 +49,8 @@ class Transaction(TimeStampedModel):
     def open_balance_chapter(cls, chapter):
         # chapter.finances.filter(paid=False).aggregate(models.Sum('total'))
         balance = cls.objects.filter(
-            chapter=chapter, paid=False).aggregate(models.Sum('total'))['total__sum']
+            chapter=chapter, paid=False, estimate=False).\
+            aggregate(models.Sum('total'))['total__sum']
         if balance is None:
             balance = 0
         return round(balance, 2)
@@ -57,7 +59,7 @@ class Transaction(TimeStampedModel):
     def open_balances_all(cls):
         return cls.objects.values('chapter__name', 'chapter__region__name',
                                   'chapter__colony', 'chapter__region__slug').\
-            filter(paid=False).annotate(
+            filter(paid=False, estimate=False).annotate(
             chapter=models.F('chapter__name'),
             colony=models.F('chapter__colony'),
             region=models.F('chapter__region__name'),
@@ -67,16 +69,12 @@ class Transaction(TimeStampedModel):
 """
 Colony Dues are $30/member, due 11/1 and 3/15 of each year.
 
-Semiannual Chapter Dues payable @ $80 each if
-mailed by November 1 and March 15 of each year.
-$5 of dues per person are set aside to subsidize your
-chapter's future National Convention participation.
-As penalty, dues is $90 per member if sent late.
-See actual Dues List sent separately for itemized list
-of student members.
+Semiannual Chapter Dues are $80/member if mailed by 11/1 and 3/15 of each year.
+$5 of dues per person are set aside to subsidize your chapter's future National Convention participation.
+As penalty, dues is $90 per member if sent late. Minimum per chapter is $1600.
+See actual Dues List sent separately for itemized list of student members.
 Do not attempt to edit Dues List, send appropriate
-Membership Status Change and/or Initiation Report
-to modify names.
+Membership Status Change and/or Initiation Report to modify names.
 Add to list any initiated and not yet reported.
 Minimum per chapter is $1600.
 

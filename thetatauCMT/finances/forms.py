@@ -19,6 +19,7 @@ class TransactionListFormHelper(FormHelper):
                     Row(
                         Field('type'),
                         Field('paid'),
+                        Field('estimate'),
                         Field('due_date'),
                         FormActions(
                             StrictButton(

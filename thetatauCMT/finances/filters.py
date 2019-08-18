@@ -10,7 +10,7 @@ class TransactionListFilter(django_filters.FilterSet):
 
     class Meta:
         model = Transaction
-        fields = ['paid', 'due_date', 'type',]
+        fields = ['paid', 'due_date', 'type', 'estimate', ]
         order_by = ['-due_date']
 
 
