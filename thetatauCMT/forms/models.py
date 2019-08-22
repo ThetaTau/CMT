@@ -18,6 +18,13 @@ from tasks.models import TaskChapter
 from submissions.models import Submission
 
 
+class MultiSelectField(MultiSelectField):
+    # Not Django 2.0+ ready yet, https://github.com/goinnn/django-multiselectfield/issues/74
+    def value_to_string(self, obj):
+        value = self.value_from_object(obj)
+        return self.get_prep_value(value)
+
+
 class Badge(models.Model):
     name = models.CharField(max_length=50)
     code = models.CharField(max_length=50)
