@@ -48,7 +48,7 @@ class TaskCompleteView(OfficerRequiredMixin,
         task_date = TaskDate.objects.get(pk=task_date_id)
         task = task_date.task
         current_roles = self.request.user.chapter_officer()
-        if not current_roles:
+        if not current_roles or current_roles == {''}:
             messages.add_message(
                 self.request, messages.ERROR,
                 f"Only executive officers can sign off tasks. "

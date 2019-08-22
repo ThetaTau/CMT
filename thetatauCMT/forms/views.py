@@ -544,11 +544,12 @@ class RiskManagementFormView(OfficerRequiredMixin,
 
     def form_valid(self, form):
         current_roles = self.request.user.chapter_officer()
-        if not current_roles:
+        if not current_roles or current_roles == {''}:
             messages.add_message(
                 self.request, messages.ERROR,
                 f"Only executive officers can sign RMP: {CHAPTER_OFFICER}\n"
                 f"Your current roles are: {current_roles}")
+            return super().form_invalid(form)
         else:
             form.instance.user = self.request.user
             form.instance.role = list(current_roles)[0].replace(' ', '_')
@@ -764,11 +765,12 @@ class PledgeProgramFormView(OfficerRequiredMixin,
         form.instance.chapter = self.request.user.current_chapter
         form.instance.year = datetime.datetime.now().year
         current_roles = self.request.user.chapter_officer()
-        if not current_roles:
+        if not current_roles or current_roles == {''}:
             messages.add_message(
                 self.request, messages.ERROR,
                 f"Only executive officers can sign submit pledge program: {CHAPTER_OFFICER}\n"
                 f"Your current roles are: {current_roles}")
+            return super().form_invalid(form)
         else:
             form.save()
             task = Task.objects.get(name="Pledge Program")
@@ -819,7 +821,7 @@ class AuditFormView(OfficerRequiredMixin, LoginRequiredMixin, OfficerMixin,
 
     def get_object(self, queryset=None):
         current_roles = self.request.user.chapter_officer()
-        if not current_roles:
+        if not current_roles or current_roles == {''}:
             messages.add_message(
                 self.request, messages.ERROR,
                 f"Only executive officers can submit an audit: {CHAPTER_OFFICER}\n"
@@ -853,11 +855,12 @@ class AuditFormView(OfficerRequiredMixin, LoginRequiredMixin, OfficerMixin,
         form.instance.year = datetime.datetime.now().year
         form.instance.user = self.request.user
         current_roles = self.request.user.chapter_officer()
-        if not current_roles:
+        if not current_roles or current_roles == {''}:
             messages.add_message(
                 self.request, messages.ERROR,
                 f"Only executive officers can submit an audit: {CHAPTER_OFFICER}\n"
                 f"Your current roles are: {current_roles}")
+            return super().form_invalid(form)
         else:
             saved_audit = form.save()
             task = Task.objects.filter(name="Audit",
