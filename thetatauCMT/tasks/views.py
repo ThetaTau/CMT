@@ -8,6 +8,7 @@ from django.db.utils import IntegrityError
 from django.views.generic import DetailView, UpdateView, RedirectView, CreateView
 from core.views import PagedFilteredTableView, RequestConfig, TypeFieldFilteredChapterAdd,\
     OfficerMixin, OfficerRequiredMixin
+from core.models import current_year_term_slug
 from .models import TaskChapter, TaskDate, Task
 from .tables import TaskTable
 from .filters import TaskListFilter
@@ -94,6 +95,10 @@ class TaskListView(LoginRequiredMixin, OfficerMixin,
         request_get = self.request.GET.copy()
         if cancel:
             request_get = QueryDict()
+        if not request_get:
+            # Create a mutable QueryDict object, default is immutable
+            request_get = QueryDict(mutable=True)
+            request_get.setlist("date", [current_year_term_slug()])
         self.filter = self.filter_class(request_get,
                                         queryset=qs)
         self.filter.request = self.request

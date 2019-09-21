@@ -78,6 +78,23 @@ for i, year in enumerate(BIENNIUM_YEARS):
     }
 
 
+def current_term():
+    return SEMESTER[datetime.datetime.now().month]
+
+
+def current_year():
+    return datetime.datetime.now().year
+
+
+def current_year_term_slug():
+    '''
+    Fall_2019
+    :return:
+    '''
+    term = {'fa': 'Fall', 'sp': 'Spring'}[current_term()]
+    return f"{term}_{current_year()}"
+
+
 CHAPTER_OFFICER = {
     "corresponding secretary",
     "regent",

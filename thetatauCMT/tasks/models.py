@@ -56,10 +56,14 @@ class Task(models.Model):
         # (Todays date + days_advance) > due date
         # Mar 16 + 30 days -> April 15,
         # if due date is April 15 then lte max_date and is a due date
+        # You have this many days to submit the task
+        min_date = TODAY_END - (timedelta(self.days_advance * 2))
         dates = self.dates.filter(Q(school_type=school_type) |
                                   Q(school_type='all'),
                                   ~Q(chapters__chapter=chapter),
-                                  Q(date__lte=max_date)).all()
+                                  Q(date__lte=max_date),
+                                  Q(date__gte=min_date),
+                                  ).all()
         return dates
 
     def completed_last(self, chapter):
@@ -100,9 +104,12 @@ class TaskDate(models.Model):
     @classmethod
     def incomplete_dates_for_chapter(cls, chapter):
         school_type = chapter.school_type
+        min_date = TODAY_END - (timedelta(120))
         tasks = cls.objects.filter(Q(school_type=school_type) |
                                    Q(school_type='all'),
-                                   ~Q(chapters__chapter=chapter)).all()
+                                   ~Q(chapters__chapter=chapter),
+                                   Q(date__gte=min_date),
+                                   ).all()
         return tasks
 
     @classmethod
