@@ -1,6 +1,7 @@
 import json
 import datetime
 from copy import deepcopy
+from django.core.mail import send_mail
 from django.utils.decorators import method_decorator
 from django.http.request import QueryDict
 from django.views.decorators.debug import sensitive_post_parameters
@@ -57,12 +58,21 @@ def pledge_form(request):
     email = data['q36_schoolEmail']
     school = data['q37_schoolName']
     chapter = Chapter.get_school_chapter(school)
-    form = PledgeForm(
-        name=name,
-        email=email,
-        chapter=chapter
-    )
-    form.save()
+    if chapter is not None:
+        form = PledgeForm(
+            name=name,
+            email=email,
+            chapter=chapter
+        )
+        form.save()
+    else:
+        send_mail(
+            '[CMT] New Pledge Form Chapter',
+            f'There is a new school {school}',
+            'cmt@thetatau.org',
+            ['cmt@thetatau.org'],
+            fail_silently=False,
+        )
     return HttpResponse('Webhook received', status=200)
 
 
