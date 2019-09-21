@@ -362,13 +362,14 @@ class PledgeProgramForm(forms.ModelForm):
         ]
 
     def clean_other_manual(self):
+        other_manual = self.data.get('other_manual', '')
         if (self.cleaned_data.get('manual') == 'other' and
-                self.data.get('other_manual', '') is ''):
+                other_manual == ''):
                     raise forms.ValidationError(
                         'You must submit the other manual your chapter is '
                         'following if not one of the approved models.'
                     )
-        return self.data['other_manual']
+        return other_manual
 
 
 class AuditForm(forms.ModelForm):
