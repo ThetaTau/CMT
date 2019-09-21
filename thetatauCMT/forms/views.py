@@ -837,7 +837,10 @@ class AuditFormView(OfficerRequiredMixin, LoginRequiredMixin, OfficerMixin,
             return None
         else:
             if 'pk' in self.kwargs:
-                audit = Audit.objects.get(pk=self.kwargs['pk'])
+                try:
+                    audit = Audit.objects.get(pk=self.kwargs['pk'])
+                except Audit.DoesNotExist:
+                    return Audit.objects.last()
                 audit_chapter = audit.user.chapter
                 if audit_chapter == self.request.user.chapter:
                     return audit
