@@ -111,8 +111,8 @@ class ChapterRedirectView(LoginRequiredMixin, RedirectView):
     permanent = False
 
     def get_redirect_url(self):
-        return reverse('users:detail',
-                       kwargs={'username': self.request.user.username})
+        return reverse('chapters:detail',
+                       kwargs={'slug': self.request.user.current_chapter.slug})
 
 
 class ChapterListView(OfficerRequiredMixin,

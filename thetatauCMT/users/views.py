@@ -34,8 +34,7 @@ class UserRedirectView(LoginRequiredMixin, RedirectView):
     permanent = False
 
     def get_redirect_url(self):
-        return reverse('users:detail',
-                       kwargs={'username': self.request.user.username})
+        return reverse('users:detail')
 
 
 class UserDetailUpdateView(LoginRequiredMixin, OfficerMixin, MultiFormsView):
@@ -49,8 +48,7 @@ class UserDetailUpdateView(LoginRequiredMixin, OfficerMixin, MultiFormsView):
 
     # send the user back to their own page after a successful update
     def get_success_url(self, form_name=None):
-        return reverse('users:detail',
-                       kwargs={'username': self.request.user.username})
+        return reverse('users:detail')
 
     def get_gpa_initial(self):
         user = self.request.user

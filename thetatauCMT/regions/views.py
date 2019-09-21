@@ -194,8 +194,8 @@ class RegionRedirectView(LoginRequiredMixin, RedirectView):
     permanent = False
 
     def get_redirect_url(self):
-        return reverse('users:detail',
-                       kwargs={'username': self.request.user.username})
+        return reverse('regions:detail',
+                       kwargs={'slug': self.request.user.current_chapter.region.slug})
 
 
 class RegionListView(LoginRequiredMixin, OfficerMixin, ListView):

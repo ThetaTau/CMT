@@ -547,8 +547,7 @@ class RiskManagementFormView(OfficerRequiredMixin,
             messages.add_message(
                 self.request, messages.INFO,
                 f"RMP Previously signed this year, see previous submissions.")
-            return redirect(reverse('users:detail',
-                                    kwargs={'username': request.user.username})
+            return redirect(reverse('users:detail')
                             + '#submissions')
         return super().get(request, *args, **kwargs)
 

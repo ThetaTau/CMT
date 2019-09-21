@@ -66,8 +66,7 @@ class User(AbstractUser):
         return chapter
 
     def get_absolute_url(self):
-        return reverse('users:detail',
-                       kwargs={'username': self.username})
+        return reverse('users:detail')
 
     def get_current_status(self):
         return self.status.filter(start__lte=TODAY_END,

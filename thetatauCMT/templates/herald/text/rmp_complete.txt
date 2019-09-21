@@ -4,7 +4,7 @@ Dear {{ user }},
 Thank you for signing the Risk Management Policies of Theta Tau.
 Attached is a final copy of "{{ file_name }}".
 You can also view the document in your Chapter Management Tool account.
-{{ host }}{% url 'users:detail' user.username %}#submissions
+{{ host }}{% url 'users:detail' %}#submissions
 ------------------------------------------------------------
 If you see something, speak up!
 Do not hesitate to reach out to your regional directors, or the risk management chair.
