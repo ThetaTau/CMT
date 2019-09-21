@@ -151,3 +151,9 @@ class TaskChapter(models.Model):
                                         blank=True, null=True)
     submission_id = models.PositiveIntegerField(blank=True, null=True)
     submission_object = GenericForeignKey('submission_type', 'submission_id')
+
+    @classmethod
+    def check_previous(cls, task, chapter, date):
+        return cls.objects.filter(
+            task=task, chapter=chapter, date=date,
+            ).exists()

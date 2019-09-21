@@ -114,9 +114,16 @@ class TypeFieldFilteredChapterAdd(FormMixin):
             return self.render_to_response(self.get_context_data(form=form))
         if task:
             if next_date:
-                TaskChapter(task=next_date, chapter=chapter,
-                            date=timezone.now(),
-                            submission_object=self.object).save()
+                prev_task = TaskChapter.check_previous(
+                    task=next_date, chapter=chapter, date=timezone.now(),)
+                if not prev_task:
+                    TaskChapter(task=next_date, chapter=chapter,
+                                date=timezone.now(),
+                                submission_object=self.object).save()
+                else:
+                    messages.add_message(
+                        self.request, messages.ERROR,
+                        f"Duplicate {self.officer_edit}!")
         return response
 
     def get_context_data(self, **kwargs):
