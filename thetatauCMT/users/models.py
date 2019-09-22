@@ -97,7 +97,7 @@ class User(AbstractUser):
         if self.is_national_officer_group:
             if self.altered.all():
                 new_role = self.altered.first().role
-                if new_role is not None:
+                if new_role is not None and new_role != '':
                     officer_roles.add(new_role)
         return officer_roles
 
