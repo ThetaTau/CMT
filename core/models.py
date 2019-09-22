@@ -1,23 +1,12 @@
 import datetime
-import httplib2
-import warnings
 from datetime import timedelta, time
 from enum import Enum
 from django.db import models
 from django.utils import timezone
-from gdstorage.storage import GoogleDriveStorage
 TODAY = datetime.datetime.now().date()
 TOMORROW = TODAY + timedelta(1)
 TODAY_START = datetime.datetime.combine(TODAY, time())
 TODAY_END = datetime.datetime.combine(TOMORROW, time())
-
-
-try:
-    # Define Google Drive Storage
-    gd_storage = GoogleDriveStorage()
-except httplib2.ServerNotFoundError as e:
-    gd_storage = None
-    warnings.warn(f'Unable to connect to Google drive!\n{e}')
 
 
 def forever():

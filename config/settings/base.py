@@ -76,7 +76,6 @@ THIRD_PARTY_APPS = [
     'allauth.socialaccount.providers.facebook',
     'rest_framework',
     'address',
-    'gdstorage',
     'django_tables2',
     'django_filters',
     'bootstrap4',
@@ -307,10 +306,15 @@ if not GOOGLE_API_KEY:
     # Try and load from secrets file
     with open("secrets/GOOGLE_API_KEY") as key_file:
         GOOGLE_API_KEY = key_file.read()
-GOOGLE_DRIVE_STORAGE_JSON_KEY_FILE = env('GOOGLE_DRIVE_STORAGE_JSON_KEY_FILE',
-                                         default='secrets/ChapterManagementTool-b239bceff1a7.json')
-# print("GOOGLE_API_KEY: ", GOOGLE_API_KEY)
-# print('GOOGLE_DRIVE_STORAGE_JSON_KEY_FILE', GOOGLE_DRIVE_STORAGE_JSON_KEY_FILE)
+GOOGLE_APPLICATION_CREDENTIALS = \
+    env('GOOGLE_APPLICATION_CREDENTIALS',
+        default='secrets\chaptermanagementtool-e11151065a69.json')
+DEFAULT_FILE_STORAGE = 'storages.backends.gcloud.GoogleCloudStorage'
+GS_BUCKET_NAME = 'theta-tau'
+from google.oauth2 import service_account
+GS_CREDENTIALS = service_account.Credentials.from_service_account_file(
+    "secrets\chaptermanagementtool-e11151065a69.json"
+)
 
 SOCIALACCOUNT_QUERY_EMAIL=True
 # https://console.developers.google.com/apis/credentials?project=chaptermanagementtool&authuser=2

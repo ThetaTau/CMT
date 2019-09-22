@@ -7,7 +7,7 @@ from django.contrib.auth.models import Group
 from django.core.validators import MaxValueValidator
 from django.conf import settings
 from django.utils import timezone
-from core.models import TimeStampedModel, YearTermModel, gd_storage
+from core.models import TimeStampedModel, YearTermModel
 from django.utils.translation import gettext_lazy as _
 from multiselectfield import MultiSelectField
 from core.models import forever, CHAPTER_ROLES_CHOICES,\
@@ -60,8 +60,8 @@ class PledgeForm(TimeStampedModel):
 
 def get_pledge_program_upload_path(instance, filename):
     return os.path.join(
-        'media', 'pledge_programs', instance.chapter.slug,
-        f"{instance.year}_{instance.term}_{filename}")
+        'submissions', 'pledge_programs',
+        f"{instance.chapter.slug}_{instance.year}_{instance.term}_{filename}")
 
 
 class PledgeProgram(YearTermModel, TimeStampedModel):
@@ -86,7 +86,7 @@ class PledgeProgram(YearTermModel, TimeStampedModel):
     )
     other_manual = models.FileField(
         upload_to=get_pledge_program_upload_path,
-        storage=gd_storage, null=True, blank=True)
+        null=True, blank=True)
 
     @classmethod
     def form_chapter_term(cls, chapter):
