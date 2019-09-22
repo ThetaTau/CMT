@@ -41,7 +41,7 @@ from .models import Guard, Badge, Initiation, Depledge, StatusChange, RiskManage
     PledgeForm, PledgeProgram, Audit
 from .filters import AuditListFilter, PledgeProgramListFilter
 from .forms import AuditListFormHelper, RiskListFilter, PledgeProgramFormHelper
-from .notifications import EmailRMPSigned
+from .notifications import EmailRMPSigned, EmailPledgeOther
 
 
 sensitive_post_parameters_m = method_decorator(
@@ -799,6 +799,9 @@ class PledgeProgramFormView(OfficerRequiredMixin,
                     extra_info={'unmodified': form.instance.manual != 'other'})
                 task_obj.submission_object = submit_obj
                 task_obj.save()
+                if form.instance.manual == 'other':
+                    EmailPledgeOther(
+                        self.request.user, form.instance.other_manual.file).send()
             messages.add_message(
                 self.request, messages.INFO,
                 f"You successfully submitted the Pledge Program!\n"

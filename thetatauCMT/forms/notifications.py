@@ -39,3 +39,34 @@ class EmailRMPSigned(EmailNotification):  # extend from EmailNotification for em
         risk_file = risk_view.content
         file_name = f"Risk Management Form {test_user}"
         return [test_user, risk_file, file_name]
+
+
+@registry.register_decorator()
+class EmailPledgeOther(EmailNotification):  # extend from EmailNotification for emails
+    template_name = 'pledge_other'  # name of template, without extension
+    subject = '[CMT] Other Pledge Program'  # subject of email
+
+    def __init__(self, user, file):
+        self.to_emails = set(['risk@thetatau.org'])  # set list of emails to send to
+        self.cc = ["cmt@thetatau.org"]
+        self.reply_to = ["cmt@thetatau.org", ]
+        file_name = file.name
+        self.context = {
+            'user': user,
+            'file_name': file_name,
+            'host': settings.CURRENT_URL,
+        }
+        # https://github.com/worthwhile/django-herald#email-attachments
+        self.attachments = [
+            (file_name, file.read(), file.mime_type),
+        ]
+
+    @staticmethod
+    def get_demo_args():  # define a static method to return list of args needed to initialize class for testing
+        from users.models import User
+        test_user = User.objects.order_by('?')[0]
+        from django.core.files import File
+        test_path = 'thetatauCMT/forms/test/example_doc.docx'
+        f = open(test_path, 'r')
+        risk_file = File(f)
+        return [test_user, risk_file]
