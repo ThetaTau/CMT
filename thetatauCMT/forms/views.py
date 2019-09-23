@@ -1,6 +1,7 @@
 import json
 import datetime
 from copy import deepcopy
+from django.db.models import Q
 from django.core.mail import send_mail
 from django.utils.decorators import method_decorator
 from django.http.request import QueryDict
@@ -169,6 +170,13 @@ class InitiationView(OfficerRequiredMixin,
             formset = InitiationFormSet(prefix='initiates')
         formset.initial = [{'user': user.name,
                             'roll': self.next_badge+num} for num, user in enumerate(self.to_initiate)]
+        chapter = self.request.user.current_chapter
+        if chapter.colony:
+            formset.form.base_fields['badge'].queryset = \
+                Badge.objects.filter(Q(name__icontains='Colony'))
+        else:
+            formset.form.base_fields['badge'].queryset = \
+                Badge.objects.filter(~Q(name__icontains='Colony'))
         context['formset'] = formset
         context['helper'] = InitiationFormHelper()
         depledge_formset = kwargs.get('depledge_formset', None)
