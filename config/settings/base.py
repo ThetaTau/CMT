@@ -1,7 +1,7 @@
 """
 Base settings to build other settings files upon.
 """
-
+import os
 import environ
 
 ROOT_DIR = environ.Path(__file__) - 3  # (thetatauCMT/config/settings/base.py - 3 = thetatauCMT/)
@@ -313,7 +313,7 @@ DEFAULT_FILE_STORAGE = 'storages.backends.gcloud.GoogleCloudStorage'
 GS_BUCKET_NAME = 'theta-tau'
 from google.oauth2 import service_account
 GS_CREDENTIALS = service_account.Credentials.from_service_account_file(
-    r"secrets\chaptermanagementtool-e11151065a69.json"
+    os.path.join(ROOT_DIR, 'secrets', 'chaptermanagementtool-e11151065a69.json')
 )
 
 SOCIALACCOUNT_QUERY_EMAIL=True
