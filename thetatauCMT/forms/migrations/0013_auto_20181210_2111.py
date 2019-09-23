@@ -5,7 +5,6 @@ from django.db import migrations, models
 import django.db.models.deletion
 import django.utils.timezone
 import forms.models
-import gdstorage.storage
 
 
 class Migration(migrations.Migration):
@@ -14,11 +13,6 @@ class Migration(migrations.Migration):
         ('chapters', '0010_initial_curricula'),
         ('forms', '0012_auto_20181209_2148'),
     ]
-    try:
-        storage = gdstorage.storage.GoogleDriveStorage()
-    except httplib2.ServerNotFoundError:
-        storage = None
-        warnings.warn("Unable to connect to Google drive!")
     operations = [
         migrations.CreateModel(
             name='PledgeProgram',
@@ -29,7 +23,7 @@ class Migration(migrations.Migration):
                 ('year', models.IntegerField(choices=[(2016, 2016), (2017, 2017), (2018, 2018), (2019, 2019), (2020, 2020), (2021, 2021), (2022, 2022), (2023, 2023), (2024, 2024), (2025, 2025)], default=2018)),
                 ('term', models.CharField(choices=[('fa', 'Fall'), ('sp', 'Spring'), ('wi', 'Winter'), ('su', 'Summer')], max_length=2)),
                 ('manual', models.CharField(choices=[('basic', 'Basic'), ('nontrad', 'Non-traditional'), ('standard', 'Standard'), ('other', 'Other')], max_length=10)),
-                ('other_manual', models.FileField(blank=True, null=True, storage=storage, upload_to=forms.models.get_pledge_program_upload_path)),
+                ('other_manual', models.FileField(blank=True, null=True, upload_to=forms.models.get_pledge_program_upload_path)),
                 ('chapter', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='pledge_programs', to='chapters.Chapter')),
             ],
         ),
