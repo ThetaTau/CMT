@@ -249,7 +249,8 @@ class UserListView(LoginRequiredMixin, OfficerMixin, PagedFilteredTableView):
             request_get = QueryDict(mutable=True)
             request_get.setlist("current_status", ['active', 'pnm', 'activepend', 'alumnipend',])
         if not cancel:
-            if request_get['current_status'] == '':
+            current_status = request_get.get('current_status', '')
+            if current_status == '':
                 request_get.setlist("current_status",
                                     ['active', 'pnm', 'activepend', 'alumnipend', ])
         self.filter = self.filter_class(request_get,
