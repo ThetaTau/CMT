@@ -313,7 +313,7 @@ DEFAULT_FILE_STORAGE = 'storages.backends.gcloud.GoogleCloudStorage'
 GS_BUCKET_NAME = 'theta-tau'
 from google.oauth2 import service_account
 GS_CREDENTIALS = service_account.Credentials.from_service_account_file(
-    "secrets\chaptermanagementtool-e11151065a69.json"
+    r"secrets\chaptermanagementtool-e11151065a69.json"
 )
 
 SOCIALACCOUNT_QUERY_EMAIL=True
