@@ -162,7 +162,10 @@ class ScoreType(models.Model):
             formula_out = formula_out.replace('MEETINGS', str(meeting_attend))
         if 'MODIFIED' in formula_out:
             # 20*UNMODIFIED+10*MODIFIED
-            unmodified = extra_info.get('unmodified', False)
+            if extra_info is not None:
+                unmodified = extra_info.get('unmodified', False)
+            else:
+                unmodified = True
             if unmodified:
                 unmod = 1
                 mod = 0
