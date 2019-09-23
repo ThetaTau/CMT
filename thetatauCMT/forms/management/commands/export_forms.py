@@ -108,18 +108,20 @@ class Command(BaseCommand):
                     guard_code = ''
                     guard_cost = 0
                     if guard:
-                        guard_code = guard.code
-                        guard_cost = guard.cost
+                        if guard.code != 'None':
+                            guard_code = guard.code
+                            guard_cost = guard.cost
                     chapter = initiation.user.chapter
                     init_fee = 75
-                    if 'colony' in chapter.name:
+                    if chapter.colony:
                         init_fee = 30
                     late_fee = 0
                     init_date = initiation.date
                     init_submit = initiation.created.date()
                     delta = init_submit - init_date
                     if delta.days > 28:
-                        late_fee = 25
+                        if not chapter.colony:
+                            late_fee = 25
                     total = badge_cost + guard_cost + init_fee + late_fee
                     row = {
                         "Submitted by": "",
