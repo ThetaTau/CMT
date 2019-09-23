@@ -156,6 +156,13 @@ class Chapter(models.Model):
         self.slug = slugify(self.name)
         super().save(*args, **kwargs)
 
+    @property
+    def account(self):
+        suffix = 'Ch'
+        if self.colony:
+            suffix = 'Co'
+        return f"{self.greek}0{suffix}"
+
     def get_actives_for_date(self, date):
         # Do not annotate, need the queryset not a list
         return self.members.filter(status__status__in=["active", "activepend", "alumnipend"],
