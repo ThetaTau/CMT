@@ -60,12 +60,11 @@ def pledge_form(request):
     school = data['q37_schoolName']
     chapter = Chapter.get_school_chapter(school)
     if chapter is not None:
-        form = PledgeForm(
+        PledgeForm.objects.get_or_create(
             name=name,
             email=email,
             chapter=chapter
         )
-        form.save()
     else:
         send_mail(
             '[CMT] New Pledge Form Chapter',
