@@ -3,10 +3,9 @@
 {% load bootstrap4 %}
 {% load crispy_forms_tags %}
 {% load static i18n %}
-{% block title %}Events{% endblock %}
+{% block title %}Ballots{% endblock %}
 
 {% block content %}
-{#  {% render_table table %}#}
 {% if table.page %}
   <div class="table-container">
 {% endif %}
@@ -19,23 +18,15 @@
                 <tr>
                   {% if request.is_officer %}
                     <th>
-                      <a href="{% url "events:add" %}" class="btn btn-small btn-primary dark">
-{#                        <span class="hidden-phone">#}
+                      <a href="{% url "ballots:create" %}" class="btn btn-small btn-primary dark">
                           <i class="fas fa-calendar-alt"></i>
-                          Add Event
-{#                        </span>#}
+                          Create Ballot
                       </a>
                     </th>
                   {% endif %}
                     <th colspan="11">
                         <form method="get" class="form-inline form-search pull-right">
-{#                          {% csrf_token %}#}
-{#                            <div>#}
                           {% crispy filter.form filter.form.helper %}
-{#                              <input id="search_form_id" name="search" type="text" class="form-control col-md-3" placeholder="Name, Date, Type"{% if search %} value="{{ search }}"{% endif %}>#}
-{#                              <button type="submit" class="btn btn-small btn-dark">#}
-{#                                <i class="fas fa-search"></i> Search</button>#}
-{#                            </div>#}
                         </form>
                     </th>
                 </tr>
@@ -62,8 +53,8 @@
                       {% for column, cell in row.items %}
                           <td {{ column.attrs.td.as_html }}>
                           {% if column.name == "name" %}
-                            <a href="{% url "events:copy" row.record.id %}" class="btn btn-link btn-xs btn">
-                            <span title="Copy Event">
+                            <a href="{% url "ballots:copy" row.record.pk %}" class="btn btn-link btn-xs btn">
+                            <span title="Copy Ballot">
                                 <i class="far fa-copy" ></i>
                               </span>
                       </a>

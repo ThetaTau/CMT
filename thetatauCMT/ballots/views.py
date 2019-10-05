@@ -1,48 +1,65 @@
+from django.http.request import QueryDict
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.urls import reverse
 from django.views.generic import DetailView, UpdateView, RedirectView, CreateView
 from core.views import PagedFilteredTableView, RequestConfig, TypeFieldFilteredChapterAdd,\
-    OfficerMixin, OfficerRequiredMixin
-from .models import Ballot
-from .tables import EventTable
-from .filters import EventListFilter
-from .forms import EventListFormHelper
+    OfficerMixin, OfficerRequiredMixin, NatOfficerRequiredMixin
+from .models import Ballot, BallotComplete
+from .tables import BallotTable, BallotCompleteTable
+from .filters import BallotFilter, BallotCompleteFilter
+from .forms import BallotListFormHelper, BallotCompleteListFormHelper
 
 
-class BallotDetailView(LoginRequiredMixin, OfficerMixin, DetailView):
+class BallotDetailView(NatOfficerRequiredMixin, LoginRequiredMixin, OfficerMixin,
+                       PagedFilteredTableView, DetailView):
     model = Ballot
+    context_object_name = 'ballot'
+    ordering = ['-date']
+    table_class = BallotCompleteTable
+    filter_class = BallotCompleteFilter
+    formhelper_class = BallotCompleteListFormHelper
+
+    def get_queryset(self):
+        self.object = self.get_object()
+        return self.object.completed.all()
+
+    def post(self, request, *args, **kwargs):
+        return PagedFilteredTableView.as_view()(request)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        table = BallotTable(self.get_queryset())
+        RequestConfig(self.request, paginate={'per_page': 120}).configure(table)
+        context['table'] = table
+        context['object'] = self.object
+        context[self.context_object_name] = self.object
+        return context
 
 
-class BallotCreateView(OfficerRequiredMixin,
+class BallotCreateView(NatOfficerRequiredMixin,
                        LoginRequiredMixin, OfficerMixin,
-                       TypeFieldFilteredChapterAdd,
                        CreateView):
     model = Ballot
     template_name_suffix = '_create_form'
     officer_edit = 'ballots'
     officer_edit_type = 'create'
-    fields = []
+    fields = ['sender', 'name', 'type', 'attachment', 'description',
+              'due_date', 'voters']
 
     def get_success_url(self):
-        return reverse('events:list')
+        return reverse('ballots:list')
 
 
 class BallotCopyView(BallotCreateView):
     def get_initial(self):
-        event = Event.objects.get(pk=self.kwargs['pk'])
+        ballot = Ballot.objects.get(pk=self.kwargs['pk'])
         self.initial = {
-            'name': event.name,
-            'date': event.date,
-            'type': event.type,
-            'description': event.description,
-            'members': event.members,
-            'pledges': event.pledges,
-            'alumni': event.alumni,
-            'guests': event.guests,
-            'duration': event.duration,
-            'stem': event.stem,
-            'host': event.host,
-            'miles': event.miles
+            'name': ballot.name + " Copy",
+            'sender': ballot.sender,
+            'type': ballot.type,
+            'attachment': ballot.attachment,
+            'description': ballot.description,
+            'voters': ballot.voters,
         }
         return self.initial
 
@@ -54,32 +71,40 @@ class BallotRedirectView(LoginRequiredMixin, RedirectView):
         return reverse('ballots:list')
 
 
-class BallotUpdateView(OfficerRequiredMixin, OfficerMixin,
+class BallotUpdateView(NatOfficerRequiredMixin, OfficerMixin,
                        LoginRequiredMixin,
                        TypeFieldFilteredChapterAdd,
                        UpdateView):
     officer_edit = 'ballot'
     officer_edit_type = 'edit'
-    fields = []
+    fields = ['sender', 'name', 'type', 'attachment', 'description',
+              'due_date', 'voters']
     model = Ballot
 
     def get_success_url(self):
-        return reverse('events:list')
+        return reverse('ballots:list')
 
 
 class BallotListView(LoginRequiredMixin, OfficerMixin,
-                    PagedFilteredTableView):
+                     PagedFilteredTableView):
     # These next two lines tell the view to index lookups by username
     model = Ballot
     context_object_name = 'ballot'
     ordering = ['-date']
     table_class = BallotTable
-    filter_class = BallotListFilter
+    filter_class = BallotFilter
     formhelper_class = BallotListFormHelper
 
     def get_queryset(self):
-        qs = super().get_queryset()
-        return qs.filter(chapter=self.request.user.current_chapter)
+        qs = Ballot.counts()
+        cancel = self.request.GET.get('cancel', False)
+        request_get = self.request.GET.copy()
+        if cancel:
+            request_get = QueryDict()
+        self.filter = self.filter_class(request_get,
+                                        queryset=qs)
+        self.filter.form.helper = self.formhelper_class()
+        return self.filter.qs
 
     def post(self, request, *args, **kwargs):
         return PagedFilteredTableView.as_view()(request)

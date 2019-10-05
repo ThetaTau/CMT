@@ -1,16 +1,16 @@
 {% extends "base.html" %}
 {% load crispy_forms_tags %}
 
-{% block title %}Create New Event{% endblock %}
+{% block title %}Create New Ballot{% endblock %}
 
 {% block content %}
-  <h1>Create New Event</h1>
+  <h1>Create New Ballot</h1>
   <form class="form-horizontal" method="post">
     {% csrf_token %}
     {% for field in form %}
       {{ field|as_crispy_field }}
       {% if field.name == "type" %}
-        <h4>Event Type Description: </h4>
+        <h4>Ballot Type Description: </h4>
           <h5>
         {% for description in descriptions %}
           <div id="{{ description.id }}" class="group">

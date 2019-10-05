@@ -94,6 +94,7 @@ LOCAL_APPS = [
     'thetatauCMT.submissions.apps.SubmissionsConfig',
     'thetatauCMT.forms.apps.FormsConfig',
     'thetatauCMT.tasks.apps.TasksConfig',
+    'thetatauCMT.ballots.apps.BallotsConfig',
 ]
 # https://docs.djangoproject.com/en/dev/ref/settings/#installed-apps
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS

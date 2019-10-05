@@ -2,7 +2,7 @@ from django.conf.urls import url
 
 from . import views
 
-app_name = 'events'
+app_name = 'ballots'
 urlpatterns = [
     url(
         regex=r'^$',
@@ -10,9 +10,9 @@ urlpatterns = [
         name='list'
     ),
     url(
-        regex=r'^add/$',
+        regex=r'^create/$',
         view=views.BallotCreateView.as_view(),
-        name='add'
+        name='create'
     ),
     url(
         regex=r'^copy/(?P<pk>\d+)/$',
@@ -30,7 +30,7 @@ urlpatterns = [
         name='update'
     ),
     url(
-        regex=r'^~(?P<year>d{4})/(?P<month>[0-9]{2})/(?P<day>[0-9]{2})/(?P<slug>[-w]+)/$',
+        regex=r'^(?P<slug>[\w.@+-]+)/$',
         view=views.BallotDetailView.as_view(),
         name='detail'
     ),
