@@ -41,6 +41,7 @@ urlpatterns = [
     url(r'^submissions/', include('submissions.urls', namespace='submissions')),
     url(r'^forms/', include('forms.urls', namespace='forms')),
     url(r'^tasks/', include('tasks.urls', namespace='tasks')),
+    url(r'^ballots/', include('ballots.urls', namespace='ballots')),
     # url(r'^rmp/$',
     #     RedirectView.as_view(pattern_name='forms:rmp',
     #                          permanent=True)),
