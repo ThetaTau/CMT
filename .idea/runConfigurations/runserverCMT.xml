@@ -12,6 +12,7 @@
       <env name="PGPORT" value="5432" />
       <env name="PGLOCALEDIR" value="C:\Program Files\PostgreSQL\10\share\locale" />
       <env name="DJANGO_DEBUG" value="TRUE" />
+      <env name="GOOGLE_APPLICATION_CREDENTIALS" value="D:\\workspace\\thetatauCMT\\secrets\\chaptermanagementtool-e11151065a69.json" />
     </envs>
     <option name="SDK_HOME" value="" />
     <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
