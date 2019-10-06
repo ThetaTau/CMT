@@ -10,7 +10,7 @@ from django.core.validators import MinValueValidator, MaxValueValidator,\
 from address.models import AddressField
 from core.models import StartEndModel, YearTermModel, TODAY_END, CHAPTER_OFFICER, \
     ALL_ROLES_CHOICES, TimeStampedModel, NATIONAL_OFFICER, COL_OFFICER_ALIGN,\
-    CHAPTER_OFFICER_CHOICES, CHAPTER_ROLES
+    CHAPTER_OFFICER_CHOICES, CHAPTER_ROLES, NAT_OFFICERS
 from chapters.models import Chapter
 
 
@@ -201,16 +201,21 @@ class UserRoleChange(StartEndModel, TimeStampedModel):
         return self.role
 
     def save(self, *args, **kwargs):
-        off_group, created = Group.objects.get_or_create(name='officer')
+        off_group, _ = Group.objects.get_or_create(name='officer')
+        nat_group, _ = Group.objects.get_or_create(name='natoff')
         super().save(*args, **kwargs)
         self.clean_group_role()
         # Need to check current role, b/c user could have multiple
         current_role = self.user.get_current_role()
         if current_role:
             off_group.user_set.add(self.user)
+            if current_role in NAT_OFFICERS:
+                nat_group.user_set.add(self.user)
         else:
             self.user.groups.remove(off_group)
+            self.user.groups.remove(nat_group)
             off_group.user_set.remove(self.user)
+            nat_group.user_set.remove(self.user)
             self.user.save()
 
     def clean_group_role(self):
