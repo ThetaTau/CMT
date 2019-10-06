@@ -9,8 +9,8 @@ from django.core.validators import MinValueValidator, MaxValueValidator,\
     RegexValidator
 from address.models import AddressField
 from core.models import StartEndModel, YearTermModel, TODAY_END, CHAPTER_OFFICER, \
-    CHAPTER_ROLES_CHOICES, TimeStampedModel, NATIONAL_OFFICER, COL_OFFICER_ALIGN,\
-    CHAPTER_OFFICER_CHOICES
+    ALL_ROLES_CHOICES, TimeStampedModel, NATIONAL_OFFICER, COL_OFFICER_ALIGN,\
+    CHAPTER_OFFICER_CHOICES, CHAPTER_ROLES
 from chapters.models import Chapter
 
 
@@ -190,7 +190,7 @@ class UserStatusChange(StartEndModel, TimeStampedModel):
 
 
 class UserRoleChange(StartEndModel, TimeStampedModel):
-    ROLES = CHAPTER_ROLES_CHOICES
+    ROLES = ALL_ROLES_CHOICES
     user = models.ForeignKey(settings.AUTH_USER_MODEL,
                              on_delete=models.CASCADE,
                              related_name="roles")
@@ -239,7 +239,14 @@ class UserRoleChange(StartEndModel, TimeStampedModel):
     @classmethod
     def get_current_roles(cls, user):
         return cls.objects.filter(
+            role__in=CHAPTER_ROLES,
             user__chapter=user.current_chapter,
+            start__lte=TODAY_END, end__gte=TODAY_END).order_by('user__last_name')
+
+    @classmethod
+    def get_current_natoff(cls):
+        return cls.objects.filter(
+            role__in=NATIONAL_OFFICER,
             start__lte=TODAY_END, end__gte=TODAY_END).order_by('user__last_name')
 
 

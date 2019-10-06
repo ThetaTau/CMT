@@ -19,6 +19,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.shortcuts import redirect
 from django.http import HttpResponseRedirect, HttpResponse, HttpResponseBadRequest
 from crispy_forms.layout import Submit
+from dal import autocomplete, forward
 from extra_views import FormSetView, ModelFormSetView
 from easy_pdf.views import PDFTemplateResponseMixin
 from core.views import OfficerMixin, OfficerRequiredMixin, RequestConfig,\
@@ -31,7 +32,7 @@ from .forms import InitiationFormSet, InitiationForm, InitiationFormHelper, Init
 from tasks.models import TaskChapter, Task
 from scores.models import ScoreType
 from submissions.models import Submission
-from core.models import CHAPTER_OFFICER, COL_OFFICER_ALIGN, SEMESTER
+from core.models import CHAPTER_OFFICER, COL_OFFICER_ALIGN, SEMESTER, NAT_OFFICERS_CHOICES, CHAPTER_ROLES_CHOICES
 from users.models import UserRoleChange
 from users.notifications import NewOfficers
 from chapters.models import Chapter
@@ -453,6 +454,7 @@ class RoleChangeView(OfficerRequiredMixin,
         formset = kwargs.get('formset', None)
         if formset is None:
             formset = self.construct_formset()
+        formset.form.base_fields['role'].choices = CHAPTER_ROLES_CHOICES
         context['formset'] = formset
         # helper = RoleChangeSelectFormHelper()
         # helper.add_input(Submit("submit", "Save"))
@@ -541,6 +543,53 @@ class RoleChangeView(OfficerRequiredMixin,
 
     def get_success_url(self):
         return reverse("home")  # If this is the same view, login redirect loops
+
+
+class RoleChangeNationalView(NatOfficerRequiredMixin,
+                             LoginRequiredMixin, OfficerMixin, ModelFormSetView):
+    form_class = RoleChangeSelectForm
+    template_name = "forms/officer_national.html"
+    factory_kwargs = {'extra': 0, 'can_delete': True}
+    model = UserRoleChange
+
+    def get_success_url(self):
+        return self.request.get_full_path()
+
+    def get_factory_kwargs(self):
+        kwargs = super().get_factory_kwargs()
+        if self.get_queryset():
+            kwargs['extra'] = 0
+        else:
+            kwargs['extra'] = 1
+        return kwargs
+
+    def post(self, request, *args, **kwargs):
+        """
+        Handles POST requests, instantiating a formset instance with the passed
+        POST variables and then checked for validity.
+        """
+        self.object_list = self.get_queryset()
+        formset = self.construct_formset()
+        if formset.is_valid():
+            return self.formset_valid(formset)
+        else:
+            return self.formset_invalid(formset)
+
+    def get_queryset(self):
+        nat_offs = UserRoleChange.get_current_natoff()
+        return nat_offs
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        formset = kwargs.get('formset', None)
+        if formset is None:
+            formset = self.construct_formset()
+        formset.form.base_fields['user'].widget = autocomplete.ModelSelect2(
+            url='users:autocomplete', forward=(forward.Const('false', 'chapter'),))
+        formset.form.base_fields['role'].choices = NAT_OFFICERS_CHOICES
+        context['formset'] = formset
+        context['input'] = Submit("action", "Submit")
+        return context
 
 
 class RiskManagementFormView(OfficerRequiredMixin,
