@@ -1,6 +1,6 @@
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Layout, Fieldset, Row, Submit
-from crispy_forms.bootstrap import FormActions, InlineField, StrictButton
+from crispy_forms.bootstrap import FormActions, InlineField, StrictButton, Field
 
 
 class BallotListFormHelper(FormHelper):
@@ -17,10 +17,10 @@ class BallotListFormHelper(FormHelper):
                 Fieldset(
                     '<i class="fas fa-search"></i> Filter Ballots',
                     Row(
-                        InlineField('name__icontains'),
-                        InlineField('type'),
-                        InlineField('due_date'),
-                        InlineField('voters'),
+                        InlineField('name'),
+                        Field('type'),
+                        Field('due_date'),
+                        Field('voters'),
                         FormActions(
                             StrictButton(
                                 '<i class="fa fa-search"></i> Filter',
@@ -50,12 +50,8 @@ class BallotCompleteListFormHelper(FormHelper):
                 Fieldset(
                     '<i class="fas fa-search"></i> Filter Complete Ballots',
                     Row(
-                        InlineField('ballot__name__icontains'),
-                        InlineField('ballot__due_date'),
-                        InlineField('user__chapter__region'),
-                        InlineField('motion'),
-                        InlineField('ballot__type'),
-                        InlineField('ballot__voters'),
+                        Field('region'),
+                        Field('motion'),
                         FormActions(
                             StrictButton(
                                 '<i class="fa fa-search"></i> Filter',

@@ -15,13 +15,20 @@ class BallotTable(tables.Table):
         attrs = {"class": "table-striped table-bordered"}
         empty_text = "There are no ballots matching the search criteria..."
 
+    def render_voters(self, value):
+        return Ballot.VOTERS.get_value(value)
+
+    def render_type(self, value):
+        return Ballot.TYPES.get_value(value)
+
 
 class BallotCompleteTable(tables.Table):
-    ballot = tables.LinkColumn('ballots:details', args=[A('slug')])
-
     class Meta:
         model = BallotComplete
-        fields = ('ballot', 'user', 'user__chapter',
+        fields = ('user', 'user__chapter',
                   'user__chapter__region', 'motion', 'role')
         attrs = {"class": "table-striped table-bordered"}
         empty_text = "There are no ballots matching the search criteria..."
+
+    def render_motion(self, value):
+        return BallotComplete.MOTION.get_value(value)

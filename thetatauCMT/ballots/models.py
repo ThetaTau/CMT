@@ -65,6 +65,18 @@ class Ballot(TimeStampedModel):
         self.slug = slugify(self.name)
         super().save()
 
+    @property
+    def ayes(self):
+        return self.completed.filter(motion='aye').count()
+
+    @property
+    def nays(self):
+        return self.completed.filter(motion='nay').count()
+
+    @property
+    def abstains(self):
+        return self.completed.filter(motion='abstain').count()
+
     @classmethod
     def counts(cls):
         return cls.objects.values('name', 'type', 'due_date', 'voters', 'slug',

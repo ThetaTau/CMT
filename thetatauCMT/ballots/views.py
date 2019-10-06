@@ -15,20 +15,29 @@ class BallotDetailView(NatOfficerRequiredMixin, LoginRequiredMixin, OfficerMixin
     model = Ballot
     context_object_name = 'ballot'
     ordering = ['-date']
+    template_name_suffix = '_completelist'
     table_class = BallotCompleteTable
     filter_class = BallotCompleteFilter
     formhelper_class = BallotCompleteListFormHelper
 
     def get_queryset(self):
-        self.object = self.get_object()
-        return self.object.completed.all()
+        self.object = self.get_object(queryset=super(DetailView, self).get_queryset())
+        qs = self.object.completed.all()
+        cancel = self.request.GET.get('cancel', False)
+        request_get = self.request.GET.copy()
+        if cancel:
+            request_get = QueryDict()
+        self.filter = self.filter_class(request_get,
+                                        queryset=qs)
+        self.filter.form.helper = self.formhelper_class()
+        return self.filter.qs
 
     def post(self, request, *args, **kwargs):
         return PagedFilteredTableView.as_view()(request)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        table = BallotTable(self.get_queryset())
+        table = BallotCompleteTable(self.get_queryset())
         RequestConfig(self.request, paginate={'per_page': 120}).configure(table)
         context['table'] = table
         context['object'] = self.object
