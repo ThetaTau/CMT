@@ -3,6 +3,7 @@ from .models import Ballot, BallotComplete
 
 
 class BallotCompleteAdmin(admin.ModelAdmin):
+    raw_id_fields = ['user']
     list_display = ('user', 'ballot', 'motion', 'role')
     list_filter = ['motion', 'ballot']
     ordering = ['created',]
@@ -10,10 +11,14 @@ class BallotCompleteAdmin(admin.ModelAdmin):
 
 class BallotCompleteInline(admin.TabularInline):
     model = BallotComplete
-    fields = ['user', 'user__chapter', 'motion',]
+    raw_id_fields = ['user']
+    fields = ['user', 'motion', ]
     show_change_link = False
-    ordering = ['user__chapter']
+    can_delete = False
     extra = 0
+
+    def has_change_permission(self, request, obj=None):
+        return False
 
 
 class BallotAdmin(admin.ModelAdmin):
