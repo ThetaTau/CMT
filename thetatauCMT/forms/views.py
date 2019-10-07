@@ -557,7 +557,7 @@ class RoleChangeNationalView(NatOfficerRequiredMixin,
 
     def get_factory_kwargs(self):
         kwargs = super().get_factory_kwargs()
-        if self.get_queryset():
+        if self.object_list:
             kwargs['extra'] = 0
         else:
             kwargs['extra'] = 1
