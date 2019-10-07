@@ -80,7 +80,7 @@ class Ballot(TimeStampedModel):
     @classmethod
     def counts(cls):
         return cls.objects.values('name', 'type', 'due_date', 'voters', 'slug',
-                                  'completed__motion', 'pk'). \
+                                  'pk'). \
             annotate(
             ayes=models.Count('completed__motion',
                               filter=models.Q(completed__motion='aye')),
@@ -99,6 +99,7 @@ class BallotComplete(TimeStampedModel):
         aye = ('aye', 'Aye')
         nay = ('nay', 'Nay')
         abstain = ('abstain', 'Abstain')
+        incomplete = ('incomplete', 'Incomplete')
 
         @classmethod
         def get_value(cls, member):
