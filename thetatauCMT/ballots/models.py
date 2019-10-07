@@ -79,6 +79,9 @@ class Ballot(TimeStampedModel):
 
     @classmethod
     def counts(cls):
+        # django-sql-utils SubQueryCount is not needed provided values does not
+        # NOT have the item filtering against, eg. completed__motion should
+        # NOT be in the values() list as it will show up multiple times
         return cls.objects.values('name', 'type', 'due_date', 'voters', 'slug',
                                   'pk'). \
             annotate(
