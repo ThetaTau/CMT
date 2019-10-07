@@ -31,7 +31,7 @@ class BallotCompleteFilter(django_filters.FilterSet):
         if value == 'national':
             return queryset
         elif value == 'colony':
-            queryset = queryset.filter(chapter__colony=True)
+            queryset = queryset.filter(user__chapter__colony=True)
         else:
-            queryset = queryset.filter(chapter__region__slug=value)
+            queryset = queryset.filter(user__chapter__region__slug=value)
         return queryset

@@ -41,10 +41,16 @@ class BallotDetailView(NatOfficerRequiredMixin, LoginRequiredMixin, OfficerMixin
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        cancel = self.request.GET.get('cancel', False)
+        request_get = self.request.GET.copy()
+        if cancel:
+            request_get = QueryDict()
+        motion = request_get.get('motion', '')
+        region = request_get.get('region', '')
         all_ballots = self.object_list
         all_ballots = all_ballots.annotate(
             region=models.Case(
-                models.When(role__in=NAT_OFFICERS, then=models.Value('Nationals')),
+                models.When(role__in=NAT_OFFICERS, then=models.Value('National')),
                 default=models.F("user__chapter__region__name"),
                 output_field=models.CharField(),
             ),
@@ -55,6 +61,8 @@ class BallotDetailView(NatOfficerRequiredMixin, LoginRequiredMixin, OfficerMixin
             ),
             user_name=models.F('user__name'),
         )
+        if region == 'national':
+            all_ballots = all_ballots.filter(region='National')
         users = all_ballots.values_list('user', flat=True)
         chapters = all_ballots.exclude(
             role__in=NAT_OFFICERS
@@ -65,7 +73,11 @@ class BallotDetailView(NatOfficerRequiredMixin, LoginRequiredMixin, OfficerMixin
         incomplete_chapter = []
         if self.object.voters == 'council':
             nat_offs = nat_offs.filter(role__in=COUNCIL)
-        elif self.object.voters == 'convention':
+        elif self.object.voters == 'convention' and region != 'national':
+            # Colonies can not vote
+            chapters = Chapter.objects.filter(colony=False).exclude(name__in=chapters)
+            if region != '':
+                chapters = chapters.filter(region__slug=region)
             incomplete_chapter = [
                 {
                     'user_name': '',
@@ -73,16 +85,20 @@ class BallotDetailView(NatOfficerRequiredMixin, LoginRequiredMixin, OfficerMixin
                     'motion': 'Incomplete',
                     'role': '',
                     'region': chapter.region
-                } for chapter in Chapter.objects.filter(colony=False).exclude(name__in=chapters)]
-        incomplete_national = [
-            {
-                'user_name': user.user,
-                'chapter': '',
-                'motion': 'Incomplete',
-                'role': user.role,
-                'region': 'National'
-            } for user in nat_offs]
-        incomplete = incomplete_national + incomplete_chapter
+                } for chapter in chapters]
+        incomplete_national = []
+        if region == '' and region == 'national':
+            incomplete_national = [
+                {
+                    'user_name': user.user,
+                    'chapter': '',
+                    'motion': 'Incomplete',
+                    'role': user.role,
+                    'region': 'National'
+                } for user in nat_offs]
+        incomplete = []
+        if motion == 'incomplete' or motion == '':
+            incomplete = incomplete_national + incomplete_chapter
         table = BallotCompleteTable(data=data+incomplete)
         RequestConfig(self.request, paginate={'per_page': 200}).configure(table)
         context['table'] = table
