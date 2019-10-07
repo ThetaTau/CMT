@@ -251,7 +251,7 @@ class UserRoleChange(StartEndModel, TimeStampedModel):
     @classmethod
     def get_current_natoff(cls):
         return cls.objects.filter(
-            role__in=NATIONAL_OFFICER,
+            role__in=NAT_OFFICERS,
             start__lte=TODAY_END, end__gte=TODAY_END).order_by('user__last_name')
 
 
