@@ -25,8 +25,8 @@ class BallotTable(tables.Table):
 class BallotCompleteTable(tables.Table):
     class Meta:
         model = BallotComplete
-        fields = ('user', 'user.chapter',
-                  'user.chapter.region', 'motion', 'role')
+        fields = ('user_name', 'chapter',
+                  'region', 'motion', 'role')
         attrs = {"class": "table-striped table-bordered"}
         empty_text = "There are no ballots matching the search criteria..."
 
