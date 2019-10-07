@@ -113,6 +113,7 @@ function cloneMore(selector, prefix) {
     newElement.find('span').each(function() {
         $(this).remove();
     })
+    newElement.find('div.dal-forward-conf')[0].id = newElement.find('div.dal-forward-conf')[0].id.replace('-' + (total-1) + '-', '-' + total + '-');
     total++;
     $('#id_' + prefix + '-TOTAL_FORMS').val(total);
     $(selector).after(newElement);
