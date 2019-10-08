@@ -298,6 +298,7 @@ ROLLBAR = {
     'access_token': env('ROLLBAR_ACCESS', default=''),
     'environment': 'development' if DEBUG else 'production',
     'root': ROOT_DIR,
+    'capture_username': True,
 }
 import rollbar
 rollbar.init(**ROLLBAR)
