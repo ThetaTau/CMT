@@ -5,8 +5,9 @@
 {% load crispy_forms_field %}
 {% block title %}Officer Election Report{{ object.name }}{% endblock %}
 {% block content %}
+  <script type="text/javascript" src="{% static 'admin/js/vendor/jquery/jquery.js' %}"></script>
   {{ formset.media }}
-  <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/tempusdominus-bootstrap-4/5.0.0-alpha14/js/tempusdominus-bootstrap-4.min.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/tempusdominus-bootstrap-4/5.0.0-alpha14/js/tempusdominus-bootstrap-4.min.js"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tempusdominus-bootstrap-4/5.0.0-alpha14/css/tempusdominus-bootstrap-4.min.css" />
 {% specialspaceless %}
   <h1>Please select members to update role:</h1>
@@ -14,7 +15,6 @@
     {% csrf_token %}
     <link href="{% static 'css/project.css' %}" rel="stylesheet">
     <div>{{ formset.management_form|crispy }}</div>
-{#    {% crispy formset helper %}#}
     {% if formset.non_form_errors %}
     <div class="alert alert-block alert-danger">
         {% if formset_error_title %}<h4 class="alert-heading">{{ formset_error_title }}</h4>{% endif %}
@@ -28,27 +28,27 @@
             {% if formset.readonly and not formset.queryset.exists %}
             {% else %}
                 <tr>
-                  <th class="requiredField" style="width: 20%">Member<span class="asteriskField">*</span></th>
-                  <th class="requiredField" style="width: 30%">New Role<span class="asteriskField">*</span></th>
-                  <th class="requiredField" style="width: 15%">Start Date<span class="asteriskField">*</span></th>
-                  <th class="requiredField" style="width: 15%">End Date<span class="asteriskField">*</span></th>
-                  <th style="width: 5%">Remove</th>
+                    {% for field in formset.forms.0 %}
+                        {% if field.label and not field.is_hidden and field.label != "Delete" %}
+                            <th for="{{ field.auto_id }}" class="col-form-label {% if field.field.required %}requiredField{% endif %}">
+                                {{ field.label|safe }}{% if field.field.required %}<span class="asteriskField">*</span>{% endif %}
+                            </th>
+                        {% endif %}
+                    {% endfor %}
+                <th>Add / <br>Remove</th>
                 </tr>
             {% endif %}
         </thead>
         <tbody>
-            <tr class="d-none empty-form">
-                {% for field in formset.empty_form %}
-                    {% include 'bootstrap4/field.html' with tag="td" form_show_labels=False %}
-                {% endfor %}
-            </tr>
             {% for form in formset %}
-                {% if form_show_errors and not form.is_extra %}
-                    {% include "bootstrap4/errors.html" %}
-                {% endif %}
-                  <tr>
+                  <tr class="row_form">
+                  <div class="input-group">
                       {% for field in form %}
-                        {% if field.label == "Start Date" or field.label == "End Date"%}
+                        {% if field.label == "Delete" %}
+                          <td class="hidden" style="display: none;">
+                              {{ field }}
+                          </td>
+                        {% elif field.label == "Start Date" or field.label == "End Date"%}
                           <td>
                           <div style="position: relative">
                             {% crispy_field field %}
@@ -59,28 +59,20 @@
                             {% endif %}
                           </div>
                           </td>
-{#                        {% elif field.label == "Selected" %}#}
-{#                          <td>#}
-{#                          {% if form.initial %}#}
-{#                            <input class="btn btn-danger" type="submit" name="action" value="- {{ form.initial|get_item:'user' }}">#}
-{#                          {% else %}#}
-{#                            <input class="btn btn-success" type="submit" name="action" value="+">#}
-{#                          {% endif %}#}
-{#                          </td>#}
                         {% else %}
-                          {% include 'bootstrap4/field.html' with tag="td" form_show_labels=False %}
-                          {% if field.errors %}
-                            {% for error in field.errors %}
-                              <strong style="color:red">{{ error }}</strong>
-                            {% endfor %}
-                        {% endif %}
+                          {% include 'bootstrap4/field.html' with tag="td" form_show_labels=False form_show_errors=True%}
                         {% endif %}
                       {% endfor %}
+                  <td>
+                  <div class="input-group-append">
+                      <button class="btn btn-success add-row_form">+</button>
+                  </div>
+                  </td>
+                  </div>
                   </tr>
             {% endfor %}
         </tbody>
     </table>
-    <input class="btn btn-success" type="submit" name="action" value="Add Row">
     <input type="{{ input.input_type }}"
     name="{% if input.name|wordcount > 1 %}{{ input.name|slugify }}{% else %}{{ input.name }}{% endif %}"
     value="{{ input.value }}"
@@ -92,7 +84,40 @@
     />
   </form>
 {% endspecialspaceless %}
-  {% block footer %}
-  {% endblock %}
 {% endblock content %}
+{% block javascript %}
+{{ block.super }}
+<script src="{% static 'js/dynamic_formset.js' %}"></script>
+<script>
+function cloneMore(selector, prefix) {
+    var newElement = $(selector).clone();
+    var total = $('#id_' + prefix + '-TOTAL_FORMS').val();
+    newElement.find('.form-control').each(function() {
+        var old_name = $(this).attr('name');
+        if (old_name){
+            var name = $(this).attr('name').replace('-' + (total-1) + '-', '-' + total + '-');
+            var id = 'id_' + name;
+            $(this).attr({'name': name, 'id': id}).val('').removeAttr('checked');
+        }
+        if ($(this).attr('data-target')){
+          var old_id = '#id_' + old_name;
+          $(this).attr({'data-target': "#" + id});
+          var old_text = $(this).parent('div').parent('div').find('script')[0].text;
+          $(this).parent('div').parent('div').find('script')[0].text = old_text.replace(old_id, "#" + id);
+          var date = $(this)[0].id.includes('start') ? todayDate(0):todayDate(1);
+          $(this).datetimepicker({"format": "M/DD/YYYY", "date": date})
+        }
+    });
+    newElement.find('span').each(function() {
+        $(this).remove();
+    })
+    {#newElement.find('div.dal-forward-conf')[0].id = newElement.find('div.dal-forward-conf')[0].id.replace('-' + (total-1) + '-', '-' + total + '-');#}
+    total++;
+    $('#id_' + prefix + '-TOTAL_FORMS').val(total);
+    $(selector).after(newElement);
+    updateConditionRow();
+    return false;
+}
+</script>
+{% endblock %}
 
