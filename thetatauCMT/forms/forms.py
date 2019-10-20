@@ -7,6 +7,7 @@ from crispy_forms.bootstrap import FormActions, Field, InlineField, StrictButton
 from tempus_dominus.widgets import DatePicker
 from .models import Initiation, Depledge, StatusChange, RiskManagement,\
     PledgeProgram, Audit
+from core.models import CHAPTER_ROLES_CHOICES
 from users.models import User, UserRoleChange
 from regions.models import Region
 from core.models import CHAPTER_OFFICER, COMMITTEE_CHAIR
@@ -270,19 +271,24 @@ class CSMTFormHelper(FormHelper):
 
 class RoleChangeSelectForm(forms.ModelForm):
     user = forms.ModelChoiceField(queryset=User.objects.all(),
-                                  widget=autocomplete.ModelSelect2(url='users:autocomplete'))
+                                  widget=autocomplete.ModelSelect2(url='users:autocomplete'),
+                                  disabled=True)
+    role = forms.ChoiceField(choices=[('', '---------')] + CHAPTER_ROLES_CHOICES,
+                             disabled=True)
     start = forms.DateField(
         initial=timezone.now().date(),
         label="Start Date",
         widget=DatePicker(options={"format": "M/DD/YYYY"},
                           attrs={'autocomplete': 'off'},
-                          ))
+                          ),
+        disabled=True)
     end = forms.DateField(
         initial=timezone.now().date() + timezone.timedelta(days=365),
         label="End Date",
         widget=DatePicker(options={"format": "M/DD/YYYY"},
                           attrs={'autocomplete': 'off'},
-                          ))
+                          ),
+        disabled=True)
 
     class Meta:
         model = UserRoleChange
