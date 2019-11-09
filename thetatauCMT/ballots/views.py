@@ -159,7 +159,7 @@ class BallotUpdateView(NatOfficerRequiredMixin, OfficerMixin,
         return reverse('ballots:list')
 
 
-class BallotListView(LoginRequiredMixin, OfficerMixin,
+class BallotListView(NatOfficerRequiredMixin, LoginRequiredMixin, OfficerMixin,
                      PagedFilteredTableView):
     model = Ballot
     context_object_name = 'ballot'
