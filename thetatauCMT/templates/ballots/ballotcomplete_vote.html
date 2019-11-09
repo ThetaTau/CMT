@@ -28,6 +28,12 @@
         </tr>
     <tr>
       <td colspan="2">
+          {% if complete %}
+            Complete:<br>
+              <h3>{{ current_vote.get_motion_display }}</h3>
+              {{ current_vote.user }}<br>{{ current_vote.role | title }}<br>
+              {{ current_vote.created }}
+          {% else %}
         <form class="form-horizontal" method="post">
           {% csrf_token %}
           {{ form|crispy }}
@@ -37,6 +43,7 @@
             </div>
           </div>
         </form>
+          {% endif %}
       </td>
     </tr>
   </table>

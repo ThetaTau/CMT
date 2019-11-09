@@ -121,6 +121,17 @@ class Ballot(TimeStampedModel):
                 )
         return ballot_query
 
+    def get_completed(self, user):
+        role_level, _ = user.get_user_role_level()
+        if role_level == 'convention':
+            natoffs = UserRoleChange.get_current_natoff().values_list('user__pk', flat=True)
+            query = self.completed.filter(
+                ~models.Q(user__in=natoffs), user__chapter=user.chapter
+            )
+        else:
+            query = self.completed.filter(user=user)
+        return query.first()
+
 
 class BallotComplete(TimeStampedModel):
     class Meta:

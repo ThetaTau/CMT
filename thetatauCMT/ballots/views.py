@@ -203,7 +203,16 @@ class BallotCompleteCreateView(OfficerRequiredMixin,
         context = super().get_context_data(**kwargs)
         ballot_slug = self.kwargs.get('slug')
         ballot = Ballot.objects.get(slug=ballot_slug)
+        completed = ballot.get_completed(self.request.user)
+        complete = False
+        if completed:
+            form = context['form']
+            for field_name, field in form.fields.items():
+                field.disabled = True
+            complete = True
+            context['current_vote'] = completed
         context['ballot'] = ballot
+        context['complete'] = complete
         return context
 
     def form_valid(self, form):
