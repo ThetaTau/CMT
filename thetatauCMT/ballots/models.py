@@ -6,6 +6,7 @@ from django.db import models
 from django.urls import reverse
 from django.utils.text import slugify
 from core.models import TimeStampedModel, ALL_OFFICERS_CHOICES
+from users.models import UserRoleChange
 
 
 def get_ballot_attachment_upload_path(instance, filename):
@@ -41,6 +42,15 @@ class Ballot(TimeStampedModel):
         @classmethod
         def get_value(cls, member):
             return cls[member.lower()].value[1]
+
+        @classmethod
+        def get_access(cls, level):
+            return {
+                '': [],
+                'convention': ['convention'],
+                'nat_off': ['convention', 'nat_off'],
+                'council': ['convention', 'nat_off', 'council'],
+            }[level]
 
     sender = models.CharField("From", max_length=50, default="Grand Scribe")
     slug = models.SlugField(unique=False)
@@ -92,6 +102,24 @@ class Ballot(TimeStampedModel):
             abstains=models.Count('completed__motion',
                                   filter=models.Q(completed__motion='abstain')),
         )
+
+    @classmethod
+    def user_ballots(cls, user):
+        voted = BallotComplete.objects.filter(
+            ballot=models.OuterRef('pk'), user=user)
+        role_level, _ = user.get_user_role_level()
+        filter_list = cls.VOTERS.get_access(role_level)
+        if role_level == 'convention':
+            natoffs = UserRoleChange.get_current_natoff().values_list('user__pk', flat=True)
+            voted = BallotComplete.objects.filter(
+                ~models.Q(user__in=natoffs),  # Natoff vote should not count for chapter
+                ballot=models.OuterRef('pk'), user__chapter=user.chapter)
+        ballot_query = cls.objects.values('name', 'type', 'due_date',
+                                          'voters', 'slug', 'pk').\
+            filter(voters__in=filter_list).annotate(
+                motion=models.Subquery(voted.values('motion'))
+                )
+        return ballot_query
 
 
 class BallotComplete(TimeStampedModel):

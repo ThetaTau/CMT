@@ -15,6 +15,16 @@ class BallotFilter(django_filters.FilterSet):
         order_by = ['due_date']
 
 
+class BallotUserFilter(django_filters.FilterSet):
+    name = django_filters.CharFilter(lookup_expr='icontains')
+    due_date = DateRangeFilter(field_name='due_date')
+
+    class Meta:
+        model = Ballot
+        fields = ['name', 'due_date',]
+        order_by = ['due_date']
+
+
 class BallotCompleteFilter(django_filters.FilterSet):
     region = django_filters.ChoiceFilter(
         label="Region",

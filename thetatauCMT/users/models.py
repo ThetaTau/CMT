@@ -10,7 +10,7 @@ from django.core.validators import MinValueValidator, MaxValueValidator,\
 from address.models import AddressField
 from core.models import StartEndModel, YearTermModel, TODAY_END, CHAPTER_OFFICER, \
     ALL_ROLES_CHOICES, TimeStampedModel, NATIONAL_OFFICER, COL_OFFICER_ALIGN,\
-    CHAPTER_OFFICER_CHOICES, CHAPTER_ROLES, NAT_OFFICERS
+    CHAPTER_OFFICER_CHOICES, CHAPTER_ROLES, NAT_OFFICERS, COUNCIL
 from chapters.models import Chapter
 
 
@@ -76,15 +76,7 @@ class User(AbstractUser):
         return self.roles.filter(end__gte=TODAY_END).first()
 
     def get_current_roles(self):
-        return self.roles.filter(end__gte=TODAY_END)
-
-    def chapter_officer(self):
-        """
-        An member can have multiple roles need to see if any are officer
-        :return: Bool if officer, set of officer roles
-        """
-        role_objs = self.get_current_roles()
-        officer_roles = set()
+        role_objs = self.roles.filter(end__gte=TODAY_END)
         current_roles = set()
         if role_objs is not None:
             for role_obj in role_objs:
@@ -92,8 +84,27 @@ class User(AbstractUser):
                 if role_name in COL_OFFICER_ALIGN:
                     role_name = COL_OFFICER_ALIGN[role_name]
                 current_roles.add(role_name)
-            # officer = not current_roles.isdisjoint(CHAPTER_OFFICER)
-            officer_roles = CHAPTER_OFFICER & current_roles
+        return current_roles
+
+    def get_user_role_level(self):
+        current_roles = self.get_current_roles()
+        if COUNCIL & current_roles:
+            return 'council', COUNCIL & current_roles
+        elif set(NAT_OFFICERS) & current_roles:
+            return 'nat_off', set(NAT_OFFICERS) & current_roles
+        elif self.chapter_officer():
+            return 'convention', self.chapter_officer()
+        else:
+            return '', current_roles
+
+    def chapter_officer(self):
+        """
+        An member can have multiple roles need to see if any are officer
+        :return: Bool if officer, set of officer roles
+        """
+        current_roles = self.get_current_roles()
+        # officer = not current_roles.isdisjoint(CHAPTER_OFFICER)
+        officer_roles = CHAPTER_OFFICER & current_roles
         if self.is_national_officer_group:
             if self.altered.all():
                 new_role = self.altered.first().role
@@ -114,23 +125,18 @@ class User(AbstractUser):
         return self.is_national_officer_group or self.is_chapter_officer_group
 
     def is_national_officer(self):
-        role_objs = self.get_current_roles()
-        officer = False
-        officer_roles = set()
-        current_roles = set()
-        if role_objs is not None:
-            for role_obj in role_objs:
-                role_name = role_obj.role.lower()
-                if role_name in COL_OFFICER_ALIGN:
-                    role_name = COL_OFFICER_ALIGN[role_name]
-                current_roles.add(role_name)
-            officer = not current_roles.isdisjoint(NATIONAL_OFFICER)
-            officer_roles = NATIONAL_OFFICER & current_roles
-        return officer
+        current_roles = self.get_current_roles()
+        officer_roles = set(NAT_OFFICERS) & current_roles
+        return officer_roles
+
+    def is_council_officer(self):
+        current_roles = self.get_current_roles()
+        officer_roles = COUNCIL & current_roles
+        return officer_roles
 
     @property
     def is_officer(self):
-        return len(self.chapter_officer()) > 0 or self.is_national_officer()
+        return len(self.chapter_officer()) > 0 or len(self.is_national_officer()) > 0
 
     def is_officer_group(self):
         groups = ['officer', 'natoff']

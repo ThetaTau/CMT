@@ -1,4 +1,5 @@
 from django.db import models
+from django.contrib import messages
 from django.http.request import QueryDict
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.urls import reverse
@@ -9,9 +10,10 @@ from core.models import NAT_OFFICERS, COUNCIL
 from users.models import UserRoleChange
 from chapters.models import Chapter
 from .models import Ballot, BallotComplete
-from .tables import BallotTable, BallotCompleteTable
-from .filters import BallotFilter, BallotCompleteFilter
-from .forms import BallotListFormHelper, BallotCompleteListFormHelper
+from .tables import BallotTable, BallotUserTable, BallotCompleteTable
+from .filters import BallotFilter, BallotUserFilter, BallotCompleteFilter
+from .forms import BallotListFormHelper, BallotUserListFormHelper,\
+    BallotCompleteListFormHelper
 
 
 class BallotDetailView(NatOfficerRequiredMixin, LoginRequiredMixin, OfficerMixin,
@@ -159,7 +161,6 @@ class BallotUpdateView(NatOfficerRequiredMixin, OfficerMixin,
 
 class BallotListView(LoginRequiredMixin, OfficerMixin,
                      PagedFilteredTableView):
-    # These next two lines tell the view to index lookups by username
     model = Ballot
     context_object_name = 'ballot'
     ordering = ['-date']
@@ -183,7 +184,81 @@ class BallotListView(LoginRequiredMixin, OfficerMixin,
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        table = BallotTable(self.get_queryset())
+        table = BallotTable(self.object_list)
+        RequestConfig(self.request, paginate={'per_page': 30}).configure(table)
+        context['table'] = table
+        return context
+
+
+class BallotCompleteCreateView(OfficerRequiredMixin,
+                               LoginRequiredMixin, OfficerMixin,
+                               CreateView):
+    model = BallotComplete
+    template_name_suffix = '_vote'
+    officer_edit = 'ballots'
+    officer_edit_type = 'vote'
+    fields = ['motion']
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        ballot_slug = self.kwargs.get('slug')
+        ballot = Ballot.objects.get(slug=ballot_slug)
+        context['ballot'] = ballot
+        return context
+
+    def form_valid(self, form):
+        ballot_slug = self.kwargs.get('slug')
+        ballot = Ballot.objects.get(slug=ballot_slug)
+        user = self.request.user
+        form.instance.user = user
+        form.instance.ballot = ballot
+        role_level, current_roles = user.get_user_role_level()
+        access = Ballot.VOTERS.get_access(role_level)
+        if ballot.voters not in access:
+            messages.add_message(
+                self.request, messages.ERROR,
+                f"This ballot is for {ballot.voters}. "
+                f"Your current roles/level are: {current_roles}/{role_level}")
+            return super().form_invalid(form)
+        if current_roles:
+            current_role = current_roles.pop()
+        form.instance.role = current_role
+        messages.add_message(
+            self.request, messages.INFO,
+            f"Vote for {ballot.name} completed as {current_role}")
+        return super().form_valid(form)
+
+    def get_success_url(self):
+        return reverse('ballots:votelist')
+
+
+class BallotUserListView(LoginRequiredMixin, OfficerMixin,
+                         PagedFilteredTableView):
+    model = Ballot
+    context_object_name = 'ballot'
+    template_name_suffix = '_votelist'
+    ordering = ['-date']
+    table_class = BallotUserTable
+    filter_class = BallotUserFilter
+    formhelper_class = BallotUserListFormHelper
+
+    def get_queryset(self):
+        qs = Ballot.user_ballots(self.request.user)
+        cancel = self.request.GET.get('cancel', False)
+        request_get = self.request.GET.copy()
+        if cancel:
+            request_get = QueryDict()
+        self.filter = self.filter_class(request_get,
+                                        queryset=qs)
+        self.filter.form.helper = self.formhelper_class()
+        return self.filter.qs
+
+    def post(self, request, *args, **kwargs):
+        return PagedFilteredTableView.as_view()(request)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        table = BallotUserTable(self.object_list)
         RequestConfig(self.request, paginate={'per_page': 30}).configure(table)
         context['table'] = table
         return context

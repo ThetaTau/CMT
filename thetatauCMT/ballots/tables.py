@@ -32,3 +32,23 @@ class BallotCompleteTable(tables.Table):
 
     def render_motion(self, value):
         return BallotComplete.MOTION.get_value(value)
+
+    def render_role(self, value):
+        return value.title()
+
+
+class BallotUserTable(tables.Table):
+    name = tables.LinkColumn('ballots:vote', args=[A('slug')])
+
+    class Meta:
+        model = Ballot
+        fields = ('name', 'type', 'due_date', 'motion',
+                  )
+        attrs = {"class": "table-striped table-bordered"}
+        empty_text = "There are no ballots matching the search criteria..."
+
+    def render_motion(self, value):
+        return BallotComplete.MOTION.get_value(value)
+
+    def render_type(self, value):
+        return Ballot.TYPES.get_value(value)

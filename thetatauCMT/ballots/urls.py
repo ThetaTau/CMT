@@ -5,7 +5,7 @@ from . import views
 app_name = 'ballots'
 urlpatterns = [
     url(
-        regex=r'^$',
+        regex=r'^list/$',
         view=views.BallotListView.as_view(),
         name='list'
     ),
@@ -30,8 +30,18 @@ urlpatterns = [
         name='update'
     ),
     url(
-        regex=r'^(?P<slug>[\w.@+-]+)/$',
+        regex=r'^details/(?P<slug>[\w.@+-]+)/$',
         view=views.BallotDetailView.as_view(),
         name='detail'
+    ),
+    url(
+        regex=r'^$',
+        view=views.BallotUserListView.as_view(),
+        name='votelist'
+    ),
+    url(
+        regex=r'^vote/(?P<slug>[\w.@+-]+)/$',
+        view=views.BallotCompleteCreateView.as_view(),
+        name='vote'
     ),
 ]
