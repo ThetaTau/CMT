@@ -89,7 +89,7 @@ class BallotDetailView(NatOfficerRequiredMixin, LoginRequiredMixin, OfficerMixin
                     'region': chapter.region
                 } for chapter in chapters]
         incomplete_national = []
-        if region == '' and region == 'national':
+        if region == '' or region == 'national':
             incomplete_national = [
                 {
                     'user_name': user.user,
