@@ -27,7 +27,7 @@ from core.views import OfficerMixin, OfficerRequiredMixin, RequestConfig,\
 from .forms import InitiationFormSet, InitiationForm, InitiationFormHelper, InitDeplSelectForm,\
     InitDeplSelectFormHelper, DepledgeFormSet, DepledgeFormHelper, StatusChangeSelectForm,\
     StatusChangeSelectFormHelper, GraduateForm, GraduateFormSet, CSMTFormSet, GraduateFormHelper, CSMTFormHelper,\
-    RoleChangeSelectForm, RiskManagementForm,\
+    RoleChangeSelectForm, RiskManagementForm, RoleChangeNationalSelectForm,\
     PledgeProgramForm, AuditForm
 from tasks.models import TaskChapter, Task
 from scores.models import ScoreType
@@ -416,6 +416,20 @@ class StatusChangeView(OfficerRequiredMixin,
         return reverse('home')
 
 
+def remove_extra_form(formset, **kwargs):
+    tfc = formset.total_form_count()
+    del formset.forms[tfc - 1]
+    data = formset.data
+    total_count_name = '%s-%s' % (formset.management_form.prefix, 'TOTAL_FORMS')
+    initial_count_name = '%s-%s' % (formset.management_form.prefix, 'INITIAL_FORMS')
+    formset.management_form.cleaned_data['TOTAL_FORMS'] -= 1
+    formset.management_form.cleaned_data['INITIAL_FORMS'] -= 1
+    data[total_count_name] = formset.management_form.cleaned_data['TOTAL_FORMS'] - 1
+    data[initial_count_name] = formset.management_form.cleaned_data['INITIAL_FORMS'] - 1
+    formset.data = data
+    return formset
+
+
 class RoleChangeView(OfficerRequiredMixin,
                      LoginRequiredMixin, OfficerMixin, ModelFormSetView):
     form_class = RoleChangeSelectForm
@@ -428,20 +442,6 @@ class RoleChangeView(OfficerRequiredMixin,
         formset = super().construct_formset()
         for field_name in formset.forms[-1].fields:
             formset.forms[-1].fields[field_name].disabled = False
-        formset.form.base_fields['role'].choices = [('', '---------')] + CHAPTER_ROLES_CHOICES
-        return formset
-
-    def remove_extra_form(self, formset, **kwargs):
-        tfc = formset.total_form_count()
-        del formset.forms[tfc - 1]
-        data = formset.data
-        total_count_name = '%s-%s' % (formset.management_form.prefix, 'TOTAL_FORMS')
-        initial_count_name = '%s-%s' % (formset.management_form.prefix, 'INITIAL_FORMS')
-        formset.management_form.cleaned_data['TOTAL_FORMS'] -= 1
-        formset.management_form.cleaned_data['INITIAL_FORMS'] -= 1
-        data[total_count_name] = formset.management_form.cleaned_data['TOTAL_FORMS'] - 1
-        data[initial_count_name] = formset.management_form.cleaned_data['INITIAL_FORMS'] - 1
-        formset.data = data
         return formset
 
     def post(self, request, *args, **kwargs):
@@ -458,7 +458,7 @@ class RoleChangeView(OfficerRequiredMixin,
             # Need to check if last extra form is causing issues
             if 'user' in formset.extra_forms[-1].errors:
                 # We should remove this form
-                formset = self.remove_extra_form(formset)
+                formset = remove_extra_form(formset)
         if formset.is_valid():
             return self.formset_valid(formset)
         else:
@@ -472,9 +472,6 @@ class RoleChangeView(OfficerRequiredMixin,
         formset = kwargs.get('formset', None)
         if formset is None:
             formset = self.construct_formset()
-        formset.form.base_fields['role'].choices = [('', '---------')] + CHAPTER_ROLES_CHOICES
-        formset.form.base_fields['user'].widget = autocomplete.ModelSelect2(
-            url='users:autocomplete', forward=(forward.Const('true', 'chapter'),))
         context['formset'] = formset
         context['input'] = Submit("action", "Submit")
         return context
@@ -532,7 +529,7 @@ class RoleChangeView(OfficerRequiredMixin,
 
 class RoleChangeNationalView(NatOfficerRequiredMixin,
                              LoginRequiredMixin, OfficerMixin, ModelFormSetView):
-    form_class = RoleChangeSelectForm
+    form_class = RoleChangeNationalSelectForm
     template_name = "forms/officer_national.html"
     factory_kwargs = {'extra': 1, 'can_delete': True}
     model = UserRoleChange
@@ -541,7 +538,6 @@ class RoleChangeNationalView(NatOfficerRequiredMixin,
         formset = super().construct_formset()
         for field_name in formset.forms[-1].fields:
             formset.forms[-1].fields[field_name].disabled = False
-        formset.form.base_fields['role'].choices = [('', '---------')] + NAT_OFFICERS_CHOICES
         return formset
 
     def get_success_url(self):
@@ -552,8 +548,16 @@ class RoleChangeNationalView(NatOfficerRequiredMixin,
         Handles POST requests, instantiating a formset instance with the passed
         POST variables and then checked for validity.
         """
-        self.object_list = self.get_queryset()
         formset = self.construct_formset()
+        for idx, form in enumerate(formset.forms):
+            if 'user' not in form.initial:
+                for field_name in form.fields:
+                    formset.forms[idx].fields[field_name].disabled = False
+        if not formset.is_valid():
+            # Need to check if last extra form is causing issues
+            if 'user' in formset.extra_forms[-1].errors:
+                # We should remove this form
+                formset = remove_extra_form(formset)
         if formset.is_valid():
             return self.formset_valid(formset)
         else:
@@ -568,12 +572,41 @@ class RoleChangeNationalView(NatOfficerRequiredMixin,
         formset = kwargs.get('formset', None)
         if formset is None:
             formset = self.construct_formset()
-        formset.form.base_fields['user'].widget = autocomplete.ModelSelect2(
-            url='users:autocomplete', forward=(forward.Const('false', 'chapter'),))
-        formset.form.base_fields['role'].choices = [('', '---------')] + NAT_OFFICERS_CHOICES
         context['formset'] = formset
         context['input'] = Submit("action", "Submit")
         return context
+
+    def formset_valid(self, formset, delete_only=False):
+        delete_list = []
+        for obj in formset.deleted_forms:
+            # We don't want to delete the value, just make them not current
+            # We also do not care about form, just get obj
+            instance = None
+            try:
+                instance = obj.clean()['id']
+            except KeyError:
+                continue
+            if instance:
+                instance.end = timezone.now() - timezone.timedelta(days=2)
+                instance.save()
+                delete_list.append(instance.user)
+        if delete_list:
+            messages.add_message(
+                self.request, messages.INFO,
+                f"You successfully removed the officers:\n"
+                f"{delete_list}")
+        if not delete_only:
+            update_list = []
+            for form in formset.forms:
+                if form.changed_data and 'DELETE' not in form.changed_data:
+                    form.save()
+                    update_list.append(form.instance.user)
+            if update_list:
+                messages.add_message(
+                    self.request, messages.INFO,
+                    f"You successfully updated the officers:\n"
+                    f"{update_list}")
+        return HttpResponseRedirect(reverse("forms:natoff"))
 
 
 class RiskManagementFormView(OfficerRequiredMixin,
