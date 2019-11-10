@@ -12,7 +12,7 @@ from tasks.models import Task, TaskDate, TaskChapter
 
 def get_ballot_attachment_upload_path(instance, filename):
     return os.path.join(
-        'ballots', instance.ballot_type,
+        'ballots', instance.type,
         f"{instance.slug}_{filename}")
 
 
