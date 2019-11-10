@@ -150,6 +150,9 @@
                   <li class="active dropdown-submenu">
                     <a class="nav-link" href="{% url 'forms:audit' %}">{% trans "Audit" %}</a>
                   </li>
+                  <li class="active dropdown-submenu">
+                    <a class="nav-link" href="{% url 'ballots:votelist' %}">{% trans "Ballots" %}</a>
+                  </li>
                 </ul>
               </li>
               </div>
@@ -160,7 +163,10 @@
                 <a class="nav-link dropdown-toggle" href="#" data-toggle="dropdown">{% trans "NatOff" %}</a>
                   <ul class="dropdown-menu">
                     <li class="active dropdown-submenu">
-                      <a class="nav-link" href="{% url 'regions:list' %}">{% trans "Regions" %}</a>
+                      <a class="nav-link" href="{% url 'ballots:list' %}">{% trans "Ballots" %}</a>
+                    </li>
+                    <li class="active dropdown-submenu">
+                      <a class="nav-link" href="{% url 'forms:natoff' %}">{% trans "Nat Officers" %}</a>
                     </li>
                     <li class="active dropdown-submenu">
                       <a class="nav-link" href="{% url 'regions:officers' 'national' %}">{% trans "All Officers" %}</a>

@@ -9,8 +9,8 @@ from django.core.validators import MinValueValidator, MaxValueValidator,\
     RegexValidator
 from address.models import AddressField
 from core.models import StartEndModel, YearTermModel, TODAY_END, CHAPTER_OFFICER, \
-    CHAPTER_ROLES_CHOICES, TimeStampedModel, NATIONAL_OFFICER, COL_OFFICER_ALIGN,\
-    CHAPTER_OFFICER_CHOICES
+    ALL_ROLES_CHOICES, TimeStampedModel, NATIONAL_OFFICER, COL_OFFICER_ALIGN,\
+    CHAPTER_OFFICER_CHOICES, CHAPTER_ROLES, NAT_OFFICERS, COUNCIL
 from chapters.models import Chapter
 
 
@@ -76,15 +76,7 @@ class User(AbstractUser):
         return self.roles.filter(end__gte=TODAY_END).first()
 
     def get_current_roles(self):
-        return self.roles.filter(end__gte=TODAY_END)
-
-    def chapter_officer(self):
-        """
-        An member can have multiple roles need to see if any are officer
-        :return: Bool if officer, set of officer roles
-        """
-        role_objs = self.get_current_roles()
-        officer_roles = set()
+        role_objs = self.roles.filter(end__gte=TODAY_END)
         current_roles = set()
         if role_objs is not None:
             for role_obj in role_objs:
@@ -92,8 +84,27 @@ class User(AbstractUser):
                 if role_name in COL_OFFICER_ALIGN:
                     role_name = COL_OFFICER_ALIGN[role_name]
                 current_roles.add(role_name)
-            # officer = not current_roles.isdisjoint(CHAPTER_OFFICER)
-            officer_roles = CHAPTER_OFFICER & current_roles
+        return current_roles
+
+    def get_user_role_level(self):
+        current_roles = self.get_current_roles()
+        if COUNCIL & current_roles:
+            return 'council', COUNCIL & current_roles
+        elif set(NAT_OFFICERS) & current_roles:
+            return 'nat_off', set(NAT_OFFICERS) & current_roles
+        elif self.chapter_officer():
+            return 'convention', self.chapter_officer()
+        else:
+            return '', current_roles
+
+    def chapter_officer(self):
+        """
+        An member can have multiple roles need to see if any are officer
+        :return: Bool if officer, set of officer roles
+        """
+        current_roles = self.get_current_roles()
+        # officer = not current_roles.isdisjoint(CHAPTER_OFFICER)
+        officer_roles = CHAPTER_OFFICER & current_roles
         if self.is_national_officer_group:
             if self.altered.all():
                 new_role = self.altered.first().role
@@ -114,23 +125,18 @@ class User(AbstractUser):
         return self.is_national_officer_group or self.is_chapter_officer_group
 
     def is_national_officer(self):
-        role_objs = self.get_current_roles()
-        officer = False
-        officer_roles = set()
-        current_roles = set()
-        if role_objs is not None:
-            for role_obj in role_objs:
-                role_name = role_obj.role.lower()
-                if role_name in COL_OFFICER_ALIGN:
-                    role_name = COL_OFFICER_ALIGN[role_name]
-                current_roles.add(role_name)
-            officer = not current_roles.isdisjoint(NATIONAL_OFFICER)
-            officer_roles = NATIONAL_OFFICER & current_roles
-        return officer
+        current_roles = self.get_current_roles()
+        officer_roles = set(NAT_OFFICERS) & current_roles
+        return officer_roles
+
+    def is_council_officer(self):
+        current_roles = self.get_current_roles()
+        officer_roles = COUNCIL & current_roles
+        return officer_roles
 
     @property
     def is_officer(self):
-        return len(self.chapter_officer()) > 0 or self.is_national_officer()
+        return len(self.chapter_officer()) > 0 or len(self.is_national_officer()) > 0
 
     def is_officer_group(self):
         groups = ['officer', 'natoff']
@@ -190,7 +196,7 @@ class UserStatusChange(StartEndModel, TimeStampedModel):
 
 
 class UserRoleChange(StartEndModel, TimeStampedModel):
-    ROLES = CHAPTER_ROLES_CHOICES
+    ROLES = ALL_ROLES_CHOICES
     user = models.ForeignKey(settings.AUTH_USER_MODEL,
                              on_delete=models.CASCADE,
                              related_name="roles")
@@ -201,16 +207,21 @@ class UserRoleChange(StartEndModel, TimeStampedModel):
         return self.role
 
     def save(self, *args, **kwargs):
-        off_group, created = Group.objects.get_or_create(name='officer')
+        off_group, _ = Group.objects.get_or_create(name='officer')
+        nat_group, _ = Group.objects.get_or_create(name='natoff')
         super().save(*args, **kwargs)
         self.clean_group_role()
         # Need to check current role, b/c user could have multiple
         current_role = self.user.get_current_role()
         if current_role:
             off_group.user_set.add(self.user)
+            if current_role in NAT_OFFICERS:
+                nat_group.user_set.add(self.user)
         else:
             self.user.groups.remove(off_group)
+            self.user.groups.remove(nat_group)
             off_group.user_set.remove(self.user)
+            nat_group.user_set.remove(self.user)
             self.user.save()
 
     def clean_group_role(self):
@@ -239,7 +250,14 @@ class UserRoleChange(StartEndModel, TimeStampedModel):
     @classmethod
     def get_current_roles(cls, user):
         return cls.objects.filter(
+            role__in=CHAPTER_ROLES,
             user__chapter=user.current_chapter,
+            start__lte=TODAY_END, end__gte=TODAY_END).order_by('user__last_name')
+
+    @classmethod
+    def get_current_natoff(cls):
+        return cls.objects.filter(
+            role__in=NAT_OFFICERS,
             start__lte=TODAY_END, end__gte=TODAY_END).order_by('user__last_name')
 
 

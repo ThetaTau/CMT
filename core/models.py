@@ -98,10 +98,27 @@ COL_OFFICER_ALIGN = {
     "vice president": "vice regent",
 }
 
+COUNCIL = {
+    'grand regent',
+    "grand scribe",
+    "grand treasurer",
+    "grand vice regent",
+    'grand marshal',
+    'grand inner guard',
+    'grand outer guard',
+    'council delegate',
+}
+
 NATIONAL_OFFICER = {
+    'national operations manager',
     'regional director',
+    'colony director',
+    'expansion director',
+    'professional development director',
+    'service director',
+    'alumni programs director',
     'national director',
-    'national officer'
+    'national officer',
 }
 
 COMMITTEE_CHAIR = {
@@ -131,14 +148,21 @@ COMMITTEE_CHAIR = {
 }
 
 
-ALL_OFFICERS = sorted(set.union(CHAPTER_OFFICER, NATIONAL_OFFICER))
-ALL_ROLES = sorted(set.union(CHAPTER_OFFICER, COMMITTEE_CHAIR, NATIONAL_OFFICER))
+NAT_OFFICERS = sorted(set.union(NATIONAL_OFFICER, COUNCIL))
+ALL_OFFICERS = sorted(set.union(CHAPTER_OFFICER, set(NAT_OFFICERS)))
+ALL_ROLES = sorted(set.union(set(ALL_OFFICERS), COMMITTEE_CHAIR))
 CHAPTER_ROLES = sorted(set.union(CHAPTER_OFFICER, COMMITTEE_CHAIR))
 
-ALL_OFFICERS_CHOICES = [(officer, officer.title()) for officer in ALL_OFFICERS]
-CHAPTER_OFFICER_CHOICES = [(officer, officer.title()) for officer in sorted(CHAPTER_OFFICER)]
-ALL_ROLES_CHOICES = [(role, role.title()) for role in ALL_ROLES]
-CHAPTER_ROLES_CHOICES = [(role, role.title()) for role in CHAPTER_ROLES]
+ALL_OFFICERS_CHOICES = sorted([(officer, officer.title()) for officer in ALL_OFFICERS],
+                              key=lambda x:x[0])
+CHAPTER_OFFICER_CHOICES = sorted([(officer, officer.title()) for officer in CHAPTER_OFFICER],
+                                 key=lambda x:x[0])
+ALL_ROLES_CHOICES = sorted([(role, role.title()) for role in ALL_ROLES],
+                           key=lambda x:x[0])
+NAT_OFFICERS_CHOICES = sorted([(role, role.title()) for role in NAT_OFFICERS],
+                              key=lambda x:x[0])
+CHAPTER_ROLES_CHOICES = sorted([(role, role.title()) for role in CHAPTER_ROLES],
+                               key=lambda x:x[0])
 
 
 def semester_start_date():
