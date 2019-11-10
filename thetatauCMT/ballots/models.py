@@ -74,7 +74,7 @@ class Ballot(TimeStampedModel):
 
     def save(self):
         self.slug = slugify(self.name)
-        if self.voters == 'convention':
+        if self.voters == 'convention' and not self.pk:
             new_task = Task(
                 name=self.name,
                 owner='regent',
