@@ -1,6 +1,7 @@
 import datetime
 from django import forms
 from django.utils import timezone
+from address.forms import AddressField
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Layout, Fieldset, Row, Column, Submit, Button
 from crispy_forms.bootstrap import FormActions, InlineField, StrictButton
@@ -102,6 +103,8 @@ class UserAlterForm(forms.ModelForm):
 
 
 class UserForm(forms.ModelForm):
+    address = AddressField()
+
     class Meta:
         model = User
         fields = ['name', 'major', 'graduation_year', 'phone_number', 'address']
