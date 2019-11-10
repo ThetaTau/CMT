@@ -1,6 +1,8 @@
 import json
 import datetime
 from copy import deepcopy
+from django.db.models import Q
+from django.core.mail import send_mail
 from django.utils.decorators import method_decorator
 from django.http.request import QueryDict
 from django.views.decorators.debug import sensitive_post_parameters
@@ -29,7 +31,8 @@ from .forms import InitiationFormSet, InitiationForm, InitiationFormHelper, Init
 from tasks.models import TaskChapter, Task
 from scores.models import ScoreType
 from submissions.models import Submission
-from core.models import CHAPTER_OFFICER, COL_OFFICER_ALIGN, SEMESTER
+from core.models import CHAPTER_OFFICER, COL_OFFICER_ALIGN, SEMESTER,\
+    CHAPTER_ROLES_CHOICES
 from users.models import UserRoleChange
 from users.notifications import NewOfficers
 from chapters.models import Chapter
@@ -40,7 +43,7 @@ from .models import Guard, Badge, Initiation, Depledge, StatusChange, RiskManage
     PledgeForm, PledgeProgram, Audit
 from .filters import AuditListFilter, PledgeProgramListFilter
 from .forms import AuditListFormHelper, RiskListFilter, PledgeProgramFormHelper
-from .notifications import EmailRMPSigned
+from .notifications import EmailRMPSigned, EmailPledgeOther
 
 
 sensitive_post_parameters_m = method_decorator(
@@ -57,12 +60,20 @@ def pledge_form(request):
     email = data['q36_schoolEmail']
     school = data['q37_schoolName']
     chapter = Chapter.get_school_chapter(school)
-    form = PledgeForm(
-        name=name,
-        email=email,
-        chapter=chapter
-    )
-    form.save()
+    if chapter is not None:
+        PledgeForm.objects.get_or_create(
+            name=name,
+            email=email,
+            chapter=chapter
+        )
+    else:
+        send_mail(
+            '[CMT] New Pledge Form Chapter',
+            f'There is a new school {school}',
+            'cmt@thetatau.org',
+            ['cmt@thetatau.org'],
+            fail_silently=False,
+        )
     return HttpResponse('Webhook received', status=200)
 
 
@@ -159,6 +170,13 @@ class InitiationView(OfficerRequiredMixin,
             formset = InitiationFormSet(prefix='initiates')
         formset.initial = [{'user': user.name,
                             'roll': self.next_badge+num} for num, user in enumerate(self.to_initiate)]
+        chapter = self.request.user.current_chapter
+        if chapter.colony:
+            formset.form.base_fields['badge'].queryset = \
+                Badge.objects.filter(Q(name__icontains='Colony'))
+        else:
+            formset.form.base_fields['badge'].queryset = \
+                Badge.objects.filter(~Q(name__icontains='Colony'))
         context['formset'] = formset
         context['helper'] = InitiationFormHelper()
         depledge_formset = kwargs.get('depledge_formset', None)
@@ -402,31 +420,48 @@ class RoleChangeView(OfficerRequiredMixin,
     form_class = RoleChangeSelectForm
     template_name = "forms/officer.html"
     factory_kwargs = {'extra': 1, 'can_delete': True}
-    prefix = 'selection'
     officer_edit = 'member roles'
     model = UserRoleChange
 
+    def construct_formset(self, initial=False):
+        formset = super().construct_formset()
+        for field_name in formset.forms[-1].fields:
+            formset.forms[-1].fields[field_name].disabled = False
+        formset.form.base_fields['role'].choices = [('', '---------')] + CHAPTER_ROLES_CHOICES
+        return formset
+
+    def remove_extra_form(self, formset, **kwargs):
+        tfc = formset.total_form_count()
+        del formset.forms[tfc - 1]
+        data = formset.data
+        total_count_name = '%s-%s' % (formset.management_form.prefix, 'TOTAL_FORMS')
+        initial_count_name = '%s-%s' % (formset.management_form.prefix, 'INITIAL_FORMS')
+        formset.management_form.cleaned_data['TOTAL_FORMS'] -= 1
+        formset.management_form.cleaned_data['INITIAL_FORMS'] -= 1
+        data[total_count_name] = formset.management_form.cleaned_data['TOTAL_FORMS'] - 1
+        data[initial_count_name] = formset.management_form.cleaned_data['INITIAL_FORMS'] - 1
+        formset.data = data
+        return formset
+
     def post(self, request, *args, **kwargs):
-        self.object_list = self.get_queryset()
+        """
+        Handles POST requests, instantiating a formset instance with the passed
+        POST variables and then checked for validity.
+        """
         formset = self.construct_formset()
-        action = request.POST['action']
-        for form in formset.forms:
-            form.fields['id'].required = False
-            form.empty_permitted = True
-        if action != 'Add Row' and not formset.is_valid():
+        for idx, form in enumerate(formset.forms):
+            if 'user' not in form.initial:
+                for field_name in form.fields:
+                    formset.forms[idx].fields[field_name].disabled = False
+        if not formset.is_valid():
             # Need to check if last extra form is causing issues
             if 'user' in formset.extra_forms[-1].errors:
                 # We should remove this form
                 formset = self.remove_extra_form(formset)
-        # formset = self.remove_id_field(formset)
-        if action == 'Add Row' or not formset.is_valid():
-            if action == 'Add Row':
-                formset = self.add_form(formset)
-            return self.render_to_response(self.get_context_data(formset=formset))
-        elif action == 'Delete Selected':
-            return self.formset_valid(formset, delete_only=True)
-        else:
+        if formset.is_valid():
             return self.formset_valid(formset)
+        else:
+            return self.formset_invalid(formset)
 
     def get_queryset(self):
         return UserRoleChange.get_current_roles(self.request.user)
@@ -437,43 +472,8 @@ class RoleChangeView(OfficerRequiredMixin,
         if formset is None:
             formset = self.construct_formset()
         context['formset'] = formset
-        # helper = RoleChangeSelectFormHelper()
-        # helper.add_input(Submit("submit", "Save"))
-        # context['helper'] = helper
         context['input'] = Submit("action", "Submit")
-        context['delete'] = Submit("action", "Delete Selected")
-        context['add'] = Submit("action", "Add Row")
         return context
-
-    def add_form(self, formset, **kwargs):
-        # add the form
-        tfc = formset.total_form_count()
-        formset.forms.append(formset._construct_form(tfc, **kwargs))
-        formset.forms[tfc].is_bound = False
-        formset.forms[tfc].empty_permitted = True
-        data = formset.data
-        # increase hidden form counts
-        total_count_name = '%s-%s' % (formset.management_form.prefix, 'TOTAL_FORMS')
-        initial_count_name = '%s-%s' % (formset.management_form.prefix, 'INITIAL_FORMS')
-        data[total_count_name] = formset.management_form.cleaned_data['TOTAL_FORMS'] + 1
-        data[initial_count_name] = formset.management_form.cleaned_data['INITIAL_FORMS'] + 1
-        formset.data = data
-        return formset
-
-    def remove_extra_form(self, formset, **kwargs):
-        # add the form
-        tfc = formset.total_form_count()
-        del formset.forms[tfc - 1]
-        data = formset.data
-        # increase hidden form counts
-        total_count_name = '%s-%s' % (formset.management_form.prefix, 'TOTAL_FORMS')
-        initial_count_name = '%s-%s' % (formset.management_form.prefix, 'INITIAL_FORMS')
-        formset.management_form.cleaned_data['TOTAL_FORMS'] -= 1
-        formset.management_form.cleaned_data['INITIAL_FORMS'] -= 1
-        data[total_count_name] = formset.management_form.cleaned_data['TOTAL_FORMS'] - 1
-        data[initial_count_name] = formset.management_form.cleaned_data['INITIAL_FORMS'] - 1
-        formset.data = data
-        return formset
 
     def formset_valid(self, formset, delete_only=False):
         delete_list = []
@@ -537,8 +537,7 @@ class RiskManagementFormView(OfficerRequiredMixin,
             messages.add_message(
                 self.request, messages.INFO,
                 f"RMP Previously signed this year, see previous submissions.")
-            return redirect(reverse('users:detail',
-                                    kwargs={'username': request.user.username})
+            return redirect(reverse('users:detail')
                             + '#submissions')
         return super().get(request, *args, **kwargs)
 
@@ -792,6 +791,9 @@ class PledgeProgramFormView(OfficerRequiredMixin,
                     extra_info={'unmodified': form.instance.manual != 'other'})
                 task_obj.submission_object = submit_obj
                 task_obj.save()
+                if form.instance.manual == 'other':
+                    EmailPledgeOther(
+                        self.request.user, form.instance.other_manual.file).send()
             messages.add_message(
                 self.request, messages.INFO,
                 f"You successfully submitted the Pledge Program!\n"
@@ -829,7 +831,10 @@ class AuditFormView(OfficerRequiredMixin, LoginRequiredMixin, OfficerMixin,
             return None
         else:
             if 'pk' in self.kwargs:
-                audit = Audit.objects.get(pk=self.kwargs['pk'])
+                try:
+                    audit = Audit.objects.get(pk=self.kwargs['pk'])
+                except Audit.DoesNotExist:
+                    return Audit.objects.last()
                 audit_chapter = audit.user.chapter
                 if audit_chapter == self.request.user.chapter:
                     return audit

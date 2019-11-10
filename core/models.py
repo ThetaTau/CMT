@@ -1,23 +1,12 @@
 import datetime
-import httplib2
-import warnings
 from datetime import timedelta, time
 from enum import Enum
 from django.db import models
 from django.utils import timezone
-from gdstorage.storage import GoogleDriveStorage
 TODAY = datetime.datetime.now().date()
 TOMORROW = TODAY + timedelta(1)
 TODAY_START = datetime.datetime.combine(TODAY, time())
 TODAY_END = datetime.datetime.combine(TOMORROW, time())
-
-
-try:
-    # Define Google Drive Storage
-    gd_storage = GoogleDriveStorage()
-except httplib2.ServerNotFoundError as e:
-    gd_storage = None
-    warnings.warn(f'Unable to connect to Google drive!\n{e}')
 
 
 def forever():
@@ -76,6 +65,23 @@ for i, year in enumerate(BIENNIUM_YEARS):
         'start': datetime.datetime(year, month_start, 1),
         'end': datetime.datetime(year, month_end, days),
     }
+
+
+def current_term():
+    return SEMESTER[datetime.datetime.now().month]
+
+
+def current_year():
+    return datetime.datetime.now().year
+
+
+def current_year_term_slug():
+    '''
+    Fall_2019
+    :return:
+    '''
+    term = {'fa': 'Fall', 'sp': 'Spring'}[current_term()]
+    return f"{term}_{current_year()}"
 
 
 CHAPTER_OFFICER = {

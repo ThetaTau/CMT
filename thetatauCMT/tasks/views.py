@@ -8,6 +8,7 @@ from django.db.utils import IntegrityError
 from django.views.generic import DetailView, UpdateView, RedirectView, CreateView
 from core.views import PagedFilteredTableView, RequestConfig, TypeFieldFilteredChapterAdd,\
     OfficerMixin, OfficerRequiredMixin
+from core.models import current_year_term_slug
 from .models import TaskChapter, TaskDate, Task
 from .tables import TaskTable
 from .filters import TaskListFilter

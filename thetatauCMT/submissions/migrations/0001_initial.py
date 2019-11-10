@@ -3,7 +3,6 @@ import warnings
 import httplib2
 from django.db import migrations, models
 import django.db.models.deletion
-import gdstorage.storage
 import submissions.models
 
 
@@ -15,11 +14,6 @@ class Migration(migrations.Migration):
         ('chapters', '0001_initial'),
         ('scores', '0001_initial'),
     ]
-    try:
-        storage = gdstorage.storage.GoogleDriveStorage()
-    except httplib2.ServerNotFoundError:
-        storage = None
-        warnings.warn("Unable to connect to Google drive!")
     operations = [
         migrations.CreateModel(
             name='Submission',
@@ -28,7 +22,7 @@ class Migration(migrations.Migration):
                 ('created', models.DateTimeField(auto_now_add=True)),
                 ('modified', models.DateTimeField(auto_now=True)),
                 ('date', models.DateTimeField(auto_now_add=True)),
-                ('file', models.FileField(storage=storage, upload_to=submissions.models.get_upload_path)),
+                ('file', models.FileField(upload_to=submissions.models.get_upload_path)),
                 ('name', models.CharField(max_length=50)),
                 ('score', models.FloatField(default=0)),
                 ('chapter', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='submissions', to='chapters.Chapter')),

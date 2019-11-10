@@ -66,8 +66,7 @@ class User(AbstractUser):
         return chapter
 
     def get_absolute_url(self):
-        return reverse('users:detail',
-                       kwargs={'username': self.username})
+        return reverse('users:detail')
 
     def get_current_status(self):
         return self.status.filter(start__lte=TODAY_END,
@@ -96,11 +95,10 @@ class User(AbstractUser):
             # officer = not current_roles.isdisjoint(CHAPTER_OFFICER)
             officer_roles = CHAPTER_OFFICER & current_roles
         if self.is_national_officer_group:
-            if 'local' in settings.SETTINGS_MODULE or 'staging' in settings.SETTINGS_MODULE:
-                if self.altered.all():
-                    new_role = self.altered.first().role
-                    if new_role is not None:
-                        officer_roles.add(new_role)
+            if self.altered.all():
+                new_role = self.altered.first().role
+                if new_role is not None and new_role != '':
+                    officer_roles.add(new_role)
         return officer_roles
 
     @property

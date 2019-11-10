@@ -55,15 +55,21 @@ class SubmissionUpdateView(OfficerRequiredMixin,
 
     def get(self, request, *args, **kwargs):
         submission_id = self.kwargs.get('pk')
-        submission = Submission.objects.get(pk=submission_id)
-        if "forms:" in submission.file.name:
-            path, args = submission.file.name, None
-            if ' ' in path:
-                path, args = path.split(' ')
-                url = reverse(path, args=[args])
-            else:
-                url = reverse(path)
-            return redirect(url)
+        try:
+            submission = Submission.objects.get(pk=submission_id)
+        except Submission.DoesNotExist:
+            messages.add_message(
+                request, messages.ERROR,
+                "Submission could not be found!")
+        else:
+            if "forms:" in submission.file.name:
+                path, args = submission.file.name, None
+                if ' ' in path:
+                    path, args = path.split(' ')
+                    url = reverse(path, args=[args])
+                else:
+                    url = reverse(path)
+                return redirect(url)
         return super().get(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):

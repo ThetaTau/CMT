@@ -5,7 +5,7 @@
     	<!-- NAME: 1:2 COLUMN -->
         <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Risk Management Policies Signed</title>
+        <title>Other Pledge Program Submitted</title>
 
     <style type="text/css">
 		body,#bodyTable,#bodyCell{
@@ -466,17 +466,14 @@
                 <table align="left" border="0" cellpadding="0" cellspacing="0" style="max-width: 100%;min-width: 100%;border-collapse: collapse;mso-table-lspace: 0pt;mso-table-rspace: 0pt;-ms-text-size-adjust: 100%;-webkit-text-size-adjust: 100%;" width="100%" class="mcnTextContentContainer">
                     <tbody><tr>
                         <td valign="top" class="mcnTextContent" style="padding: 0px 18px 9px;text-align: left;mso-table-lspace: 0pt;mso-table-rspace: 0pt;-ms-text-size-adjust: 100%;-webkit-text-size-adjust: 100%;color: #606060;font-family: Helvetica;font-size: 15px;line-height: 150%;">
-                            <h2 class="null" style="margin: 0;padding: 0;display: block;font-family: Helvetica;font-size: 30px;font-style: normal;font-weight: bold;line-height: 125%;letter-spacing: -1px;text-align: left;color: #606060 !important;">Risk Management Policies Signed</h2>
-Dear {{ user }},
+                            <h2 class="null" style="margin: 0;padding: 0;display: block;font-family: Helvetica;font-size: 30px;font-style: normal;font-weight: bold;line-height: 125%;letter-spacing: -1px;text-align: left;color: #606060 !important;">Other Pledge Program Submitted</h2>
+Dear Risk Management Committee,
                             <div id="hijacked"></div>
 <p>
-    Thank you for signing the Risk Management Policies of Theta Tau.</p>
-                            <p><strong>Attached is a final copy of "{{ file_name }}".</strong></p>
-                            <p>You can also view the document in <a href="{{ host }}{% url 'users:detail' %}#submissions">your Chapter Management Tool account</a>.</p>
-<h2 class="null" style="margin: 0;padding: 0;display: block;font-family: Helvetica;font-size: 26px;font-style: normal;font-weight: bold;line-height: 125%;letter-spacing: -.75px;text-align: left;color: #404040 !important;">Risk Management:</h2>
-If you see something, speak up!<br>
-Do not hesitate to reach out to your regional directors, or the risk management chair. <br>
-<a href="mailto:Stuart.Kardian@thetatau.org?subject=Risk%20Management%20Question%2FIssue" target="_blank" style="word-wrap: break-word;-ms-text-size-adjust: 100%;-webkit-text-size-adjust: 100%;color: #6DC6DD;font-weight: normal;text-decoration: underline;">Stuart Kardian</a>, 804-909-3486
+    {{ user }} from {{ user.chapter }} submitted an other/modified pledge program.</p>
+                            <p><strong>Attached is a copy of "{{ file_name }}".</strong></p>
+                            <p>Please review the document and reach out to <a href="mailto:{{ user.email }}">{{ user.email }}</a> with any questions/concerns.</p>
+                            <p>In H&T,<br>Chapter Management Tool</p>
                         </td>
                     </tr>
                 </tbody></table>

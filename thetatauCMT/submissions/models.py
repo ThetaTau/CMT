@@ -5,16 +5,15 @@ from django.db import models, transaction
 from django.contrib.contenttypes.fields import GenericRelation
 from django.utils import timezone
 from django.utils.text import slugify
-from core.models import TimeStampedModel, gd_storage
+from core.models import TimeStampedModel
 from scores.models import ScoreType
 from chapters.models import Chapter
 from tasks.models import TaskChapter
 
 
 def get_upload_path(instance, filename):
-    return os.path.join(
-        'media',
-        datetime.datetime.now().date().strftime("%Y/%m/%d"), filename)
+    return os.path.join('submissions', instance.type.slug,
+                        f"{instance.chapter.slug}_{filename}")
 
 
 class Submission(TimeStampedModel):
@@ -23,7 +22,7 @@ class Submission(TimeStampedModel):
                              related_name="submissions",
                              null=True,)
     date = models.DateField("Submission Date", default=timezone.now)
-    file = models.FileField(upload_to=get_upload_path, storage=gd_storage)
+    file = models.FileField(upload_to=get_upload_path)
     name = models.CharField("Submission Name", max_length=50)
     slug = models.SlugField(unique=False)
     type = models.ForeignKey(ScoreType, related_name="submissions",

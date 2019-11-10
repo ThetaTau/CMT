@@ -46,7 +46,7 @@ After a multi-year effort that included education professionals interviewing stu
   If your chapter will change programs, please email <a href="mailto:cmt@thetatau.org">cmt@thetatau.org</a></div>
 </div>
 <div {% if current_program %}hidden{% endif %}>
-  <form method="POST">
+  <form enctype="multipart/form-data" method="POST">
     <b>Select which manual version your chapter is using for the school year:</b>
   {{ form.manual|as_crispy_field }}
     {% if form.manual.errors %}

@@ -5,9 +5,6 @@ from .models import User
 
 
 class UserTable(tables.Table):
-    name = tables.LinkColumn('users:detail',
-                             args=[A('username')])
-
     class Meta:
         model = User
         fields = ('name', 'badge_number', 'email',
