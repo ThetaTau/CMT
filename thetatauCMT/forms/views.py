@@ -561,6 +561,7 @@ class RoleChangeNationalView(NatOfficerRequiredMixin,
         if formset.is_valid():
             return self.formset_valid(formset)
         else:
+            self.object_list = self.get_queryset()
             return self.formset_invalid(formset)
 
     def get_queryset(self):
