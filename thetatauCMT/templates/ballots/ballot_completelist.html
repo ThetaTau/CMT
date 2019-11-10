@@ -26,7 +26,12 @@
         </tr>
         <tr>
             <th>Attachement:</th>
-            <td colspan="3">{{ object.attachment }}</td>
+          <td colspan="3">
+            {% if object.attachment %}
+            <a href="{{ object.attachment.url }}">{{ object.attachment }}</a></td>
+            {% else %}
+              No attachment provided.
+            {% endif %}
         </tr>
         <tr>
             <th>Ayes: {{ object.ayes }}</th>
