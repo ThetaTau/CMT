@@ -5,6 +5,7 @@ from django.shortcuts import redirect, reverse
 from django.http.request import QueryDict
 from django.db import models, transaction
 from django.db.utils import IntegrityError
+from django.utils.text import slugify
 from django.views.generic import DetailView, UpdateView, RedirectView, CreateView
 from core.views import PagedFilteredTableView, RequestConfig, TypeFieldFilteredChapterAdd,\
     OfficerMixin, OfficerRequiredMixin
@@ -28,6 +29,8 @@ class TaskCompleteView(OfficerRequiredMixin,
         task = TaskDate.objects.get(pk=task_date_id).task
         if task.resource:
             if 'http' not in task.resource:
+                if 'ballots' in task.resource:
+                    return redirect(reverse(task.resource, args=(slugify(task.name),)))
                 return redirect(reverse(task.resource))
             else:
                 return redirect(task.resource)

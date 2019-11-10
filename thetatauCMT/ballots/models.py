@@ -7,6 +7,7 @@ from django.urls import reverse
 from django.utils.text import slugify
 from core.models import TimeStampedModel, ALL_OFFICERS_CHOICES
 from users.models import UserRoleChange
+from tasks.models import Task, TaskDate, TaskChapter
 
 
 def get_ballot_attachment_upload_path(instance, filename):
@@ -73,6 +74,21 @@ class Ballot(TimeStampedModel):
 
     def save(self):
         self.slug = slugify(self.name)
+        if self.voters == 'convention':
+            new_task = Task(
+                name=self.name,
+                owner='regent',
+                type='form',
+                resource='ballots:vote',
+                description=f"{self.TYPES.get_value(self.type)}: {self.description}",
+            )
+            new_task.save()
+            due_date = TaskDate(
+                task=new_task,
+                school_type='all',
+                date=self.due_date,
+            )
+            due_date.save()
         super().save()
 
     @property
@@ -157,3 +173,19 @@ class BallotComplete(TimeStampedModel):
                                related_name="completed")
     motion = models.CharField(max_length=20, choices=[x.value for x in MOTION])
     role = models.CharField(max_length=50, choices=ROLES)
+
+    def save(self):
+        natoffs = UserRoleChange.get_current_natoff().values_list('user__pk', flat=True)
+        if self.ballot.voters == 'convention' and self.user.pk not in natoffs:
+            task = Task.objects.filter(
+                name=self.ballot.name,
+                ).first()
+            task_date = TaskDate.objects.filter(
+                task=task
+            ).first()
+            task_complete = TaskChapter(
+                task=task_date,
+                chapter=self.user.chapter,
+            )
+            task_complete.save()
+        super().save()
