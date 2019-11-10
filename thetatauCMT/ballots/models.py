@@ -183,9 +183,10 @@ class BallotComplete(TimeStampedModel):
             task_date = TaskDate.objects.filter(
                 task=task
             ).first()
-            task_complete = TaskChapter(
-                task=task_date,
-                chapter=self.user.chapter,
-            )
-            task_complete.save()
+            if not TaskChapter.check_previous(task_date, self.user.chapter):
+                task_complete = TaskChapter(
+                    task=task_date,
+                    chapter=self.user.chapter,
+                )
+                task_complete.save()
         super().save()
