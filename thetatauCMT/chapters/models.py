@@ -286,3 +286,6 @@ class ChapterCurricula(models.Model):
                                 on_delete=models.CASCADE,
                                 related_name="curricula")
     major = models.CharField(max_length=100)
+
+    def __str__(self):
+        return self.major

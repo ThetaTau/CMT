@@ -11,7 +11,7 @@ from .models import Initiation, Depledge, StatusChange, RiskManagement,\
 from core.models import CHAPTER_ROLES_CHOICES, NAT_OFFICERS_CHOICES
 from users.models import User, UserRoleChange
 from regions.models import Region
-from core.models import CHAPTER_OFFICER, COMMITTEE_CHAIR
+from chapters.models import Chapter, ChapterCurricula
 
 
 class SetNoValidateField(forms.CharField):
@@ -564,6 +564,10 @@ class RiskListFilter(forms.Form):
 
 
 class PledgeFormFull(forms.ModelForm):
+    school_names = sorted([(x.pk, x.school) for x in Chapter.objects.all()],
+                          key=lambda x: x[1])
+    school_names = [('', '---------')] + school_names
+    school_name = forms.ChoiceField(choices=school_names)
     other_college_choice = forms.ChoiceField(
         label="Have you ever attended any other college?",
         choices=[('true', 'Yes'), ('false', 'No')], initial='false')
@@ -583,10 +587,8 @@ class PledgeFormFull(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.fields['major'].queryset = ChapterCurricula.objects.none()
         self.helper = FormHelper()
-        # self.helper.form_class = 'form-horizontal'
-        # self.helper.label_class = 'col-lg-8'
-        # self.helper.field_class = 'col-lg-8'
         self.helper.layout = Layout(
             Accordion(
                 AccordionGroup(
@@ -621,7 +623,7 @@ class PledgeFormFull(forms.ModelForm):
                     Row(
                         Column('school_name', ),
                         Column('major', ),
-                        Column('grad_date', ),
+                        Column('grad_date_year', ),
                     ),
                     'other_degrees',
                     'relative_members',

@@ -27,6 +27,10 @@ urlpatterns = [
         view=views.pledge_form,
         name='pledge_form'),
     url(
+        regex=r'^load-majors/$',
+        view=views.load_majors,
+        name='ajax_load_majors'),
+    url(
         regex=r'^pledgeform_full/$',
         view=views.PledgeFormView.as_view(),
         name='pledgeform'),

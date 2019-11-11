@@ -11,6 +11,7 @@ from django.core.files.base import ContentFile
 from django.contrib import messages
 from django.urls import reverse
 from django.utils import timezone
+from django.shortcuts import render
 from django import forms
 from django.views.generic import UpdateView
 from django.views.generic.edit import FormView
@@ -36,7 +37,7 @@ from core.models import CHAPTER_OFFICER, COL_OFFICER_ALIGN, SEMESTER,\
     NAT_OFFICERS_CHOICES, CHAPTER_ROLES_CHOICES
 from users.models import UserRoleChange
 from users.notifications import NewOfficers
-from chapters.models import Chapter
+from chapters.models import Chapter, ChapterCurricula
 from regions.models import Region
 from .tables import GuardTable, BadgeTable, InitiationTable, DepledgeTable, \
     StatusChangeTable, PledgeFormTable, AuditTable, RiskFormTable, PledgeProgramTable
@@ -1000,6 +1001,13 @@ class AuditListView(NatOfficerRequiredMixin,
         self.filter.request = self.request
         self.filter.form.helper = self.formhelper_class()
         return self.filter.qs
+
+
+def load_majors(request):
+    chapter_id = request.GET.get('chapter')
+    majors = ChapterCurricula.objects.filter(
+        chapter__pk=chapter_id).order_by('major')
+    return render(request, 'forms/majors_dropdown_list_options.html', {'majors': majors})
 
 
 class PledgeFormView(FormView):

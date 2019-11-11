@@ -7,6 +7,19 @@
   {% csrf_token %}
   {% crispy form form.helper %}
 <script type="text/javascript">
+$("#id_school_name").change(function () {
+      var url = "{% url 'forms:ajax_load_majors' %}";  // get the url of the `load_majors` view
+      var chapterId = $(this).val();  // get the selected chapter ID from the HTML input
+      $.ajax({                       // initialize an AJAX request
+        url: url,                    // set the url of the request
+        data: {
+          'chapter': chapterId       // add the chapter id to the GET parameters
+        },
+        success: function (data) {   // `data` is the return of the `load_major` view function
+          $("#id_major").html(data);  // replace the contents of the major input with the data that came from the server
+        }
+      });
+    });
   $(document).ready(function() {
     $('#div_id_other_college').hide();
     $('#div_id_explain_expelled_org').hide();
