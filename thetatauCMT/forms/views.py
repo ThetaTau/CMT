@@ -14,7 +14,7 @@ from django.utils import timezone
 from django.shortcuts import render
 from django import forms
 from django.views.generic import UpdateView
-from django.views.generic.edit import FormView
+from django.views.generic.edit import FormView, CreateView
 from django.views.decorators.http import require_POST
 from django.views.decorators.csrf import csrf_exempt
 from django.shortcuts import redirect
@@ -1010,10 +1010,13 @@ def load_majors(request):
     return render(request, 'forms/majors_dropdown_list_options.html', {'majors': majors})
 
 
-class PledgeFormView(FormView):
+class PledgeFormView(CreateView):
     form_class = PledgeFormFull
     template_name = "forms/pledge_form.html"
 
     def get_success_url(self):
-        return reverse('home')
-
+        messages.add_message(
+            self.request, messages.INFO,
+            f"You successfully submitted the Pledge form! "
+            f"A confirmation email was sent to your school email.")
+        return reverse('forms:pledgeform')
