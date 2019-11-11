@@ -1,5 +1,5 @@
 import re
-import time
+import time as base_time
 import datetime
 from datetime import timedelta, time
 from enum import Enum
@@ -245,7 +245,7 @@ def validate_year(value):
 
     # Check not before this year:
     year = int(value)
-    thisyear = time.localtime()[0]
+    thisyear = base_time.localtime()[0]
     if year < thisyear:
         raise ValidationError(u'%s is a year in the past; please enter a current or future year.' % value)
 
