@@ -563,11 +563,14 @@ class RiskListFilter(forms.Form):
                                choices=Region.region_choices())
 
 
+class SchoolModelChoiceField(forms.ModelChoiceField):
+    def label_from_instance(self, obj):
+        return f"{obj.school}"
+
+
 class PledgeFormFull(forms.ModelForm):
-    school_names = sorted([(x.pk, x.school) for x in Chapter.objects.all()],
-                          key=lambda x: x[1])
-    school_names = [('', '---------')] + school_names
-    school_name = forms.ChoiceField(choices=school_names)
+    school_name = SchoolModelChoiceField(
+        queryset=Chapter.objects.all().order_by('school'))
     birth_date = forms.DateField(
         label="Birth Date",
         widget=DatePicker(options={"format": "M/DD/YYYY"},
@@ -588,11 +591,20 @@ class PledgeFormFull(forms.ModelForm):
 
     class Meta:
         model = Pledge
-        fields = '__all__'
+        exclude = ['created', 'modified']
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['major'].queryset = ChapterCurricula.objects.none()
+        if 'school_name' in self.data:
+            try:
+                chapter_id = int(self.data.get('school_name'))
+                self.fields['major'].queryset = ChapterCurricula.objects.filter(
+                    chapter__pk=chapter_id).order_by('major')
+            except (ValueError, TypeError):
+                pass  # invalid input from the client; ignore and fallback to empty City queryset
+        elif self.instance.pk:
+            self.fields['major'].queryset = self.instance.school_name.major_set.order_by('major')
         self.helper = FormHelper()
         self.helper.layout = Layout(
             Accordion(
