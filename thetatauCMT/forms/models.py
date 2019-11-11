@@ -514,10 +514,12 @@ class Pledge(TimeStampedModel):
     phone_regex = RegexValidator(
         regex=r'^\+?1?\d{9,15}$',
         message="Phone number must be entered in the format: '+999999999'. Up to 15 digits allowed.")
-    phone_mobile = models.CharField(_('Mobile Phone'), validators=[phone_regex],
-                                    max_length=17, blank=True)
-    phone_home = models.CharField(_('Home Phone'), validators=[phone_regex],
-                                  max_length=17, blank=True)
+    phone_mobile = models.CharField(
+        _('Mobile Phone'), validators=[phone_regex], max_length=17,
+        help_text="Format: 9999999999 no spaces, dashes, etc.")
+    phone_home = models.CharField(
+        _('Home Phone'), validators=[phone_regex], max_length=17,
+        help_text="Format: 9999999999 no spaces, dashes, etc.")
     address = AddressField(on_delete=models.PROTECT)
     birth_date = models.DateField()
     birth_place = models.CharField(
