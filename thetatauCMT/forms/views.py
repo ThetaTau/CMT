@@ -28,7 +28,7 @@ from .forms import InitiationFormSet, InitiationForm, InitiationFormHelper, Init
     InitDeplSelectFormHelper, DepledgeFormSet, DepledgeFormHelper, StatusChangeSelectForm,\
     StatusChangeSelectFormHelper, GraduateForm, GraduateFormSet, CSMTFormSet, GraduateFormHelper, CSMTFormHelper,\
     RoleChangeSelectForm, RiskManagementForm, RoleChangeNationalSelectForm,\
-    PledgeProgramForm, AuditForm
+    PledgeProgramForm, AuditForm, PledgeFormFull
 from tasks.models import TaskChapter, Task
 from scores.models import ScoreType
 from submissions.models import Submission
@@ -1000,3 +1000,12 @@ class AuditListView(NatOfficerRequiredMixin,
         self.filter.request = self.request
         self.filter.form.helper = self.formhelper_class()
         return self.filter.qs
+
+
+class PledgeFormView(FormView):
+    form_class = PledgeFormFull
+    template_name = "forms/pledge_form.html"
+
+    def get_success_url(self):
+        return reverse('home')
+

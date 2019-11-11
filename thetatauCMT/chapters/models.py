@@ -138,7 +138,7 @@ class Chapter(models.Model):
                              help_text="Greek letter abbreviation")
     active = models.BooleanField(default=True)
     colony = models.BooleanField(default=False)
-    school = models.CharField(max_length=50, blank=True)
+    school = models.CharField(max_length=50, blank=True, unique=True)
     latitude = models.DecimalField(max_digits=22, decimal_places=16,
                                    blank=True, null=True)
     longitude = models.DecimalField(max_digits=22, decimal_places=16,
@@ -279,7 +279,6 @@ class Chapter(models.Model):
         except cls.DoesNotExist:
             warnings.warn("Could not find school")
             return None
-
 
 
 class ChapterCurricula(models.Model):

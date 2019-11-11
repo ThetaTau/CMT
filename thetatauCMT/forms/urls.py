@@ -27,6 +27,10 @@ urlpatterns = [
         view=views.pledge_form,
         name='pledge_form'),
     url(
+        regex=r'^pledgeform_full/$',
+        view=views.PledgeFormView.as_view(),
+        name='pledgeform'),
+    url(
         regex=r'^pledgeprogram/$',
         view=views.PledgeProgramFormView.as_view(),
         name='pledge_program'),
