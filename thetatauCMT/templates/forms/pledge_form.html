@@ -4,6 +4,16 @@
 
 {% block head_title %}{% trans "Pledge Form" %}{% endblock %}
 {% block content %}
+  <h1>Prospective New Member / Pledge Form</h1>
+  Complete the form below to begin the membership selection process
+  <hr>
+  <p>Each candidate for pledging is obliged to answer all questions on the following
+    pages as a formal pledge as given herein.</p>
+  <p>The questions in this form are asked to give the candidate information as to
+    the aims and ideals of the Fraternity and some knowledge of the obligations
+    assumed by reason of membership.</p>
+  <p>This form is confidential within the Fraternity.
+    To be completed at time of pledging by candidates for student membership.</p>
   {% csrf_token %}
   {% crispy form form.helper %}
 <script type="text/javascript">
