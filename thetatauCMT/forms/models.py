@@ -7,7 +7,7 @@ from django.contrib.auth.models import Group
 from django.core.validators import MaxValueValidator, RegexValidator
 from django.conf import settings
 from django.utils import timezone
-from core.models import TimeStampedModel, YearTermModel
+from core.models import TimeStampedModel, YearTermModel, validate_year
 from django.utils.translation import gettext_lazy as _
 from address.models import AddressField
 from multiselectfield import MultiSelectField
@@ -528,9 +528,9 @@ class Pledge(TimeStampedModel):
                                     related_name="pledge_forms_full")
     major = models.ForeignKey(ChapterCurricula, on_delete=models.CASCADE,
                               related_name="pledges")
-    grad_date = models.DateField(
-        _('Expected date of graduation'),
-        help_text="The year closest to your expected date of graduation")
+    grad_date_year = models.IntegerField(
+        _('Expected date of graduation'), validators=[validate_year],
+        help_text="The year closest to your expected date of graduation in YYYY format.")
     other_degrees = models.CharField(
         _('College degrees already received'), max_length=60, blank=True,
         help_text="Name of Major/Field of that Degree. If none, leave blank")
