@@ -568,6 +568,11 @@ class PledgeFormFull(forms.ModelForm):
                           key=lambda x: x[1])
     school_names = [('', '---------')] + school_names
     school_name = forms.ChoiceField(choices=school_names)
+    birth_date = forms.DateField(
+        label="Birth Date",
+        widget=DatePicker(options={"format": "M/DD/YYYY"},
+                          attrs={'autocomplete': 'off'},
+                          ))
     other_college_choice = forms.ChoiceField(
         label="Have you ever attended any other college?",
         choices=[('true', 'Yes'), ('false', 'No')], initial='false')
@@ -623,8 +628,8 @@ class PledgeFormFull(forms.ModelForm):
                     Row(
                         Column('school_name', ),
                         Column('major', ),
-                        Column('grad_date_year', ),
                     ),
+                    'grad_date_year',
                     'other_degrees',
                     'relative_members',
                     'other_greeks',
