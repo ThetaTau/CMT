@@ -168,16 +168,21 @@ CHAPTER_ROLES_CHOICES = sorted([(role, role.title()) for role in CHAPTER_ROLES],
                                key=lambda x:x[0])
 
 
-def semester_start_date():
+def semester_encompass_start_end_date(given_date=None):
     '''
-    Determine the starting date of the current semester
+    Determine the start and end date of the semester including given date
     :return: date
     '''
-    semester = SEMESTER[datetime.datetime.now().month]
+    if given_date is None:
+        given_date = datetime.datetime.now()
+    semester = SEMESTER[given_date.month]
     start_month = 1
+    end_month = 7
     if semester == 'fa':
-        start_month = 7
-    return datetime.datetime(TODAY_END.year, start_month, 1)
+        # start in July and end in January 1
+        start_month, end_month = end_month, start_month
+    return (datetime.datetime(given_date.year, start_month, 1),
+            datetime.datetime(given_date.year, end_month, 1))
 
 
 def academic_encompass_start_end_date(given_date=None):
