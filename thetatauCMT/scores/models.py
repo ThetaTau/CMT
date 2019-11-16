@@ -215,7 +215,9 @@ class ScoreType(models.Model):
                 year=date.year,
                 term=term
             )
-        score_chapter.score = self.chapter_score(chapter)
+        score = self.chapter_score(chapter)
+        score = min(score, self.term_points)
+        score_chapter.score = score
         score_chapter.save()
 
 
