@@ -157,9 +157,7 @@ class ScoreType(models.Model):
                 percent_attendance = min(obj.members / actives, 1)
             formula_out = formula_out.replace('memberATT', str(percent_attendance))
         if 'MEETINGS' in formula_out:
-            # meeting_attend = obj.calculate_meeting_attendance()
-            meeting_attend = '0'
-            formula_out = formula_out.replace('MEETINGS', str(meeting_attend))
+            return obj.calculate_meeting_attendance(obj.date)
         if 'MODIFIED' in formula_out:
             # 20*UNMODIFIED+10*MODIFIED
             if extra_info is not None:
