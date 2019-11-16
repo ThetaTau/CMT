@@ -112,14 +112,15 @@ class ScoreType(models.Model):
             if score_info['id'] in score_values_ids:
                 for score_value in scores_values.filter(id=score_info['id']):
                     year = score_value['chapters__year'] - BIENNIUM_YEARS[0]
+                    term = score_value['chapters__term']
                     # if year = 0 or 2 continue
                     offset = {0: 1, 2: 4}
                     if year in offset:
-                        if year == 0 and [score_value['chapters__term']] == 'sp':
+                        if year == 0 and term == 'sp':
                             continue
                         offset = offset[year]
                     else:
-                        offset = {'fa': 3, 'sp': 2}[score_value['chapters__term']]
+                        offset = {'fa': 3, 'sp': 2}[term]
                     score_info[f"score{offset}"] = score_value['chapters__score']
             total = 0.0
             for key in ["score1", "score2", "score3", "score4"]:
