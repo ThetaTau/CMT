@@ -311,7 +311,7 @@ class YearTermModel(models.Model):
         """
         month = date.month
         term = SEMESTER[month]
-        min_month, max_month = {'sp': (0, 6), 'fa': (7, 12)}[term]
+        min_month, max_month = {'sp': (1, 7), 'fa': (7, 1)}[term]
         return datetime.date(date.year, min_month, 1), datetime.date(date.year, max_month, 1)
 
 
