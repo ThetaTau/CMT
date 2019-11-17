@@ -230,3 +230,28 @@ class ScoreChapter(YearTermModel):
                              on_delete=models.PROTECT,
                              related_name="chapters")
     score = models.FloatField(default=0)
+
+    @classmethod
+    def type_score_biennium(cls, date=None, chapters=None):
+        if date is None:
+            query = cls.objects.filter(year__gte=BIENNIUM_YEARS[0]).\
+                exclude(year=BIENNIUM_YEARS[0], term='sp')
+        else:
+            term = ScoreChapter.get_term(date)
+            query = cls.objects.filter(year=date.year, term=term)
+        if chapters is None:
+            chapters = Chapter.objects.all()
+        scores = query.filter(chapter__in=chapters).\
+            values('chapter', 'type__section').\
+            annotate(section_score=models.Sum('score'),
+                     region=models.F('chapter__region__name'),
+                     chapter_name=models.F('chapter__name')).order_by('chapter_name')
+        grouped_scores = {}
+        for score in scores:
+            chapter = score['chapter']
+            score[f"{score.pop('type__section')}"] = score.pop('section_score')
+            chapter_dict = grouped_scores.get(chapter,
+                                              {'Bro': 0, 'Ops': 0, 'Ser': 0, 'Pro': 0})
+            chapter_dict.update(score)
+            grouped_scores[chapter] = chapter_dict
+        return grouped_scores.values()

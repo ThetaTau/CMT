@@ -10,6 +10,11 @@ urlpatterns = [
         name='list'
     ),
     url(
+        regex=r'^chapters/$',
+        view=views.ChapterScoreListView.as_view(),
+        name='chapterlist'
+    ),
+    url(
         regex=r'^~redirect/$',
         view=views.ScoreRedirectView.as_view(),
         name='redirect'

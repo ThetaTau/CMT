@@ -65,7 +65,7 @@ class PagedFilteredTableView(SingleTableView):
         else:
             qs = other_qs
         cancel = self.request.GET.get('cancel', False)
-        request_get = self.request.GET.copy()
+        request_get = kwargs.get('request_get', self.request.GET.copy())
         if cancel:
             request_get = QueryDict()
         if self.filter_chapter:
@@ -73,6 +73,9 @@ class PagedFilteredTableView(SingleTableView):
         self.filter = self.filter_class(request_get,
                                         queryset=qs)
         self.filter.form.helper = self.formhelper_class()
+        if kwargs.get('clean_date', False):
+            self.filter.form.full_clean()
+            self.filter.form.cleaned_data.pop('date')
         return self.filter.qs
 
     def post(self, request, *args, **kwargs):
