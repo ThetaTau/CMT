@@ -178,11 +178,13 @@ def semester_encompass_start_end_date(given_date=None):
     semester = SEMESTER[given_date.month]
     start_month = 1
     end_month = 7
+    _year = given_date.year
     if semester == 'fa':
         # start in July and end in January 1
         start_month, end_month = end_month, start_month
+        _year += 1
     return (datetime.datetime(given_date.year, start_month, 1),
-            datetime.datetime(given_date.year, end_month, 1))
+            datetime.datetime(_year, end_month, 1))
 
 
 def academic_encompass_start_end_date(given_date=None):
@@ -290,6 +292,10 @@ class YearTermModel(models.Model):
             self.term = SEMESTER[datetime.datetime.now().month]
         super().save(*args, **kwargs)
 
+    def get_date(self):
+        month = {'fa': 8, 'sp': 2}[self.term]
+        return datetime.datetime(self.year, month, 1)
+
     @staticmethod
     def get_term(date):
         return SEMESTER[date.month]
@@ -311,8 +317,12 @@ class YearTermModel(models.Model):
         """
         month = date.month
         term = SEMESTER[month]
+        _year = date.year
+        if term == 'fa':
+            # start in July and end in January 1
+            _year += 1
         min_month, max_month = {'sp': (1, 7), 'fa': (7, 1)}[term]
-        return datetime.date(date.year, min_month, 1), datetime.date(date.year, max_month, 1)
+        return datetime.date(date.year, min_month, 1), datetime.date(_year, max_month, 1)
 
 
 def combine_annotations(user_queryset):
