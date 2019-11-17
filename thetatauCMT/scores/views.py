@@ -77,12 +77,13 @@ class ChapterScoreListView(LoginRequiredMixin, OfficerMixin, PagedFilteredTableV
     def get_queryset(self):
         request_get = self.request.GET.copy()
         date_info = request_get.get('date', '')
+        cancel = self.request.GET.get('cancel', False)
         qs = super().get_queryset(
             request_get=request_get,
             clean_date=True,
         )
         date = None
-        if date_info:
+        if date_info and not cancel:
             date = BIENNIUM_FILTERS[(date_info, date_info.replace('_', ' '))][0]
         data = ScoreChapter.type_score_biennium(
             date=date,
