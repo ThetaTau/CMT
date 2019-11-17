@@ -96,7 +96,7 @@ class ScoreType(models.Model):
             pass
         if total is None:
             total = 0
-        return total
+        return round(min(total, self.term_points), 2)
 
     @classmethod
     def annotate_chapter_score(cls, chapter, qs=None):
@@ -216,7 +216,6 @@ class ScoreType(models.Model):
                 term=term
             )
         score = self.chapter_score(chapter, date)
-        score = min(score, self.term_points)
         score_chapter.score = score
         score_chapter.save()
 
