@@ -158,7 +158,7 @@ class ScoreType(models.Model):
                 percent_attendance = min(obj.members / actives, 1)
             formula_out = formula_out.replace('memberATT', str(percent_attendance))
         if 'MEETINGS' in formula_out:
-            return obj.calculate_meeting_attendance(obj.date)
+            return obj.calculate_meeting_attendance(obj.chapter, obj.date)
         if 'MODIFIED' in formula_out:
             # 20*UNMODIFIED+10*MODIFIED
             if extra_info is not None:
@@ -215,7 +215,7 @@ class ScoreType(models.Model):
                 year=date.year,
                 term=term
             )
-        score = self.chapter_score(chapter)
+        score = self.chapter_score(chapter, date)
         score = min(score, self.term_points)
         score_chapter.score = score
         score_chapter.save()
@@ -255,3 +255,9 @@ class ScoreChapter(YearTermModel):
             chapter_dict.update(score)
             grouped_scores[chapter] = chapter_dict
         return grouped_scores.values()
+
+    def update_score(self):
+        date = self.get_date()
+        score_val = self.type.chapter_score(self.chapter, date)
+        self.score = score_val
+        self.save()
