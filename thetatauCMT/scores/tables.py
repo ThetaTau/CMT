@@ -39,6 +39,7 @@ class ChapterScoreTable(tables.Table):
     operate = tables.Column(accessor='Ops')
     professional = tables.Column(accessor='Pro')
     service = tables.Column(accessor='Ser')
+    total = tables.Column()
 
     class Meta:
         attrs = {"class": "table-striped table-bordered"}

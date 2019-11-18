@@ -253,6 +253,9 @@ class ScoreChapter(YearTermModel):
                                               {'Bro': 0, 'Ops': 0, 'Ser': 0, 'Pro': 0})
             chapter_dict.update(score)
             grouped_scores[chapter] = chapter_dict
+        for chapter, score in grouped_scores.items():
+            grouped_scores[chapter]['total'] = round(
+                score['Bro'] + score['Ops'] + score['Ser'] + score['Pro'], 2)
         return grouped_scores.values()
 
     def update_score(self):
