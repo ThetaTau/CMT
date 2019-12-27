@@ -118,6 +118,12 @@ class Chapter(models.Model):
         ('semester', 'Semester'),
         ('quarter', 'Quarter'),
     ]
+    RECOGNITION = [
+        ('fraternity', 'Recognized as a Fraternity'),
+        ('org', 'Recognized as a Student Organization NOT a Fraternity'),
+        ('other', 'Recognized but not as a Fraternity or Student Organization'),
+        ('not', 'Not Recognized by University'),
+    ]
 
     name = models.CharField(max_length=50)
     region = models.ForeignKey(Region, on_delete=models.PROTECT,
@@ -126,7 +132,10 @@ class Chapter(models.Model):
     email = models.EmailField(_('email address'), blank=True)
     website = models.URLField(blank=True)
     facebook = models.URLField(blank=True)
-    address = AddressField(on_delete=models.SET_NULL, blank=True, null=True, unique=True)
+    address = AddressField(
+        verbose_name=_('Mailing Address'),
+        help_text="We periodically need to mail things (shingles, badges, etc) to your chapter.",
+        on_delete=models.SET_NULL, blank=True, null=True, unique=True)
     balance = models.DecimalField(default=0, decimal_places=2,
                                   max_digits=7,
                                   help_text="Balance chapter owes.")
@@ -147,6 +156,21 @@ class Chapter(models.Model):
         default='semester',
         max_length=10,
         choices=TYPES
+    )
+    council = models.CharField(
+        verbose_name=_('Name of Council'),
+        help_text="The name of the council of which your Chapter is a member, " +
+                  "for example the IFC or PFC.  Please write 'none' if you " +
+                  "are not recognized as a Fraternity or not a member of a council.",
+        default='none',
+        max_length=55,
+    )
+    recognition = models.CharField(
+        verbose_name=_('University Recognition'),
+        help_text="Please indicate if your chapter is recognized by your host college or university.",
+        default='not',
+        max_length=10,
+        choices=RECOGNITION
     )
 
     def __str__(self):
