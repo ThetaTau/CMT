@@ -51,6 +51,10 @@ class User(AbstractUser):
             # Newly created object, so set user_id
             # Combination of badge number and chapter abbr, eg. X1311
             self.user_id = f"{self.chapter.greek}{self.badge_number}"
+        if self.name == '':
+            self.name = self.first_name + ' ' + self.last_name
+        if self.username == '':
+            self.username = self.email
         super(User, self).save(*args, **kwargs)
 
     def __str__(self):

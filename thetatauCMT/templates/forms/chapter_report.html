@@ -11,7 +11,7 @@
       <h2>{{ object.name }} in the {{ object.region }} Region</h2>
     <h3>Update Chapter Information:</h3>
     <p>Only can be updated by chapter officers.</p>
-    <form class="chapter" method="POST">
+    <form class="report" enctype="multipart/form-data" method="POST">
       {% csrf_token %}
       <fieldset
         {% if not request.is_officer or request.user.current_chapter != object %}
@@ -19,10 +19,11 @@
         {% endif %}
       >
         {{ forms.report.media }}
+        <div>{{ forms.report.management_form|crispy }}</div>
         {{ forms.report|crispy }}
       </fieldset>
     {% if request.is_officer and request.user.current_chapter == object %}
-      <button class="btn btn-primary" name='action' value='chapter' type="submit">Update Chapter Information</button>
+      <button class="btn btn-primary" name='action' value='report' type="submit">Update Chapter Information</button>
     {% endif %}
     </form>
       <br>

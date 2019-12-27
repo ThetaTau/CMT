@@ -214,9 +214,9 @@ class Chapter(models.Model):
         return self.actives() | self.pledges()
 
     @property
-    def faculty(self):
+    def advisors(self):
         # Do not annotate, need the queryset not a list
-        return self.members.filter(status__status__in=["faculty", ],
+        return self.members.filter(status__status__in=["advisor", ],
                                    status__start__lte=TODAY_END,
                                    status__end__gte=TODAY_END
                                    )
@@ -294,6 +294,15 @@ class Chapter(models.Model):
         return self.members.filter(~models.Q(status__status='pnm'),
                                    ~models.Q(badge_number__gt=8000)
                                    ).aggregate(models.Max('badge_number'))
+
+    @property
+    def next_advisor_number(self):
+        advisor = self.members.filter(
+            status__status__in=["advisor", ]).order_by('badge_number').last()
+        badge_number = 7000
+        if advisor:
+            badge_number = advisor.badge_number + 1
+        return badge_number
 
     @classmethod
     def schools(cls):

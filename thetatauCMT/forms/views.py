@@ -26,6 +26,7 @@ from dal import autocomplete, forward
 from extra_views import FormSetView, ModelFormSetView
 from easy_pdf.views import PDFTemplateResponseMixin
 from core.forms import MultiFormsView
+from core.models import TODAY_START, forever
 from core.views import OfficerMixin, OfficerRequiredMixin, RequestConfig,\
     PagedFilteredTableView, NatOfficerRequiredMixin
 from .forms import InitiationFormSet, InitiationForm, InitiationFormHelper, InitDeplSelectForm,\
@@ -36,7 +37,7 @@ from .forms import InitiationFormSet, InitiationForm, InitiationFormHelper, Init
 from tasks.models import TaskChapter, Task
 from scores.models import ScoreType
 from submissions.models import Submission
-from users.models import User
+from users.models import User, UserStatusChange
 from core.models import CHAPTER_OFFICER, COL_OFFICER_ALIGN, SEMESTER,\
     NAT_OFFICERS_CHOICES, CHAPTER_ROLES_CHOICES
 from users.models import UserRoleChange
@@ -626,16 +627,36 @@ class ChapterInfoReportView(LoginRequiredMixin, OfficerMixin, MultiFormsView):
     }
 
     def get_success_url(self, form_name=None):
-        return reverse('chapters:detail')
+        return reverse('forms:report')
 
     def faculty_form_valid(self, formset):
         if formset.has_changed():
-            formset.save()
+            for form in formset.forms:
+                if form.changed_data and 'DELETE' not in form.changed_data:
+                    chapter = self.request.user.current_chapter
+                    if form.instance.badge_number == 999999999:
+                        form.instance.chapter = chapter
+                        form.instance.badge_number = chapter.next_advisor_number
+                    user = form.save()
+                    try:
+                        status = UserStatusChange.objects.get(user=user)
+                    except UserStatusChange.DoesNotExist:
+                        UserStatusChange(
+                            user=user,
+                            status='advisor',
+                            start=TODAY_START,
+                            end=forever(),
+                        ).save()
+                elif form.changed_data and 'DELETE' in form.changed_data:
+                    user = form.instance
+                    status = UserStatusChange.objects.get(user=user)
+                    status.end = TODAY_START
+                    status.save()
         return HttpResponseRedirect(self.get_success_url())
 
     def create_faculty_form(self, **kwargs):
         chapter = self.request.user.current_chapter
-        facultys = chapter.faculty
+        facultys = chapter.advisors
         extra = 0
         if not facultys:
             extra = 1
@@ -671,6 +692,8 @@ class ChapterInfoReportView(LoginRequiredMixin, OfficerMixin, MultiFormsView):
         report = form['report']
         info = form['info']
         if report.has_changed():
+            report.instance.user = self.request.user
+            report.instance.chapter = self.request.user.current_chapter
             report.save()
         if info.has_changed():
             info.save()

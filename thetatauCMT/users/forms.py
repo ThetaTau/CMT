@@ -224,5 +224,4 @@ class ExternalUserForm(forms.ModelForm):
     class Meta:
         model = User
         fields = ['first_name', 'last_name', 'title',
-                  'phone_number', 'email', 'chapter', ]
-        widgets = {'chapter': forms.HiddenInput()}
+                  'phone_number', 'email', ]
