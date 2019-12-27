@@ -386,6 +386,23 @@ class StatusChange(TimeStampedModel):
                 ).save()
 
 
+def get_chapter_report_upload_path(instance, filename):
+    return os.path.join(
+        'submissions', 'chapter_report',
+        f"{instance.chapter.slug}_{instance.year}_{instance.term}_{filename}")
+
+
+class ChapterReport(YearTermModel, TimeStampedModel):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL,
+                             on_delete=models.CASCADE,
+                             related_name="chapter_form")
+    chapter = models.ForeignKey(Chapter, on_delete=models.CASCADE,
+                                related_name="info")
+    report = models.FileField(
+        upload_to=get_chapter_report_upload_path,
+        null=True, blank=True)
+
+
 class RiskManagement(YearTermModel):
     user = models.ForeignKey(settings.AUTH_USER_MODEL,
                              on_delete=models.CASCADE,

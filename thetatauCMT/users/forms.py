@@ -218,3 +218,11 @@ class UserOrgForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         if hide_user:
             self.fields['user'].widget = forms.HiddenInput()
+
+
+class ExternalUserForm(forms.ModelForm):
+    class Meta:
+        model = User
+        fields = ['first_name', 'last_name', 'title',
+                  'phone_number', 'email', 'chapter', ]
+        widgets = {'chapter': forms.HiddenInput()}

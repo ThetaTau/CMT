@@ -84,6 +84,7 @@ THIRD_PARTY_APPS = [
     'tempus_dominus',
     'easy_pdf',
     'djmoney',
+    'betterforms',
 ]
 LOCAL_APPS = [
     'thetatauCMT.users.apps.UsersConfig',

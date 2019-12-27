@@ -22,6 +22,7 @@ class User(AbstractUser):
     name = models.CharField(_('Member Name'), blank=True, max_length=255)
     modified = models.DateTimeField(auto_now=True)
     badge_number = models.PositiveIntegerField(default=999999999)
+    title = models.CharField(_('Title'), blank=True, max_length=255)
     user_id = models.CharField(max_length=20,
                                unique=True,
                                help_text="Combination of badge number and chapter abbr, eg. X1311")
@@ -182,6 +183,7 @@ class UserStatusChange(StartEndModel, TimeStampedModel):
         ('pnm', 'prospective'),
         ('away', 'away'),
         ('depledge', 'depledge'),
+        ('advisor', 'advisor'),
     ]
     user = models.ForeignKey(settings.AUTH_USER_MODEL,
                              on_delete=models.CASCADE,

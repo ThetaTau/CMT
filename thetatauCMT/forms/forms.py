@@ -1,17 +1,19 @@
 from django import forms
 from django.utils import timezone
 from dal import autocomplete, forward
+from betterforms.multiform import MultiModelForm
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Layout, Fieldset, Row, Submit, ButtonHolder, Column
 from crispy_forms.bootstrap import FormActions, Field, InlineField,\
     StrictButton, InlineRadios, Accordion, AccordionGroup, Div
 from tempus_dominus.widgets import DatePicker
 from .models import Initiation, Depledge, StatusChange, RiskManagement,\
-    PledgeProgram, Audit, Pledge
+    PledgeProgram, Audit, Pledge, ChapterReport
 from core.models import CHAPTER_ROLES_CHOICES, NAT_OFFICERS_CHOICES
 from users.models import User, UserRoleChange
 from regions.models import Region
 from chapters.models import Chapter, ChapterCurricula
+from chapters.forms import ChapterForm
 
 
 class SetNoValidateField(forms.CharField):
@@ -356,6 +358,19 @@ class RoleChangeSelectFormHelper(FormHelper):
         'start',
         'end',
     )
+
+
+class ChapterReportForm(forms.ModelForm):
+    class Meta:
+        model = ChapterReport
+        fields = ['report', ]
+
+
+class ChapterInfoReportForm(MultiModelForm):
+    form_classes = {
+        'report': ChapterReportForm,
+        'info': ChapterForm,
+    }
 
 
 class RiskManagementForm(forms.ModelForm):

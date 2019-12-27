@@ -213,6 +213,14 @@ class Chapter(models.Model):
     def current_members(self):
         return self.actives() | self.pledges()
 
+    @property
+    def faculty(self):
+        # Do not annotate, need the queryset not a list
+        return self.members.filter(status__status__in=["faculty", ],
+                                   status__start__lte=TODAY_END,
+                                   status__end__gte=TODAY_END
+                                   )
+
     def actives(self):
         # Do not annotate, need the queryset not a list
         return self.members.filter(status__status__in=["active", "activepend", "alumnipend"],

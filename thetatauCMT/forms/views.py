@@ -2,7 +2,9 @@ import json
 import datetime
 from copy import deepcopy
 from django.db.models import Q
+from django.conf import settings
 from django.core.mail import send_mail
+from django.forms.models import modelformset_factory
 from django.utils.decorators import method_decorator
 from django.http.request import QueryDict
 from django.views.decorators.debug import sensitive_post_parameters
@@ -23,6 +25,7 @@ from crispy_forms.layout import Submit
 from dal import autocomplete, forward
 from extra_views import FormSetView, ModelFormSetView
 from easy_pdf.views import PDFTemplateResponseMixin
+from core.forms import MultiFormsView
 from core.views import OfficerMixin, OfficerRequiredMixin, RequestConfig,\
     PagedFilteredTableView, NatOfficerRequiredMixin
 from .forms import InitiationFormSet, InitiationForm, InitiationFormHelper, InitDeplSelectForm,\
@@ -33,9 +36,11 @@ from .forms import InitiationFormSet, InitiationForm, InitiationFormHelper, Init
 from tasks.models import TaskChapter, Task
 from scores.models import ScoreType
 from submissions.models import Submission
+from users.models import User
 from core.models import CHAPTER_OFFICER, COL_OFFICER_ALIGN, SEMESTER,\
     NAT_OFFICERS_CHOICES, CHAPTER_ROLES_CHOICES
 from users.models import UserRoleChange
+from users.forms import ExternalUserForm
 from users.notifications import NewOfficers
 from chapters.models import Chapter, ChapterCurricula
 from regions.models import Region
@@ -44,7 +49,8 @@ from .tables import GuardTable, BadgeTable, InitiationTable, DepledgeTable, \
 from .models import Guard, Badge, Initiation, Depledge, StatusChange, RiskManagement,\
     PledgeForm, PledgeProgram, Audit
 from .filters import AuditListFilter, PledgeProgramListFilter
-from .forms import AuditListFormHelper, RiskListFilter, PledgeProgramFormHelper
+from .forms import AuditListFormHelper, RiskListFilter, PledgeProgramFormHelper,\
+    ChapterInfoReportForm
 from .notifications import EmailRMPSigned, EmailPledgeOther
 
 
@@ -610,6 +616,73 @@ class RoleChangeNationalView(NatOfficerRequiredMixin,
                     f"You successfully updated the officers:\n"
                     f"{update_list}")
         return HttpResponseRedirect(reverse("forms:natoff"))
+
+
+class ChapterInfoReportView(LoginRequiredMixin, OfficerMixin, MultiFormsView):
+    template_name = 'forms/chapter_report.html'
+    form_classes = {
+        'report': ChapterInfoReportForm,
+        'faculty': ExternalUserForm,
+    }
+
+    def get_success_url(self, form_name=None):
+        return reverse('chapters:detail')
+
+    def faculty_form_valid(self, formset):
+        if formset.has_changed():
+            formset.save()
+        return HttpResponseRedirect(self.get_success_url())
+
+    def create_faculty_form(self, **kwargs):
+        chapter = self.request.user.current_chapter
+        facultys = chapter.faculty
+        extra = 0
+        if not facultys:
+            extra = 1
+        factory = modelformset_factory(
+            User,
+            form=ExternalUserForm,
+            **{
+                'can_delete': True,
+                'extra': extra
+            })
+        # factory.form.base_fields['chapter'].queryset = chapter
+        formset_kwargs = {
+            'queryset': facultys,
+            'form_kwargs': {
+                'initial': {'chapter': chapter}
+            }
+        }
+        if self.request.method in ('POST', 'PUT'):
+            formset_kwargs.update({
+                'data': self.request.POST.copy(),
+            })
+        return factory(**formset_kwargs)
+
+    def get_form_kwargs(self, form_name, bind_form=False):
+        kwargs = super().get_form_kwargs(form_name, bind_form)
+        kwargs.update(instance={
+            'info': self.get_object(),
+            # 'report': self.object.current_report,
+        })
+        return kwargs
+
+    def report_form_valid(self, form):
+        report = form['report']
+        info = form['info']
+        if report.has_changed():
+            report.save()
+        if info.has_changed():
+            info.save()
+        return HttpResponseRedirect(self.get_success_url())
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context.update({"object": self.get_object(), })
+        return context
+
+    def get_object(self):
+        return self.request.user.current_chapter
 
 
 class RiskManagementFormView(OfficerRequiredMixin,
