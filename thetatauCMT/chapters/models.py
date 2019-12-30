@@ -1,4 +1,5 @@
 import warnings
+from enum import Enum
 from datetime import timedelta
 from django.db import models
 from django.db.utils import ProgrammingError
@@ -118,12 +119,18 @@ class Chapter(models.Model):
         ('semester', 'Semester'),
         ('quarter', 'Quarter'),
     ]
-    RECOGNITION = [
-        ('fraternity', 'Recognized as a Fraternity'),
-        ('org', 'Recognized as a Student Organization NOT a Fraternity'),
-        ('other', 'Recognized but not as a Fraternity or Student Organization'),
-        ('not', 'Not Recognized by University'),
-    ]
+
+    class RECOGNITION(Enum):
+        fraternity = ('fraternity', 'Recognized as a Fraternity')
+        org = ('org', 'Recognized as a Student Organization NOT a Fraternity')
+        other = ('other', 'Recognized but not as a Fraternity or Student Organization')
+        not_rec = ('not_rec', 'Not Recognized by University')
+
+        @classmethod
+        def get_value(cls, member):
+            if member == 'not':
+                member = 'not_rec'
+            return cls[member.lower()].value[1]
 
     name = models.CharField(max_length=50)
     region = models.ForeignKey(Region, on_delete=models.PROTECT,
@@ -168,9 +175,9 @@ class Chapter(models.Model):
     recognition = models.CharField(
         verbose_name=_('University Recognition'),
         help_text="Please indicate if your chapter is recognized by your host college or university.",
-        default='not',
+        default='not_rec',
         max_length=10,
-        choices=RECOGNITION
+        choices=[x.value for x in RECOGNITION]
     )
 
     def __str__(self):

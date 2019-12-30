@@ -22,9 +22,21 @@ class ChapterTable(tables.Table):
             'name',
             'region',
             'school',
+            'address',
+            'school_type',
+            'council',
+            'recognition',
             'website',
             'facebook',
         )
+
+    def __init__(self, officer=False, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if not officer:
+            self.exclude = ('address', 'council', 'recognition', )
+
+    # def render_recognition(self, value):
+    #     return Chapter.RECOGNITION.get_value(value)
 
 
 class AuditTable(tables.Table):

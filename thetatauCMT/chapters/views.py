@@ -123,3 +123,9 @@ class ChapterListView(OfficerRequiredMixin,
     table_class = ChapterTable
     filter_class = ChapterListFilter
     formhelper_class = ChapterFormHelper
+    table_pagination = False
+
+    def get_table_kwargs(self):
+        return {
+            'officer': self.request.user.is_national_officer(),
+        }
