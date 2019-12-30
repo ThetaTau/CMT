@@ -8,9 +8,46 @@
 <div class="container">
   <div class="row">
     <div class="col-sm-12">
-      <h2>{{ object.name }} in the {{ object.region }} Region</h2>
-    <h3>Update Chapter Information:</h3>
-    <p>Only can be updated by chapter officers.</p>
+    <h1>Theta Tau Report</h1>
+    <h3>Instructions</h3>
+    <ol>
+      <li>
+        Each chapter officer should read and become sufficiently knowledgeable
+        about the document at <a href="thetatau.org/report">thetatau.org/report</a>
+        to be able to answer questions from the rest of the chapter.
+      </li>
+      <li>
+        Each chapter officer should sign the report.
+      </li>
+      <li>
+        Each member of the chapter should sign the report.
+      </li>
+      <li>
+        During the chapter meeting immediately after you pledge in your new
+        members for the semester, a period of time should be devoted to covering
+        the materials in this report.</br>Specifically:</br>
+        <ul>
+          <li>
+            Marshall should review the Risk Management Policy and expectations with the members;
+          </li>
+          <li>
+            Treasurer should review the chapter’s finances, specifically
+            including all fees and expenses associated with membership in the chapter and;
+          </li>
+          <li>
+            Vice Regent should give an overview of the new member education program,
+            as well as explaining the definition of hazing, explaining the national
+            resources available to combat hazing and explain any campus-based resources for the same purpose.
+          </li>
+        </ul>
+      </li>
+      <li>
+        The designated chapter officer should scan each section individually
+        (preferably on a scanner and not with a scanner app on your phone) and
+        upload the form below.
+      </li>
+    </ol>
+    <h3>Report Upload and Update Chapter Information:</h3>
     <form class="report" enctype="multipart/form-data" method="POST">
       {% csrf_token %}
       <fieldset
@@ -28,6 +65,8 @@
     </form>
       <br>
     <h3>Advisors:</h3>
+    <p>We occasionally need to speak with someone on your campus and it is helpful
+      to know who your advisor or Fraternity & Student Life staffer is so that we may direct our questions to them.</p>
     {{ forms.faculty.media }}
   <form action="" method="post">
     {% csrf_token %}
