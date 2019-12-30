@@ -82,6 +82,7 @@ class Command(BaseCommand):
         users = User.objects.exclude(
             status__start__lte=TODAY_END,
             status__end__gte=TODAY_END)
+        # !!! CHECK NOT BACKWARDS!!!
         # The final group should be test group
         for user in users:
             UserStatusChange(
@@ -90,22 +91,37 @@ class Command(BaseCommand):
                 start=datetime.datetime.now() - datetime.timedelta(days=1),
                 end=forever()
             ).save()
-        # This cleared duplicate status
-        dup_status = User.objects.filter(
-            status__start__lte=TODAY_END,
-            status__end__gte=TODAY_END)\
-                .annotate(models.Count('id'))\
-                .order_by()\
-                .filter(id__count__gt=1)
-        for user in dup_status:
-            active_status = user.status.get(status='active')
-            other_statuss = user.status.filter(~models.Q(status='active'),
-                                           start__lte=TODAY_END,
-                                           end__gte=TODAY_END
-                                           )
+        # This cleared duplicate status, different status name, same times & same status name
+            dup_status = User.objects.filter(
+                status__start__lte=TODAY_END,
+                status__end__gte=TODAY_END)\
+                    .annotate(models.Count('id'))\
+                    .order_by()\
+                    .filter(id__count__gt=1)
+        total = len(dup_status)
+        for count, user in enumerate(dup_status):
+            current_statuss = user.status.filter(
+                start__lte=TODAY_END,
+                end__gte=TODAY_END).values_list('status', flat=True)
+            print(f"{count + 1}/{total} {user} Current duplicates: {current_statuss}")
+            status_check = ['alumni', 'alumnipend', 'away', 'depledge', 'active']
+            for status in status_check:
+                if status in current_statuss:
+                    current_status = list(user.status.filter(
+                        models.Q(status=status), start__lte=TODAY_END, end__gte=TODAY_END))
+                    other_statuss = list(user.status.filter(
+                        ~models.Q(status=status), start__lte=TODAY_END, end__gte=TODAY_END))
+                    if len(current_status) > 1:
+                        print(f"    Current status same status! {current_status}")
+                        main_status = current_status[0]
+                        remaining_statuss = current_status[1:]
+                        for remaining_status in remaining_statuss:
+                            remaining_status.delete()
+                    else:
+                        current_status = current_status[0]
             for other_status in other_statuss:
                 if other_status.status == 'Colony':
                     other_status.delete()
                     continue
-                other_status.end = active_status.start - datetime.timedelta(days=1)
+                other_status.end = current_status.start - datetime.timedelta(days=1)
                 other_status.save()
