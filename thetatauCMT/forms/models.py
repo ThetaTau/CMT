@@ -398,9 +398,7 @@ class ChapterReport(YearTermModel, TimeStampedModel):
                              related_name="chapter_form")
     chapter = models.ForeignKey(Chapter, on_delete=models.CASCADE,
                                 related_name="info")
-    report = models.FileField(
-        upload_to=get_chapter_report_upload_path,
-        null=True, blank=True)
+    report = models.FileField(upload_to=get_chapter_report_upload_path)
 
 
 class RiskManagement(YearTermModel):
