@@ -708,8 +708,7 @@ class ChapterInfoReportView(LoginRequiredMixin, OfficerMixin, MultiFormsView):
         return self.request.user.current_chapter
 
 
-class RiskManagementFormView(OfficerRequiredMixin,
-                             LoginRequiredMixin, OfficerMixin,
+class RiskManagementFormView(LoginRequiredMixin, OfficerMixin,
                              FormView):
     form_class = RiskManagementForm
     template_name = "forms/rmp.html"
@@ -724,50 +723,37 @@ class RiskManagementFormView(OfficerRequiredMixin,
         return super().get(request, *args, **kwargs)
 
     def form_valid(self, form):
-        current_roles = self.request.user.chapter_officer()
-        if not current_roles or current_roles == {''}:
-            messages.add_message(
-                self.request, messages.ERROR,
-                f"Only executive officers can sign RMP: {CHAPTER_OFFICER}\n"
-                f"Your current roles are: {current_roles}")
-            return super().form_invalid(form)
+        current_role = self.request.user.get_current_role()
+        if not current_role:
+            current_role = self.request.user.get_current_status()
+            current_role = current_role.status
         else:
-            form.instance.user = self.request.user
-            form.instance.role = list(current_roles)[0].replace(' ', '_')
-            form.save()
-            task = Task.objects.filter(name="Risk Management Form",
-                                       owner__in=current_roles).first()
-            chapter = self.request.user.current_chapter
-            next_date = task.incomplete_dates_for_task_chapter(chapter).first()
-            if next_date:
-                task_obj = TaskChapter(task=next_date, chapter=chapter,
-                                       date=timezone.now(),)
-                score_type = ScoreType.objects.filter(
-                    slug="rmp").first()
-                view = RiskManagementDetailView.as_view()
-                new_request = self.request
-                new_request.path = f'/forms/rmp-complete/{form.instance.id}'
-                new_request.method = 'GET'
-                risk_file = view(new_request, pk=form.instance.id)
-                file_name = f"Risk Management Form {self.request.user}"
-                submit_obj = Submission(
-                    user=self.request.user,
-                    name=file_name,
-                    type=score_type,
-                    chapter=self.request.user.current_chapter,
-                )
-                submit_obj.file.save(f"{file_name}.pdf",
-                                     ContentFile(risk_file.content))
-                submit_obj.save()
-                form.instance.submission = submit_obj
-                form.save()
-                task_obj.submission_object = submit_obj
-                task_obj.save()
-                EmailRMPSigned(self.request.user, risk_file.content, file_name).send()
-                messages.add_message(
-                    self.request, messages.INFO,
-                    f"You successfully signed the RMP!\n"
-                    f"Your current roles are: {current_roles}")
+            current_role = current_role.role
+        form.instance.user = self.request.user
+        form.instance.role = current_role.replace(' ', '_')
+        form.save()
+        view = RiskManagementDetailView.as_view()
+        new_request = self.request
+        new_request.path = f'/forms/rmp-complete/{form.instance.id}'
+        new_request.method = 'GET'
+        risk_file = view(new_request, pk=form.instance.id)
+        file_name = f"Risk Management Form {self.request.user}"
+        score_type = ScoreType.objects.filter(slug="rmp").first()
+        submit_obj = Submission(
+            user=self.request.user,
+            name=file_name,
+            type=score_type,
+            chapter=self.request.user.current_chapter,
+        )
+        submit_obj.file.save(f"{file_name}.pdf",
+                             ContentFile(risk_file.content))
+        submit_obj.save()
+        form.instance.submission = submit_obj
+        form.save()
+        EmailRMPSigned(self.request.user, risk_file.content, file_name).send()
+        messages.add_message(
+            self.request, messages.INFO,
+            f"You successfully signed the RMP and Agreements of Theta Tau!\n")
         return super().form_valid(form)
 
     def get_success_url(self):
@@ -779,6 +765,11 @@ class RiskManagementDetailView(LoginRequiredMixin, OfficerMixin,
     model = RiskManagement
     form_class = RiskManagementForm
     template_name = "forms/rmp_pdf.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['is_officer'] = self.request.user.is_officer
+        return context
 
 
 class RiskManagementListView(NatOfficerRequiredMixin,

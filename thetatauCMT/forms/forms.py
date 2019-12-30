@@ -391,6 +391,9 @@ class RiskManagementForm(forms.ModelForm):
     indemnification = forms.BooleanField(label="I understand the Indemnification, Authority, and Signatory Policy")
     electronic_agreement = forms.BooleanField(label="I agree ")
     terms_agreement = forms.BooleanField(label="I accept the Electronic Terms of Service")
+    photo_release = forms.BooleanField(label="I accept the Photo and Image Release")
+    arbitration = forms.BooleanField(label="I accept the Arbitration Agreement")
+    dues = forms.BooleanField(label="I accept the Dues Agreement")
     agreement = forms.BooleanField(label="I agree")
 
     class Meta:
@@ -413,6 +416,9 @@ class RiskManagementForm(forms.ModelForm):
             'indemnification',
             'agreement',
             'electronic_agreement',
+            'photo_release',
+            'arbitration',
+            'dues',
             'terms_agreement',
             'typed_name',
         ]

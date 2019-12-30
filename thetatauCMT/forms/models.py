@@ -427,6 +427,9 @@ class RiskManagement(YearTermModel):
     indemnification = models.BooleanField()
     agreement = models.BooleanField()
     electronic_agreement = models.BooleanField()
+    photo_release = models.BooleanField(default=False)
+    arbitration = models.BooleanField(default=False)
+    dues = models.BooleanField(default=False)
     terms_agreement = models.BooleanField()
     typed_name = models.CharField(max_length=255)
 
@@ -470,10 +473,8 @@ class RiskManagement(YearTermModel):
 
     @staticmethod
     def user_signed_this_year(user):
-        current_roles = user.chapter_officer()
         start, end = academic_encompass_start_end_date()
-        signed_before = user.risk_form.filter(
-            role__in=current_roles, date__gte=start, date__lte=end)
+        signed_before = user.risk_form.filter(date__gte=start, date__lte=end)
         return signed_before
 
 

@@ -2,5 +2,5 @@
 
 {% load i18n %}
 {% block content %}
-    {% include "forms/rmp_details.html" with form=form complete_form=object%}
+    {% include "forms/rmp_details.html" with form=form complete_form=object is_officer=is_officer %}
 {% endblock %}
