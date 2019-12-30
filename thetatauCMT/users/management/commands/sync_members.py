@@ -203,12 +203,11 @@ class Command(BaseCommand):
                 if status == 'active':
                     active_list.append(user_obj.pk)
                 end = forever().date()  # datetime.date(graduation, 7, 1)
-                try:
-                    status_obj = UserStatusChange.objects.get(
-                        user=user_obj,
-                        status=status
-                    )
-                except UserStatusChange.DoesNotExist:
+                status_obj = UserStatusChange.objects.filter(
+                    user=user_obj,
+                    status=status
+                )
+                if len(status_obj) == 0:
                     change_messages.append(f"New status for user {user_obj} {status}")
                     status_obj = UserStatusChange(
                         user=user_obj,
@@ -217,8 +216,11 @@ class Command(BaseCommand):
                         end=end
                     )
                     status_obj.save()
+                elif len(status_obj) > 1:
+                    print(f"Duplicate status for {user_obj}")
+                    continue
                 else:
-                    # status_obj.start = timezone.now(),
+                    status_obj = status_obj.first()
                     if status_obj.end != end:
                         change_messages.append(f"Update Status: {status_obj} for {status_obj.user}"
                                                f" Change: end; old: {status_obj.end} new: {end}")
