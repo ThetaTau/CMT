@@ -51,6 +51,7 @@
           disabled
         {% endif %}
       >
+        {{ forms.chapter.media }}
         {{ forms.chapter|crispy }}
       </fieldset>
     {% if request.is_officer and request.user.current_chapter == object %}
