@@ -1,0 +1,16 @@
+*** Theta Tau Report Submitted ***
+------------------------------------------------------------
+Dear Risk Management Committee,
+{{ user }} from {{ user.chapter }} submitted submitted the Theta Tau Report.
+Attached is a copy of "{{ file_name }}".
+Please review the document and reach out to {{ user.email }} with any questions/concerns.
+In H&T,
+Chapter Management Tool
+============================================================
+** Facebook (https://www.facebook.com/thetatau/)
+** Theta Tau (thetatau.org)
+** Email (mailto:cmt@thetatau.org)
+Copyright 2018-2020 Theta Tau, All rights reserved.
+
+The purpose of Theta Tau is to develop and maintain a high standard of professional interest among its members,
+and to unite them in a strong bond of fraternal fellowship.

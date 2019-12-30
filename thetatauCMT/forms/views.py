@@ -52,7 +52,7 @@ from .models import Guard, Badge, Initiation, Depledge, StatusChange, RiskManage
 from .filters import AuditListFilter, PledgeProgramListFilter
 from .forms import AuditListFormHelper, RiskListFilter, PledgeProgramFormHelper,\
     ChapterInfoReportForm
-from .notifications import EmailRMPSigned, EmailPledgeOther
+from .notifications import EmailRMPSigned, EmailPledgeOther, EmailRMPReport
 
 
 sensitive_post_parameters_m = method_decorator(
@@ -695,6 +695,21 @@ class ChapterInfoReportView(LoginRequiredMixin, OfficerMixin, MultiFormsView):
             report.instance.user = self.request.user
             report.instance.chapter = self.request.user.current_chapter
             report.save()
+            file_name = f"Risk Management Form {self.request.user}"
+            score_type = ScoreType.objects.filter(slug="rmp").first()
+            submit_obj = Submission(
+                user=self.request.user,
+                name=file_name,
+                type=score_type,
+                chapter=self.request.user.current_chapter,
+                file=report.instance.report.file
+            )
+            submit_obj.save()
+            EmailRMPReport(
+                self.request.user, report.instance.report.file).send()
+            messages.add_message(
+                self.request, messages.INFO,
+                f"You successfully submitted the RMP and Agreements of Theta Tau!\n")
         if info.has_changed():
             info.save()
         return HttpResponseRedirect(self.get_success_url())
