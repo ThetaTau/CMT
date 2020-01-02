@@ -58,7 +58,9 @@ urlpatterns = [
     url(r'^pledgeform/$',
         RedirectView.as_view(pattern_name='forms:pledgeform',
                              permanent=True)),
-
+    url(r'^report/$',
+        RedirectView.as_view(pattern_name='forms:report',
+                             permanent=True)),
 
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
