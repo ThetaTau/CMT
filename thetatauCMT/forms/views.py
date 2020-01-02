@@ -33,7 +33,7 @@ from .forms import InitiationFormSet, InitiationForm, InitiationFormHelper, Init
     InitDeplSelectFormHelper, DepledgeFormSet, DepledgeFormHelper, StatusChangeSelectForm,\
     StatusChangeSelectFormHelper, GraduateForm, GraduateFormSet, CSMTFormSet, GraduateFormHelper, CSMTFormHelper,\
     RoleChangeSelectForm, RiskManagementForm, RoleChangeNationalSelectForm,\
-    PledgeProgramForm, AuditForm, PledgeFormFull
+    PledgeProgramForm, AuditForm, PledgeFormFull, ChapterReport
 from tasks.models import TaskChapter, Task
 from scores.models import ScoreType
 from submissions.models import Submission
@@ -46,12 +46,13 @@ from users.notifications import NewOfficers
 from chapters.models import Chapter, ChapterCurricula
 from regions.models import Region
 from .tables import GuardTable, BadgeTable, InitiationTable, DepledgeTable, \
-    StatusChangeTable, PledgeFormTable, AuditTable, RiskFormTable, PledgeProgramTable
+    StatusChangeTable, PledgeFormTable, AuditTable, RiskFormTable,\
+    PledgeProgramTable, ChapterReportTable
 from .models import Guard, Badge, Initiation, Depledge, StatusChange, RiskManagement,\
     PledgeForm, PledgeProgram, Audit
-from .filters import AuditListFilter, PledgeProgramListFilter
+from .filters import AuditListFilter, PledgeProgramListFilter, ChapterReportListFilter
 from .forms import AuditListFormHelper, RiskListFilter, PledgeProgramFormHelper,\
-    ChapterInfoReportForm
+    ChapterInfoReportForm, ChapterReportFormHelper
 from .notifications import EmailRMPSigned, EmailPledgeOther, EmailRMPReport
 
 
@@ -617,6 +618,73 @@ class RoleChangeNationalView(NatOfficerRequiredMixin,
                     f"You successfully updated the officers:\n"
                     f"{update_list}")
         return HttpResponseRedirect(reverse("forms:natoff"))
+
+
+class ChapterReportListView(NatOfficerRequiredMixin, LoginRequiredMixin,
+                            OfficerMixin, PagedFilteredTableView):
+    model = ChapterReport
+    context_object_name = 'chapter_report_list'
+    table_class = ChapterReportTable
+    filter_class = ChapterReportListFilter
+    formhelper_class = ChapterReportFormHelper
+
+    def get_queryset(self, **kwargs):
+        qs = ChapterReport.objects.all()
+        cancel = self.request.GET.get('cancel', False)
+        request_get = self.request.GET.copy()
+        if cancel:
+            request_get = QueryDict()
+        if not request_get:
+            # Create a mutable QueryDict object, default is immutable
+            request_get = QueryDict(mutable=True)
+            request_get.setlist("year", [''])
+            request_get.setlist("term", [''])
+        if not cancel:
+            if request_get['year'] == '':
+                request_get['year'] = datetime.datetime.now().year
+            if request_get['term'] == '':
+                request_get['term'] = SEMESTER[datetime.datetime.now().month]
+        self.filter = self.filter_class(request_get,
+                                        queryset=qs)
+        self.filter.request = self.request
+        self.filter.form.helper = self.formhelper_class()
+        return self.filter.qs
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        all_forms = self.object_list
+        data = list(all_forms.values('chapter__name', 'chapter__region__name',
+                                     'year', 'term', 'report',))
+        for dat in data:
+            dat['chapter'] = dat['chapter__name']
+            del dat['chapter__name']
+            dat['region'] = dat['chapter__region__name']
+            del dat['chapter__region__name']
+            dat['term'] = ChapterReport.TERMS.get_value(dat['term'])
+            # dat['manual'] = PledgeProgram.MANUALS.get_value(dat['manual'])
+        complete = self.filter.form.cleaned_data['complete']
+        if complete in ['0', '']:
+            form_chapters = all_forms.values_list('chapter__id', flat=True)
+            region_slug = self.filter.form.cleaned_data['region']
+            region = Region.objects.filter(slug=region_slug).first()
+            if region:
+                missing_chapters = Chapter.objects.exclude(id__in=form_chapters).filter(region__in=[region])
+            elif region_slug == 'colony':
+                missing_chapters = Chapter.objects.exclude(id__in=form_chapters).filter(colony=True)
+            else:
+                missing_chapters = Chapter.objects.exclude(id__in=form_chapters)
+            missing_data = [{
+                 'chapter': chapter.name, 'region': chapter.region.name,
+                 'report': None, 'term': None, 'year': None,
+             } for chapter in missing_chapters]
+            if complete == '0':  # Incomplete
+                data = missing_data
+            else:  # All
+                data.extend(missing_data)
+        table = ChapterReportTable(data=data)
+        RequestConfig(self.request, paginate={'per_page': 100}).configure(table)
+        context['table'] = table
+        return context
 
 
 class ChapterInfoReportView(LoginRequiredMixin, OfficerMixin, MultiFormsView):

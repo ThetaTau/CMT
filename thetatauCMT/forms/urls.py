@@ -24,6 +24,10 @@ urlpatterns = [
         name='report'
     ),
     url(
+        regex=r'^report-list/$',
+        view=views.ChapterReportListView.as_view(),
+        name='report_list'),
+    url(
         regex=r'^audit-list/$',
         view=views.AuditListView.as_view(),
         name='audit_list'),

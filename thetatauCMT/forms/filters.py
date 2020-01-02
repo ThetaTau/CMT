@@ -48,3 +48,37 @@ class PledgeProgramListFilter(django_filters.FilterSet):
         else:
             queryset = queryset.filter(chapter__region__slug=value)
         return queryset
+
+
+class ChapterReportListFilter(django_filters.FilterSet):
+    complete = django_filters.ChoiceFilter(
+        label='Complete',
+        method='filter_complete',
+        choices=(
+            ('1', 'Complete'),
+            ('0', 'Incomplete'),
+            ('', 'All'),
+        )
+    )
+    region = django_filters.ChoiceFilter(
+        label="Region",
+        choices=Region.region_choices(),
+        method='filter_region'
+    )
+
+    class Meta:
+        model = PledgeProgram
+        fields = ['region', 'year', 'term', 'complete']
+        order_by = ['chapter']
+
+    def filter_complete(self, queryset, field_name, value):
+        return queryset
+
+    def filter_region(self, queryset, field_name, value):
+        if value == 'national':
+            return queryset
+        elif value == 'colony':
+            queryset = queryset.filter(chapter__colony=True)
+        else:
+            queryset = queryset.filter(chapter__region__slug=value)
+        return queryset
