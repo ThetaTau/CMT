@@ -1,5 +1,6 @@
 import django_tables2 as tables
 from django_tables2.utils import A
+from django.utils.html import mark_safe
 from .models import Guard, Badge, Initiation, Depledge, StatusChange,\
     PledgeForm, Audit, PledgeProgram, ChapterReport
 
@@ -114,7 +115,7 @@ class ChapterReportTable(tables.Table):
             'region',
             'year',
             'term',
-            # 'report',
+            'report',
         ]
 
 

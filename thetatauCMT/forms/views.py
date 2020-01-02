@@ -653,15 +653,15 @@ class ChapterReportListView(NatOfficerRequiredMixin, LoginRequiredMixin,
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         all_forms = self.object_list
-        data = list(all_forms.values('chapter__name', 'chapter__region__name',
-                                     'year', 'term', 'report',))
-        for dat in data:
-            dat['chapter'] = dat['chapter__name']
-            del dat['chapter__name']
-            dat['region'] = dat['chapter__region__name']
-            del dat['chapter__region__name']
-            dat['term'] = ChapterReport.TERMS.get_value(dat['term'])
-            # dat['manual'] = PledgeProgram.MANUALS.get_value(dat['manual'])
+        data = [
+            {
+                'chapter': form.chapter.name,
+                'region': form.chapter.region.name,
+                'year': form.year,
+                'term': ChapterReport.TERMS.get_value(form.term),
+                'report': form.report
+            } for form in all_forms
+        ]
         complete = self.filter.form.cleaned_data['complete']
         if complete in ['0', '']:
             form_chapters = all_forms.values_list('chapter__id', flat=True)
