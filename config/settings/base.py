@@ -313,6 +313,7 @@ if not GOOGLE_API_KEY:
 GOOGLE_APPLICATION_CREDENTIALS = \
     env('GOOGLE_APPLICATION_CREDENTIALS',
         default='secrets\chaptermanagementtool-e11151065a69.json')
+# GoogleCloudStorage LINK https://console.cloud.google.com/storage/browser/theta-tau?authuser=3&folder=true&organizationId=true&project=chaptermanagementtool
 DEFAULT_FILE_STORAGE = 'storages.backends.gcloud.GoogleCloudStorage'
 GS_BUCKET_NAME = 'theta-tau'
 from google.oauth2 import service_account
