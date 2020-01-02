@@ -76,3 +76,26 @@ class UserRoleListFilter(django_filters.FilterSet):
         else:
             queryset = queryset.filter(chapter__region__slug=value)
         return queryset
+
+
+class AdvisorListFilter(django_filters.FilterSet):
+    region = django_filters.ChoiceFilter(
+        choices=Region.region_choices(),
+        method='filter_region'
+    )
+
+    class Meta:
+        model = User
+        fields = {'name': ['icontains'],
+                  'chapter': ['exact'],
+                  }
+        order_by = ['name']
+
+    def filter_region(self, queryset, field_name, value):
+        if value == 'national':
+            return queryset
+        elif value == 'colony':
+            queryset = queryset.filter(chapter__colony=True)
+        else:
+            queryset = queryset.filter(chapter__region__slug=value)
+        return queryset

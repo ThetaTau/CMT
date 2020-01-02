@@ -73,11 +73,31 @@ class User(AbstractUser):
     def get_absolute_url(self):
         return reverse('users:detail')
 
+    @property
+    def current_status(self):
+        return str(self.get_current_status())
+
+    @current_status.setter
+    def current_status(self, val):
+        self._current_status = val
+
     def get_current_status(self):
+        if hasattr(self, '_current_status'):
+            return self._current_status
         return self.status.filter(start__lte=TODAY_END,
                                   end__gte=TODAY_END).first()
 
+    @property
+    def role(self):
+        return self.get_current_role()
+
+    @role.setter
+    def role(self, val):
+        self._role = val
+
     def get_current_role(self):
+        if hasattr(self, '_role'):
+            return self._role
         return self.roles.filter(end__gte=TODAY_END).first()
 
     def get_current_roles(self):

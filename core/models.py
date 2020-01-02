@@ -124,16 +124,21 @@ NATIONAL_OFFICER = {
     'national officer',
 }
 
-COMMITTEE_CHAIR = {
+
+ADVISOR_ROLES = {
     'adviser',
+    'faculty adviser',
+    "house corporation president",
+    "house corporation treasurer",
+}
+
+
+COMMITTEE_CHAIR = {
     "board member",
     "committee chair",
     "employer/ee",
     'events chair',
-    'faculty adviser',
     "fundraising chair",
-    "house corporation president",
-    "house corporation treasurer",
     "housing chair",
     "other appointee",
     'parent',
@@ -153,8 +158,8 @@ COMMITTEE_CHAIR = {
 
 NAT_OFFICERS = sorted(set.union(NATIONAL_OFFICER, COUNCIL))
 ALL_OFFICERS = sorted(set.union(CHAPTER_OFFICER, set(NAT_OFFICERS)))
-ALL_ROLES = sorted(set.union(set(ALL_OFFICERS), COMMITTEE_CHAIR))
-CHAPTER_ROLES = sorted(set.union(CHAPTER_OFFICER, COMMITTEE_CHAIR))
+ALL_ROLES = sorted(set.union(set(ALL_OFFICERS), COMMITTEE_CHAIR, ADVISOR_ROLES))
+CHAPTER_ROLES = sorted(set.union(CHAPTER_OFFICER, COMMITTEE_CHAIR, ADVISOR_ROLES))
 
 ALL_OFFICERS_CHOICES = sorted([(officer, officer.title()) for officer in ALL_OFFICERS],
                               key=lambda x:x[0])

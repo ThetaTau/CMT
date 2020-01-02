@@ -25,6 +25,11 @@ urlpatterns = [
         name='officers'
     ),
     url(
+        regex=r'^(?P<slug>[\w.@+-]+)/advisors/$',
+        view=views.RegionAdvisorView.as_view(),
+        name='advisors'
+    ),
+    url(
         regex=r'^(?P<slug>[\w.@+-]+)/tasks/$',
         view=views.RegionTaskView.as_view(),
         name='tasks'

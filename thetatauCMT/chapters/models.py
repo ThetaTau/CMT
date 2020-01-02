@@ -2,12 +2,14 @@ import warnings
 from enum import Enum
 from datetime import timedelta
 from django.db import models
+from django.db.models.functions import Concat
 from django.db.utils import ProgrammingError
 from address.models import AddressField
 from django.utils.translation import ugettext_lazy as _
 from django.utils.text import slugify
 from core.models import TODAY_END, annotate_role_status, CHAPTER_OFFICER,\
-    semester_encompass_start_end_date, BIENNIUM_START, BIENNIUM_START_DATE, BIENNIUM_DATES
+    semester_encompass_start_end_date, BIENNIUM_START, BIENNIUM_START_DATE,\
+    BIENNIUM_DATES, ADVISOR_ROLES
 from regions.models import Region
 
 
@@ -223,10 +225,25 @@ class Chapter(models.Model):
     @property
     def advisors(self):
         # Do not annotate, need the queryset not a list
-        return self.members.filter(status__status__in=["advisor", ],
+        all_advisors = self.members.filter(status__status__in=["advisor", ],
                                    status__start__lte=TODAY_END,
                                    status__end__gte=TODAY_END
+                                   ) | \
+               self.members.filter(roles__role__in=ADVISOR_ROLES,
+                                   roles__start__lte=TODAY_END,
+                                   roles__end__gte=TODAY_END
                                    )
+        all_advisors = all_advisors.annotate(
+            role=models.Case(
+                models.When(
+                    models.Q(roles__role__in=ADVISOR_ROLES),
+                    Concat(models.Value('Alumni '), "roles__role")
+                ),
+                default=models.Value('Faculty Advisor'),
+                output_field=models.CharField(),
+            )
+        )
+        return all_advisors
 
     def actives(self):
         # Do not annotate, need the queryset not a list
