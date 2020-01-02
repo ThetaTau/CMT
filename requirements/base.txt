@@ -44,6 +44,7 @@ django-celery-beat==1.5.0  # https://github.com/celery/django-celery-beat
 django-easy-pdf  # https://github.com/nigma/django-easy-pdf
 django-money==0.15  # https://github.com/django-money/django-money
 django-storages==1.7.2  # https://django-storages.readthedocs.io/en/latest/backends/gcloud.html
+django-betterforms==1.2  # https://django-betterforms.readthedocs.io/
 
 
 # Django REST Framework
