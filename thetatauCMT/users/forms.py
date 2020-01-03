@@ -257,3 +257,8 @@ class ExternalUserForm(forms.ModelForm):
         model = User
         fields = ['first_name', 'last_name', 'title',
                   'phone_number', 'email', ]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for key in self.fields:
+            self.fields[key].required = True

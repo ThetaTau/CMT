@@ -693,6 +693,9 @@ class ChapterInfoReportView(LoginRequiredMixin, OfficerMixin, MultiFormsView):
         'report': ChapterInfoReportForm,
         'faculty': ExternalUserForm,
     }
+    grouped_forms = {
+        'chapter_report': ['report', 'faculty']
+    }
 
     def get_success_url(self, form_name=None):
         return reverse('forms:report')
@@ -726,14 +729,18 @@ class ChapterInfoReportView(LoginRequiredMixin, OfficerMixin, MultiFormsView):
         chapter = self.request.user.current_chapter
         facultys = chapter.advisors
         extra = 0
+        min_num = 0
         if not facultys:
-            extra = 1
+            extra = 0
+            min_num = 1
         factory = modelformset_factory(
             User,
             form=ExternalUserForm,
             **{
                 'can_delete': True,
-                'extra': extra
+                'extra': extra,
+                'min_num': min_num,
+                'validate_min': True,
             })
         # factory.form.base_fields['chapter'].queryset = chapter
         formset_kwargs = {
