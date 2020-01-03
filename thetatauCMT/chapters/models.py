@@ -139,8 +139,10 @@ class Chapter(models.Model):
                                related_name='chapters')
     slug = models.SlugField(max_length=50, null=True, default=None, unique=True)
     email = models.EmailField(_('email address'), blank=True)
-    website = models.URLField(blank=True)
-    facebook = models.URLField(blank=True)
+    website = models.URLField(
+        blank=True, help_text="You must include the full URL including https:// or http://",)
+    facebook = models.URLField(
+        blank=True, help_text="You must include the full URL including https:// or http://",)
     address = AddressField(
         verbose_name=_('Mailing Address'),
         help_text="We periodically need to mail things (shingles, badges, etc) to your chapter.",
