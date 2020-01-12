@@ -26,11 +26,19 @@
         <tr><th>Trademark Policy</th><td>I understand the Policy: {{ object.trademark}}</td></tr>
         <tr><th>Website & Social Media Policy</th><td>I understand the Policy: {{ object.social}}</td></tr>
         <tr><th>Indemnification, Authority, and Signatory Policy</th><td>I understand the Policy: {{ object.indemnification}}</td></tr>
+        <tr><th>Photo and Image Release</th><td>I accept the Photo and Image Release: {{ object.photo_release}}</td></tr>
+        <tr><th>Arbitration Agreement</th><td>I accept the Arbitration Agreement: {{ object.arbitration}}</td></tr>
+        <tr><th>Dues Agreement</th><td>I accept the Dues Agreement: {{ object.dues}}</td></tr>
+        <tr><th>Electronic Signature Agreement</th><td>I accept the Electronic Signature Agreement: {{ object.electronic_agreement}}</td></tr>
+        <tr><th>Electronic Terms of Service</th><td>I accept the Electronic Terms of Service: {{ object.terms_agreement}}</td></tr>
         <tr>
-          <th colspan="2">As a principal officer of my chapter, by signing,
-            I agree that I have read the Risk Management Policies of Theta Tau and reviewed them with our chapter
-            within ten days of the start of the Fall semester/quarter.
-            I further agree that I will abide by these policies and will also help fellow members abide by these policies.</th>
+          <th colspan="2">
+            {% if request.user.is_officer is not True %}
+              By signing this form, I agree that I have read, understand, agree to abide by and agree to govern my chapter according to the Risk Management Policy, the Photo Release, the Arbitration Agreement and the Dues Agreement.  I further understand and affirm that, should I fail to abide by and/or govern my chapter according to the aforementioned policies, I may be subject to disciplinary action under the Constitution and Policy and Procedures Manual of Theta Tau.
+            {% else %}
+              By signing this form, I agree that I have read, understand, agree to abide by the Risk Management Policy, the Photo Release, the Arbitration Agreement and the Dues Agreement.  I further understand and affirm that, should I fail to abide by the aforementioned policies, I may be subject to disciplinary action under the Constitution and Policy and Procedures Manual of Theta Tau.
+            {% endif %}
+          </th>
         </tr>
           <tr>
           <td colspan="2">I agree: {{ object.agreement}}</td>

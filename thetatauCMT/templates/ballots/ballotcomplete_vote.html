@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+
+{% block title %}Vote Ballot{% endblock %}
+
+{% block content %}
+  <h1>Vote Ballot: {{ ballot.name }}</h1>
+  <table class="table table-hover table-bordered table-striped">
+        <tr>
+            <th>Sender:</th>
+            <td>{{ ballot.sender }}</td>
+            <th>Voters:</th>
+            <td>{{ ballot.get_voters_display }}</td>
+        </tr>
+        <tr>
+            <th>Type:</th>
+            <td>{{ ballot.get_type_display }}</td>
+            <th>Due Date:</th>
+            <td>{{ ballot.due_date }}</td>
+        </tr>
+        <tr>
+            <th>Description:</th>
+            <td colspan="3">{{ ballot.description }}</td>
+        </tr>
+        <tr>
+            <th>Attachement:</th>
+            <td colspan="3">
+                {% if object.attachment %}
+                <a href="{{ object.attachment.url }}">{{ object.attachment }}</a></td>
+                {% else %}
+                  No attachment provided.
+                {% endif %}
+            </td>
+        </tr>
+    <tr>
+      <td colspan="2">
+          {% if complete %}
+            Complete:<br>
+              <h3>{{ current_vote.get_motion_display }}</h3>
+              {{ current_vote.user }}<br>{{ current_vote.role | title }}<br>
+              {{ current_vote.created }}
+          {% else %}
+        <form class="form-horizontal" method="post">
+          {% csrf_token %}
+          {{ form|crispy }}
+          <div class="control-group">
+            <div class="controls">
+              <button type="submit" class="btn-primary" value="Save"><i class="fas fa-check"></i> Complete</button>
+            </div>
+          </div>
+        </form>
+          {% endif %}
+      </td>
+    </tr>
+  </table>
+{% endblock %}

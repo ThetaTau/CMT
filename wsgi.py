@@ -31,7 +31,7 @@ else:
     def application(environ, start_response):
         status = '503 Service Unavailable'
         maintenance_file_path = rf"{path}/thetatauCMT/templates/503.html"
-        content = open(maintenance_file_path, 'r').read().encode('utf8')
+        content = open(maintenance_file_path, 'r').read()
         response_headers = [('Content-Type', 'text/html'), ('Content-Length', str(len(content)))]
         start_response(status, response_headers)
         yield content.encode('utf8')

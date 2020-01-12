@@ -115,8 +115,10 @@ class ProcessMultipleFormsView(ProcessFormView):
         form_names = self.grouped_forms[group_name]
         forms = self.get_forms(form_classes, form_names)
         if all([forms.get(form_name).is_valid()
-                for form_name in form_names.values()]):
-            return self.forms_valid(forms)
+                for form_name in form_classes.keys()]):
+            for form_name in form_names:
+                response = self.forms_valid(forms, form_name)
+            return response
         else:
             return self.forms_invalid(forms)
 

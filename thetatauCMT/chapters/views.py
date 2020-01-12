@@ -1,15 +1,19 @@
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.urls import reverse
+from django.forms.models import modelformset_factory
 from django.http.response import HttpResponseRedirect
 from django.views.generic import RedirectView
 from core.views import RequestConfig, OfficerMixin, OfficerRequiredMixin,\
     PagedFilteredTableView
 from core.forms import MultiFormsView
+from core.models import TODAY_START, forever
 from .models import Chapter
 from .forms import ChapterForm, ChapterFormHelper
 from .filters import ChapterListFilter
 from .tables import ChapterCurriculaTable, ChapterTable, AuditTable
 from users.tables import UserTable
+from users.models import UserStatusChange, User
+from users.forms import ExternalUserForm
 from tasks.models import Task
 from submissions.models import Submission
 
@@ -18,7 +22,63 @@ class ChapterDetailView(LoginRequiredMixin, OfficerMixin, MultiFormsView):
     template_name = 'chapters/chapter_detail.html'
     form_classes = {
         'chapter': ChapterForm,
+        'faculty': ExternalUserForm,
     }
+
+    def faculty_form_valid(self, formset):
+        if formset.has_changed():
+            for form in formset.forms:
+                if form.changed_data and 'DELETE' not in form.changed_data:
+                    chapter = self.request.user.current_chapter
+                    if form.instance.badge_number == 999999999:
+                        form.instance.chapter = chapter
+                        form.instance.badge_number = chapter.next_advisor_number
+                    user = form.save()
+                    try:
+                        status = UserStatusChange.objects.get(user=user)
+                    except UserStatusChange.DoesNotExist:
+                        UserStatusChange(
+                            user=user,
+                            status='advisor',
+                            start=TODAY_START,
+                            end=forever(),
+                        ).save()
+                elif form.changed_data and 'DELETE' in form.changed_data:
+                    user = form.instance
+                    status = UserStatusChange.objects.get(user=user)
+                    status.end = TODAY_START
+                    status.save()
+        return HttpResponseRedirect(self.get_success_url())
+
+    def create_faculty_form(self, **kwargs):
+        chapter = self.request.user.current_chapter
+        facultys = chapter.advisors
+        extra = 0
+        min_num = 0
+        if not facultys:
+            extra = 0
+            min_num = 1
+        factory = modelformset_factory(
+            User,
+            form=ExternalUserForm,
+            **{
+                'can_delete': True,
+                'extra': extra,
+                'min_num': min_num,
+                'validate_min': True,
+            })
+        # factory.form.base_fields['chapter'].queryset = chapter
+        formset_kwargs = {
+            'queryset': facultys,
+            'form_kwargs': {
+                'initial': {'chapter': chapter}
+            }
+        }
+        if self.request.method in ('POST', 'PUT'):
+            formset_kwargs.update({
+                'data': self.request.POST.copy(),
+            })
+        return factory(**formset_kwargs)
 
     def get_success_url(self, form_name=None):
         return reverse('chapters:detail',
@@ -123,3 +183,9 @@ class ChapterListView(OfficerRequiredMixin,
     table_class = ChapterTable
     filter_class = ChapterListFilter
     formhelper_class = ChapterFormHelper
+    table_pagination = False
+
+    def get_table_kwargs(self):
+        return {
+            'officer': self.request.user.is_national_officer(),
+        }

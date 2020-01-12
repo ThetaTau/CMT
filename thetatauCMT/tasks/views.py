@@ -5,6 +5,7 @@ from django.shortcuts import redirect, reverse
 from django.http.request import QueryDict
 from django.db import models, transaction
 from django.db.utils import IntegrityError
+from django.utils.text import slugify
 from django.views.generic import DetailView, UpdateView, RedirectView, CreateView
 from core.views import PagedFilteredTableView, RequestConfig, TypeFieldFilteredChapterAdd,\
     OfficerMixin, OfficerRequiredMixin
@@ -28,6 +29,8 @@ class TaskCompleteView(OfficerRequiredMixin,
         task = TaskDate.objects.get(pk=task_date_id).task
         if task.resource:
             if 'http' not in task.resource:
+                if 'ballots' in task.resource:
+                    return redirect(reverse(task.resource, args=(slugify(task.name),)))
                 return redirect(reverse(task.resource))
             else:
                 return redirect(task.resource)
@@ -49,7 +52,7 @@ class TaskCompleteView(OfficerRequiredMixin,
         task_date = TaskDate.objects.get(pk=task_date_id)
         task = task_date.task
         current_roles = self.request.user.chapter_officer()
-        if not current_roles:
+        if not current_roles or current_roles == {''}:
             messages.add_message(
                 self.request, messages.ERROR,
                 f"Only executive officers can sign off tasks. "
@@ -91,22 +94,8 @@ class TaskListView(LoginRequiredMixin, OfficerMixin,
 
     def get_queryset(self, **kwargs):
         qs = TaskDate.dates_for_chapter(self.request.user.current_chapter)
-        cancel = self.request.GET.get('cancel', False)
-        request_get = self.request.GET.copy()
-        if cancel:
-            request_get = QueryDict()
-        if not request_get:
-            # Create a mutable QueryDict object, default is immutable
-            request_get = QueryDict(mutable=True)
-            request_get.setlist("date", [current_year_term_slug()])
-        self.filter = self.filter_class(request_get,
-                                        queryset=qs)
-        self.filter.request = self.request
-        self.filter.form.helper = self.formhelper_class()
-        return self.filter.qs
-
-    def post(self, request, *args, **kwargs):
-        return PagedFilteredTableView.as_view()(request)
+        qs = super().get_queryset(other_qs=qs)
+        return qs
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)

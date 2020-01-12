@@ -1,6 +1,7 @@
 import django_tables2 as tables
 from django_tables2.utils import A
 from django.shortcuts import reverse
+from django.utils.text import slugify
 from django.utils.html import mark_safe
 from .models import TaskDate
 
@@ -42,4 +43,9 @@ class TaskIncompleteTable(tables.Table):
         if 'http' in resource:
             return resource
         elif ':' in resource:
-            return mark_safe('<a href='+reverse(resource)+'>Form</a>')
+            if 'ballot' in resource:
+                value = mark_safe(
+                    '<a href='+reverse(resource, args=(slugify(record.task.name),))+'>Ballot</a>')
+            else:
+                value = mark_safe('<a href='+reverse(resource)+'>Form</a>')
+            return value

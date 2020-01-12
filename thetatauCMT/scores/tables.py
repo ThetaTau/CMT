@@ -30,3 +30,17 @@ class ScoreTable(tables.Table):
 
     def render_type(self, value):
         return ScoreType.TYPES.get_value(value)
+
+
+class ChapterScoreTable(tables.Table):
+    chapter_name = tables.Column()
+    region = tables.Column()
+    brotherhood = tables.Column(accessor='Bro')
+    operate = tables.Column(accessor='Ops')
+    professional = tables.Column(accessor='Pro')
+    service = tables.Column(accessor='Ser')
+    total = tables.Column()
+
+    class Meta:
+        attrs = {"class": "table-striped table-bordered"}
+        empty_text = "There are no chapter scores matching the search criteria..."

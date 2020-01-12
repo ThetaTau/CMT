@@ -160,7 +160,9 @@ class TaskChapter(models.Model):
     submission_object = GenericForeignKey('submission_type', 'submission_id')
 
     @classmethod
-    def check_previous(cls, task, chapter, date):
+    def check_previous(cls, task, chapter, date=None):
+        if date is None:
+            date = datetime.datetime.today()
         return cls.objects.filter(
             task=task, chapter=chapter, date=date,
             ).exists()

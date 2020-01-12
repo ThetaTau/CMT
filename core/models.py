@@ -1,6 +1,9 @@
+import re
+import time as base_time
 import datetime
 from datetime import timedelta, time
 from enum import Enum
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils import timezone
 TODAY = datetime.datetime.now().date()
@@ -98,22 +101,44 @@ COL_OFFICER_ALIGN = {
     "vice president": "vice regent",
 }
 
-NATIONAL_OFFICER = {
-    'regional director',
-    'national director',
-    'national officer'
+COUNCIL = {
+    'grand regent',
+    "grand scribe",
+    "grand treasurer",
+    "grand vice regent",
+    'grand marshal',
+    'grand inner guard',
+    'grand outer guard',
+    'council delegate',
 }
 
-COMMITTEE_CHAIR = {
+NATIONAL_OFFICER = {
+    'national operations manager',
+    'regional director',
+    'colony director',
+    'expansion director',
+    'professional development director',
+    'service director',
+    'alumni programs director',
+    'national director',
+    'national officer',
+}
+
+
+ADVISOR_ROLES = {
     'adviser',
+    'faculty adviser',
+    "house corporation president",
+    "house corporation treasurer",
+}
+
+
+COMMITTEE_CHAIR = {
     "board member",
     "committee chair",
     "employer/ee",
     'events chair',
-    'faculty adviser',
     "fundraising chair",
-    "house corporation president",
-    "house corporation treasurer",
     "housing chair",
     "other appointee",
     'parent',
@@ -131,26 +156,40 @@ COMMITTEE_CHAIR = {
 }
 
 
-ALL_OFFICERS = sorted(set.union(CHAPTER_OFFICER, NATIONAL_OFFICER))
-ALL_ROLES = sorted(set.union(CHAPTER_OFFICER, COMMITTEE_CHAIR, NATIONAL_OFFICER))
-CHAPTER_ROLES = sorted(set.union(CHAPTER_OFFICER, COMMITTEE_CHAIR))
+NAT_OFFICERS = sorted(set.union(NATIONAL_OFFICER, COUNCIL))
+ALL_OFFICERS = sorted(set.union(CHAPTER_OFFICER, set(NAT_OFFICERS)))
+ALL_ROLES = sorted(set.union(set(ALL_OFFICERS), COMMITTEE_CHAIR, ADVISOR_ROLES))
+CHAPTER_ROLES = sorted(set.union(CHAPTER_OFFICER, COMMITTEE_CHAIR, ADVISOR_ROLES))
 
-ALL_OFFICERS_CHOICES = [(officer, officer.title()) for officer in ALL_OFFICERS]
-CHAPTER_OFFICER_CHOICES = [(officer, officer.title()) for officer in CHAPTER_OFFICER]
-ALL_ROLES_CHOICES = [(role, role.title()) for role in ALL_ROLES]
-CHAPTER_ROLES_CHOICES = [(role, role.title()) for role in CHAPTER_ROLES]
+ALL_OFFICERS_CHOICES = sorted([(officer, officer.title()) for officer in ALL_OFFICERS],
+                              key=lambda x:x[0])
+CHAPTER_OFFICER_CHOICES = sorted([(officer, officer.title()) for officer in CHAPTER_OFFICER],
+                                 key=lambda x:x[0])
+ALL_ROLES_CHOICES = sorted([(role, role.title()) for role in ALL_ROLES],
+                           key=lambda x:x[0])
+NAT_OFFICERS_CHOICES = sorted([(role, role.title()) for role in NAT_OFFICERS],
+                              key=lambda x:x[0])
+CHAPTER_ROLES_CHOICES = sorted([(role, role.title()) for role in CHAPTER_ROLES],
+                               key=lambda x:x[0])
 
 
-def semester_start_date():
+def semester_encompass_start_end_date(given_date=None):
     '''
-    Determine the starting date of the current semester
+    Determine the start and end date of the semester including given date
     :return: date
     '''
-    semester = SEMESTER[datetime.datetime.now().month]
+    if given_date is None:
+        given_date = datetime.datetime.now()
+    semester = SEMESTER[given_date.month]
     start_month = 1
+    end_month = 7
+    _year = given_date.year
     if semester == 'fa':
-        start_month = 7
-    return datetime.datetime(TODAY_END.year, start_month, 1)
+        # start in July and end in January 1
+        start_month, end_month = end_month, start_month
+        _year += 1
+    return (datetime.datetime(given_date.year, start_month, 1),
+            datetime.datetime(_year, end_month, 1))
 
 
 def academic_encompass_start_end_date(given_date=None):
@@ -199,6 +238,30 @@ class StartEndModel(models.Model):
         abstract = True
 
 
+def validate_year(value):
+    """
+        Validator function for model.IntegerField()
+        * Validates a valid four-digit year.
+        * Must be a current or future year.
+        In your model:
+        year = models.IntegerField(_(u'Year'), help_text=_(u'Current or future year in YYYY format.'), validators=[
+        validate_year], unique=True)
+    """
+
+    # Matches any 4-digit number:
+    year_re = re.compile('^\d{4}$')
+
+    # If year does not match our regex:
+    if not year_re.match(str(value)):
+        raise ValidationError(u'%s is not a valid year.' % value)
+
+    # Check not before this year:
+    year = int(value)
+    thisyear = base_time.localtime()[0]
+    if year < thisyear:
+        raise ValidationError(u'%s is a year in the past; please enter a current or future year.' % value)
+
+
 class YearTermModel(models.Model):
     """
     An abstract base class model that provides
@@ -234,6 +297,10 @@ class YearTermModel(models.Model):
             self.term = SEMESTER[datetime.datetime.now().month]
         super().save(*args, **kwargs)
 
+    def get_date(self):
+        month = {'fa': 8, 'sp': 2}[self.term]
+        return datetime.datetime(self.year, month, 1)
+
     @staticmethod
     def get_term(date):
         return SEMESTER[date.month]
@@ -255,8 +322,12 @@ class YearTermModel(models.Model):
         """
         month = date.month
         term = SEMESTER[month]
-        min_month, max_month = {'sp': (0, 6), 'fa': (7, 12)}[term]
-        return datetime.date(date.year, min_month, 1), datetime.date(date.year, max_month, 1)
+        _year = date.year
+        if term == 'fa':
+            # start in July and end in January 1
+            _year += 1
+        min_month, max_month = {'sp': (1, 7), 'fa': (7, 1)}[term]
+        return datetime.date(date.year, min_month, 1), datetime.date(_year, max_month, 1)
 
 
 def combine_annotations(user_queryset):

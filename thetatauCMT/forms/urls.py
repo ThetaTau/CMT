@@ -19,6 +19,15 @@ urlpatterns = [
         name='audit_complete'
     ),
     url(
+        regex=r'^report/$',
+        view=views.ChapterInfoReportView.as_view(),
+        name='report'
+    ),
+    url(
+        regex=r'^report-list/$',
+        view=views.ChapterReportListView.as_view(),
+        name='report_list'),
+    url(
         regex=r'^audit-list/$',
         view=views.AuditListView.as_view(),
         name='audit_list'),
@@ -26,6 +35,14 @@ urlpatterns = [
         regex=r'^pledgeform/$',
         view=views.pledge_form,
         name='pledge_form'),
+    url(
+        regex=r'^load-majors/$',
+        view=views.load_majors,
+        name='ajax_load_majors'),
+    url(
+        regex=r'^pledgeform_full/$',
+        view=views.PledgeFormView.as_view(),
+        name='pledgeform'),
     url(
         regex=r'^pledgeprogram/$',
         view=views.PledgeProgramFormView.as_view(),
@@ -59,11 +76,16 @@ urlpatterns = [
         view=views.RoleChangeView.as_view(),
         name='officer'
     ),
-    # url(
-    #     regex=r'^rmp/$',
-    #     view=views.RiskManagementFormView.as_view(),
-    #     name='rmp'
-    # ),
+    url(
+        regex=r'^national-officer/$',
+        view=views.RoleChangeNationalView.as_view(),
+        name='natoff'
+    ),
+    url(
+        regex=r'^rmp/$',
+        view=views.RiskManagementFormView.as_view(),
+        name='rmp'
+    ),
     url(
         regex=r'^rmp-complete/(?P<pk>\d+)/$',
         view=views.RiskManagementDetailView.as_view(),

@@ -20,8 +20,8 @@ from .filters import RegionChapterTaskFilter
 from .forms import RegionChapterTaskFormHelper
 from users.tables import UserTable
 from users.models import User
-from users.filters import UserRoleListFilter
-from users.forms import UserRoleListFormHelper
+from users.filters import UserRoleListFilter, AdvisorListFilter
+from users.forms import UserRoleListFormHelper, AdvisorListFormHelper
 
 
 class RegionOfficerView(NatOfficerRequiredMixin,
@@ -96,6 +96,83 @@ class RegionOfficerView(NatOfficerRequiredMixin,
         context['table'] = table
         context['filter'] = self.filter
         context['email_list'] = email_list
+        context['view_type'] = 'Officers'
+        return context
+
+
+class RegionAdvisorView(NatOfficerRequiredMixin,
+                        LoginRequiredMixin, OfficerMixin, DetailView):
+    model = Region
+    slug_field = 'slug'
+    slug_url_kwarg = 'slug'
+    filter_class = AdvisorListFilter
+    formhelper_class = AdvisorListFormHelper
+    template_name = "regions/officer_list.html"
+
+    def get(self, request, *args, **kwargs):
+        self.object = kwargs['slug']
+        context = self.get_context_data(object=kwargs['slug'])
+        if request.GET.get('csv', 'False').lower() == 'download csv':
+            response = HttpResponse(content_type='text/csv')
+            time_name = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename = f"ThetaTauOfficerExport_{time_name}.csv"
+            response['Content-Disposition'] = f'attachment; filename="{filename}"'
+            writer = csv.writer(response)
+            emails = context['email_list']
+            if emails != "":
+                writer.writerow(context['table'].columns.names())
+                for row in context['table'].as_values():
+                    if row[2] in emails:
+                        writer.writerow(row)
+                return response
+            else:
+                messages.add_message(
+                    self.request, messages.ERROR,
+                    f"All officers are filtered! Clear or change filter.")
+        return self.render_to_response(context)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        cancel = self.request.GET.get('cancel', False)
+        request_get = self.request.GET.copy()
+        if cancel:
+            request_get = QueryDict()
+        if not request_get:
+            # Create a mutable QueryDict object, default is immutable
+            request_get = QueryDict(mutable=True)
+            request_get.setlist('region', [self.object])
+        self.filter = self.filter_class(request_get)
+        chapters = Chapter.objects.all()
+        if self.filter.is_bound and self.filter.is_valid():
+            region_slug = self.filter.form.cleaned_data['region']
+            region = Region.objects.filter(slug=region_slug).first()
+            if region:
+                chapters = Chapter.objects.filter(region__in=[region])
+            elif region_slug == 'colony':
+                chapters = Chapter.objects.filter(colony=True)
+        all_chapter_advisors = User.objects.none()
+        for chapter in chapters:
+            all_chapter_advisors = chapter.advisors | all_chapter_advisors
+        self.filter = self.filter_class(request_get,
+                                        queryset=all_chapter_advisors)
+        self.filter.form.helper = self.formhelper_class()
+        email_list = ', '.join([x[0] for x in self.filter.qs.values_list('email').distinct()])
+        all_chapter_advisors = combine_annotations(self.filter.qs)
+        self.filter.form.fields['chapter'].queryset = chapters
+        table = UserTable(
+            data=all_chapter_advisors,
+            extra_columns=[('chapter',
+                            tables.LinkColumn(
+                                'chapters:detail',
+                                args=[A('chapter.slug')])),
+                           ('chapter.region', tables.Column('Region')), ])
+        table.exclude = ('badge_number', 'major', 'graduation_year',
+                         'current_status', 'role_end')
+        RequestConfig(self.request, paginate={'per_page': 50}).configure(table)
+        context['table'] = table
+        context['filter'] = self.filter
+        context['email_list'] = email_list
+        context['view_type'] = 'Advisors'
         return context
 
 

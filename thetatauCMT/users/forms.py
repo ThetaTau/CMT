@@ -1,6 +1,7 @@
 import datetime
 from django import forms
 from django.utils import timezone
+from address.forms import AddressField
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Layout, Fieldset, Row, Column, Submit, Button
 from crispy_forms.bootstrap import FormActions, InlineField, StrictButton
@@ -88,6 +89,38 @@ class UserRoleListFormHelper(FormHelper):
     )
 
 
+class AdvisorListFormHelper(FormHelper):
+    form_method = 'GET'
+    form_id = 'user-search-form'
+    form_class = 'form-inline'
+    field_template = 'bootstrap3/layout/inline_field.html'
+    field_class = 'col-xs-3'
+    label_class = 'col-xs-3'
+    form_show_errors = True
+    help_text_inline = False
+    html5_required = True
+    layout = Layout(
+                Fieldset(
+                    '<i class="fas fa-search"></i> Filter Advisors',
+                    Row(
+                        Column(InlineField('name__icontains')),
+                        Column(InlineField('region')),
+                        Column(InlineField('chapter')),
+                        Column(FormActions(
+                            StrictButton(
+                                '<i class="fa fa-search"></i> Filter',
+                                type='submit',
+                                css_class='btn-primary'),
+                            Submit(
+                                'cancel',
+                                'Clear',
+                                css_class='btn-primary'),
+                        )),
+                    )
+                ),
+    )
+
+
 class UserLookupForm(forms.Form):
     university = forms.ChoiceField(choices=Chapter.schools())
     badge_number = forms.IntegerField()
@@ -102,6 +135,8 @@ class UserAlterForm(forms.ModelForm):
 
 
 class UserForm(forms.ModelForm):
+    address = AddressField()
+
     class Meta:
         model = User
         fields = ['name', 'major', 'graduation_year', 'phone_number', 'address']
@@ -215,3 +250,15 @@ class UserOrgForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         if hide_user:
             self.fields['user'].widget = forms.HiddenInput()
+
+
+class ExternalUserForm(forms.ModelForm):
+    class Meta:
+        model = User
+        fields = ['first_name', 'last_name', 'title',
+                  'phone_number', 'email', ]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for key in self.fields:
+            self.fields[key].required = True

@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+{% load static %}
+{% load crispy_forms_tags %}
+{% load render_table from django_tables2 %}
+{% block title %}Chapter: {{ object.name }} Report{% endblock %}
+
+{% block content %}
+<div class="container">
+  <div class="row">
+    <div class="col-sm-12">
+    <h1>Theta Tau Report</h1>
+    <h3>Instructions</h3>
+    <ol>
+      <li>
+        Each chapter officer should read and become sufficiently knowledgeable
+        about the document at <a href="thetatau.org/report">thetatau.org/report</a>
+        to be able to answer questions from the rest of the chapter.
+      </li>
+      <li>
+        Each chapter officer should sign the report.
+      </li>
+      <li>
+        Each member of the chapter should sign the report.
+      </li>
+      <li>
+        During the chapter meeting immediately after you pledge in your new
+        members for the semester, a period of time should be devoted to covering
+        the materials in this report.</br>Specifically:</br>
+        <ul>
+          <li>
+            Marshall should review the Risk Management Policy and expectations with the members;
+          </li>
+          <li>
+            Treasurer should review the chapter’s finances, specifically
+            including all fees and expenses associated with membership in the chapter and;
+          </li>
+          <li>
+            Vice Regent should give an overview of the new member education program,
+            as well as explaining the definition of hazing, explaining the national
+            resources available to combat hazing and explain any campus-based resources for the same purpose.
+          </li>
+        </ul>
+      </li>
+      <li>
+        The designated chapter officer should scan each section individually
+        (preferably on a scanner and not with a scanner app on your phone) and
+        upload the form below.
+      </li>
+    </ol>
+    <form class="chapter_report" enctype="multipart/form-data" method="POST">
+      {% csrf_token %}
+      <fieldset
+        {% if not request.is_officer or request.user.current_chapter != object %}
+          disabled
+        {% endif %}
+      >
+        {{ forms.report.media }}
+        <div>{{ forms.report.management_form|crispy }}</div>
+        <h3>Report Upload</h3>
+        {{ forms.report.report|crispy }}
+        <h3>Update Chapter Information:</h3>
+        {{ forms.report.info|crispy }}
+        <h3>Advisors:</h3>
+          <p>We occasionally need to speak with someone on your campus and it is helpful
+          to know who your advisor or Fraternity & Student Life staffer is so that we may direct our questions to them.</p>
+  <table{% if form_id %} id="{{ form_id }}_table"{% endif%} class="table table-striped table-sm">
+        <thead>
+            {{ forms.faculty.media }}
+            <div>{{ forms.faculty.management_form|crispy }}</div>
+            {% if forms.faculty.readonly and not forms.faculty.queryset.exists %}
+            {% else %}
+                <tr>
+                    {% for field in forms.faculty.forms.0 %}
+                        {% if field.label and not field.is_hidden and field.label != "Delete" %}
+                            <th for="{{ field.auto_id }}" class="col-form-label {% if field.field.required %}requiredField{% endif %}">
+                                {{ field.label|safe }}{% if field.field.required %}<span class="asteriskField">*</span>{% endif %}
+                            </th>
+                        {% endif %}
+                    {% endfor %}
+                <th>Add / <br>Remove</th>
+                </tr>
+            {% endif %}
+        </thead>
+        <tbody>
+            {% for form in forms.faculty %}
+                  <tr class="row_form">
+                  <div class="input-group">
+                      {% for field in form %}
+                        {% if field.label == "Delete" %}
+                          <td class="hidden" style="display: none;">
+                              {{ field }}
+                          </td>
+                        {% else %}
+                          {% include 'bootstrap4/field.html' with tag="td" form_show_labels=False form_show_errors=True%}
+                        {% endif %}
+                      {% endfor %}
+                  <td>
+                  <div class="input-group-append">
+                      <button class="btn btn-success add-row_form">+</button>
+                  </div>
+                  </td>
+                  </div>
+                  </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+      </fieldset>
+    <button class="btn btn-primary" name='action' value='chapter_report' type="submit">Submit Chapter Report</button>
+    </form>
+    </div>
+  </div>
+</div>
+{% endblock content %}
+{% block javascript %}
+{{ block.super }}
+<script src="{% static 'js/dynamic_formset.js' %}"></script>
+{% endblock %}

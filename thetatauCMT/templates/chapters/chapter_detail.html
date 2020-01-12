@@ -51,10 +51,68 @@
           disabled
         {% endif %}
       >
+        {{ forms.chapter.media }}
         {{ forms.chapter|crispy }}
       </fieldset>
     {% if request.is_officer and request.user.current_chapter == object %}
       <button class="btn btn-primary" name='action' value='chapter' type="submit">Update Chapter Information</button>
+    {% endif %}
+    </form>
+      <br>
+    <h3>Chapter Advisors:</h3>
+    <p>We occasionally need to speak with someone on your campus and it is helpful
+          to know who your advisor or Fraternity & Student Life staffer is so that we may direct our questions to them.</p>
+    <form class="facutly" method="POST">
+      {% csrf_token %}
+    <fieldset
+        {% if not request.is_officer or request.user.current_chapter != object %}
+          disabled
+        {% endif %}
+      >
+      <table{% if form_id %} id="{{ form_id }}_table"{% endif%} class="table table-striped table-sm">
+        <thead>
+            {{ forms.faculty.media }}
+            <div>{{ forms.faculty.management_form|crispy }}</div>
+            {% if forms.faculty.readonly and not forms.faculty.queryset.exists %}
+            {% else %}
+                <tr>
+                    {% for field in forms.faculty.forms.0 %}
+                        {% if field.label and not field.is_hidden and field.label != "Delete" %}
+                            <th for="{{ field.auto_id }}" class="col-form-label {% if field.field.required %}requiredField{% endif %}">
+                                {{ field.label|safe }}{% if field.field.required %}<span class="asteriskField">*</span>{% endif %}
+                            </th>
+                        {% endif %}
+                    {% endfor %}
+                <th>Add / <br>Remove</th>
+                </tr>
+            {% endif %}
+        </thead>
+        <tbody>
+            {% for form in forms.faculty %}
+                  <tr class="row_form">
+                  <div class="input-group">
+                      {% for field in form %}
+                        {% if field.label == "Delete" %}
+                          <td class="hidden" style="display: none;">
+                              {{ field }}
+                          </td>
+                        {% else %}
+                          {% include 'bootstrap4/field.html' with tag="td" form_show_labels=False form_show_errors=True%}
+                        {% endif %}
+                      {% endfor %}
+                  <td>
+                  <div class="input-group-append">
+                      <button class="btn btn-success add-row_form">+</button>
+                  </div>
+                  </td>
+                  </div>
+                  </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    </fieldset>
+    {% if request.is_officer and request.user.current_chapter == object %}
+      <button class="btn btn-primary" name='action' value='faculty' type="submit">Update Advisors</button>
     {% endif %}
     </form>
       <br>
@@ -76,4 +134,7 @@
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/1.5.10/clipboard.min.js"></script>
 {% endblock content %}
-
+{% block javascript %}
+{{ block.super }}
+<script src="{% static 'js/dynamic_formset.js' %}"></script>
+{% endblock %}

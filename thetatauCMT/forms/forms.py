@@ -1,16 +1,19 @@
 from django import forms
 from django.utils import timezone
-from dal import autocomplete
+from dal import autocomplete, forward
+from betterforms.multiform import MultiModelForm
 from crispy_forms.helper import FormHelper
-from crispy_forms.layout import Layout, Fieldset, Row, Submit
-from crispy_forms.bootstrap import FormActions, Field, InlineField, StrictButton
+from crispy_forms.layout import Layout, Fieldset, Row, Submit, ButtonHolder, Column
+from crispy_forms.bootstrap import FormActions, Field, InlineField,\
+    StrictButton, InlineRadios, Accordion, AccordionGroup, Div
 from tempus_dominus.widgets import DatePicker
 from .models import Initiation, Depledge, StatusChange, RiskManagement,\
-    PledgeProgram, Audit
-from core.models import CHAPTER_ROLES_CHOICES
+    PledgeProgram, Audit, Pledge, ChapterReport
+from core.models import CHAPTER_ROLES_CHOICES, NAT_OFFICERS_CHOICES
 from users.models import User, UserRoleChange
 from regions.models import Region
-from core.models import CHAPTER_OFFICER, COMMITTEE_CHAIR
+from chapters.models import Chapter, ChapterCurricula
+from chapters.forms import ChapterForm
 
 
 class SetNoValidateField(forms.CharField):
@@ -269,10 +272,52 @@ class CSMTFormHelper(FormHelper):
     )
 
 
+class RoleChangeNationalSelectForm(forms.ModelForm):
+    user = forms.ModelChoiceField(
+        queryset=User.objects.all(),
+        widget=autocomplete.ModelSelect2(
+            url='users:autocomplete',
+            forward=(forward.Const('false', 'chapter'),)
+            ),
+        disabled=True
+        )
+    role = forms.ChoiceField(choices=[('', '---------')] + NAT_OFFICERS_CHOICES,
+                             disabled=True)
+    start = forms.DateField(
+        initial=timezone.now().date(),
+        label="Start Date",
+        widget=DatePicker(options={"format": "M/DD/YYYY"},
+                          attrs={'autocomplete': 'off'},
+                          ),
+        disabled=True)
+    end = forms.DateField(
+        initial=timezone.now().date() + timezone.timedelta(days=365),
+        label="End Date",
+        widget=DatePicker(options={"format": "M/DD/YYYY"},
+                          attrs={'autocomplete': 'off'},
+                          ),
+        disabled=True)
+
+    class Meta:
+        model = UserRoleChange
+        fields = [
+            'user',
+            'role',
+            'start',
+            'end',
+        ]
+        exclude = ['id']
+
+
 class RoleChangeSelectForm(forms.ModelForm):
-    user = forms.ModelChoiceField(queryset=User.objects.all(),
-                                  widget=autocomplete.ModelSelect2(url='users:autocomplete'),
-                                  disabled=True)
+    user = forms.ModelChoiceField(
+        queryset=User.objects.all(),
+        widget=autocomplete.ModelSelect2(
+            url='users:autocomplete',
+            forward=(forward.Const('true', 'chapter'),)
+            ),
+        disabled=True
+        )
     role = forms.ChoiceField(choices=[('', '---------')] + CHAPTER_ROLES_CHOICES,
                              disabled=True)
     start = forms.DateField(
@@ -315,6 +360,19 @@ class RoleChangeSelectFormHelper(FormHelper):
     )
 
 
+class ChapterReportForm(forms.ModelForm):
+    class Meta:
+        model = ChapterReport
+        fields = ['report', ]
+
+
+class ChapterInfoReportForm(MultiModelForm):
+    form_classes = {
+        'report': ChapterReportForm,
+        'info': ChapterForm,
+    }
+
+
 class RiskManagementForm(forms.ModelForm):
     alcohol = forms.BooleanField(label="I understand the Policy on Alcoholic Beverages")
     hosting = forms.BooleanField(label="I understand the Policy on Hosting an event")
@@ -333,6 +391,9 @@ class RiskManagementForm(forms.ModelForm):
     indemnification = forms.BooleanField(label="I understand the Indemnification, Authority, and Signatory Policy")
     electronic_agreement = forms.BooleanField(label="I agree ")
     terms_agreement = forms.BooleanField(label="I accept the Electronic Terms of Service")
+    photo_release = forms.BooleanField(label="I accept the Photo and Image Release")
+    arbitration = forms.BooleanField(label="I accept the Arbitration Agreement")
+    dues = forms.BooleanField(label="I accept the Dues Agreement")
     agreement = forms.BooleanField(label="I agree")
 
     class Meta:
@@ -355,6 +416,9 @@ class RiskManagementForm(forms.ModelForm):
             'indemnification',
             'agreement',
             'electronic_agreement',
+            'photo_release',
+            'arbitration',
+            'dues',
             'terms_agreement',
             'typed_name',
         ]
@@ -479,6 +543,39 @@ class PledgeProgramFormHelper(FormHelper):
     )
 
 
+class ChapterReportFormHelper(FormHelper):
+    form_method = 'GET'
+    form_id = 'pledge_program-search-form'
+    form_class = 'form-inline'
+    field_template = 'bootstrap3/layout/inline_field.html'
+    field_class = 'col-xs-3'
+    label_class = 'col-xs-3'
+    form_show_errors = True
+    help_text_inline = False
+    html5_required = True
+    layout = Layout(
+                Fieldset(
+                    '<i class="fas fa-search"></i> Filter Chapter Reports',
+                    Row(
+                        Field('region'),
+                        Field('complete'),
+                        Field('year'),
+                        Field('term'),
+                        FormActions(
+                            StrictButton(
+                                '<i class="fa fa-search"></i> Filter',
+                                type='submit',
+                                css_class='btn-primary',),
+                            Submit(
+                                'cancel',
+                                'Clear',
+                                css_class='btn-primary'),
+                        )
+                    )
+                ),
+    )
+
+
 class RiskListFormHelper(FormHelper):
     form_method = 'GET'
     form_id = 'risk-search-form'
@@ -518,3 +615,121 @@ class RiskListFilter(forms.Form):
         choices=[(0, 'All'), (1, 'Complete'), (2, 'Incomplete')])
     region = forms.ChoiceField(required=False,
                                choices=Region.region_choices())
+
+
+class SchoolModelChoiceField(forms.ModelChoiceField):
+    def label_from_instance(self, obj):
+        return f"{obj.school}"
+
+
+class PledgeFormFull(forms.ModelForm):
+    school_name = SchoolModelChoiceField(
+        queryset=Chapter.objects.all().order_by('school'))
+    birth_date = forms.DateField(
+        label="Birth Date",
+        widget=DatePicker(options={"format": "M/DD/YYYY"},
+                          attrs={'autocomplete': 'off'},
+                          ))
+    other_college_choice = forms.ChoiceField(
+        label="Have you ever attended any other college?",
+        choices=[('true', 'Yes'), ('false', 'No')], initial='false')
+    explain_expelled_org_choice = forms.ChoiceField(
+        label="Have you ever been expelled from or placed under suspension by any organization?",
+        choices=[('true', 'Yes'), ('false', 'No')], initial='false')
+    explain_expelled_college_choice = forms.ChoiceField(
+        label="Have you ever been expelled from any college?",
+        choices=[('true', 'Yes'), ('false', 'No')], initial='false')
+    explain_crime_choice = forms.ChoiceField(
+        label="Have you ever been convicted of any crime?",
+        choices=[('true', 'Yes'), ('false', 'No')], initial='false')
+
+    class Meta:
+        model = Pledge
+        exclude = ['created', 'modified']
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['major'].queryset = ChapterCurricula.objects.none()
+        if 'school_name' in self.data:
+            try:
+                chapter_id = int(self.data.get('school_name'))
+                self.fields['major'].queryset = ChapterCurricula.objects.filter(
+                    chapter__pk=chapter_id).order_by('major')
+            except (ValueError, TypeError):
+                pass  # invalid input from the client; ignore and fallback to empty City queryset
+        elif self.instance.pk:
+            self.fields['major'].queryset = self.instance.school_name.major_set.order_by('major')
+        self.helper = FormHelper()
+        self.helper.layout = Layout(
+            Accordion(
+                AccordionGroup(
+                    'Personal Information',
+                    Row(
+                        Column('title',),
+                        Column('first_name',),
+                        Column('middle_name', ),
+                    ),
+                    Row(
+                        Column('last_name', ),
+                        Column('suffix', ),
+                    ),
+                    'nickname',
+                    'parent_name',
+                    Row(
+                        Column('email_school', ),
+                        Column('email_personal', ),
+                    ),
+                    Row(
+                        Column('phone_mobile', ),
+                        Column('phone_home', ),
+                    ),
+                    'address',
+                    Row(
+                        Column('birth_date', ),
+                        Column('birth_place', ),
+                    ),
+                ),
+                AccordionGroup(
+                    'College & Degree Information',
+                    Row(
+                        Column('school_name', ),
+                        Column('major', ),
+                    ),
+                    'grad_date_year',
+                    'other_degrees',
+                    'relative_members',
+                    'other_greeks',
+                    'other_tech',
+                    'other_frat',
+                    InlineRadios('other_college_choice'),
+                    'other_college',
+                    InlineRadios('explain_expelled_org_choice'),
+                    'explain_expelled_org',
+                    InlineRadios('explain_expelled_college_choice'),
+                    'explain_expelled_college',
+                    InlineRadios('explain_crime_choice'),
+                    'explain_crime',
+                ),
+                AccordionGroup(
+                    'Pause and Deliberate',
+                    'loyalty',
+                    'not_honor',
+                    'accountable',
+                    'life',
+                    'unlawful',
+                    'unlawful_org',
+                    'brotherhood',
+                    'engineering',
+                    'engineering_grad',
+                    'payment',
+                    'attendance',
+                    'harmless',
+                    'alumni',
+                    'honest',
+                    'signature',
+                    ButtonHolder(
+                        Submit('submit', 'Submit', css_class='btn-primary')
+                    )
+                )
+            )
+        )

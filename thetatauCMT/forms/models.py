@@ -1,21 +1,29 @@
-import os
 import datetime
+import os
 from enum import Enum
 from django.db import models, transaction
 from django.db.utils import IntegrityError
 from django.contrib.auth.models import Group
-from django.core.validators import MaxValueValidator
+from django.core.validators import MaxValueValidator, RegexValidator
 from django.conf import settings
 from django.utils import timezone
-from core.models import TimeStampedModel, YearTermModel
+from core.models import TimeStampedModel, YearTermModel, validate_year
 from django.utils.translation import gettext_lazy as _
+from address.models import AddressField
 from multiselectfield import MultiSelectField
 from core.models import forever, CHAPTER_ROLES_CHOICES,\
     academic_encompass_start_end_date
 from users.models import User, UserStatusChange
-from chapters.models import Chapter
+from chapters.models import Chapter, ChapterCurricula
 from tasks.models import TaskChapter
 from submissions.models import Submission
+
+
+class MultiSelectField(MultiSelectField):
+    # Not Django 2.0+ ready yet, https://github.com/goinnn/django-multiselectfield/issues/74
+    def value_to_string(self, obj):
+        value = self.value_from_object(obj)
+        return self.get_prep_value(value)
 
 
 class Badge(models.Model):
@@ -378,6 +386,21 @@ class StatusChange(TimeStampedModel):
                 ).save()
 
 
+def get_chapter_report_upload_path(instance, filename):
+    return os.path.join(
+        'submissions', 'chapter_report',
+        f"{instance.chapter.slug}_{instance.year}_{instance.term}_{filename}")
+
+
+class ChapterReport(YearTermModel, TimeStampedModel):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL,
+                             on_delete=models.CASCADE,
+                             related_name="chapter_form")
+    chapter = models.ForeignKey(Chapter, on_delete=models.CASCADE,
+                                related_name="info")
+    report = models.FileField(upload_to=get_chapter_report_upload_path)
+
+
 class RiskManagement(YearTermModel):
     user = models.ForeignKey(settings.AUTH_USER_MODEL,
                              on_delete=models.CASCADE,
@@ -404,6 +427,9 @@ class RiskManagement(YearTermModel):
     indemnification = models.BooleanField()
     agreement = models.BooleanField()
     electronic_agreement = models.BooleanField()
+    photo_release = models.BooleanField(default=False)
+    arbitration = models.BooleanField(default=False)
+    dues = models.BooleanField(default=False)
     terms_agreement = models.BooleanField()
     typed_name = models.CharField(max_length=255)
 
@@ -447,10 +473,8 @@ class RiskManagement(YearTermModel):
 
     @staticmethod
     def user_signed_this_year(user):
-        current_roles = user.chapter_officer()
         start, end = academic_encompass_start_end_date()
-        signed_before = user.risk_form.filter(
-            role__in=current_roles, date__gte=start, date__lte=end)
+        signed_before = user.risk_form.filter(date__gte=start, date__lte=end)
         return signed_before
 
 
@@ -480,3 +504,100 @@ class Audit(YearTermModel, TimeStampedModel):
         "Which members have access to the chapter debit card? Select all that apply.",
         choices=[('None', 'None')] + CHAPTER_ROLES_CHOICES)
     agreement = models.BooleanField()
+
+
+class Pledge(TimeStampedModel):
+    BOOL_CHOICES = ((True, 'Yes'), (False, 'No'))
+    signature = models.CharField(
+        max_length=255, help_text="Please sign using your proper/legal name")
+    title = models.CharField(
+        max_length=5,
+        choices=[('mr', 'Mr.'), ('miss', 'Miss'), ('ms', 'Ms'), ('mrs', 'Mrs'), ])
+    first_name = models.CharField(_('Legal First Name'), max_length=30)
+    middle_name = models.CharField(_('Full Middle Name'), max_length=30, blank=True)
+    last_name = models.CharField(_('Legal Last Name'), max_length=30)
+    suffix = models.CharField(_('Suffix (such as Jr., III)'), max_length=10, blank=True)
+    nickname = models.CharField(
+        max_length=30, blank=True,
+        help_text="If different than your first name - eg Buddy, Skip, or Mike. Do NOT indicate 'pledge names'")
+    parent_name = models.CharField(_('Parent / Guardian Name'), max_length=60)
+    email_school = models.EmailField(
+        _('School Email'),
+        help_text="We will send an acknowledgement message. (ends in .edu)")
+    email_personal = models.EmailField(
+        _('Personal Email'),
+        help_text="Personal email address like @gmail.com, @yahoo.com, @outlook.com, etc")
+    phone_regex = RegexValidator(
+        regex=r'^\+?1?\d{9,15}$',
+        message="Phone number must be entered in the format: '+999999999'. Up to 15 digits allowed.")
+    phone_mobile = models.CharField(
+        _('Mobile Phone'), validators=[phone_regex], max_length=17,
+        help_text="Format: 9999999999 no spaces, dashes, etc.")
+    phone_home = models.CharField(
+        _('Home Phone'), validators=[phone_regex], max_length=17,
+        help_text="Format: 9999999999 no spaces, dashes, etc.")
+    address = AddressField(on_delete=models.PROTECT)
+    birth_date = models.DateField()
+    birth_place = models.CharField(
+        _('Place of Birth'), max_length=50,
+        help_text=_("City and state or province is sufficient"))
+    school_name = models.ForeignKey(Chapter, to_field='school',
+                                    on_delete=models.CASCADE,
+                                    related_name="pledge_forms_full")
+    major = models.ForeignKey(ChapterCurricula, on_delete=models.CASCADE,
+                              related_name="pledges")
+    grad_date_year = models.IntegerField(
+        _('Expected date of graduation'), validators=[validate_year],
+        help_text="The year closest to your expected date of graduation in YYYY format.")
+    other_degrees = models.CharField(
+        _('College degrees already received'), max_length=60, blank=True,
+        help_text="Name of Major/Field of that Degree. If none, leave blank")
+    relative_members = models.CharField(
+        _('Indicate the names of any relatives you have who are members of Theta Tau below'),
+        max_length=60, blank=True,
+        help_text="Include relationship, chapter, and graduation year, if known. If none, leave blank")
+    other_greeks = models.CharField(
+        _('Of which Greek Letter Honor Societies are you a member?'),
+        max_length=60, blank=True, help_text="If none, leave blank")
+    other_tech = models.CharField(
+        _('Of which technical societies are you a member?'),
+        max_length=60, blank=True, help_text="If none, leave blank")
+    other_frat = models.CharField(
+        _('Of which fraternities are you a member?'),
+        max_length=60, blank=True, help_text="Other than Theta Tau -- If no other, leave blank")
+    other_college = models.CharField(
+        _('Which? (Other college(s))'), max_length=60, blank=True)
+    explain_expelled_org = models.TextField(
+        _('If yes, please explain.'), blank=True)
+    explain_expelled_college = models.TextField(
+        _('If yes, please explain.'), blank=True)
+    explain_crime = models.TextField(
+        _('If yes, please explain.'), blank=True)
+    verbose_loyalty = _("""The purpose of Theta Tau shall be to develop and maintain a high standard of professional interest among its members and to unite them in a strong bond of fraternal fellowship. The members are pledged to help one another professionally and personally in a practical way, as students and as alumni, advising as to opportunities for service and advancement, warning against unethical practices and persons. Do you believe that such a fraternity is entitled to your continued support and loyalty?""")
+    loyalty = models.BooleanField(verbose_loyalty, choices=BOOL_CHOICES, default=False)
+    verbose_not_honor = _("""Theta Tau is a fraternity, not an honor society. It aims to elect no one to any class of membership solely in recognition of his scholastic or professional achievements. Do you subscribe to this doctrine?""")
+    not_honor = models.BooleanField(verbose_not_honor, choices=BOOL_CHOICES, default=False)
+    verbose_accountable = _("""Do you understand, if you become a member of Theta Tau, that the other members will have the right to hold you accountable for your conduct? Do you further understand that the Fraternity has Risk Management policies (hazing, alcohol, etc) with which you are expected to comply and to which you should expect others to comply?""")
+    accountable = models.BooleanField(verbose_accountable, choices=BOOL_CHOICES, default=False)
+    verbose_life = _("""When you assume the oaths or obligations required during initiation, will you agree that they are binding on the member for life?""")
+    life = models.BooleanField(verbose_life, choices=BOOL_CHOICES, default=False)
+    verbose_unlawful = _("""Do you promise that you will not permit the use of a Theta Tau headquarters or meeting place for unlawful purposes?""")
+    unlawful = models.BooleanField(verbose_unlawful, choices=BOOL_CHOICES, default=False)
+    verbose_unlawful_org = _("""This Fraternity requires of its initiates that they shall not be members of any sect or organization which teaches or practices activities in violation of the laws of the state or the nation. Do you subscribe to this requirement?""")
+    unlawful_org = models.BooleanField(verbose_unlawful_org, choices=BOOL_CHOICES, default=False)
+    verbose_brotherhood = _("""The strength of the Fraternity depends largely on the character of its members and the close and loyal friendship uniting them. Do you realize you have no right to join if you do not act on this belief?""")
+    brotherhood = models.BooleanField(verbose_brotherhood, choices=BOOL_CHOICES, default=False)
+    verbose_engineering = _("""Theta Tau is an engineering fraternity whose student membership is limited to those regularly enrolled in a course leading to a degree in an approved engineering curriculum. Members of other fraternities that restrict their membership to any, or several engineering curricula are generally not eligible to Theta Tau, nor may our members join such fraternities. Engineering honor societies such as Tau Beta Pi, Eta Kappa Nu, etc., are not included in this classification. Do you fully understand and subscribe to that policy?""")
+    engineering = models.BooleanField(verbose_engineering, choices=BOOL_CHOICES, default=False)
+    verbose_engineering_grad = _("""Is it your intention to practice engineering after graduation?""")
+    engineering_grad = models.BooleanField(verbose_engineering_grad, choices=BOOL_CHOICES, default=False)
+    verbose_payment = _("""The Fraternity has a right to demand from you prompt payment of bills. Do you understand, and are you ready to accept, the financial obligations of becoming a member?""")
+    payment = models.BooleanField(verbose_payment, choices=BOOL_CHOICES, default=False)
+    verbose_attendance = _("""The Fraternity has a right to demand from you regular attendance at meetings and faithful performance of duties entrusted to you. Are you ready to accept such obligations?""")
+    attendance = models.BooleanField(verbose_attendance, choices=BOOL_CHOICES, default=False)
+    verbose_harmless = _("""Do you agree hereby to fully and completely release, discharge, and hold harmless the Chapter, House Corporation, Theta Tau (the national Fraternity), and their respective members, officers, agents, and any other entity whose liability is derivative by or through said released parties from all past, present and future claims, causes of action and liabilities of any nature whatsoever, regardless of the cause of the damage or loss, and including, but not limited to, claims and losses covered by insurance, claims and damages for property, for personal injury, for premises liability, for torts of any nature, and claims for compensatory damages, consequential damages or punitive/exemplary damages? Your affirmative answer binds you, under covenant, not to sue any of the previously named entities.""")
+    harmless = models.BooleanField(verbose_harmless, choices=BOOL_CHOICES, default=False)
+    verbose_alumni = _("""As an alumnus, you should join with other alumni in the formation and support of alumni clubs or associations. Furthermore, on October 15th of each year, celebrations are held throughout the country to recall the founding of our Fraternity and to honor the Founders. Members of Theta Tau are encouraged to send some form of greeting to their chapters on or about October 15th. If several members are located in the same vicinity they could gather for an informal meeting. Will you endeavor to do these things, as circumstances permit, after you are initiated into Theta Tau?""")
+    alumni = models.BooleanField(verbose_alumni, choices=BOOL_CHOICES, default=False)
+    verbose_honest = _("""My answers to these questions are my honest and sincere convictions.""")
+    honest = models.BooleanField(verbose_honest, choices=BOOL_CHOICES, default=False)

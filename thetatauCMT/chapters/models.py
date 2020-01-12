@@ -1,12 +1,15 @@
 import warnings
+from enum import Enum
 from datetime import timedelta
 from django.db import models
+from django.db.models.functions import Concat
 from django.db.utils import ProgrammingError
 from address.models import AddressField
 from django.utils.translation import ugettext_lazy as _
 from django.utils.text import slugify
 from core.models import TODAY_END, annotate_role_status, CHAPTER_OFFICER,\
-    semester_start_date, BIENNIUM_START, BIENNIUM_START_DATE, BIENNIUM_DATES
+    semester_encompass_start_end_date, BIENNIUM_START, BIENNIUM_START_DATE,\
+    BIENNIUM_DATES, ADVISOR_ROLES
 from regions.models import Region
 
 
@@ -119,14 +122,31 @@ class Chapter(models.Model):
         ('quarter', 'Quarter'),
     ]
 
+    class RECOGNITION(Enum):
+        fraternity = ('fraternity', 'Recognized as a Fraternity')
+        org = ('org', 'Recognized as a Student Organization NOT a Fraternity')
+        other = ('other', 'Recognized but not as a Fraternity or Student Organization')
+        not_rec = ('not_rec', 'Not Recognized by University')
+
+        @classmethod
+        def get_value(cls, member):
+            if member == 'not':
+                member = 'not_rec'
+            return cls[member.lower()].value[1]
+
     name = models.CharField(max_length=50)
     region = models.ForeignKey(Region, on_delete=models.PROTECT,
                                related_name='chapters')
     slug = models.SlugField(max_length=50, null=True, default=None, unique=True)
     email = models.EmailField(_('email address'), blank=True)
-    website = models.URLField(blank=True)
-    facebook = models.URLField(blank=True)
-    address = AddressField(on_delete=models.SET_NULL, blank=True, null=True, unique=True)
+    website = models.URLField(
+        blank=True, help_text="You must include the full URL including https:// or http://",)
+    facebook = models.URLField(
+        blank=True, help_text="You must include the full URL including https:// or http://",)
+    address = AddressField(
+        verbose_name=_('Mailing Address'),
+        help_text="We periodically need to mail things (shingles, badges, etc) to your chapter.",
+        on_delete=models.SET_NULL, blank=True, null=True, unique=True)
     balance = models.DecimalField(default=0, decimal_places=2,
                                   max_digits=7,
                                   help_text="Balance chapter owes.")
@@ -138,7 +158,7 @@ class Chapter(models.Model):
                              help_text="Greek letter abbreviation")
     active = models.BooleanField(default=True)
     colony = models.BooleanField(default=False)
-    school = models.CharField(max_length=50, blank=True)
+    school = models.CharField(max_length=50, blank=True, unique=True)
     latitude = models.DecimalField(max_digits=22, decimal_places=16,
                                    blank=True, null=True)
     longitude = models.DecimalField(max_digits=22, decimal_places=16,
@@ -147,6 +167,21 @@ class Chapter(models.Model):
         default='semester',
         max_length=10,
         choices=TYPES
+    )
+    council = models.CharField(
+        verbose_name=_('Name of Council'),
+        help_text="The name of the council of which your Chapter is a member, " +
+                  "for example the IFC or PFC.  Please write 'none' if you " +
+                  "are not recognized as a Fraternity or not a member of a council.",
+        default='none',
+        max_length=55,
+    )
+    recognition = models.CharField(
+        verbose_name=_('University Recognition'),
+        help_text="Please indicate if your chapter is recognized by your host college or university.",
+        default='not_rec',
+        max_length=10,
+        choices=[x.value for x in RECOGNITION]
     )
 
     def __str__(self):
@@ -182,11 +217,35 @@ class Chapter(models.Model):
         return self.events.filter(date__lte=TODAY_END, date__gte=TODAY_END - timedelta(30))
 
     def events_semester(self):
-        semester_start = semester_start_date()
-        return self.events.filter(date__lte=TODAY_END, date__gte=semester_start)
+        semester_start, semester_end = semester_encompass_start_end_date()
+        return self.events.filter(date__lte=semester_end,
+                                  date__gte=semester_start)
 
     def current_members(self):
         return self.actives() | self.pledges()
+
+    @property
+    def advisors(self):
+        # Do not annotate, need the queryset not a list
+        all_advisors = self.members.filter(status__status__in=["advisor", ],
+                                   status__start__lte=TODAY_END,
+                                   status__end__gte=TODAY_END
+                                   ) | \
+               self.members.filter(roles__role__in=ADVISOR_ROLES,
+                                   roles__start__lte=TODAY_END,
+                                   roles__end__gte=TODAY_END
+                                   )
+        all_advisors = all_advisors.annotate(
+            role=models.Case(
+                models.When(
+                    models.Q(roles__role__in=ADVISOR_ROLES),
+                    Concat(models.Value('Alumni '), "roles__role")
+                ),
+                default=models.Value('Faculty Advisor'),
+                output_field=models.CharField(),
+            )
+        )
+        return all_advisors
 
     def actives(self):
         # Do not annotate, need the queryset not a list
@@ -262,6 +321,15 @@ class Chapter(models.Model):
                                    ~models.Q(badge_number__gt=8000)
                                    ).aggregate(models.Max('badge_number'))
 
+    @property
+    def next_advisor_number(self):
+        advisor = self.members.filter(
+            status__status__in=["advisor", ]).order_by('badge_number').last()
+        badge_number = 7000
+        if advisor:
+            badge_number = advisor.badge_number + 1
+        return badge_number
+
     @classmethod
     def schools(cls):
         try:
@@ -281,9 +349,11 @@ class Chapter(models.Model):
             return None
 
 
-
 class ChapterCurricula(models.Model):
     chapter = models.ForeignKey(Chapter,
                                 on_delete=models.CASCADE,
                                 related_name="curricula")
     major = models.CharField(max_length=100)
+
+    def __str__(self):
+        return self.major

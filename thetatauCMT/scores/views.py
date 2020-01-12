@@ -1,14 +1,15 @@
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.http.request import QueryDict
+from django.db import models
 from django.urls import reverse
 from django.views.generic import DetailView, RedirectView
 from core.views import PagedFilteredTableView, RequestConfig, OfficerMixin
-from .models import ScoreType
-from .tables import ScoreTable
+from .models import ScoreType, ScoreChapter
+from .tables import ScoreTable, ChapterScoreTable
 from events.tables import EventTable
+from chapters.models import Chapter
 from submissions.tables import SubmissionTable
-from .filters import ScoreListFilter
-from .forms import ScoreListFormHelper
+from .filters import ScoreListFilter, ChapterScoreListFilter, BIENNIUM_FILTERS
+from .forms import ScoreListFormHelper, ChapterScoreListFormHelper
 
 
 class ScoreDetailView(LoginRequiredMixin, OfficerMixin, DetailView):
@@ -52,25 +53,40 @@ class ScoreListView(LoginRequiredMixin, OfficerMixin, PagedFilteredTableView):
     table_class = ScoreTable
     filter_class = ScoreListFilter
     formhelper_class = ScoreListFormHelper
+    table_pagination = {'per_page': 50}
 
     def get_queryset(self):
-        qs = super(PagedFilteredTableView, self).get_queryset()
-        cancel = self.request.GET.get('cancel', False)
-        request_get = self.request.GET.copy()
-        if cancel:
-            request_get = QueryDict()
-        self.filter = self.filter_class(request_get, queryset=qs)
-        score_list = self.model.annotate_chapter_score(self.request.user.current_chapter, self.filter.qs)
-        self.filter.form.helper = self.formhelper_class()
+        qs = super().get_queryset()
+        score_list = self.model.annotate_chapter_score(
+            self.request.user.current_chapter, qs)
         return score_list
 
-    def post(self, request, *args, **kwargs):
-        return PagedFilteredTableView.as_view()(request)
 
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        table = ScoreTable(data=self.get_queryset())
-        table.request = self.request
-        RequestConfig(self.request, paginate={'per_page': 50}).configure(table)
-        context['table'] = table
-        return context
+class ChapterScoreListView(LoginRequiredMixin, OfficerMixin, PagedFilteredTableView):
+    model = Chapter
+    template_name = 'scores/chapterscore_list.html'
+    slug_field = 'slug'
+    slug_url_kwarg = 'slug'
+    context_object_name = 'scores'
+    ordering = ['name']
+    table_class = ChapterScoreTable
+    filter_class = ChapterScoreListFilter
+    formhelper_class = ChapterScoreListFormHelper
+    table_pagination = {'per_page': 100}
+
+    def get_queryset(self):
+        request_get = self.request.GET.copy()
+        date_info = request_get.get('date', '')
+        cancel = self.request.GET.get('cancel', False)
+        qs = super().get_queryset(
+            request_get=request_get,
+            clean_date=True,
+        )
+        date = None
+        if date_info and not cancel:
+            date = BIENNIUM_FILTERS[(date_info, date_info.replace('_', ' '))][0]
+        data = ScoreChapter.type_score_biennium(
+            date=date,
+            chapters=qs
+        )
+        return data

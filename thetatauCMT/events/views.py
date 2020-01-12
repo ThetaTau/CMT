@@ -91,17 +91,4 @@ class EventListView(LoginRequiredMixin, OfficerMixin,
     table_class = EventTable
     filter_class = EventListFilter
     formhelper_class = EventListFormHelper
-
-    def get_queryset(self):
-        qs = super().get_queryset()
-        return qs.filter(chapter=self.request.user.current_chapter)
-
-    def post(self, request, *args, **kwargs):
-        return PagedFilteredTableView.as_view()(request)
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        table = EventTable(self.get_queryset())
-        RequestConfig(self.request, paginate={'per_page': 30}).configure(table)
-        context['table'] = table
-        return context
+    filter_chapter = True

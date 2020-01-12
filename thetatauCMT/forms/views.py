@@ -2,7 +2,9 @@ import json
 import datetime
 from copy import deepcopy
 from django.db.models import Q
+from django.conf import settings
 from django.core.mail import send_mail
+from django.forms.models import modelformset_factory
 from django.utils.decorators import method_decorator
 from django.http.request import QueryDict
 from django.views.decorators.debug import sensitive_post_parameters
@@ -11,39 +13,47 @@ from django.core.files.base import ContentFile
 from django.contrib import messages
 from django.urls import reverse
 from django.utils import timezone
+from django.shortcuts import render
 from django import forms
 from django.views.generic import UpdateView
-from django.views.generic.edit import FormView
+from django.views.generic.edit import FormView, CreateView
 from django.views.decorators.http import require_POST
 from django.views.decorators.csrf import csrf_exempt
 from django.shortcuts import redirect
 from django.http import HttpResponseRedirect, HttpResponse, HttpResponseBadRequest
 from crispy_forms.layout import Submit
+from dal import autocomplete, forward
 from extra_views import FormSetView, ModelFormSetView
 from easy_pdf.views import PDFTemplateResponseMixin
+from core.forms import MultiFormsView
+from core.models import TODAY_START, forever
 from core.views import OfficerMixin, OfficerRequiredMixin, RequestConfig,\
     PagedFilteredTableView, NatOfficerRequiredMixin
 from .forms import InitiationFormSet, InitiationForm, InitiationFormHelper, InitDeplSelectForm,\
     InitDeplSelectFormHelper, DepledgeFormSet, DepledgeFormHelper, StatusChangeSelectForm,\
     StatusChangeSelectFormHelper, GraduateForm, GraduateFormSet, CSMTFormSet, GraduateFormHelper, CSMTFormHelper,\
-    RoleChangeSelectForm, RiskManagementForm,\
-    PledgeProgramForm, AuditForm
+    RoleChangeSelectForm, RiskManagementForm, RoleChangeNationalSelectForm,\
+    PledgeProgramForm, AuditForm, PledgeFormFull, ChapterReport
 from tasks.models import TaskChapter, Task
 from scores.models import ScoreType
 from submissions.models import Submission
+from users.models import User, UserStatusChange
 from core.models import CHAPTER_OFFICER, COL_OFFICER_ALIGN, SEMESTER,\
-    CHAPTER_ROLES_CHOICES
+    NAT_OFFICERS_CHOICES, CHAPTER_ROLES_CHOICES
 from users.models import UserRoleChange
+from users.forms import ExternalUserForm
 from users.notifications import NewOfficers
-from chapters.models import Chapter
+from chapters.models import Chapter, ChapterCurricula
 from regions.models import Region
 from .tables import GuardTable, BadgeTable, InitiationTable, DepledgeTable, \
-    StatusChangeTable, PledgeFormTable, AuditTable, RiskFormTable, PledgeProgramTable
+    StatusChangeTable, PledgeFormTable, AuditTable, RiskFormTable,\
+    PledgeProgramTable, ChapterReportTable
 from .models import Guard, Badge, Initiation, Depledge, StatusChange, RiskManagement,\
     PledgeForm, PledgeProgram, Audit
-from .filters import AuditListFilter, PledgeProgramListFilter
-from .forms import AuditListFormHelper, RiskListFilter, PledgeProgramFormHelper
-from .notifications import EmailRMPSigned, EmailPledgeOther
+from .filters import AuditListFilter, PledgeProgramListFilter, ChapterReportListFilter
+from .forms import AuditListFormHelper, RiskListFilter, PledgeProgramFormHelper,\
+    ChapterInfoReportForm, ChapterReportFormHelper
+from .notifications import EmailRMPSigned, EmailPledgeOther, EmailRMPReport
 
 
 sensitive_post_parameters_m = method_decorator(
@@ -415,6 +425,20 @@ class StatusChangeView(OfficerRequiredMixin,
         return reverse('home')
 
 
+def remove_extra_form(formset, **kwargs):
+    tfc = formset.total_form_count()
+    del formset.forms[tfc - 1]
+    data = formset.data
+    total_count_name = '%s-%s' % (formset.management_form.prefix, 'TOTAL_FORMS')
+    initial_count_name = '%s-%s' % (formset.management_form.prefix, 'INITIAL_FORMS')
+    formset.management_form.cleaned_data['TOTAL_FORMS'] -= 1
+    formset.management_form.cleaned_data['INITIAL_FORMS'] -= 1
+    data[total_count_name] = formset.management_form.cleaned_data['TOTAL_FORMS'] - 1
+    data[initial_count_name] = formset.management_form.cleaned_data['INITIAL_FORMS'] - 1
+    formset.data = data
+    return formset
+
+
 class RoleChangeView(OfficerRequiredMixin,
                      LoginRequiredMixin, OfficerMixin, ModelFormSetView):
     form_class = RoleChangeSelectForm
@@ -427,20 +451,6 @@ class RoleChangeView(OfficerRequiredMixin,
         formset = super().construct_formset()
         for field_name in formset.forms[-1].fields:
             formset.forms[-1].fields[field_name].disabled = False
-        formset.form.base_fields['role'].choices = [('', '---------')] + CHAPTER_ROLES_CHOICES
-        return formset
-
-    def remove_extra_form(self, formset, **kwargs):
-        tfc = formset.total_form_count()
-        del formset.forms[tfc - 1]
-        data = formset.data
-        total_count_name = '%s-%s' % (formset.management_form.prefix, 'TOTAL_FORMS')
-        initial_count_name = '%s-%s' % (formset.management_form.prefix, 'INITIAL_FORMS')
-        formset.management_form.cleaned_data['TOTAL_FORMS'] -= 1
-        formset.management_form.cleaned_data['INITIAL_FORMS'] -= 1
-        data[total_count_name] = formset.management_form.cleaned_data['TOTAL_FORMS'] - 1
-        data[initial_count_name] = formset.management_form.cleaned_data['INITIAL_FORMS'] - 1
-        formset.data = data
         return formset
 
     def post(self, request, *args, **kwargs):
@@ -457,10 +467,11 @@ class RoleChangeView(OfficerRequiredMixin,
             # Need to check if last extra form is causing issues
             if 'user' in formset.extra_forms[-1].errors:
                 # We should remove this form
-                formset = self.remove_extra_form(formset)
+                formset = remove_extra_form(formset)
         if formset.is_valid():
             return self.formset_valid(formset)
         else:
+            self.object_list = self.get_queryset()
             return self.formset_invalid(formset)
 
     def get_queryset(self):
@@ -526,8 +537,268 @@ class RoleChangeView(OfficerRequiredMixin,
         return reverse("home")  # If this is the same view, login redirect loops
 
 
-class RiskManagementFormView(OfficerRequiredMixin,
-                             LoginRequiredMixin, OfficerMixin,
+class RoleChangeNationalView(NatOfficerRequiredMixin,
+                             LoginRequiredMixin, OfficerMixin, ModelFormSetView):
+    form_class = RoleChangeNationalSelectForm
+    template_name = "forms/officer_national.html"
+    factory_kwargs = {'extra': 1, 'can_delete': True}
+    model = UserRoleChange
+
+    def construct_formset(self, initial=False):
+        formset = super().construct_formset()
+        for field_name in formset.forms[-1].fields:
+            formset.forms[-1].fields[field_name].disabled = False
+        return formset
+
+    def get_success_url(self):
+        return self.request.get_full_path()
+
+    def post(self, request, *args, **kwargs):
+        """
+        Handles POST requests, instantiating a formset instance with the passed
+        POST variables and then checked for validity.
+        """
+        formset = self.construct_formset()
+        for idx, form in enumerate(formset.forms):
+            if 'user' not in form.initial:
+                for field_name in form.fields:
+                    formset.forms[idx].fields[field_name].disabled = False
+        if not formset.is_valid():
+            # Need to check if last extra form is causing issues
+            if 'user' in formset.extra_forms[-1].errors:
+                # We should remove this form
+                formset = remove_extra_form(formset)
+        if formset.is_valid():
+            return self.formset_valid(formset)
+        else:
+            self.object_list = self.get_queryset()
+            return self.formset_invalid(formset)
+
+    def get_queryset(self):
+        nat_offs = UserRoleChange.get_current_natoff()
+        return nat_offs
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        formset = kwargs.get('formset', None)
+        if formset is None:
+            formset = self.construct_formset()
+        context['formset'] = formset
+        context['input'] = Submit("action", "Submit")
+        return context
+
+    def formset_valid(self, formset, delete_only=False):
+        delete_list = []
+        for obj in formset.deleted_forms:
+            # We don't want to delete the value, just make them not current
+            # We also do not care about form, just get obj
+            instance = None
+            try:
+                instance = obj.clean()['id']
+            except KeyError:
+                continue
+            if instance:
+                instance.end = timezone.now() - timezone.timedelta(days=2)
+                instance.save()
+                delete_list.append(instance.user)
+        if delete_list:
+            messages.add_message(
+                self.request, messages.INFO,
+                f"You successfully removed the officers:\n"
+                f"{delete_list}")
+        if not delete_only:
+            update_list = []
+            for form in formset.forms:
+                if form.changed_data and 'DELETE' not in form.changed_data:
+                    form.save()
+                    update_list.append(form.instance.user)
+            if update_list:
+                messages.add_message(
+                    self.request, messages.INFO,
+                    f"You successfully updated the officers:\n"
+                    f"{update_list}")
+        return HttpResponseRedirect(reverse("forms:natoff"))
+
+
+class ChapterReportListView(NatOfficerRequiredMixin, LoginRequiredMixin,
+                            OfficerMixin, PagedFilteredTableView):
+    model = ChapterReport
+    context_object_name = 'chapter_report_list'
+    table_class = ChapterReportTable
+    filter_class = ChapterReportListFilter
+    formhelper_class = ChapterReportFormHelper
+
+    def get_queryset(self, **kwargs):
+        qs = ChapterReport.objects.all()
+        cancel = self.request.GET.get('cancel', False)
+        request_get = self.request.GET.copy()
+        if cancel:
+            request_get = QueryDict()
+        if not request_get:
+            # Create a mutable QueryDict object, default is immutable
+            request_get = QueryDict(mutable=True)
+            request_get.setlist("year", [''])
+            request_get.setlist("term", [''])
+        if not cancel:
+            if request_get['year'] == '':
+                request_get['year'] = datetime.datetime.now().year
+            if request_get['term'] == '':
+                request_get['term'] = SEMESTER[datetime.datetime.now().month]
+        self.filter = self.filter_class(request_get,
+                                        queryset=qs)
+        self.filter.request = self.request
+        self.filter.form.helper = self.formhelper_class()
+        return self.filter.qs
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        all_forms = self.object_list
+        data = [
+            {
+                'chapter': form.chapter.name,
+                'region': form.chapter.region.name,
+                'year': form.year,
+                'term': ChapterReport.TERMS.get_value(form.term),
+                'report': form.report
+            } for form in all_forms
+        ]
+        complete = self.filter.form.cleaned_data['complete']
+        if complete in ['0', '']:
+            form_chapters = all_forms.values_list('chapter__id', flat=True)
+            region_slug = self.filter.form.cleaned_data['region']
+            region = Region.objects.filter(slug=region_slug).first()
+            if region:
+                missing_chapters = Chapter.objects.exclude(id__in=form_chapters).filter(region__in=[region])
+            elif region_slug == 'colony':
+                missing_chapters = Chapter.objects.exclude(id__in=form_chapters).filter(colony=True)
+            else:
+                missing_chapters = Chapter.objects.exclude(id__in=form_chapters)
+            missing_data = [{
+                 'chapter': chapter.name, 'region': chapter.region.name,
+                 'report': None, 'term': None, 'year': None,
+             } for chapter in missing_chapters]
+            if complete == '0':  # Incomplete
+                data = missing_data
+            else:  # All
+                data.extend(missing_data)
+        table = ChapterReportTable(data=data)
+        RequestConfig(self.request, paginate={'per_page': 100}).configure(table)
+        context['table'] = table
+        return context
+
+
+class ChapterInfoReportView(LoginRequiredMixin, OfficerMixin, MultiFormsView):
+    template_name = 'forms/chapter_report.html'
+    form_classes = {
+        'report': ChapterInfoReportForm,
+        'faculty': ExternalUserForm,
+    }
+    grouped_forms = {
+        'chapter_report': ['report', 'faculty']
+    }
+
+    def get_success_url(self, form_name=None):
+        return reverse('forms:report')
+
+    def faculty_form_valid(self, formset):
+        if formset.has_changed():
+            for form in formset.forms:
+                if form.changed_data and 'DELETE' not in form.changed_data:
+                    chapter = self.request.user.current_chapter
+                    if form.instance.badge_number == 999999999:
+                        form.instance.chapter = chapter
+                        form.instance.badge_number = chapter.next_advisor_number
+                    user = form.save()
+                    try:
+                        status = UserStatusChange.objects.get(user=user)
+                    except UserStatusChange.DoesNotExist:
+                        UserStatusChange(
+                            user=user,
+                            status='advisor',
+                            start=TODAY_START,
+                            end=forever(),
+                        ).save()
+                elif form.changed_data and 'DELETE' in form.changed_data:
+                    user = form.instance
+                    status = UserStatusChange.objects.get(user=user)
+                    status.end = TODAY_START
+                    status.save()
+        return HttpResponseRedirect(self.get_success_url())
+
+    def create_faculty_form(self, **kwargs):
+        chapter = self.request.user.current_chapter
+        facultys = chapter.advisors
+        extra = 0
+        min_num = 0
+        if not facultys:
+            extra = 0
+            min_num = 1
+        factory = modelformset_factory(
+            User,
+            form=ExternalUserForm,
+            **{
+                'can_delete': True,
+                'extra': extra,
+                'min_num': min_num,
+                'validate_min': True,
+            })
+        # factory.form.base_fields['chapter'].queryset = chapter
+        formset_kwargs = {
+            'queryset': facultys,
+            'form_kwargs': {
+                'initial': {'chapter': chapter}
+            }
+        }
+        if self.request.method in ('POST', 'PUT'):
+            formset_kwargs.update({
+                'data': self.request.POST.copy(),
+            })
+        return factory(**formset_kwargs)
+
+    def get_form_kwargs(self, form_name, bind_form=False):
+        kwargs = super().get_form_kwargs(form_name, bind_form)
+        kwargs.update(instance={
+            'info': self.get_object(),
+            # 'report': self.object.current_report,
+        })
+        return kwargs
+
+    def report_form_valid(self, form):
+        report = form['report']
+        info = form['info']
+        if report.has_changed():
+            report.instance.user = self.request.user
+            report.instance.chapter = self.request.user.current_chapter
+            report.save()
+            file_name = f"Risk Management Form {self.request.user}"
+            score_type = ScoreType.objects.filter(slug="rmp").first()
+            submit_obj = Submission(
+                user=self.request.user,
+                name=file_name,
+                type=score_type,
+                chapter=self.request.user.current_chapter,
+                file=report.instance.report.file
+            )
+            submit_obj.save()
+            EmailRMPReport(
+                self.request.user, report.instance.report.file).send()
+            messages.add_message(
+                self.request, messages.INFO,
+                f"You successfully submitted the RMP and Agreements of Theta Tau!\n")
+        if info.has_changed():
+            info.save()
+        return HttpResponseRedirect(self.get_success_url())
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context.update({"object": self.get_object(), })
+        return context
+
+    def get_object(self):
+        return self.request.user.current_chapter
+
+
+class RiskManagementFormView(LoginRequiredMixin, OfficerMixin,
                              FormView):
     form_class = RiskManagementForm
     template_name = "forms/rmp.html"
@@ -542,49 +813,37 @@ class RiskManagementFormView(OfficerRequiredMixin,
         return super().get(request, *args, **kwargs)
 
     def form_valid(self, form):
-        current_roles = self.request.user.chapter_officer()
-        if not current_roles:
-            messages.add_message(
-                self.request, messages.ERROR,
-                f"Only executive officers can sign RMP: {CHAPTER_OFFICER}\n"
-                f"Your current roles are: {current_roles}")
+        current_role = self.request.user.get_current_role()
+        if not current_role:
+            current_role = self.request.user.get_current_status()
+            current_role = current_role.status
         else:
-            form.instance.user = self.request.user
-            form.instance.role = list(current_roles)[0].replace(' ', '_')
-            form.save()
-            task = Task.objects.filter(name="Risk Management Form",
-                                       owner__in=current_roles).first()
-            chapter = self.request.user.current_chapter
-            next_date = task.incomplete_dates_for_task_chapter(chapter).first()
-            if next_date:
-                task_obj = TaskChapter(task=next_date, chapter=chapter,
-                                       date=timezone.now(),)
-                score_type = ScoreType.objects.filter(
-                    slug="rmp").first()
-                view = RiskManagementDetailView.as_view()
-                new_request = self.request
-                new_request.path = f'/forms/rmp-complete/{form.instance.id}'
-                new_request.method = 'GET'
-                risk_file = view(new_request, pk=form.instance.id)
-                file_name = f"Risk Management Form {self.request.user}"
-                submit_obj = Submission(
-                    user=self.request.user,
-                    name=file_name,
-                    type=score_type,
-                    chapter=self.request.user.current_chapter,
-                )
-                submit_obj.file.save(f"{file_name}.pdf",
-                                     ContentFile(risk_file.content))
-                submit_obj.save()
-                form.instance.submission = submit_obj
-                form.save()
-                task_obj.submission_object = submit_obj
-                task_obj.save()
-                EmailRMPSigned(self.request.user, risk_file.content, file_name).send()
-                messages.add_message(
-                    self.request, messages.INFO,
-                    f"You successfully signed the RMP!\n"
-                    f"Your current roles are: {current_roles}")
+            current_role = current_role.role
+        form.instance.user = self.request.user
+        form.instance.role = current_role.replace(' ', '_')
+        form.save()
+        view = RiskManagementDetailView.as_view()
+        new_request = self.request
+        new_request.path = f'/forms/rmp-complete/{form.instance.id}'
+        new_request.method = 'GET'
+        risk_file = view(new_request, pk=form.instance.id)
+        file_name = f"Risk Management Form {self.request.user}"
+        score_type = ScoreType.objects.filter(slug="rmp").first()
+        submit_obj = Submission(
+            user=self.request.user,
+            name=file_name,
+            type=score_type,
+            chapter=self.request.user.current_chapter,
+        )
+        submit_obj.file.save(f"{file_name}.pdf",
+                             ContentFile(risk_file.content))
+        submit_obj.save()
+        form.instance.submission = submit_obj
+        form.save()
+        EmailRMPSigned(self.request.user, risk_file.content, file_name).send()
+        messages.add_message(
+            self.request, messages.INFO,
+            f"You successfully signed the RMP and Agreements of Theta Tau!\n")
         return super().form_valid(form)
 
     def get_success_url(self):
@@ -596,6 +855,11 @@ class RiskManagementDetailView(LoginRequiredMixin, OfficerMixin,
     model = RiskManagement
     form_class = RiskManagementForm
     template_name = "forms/rmp_pdf.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['is_officer'] = self.request.user.is_officer
+        return context
 
 
 class RiskManagementListView(NatOfficerRequiredMixin,
@@ -763,11 +1027,12 @@ class PledgeProgramFormView(OfficerRequiredMixin,
         form.instance.chapter = self.request.user.current_chapter
         form.instance.year = datetime.datetime.now().year
         current_roles = self.request.user.chapter_officer()
-        if not current_roles:
+        if not current_roles or current_roles == {''}:
             messages.add_message(
                 self.request, messages.ERROR,
                 f"Only executive officers can sign submit pledge program: {CHAPTER_OFFICER}\n"
                 f"Your current roles are: {current_roles}")
+            return super().form_invalid(form)
         else:
             form.save()
             task = Task.objects.get(name="Pledge Program")
@@ -821,7 +1086,7 @@ class AuditFormView(OfficerRequiredMixin, LoginRequiredMixin, OfficerMixin,
 
     def get_object(self, queryset=None):
         current_roles = self.request.user.chapter_officer()
-        if not current_roles:
+        if not current_roles or current_roles == {''}:
             messages.add_message(
                 self.request, messages.ERROR,
                 f"Only executive officers can submit an audit: {CHAPTER_OFFICER}\n"
@@ -858,11 +1123,12 @@ class AuditFormView(OfficerRequiredMixin, LoginRequiredMixin, OfficerMixin,
         form.instance.year = datetime.datetime.now().year
         form.instance.user = self.request.user
         current_roles = self.request.user.chapter_officer()
-        if not current_roles:
+        if not current_roles or current_roles == {''}:
             messages.add_message(
                 self.request, messages.ERROR,
                 f"Only executive officers can submit an audit: {CHAPTER_OFFICER}\n"
                 f"Your current roles are: {current_roles}")
+            return super().form_invalid(form)
         else:
             saved_audit = form.save()
             task = Task.objects.filter(name="Audit",
@@ -913,3 +1179,22 @@ class AuditListView(NatOfficerRequiredMixin,
         self.filter.request = self.request
         self.filter.form.helper = self.formhelper_class()
         return self.filter.qs
+
+
+def load_majors(request):
+    chapter_id = request.GET.get('chapter')
+    majors = ChapterCurricula.objects.filter(
+        chapter__pk=chapter_id).order_by('major')
+    return render(request, 'forms/majors_dropdown_list_options.html', {'majors': majors})
+
+
+class PledgeFormView(CreateView):
+    form_class = PledgeFormFull
+    template_name = "forms/pledge_form.html"
+
+    def get_success_url(self):
+        messages.add_message(
+            self.request, messages.INFO,
+            f"You successfully submitted the Pledge form! "
+            f"A confirmation email was sent to your school email.")
+        return reverse('forms:pledgeform')

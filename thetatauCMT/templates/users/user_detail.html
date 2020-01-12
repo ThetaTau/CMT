@@ -51,6 +51,7 @@
 <form class="user" method="POST">
     {% csrf_token %}
     {{ forms.user.management_form|crispy }}
+    {{ forms.user.media }}
     {{ forms.user|crispy }}
     <button class="btn btn-primary" name='action' value='user' type="submit">Update Member Information</button>
 </form>

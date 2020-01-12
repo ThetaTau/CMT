@@ -96,7 +96,7 @@ class ScoreType(models.Model):
             pass
         if total is None:
             total = 0
-        return total
+        return round(min(total, self.term_points), 2)
 
     @classmethod
     def annotate_chapter_score(cls, chapter, qs=None):
@@ -112,14 +112,15 @@ class ScoreType(models.Model):
             if score_info['id'] in score_values_ids:
                 for score_value in scores_values.filter(id=score_info['id']):
                     year = score_value['chapters__year'] - BIENNIUM_YEARS[0]
+                    term = score_value['chapters__term']
                     # if year = 0 or 2 continue
                     offset = {0: 1, 2: 4}
                     if year in offset:
-                        if year == 0 and [score_value['chapters__term']] == 'sp':
+                        if year == 0 and term == 'sp':
                             continue
                         offset = offset[year]
                     else:
-                        offset = {'fa': 3, 'sp': 2}[score_value['chapters__term']]
+                        offset = {'fa': 3, 'sp': 2}[term]
                     score_info[f"score{offset}"] = score_value['chapters__score']
             total = 0.0
             for key in ["score1", "score2", "score3", "score4"]:
@@ -157,9 +158,7 @@ class ScoreType(models.Model):
                 percent_attendance = min(obj.members / actives, 1)
             formula_out = formula_out.replace('memberATT', str(percent_attendance))
         if 'MEETINGS' in formula_out:
-            # meeting_attend = obj.calculate_meeting_attendance()
-            meeting_attend = '0'
-            formula_out = formula_out.replace('MEETINGS', str(meeting_attend))
+            return obj.calculate_meeting_attendance(obj.chapter, obj.date)
         if 'MODIFIED' in formula_out:
             # 20*UNMODIFIED+10*MODIFIED
             if extra_info is not None:
@@ -216,7 +215,8 @@ class ScoreType(models.Model):
                 year=date.year,
                 term=term
             )
-        score_chapter.score = self.chapter_score(chapter)
+        score = self.chapter_score(chapter, date)
+        score_chapter.score = score
         score_chapter.save()
 
 
@@ -229,3 +229,37 @@ class ScoreChapter(YearTermModel):
                              on_delete=models.PROTECT,
                              related_name="chapters")
     score = models.FloatField(default=0)
+
+    @classmethod
+    def type_score_biennium(cls, date=None, chapters=None):
+        if date is None:
+            query = cls.objects.filter(year__gte=BIENNIUM_YEARS[0]).\
+                exclude(year=BIENNIUM_YEARS[0], term='sp')
+        else:
+            term = ScoreChapter.get_term(date)
+            query = cls.objects.filter(year=date.year, term=term)
+        if chapters is None:
+            chapters = Chapter.objects.all()
+        scores = query.filter(chapter__in=chapters).\
+            values('chapter', 'type__section').\
+            annotate(section_score=models.Sum('score'),
+                     region=models.F('chapter__region__name'),
+                     chapter_name=models.F('chapter__name')).order_by('chapter_name')
+        grouped_scores = {}
+        for score in scores:
+            chapter = score['chapter']
+            score[f"{score.pop('type__section')}"] = score.pop('section_score')
+            chapter_dict = grouped_scores.get(chapter,
+                                              {'Bro': 0, 'Ops': 0, 'Ser': 0, 'Pro': 0})
+            chapter_dict.update(score)
+            grouped_scores[chapter] = chapter_dict
+        for chapter, score in grouped_scores.items():
+            grouped_scores[chapter]['total'] = round(
+                score['Bro'] + score['Ops'] + score['Ser'] + score['Pro'], 2)
+        return grouped_scores.values()
+
+    def update_score(self):
+        date = self.get_date()
+        score_val = self.type.chapter_score(self.chapter, date)
+        self.score = score_val
+        self.save()

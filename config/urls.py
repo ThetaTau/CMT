@@ -37,10 +37,12 @@ urlpatterns = [
     url(r'^regions/', include('regions.urls', namespace='regions')),
     url(r'^chapters/', include('chapters.urls', namespace='chapters')),
     url(r'^events/', include('events.urls', namespace='events')),
+    url(r'^finances/', include('finances.urls', namespace='finances')),
     url(r'^scores/', include('scores.urls', namespace='scores')),
     url(r'^submissions/', include('submissions.urls', namespace='submissions')),
     url(r'^forms/', include('forms.urls', namespace='forms')),
     url(r'^tasks/', include('tasks.urls', namespace='tasks')),
+    url(r'^ballots/', include('ballots.urls', namespace='ballots')),
     # url(r'^rmp/$',
     #     RedirectView.as_view(pattern_name='forms:rmp',
     #                          permanent=True)),
@@ -53,7 +55,12 @@ urlpatterns = [
     url(r'^status/$',
         RedirectView.as_view(pattern_name='forms:status',
                              permanent=True)),
-
+    url(r'^pledgeform/$',
+        RedirectView.as_view(pattern_name='forms:pledgeform',
+                             permanent=True)),
+    url(r'^report/$',
+        RedirectView.as_view(pattern_name='forms:report',
+                             permanent=True)),
 
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 

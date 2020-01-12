@@ -1,0 +1,60 @@
+{% extends "account/base.html" %}
+{% load i18n %}
+{% load crispy_forms_tags %}
+
+{% block head_title %}{% trans "Pledge Form" %}{% endblock %}
+{% block content %}
+  <h1>Prospective New Member / Pledge Form</h1>
+  Complete the form below to begin the membership selection process
+  <hr>
+  <p>Each candidate for pledging is obliged to answer all questions on the following
+    pages as a formal pledge as given herein.</p>
+  <p>The questions in this form are asked to give the candidate information as to
+    the aims and ideals of the Fraternity and some knowledge of the obligations
+    assumed by reason of membership.</p>
+  <p>This form is confidential within the Fraternity.
+    To be completed at time of pledging by candidates for student membership.</p>
+  {% csrf_token %}
+  {% crispy form form.helper %}
+<script type="text/javascript">
+$("#id_school_name").change(function () {
+      var url = "{% url 'forms:ajax_load_majors' %}";  // get the url of the `load_majors` view
+      var chapterId = $(this).val();  // get the selected chapter ID from the HTML input
+      $.ajax({                       // initialize an AJAX request
+        url: url,                    // set the url of the request
+        data: {
+          'chapter': chapterId       // add the chapter id to the GET parameters
+        },
+        success: function (data) {   // `data` is the return of the `load_major` view function
+          $("#id_major").html(data);  // replace the contents of the major input with the data that came from the server
+        }
+      });
+    });
+  $(document).ready(function() {
+    $('#div_id_other_college').hide();
+    $('#div_id_explain_expelled_org').hide();
+    $('#div_id_explain_expelled_college').hide();
+    $('#div_id_explain_crime').hide();
+    $('input[name="other_college_choice"]').on('change', function(){
+        var selected_value = $('input[name="other_college_choice"]:checked').val();;
+         if(selected_value=="true"){$("#div_id_other_college").show();}
+         else{$("#div_id_other_college").hide();}
+     });
+    $('input[name="explain_expelled_org_choice"]').on('change', function(){
+        var selected_value = $('input[name="explain_expelled_org_choice"]:checked').val();;
+         if(selected_value=="true"){$("#div_id_explain_expelled_org").show();}
+         else{$("#div_id_explain_expelled_org").hide();}
+     });
+    $('input[name="explain_expelled_college_choice"]').on('change', function(){
+        var selected_value = $('input[name="explain_expelled_college_choice"]:checked').val();;
+         if(selected_value=="true"){$("#div_id_explain_expelled_college").show();}
+         else{$("#div_id_explain_expelled_college").hide();}
+     });
+    $('input[name="explain_crime_choice"]').on('change', function(){
+        var selected_value = $('input[name="explain_crime_choice"]:checked').val();;
+         if(selected_value=="true"){$("#div_id_explain_crime").show();}
+         else{$("#div_id_explain_crime").hide();}
+     });
+  });
+</script>
+{% endblock %}

@@ -43,7 +43,6 @@ DATABASES = {
 }
 DATABASES['default']['ATOMIC_REQUESTS'] = True
 
-print(DATABASES)
 
 # URLS
 # ------------------------------------------------------------------------------
@@ -84,6 +83,8 @@ THIRD_PARTY_APPS = [
     'multiselectfield',
     'tempus_dominus',
     'easy_pdf',
+    'djmoney',
+    'betterforms',
 ]
 LOCAL_APPS = [
     'thetatauCMT.users.apps.UsersConfig',
@@ -94,6 +95,8 @@ LOCAL_APPS = [
     'thetatauCMT.submissions.apps.SubmissionsConfig',
     'thetatauCMT.forms.apps.FormsConfig',
     'thetatauCMT.tasks.apps.TasksConfig',
+    'thetatauCMT.finances.apps.FinancesConfig',
+    'thetatauCMT.ballots.apps.BallotsConfig',
 ]
 # https://docs.djangoproject.com/en/dev/ref/settings/#installed-apps
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -310,6 +313,7 @@ if not GOOGLE_API_KEY:
 GOOGLE_APPLICATION_CREDENTIALS = \
     env('GOOGLE_APPLICATION_CREDENTIALS',
         default='secrets\chaptermanagementtool-e11151065a69.json')
+# GoogleCloudStorage LINK https://console.cloud.google.com/storage/browser/theta-tau?authuser=3&folder=true&organizationId=true&project=chaptermanagementtool
 DEFAULT_FILE_STORAGE = 'storages.backends.gcloud.GoogleCloudStorage'
 GS_BUCKET_NAME = 'theta-tau'
 from google.oauth2 import service_account

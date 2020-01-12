@@ -1,7 +1,7 @@
 from django.db import models
 from django.utils import timezone
 from django.utils.text import slugify
-from core.models import TimeStampedModel
+from core.models import TimeStampedModel, semester_encompass_start_end_date
 from scores.models import ScoreType
 from chapters.models import Chapter
 
@@ -49,14 +49,41 @@ class Event(TimeStampedModel):
                 'slug': self.slug
                 })
 
-    def save(self):
+    def save(self, calculate_score=True):
         self.slug = slugify(self.name)
-        cal_score = self.type.calculate_score(self)
-        self.score = cal_score
-        super().save()
-        self.type.update_chapter_score(self.chapter, self.date)
+        if calculate_score:
+            cal_score = self.type.calculate_score(self)
+            self.score = cal_score
+            super().save()
+            self.type.update_chapter_score(self.chapter, self.date)
 
     def chapter_events(self, chapter):
         result = self.objects.filter(chapter=chapter)
         return result
 
+    @classmethod
+    def calculate_meeting_attendance(cls, chapter, date):
+        meeting_type = ScoreType.objects.get(name="Attendance at meetings")
+        semester_start, semester_end = semester_encompass_start_end_date(date)
+        events = cls.objects.filter(
+            chapter=chapter,
+            type=meeting_type,
+            date__lte=semester_end,
+            date__gte=semester_start
+        )
+        total_percent = 0
+        for event in events:
+            actives = event.chapter.get_actives_for_date(event.date).count()
+            percent_attendance = 0
+            if actives:
+                percent_attendance = min(event.members / actives, 1)
+            total_percent += percent_attendance
+        avg_attendance = total_percent / events.count()
+        formula_out = meeting_type.special
+        formula_out = formula_out.replace('MEETINGS', str(avg_attendance))
+        score = eval(formula_out)
+        event_score = round(score / events.count(), 2)
+        for event in events:
+            event.score = event_score
+            event.save(calculate_score=False)
+        return event_score

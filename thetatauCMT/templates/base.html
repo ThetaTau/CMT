@@ -39,6 +39,9 @@
     <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
     <script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha384-tsQFqpEReu7ZLhBV2VZlAu7zcOV+rXbYlF2cqB8txI/8aZajjp4Bqd+V6D5IgvKT" crossorigin="anonymous"></script>
 
+    <!-- SmartMenus jQuery Bootstrap 4 Addon CSS -->
+    <link href="{% static 'css/jquery.smartmenus.bootstrap-4.css' %}" rel="stylesheet">
+
     <!-- Your stuff: Third-party CSS libraries go here -->
     <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.1.0/css/all.css" integrity="sha384-lKuwvrZot6UHsBSfcMvOkWwlCMgc0TaWr+30HWe3a4ltaBwTZhyTEggF5tJv8tbt" crossorigin="anonymous">
     <!-- This file stores project-specific CSS -->
@@ -84,27 +87,24 @@
               <li class="nav-item">
                 <a class="nav-link" href="{% url 'chapters:detail' request.user.current_chapter.slug %}">Chapter</a>
               </li>
-              <div class="dropdown-container">
-                <li>
-                <a class="nav-link dropdown-toggle" href="#" data-toggle="dropdown">{% trans "Members" %}</a>
+              <li class="nav-item dropdown"><a class="nav-link dropdown-toggle" href="#">{% trans "Members" %}</a>
                   <ul class="dropdown-menu">
-                    <li class="active dropdown-submenu">
+                    <li class="dropdown-item">
                       <a class="nav-link" href="{% url 'users:list' %}">{% trans "List" %}</a>
                     </li>
                     {% if request.is_officer %}
-                    <li class="active dropdown-submenu">
+                    <li class="dropdown-item">
                       <a class="nav-link" href="{% url 'users:gpas' %}">{% trans "GPAs" %}</a>
                     </li>
-                    <li class="active dropdown-submenu">
+                    <li class="dropdown-item">
                       <a class="nav-link" href="{% url 'users:service' %}">{% trans "Service Hours" %}</a>
                     </li>
-                    <li class="active dropdown-submenu">
+                    <li class="dropdown-item">
                       <a class="nav-link" href="{% url 'users:orgs' %}">{% trans "External Orgs" %}</a>
                     </li>
                     {% endif %}
                   </ul>
                 </li>
-              </div>
               <li class="nav-item">
                 <a class="nav-link" href="{% url 'scores:list' %}">Scores</a>
               </li>
@@ -117,6 +117,9 @@
               <li class="nav-item">
                 <a class="nav-link" href="{% url 'tasks:list' %}">Tasks</a>
               </li>
+              <li class="nav-item">
+                <a class="nav-link" href="{% url 'finances:list' %}">{% trans "Finances" %}</a>
+              </li>
             {% endif %}
           </ul>
           <ul class="nav navbar-nav justify-content-end">
@@ -125,56 +128,79 @@
               <li class="nav-item">
                 <a class="nav-link" href="{% url 'chapters:list' %}">{% trans "Chapters" %}</a>
               </li>
-              <div class="dropdown-container">
-              <li>
-              <a class="nav-link dropdown-toggle" href="#" data-toggle="dropdown">{% trans "Forms" %}</a>
+              <li class="nav-item dropdown"><a class="nav-link dropdown-toggle" href="#">{% trans "Forms" %}</a>
                 <ul class="dropdown-menu">
-                  <li class="active dropdown-submenu">
-                    <a class="nav-link" href="{% url 'forms:init_selection' %}">{% trans "Initiation" %}</a>
+                  <li class="dropdown"><a class="dropdown-item dropdown-toggle" href="#">Member Updates</a>
+                    <ul class="dropdown-menu">
+                      <li class="dropdown-item">
+                        <a class="nav-link" href="{% url 'forms:init_selection' %}">{% trans "Initiation" %}</a>
+                      </li>
+                      <li class="dropdown-item">
+                        <a class="nav-link" href="{% url 'forms:status_selection' %}">{% trans "Status Change" %}</a>
+                      </li>
+                      <li class="dropdown-item">
+                        <a class="nav-link" href="{% url 'forms:officer' %}">{% trans "Officer Report" %}</a>
+                      </li>
+                    </ul>
+                  <li class="dropdown-item">
+                    <a class="nav-link" href="{% url 'forms:rmp' %}">{% trans "Risk Management Policies" %}</a>
                   </li>
-                  <li class="active dropdown-submenu">
-                    <a class="nav-link" href="{% url 'forms:status_selection' %}">{% trans "Status Change" %}</a>
+                  <li class="dropdown-item">
+                    <a class="nav-link" href="{% url 'forms:report' %}">{% trans "Chapter Report" %}</a>
                   </li>
-                  <li class="active dropdown-submenu">
-                    <a class="nav-link" href="{% url 'forms:officer' %}">{% trans "Officer Report" %}</a>
-                  </li>
-{#                  <li class="active dropdown-submenu">#}
-{#                    <a class="nav-link" href="{% url 'forms:rmp' %}">{% trans "Risk Management Policies" %}</a>#}
-{#                  </li>#}
-                  <li class="active dropdown-submenu">
+                  <li class="dropdown-item">
                     <a class="nav-link" href="{% url 'forms:pledge_program' %}">{% trans "Pledge Program" %}</a>
                   </li>
-                  <li class="active dropdown-submenu">
+                  <li class="dropdown-item">
                     <a class="nav-link" href="{% url 'forms:audit' %}">{% trans "Audit" %}</a>
+                  </li>
+                  <li class="dropdown-item">
+                    <a class="nav-link" href="{% url 'ballots:votelist' %}">{% trans "Ballots" %}</a>
                   </li>
                 </ul>
               </li>
-              </div>
                 {% endif %}
-              <div class="dropdown-container">
               {% if request.is_nat_officer %}
-                <li>
-                <a class="nav-link dropdown-toggle" href="#" data-toggle="dropdown">{% trans "NatOff" %}</a>
+                <li class="dropdown"><a class="nav-link dropdown-toggle" href="#">{% trans "NatOff" %}</a>
                   <ul class="dropdown-menu">
-                    <li class="active dropdown-submenu">
-                      <a class="nav-link" href="{% url 'regions:list' %}">{% trans "Regions" %}</a>
+                    <li class="dropdown-item">
+                      <a class="nav-link" href="{% url 'ballots:list' %}">{% trans "Ballots" %}</a>
                     </li>
-                    <li class="active dropdown-submenu">
+                    <li class="dropdown-item">
+                      <a class="nav-link" href="{% url 'forms:natoff' %}">{% trans "Nat Officers" %}</a>
+                    </li>
+                    <li class="dropdown-divider"></li>
+                    <li class="dropdown-header">Chapter Information</li>
+                    <li class="dropdown-item">
                       <a class="nav-link" href="{% url 'regions:officers' 'national' %}">{% trans "All Officers" %}</a>
                     </li>
-                    <li class="active dropdown-submenu">
-                      <a class="nav-link" href="{% url 'forms:audit_list' %}">{% trans "All Audits" %}</a>
+                    <li class="dropdown-item">
+                      <a class="nav-link" href="{% url 'regions:advisors' 'national' %}">{% trans "All Advisors" %}</a>
                     </li>
-                    <li class="active dropdown-submenu">
-                      <a class="nav-link" href="{% url 'forms:pledge_program_list' %}">{% trans "All Pledge Programs" %}</a>
+                    <li class="dropdown"><a class="dropdown-item dropdown-toggle" href="#">Chapter Forms</a>
+                      <ul class="dropdown-menu">
+                        <li class="dropdown-item">
+                          <a class="nav-link" href="{% url 'forms:report_list' %}">{% trans "All Reports" %}</a>
+                        </li>
+                        <li class="dropdown-item">
+                          <a class="nav-link" href="{% url 'forms:audit_list' %}">{% trans "All Audits" %}</a>
+                        </li>
+                        <li class="dropdown-item">
+                          <a class="nav-link" href="{% url 'forms:pledge_program_list' %}">{% trans "All Pledge Programs" %}</a>
+                        </li>
+                        <li class="dropdown-item">
+                          <a class="nav-link" href="{% url 'forms:rmp_list' %}">{% trans "All RMP" %}</a>
+                        </li>
+                      </ul>
+                    <li class="dropdown-item">
+                      <a class="nav-link" href="{% url 'finances:chapters' %}">{% trans "Chapter Balances" %}</a>
                     </li>
-                    <li class="active dropdown-submenu">
-                      <a class="nav-link" href="{% url 'forms:rmp_list' %}">{% trans "All RMP" %}</a>
+                    <li class="dropdown-item">
+                      <a class="nav-link" href="{% url 'scores:chapterlist' %}">{% trans "Chapter Scores" %}</a>
                     </li>
                   </ul>
                 </li>
               {% endif %}
-              </div>
               <li class="nav-item">
                 {# URL provided by django-allauth/account/urls.py #}
                 <a class="nav-link" href="{% url 'users:detail'  %}">{% trans "My Profile" %}</a>
@@ -198,8 +224,7 @@
           {% else %}
             Theta Tau
           {% endif %}
-          Chapter Management Tool</a>
-        </h5>
+          Chapter Management Tool</h5></a>
       </nav>
     {% if request.is_nat_officer %}
       <nav class="navbar navbar-fixed-top navbar-light navbar-inverse bg-light">
@@ -314,7 +339,11 @@
 
 
       <!-- Your stuff: Third-party javascript libraries go here -->
+      <!-- SmartMenus jQuery plugin -->
+      <script type="text/javascript" src="{% static 'js/jquery.smartmenus.js' %}"></script>
 
+      <!-- SmartMenus jQuery Bootstrap 4 Addon -->
+      <script type="text/javascript" src="{% static 'js/jquery.smartmenus.bootstrap-4.js' %}"></script>
 
       <!-- place project specific Javascript in this file -->
 

@@ -69,3 +69,44 @@ python manage.py dumpdata --natural-foreign \
     pg_restore --no-owner --dbname=testcmt --port 10874 \
     --host venturafranklin-874.postgres.pythonanywhere-services.com \
     --username=testthetatau --format=c database_backups/20190811.bak
+
+__This does not work when the staging db is off from prod. ie. new table name etc.__
+```
+workon thetatauCMT
+python manage.py dumpdata --natural-foreign \
+--exclude auth.permission --exclude contenttypes \
+--indent 4 > database_backups/20190821.json
+workon testCMT
+python manage.py flush
+python manage.py loaddata /home/Venturafranklin/thetatauCMT/database_backups/20190821.json
+
+pg_dump --format c --no-owner --oids \
+--host venturafranklin-874.postgres.pythonanywhere-services.com \
+--port 10874 --username thetatau --dbname thetataucmt \
+--file=database_backups/20190821.bak
+```
+__This does not work b/c the db is often in use...__
+```
+dropdb testcmt --port 10874 \
+--host venturafranklin-874.postgres.pythonanywhere-services.com \
+--username=testthetatau
+
+SELECT
+   pg_terminate_backend (pg_stat_activity.pid)
+FROM
+   pg_stat_activity
+WHERE
+   pg_stat_activity.datname = 'testcmt';
+   
+DROP DATABASE testcmt;
+
+CREATE DATABASE testcmt OWNER testthetatau;
+
+pg_restore --no-owner --dbname=testcmt --port 10874 \
+--host venturafranklin-874.postgres.pythonanywhere-services.com \
+--username=testthetatau --format=c /home/Venturafranklin/thetatauCMT/database_backups/20190821.bak
+
+\c testcmt
+
+\dt
+```

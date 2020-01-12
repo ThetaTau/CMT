@@ -2,12 +2,9 @@
 {% load crispy_forms_tags %}
 <div class="jumbotron">
   <div class="container">
-<h1>{% trans "Risk Management Policies of Theta Tau" %}</h1>
-  <h4><i>Revised September 2017</i></h4>
-The purpose of Theta Tau is to develop and maintain a high standard of professional interest among its members and to unite them in a strong bond of fraternal fellowship. As a fraternity, we
-recognize  that abuse of controlled substances and/or alcohol can erode  these  two cornerstones on which  the Fraternity was  founded. Furthermore, it is  the obligation of  the Fraternity  to
-ensure  the  social  and  physical  well-being  of its members  and  to limit  the liability  of  our members,  chapters  and  the  national  Fraternity.  Therefore,  Theta  Tau  fraternity  has  adopted  the
-following Risk Management policies for use by all units of Theta Tau.
+<h1>{% trans "Risk Management Policies and Agreements of Theta Tau" %}</h1>
+  <h4><i>Revised Spring 2020</i></h4>
+Whereas, The purpose of Theta Tau  is to develop and maintain a high standard of professional interest among its members  and to unite them in a strong bond of fraternal fellowship, and Whereas realizing that abuse of controlled substances and/or alcohol can erode these two cornerstones on which the Fraternity was founded, and Whereas it is the obligation of the  Fraternity to ensure the social and physical well-being of its members and to limit the liability of our members, chapters and the national Fraternity. Therefore, Be it resolved that the Theta Tau 2002 National Convention adopts the following Risk Management policies pursuant to the Articles and Bylaws of the National Constitution.
   </div>
 </div>
 <form method="POST">
@@ -16,10 +13,7 @@ following Risk Management policies for use by all units of Theta Tau.
     <div class="col-md-6">
 <hr />
   <h2>Policy on Alcoholic Beverages</h2>
-Members of Theta Tau shall abide by all applicable liquor control laws (including the legal
-drinking age)  of  the  state,  city,  college  or  university,  and  the  Fraternity  at  events  and
-activities  sponsored  by Theta  Tau,  held  on/in a Theta Tau  property,  or  that an  observer
-would reasonably associate with the Fraternity.
+Members of Theta Tau shall abide by all applicable liquor control laws including 21 yo drinking age (or 19 yo drinking age if in Canada) of the state, city, college or university, and the Fraternity at events and activities sponsored by Theta Tau, held on/in a Theta Tau property, or that an observer would reasonably associate with the Fraternity.
       <br>
       {{ form.alcohol|as_crispy_field }}
       {% if form.alcohol.errors %}
@@ -44,14 +38,30 @@ Events with alcohol must be organized in one of the following manners:
 <hr />
   <h3>Organizing/Monitoring an event:</h3>
   <ul>
-    <li>Open parties are strictly prohibited. Parties and other social activities are only open to members of Theta Tau and their guests by invitation only.</li>
-    <li>Precautions will be taken to prevent the excessive consumption of alcoholic beverages and prevent consumption by those under the legal drinking age.</li>
-    <li>Those who arrive at an event in an intoxicated state shall not be admitted.</li>
-    <li>At each event, there shall be designated non-drinking members.</li>
-    <li>Non-alcoholic beverages shall be provided at each event.</li>
-    <li>The event will end at a fixed and pre-determined time.</li>
-    <li>No "drinking games" shall be permitted.</li>
-    <li>Chapters  are  encouraged  to  call  a  cab  or  arrange  for  100%  sober  drivers  to  assist those who may need assistance in transportation</li>
+    <li>
+      Open parties are strictly prohibited. Parties and other social activities are only open to members of Theta Tau and their guests by invitation only.
+    </li>
+    <li>
+      Precautions will be taken to prevent the excessive consumption of alcoholic beverages and prevent consumption by those under the legal drinking age.
+    </li>
+    <li>
+      Those who arrive at an event in an intoxicated state shall not be admitted.
+    </li>
+    <li>
+      At each event, there shall be designated non-drinking members.
+    </li>
+    <li>
+      Non-alcoholic beverages shall be provided at each event.
+    </li>
+    <li>
+      The event will end at a fixed and pre-determined time.
+    </li>
+    <li>
+      No "drinking games" shall be permitted.
+    </li>
+    <li>
+      Chapters are encouraged to  call  a  cab  or arrange for 100% sober drivers to assist those who may need assistance in transportation
+    </li>
   </ul>
       {{ form.monitoring|as_crispy_field }}
       {% if form.monitoring.errors %}
@@ -61,30 +71,26 @@ Events with alcohol must be organized in one of the following manners:
       {% endif %}
 <hr />
   <h3>Member Responsibilities:</h3>
-Although the chapter officers are primarily responsible for promoting compliance with this
-and  other  policies,  each  student  member  is  expected  and  obliged  to  assist  in  ensuring
-adherence  to  this policy.  In an effort  to maintain and abide by  this policy, members shall
-use the following guidelines:
+Although the chapter officers are primarily responsible for promoting compliance with this and other policies, each student member is expected and obliged to assist in ensuring adherence to this policy. In an effort to maintain and abide by this policy, members shall use the following guidelines:
 <ol>
-  <li>No  alcoholic  beverages  may  be  purchased  using  chapter,  pledge  class,  or  fraternity funds;  nor
-    may  any  member  coordinate  the  collection  of  funds  from  individual members (“pass the hat”) for such
-    a purpose.</li>
-  <li>No member of Theta Tau shall be permitted to consume alcoholic beverages at or to arrive intoxicated or
-    otherwise under the influence to any of the following programs: chapter  meetings,  initiation  ceremonies,
-    recruitment  events,  and  pledge  education activities.</li>
-  <li>No  common  source  of  alcohol  (including,  but  not limited  to  kegs, jungle juice/trash can
-    “kool-aid”, or party balls) shall be available at events and activities (unless hosted by a third-party
-    licensed and insured vendor or hosted at a licensed site).</li>
-  <li>No hard liquor (including, but not limited to spirits, jungle juice, bottled mixed drinks)
-  will be available at events and activities (unless hosted by a third-party licensed and
-    insured vendor or hosted at a licensed site).</li>
-  <li>Individual  members  will  alert  local,  university,  or  fraternity  officials  of  any  event
-  planned  that  does  not  comply  with  these  requirements  as  may  be  necessary  to
-    prevent an unsafe event from being held.</li>
-  <li>In the event of a risk management incident involving a member or potential member
-  of  Theta  Tau  and/or  an  incident  involving  police,  university  officials,  or  emergency
-  services, the chapter must report the incident by phone call to the Theta Tau Central
-    Office and/or head of the National Risk Management Committee within 24 hours.</li>
+  <li>
+    No alcoholic beverages may be purchased using chapter, pledge class, or fraternity funds; nor may any member coordinate the collection of funds from individual members (“pass the hat”) for such a purpose.
+  </li>
+  <li>
+    No member of Theta Tau shall be permitted to consume alcoholic beverages at or to arrive intoxicated or otherwise under the influence to any of the following programs: chapter meetings, initiation ceremonies, recruitment events, and pledge education activities.
+  </li>
+  <li>
+    No common source of alcohol (including, but not limited to kegs, jungle juice/trash can “kool-aid”, or party balls) shall be available at events and activities (unless hosted by a third-party licensed and insured vendor or hosted at a licensed site).
+  </li>
+  <li>
+    No hard liquor (including, but not limited to spirits, jungle juice, bottled mixed drinks) will be available at events and activities (unless hosted by a third-party licensed and insured vendor or hosted at a licensed site).
+  </li>
+  <li>
+    Individual members will alert local, university, or fraternity officials of any event planned that does not comply with these requirements as may be necessary to prevent an unsafe event from being held.
+  </li>
+  <li>
+    In the event of a risk management incident involving a member or potential member of Theta Tau and/or an incident involving police, university officials, or emergency services, the chapter must report the incident by phone call to the Theta Tau Central Office and/or head of the National Risk Management Committee within 24 hours.
+  </li>
 </ol>
       {{ form.member|as_crispy_field }}
       {% if form.member.errors %}
@@ -94,20 +100,21 @@ use the following guidelines:
       {% endif %}
 <hr />
   <h2>Officer Responsibilities:</h2>
-Chapter  officers  (or  Risk Management  Chair)  will  organize  chapter  participation  at least
-once per year in each of the following areas:
+Chapter officers (or Risk Management Chair) will organize chapter participation at least once per year in each of the following areas:
 <ul>
-  <li>alcohol and drug awareness program  to educate its members on  the responsibilities
-    and consequences of alcohol consumption and drug use;</li>
-  <li>anti-harassment program to assist members in recognizing, preventing, and reporting
-    discrimination, sexual harassment, and hazing;</li>
-  <li>mental health recognition program (such as suicide or depression)  to help members
-  in  the  recognition  of warning signs, identification  of  referral  resources, and  skills  to
-    respond to members at-risk.</li>
+  <li>
+    alcohol and drug awareness program to educate its members on the responsibilities and consequences of alcohol consumption and drug use;
+  </li>
+  <li>
+    anti-harassment program to assist members in recognizing, preventing and reporting discrimination, sexual harassment and hazing
+  </li>
+  <li>
+    mental health recognition program (such as suicide or depression) to help members in the recognition of warning signs, identification of referral resources, and skills to respond to members at-risk
+  </li>
 </ul>
   <p>
-    They will also ensure that the provisions of this risk management policy are  followed  for
-        all Theta Tau functions.</p>
+    They will also ensure that the provisions of this risk management policy are followed for all Theta Tau functions.
+  </p>
       {{ form.officer|as_crispy_field }}
       {% if form.officer.errors %}
           {% for error in form.officer.errors %}
@@ -118,10 +125,7 @@ once per year in each of the following areas:
     </div>
     <div class="col-md-6">
   <h2>Policy on Abusive Behavior</h2>
-    The Fraternity will not tolerate or condone any form of abusive behavior on the part of its members or
-    pledges (whether physical, mental, verbal, sexual or emotional) in violation of any federal, state, local
-    and  university  regulation.  This  is  to  include  any  actions  directed  toward  members,  nonmembers,
-    friends, or guests.
+    The Fraternity will not tolerate or condone any form of abusive behavior on the part of its members or pledges (whether physical, mental, verbal, sexual or emotional) in violation of any federal, state, local and university regulation. This is to include any actions directed toward members, nonmembers, friends, or guests.
       {{ form.abusive|as_crispy_field }}
       {% if form.abusive.errors %}
           {% for error in form.abusive.errors %}
@@ -130,15 +134,7 @@ once per year in each of the following areas:
       {% endif %}
 <hr />
   <h3>Policy on Hazing</h3>
-    No chapter, colony, student or alumnus shall conduct nor condone hazing activities. Hazing activities
-    are  defined  as:  “Any  action  taken  or  situation  created,  intentionally,  whether  located  on  or  off
-    fraternity  premises,  to  produce  mental  or  physical  discomfort,  embarrassment,  harassment,  or
-    ridicule.”  Such  activities  may  include  but  are  not  limited  to  the  following:  Forced  use  of  alcohol;
-    paddling  in  any  form;  creation  of  excessive  fatigue;  physical  and  psychological  shocks;  wearing  of
-    public  apparel  which  is  conspicuous  and  not  normally  in  good  taste;  engaging  in  public  stunts  and
-    buffoonery; morally degrading or humiliating games and activities; and any other activities which are
-    not  consistent  with  academic  achievement,  fraternal  law,  ritual  or  policy  or  the  regulations  and
-    policies of the educational institution, or applicable laws.
+    No chapter, colony, student or alumnus shall conduct nor condone hazing activities. Hazing activities are defined as: “Any action taken or situation created, intentionally, whether located on or off fraternity premises, to produce mental or physical discomfort, embarrassment, harassment, or ridicule. Such activities may include but are not limited to the following: Forced use of alcohol; paddling in any form; creation of excessive fatigue; physical and psychological shocks; wearing of public apparel which is conspicuous and not normally in good taste; engaging in public stunts and buffoonery; morally degrading or humiliating games and activities; and any other activities which are not consistent with academic achievement, fraternal law, ritual or policy or the regulations and policies of the educational institution, or applicable laws.
       {{ form.hazing|as_crispy_field }}
       {% if form.hazing.errors %}
           {% for error in form.hazing.errors %}
@@ -148,14 +144,15 @@ once per year in each of the following areas:
 <hr />
   <h3>Policy on Controlled Substances</h3>
     <ol>
-      <li>The  possession  or  use  of  controlled  substances  at  any  Fraternity  activity  shall  be  in  compliance
-      with all federal, state, local and university regulations.</li>
-      <li>Chapter officers are obliged to take disciplinary measures, in accordance with National Constitution
-      and the Policies & Procedures Manual, when warranted, on any individual who negatively affects the
-        chapter or Fraternity through misuse of controlled substances.</li>
-      <li>Each chapter will regularly participate in an alcohol and drug awareness program at the chapter’s
-      University  to educate its members on  the personal consequences of drug abuse as well as how such
-      use affects each individual chapter and the national Fraternity.</li>
+      <li>
+        The possession or use of controlled substances at any Fraternity activity shall be in compliance with all federal, state, local and university regulations.
+      </li>
+      <li>
+        Chapter officers are obliged to take disciplinary measures, in accordance with Chapter VI of the Bylaws, when warranted, on any individual who negatively affects the chapter or Fraternity through misuse of controlled substances.
+      </li>
+      <li>
+        Each chapter is encouraged to regularly participate in an alcohol and drug awareness program at the chapter’s University to educate its members on the personal consequences of drug abuse as well as how such use affects each individual chapter and the national Fraternity.
+      </li>
     </ol>
       {{ form.substances|as_crispy_field }}
       {% if form.substances.errors %}
@@ -165,10 +162,7 @@ once per year in each of the following areas:
       {% endif %}
 <hr />
   <h3>Policy on High-Risk Events</h3>
-    Theta  Tau  cannot  condone  and  discourages  participation in  high-risk  events.  Examples  of  high-risk
-    events include, but are not limited  to: Bungee jumping, parachuting, sporting events such as boxing,
-    etc. Individuals choosing to take part in these sorts of events do so at their own risk and with the full
-    understanding of the inherent risks associated with them.
+    Theta Tau cannot condone and discourages participation in high-risk events. Examples of high-risk events include, but are not limited to: Bungee jumping, parachuting, sporting events such as boxing, etc. Individuals choosing to take part in these sorts of events do so at their own risk and with the full understanding of the inherent risks associated with them.
       {{ form.high_risk|as_crispy_field }}
       {% if form.high_risk.errors %}
           {% for error in form.high_risk.errors %}
@@ -177,12 +171,7 @@ once per year in each of the following areas:
       {% endif %}
 <hr />
   <h3>Policy on Transportation</h3>
-    Theta Tau chapters are encouraged to establish a transportation policy for chapter events which are
-    not held at or within walking distance  from the chapter  facility. It is strongly recommended that the
-    policy include the use of a form of mass transportation, such as charter buses, to transport members
-    for such events, and particularly for events where alcohol may be consumed. When transportation is
-    not arranged, alternative procedures, such as designated (in advance of the event) drivers, should be
-    used.
+    Theta Tau chapters are encouraged to establish a transportation policy for chapter events which are not held at or within walking distance from the chapter facility. It is strongly recommended that the policy include the use of a form of mass transportation, such as charter buses, to transport members for such events, and particularly for events where alcohol may be consumed. When transportation is not arranged, alternative procedures, such as designated (in advance of the event) drivers, should be used.
       {{ form.transportation|as_crispy_field }}
       {% if form.transportation.errors %}
           {% for error in form.transportation.errors %}
@@ -191,13 +180,7 @@ once per year in each of the following areas:
       {% endif %}
 <hr />
   <h3>Policy on Property Management</h3>
-    The  chapter  facility,  along  with  its  furnishings  and  landscape,  are  encouraged  to  provide  for  each
-    member an environment  for study, clean and safe living conditions, and recreation. Property should
-    be maintained in a manner, which makes it inviting and attractive to parents, rushees, and alumni. A
-    sound program focused on proper maintenance of the property, along with due regard for university,
-    health, or fire department regulations, where applicable, shall be followed in each chapter. Rents and
-    fees  collected  should  be  sufficient  to meet not  only annual expenses,  but also  sufficient  to allow  for
-    savings toward significant renovations and/or new facilities.
+    The chapter facility, along with its furnishings and landscape, are encouraged to provide for each member an environment for study, clean and safe living conditions, and recreation. Property should be maintained in a manner, which makes it inviting and attractive to parents, rushees, and alumni. A sound program focused on proper maintenance of the property, along with due regard for university, health, or fire department regulations, where applicable, shall be followed in each chapter. Rents and fees collected should be sufficient to meet not only annual expenses, but also sufficient to allow for savings toward significant renovations and/or new facilities.
       {{ form.property_management|as_crispy_field }}
       {% if form.property_management.errors %}
           {% for error in form.property_management.errors %}
@@ -206,16 +189,7 @@ once per year in each of the following areas:
       {% endif %}
 <hr />
   <h3>Policy on Gun Safety</h3>
-    Individuals  choosing  to  exercise  their  right  to  bear  arms  should  do  so  only  after  undergoing
-    appropriate courses on gun safety and use sponsored and conducted by a reputable organization. The
-    Fraternity generally believes that the chapter house is no place for a firearm and it should instead be
-    stored safely elsewhere by the owner (such as a parent’s home or a firing range). To prevent it from
-    misuse  or  accidental  use  by  its  owner,  another  member,  a  guest,  or  an  intruder,  firearms  kept  on
-    chapter premises shall be stored unloaded, in a locked storage area accessible only to the owner(s) of
-    said  firearms.  Ammunition  shall  be  stored  in  a  separate  locked  area  from  the  firearm.  No  loaded
-    firearm  shall  be  on  Chapter  premises.  Notwithstanding  the  manner  in  which  such  a  firearm  is
-    maintained  or  stored  by  its  owner,  firearms  shall  not  be  displayed,  demonstrated,  or  cleaned  on
-    chapter premises or as part of any chapter activity.
+    Individuals choosing to exercise their right to bear arms should do so only after undergoing appropriate courses on gun safety and use sponsored and conducted by a reputable organization. The Fraternity generally believes that the chapter house is no place for a firearm and it should instead be stored safely elsewhere by the owner (such as a parent’s home or a firing range).  To prevent it from misuse or accidental use by its owner, another member, a guest, or an intruder, firearms kept on chapter premises shall be stored unloaded, in a locked storage area accessible only to the owner(s) of said firearms. Ammunition shall be stored in a separate locked area from the firearm. No loaded firearm shall be on Chapter premises. Notwithstanding the manner in which such a firearm is maintained or stored by its owner, firearms shall not be displayed, demonstrated, or cleaned on chapter premises or as part of any chapter activity.
       {{ form.guns|as_crispy_field }}
       {% if form.guns.errors %}
           {% for error in form.guns.errors %}
@@ -227,21 +201,9 @@ once per year in each of the following areas:
   </div>
 </div>
   <h3>Trademark Policy</h3>
-    The  Fraternity  name,  letters,  coat  of  arms,  and  various  insignia  are  protected  by  trademark
-    registration owned by Theta Tau (the national Fraternity). The design or representation of the coat of
-    arms,  various  insignia,  Greek  letters  “ΘΤ”,  and  the  words  “Theta  Tau”  are  not  to  be  manufactured,
-    created, used or offered by sale by any person, company or  firm except as specifically authorized by
-    Theta Tau (the national Fraternity).  The use of any text or design which casts Theta Tau in a negative
-    light  or  is  otherwise  contrary  to  the  ideals  and  values  of  Theta  Tau,  specifically  including,  but  not
-    limited  to,  materials  deemed  to  be  in  conflict  with  Theta  Tau’s  Risk  Management  Policies,  is
-    prohibited. If instructed to do so by the national Fraternity, any entity will cease such use.
-    By  virtue  of  their  chapter  charter  or  colony  certificate,  chapters  and  colonies  are  permitted  to  use
-    trademarked property only in furthering the mission of the organization, only in such manner as may
-    be prescribed under our national laws, policies, or instructions, and only in a manner which reflects
-    favorably upon Theta Tau. Permission  for specific use will not be interpreted as general permission
-    for  continual  or  expanded  use.  The  determination  of  appropriate  use  of  Theta  Tau’s  trademarked
-    property  rests  solely  with  Theta  Tau  (the  national  Fraternity).  This  policy  will  apply  to  any  form,
-    manner, or media in which trademarked property may appear or be rendered.
+    The Fraternity name, letters, coat of arms, and various insignia are protected by trademark registration owned by Theta Tau   (the national Fraternity). The design or representation of the coat of arms, various insignia, Greek letters “??”, and the words “Theta Tau” are not to be manufactured, created, used or offered by sale by any person, company or firm except as specifically authorized by Theta Tau (the national Fraternity). The use of any text or design which casts Theta Tau in a negative light or is otherwise contrary to the ideals and values of Theta Tau, specifically including, but not limited to, materials deemed to be in conflict with Theta Tau’s Risk Management Policies, is prohibited. If instructed to do so by the national Fraternity, any entity will cease such use.
+    </br>
+    By virtue of their chapter charter or colony certificate, chapters and colonies are permitted to use trademarked property only in furthering the mission of the organization, only in such manner as may be prescribed under our national laws, policies, or instructions, and only in a manner which reflects favorably upon Theta Tau. Permission for specific use will not be interpreted as general permission for continual or expanded use. The determination of appropriate use of Theta Tau’s trademarked property rests solely with Theta Tau (the national Fraternity). This policy will apply to any form, manner, or media in which trademarked property may appear or be rendered.
   {{ form.trademark|as_crispy_field }}
   {% if form.trademark.errors %}
       {% for error in form.trademark.errors %}
@@ -250,28 +212,35 @@ once per year in each of the following areas:
   {% endif %}
 <hr />
   <h3>Website & Social Media Policy</h3>
-    A chapter website and social media site should reflect the purpose and mission (Engineering Leaders
-    for Service, Profession, and Brotherhood) of Theta Tau. Content and design should recognize that we
-    have several different audiences who may view and use a site:  prospective members, current student
-    members, chapter alumni, parents and family of members, and university officials.
+    A chapter website and social media site should reflect the purpose and mission (Engineering Leaders for Service, Profession, and Brotherhood) of Theta Tau. Content and design should recognize that we have several different audiences who may view and use a site: prospective members, current student members, chapter alumni, parents and family of members, and university officials.
 <ul>
-  <li>Content must be appropriate, accurate, and portray Theta Tau favorably.</li>
-  <li>Content on any website, social media page, group, or site must promote a positive image of the chapter (its
-    pledges, members, and alumni), the national Fraternity, and the chapter’s host institution.</li>
-  <li>Review  Fraternity  Risk  Management  Policy  and  Trademark  Policy  in  developing  and  maintaining  your
-  site. Any page (including those showing policy violations) can be copied or saved, and screenshots of a site
-    can be taken.</li>
-  <li>Ritual information  should  never  appear  on  a  site  or in  any  electronic  communication  (post,  email,  text,
-    tweet, etc.).</li>
-  <li>All  photos,  presentations,  podcasts,  artwork,  audio,  or  video  posted must  be  appropriate in  nature  and
-    must adhere to the Risk Management and Trademark policies.</li>
-  <li>If individual member pages, sites, or posts that are linked from chapter sites do not also comply with this
-    policy, their site should be blocked, unlinked, or deleted.</li>
-    <li>Chapters should promptly remove posts, messages, tweets, etc that do not adhere to this policy.</li>
-  <li>Appropriateness  of  content  is  the  responsibility  of  the  chapter  but  may  be  monitored  by  the  national
-    Fraternity.</li>
-  <li>Please  review  the related  social media guidelines  (for Facebook, Twitter, etc)  on  the Theta Tau website
-    which provide additional suggestions and guidance</li>
+  <li>
+    Content must be appropriate, accurate, and portray Theta Tau favorably.
+  </li>
+  <li>
+    Content on any website, social media page, group, or site must promote a positive image of the chapter (its pledges, members, and alumni), the national Fraternity, and the chapter’s host institution.
+  </li>
+  <li>
+    Review Fraternity Risk Management Policy and Trademark Policy in developing and maintaining your site. Any page (including those showing policy violations) can be copied or saved, and screen shots of a site can be taken.
+  </li>
+  <li>
+    Ritual information should never appear on a site or in any electronic communication (post, email, text, tweet, etc.).
+  </li>
+  <li>
+    All photos, presentations, podcasts, artwork, audio, or video posted must be appropriate in nature and must adhere to the Risk Management and Trademark policies.
+  </li>
+  <li>
+    If individual member pages, sites, or posts that are linked from chapter sites do not also comply with this policy, their site should be blocked, unlinked, or deleted.
+  </li>
+  <li>
+    Chapters should promptly remove posts, messages, tweets, etc that do not adhere to this policy.
+  </li>
+  <li>
+    Appropriateness of content is the responsibility of the chapter but may be monitored by the national Fraternity.
+  </li>
+  <li>
+    Please review the related social media guidelines (for Facebook, Twitter, etc) on the Theta Tau website which provide additional suggestions and guidance
+  </li>
 </ul>
   {{ form.social|as_crispy_field }}
   {% if form.social.errors %}
@@ -281,38 +250,88 @@ once per year in each of the following areas:
   {% endif %}
 <hr />
   <h3>Indemnification, Authority, and Signatory Policy</h3>
-  Theta  Tau  (the  national  Fraternity)  will  not  defend,  nor  indemnify,  any  college  or  university  host
-  institution  against  the  institution’s  own  negligence.  Chapters/Colonies,  officers,  members,  advisers;
-  alumni group members and officers; and house corporation members and officers are not officers of
-  Theta  Tau  (the  national  Fraternity)  and  do  not  have  authority  to  execute  agreements,  contracts,  or
-  documents on behalf of the Fraternity that would bind or otherwise obligate Theta Tau.
-  Pursuant to the Federal Volunteer Protection Act, 42 U.S.C. §§1450-14505, college or university host
-  institutions may not hold Theta Tau volunteers at any level liable for harm caused by a negligent act or
-  omission of a volunteer acting within the scope of his responsibilities as a Theta Tau volunteer.
-  The  Grand  Regent  (national  president)  and  Executive  Director  are  the  only  officials  who  are
-  authorized  to  sign  contracts,  agreements,  or  any  other  legal  document  on  behalf  of  Theta  Tau  (the
-  national Fraternity).
-  Chapters, colonies, alumni groups, and house corporations executing agreements for their respective
-  entities must use their full name (e.g. Alpha Chapter of Theta Tau, National Capital Alumni Association,
-  Zeta House Corporation, Inc. ) on any contracts, agreements, or documents only after having received
-  permission  to  do  so  under  the  laws  and  procedures  of  their  respective  local  group.    Chapters  that
-  receive  requests  that  seek  to  bind  the local  group  or indemnify  another  entity  (such  as  the  college,
-  university, or athletic arena/venue) are instructed to contact the Central Office before executing any
-  such agreement.
+  <p>
+    Theta Tau (the national Fraternity) will not defend, nor indemnify, any college or university host institution against the institution’s own negligence. Chapters/Colonies, officers, members, advisers; alumni group members and officers; and house corporation members and officers are not officers of Theta Tau (the national Fraternity) and do not have authority to execute agreements, contracts, or documents on behalf of the Fraternity that would bind or otherwise obligate Theta Tau.
+  </p>
+  <p>
+    Pursuant to the Federal Volunteer Protection Act, 42 U.S.C. §§1450-14505, college or university host institutions may not hold Theta Tau volunteers at any level liable for harm caused by a negligent act or omission of a volunteer acting within the scope of his responsibilities as a Theta Tau volunteer.
+  </p>
+  <p>
+  The Grand Regent (national president) and Executive Director are the only officials who are authorized to sign contracts, agreements, or any other legal document on behalf of Theta Tau (the national Fraternity).
+  </p>
+  <p>
+  Chapters, colonies, alumni groups, and house corporations executing agreements for their respective entities must use their full name (e.g. Alpha Chapter of Theta Tau, National Capitol Alumni Club, Zeta House Corporation, Inc. ) on any contracts, agreements, or documents only after having received permission to do so under the laws and procedures of their respective local group. Chapters that receive requests that seek to bind the local group or indemnify another entity (such as the college, university, or athletic arena/venue) are instructed to contact the Central Office before executing any such agreement.
+  </p>
   {{ form.indemnification|as_crispy_field }}
   {% if form.indemnification.errors %}
       {% for error in form.indemnification.errors %}
         <strong style="color:red">{{ error }}</strong>
       {% endfor %}
   {% endif %}
-<br>
+<hr />
+  <h3>Photo and Image Release</h3>
+  <p>
+I hereby grant Theta Tau Professional Engineering Fraternity permission to use my likeness in a photograph or video in any and all Fraternity publications, including website entries, without payment or any other consideration.   </p>
+  <p>
+I understand and agree that these materials will become the property of Theta Tau and will not be returned. I hereby irrevocably authorize Theta Tau to edit, alter, copy, exhibit, publish or distribute this photo for purposes of publicizing the Fraternity’s programs or for any other lawful purpose.
+  </p>
+  <p>
+In addition, I waive the right to inspect or approve the finished product, including written or electronic copy, wherein my likeness appears. Additionally, I waive any right to royalties or other compensation arising or related to the use of the photograph.
+  </p>
+  <p>
+I hereby hold harmless and release and forever discharge the Department of Labor from all claims, demands, and causes of action which I, my heirs, representatives, executors, administrators, or any other persons acting on my behalf or on behalf of my estate have or may have by reason of this authorization. I am 18 years of age and am competent to contract in my own name.
+  </p>
+<p>
+  I have read this release before signing and I fully understand the contents, meaning, and impact of this release.
+</p>
+<p>
+  <b><i>
+    If you are unable to release your image for the non-commercial use of the Fraternity, please contact the central office.  Note that exceptions will be granted on a very limited basis due to the scale at which we operate – having to digitally remove members from group photos is extremely time intensive.
+  </i></b>
+</p>
+  {{ form.photo_release|as_crispy_field }}
+  {% if form.photo_release.errors %}
+      {% for error in form.photo_release.errors %}
+        <strong style="color:red">{{ error }}</strong>
+      {% endfor %}
+  {% endif %}
+<hr />
+  <h3>Arbitration Agreement</h3>
+  <p>
+As the exclusive means of resolving disputes between a member and the Fraternity, the parties agree to attempt to resolve any dispute through the use of non-binding mediation utilizing a mutually agreeable arbitrator, if one cannot be agreed upon then the parties agree that the American Arbitration Association shall appoint a mediator to conduct a non-binding mediation. In the event that mediation fails, the parties agree to submit any disputes arising out of this agreement to a binding resolution by arbitration administered by the American Arbitration Association in accordance with its Commercial Arbitration Rules, and each party hereby consents to any such disputes being so resolved pursuant the Federal Arbitration Act as well as under any applicable state law and/or state contract law. Judgment on the award rendered in any such arbitration may be entered in any court having jurisdiction.
+  </p>
+  {{ form.arbitration|as_crispy_field }}
+  {% if form.arbitration.errors %}
+      {% for error in form.arbitration.errors %}
+        <strong style="color:red">{{ error }}</strong>
+      {% endfor %}
+  {% endif %}
+<hr />
+  <h3>Dues Agreement</h3>
+  <p>
+By signing this document, I agree that I will do everything in my power to cause my chapter to pay all rightful and correct financial assessments levied by the Central Office and that failure to do so will represent a breach of my responsibilities as a member.
+  </p>
+  {{ form.dues|as_crispy_field }}
+  {% if form.dues.errors %}
+      {% for error in form.dues.errors %}
+        <strong style="color:red">{{ error }}</strong>
+      {% endfor %}
+  {% endif %}
 <hr />
 <div class="jumbotron">
-  <p><h5>As a principal officer of my chapter, by signing, I agree that I have read
-the Risk Management Policies of Theta Tau and reviewed them with our chapter
-within ten days of the start of the Fall semester/quarter. I further agree that I
-will abide by these policies and will also help fellow members abide by these
-  policies.</h5></p>
+{% if request.is_officer or is_officer %}
+  <p>
+    <h5>
+  By signing this form, I agree that I have read, understand, agree to abide by and agree to govern my chapter according to the Risk Management Policy, the Photo Release, the Arbitration Agreement and the Dues Agreement.  I further understand and affirm that, should I fail to abide by and/or govern my chapter according to the aforementioned policies, I may be subject to disciplinary action under the Constitution and Policy and Procedures Manual of Theta Tau.
+    </h5>
+  </p>
+{% else %}
+<p>
+  <h5>
+  By signing this form, I agree that I have read, understand, agree to abide by the Risk Management Policy, the Photo Release, the Arbitration Agreement and the Dues Agreement.  I further understand and affirm that, should I fail to abide by the aforementioned policies, I may be subject to disciplinary action under the Constitution and Policy and Procedures Manual of Theta Tau.
+</h5>
+</p>
+{% endif %}
 {{ form.agreement|as_crispy_field }}
 {% if form.agreement.errors %}
   {% for error in form.agreement.errors %}
@@ -356,5 +375,6 @@ will abide by these policies and will also help fellow members abide by these
     {% csrf_token %}
   <button class="primaryAction btn btn-primary" type="submit">{% trans "Sign" %}</button>
 {% endif %}
+</div>
 </form>
 </div>
