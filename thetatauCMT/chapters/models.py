@@ -225,6 +225,15 @@ class Chapter(models.Model):
         return self.actives() | self.pledges()
 
     @property
+    def advisors_external(self):
+        # Do not annotate, need the queryset not a list
+        all_advisors = self.members.filter(status__status__in=["advisor", ],
+                                           status__start__lte=TODAY_END,
+                                           status__end__gte=TODAY_END
+                                           )
+        return all_advisors
+
+    @property
     def advisors(self):
         # Do not annotate, need the queryset not a list
         all_advisors = self.members.filter(status__status__in=["advisor", ],
