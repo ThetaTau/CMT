@@ -728,7 +728,7 @@ class ChapterInfoReportView(LoginRequiredMixin, OfficerMixin, MultiFormsView):
 
     def create_faculty_form(self, **kwargs):
         chapter = self.request.user.current_chapter
-        facultys = chapter.advisors
+        facultys = chapter.advisors_external
         extra = 0
         min_num = 0
         if not facultys:
