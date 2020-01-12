@@ -2,7 +2,7 @@ urllib3==1.25.3
 requests==2.22.0
 pytz==2019.1  # https://github.com/stub42/pytz
 python-slugify==3.0.2  # https://github.com/un33k/python-slugify
-Pillow==6.1.0  # https://github.com/python-pillow/Pillow
+Pillow==7.0.0  # https://github.com/python-pillow/Pillow
 argon2-cffi==19.1.0  # https://github.com/hynek/argon2_cffi
 whitenoise==3.3.1  # https://github.com/evansd/whitenoise
 redis==3.2.1  # https://github.com/antirez/redis
