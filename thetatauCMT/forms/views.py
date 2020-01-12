@@ -53,7 +53,7 @@ from .models import Guard, Badge, Initiation, Depledge, StatusChange, RiskManage
 from .filters import AuditListFilter, PledgeProgramListFilter, ChapterReportListFilter
 from .forms import AuditListFormHelper, RiskListFilter, PledgeProgramFormHelper,\
     ChapterInfoReportForm, ChapterReportFormHelper
-from .notifications import EmailRMPSigned, EmailPledgeOther, EmailRMPReport
+from .notifications import EmailRMPSigned, EmailPledgeOther, EmailRMPReport, EmailAdvisorWelcome
 
 
 sensitive_post_parameters_m = method_decorator(
@@ -718,6 +718,7 @@ class ChapterInfoReportView(LoginRequiredMixin, OfficerMixin, MultiFormsView):
                             start=TODAY_START,
                             end=forever(),
                         ).save()
+                        EmailAdvisorWelcome(user).send()
                 elif form.changed_data and 'DELETE' in form.changed_data:
                     user = form.instance
                     status = UserStatusChange.objects.get(user=user)

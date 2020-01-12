@@ -1,0 +1,17 @@
+*** Theta Tau Chapter Advisor ***
+------------------------------------------------------------
+Greetings,
+The {{ chapter_name }} of Theta Tau at {{ school }} has indicated that you serve as their campus-based adviser.
+We're emailing to confirm this information.
+If this information is not accurate, please email our executive director by replying to this email.
+If this is the case, you can look forward to an email from our Executive Director in late February with some resources for you.
+Fraternally,
+Theta Tau Central Office
+============================================================
+** Facebook (https://www.facebook.com/thetatau/)
+** Theta Tau (thetatau.org)
+** Email (mailto:central.office@thetatau.org)
+Copyright 2018-2020 Theta Tau, All rights reserved.
+
+The purpose of Theta Tau is to develop and maintain a high standard of professional interest among its members,
+and to unite them in a strong bond of fraternal fellowship.

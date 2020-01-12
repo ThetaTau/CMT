@@ -80,6 +80,34 @@ class EmailRMPReport(EmailNotification):  # extend from EmailNotification for em
 
 
 @registry.register_decorator()
+class EmailAdvisorWelcome(EmailNotification):  # extend from EmailNotification for emails
+    template_name = 'advisor'  # name of template, without extension
+    subject = 'Theta Tau Chapter Advisor'  # subject of email
+
+    def __init__(self, user):
+        self.to_emails = set([user.email])  # set list of emails to send to
+        self.cc = ['central.office@thetatau.org']
+        self.reply_to = ["jim.gaffney@thetatau.org", ]
+        chapter = user.current_chapter
+        if 'colony' not in chapter.name.lower():
+            chapter_name = chapter.name + " Chapter"
+        else:
+            chapter_name = chapter.name
+        self.subject = f'Theta Tau Chapter Advisor, {chapter_name}'
+        self.context = {
+            'user': user,
+            'chapter_name': chapter_name,
+            'school': chapter.school,
+        }
+
+    @staticmethod
+    def get_demo_args():  # define a static method to return list of args needed to initialize class for testing
+        from users.models import User
+        test_user = User.objects.order_by('?')[0]
+        return [test_user]
+
+
+@registry.register_decorator()
 class EmailPledgeOther(EmailNotification):  # extend from EmailNotification for emails
     template_name = 'pledge_other'  # name of template, without extension
     subject = '[CMT] Other Pledge Program'  # subject of email
