@@ -14,8 +14,8 @@ class Command(BaseCommand):
     help = "Set site in maintenance mode"
 
     def add_arguments(self, parser):
-        parser.add_argument('on', action='store_true')
-        parser.add_argument('off', action='store_true')
+        parser.add_argument('-on', action='store_true')
+        parser.add_argument('-off', action='store_true')
 
     # A command must define handle()
     def handle(self, *args, **options):
