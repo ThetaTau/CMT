@@ -3,7 +3,7 @@ from django.utils import timezone
 from dal import autocomplete, forward
 from betterforms.multiform import MultiModelForm
 from crispy_forms.helper import FormHelper
-from crispy_forms.layout import Layout, Fieldset, Row, Submit, ButtonHolder, Column
+from crispy_forms.layout import Layout, Fieldset, Row, Submit, ButtonHolder, Column, HTML
 from crispy_forms.bootstrap import FormActions, Field, InlineField,\
     StrictButton, InlineRadios, Accordion, AccordionGroup, Div
 from tempus_dominus.widgets import DatePicker
@@ -642,6 +642,62 @@ class PledgeFormFull(forms.ModelForm):
     explain_crime_choice = forms.ChoiceField(
         label="Have you ever been convicted of any crime?",
         choices=[('true', 'Yes'), ('false', 'No')], initial='false')
+    loyalty = forms.ChoiceField(
+        label=Pledge.verbose_loyalty,
+        choices=[('', ''), (True, 'Yes'), (False, 'No')], initial=''
+    )
+    not_honor = forms.ChoiceField(
+        label=Pledge.verbose_not_honor,
+        choices=[('', ''), (True, 'Yes'), (False, 'No')], initial=''
+    )
+    accountable = forms.ChoiceField(
+        label=Pledge.verbose_accountable,
+        choices=[('', ''), (True, 'Yes'), (False, 'No')], initial=''
+    )
+    life = forms.ChoiceField(
+        label=Pledge.verbose_life,
+        choices=[('', ''), (True, 'Yes'), (False, 'No')], initial=''
+    )
+    unlawful = forms.ChoiceField(
+        label=Pledge.verbose_unlawful,
+        choices=[('', ''), (True, 'Yes'), (False, 'No')], initial=''
+    )
+    unlawful_org = forms.ChoiceField(
+        label=Pledge.verbose_unlawful_org,
+        choices=[('', ''), (True, 'Yes'), (False, 'No')], initial=''
+    )
+    brotherhood = forms.ChoiceField(
+        label=Pledge.verbose_brotherhood,
+        choices=[('', ''), (True, 'Yes'), (False, 'No')], initial=''
+    )
+    engineering = forms.ChoiceField(
+        label=Pledge.verbose_engineering,
+        choices=[('', ''), (True, 'Yes'), (False, 'No')], initial=''
+    )
+    engineering_grad = forms.ChoiceField(
+        label=Pledge.verbose_engineering_grad,
+        choices=[('', ''), (True, 'Yes'), (False, 'No')], initial=''
+    )
+    payment = forms.ChoiceField(
+        label=Pledge.verbose_payment,
+        choices=[('', ''), (True, 'Yes'), (False, 'No')], initial=''
+    )
+    attendance = forms.ChoiceField(
+        label=Pledge.verbose_attendance,
+        choices=[('', ''), (True, 'Yes'), (False, 'No')], initial=''
+    )
+    harmless = forms.ChoiceField(
+        label=Pledge.verbose_harmless,
+        choices=[('', ''), (True, 'Yes'), (False, 'No')], initial=''
+    )
+    alumni = forms.ChoiceField(
+        label=Pledge.verbose_alumni,
+        choices=[('', ''), (True, 'Yes'), (False, 'No')], initial=''
+    )
+    honest = forms.ChoiceField(
+        label=Pledge.verbose_honest,
+        choices=[('', ''), (True, 'Yes'), (False, 'No')], initial=''
+    )
 
     class Meta:
         model = Pledge
@@ -712,6 +768,7 @@ class PledgeFormFull(forms.ModelForm):
                 ),
                 AccordionGroup(
                     'Pause and Deliberate',
+                    HTML("<h2>Please carefully read and answer each question below honestly</h2>"),
                     'loyalty',
                     'not_honor',
                     'accountable',
