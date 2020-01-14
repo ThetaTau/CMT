@@ -72,6 +72,7 @@ class PagedFilteredTableView(SingleTableView):
             qs = qs.filter(chapter=self.request.user.current_chapter)
         self.filter = self.filter_class(request_get,
                                         queryset=qs)
+        self.filter.request = self.request
         self.filter.form.helper = self.formhelper_class()
         if kwargs.get('clean_date', False):
             self.filter.form.full_clean()
