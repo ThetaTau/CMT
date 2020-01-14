@@ -13,7 +13,7 @@ class UserStatusChangeAdmin(admin.ModelAdmin):
     list_display = ('user', 'status', 'created', user_chapter)
     list_filter = ['status', 'created', 'user__chapter']
     ordering = ['-created',]
-    search_fields = ['user']
+    search_fields = ['user__name']
 
 
 admin.site.register(UserStatusChange, UserStatusChangeAdmin)

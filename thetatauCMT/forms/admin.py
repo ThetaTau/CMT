@@ -31,7 +31,7 @@ class RiskManagementAdmin(admin.ModelAdmin):
     list_display = ('user', 'date', 'year', 'term', )
     list_filter = ['user__chapter', 'year', 'term', ]
     ordering = ['-date', ]
-    search_fields = ['user', ]
+    search_fields = ['user__name', ]
 
 
 admin.site.register(RiskManagement, RiskManagementAdmin)
@@ -42,7 +42,7 @@ class AuditAdmin(admin.ModelAdmin):
     list_display = ('user', 'created', 'year', 'term', )
     list_filter = ['user__chapter', 'year', 'term', ]
     ordering = ['-created', ]
-    search_fields = ['user', ]
+    search_fields = ['user__name', ]
 
 
 admin.site.register(Audit, AuditAdmin)
