@@ -78,11 +78,14 @@ class Event(TimeStampedModel):
             if actives:
                 percent_attendance = min(event.members / actives, 1)
             total_percent += percent_attendance
-        avg_attendance = total_percent / events.count()
+        event_count = events.count()
+        if not event_count:
+            event_count = 1
+        avg_attendance = total_percent / event_count
         formula_out = meeting_type.special
         formula_out = formula_out.replace('MEETINGS', str(avg_attendance))
         score = eval(formula_out)
-        event_score = round(score / events.count(), 2)
+        event_score = round(score / event_count, 2)
         for event in events:
             event.score = event_score
             event.save(calculate_score=False)
