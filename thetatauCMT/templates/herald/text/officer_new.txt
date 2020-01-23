@@ -6,8 +6,6 @@ but a position of service to your chapter and our profession.
 By electing you as chapter officers, the members have confidence that you will unselfishly serve and
 conduct the business of Theta Tau according to our policies and bylaws.
 
-The first task you should do is read and sign the Risk Management Policies at: {{ host }}/rmp
-
 ** Important contacts:
 ------------------------------------------------------------
 * Your regional directors can be reached at {{ director_emails }}
