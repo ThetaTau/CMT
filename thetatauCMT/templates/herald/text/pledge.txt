@@ -1,0 +1,18 @@
+*** Theta Tau Prospective New Member / Pledge Form ***
+------------------------------------------------------------
+Greetings,
+Please verify the information you entered below is correct.
+If you need to correct anything, please respond to this email as soon as possible.
+{% for field, value in form.items %}
+{{ field }}: {{ value }}
+{% endfor %}
+Fraternally,
+Theta Tau Central Office
+============================================================
+** Facebook (https://www.facebook.com/thetatau/)
+** Theta Tau (thetatau.org)
+** Email (mailto:central.office@thetatau.org)
+Copyright 2018-2020 Theta Tau, All rights reserved.
+
+The purpose of Theta Tau is to develop and maintain a high standard of professional interest among its members,
+and to unite them in a strong bond of fraternal fellowship.

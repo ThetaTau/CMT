@@ -53,7 +53,8 @@ from .models import Guard, Badge, Initiation, Depledge, StatusChange, RiskManage
 from .filters import AuditListFilter, PledgeProgramListFilter, ChapterReportListFilter
 from .forms import AuditListFormHelper, RiskListFilter, PledgeProgramFormHelper,\
     ChapterInfoReportForm, ChapterReportFormHelper
-from .notifications import EmailRMPSigned, EmailPledgeOther, EmailRMPReport, EmailAdvisorWelcome
+from .notifications import EmailRMPSigned, EmailPledgeOther, EmailRMPReport,\
+    EmailAdvisorWelcome, EmailPledgeConfirmation
 
 
 sensitive_post_parameters_m = method_decorator(
@@ -1193,9 +1194,21 @@ class PledgeFormView(CreateView):
     form_class = PledgeFormFull
     template_name = "forms/pledge_form.html"
 
+    def form_invalid(self, form):
+        messages.add_message(
+            self.request, messages.ERROR,
+            f"Error with pledge form, please expand sections and correct error. "
+            f"Error fields: {' '.join(form.errors.keys())}")
+        return self.render_to_response(self.get_context_data(form=form))
+
+    def form_valid(self, form):
+        """If the form is valid, redirect to the supplied URL."""
+        EmailPledgeConfirmation(form.instance).send()
+        return HttpResponseRedirect(self.get_success_url())
+
     def get_success_url(self):
         messages.add_message(
             self.request, messages.INFO,
-            f"You successfully submitted the Pledge form! "
-            f"A confirmation email was sent to your school email.")
+            f"You successfully submitted the Prospective New Member / Pledge Form! "
+            f"A confirmation email was sent to your school and personal email.")
         return reverse('forms:pledgeform')

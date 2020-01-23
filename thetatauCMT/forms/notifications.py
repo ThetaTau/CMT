@@ -1,6 +1,7 @@
 from herald import registry
 from herald.base import EmailNotification
 from django.conf import settings
+from django.forms.models import model_to_dict
 
 
 @registry.register_decorator()
@@ -137,3 +138,36 @@ class EmailPledgeOther(EmailNotification):  # extend from EmailNotification for 
         risk_file = File(f)
         risk_file.mime_type = 'application/pdf'
         return [test_user, risk_file]
+
+
+@registry.register_decorator()
+class EmailPledgeConfirmation(EmailNotification):  # extend from EmailNotification for emails
+    template_name = 'pledge'  # name of template, without extension
+    subject = 'Theta Tau Pledge Form'  # subject of email
+
+    def __init__(self, pledge_form):
+        self.to_emails = set([pledge_form.email_school])  # set list of emails to send to
+        self.cc = [pledge_form.email_personal]
+        self.reply_to = ["cmt@thetatau.org", ]
+        model_dict = model_to_dict(pledge_form)
+        form_dict = {}
+        for key, value in model_dict.items():
+            if hasattr(pledge_form, f"verbose_{key}"):
+                value = {True: 'Yes', False: 'No'}[value]
+                form_dict[getattr(pledge_form, f"verbose_{key}")] = value
+            else:
+                if (key.startswith('explain_') or key.startswith('other_')) and value == "":
+                    continue
+                if key not in ['id', 'address']:
+                    form_dict[key.replace('_', ' ').title()] = value
+                elif key == 'address':
+                    form_dict["Address"] = getattr(pledge_form, key).formatted
+        self.context = {
+            'form': form_dict,
+        }
+
+    @staticmethod
+    def get_demo_args():  # define a static method to return list of args needed to initialize class for testing
+        from forms.models import Pledge
+        test_pledge_form = Pledge.objects.order_by('?')[0]
+        return [test_pledge_form]
