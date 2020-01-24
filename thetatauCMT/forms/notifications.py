@@ -2,6 +2,7 @@ from herald import registry
 from herald.base import EmailNotification
 from django.conf import settings
 from django.forms.models import model_to_dict
+from core.models import current_term, current_year
 
 
 @registry.register_decorator()
@@ -143,7 +144,7 @@ class EmailPledgeOther(EmailNotification):  # extend from EmailNotification for 
 @registry.register_decorator()
 class EmailPledgeConfirmation(EmailNotification):  # extend from EmailNotification for emails
     template_name = 'pledge'  # name of template, without extension
-    subject = 'Theta Tau Pledge Form'  # subject of email
+    subject = 'Theta Tau Prospective New Member Confirmation'  # subject of email
 
     def __init__(self, pledge_form):
         self.to_emails = set([pledge_form.email_school])  # set list of emails to send to
@@ -164,6 +165,38 @@ class EmailPledgeConfirmation(EmailNotification):  # extend from EmailNotificati
                     form_dict["Address"] = getattr(pledge_form, key).formatted
         self.context = {
             'form': form_dict,
+        }
+
+    @staticmethod
+    def get_demo_args():  # define a static method to return list of args needed to initialize class for testing
+        from forms.models import Pledge
+        test_pledge_form = Pledge.objects.order_by('?')[0]
+        return [test_pledge_form]
+
+
+@registry.register_decorator()
+class EmailPledgeWelcome(EmailNotification):  # extend from EmailNotification for emails
+    template_name = 'pledge_welcome'  # name of template, without extension
+    subject = 'Theta Tau Welcome Prospective New Member'  # subject of email
+
+    def __init__(self, pledge_form):
+        name = pledge_form.first_name
+        email_school = pledge_form.email_school
+        email_personal = pledge_form.email_personal
+        chapter = pledge_form.school_name
+        school_type = chapter.school_type
+        no_later_month = {
+            'sp_semester': 'March 15',
+            'sp_quarter': 'May 15',
+            'fa_semester': 'October 15',
+            'fa_quarter': 'November 15',
+        }[f'{current_term()}_{school_type}']
+        self.to_emails = set([email_school])  # set list of emails to send to
+        self.cc = [email_personal]
+        self.reply_to = ["central.office@thetatau.org", ]
+        self.context = {
+            'name': name,
+            'no_later_date': f"{no_later_month}, {current_year()}"
         }
 
     @staticmethod

@@ -54,7 +54,7 @@ from .filters import AuditListFilter, PledgeProgramListFilter, ChapterReportList
 from .forms import AuditListFormHelper, RiskListFilter, PledgeProgramFormHelper,\
     ChapterInfoReportForm, ChapterReportFormHelper
 from .notifications import EmailRMPSigned, EmailPledgeOther, EmailRMPReport,\
-    EmailAdvisorWelcome, EmailPledgeConfirmation
+    EmailAdvisorWelcome, EmailPledgeConfirmation, EmailPledgeWelcome
 
 
 sensitive_post_parameters_m = method_decorator(
@@ -1208,6 +1208,7 @@ class PledgeFormView(CreateView):
     def form_valid(self, form):
         """If the form is valid, redirect to the supplied URL."""
         EmailPledgeConfirmation(form.instance).send()
+        EmailPledgeWelcome(form.instance).send()
         return HttpResponseRedirect(self.get_success_url())
 
     def get_success_url(self):
