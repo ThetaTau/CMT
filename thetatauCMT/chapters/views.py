@@ -45,9 +45,13 @@ class ChapterDetailView(LoginRequiredMixin, OfficerMixin, MultiFormsView):
                         ).save()
                 elif form.changed_data and 'DELETE' in form.changed_data:
                     user = form.instance
-                    status = UserStatusChange.objects.get(user=user)
-                    status.end = TODAY_START
-                    status.save()
+                    try:
+                        status = UserStatusChange.objects.get(user=user)
+                    except UserStatusChange.DoesNotExist:
+                        continue
+                    else:
+                        status.end = TODAY_START
+                        status.save()
         return HttpResponseRedirect(self.get_success_url())
 
     def create_faculty_form(self, **kwargs):
