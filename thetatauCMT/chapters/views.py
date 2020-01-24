@@ -16,6 +16,7 @@ from users.models import UserStatusChange, User
 from users.forms import ExternalUserForm
 from tasks.models import Task
 from submissions.models import Submission
+from forms.notifications import EmailAdvisorWelcome
 
 
 class ChapterDetailView(LoginRequiredMixin, OfficerMixin, MultiFormsView):
@@ -33,9 +34,13 @@ class ChapterDetailView(LoginRequiredMixin, OfficerMixin, MultiFormsView):
                     if form.instance.badge_number == 999999999:
                         form.instance.chapter = chapter
                         form.instance.badge_number = chapter.next_advisor_number
-                    user = form.save()
                     try:
-                        status = UserStatusChange.objects.get(user=user)
+                        # This is either a previous faculty or alumni
+                        user = User.objects.get(username=form.instance.email)
+                    except User.DoesNotExist:
+                        user = form.save()
+                    try:
+                        status = UserStatusChange.objects.filter(user=user).first()
                     except UserStatusChange.DoesNotExist:
                         UserStatusChange(
                             user=user,
@@ -43,6 +48,7 @@ class ChapterDetailView(LoginRequiredMixin, OfficerMixin, MultiFormsView):
                             start=TODAY_START,
                             end=forever(),
                         ).save()
+                        EmailAdvisorWelcome(user).send()
                 elif form.changed_data and 'DELETE' in form.changed_data:
                     user = form.instance
                     try:
