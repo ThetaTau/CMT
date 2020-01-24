@@ -163,10 +163,12 @@ class Initiation(TimeStampedModel):
                 start=self.date - datetime.timedelta(days=120),
                 end=self.date,
             ).save()
-        else:
-            pnm.end = self.date
-            pnm.created = self.created
-            pnm.save()
+        except UserStatusChange.MultipleObjectsReturned:
+            self.user.status.filter(status='pnm').order_by('created').last().delete()
+            pnm = self.user.status.filter(status='pnm').last()
+        pnm.end = self.date
+        pnm.created = self.created
+        pnm.save()
         actives = self.user.status.filter(status='active')
         for active in actives:
             active.delete()
