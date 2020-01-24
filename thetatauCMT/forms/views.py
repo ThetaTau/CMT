@@ -1207,9 +1207,10 @@ class PledgeFormView(CreateView):
 
     def form_valid(self, form):
         """If the form is valid, redirect to the supplied URL."""
-        EmailPledgeConfirmation(form.instance).send()
-        EmailPledgeWelcome(form.instance).send()
-        return HttpResponseRedirect(self.get_success_url())
+        response = super().form_valid(form)
+        EmailPledgeConfirmation(self.object).send()
+        EmailPledgeWelcome(self.object).send()
+        return response
 
     def get_success_url(self):
         messages.add_message(
