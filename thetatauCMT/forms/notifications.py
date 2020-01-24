@@ -100,6 +100,7 @@ class EmailAdvisorWelcome(EmailNotification):  # extend from EmailNotification f
             'user': user,
             'chapter_name': chapter_name,
             'school': chapter.school,
+            'host': settings.CURRENT_URL,
         }
 
     @staticmethod
@@ -165,6 +166,7 @@ class EmailPledgeConfirmation(EmailNotification):  # extend from EmailNotificati
                     form_dict["Address"] = getattr(pledge_form, key).formatted
         self.context = {
             'form': form_dict,
+            'host': settings.CURRENT_URL,
         }
 
     @staticmethod
@@ -196,7 +198,8 @@ class EmailPledgeWelcome(EmailNotification):  # extend from EmailNotification fo
         self.reply_to = ["central.office@thetatau.org", ]
         self.context = {
             'name': name,
-            'no_later_date': f"{no_later_month}, {current_year()}"
+            'no_later_date': f"{no_later_month}, {current_year()}",
+            'host': settings.CURRENT_URL,
         }
 
     @staticmethod
