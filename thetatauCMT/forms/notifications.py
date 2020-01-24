@@ -197,7 +197,6 @@ class EmailPledgeWelcome(EmailNotification):  # extend from EmailNotification fo
         self.to_emails = set([email_school])  # set list of emails to send to
         if email_school != email_personal:
             self.cc = [email_personal]
-        self.cc = [email_personal]
         self.reply_to = ["central.office@thetatau.org", ]
         self.context = {
             'name': name,
