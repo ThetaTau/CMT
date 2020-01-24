@@ -149,7 +149,8 @@ class EmailPledgeConfirmation(EmailNotification):  # extend from EmailNotificati
 
     def __init__(self, pledge_form):
         self.to_emails = set([pledge_form.email_school])  # set list of emails to send to
-        self.cc = [pledge_form.email_personal]
+        if pledge_form.email_school != pledge_form.email_personal:
+            self.cc = [pledge_form.email_personal]
         self.reply_to = ["cmt@thetatau.org", ]
         model_dict = model_to_dict(pledge_form)
         form_dict = {}
@@ -194,6 +195,8 @@ class EmailPledgeWelcome(EmailNotification):  # extend from EmailNotification fo
             'fa_quarter': 'November 15',
         }[f'{current_term()}_{school_type}']
         self.to_emails = set([email_school])  # set list of emails to send to
+        if email_school != email_personal:
+            self.cc = [email_personal]
         self.cc = [email_personal]
         self.reply_to = ["central.office@thetatau.org", ]
         self.context = {
