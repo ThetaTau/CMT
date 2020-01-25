@@ -29,7 +29,7 @@ def run():
                     {
                         'Chapter': user.chapter.name,
                         'Office': first_role,
-                        'ConstID': user.user_id,
+                        'ConstID': user.clean_user_id,
                         'First Name': user.first_name,
                         'Middle Name': "",
                         'Last Name': user.last_name,

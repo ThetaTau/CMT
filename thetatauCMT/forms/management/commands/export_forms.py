@@ -178,7 +178,7 @@ class Command(BaseCommand):
                         "Office": role,
                         "Term Begins (M/D/YYYY)": officer.start.strftime("%m/%d/%Y"),
                         "Term Ends (M/D/YYYY)": officer.end.strftime("%m/%d/%Y"),
-                        "*ChapRoll": officer.user.user_id,
+                        "*ChapRoll": officer.user.clean_user_id,
                         "First Name": officer.user.first_name,
                         "Last Name": officer.user.last_name,
                         "Mobile Phone": "",
@@ -201,7 +201,7 @@ class Command(BaseCommand):
                         main_row = {
                             "Submitted by": "",
                             "Date Submitted": status.created,
-                            "*ChapRoll": status.user.user_id,
+                            "*ChapRoll": status.user.clean_user_id,
                             "First Name": status.user.first_name,
                             "Last Name": status.user.last_name,
                         }

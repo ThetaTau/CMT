@@ -74,6 +74,15 @@ class User(AbstractUser):
         return reverse('users:detail')
 
     @property
+    def clean_user_id(self):
+        """
+        Pledges should not have greek letter in user_id only badge_number
+        """
+        if self.current_status == 'pnm':
+            return self.badge_number
+        return self.user_id
+
+    @property
     def current_status(self):
         return str(self.get_current_status())
 
