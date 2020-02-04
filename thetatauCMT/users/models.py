@@ -40,7 +40,7 @@ class User(AbstractUser):
         message="Phone number must be entered in the format: '+999999999'. Up to 15 digits allowed.")
     phone_number = models.CharField(
         validators=[phone_regex],
-        max_length=17, blank=True)
+        max_length=17, blank=True, help_text="Format: 9999999999 no spaces, dashes, etc.")
     address = AddressField(on_delete=models.SET_NULL, blank=True, null=True, unique=True)
     chapter = models.ForeignKey(Chapter, on_delete=models.CASCADE,
                                 default=1,
