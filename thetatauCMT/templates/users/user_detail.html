@@ -27,7 +27,7 @@
           </tr>
           <tr>
             <td>Current Chapter Officer</td>
-            <td>{{ object.is_chapter_officer }}</td>
+            <td>{{ object.role.role|title }}</td>
           </tr>
         </table>
         <h3>Current/Previous Roles:</h3>
@@ -68,6 +68,7 @@
         <tr  style="vertical-align:top">
           <form class="gpa" method="POST">
           {% csrf_token %}
+          <div>{{ forms.gpa.management_form|crispy }}</div>
           <input type="hidden" id="chapter" name="chapter" value="{{ user.chapter }}">
           <th>GPA</th>
             {% for field in forms.gpa %}
@@ -81,6 +82,7 @@
         <tr style="vertical-align:top">
           <form class="service" method="POST">
           {% csrf_token %}
+          <div>{{ forms.service.management_form|crispy }}</div>
           <input type="hidden" id="chapter" name="chapter" value="{{ user.chapter }}">
           <th>Service</th>
             {% for field in forms.service %}
