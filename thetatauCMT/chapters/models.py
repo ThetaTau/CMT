@@ -332,11 +332,11 @@ class Chapter(models.Model):
 
     @property
     def next_advisor_number(self):
-        advisor = self.members.filter(
-            status__status__in=["advisor", ]).order_by('badge_number').last()
-        badge_number = 7000
-        if advisor:
-            badge_number = advisor.badge_number + 1
+        badge_numbers = list(self.members.filter(
+            badge_number__gte=7000, badge_number__lte=8000).values_list('badge_number', flat=True))
+        if not badge_numbers:
+            badge_numbers.append(6999)
+        badge_number = max(badge_numbers) + 1
         return badge_number
 
     @classmethod
