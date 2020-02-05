@@ -65,6 +65,7 @@ class EmailRMPReport(EmailNotification):  # extend from EmailNotification for em
             'host': settings.CURRENT_URL,
         }
         # https://github.com/worthwhile/django-herald#email-attachments
+        file.seek(0)
         self.attachments = [
             (file_name, file.read(), file.mime_type),
         ]
