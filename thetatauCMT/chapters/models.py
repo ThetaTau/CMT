@@ -327,7 +327,7 @@ class Chapter(models.Model):
     def next_badge_number(self):
         # Jan 2019 highest badge number was Mu with 1754
         return self.members.filter(~models.Q(status__status='pnm'),
-                                   ~models.Q(badge_number__gt=8000)
+                                   ~models.Q(badge_number__gte=7000)
                                    ).aggregate(models.Max('badge_number'))
 
     @property
