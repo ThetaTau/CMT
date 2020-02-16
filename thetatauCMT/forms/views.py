@@ -715,7 +715,7 @@ class ChapterInfoReportView(LoginRequiredMixin, OfficerMixin, MultiFormsView):
                     except User.DoesNotExist:
                         user = form.save()
                     try:
-                        status = UserStatusChange.objects.get(user=user).first()
+                        status = UserStatusChange.objects.get(user=user)
                     except UserStatusChange.DoesNotExist:
                         UserStatusChange(
                             user=user,
