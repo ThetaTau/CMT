@@ -333,7 +333,7 @@ class Chapter(models.Model):
     @property
     def next_advisor_number(self):
         badge_numbers = list(self.members.filter(
-            badge_number__gte=7000, badge_number__lte=8000).values_list('badge_number', flat=True))
+            badge_number__gte=7000, badge_number__lte=7999).values_list('badge_number', flat=True))
         if not badge_numbers:
             badge_numbers.append(6999)
         badge_number = max(badge_numbers) + 1
