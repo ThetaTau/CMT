@@ -19,6 +19,14 @@
             <th>Regional Director Email</th>
             <td>{{ object.region.email }}</td>
           </tr>
+          <tr>
+            <th>Actives</th>
+            <td>{{ object.actives|length }}</td>
+          </tr>
+          <tr>
+            <th>Pledges</th>
+            <td>{{ object.pledges|length }}</td>
+          </tr>
         {% if request.user.current_chapter == object %}
           <tr>
             <th>Current balance</th>
