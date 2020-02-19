@@ -15,6 +15,10 @@
             <th>School</th>
             <td>{{ object.school }}</td>
           </tr>
+          <tr>
+            <th>Regional Director Email</th>
+            <td>{{ object.region.email }}</td>
+          </tr>
         {% if request.user.current_chapter == object %}
           <tr>
             <th>Current balance</th>
