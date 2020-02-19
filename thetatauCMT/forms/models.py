@@ -7,10 +7,12 @@ from django.contrib.auth.models import Group
 from django.core.validators import MaxValueValidator, RegexValidator
 from django.conf import settings
 from django.utils import timezone
+from django.utils.text import slugify
 from core.models import TimeStampedModel, YearTermModel, validate_year
 from django.utils.translation import gettext_lazy as _
 from address.models import AddressField
 from multiselectfield import MultiSelectField
+from viewflow.models import Process
 from core.models import forever, CHAPTER_ROLES_CHOICES,\
     academic_encompass_start_end_date
 from users.models import User, UserStatusChange
@@ -603,3 +605,15 @@ class Pledge(TimeStampedModel):
     alumni = models.BooleanField(verbose_alumni, choices=BOOL_CHOICES, default=False)
     verbose_honest = _("""My answers to these questions are my honest and sincere convictions.""")
     honest = models.BooleanField(verbose_honest, choices=BOOL_CHOICES, default=False)
+
+
+def get_premature_alumn_upload_path(instance, filename):
+    return os.path.join(
+        'submissions', 'prealumn',
+        f"TEST_TEST_{filename}")
+
+
+class PrematureAlumnus(Process):
+    form = models.FileField(upload_to=get_premature_alumn_upload_path)
+    approved = models.BooleanField('Approved', default=False)
+
