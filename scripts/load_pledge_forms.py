@@ -12,6 +12,7 @@ def run(*args):
     Space seperated list with --script-args "path_to_file" "path2_to_file"
     :param args: List of files to read pledge forms
     :return: None
+    python manage.py runscript load_pledge_forms --script-args secrets/20200205_pledgeforms.csv
     """
     for path in args:
         with open(path) as f:
