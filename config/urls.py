@@ -3,8 +3,10 @@ from django.conf.urls import include, url
 from django.conf.urls.static import static
 from django.contrib.auth.views import PasswordResetConfirmView, PasswordResetCompleteView, PasswordResetView, \
     PasswordResetDoneView
+from allauth.account.views import LogoutView
 from django.contrib import admin
 from django.views.generic import TemplateView, RedirectView
+from material.frontend.urls import modules
 from core.views import HomeView
 from users.views import UserLookupLoginView
 from django.views import defaults as default_views
@@ -31,9 +33,11 @@ urlpatterns = [
     # User management
     url(r'^users/', include('users.urls', namespace='users')),
     url(r'^accounts/login/$', UserLookupLoginView.as_view(), name='login'),
+    url(r'^accounts/logout/$', LogoutView.as_view(), name='logout'),
     url(r'^accounts/', include('allauth.urls')),
 
     # Your stuff: custom urls includes go here
+    url(r'', include(modules.urls)),
     url(r'^regions/', include('regions.urls', namespace='regions')),
     url(r'^chapters/', include('chapters.urls', namespace='chapters')),
     url(r'^events/', include('events.urls', namespace='events')),

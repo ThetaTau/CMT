@@ -63,6 +63,7 @@ DJANGO_APPS = [
     # 'django.contrib.humanize', # Handy template tags
     'dal',
     'dal_select2',
+    'viewflow.frontend',
     'django.contrib.admin',
 ]
 THIRD_PARTY_APPS = [
@@ -85,6 +86,10 @@ THIRD_PARTY_APPS = [
     'easy_pdf',
     'djmoney',
     'betterforms',
+    'viewflow',
+    'material',
+    'material.frontend',
+    'material.admin',
 ]
 LOCAL_APPS = [
     'thetatauCMT.users.apps.UsersConfig',
