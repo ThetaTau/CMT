@@ -34,7 +34,9 @@ from .forms import InitiationFormSet, InitiationForm, InitiationFormHelper, Init
     InitDeplSelectFormHelper, DepledgeFormSet, DepledgeFormHelper, StatusChangeSelectForm,\
     StatusChangeSelectFormHelper, GraduateForm, GraduateFormSet, CSMTFormSet, GraduateFormHelper, CSMTFormHelper,\
     RoleChangeSelectForm, RiskManagementForm, RoleChangeNationalSelectForm,\
-    PledgeProgramForm, AuditForm, PledgeFormFull, ChapterReport, PrematureAlumnusForm
+    PledgeProgramForm, AuditForm, PledgeFormFull, ChapterReport, PrematureAlumnusForm,\
+    AuditListFormHelper, RiskListFilter, PledgeProgramFormHelper,\
+    ChapterInfoReportForm, ChapterReportFormHelper
 from tasks.models import TaskChapter, Task
 from scores.models import ScoreType
 from submissions.models import Submission
@@ -52,8 +54,6 @@ from .tables import GuardTable, BadgeTable, InitiationTable, DepledgeTable, \
 from .models import Guard, Badge, Initiation, Depledge, StatusChange, RiskManagement,\
     PledgeForm, PledgeProgram, Audit, PrematureAlumnus
 from .filters import AuditListFilter, PledgeProgramListFilter, ChapterReportListFilter
-from .forms import AuditListFormHelper, RiskListFilter, PledgeProgramFormHelper,\
-    ChapterInfoReportForm, ChapterReportFormHelper
 from .notifications import EmailRMPSigned, EmailPledgeOther, EmailRMPReport,\
     EmailAdvisorWelcome, EmailPledgeConfirmation, EmailPledgeWelcome
 
