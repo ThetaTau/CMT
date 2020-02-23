@@ -614,6 +614,52 @@ def get_premature_alumn_upload_path(instance, filename):
 
 
 class PrematureAlumnus(Process):
-    form = models.FileField(upload_to=get_premature_alumn_upload_path)
-    approved = models.BooleanField('Approved', default=False)
+    class TYPES(Enum):
+        less4 = ('less4', 'Undergraduate Student (initiated into Theta Tau less than four years ago.)')
+        more4 = ('more4', 'Undergraduate Student initiated into Theta Tau 4 or more years ago.')
+        grad = ('grad', 'Student in Graduate school at the school where initiated as an undergraduate.')
+
+        @classmethod
+        def get_value(cls, member):
+            return cls[member].value[1]
+    user = models.ForeignKey(settings.AUTH_USER_MODEL,
+                             on_delete=models.CASCADE,
+                             related_name="prealumn_form", null=True, blank=True)
+    form = models.FileField(upload_to=get_premature_alumn_upload_path, null=True, blank=True)
+    verbose_good_standing = _("""I am a member in good standing of Theta Tau.""")
+    good_standing = models.BooleanField(verbose_good_standing, default=False)
+    verbose_financial = _("""I have no current financial obligation to the chapter.""")
+    financial = models.BooleanField(verbose_financial, default=False)
+    verbose_fee = _("""I have remitted $80 Processing Fee with this form request.""")
+    fee = models.BooleanField(verbose_fee, default=False)
+    verbose_semesters = _("""I have completed at least 2 semesters of active membership.""")
+    semesters = models.BooleanField(verbose_semesters, default=False)
+    verbose_lifestyle = _("""I have had a significant lifestyle change preventing me from adequately & responsibly fulfilling my duties & obligations.""")
+    lifestyle = models.BooleanField(verbose_lifestyle, default=False)
+    verbose_consideration = _("""I understand that this status change request is submitted to the Executive Director for consideration.""")
+    consideration = models.BooleanField(verbose_consideration, default=False)
+    verbose_prealumn_type = _("""Type of Premature (“Early”) Alumnus Status""")
+    prealumn_type = models.CharField(
+        verbose_prealumn_type,
+        default='less4',
+        max_length=10,
+        choices=[x.value for x in TYPES]
+    )
+    verbose_understand = _("""If this change is affected, I understand that I will become a full alumnus member of Theta Tau and can only return to Student Member status by separate petition.""")
+    understand = models.BooleanField(verbose_understand, default=False)
+    signature = models.CharField(
+        default='', max_length=255, help_text="Please sign using your proper/legal name")
+    approved_exec = models.BooleanField('Executive Director Approved', default=False)
+    exec_comments = models.TextField(_('If rejecting, please explain why.'), blank=True)
+    officers = models.ManyToManyField(
+        settings.AUTH_USER_MODEL, related_name="approve_prealumn")
+    verbose_ack = _('I verify the information entered on the premature alumnus form is correct.')
+    officer1_ack = models.BooleanField(verbose_ack, default=False)
+    officer2_ack = models.BooleanField(verbose_ack, default=False)
+    officer1_comments = models.TextField(_('If rejecting, please explain why.'), blank=True)
+    officer2_comments = models.TextField(_('If rejecting, please explain why.'), blank=True)
+    verbose_vote = _(
+        """The status change for the member was approved by a four-fifths favorable vote of the chapter.""")
+    officer1_vote = models.BooleanField(verbose_vote, default=False)
+    officer2_vote = models.BooleanField(verbose_vote, default=False)
 
