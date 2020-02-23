@@ -818,17 +818,22 @@ class PrematureAlumnusForm(forms.ModelForm):
         label=PrematureAlumnus.verbose_consideration,
         choices=CHOICES, initial=''
     )
-    understand = forms.ChoiceField(
-        label=PrematureAlumnus.verbose_understand,
+    vote = forms.ChoiceField(
+        label=PrematureAlumnus.verbose_vote,
         choices=CHOICES, initial=''
+    )
+    user = forms.ModelChoiceField(
+        queryset=User.objects.all(),
+        widget=autocomplete.ModelSelect2(
+            url='users:autocomplete',
+            forward=(forward.Const('true', 'chapter'),
+                     forward.Const('true', 'actives'),
+                     )
+        ),
     )
 
     class Meta:
         model = PrematureAlumnus
-        fields = ['good_standing', 'financial', 'fee', 'semesters', 'lifestyle',
-                  'consideration', 'prealumn_type', 'understand', 'signature']
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.helper = FormHelper()
-        self.helper.add_input(Submit('submit', 'Submit Request'))
+        fields = ['user', 'form', 'good_standing', 'financial', 'fee',
+                  'semesters', 'lifestyle', 'consideration', 'prealumn_type',
+                  'vote', ]
