@@ -1,14 +1,19 @@
 {% extends "account/base.html" %}
 {% load i18n %}
+{% load static %}
 {% load crispy_forms_tags %}
 
 {% block head_title %}{% trans "Premature Alumnus Request Form" %}{% endblock %}
 {% block content %}
   <h1>Premature Alumnus Request Form</h1>
-  Complete the form below to request premature alumnus status.
+  Complete the form below to submit a premature alumnus request.<br>
+  Please include the completed form:<br>
+  <a href="http://thetatau.org/Websites/thetatauhq/images/PrematureFormNewCombined.pdf">
+    http://thetatau.org/Websites/thetatauhq/images/PrematureFormNewCombined.pdf</a>
   <hr>
-  <p>I assert the following true statements:</p>
   <form method="POST">
+    {{ form.media }}
+    <link href="{% static 'css/project.css' %}" rel="stylesheet">
     {% csrf_token %}
     {{ form|crispy }}
     {{ activation.management_form }}
