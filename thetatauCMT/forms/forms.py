@@ -8,7 +8,7 @@ from crispy_forms.bootstrap import FormActions, Field, InlineField,\
     StrictButton, InlineRadios, Accordion, AccordionGroup, Div
 from tempus_dominus.widgets import DatePicker
 from .models import Initiation, Depledge, StatusChange, RiskManagement,\
-    PledgeProgram, Audit, Pledge, ChapterReport
+    PledgeProgram, Audit, Pledge, ChapterReport, PrematureAlumnus
 from core.models import CHAPTER_ROLES_CHOICES, NAT_OFFICERS_CHOICES
 from users.models import User, UserRoleChange
 from regions.models import Region
@@ -790,3 +790,45 @@ class PledgeFormFull(forms.ModelForm):
                 )
             )
         )
+
+
+class PrematureAlumnusForm(forms.ModelForm):
+    CHOICES = [('', ''), (True, 'True'), (False, 'False')]
+    good_standing = forms.ChoiceField(
+        label=PrematureAlumnus.verbose_good_standing,
+        choices=CHOICES, initial=''
+    )
+    financial = forms.ChoiceField(
+        label=PrematureAlumnus.verbose_financial,
+        choices=CHOICES, initial=''
+    )
+    fee = forms.ChoiceField(
+        label=PrematureAlumnus.verbose_fee,
+        choices=CHOICES, initial=''
+    )
+    semesters = forms.ChoiceField(
+        label=PrematureAlumnus.verbose_semesters,
+        choices=CHOICES, initial=''
+    )
+    lifestyle = forms.ChoiceField(
+        label=PrematureAlumnus.verbose_lifestyle,
+        choices=CHOICES, initial=''
+    )
+    consideration = forms.ChoiceField(
+        label=PrematureAlumnus.verbose_consideration,
+        choices=CHOICES, initial=''
+    )
+    understand = forms.ChoiceField(
+        label=PrematureAlumnus.verbose_understand,
+        choices=CHOICES, initial=''
+    )
+
+    class Meta:
+        model = PrematureAlumnus
+        fields = ['good_standing', 'financial', 'fee', 'semesters', 'lifestyle',
+                  'consideration', 'prealumn_type', 'understand', 'signature']
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.helper = FormHelper()
+        self.helper.add_input(Submit('submit', 'Submit Request'))
