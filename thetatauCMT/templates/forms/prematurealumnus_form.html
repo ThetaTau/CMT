@@ -1,0 +1,17 @@
+{% extends "account/base.html" %}
+{% load i18n %}
+{% load crispy_forms_tags %}
+
+{% block head_title %}{% trans "Premature Alumnus Request Form" %}{% endblock %}
+{% block content %}
+  <h1>Premature Alumnus Request Form</h1>
+  Complete the form below to request premature alumnus status.
+  <hr>
+  <p>I assert the following true statements:</p>
+  <form method="POST">
+    {% csrf_token %}
+    {{ form|crispy }}
+    {{ activation.management_form }}
+    <button class="primaryAction btn btn-primary" type="submit">{% trans "Submit Request" %}</button>
+  </form>
+{% endblock %}

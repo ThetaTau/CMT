@@ -25,6 +25,7 @@ from crispy_forms.layout import Submit
 from dal import autocomplete, forward
 from extra_views import FormSetView, ModelFormSetView
 from easy_pdf.views import PDFTemplateResponseMixin
+from viewflow.flow.views import StartFlowMixin
 from core.forms import MultiFormsView
 from core.models import TODAY_START, forever
 from core.views import OfficerMixin, OfficerRequiredMixin, RequestConfig,\
@@ -33,7 +34,7 @@ from .forms import InitiationFormSet, InitiationForm, InitiationFormHelper, Init
     InitDeplSelectFormHelper, DepledgeFormSet, DepledgeFormHelper, StatusChangeSelectForm,\
     StatusChangeSelectFormHelper, GraduateForm, GraduateFormSet, CSMTFormSet, GraduateFormHelper, CSMTFormHelper,\
     RoleChangeSelectForm, RiskManagementForm, RoleChangeNationalSelectForm,\
-    PledgeProgramForm, AuditForm, PledgeFormFull, ChapterReport
+    PledgeProgramForm, AuditForm, PledgeFormFull, ChapterReport, PrematureAlumnusForm
 from tasks.models import TaskChapter, Task
 from scores.models import ScoreType
 from submissions.models import Submission
@@ -49,7 +50,7 @@ from .tables import GuardTable, BadgeTable, InitiationTable, DepledgeTable, \
     StatusChangeTable, PledgeFormTable, AuditTable, RiskFormTable,\
     PledgeProgramTable, ChapterReportTable
 from .models import Guard, Badge, Initiation, Depledge, StatusChange, RiskManagement,\
-    PledgeForm, PledgeProgram, Audit
+    PledgeForm, PledgeProgram, Audit, PrematureAlumnus
 from .filters import AuditListFilter, PledgeProgramListFilter, ChapterReportListFilter
 from .forms import AuditListFormHelper, RiskListFilter, PledgeProgramFormHelper,\
     ChapterInfoReportForm, ChapterReportFormHelper
@@ -1222,3 +1223,9 @@ class PledgeFormView(CreateView):
             f"You successfully submitted the Prospective New Member / Pledge Form! "
             f"A confirmation email was sent to your school and personal email.")
         return reverse('forms:pledgeform')
+
+
+class PrematureAlumnusCreateView(StartFlowMixin, CreateView):
+    template_name = "forms/prematurealumnus_form.html"
+    model = PrematureAlumnus
+    form_class = PrematureAlumnusForm
