@@ -1,17 +1,9 @@
-from django.conf.urls import url, include
-from viewflow.flow.viewset import FlowViewSet
-from .flows import PrematureAlumnusFlow
+from django.conf.urls import url
 from . import views
 
 
 app_name = 'forms'
 urlpatterns = [
-    # url(r'^workflows/$', include(FlowViewSet(PrematureAlumnusFlow).urls)),
-    # url(
-    #     regex=r'^$',
-    #     view=views.FormListView.as_view(),
-    #     name='list'
-    # ),
     url(
         regex=r'^audit/$',
         view=views.AuditFormView.as_view(),
