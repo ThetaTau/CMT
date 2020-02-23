@@ -322,9 +322,14 @@ class UserAutocomplete(autocomplete.Select2QuerySetView):
                 not self.request.user.is_officer_group()):
             return User.objects.none()
         chapter = self.forwarded.get('chapter', 'true')
+        actives = self.forwarded.get('actives', 'false')
         qs = User.objects.all()
         if chapter == 'true':
-            qs = qs.filter(chapter=self.request.user.current_chapter)
+            chapter = self.request.user.current_chapter
+            if actives == 'true':
+                qs = chapter.actives()
+            else:
+                qs = qs.filter(chapter=chapter)
         if self.q:
             qs = qs.filter(name__icontains=self.q)
         return qs
