@@ -33,7 +33,7 @@ class PrematureAlumnusFlow(Flow):
 
     exec_approve = (
         flow.View(
-            flow_views.UpdateProcessView, fields=['approved_exec', 'exec_comments'],
+            flow_views.UpdateProcessView, fields=['approved_exec', 'exec_comments',],
             task_title=_('Executive Director Review'),
             task_description=_("Pre Alumn Executive Director Review"),
             task_result_summary=_("Messsage was {{ process.approved_exec|yesno:'Approved,Rejected' }}"))
@@ -60,7 +60,7 @@ class PrematureAlumnusFlow(Flow):
 
     pending_undo = (
         flow.Handler(
-            this.pending_undo,
+            this.pending_undo_func,
             task_title=_('Set status active'),
         )
         .Next(this.send)
@@ -90,7 +90,7 @@ class PrematureAlumnusFlow(Flow):
         created = activation.process.created
         active = user.status.order_by('-end').filter(status='active').first()
         if not active:
-            print(f"There was no active status for user {self.user}")
+            print(f"There was no active status for user {user}")
             UserStatusChange(
                 user=user,
                 status='active',
@@ -120,7 +120,7 @@ class PrematureAlumnusFlow(Flow):
                 end=forever(),
             ).save()
 
-    def pending_undo(self, activation):
+    def pending_undo_func(self, activation):
         user = activation.process.user
         alumnipends = user.status.filter(status='alumnipend')
         if alumnipends:
@@ -132,7 +132,7 @@ class PrematureAlumnusFlow(Flow):
         alumnipend = user.status.order_by('-end').filter(status='alumnipend').first()
         created = activation.task.created
         if not alumnipend:
-            print(f"There was no alumnipend status for user {self.user}")
+            print(f"There was no alumnipend status for user {user}")
             UserStatusChange(
                 user=user,
                 status='alumnipend',

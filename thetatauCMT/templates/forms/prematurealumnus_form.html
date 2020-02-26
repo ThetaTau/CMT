@@ -11,7 +11,7 @@
   <a href="http://thetatau.org/Websites/thetatauhq/images/PrematureFormNewCombined.pdf">
     http://thetatau.org/Websites/thetatauhq/images/PrematureFormNewCombined.pdf</a>
   <hr>
-  <form method="POST">
+  <form method="POST" enctype="multipart/form-data">
     {{ form.media }}
     <link href="{% static 'css/project.css' %}" rel="stylesheet">
     {% csrf_token %}
