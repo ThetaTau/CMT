@@ -210,3 +210,50 @@ class EmailPledgeWelcome(EmailNotification):  # extend from EmailNotification fo
         from forms.models import Pledge
         test_pledge_form = Pledge.objects.order_by('?')[0]
         return [test_pledge_form]
+
+
+@registry.register_decorator()
+class EmailProcessUpdate(EmailNotification):
+    render_types = ['html']
+    template_name = 'process'
+
+    def __init__(self, activation, complete_step, next_step, fields):
+        user = activation.process.user
+        file = activation.process.form
+        process_title = activation.flow_class.process_title
+        self.to_emails = set([user.email])  # set list of emails to send to
+        self.cc = ["cmt@thetatau.org", 'central.office@thetatau.org']
+        self.reply_to = ["cmt@thetatau.org", ]
+        file_name = file.name
+        self.subject = f'[CMT] {process_title} Update for {user}'
+        info = {}
+        for field in fields:
+            key = getattr(activation.process, f"verbose_{field}", field)
+            value = getattr(activation.process, field, '')
+            if activation.process._meta.get_field(field).choices:
+                value = activation.process.TYPES.get_value(value)
+            info[key] = value
+        self.context = {
+            'user': user,
+            'file_name': file_name,
+            'complete_step': complete_step,
+            'next_step': next_step,
+            'info': info,
+            'process_title': process_title,
+            'host': settings.CURRENT_URL,
+        }
+        # https://github.com/worthwhile/django-herald#email-attachments
+        file.seek(0)
+        self.attachments = [
+            (file_name, file.read(), None),
+        ]
+
+    @staticmethod
+    def get_demo_args():  # define a static method to return list of args needed to initialize class for testing
+        from forms.models import PrematureAlumnus
+        test = PrematureAlumnus.objects.order_by('?')[0]
+        test.process = test
+        return [test, "Premature Alumnus Request", "Executive Director Review",
+                ['good_standing', 'financial', 'fee', 'semesters', 'lifestyle',
+                 'consideration', 'prealumn_type', 'vote', ]]
+
