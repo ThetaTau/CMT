@@ -38,7 +38,7 @@ class PrematureAlumnusFlow(Flow):
             task_title=_('Executive Director Review'),
             task_description=_("Pre Alumn Executive Director Review"),
             task_result_summary=_("Messsage was {{ process.approved_exec|yesno:'Approved,Rejected' }}"))
-        .Assign(lambda act: User.objects.get(username="venturafranklin@gmail.com"))
+        .Assign(lambda act: User.objects.get(username="Jim.Gaffney@thetatau.org"))
         .Next(this.check_approve)
     )
 
