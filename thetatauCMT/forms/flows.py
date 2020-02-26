@@ -6,6 +6,7 @@ from viewflow.flow import views as flow_views
 from core.models import forever
 from .models import PrematureAlumnus
 from .views import PrematureAlumnusCreateView
+from .notifications import EmailProcessUpdate
 from users.models import User, UserStatusChange
 
 
@@ -119,6 +120,11 @@ class PrematureAlumnusFlow(Flow):
                 start=created,
                 end=forever(),
             ).save()
+        EmailProcessUpdate(
+            activation, "Premature Alumnus Request", "Executive Director Review",
+            ['good_standing', 'financial', 'fee', 'semesters', 'lifestyle',
+             'consideration', 'prealumn_type', 'vote', ],
+        ).send()
 
     def pending_undo_func(self, activation):
         user = activation.process.user
@@ -162,4 +168,7 @@ class PrematureAlumnusFlow(Flow):
             ).save()
 
     def send_approval_complete(self, activation):
-        print(activation.process.created_by)
+        EmailProcessUpdate(
+            activation, "Executive Director Review", "Complete",
+            ['approved_exec', 'exec_comments', ],
+        ).send()
