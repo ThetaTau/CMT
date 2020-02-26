@@ -151,3 +151,13 @@ class RiskFormTable(tables.Table):
                      'complete': lambda value: get_value_from_a(value)},
                  "th": {"class": "text-center"}, }
         # orderable = False
+
+
+class PrematureAlumnusStatusTable(tables.Table):
+    user = tables.Column()
+    status = tables.Column()
+    approved = tables.Column()
+    created = tables.DateColumn()
+
+    class Meta:
+        attrs = {"class": "table-striped table-bordered", }
