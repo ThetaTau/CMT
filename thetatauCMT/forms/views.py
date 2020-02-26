@@ -50,7 +50,7 @@ from chapters.models import Chapter, ChapterCurricula
 from regions.models import Region
 from .tables import GuardTable, BadgeTable, InitiationTable, DepledgeTable, \
     StatusChangeTable, PledgeFormTable, AuditTable, RiskFormTable,\
-    PledgeProgramTable, ChapterReportTable
+    PledgeProgramTable, ChapterReportTable, PrematureAlumnusStatusTable
 from .models import Guard, Badge, Initiation, Depledge, StatusChange, RiskManagement,\
     PledgeForm, PledgeProgram, Audit, PrematureAlumnus
 from .filters import AuditListFilter, PledgeProgramListFilter, ChapterReportListFilter
@@ -1229,3 +1229,23 @@ class PrematureAlumnusCreateView(CreateProcessView):
     template_name = "forms/prematurealumnus_form.html"
     model = PrematureAlumnus
     form_class = PrematureAlumnusForm
+
+    def get_context_data(self, *args, **kwargs):
+        context = super().get_context_data(**kwargs)
+        data = []
+        processes = PrematureAlumnus.objects.filter(user__chapter=self.request.user.current_chapter)
+        for process in processes:
+            if process.finished is None:
+                status = process.active_tasks().first().flow_task.task_title
+                approved = "Pending"
+            else:
+                status = "Complete"
+                approved = process.approved_exec
+            data.append({
+                'status': status,
+                'user': process.user,
+                'created': process.created,
+                'approved': approved,
+            })
+        context['table'] = PrematureAlumnusStatusTable(data=data)
+        return context
