@@ -14,10 +14,12 @@ from tasks.models import TaskChapter, TaskDate
 from tasks.tables import TaskIncompleteTable
 from .utils import check_officer, check_nat_officer
 from braces.views import GroupRequiredMixin
+from viewflow.frontend.views import AllTaskListView, FlowListMixin,\
+    TemplateResponseMixin, DataTableMixin, generic
 
 
 class NatOfficerRequiredMixin(GroupRequiredMixin):
-    group_required = u"natoff"
+    group_required = u"blue"
 
     def get_login_url(self):
         messages.add_message(
@@ -27,6 +29,15 @@ class NatOfficerRequiredMixin(GroupRequiredMixin):
 
     def get_success_url(self):
         return reverse('home')
+
+
+AllTaskListView.dispatch = NatOfficerRequiredMixin.dispatch
+AllTaskListView.check_membership = NatOfficerRequiredMixin.check_membership
+AllTaskListView.get_group_required = NatOfficerRequiredMixin.get_group_required
+AllTaskListView.group_required = NatOfficerRequiredMixin.group_required
+AllTaskListView.handle_no_permission = NatOfficerRequiredMixin.handle_no_permission
+AllTaskListView.__bases__ = (NatOfficerRequiredMixin, FlowListMixin,
+                             TemplateResponseMixin, DataTableMixin, generic.View,)
 
 
 class OfficerRequiredMixin(GroupRequiredMixin):
