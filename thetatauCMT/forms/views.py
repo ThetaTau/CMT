@@ -1225,7 +1225,8 @@ class PledgeFormView(CreateView):
         return reverse('forms:pledgeform')
 
 
-class PrematureAlumnusCreateView(CreateProcessView):
+class PrematureAlumnusCreateView(OfficerRequiredMixin, LoginRequiredMixin,
+                                 OfficerMixin, CreateProcessView):
     template_name = "forms/prematurealumnus_form.html"
     model = PrematureAlumnus
     form_class = PrematureAlumnusForm
