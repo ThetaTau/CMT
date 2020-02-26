@@ -25,7 +25,7 @@ from crispy_forms.layout import Submit
 from dal import autocomplete, forward
 from extra_views import FormSetView, ModelFormSetView
 from easy_pdf.views import PDFTemplateResponseMixin
-from viewflow.flow.views import StartFlowMixin
+from viewflow.flow.views import CreateProcessView
 from core.forms import MultiFormsView
 from core.models import TODAY_START, forever
 from core.views import OfficerMixin, OfficerRequiredMixin, RequestConfig,\
@@ -1225,7 +1225,7 @@ class PledgeFormView(CreateView):
         return reverse('forms:pledgeform')
 
 
-class PrematureAlumnusCreateView(StartFlowMixin, CreateView):
+class PrematureAlumnusCreateView(CreateProcessView):
     template_name = "forms/prematurealumnus_form.html"
     model = PrematureAlumnus
     form_class = PrematureAlumnusForm
