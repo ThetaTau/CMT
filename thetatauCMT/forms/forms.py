@@ -802,10 +802,6 @@ class PrematureAlumnusForm(forms.ModelForm):
         label=PrematureAlumnus.verbose_financial,
         choices=CHOICES, initial=''
     )
-    fee = forms.ChoiceField(
-        label=PrematureAlumnus.verbose_fee,
-        choices=CHOICES, initial=''
-    )
     semesters = forms.ChoiceField(
         label=PrematureAlumnus.verbose_semesters,
         choices=CHOICES, initial=''
@@ -834,6 +830,6 @@ class PrematureAlumnusForm(forms.ModelForm):
 
     class Meta:
         model = PrematureAlumnus
-        fields = ['user', 'form', 'good_standing', 'financial', 'fee',
+        fields = ['user', 'form', 'good_standing', 'financial',
                   'semesters', 'lifestyle', 'consideration', 'prealumn_type',
                   'vote', ]

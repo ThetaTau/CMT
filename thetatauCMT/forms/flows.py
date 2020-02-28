@@ -122,7 +122,7 @@ class PrematureAlumnusFlow(Flow):
             ).save()
         EmailProcessUpdate(
             activation, "Premature Alumnus Request", "Executive Director Review",
-            ['good_standing', 'financial', 'fee', 'semesters', 'lifestyle',
+            ['good_standing', 'financial', 'semesters', 'lifestyle',
              'consideration', 'prealumn_type', 'vote', ],
         ).send()
 

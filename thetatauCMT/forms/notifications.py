@@ -254,6 +254,6 @@ class EmailProcessUpdate(EmailNotification):
         test = PrematureAlumnus.objects.order_by('?')[0]
         test.process = test
         return [test, "Premature Alumnus Request", "Executive Director Review",
-                ['good_standing', 'financial', 'fee', 'semesters', 'lifestyle',
+                ['good_standing', 'financial', 'semesters', 'lifestyle',
                  'consideration', 'prealumn_type', 'vote', ]]
 
