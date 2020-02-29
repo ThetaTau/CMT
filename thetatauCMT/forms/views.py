@@ -1231,6 +1231,11 @@ class PrematureAlumnusCreateView(OfficerRequiredMixin, LoginRequiredMixin,
     model = PrematureAlumnus
     form_class = PrematureAlumnusForm
 
+    def activation_done(self, *args, **kwargs):
+        """Finish task activation."""
+        self.activation.done()
+        self.success('Premature Alumnus form submitted successfully to Executive Director for review')
+
     def get_context_data(self, *args, **kwargs):
         context = super().get_context_data(**kwargs)
         data = []
