@@ -127,7 +127,7 @@ class PrematureAlumnusFlow(Flow):
             " Once the Central Office processes " +
             "the form, you will receive an email confirming your change in status.",
             ['good_standing', 'financial', 'semesters', 'lifestyle',
-             'consideration', 'prealumn_type', 'vote', ],
+             'consideration', 'prealumn_type', 'vote', ]
         ).send()
 
     def pending_undo_func(self, activation):
@@ -178,5 +178,5 @@ class PrematureAlumnusFlow(Flow):
             state = 'Rejected'
         EmailProcessUpdate(
             activation, "Executive Director Review", "Complete",
-            state, "", ['approved_exec', 'exec_comments', ],
+            state, "", ['approved_exec', 'exec_comments', ]
         ).send()
