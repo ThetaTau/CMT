@@ -256,6 +256,19 @@ class Chapter(models.Model):
         )
         return all_advisors
 
+    def active_actives(self):
+        # Do not annotate, need the queryset not a list
+        """
+        Must be only active to change status.
+        eg. in prealumn form can not submit change
+        for someone already grad (pendalum) or not member (pend active)
+        :return:
+        """
+        return self.members.filter(status__status__in=["active"],
+                                   status__start__lte=TODAY_END,
+                                   status__end__gte=TODAY_END
+                                   )
+
     def actives(self):
         # Do not annotate, need the queryset not a list
         return self.members.filter(status__status__in=["active", "activepend", "alumnipend"],

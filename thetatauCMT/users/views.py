@@ -327,7 +327,7 @@ class UserAutocomplete(autocomplete.Select2QuerySetView):
         if chapter == 'true':
             chapter = self.request.user.current_chapter
             if actives == 'true':
-                qs = chapter.actives()
+                qs = chapter.active_actives()
             else:
                 qs = qs.filter(chapter=chapter)
         if self.q:
