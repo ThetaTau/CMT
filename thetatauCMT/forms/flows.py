@@ -122,7 +122,11 @@ class PrematureAlumnusFlow(Flow):
             ).save()
         EmailProcessUpdate(
             activation, "Premature Alumnus Request", "Executive Director Review",
-            ['good_standing', 'financial', 'fee', 'semesters', 'lifestyle',
+            "Submitted",
+            "Your chapter has submitted a premature alumnus form on your behalf." +
+            " Once the Central Office processes " +
+            "the form, you will receive an email confirming your change in status.",
+            ['good_standing', 'financial', 'semesters', 'lifestyle',
              'consideration', 'prealumn_type', 'vote', ],
         ).send()
 
@@ -168,7 +172,11 @@ class PrematureAlumnusFlow(Flow):
             ).save()
 
     def send_approval_complete(self, activation):
+        if activation.process.approved_exec:
+            state = 'Approved'
+        else:
+            state = 'Rejected'
         EmailProcessUpdate(
             activation, "Executive Director Review", "Complete",
-            ['approved_exec', 'exec_comments', ],
+            state, "", ['approved_exec', 'exec_comments', ],
         ).send()

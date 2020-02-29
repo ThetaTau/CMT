@@ -466,10 +466,12 @@
                 <table align="left" border="0" cellpadding="0" cellspacing="0" style="max-width: 100%;min-width: 100%;border-collapse: collapse;mso-table-lspace: 0pt;mso-table-rspace: 0pt;-ms-text-size-adjust: 100%;-webkit-text-size-adjust: 100%;" width="100%" class="mcnTextContentContainer">
                     <tbody><tr>
                         <td valign="top" class="mcnTextContent" style="padding: 0px 18px 9px;text-align: left;mso-table-lspace: 0pt;mso-table-rspace: 0pt;-ms-text-size-adjust: 100%;-webkit-text-size-adjust: 100%;color: #606060;font-family: Helvetica;font-size: 15px;line-height: 150%;">
-                            <h2 class="null" style="margin: 0;padding: 0;display: block;font-family: Helvetica;font-size: 30px;font-style: normal;font-weight: bold;line-height: 125%;letter-spacing: -1px;text-align: left;color: #606060 !important;">Theta Tau Process Update</h2>
+                            <h2 class="null" style="margin: 0;padding: 0;display: block;font-family: Helvetica;font-size: 30px;font-style: normal;font-weight: bold;line-height: 125%;letter-spacing: -1px;text-align: left;color: #606060 !important;">{{ process_title }} {{ state }}</h2>
+                        <br>
 Dear {{ user }},
                             <div id="hijacked"></div>
 <p>This is a notification for update on {{ process_title }} for {{ user }}</p>
+<p>{{ message }}</p>
 <p><strong>Attached is a copy of "{{ file_name }}".</strong></p>
 <table>
   <tr>
@@ -481,7 +483,11 @@ Dear {{ user }},
     <td>{{ next_step }}</td>
   </tr>
   <tr>
-    <th colspan="2">Process Details</th>
+    <th>&nbsp;</th>
+    <td>&nbsp;</td>
+  </tr>
+  <tr>
+    <th colspan="2"><hr><h3>Process Details</h3></th>
   </tr>
   {% for key, value in info.items %}
     <tr>

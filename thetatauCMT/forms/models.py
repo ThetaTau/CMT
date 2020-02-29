@@ -630,8 +630,6 @@ class PrematureAlumnus(Process):
     good_standing = models.BooleanField(verbose_good_standing, default=False)
     verbose_financial = _("""Member has no current financial obligation to the chapter.""")
     financial = models.BooleanField(verbose_financial, default=False)
-    verbose_fee = _("""I have remitted $80 Processing Fee with this form request.""")
-    fee = models.BooleanField(verbose_fee, default=False)
     verbose_semesters = _("""Member has completed at least 2 semesters of active membership.""")
     semesters = models.BooleanField(verbose_semesters, default=False)
     verbose_lifestyle = _("""Member has had a significant lifestyle change preventing adequately & responsibly fulfilling duties & obligations.""")
