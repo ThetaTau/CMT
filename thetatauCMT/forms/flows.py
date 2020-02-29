@@ -1,10 +1,11 @@
 import datetime
+from django.utils.decorators import method_decorator
 from viewflow import flow, frontend
 from viewflow.base import this, Flow
 from viewflow.compat import _
 from viewflow.flow import views as flow_views
 from core.models import forever
-from .models import PrematureAlumnus
+from .models import PrematureAlumnus, InitiationProcess
 from .views import PrematureAlumnusCreateView
 from .notifications import EmailProcessUpdate
 from users.models import User, UserStatusChange
@@ -180,3 +181,96 @@ class PrematureAlumnusFlow(Flow):
             activation, "Executive Director Review", "Complete",
             state, "", ['approved_exec', 'exec_comments', ]
         ).send()
+
+
+@frontend.register
+class InitiationProcessFlow(Flow):
+    """
+    Chapter submits initiation report
+    CO receives a weekly batch of initiation reports (pref on Wednesday)
+        that include individual csv files for each chapter with all of the info.
+            These will be used for invoicing and eventual upload into Blackbaud
+    CO invoices chapters based on those csv forms.
+    CO goes into CMT and indicates which chapters have been invoiced.
+    Invoice is paid by chapter.
+    CO goes into CMT and indicates invoice paid.
+    CMT provides (via email or download, whatever) csv files for jeweler and shingle company
+    CO updates blackbaud using the CSV you previously sent and sends orders to badge/shingle company.
+    CO goes into CMT to indicate that badge/shingle order has been placed
+    """
+    process_class = InitiationProcess
+    process_title = _('Initiation Process')
+    process_description = _('This process is for initiation form processing.')
+
+    # start = flow.StartFunction(this.create_flow).Next(this.invoice_chapter)
+    start = (
+        flow.Start(
+            flow_views.CreateProcessView, fields=["test"])
+        .Permission(auto_create=True)
+        .Next(this.invoice_chapter)
+    )
+
+    invoice_chapter = (
+        flow.View(
+            flow_views.UpdateProcessView,
+            task_title=_('Invoice Chapter'),
+            task_description=_("Send invoice to chapter"),
+            task_result_summary=_("Invoice was sent to chapter"))
+        .Assign(lambda act: User.objects.get(username="venturafranklin@gmail.com"))
+        .Next(this.invoice_payment)
+    )
+
+    send_invoice = (
+        flow.Handler(
+            this.send_invoice_func,
+            task_title=_('Send Invoice'),
+        )
+        .Next(this.invoice_payment)
+    )
+
+    invoice_payment = (
+        flow.View(
+            flow_views.UpdateProcessView,
+            task_title=_('Invoice Payment'),
+            task_description=_("Invoice payment by chapter"),
+            task_result_summary=_("Invoice paid by chapter"))
+        .Assign(lambda act: User.objects.get(username="venturafranklin@gmail.com"))
+        .Next(this.send_order)
+    )
+
+    send_order = (
+        flow.Handler(
+            this.send_order_func,
+            task_title=_('Send Order'),
+        )
+        .Next(this.order_complete)
+    )
+
+    order_complete = (
+        flow.View(
+            flow_views.UpdateProcessView,
+            task_title=_('Order Complete'),
+            task_description=_("Badge/shingle placing order"),
+            task_result_summary=_("Badge/shingle order has been placed"))
+        .Assign(lambda act: User.objects.get(username="venturafranklin@gmail.com"))
+        .Next(this.complete)
+    )
+
+    complete = flow.End(
+        task_title=_('Complete'),
+        task_result_summary=_("Initiation Process Complete")
+    )
+
+    @method_decorator(flow.flow_start_func)
+    def create_flow(self, activation, initiations, **kwargs):
+        activation.prepare()
+        for initiation in initiations:
+            activation.process.initiations.add(initiation)
+        activation.done()
+        return activation
+
+    def send_invoice_func(self, activation):
+        ...
+
+    def send_order_func(self, activation):
+        ...

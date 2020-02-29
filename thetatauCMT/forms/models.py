@@ -648,3 +648,9 @@ class PrematureAlumnus(Process):
     verbose_vote = _(
         """The status change for the member was approved by a four-fifths favorable vote of the chapter.""")
     vote = models.BooleanField(verbose_vote, default=False)
+
+
+class InitiationProcess(Process):
+    # initiations = models.ManyToManyField(
+    #     Initiation, related_name="process", null=True, blank=True)
+    test = models.BooleanField("Test", default=False)
