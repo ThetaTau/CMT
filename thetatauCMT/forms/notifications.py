@@ -217,7 +217,7 @@ class EmailProcessUpdate(EmailNotification):
     render_types = ['html']
     template_name = 'process'
 
-    def __init__(self, activation, complete_step, next_step, fields):
+    def __init__(self, activation, complete_step, next_step, state, message, fields):
         user = activation.process.user
         file = activation.process.form
         process_title = activation.flow_class.process_title
@@ -225,10 +225,10 @@ class EmailProcessUpdate(EmailNotification):
         self.cc = ["cmt@thetatau.org", 'central.office@thetatau.org']
         self.reply_to = ["cmt@thetatau.org", ]
         file_name = file.name
-        self.subject = f'[CMT] {process_title} Update for {user}'
+        self.subject = f'[CMT] {process_title} {state} for {user}'
         info = {}
         for field in fields:
-            key = getattr(activation.process, f"verbose_{field}", field)
+            key = activation.process._meta.get_field(field).verbose_name
             value = getattr(activation.process, field, '')
             if activation.process._meta.get_field(field).choices:
                 value = activation.process.TYPES.get_value(value)
@@ -241,6 +241,8 @@ class EmailProcessUpdate(EmailNotification):
             'info': info,
             'process_title': process_title,
             'host': settings.CURRENT_URL,
+            'message': message,
+            'state': state,
         }
         # https://github.com/worthwhile/django-herald#email-attachments
         file.seek(0)
@@ -254,6 +256,8 @@ class EmailProcessUpdate(EmailNotification):
         test = PrematureAlumnus.objects.order_by('?')[0]
         test.process = test
         return [test, "Premature Alumnus Request", "Executive Director Review",
+                "Submitted", "This is the test message",
                 ['good_standing', 'financial', 'semesters', 'lifestyle',
-                 'consideration', 'prealumn_type', 'vote', ]]
+                 'consideration', 'prealumn_type', 'vote', 'approved_exec',
+                 'exec_comments', ]]
 
