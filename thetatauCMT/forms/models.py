@@ -1,6 +1,9 @@
 import datetime
+import io
 import os
+import csv
 from enum import Enum
+from email.mime.base import MIMEBase
 from django.db import models, transaction
 from django.db.utils import IntegrityError
 from django.contrib.auth.models import Group
@@ -651,6 +654,89 @@ class PrematureAlumnus(Process):
 
 
 class InitiationProcess(Process):
-    # initiations = models.ManyToManyField(
-    #     Initiation, related_name="process", null=True, blank=True)
-    test = models.BooleanField("Test", default=False)
+    initiations = models.ManyToManyField(
+        Initiation, related_name="process", null=True, blank=True)
+    chapter = models.ForeignKey(Chapter, on_delete=models.CASCADE,
+                                related_name="initiation_process")
+
+    def generate_invoice(self):
+        ...
+
+    def generate_badge_shingle_order(self, response=None, csv_type=None):
+        """
+        badge example:
+        Omega Delta, OmgD, 111, 2022, Doe, 107
+
+        shingle example:
+        John, , Doe, Omega Delta, 2022, January 18, 2020
+
+        Send Shipments to:
+            NAME
+            ADDRESS 1
+            ADDRESS 2
+        """
+        badge_header = ['Chapter Name',
+                        'Chapter Description',
+                        'Roll Number',
+                        'Education Class of',
+                        'Last Name',
+                        'Badge Style',
+                        ]
+        shingle_header = ['First Name',
+                          'Middle Name',
+                          'Last Name',
+                          'Chapter Name',
+                          'Education Class of',
+                          'Initiation Date',
+                          ]
+        chapter = self.chapter.name
+        chapter_abr = self.chapter.greek
+        init_date = self.initiations.first().date.strftime("%Y%m%d")
+        badge_file = io.StringIO()
+        shingle_file = io.StringIO()
+        badge_mail = MIMEBase('application', 'csv')
+        badge_filename = f"{chapter}_{init_date}_badge.csv"
+        shingle_filename = f"{chapter}_{init_date}_shingle.csv"
+        badge_mail.add_header('Content-Disposition', 'attachment', filename=badge_filename)
+        shingle_mail = MIMEBase('application', 'csv')
+        shingle_mail.add_header('Content-Disposition', 'attachment', filename=shingle_filename)
+        if response is not None:
+            if csv_type == 'badge':
+                badge_file = response
+            else:
+                shingle_file = response
+        badge_writer = csv.DictWriter(badge_file, fieldnames=badge_header)
+        shingle_writer = csv.DictWriter(shingle_file, fieldnames=shingle_header)
+        badge_writer.writeheader()
+        shingle_writer.writeheader()
+        for initiation in self.initiations.all():
+            row_badge = {
+                'Chapter Name': chapter,
+                'Chapter Description': chapter_abr,
+                'Roll Number': initiation.roll,
+                'Education Class of': initiation.date_graduation.year,
+                'Last Name': initiation.user.last_name,
+                'Badge Style': initiation.badge.code,
+            }
+            badge_writer.writerow(row_badge)
+            row_shingle = {
+                'First Name': initiation.user.first_name,
+                'Middle Name': '',
+                'Last Name': initiation.user.last_name,
+                'Chapter Name': chapter,
+                'Education Class of': initiation.date_graduation.year,
+                'Initiation Date': initiation.date.strftime("%B %d, %Y"),
+            }
+            shingle_writer.writerow(row_shingle)
+        if response is None:
+            badge_mail.set_payload(badge_file)
+            shingle_mail.set_payload(shingle_file)
+            out = badge_mail, shingle_mail
+        else:
+            if csv_type == 'badge':
+                filename = badge_filename
+            else:
+                filename = shingle_filename
+            response['Content-Disposition'] = f'attachment; filename="{filename}"'
+            out = None
+        return out

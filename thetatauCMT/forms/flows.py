@@ -202,10 +202,10 @@ class InitiationProcessFlow(Flow):
     process_title = _('Initiation Process')
     process_description = _('This process is for initiation form processing.')
 
-    # start = flow.StartFunction(this.create_flow).Next(this.invoice_chapter)
-    start = (
+    start = flow.StartFunction(this.create_flow).Next(this.invoice_chapter)
+    start_manual = (
         flow.Start(
-            flow_views.CreateProcessView, fields=["test"])
+            flow_views.CreateProcessView, fields=["chapter", ])
         .Permission(auto_create=True)
         .Next(this.invoice_chapter)
     )
@@ -235,14 +235,6 @@ class InitiationProcessFlow(Flow):
             task_description=_("Invoice payment by chapter"),
             task_result_summary=_("Invoice paid by chapter"))
         .Assign(lambda act: User.objects.get(username="venturafranklin@gmail.com"))
-        .Next(this.send_order)
-    )
-
-    send_order = (
-        flow.Handler(
-            this.send_order_func,
-            task_title=_('Send Order'),
-        )
         .Next(this.order_complete)
     )
 
@@ -253,6 +245,14 @@ class InitiationProcessFlow(Flow):
             task_description=_("Badge/shingle placing order"),
             task_result_summary=_("Badge/shingle order has been placed"))
         .Assign(lambda act: User.objects.get(username="venturafranklin@gmail.com"))
+        .Next(this.send_order)
+    )
+
+    send_order = (
+        flow.Handler(
+            this.send_order_func,
+            task_title=_('Send Order'),
+        )
         .Next(this.complete)
     )
 
@@ -263,10 +263,12 @@ class InitiationProcessFlow(Flow):
 
     @method_decorator(flow.flow_start_func)
     def create_flow(self, activation, initiations, **kwargs):
+        activation.process.chapter = initiations[0].user.chapter
+        activation.process.save()
         activation.prepare()
+        activation.done()
         for initiation in initiations:
             activation.process.initiations.add(initiation)
-        activation.done()
         return activation
 
     def send_invoice_func(self, activation):

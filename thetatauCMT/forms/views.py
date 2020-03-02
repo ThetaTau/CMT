@@ -52,7 +52,7 @@ from .tables import GuardTable, BadgeTable, InitiationTable, DepledgeTable, \
     StatusChangeTable, PledgeFormTable, AuditTable, RiskFormTable,\
     PledgeProgramTable, ChapterReportTable, PrematureAlumnusStatusTable
 from .models import Guard, Badge, Initiation, Depledge, StatusChange, RiskManagement,\
-    PledgeForm, PledgeProgram, Audit, PrematureAlumnus
+    PledgeForm, PledgeProgram, Audit, PrematureAlumnus, InitiationProcess
 from .filters import AuditListFilter, PledgeProgramListFilter, ChapterReportListFilter
 from .notifications import EmailRMPSigned, EmailPledgeOther, EmailRMPReport,\
     EmailAdvisorWelcome, EmailPledgeConfirmation, EmailPledgeWelcome
@@ -1255,3 +1255,12 @@ class PrematureAlumnusCreateView(OfficerRequiredMixin, LoginRequiredMixin,
             })
         context['table'] = PrematureAlumnusStatusTable(data=data)
         return context
+
+
+@csrf_exempt
+def badge_shingle_csv(request, csv_type, process_pk):
+    process = InitiationProcess.objects.get(pk=process_pk)
+    response = HttpResponse(content_type='text/csv')
+    process.generate_badge_shingle_order(response, csv_type)
+    response['Cache-Control'] = 'no-cache'
+    return response

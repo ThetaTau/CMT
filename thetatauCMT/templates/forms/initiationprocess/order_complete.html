@@ -1,0 +1,22 @@
+{% extends 'viewflow/flow/task.html' %}
+{% load i18n viewflow viewflow_frontend material_form material_frontend %}
+{% block task_form %}
+  <h7>{{ activation.process.chapter }}</h7>
+  {% csrf_token %}
+  {% form form=form %}{% endform %}
+  {{ activation.management_form }}
+  <br>
+  <button type="button" class="btn btn-primary" id="csv-badge">CSV Badge</button>
+  <button type="button" class="btn btn-primary" id="csv-shingle">CSV Shingle</button>
+<script>
+$(function(){
+  $("#csv-badge").click(function(event){
+      window.open("{% url 'forms:init_csv' activation.process.pk 'badge' %}", '_blank');
+  });
+  $("#csv-shingle").click(function(event){
+      window.open("{% url 'forms:init_csv' activation.process.pk 'shingle' %}", '_blank');
+  });
+});
+</script>
+{% endblock %}
+
