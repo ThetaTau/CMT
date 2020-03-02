@@ -1258,9 +1258,12 @@ class PrematureAlumnusCreateView(OfficerRequiredMixin, LoginRequiredMixin,
 
 
 @csrf_exempt
-def badge_shingle_csv(request, csv_type, process_pk):
+def badge_shingle_init_csv(request, csv_type, process_pk):
     process = InitiationProcess.objects.get(pk=process_pk)
     response = HttpResponse(content_type='text/csv')
-    process.generate_badge_shingle_order(response, csv_type)
+    if csv_type in ['badge', 'shingle']:
+        process.generate_badge_shingle_order(response, csv_type)
+    else:
+        process.generate_blackbaud_update(response)
     response['Cache-Control'] = 'no-cache'
     return response

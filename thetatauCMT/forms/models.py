@@ -662,6 +662,79 @@ class InitiationProcess(Process):
     def generate_invoice(self):
         ...
 
+    def generate_blackbaud_update(self, response=None):
+        INIT = ["Submitted by", "Date Submitted", "Initiation Date", "Chapter Name",
+                "Graduation Year", "Roll Number", "First Name", "Middle Name",
+                "Last Name", "Overall GPA", "A Pledge Test Scores",
+                "B Pledge Test Scores", "Initiation Fee", "Late Fee",
+                "Badge Style", "Guard Type", "Badge Cost", "Guard Cost", "Sum for member"]
+        chapter = self.chapter.name
+        chapter_abr = self.chapter.greek
+        init_date = self.initiations.first().date.strftime("%Y%m%d")
+        filename = f"{chapter}_{init_date}_initiation.csv"
+        if response is not None:
+            init_file = response
+            response['Content-Disposition'] = f'attachment; filename="{filename}"'
+            out = None
+        else:
+            init_file = io.StringIO()
+            init_mail = MIMEBase('application', 'csv')
+            init_mail.add_header('Content-Disposition', 'attachment', filename=filename)
+        writer = csv.DictWriter(init_file, fieldnames=INIT)
+        writer.writeheader()
+        for initiation in self.initiations.all():
+            badge = initiation.badge
+            badge_code = ''
+            badge_cost = 0
+            if badge:
+                badge_code = badge.code
+                badge_cost = badge.cost
+            guard = initiation.guard
+            guard_code = ''
+            guard_cost = 0
+            if guard:
+                if guard.code != 'None':
+                    guard_code = guard.code
+                    guard_cost = guard.cost
+            chapter = initiation.user.chapter
+            init_fee = 75
+            if chapter.colony:
+                init_fee = 30
+            late_fee = 0
+            init_date = initiation.date
+            init_submit = initiation.created.date()
+            delta = init_submit - init_date
+            if delta.days > 28:
+                if not chapter.colony:
+                    late_fee = 25
+            total = badge_cost + guard_cost + init_fee + late_fee
+            row = {
+                "Submitted by": "",
+                "Date Submitted": init_submit,
+                "Initiation Date": init_date,
+                "Chapter Name": chapter.name,
+                "Graduation Year": initiation.user.graduation_year,
+                "Roll Number": initiation.roll,
+                "First Name": initiation.user.first_name,
+                "Middle Name": "",
+                "Last Name": initiation.user.last_name,
+                "Overall GPA": initiation.gpa,
+                "A Pledge Test Scores": initiation.test_a,
+                "B Pledge Test Scores": initiation.test_b,
+                "Initiation Fee": init_fee,
+                "Late Fee": late_fee,
+                "Badge Style": badge_code,
+                "Guard Type": guard_code,
+                "Badge Cost": badge_cost,
+                "Guard Cost": guard_cost,
+                "Sum for member": total,
+            }
+            writer.writerow(row)
+        if response is None:
+            init_mail.set_payload(init_file)
+            out = init_mail
+        return out
+
     def generate_badge_shingle_order(self, response=None, csv_type=None):
         """
         badge example:
@@ -703,8 +776,12 @@ class InitiationProcess(Process):
         if response is not None:
             if csv_type == 'badge':
                 badge_file = response
+                filename = badge_filename
             else:
                 shingle_file = response
+                filename = shingle_filename
+            response['Content-Disposition'] = f'attachment; filename="{filename}"'
+            out = None
         badge_writer = csv.DictWriter(badge_file, fieldnames=badge_header)
         shingle_writer = csv.DictWriter(shingle_file, fieldnames=shingle_header)
         badge_writer.writeheader()
@@ -732,11 +809,4 @@ class InitiationProcess(Process):
             badge_mail.set_payload(badge_file)
             shingle_mail.set_payload(shingle_file)
             out = badge_mail, shingle_mail
-        else:
-            if csv_type == 'badge':
-                filename = badge_filename
-            else:
-                filename = shingle_filename
-            response['Content-Disposition'] = f'attachment; filename="{filename}"'
-            out = None
         return out
