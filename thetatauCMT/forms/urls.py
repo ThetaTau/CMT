@@ -57,6 +57,11 @@ urlpatterns = [
         name='init_selection'
     ),
     url(
+        regex=r'^initiation-csv/(?P<process_pk>\d+)/(?P<csv_type>[\w.@+-]+)$',
+        view=views.badge_shingle_init_csv,
+        name='init_csv'
+    ),
+    url(
         regex=r'^status/$',
         view=views.StatusChangeView.as_view(),
         name='status'

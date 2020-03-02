@@ -52,7 +52,7 @@ from .tables import GuardTable, BadgeTable, InitiationTable, DepledgeTable, \
     StatusChangeTable, PledgeFormTable, AuditTable, RiskFormTable,\
     PledgeProgramTable, ChapterReportTable, PrematureAlumnusStatusTable
 from .models import Guard, Badge, Initiation, Depledge, StatusChange, RiskManagement,\
-    PledgeForm, PledgeProgram, Audit, PrematureAlumnus
+    PledgeForm, PledgeProgram, Audit, PrematureAlumnus, InitiationProcess
 from .filters import AuditListFilter, PledgeProgramListFilter, ChapterReportListFilter
 from .notifications import EmailRMPSigned, EmailPledgeOther, EmailRMPReport,\
     EmailAdvisorWelcome, EmailPledgeConfirmation, EmailPledgeWelcome
@@ -222,9 +222,11 @@ class InitiationView(OfficerRequiredMixin,
                                                                  ))
         update_list = []
         depledge_list = []
+        initiations = []
         for form in formset:
             form.save()
             update_list.append(form.instance.user)
+            initiations.append(form.instance)
         for form in depledge_formset:
             form.save()
             depledge_list.append(form.instance.user)
@@ -244,6 +246,8 @@ class InitiationView(OfficerRequiredMixin,
                 request, messages.INFO,
                 f"You successfully submitted depledge report for:\n"
                 f"{depledge_list}")
+        from .flows import InitiationProcessFlow
+        InitiationProcessFlow.start.run(initiations=initiations, request=request)
         return HttpResponseRedirect(self.get_success_url())
 
     def get_success_url(self):
@@ -1255,3 +1259,15 @@ class PrematureAlumnusCreateView(OfficerRequiredMixin, LoginRequiredMixin,
             })
         context['table'] = PrematureAlumnusStatusTable(data=data)
         return context
+
+
+@csrf_exempt
+def badge_shingle_init_csv(request, csv_type, process_pk):
+    process = InitiationProcess.objects.get(pk=process_pk)
+    response = HttpResponse(content_type='text/csv')
+    if csv_type in ['badge', 'shingle']:
+        process.generate_badge_shingle_order(response, csv_type)
+    else:
+        process.generate_blackbaud_update(response)
+    response['Cache-Control'] = 'no-cache'
+    return response

@@ -1,0 +1,18 @@
+{% extends 'viewflow/flow/task.html' %}
+{% load i18n viewflow viewflow_frontend material_form material_frontend %}
+{% block task_form %}
+  <h7>{{ activation.process.chapter }}</h7>
+  {% csrf_token %}
+  {% form form=form %}{% endform %}
+  {{ activation.management_form }}
+  <br>
+  <button type="button" class="btn btn-primary" id="csv">CSV Initiation</button>
+<script>
+$(function(){
+  $("#csv").click(function(event){
+      window.open("{% url 'forms:init_csv' activation.process.pk 'init' %}", '_blank');
+  });
+});
+</script>
+{% endblock %}
+
