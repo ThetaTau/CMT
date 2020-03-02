@@ -202,7 +202,9 @@ class InitiationProcessFlow(Flow):
     process_title = _('Initiation Process')
     process_description = _('This process is for initiation form processing.')
 
-    start = flow.StartFunction(this.create_flow).Next(this.invoice_chapter)
+    start = flow.StartFunction(
+        this.create_flow, activation_class=flow.nodes.ManagedStartViewActivation
+    ).Next(this.invoice_chapter)
     start_manual = (
         flow.Start(
             flow_views.CreateProcessView, fields=["chapter", ])
@@ -262,10 +264,13 @@ class InitiationProcessFlow(Flow):
     )
 
     @method_decorator(flow.flow_start_func)
-    def create_flow(self, activation, initiations, **kwargs):
+    def create_flow(self, activation, initiations, request=None, **kwargs):
         activation.process.chapter = initiations[0].user.chapter
         activation.process.save()
-        activation.prepare()
+        if request is not None:
+            activation.prepare(None, user=request.user)
+        else:
+            activation.prepare()
         activation.done()
         for initiation in initiations:
             activation.process.initiations.add(initiation)
