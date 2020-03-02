@@ -218,7 +218,7 @@ class InitiationProcessFlow(Flow):
             task_title=_('Invoice Chapter'),
             task_description=_("Send invoice to chapter"),
             task_result_summary=_("Invoice was sent to chapter"))
-        .Assign(lambda act: User.objects.get(username="venturafranklin@gmail.com"))
+        .Assign(lambda act: User.objects.get(username="Jim.Gaffney@thetatau.org"))
         .Next(this.invoice_payment)
     )
 
@@ -236,7 +236,7 @@ class InitiationProcessFlow(Flow):
             task_title=_('Invoice Payment'),
             task_description=_("Invoice payment by chapter"),
             task_result_summary=_("Invoice paid by chapter"))
-        .Assign(lambda act: User.objects.get(username="venturafranklin@gmail.com"))
+        .Assign(lambda act: User.objects.get(username="Jim.Gaffney@thetatau.org"))
         .Next(this.order_complete)
     )
 
@@ -246,7 +246,7 @@ class InitiationProcessFlow(Flow):
             task_title=_('Order Complete'),
             task_description=_("Badge/shingle placing order"),
             task_result_summary=_("Badge/shingle order has been placed"))
-        .Assign(lambda act: User.objects.get(username="venturafranklin@gmail.com"))
+        .Assign(lambda act: User.objects.get(username="Jim.Gaffney@thetatau.org"))
         .Next(this.send_order)
     )
 
