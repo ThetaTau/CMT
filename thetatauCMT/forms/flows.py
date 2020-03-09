@@ -215,7 +215,7 @@ class InitiationProcessFlow(Flow):
 
     invoice_chapter = (
         flow.View(
-            flow_views.UpdateProcessView,
+            flow_views.UpdateProcessView, fields=['invoice', ],
             task_title=_('Invoice Chapter'),
             task_description=_("Send invoice to chapter"),
             task_result_summary=_("Invoice was sent to chapter"))

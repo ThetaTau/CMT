@@ -656,6 +656,7 @@ class PrematureAlumnus(Process):
 class InitiationProcess(Process):
     initiations = models.ManyToManyField(
         Initiation, related_name="process", null=True, blank=True)
+    invoice = models.PositiveIntegerField("Invoice Number", default=999999999)
     chapter = models.ForeignKey(Chapter, on_delete=models.CASCADE,
                                 related_name="initiation_process")
 
