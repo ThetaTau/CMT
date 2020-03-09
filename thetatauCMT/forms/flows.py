@@ -201,6 +201,7 @@ class InitiationProcessFlow(Flow):
     process_class = InitiationProcess
     process_title = _('Initiation Process')
     process_description = _('This process is for initiation form processing.')
+    summary_template = "{{ flow_class.process_title }} - {{ process.chapter }}"
 
     start = flow.StartFunction(
         this.create_flow, activation_class=flow.nodes.ManagedStartViewActivation
