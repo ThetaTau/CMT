@@ -5,9 +5,10 @@ from viewflow.base import this, Flow
 from viewflow.compat import _
 from viewflow.flow import views as flow_views
 from core.models import forever
-from .models import PrematureAlumnus, InitiationProcess
-from .views import PrematureAlumnusCreateView
-from .notifications import EmailProcessUpdate
+from .models import PrematureAlumnus, InitiationProcess, Convention
+from .views import PrematureAlumnusCreateView, ConventionCreateView,\
+    ConventionSignView
+from .notifications import EmailProcessUpdate, EmailConventionUpdate
 from users.models import User, UserStatusChange
 
 
@@ -282,3 +283,87 @@ class InitiationProcessFlow(Flow):
 
     def send_order_func(self, activation):
         ...
+
+
+@frontend.register
+class ConventionFlow(Flow):
+    process_class = Convention
+    process_title = _('Convention Process')
+    process_description = _('This process is for delegeate and alternate for convention.')
+
+    start = (
+        flow.Start(
+            ConventionCreateView,
+            task_title=_('Submit Convention Form'))
+        .Permission(auto_create=True)
+        .Next(this.email_signers)
+    )
+
+    email_signers = (
+        flow.Handler(
+            this.email_signers_func,
+            task_title=_('Email Signers'),
+        )
+        .Next(this.assign_approval)
+    )
+
+    assign_approval = (
+        flow.Split(
+        ).Next(
+            this.assign_del,
+        ).Next(
+            this.assign_alt,
+        ).Next(
+            this.assign_o1
+        ).Next(
+            this.assign_o2
+        )
+    )
+
+    assign_del = (
+        flow.View(
+            ConventionSignView,
+            task_title=_('Delegate Sign'))
+        .Assign(lambda act: act.process.delegate)
+        .Next(this.join_flow)
+    )
+
+    assign_alt = (
+        flow.View(
+            ConventionSignView,
+            task_title=_('Alternate Sign'))
+        .Assign(lambda act: act.process.alternate)
+        .Next(this.join_flow)
+    )
+
+    assign_o1 = (
+        flow.View(
+            ConventionSignView,
+            task_title=_('Officer1 Sign'))
+        .Assign(lambda act: act.process.officer1)
+        .Next(this.join_flow)
+    )
+
+    assign_o2 = (
+        flow.View(
+            ConventionSignView,
+            task_title=_('Officer2 Sign'))
+        .Assign(lambda act: act.process.officer2)
+        .Next(this.join_flow)
+    )
+
+    join_flow = flow.Join().Next(this.end)
+
+    end = flow.End()
+
+    def email_signers_func(self, activation):
+        """
+        Send emails to the signers
+        :param activation:
+        :return:
+        """
+        for user_role in ['delegate', 'alternate', 'officer1', 'officer2']:
+            user = getattr(activation.process, user_role)
+            EmailConventionUpdate(
+                activation, user, "Convention Form Submitted",
+            ).send()

@@ -161,3 +161,13 @@ class PrematureAlumnusStatusTable(tables.Table):
 
     class Meta:
         attrs = {"class": "table-striped table-bordered", }
+
+
+class ConventionTable(tables.Table):
+    owner = tables.Column()
+    role = tables.Column()
+    status = tables.Column()
+    approved = tables.Column()
+
+    class Meta:
+        attrs = {"class": "table-striped table-bordered", }

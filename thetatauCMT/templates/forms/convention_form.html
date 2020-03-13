@@ -1,0 +1,33 @@
+{% extends "account/base.html" %}
+{% load i18n %}
+{% load static %}
+{% load crispy_forms_tags %}
+{% load render_table from django_tables2 %}
+
+
+{% block head_title %}{% trans "Convention Credential Form" %}{% endblock %}
+{% block content %}
+  <h1>Convention Credential Form</h1>
+  At a regular meeting the following members were elected to represent this
+  chapter at the forthcoming Convention, in accord with the Laws and Customs of Theta Tau.
+  <hr>
+  {% if not submitted %}
+  <form method="POST" enctype="multipart/form-data">
+    {{ form.media }}
+    <link href="{% static 'css/project.css' %}" rel="stylesheet">
+    {% csrf_token %}
+    {{ form|crispy }}
+    {{ activation.management_form }}
+    <button class="primaryAction btn btn-primary" type="submit">{% trans "Submit Form" %}</button>
+  </form>
+  <br>
+    {% else %}
+    Convention Credential Form already submitted this year. <br>
+    See below for status of the form submission. <br>
+    Please reach out to <a href="mailto:cmt@thetatau.org">cmt@thetatau.org</a>
+    to fix delegate or alternate address or assignments.
+  {% endif %}
+  <h3>Convention Form Status</h3>
+  <hr>
+    {% render_table table %}
+{% endblock %}

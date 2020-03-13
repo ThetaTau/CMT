@@ -26,6 +26,7 @@ from dal import autocomplete, forward
 from extra_views import FormSetView, ModelFormSetView
 from easy_pdf.views import PDFTemplateResponseMixin
 from viewflow.flow.views import CreateProcessView
+from viewflow.flow.views import UpdateProcessView
 from core.forms import MultiFormsView
 from core.models import TODAY_START, forever
 from core.views import OfficerMixin, OfficerRequiredMixin, RequestConfig,\
@@ -36,7 +37,7 @@ from .forms import InitiationFormSet, InitiationForm, InitiationFormHelper, Init
     RoleChangeSelectForm, RiskManagementForm, RoleChangeNationalSelectForm,\
     PledgeProgramForm, AuditForm, PledgeFormFull, ChapterReport, PrematureAlumnusForm,\
     AuditListFormHelper, RiskListFilter, PledgeProgramFormHelper,\
-    ChapterInfoReportForm, ChapterReportFormHelper
+    ChapterInfoReportForm, ChapterReportFormHelper, ConventionForm
 from tasks.models import TaskChapter, Task
 from scores.models import ScoreType
 from submissions.models import Submission
@@ -50,9 +51,10 @@ from chapters.models import Chapter, ChapterCurricula
 from regions.models import Region
 from .tables import GuardTable, BadgeTable, InitiationTable, DepledgeTable, \
     StatusChangeTable, PledgeFormTable, AuditTable, RiskFormTable,\
-    PledgeProgramTable, ChapterReportTable, PrematureAlumnusStatusTable
+    PledgeProgramTable, ChapterReportTable, PrematureAlumnusStatusTable,\
+    ConventionTable
 from .models import Guard, Badge, Initiation, Depledge, StatusChange, RiskManagement,\
-    PledgeForm, PledgeProgram, Audit, PrematureAlumnus, InitiationProcess
+    PledgeForm, PledgeProgram, Audit, PrematureAlumnus, InitiationProcess, Convention
 from .filters import AuditListFilter, PledgeProgramListFilter, ChapterReportListFilter
 from .notifications import EmailRMPSigned, EmailPledgeOther, EmailRMPReport,\
     EmailAdvisorWelcome, EmailPledgeConfirmation, EmailPledgeWelcome
@@ -1271,3 +1273,111 @@ def badge_shingle_init_csv(request, csv_type, process_pk):
         process.generate_blackbaud_update(response)
     response['Cache-Control'] = 'no-cache'
     return response
+
+
+def get_credential_status(user)
+    data = []
+    process = Convention.objects.filter(
+        delegate__chapter=user.current_chapter,
+        year=Convention.current_year()).first()
+    submitted = False
+    if process:
+        submitted = True
+        signatures = {
+            'delegate': 'del',
+            'alternate': 'alt',
+            'officer1': 'o1',
+            'officer2': 'o2'
+        }
+        for signature, abbr in signatures.items():
+            signed = getattr(process, f"signature_{abbr}", False)
+            approved = "N/A"
+            if not signed:
+                status = "Needs Signature"
+            else:
+                status = "Signed"
+                approved = getattr(process, f"approved_{abbr}", "N/A")
+            data.append({
+                'owner': getattr(process, signature),
+                'role': signature,
+                'status': status,
+                'approved': approved,
+            })
+    return data, submitted
+
+
+class ConventionCreateView(OfficerRequiredMixin, LoginRequiredMixin,
+                           OfficerMixin, CreateProcessView):
+    template_name = "forms/convention_form.html"
+    model = Convention
+    form_class = ConventionForm
+
+    def activation_done(self, *args, **kwargs):
+        """Finish task activation."""
+        self.activation.done()
+        self.success('Convention form submitted successfully.')
+
+    def form_valid(self, form, *args, **kwargs):
+        chapter = self.request.user.current_chapter
+        form.instance.chapter = chapter
+        officers = chapter.get_current_officers_council(combine=False)[0]
+        del_alt = [form.instance.delegate, form.instance.alternate]
+        regent = officers.filter(role='regent').first()
+        scribe = officers.filter(role='scribe').first()
+        vice = officers.filter(role='vice regent').first()
+        treasurer = officers.filter(role='treasurer').first()
+        officer1 = officer2 = False
+        if regent not in del_alt:
+            form.instance.officer1 = regent
+            officer1 = True
+        if scribe not in del_alt:
+            form.instance.officer2 = scribe
+            officer2 = True
+        if not officer1:
+            if vice not in del_alt:
+                form.instance.officer1 = vice
+                del_alt.append(vice)
+            else:
+                form.instance.officer1 = treasurer
+        if not officer2:
+            if vice not in del_alt:
+                form.instance.officer2 = vice
+            else:
+                form.instance.officer2 = treasurer
+        return super().form_valid(form)
+
+    def get_context_data(self, *args, **kwargs):
+        context = super().get_context_data(**kwargs)
+        data, submitted = get_credential_status(self.request.user.current_chapter)
+        context['submitted'] = submitted
+        context['table'] = ConventionTable(data=data)
+        return context
+
+
+class ConventionSignView(LoginRequiredMixin, OfficerMixin, UpdateProcessView):
+    template_name = "forms/convention_sign_form.html"
+
+    def activation_done(self, *args, **kwargs):
+        """Finish task activation."""
+        self.activation.done()
+        self.success('Convention form signed successfully.')
+
+    def get_form(self, form_class=None):
+        task_name = self.activation.flow_task.name
+        self.fields = {
+            'assign_del': ['signature_del', ],
+            'assign_alt': ['signature_alt', ],
+            'assign_o1': ['signature_o1', 'approved_o1', ],
+            'assign_o2': ['signature_o2', 'approved_o2', ],
+        }[task_name]
+        return super().get_form(form_class)
+
+    def get_context_data(self, *args, **kwargs):
+        context = super().get_context_data(**kwargs)
+        task_name = self.activation.flow_task.name
+        # TODO: send user form to update contact info
+        #   change message based on form type
+        data, submitted = get_credential_status(self.request.user.current_chapter)
+        context['submitted'] = submitted
+        context['table'] = ConventionTable(data=data)
+        return context

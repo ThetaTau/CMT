@@ -8,7 +8,7 @@ from crispy_forms.bootstrap import FormActions, Field, InlineField,\
     StrictButton, InlineRadios, Accordion, AccordionGroup, Div
 from tempus_dominus.widgets import DatePicker
 from .models import Initiation, Depledge, StatusChange, RiskManagement,\
-    PledgeProgram, Audit, Pledge, ChapterReport, PrematureAlumnus
+    PledgeProgram, Audit, Pledge, ChapterReport, PrematureAlumnus, Convention
 from core.models import CHAPTER_ROLES_CHOICES, NAT_OFFICERS_CHOICES
 from users.models import User, UserRoleChange
 from regions.models import Region
@@ -833,3 +833,28 @@ class PrematureAlumnusForm(forms.ModelForm):
         fields = ['user', 'form', 'good_standing', 'financial',
                   'semesters', 'lifestyle', 'consideration', 'prealumn_type',
                   'vote', ]
+
+
+class ConventionForm(forms.ModelForm):
+    delegate = forms.ModelChoiceField(
+        queryset=User.objects.all(),
+        widget=autocomplete.ModelSelect2(
+            url='users:autocomplete',
+            forward=(forward.Const('true', 'chapter'),
+                     forward.Const('true', 'actives'),
+                     )
+        ),
+    )
+    alternate = forms.ModelChoiceField(
+        queryset=User.objects.all(),
+        widget=autocomplete.ModelSelect2(
+            url='users:autocomplete',
+            forward=(forward.Const('true', 'chapter'),
+                     forward.Const('true', 'actives'),
+                     )
+        ),
+    )
+
+    class Meta:
+        model = Convention
+        fields = ['meeting_date', 'delegate', 'alternate', ]

@@ -811,3 +811,31 @@ class InitiationProcess(Process):
             shingle_mail.set_payload(shingle_file)
             out = badge_mail, shingle_mail
         return out
+
+
+class Convention(Process, YearTermModel):
+    meeting_date = models.DateField(default=timezone.now)
+    delegate = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
+        related_name="delegate", verbose_name="Delegate Signature")
+    alternate = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
+        related_name="alternate", verbose_name="Alternate Signature")
+    chapter = models.ForeignKey(
+        Chapter, on_delete=models.CASCADE, related_name="convention")
+    officer1 = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
+        related_name="conv_off1", verbose_name="Officer Signature")
+    officer2 = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
+        related_name="conv_off2", verbose_name="Officer Signature")
+    signature_del = models.CharField(
+        max_length=255, help_text="Please sign using your proper/legal name")
+    signature_alt = models.CharField(
+        max_length=255, help_text="Please sign using your proper/legal name")
+    signature_o1 = models.CharField(
+        max_length=255, help_text="Please sign using your proper/legal name")
+    signature_o2 = models.CharField(
+        max_length=255, help_text="Please sign using your proper/legal name")
+    approved_o1 = models.BooleanField('Officer Approved', default=False)
+    approved_o2 = models.BooleanField('Officer Approved', default=False)

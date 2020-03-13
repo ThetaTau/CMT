@@ -261,3 +261,28 @@ class EmailProcessUpdate(EmailNotification):
                  'consideration', 'prealumn_type', 'vote', 'approved_exec',
                  'exec_comments', ]]
 
+
+@registry.register_decorator()
+class EmailConventionUpdate(EmailNotification):
+    render_types = ['html']
+    template_name = 'convention'
+
+    def __init__(self, activation, user, link):
+        process_title = activation.flow_class.process_title
+        self.to_emails = set([user.email])  # set list of emails to send to
+        self.reply_to = ["cmt@thetatau.org", ]
+        self.subject = f'[CMT] {process_title}'
+        self.context = {
+            'user': user,
+            'link': link,
+            'process_title': process_title,
+            'host': settings.CURRENT_URL,
+        }
+
+    @staticmethod
+    def get_demo_args():  # define a static method to return list of args needed to initialize class for testing
+        from forms.models import Convention
+        test = Convention.objects.order_by('?')[0]
+        test.process = test
+        return [test, test.delegate, "Premature Alumnus Request",]
+
