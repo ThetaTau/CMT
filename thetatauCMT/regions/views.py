@@ -121,9 +121,11 @@ class RegionAdvisorView(NatOfficerRequiredMixin,
             emails = context['email_list']
             if emails != "":
                 writer.writerow(context['table'].columns.names())
+                email_index = context['table'].columns.names().index('email')
                 for row in context['table'].as_values():
-                    if row[2] in emails:
-                        writer.writerow(row)
+                    if row[email_index]:
+                        if row[email_index] in emails:
+                            writer.writerow(row)
                 return response
             else:
                 messages.add_message(
