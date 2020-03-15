@@ -1,6 +1,7 @@
 from django.contrib import admin
 from .models import Badge, Guard, Initiation, Depledge, StatusChange,\
-    PledgeForm, RiskManagement, PledgeProgram, Audit, Pledge, ChapterReport
+    PledgeForm, RiskManagement, PledgeProgram, Audit, Pledge, ChapterReport,\
+    Convention
 from core.admin import user_chapter
 
 
@@ -100,3 +101,14 @@ class PledgeAdmin(admin.ModelAdmin):
 
 
 admin.site.register(Pledge, PledgeAdmin)
+
+
+class ConventionAdmin(admin.ModelAdmin):
+    raw_id_fields = ['delegate', 'alternate', 'officer1', 'officer2']
+    list_display = ('chapter', 'created', 'year', 'term', )
+    list_filter = ['chapter', 'year', 'term', ]
+    ordering = ['-created', ]
+    search_fields = ['delegate__name', 'alternate__name']
+
+
+admin.site.register(Convention, ConventionAdmin)
