@@ -65,6 +65,10 @@ urlpatterns = [
     url(r'^report/$',
         RedirectView.as_view(pattern_name='forms:report',
                              permanent=True)),
+    url(r'^conventionform/$',
+        RedirectView.as_view(pattern_name='viewflow:forms:convention:start',
+                             permanent=True),
+        name='conventionform'),
 
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 

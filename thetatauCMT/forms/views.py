@@ -1397,7 +1397,7 @@ class ConventionSignView(LoginRequiredMixin, OfficerMixin,
 
     def _get_success_url(self, form=None):
         """Continue on task or redirect back to task list."""
-        return reverse('viewflow:forms:convention:start')
+        return reverse('conventionform')
 
     def _get_form_kwargs(self, form_name, bind_form=False):
         kwargs = super()._get_form_kwargs(form_name, bind_form)
