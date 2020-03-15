@@ -163,8 +163,8 @@ class UserDetailUpdateView(LoginRequiredMixin, OfficerMixin, MultiFormsView):
         context['submission_table'] = table
         return context
 
-    def get_form_kwargs(self, form_name, bind_form=False):
-        kwargs = super().get_form_kwargs(form_name, bind_form)
+    def _get_form_kwargs(self, form_name, bind_form=False):
+        kwargs = super()._get_form_kwargs(form_name, bind_form)
         if form_name == 'user':
             kwargs.update(
                 {'instance': self.get_object(),

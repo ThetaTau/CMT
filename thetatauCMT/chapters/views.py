@@ -165,7 +165,7 @@ class ChapterDetailView(LoginRequiredMixin, OfficerMixin, MultiFormsView):
         return context
 
     def get_form_kwargs(self, form_name, bind_form=False):
-        kwargs = super().get_form_kwargs(form_name, bind_form)
+        kwargs = super()._get_form_kwargs(form_name, bind_form)
         if form_name == 'chapter':
             kwargs.update(
                 {'instance': self.get_object(),
