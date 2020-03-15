@@ -3,6 +3,7 @@ from herald.base import EmailNotification
 from django.conf import settings
 from django.forms.models import model_to_dict
 from core.models import current_term, current_year
+from forms.tables import ConventionTable
 
 
 @registry.register_decorator()
@@ -267,15 +268,19 @@ class EmailConventionUpdate(EmailNotification):
     render_types = ['html']
     template_name = 'convention'
 
-    def __init__(self, activation, user, link):
+    def __init__(self, activation, user, message):
+        from forms.views import get_credential_status
+        data, _, _ = get_credential_status(user)
+        table = ConventionTable(data=data)
         process_title = activation.flow_class.process_title
         self.to_emails = set([user.email])  # set list of emails to send to
         self.reply_to = ["cmt@thetatau.org", ]
         self.subject = f'[CMT] {process_title}'
         self.context = {
             'user': user,
-            'link': link,
+            'message': message,
             'process_title': process_title,
+            'table': table,
             'host': settings.CURRENT_URL,
         }
 
@@ -284,5 +289,5 @@ class EmailConventionUpdate(EmailNotification):
         from forms.models import Convention
         test = Convention.objects.order_by('?')[0]
         test.process = test
-        return [test, test.delegate, "Premature Alumnus Request",]
+        return [test, test.delegate, "Convention Form Submitted",]
 

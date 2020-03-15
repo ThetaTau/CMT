@@ -470,34 +470,22 @@
                         <br>
 Dear {{ user }},
                             <div id="hijacked"></div>
-<p>This is a notification for update on {{ process_title }} for {{ user }}</p>
-<p>{{ message }}</p>
-<p><strong>Attached is a copy of "{{ file_name }}".</strong></p>
-<table>
-  <tr>
-    <th>Step Complete</th>
-    <td>{{ complete_step }}</td>
-  </tr>
-  <tr>
-    <th>Next Step</th>
-    <td>{{ next_step }}</td>
-  </tr>
-  <tr>
-    <th>&nbsp;</th>
-    <td>&nbsp;</td>
-  </tr>
-  <tr>
-    <th colspan="2"><hr><h3>Process Details</h3></th>
-  </tr>
-  {% for key, value in info.items %}
+<p>This is a notification for {{ message }}</p>
+<p>Please sign in to the CMT and sign the form: <a href="{{ host }}{% url 'conventionform' %}">Convention Form</a> </p>
+  <p>At a regular meeting the following members were elected to represent this
+  chapter at the forthcoming Convention, in accord with the Laws and Customs of Theta Tau.</p>
+                          <table>
     <tr>
-    <th>{{ key }}</th>
-    <td>{{ value }}</td>
+      <th>Member</th>
+      <th>Role</th>
     </tr>
-  {% endfor %}
-</table>
-<p>Please review the document and above information and reach out with any questions/concerns.</p>
-<p>In H&T,<br>Chapter Management Tool</p>
+    {% for row in table.rows.data %}
+      <tr>
+        <td>{{ row.owner }}</td>
+        <td>{{ row.role }}</td>
+      </tr>
+    {% endfor %}
+  </table>
                         </td>
                     </tr>
                 </tbody></table>
