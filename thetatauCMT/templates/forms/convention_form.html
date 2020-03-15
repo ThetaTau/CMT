@@ -22,12 +22,14 @@
   </form>
   <br>
     {% else %}
-    Convention Credential Form already submitted this year. <br>
-    See below for status of the form submission. <br>
-    Please reach out to <a href="mailto:cmt@thetatau.org">cmt@thetatau.org</a>
-    to fix delegate or alternate address or assignments.
-  {% endif %}
+    <p>Convention Credential Form already submitted this year.</p>
   <h3>Convention Form Status</h3>
+    <p>
+      See below for status of the form submission. <br>
+      Please reach out to <a href="mailto:cmt@thetatau.org">cmt@thetatau.org</a>
+      to fix delegate or alternate address or assignments.
+    </p>
   <hr>
     {% render_table table %}
+  {% endif %}
 {% endblock %}

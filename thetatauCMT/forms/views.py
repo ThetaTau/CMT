@@ -4,6 +4,7 @@ from copy import deepcopy
 from django.db.models import Q
 from django.conf import settings
 from django.core.mail import send_mail
+from django.forms import models as model_forms
 from django.forms.models import modelformset_factory
 from django.utils.decorators import method_decorator
 from django.http.request import QueryDict
@@ -45,7 +46,7 @@ from users.models import User, UserStatusChange
 from core.models import CHAPTER_OFFICER, COL_OFFICER_ALIGN, SEMESTER,\
     NAT_OFFICERS_CHOICES, CHAPTER_ROLES_CHOICES
 from users.models import UserRoleChange
-from users.forms import ExternalUserForm
+from users.forms import ExternalUserForm, UserForm
 from users.notifications import NewOfficers
 from chapters.models import Chapter, ChapterCurricula
 from regions.models import Region
@@ -772,8 +773,8 @@ class ChapterInfoReportView(LoginRequiredMixin, OfficerMixin, MultiFormsView):
             })
         return factory(**formset_kwargs)
 
-    def get_form_kwargs(self, form_name, bind_form=False):
-        kwargs = super().get_form_kwargs(form_name, bind_form)
+    def _get_form_kwargs(self, form_name, bind_form=False):
+        kwargs = super()._get_form_kwargs(form_name, bind_form)
         kwargs.update(instance={
             'info': self.get_object(),
             # 'report': self.object.current_report,
@@ -1275,12 +1276,13 @@ def badge_shingle_init_csv(request, csv_type, process_pk):
     return response
 
 
-def get_credential_status(user)
+def get_credential_status(user):
     data = []
     process = Convention.objects.filter(
         delegate__chapter=user.current_chapter,
         year=Convention.current_year()).first()
     submitted = False
+    users = []
     if process:
         submitted = True
         signatures = {
@@ -1289,21 +1291,36 @@ def get_credential_status(user)
             'officer1': 'o1',
             'officer2': 'o2'
         }
+        task_ids = {}
+        for task in process.task_set.all():
+            if task.flow_task.task_title:
+                title = task.flow_task.task_title.split(' ')[0].lower()
+                task_ids[title] = task.pk
         for signature, abbr in signatures.items():
             signed = getattr(process, f"signature_{abbr}", False)
             approved = "N/A"
+            signer = getattr(process, signature)
+            link = "#"
             if not signed:
                 status = "Needs Signature"
+                if user == signer:
+                    link = reverse(
+                        f'viewflow:forms:convention:assign_{abbr}',
+                        kwargs={'process_pk': process.pk,
+                                'task_pk': task_ids[signature]})
             else:
                 status = "Signed"
+                link = "#"
                 approved = getattr(process, f"approved_{abbr}", "N/A")
+            users.append(signer)
             data.append({
-                'owner': getattr(process, signature),
+                'owner': signer,
                 'role': signature,
                 'status': status,
                 'approved': approved,
+                'link': link
             })
-    return data, submitted
+    return data, submitted, users
 
 
 class ConventionCreateView(OfficerRequiredMixin, LoginRequiredMixin,
@@ -1311,6 +1328,14 @@ class ConventionCreateView(OfficerRequiredMixin, LoginRequiredMixin,
     template_name = "forms/convention_form.html"
     model = Convention
     form_class = ConventionForm
+
+    def get(self, request, *args, **kwargs):
+        self.data, self.submitted, self.signers = get_credential_status(self.request.user)
+        if self.submitted and self.request.user in self.signers:
+            for sign in self.data:
+                if self.request.user == sign['owner'] and sign['status'] != 'Signed':
+                    return redirect(sign['link'])
+        return super().get(request, *args, **kwargs)
 
     def activation_done(self, *args, **kwargs):
         """Finish task activation."""
@@ -1348,36 +1373,73 @@ class ConventionCreateView(OfficerRequiredMixin, LoginRequiredMixin,
 
     def get_context_data(self, *args, **kwargs):
         context = super().get_context_data(**kwargs)
-        data, submitted = get_credential_status(self.request.user.current_chapter)
-        context['submitted'] = submitted
-        context['table'] = ConventionTable(data=data)
+        context['submitted'] = self.submitted
+        context['table'] = ConventionTable(data=self.data)
         return context
 
 
-class ConventionSignView(LoginRequiredMixin, OfficerMixin, UpdateProcessView):
+class ConventionSignView(LoginRequiredMixin, OfficerMixin,
+                         UpdateProcessView, MultiFormsView):
     template_name = "forms/convention_sign_form.html"
+    form_classes = {
+        'process': None,
+        'user': UserForm,
+    }
+    grouped_forms = {
+        'form': ['process', 'user']
+    }
+    fields_options = {
+        'assign_del': ['signature_del', ],
+        'assign_alt': ['signature_alt', ],
+        'assign_o1': ['signature_o1', 'approved_o1', ],
+        'assign_o2': ['signature_o2', 'approved_o2', ],
+    }
+
+    def _get_success_url(self, form=None):
+        """Continue on task or redirect back to task list."""
+        return reverse('viewflow:forms:convention:start')
+
+    def _get_form_kwargs(self, form_name, bind_form=False):
+        kwargs = super()._get_form_kwargs(form_name, bind_form)
+        if form_name == 'user':
+            kwargs.update(
+                {'instance': self.request.user,
+                 }
+            )
+        return kwargs
 
     def activation_done(self, *args, **kwargs):
         """Finish task activation."""
         self.activation.done()
         self.success('Convention form signed successfully.')
 
-    def get_form(self, form_class=None):
+    def process_form_valid(self, *args, **kwargs):
+        return super().form_valid(*args, **kwargs)
+
+    def create_process_form(self, *args, **kwargs):
         task_name = self.activation.flow_task.name
-        self.fields = {
-            'assign_del': ['signature_del', ],
-            'assign_alt': ['signature_alt', ],
-            'assign_o1': ['signature_o1', 'approved_o1', ],
-            'assign_o2': ['signature_o2', 'approved_o2', ],
-        }[task_name]
-        return super().get_form(form_class)
+        self.fields = self.fields_options[task_name]
+        return model_forms.modelform_factory(self.model, fields=self.fields)(**self.get_form_kwargs())
+
+    def get_forms(self, form_classes, form_names=None, bind_all=False):
+        forms = super().get_forms(form_classes, form_names, bind_all)
+        task_name = self.activation.flow_task.name
+        if 'del' not in task_name and 'alt' not in task_name:
+            if 'user' in forms:
+                del forms['user']
+            if 'user' in self.form_classes:
+                del self.form_classes['user']
+        return forms
 
     def get_context_data(self, *args, **kwargs):
         context = super().get_context_data(**kwargs)
         task_name = self.activation.flow_task.name
-        # TODO: send user form to update contact info
-        #   change message based on form type
-        data, submitted = get_credential_status(self.request.user.current_chapter)
+        delegate = False
+        if 'del' in task_name or 'alt' in task_name:
+            delegate = True
+            context['forms']['user'].fields['phone_number'].required = True
+        data, submitted, users = get_credential_status(self.request.user)
         context['submitted'] = submitted
         context['table'] = ConventionTable(data=data)
+        context['delegate'] = delegate
         return context

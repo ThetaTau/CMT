@@ -8,18 +8,28 @@
 {% block head_title %}{% trans "Sign Convention Credential Form" %}{% endblock %}
 {% block content %}
   <h1>Sign Convention Credential Form</h1>
-  At a regular meeting the following members were elected to represent this
-  chapter at the forthcoming Convention, in accord with the Laws and Customs of Theta Tau.
+  {% if not delegate %}
+    At a regular meeting the following members were elected to represent {{ chapter }}
+    chapter at the forthcoming Convention, in accord with the Laws and Customs of Theta Tau.
+  {% else %}
+    At a regular meeting you were elected to represent {{ chapter }}
+    chapter at the forthcoming Convention, in accord with the Laws and Customs of Theta Tau.
+  {% endif %}
+  {% render_table table %}
   <hr>
-  <form method="POST" enctype="multipart/form-data">
-    {{ form.media }}
+  <form method="POST" enctype="multipart/form-data" class="form">
+    {{ forms.process.media }}
     <link href="{% static 'css/project.css' %}" rel="stylesheet">
     {% csrf_token %}
-    {{ form|crispy }}
+      <h5>Please sign:</h5>
+    {{ forms.process|crispy }}
+    {% if delegate %}
+      <h5>Please verify the following information is correct:</h5>
+        {{ forms.user.management_form|crispy }}
+        {{ forms.user.media }}
+        {{ forms.user|crispy }}
+    {% endif %}
     {{ activation.management_form }}
-    <button class="primaryAction btn btn-primary" type="submit">{% trans "Submit Form" %}</button>
+    <button class="primaryAction btn btn-primary" name='action' value='form' type="submit">{% trans "Submit Form" %}</button>
   </form>
-  <br>
-  <h3>Convention Form Status</h3>
-  <hr>
 {% endblock %}

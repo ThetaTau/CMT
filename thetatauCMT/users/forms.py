@@ -139,7 +139,7 @@ class UserForm(forms.ModelForm):
 
     class Meta:
         model = User
-        fields = ['name', 'major', 'graduation_year', 'phone_number', 'address']
+        fields = ['major', 'graduation_year', 'phone_number', 'address']
 
 
 class UserGPAForm(forms.Form):

@@ -168,6 +168,7 @@ class ConventionTable(tables.Table):
     role = tables.Column()
     status = tables.Column()
     approved = tables.Column()
+    link = tables.TemplateColumn('<a href="{{ record.link }}">Sign Link</a>')
 
     class Meta:
         attrs = {"class": "table-striped table-bordered", }
