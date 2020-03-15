@@ -1,3 +1,4 @@
+import csv
 import json
 import datetime
 from copy import deepcopy
@@ -1453,6 +1454,28 @@ class ConventionListView(NatOfficerRequiredMixin, LoginRequiredMixin,
     table_class = ConventionListTable
     filter_class = ConventionListFilter
     formhelper_class = ConventionFormHelper
+
+    def get(self, request, *args, **kwargs):
+        self.object = kwargs['slug']
+        context = self.get_context_data(object=kwargs['slug'])
+        if request.GET.get('csv', 'False').lower() == 'download csv':
+            response = HttpResponse(content_type='text/csv')
+            time_name = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename = f"ThetaTauConvention_{time_name}.csv"
+            response['Content-Disposition'] = f'attachment; filename="{filename}"'
+            writer = csv.writer(response)
+            emails = context['email_list']
+            if emails != "":
+                writer.writerow(context['table'].columns.names())
+                for row in context['table'].as_values():
+                    if row[2] in emails:
+                        writer.writerow(row)
+                return response
+            else:
+                messages.add_message(
+                    self.request, messages.ERROR,
+                    f"All officers are filtered! Clear or change filter.")
+        return self.render_to_response(context)
 
     def get_queryset(self, **kwargs):
         qs = Convention.objects.all()
