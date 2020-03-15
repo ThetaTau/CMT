@@ -172,3 +172,18 @@ class ConventionTable(tables.Table):
 
     class Meta:
         attrs = {"class": "table-striped table-bordered", }
+
+
+class ConventionListTable(tables.Table):
+    class Meta:
+        model = ChapterReport
+        order_by = 'chapter'
+        attrs = {"class": "table-striped table-bordered"}
+        fields = [
+            'chapter',
+            'region',
+            'year',
+            'term',
+            'delegate',
+            'alternate',
+        ]

@@ -23,6 +23,10 @@ urlpatterns = [
         view=views.ChapterReportListView.as_view(),
         name='report_list'),
     url(
+        regex=r'^convention-list/$',
+        view=views.ConventionListView.as_view(),
+        name='convention_list'),
+    url(
         regex=r'^audit-list/$',
         view=views.AuditListView.as_view(),
         name='audit_list'),

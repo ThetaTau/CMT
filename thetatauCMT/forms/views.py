@@ -38,7 +38,7 @@ from .forms import InitiationFormSet, InitiationForm, InitiationFormHelper, Init
     RoleChangeSelectForm, RiskManagementForm, RoleChangeNationalSelectForm,\
     PledgeProgramForm, AuditForm, PledgeFormFull, ChapterReport, PrematureAlumnusForm,\
     AuditListFormHelper, RiskListFilter, PledgeProgramFormHelper,\
-    ChapterInfoReportForm, ChapterReportFormHelper, ConventionForm
+    ChapterInfoReportForm, ChapterReportFormHelper, ConventionForm, ConventionFormHelper
 from tasks.models import TaskChapter, Task
 from scores.models import ScoreType
 from submissions.models import Submission
@@ -53,10 +53,11 @@ from regions.models import Region
 from .tables import GuardTable, BadgeTable, InitiationTable, DepledgeTable, \
     StatusChangeTable, PledgeFormTable, AuditTable, RiskFormTable,\
     PledgeProgramTable, ChapterReportTable, PrematureAlumnusStatusTable,\
-    ConventionTable
+    ConventionTable, ConventionListTable
 from .models import Guard, Badge, Initiation, Depledge, StatusChange, RiskManagement,\
     PledgeForm, PledgeProgram, Audit, PrematureAlumnus, InitiationProcess, Convention
-from .filters import AuditListFilter, PledgeProgramListFilter, ChapterReportListFilter
+from .filters import AuditListFilter, PledgeProgramListFilter,\
+    ChapterReportListFilter, ConventionListFilter
 from .notifications import EmailRMPSigned, EmailPledgeOther, EmailRMPReport,\
     EmailAdvisorWelcome, EmailPledgeConfirmation, EmailPledgeWelcome
 
@@ -1442,4 +1443,72 @@ class ConventionSignView(LoginRequiredMixin, OfficerMixin,
         context['submitted'] = submitted
         context['table'] = ConventionTable(data=data)
         context['delegate'] = delegate
+        return context
+
+
+class ConventionListView(NatOfficerRequiredMixin, LoginRequiredMixin,
+                         OfficerMixin, PagedFilteredTableView):
+    model = Convention
+    context_object_name = 'convention_list'
+    table_class = ConventionListTable
+    filter_class = ConventionListFilter
+    formhelper_class = ConventionFormHelper
+
+    def get_queryset(self, **kwargs):
+        qs = Convention.objects.all()
+        cancel = self.request.GET.get('cancel', False)
+        request_get = self.request.GET.copy()
+        if cancel:
+            request_get = QueryDict()
+        if not request_get:
+            # Create a mutable QueryDict object, default is immutable
+            request_get = QueryDict(mutable=True)
+            request_get.setlist("year", [''])
+            request_get.setlist("term", [''])
+        if not cancel:
+            if request_get['year'] == '':
+                request_get['year'] = datetime.datetime.now().year
+            if request_get['term'] == '':
+                request_get['term'] = SEMESTER[datetime.datetime.now().month]
+        self.filter = self.filter_class(request_get,
+                                        queryset=qs)
+        self.filter.request = self.request
+        self.filter.form.helper = self.formhelper_class()
+        return self.filter.qs
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        all_forms = self.object_list
+        data = [
+            {
+                'chapter': form.chapter.name,
+                'region': form.chapter.region.name,
+                'year': form.year,
+                'term': ChapterReport.TERMS.get_value(form.term),
+                'delegate': form.delegate,
+                'alternate': form.alternate
+            } for form in all_forms
+        ]
+        complete = self.filter.form.cleaned_data['complete']
+        if complete in ['0', '']:
+            form_chapters = all_forms.values_list('chapter__id', flat=True)
+            region_slug = self.filter.form.cleaned_data['region']
+            region = Region.objects.filter(slug=region_slug).first()
+            if region:
+                missing_chapters = Chapter.objects.exclude(id__in=form_chapters).filter(region__in=[region])
+            elif region_slug == 'colony':
+                missing_chapters = Chapter.objects.exclude(id__in=form_chapters).filter(colony=True)
+            else:
+                missing_chapters = Chapter.objects.exclude(id__in=form_chapters)
+            missing_data = [{
+                 'chapter': chapter.name, 'region': chapter.region.name,
+                 'delegate': None, 'alternate': None, 'term': None, 'year': None,
+             } for chapter in missing_chapters]
+            if complete == '0':  # Incomplete
+                data = missing_data
+            else:  # All
+                data.extend(missing_data)
+        table = ConventionListTable(data=data)
+        RequestConfig(self.request, paginate={'per_page': 100}).configure(table)
+        context['table'] = table
         return context
