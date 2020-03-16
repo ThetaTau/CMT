@@ -1306,9 +1306,9 @@ def get_credential_status(user):
             approved = "N/A"
             signer = getattr(process, signature)
             link = "#"
-            if not signed:
+            if signed == '' or not signed:
                 status = "Needs Signature"
-                if user == signer:
+                if user == signer and signature in task_ids:
                     link = reverse(
                         f'viewflow:forms:convention:assign_{abbr}',
                         kwargs={'process_pk': process.pk,
