@@ -1456,8 +1456,8 @@ class ConventionListView(NatOfficerRequiredMixin, LoginRequiredMixin,
     formhelper_class = ConventionFormHelper
 
     def get(self, request, *args, **kwargs):
-        self.object = kwargs['slug']
-        context = self.get_context_data(object=kwargs['slug'])
+        self.object_list = self.get_queryset()
+        context = self.get_context_data()
         if request.GET.get('csv', 'False').lower() == 'download csv':
             response = HttpResponse(content_type='text/csv')
             time_name = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -1466,10 +1466,24 @@ class ConventionListView(NatOfficerRequiredMixin, LoginRequiredMixin,
             writer = csv.writer(response)
             emails = context['email_list']
             if emails != "":
-                writer.writerow(context['table'].columns.names())
-                for row in context['table'].as_values():
-                    if row[2] in emails:
-                        writer.writerow(row)
+                writer.writerow([
+                    'Chapter', 'Region', 'Role', 'Email',
+                    'Phone Number', 'Address'
+                ])
+                for form in self.object_list:
+                    for user_type in ['delegate', 'alternate']:
+                        user = getattr(form, user_type)
+                        writer.writerow(
+                            [
+                                form.chapter,
+                                form.chapter.region,
+                                user_type,
+                                user.email,
+                                user.phone_number,
+                                user.address,
+
+                            ]
+                        )
                 return response
             else:
                 messages.add_message(
@@ -1532,6 +1546,10 @@ class ConventionListView(NatOfficerRequiredMixin, LoginRequiredMixin,
             else:  # All
                 data.extend(missing_data)
         table = ConventionListTable(data=data)
+        all_users = [[x['delegate'].email, x['alternate'].email] for x in data if x['delegate']]
+        flatten = [item for sublist in all_users for item in sublist]
+        email_list = ', '.join(flatten)
+        context['email_list'] = email_list
         RequestConfig(self.request, paginate={'per_page': 100}).configure(table)
         context['table'] = table
         return context

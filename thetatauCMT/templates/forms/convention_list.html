@@ -10,7 +10,23 @@
 {% if table.page %}
   <div class="table-container">
 {% endif %}
-
+<table>
+      <tr>
+        <td><h2>Convention Forms:</h2></td>
+        <td>
+          <button class="clipboard button btn btn-primary"
+            data-clipboard-text="{{ email_list }}">
+            Copy emails to clipboard
+          </button>
+        </td>
+        <td>
+          <form action='' method='GET'>
+          {% csrf_token %}
+          <input type='hidden'>
+          <input type='submit' class="btn btn-primary" name="csv" value="Download CSV" style="float: right;">
+        </td>
+      </tr>
+    </table>
 {% block table %}
     <div class="table-responsive">
         <table class="table table-hover table-bordered table-striped"{% if table.attrs %} {{ table.attrs.as_html }}{% endif %}>
@@ -74,4 +90,5 @@
     {% endblock pagination %}
   </div>
 {% endif %}
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/1.5.10/clipboard.min.js"></script>
 {% endblock content %}
