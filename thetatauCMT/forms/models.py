@@ -73,6 +73,7 @@ def get_pledge_program_upload_path(instance, filename):
 
 
 class PledgeProgram(YearTermModel, TimeStampedModel):
+    BOOL_CHOICES = ((True, 'Yes'), (False, 'No'))
     class Meta:
         unique_together = ('chapter', 'year', 'term', )
 
@@ -88,6 +89,12 @@ class PledgeProgram(YearTermModel, TimeStampedModel):
 
     chapter = models.ForeignKey(Chapter, on_delete=models.CASCADE,
                                 related_name="pledge_programs")
+    verbose_remote = "Will your new member education be run remotely?"
+    remote = models.BooleanField(verbose_remote, choices=BOOL_CHOICES, default=False)
+    verbose_complete = "When do you anticipate completing new member education?"
+    date_complete = models.DateField(verbose_complete, default=timezone.now)
+    verbose_initiation = "When do you plan to hold initiations?"
+    date_initiation = models.DateField(verbose_initiation, default=timezone.now)
     manual = models.CharField(
         max_length=10,
         choices=[x.value for x in MANUALS]

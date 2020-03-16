@@ -92,6 +92,10 @@ class AuditTable(tables.Table):
 
 
 class PledgeProgramTable(tables.Table):
+    date_complete = tables.DateColumn(verbose_name="Complete Date")
+    date_initiation = tables.DateColumn(verbose_name="Initiation Date")
+    remote = tables.BooleanColumn(verbose_name="Remote")
+
     class Meta:
         model = PledgeProgram
         order_by = 'chapter'
@@ -102,6 +106,9 @@ class PledgeProgramTable(tables.Table):
             'year',
             'term',
             'manual',
+            'remote',
+            'date_complete',
+            'date_initiation'
         ]
 
 

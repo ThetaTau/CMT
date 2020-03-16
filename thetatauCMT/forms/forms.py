@@ -425,10 +425,22 @@ class RiskManagementForm(forms.ModelForm):
 
 
 class PledgeProgramForm(forms.ModelForm):
+    date_complete = forms.DateField(
+        label=PledgeProgram.verbose_complete,
+        widget=DatePicker(options={"format": "M/DD/YYYY"},
+                          attrs={'autocomplete': 'off'},
+                          ))
+    date_initiation = forms.DateField(
+        label=PledgeProgram.verbose_initiation,
+        widget=DatePicker(options={"format": "M/DD/YYYY"},
+                          attrs={'autocomplete': 'off'},
+                          ))
+
     class Meta:
         model = PledgeProgram
         fields = [
-            'manual', 'other_manual'
+            'remote', 'manual', 'other_manual',
+            'date_complete', 'date_initiation',
         ]
 
     def clean_other_manual(self):
