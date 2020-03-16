@@ -11,7 +11,7 @@ class Migration(migrations.Migration):
     dependencies = [
         ('viewflow', '0008_jsonfield_and_artifact'),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
-        ('forms', '0027_auto_20200103_1544'),
+        ('forms', '0028_auto_20200315_1630'),
     ]
 
     operations = [
