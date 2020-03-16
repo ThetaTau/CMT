@@ -997,7 +997,8 @@ class PledgeProgramListView(NatOfficerRequiredMixin,
         context = super().get_context_data(**kwargs)
         all_forms = self.object_list
         data = list(all_forms.values('chapter__name', 'chapter__region__name',
-                                     'year', 'term', 'manual',))
+                                     'year', 'term', 'manual', 'remote',
+                                     'date_complete', 'date_initiation'))
         for dat in data:
             dat['chapter'] = dat['chapter__name']
             del dat['chapter__name']
@@ -1018,7 +1019,8 @@ class PledgeProgramListView(NatOfficerRequiredMixin,
                 missing_chapters = Chapter.objects.exclude(id__in=form_chapters)
             missing_data = [{
                  'chapter': chapter.name, 'region': chapter.region.name,
-                 'manual': None, 'term': None, 'year': None,
+                 'manual': None, 'term': None, 'year': None, 'remote': None,
+                'date_complete': None, 'date_initiation': None,
              } for chapter in missing_chapters]
             if complete == '0':  # Incomplete
                 data = missing_data
@@ -1040,6 +1042,7 @@ class PledgeProgramFormView(OfficerRequiredMixin,
         context = super().get_context_data(**kwargs)
         program = PledgeProgram.form_chapter_term(
             chapter=self.request.user.current_chapter)
+        program = False
         context['current_program'] = program
         return context
 

@@ -47,6 +47,10 @@ After a multi-year effort that included education professionals interviewing stu
 </div>
 <div {% if current_program %}hidden{% endif %}>
   <form enctype="multipart/form-data" method="POST">
+  {{ form.media }}
+  {{ form.remote|as_crispy_field }}
+  {{ form.date_complete|as_crispy_field }}
+  {{ form.date_initiation|as_crispy_field }}
     <b>Select which manual version your chapter is using for the school year:</b>
   {{ form.manual|as_crispy_field }}
     {% if form.manual.errors %}
