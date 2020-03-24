@@ -4,7 +4,6 @@ from django.contrib.auth.models import Group, Permission
 
 
 PERMISSIONS = ['can_start_convention',
-               'can_start_initiationprocess',
                'can_start_prematurealumnus']
 
 
