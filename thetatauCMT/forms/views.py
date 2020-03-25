@@ -126,10 +126,26 @@ class InitDeplSelectView(OfficerRequiredMixin,
         helper = InitDeplSelectFormHelper()
         helper.add_input(Submit("submit", "Next"))
         context['helper'] = helper
+        processes = InitiationProcess.objects.filter(
+            chapter__name=self.request.user.current_chapter)
+        data = []
+        for process in processes:
+            active_task = process.active_tasks().first()
+            if active_task:
+                status = active_task.flow_task.task_description
+            else:
+                status = "Initiation Process Complete"
+            members = ', '.join(list(
+                process.initiations.values_list('user__name', flat=True)))
+            data.append({
+                'initiation': process.initiations.first().date,
+                'submitted': process.created,
+                'status': status,
+                'member_names': members,
+            })
         pledges = PledgeFormTable(PledgeForm.objects.filter(
             chapter=self.request.user.current_chapter).order_by('-created'))
-        inits = InitiationTable(Initiation.objects.filter(
-            user__chapter=self.request.user.current_chapter).order_by('-date'))
+        inits = InitiationTable(data=data, order_by='-submitted')
         depledges = DepledgeTable(Depledge.objects.filter(
             user__chapter=self.request.user.current_chapter).order_by('-date'))
         RequestConfig(self.request).configure(inits)

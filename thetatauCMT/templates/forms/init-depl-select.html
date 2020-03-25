@@ -26,23 +26,54 @@
   {% endif %}
 <h2>Previously submitted forms:</h2>
   All forms below have been submitted to the central office but may not have yet been processed.
-<div class="container">
-  <div class="row">
-    <div class="col-md-3">
+<ul class="nav nav-tabs" id="myTab" role="tablist">
+  <li class="nav-item">
+    <a class="nav-link active" id="home-tab" data-toggle="tab" href="#home" role="tab" aria-controls="home" aria-selected="true">Pledge Forms</a>
+  </li>
+  <li class="nav-item">
+    <a class="nav-link" id="initiations-tab" data-toggle="tab" href="#initiations" role="tab" aria-controls="initiations" aria-selected="false">Initiation Forms</a>
+  </li>
+  <li class="nav-item">
+    <a class="nav-link" id="depledge-tab" data-toggle="tab" href="#depledge" role="tab" aria-controls="depledge" aria-selected="false">Depledge Forms</a>
+  </li>
+</ul>
+<div class="tab-content" id="myTabContent">
+<div class="tab-pane fade show active" id="home" role="tabpanel" aria-labelledby="home-tab">
+  <div class="container">
+    <div class="row">
   <h3>Pledge Forms:</h3>
-      These forms have been processed when you see the PNM listed above.
+      </div>
+    <div class="row">
+      <p>These forms have been processed when you see the PNM listed above.</p>
+    </div>
+    <div class="row">
   {% render_table pledges_table %}
     </div>
-    <div class="col-md-4">
+  </div>
+</div>
+<div class="tab-pane fade" id="initiations" role="tabpanel" aria-labelledby="initiations-tab">
+  <div class="container">
+    <div class="row">
   <h3>Initiation Forms:</h3>
-      In member list, status will change activepending to active after processing.
+    </div>
+      <div class="row">
+        <p>In member list, status will change activepending to active after processing.</p>
+      </div>
+    <div class="row">
   {% render_table init_table %}
     </div>
-    <div class="col-md-4">
+  </div>
+</div>
+<div class="tab-pane fade" id="depledge" role="tabpanel" aria-labelledby="depledge-tab">
+  <div class="container">
+    <div class="row">
   <h3>Depledge Forms:</h3>
+    </div>
+      <div class="row">
   {% render_table depledge_table %}
     </div>
   </div>
+</div>
 </div>
 {% endspecialspaceless %}
 {% endblock content %}

@@ -32,14 +32,13 @@ class PledgeFormTable(tables.Table):
 
 
 class InitiationTable(tables.Table):
-    user = tables.Column(accessor='user.name')
-    date = tables.DateColumn(verbose_name="Initiation Date")
-    created = tables.DateColumn(verbose_name="Submitted")
+    initiation = tables.DateColumn(verbose_name="Initiation Date")
+    submitted = tables.DateColumn()
+    status = tables.Column()
+    member_names = tables.Column()
 
     class Meta:
-        model = Initiation
-        fields = ('user', 'date', 'created')
-        attrs = {"class": "table-striped table-bordered"}
+        attrs = {"class": "table-striped table-bordered", }
 
 
 class DepledgeTable(tables.Table):

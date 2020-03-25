@@ -37,7 +37,7 @@ td[complete='True'] {
 
 /* ===Navigation=== */
 #NAV, .navbar,  .navbar a:hover, .dropdown-item.active,
-.dropdown-item:active, .dropdown, .dropdown-item, dropdown-toggle{
+.dropdown-item:active, .dropdown, .dropdown-item, dropdown-toggle, .nav-link{
     background: linear-gradient( #8B0000, #A00000 10%, #8B0000 90%);
 }
 
