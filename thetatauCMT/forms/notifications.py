@@ -237,7 +237,7 @@ class EmailProcessUpdate(EmailNotification):
             file_name = file.name
         process_title = activation.flow_class.process_title
         self.to_emails = {user.email}  # set list of emails to send to
-        self.cc = {"cmt@thetatau.org", 'central.office@thetatau.org'} | emails
+        self.cc = list({"cmt@thetatau.org", 'central.office@thetatau.org'} | emails)
         self.reply_to = ["cmt@thetatau.org", ]
         self.subject = f'[CMT] {process_title} {state} for {obj}'
         info = {}
