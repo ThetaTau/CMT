@@ -274,7 +274,7 @@ class InitiationProcessFlow(Flow):
     )
 
     @method_decorator(flow.flow_start_func)
-    def create_flow(self, activation, initiations, request=None, **kwargs):
+    def create_flow(self, activation, initiations, request=None, created=None, **kwargs):
         activation.process.chapter = initiations[0].user.chapter
         activation.process.save()
         if request is not None:
@@ -282,6 +282,9 @@ class InitiationProcessFlow(Flow):
         else:
             activation.prepare()
         activation.done()
+        if created is not None:
+            activation.process.created = created
+            activation.process.save()
         member_list = []
         for initiation in initiations:
             activation.process.initiations.add(initiation)
