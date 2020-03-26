@@ -268,7 +268,8 @@ class InitiationView(OfficerRequiredMixin,
                 f"You successfully submitted depledge report for:\n"
                 f"{depledge_list}")
         from .flows import InitiationProcessFlow
-        InitiationProcessFlow.start.run(initiations=initiations, request=request)
+        if initiations:
+            InitiationProcessFlow.start.run(initiations=initiations, request=request)
         return HttpResponseRedirect(self.get_success_url())
 
     def get_success_url(self):

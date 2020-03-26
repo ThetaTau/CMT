@@ -470,9 +470,11 @@
                         <br>
 Dear {{ user }},
                             <div id="hijacked"></div>
-<p>This is a notification for update on {{ process_title }} for {{ user }}</p>
+<p>This is a notification for update on {{ process_title }} for {{ obj }}</p>
 <p>{{ message }}</p>
+{% if file_name %}
 <p><strong>Attached is a copy of "{{ file_name }}".</strong></p>
+{% endif %}
 <table>
   <tr>
     <th>Step Complete</th>
@@ -491,12 +493,12 @@ Dear {{ user }},
   </tr>
   {% for key, value in info.items %}
     <tr>
-    <th>{{ key }}</th>
+    <th>{{ key|title }}</th>
     <td>{{ value }}</td>
     </tr>
   {% endfor %}
 </table>
-<p>Please review the document and above information and reach out with any questions/concerns.</p>
+<p>Please review the {% if file_name %}document and {% endif %}above information and reach out with any questions/concerns.</p>
 <p>In H&T,<br>Chapter Management Tool</p>
                         </td>
                     </tr>

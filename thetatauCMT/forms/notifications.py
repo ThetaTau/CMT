@@ -219,16 +219,32 @@ class EmailProcessUpdate(EmailNotification):
     template_name = 'process'
 
     def __init__(self, activation, complete_step, next_step, state, message, fields):
-        user = activation.process.user
-        file = activation.process.form
+        if hasattr(activation.process, 'user'):
+            user = activation.process.user
+            obj = user
+            emails = []
+        else:
+            user = activation.process.created_by
+            obj = activation.process.chapter
+            officers, _ = activation.process.chapter.get_current_officers_council(combine=False)
+            emails = set([officer.email for officer in officers])
+            if user.email in emails:
+                emails.remove(user.email)
+        file = False
+        file_name = None
+        if hasattr(activation.process, 'form'):
+            file = activation.process.form
+            file_name = file.name
         process_title = activation.flow_class.process_title
-        self.to_emails = set([user.email])  # set list of emails to send to
-        self.cc = ["cmt@thetatau.org", 'central.office@thetatau.org']
+        self.to_emails = {user.email}  # set list of emails to send to
+        self.cc = {"cmt@thetatau.org", 'central.office@thetatau.org'} | emails
         self.reply_to = ["cmt@thetatau.org", ]
-        file_name = file.name
-        self.subject = f'[CMT] {process_title} {state} for {user}'
+        self.subject = f'[CMT] {process_title} {state} for {obj}'
         info = {}
         for field in fields:
+            if isinstance(field, dict):
+                info.update(field)
+                continue
             key = activation.process._meta.get_field(field).verbose_name
             value = getattr(activation.process, field, '')
             if activation.process._meta.get_field(field).choices:
@@ -236,6 +252,7 @@ class EmailProcessUpdate(EmailNotification):
             info[key] = value
         self.context = {
             'user': user,
+            'obj': obj,
             'file_name': file_name,
             'complete_step': complete_step,
             'next_step': next_step,
@@ -246,21 +263,44 @@ class EmailProcessUpdate(EmailNotification):
             'state': state,
         }
         # https://github.com/worthwhile/django-herald#email-attachments
-        file.seek(0)
-        self.attachments = [
-            (file_name, file.read(), None),
-        ]
+        if file:
+            file.seek(0)
+            self.attachments = [
+                (file_name, file.read(), None),
+            ]
 
     @staticmethod
     def get_demo_args():  # define a static method to return list of args needed to initialize class for testing
         from forms.models import PrematureAlumnus
-        test = PrematureAlumnus.objects.order_by('?')[0]
+        from forms.models import InitiationProcess
+        # test = PrematureAlumnus.objects.order_by('?')[0]
+        test = InitiationProcess.objects.order_by('?')[0]
+        member_list = 'Test, blue, green, red, orange, purple'
         test.process = test
-        return [test, "Premature Alumnus Request", "Executive Director Review",
-                "Submitted", "This is the test message",
-                ['good_standing', 'financial', 'semesters', 'lifestyle',
-                 'consideration', 'prealumn_type', 'vote', 'approved_exec',
-                 'exec_comments', ]]
+        # return [test, "Premature Alumnus Request", "Executive Director Review",
+        #         "Submitted", "This is the test message",
+        #         ['good_standing', 'financial', 'semesters', 'lifestyle',
+        #          'consideration', 'prealumn_type', 'vote', 'approved_exec',
+        #          'exec_comments', ]]
+        # return [test, "Initiation Report Submitted",
+        #         "Central Office Processing & Invoice Generation",
+        #         "Submitted",
+        #         "Your chapter has submitted an initiation report." +
+        #         " Once the Central Office processes the report, an invoice will be generated" +
+        #         " and will be sent to your chapter on the last business day of this month.",
+        #         [{'members': member_list}, ]]
+        # return [test, "Initiation Invoice Paid",
+        #         "Central Office Badge/Shingle Order",
+        #         "Payment Received",
+        #         "Your chapter has paid an initiation invoice." +
+        #         " Once the Central Office processes the payment, an order will be sent" +
+        #         " to the jeweler/shingler.",
+        #         [{'members': member_list}, 'invoice', ]]
+        return [test, "Badge/Shingles Order Submitted",
+                "Initiation Process Complete",
+                "Badges/Shingles Ordered",
+                "A badges and shingles order has been sent to the vendor.",
+                [{'members': member_list}, 'invoice', ]]
 
 
 @registry.register_decorator()

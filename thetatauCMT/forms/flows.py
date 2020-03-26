@@ -239,6 +239,14 @@ class InitiationProcessFlow(Flow):
             task_description=_("Invoice payment by chapter"),
             task_result_summary=_("Invoice paid by chapter"))
         .Assign(lambda act: User.objects.get(username="Jim.Gaffney@thetatau.org"))
+        .Next(this.invoice_payment_email)
+    )
+
+    invoice_payment_email = (
+        flow.Handler(
+            this.send_invoice_payment_email,
+            task_title=_('Send Invoice Payment Email'),
+        )
         .Next(this.order_complete)
     )
 
@@ -274,15 +282,48 @@ class InitiationProcessFlow(Flow):
         else:
             activation.prepare()
         activation.done()
+        member_list = []
         for initiation in initiations:
             activation.process.initiations.add(initiation)
+            member_list.append(initiation.user.name)
+        member_list = ', '.join(member_list)
+        EmailProcessUpdate(
+            activation, "Initiation Report Submitted",
+            "Central Office Processing & Invoice Generation",
+            "Submitted",
+            "Your chapter has submitted an initiation report." +
+            " Once the Central Office processes the report, an invoice will be generated" +
+            " and will be sent to your chapter on the last business day of this month.",
+            [{'members': member_list}, ]
+        ).send()
         return activation
 
     def send_invoice_func(self, activation):
         ...
 
+    def send_invoice_payment_email(self, activation):
+        member_list = activation.process.initiations.values_list('user__email', flat=True)
+        member_list = ', '.join(member_list)
+        EmailProcessUpdate(
+            activation, "Initiation Invoice Paid",
+            "Central Office Badge/Shingle Order",
+            "Payment Received",
+            "Your chapter has paid an initiation invoice." +
+            " Once the Central Office processes the payment, an order will be sent" +
+            " to the jeweler/shingler.",
+            [{'members': member_list}, 'invoice', ]
+        ).send()
+
     def send_order_func(self, activation):
-        ...
+        member_list = activation.process.initiations.values_list('user__email', flat=True)
+        member_list = ', '.join(member_list)
+        EmailProcessUpdate(
+            activation, "Badge/Shingles Order Submitted",
+            "Initiation Process Complete",
+            "Badges/Shingles Ordered",
+            "A badges and shingles order has been sent to the vendor.",
+            [{'members': member_list}, 'invoice', ]
+        ).send()
 
 
 @frontend.register
