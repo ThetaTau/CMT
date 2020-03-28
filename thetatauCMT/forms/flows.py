@@ -5,6 +5,7 @@ from viewflow.base import this, Flow
 from viewflow.compat import _
 from viewflow.flow import views as flow_views
 from core.models import forever
+from core.flows import AutoAssignUpdateProcessView, NoAssignView
 from .models import PrematureAlumnus, InitiationProcess, Convention
 from .views import PrematureAlumnusCreateView, ConventionCreateView,\
     ConventionSignView
@@ -215,12 +216,12 @@ class InitiationProcessFlow(Flow):
     )
 
     invoice_chapter = (
-        flow.View(
-            flow_views.UpdateProcessView, fields=['invoice', ],
+        NoAssignView(
+            AutoAssignUpdateProcessView, fields=['invoice', ],
             task_title=_('Invoice Chapter'),
             task_description=_("Send invoice to chapter"),
             task_result_summary=_("Invoice was sent to chapter"))
-        .Assign(lambda act: User.objects.get(username="Jim.Gaffney@thetatau.org"))
+        .Permission('auth.central_office')
         .Next(this.invoice_payment)
     )
 
@@ -233,12 +234,12 @@ class InitiationProcessFlow(Flow):
     )
 
     invoice_payment = (
-        flow.View(
-            flow_views.UpdateProcessView,
+        NoAssignView(
+            AutoAssignUpdateProcessView,
             task_title=_('Invoice Payment'),
             task_description=_("Invoice payment by chapter"),
             task_result_summary=_("Invoice paid by chapter"))
-        .Assign(lambda act: User.objects.get(username="Jim.Gaffney@thetatau.org"))
+        .Permission('auth.central_office')
         .Next(this.invoice_payment_email)
     )
 
@@ -251,12 +252,12 @@ class InitiationProcessFlow(Flow):
     )
 
     order_complete = (
-        flow.View(
-            flow_views.UpdateProcessView,
+        NoAssignView(
+            AutoAssignUpdateProcessView,
             task_title=_('Order Complete'),
             task_description=_("Badge/shingle placing order"),
             task_result_summary=_("Badge/shingle order has been placed"))
-        .Assign(lambda act: User.objects.get(username="Jim.Gaffney@thetatau.org"))
+        .Permission('auth.central_office')
         .Next(this.send_order)
     )
 
