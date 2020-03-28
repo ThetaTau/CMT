@@ -1,11 +1,15 @@
 from django import forms
 from django.contrib import admin
+from django.contrib.auth.models import Permission
 from django.contrib.auth.admin import UserAdmin as AuthUserAdmin
 from django.contrib.auth.forms import UserChangeForm, UserCreationForm
 from .models import User, UserRoleChange, UserStatusChange, UserOrgParticipate,\
     UserSemesterGPA, UserSemesterServiceHours
 from forms.models import Depledge, Initiation, StatusChange
 from core.admin import user_chapter
+
+
+admin.site.register(Permission)
 
 
 class UserStatusChangeAdmin(admin.ModelAdmin):
