@@ -2,12 +2,12 @@
 
 -r base.txt
 
-gevent==1.2.2
-gunicorn==19.9.0  # https://github.com/benoitc/gunicorn
-boto3==1.6.2  # pyup: update minor  # https://github.com/boto/boto3
-psycopg2==2.8.3 --no-binary psycopg2  # https://github.com/psycopg/psycopg2
+gevent==1.4.0
+gunicorn==20.0.4  # https://github.com/benoitc/gunicorn
+boto3==1.12.36  # pyup: update minor  # https://github.com/boto/boto3
+psycopg2==2.8.4 --no-binary psycopg2  # https://github.com/psycopg/psycopg2
 
 # Django
 # ------------------------------------------------------------------------------
-django-anymail[mailgun]==6.0.1  # https://github.com/anymail/django-anymail
-django-sendgrid-v5==0.8.0  # https://github.com/sklarsa/django-sendgrid-v5
+django-anymail[sendgrid]==7.0.0  # https://github.com/anymail/django-anymail
+django-sendgrid-v5==0.8.1  # https://github.com/sklarsa/django-sendgrid-v5
