@@ -222,7 +222,7 @@ class EmailProcessUpdate(EmailNotification):
         if hasattr(activation.process, 'user'):
             user = activation.process.user
             obj = user
-            emails = []
+            emails = set()
         else:
             user = activation.process.created_by
             obj = activation.process.chapter
