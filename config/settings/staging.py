@@ -8,3 +8,5 @@ CURRENT_URL = 'https://venturafranklin.pythonanywhere.com'
 EMAIL_BACKEND = 'core.email.MyHijackBackend'
 
 BANDIT_EMAIL = ['cmt@thetatau.org', ]
+
+ACCOUNT_EMAIL_VERIFICATION = 'none'
