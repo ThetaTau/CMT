@@ -12,14 +12,18 @@
   chapter at the forthcoming Convention, in accord with the Laws and Customs of Theta Tau.
   <hr>
   {% if not submitted %}
-  <form method="POST" enctype="multipart/form-data">
-    {{ form.media }}
-    <link href="{% static 'css/project.css' %}" rel="stylesheet">
-    {% csrf_token %}
-    {{ form|crispy }}
-    {{ activation.management_form }}
-    <button class="primaryAction btn btn-primary" type="submit">{% trans "Submit Form" %}</button>
-  </form>
+    {% if request.user.is_officer  %}
+      <form method="POST" enctype="multipart/form-data">
+        {{ form.media }}
+        <link href="{% static 'css/project.css' %}" rel="stylesheet">
+        {% csrf_token %}
+        {{ form|crispy }}
+        {{ activation.management_form }}
+        <button class="primaryAction btn btn-primary" type="submit">{% trans "Submit Form" %}</button>
+      </form>
+    {% else %}
+      <p>Convention form not yet submitted this year, please contact your chapter officers.</p>
+    {% endif %}
   <br>
     {% else %}
     <p>Convention Credential Form already submitted this year.</p>

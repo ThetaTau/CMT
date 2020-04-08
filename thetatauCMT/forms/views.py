@@ -1345,7 +1345,7 @@ def get_credential_status(user):
     return data, submitted, users
 
 
-class ConventionCreateView(OfficerRequiredMixin, LoginRequiredMixin,
+class ConventionCreateView(LoginRequiredMixin,
                            OfficerMixin, CreateProcessView):
     template_name = "forms/convention_form.html"
     model = Convention
