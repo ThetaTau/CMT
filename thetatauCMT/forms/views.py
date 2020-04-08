@@ -1459,7 +1459,8 @@ class ConventionSignView(LoginRequiredMixin, OfficerMixin,
         delegate = False
         if 'del' in task_name or 'alt' in task_name:
             delegate = True
-            context['forms']['user'].fields['phone_number'].required = True
+            if 'user' in context['forms']:
+                context['forms']['user'].fields['phone_number'].required = True
         data, submitted, users = get_credential_status(self.request.user)
         context['submitted'] = submitted
         context['table'] = ConventionTable(data=data)
