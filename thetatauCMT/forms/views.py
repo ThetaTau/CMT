@@ -1353,6 +1353,14 @@ class ConventionCreateView(LoginRequiredMixin,
 
     def get(self, request, *args, **kwargs):
         self.data, self.submitted, self.signers = get_credential_status(self.request.user)
+        officers = self.get_council_officers(request.user.current_chapter)
+        if not all(officers):
+            missing = [['regent', 'scribe', 'vice regent', 'treasurer'][ind]
+                       for ind, miss in enumerate(officers) if not miss]
+            messages.add_message(
+                self.request, messages.ERROR,
+                f"You must update the officers list! Missing officers: {missing}")
+            return redirect(reverse('forms:officer'))
         if self.submitted and self.request.user in self.signers:
             for sign in self.data:
                 if self.request.user == sign['owner'] and sign['status'] != 'Signed':
@@ -1364,15 +1372,19 @@ class ConventionCreateView(LoginRequiredMixin,
         self.activation.done()
         self.success('Convention form submitted successfully.')
 
-    def form_valid(self, form, *args, **kwargs):
-        chapter = self.request.user.current_chapter
-        form.instance.chapter = chapter
+    def get_council_officers(self, chapter):
         officers = chapter.get_current_officers_council(combine=False)[0]
-        del_alt = [form.instance.delegate, form.instance.alternate]
         regent = officers.filter(role='regent').first()
         scribe = officers.filter(role='scribe').first()
         vice = officers.filter(role='vice regent').first()
         treasurer = officers.filter(role='treasurer').first()
+        return regent, scribe, vice, treasurer
+
+    def form_valid(self, form, *args, **kwargs):
+        chapter = self.request.user.current_chapter
+        form.instance.chapter = chapter
+        del_alt = [form.instance.delegate, form.instance.alternate]
+        regent, scribe, vice, treasurer = self.get_council_officers(chapter)
         officer1 = officer2 = False
         if regent not in del_alt:
             form.instance.officer1 = regent
