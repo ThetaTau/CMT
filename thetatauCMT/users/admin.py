@@ -4,7 +4,7 @@ from django.contrib.auth.models import Permission
 from django.contrib.auth.admin import UserAdmin as AuthUserAdmin
 from django.contrib.auth.forms import UserChangeForm, UserCreationForm
 from .models import User, UserRoleChange, UserStatusChange, UserOrgParticipate,\
-    UserSemesterGPA, UserSemesterServiceHours
+    UserSemesterGPA, UserSemesterServiceHours, UserAlter
 from forms.models import Depledge, Initiation, StatusChange
 from core.admin import user_chapter
 
@@ -138,9 +138,17 @@ class InitiationInline(admin.TabularInline):
     ordering = ['date']
     extra = 0
 
+
+class UserAlterInline(admin.StackedInline):
+    model = UserAlter
+    fields = ['chapter', 'role']
+    show_change_link = True
+    extra = 0
+
+
 @admin.register(User)
 class MyUserAdmin(AuthUserAdmin):
-    inlines = [StatusInline, RoleInline, InitiationInline, StatusChangeInline, DepledgeInline]
+    inlines = [UserAlterInline, StatusInline, RoleInline, InitiationInline, StatusChangeInline, DepledgeInline]
     form = MyUserChangeForm
     add_form = MyUserCreationForm
     fieldsets = (
