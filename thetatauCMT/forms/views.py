@@ -1301,7 +1301,7 @@ def badge_shingle_init_csv(request, csv_type, process_pk):
 def get_credential_status(user):
     data = []
     process = Convention.objects.filter(
-        delegate__chapter=user.current_chapter,
+        chapter=user.current_chapter,
         year=Convention.current_year()).first()
     submitted = False
     users = []
