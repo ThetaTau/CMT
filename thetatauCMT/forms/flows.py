@@ -340,7 +340,7 @@ class ConventionFlow(Flow):
         flow.Start(
             ConventionCreateView,
             task_title=_('Submit Convention Form'))
-        .Permission(auto_create=True)
+        # .Permission(auto_create=True)
         .Next(this.email_signers)
     )
 
