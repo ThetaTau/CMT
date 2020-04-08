@@ -1367,6 +1367,10 @@ class ConventionCreateView(LoginRequiredMixin,
                     return redirect(sign['link'])
         return super().get(request, *args, **kwargs)
 
+    def get_success_url(self):
+        """Continue on task or redirect back to task list."""
+        return reverse('conventionform')
+
     def activation_done(self, *args, **kwargs):
         """Finish task activation."""
         self.activation.done()
@@ -1447,8 +1451,14 @@ class ConventionSignView(LoginRequiredMixin, OfficerMixin,
         self.activation.done()
         self.success('Convention form signed successfully.')
 
+    def user_form_valid(self, form):
+        if form.has_changed():
+            form.save()
+        return HttpResponseRedirect(self._get_success_url())
+
     def process_form_valid(self, *args, **kwargs):
-        return super().form_valid(*args, **kwargs)
+        super().form_valid(*args, **kwargs)
+        return HttpResponseRedirect(self._get_success_url())
 
     def create_process_form(self, *args, **kwargs):
         task_name = self.activation.flow_task.name
@@ -1463,6 +1473,8 @@ class ConventionSignView(LoginRequiredMixin, OfficerMixin,
                 del forms['user']
             if 'user' in self.form_classes:
                 del self.form_classes['user']
+            if 'user' in self.grouped_forms['form']:
+                self.grouped_forms['form'].remove('user')
         return forms
 
     def get_context_data(self, *args, **kwargs):
