@@ -410,5 +410,5 @@ class ConventionFlow(Flow):
         for user_role in ['delegate', 'alternate', 'officer1', 'officer2']:
             user = getattr(activation.process, user_role)
             EmailConventionUpdate(
-                activation, user, "Convention Form Submitted",
+                activation, user, "Convention Credential Form Submitted",
             ).send()

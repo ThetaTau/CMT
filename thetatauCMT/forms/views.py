@@ -1374,7 +1374,7 @@ class ConventionCreateView(LoginRequiredMixin,
     def activation_done(self, *args, **kwargs):
         """Finish task activation."""
         self.activation.done()
-        self.success('Convention form submitted successfully.')
+        self.success('Convention Credential form submitted successfully.')
 
     def get_council_officers(self, chapter):
         officers = chapter.get_current_officers_council(combine=False)[0]
@@ -1449,7 +1449,7 @@ class ConventionSignView(LoginRequiredMixin, OfficerMixin,
     def activation_done(self, *args, **kwargs):
         """Finish task activation."""
         self.activation.done()
-        self.success('Convention form signed successfully.')
+        self.success('Convention Credential form signed successfully.')
 
     def user_form_valid(self, form):
         if form.has_changed():

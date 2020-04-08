@@ -884,7 +884,7 @@ class ConventionFormHelper(FormHelper):
     html5_required = True
     layout = Layout(
                 Fieldset(
-                    '<i class="fas fa-search"></i> Filter Convention Forms',
+                    '<i class="fas fa-search"></i> Filter Convention Credential Forms',
                     Row(
                         Field('region'),
                         Field('complete'),
