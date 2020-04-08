@@ -73,3 +73,5 @@ CELERY_ALWAYS_EAGER = True
 CELERY_TASK_EAGER_PROPAGATES = True
 # Your stuff...
 # ------------------------------------------------------------------------------
+
+ACCOUNT_EMAIL_VERIFICATION = 'none'
