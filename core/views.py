@@ -19,7 +19,7 @@ from viewflow.frontend.views import AllTaskListView, FlowListMixin,\
 
 
 class NatOfficerRequiredMixin(GroupRequiredMixin):
-    group_required = u"blue"
+    group_required = u"natoff"
 
     def get_login_url(self):
         messages.add_message(
