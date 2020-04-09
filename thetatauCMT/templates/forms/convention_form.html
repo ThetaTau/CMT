@@ -23,6 +23,7 @@
           {% endfor %}
         {% endif %}
         {{ form|crispy }}
+        {{ activation.management_form }}
         <button class="primaryAction btn btn-primary" type="submit">{% trans "Submit Form" %}</button>
       </form>
     {% else %}
