@@ -866,6 +866,11 @@ class ConventionForm(forms.ModelForm):
                      )
         ),
     )
+    meeting_date = forms.DateField(
+        label="Meeting Date",
+        widget=DatePicker(options={"format": "M/DD/YYYY"},
+                          attrs={'autocomplete': 'off'},
+                          ))
 
     class Meta:
         model = Convention

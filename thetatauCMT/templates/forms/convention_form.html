@@ -17,8 +17,12 @@
         {{ form.media }}
         <link href="{% static 'css/project.css' %}" rel="stylesheet">
         {% csrf_token %}
+        {% if form.meeting_date.errors %}
+          {% for error in form.meeting_date.errors %}
+            <strong style="color:red">{{ error }}</strong>
+          {% endfor %}
+        {% endif %}
         {{ form|crispy }}
-        {{ activation.management_form }}
         <button class="primaryAction btn btn-primary" type="submit">{% trans "Submit Form" %}</button>
       </form>
     {% else %}

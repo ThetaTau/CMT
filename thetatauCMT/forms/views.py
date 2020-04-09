@@ -1350,6 +1350,8 @@ class ConventionCreateView(LoginRequiredMixin,
     template_name = "forms/convention_form.html"
     model = Convention
     form_class = ConventionForm
+    submitted = False
+    data = {}
 
     def get(self, request, *args, **kwargs):
         self.data, self.submitted, self.signers = get_credential_status(self.request.user)

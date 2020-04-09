@@ -11,7 +11,7 @@ from django.core.validators import MaxValueValidator, RegexValidator
 from django.conf import settings
 from django.utils import timezone
 from django.utils.text import slugify
-from core.models import TimeStampedModel, YearTermModel, validate_year
+from core.models import TimeStampedModel, YearTermModel, validate_year, no_future
 from django.utils.translation import gettext_lazy as _
 from address.models import AddressField
 from multiselectfield import MultiSelectField
@@ -822,7 +822,7 @@ class InitiationProcess(Process):
 
 class Convention(Process, YearTermModel):
     BOOL_CHOICES = ((True, 'Approve'), (False, 'Deny'))
-    meeting_date = models.DateField(default=timezone.now)
+    meeting_date = models.DateField(default=timezone.now, validators=[no_future])
     delegate = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
         related_name="delegate", verbose_name="Delegate Signature")
