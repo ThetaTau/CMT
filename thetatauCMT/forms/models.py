@@ -821,6 +821,7 @@ class InitiationProcess(Process):
 
 
 class Convention(Process, YearTermModel):
+    BOOL_CHOICES = ((True, 'Approve'), (False, 'Deny'))
     meeting_date = models.DateField(default=timezone.now)
     delegate = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
@@ -844,5 +845,7 @@ class Convention(Process, YearTermModel):
         max_length=255, help_text="Please sign using your proper/legal name")
     signature_o2 = models.CharField(
         max_length=255, help_text="Please sign using your proper/legal name")
-    approved_o1 = models.BooleanField('Officer Approved', default=False)
-    approved_o2 = models.BooleanField('Officer Approved', default=False)
+    approved_o1 = models.BooleanField('Officer Approved', choices=BOOL_CHOICES,
+                                      default=False)
+    approved_o2 = models.BooleanField('Officer Approved', choices=BOOL_CHOICES,
+                                      default=False)
