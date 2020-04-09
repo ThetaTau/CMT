@@ -17,6 +17,12 @@ def forever():
     return datetime.datetime(2018, 1, 1) + timezone.timedelta(days=1000000)
 
 
+def no_future(value):
+    today = datetime.date.today()
+    if value > today:
+        raise ValidationError('Date cannot be in the future.')
+
+
 SEMESTER = {
     0: 'sp',
     1: 'sp',
