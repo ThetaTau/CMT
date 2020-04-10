@@ -1335,6 +1335,9 @@ def get_credential_status(user):
                 link = "#"
                 approved = getattr(process, f"approved_{abbr}", "N/A")
             users.append(signer)
+            if user.current_chapter.colony:
+                if signature in ['delegate', 'alternate']:
+                    signature = 'representative'
             data.append({
                 'owner': signer,
                 'role': signature,
