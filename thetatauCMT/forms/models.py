@@ -822,6 +822,7 @@ class InitiationProcess(Process):
 
 class Convention(Process, YearTermModel):
     BOOL_CHOICES = ((True, 'Approve'), (False, 'Deny'))
+    BOOL_CHOICES_UNDERSTAND = ((True, 'Yes'), (False, 'No'))
     meeting_date = models.DateField(default=timezone.now, validators=[no_future])
     delegate = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
@@ -829,6 +830,15 @@ class Convention(Process, YearTermModel):
     alternate = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
         related_name="alternate", verbose_name="Alternate Signature")
+    verbose_understand = _(
+        """I have read and understand the "Convention Expenses" and the "Alcohol Policy
+        for National Meetings" policies in the Theta Tau Policies and Procedures Manual.""")
+    understand_del = models.BooleanField(verbose_understand,
+                                         choices=BOOL_CHOICES_UNDERSTAND,
+                                         default=False)
+    understand_alt = models.BooleanField(verbose_understand,
+                                         choices=BOOL_CHOICES_UNDERSTAND,
+                                         default=False)
     chapter = models.ForeignKey(
         Chapter, on_delete=models.CASCADE, related_name="convention")
     officer1 = models.ForeignKey(

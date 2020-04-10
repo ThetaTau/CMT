@@ -1432,8 +1432,8 @@ class ConventionSignView(LoginRequiredMixin, OfficerMixin,
         'form': ['process', 'user']
     }
     fields_options = {
-        'assign_del': ['signature_del', ],
-        'assign_alt': ['signature_alt', ],
+        'assign_del': ['understand_del', 'signature_del', ],
+        'assign_alt': ['understand_alt', 'signature_alt', ],
         'assign_o1': ['signature_o1', 'approved_o1', ],
         'assign_o2': ['signature_o2', 'approved_o2', ],
     }

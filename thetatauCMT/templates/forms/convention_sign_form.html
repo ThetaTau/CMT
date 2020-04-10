@@ -14,6 +14,21 @@
   {% else %}
     At a regular meeting you were elected to represent {{ chapter }}
     chapter at the forthcoming Convention, in accord with the Laws and Customs of Theta Tau.
+    <br>
+    <div class="jumbotron">
+      <div class="container">
+        <h2>{% trans "Please Read and Acknowledge" %}</h2>
+        Please read the following policies in the <a href="http://thetatau.org/policies">Policy and Procedures Manual</a>:
+        <ul>
+          <li>
+            1.2.3 Convention Expenses
+          </li>
+          <li>
+            1.2.5 Alcohol Policy for National Meetings
+          </li>
+        </ul>
+      </div>
+    </div>
   {% endif %}
   {% render_table table %}
   <hr>
