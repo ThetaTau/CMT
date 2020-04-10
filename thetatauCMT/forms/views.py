@@ -1057,9 +1057,13 @@ class PledgeProgramFormView(OfficerRequiredMixin,
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        program = PledgeProgram.form_chapter_term(
-            chapter=self.request.user.current_chapter)
-        program = False
+        # program = PledgeProgram.form_chapter_term(
+        #     chapter=self.request.user.current_chapter)
+        program = PledgeProgram.objects.filter(
+            chapter=self.request.user.current_chapter,
+            year=PledgeProgram.current_year(),
+            term=PledgeProgram.current_term(),
+            ).first()
         context['current_program'] = program
         return context
 
