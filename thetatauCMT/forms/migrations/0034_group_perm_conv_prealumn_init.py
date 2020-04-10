@@ -3,8 +3,9 @@ from django.db import migrations
 from django.contrib.auth.models import Group, Permission
 
 
-PERMISSIONS = ['can_start_convention',
-               'can_start_prematurealumnus']
+PERMISSIONS = [
+    'can_start_prematurealumnus',
+]
 
 
 def set_permissions(apps, schema_editor):
