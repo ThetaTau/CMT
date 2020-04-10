@@ -83,7 +83,7 @@ python manage.py loaddata /home/Venturafranklin/thetatauCMT/database_backups/201
 pg_dump --format c --no-owner --oids \
 --host venturafranklin-874.postgres.pythonanywhere-services.com \
 --port 10874 --username thetatau --dbname thetataucmt \
---file=database_backups/20190821.bak
+--file=database_backups/20200410.bak
 ```
 __This does not work b/c the db is often in use...__
 ```
