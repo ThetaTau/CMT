@@ -127,7 +127,8 @@ ADMIN_URL = env('DJANGO_ADMIN_URL')
 # ------------------------------------------------------------------------------
 # https://anymail.readthedocs.io/en/stable/installation/#installing-anymail
 INSTALLED_APPS += ['anymail']  # noqa F405
-EMAIL_BACKEND = "sendgrid_backend.SendgridBackend"
+if DJANGO_EMAIL_LIVE:
+    EMAIL_BACKEND = "sendgrid_backend.SendgridBackend"
 SENDGRID_API_KEY = env("SENDGRID_API_KEY")
 
 # Gunicorn
