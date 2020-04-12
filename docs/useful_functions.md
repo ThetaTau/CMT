@@ -24,73 +24,46 @@ to go back in time:
 
 #### Super user from existing user
     python manage.py shell
+```python
 from users.models import User
 me = User.objects.get(username='venturafranklin@gmail.com')
 me.is_superuser=True
 me.is_staff=True
 me.set_password('_new_password_')
 me.save()
+```
     
 #### If delete/reload everything
 Need to fix social accounts
-- Go to: https://console.developers.google.com/apis/credentials/oauthclient/
+- Go to: https://console.cloud.google.com/apis/credentials?authuser=2&folder=&organizationId=&project=chaptermanagementtool
   - Make sure to get ChapterManagementTool
-- Fix the creds here: http://localhost:8000/admin/socialaccount/socialapp/
-    
+- Fix the creds (id & secret) here: http://localhost:8000/admin/socialaccount/socialapp/
+
 ## Backups/Restore
 
-### Django commands
-#### Dump 
-make sure to change date; `^ instead of \ in windows`
-
-This currently takes 5 minutes and is 44.9 MB on 20190303
-
-On restore: Need to fix the social accounts in development 
-````
-python manage.py dumpdata --natural-foreign \
---exclude auth.permission --exclude contenttypes \
---indent 4 > database_backups/20190811.json
-````
-#### Restore
-    python manage.py flush
-    python manage.py loaddata database_backups\$date$.json
 ### Postgres commands
 #### Dump
-    pg_dump --format c --no-owner --oids \
-    --host venturafranklin-874.postgres.pythonanywhere-services.com \
-    --port 10874 --username thetatau --dbname thetataucmt \
-    --file=database_backups/20190811.bak
-#### Restore
-    dropdb thetatauCMT
-    createdb thetatauCMT
-    pg_restore --no-owner --dbname=thetatauCMT \
-    --username=postgres --format=c database_backups/20190303.bak
-    
-    pg_restore --no-owner --dbname=testcmt --port 10874 \
-    --host venturafranklin-874.postgres.pythonanywhere-services.com \
-    --username=testthetatau --format=c database_backups/20190811.bak
-
-__This does not work when the staging db is off from prod. ie. new table name etc.__
-```
-workon thetatauCMT
-python manage.py dumpdata --natural-foreign \
---exclude auth.permission --exclude contenttypes \
---indent 4 > database_backups/20190821.json
-workon testCMT
-python manage.py flush
-python manage.py loaddata /home/Venturafranklin/thetatauCMT/database_backups/20190821.json
-
+```shell script
 pg_dump --format c --no-owner --oids \
 --host venturafranklin-874.postgres.pythonanywhere-services.com \
 --port 10874 --username thetatau --dbname thetataucmt \
---file=database_backups/20200410.bak
+--file=database_backups/20200411.bak
+```
+#### Restore
+__This does not work when the staging db is off from prod. ie. new table name etc.__
+```shell script
+dropdb thetatauCMT
+createdb thetatauCMT
+pg_restore --no-owner --dbname=thetatauCMT --format=c database_backups\20200411_postupdate.bak
+    
+pg_restore --no-owner --dbname=testcmt --port 10874 \
+--host venturafranklin-874.postgres.pythonanywhere-services.com \
+--username=testthetatau --format=c /home/Venturafranklin/thetatauCMT/database_backups/20200411.bak
 ```
 __This does not work b/c the db is often in use...__
-```
-dropdb testcmt --port 10874 \
---host venturafranklin-874.postgres.pythonanywhere-services.com \
---username=testthetatau
-
+Connect to the database with at https://www.pythonanywhere.com/user/Venturafranklin/databases/
+Then run the commands:
+```postgresql
 SELECT
    pg_terminate_backend (pg_stat_activity.pid)
 FROM
@@ -102,10 +75,7 @@ DROP DATABASE testcmt;
 
 CREATE DATABASE testcmt OWNER testthetatau;
 
-pg_restore --no-owner --dbname=testcmt --port 10874 \
---host venturafranklin-874.postgres.pythonanywhere-services.com \
---username=testthetatau --format=c /home/Venturafranklin/thetatauCMT/database_backups/20190821.bak
-
+-- after to verify restore worked
 \c testcmt
 
 \dt
