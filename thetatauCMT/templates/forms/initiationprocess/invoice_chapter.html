@@ -6,11 +6,11 @@
   {% form form=form %}{% endform %}
   {{ activation.management_form }}
   <br>
-  <button type="button" class="btn btn-primary" id="csv">CSV Initiation</button>
+  <button type="button" class="btn btn-primary" id="csv-invoice">CSV Invoice</button>
 <script>
 $(function(){
-  $("#csv").click(function(event){
-      window.open("{% url 'forms:init_csv' activation.process.pk 'init' %}", '_blank');
+  $("#csv-invoice").click(function(event){
+      window.open("{% url 'forms:init_csv' activation.process.pk 'invoice' %}", '_blank');
   });
 });
 </script>

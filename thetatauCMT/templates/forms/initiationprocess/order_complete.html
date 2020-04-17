@@ -8,6 +8,8 @@
   <br>
   <button type="button" class="btn btn-primary" id="csv-badge">CSV Badge</button>
   <button type="button" class="btn btn-primary" id="csv-shingle">CSV Shingle</button>
+  <button type="button" class="btn btn-primary" id="csv-crm">Update CRM</button>
+
 <script>
 $(function(){
   $("#csv-badge").click(function(event){
@@ -15,6 +17,9 @@ $(function(){
   });
   $("#csv-shingle").click(function(event){
       window.open("{% url 'forms:init_csv' activation.process.pk 'shingle' %}", '_blank');
+  });
+  $("#csv-crm").click(function(event){
+      window.open("{% url 'forms:init_csv' activation.process.pk 'crm' %}", '_blank');
   });
 });
 </script>

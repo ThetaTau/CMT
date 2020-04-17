@@ -1296,8 +1296,10 @@ def badge_shingle_init_csv(request, csv_type, process_pk):
     response = HttpResponse(content_type='text/csv')
     if csv_type in ['badge', 'shingle']:
         process.generate_badge_shingle_order(response, csv_type)
+    elif csv_type == 'invoice':
+        process.generate_blackbaud_update(invoice=True, response=response)
     else:
-        process.generate_blackbaud_update(response)
+        process.generate_blackbaud_update(response=response)
     response['Cache-Control'] = 'no-cache'
     return response
 

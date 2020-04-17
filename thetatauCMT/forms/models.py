@@ -670,12 +670,16 @@ class InitiationProcess(Process):
     def generate_invoice(self):
         ...
 
-    def generate_blackbaud_update(self, response=None):
-        INIT = ["Submitted by", "Date Submitted", "Initiation Date", "Chapter Name",
+    def generate_blackbaud_update(self, invoice=False, response=None):
+        INIT = ["Date Submitted", "Chapter Name", "Initiation Date",
                 "Graduation Year", "Roll Number", "First Name", "Middle Name",
                 "Last Name", "Overall GPA", "A Pledge Test Scores",
                 "B Pledge Test Scores", "Initiation Fee", "Late Fee",
                 "Badge Style", "Guard Type", "Badge Cost", "Guard Cost", "Sum for member"]
+        update_remove = ["Date Submitted", "Badge Cost", "Guard Cost", "Sum for member"]
+        if not invoice:
+            for column in update_remove:
+                INIT.remove(column)
         chapter = self.chapter.name
         chapter_abr = self.chapter.greek
         init_date = self.initiations.first().date.strftime("%Y%m%d")
@@ -717,7 +721,6 @@ class InitiationProcess(Process):
                     late_fee = 25
             total = badge_cost + guard_cost + init_fee + late_fee
             row = {
-                "Submitted by": "",
                 "Date Submitted": init_submit,
                 "Initiation Date": init_date,
                 "Chapter Name": chapter.name,
@@ -737,6 +740,9 @@ class InitiationProcess(Process):
                 "Guard Cost": guard_cost,
                 "Sum for member": total,
             }
+            if not invoice:
+                for column in update_remove:
+                    row.remove(column)
             writer.writerow(row)
         if response is None:
             init_mail.set_payload(init_file)
