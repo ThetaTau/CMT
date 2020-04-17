@@ -795,13 +795,16 @@ class InitiationProcess(Process):
         badge_writer.writeheader()
         shingle_writer.writeheader()
         for initiation in self.initiations.all():
+            badge = ''
+            if initiation.badge:
+                badge = initiation.badge.code
             row_badge = {
                 'Chapter Name': chapter,
                 'Chapter Description': chapter_abr,
                 'Roll Number': initiation.roll,
                 'Education Class of': initiation.date_graduation.year,
                 'Last Name': initiation.user.last_name,
-                'Badge Style': initiation.badge.code,
+                'Badge Style': badge,
             }
             badge_writer.writerow(row_badge)
             row_shingle = {
@@ -859,3 +862,11 @@ class Convention(Process, YearTermModel):
                                       default=False)
     approved_o2 = models.BooleanField('Officer Approved', choices=BOOL_CHOICES,
                                       default=False)
+
+
+class PledgeProcess(Process):
+    pledges = models.ManyToManyField(
+        Pledge, related_name="process", null=True, blank=True)
+    invoice = models.PositiveIntegerField("Invoice Number", default=999999999)
+    chapter = models.ForeignKey(Chapter, on_delete=models.CASCADE,
+                                related_name="pledge_process")
