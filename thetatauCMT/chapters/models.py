@@ -261,10 +261,10 @@ class Chapter(models.Model):
         """
         Must be only active to change status.
         eg. in prealumn form can not submit change
-        for someone already grad (pendalum) or not member (pend active)
+        for someone already grad (pendalum)
         :return:
         """
-        return self.members.filter(status__status__in=["active"],
+        return self.members.filter(status__status__in=["active", "activepend"],
                                    status__start__lte=TODAY_END,
                                    status__end__gte=TODAY_END
                                    )
