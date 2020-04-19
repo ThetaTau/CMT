@@ -6,9 +6,9 @@ from viewflow.compat import _
 from viewflow.flow import views as flow_views
 from core.models import forever
 from core.flows import AutoAssignUpdateProcessView, NoAssignView
-from .models import PrematureAlumnus, InitiationProcess, Convention
+from .models import PrematureAlumnus, InitiationProcess, Convention, PledgeProcess
 from .views import PrematureAlumnusCreateView, ConventionCreateView,\
-    ConventionSignView
+    ConventionSignView, FilterableFlowViewSet
 from .notifications import EmailProcessUpdate, EmailConventionUpdate
 from users.models import User, UserStatusChange
 
@@ -185,7 +185,13 @@ class PrematureAlumnusFlow(Flow):
         ).send()
 
 
-@frontend.register
+def register_factory(viewset_class):
+    def decorator(function):
+        return frontend.register(function, viewset_class=viewset_class)
+    return decorator
+
+
+@register_factory(viewset_class=FilterableFlowViewSet)
 class InitiationProcessFlow(Flow):
     """
     Chapter submits initiation report
@@ -411,3 +417,62 @@ class ConventionFlow(Flow):
             EmailConventionUpdate(
                 activation, user, "Convention Credential Form Submitted",
             ).send()
+
+
+"""
+@frontend.register
+class PledgeProcessFlow(Flow):
+    Pledge submits pledge form
+        Look for existing Pledge Process and join that one, if does not exist
+        create a new one
+    CO generates invoice and sends to chapter
+    CO goes into CMT and indicates which chapters have been invoiced.
+    Invoice is paid by chapter
+    CO goes into CMT and indicates invoice paid
+    Pledge moved from pledge pending to pledge
+
+    process_class = PledgeProcess
+    process_title = _('Pledge Process')
+    process_description = _('This process is for pledge form processing.')
+    summary_template = "{{ flow_class.process_title }} - {{ process.chapter }}"
+
+    start = flow.StartFunction(
+        this.create_flow, activation_class=flow.nodes.ManagedStartViewActivation
+    ).Next(this.invoice_chapter)
+
+    invoice_chapter = (
+        NoAssignView(
+            AutoAssignUpdateProcessView, fields=['invoice', ],
+            task_title=_('Invoice Chapter'),
+            task_description=_("Send invoice to chapter"),
+            task_result_summary=_("Invoice was sent to chapter"))
+            .Permission('auth.central_office')
+            .Next(this.invoice_payment)
+    )
+
+    send_invoice = (
+        flow.Handler(
+            this.send_invoice_func,
+            task_title=_('Send Invoice'),
+        )
+            .Next(this.invoice_payment)
+    )
+
+    invoice_payment = (
+        NoAssignView(
+            AutoAssignUpdateProcessView,
+            task_title=_('Invoice Payment'),
+            task_description=_("Invoice payment by chapter"),
+            task_result_summary=_("Invoice paid by chapter"))
+            .Permission('auth.central_office')
+            .Next(this.invoice_payment_email)
+    )
+
+    invoice_payment_email = (
+        flow.Handler(
+            this.send_invoice_payment_email,
+            task_title=_('Send Invoice Payment Email'),
+        )
+            .Next(this.order_complete)
+    )
+    """

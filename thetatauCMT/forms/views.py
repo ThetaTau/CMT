@@ -3,11 +3,11 @@ import json
 import datetime
 from copy import deepcopy
 from django.db.models import Q
-from django.conf import settings
 from django.core.mail import send_mail
 from django.forms import models as model_forms
 from django.forms.models import modelformset_factory
 from django.utils.decorators import method_decorator
+from django.utils.safestring import mark_safe
 from django.http.request import QueryDict
 from django.views.decorators.debug import sensitive_post_parameters
 from django.contrib.auth.mixins import LoginRequiredMixin
@@ -24,11 +24,14 @@ from django.views.decorators.csrf import csrf_exempt
 from django.shortcuts import redirect
 from django.http import HttpResponseRedirect, HttpResponse, HttpResponseBadRequest
 from crispy_forms.layout import Submit
-from dal import autocomplete, forward
 from extra_views import FormSetView, ModelFormSetView
 from easy_pdf.views import PDFTemplateResponseMixin
-from viewflow.flow.views import CreateProcessView
-from viewflow.flow.views import UpdateProcessView
+from viewflow.compat import _
+from viewflow.flow.views import CreateProcessView, UpdateProcessView
+from viewflow.frontend.viewset import FlowViewSet
+from viewflow.frontend.views import ProcessListView
+from viewflow.flow.views.mixins import FlowListMixin
+from material.frontend import frontend_url
 from core.forms import MultiFormsView
 from core.models import TODAY_START, forever
 from core.views import OfficerMixin, OfficerRequiredMixin, RequestConfig,\
@@ -1609,3 +1612,74 @@ class ConventionListView(NatOfficerRequiredMixin, LoginRequiredMixin,
         RequestConfig(self.request, paginate={'per_page': 100}).configure(table)
         context['table'] = table
         return context
+
+
+class FilterProcessListView(ProcessListView, FlowListMixin):
+    list_display = [
+        'current_task', 'chapter', 'created', 'finished',
+    ]
+    datatable_config = {'searching': True}
+
+    def chapter(self, process):
+        return process.chapter
+    chapter.short_description = 'Chapter'
+
+    def get_object_list(self):
+        """Create prepared queryset for datatables view."""
+        queryset = self.get_queryset()
+        search = self.request.GET.get('datatable-search[value]', False)
+        if search:
+            search_chapter = search
+            search_status = False
+            if ',' in search:
+                search_chapter, search_status = search.split(',', 1)
+                search_chapter = search_chapter.strip()
+                search_status = search_status.strip().lower()
+            if not search_chapter:
+                search_chapter = False
+            if not search_status:
+                search_status = False
+            if search_chapter:
+                if '-' in search_chapter:
+                    search_chapter = search_chapter.replace('-', '')
+                    queryset = queryset.filter(Q(chapter__name__iexact=search_chapter))
+                else:
+                    queryset = queryset.filter(Q(chapter__name__icontains=search_chapter))
+            if search_status:
+                processes = []
+                for process in queryset:
+                    summary = 'complete'
+                    active_tasks = process.active_tasks()
+                    if active_tasks:
+                        summary = active_tasks.first().summary().lower()
+                    if search_status in summary:
+                        processes.append(process.pk)
+                queryset = queryset.model.objects.filter(pk__in=processes)
+        return queryset
+
+    def current_task(self, process):
+        if process.finished is None:
+            task = process.active_tasks().first()
+            if task:
+                summary = task.summary()
+                if not summary:
+                    summary = task.flow_task
+                task_url = frontend_url(self.request, self.get_task_url(task), back_link='here')
+                return mark_safe('<a href="{}">{}</a>'.format(task_url, summary))
+        return 'Complete'
+    current_task.short_description = _('Current Task')
+
+    def get_task_url(self, task, url_type=None):
+        namespace = self.request.resolver_match.namespace
+        return task.flow_task.get_task_url(
+            task, url_type=url_type if url_type else 'guess',
+            user=self.request.user,
+            namespace=namespace)
+
+
+class FilterableFlowViewSet(FlowViewSet):
+    process_list_view = [
+        r'^$',
+        FilterProcessListView.as_view(),
+        'index'
+    ]
