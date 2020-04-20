@@ -48,6 +48,7 @@ django-betterforms==1.2  # https://django-betterforms.readthedocs.io/
 django-herald==0.2.1  # https://github.com/worthwhile/django-herald
 django-viewflow==1.6.0  # http://docs.viewflow.io/
 django-material==1.6.3  #
+django-import-export==2.0.2  # https://django-import-export.readthedocs.io
 
 
 # Django REST Framework

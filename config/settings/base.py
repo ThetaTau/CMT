@@ -90,6 +90,7 @@ THIRD_PARTY_APPS = [
     'material',
     'material.frontend',
     'material.admin',
+    'import_export',
 ]
 LOCAL_APPS = [
     'thetatauCMT.users.apps.UsersConfig',
@@ -385,3 +386,5 @@ SOCIALACCOUNT_PROVIDERS = {
         'VERSION': 'v2.12',
     },
 }
+
+IMPORT_EXPORT_USE_TRANSACTIONS = True

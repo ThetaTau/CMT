@@ -1,7 +1,10 @@
 from django.contrib import admin
+from import_export.admin import ImportExportActionModelAdmin
 from .models import Badge, Guard, Initiation, Depledge, StatusChange,\
     PledgeForm, RiskManagement, PledgeProgram, Audit, Pledge, ChapterReport,\
     Convention
+from .resources import InitiationResource, DepledgeResource, PledgeResource,\
+    PledgeFormResource
 from core.admin import user_chapter
 
 
@@ -49,33 +52,36 @@ class AuditAdmin(admin.ModelAdmin):
 admin.site.register(Audit, AuditAdmin)
 
 
-class PledgeFormAdmin(admin.ModelAdmin):
+class PledgeFormAdmin(ImportExportActionModelAdmin):
     list_display = ('name', 'chapter', 'created', )
     list_filter = ['chapter', 'created', ]
     ordering = ['-created', ]
     search_fields = ['name', ]
+    resource_class = PledgeFormResource
 
 
 admin.site.register(PledgeForm, PledgeFormAdmin)
 
 
-class InitiationAdmin(admin.ModelAdmin):
+class InitiationAdmin(ImportExportActionModelAdmin):
     raw_id_fields = ['user']
     list_display = ('user', 'date', 'created', user_chapter)
     list_filter = ['date', 'created', 'user__chapter']
     ordering = ['-created',]
     search_fields = ['user__username', 'user__name']
+    resource_class = InitiationResource
 
 
 admin.site.register(Initiation, InitiationAdmin)
 
 
-class DepledgeAdmin(admin.ModelAdmin):
+class DepledgeAdmin(ImportExportActionModelAdmin):
     raw_id_fields = ['user']
     list_display = ('user', 'reason', 'date', 'created', user_chapter)
     list_filter = ['reason', 'date', 'created', 'user__chapter']
     ordering = ['-created',]
     search_fields = ['user__username', 'user__name']
+    resource_class = DepledgeResource
 
 
 admin.site.register(Depledge, DepledgeAdmin)
@@ -92,12 +98,13 @@ class StatusChangeAdmin(admin.ModelAdmin):
 admin.site.register(StatusChange, StatusChangeAdmin)
 
 
-class PledgeAdmin(admin.ModelAdmin):
+class PledgeAdmin(ImportExportActionModelAdmin):
     list_display = ('first_name', 'last_name', 'school_name',
                     'email_school', 'email_personal', 'created')
     list_filter = ['school_name', 'created', ]
     ordering = ['-created', ]
     search_fields = ['first_name', 'last_name']
+    resource_class = PledgeResource
 
 
 admin.site.register(Pledge, PledgeAdmin)
