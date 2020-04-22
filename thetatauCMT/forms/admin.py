@@ -4,7 +4,7 @@ from .models import Badge, Guard, Initiation, Depledge, StatusChange,\
     PledgeForm, RiskManagement, PledgeProgram, Audit, Pledge, ChapterReport,\
     Convention
 from .resources import InitiationResource, DepledgeResource, PledgeResource,\
-    PledgeFormResource
+    PledgeFormResource, StatusChangeResource
 from core.admin import user_chapter
 
 
@@ -87,12 +87,13 @@ class DepledgeAdmin(ImportExportActionModelAdmin):
 admin.site.register(Depledge, DepledgeAdmin)
 
 
-class StatusChangeAdmin(admin.ModelAdmin):
+class StatusChangeAdmin(ImportExportActionModelAdmin):
     raw_id_fields = ['user']
     list_display = ('user', 'reason', 'date_start', 'date_end', 'created', user_chapter)
     list_filter = ['reason', 'date_start', 'date_end', 'user__chapter']
     ordering = ['-created',]
     search_fields = ['user__username', 'user__name']
+    resource_class = StatusChangeResource
 
 
 admin.site.register(StatusChange, StatusChangeAdmin)

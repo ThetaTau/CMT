@@ -3,8 +3,10 @@ from django.contrib import admin
 from django.contrib.auth.models import Permission
 from django.contrib.auth.admin import UserAdmin as AuthUserAdmin
 from django.contrib.auth.forms import UserChangeForm, UserCreationForm
+from import_export.admin import ImportExportActionModelAdmin
 from .models import User, UserRoleChange, UserStatusChange, UserOrgParticipate,\
     UserSemesterGPA, UserSemesterServiceHours, UserAlter
+from .resources import UserRoleChangeResource
 from forms.models import Depledge, Initiation, StatusChange
 from core.admin import user_chapter
 
@@ -66,11 +68,12 @@ class MemberInline(admin.TabularInline):
         return False
 
 
-class UserRoleChangeAdmin(admin.ModelAdmin):
+class UserRoleChangeAdmin(ImportExportActionModelAdmin):
     list_display = ('user', 'role', 'start', 'end', 'created', user_chapter)
     list_filter = ['start', 'end', 'role', 'created', 'user__chapter']
     ordering = ['-created',]
     raw_id_fields = ['user']
+    resource_class = UserRoleChangeResource
 
 
 admin.site.register(UserRoleChange, UserRoleChangeAdmin)

@@ -1,6 +1,6 @@
 from import_export import resources
 from import_export.fields import Field
-from .models import Initiation, Depledge, Pledge, PledgeForm
+from .models import Initiation, Depledge, Pledge, PledgeForm, StatusChange
 
 
 class InitiationResource(resources.ModelResource):
@@ -32,4 +32,14 @@ class PledgeFormResource(resources.ModelResource):
     class Meta:
         model = PledgeForm
         fields = ('name', 'created', 'reason', 'email',
+                  )
+
+
+class StatusChangeResource(resources.ModelResource):
+    chapter = Field('user__chapter__name')
+
+    class Meta:
+        model = StatusChange
+        fields = ('user__name', 'created', 'reason', 'degree', 'date_start',
+                  'date_end', 'employer', 'miles', 'email_work', 'new_school'
                   )
