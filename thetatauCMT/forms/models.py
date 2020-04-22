@@ -742,7 +742,7 @@ class InitiationProcess(Process):
             }
             if not invoice:
                 for column in update_remove:
-                    row.remove(column)
+                    row.pop(column, None)
             writer.writerow(row)
         if response is None:
             init_mail.set_payload(init_file)
