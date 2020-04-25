@@ -112,9 +112,10 @@ class UserDetailUpdateView(LoginRequiredMixin, OfficerMixin, MultiFormsView):
             }
         }
         if self.request.method in ('POST', 'PUT'):
-            formset_kwargs.update({
-                'data': self.request.POST.copy(),
-            })
+            if self.request.POST.get('action') == 'orgs':
+                formset_kwargs.update({
+                    'data': self.request.POST.copy(),
+                })
         return factory(**formset_kwargs)
 
     def get_service_initial(self):

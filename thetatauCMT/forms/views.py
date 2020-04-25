@@ -790,6 +790,7 @@ class ChapterInfoReportView(LoginRequiredMixin, OfficerMixin, MultiFormsView):
             }
         }
         if self.request.method in ('POST', 'PUT'):
+            # if self.request.POST.get('action') == 'faculty': Not needed b/c grouped forms
             formset_kwargs.update({
                 'data': self.request.POST.copy(),
             })

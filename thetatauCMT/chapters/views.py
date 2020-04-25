@@ -85,9 +85,10 @@ class ChapterDetailView(LoginRequiredMixin, OfficerMixin, MultiFormsView):
             }
         }
         if self.request.method in ('POST', 'PUT'):
-            formset_kwargs.update({
-                'data': self.request.POST.copy(),
-            })
+            if self.request.POST.get('action') == 'faculty':
+                formset_kwargs.update({
+                    'data': self.request.POST.copy(),
+                })
         return factory(**formset_kwargs)
 
     def get_success_url(self, form_name=None):
