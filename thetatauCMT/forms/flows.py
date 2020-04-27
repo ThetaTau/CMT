@@ -419,7 +419,7 @@ class ConventionFlow(Flow):
             ).send()
 
 
-@frontend.register
+@register_factory(viewset_class=FilterableFlowViewSet)
 class PledgeProcessFlow(Flow):
     """
     Pledge submits pledge form
