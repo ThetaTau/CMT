@@ -993,10 +993,10 @@ class PledgeProcess(Process):
         for pledge in self.pledges.all():
             city, state, zipcode, country = "", "", "", ""
             if pledge.address.locality:
-                city = self.locality.name
-                state = self.locality.state
-                zipcode = self.locality.postal_code
-                country = self.locality.state.country
+                city = pledge.address.locality.name
+                state = pledge.address.locality.state.code
+                zipcode = pledge.address.locality.postal_code
+                country = pledge.address.locality.state.country
             expelled_college = False
             if pledge.explain_expelled_college:
                 expelled_college = True
