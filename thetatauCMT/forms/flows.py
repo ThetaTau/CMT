@@ -500,10 +500,7 @@ class PledgeProcessFlow(Flow):
     def create_flow(self, activation, chapter, request=None, created=None, **kwargs):
         activation.process.chapter = chapter
         activation.process.save()
-        if request is not None:
-            activation.prepare(None, user=request.user)
-        else:
-            activation.prepare()
+        activation.prepare()
         activation.done()
         if created is not None:
             activation.process.created = created
