@@ -223,7 +223,11 @@ class EmailPledgeOfficer(EmailNotification):
         officers = pledge_form.school_name.get_current_officers_council(combine=False)[0]
         scribe = officers.filter(role='scribe').first()
         vice = officers.filter(role='vice regent').first()
-        emails = {scribe, vice}
+        emails = set()
+        if scribe:
+            emails.add(scribe.email)
+        if vice:
+            emails.add(vice.email)
         self.to_emails = emails
         self.cc = [pledge_form.email_school, ]
         self.reply_to = ["cmt@thetatau.org", ]
