@@ -87,6 +87,7 @@ if settings.DEBUG:
             url(r'^__debug__/', include(debug_toolbar.urls)),
         ] + urlpatterns
 
+if settings.DEBUG or 'staging' in settings.SETTINGS_MODULE:
     urlpatterns += [
         url(r'^herald/', include('herald.urls')),
     ]
