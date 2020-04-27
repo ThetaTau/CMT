@@ -59,7 +59,8 @@ from .tables import GuardTable, BadgeTable, InitiationTable, DepledgeTable, \
     PledgeProgramTable, ChapterReportTable, PrematureAlumnusStatusTable,\
     ConventionTable, ConventionListTable
 from .models import Guard, Badge, Initiation, Depledge, StatusChange, RiskManagement,\
-    PledgeForm, PledgeProgram, Audit, PrematureAlumnus, InitiationProcess, Convention
+    PledgeForm, PledgeProgram, Audit, PrematureAlumnus, InitiationProcess, Convention,\
+    PledgeProcess
 from .filters import AuditListFilter, PledgeProgramListFilter,\
     ChapterReportListFilter, ConventionListFilter
 from .notifications import EmailRMPSigned, EmailPledgeOther, EmailRMPReport,\
@@ -1252,6 +1253,21 @@ class PledgeFormView(CreateView):
         response = super().form_valid(form)
         EmailPledgeConfirmation(self.object).send()
         EmailPledgeWelcome(self.object).send()
+        # EmailPledgeOfficer(self.object).send()
+        processes = PledgeProcess.objects.filter(
+            chapter__name=self.object.school_name, finished__isnull=True)
+        active_process = None
+        for process in processes:
+            active_task = process.active_tasks().first()
+            if active_task.flow_task.name == 'invoice_chapter':
+                active_process = process
+                break
+        if active_process is None:
+            from .flows import PledgeProcessFlow
+            activation = PledgeProcessFlow.start.run(
+                chapter=self.object.school_name, request=self.request)
+            active_process = activation.process
+        active_process.pledges.add(self.object)
         return response
 
     def get_success_url(self):
