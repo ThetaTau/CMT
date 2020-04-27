@@ -796,9 +796,9 @@ class PledgeFormFull(forms.ModelForm):
                     'alumni',
                     'honest',
                     'signature',
-                    ButtonHolder(
-                        Submit('submit', 'Submit', css_class='btn-primary')
-                    )
+                ),
+                ButtonHolder(
+                    Submit('submit', 'Submit', css_class='btn-primary')
                 )
             )
         )

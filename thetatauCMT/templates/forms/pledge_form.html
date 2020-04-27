@@ -16,6 +16,7 @@
     To be completed at time of pledging by candidates for student membership.</p>
   {% csrf_token %}
   {% crispy form form.helper %}
+<script src="http://ajax.aspnetcdn.com/ajax/jquery.validate/1.11.1/jquery.validate.min.js"></script>
 <script type="text/javascript">
 $("#id_school_name").change(function () {
       var url = "{% url 'forms:ajax_load_majors' %}";  // get the url of the `load_majors` view
@@ -36,25 +37,38 @@ $("#id_school_name").change(function () {
     $('#div_id_explain_expelled_college').hide();
     $('#div_id_explain_crime').hide();
     $('input[name="other_college_choice"]').on('change', function(){
-        var selected_value = $('input[name="other_college_choice"]:checked').val();;
+        var selected_value = $('input[name="other_college_choice"]:checked').val();
          if(selected_value=="true"){$("#div_id_other_college").show();}
          else{$("#div_id_other_college").hide();}
      });
     $('input[name="explain_expelled_org_choice"]').on('change', function(){
-        var selected_value = $('input[name="explain_expelled_org_choice"]:checked').val();;
+        var selected_value = $('input[name="explain_expelled_org_choice"]:checked').val();
          if(selected_value=="true"){$("#div_id_explain_expelled_org").show();}
          else{$("#div_id_explain_expelled_org").hide();}
      });
     $('input[name="explain_expelled_college_choice"]').on('change', function(){
-        var selected_value = $('input[name="explain_expelled_college_choice"]:checked').val();;
+        var selected_value = $('input[name="explain_expelled_college_choice"]:checked').val();
          if(selected_value=="true"){$("#div_id_explain_expelled_college").show();}
          else{$("#div_id_explain_expelled_college").hide();}
      });
     $('input[name="explain_crime_choice"]').on('change', function(){
-        var selected_value = $('input[name="explain_crime_choice"]:checked').val();;
+        var selected_value = $('input[name="explain_crime_choice"]:checked').val();
          if(selected_value=="true"){$("#div_id_explain_crime").show();}
          else{$("#div_id_explain_crime").hide();}
      });
+    $('form').validate({
+      invalidHandler: function(event, validator) {
+        if (validator.numberOfInvalids() > 0) {
+          validator.showErrors();
+          // Open accordion tab with errors
+          var index = $(".has-error")
+              .closest(".ui-accordion-content")
+              .index(".ui-accordion-content");
+          $(".accordion").accordion("option", "active", index);
+        }
+      },
+      ignore: [],
+    });
   });
 </script>
 {% endblock %}

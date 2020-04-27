@@ -1244,8 +1244,7 @@ class PledgeFormView(CreateView):
     def form_invalid(self, form):
         messages.add_message(
             self.request, messages.ERROR,
-            f"Error with pledge form, please expand sections and correct error. "
-            f"Error fields: {' '.join(form.errors.keys())}")
+            f"Error with pledge form, please expand sections and correct error(s).")
         return self.render_to_response(self.get_context_data(form=form))
 
     def form_valid(self, form):
