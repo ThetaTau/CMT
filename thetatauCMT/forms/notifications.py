@@ -77,7 +77,7 @@ class EmailRMPReport(EmailNotification):  # extend from EmailNotification for em
         test_user = User.objects.order_by('?')[0]
         from django.core.files import File
         test_path = 'thetatauCMT/forms/test/example_rmp.pdf'
-        f = open(test_path, 'r')
+        f = open(test_path, 'rb')
         risk_file = File(f)
         risk_file.mime_type = 'application/pdf'
         return [test_user, risk_file]
@@ -138,7 +138,7 @@ class EmailPledgeOther(EmailNotification):  # extend from EmailNotification for 
         test_user = User.objects.order_by('?')[0]
         from django.core.files import File
         test_path = 'thetatauCMT/forms/test/example_rmp.pdf'
-        f = open(test_path, 'r')
+        f = open(test_path, 'rb')
         risk_file = File(f)
         risk_file.mime_type = 'application/pdf'
         return [test_user, risk_file]
