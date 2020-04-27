@@ -214,6 +214,32 @@ class EmailPledgeWelcome(EmailNotification):  # extend from EmailNotification fo
 
 
 @registry.register_decorator()
+class EmailPledgeOfficer(EmailNotification):
+    render_types = ['html']
+    template_name = 'pledge_officer'
+    subject = 'Theta Tau Prospective New Member Submission'
+
+    def __init__(self, pledge_form):
+        officers = pledge_form.school_name.get_current_officers_council(combine=False)[0]
+        scribe = officers.filter(role='scribe').first()
+        vice = officers.filter(role='vice regent').first()
+        emails = {scribe, vice}
+        self.to_emails = emails
+        self.cc = [pledge_form.email_school, ]
+        self.reply_to = ["cmt@thetatau.org", ]
+        self.context = {
+            'pledge': pledge_form.first_name + ' ' + pledge_form.last_name,
+            'host': settings.CURRENT_URL,
+        }
+
+    @staticmethod
+    def get_demo_args():  # define a static method to return list of args needed to initialize class for testing
+        from forms.models import Pledge
+        test_pledge_form = Pledge.objects.order_by('?')[0]
+        return [test_pledge_form]
+
+
+@registry.register_decorator()
 class EmailProcessUpdate(EmailNotification):
     render_types = ['html']
     template_name = 'process'

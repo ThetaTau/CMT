@@ -64,7 +64,7 @@ from .models import Guard, Badge, Initiation, Depledge, StatusChange, RiskManage
 from .filters import AuditListFilter, PledgeProgramListFilter,\
     ChapterReportListFilter, ConventionListFilter
 from .notifications import EmailRMPSigned, EmailPledgeOther, EmailRMPReport,\
-    EmailAdvisorWelcome, EmailPledgeConfirmation, EmailPledgeWelcome
+    EmailAdvisorWelcome, EmailPledgeConfirmation, EmailPledgeWelcome, EmailPledgeOfficer
 
 
 sensitive_post_parameters_m = method_decorator(
@@ -1253,7 +1253,7 @@ class PledgeFormView(CreateView):
         response = super().form_valid(form)
         EmailPledgeConfirmation(self.object).send()
         EmailPledgeWelcome(self.object).send()
-        # EmailPledgeOfficer(self.object).send()
+        EmailPledgeOfficer(self.object).send()
         processes = PledgeProcess.objects.filter(
             chapter__name=self.object.school_name, finished__isnull=True)
         active_process = None
