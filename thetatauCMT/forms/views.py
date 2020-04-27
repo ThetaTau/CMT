@@ -1700,3 +1700,15 @@ class FilterableFlowViewSet(FlowViewSet):
         FilterProcessListView.as_view(),
         'index'
     ]
+
+
+@csrf_exempt
+def pledge_process_csvs(request, csv_type, process_pk):
+    process = PledgeProcess.objects.get(pk=process_pk)
+    response = HttpResponse(content_type='text/csv')
+    if csv_type == 'crm':
+        process.generate_blackbaud_update(response=response)
+    elif csv_type == 'invoice':
+        process.generate_invoice_attachment(response=response)
+    response['Cache-Control'] = 'no-cache'
+    return response

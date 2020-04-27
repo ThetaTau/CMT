@@ -66,6 +66,11 @@ urlpatterns = [
         name='init_csv'
     ),
     url(
+        regex=r'^pledge-csv/(?P<process_pk>\d+)/(?P<csv_type>[\w.@+-]+)$',
+        view=views.pledge_process_csvs,
+        name='pledge_csv'
+    ),
+    url(
         regex=r'^status/$',
         view=views.StatusChangeView.as_view(),
         name='status'

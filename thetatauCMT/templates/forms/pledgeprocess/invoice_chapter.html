@@ -1,0 +1,22 @@
+{% extends 'viewflow/flow/task.html' %}
+{% load i18n viewflow viewflow_frontend material_form material_frontend %}
+{% block task_form %}
+  <h7>{{ activation.process.chapter }}</h7>
+  {% csrf_token %}
+  {% form form=form %}{% endform %}
+  {{ activation.management_form }}
+  <br>
+  <button type="button" class="btn btn-primary" id="csv-invoice">CSV Invoice</button>
+  <button type="button" class="btn btn-primary" id="csv-crm">Update CRM</button>
+<script>
+$(function(){
+  $("#csv-invoice").click(function(event){
+      window.open("{% url 'forms:pledge_csv' activation.process.pk 'invoice' %}", '_blank');
+  });
+  $("#csv-crm").click(function(event){
+      window.open("{% url 'forms:pledge_csv' activation.process.pk 'crm' %}", '_blank');
+  });
+});
+</script>
+{% endblock %}
+
