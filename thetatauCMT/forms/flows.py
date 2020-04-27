@@ -480,6 +480,14 @@ class PledgeProcessFlow(Flow):
             this.send_invoice_payment_email,
             task_title=_('Send Invoice Payment Email'),
         )
+        .Next(this.sync_member_info)
+    )
+
+    sync_member_info = (
+        flow.Handler(
+            this.sync_member_info_function,
+            task_title=_('Sync Member Info'),
+        )
         .Next(this.complete)
     )
 
@@ -515,3 +523,10 @@ class PledgeProcessFlow(Flow):
             "Your chapter has paid a pledge invoice.",
             [{'members': member_list}, 'invoice', ]
         ).send()
+
+    def sync_member_info_function(self, activation):
+        pledges = activation.process.pledges.all()
+        for pledge in pledges:
+            # Update the User database with the new members
+            # currently this is done in the CRM
+            print(pledge)
