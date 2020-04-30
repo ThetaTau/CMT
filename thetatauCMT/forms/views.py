@@ -1064,13 +1064,16 @@ class PledgeProgramListView(NatOfficerRequiredMixin,
             missing_data = [{
                  'chapter': chapter.name, 'region': chapter.region.name,
                  'manual': None, 'term': None, 'year': None, 'remote': None,
-                'date_complete': None, 'date_initiation': None,
+                 'date_complete': None, 'date_initiation': None, 'status': 'none',
+                 'weeks': 0, 'weeks_left': 0,
              } for chapter in missing_chapters]
             if complete == '0':  # Incomplete
                 data = [dat for dat in data if dat['status'] == 'none']
                 data.extend(missing_data)
             else:  # All
                 data.extend(missing_data)
+        else:
+            data = [dat for dat in data if dat['status'] != 'none']
         chapter_names = [dat['chapter'] for dat in data]
         chapter_officer_emails = {
             chapter: [user.email for user in
