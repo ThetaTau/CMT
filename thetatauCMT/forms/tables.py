@@ -94,6 +94,9 @@ class PledgeProgramTable(tables.Table):
     date_complete = tables.DateColumn(verbose_name="Complete Date")
     date_initiation = tables.DateColumn(verbose_name="Initiation Date")
     remote = tables.BooleanColumn(verbose_name="Remote")
+    weeks = tables.Column(verbose_name="Weeks in Program")
+    weeks_left = tables.Column(verbose_name="Weeks LEFT in Program")
+    status = tables.Column(verbose_name="Program Status")
 
     class Meta:
         model = PledgeProgram
@@ -104,12 +107,16 @@ class PledgeProgramTable(tables.Table):
             'region',
             'year',
             'term',
-            'manual',
             'remote',
             'date_complete',
-            'date_initiation'
+            'date_initiation',
+            'weeks',
+            'weeks_left',
+            'status',
         ]
 
+    def render_status(self, value):
+        return PledgeProgram.STATUS.get_value(value)
 
 class ChapterReportTable(tables.Table):
     class Meta:

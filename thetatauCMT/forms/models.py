@@ -92,14 +92,39 @@ class PledgeProgram(YearTermModel, TimeStampedModel):
         def get_value(cls, member):
             return cls[member].value[1]
 
+    class STATUS(Enum):
+        none = ('none', '')
+        initiated = ('initiated', 'We completed new member education and initiated our pledges.')
+        still_initiate = (
+            'still_initiate',
+            'We completed new member education and voted, we just have to initiate our pledges.')
+        still_vote = (
+            'still_vote',
+            'We completed new member education but we still need to vote and initiate our pledges.')
+        not_complete = ('not_complete', 'We did not complete new member education.')
+
+        @classmethod
+        def get_value(cls, member):
+            return cls[member].value[1]
+
     chapter = models.ForeignKey(Chapter, on_delete=models.CASCADE,
                                 related_name="pledge_programs")
-    verbose_remote = "Will your new member education be run remotely?"
+    verbose_remote = "Have you or will you conduct your new member education remotely?"
     remote = models.BooleanField(verbose_remote, choices=BOOL_CHOICES, default=False)
-    verbose_complete = "When do you anticipate completing new member education?"
+    verbose_complete = "When did you/do you anticipate completing new member education?"
     date_complete = models.DateField(verbose_complete, default=timezone.now)
-    verbose_initiation = "When do you plan to hold initiations?"
+    verbose_initiation = "When did you/do you plan to initiate your pledges?"
     date_initiation = models.DateField(verbose_initiation, default=timezone.now)
+    verbose_weeks = "How many weeks is your typical new member education program?"
+    weeks = models.PositiveIntegerField(verbose_weeks, default=0)
+    verbose_weeks_left = "How many weeks of new member education do you have yet to complete?"
+    weeks_left = models.PositiveIntegerField(verbose_weeks_left, default=0)
+    status = models.CharField(
+        verbose_name="What is the current status of your new member education?",
+        max_length=20,
+        choices=[x.value for x in STATUS],
+        default="none",
+    )
     manual = models.CharField(
         max_length=10,
         choices=[x.value for x in MANUALS]

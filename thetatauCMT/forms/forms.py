@@ -439,7 +439,7 @@ class PledgeProgramForm(forms.ModelForm):
     class Meta:
         model = PledgeProgram
         fields = [
-            'remote', 'manual', 'other_manual',
+            'remote', 'weeks', 'weeks_left', 'status',
             'date_complete', 'date_initiation',
         ]
 
@@ -539,7 +539,6 @@ class PledgeProgramFormHelper(FormHelper):
                         Field('complete'),
                         Field('year'),
                         Field('term'),
-                        Field('manual'),
                         FormActions(
                             StrictButton(
                                 '<i class="fa fa-search"></i> Filter',

@@ -1020,7 +1020,8 @@ class PledgeProgramListView(NatOfficerRequiredMixin,
         all_forms = self.object_list
         data = list(all_forms.values('chapter__name', 'chapter__region__name',
                                      'year', 'term', 'manual', 'remote',
-                                     'date_complete', 'date_initiation'))
+                                     'date_complete', 'date_initiation',
+                                     'weeks', 'weeks_left', 'status',))
         for dat in data:
             dat['chapter'] = dat['chapter__name']
             del dat['chapter__name']
@@ -1045,7 +1046,8 @@ class PledgeProgramListView(NatOfficerRequiredMixin,
                 'date_complete': None, 'date_initiation': None,
              } for chapter in missing_chapters]
             if complete == '0':  # Incomplete
-                data = missing_data
+                data = [dat for dat in data if dat['status'] == 'none']
+                data.extend(missing_data)
             else:  # All
                 data.extend(missing_data)
         table = PledgeProgramTable(data=data)
@@ -1056,21 +1058,18 @@ class PledgeProgramListView(NatOfficerRequiredMixin,
 
 class PledgeProgramFormView(OfficerRequiredMixin,
                             LoginRequiredMixin, OfficerMixin,
-                            FormView):
+                            UpdateView):
     form_class = PledgeProgramForm
+    model = PledgeProgram
     template_name = "forms/pledge_program.html"
 
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        # program = PledgeProgram.form_chapter_term(
-        #     chapter=self.request.user.current_chapter)
+    def get_object(self, queryset=None):
         program = PledgeProgram.objects.filter(
             chapter=self.request.user.current_chapter,
             year=PledgeProgram.current_year(),
             term=PledgeProgram.current_term(),
-            ).first()
-        context['current_program'] = program
-        return context
+        ).first()
+        return program
 
     def form_valid(self, form):
         form.instance.chapter = self.request.user.current_chapter
