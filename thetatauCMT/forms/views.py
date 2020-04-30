@@ -993,6 +993,27 @@ class PledgeProgramListView(NatOfficerRequiredMixin,
     filter_class = PledgeProgramListFilter
     formhelper_class = PledgeProgramFormHelper
 
+    def get(self, request, *args, **kwargs):
+        self.object_list = self.get_queryset()
+        context = self.get_context_data()
+        if request.GET.get('csv', 'False').lower() == 'download csv':
+            response = HttpResponse(content_type='text/csv')
+            time_name = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename = f"PledgeProgram_ThetaTauOfficerExport_{time_name}.csv"
+            response['Content-Disposition'] = f'attachment; filename="{filename}"'
+            writer = csv.writer(response)
+            email_list = context['email_list_table']
+            if email_list:
+                writer.writerow(['Chapter', 'Officer Emails'])
+                for chapter, emails in email_list.items():
+                    writer.writerow([chapter, ', '.join(emails)])
+                return response
+            else:
+                messages.add_message(
+                    self.request, messages.ERROR,
+                    f"All forms are filtered! Clear or change filter.")
+        return self.render_to_response(context)
+
     def get_queryset(self, **kwargs):
         qs = PledgeProgram.objects.all()
         cancel = self.request.GET.get('cancel', False)
@@ -1050,9 +1071,18 @@ class PledgeProgramListView(NatOfficerRequiredMixin,
                 data.extend(missing_data)
             else:  # All
                 data.extend(missing_data)
+        chapter_names = [dat['chapter'] for dat in data]
+        chapter_officer_emails = {
+            chapter: [user.email for user in
+                      Chapter.objects.get(name=chapter).get_current_officers_council()[0]]
+            for chapter in chapter_names}
         table = PledgeProgramTable(data=data)
         RequestConfig(self.request, paginate={'per_page': 100}).configure(table)
         context['table'] = table
+        context['email_list_table'] = chapter_officer_emails
+        context['email_list'] = ', '.join(
+            [email for chapter_emails in chapter_officer_emails.values()
+             for email in chapter_emails])
         return context
 
 

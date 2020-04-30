@@ -533,7 +533,7 @@ class PledgeProgramFormHelper(FormHelper):
     html5_required = True
     layout = Layout(
                 Fieldset(
-                    '<i class="fas fa-search"></i> Filter Pledge Programs',
+                    '',
                     Row(
                         Field('region'),
                         Field('complete'),
