@@ -31,6 +31,7 @@ class MultiFormMixin(ContextMixin):
         kwargs = {}
         kwargs.update({'initial': self._get_initial(form_name)})
         kwargs.update({'prefix': self._get_prefix(form_name)})
+        kwargs.update({'instance': self._get_instance(form_name)})
 
         if bind_form:
             kwargs.update(self._bind_form_data())
@@ -53,6 +54,12 @@ class MultiFormMixin(ContextMixin):
             return getattr(self, initial_method)()
         else:
             return self.initial.copy()
+
+    def _get_instance(self, form_name):
+        instance_method = 'get_%s_instance' % form_name
+        if hasattr(self, instance_method):
+            return getattr(self, instance_method)()
+        return None
 
     def _get_prefix(self, form_name):
         return self.prefixes.get(form_name, self.prefix)

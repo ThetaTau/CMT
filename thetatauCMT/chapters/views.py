@@ -95,6 +95,9 @@ class ChapterDetailView(LoginRequiredMixin, OfficerMixin, MultiFormsView):
         return reverse('chapters:detail',
                        kwargs={'slug': self.kwargs['slug']})
 
+    def get_chapter_instance(self):
+        return Chapter.objects.get(slug=self.kwargs['slug'])
+
     def chapter_form_valid(self, form):
         if form.has_changed():
             form.save()
