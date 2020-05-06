@@ -337,6 +337,14 @@ class Chapter(models.Model):
         return annotate_role_status(officers, combine=combine,
                                     date=date), previous
 
+    def get_current_officers_council_specific(self):
+        officers = self.get_current_officers_council(combine=False)[0]
+        regent = officers.filter(role='regent').first()
+        scribe = officers.filter(role='scribe').first()
+        vice = officers.filter(role='vice regent').first()
+        treasurer = officers.filter(role='treasurer').first()
+        return regent, scribe, vice, treasurer
+
     def next_badge_number(self):
         # Jan 2019 highest badge number was Mu with 1754
         return self.members.filter(~models.Q(status__status='pnm'),
