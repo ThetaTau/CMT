@@ -1082,3 +1082,25 @@ class PledgeProcess(Process):
             out = pledge_mail
         return out
 
+
+class OSM(Process, YearTermModel):
+    BOOL_CHOICES = ((True, 'Approve'), (False, 'Deny'))
+    meeting_date = models.DateField(default=timezone.now, validators=[no_future])
+    nominate = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
+        related_name="osm", verbose_name="OSM Nomination")
+    verbose_selection_process = "How was the Chapter Outstanding Student Member chosen?" +\
+                                " What process was used to select them?"
+    selection_process = models.TextField(verbose_selection_process)
+    chapter = models.ForeignKey(
+        Chapter, on_delete=models.CASCADE, related_name="osm")
+    officer1 = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
+        related_name="osm_off1", verbose_name="Officer Signature")
+    officer2 = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
+        related_name="osm_off2", verbose_name="Officer Signature")
+    approved_o1 = models.BooleanField('Officer Approved', choices=BOOL_CHOICES,
+                                      default=False)
+    approved_o2 = models.BooleanField('Officer Approved', choices=BOOL_CHOICES,
+                                      default=False)
