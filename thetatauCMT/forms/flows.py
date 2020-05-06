@@ -6,10 +6,11 @@ from viewflow.compat import _
 from viewflow.flow import views as flow_views
 from core.models import forever
 from core.flows import AutoAssignUpdateProcessView, NoAssignView
-from .models import PrematureAlumnus, InitiationProcess, Convention, PledgeProcess
+from .models import PrematureAlumnus, InitiationProcess, Convention,\
+    PledgeProcess, OSM
 from .views import PrematureAlumnusCreateView, ConventionCreateView,\
-    ConventionSignView, FilterableFlowViewSet
-from .notifications import EmailProcessUpdate, EmailConventionUpdate
+    ConventionSignView, FilterableFlowViewSet, OSMCreateView, OSMVerifyView
+from .notifications import EmailProcessUpdate, EmailConventionUpdate, EmailOSMUpdate
 from users.models import User, UserStatusChange
 
 
@@ -527,3 +528,93 @@ class PledgeProcessFlow(Flow):
             # Update the User database with the new members
             # currently this is done in the CRM
             print(pledge)
+
+
+@frontend.register
+class OSMFlow(Flow):
+    """
+    Chapter officer fills out form to nominate their chapter OSM for the national award.
+    Questions on form:
+        - Select chapter member from dropdown list (self-nomination is allowed)
+        - Date decision was made [date]
+        - How was the Chapter Outstanding Student Member chosen?
+            What process was used to select them? [paragraph field]
+    Form should then be sent to chapter VR and scribe to verify -
+        simple "yes, this is correct," "no, this isn't correct."
+    After verification, email should be sent to the nominated member with
+        link to fill out the application.
+    """
+    process_class = OSM
+    process_title = _('OSM Process')
+    process_description = _('This process is for outstanding student member selection.')
+
+    start = (
+        flow.Start(
+            OSMCreateView,
+            task_title=_('Submit OSM Form'))
+        .Next(this.email_signers)
+    )
+
+    email_signers = (
+        flow.Handler(
+            this.email_signers_func,
+            task_title=_('Email Signers'),
+        )
+        .Next(this.assign_approval)
+    )
+
+    assign_approval = (
+        flow.Split(
+        ).Next(
+            this.assign_o1
+        ).Next(
+            this.assign_o2
+        )
+    )
+
+    assign_o1 = (
+        flow.View(
+            OSMVerifyView,
+            task_title=_('Officer1 Sign'))
+        .Assign(lambda act: act.process.officer1)
+        .Next(this.join_flow)
+    )
+
+    assign_o2 = (
+        flow.View(
+            OSMVerifyView,
+            task_title=_('Officer2 Sign'))
+        .Assign(lambda act: act.process.officer2)
+        .Next(this.join_flow)
+    )
+
+    join_flow = flow.Join().Next(this.email_nominate)
+
+    email_nominate = (
+        flow.Handler(
+            this.email_nomination,
+            task_title=_('Email Nominate'),
+        )
+        .Next(this.end)
+    )
+
+    end = flow.End()
+
+    def email_signers_func(self, activation):
+        """
+        Send emails to the signers
+        :param activation:
+        :return:
+        """
+        for user_role in ['officer1', 'officer2']:
+            user = getattr(activation.process, user_role)
+            EmailOSMUpdate(
+                activation, user, "OSM Form Submitted",
+                nominate=activation.process.nominate
+                ).send()
+
+    def email_nomination(self, activation):
+        user = activation.process.nominate
+        EmailOSMUpdate(
+            activation, user, "Outstanding Student Member Nomination",
+            ).send()

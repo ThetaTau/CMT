@@ -2,7 +2,7 @@ import django_tables2 as tables
 from django_tables2.utils import A
 from django.utils.html import mark_safe
 from .models import Guard, Badge, Initiation, Depledge, StatusChange,\
-    PledgeForm, Audit, PledgeProgram, ChapterReport
+    PledgeForm, Audit, PledgeProgram, ChapterReport, OSM
 
 
 class GuardTable(tables.Table):
@@ -176,7 +176,7 @@ class PrematureAlumnusStatusTable(tables.Table):
         attrs = {"class": "table-striped table-bordered", }
 
 
-class ConventionTable(tables.Table):
+class SignTable(tables.Table):
     owner = tables.Column()
     role = tables.Column()
     status = tables.Column()
@@ -199,4 +199,18 @@ class ConventionListTable(tables.Table):
             'term',
             'delegate',
             'alternate',
+        ]
+
+
+class OSMListTable(tables.Table):
+    class Meta:
+        model = OSM
+        order_by = 'chapter'
+        attrs = {"class": "table-striped table-bordered"}
+        fields = [
+            'chapter',
+            'region',
+            'year',
+            'term',
+            'nominate',
         ]

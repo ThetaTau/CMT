@@ -3,7 +3,7 @@ from herald.base import EmailNotification
 from django.conf import settings
 from django.forms.models import model_to_dict
 from core.models import current_term, current_year
-from forms.tables import ConventionTable
+from forms.tables import SignTable
 
 
 @registry.register_decorator()
@@ -339,9 +339,9 @@ class EmailConventionUpdate(EmailNotification):
     template_name = 'convention'
 
     def __init__(self, activation, user, message):
-        from forms.views import get_credential_status
-        data, _, _ = get_credential_status(user)
-        table = ConventionTable(data=data)
+        from forms.views import get_sign_status
+        data, _, _ = get_sign_status(user)
+        table = SignTable(data=data)
         process_title = activation.flow_class.process_title
         self.to_emails = set([user.email])  # set list of emails to send to
         self.reply_to = ["cmt@thetatau.org", ]
@@ -361,3 +361,34 @@ class EmailConventionUpdate(EmailNotification):
         test.process = test
         return [test, test.delegate, "Convention Form Submitted",]
 
+
+@registry.register_decorator()
+class EmailOSMUpdate(EmailNotification):
+    render_types = ['html']
+    template_name = 'osm'
+
+    def __init__(self, activation, user, message, nominate=None):
+        officer = True
+        if nominate is None:
+            officer = False
+        process_title = activation.flow_class.process_title
+        self.to_emails = {user.email}
+        self.reply_to = ["cmt@thetatau.org", ]
+        self.subject = f'[CMT] {process_title}'
+        self.context = {
+            'user': user,
+            'message': message,
+            'officer': officer,
+            'nominate': nominate,
+            'process_title': "Outstanding Student Member Process",
+            'host': settings.CURRENT_URL,
+        }
+
+    @staticmethod
+    def get_demo_args():
+        from forms.models import OSM
+        test = OSM.objects.order_by('?')[0]
+        test.process = test
+        # return [test, test.officer1,
+        #         "Outstanding Student Member Form Submission", test.nominate]
+        return [test, test.nominate, "Outstanding Student Member Nomination"]

@@ -18,7 +18,7 @@ from django.utils import timezone
 from django.shortcuts import render
 from django import forms
 from django.views.generic import UpdateView
-from django.views.generic.edit import FormView, CreateView
+from django.views.generic.edit import FormView, CreateView, ModelFormMixin
 from django.views.decorators.http import require_POST
 from django.views.decorators.csrf import csrf_exempt
 from django.shortcuts import redirect
@@ -42,7 +42,7 @@ from .forms import InitiationFormSet, InitiationForm, InitiationFormHelper, Init
     RoleChangeSelectForm, RiskManagementForm, RoleChangeNationalSelectForm,\
     PledgeProgramForm, AuditForm, PledgeFormFull, ChapterReport, PrematureAlumnusForm,\
     AuditListFormHelper, RiskListFilter, PledgeProgramFormHelper,\
-    ChapterInfoReportForm, ChapterReportFormHelper, ConventionForm, ConventionFormHelper
+    ChapterInfoReportForm, CompleteFormHelper, ConventionForm, OSMForm
 from tasks.models import TaskChapter, Task
 from scores.models import ScoreType
 from submissions.models import Submission
@@ -57,12 +57,11 @@ from regions.models import Region
 from .tables import GuardTable, BadgeTable, InitiationTable, DepledgeTable, \
     StatusChangeTable, PledgeFormTable, AuditTable, RiskFormTable,\
     PledgeProgramTable, ChapterReportTable, PrematureAlumnusStatusTable,\
-    ConventionTable, ConventionListTable
+    SignTable, ConventionListTable, OSMListTable
 from .models import Guard, Badge, Initiation, Depledge, StatusChange, RiskManagement,\
     PledgeForm, PledgeProgram, Audit, PrematureAlumnus, InitiationProcess, Convention,\
-    PledgeProcess
-from .filters import AuditListFilter, PledgeProgramListFilter,\
-    ChapterReportListFilter, ConventionListFilter
+    PledgeProcess, OSM
+from .filters import AuditListFilter, PledgeProgramListFilter, CompleteListFilter
 from .notifications import EmailRMPSigned, EmailPledgeOther, EmailRMPReport,\
     EmailAdvisorWelcome, EmailPledgeConfirmation, EmailPledgeWelcome, EmailPledgeOfficer
 
@@ -657,8 +656,8 @@ class ChapterReportListView(NatOfficerRequiredMixin, LoginRequiredMixin,
     model = ChapterReport
     context_object_name = 'chapter_report_list'
     table_class = ChapterReportTable
-    filter_class = ChapterReportListFilter
-    formhelper_class = ChapterReportFormHelper
+    filter_class = CompleteListFilter
+    formhelper_class = CompleteFormHelper
 
     def get_queryset(self, **kwargs):
         qs = ChapterReport.objects.all()
@@ -1355,43 +1354,56 @@ def badge_shingle_init_csv(request, csv_type, process_pk):
     return response
 
 
-def get_credential_status(user):
+def get_sign_status(user, type_sign='creds'):
     data = []
-    process = Convention.objects.filter(
-        chapter=user.current_chapter,
-        year=Convention.current_year()).first()
-    submitted = False
-    users = []
-    if process:
-        submitted = True
+    if type_sign == 'creds':
+        model = Convention
+        url = f'viewflow:forms:convention:assign_'
         signatures = {
             'delegate': 'del',
             'alternate': 'alt',
             'officer1': 'o1',
             'officer2': 'o2'
         }
+    else:
+        model = OSM
+        url = f'viewflow:forms:osm:assign_'
+        signatures = {
+            'officer1': 'o1',
+            'officer2': 'o2'
+        }
+    process = model.objects.filter(
+        chapter=user.current_chapter,
+        year=model.current_year()).first()
+    submitted = False
+    users = []
+    if process:
+        submitted = True
         task_ids = {}
         for task in process.task_set.all():
             if task.flow_task.task_title:
                 title = task.flow_task.task_title.split(' ')[0].lower()
-                task_ids[title] = task.pk
+                task_ids[title] = (task.pk, task.status)
         for signature, abbr in signatures.items():
-            signed = getattr(process, f"signature_{abbr}", False)
-            approved = "N/A"
+            task_pk, task_status = task_ids[signature]
             signer = getattr(process, signature)
-            link = "#"
-            if signed == '' or not signed:
-                status = "Needs Signature"
-                if user == signer and signature in task_ids:
-                    link = reverse(
-                        f'viewflow:forms:convention:assign_{abbr}',
-                        kwargs={'process_pk': process.pk,
-                                'task_pk': task_ids[signature]})
-            else:
-                status = "Signed"
-                link = "#"
-                approved = getattr(process, f"approved_{abbr}", "N/A")
             users.append(signer)
+            link = "#"
+            approved = "N/A"
+            status = "Complete"
+            if task_status == 'ASSIGNED':
+                if type_sign == 'creds':
+                    status = "Needs Signature"
+                else:
+                    status = "Needs Verification"
+                if user == signer:
+                    link = reverse(
+                        url + abbr,
+                        kwargs={
+                            'process_pk': process.pk,
+                            'task_pk': task_pk
+                        })
+                approved = getattr(process, f"approved_{abbr}", "N/A")
             if user.current_chapter.colony:
                 if signature in ['delegate', 'alternate']:
                     signature = 'representative'
@@ -1414,8 +1426,7 @@ class ConventionCreateView(LoginRequiredMixin,
     data = {}
 
     def get(self, request, *args, **kwargs):
-        self.data, self.submitted, self.signers = get_credential_status(self.request.user)
-        officers = self.get_council_officers(request.user.current_chapter)
+        officers = request.user.current_chapter.get_current_officers_council_specific()
         if not all(officers):
             missing = [['regent', 'scribe', 'vice regent', 'treasurer'][ind]
                        for ind, miss in enumerate(officers) if not miss]
@@ -1423,10 +1434,12 @@ class ConventionCreateView(LoginRequiredMixin,
                 self.request, messages.ERROR,
                 f"You must update the officers list! Missing officers: {missing}")
             return redirect(reverse('forms:officer'))
+        self.data, self.submitted, self.signers = get_sign_status(self.request.user)
         if self.submitted and self.request.user in self.signers:
             for sign in self.data:
-                if self.request.user == sign['owner'] and sign['status'] != 'Signed':
-                    return redirect(sign['link'])
+                link = sign['link']
+                if self.request.user == sign['owner'] and link != '#':
+                    return redirect(link)
         return super().get(request, *args, **kwargs)
 
     def get_success_url(self):
@@ -1438,19 +1451,11 @@ class ConventionCreateView(LoginRequiredMixin,
         self.activation.done()
         self.success('Convention Credential form submitted successfully.')
 
-    def get_council_officers(self, chapter):
-        officers = chapter.get_current_officers_council(combine=False)[0]
-        regent = officers.filter(role='regent').first()
-        scribe = officers.filter(role='scribe').first()
-        vice = officers.filter(role='vice regent').first()
-        treasurer = officers.filter(role='treasurer').first()
-        return regent, scribe, vice, treasurer
-
     def form_valid(self, form, *args, **kwargs):
         chapter = self.request.user.current_chapter
         form.instance.chapter = chapter
         del_alt = [form.instance.delegate, form.instance.alternate]
-        regent, scribe, vice, treasurer = self.get_council_officers(chapter)
+        regent, scribe, vice, treasurer = chapter.get_current_officers_council_specific()
         officer1 = officer2 = False
         if regent not in del_alt:
             form.instance.officer1 = regent
@@ -1474,7 +1479,7 @@ class ConventionCreateView(LoginRequiredMixin,
     def get_context_data(self, *args, **kwargs):
         context = super().get_context_data(**kwargs)
         context['submitted'] = self.submitted
-        context['table'] = ConventionTable(data=self.data)
+        context['table'] = SignTable(data=self.data)
         return context
 
 
@@ -1547,9 +1552,9 @@ class ConventionSignView(LoginRequiredMixin, OfficerMixin,
             delegate = True
             if 'user' in context['forms']:
                 context['forms']['user'].fields['phone_number'].required = True
-        data, submitted, users = get_credential_status(self.request.user)
+        data, submitted, users = get_sign_status(self.request.user)
         context['submitted'] = submitted
-        context['table'] = ConventionTable(data=data)
+        context['table'] = SignTable(data=data)
         context['delegate'] = delegate
         return context
 
@@ -1559,8 +1564,8 @@ class ConventionListView(NatOfficerRequiredMixin, LoginRequiredMixin,
     model = Convention
     context_object_name = 'convention_list'
     table_class = ConventionListTable
-    filter_class = ConventionListFilter
-    formhelper_class = ConventionFormHelper
+    filter_class = CompleteListFilter
+    formhelper_class = CompleteFormHelper
 
     def get(self, request, *args, **kwargs):
         self.object_list = self.get_queryset()
@@ -1743,3 +1748,223 @@ def pledge_process_csvs(request, csv_type, process_pk):
         process.generate_invoice_attachment(response=response)
     response['Cache-Control'] = 'no-cache'
     return response
+
+
+class OSMCreateView(LoginRequiredMixin, OfficerMixin, CreateProcessView):
+    template_name = "forms/osm_form.html"
+    model = OSM
+    form_class = OSMForm
+    submitted = False
+    data = {}
+
+    def get(self, request, *args, **kwargs):
+        officers = request.user.current_chapter.get_current_officers_council_specific()
+        if not all(officers):
+            missing = [['regent', 'scribe', 'vice regent', 'treasurer'][ind]
+                       for ind, miss in enumerate(officers) if not miss]
+            messages.add_message(
+                self.request, messages.ERROR,
+                f"You must update the officers list! Missing officers: {missing}")
+            return redirect(reverse('forms:officer'))
+        self.data, self.submitted, self.signers = \
+            get_sign_status(self.request.user, type_sign='osm')
+        if self.submitted and self.request.user in self.signers:
+            for sign in self.data:
+                link = sign['link']
+                if self.request.user == sign['owner'] and link != '#':
+                    return redirect(link)
+        return super().get(request, *args, **kwargs)
+
+    def get_success_url(self):
+        """Continue on task or redirect back to task list."""
+        return reverse('osmform')
+
+    def activation_done(self, *args, **kwargs):
+        """Finish task activation."""
+        self.activation.done()
+        self.success('Outstanding Student Member form submitted successfully.')
+
+    def form_valid(self, form, *args, **kwargs):
+        chapter = self.request.user.current_chapter
+        form.instance.chapter = chapter
+        nominate = [form.instance.nominate]
+        regent, scribe, vice, treasurer = chapter.get_current_officers_council_specific()
+        officer1 = officer2 = False
+        if regent not in nominate:
+            form.instance.officer1 = regent
+            officer1 = True
+        if scribe not in nominate:
+            form.instance.officer2 = vice
+            officer2 = True
+        if not officer1:
+            if scribe not in nominate:
+                form.instance.officer1 = scribe
+                nominate.append(scribe)
+            else:
+                form.instance.officer1 = treasurer
+        if not officer2:
+            if scribe not in nominate:
+                form.instance.officer2 = scribe
+            else:
+                form.instance.officer2 = treasurer
+        return super().form_valid(form)
+
+    def get_context_data(self, *args, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['submitted'] = self.submitted
+        process = OSM.objects.filter(
+            chapter=self.request.user.current_chapter,
+            year=OSM.current_year()).first()
+        if process:
+            context['nominate'] = process.nominate
+        context['table'] = SignTable(data=self.data)
+        return context
+
+
+class OSMVerifyView(LoginRequiredMixin, OfficerMixin, UpdateProcessView,
+                    ModelFormMixin):
+    template_name = "forms/osm_verify_form.html"
+    model = OSM
+    fields_options = {
+        'assign_o1': ['approved_o1', ],
+        'assign_o2': ['approved_o2', ],
+    }
+
+    def get_success_url(self):
+        return reverse('osmform')
+
+    def activation_done(self, *args, **kwargs):
+        """Finish task activation."""
+        self.activation.done()
+        self.success('OSM form signed successfully.')
+
+    @property
+    def fields(self):
+        if not hasattr(self, 'activation'):
+            return None
+        task_name = self.activation.flow_task.name
+        return self.fields_options[task_name]
+
+    @fields.setter
+    def fields(self, val):
+        # On instantiate of UpdateProcessView tries to get fields and set empty
+        # Ignore that
+        pass
+
+    def get_context_data(self, *args, **kwargs):
+        context = super().get_context_data(**kwargs)
+        data, submitted, users = get_sign_status(self.request.user, type_sign='osm')
+        context['submitted'] = submitted
+        process = OSM.objects.filter(
+            chapter=self.request.user.current_chapter,
+            year=OSM.current_year()).first()
+        if process:
+            context['nominate'] = process.nominate
+        context['table'] = SignTable(data=data)
+        return context
+
+
+class OSMListView(NatOfficerRequiredMixin, LoginRequiredMixin,
+                  OfficerMixin, PagedFilteredTableView):
+    model = OSM
+    context_object_name = 'osm_list'
+    table_class = OSMListTable
+    filter_class = CompleteListFilter
+    formhelper_class = CompleteFormHelper
+
+    def get(self, request, *args, **kwargs):
+        self.object_list = self.get_queryset()
+        context = self.get_context_data()
+        if request.GET.get('csv', 'False').lower() == 'download csv':
+            response = HttpResponse(content_type='text/csv')
+            time_name = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename = f"ThetaTau_OSM_{time_name}.csv"
+            response['Content-Disposition'] = f'attachment; filename="{filename}"'
+            writer = csv.writer(response)
+            emails = context['email_list']
+            if emails != "":
+                writer.writerow([
+                    'Chapter', 'Region', 'Role', 'Email',
+                    'Phone Number', 'Address'
+                ])
+                for form in self.object_list:
+                    for user_type in ['nominate']:
+                        user = getattr(form, user_type)
+                        writer.writerow(
+                            [
+                                form.chapter,
+                                form.chapter.region,
+                                user_type,
+                                user.email,
+                                user.phone_number,
+                                user.address,
+
+                            ]
+                        )
+                return response
+            else:
+                messages.add_message(
+                    self.request, messages.ERROR,
+                    f"All forms are filtered! Clear or change filter.")
+        return self.render_to_response(context)
+
+    def get_queryset(self, **kwargs):
+        qs = OSM.objects.all()
+        cancel = self.request.GET.get('cancel', False)
+        request_get = self.request.GET.copy()
+        if cancel:
+            request_get = QueryDict()
+        if not request_get:
+            # Create a mutable QueryDict object, default is immutable
+            request_get = QueryDict(mutable=True)
+            request_get.setlist("year", [''])
+            request_get.setlist("term", [''])
+        if not cancel:
+            if request_get['year'] == '':
+                request_get['year'] = datetime.datetime.now().year
+            if request_get['term'] == '':
+                request_get['term'] = SEMESTER[datetime.datetime.now().month]
+        self.filter = self.filter_class(request_get,
+                                        queryset=qs)
+        self.filter.request = self.request
+        self.filter.form.helper = self.formhelper_class()
+        return self.filter.qs
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        all_forms = self.object_list
+        data = [
+            {
+                'chapter': form.chapter.name,
+                'region': form.chapter.region.name,
+                'year': form.year,
+                'term': ChapterReport.TERMS.get_value(form.term),
+                'nominate': form.nominate,
+            } for form in all_forms
+        ]
+        complete = self.filter.form.cleaned_data['complete']
+        if complete in ['0', '']:
+            form_chapters = all_forms.values_list('chapter__id', flat=True)
+            region_slug = self.filter.form.cleaned_data['region']
+            region = Region.objects.filter(slug=region_slug).first()
+            if region:
+                missing_chapters = Chapter.objects.exclude(id__in=form_chapters).filter(region__in=[region])
+            elif region_slug == 'colony':
+                missing_chapters = Chapter.objects.exclude(id__in=form_chapters).filter(colony=True)
+            else:
+                missing_chapters = Chapter.objects.exclude(id__in=form_chapters)
+            missing_data = [{
+                 'chapter': chapter.name, 'region': chapter.region.name,
+                 'nominate': None, 'term': None, 'year': None,
+             } for chapter in missing_chapters]
+            if complete == '0':  # Incomplete
+                data = missing_data
+            else:  # All
+                data.extend(missing_data)
+        table = OSMListTable(data=data)
+        all_users = [x['nominate'].email for x in data if x['nominate']]
+        email_list = ', '.join(all_users)
+        context['email_list'] = email_list
+        RequestConfig(self.request, paginate={'per_page': 100}).configure(table)
+        context['table'] = table
+        return context
