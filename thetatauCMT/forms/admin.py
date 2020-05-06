@@ -2,7 +2,7 @@ from django.contrib import admin
 from import_export.admin import ImportExportActionModelAdmin
 from .models import Badge, Guard, Initiation, Depledge, StatusChange,\
     PledgeForm, RiskManagement, PledgeProgram, Audit, Pledge, ChapterReport,\
-    Convention
+    Convention, OSM
 from .resources import InitiationResource, DepledgeResource, PledgeResource,\
     PledgeFormResource, StatusChangeResource
 from core.admin import user_chapter
@@ -120,3 +120,14 @@ class ConventionAdmin(admin.ModelAdmin):
 
 
 admin.site.register(Convention, ConventionAdmin)
+
+
+class OSMAdmin(admin.ModelAdmin):
+    raw_id_fields = ['nominate', 'officer1', 'officer2']
+    list_display = ('chapter', 'created', 'year', 'term', )
+    list_filter = ['chapter', 'year', 'term', ]
+    ordering = ['-created', ]
+    search_fields = ['nominate__name', ]
+
+
+admin.site.register(OSM, OSMAdmin)
