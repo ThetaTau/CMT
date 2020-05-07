@@ -1787,7 +1787,7 @@ class OSMCreateView(LoginRequiredMixin, OfficerMixin, CreateProcessView):
     def form_valid(self, form, *args, **kwargs):
         chapter = self.request.user.current_chapter
         form.instance.chapter = chapter
-        nominate = [form.instance.nominate]
+        nominate = [form.instance.nominate, self.request.user]
         regent, scribe, vice, treasurer = chapter.get_current_officers_council_specific()
         officer1 = officer2 = False
         if regent not in nominate:
