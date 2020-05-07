@@ -7,10 +7,18 @@
 {% block head_title %}{% trans "OSM Form" %}{% endblock %}
 {% block content %}
   <h1>Outstanding Student Member Form</h1>
-  At a regular meeting the following member was elected as the chapter outstanding student member,
-  in accord with the Laws and Customs of Theta Tau.
-  <hr>
   {% if not submitted %}
+    <p>
+    Please use the form below to report which member of your chapter has been
+      selected as the Outstanding Student Member (OSM).
+      Please enter the date of the meeting (or if done remotely,
+      the date the vote was taken/selection was made) and select the brother
+      who has been chosen as OSM. Two other chapter officers* will
+      receive an email asking them to verify the selection,
+      and then the OSM will be sent an email with the link to apply for the
+      national OSM award.<br>*Depending on who submits the form and who is nominated
+      officers that did not submit the form and are not nominated will be asked to verify.
+    </p>
     {% if request.user.is_officer  %}
       <form method="POST" enctype="multipart/form-data">
         {{ form.media }}
@@ -26,10 +34,14 @@
         <button class="primaryAction btn btn-primary" type="submit">{% trans "Submit Form" %}</button>
       </form>
     {% else %}
-      <p>Outstanding Student Member form not yet submitted this year, please contact your chapter officers.</p>
+      <p>Outstanding Student Member form not yet submitted this year,
+        please contact your chapter officers.</p>
     {% endif %}
+  <hr>
   <br>
     {% else %}
+    <p>At a regular meeting the following member was elected as the chapter outstanding student member,
+  in accord with the Laws and Customs of Theta Tau.</p>
     <p>Outstanding Student Member selected: {{ nominate }}.</p>
   <h3>OSM Form Status</h3>
     <p>
