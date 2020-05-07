@@ -27,6 +27,10 @@ urlpatterns = [
         view=views.ConventionListView.as_view(),
         name='convention_list'),
     url(
+        regex=r'^osm-list/$',
+        view=views.OSMListView.as_view(),
+        name='osm_list'),
+    url(
         regex=r'^audit-list/$',
         view=views.AuditListView.as_view(),
         name='audit_list'),
@@ -64,6 +68,11 @@ urlpatterns = [
         regex=r'^initiation-csv/(?P<process_pk>\d+)/(?P<csv_type>[\w.@+-]+)$',
         view=views.badge_shingle_init_csv,
         name='init_csv'
+    ),
+    url(
+        regex=r'^pledge-csv/(?P<process_pk>\d+)/(?P<csv_type>[\w.@+-]+)$',
+        view=views.pledge_process_csvs,
+        name='pledge_csv'
     ),
     url(
         regex=r'^status/$',

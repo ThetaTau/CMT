@@ -69,6 +69,10 @@ urlpatterns = [
         RedirectView.as_view(pattern_name='viewflow:forms:convention:start',
                              permanent=True),
         name='conventionform'),
+    url(r'^osmform/$',
+        RedirectView.as_view(pattern_name='viewflow:forms:osm:start',
+                             permanent=True),
+        name='osmform'),
 
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
@@ -87,6 +91,7 @@ if settings.DEBUG:
             url(r'^__debug__/', include(debug_toolbar.urls)),
         ] + urlpatterns
 
+if settings.DEBUG or 'staging' in settings.SETTINGS_MODULE:
     urlpatterns += [
         url(r'^herald/', include('herald.urls')),
     ]

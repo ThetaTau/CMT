@@ -3,7 +3,7 @@ from herald.base import EmailNotification
 from django.conf import settings
 from django.forms.models import model_to_dict
 from core.models import current_term, current_year
-from forms.tables import ConventionTable
+from forms.tables import SignTable
 
 
 @registry.register_decorator()
@@ -77,7 +77,7 @@ class EmailRMPReport(EmailNotification):  # extend from EmailNotification for em
         test_user = User.objects.order_by('?')[0]
         from django.core.files import File
         test_path = 'thetatauCMT/forms/test/example_rmp.pdf'
-        f = open(test_path, 'r')
+        f = open(test_path, 'rb')
         risk_file = File(f)
         risk_file.mime_type = 'application/pdf'
         return [test_user, risk_file]
@@ -138,7 +138,7 @@ class EmailPledgeOther(EmailNotification):  # extend from EmailNotification for 
         test_user = User.objects.order_by('?')[0]
         from django.core.files import File
         test_path = 'thetatauCMT/forms/test/example_rmp.pdf'
-        f = open(test_path, 'r')
+        f = open(test_path, 'rb')
         risk_file = File(f)
         risk_file.mime_type = 'application/pdf'
         return [test_user, risk_file]
@@ -203,6 +203,36 @@ class EmailPledgeWelcome(EmailNotification):  # extend from EmailNotification fo
         self.context = {
             'name': name,
             'no_later_date': f"{no_later_month}, {current_year()}",
+            'host': settings.CURRENT_URL,
+        }
+
+    @staticmethod
+    def get_demo_args():  # define a static method to return list of args needed to initialize class for testing
+        from forms.models import Pledge
+        test_pledge_form = Pledge.objects.order_by('?')[0]
+        return [test_pledge_form]
+
+
+@registry.register_decorator()
+class EmailPledgeOfficer(EmailNotification):
+    render_types = ['html']
+    template_name = 'pledge_officer'
+    subject = 'Theta Tau Prospective New Member Submission'
+
+    def __init__(self, pledge_form):
+        officers = pledge_form.school_name.get_current_officers_council(combine=False)[0]
+        scribe = officers.filter(role='scribe').first()
+        vice = officers.filter(role='vice regent').first()
+        emails = set()
+        if scribe:
+            emails.add(scribe.email)
+        if vice:
+            emails.add(vice.email)
+        self.to_emails = emails
+        self.cc = [pledge_form.email_school, ]
+        self.reply_to = ["cmt@thetatau.org", ]
+        self.context = {
+            'pledge': pledge_form.first_name + ' ' + pledge_form.last_name,
             'host': settings.CURRENT_URL,
         }
 
@@ -309,9 +339,9 @@ class EmailConventionUpdate(EmailNotification):
     template_name = 'convention'
 
     def __init__(self, activation, user, message):
-        from forms.views import get_credential_status
-        data, _, _ = get_credential_status(user)
-        table = ConventionTable(data=data)
+        from forms.views import get_sign_status
+        data, _, _ = get_sign_status(user)
+        table = SignTable(data=data)
         process_title = activation.flow_class.process_title
         self.to_emails = set([user.email])  # set list of emails to send to
         self.reply_to = ["cmt@thetatau.org", ]
@@ -331,3 +361,34 @@ class EmailConventionUpdate(EmailNotification):
         test.process = test
         return [test, test.delegate, "Convention Form Submitted",]
 
+
+@registry.register_decorator()
+class EmailOSMUpdate(EmailNotification):
+    render_types = ['html']
+    template_name = 'osm'
+
+    def __init__(self, activation, user, message, nominate=None):
+        officer = True
+        if nominate is None:
+            officer = False
+        process_title = activation.flow_class.process_title
+        self.to_emails = {user.email}
+        self.reply_to = ["cmt@thetatau.org", ]
+        self.subject = f'[CMT] {process_title}'
+        self.context = {
+            'user': user,
+            'message': message,
+            'officer': officer,
+            'nominate': nominate,
+            'process_title': "Outstanding Student Member Process",
+            'host': settings.CURRENT_URL,
+        }
+
+    @staticmethod
+    def get_demo_args():
+        from forms.models import OSM
+        test = OSM.objects.order_by('?')[0]
+        test.process = test
+        # return [test, test.officer1,
+        #         "Outstanding Student Member Form Submission", test.nominate]
+        return [test, test.nominate, "Outstanding Student Member Nomination"]

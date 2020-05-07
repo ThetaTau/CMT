@@ -92,14 +92,39 @@ class PledgeProgram(YearTermModel, TimeStampedModel):
         def get_value(cls, member):
             return cls[member].value[1]
 
+    class STATUS(Enum):
+        none = ('none', '')
+        initiated = ('initiated', 'We completed new member education and initiated our pledges.')
+        still_initiate = (
+            'still_initiate',
+            'We completed new member education and voted, we just have to initiate our pledges.')
+        still_vote = (
+            'still_vote',
+            'We completed new member education but we still need to vote and initiate our pledges.')
+        not_complete = ('not_complete', 'We did not complete new member education.')
+
+        @classmethod
+        def get_value(cls, member):
+            return cls[member].value[1]
+
     chapter = models.ForeignKey(Chapter, on_delete=models.CASCADE,
                                 related_name="pledge_programs")
-    verbose_remote = "Will your new member education be run remotely?"
+    verbose_remote = "Have you or will you conduct your new member education remotely?"
     remote = models.BooleanField(verbose_remote, choices=BOOL_CHOICES, default=False)
-    verbose_complete = "When do you anticipate completing new member education?"
+    verbose_complete = "When did you/do you anticipate completing new member education?"
     date_complete = models.DateField(verbose_complete, default=timezone.now)
-    verbose_initiation = "When do you plan to hold initiations?"
+    verbose_initiation = "When did you/do you plan to initiate your pledges?"
     date_initiation = models.DateField(verbose_initiation, default=timezone.now)
+    verbose_weeks = "How many weeks is your typical new member education program?"
+    weeks = models.PositiveIntegerField(verbose_weeks, default=0)
+    verbose_weeks_left = "How many weeks of new member education do you have yet to complete?"
+    weeks_left = models.PositiveIntegerField(verbose_weeks_left, default=0)
+    status = models.CharField(
+        verbose_name="What is the current status of your new member education?",
+        max_length=20,
+        choices=[x.value for x in STATUS],
+        default="none",
+    )
     manual = models.CharField(
         max_length=10,
         choices=[x.value for x in MANUALS]
@@ -876,3 +901,206 @@ class PledgeProcess(Process):
     invoice = models.PositiveIntegerField("Invoice Number", default=999999999)
     chapter = models.ForeignKey(Chapter, on_delete=models.CASCADE,
                                 related_name="pledge_process")
+
+    def generate_invoice_attachment(self, response=None):
+        columns = [
+            "Submission Date",
+            "Title",
+            "Legal First Name",
+            "Full Middle Name",
+            "Last Name",
+            "Nickname",
+            "School E-mail",
+            "Mobile Number:",
+            "Chapter",
+            "Major",
+            "Expected date of graduation",
+        ]
+        chapter = self.chapter.name
+        todays_date = datetime.datetime.now().date().strftime("%Y%m%d")
+        filename = f"{chapter}_{todays_date}_pledges_invoice.csv"
+        out = response
+        if response is not None:
+            pledge_file = response
+            response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        else:
+            pledge_file = io.StringIO()
+            pledge_mail = MIMEBase('application', 'csv')
+            pledge_mail.add_header('Content-Disposition', 'attachment', filename=filename)
+        writer = csv.DictWriter(pledge_file, fieldnames=columns)
+        writer.writeheader()
+        for pledge in self.pledges.all():
+            row = {
+                "Submission Date": pledge.created,
+                "Title": pledge.title,
+                "Legal First Name": pledge.first_name,
+                "Full Middle Name": pledge.middle_name,
+                "Last Name": pledge.last_name,
+                "Nickname": pledge.nickname,
+                "School E-mail": pledge.email_school,
+                "Mobile Number:": pledge.phone_mobile,
+                "Chapter": self.chapter,
+                "Major": pledge.major,
+                "Expected date of graduation": pledge.grad_date_year,
+            }
+            writer.writerow(row)
+        if response is None:
+            pledge_mail.set_payload(pledge_file)
+            out = pledge_mail
+        return out
+
+    def generate_blackbaud_update(self, response=None):
+        columns = [
+            "Submission Date",
+            "Title",
+            "Legal First Name",
+            "Full Middle Name",
+            "Last Name",
+            "Suffix (such as Jr., III)",
+            "Nickname",
+            "Parent / Guardian Name",
+            "School E-mail",
+            "Personal Email",
+            "Mobile Number:",
+            "Home Phone",
+            "Street Address",
+            "City",
+            "Permanent Home Address State/Province",
+            "Zip Code 2",
+            "Country",
+            "Birth Date:",
+            "Place of Birth",
+            "School Name",
+            "Abbrev",
+            "Chapter",
+            "Major",
+            "Expected date of graduation",
+            "College degrees already received",
+            "Theta Tau Relatives",
+            "Of which Greek Letter Honor Societies are you a member?",
+            "Of which technical societies are you a member?",
+            "Of which fraternities are you a member?",
+            "Which? (Other college)",
+            "Have you ever been expelled from any college?",
+            "If yes, please explain. (College explain)",
+            "If yes, please explain. (Crime explain)",
+            "Loyalty",
+            "not honor",
+            "accountable",
+            "life",
+            "unlawful",
+            "unlawful_org",
+            "brotherhood",
+            "engineering",
+            "engineering practice",
+            "payment",
+            "attendance",
+            "harmless",
+            "Alumni Association",
+            "Honest",
+            "/Signature/",
+            "Date Signed - Today's Date",
+        ]
+        chapter = self.chapter.name
+        chapter_abr = self.chapter.greek
+        todays_date = datetime.datetime.now().date().strftime("%Y%m%d")
+        filename = f"{chapter}_{todays_date}_pledges.csv"
+        out = response
+        if response is not None:
+            pledge_file = response
+            response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        else:
+            pledge_file = io.StringIO()
+            pledge_mail = MIMEBase('application', 'csv')
+            pledge_mail.add_header('Content-Disposition', 'attachment', filename=filename)
+        writer = csv.DictWriter(pledge_file, fieldnames=columns)
+        writer.writeheader()
+        for pledge in self.pledges.all():
+            city, state, zipcode, country = "", "", "", ""
+            if pledge.address.locality:
+                city = pledge.address.locality.name
+                state = pledge.address.locality.state.code
+                zipcode = pledge.address.locality.postal_code
+                country = pledge.address.locality.state.country
+            expelled_college = False
+            if pledge.explain_expelled_college:
+                expelled_college = True
+            row = {
+                "Submission Date": pledge.created,
+                "Title": pledge.title,
+                "Legal First Name": pledge.first_name,
+                "Full Middle Name": pledge.middle_name,
+                "Last Name": pledge.last_name,
+                "Suffix (such as Jr., III)": pledge.suffix,
+                "Nickname": pledge.nickname,
+                "Parent / Guardian Name": pledge.parent_name,
+                "School E-mail": pledge.email_school,
+                "Personal Email": pledge.email_personal,
+                "Mobile Number:": pledge.phone_mobile,
+                "Home Phone": pledge.phone_home,
+                "Street Address": pledge.address,
+                "City": city,
+                "Permanent Home Address State/Province": state,
+                "Zip Code 2": zipcode,
+                "Country": country,
+                "Birth Date:": pledge.birth_date,
+                "Place of Birth": pledge.birth_place,
+                "School Name": self.chapter.school,
+                "Abbrev": chapter_abr,
+                "Chapter": self.chapter,
+                "Major": pledge.major,
+                "Expected date of graduation": pledge.grad_date_year,
+                "College degrees already received": pledge.other_degrees,
+                "Theta Tau Relatives": pledge.relative_members,
+                "Of which Greek Letter Honor Societies are you a member?": pledge.other_greeks,
+                "Of which technical societies are you a member?": pledge.other_tech,
+                "Of which fraternities are you a member?": pledge.other_frat,
+                "Which? (Other college)": pledge.other_college,
+                "Have you ever been expelled from any college?": expelled_college,
+                "If yes, please explain. (College explain)": pledge.explain_expelled_college,
+                "If yes, please explain. (Crime explain)": pledge.explain_crime,
+                "Loyalty": pledge.loyalty,
+                "not honor": pledge.not_honor,
+                "accountable": pledge.accountable,
+                "life": pledge.life,
+                "unlawful": pledge.unlawful,
+                "unlawful_org": pledge.unlawful_org,
+                "brotherhood": pledge.brotherhood,
+                "engineering": pledge.engineering,
+                "engineering practice": pledge.engineering_grad,
+                "payment": pledge.payment,
+                "attendance": pledge.attendance,
+                "harmless": pledge.harmless,
+                "Alumni Association": pledge.alumni,
+                "Honest": pledge.honest,
+                "/Signature/": pledge.signature,
+                "Date Signed - Today's Date": pledge.created,
+            }
+            writer.writerow(row)
+        if response is None:
+            pledge_mail.set_payload(pledge_file)
+            out = pledge_mail
+        return out
+
+
+class OSM(Process, YearTermModel):
+    BOOL_CHOICES = ((True, 'Approve'), (False, 'Deny'))
+    meeting_date = models.DateField(default=timezone.now, validators=[no_future])
+    nominate = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
+        related_name="osm", verbose_name="OSM Nomination")
+    verbose_selection_process = "How was the Chapter Outstanding Student Member chosen?" +\
+                                " What process was used to select them?"
+    selection_process = models.TextField(verbose_selection_process)
+    chapter = models.ForeignKey(
+        Chapter, on_delete=models.CASCADE, related_name="osm")
+    officer1 = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
+        related_name="osm_off1", verbose_name="Officer Signature")
+    officer2 = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
+        related_name="osm_off2", verbose_name="Officer Signature")
+    approved_o1 = models.BooleanField('Officer Approved', choices=BOOL_CHOICES,
+                                      default=False)
+    approved_o2 = models.BooleanField('Officer Approved', choices=BOOL_CHOICES,
+                                      default=False)

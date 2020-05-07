@@ -163,6 +163,9 @@
                   <li class="dropdown-item">
                     <a class="nav-link" href="{% url 'conventionform' %}">{% trans "Convention Form" %}</a>
                   </li>
+                  <li class="dropdown-item">
+                    <a class="nav-link" href="{% url 'osmform' %}">{% trans "OSM Form" %}</a>
+                  </li>
                 </ul>
               </li>
                 {% endif %}
@@ -199,6 +202,9 @@
                         </li>
                         <li class="dropdown-item">
                           <a class="nav-link" href="{% url 'forms:convention_list' %}">{% trans "All Convention Forms" %}</a>
+                        </li>
+                        <li class="dropdown-item">
+                          <a class="nav-link" href="{% url 'forms:osm_list' %}">{% trans "All OSM Forms" %}</a>
                         </li>
                       </ul>
                     <li class="dropdown-item">

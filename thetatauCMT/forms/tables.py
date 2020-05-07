@@ -2,7 +2,7 @@ import django_tables2 as tables
 from django_tables2.utils import A
 from django.utils.html import mark_safe
 from .models import Guard, Badge, Initiation, Depledge, StatusChange,\
-    PledgeForm, Audit, PledgeProgram, ChapterReport
+    PledgeForm, Audit, PledgeProgram, ChapterReport, OSM
 
 
 class GuardTable(tables.Table):
@@ -94,6 +94,9 @@ class PledgeProgramTable(tables.Table):
     date_complete = tables.DateColumn(verbose_name="Complete Date")
     date_initiation = tables.DateColumn(verbose_name="Initiation Date")
     remote = tables.BooleanColumn(verbose_name="Remote")
+    weeks = tables.Column(verbose_name="Weeks in Program")
+    weeks_left = tables.Column(verbose_name="Weeks LEFT in Program")
+    status = tables.Column(verbose_name="Program Status")
 
     class Meta:
         model = PledgeProgram
@@ -104,12 +107,16 @@ class PledgeProgramTable(tables.Table):
             'region',
             'year',
             'term',
-            'manual',
             'remote',
             'date_complete',
-            'date_initiation'
+            'date_initiation',
+            'weeks',
+            'weeks_left',
+            'status',
         ]
 
+    def render_status(self, value):
+        return PledgeProgram.STATUS.get_value(value)
 
 class ChapterReportTable(tables.Table):
     class Meta:
@@ -169,7 +176,7 @@ class PrematureAlumnusStatusTable(tables.Table):
         attrs = {"class": "table-striped table-bordered", }
 
 
-class ConventionTable(tables.Table):
+class SignTable(tables.Table):
     owner = tables.Column()
     role = tables.Column()
     status = tables.Column()
@@ -192,4 +199,18 @@ class ConventionListTable(tables.Table):
             'term',
             'delegate',
             'alternate',
+        ]
+
+
+class OSMListTable(tables.Table):
+    class Meta:
+        model = OSM
+        order_by = 'chapter'
+        attrs = {"class": "table-striped table-bordered"}
+        fields = [
+            'chapter',
+            'region',
+            'year',
+            'term',
+            'nominate',
         ]

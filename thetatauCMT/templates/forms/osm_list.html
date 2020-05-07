@@ -3,36 +3,38 @@
 {% load bootstrap4 %}
 {% load crispy_forms_tags %}
 {% load static i18n %}
-{% block title %}Pledge Programs{% endblock %}
+{% block title %}Chapter OSM Forms{% endblock %}
 
 {% block content %}
 {#  {% render_table table %}#}
 {% if table.page %}
   <div class="table-container">
 {% endif %}
-
+<table>
+      <tr>
+        <td><h2>Chapter OSM Forms:</h2></td>
+        <td>
+          <button class="clipboard button btn btn-primary"
+            data-clipboard-text="{{ email_list }}">
+            Copy emails to clipboard
+          </button>
+        </td>
+        <td>
+          <form action='' method='GET'>
+          {% csrf_token %}
+          <input type='hidden'>
+          <input type='submit' class="btn btn-primary" name="csv" value="Download CSV" style="float: right;">
+        </td>
+      </tr>
+    </table>
 {% block table %}
     <div class="table-responsive">
         <table class="table table-hover table-bordered table-striped"{% if table.attrs %} {{ table.attrs.as_html }}{% endif %}>
             {% block table.thead %}
             <thead>
                 <tr>
-                  <td colspan="5"><h3><i class="fas fa-search"></i> Filter Pledge Programs</h3></td>
-                  <td colspan="3">
-                    <button class="clipboard button btn btn-primary"
-                      data-clipboard-text="{{ email_list }}">
-                      Copy emails to clipboard
-                    </button>
-                  </td>
-                  <td colspan="2">
-                    <form action='' method='GET'>
-                    {% csrf_token %}
-                    <input type='hidden'>
-                    <input type='submit' class="btn btn-primary" name="csv" value="Download CSV" style="float: left;">
-                  </td>
-                </tr>
-                <tr>
-                    <th colspan="9">
+                    <th colspan="11">
+                        <form method="get" class="form-inline form-search pull-right">
                           {% crispy filter.form filter.form.helper %}
                         </form>
                     </th>
@@ -88,5 +90,5 @@
     {% endblock pagination %}
   </div>
 {% endif %}
-<script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/1.5.10/clipboard.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/1.5.10/clipboard.min.js"></script>
 {% endblock content %}

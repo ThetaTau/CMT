@@ -1,0 +1,37 @@
+{% extends 'material/frontend/views/list.html' %}
+{% load material_frontend viewflow viewflow_frontend %}
+
+{% block breadcrumbs_items %}
+{% include 'viewflow/includes/breadcrumb_category.html' %}
+<a class="active" href="{% flowurl view.flow_class 'index' %}?{{ request|query_back }}">{{ view.flow_class.process_title }}</a>
+{% endblock %}
+
+{% block right-panel %}
+  <div class="right-panel">
+  <div class="card">
+    <div class="card-title">Search</div>
+    <div class="card-content">
+      <p>Search first by chapter then status separated by a comma.
+        Partial matching works. Case does not matter.<br>
+        Add a '-' to get exact match.
+    ie. CHAPTER, STATUS<br>
+    <h5>Examples:</h5>
+    <ul>
+      <li>Chi, Complete</li>
+      <li>epsi, send</li>
+      <li>,pay</li>
+      <li>Chi-, Complete (to get exactly Chi Chapter)</li>
+    </ul>
+      </p>
+      <h5>Status options are:</h5>
+      <ul>
+        <li>Complete</li>
+        <li>Send invoice to chapter</li>
+        <li>Invoice payment by chapter</li>
+      </ul>
+    </div>
+  </div>
+  </div>
+{% endblock right-panel %}
+
+{% block action_btn %}{% include 'viewflow/includes/flow_start_actions.html' %}{% endblock %}

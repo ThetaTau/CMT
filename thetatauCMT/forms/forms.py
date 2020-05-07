@@ -8,7 +8,7 @@ from crispy_forms.bootstrap import FormActions, Field, InlineField,\
     StrictButton, InlineRadios, Accordion, AccordionGroup, Div
 from tempus_dominus.widgets import DatePicker
 from .models import Initiation, Depledge, StatusChange, RiskManagement,\
-    PledgeProgram, Audit, Pledge, ChapterReport, PrematureAlumnus, Convention
+    PledgeProgram, Audit, Pledge, ChapterReport, PrematureAlumnus, Convention, OSM
 from core.models import CHAPTER_ROLES_CHOICES, NAT_OFFICERS_CHOICES
 from users.models import User, UserRoleChange
 from regions.models import Region
@@ -439,7 +439,7 @@ class PledgeProgramForm(forms.ModelForm):
     class Meta:
         model = PledgeProgram
         fields = [
-            'remote', 'manual', 'other_manual',
+            'remote', 'weeks', 'weeks_left', 'status',
             'date_complete', 'date_initiation',
         ]
 
@@ -533,13 +533,12 @@ class PledgeProgramFormHelper(FormHelper):
     html5_required = True
     layout = Layout(
                 Fieldset(
-                    '<i class="fas fa-search"></i> Filter Pledge Programs',
+                    '',
                     Row(
                         Field('region'),
                         Field('complete'),
                         Field('year'),
                         Field('term'),
-                        Field('manual'),
                         FormActions(
                             StrictButton(
                                 '<i class="fa fa-search"></i> Filter',
@@ -555,7 +554,7 @@ class PledgeProgramFormHelper(FormHelper):
     )
 
 
-class ChapterReportFormHelper(FormHelper):
+class CompleteFormHelper(FormHelper):
     form_method = 'GET'
     form_id = 'pledge_program-search-form'
     form_class = 'form-inline'
@@ -567,7 +566,7 @@ class ChapterReportFormHelper(FormHelper):
     html5_required = True
     layout = Layout(
                 Fieldset(
-                    '<i class="fas fa-search"></i> Filter Chapter Reports',
+                    '<i class="fas fa-search"></i> Filter Forms',
                     Row(
                         Field('region'),
                         Field('complete'),
@@ -796,9 +795,9 @@ class PledgeFormFull(forms.ModelForm):
                     'alumni',
                     'honest',
                     'signature',
-                    ButtonHolder(
-                        Submit('submit', 'Submit', css_class='btn-primary')
-                    )
+                ),
+                ButtonHolder(
+                    Submit('submit', 'Submit', css_class='btn-primary')
                 )
             )
         )
@@ -877,34 +876,22 @@ class ConventionForm(forms.ModelForm):
         fields = ['meeting_date', 'delegate', 'alternate', ]
 
 
-class ConventionFormHelper(FormHelper):
-    form_method = 'GET'
-    form_id = 'convention-search-form'
-    form_class = 'form-inline'
-    field_template = 'bootstrap3/layout/inline_field.html'
-    field_class = 'col-xs-3'
-    label_class = 'col-xs-3'
-    form_show_errors = True
-    help_text_inline = False
-    html5_required = True
-    layout = Layout(
-                Fieldset(
-                    '<i class="fas fa-search"></i> Filter Convention Credential Forms',
-                    Row(
-                        Field('region'),
-                        Field('complete'),
-                        Field('year'),
-                        Field('term'),
-                        FormActions(
-                            StrictButton(
-                                '<i class="fa fa-search"></i> Filter',
-                                type='submit',
-                                css_class='btn-primary',),
-                            Submit(
-                                'cancel',
-                                'Clear',
-                                css_class='btn-primary'),
-                        )
-                    )
-                ),
+class OSMForm(forms.ModelForm):
+    nominate = forms.ModelChoiceField(
+        queryset=User.objects.all(),
+        widget=autocomplete.ModelSelect2(
+            url='users:autocomplete',
+            forward=(forward.Const('true', 'chapter'),
+                     forward.Const('true', 'actives'),
+                     )
+        ),
     )
+    meeting_date = forms.DateField(
+        label="Meeting Date",
+        widget=DatePicker(options={"format": "M/DD/YYYY"},
+                          attrs={'autocomplete': 'off'},
+                          ))
+
+    class Meta:
+        model = OSM
+        fields = ['meeting_date', 'nominate', 'selection_process', ]
