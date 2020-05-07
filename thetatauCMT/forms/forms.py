@@ -8,7 +8,7 @@ from crispy_forms.bootstrap import FormActions, Field, InlineField,\
     StrictButton, InlineRadios, Accordion, AccordionGroup, Div
 from tempus_dominus.widgets import DatePicker
 from .models import Initiation, Depledge, StatusChange, RiskManagement,\
-    PledgeProgram, Audit, Pledge, ChapterReport, PrematureAlumnus, Convention
+    PledgeProgram, Audit, Pledge, ChapterReport, PrematureAlumnus, Convention, OSM
 from core.models import CHAPTER_ROLES_CHOICES, NAT_OFFICERS_CHOICES
 from users.models import User, UserRoleChange
 from regions.models import Region
@@ -893,5 +893,5 @@ class OSMForm(forms.ModelForm):
                           ))
 
     class Meta:
-        model = Convention
-        fields = ['meeting_date', 'nominate', ]
+        model = OSM
+        fields = ['meeting_date', 'nominate', 'selection_process', ]
