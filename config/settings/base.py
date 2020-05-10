@@ -91,6 +91,7 @@ THIRD_PARTY_APPS = [
     'material.frontend',
     'material.admin',
     'import_export',
+    'dbbackup',
 ]
 LOCAL_APPS = [
     'thetatauCMT.users.apps.UsersConfig',
@@ -388,3 +389,19 @@ SOCIALACCOUNT_PROVIDERS = {
 }
 
 IMPORT_EXPORT_USE_TRANSACTIONS = True
+
+DBBACKUP_LOCAL = env.bool('DBBACKUP_LOCAL', default=True)
+DBBACKUP_GPG_RECIPIENT = 'Frank.Ventura@thetatau.org'
+if DBBACKUP_LOCAL:
+    DBBACKUP_STORAGE = 'django.core.files.storage.FileSystemStorage'
+    DBBACKUP_STORAGE_LOCATION = env('DBBACKUP_STORAGE_LOCATION', default='database_backups')
+    DBBACKUP_STORAGE_OPTIONS = {'location': DBBACKUP_STORAGE_LOCATION}
+else:
+    DBBACKUP_STORAGE = 'storages.backends.gcloud.GoogleCloudStorage'
+    # 1.1 Mbps is the minimum required to upload 8 MB within the 60 second timeout
+    GS_BLOB_CHUNK_SIZE = 5 * 1024 * 1024  # Set 5 MB blob size
+    DBBACKUP_STORAGE_OPTIONS = dict(
+        credentials=GS_CREDENTIALS,
+        bucket_name='theta-tau-database',
+        max_memory_size=100 * 1024 * 1024,  # Set 100 MB blob size,
+    )
