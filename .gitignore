@@ -343,6 +343,6 @@ MailHog
 
 thetatauCMT/media/
 tests/ngrok.exe
-scratchpad/*
 submissions/*
 
+*.ipynb_checkpoints
