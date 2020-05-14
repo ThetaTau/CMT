@@ -340,7 +340,7 @@ class EmailConventionUpdate(EmailNotification):
 
     def __init__(self, activation, user, message):
         from forms.views import get_sign_status
-        data, _, _ = get_sign_status(user)
+        data, _, _ = get_sign_status(user, initial=True)
         table = SignTable(data=data)
         process_title = activation.flow_class.process_title
         self.to_emails = set([user.email])  # set list of emails to send to

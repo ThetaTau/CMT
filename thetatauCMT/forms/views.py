@@ -1354,7 +1354,7 @@ def badge_shingle_init_csv(request, csv_type, process_pk):
     return response
 
 
-def get_sign_status(user, type_sign='creds'):
+def get_sign_status(user, type_sign='creds', initial=False):
     data = []
     if type_sign == 'creds':
         model = Convention
@@ -1385,7 +1385,10 @@ def get_sign_status(user, type_sign='creds'):
                 title = task.flow_task.task_title.split(' ')[0].lower()
                 task_ids[title] = (task.pk, task.status)
         for signature, abbr in signatures.items():
-            task_pk, task_status = task_ids[signature]
+            task_pk = 0
+            task_status = 'ASSIGNED'
+            if not initial:
+                task_pk, task_status = task_ids[signature]
             signer = getattr(process, signature)
             users.append(signer)
             link = "#"
