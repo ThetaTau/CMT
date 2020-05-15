@@ -90,7 +90,10 @@ class PledgeProgram(YearTermModel, TimeStampedModel):
 
         @classmethod
         def get_value(cls, member):
-            return cls[member].value[1]
+            value = ''
+            if hasattr(cls, member):
+                value = cls[member].value[1]
+            return value
 
     class STATUS(Enum):
         none = ('none', '')
