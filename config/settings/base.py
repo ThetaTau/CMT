@@ -392,6 +392,12 @@ IMPORT_EXPORT_USE_TRANSACTIONS = True
 
 DBBACKUP_LOCAL = env.bool('DBBACKUP_LOCAL', default=True)
 DBBACKUP_GPG_RECIPIENT = 'Frank.Ventura@thetatau.org'
+DBBACKUP_CONNECTORS = {
+    'default': {
+        # 'dump_suffix': '--no-owner', # Does not work because it comes after command
+        'dump_cmd': 'pg_dump --no-owner'
+    }
+}
 if DBBACKUP_LOCAL:
     DBBACKUP_STORAGE = 'django.core.files.storage.FileSystemStorage'
     DBBACKUP_STORAGE_LOCATION = env('DBBACKUP_STORAGE_LOCATION', default='database_backups')
