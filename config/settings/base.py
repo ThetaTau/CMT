@@ -396,6 +396,7 @@ if DBBACKUP_LOCAL:
     DBBACKUP_STORAGE = 'django.core.files.storage.FileSystemStorage'
     DBBACKUP_STORAGE_LOCATION = env('DBBACKUP_STORAGE_LOCATION', default='database_backups')
     DBBACKUP_STORAGE_OPTIONS = {'location': DBBACKUP_STORAGE_LOCATION}
+    DBBACKUP_CLEANUP_KEEP = 2
 else:
     DBBACKUP_STORAGE = 'storages.backends.gcloud.GoogleCloudStorage'
     # 1.1 Mbps is the minimum required to upload 8 MB within the 60 second timeout
@@ -405,3 +406,4 @@ else:
         bucket_name='theta-tau-database',
         max_memory_size=100 * 1024 * 1024,  # Set 100 MB blob size,
     )
+    DBBACKUP_CLEANUP_KEEP = 2

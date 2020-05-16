@@ -49,7 +49,7 @@ if ! workon thetatauCMT; then
 fi
 export GNUPGHOME="/home/Venturafranklin/thetatauCMT/secrets"
 export DBBACKUP_LOCAL="False"
-if ! python manage.py dbbackup --compress --encrypt --noinput; then
+if ! python manage.py dbbackup --encrypt --noinput; then
   echo "An error occurred backing up database to remote"
   exit
 fi
