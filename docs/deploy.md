@@ -43,7 +43,6 @@ export DJANGO_AWS_ACCESS_KEY_ID=
 export DJANGO_AWS_SECRET_ACCESS_KEY=
 export DJANGO_AWS_STORAGE_BUCKET_NAME=
 export ROLLBAR_ACCESS=''
-export DATABASE_URL_MYSQL=''  # Not using, but backup in case
 export DATABASE_URL='postgres://{user}:{password}@{postgres-url}:{postgres-port}/{database_name}'
 ````
 In the wsgi file (with the settings copied from above):
@@ -65,7 +64,6 @@ os.environ['DJANGO_AWS_ACCESS_KEY_ID'] = ''
 os.environ['DJANGO_AWS_SECRET_ACCESS_KEY'] = ''
 os.environ['DJANGO_AWS_STORAGE_BUCKET_NAME'] = ''
 os.environ['ROLLBAR_ACCESS'] = ''
-os.environ['DATABASE_URL_MYSQL'] = ''
 os.environ['DATABASE_URL'] = ''
 
 from django.core.wsgi import get_wsgi_application

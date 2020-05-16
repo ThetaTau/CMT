@@ -17,7 +17,6 @@ os.environ["DJANGO_AWS_ACCESS_KEY_ID"] = ""
 os.environ["DJANGO_AWS_SECRET_ACCESS_KEY"] = ""
 os.environ["DJANGO_AWS_STORAGE_BUCKET_NAME"] = ""
 os.environ["ROLLBAR_ACCESS"] = ""
-os.environ["DATABASE_URL_MYSQL"] = ""
 os.environ["DATABASE_URL"] = ""
 os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = ""
 
