@@ -1,5 +1,16 @@
 #!/bin/bash
 # chmod +x backup.sh
+# from django.core.management import call_command
+# call_command('dbbackup', '--encrypt', '--noinput')
+# call_command('dbrestore', '--decrypt', '--noinput',
+#              '--passphrase=%passphrase%', database='default')
+
+if [[ $1 == "" ]] ; then
+    echo 'You must provide database encryption passphrase'
+    exit 1
+fi
+
+PASSPHRASE=$1
 
 source virtualenvwrapper.sh
 
@@ -24,7 +35,7 @@ if ! workon testCMT; then
 fi
 export GNUPGHOME="/home/Venturafranklin/thetatauCMT/secrets"
 export DBBACKUP_STORAGE_LOCATION="/home/Venturafranklin/thetatauCMT/database_backups"
-if ! python manage.py dbrestore --database default --uncompress --decrypt --noinput; then
+if ! python manage.py dbrestore --database default --uncompress --decrypt --noinput --passphrase=$PASSPHRASE; then
   echo "An error occurred restoring database"
   exit
 fi
