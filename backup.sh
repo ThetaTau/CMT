@@ -21,7 +21,7 @@ if ! workon thetatauCMT; then
 fi
 export GNUPGHOME="/home/Venturafranklin/thetatauCMT/secrets"
 export DBBACKUP_STORAGE_LOCATION="/home/Venturafranklin/thetatauCMT/database_backups"
-if ! python manage.py dbbackup --encrypt --noinput; then
+if ! python manage.py dbbackup --encrypt --noinput --clean; then
   echo "An error occurred backing up database"
   exit
 fi
@@ -49,13 +49,7 @@ if ! workon thetatauCMT; then
 fi
 export GNUPGHOME="/home/Venturafranklin/thetatauCMT/secrets"
 export DBBACKUP_LOCAL="False"
-if ! python manage.py dbbackup --encrypt --noinput; then
+if ! python manage.py dbbackup --encrypt --noinput --clean; then
   echo "An error occurred backing up database to remote"
-  exit
-fi
-
-echo "Cleanup old local backups; Only keep 2 local"
-if ! python manage.py runscript clean_local_backups; then
-  echo "An error occurred cleaning up old backups"
   exit
 fi

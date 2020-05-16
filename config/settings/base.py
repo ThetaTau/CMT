@@ -406,4 +406,3 @@ else:
         bucket_name='theta-tau-database',
         max_memory_size=100 * 1024 * 1024,  # Set 100 MB blob size,
     )
-    DBBACKUP_CLEANUP_KEEP = 2
