@@ -21,7 +21,7 @@ if ! workon thetatauCMT; then
 fi
 export GNUPGHOME="/home/Venturafranklin/thetatauCMT/secrets"
 export DBBACKUP_STORAGE_LOCATION="/home/Venturafranklin/thetatauCMT/database_backups"
-if ! python manage.py dbbackup --compress --encrypt --noinput; then
+if ! python manage.py dbbackup --encrypt --noinput; then
   echo "An error occurred backing up database"
   exit
 fi
@@ -35,7 +35,7 @@ if ! workon testCMT; then
 fi
 export GNUPGHOME="/home/Venturafranklin/thetatauCMT/secrets"
 export DBBACKUP_STORAGE_LOCATION="/home/Venturafranklin/thetatauCMT/database_backups"
-if ! python manage.py dbrestore --database default --uncompress --decrypt --noinput --passphrase=$PASSPHRASE; then
+if ! python manage.py dbrestore --database default --decrypt --noinput --passphrase=$PASSPHRASE; then
   echo "An error occurred restoring database"
   exit
 fi
