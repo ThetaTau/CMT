@@ -8,15 +8,15 @@ from chapters.models import Chapter
 
 class Event(TimeStampedModel):
     class Meta:
-        unique_together = ('name', 'date', 'chapter')
+        unique_together = ("name", "date", "chapter")
 
     name = models.CharField("Event Name", max_length=50)
     date = models.DateField("Event Date", default=timezone.now)
     slug = models.SlugField(unique=False)
-    type = models.ForeignKey(ScoreType, on_delete=models.PROTECT,
-                             related_name="events")
-    chapter = models.ForeignKey(Chapter, on_delete=models.CASCADE,
-                                related_name="events")
+    type = models.ForeignKey(ScoreType, on_delete=models.PROTECT, related_name="events")
+    chapter = models.ForeignKey(
+        Chapter, on_delete=models.CASCADE, related_name="events"
+    )
     score = models.FloatField(default=0)
     description = models.CharField(max_length=200)
     # users = models.ManyToManyField(settings.AUTH_USER_MODEL,
@@ -29,25 +29,29 @@ class Event(TimeStampedModel):
     duration = models.PositiveIntegerField(default=0)
     stem = models.BooleanField(
         default=False,
-        help_text="Does the event relate to Science Technology Engineering or Math (STEM)?")
+        help_text="Does the event relate to Science Technology Engineering or Math (STEM)?",
+    )
     host = models.BooleanField(
-        default=False,
-        help_text="Did this event host another chapter?")
+        default=False, help_text="Did this event host another chapter?"
+    )
     miles = models.PositiveIntegerField(
-        default=0,
-        help_text="Miles traveled to an event hosted by another chapter.")
+        default=0, help_text="Miles traveled to an event hosted by another chapter."
+    )
 
     def __str__(self):
         return f"{self.name} on {self.date}"
 
     def get_absolute_url(self):
         return (
-            'events:detail', (), {
-                'year': self.date.year,
-                'month': self.date.strftime("%m"),
-                'day': self.date.strftime("%d"),
-                'slug': self.slug
-                })
+            "events:detail",
+            (),
+            {
+                "year": self.date.year,
+                "month": self.date.strftime("%m"),
+                "day": self.date.strftime("%d"),
+                "slug": self.slug,
+            },
+        )
 
     def save(self, calculate_score=True):
         self.slug = slugify(self.name)
@@ -69,7 +73,7 @@ class Event(TimeStampedModel):
             chapter=chapter,
             type=meeting_type,
             date__lte=semester_end,
-            date__gte=semester_start
+            date__gte=semester_start,
         )
         total_percent = 0
         for event in events:
@@ -83,7 +87,7 @@ class Event(TimeStampedModel):
             event_count = 1
         avg_attendance = total_percent / event_count
         formula_out = meeting_type.special
-        formula_out = formula_out.replace('MEETINGS', str(avg_attendance))
+        formula_out = formula_out.replace("MEETINGS", str(avg_attendance))
         score = eval(formula_out)
         event_score = round(score / event_count, 2)
         for event in events:

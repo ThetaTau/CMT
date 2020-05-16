@@ -13,19 +13,19 @@ def get_value_from_a(value):
         return "N/A"
     elif '<a href="/tasks/detail/0/"></a>' in value:
         return False
-    elif 'True' in value:
+    elif "True" in value:
         return True
     return ""
 
 
 class RegionChapterTaskTable(tables.Table):
-    task_name = tables.Column('task_name')
-    task_owner = tables.Column('task_owner')
-    school_type = tables.Column('school_type')
+    task_name = tables.Column("task_name")
+    task_owner = tables.Column("task_owner")
+    school_type = tables.Column("school_type")
     date = tables.DateColumn(verbose_name="Due Date")
 
     class Meta:
-        attrs = {'class': 'table table-striped table-hover',
-                 'td': {
-                     'complete': lambda value: get_value_from_a(value)
-                 }}
+        attrs = {
+            "class": "table table-striped table-hover",
+            "td": {"complete": lambda value: get_value_from_a(value)},
+        }

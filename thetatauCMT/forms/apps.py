@@ -3,7 +3,7 @@ from material.frontend.apps import ModuleMixin
 
 
 class FormsConfig(ModuleMixin, AppConfig):
-    name = 'forms'
+    name = "forms"
 
     def index_url(self):
-        return '/'
+        return "/"

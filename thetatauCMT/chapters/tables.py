@@ -6,34 +6,36 @@ from .models import ChapterCurricula, Chapter
 class ChapterCurriculaTable(tables.Table):
     class Meta:
         model = ChapterCurricula
-        fields = ('major',
-                  )
+        fields = ("major",)
         attrs = {"class": "table-striped table-bordered"}
         empty_text = "There are no curricula matching the search criteria..."
 
 
 class ChapterTable(tables.Table):
-    name = tables.LinkColumn('chapters:detail',
-                             args=[A('slug')])
+    name = tables.LinkColumn("chapters:detail", args=[A("slug")])
 
     class Meta:
         model = Chapter
         fields = (
-            'name',
-            'region',
-            'school',
-            'address',
-            'school_type',
-            'council',
-            'recognition',
-            'website',
-            'facebook',
+            "name",
+            "region",
+            "school",
+            "address",
+            "school_type",
+            "council",
+            "recognition",
+            "website",
+            "facebook",
         )
 
     def __init__(self, officer=False, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if not officer:
-            self.exclude = ('address', 'council', 'recognition', )
+            self.exclude = (
+                "address",
+                "council",
+                "recognition",
+            )
 
     # def render_recognition(self, value):
     #     return Chapter.RECOGNITION.get_value(value)
@@ -41,7 +43,8 @@ class ChapterTable(tables.Table):
 
 class AuditTable(tables.Table):
     item = tables.Column(
-        "", attrs={'td': {'align': 'left', 'style': "font-weight:bold"}})
+        "", attrs={"td": {"align": "left", "style": "font-weight:bold"}}
+    )
     corresponding_secretary = tables.Column("Corr Sec")
     treasurer = tables.Column()
     scribe = tables.Column()
@@ -49,7 +52,9 @@ class AuditTable(tables.Table):
     regent = tables.Column()
 
     class Meta:
-        attrs = {"class": "table-striped table-bordered",
-                 "td": {"align": "center"},
-                 "th": {"class": "text-center"},}
+        attrs = {
+            "class": "table-striped table-bordered",
+            "td": {"align": "center"},
+            "th": {"class": "text-center"},
+        }
         orderable = False

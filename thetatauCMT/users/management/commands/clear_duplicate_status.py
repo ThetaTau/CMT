@@ -18,6 +18,7 @@ class Command(BaseCommand):
         from users.models import User, UserStatusChange
         from django.db import models
         from core.models import TODAY_END, forever
+
         # users = User.objects.filter(
         #            status__status='active',
         #            status__end__lte=TODAY_END)\
@@ -31,12 +32,13 @@ class Command(BaseCommand):
         #                .order_by()\
         #                .filter(status__count=1)
         # Only have one status, and it is not current, need to fix
-        users = User.objects.all() \
-            .annotate(models.Count('status')) \
-            .order_by() \
-            .filter(status__count=1) \
-            .filter(
-            status__end__lte=TODAY_END)
+        users = (
+            User.objects.all()
+            .annotate(models.Count("status"))
+            .order_by()
+            .filter(status__count=1)
+            .filter(status__end__lte=TODAY_END)
+        )
         for user in users:
             user_status = user.status.get()
             user_status.end = forever()
@@ -55,62 +57,74 @@ class Command(BaseCommand):
 
         # Users with no current status
         users = User.objects.exclude(
-            status__start__lte=TODAY_END,
-            status__end__gte=TODAY_END)
-        alumnis = users.filter(status__status='alumni')
+            status__start__lte=TODAY_END, status__end__gte=TODAY_END
+        )
+        alumnis = users.filter(status__status="alumni")
         for alumni in alumnis:
             user_status = alumni.status.get()
             user_status.start = datetime.datetime.now() - datetime.timedelta(days=1)
             user_status.save()
-        actives = users.filter(status__status='active')
+        actives = users.filter(status__status="active")
         for user in actives:
-            user_status = user.status.get(status='active')
+            user_status = user.status.get(status="active")
             user_status.end = forever()
             user_status.save()
         users = User.objects.exclude(
-            status__start__lte=TODAY_END,
-            status__end__gte=TODAY_END)
+            status__start__lte=TODAY_END, status__end__gte=TODAY_END
+        )
         # Somehow missed these, need to alumnize
-        alumnis = users.filter(status__status='activepend')
+        alumnis = users.filter(status__status="activepend")
         for alumni in alumnis:
             UserStatusChange(
                 user=alumni,
-                status='alumni',
+                status="alumni",
                 start=datetime.datetime.now() - datetime.timedelta(days=1),
-                end=forever()
+                end=forever(),
             ).save()
         users = User.objects.exclude(
-            status__start__lte=TODAY_END,
-            status__end__gte=TODAY_END)
+            status__start__lte=TODAY_END, status__end__gte=TODAY_END
+        )
         # !!! CHECK NOT BACKWARDS!!!
         # The final group should be test group
         for user in users:
             UserStatusChange(
                 user=user,
-                status='active',
+                status="active",
                 start=datetime.datetime.now() - datetime.timedelta(days=1),
-                end=forever()
+                end=forever(),
             ).save()
-        # This cleared duplicate status, different status name, same times & same status name
-            dup_status = User.objects.filter(
-                status__start__lte=TODAY_END,
-                status__end__gte=TODAY_END)\
-                    .annotate(models.Count('id'))\
-                    .order_by()\
-                    .filter(id__count__gt=1)
+            # This cleared duplicate status, different status name, same times & same status name
+            dup_status = (
+                User.objects.filter(
+                    status__start__lte=TODAY_END, status__end__gte=TODAY_END
+                )
+                .annotate(models.Count("id"))
+                .order_by()
+                .filter(id__count__gt=1)
+            )
         total = len(dup_status)
         for count, user in enumerate(dup_status):
             current_statuss = user.status.filter(
-                start__lte=TODAY_END,
-                end__gte=TODAY_END).values_list('status', flat=True)
+                start__lte=TODAY_END, end__gte=TODAY_END
+            ).values_list("status", flat=True)
             print(f"{count + 1}/{total} {user} Current duplicates: {current_statuss}")
-            status_check = ['alumni', 'alumnipend', 'away', 'depledge', 'active']
+            status_check = ["alumni", "alumnipend", "away", "depledge", "active"]
             for status in status_check:
                 if status in current_statuss:
-                    current_status = list(user.status.filter(
-                        models.Q(status=status), start__lte=TODAY_END, end__gte=TODAY_END))
-                    other_statuss = list(user.status.filter(
-                        ~models.Q(status=status), start__lte=TODAY_END, end__gte=TODAY_END))
+                    current_status = list(
+                        user.status.filter(
+                            models.Q(status=status),
+                            start__lte=TODAY_END,
+                            end__gte=TODAY_END,
+                        )
+                    )
+                    other_statuss = list(
+                        user.status.filter(
+                            ~models.Q(status=status),
+                            start__lte=TODAY_END,
+                            end__gte=TODAY_END,
+                        )
+                    )
                     if len(current_status) > 1:
                         print(f"    Current status same status! {current_status}")
                         main_status = current_status[0]
@@ -120,7 +134,7 @@ class Command(BaseCommand):
                     else:
                         current_status = current_status[0]
             for other_status in other_statuss:
-                if other_status.status == 'Colony':
+                if other_status.status == "Colony":
                     other_status.delete()
                     continue
                 other_status.end = current_status.start - datetime.timedelta(days=1)

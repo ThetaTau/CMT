@@ -22,6 +22,7 @@ class NoAssignActivation(flow.nodes.ManagedViewActivation):
     This Activation will not assign or unassign users to tasks
     Also will check permission based on permission to view
     """
+
     def assign(self, user=None):
         """Assign user to the task."""
         pass
@@ -46,7 +47,11 @@ class NoAssignActivation(flow.nodes.ManagedViewActivation):
 
         if data:
             if not self.management_form.is_valid():
-                raise ValueError('Activation metadata is broken {}'.format(self.management_form.errors))
+                raise ValueError(
+                    "Activation metadata is broken {}".format(
+                        self.management_form.errors
+                    )
+                )
             self.task = self.management_form.save(commit=False)
 
 

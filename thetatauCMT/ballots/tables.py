@@ -4,14 +4,20 @@ from .models import Ballot, BallotComplete
 
 
 class BallotTable(tables.Table):
-    name = tables.LinkColumn('ballots:detail', args=[A('slug')])
+    name = tables.LinkColumn("ballots:detail", args=[A("slug")])
 
     class Meta:
         model = Ballot
-        fields = ('name', 'type', 'due_date', 'voters',
-                  'ayes', 'nays', 'abstains',
-                  # 'incomplete',
-                  )
+        fields = (
+            "name",
+            "type",
+            "due_date",
+            "voters",
+            "ayes",
+            "nays",
+            "abstains",
+            # 'incomplete',
+        )
         attrs = {"class": "table-striped table-bordered"}
         empty_text = "There are no ballots matching the search criteria..."
 
@@ -25,8 +31,7 @@ class BallotTable(tables.Table):
 class BallotCompleteTable(tables.Table):
     class Meta:
         model = BallotComplete
-        fields = ('user_name', 'chapter',
-                  'region', 'motion', 'role')
+        fields = ("user_name", "chapter", "region", "motion", "role")
         attrs = {"class": "table-striped table-bordered"}
         empty_text = "There are no ballots matching the search criteria..."
 
@@ -38,12 +43,16 @@ class BallotCompleteTable(tables.Table):
 
 
 class BallotUserTable(tables.Table):
-    name = tables.LinkColumn('ballots:vote', args=[A('slug')])
+    name = tables.LinkColumn("ballots:vote", args=[A("slug")])
 
     class Meta:
         model = Ballot
-        fields = ('name', 'type', 'due_date', 'motion',
-                  )
+        fields = (
+            "name",
+            "type",
+            "due_date",
+            "motion",
+        )
         attrs = {"class": "table-striped table-bordered"}
         empty_text = "There are no ballots matching the search criteria..."
 

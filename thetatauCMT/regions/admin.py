@@ -5,10 +5,10 @@ from chapters.models import Chapter
 
 class ChapterInline(admin.TabularInline):
     model = Chapter
-    fields = ['name', 'school']
-    readonly_fields = ('name', 'school')
+    fields = ["name", "school"]
+    readonly_fields = ("name", "school")
     can_delete = False
-    ordering = ['name']
+    ordering = ["name"]
     show_change_link = True
 
     def has_add_permission(self, _):
@@ -17,10 +17,10 @@ class ChapterInline(admin.TabularInline):
 
 class RegionTypeAdmin(admin.ModelAdmin):
     inlines = [ChapterInline]
-    raw_id_fields = ['directors']
-    list_filter = ['name']
-    search_fields = ['name']
-    ordering = ['name']
+    raw_id_fields = ["directors"]
+    list_filter = ["name"]
+    search_fields = ["name"]
+    ordering = ["name"]
 
 
 admin.site.register(Region, RegionTypeAdmin)

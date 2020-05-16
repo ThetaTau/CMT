@@ -10,17 +10,20 @@ from .base import env
 # https://docs.djangoproject.com/en/dev/ref/settings/#debug
 DEBUG = False
 # https://docs.djangoproject.com/en/dev/ref/settings/#secret-key
-SECRET_KEY = env('DJANGO_SECRET_KEY', default='VFWqVoswHkeXrThYKjkVMsHKke3WHa2Umux7DhhJRBTC8vwNllCOMo7X5GTFod4X')
+SECRET_KEY = env(
+    "DJANGO_SECRET_KEY",
+    default="VFWqVoswHkeXrThYKjkVMsHKke3WHa2Umux7DhhJRBTC8vwNllCOMo7X5GTFod4X",
+)
 # https://docs.djangoproject.com/en/dev/ref/settings/#test-runner
-TEST_RUNNER = 'django.test.runner.DiscoverRunner'
+TEST_RUNNER = "django.test.runner.DiscoverRunner"
 
 # CACHES
 # ------------------------------------------------------------------------------
 # https://docs.djangoproject.com/en/dev/ref/settings/#caches
 CACHES = {
-    'default': {
-        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
-        'LOCATION': ''
+    "default": {
+        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+        "LOCATION": "",
     }
 }
 
@@ -28,19 +31,19 @@ CACHES = {
 # ------------------------------------------------------------------------------
 # https://docs.djangoproject.com/en/dev/ref/settings/#password-hashers
 PASSWORD_HASHERS = [
-    'django.contrib.auth.hashers.MD5PasswordHasher',
+    "django.contrib.auth.hashers.MD5PasswordHasher",
 ]
 
 # TEMPLATES
 # ------------------------------------------------------------------------------
 # https://docs.djangoproject.com/en/dev/ref/settings/#templates
-TEMPLATES[0]['OPTIONS']['debug'] = DEBUG  # noqa F405
-TEMPLATES[0]['OPTIONS']['loaders'] = [  # noqa F405
+TEMPLATES[0]["OPTIONS"]["debug"] = DEBUG  # noqa F405
+TEMPLATES[0]["OPTIONS"]["loaders"] = [  # noqa F405
     (
-        'django.template.loaders.cached.Loader',
+        "django.template.loaders.cached.Loader",
         [
-            'django.template.loaders.filesystem.Loader',
-            'django.template.loaders.app_directories.Loader',
+            "django.template.loaders.filesystem.Loader",
+            "django.template.loaders.app_directories.Loader",
         ],
     ),
 ]
@@ -48,9 +51,9 @@ TEMPLATES[0]['OPTIONS']['loaders'] = [  # noqa F405
 # EMAIL
 # ------------------------------------------------------------------------------
 # https://docs.djangoproject.com/en/dev/ref/settings/#email-backend
-EMAIL_BACKEND = 'django.core.mail.backends.locmem.EmailBackend'
+EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
 # https://docs.djangoproject.com/en/dev/ref/settings/#email-host
-EMAIL_HOST = 'localhost'
+EMAIL_HOST = "localhost"
 # https://docs.djangoproject.com/en/dev/ref/settings/#email-port
 EMAIL_PORT = 1025
 

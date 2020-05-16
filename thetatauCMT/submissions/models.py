@@ -12,24 +12,29 @@ from tasks.models import TaskChapter
 
 
 def get_upload_path(instance, filename):
-    return os.path.join('submissions', instance.type.slug,
-                        f"{instance.chapter.slug}_{filename}")
+    return os.path.join(
+        "submissions", instance.type.slug, f"{instance.chapter.slug}_{filename}"
+    )
 
 
 class Submission(TimeStampedModel):
-    user = models.ForeignKey(settings.AUTH_USER_MODEL,
-                             on_delete=models.CASCADE,
-                             related_name="submissions",
-                             null=True,)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="submissions",
+        null=True,
+    )
     date = models.DateField("Submission Date", default=timezone.now)
     file = models.FileField(upload_to=get_upload_path)
     name = models.CharField("Submission Name", max_length=50)
     slug = models.SlugField(unique=False)
-    type = models.ForeignKey(ScoreType, related_name="submissions",
-                             on_delete=models.PROTECT)
+    type = models.ForeignKey(
+        ScoreType, related_name="submissions", on_delete=models.PROTECT
+    )
     score = models.FloatField(default=0)
-    chapter = models.ForeignKey(Chapter, related_name="submissions",
-                                on_delete=models.CASCADE)
+    chapter = models.ForeignKey(
+        Chapter, related_name="submissions", on_delete=models.CASCADE
+    )
     task = GenericRelation(TaskChapter)
 
     def __str__(self):

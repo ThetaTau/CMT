@@ -1,24 +1,40 @@
 import django_tables2 as tables
 from django_tables2.utils import A
 from django.utils.html import mark_safe
-from .models import Guard, Badge, Initiation, Depledge, StatusChange,\
-    PledgeForm, Audit, PledgeProgram, ChapterReport, OSM
+from .models import (
+    Guard,
+    Badge,
+    Initiation,
+    Depledge,
+    StatusChange,
+    PledgeForm,
+    Audit,
+    PledgeProgram,
+    ChapterReport,
+    OSM,
+)
 
 
 class GuardTable(tables.Table):
     class Meta:
         model = Guard
-        fields = ('name', 'cost', 'description',
-                  'letters',
-                  )
+        fields = (
+            "name",
+            "cost",
+            "description",
+            "letters",
+        )
         attrs = {"class": "table-striped table-bordered"}
 
 
 class BadgeTable(tables.Table):
     class Meta:
         model = Badge
-        fields = ('name', 'cost', 'description',
-                  )
+        fields = (
+            "name",
+            "cost",
+            "description",
+        )
         attrs = {"class": "table-striped table-bordered"}
 
 
@@ -27,7 +43,7 @@ class PledgeFormTable(tables.Table):
 
     class Meta:
         model = PledgeForm
-        fields = ('name', 'created')
+        fields = ("name", "created")
         attrs = {"class": "table-striped table-bordered"}
 
 
@@ -38,28 +54,30 @@ class InitiationTable(tables.Table):
     member_names = tables.Column()
 
     class Meta:
-        attrs = {"class": "table-striped table-bordered", }
+        attrs = {
+            "class": "table-striped table-bordered",
+        }
 
 
 class DepledgeTable(tables.Table):
-    user = tables.Column(accessor='user.name')
+    user = tables.Column(accessor="user.name")
     date = tables.DateColumn(verbose_name="Depledge Date")
     created = tables.DateColumn(verbose_name="Submitted")
 
     class Meta:
         model = Depledge
-        fields = ('user', 'date', 'created')
+        fields = ("user", "date", "created")
         attrs = {"class": "table-striped table-bordered"}
 
 
 class StatusChangeTable(tables.Table):
-    user = tables.Column(accessor='user.name')
+    user = tables.Column(accessor="user.name")
     date_start = tables.DateColumn(verbose_name="Change Date")
     created = tables.DateColumn(verbose_name="Form Submitted")
 
     class Meta:
         model = StatusChange
-        fields = ('user', 'date_start', 'created', 'reason', 'date_end')
+        fields = ("user", "date_start", "created", "reason", "date_end")
         attrs = {"class": "table-striped table-bordered"}
 
 
@@ -70,23 +88,23 @@ class AuditTable(tables.Table):
         model = Audit
         attrs = {"class": "table-striped table-bordered"}
         fields = [
-            'user.chapter',
-            'user.chapter.region',
-            'modified',
-            'dues_member',
-            'dues_pledge',
-            'frequency',
-            'balance_checking',
-            'balance_savings',
-            'debit_card',
-            'debit_card_access',
-            'payment_plan',
-            'cash_book',
-            'cash_book_reviewed',
-            'cash_register',
-            'cash_register_reviewed',
-            'member_account',
-            'member_account_reviewed',
+            "user.chapter",
+            "user.chapter.region",
+            "modified",
+            "dues_member",
+            "dues_pledge",
+            "frequency",
+            "balance_checking",
+            "balance_savings",
+            "debit_card",
+            "debit_card_access",
+            "payment_plan",
+            "cash_book",
+            "cash_book_reviewed",
+            "cash_register",
+            "cash_register_reviewed",
+            "member_account",
+            "member_account_reviewed",
         ]
 
 
@@ -100,35 +118,36 @@ class PledgeProgramTable(tables.Table):
 
     class Meta:
         model = PledgeProgram
-        order_by = 'chapter'
+        order_by = "chapter"
         attrs = {"class": "table-striped table-bordered"}
         fields = [
-            'chapter',
-            'region',
-            'year',
-            'term',
-            'remote',
-            'date_complete',
-            'date_initiation',
-            'weeks',
-            'weeks_left',
-            'status',
+            "chapter",
+            "region",
+            "year",
+            "term",
+            "remote",
+            "date_complete",
+            "date_initiation",
+            "weeks",
+            "weeks_left",
+            "status",
         ]
 
     def render_status(self, value):
         return PledgeProgram.STATUS.get_value(value)
 
+
 class ChapterReportTable(tables.Table):
     class Meta:
         model = ChapterReport
-        order_by = 'chapter'
+        order_by = "chapter"
         attrs = {"class": "table-striped table-bordered"}
         fields = [
-            'chapter',
-            'region',
-            'year',
-            'term',
-            'report',
+            "chapter",
+            "region",
+            "year",
+            "term",
+            "report",
         ]
 
 
@@ -140,29 +159,38 @@ def get_value_from_a(value):
     :param value:
     :return:
     """
-    if '—' in value:
+    if "—" in value:
         return False
-    elif 'Complete' in value:
+    elif "Complete" in value:
         return True
     return ""
 
 
 class RiskFormTable(tables.Table):
-    chapter = tables.Column(attrs={'td': {'align': 'left', 'style': "font-weight:bold"}})
+    chapter = tables.Column(
+        attrs={"td": {"align": "left", "style": "font-weight:bold"}}
+    )
     all_complete = tables.BooleanColumn()
     region = tables.Column()
-    corresponding_secretary = tables.LinkColumn('forms:rmp_complete', kwargs={'pk': A('corresponding_secretary_pk')})
-    treasurer = tables.LinkColumn('forms:rmp_complete', kwargs={'pk': A('treasurer_pk')})
-    scribe = tables.LinkColumn('forms:rmp_complete', kwargs={'pk': A('scribe_pk')})
-    vice_regent = tables.LinkColumn('forms:rmp_complete', kwargs={'pk': A('vice_regent_pk')})
-    regent = tables.LinkColumn('forms:rmp_complete', kwargs={'pk': A('regent_pk')})
+    corresponding_secretary = tables.LinkColumn(
+        "forms:rmp_complete", kwargs={"pk": A("corresponding_secretary_pk")}
+    )
+    treasurer = tables.LinkColumn(
+        "forms:rmp_complete", kwargs={"pk": A("treasurer_pk")}
+    )
+    scribe = tables.LinkColumn("forms:rmp_complete", kwargs={"pk": A("scribe_pk")})
+    vice_regent = tables.LinkColumn(
+        "forms:rmp_complete", kwargs={"pk": A("vice_regent_pk")}
+    )
+    regent = tables.LinkColumn("forms:rmp_complete", kwargs={"pk": A("regent_pk")})
 
     class Meta:
-        attrs = {"class": "table-striped table-bordered",
-                 "td": {"align": "center"},
-                 'td': {
-                     'complete': lambda value: get_value_from_a(value)},
-                 "th": {"class": "text-center"}, }
+        attrs = {
+            "class": "table-striped table-bordered",
+            "td": {"align": "center"},
+            "td": {"complete": lambda value: get_value_from_a(value)},
+            "th": {"class": "text-center"},
+        }
         # orderable = False
 
 
@@ -173,7 +201,9 @@ class PrematureAlumnusStatusTable(tables.Table):
     created = tables.DateColumn()
 
     class Meta:
-        attrs = {"class": "table-striped table-bordered", }
+        attrs = {
+            "class": "table-striped table-bordered",
+        }
 
 
 class SignTable(tables.Table):
@@ -184,33 +214,35 @@ class SignTable(tables.Table):
     link = tables.TemplateColumn('<a href="{{ record.link }}">Sign Link</a>')
 
     class Meta:
-        attrs = {"class": "table-striped table-bordered", }
+        attrs = {
+            "class": "table-striped table-bordered",
+        }
 
 
 class ConventionListTable(tables.Table):
     class Meta:
         model = ChapterReport
-        order_by = 'chapter'
+        order_by = "chapter"
         attrs = {"class": "table-striped table-bordered"}
         fields = [
-            'chapter',
-            'region',
-            'year',
-            'term',
-            'delegate',
-            'alternate',
+            "chapter",
+            "region",
+            "year",
+            "term",
+            "delegate",
+            "alternate",
         ]
 
 
 class OSMListTable(tables.Table):
     class Meta:
         model = OSM
-        order_by = 'chapter'
+        order_by = "chapter"
         attrs = {"class": "table-striped table-bordered"}
         fields = [
-            'chapter',
-            'region',
-            'year',
-            'term',
-            'nominate',
+            "chapter",
+            "region",
+            "year",
+            "term",
+            "nominate",
         ]

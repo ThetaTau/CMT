@@ -22,16 +22,22 @@ class MultiFormMixin(ContextMixin):
 
     def get_forms(self, form_classes, form_names=None, bind_all=False):
         return dict(
-            [(key,
-              self._create_form(key, klass,
-                                (form_names and key in form_names) or bind_all))
-             for key, klass in form_classes.items()])
+            [
+                (
+                    key,
+                    self._create_form(
+                        key, klass, (form_names and key in form_names) or bind_all
+                    ),
+                )
+                for key, klass in form_classes.items()
+            ]
+        )
 
     def _get_form_kwargs(self, form_name, bind_form=False):
         kwargs = {}
-        kwargs.update({'initial': self._get_initial(form_name)})
-        kwargs.update({'prefix': self._get_prefix(form_name)})
-        kwargs_method = 'get_%s_kwargs' % form_name
+        kwargs.update({"initial": self._get_initial(form_name)})
+        kwargs.update({"prefix": self._get_prefix(form_name)})
+        kwargs_method = "get_%s_kwargs" % form_name
         if hasattr(self, kwargs_method):
             kwargs.update(getattr(self, kwargs_method)())
 
@@ -41,7 +47,7 @@ class MultiFormMixin(ContextMixin):
         return kwargs
 
     def forms_valid(self, forms, form_name):
-        form_valid_method = '%s_form_valid' % form_name
+        form_valid_method = "%s_form_valid" % form_name
         if hasattr(self, form_valid_method):
             return getattr(self, form_valid_method)(forms[form_name])
         else:
@@ -51,7 +57,7 @@ class MultiFormMixin(ContextMixin):
         return self.render_to_response(self.get_context_data(forms=forms))
 
     def _get_initial(self, form_name):
-        initial_method = 'get_%s_initial' % form_name
+        initial_method = "get_%s_initial" % form_name
         if hasattr(self, initial_method):
             return getattr(self, initial_method)()
         else:
@@ -65,7 +71,7 @@ class MultiFormMixin(ContextMixin):
 
     def _create_form(self, form_name, klass, bind_form):
         form_kwargs = self._get_form_kwargs(form_name, bind_form)
-        form_create_method = 'create_%s_form' % form_name
+        form_create_method = "create_%s_form" % form_name
         if hasattr(self, form_create_method):
             form = getattr(self, form_create_method)(**form_kwargs)
         else:
@@ -73,16 +79,15 @@ class MultiFormMixin(ContextMixin):
         return form
 
     def _bind_form_data(self):
-        if self.request.method in ('POST', 'PUT'):
+        if self.request.method in ("POST", "PUT"):
             return {
-                'data': self.request.POST,
-                'files': self.request.FILES,
+                "data": self.request.POST,
+                "files": self.request.FILES,
             }
         return {}
 
 
 class ProcessMultipleFormsView(ProcessFormView):
-
     def get(self, request, *args, **kwargs):
         form_classes = self.get_form_classes()
         forms = self.get_forms(form_classes)
@@ -90,7 +95,7 @@ class ProcessMultipleFormsView(ProcessFormView):
 
     def post(self, request, *args, **kwargs):
         form_classes = self.get_form_classes()
-        form_name = request.POST.get('action')
+        form_name = request.POST.get("action")
         if self._individual_exists(form_name):
             return self._process_individual_form(form_name, form_classes)
         elif self._group_exists(form_name):
@@ -117,8 +122,7 @@ class ProcessMultipleFormsView(ProcessFormView):
     def _process_grouped_forms(self, group_name, form_classes):
         form_names = self.grouped_forms[group_name]
         forms = self.get_forms(form_classes, form_names)
-        if all([forms.get(form_name).is_valid()
-                for form_name in form_classes.keys()]):
+        if all([forms.get(form_name).is_valid() for form_name in form_classes.keys()]):
             for form_name in form_names:
                 response = self.forms_valid(forms, form_name)
             return response

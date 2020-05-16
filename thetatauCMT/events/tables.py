@@ -4,14 +4,23 @@ from .models import Event
 
 
 class EventTable(tables.Table):
-    name = tables.LinkColumn('events:update',
-                             args=[A('pk')])
+    name = tables.LinkColumn("events:update", args=[A("pk")])
 
     class Meta:
         model = Event
-        fields = ('name', 'date',
-                  'type', 'score', 'description',
-                  'members', 'pledges', 'alumni',
-                  'duration', 'stem', 'host', 'miles')
+        fields = (
+            "name",
+            "date",
+            "type",
+            "score",
+            "description",
+            "members",
+            "pledges",
+            "alumni",
+            "duration",
+            "stem",
+            "host",
+            "miles",
+        )
         attrs = {"class": "table-striped table-bordered"}
         empty_text = "There are no events matching the search criteria..."

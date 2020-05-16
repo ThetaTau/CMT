@@ -12,38 +12,92 @@ from forms.models import Initiation, StatusChange, Depledge
 from users.models import UserRoleChange
 
 
-TODAY_DATE = datetime.date.isoformat(datetime.date.today()).replace('-', '')
+TODAY_DATE = datetime.date.isoformat(datetime.date.today()).replace("-", "")
 
 
-OER = ["Submitted by", "Date Submitted", "Chapter Name", "Office",
-       "Term Begins (M/D/YYYY)", "Term Ends (M/D/YYYY)", "*ChapRoll",
-       "First Name", "Last Name", "Mobile Phone", "Personal Email", "Campus Email"]
+OER = [
+    "Submitted by",
+    "Date Submitted",
+    "Chapter Name",
+    "Office",
+    "Term Begins (M/D/YYYY)",
+    "Term Ends (M/D/YYYY)",
+    "*ChapRoll",
+    "First Name",
+    "Last Name",
+    "Mobile Phone",
+    "Personal Email",
+    "Campus Email",
+]
 
 
-INIT = ["Submitted by", "Date Submitted", "Initiation Date", "Chapter Name",
-        "Graduation Year", "Roll Number", "First Name", "Middle Name",
-        "Last Name", "Overall GPA", "A Pledge Test Scores",
-        "B Pledge Test Scores", "Initiation Fee", "Late Fee",
-        "Badge Style", "Guard Type", "Badge Cost", "Guard Cost", "Sum for member"]
+INIT = [
+    "Submitted by",
+    "Date Submitted",
+    "Initiation Date",
+    "Chapter Name",
+    "Graduation Year",
+    "Roll Number",
+    "First Name",
+    "Middle Name",
+    "Last Name",
+    "Overall GPA",
+    "A Pledge Test Scores",
+    "B Pledge Test Scores",
+    "Initiation Fee",
+    "Late Fee",
+    "Badge Style",
+    "Guard Type",
+    "Badge Cost",
+    "Guard Cost",
+    "Sum for member",
+]
 
 
-COOP = ["Submitted by", "Date Submitted", "*ChapRoll",
-        "First Name", "Last Name", "Reason Away", "Start Date (M/D/YYYY)",
-        "End Date (M/D/YYYY)", "Miles from Campus**"]
+COOP = [
+    "Submitted by",
+    "Date Submitted",
+    "*ChapRoll",
+    "First Name",
+    "Last Name",
+    "Reason Away",
+    "Start Date (M/D/YYYY)",
+    "End Date (M/D/YYYY)",
+    "Miles from Campus**",
+]
 
 
-DEPLEDGE = ["Submitted by", "Date Submitted", "Chapter Name",
-            "First Name", "Last Name", "Reason Depledged",
-            "Date Depledged (M/D/YYYY)"]
+DEPLEDGE = [
+    "Submitted by",
+    "Date Submitted",
+    "Chapter Name",
+    "First Name",
+    "Last Name",
+    "Reason Depledged",
+    "Date Depledged (M/D/YYYY)",
+]
 
 
-MSCR = ["Submitted by", "Date Submitted", "School Name", "*ChapRoll",
-        "First Name", "Last Name", "Mobile Phone", "EmailAddress",
-        "Reason for Status Change", "Degree Received",
-        "Graduation Date (M/D/YYYY)", "Employer", "Work Email",
-        "Attending Graduate School where ?", "Withdrawing from school?",
-        "Date withdrawn (M/D/YYYY)", "Transferring to what school ?",
-        "Date of transfer (M/D/YYYY)"]
+MSCR = [
+    "Submitted by",
+    "Date Submitted",
+    "School Name",
+    "*ChapRoll",
+    "First Name",
+    "Last Name",
+    "Mobile Phone",
+    "EmailAddress",
+    "Reason for Status Change",
+    "Degree Received",
+    "Graduation Date (M/D/YYYY)",
+    "Employer",
+    "Work Email",
+    "Attending Graduate School where ?",
+    "Withdrawing from school?",
+    "Date withdrawn (M/D/YYYY)",
+    "Transferring to what school ?",
+    "Date of transfer (M/D/YYYY)",
+]
 
 
 class Command(BaseCommand):
@@ -51,64 +105,64 @@ class Command(BaseCommand):
     help = "Send forms to central officer"
 
     def add_arguments(self, parser):
-        parser.add_argument('password', nargs=1, type=str)
-        parser.add_argument('date_start', nargs=1, type=str)
-        parser.add_argument('-date_end', nargs=1, type=str)
-        parser.add_argument('-chapter', nargs=1, type=str)
-        parser.add_argument('-exclude', nargs=1, type=str,
-                            help='mscr, init, depledge, coop, oer')
-        parser.add_argument('-no-email', action='store_true')
+        parser.add_argument("password", nargs=1, type=str)
+        parser.add_argument("date_start", nargs=1, type=str)
+        parser.add_argument("-date_end", nargs=1, type=str)
+        parser.add_argument("-chapter", nargs=1, type=str)
+        parser.add_argument(
+            "-exclude", nargs=1, type=str, help="mscr, init, depledge, coop, oer"
+        )
+        parser.add_argument("-no-email", action="store_true")
 
     # A command must define handle()
     def handle(self, *args, **options):
-        password = options['password'][0]
-        date_start = datetime.datetime.strptime(options['date_start'][0], '%Y%m%d')
-        date_end_str = options.get('date_end', None)
-        chapter_only = options.get('chapter', None)
-        no_email = options.get('no_email', False)
+        password = options["password"][0]
+        date_start = datetime.datetime.strptime(options["date_start"][0], "%Y%m%d")
+        date_end_str = options.get("date_end", None)
+        chapter_only = options.get("chapter", None)
+        no_email = options.get("no_email", False)
         if date_end_str:
             date_end_str = date_end_str[0]
-            date_end = datetime.datetime.strptime(date_end_str, '%Y%m%d') + datetime.timedelta(days=1)
+            date_end = datetime.datetime.strptime(
+                date_end_str, "%Y%m%d"
+            ) + datetime.timedelta(days=1)
         else:
             date_end = datetime.datetime.today() + datetime.timedelta(days=1)
-        exclude = options.get('exclude', "")
+        exclude = options.get("exclude", "")
         if exclude:
             exclude = exclude[0]
         else:
             exclude = ""
         print("Exluding", exclude)
-        query = {
-            'created__gte': date_start,
-            'created__lte': date_end
-        }
+        query = {"created__gte": date_start, "created__lte": date_end}
         file_path = f"exports//{TODAY_DATE}"
         if chapter_only is not None:
             chapter_only = chapter_only[0]
             print(f"Only for chapter {chapter_only}")
-            query.update({'user__chapter__name': chapter_only})
+            query.update({"user__chapter__name": chapter_only})
             file_path += f"_{chapter_only.upper().replace(' ', '_')}"
         initiations = Initiation.objects.filter(**query)
         depledges = Depledge.objects.filter(**query)
         officers = UserRoleChange.objects.filter(**query)
         statuses = StatusChange.objects.filter(**query)
         file_paths_out = []
-        if initiations and 'init' not in exclude:
+        if initiations and "init" not in exclude:
             file_paths_out.append(f"{file_path}_init.csv")
-            with open(f"{file_path}_init.csv", 'w', newline='') as init_file:
+            with open(f"{file_path}_init.csv", "w", newline="") as init_file:
                 writer = csv.DictWriter(init_file, fieldnames=INIT)
                 writer.writeheader()
                 for initiation in initiations:
                     badge = initiation.badge
-                    badge_code = ''
+                    badge_code = ""
                     badge_cost = 0
                     if badge:
                         badge_code = badge.code
                         badge_cost = badge.cost
                     guard = initiation.guard
-                    guard_code = ''
+                    guard_code = ""
                     guard_cost = 0
                     if guard:
-                        if guard.code != 'None':
+                        if guard.code != "None":
                             guard_code = guard.code
                             guard_cost = guard.cost
                     chapter = initiation.user.chapter
@@ -145,9 +199,9 @@ class Command(BaseCommand):
                         "Sum for member": total,
                     }
                     writer.writerow(row)
-        if depledges and 'depledge' not in exclude:
+        if depledges and "depledge" not in exclude:
             file_paths_out.append(f"{file_path}_depledge.csv")
-            with open(f"{file_path}_depledge.csv", 'w', newline='') as depledge_file:
+            with open(f"{file_path}_depledge.csv", "w", newline="") as depledge_file:
                 writer = csv.DictWriter(depledge_file, fieldnames=DEPLEDGE)
                 writer.writeheader()
                 for depledge in depledges:
@@ -161,14 +215,14 @@ class Command(BaseCommand):
                         "Date Depledged (M/D/YYYY)": depledge.date.strftime("%m/%d/%Y"),
                     }
                     writer.writerow(row)
-        if officers and 'oer' not in exclude:
+        if officers and "oer" not in exclude:
             file_paths_out.append(f"{file_path}_oer.csv")
-            with open(f"{file_path}_oer.csv", 'w', newline='') as oer_file:
+            with open(f"{file_path}_oer.csv", "w", newline="") as oer_file:
                 writer = csv.DictWriter(oer_file, fieldnames=OER)
                 writer.writeheader()
                 for officer in officers:
-                    if 'pd' in officer.role:
-                        role = 'PD Chair'
+                    if "pd" in officer.role:
+                        role = "PD Chair"
                     else:
                         role = officer.role.title()
                     row = {
@@ -189,14 +243,14 @@ class Command(BaseCommand):
         mscr_true = False
         coop_true = False
         if statuses:
-            with open(f"{file_path}_mscr.csv", 'w', newline='') as mscr_file:
+            with open(f"{file_path}_mscr.csv", "w", newline="") as mscr_file:
                 mscr_writer = csv.DictWriter(mscr_file, fieldnames=MSCR)
                 mscr_writer.writeheader()
-                with open(f"{file_path}_coop.csv", 'w', newline='') as coop_file:
+                with open(f"{file_path}_coop.csv", "w", newline="") as coop_file:
                     coop_writer = csv.DictWriter(coop_file, fieldnames=COOP)
                     coop_writer.writeheader()
                     for status in statuses:
-                        if 'test' in status.user.chapter.school.lower():
+                        if "test" in status.user.chapter.school.lower():
                             continue
                         main_row = {
                             "Submitted by": "",
@@ -206,8 +260,8 @@ class Command(BaseCommand):
                             "Last Name": status.user.last_name,
                         }
                         reason = status.reason
-                        if reason not in ['coop', 'military']:
-                            if 'mscr' in exclude:
+                        if reason not in ["coop", "military"]:
+                            if "mscr" in exclude:
                                 continue
                             mscr_true = True
                             new_school = ""
@@ -217,24 +271,26 @@ class Command(BaseCommand):
                             withdraw_date = ""
                             withdraw = ""
                             grad_date = ""
-                            if reason == 'withdraw':
+                            if reason == "withdraw":
                                 withdraw_date = status.date_start.strftime("%m/%d/%Y")
                                 withdraw = "Yes"
-                            elif reason == 'transfer':
+                            elif reason == "transfer":
                                 transfer_date = status.date_start.strftime("%m/%d/%Y")
-                            elif reason == 'graduate':
+                            elif reason == "graduate":
                                 grad_date = status.date_start.strftime("%m/%d/%Y")
                             degree = status.degree
                             if degree:
-                                if degree == 'phd':
-                                    degree = 'PhD'
+                                if degree == "phd":
+                                    degree = "PhD"
                                 else:
                                     degree = degree.upper()
                             row = {
                                 "School Name": status.user.chapter.school,
                                 "Mobile Phone": status.user.phone_number,
                                 "EmailAddress": status.user.email,
-                                "Reason for Status Change": status.REASONS.get_value(reason),
+                                "Reason for Status Change": status.REASONS.get_value(
+                                    reason
+                                ),
                                 "Degree Received": degree,
                                 "Graduation Date (M/D/YYYY)": grad_date,
                                 "Employer": status.employer,
@@ -248,13 +304,17 @@ class Command(BaseCommand):
                             row.update(main_row)
                             mscr_writer.writerow(row)
                         else:
-                            if 'coop' in exclude:
+                            if "coop" in exclude:
                                 continue
                             coop_true = True
                             row = {
                                 "Reason Away": status.REASONS.get_value(status.reason),
-                                "Start Date (M/D/YYYY)": status.date_start.strftime("%m/%d/%Y"),
-                                "End Date (M/D/YYYY)": status.date_end.strftime("%m/%d/%Y"),
+                                "Start Date (M/D/YYYY)": status.date_start.strftime(
+                                    "%m/%d/%Y"
+                                ),
+                                "End Date (M/D/YYYY)": status.date_end.strftime(
+                                    "%m/%d/%Y"
+                                ),
                                 "Miles from Campus**": status.miles,
                             }
                             row.update(main_row)
@@ -267,33 +327,34 @@ class Command(BaseCommand):
             self.send_email(file_paths_out, password, chapter=chapter_only)
 
     def send_email(self, attachments, password, chapter=None):
-        sender = 'Frank.Ventura@ThetaTau.org'
+        sender = "Frank.Ventura@ThetaTau.org"
         gmail_password = password
         recipients = [
-            'central.office@thetatau.org',
+            "central.office@thetatau.org",
             sender,
         ]
         outer = MIMEMultipart()
-        outer['To'] = ', '.join(recipients)
-        outer['From'] = sender
-        outer.preamble = 'You will not see this in a MIME-aware mail reader.\n'
+        outer["To"] = ", ".join(recipients)
+        outer["From"] = sender
+        outer.preamble = "You will not see this in a MIME-aware mail reader.\n"
         text = f"Attached are the form submission up to {TODAY_DATE}"
         if chapter is not None:
-            outer['Subject'] = f'Form Submissions to {TODAY_DATE} {chapter} Chapter'
+            outer["Subject"] = f"Form Submissions to {TODAY_DATE} {chapter} Chapter"
             text += f" for {chapter} Chapter"
         else:
-            outer['Subject'] = f'Form Submissions to {TODAY_DATE}'
-        outer.attach(MIMEText(text, 'plain'))
+            outer["Subject"] = f"Form Submissions to {TODAY_DATE}"
+        outer.attach(MIMEText(text, "plain"))
         for file in attachments:
-            with open(file, 'rb') as fp:
-                msg = MIMEBase('application', "octet-stream")
+            with open(file, "rb") as fp:
+                msg = MIMEBase("application", "octet-stream")
                 msg.set_payload(fp.read())
             encoders.encode_base64(msg)
-            msg.add_header('Content-Disposition', 'attachment',
-                           filename=os.path.basename(file))
+            msg.add_header(
+                "Content-Disposition", "attachment", filename=os.path.basename(file)
+            )
             outer.attach(msg)
         composed = outer.as_string()
-        with smtplib.SMTP_SSL('smtp.gmail.com', 465) as server:
+        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
             server.ehlo()
             server.login(sender, gmail_password)
             server.sendmail(sender, recipients, composed)

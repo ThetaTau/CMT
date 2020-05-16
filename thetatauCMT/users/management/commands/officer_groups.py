@@ -1,9 +1,12 @@
 from django.core.management import BaseCommand
+
 file_path = r"secrets/natoff.csv"
 from csv import DictReader
 from django.contrib.auth.models import Group, Permission
+
 # from django.contrib.contenttypes.models import ContentType
 from users.models import User
+
 # ct = ContentType.objects.get_for_model(User)
 # permission = Permission.objects.create(
 #     codename='can_add_project', name='Can add project',
@@ -18,9 +21,9 @@ class Command(BaseCommand):
 
     # A command must define handle()
     def handle(self, *args, **options):
-        nat_group, created = Group.objects.get_or_create(name='natoff')
-        off_group, created = Group.objects.get_or_create(name='officer')
-        with open(file_path, 'r') as csv_file:
+        nat_group, created = Group.objects.get_or_create(name="natoff")
+        off_group, created = Group.objects.get_or_create(name="officer")
+        with open(file_path, "r") as csv_file:
             reader = DictReader(csv_file)
             for row in reader:
                 # print(row)
@@ -34,8 +37,8 @@ class Command(BaseCommand):
                     continue
                 try:
                     user = User.objects.get(
-                        first_name=row["First Name"],
-                        last_name=row["Last Name"])
+                        first_name=row["First Name"], last_name=row["Last Name"]
+                    )
                 except User.DoesNotExist:
                     user = None
                 if user is not None:
@@ -43,8 +46,7 @@ class Command(BaseCommand):
                     nat_group.user_set.add(user)
                     continue
                 try:
-                    user = User.objects.get(
-                        last_name=row["Last Name"])
+                    user = User.objects.get(last_name=row["Last Name"])
                 except User.DoesNotExist:
                     user = None
                 except User.MultipleObjectsReturned:

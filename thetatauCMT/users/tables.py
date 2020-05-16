@@ -7,9 +7,19 @@ from .models import User
 class UserTable(tables.Table):
     class Meta:
         model = User
-        fields = ('name', 'badge_number', 'email',
-                  'major', 'graduation_year', 'phone_number',
-                  'current_status', 'role', 'role_end')
+        fields = (
+            "name",
+            "badge_number",
+            "email",
+            "major",
+            "graduation_year",
+            "phone_number",
+            "current_status",
+            "role",
+            "role_end",
+        )
         attrs = {"class": "table-striped table-bordered"}
-        empty_text = "There are no members matching the search criteria...\n" +\
-                     "Only officers can view alumni contact information."
+        empty_text = (
+            "There are no members matching the search criteria...\n"
+            + "Only officers can view alumni contact information."
+        )

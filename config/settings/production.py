@@ -6,40 +6,41 @@ from .base import env
 # GENERAL
 # ------------------------------------------------------------------------------
 # https://docs.djangoproject.com/en/dev/ref/settings/#secret-key
-SECRET_KEY = env('DJANGO_SECRET_KEY')
+SECRET_KEY = env("DJANGO_SECRET_KEY")
 # https://docs.djangoproject.com/en/dev/ref/settings/#allowed-hosts
-ALLOWED_HOSTS = env.list('DJANGO_ALLOWED_HOSTS', default=['cmt.thetatau.org',
-                                                          'cmt.thetatau.info'])
-CURRENT_URL = 'https://cmt.thetatau.org'
+ALLOWED_HOSTS = env.list(
+    "DJANGO_ALLOWED_HOSTS", default=["cmt.thetatau.org", "cmt.thetatau.info"]
+)
+CURRENT_URL = "https://cmt.thetatau.org"
 
 # DATABASES
 # ------------------------------------------------------------------------------
-DATABASES['default'] = env.db('DATABASE_URL')  # noqa F405
-DATABASES['mysql'] = env.db('DATABASE_URL_MYSQL')  # noqa F405
-DATABASES['default']['ATOMIC_REQUESTS'] = True  # noqa F405
-DATABASES['default']['CONN_MAX_AGE'] = env.int('CONN_MAX_AGE', default=60)  # noqa F405
+DATABASES["default"] = env.db("DATABASE_URL")  # noqa F405
+DATABASES["mysql"] = env.db("DATABASE_URL_MYSQL")  # noqa F405
+DATABASES["default"]["ATOMIC_REQUESTS"] = True  # noqa F405
+DATABASES["default"]["CONN_MAX_AGE"] = env.int("CONN_MAX_AGE", default=60)  # noqa F405
 
 # CACHES
 # ------------------------------------------------------------------------------
 CACHES = {
-    'default': {
-        'BACKEND': 'django_redis.cache.RedisCache',
-        'LOCATION': f'{env("REDIS_URL", default="redis://127.0.0.1:6379")}/{0}',
-        'OPTIONS': {
-            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": f'{env("REDIS_URL", default="redis://127.0.0.1:6379")}/{0}',
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
             # Mimicing memcache behavior.
             # http://niwinz.github.io/django-redis/latest/#_memcached_exceptions_behavior
-            'IGNORE_EXCEPTIONS': True,
-        }
+            "IGNORE_EXCEPTIONS": True,
+        },
     }
 }
 
 # SECURITY
 # ------------------------------------------------------------------------------
 # https://docs.djangoproject.com/en/dev/ref/settings/#secure-proxy-ssl-header
-SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 # https://docs.djangoproject.com/en/dev/ref/settings/#secure-ssl-redirect
-SECURE_SSL_REDIRECT = env.bool('DJANGO_SECURE_SSL_REDIRECT', default=True)
+SECURE_SSL_REDIRECT = env.bool("DJANGO_SECURE_SSL_REDIRECT", default=True)
 # https://docs.djangoproject.com/en/dev/ref/settings/#session-cookie-secure
 SESSION_COOKIE_SECURE = True
 # https://docs.djangoproject.com/en/dev/ref/settings/#session-cookie-httponly
@@ -53,26 +54,30 @@ CSRF_COOKIE_HTTPONLY = True
 # TODO: set this to 60 seconds first and then to 518400 once you prove the former works
 SECURE_HSTS_SECONDS = 60
 # https://docs.djangoproject.com/en/dev/ref/settings/#secure-hsts-include-subdomains
-SECURE_HSTS_INCLUDE_SUBDOMAINS = env.bool('DJANGO_SECURE_HSTS_INCLUDE_SUBDOMAINS', default=True)
+SECURE_HSTS_INCLUDE_SUBDOMAINS = env.bool(
+    "DJANGO_SECURE_HSTS_INCLUDE_SUBDOMAINS", default=True
+)
 # https://docs.djangoproject.com/en/dev/ref/settings/#secure-hsts-preload
-SECURE_HSTS_PRELOAD = env.bool('DJANGO_SECURE_HSTS_PRELOAD', default=True)
+SECURE_HSTS_PRELOAD = env.bool("DJANGO_SECURE_HSTS_PRELOAD", default=True)
 # https://docs.djangoproject.com/en/dev/ref/middleware/#x-content-type-options-nosniff
-SECURE_CONTENT_TYPE_NOSNIFF = env.bool('DJANGO_SECURE_CONTENT_TYPE_NOSNIFF', default=True)
+SECURE_CONTENT_TYPE_NOSNIFF = env.bool(
+    "DJANGO_SECURE_CONTENT_TYPE_NOSNIFF", default=True
+)
 # https://docs.djangoproject.com/en/dev/ref/settings/#secure-browser-xss-filter
 SECURE_BROWSER_XSS_FILTER = True
 # https://docs.djangoproject.com/en/dev/ref/settings/#x-frame-options
-X_FRAME_OPTIONS = 'DENY'
+X_FRAME_OPTIONS = "DENY"
 
 # STORAGES
 # ------------------------------------------------------------------------------
 # https://django-storages.readthedocs.io/en/latest/#installation
-INSTALLED_APPS += ['storages']  # noqa F405
+INSTALLED_APPS += ["storages"]  # noqa F405
 # https://django-storages.readthedocs.io/en/latest/backends/amazon-S3.html#settings
-AWS_ACCESS_KEY_ID = env('DJANGO_AWS_ACCESS_KEY_ID')
+AWS_ACCESS_KEY_ID = env("DJANGO_AWS_ACCESS_KEY_ID")
 # https://django-storages.readthedocs.io/en/latest/backends/amazon-S3.html#settings
-AWS_SECRET_ACCESS_KEY = env('DJANGO_AWS_SECRET_ACCESS_KEY')
+AWS_SECRET_ACCESS_KEY = env("DJANGO_AWS_SECRET_ACCESS_KEY")
 # https://django-storages.readthedocs.io/en/latest/backends/amazon-S3.html#settings
-AWS_STORAGE_BUCKET_NAME = env('DJANGO_AWS_STORAGE_BUCKET_NAME')
+AWS_STORAGE_BUCKET_NAME = env("DJANGO_AWS_STORAGE_BUCKET_NAME")
 # https://django-storages.readthedocs.io/en/latest/backends/amazon-S3.html#settings
 AWS_AUTO_CREATE_BUCKET = True
 # https://django-storages.readthedocs.io/en/latest/backends/amazon-S3.html#settings
@@ -81,28 +86,28 @@ AWS_QUERYSTRING_AUTH = False
 _AWS_EXPIRY = 60 * 60 * 24 * 7
 # https://django-storages.readthedocs.io/en/latest/backends/amazon-S3.html#settings
 AWS_S3_OBJECT_PARAMETERS = {
-    'CacheControl': f'max-age={_AWS_EXPIRY}, s-maxage={_AWS_EXPIRY}, must-revalidate',
+    "CacheControl": f"max-age={_AWS_EXPIRY}, s-maxage={_AWS_EXPIRY}, must-revalidate",
 }
 
 # STATIC
 # ------------------------
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
 # MEDIA
 # ------------------------------------------------------------------------------
-DEFAULT_FILE_STORAGE = 'storages.backends.gcloud.GoogleCloudStorage'
-MEDIA_URL = f'https://s3.amazonaws.com/{AWS_STORAGE_BUCKET_NAME}/'
+DEFAULT_FILE_STORAGE = "storages.backends.gcloud.GoogleCloudStorage"
+MEDIA_URL = f"https://s3.amazonaws.com/{AWS_STORAGE_BUCKET_NAME}/"
 
 # TEMPLATES
 # ------------------------------------------------------------------------------
 # https://docs.djangoproject.com/en/dev/ref/settings/#templates
-TEMPLATES[0]['OPTIONS']['loaders'] = [  # noqa F405
+TEMPLATES[0]["OPTIONS"]["loaders"] = [  # noqa F405
     (
-        'django.template.loaders.cached.Loader',
+        "django.template.loaders.cached.Loader",
         [
-            'django.template.loaders.filesystem.Loader',
-            'django.template.loaders.app_directories.Loader',
-        ]
+            "django.template.loaders.filesystem.Loader",
+            "django.template.loaders.app_directories.Loader",
+        ],
     ),
 ]
 
@@ -110,36 +115,37 @@ TEMPLATES[0]['OPTIONS']['loaders'] = [  # noqa F405
 # ------------------------------------------------------------------------------
 # https://docs.djangoproject.com/en/dev/ref/settings/#default-from-email
 DEFAULT_FROM_EMAIL = env(
-    'DJANGO_DEFAULT_FROM_EMAIL',
-    default='Theta Tau Chapter Management Tool <cmt@thetatau.org>'
+    "DJANGO_DEFAULT_FROM_EMAIL",
+    default="Theta Tau Chapter Management Tool <cmt@thetatau.org>",
 )
 # https://docs.djangoproject.com/en/dev/ref/settings/#server-email
-SERVER_EMAIL = env('DJANGO_SERVER_EMAIL', default=DEFAULT_FROM_EMAIL)
+SERVER_EMAIL = env("DJANGO_SERVER_EMAIL", default=DEFAULT_FROM_EMAIL)
 # https://docs.djangoproject.com/en/dev/ref/settings/#email-subject-prefix
-EMAIL_SUBJECT_PREFIX = env('DJANGO_EMAIL_SUBJECT_PREFIX', default='[Theta Tau Chapter Management Tool]')
+EMAIL_SUBJECT_PREFIX = env(
+    "DJANGO_EMAIL_SUBJECT_PREFIX", default="[Theta Tau Chapter Management Tool]"
+)
 
 # ADMIN
 # ------------------------------------------------------------------------------
 # Django Admin URL regex.
-ADMIN_URL = env('DJANGO_ADMIN_URL')
+ADMIN_URL = env("DJANGO_ADMIN_URL")
 
 # Anymail (Mailgun)
 # ------------------------------------------------------------------------------
 # https://anymail.readthedocs.io/en/stable/installation/#installing-anymail
-INSTALLED_APPS += ['anymail']  # noqa F405
+INSTALLED_APPS += ["anymail"]  # noqa F405
 if DJANGO_EMAIL_LIVE:
     EMAIL_BACKEND = "sendgrid_backend.SendgridBackend"
 SENDGRID_API_KEY = env("SENDGRID_API_KEY")
 
 # Gunicorn
 # ------------------------------------------------------------------------------
-INSTALLED_APPS += ['gunicorn']  # noqa F405
+INSTALLED_APPS += ["gunicorn"]  # noqa F405
 
 # WhiteNoise
 # ------------------------------------------------------------------------------
 # http://whitenoise.evans.io/en/latest/django.html#enable-whitenoise
-MIDDLEWARE = ['whitenoise.middleware.WhiteNoiseMiddleware'] + MIDDLEWARE  # noqa F405
-
+MIDDLEWARE = ["whitenoise.middleware.WhiteNoiseMiddleware"] + MIDDLEWARE  # noqa F405
 
 
 # LOGGING
@@ -151,43 +157,39 @@ MIDDLEWARE = ['whitenoise.middleware.WhiteNoiseMiddleware'] + MIDDLEWARE  # noqa
 # See https://docs.djangoproject.com/en/dev/topics/logging for
 # more details on how to customize your logging configuration.
 LOGGING = {
-    'version': 1,
-    'disable_existing_loggers': False,
-    'filters': {
-        'require_debug_false': {
-            '()': 'django.utils.log.RequireDebugFalse'
-        }
-    },
-    'formatters': {
-        'verbose': {
-            'format': '%(levelname)s %(asctime)s %(module)s '
-                      '%(process)d %(thread)d %(message)s'
+    "version": 1,
+    "disable_existing_loggers": False,
+    "filters": {"require_debug_false": {"()": "django.utils.log.RequireDebugFalse"}},
+    "formatters": {
+        "verbose": {
+            "format": "%(levelname)s %(asctime)s %(module)s "
+            "%(process)d %(thread)d %(message)s"
         },
     },
-    'handlers': {
-        'mail_admins': {
-            'level': 'ERROR',
-            'filters': ['require_debug_false'],
-            'class': 'django.utils.log.AdminEmailHandler'
+    "handlers": {
+        "mail_admins": {
+            "level": "ERROR",
+            "filters": ["require_debug_false"],
+            "class": "django.utils.log.AdminEmailHandler",
         },
-        'console': {
-            'level': 'DEBUG',
-            'class': 'logging.StreamHandler',
-            'formatter': 'verbose',
+        "console": {
+            "level": "DEBUG",
+            "class": "logging.StreamHandler",
+            "formatter": "verbose",
         },
     },
-    'loggers': {
-        'django.request': {
-            'handlers': ['mail_admins'],
-            'level': 'ERROR',
-            'propagate': True
+    "loggers": {
+        "django.request": {
+            "handlers": ["mail_admins"],
+            "level": "ERROR",
+            "propagate": True,
         },
-        'django.security.DisallowedHost': {
-            'level': 'ERROR',
-            'handlers': ['console', 'mail_admins'],
-            'propagate': True
-        }
-    }
+        "django.security.DisallowedHost": {
+            "level": "ERROR",
+            "handlers": ["console", "mail_admins"],
+            "propagate": True,
+        },
+    },
 }
 # Your stuff...
 # ------------------------------------------------------------------------------

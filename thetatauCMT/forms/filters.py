@@ -10,39 +10,37 @@ class AuditListFilter(django_filters.FilterSet):
 
     class Meta:
         model = Audit
-        fields = ['modified', 'user__chapter', 'user__chapter__region',
-                  'debit_card',]
-        order_by = ['user__chapter']
+        fields = [
+            "modified",
+            "user__chapter",
+            "user__chapter__region",
+            "debit_card",
+        ]
+        order_by = ["user__chapter"]
 
 
 class CompleteListFilter(django_filters.FilterSet):
     complete = django_filters.ChoiceFilter(
-        label='Complete',
-        method='filter_complete',
-        choices=(
-            ('1', 'Complete'),
-            ('0', 'Incomplete'),
-            ('', 'All'),
-        )
+        label="Complete",
+        method="filter_complete",
+        choices=(("1", "Complete"), ("0", "Incomplete"), ("", "All"),),
     )
     region = django_filters.ChoiceFilter(
-        label="Region",
-        choices=Region.region_choices(),
-        method='filter_region'
+        label="Region", choices=Region.region_choices(), method="filter_region"
     )
 
     class Meta:
         model = PledgeProgram  # This is needed to automatically make year/term
-        fields = ['region', 'year', 'term', 'complete']
-        order_by = ['chapter']
+        fields = ["region", "year", "term", "complete"]
+        order_by = ["chapter"]
 
     def filter_complete(self, queryset, field_name, value):
         return queryset
 
     def filter_region(self, queryset, field_name, value):
-        if value == 'national':
+        if value == "national":
             return queryset
-        elif value == 'colony':
+        elif value == "colony":
             queryset = queryset.filter(chapter__colony=True)
         else:
             queryset = queryset.filter(chapter__region__slug=value)
@@ -51,7 +49,6 @@ class CompleteListFilter(django_filters.FilterSet):
 
 class PledgeProgramListFilter(CompleteListFilter):
     class Meta:
-        fields = ['region', 'year', 'term',
-                  'manual', 'complete']
+        fields = ["region", "year", "term", "manual", "complete"]
         model = PledgeProgram  # This is needed to automatically make year/term
-        order_by = ['chapter']
+        order_by = ["chapter"]

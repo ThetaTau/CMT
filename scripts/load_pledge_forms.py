@@ -18,13 +18,15 @@ def run(*args):
         with open(path) as f:
             reader = csv.DictReader(f)
             for pledge_form in reader:
-                chapter_obj = Chapter.get_school_chapter(pledge_form['School Name'])
+                chapter_obj = Chapter.get_school_chapter(pledge_form["School Name"])
                 name = f'{pledge_form["Legal First Name"]} {pledge_form["Full Middle Name"]} {pledge_form["Last Name"]}'
                 form_obj = PledgeForm(
                     name=name,
                     chapter=chapter_obj,
-                    email=pledge_form['School E-mail'],
-                    created=datetime.strptime(pledge_form['Submission Date'], "%Y-%m-%d %H:%M:%S"),
+                    email=pledge_form["School E-mail"],
+                    created=datetime.strptime(
+                        pledge_form["Submission Date"], "%Y-%m-%d %H:%M:%S"
+                    ),
                 )
                 try:
                     with transaction.atomic():

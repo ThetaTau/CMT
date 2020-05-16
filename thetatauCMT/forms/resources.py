@@ -4,21 +4,30 @@ from .models import Initiation, Depledge, Pledge, PledgeForm, StatusChange
 
 
 class InitiationResource(resources.ModelResource):
-    chapter = Field('user__chapter__name')
+    chapter = Field("user__chapter__name")
 
     class Meta:
         model = Initiation
-        fields = ('user__name', 'created', 'date_graduation', 'date', 'roll',
-                  )
+        fields = (
+            "user__name",
+            "created",
+            "date_graduation",
+            "date",
+            "roll",
+        )
 
 
 class DepledgeResource(resources.ModelResource):
-    chapter = Field('user__chapter__name')
+    chapter = Field("user__chapter__name")
 
     class Meta:
         model = Depledge
-        fields = ('user__name', 'created', 'reason', 'date',
-                  )
+        fields = (
+            "user__name",
+            "created",
+            "reason",
+            "date",
+        )
 
 
 class PledgeResource(resources.ModelResource):
@@ -27,19 +36,32 @@ class PledgeResource(resources.ModelResource):
 
 
 class PledgeFormResource(resources.ModelResource):
-    chapter = Field('chapter__name')
+    chapter = Field("chapter__name")
 
     class Meta:
         model = PledgeForm
-        fields = ('name', 'created', 'reason', 'email',
-                  )
+        fields = (
+            "name",
+            "created",
+            "reason",
+            "email",
+        )
 
 
 class StatusChangeResource(resources.ModelResource):
-    chapter = Field('user__chapter__name')
+    chapter = Field("user__chapter__name")
 
     class Meta:
         model = StatusChange
-        fields = ('user__name', 'created', 'reason', 'degree', 'date_start',
-                  'date_end', 'employer', 'miles', 'email_work', 'new_school'
-                  )
+        fields = (
+            "user__name",
+            "created",
+            "reason",
+            "degree",
+            "date_start",
+            "date_end",
+            "employer",
+            "miles",
+            "email_work",
+            "new_school",
+        )

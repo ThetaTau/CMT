@@ -2,112 +2,83 @@ from django.conf.urls import url
 from . import views
 
 
-app_name = 'forms'
+app_name = "forms"
 urlpatterns = [
+    url(regex=r"^audit/$", view=views.AuditFormView.as_view(), name="audit"),
     url(
-        regex=r'^audit/$',
+        regex=r"^audit/(?P<pk>\d+)/$",
         view=views.AuditFormView.as_view(),
-        name='audit'),
-    url(
-        regex=r'^audit/(?P<pk>\d+)/$',
-        view=views.AuditFormView.as_view(),
-        name='audit_complete'
+        name="audit_complete",
     ),
+    url(regex=r"^report/$", view=views.ChapterInfoReportView.as_view(), name="report"),
     url(
-        regex=r'^report/$',
-        view=views.ChapterInfoReportView.as_view(),
-        name='report'
-    ),
-    url(
-        regex=r'^report-list/$',
+        regex=r"^report-list/$",
         view=views.ChapterReportListView.as_view(),
-        name='report_list'),
+        name="report_list",
+    ),
     url(
-        regex=r'^convention-list/$',
+        regex=r"^convention-list/$",
         view=views.ConventionListView.as_view(),
-        name='convention_list'),
+        name="convention_list",
+    ),
+    url(regex=r"^osm-list/$", view=views.OSMListView.as_view(), name="osm_list"),
+    url(regex=r"^audit-list/$", view=views.AuditListView.as_view(), name="audit_list"),
+    url(regex=r"^pledgeform/$", view=views.pledge_form, name="pledge_form"),
+    url(regex=r"^load-majors/$", view=views.load_majors, name="ajax_load_majors"),
     url(
-        regex=r'^osm-list/$',
-        view=views.OSMListView.as_view(),
-        name='osm_list'),
-    url(
-        regex=r'^audit-list/$',
-        view=views.AuditListView.as_view(),
-        name='audit_list'),
-    url(
-        regex=r'^pledgeform/$',
-        view=views.pledge_form,
-        name='pledge_form'),
-    url(
-        regex=r'^load-majors/$',
-        view=views.load_majors,
-        name='ajax_load_majors'),
-    url(
-        regex=r'^pledgeform_full/$',
+        regex=r"^pledgeform_full/$",
         view=views.PledgeFormView.as_view(),
-        name='pledgeform'),
+        name="pledgeform",
+    ),
     url(
-        regex=r'^pledgeprogram/$',
+        regex=r"^pledgeprogram/$",
         view=views.PledgeProgramFormView.as_view(),
-        name='pledge_program'),
+        name="pledge_program",
+    ),
     url(
-        regex=r'^pledge-program-list/$',
+        regex=r"^pledge-program-list/$",
         view=views.PledgeProgramListView.as_view(),
-        name='pledge_program_list'),
-    url(
-        regex=r'^initiation/$',
-        view=views.InitiationView.as_view(),
-        name='initiation'
+        name="pledge_program_list",
     ),
+    url(regex=r"^initiation/$", view=views.InitiationView.as_view(), name="initiation"),
     url(
-        regex=r'^initiation-selection/$',
+        regex=r"^initiation-selection/$",
         view=views.InitDeplSelectView.as_view(),
-        name='init_selection'
+        name="init_selection",
     ),
     url(
-        regex=r'^initiation-csv/(?P<process_pk>\d+)/(?P<csv_type>[\w.@+-]+)$',
+        regex=r"^initiation-csv/(?P<process_pk>\d+)/(?P<csv_type>[\w.@+-]+)$",
         view=views.badge_shingle_init_csv,
-        name='init_csv'
+        name="init_csv",
     ),
     url(
-        regex=r'^pledge-csv/(?P<process_pk>\d+)/(?P<csv_type>[\w.@+-]+)$',
+        regex=r"^pledge-csv/(?P<process_pk>\d+)/(?P<csv_type>[\w.@+-]+)$",
         view=views.pledge_process_csvs,
-        name='pledge_csv'
+        name="pledge_csv",
     ),
+    url(regex=r"^status/$", view=views.StatusChangeView.as_view(), name="status"),
     url(
-        regex=r'^status/$',
-        view=views.StatusChangeView.as_view(),
-        name='status'
-    ),
-    url(
-        regex=r'^status-selection/$',
+        regex=r"^status-selection/$",
         view=views.StatusChangeSelectView.as_view(),
-        name='status_selection'
+        name="status_selection",
     ),
+    url(regex=r"^officer/$", view=views.RoleChangeView.as_view(), name="officer"),
     url(
-        regex=r'^officer/$',
-        view=views.RoleChangeView.as_view(),
-        name='officer'
-    ),
-    url(
-        regex=r'^national-officer/$',
+        regex=r"^national-officer/$",
         view=views.RoleChangeNationalView.as_view(),
-        name='natoff'
+        name="natoff",
     ),
+    url(regex=r"^rmp/$", view=views.RiskManagementFormView.as_view(), name="rmp"),
     url(
-        regex=r'^rmp/$',
-        view=views.RiskManagementFormView.as_view(),
-        name='rmp'
-    ),
-    url(
-        regex=r'^rmp-complete/(?P<pk>\d+)/$',
+        regex=r"^rmp-complete/(?P<pk>\d+)/$",
         view=views.RiskManagementDetailView.as_view(),
-        name='rmp_complete'
+        name="rmp_complete",
     ),
     url(
-        regex=r'^rmp-list/$',
+        regex=r"^rmp-list/$",
         view=views.RiskManagementListView.as_view(),
-        name='rmp_list'),
+        name="rmp_list",
+    ),
     # url(
     #     regex=r'^~status-change/$',
     #     view=views.StatusChangeView.as_view(),

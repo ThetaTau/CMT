@@ -7,16 +7,16 @@ from chapters.models import Chapter
 
 class Transaction(TimeStampedModel):
     TYPES = [
-        ('pledge', 'Pledge Fees'),
-        ('late', 'Late Fees'),
-        ('member', 'Member Dues'),
-        ('colony', 'Colony Dues'),
-        ('insurance', 'Insurance'),
-        ('fine', 'Fine'),
-        ('payment', 'Payment'),
-        ('award', 'Award'),
-        ('misc', 'Misc'),
-        ('jewelery', 'Jewelery'),
+        ("pledge", "Pledge Fees"),
+        ("late", "Late Fees"),
+        ("member", "Member Dues"),
+        ("colony", "Colony Dues"),
+        ("insurance", "Insurance"),
+        ("fine", "Fine"),
+        ("payment", "Payment"),
+        ("award", "Award"),
+        ("misc", "Misc"),
+        ("jewelery", "Jewelery"),
     ]
     type = models.CharField(max_length=20, choices=TYPES)
     due_date = models.DateField(default=timezone.now)
@@ -26,11 +26,11 @@ class Transaction(TimeStampedModel):
     # Open Balance calculated from all amounts and payments
     quantity = models.PositiveIntegerField()  # Number of members, etc.
     # How much each is
-    unit_cost = MoneyField(max_digits=19, decimal_places=4, default_currency='USD')
-    total = MoneyField(max_digits=19, decimal_places=4, default_currency='USD')
-    chapter = models.ForeignKey(Chapter, on_delete=models.CASCADE,
-                                default=1,
-                                related_name="finances")
+    unit_cost = MoneyField(max_digits=19, decimal_places=4, default_currency="USD")
+    total = MoneyField(max_digits=19, decimal_places=4, default_currency="USD")
+    chapter = models.ForeignKey(
+        Chapter, on_delete=models.CASCADE, default=1, related_name="finances"
+    )
     estimate = models.BooleanField(default=False)
 
     def save(self, *args, **kwargs):
@@ -49,22 +49,31 @@ class Transaction(TimeStampedModel):
     def open_balance_chapter(cls, chapter):
         # chapter.finances.filter(paid=False).aggregate(models.Sum('total'))
         balance = cls.objects.filter(
-            chapter=chapter, paid=False, estimate=False).\
-            aggregate(models.Sum('total'))['total__sum']
+            chapter=chapter, paid=False, estimate=False
+        ).aggregate(models.Sum("total"))["total__sum"]
         if balance is None:
             balance = 0
         return round(balance, 2)
 
     @classmethod
     def open_balances_all(cls):
-        return cls.objects.values('chapter__name', 'chapter__region__name',
-                                  'chapter__colony', 'chapter__region__slug').\
-            filter(paid=False, estimate=False).annotate(
-            chapter=models.F('chapter__name'),
-            colony=models.F('chapter__colony'),
-            region=models.F('chapter__region__name'),
-            region_slug=models.F('chapter__region__slug'),
-            balance=models.Sum('total'))
+        return (
+            cls.objects.values(
+                "chapter__name",
+                "chapter__region__name",
+                "chapter__colony",
+                "chapter__region__slug",
+            )
+            .filter(paid=False, estimate=False)
+            .annotate(
+                chapter=models.F("chapter__name"),
+                colony=models.F("chapter__colony"),
+                region=models.F("chapter__region__name"),
+                region_slug=models.F("chapter__region__slug"),
+                balance=models.Sum("total"),
+            )
+        )
+
 
 """
 Colony Dues are $30/member, due 11/1 and 3/15 of each year.

@@ -6,12 +6,12 @@ from .models import User
 
 class AccountAdapter(DefaultAccountAdapter):
     def is_open_for_signup(self, request):
-        return getattr(settings, 'ACCOUNT_ALLOW_REGISTRATION', True)
+        return getattr(settings, "ACCOUNT_ALLOW_REGISTRATION", True)
 
 
 class SocialAccountAdapter(DefaultSocialAccountAdapter):
     def is_open_for_signup(self, request, sociallogin):
-        return getattr(settings, 'ACCOUNT_ALLOW_REGISTRATION', True)
+        return getattr(settings, "ACCOUNT_ALLOW_REGISTRATION", True)
 
     def pre_social_login(self, request, sociallogin):
         """
@@ -30,10 +30,10 @@ class SocialAccountAdapter(DefaultSocialAccountAdapter):
         # some social logins don't have an email address, e.g. facebook accounts
         # with mobile numbers only, but allauth takes care of this case so just
         # ignore it
-        if 'email' in sociallogin.account.extra_data:
-            email_name = 'email'
-        if 'emailAddress' in sociallogin.account.extra_data:
-            email_name = 'emailAddress'
+        if "email" in sociallogin.account.extra_data:
+            email_name = "email"
+        if "emailAddress" in sociallogin.account.extra_data:
+            email_name = "emailAddress"
         else:
             return
         # check if given email address already exists.

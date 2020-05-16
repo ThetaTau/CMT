@@ -6,10 +6,15 @@ from viewflow.compat import _
 from viewflow.flow import views as flow_views
 from core.models import forever
 from core.flows import AutoAssignUpdateProcessView, NoAssignView
-from .models import PrematureAlumnus, InitiationProcess, Convention,\
-    PledgeProcess, OSM
-from .views import PrematureAlumnusCreateView, ConventionCreateView,\
-    ConventionSignView, FilterableFlowViewSet, OSMCreateView, OSMVerifyView
+from .models import PrematureAlumnus, InitiationProcess, Convention, PledgeProcess, OSM
+from .views import (
+    PrematureAlumnusCreateView,
+    ConventionCreateView,
+    ConventionSignView,
+    FilterableFlowViewSet,
+    OSMCreateView,
+    OSMVerifyView,
+)
 from .notifications import EmailProcessUpdate, EmailConventionUpdate, EmailOSMUpdate
 from users.models import User, UserStatusChange
 
@@ -17,31 +22,31 @@ from users.models import User, UserStatusChange
 @frontend.register
 class PrematureAlumnusFlow(Flow):
     process_class = PrematureAlumnus
-    process_title = _('Premature Alumnus Process')
-    process_description = _('This process is for premature alumnus processing.')
+    process_title = _("Premature Alumnus Process")
+    process_description = _("This process is for premature alumnus processing.")
 
     start = (
         flow.Start(
-            PrematureAlumnusCreateView,
-            task_title=_('Request Premature Alumnus'))
+            PrematureAlumnusCreateView, task_title=_("Request Premature Alumnus")
+        )
         .Permission(auto_create=True)
         .Next(this.pending_status)
     )
 
-    pending_status = (
-        flow.Handler(
-            this.set_status_email,
-            task_title=_('Set pending status, send email.'),
-        )
-        .Next(this.exec_approve)
-    )
+    pending_status = flow.Handler(
+        this.set_status_email, task_title=_("Set pending status, send email."),
+    ).Next(this.exec_approve)
 
     exec_approve = (
         flow.View(
-            flow_views.UpdateProcessView, fields=['approved_exec', 'exec_comments',],
-            task_title=_('Executive Director Review'),
+            flow_views.UpdateProcessView,
+            fields=["approved_exec", "exec_comments",],
+            task_title=_("Executive Director Review"),
             task_description=_("Pre Alumn Executive Director Review"),
-            task_result_summary=_("Messsage was {{ process.approved_exec|yesno:'Approved,Rejected' }}"))
+            task_result_summary=_(
+                "Messsage was {{ process.approved_exec|yesno:'Approved,Rejected' }}"
+            ),
+        )
         .Assign(lambda act: User.objects.get(username="Jim.Gaffney@thetatau.org"))
         .Next(this.check_approve)
     )
@@ -49,39 +54,29 @@ class PrematureAlumnusFlow(Flow):
     check_approve = (
         flow.If(
             cond=lambda act: act.process.approved_exec,
-            task_title=_('Premature Alumnus Approvement check'),
+            task_title=_("Premature Alumnus Approvement check"),
         )
         .Then(this.alumni_status)
         .Else(this.pending_undo)
     )
 
-    alumni_status = (
-        flow.Handler(
-            this.set_alumni_status,
-            task_title=_('Set status alumni'),
-        )
-        .Next(this.send)
-    )
+    alumni_status = flow.Handler(
+        this.set_alumni_status, task_title=_("Set status alumni"),
+    ).Next(this.send)
 
-    pending_undo = (
-        flow.Handler(
-            this.pending_undo_func,
-            task_title=_('Set status active'),
-        )
-        .Next(this.send)
-    )
+    pending_undo = flow.Handler(
+        this.pending_undo_func, task_title=_("Set status active"),
+    ).Next(this.send)
 
-    send = (
-        flow.Handler(
-            this.send_approval_complete,
-            task_title=_('Send request complete message'),
-        )
-        .Next(this.complete)
-    )
+    send = flow.Handler(
+        this.send_approval_complete, task_title=_("Send request complete message"),
+    ).Next(this.complete)
 
     complete = flow.End(
-        task_title=_('Complete'),
-        task_result_summary=_("Request was {{ process.approved_exec|yesno:'Approved,Rejected' }}")
+        task_title=_("Complete"),
+        task_result_summary=_(
+            "Request was {{ process.approved_exec|yesno:'Approved,Rejected' }}"
+        ),
     )
 
     def set_status_email(self, activation):
@@ -93,12 +88,12 @@ class PrematureAlumnusFlow(Flow):
         """
         user = activation.process.user
         created = activation.process.created
-        active = user.status.order_by('-end').filter(status='active').first()
+        active = user.status.order_by("-end").filter(status="active").first()
         if not active:
             print(f"There was no active status for user {user}")
             UserStatusChange(
                 user=user,
-                status='active',
+                status="active",
                 created=created,
                 start=created - datetime.timedelta(days=365),
                 end=created,
@@ -107,7 +102,7 @@ class PrematureAlumnusFlow(Flow):
             active.end = created
             active.created = created
             active.save()
-        alumnipends = user.status.filter(status='alumnipend')
+        alumnipends = user.status.filter(status="alumnipend")
         if alumnipends:
             alumnipend = alumnipends[0]
             alumnipend.start = created
@@ -120,36 +115,45 @@ class PrematureAlumnusFlow(Flow):
             UserStatusChange(
                 user=user,
                 created=created,
-                status='alumnipend',
+                status="alumnipend",
                 start=created,
                 end=forever(),
             ).save()
         EmailProcessUpdate(
-            activation, "Premature Alumnus Request", "Executive Director Review",
+            activation,
+            "Premature Alumnus Request",
+            "Executive Director Review",
             "Submitted",
-            "Your chapter has submitted a premature alumnus form on your behalf." +
-            " Once the Central Office processes " +
-            "the form, you will receive an email confirming your change in status.",
-            ['good_standing', 'financial', 'semesters', 'lifestyle',
-             'consideration', 'prealumn_type', 'vote', ]
+            "Your chapter has submitted a premature alumnus form on your behalf."
+            + " Once the Central Office processes "
+            + "the form, you will receive an email confirming your change in status.",
+            [
+                "good_standing",
+                "financial",
+                "semesters",
+                "lifestyle",
+                "consideration",
+                "prealumn_type",
+                "vote",
+            ],
         ).send()
 
     def pending_undo_func(self, activation):
         user = activation.process.user
-        alumnipends = user.status.filter(status='alumnipend')
+        alumnipends = user.status.filter(status="alumnipend")
         if alumnipends:
             for alumnipend in alumnipends:
                 alumnipend.delete()
 
     def set_alumni_status(self, activation):
         user = activation.process.user
-        alumnipend = user.status.order_by('-end').filter(status='alumnipend').first()
+        alumnipend = user.status.order_by("-end").filter(status="alumnipend").first()
         created = activation.task.created
         if not alumnipend:
             print(f"There was no alumnipend status for user {user}")
             UserStatusChange(
                 user=user,
-                status='alumnipend',
+                status="alumnipend",
                 created=created,
                 start=created - datetime.timedelta(days=365),
                 end=created,
@@ -157,7 +161,7 @@ class PrematureAlumnusFlow(Flow):
         else:
             alumnipend.end = created
             alumnipend.save()
-        alumnis = user.status.filter(status='alumni')
+        alumnis = user.status.filter(status="alumni")
         if alumnis:
             alumni = alumnis[0]
             alumni.start = created
@@ -170,25 +174,30 @@ class PrematureAlumnusFlow(Flow):
             UserStatusChange(
                 user=user,
                 created=created,
-                status='alumni',
+                status="alumni",
                 start=created,
                 end=forever(),
             ).save()
 
     def send_approval_complete(self, activation):
         if activation.process.approved_exec:
-            state = 'Approved'
+            state = "Approved"
         else:
-            state = 'Rejected'
+            state = "Rejected"
         EmailProcessUpdate(
-            activation, "Executive Director Review", "Complete",
-            state, "", ['approved_exec', 'exec_comments', ]
+            activation,
+            "Executive Director Review",
+            "Complete",
+            state,
+            "",
+            ["approved_exec", "exec_comments",],
         ).send()
 
 
 def register_factory(viewset_class):
     def decorator(function):
         return frontend.register(function, viewset_class=viewset_class)
+
     return decorator
 
 
@@ -207,82 +216,75 @@ class InitiationProcessFlow(Flow):
     CO updates blackbaud using the CSV you previously sent and sends orders to badge/shingle company.
     CO goes into CMT to indicate that badge/shingle order has been placed
     """
+
     process_class = InitiationProcess
-    process_title = _('Initiation Process')
-    process_description = _('This process is for initiation form processing.')
+    process_title = _("Initiation Process")
+    process_description = _("This process is for initiation form processing.")
     summary_template = "{{ flow_class.process_title }} - {{ process.chapter }}"
 
     start = flow.StartFunction(
         this.create_flow, activation_class=flow.nodes.ManagedStartViewActivation
     ).Next(this.invoice_chapter)
     start_manual = (
-        flow.Start(
-            flow_views.CreateProcessView, fields=["chapter", ])
+        flow.Start(flow_views.CreateProcessView, fields=["chapter",])
         .Permission(auto_create=True)
         .Next(this.invoice_chapter)
     )
 
     invoice_chapter = (
         NoAssignView(
-            AutoAssignUpdateProcessView, fields=['invoice', ],
-            task_title=_('Invoice Chapter'),
+            AutoAssignUpdateProcessView,
+            fields=["invoice",],
+            task_title=_("Invoice Chapter"),
             task_description=_("Send invoice to chapter"),
-            task_result_summary=_("Invoice was sent to chapter"))
-        .Permission('auth.central_office')
+            task_result_summary=_("Invoice was sent to chapter"),
+        )
+        .Permission("auth.central_office")
         .Next(this.invoice_payment)
     )
 
-    send_invoice = (
-        flow.Handler(
-            this.send_invoice_func,
-            task_title=_('Send Invoice'),
-        )
-        .Next(this.invoice_payment)
-    )
+    send_invoice = flow.Handler(
+        this.send_invoice_func, task_title=_("Send Invoice"),
+    ).Next(this.invoice_payment)
 
     invoice_payment = (
         NoAssignView(
             AutoAssignUpdateProcessView,
-            task_title=_('Invoice Payment'),
+            task_title=_("Invoice Payment"),
             task_description=_("Invoice payment by chapter"),
-            task_result_summary=_("Invoice paid by chapter"))
-        .Permission('auth.central_office')
+            task_result_summary=_("Invoice paid by chapter"),
+        )
+        .Permission("auth.central_office")
         .Next(this.invoice_payment_email)
     )
 
-    invoice_payment_email = (
-        flow.Handler(
-            this.send_invoice_payment_email,
-            task_title=_('Send Invoice Payment Email'),
-        )
-        .Next(this.order_complete)
-    )
+    invoice_payment_email = flow.Handler(
+        this.send_invoice_payment_email, task_title=_("Send Invoice Payment Email"),
+    ).Next(this.order_complete)
 
     order_complete = (
         NoAssignView(
             AutoAssignUpdateProcessView,
-            task_title=_('Order Complete'),
+            task_title=_("Order Complete"),
             task_description=_("Badge/shingle placing order"),
-            task_result_summary=_("Badge/shingle order has been placed"))
-        .Permission('auth.central_office')
+            task_result_summary=_("Badge/shingle order has been placed"),
+        )
+        .Permission("auth.central_office")
         .Next(this.send_order)
     )
 
-    send_order = (
-        flow.Handler(
-            this.send_order_func,
-            task_title=_('Send Order'),
-        )
-        .Next(this.complete)
+    send_order = flow.Handler(this.send_order_func, task_title=_("Send Order"),).Next(
+        this.complete
     )
 
     complete = flow.End(
-        task_title=_('Complete'),
-        task_result_summary=_("Initiation Process Complete")
+        task_title=_("Complete"), task_result_summary=_("Initiation Process Complete")
     )
 
     @method_decorator(flow.flow_start_func)
-    def create_flow(self, activation, initiations, request=None, created=None, **kwargs):
+    def create_flow(
+        self, activation, initiations, request=None, created=None, **kwargs
+    ):
         activation.process.chapter = initiations[0].user.chapter
         activation.process.save()
         if request is not None:
@@ -297,15 +299,16 @@ class InitiationProcessFlow(Flow):
         for initiation in initiations:
             activation.process.initiations.add(initiation)
             member_list.append(initiation.user.name)
-        member_list = ', '.join(member_list)
+        member_list = ", ".join(member_list)
         EmailProcessUpdate(
-            activation, "Initiation Report Submitted",
+            activation,
+            "Initiation Report Submitted",
             "Central Office Processing & Invoice Generation",
             "Submitted",
-            "Your chapter has submitted an initiation report." +
-            " Once the Central Office processes the report, an invoice will be generated" +
-            " and will be sent to your chapter on the last business day of this month.",
-            [{'members': member_list}, ]
+            "Your chapter has submitted an initiation report."
+            + " Once the Central Office processes the report, an invoice will be generated"
+            + " and will be sent to your chapter on the last business day of this month.",
+            [{"members": member_list},],
         ).send()
         return activation
 
@@ -313,92 +316,80 @@ class InitiationProcessFlow(Flow):
         ...
 
     def send_invoice_payment_email(self, activation):
-        member_list = activation.process.initiations.values_list('user__email', flat=True)
-        member_list = ', '.join(member_list)
+        member_list = activation.process.initiations.values_list(
+            "user__email", flat=True
+        )
+        member_list = ", ".join(member_list)
         EmailProcessUpdate(
-            activation, "Initiation Invoice Paid",
+            activation,
+            "Initiation Invoice Paid",
             "Central Office Badge/Shingle Order",
             "Payment Received",
-            "Your chapter has paid an initiation invoice." +
-            " Once the Central Office processes the payment, an order will be sent" +
-            " to the jeweler/shingler.",
-            [{'members': member_list}, 'invoice', ]
+            "Your chapter has paid an initiation invoice."
+            + " Once the Central Office processes the payment, an order will be sent"
+            + " to the jeweler/shingler.",
+            [{"members": member_list}, "invoice",],
         ).send()
 
     def send_order_func(self, activation):
-        member_list = activation.process.initiations.values_list('user__email', flat=True)
-        member_list = ', '.join(member_list)
+        member_list = activation.process.initiations.values_list(
+            "user__email", flat=True
+        )
+        member_list = ", ".join(member_list)
         EmailProcessUpdate(
-            activation, "Badge/Shingles Order Submitted",
+            activation,
+            "Badge/Shingles Order Submitted",
             "Initiation Process Complete",
             "Badges/Shingles Ordered",
             "A badges and shingles order has been sent to the vendor.",
-            [{'members': member_list}, 'invoice', ]
+            [{"members": member_list}, "invoice",],
         ).send()
 
 
 @frontend.register
 class ConventionFlow(Flow):
     process_class = Convention
-    process_title = _('Convention Process')
-    process_description = _('This process is for delegeate and alternate for convention.')
-
-    start = (
-        flow.Start(
-            ConventionCreateView,
-            task_title=_('Submit Convention Form'))
-        .Next(this.email_signers)
+    process_title = _("Convention Process")
+    process_description = _(
+        "This process is for delegeate and alternate for convention."
     )
 
-    email_signers = (
-        flow.Handler(
-            this.email_signers_func,
-            task_title=_('Email Signers'),
-        )
-        .Next(this.assign_approval)
-    )
+    start = flow.Start(
+        ConventionCreateView, task_title=_("Submit Convention Form")
+    ).Next(this.email_signers)
+
+    email_signers = flow.Handler(
+        this.email_signers_func, task_title=_("Email Signers"),
+    ).Next(this.assign_approval)
 
     assign_approval = (
-        flow.Split(
-        ).Next(
-            this.assign_del,
-        ).Next(
-            this.assign_alt,
-        ).Next(
-            this.assign_o1
-        ).Next(
-            this.assign_o2
-        )
+        flow.Split()
+        .Next(this.assign_del,)
+        .Next(this.assign_alt,)
+        .Next(this.assign_o1)
+        .Next(this.assign_o2)
     )
 
     assign_del = (
-        flow.View(
-            ConventionSignView,
-            task_title=_('Delegate Sign'))
+        flow.View(ConventionSignView, task_title=_("Delegate Sign"))
         .Assign(lambda act: act.process.delegate)
         .Next(this.join_flow)
     )
 
     assign_alt = (
-        flow.View(
-            ConventionSignView,
-            task_title=_('Alternate Sign'))
+        flow.View(ConventionSignView, task_title=_("Alternate Sign"))
         .Assign(lambda act: act.process.alternate)
         .Next(this.join_flow)
     )
 
     assign_o1 = (
-        flow.View(
-            ConventionSignView,
-            task_title=_('Officer1 Sign'))
+        flow.View(ConventionSignView, task_title=_("Officer1 Sign"))
         .Assign(lambda act: act.process.officer1)
         .Next(this.join_flow)
     )
 
     assign_o2 = (
-        flow.View(
-            ConventionSignView,
-            task_title=_('Officer2 Sign'))
+        flow.View(ConventionSignView, task_title=_("Officer2 Sign"))
         .Assign(lambda act: act.process.officer2)
         .Next(this.join_flow)
     )
@@ -413,7 +404,7 @@ class ConventionFlow(Flow):
         :param activation:
         :return:
         """
-        for user_role in ['delegate', 'alternate', 'officer1', 'officer2']:
+        for user_role in ["delegate", "alternate", "officer1", "officer2"]:
             user = getattr(activation.process, user_role)
             EmailConventionUpdate(
                 activation, user, "Convention Credential Form Submitted",
@@ -440,8 +431,8 @@ class PledgeProcessFlow(Flow):
     """
 
     process_class = PledgeProcess
-    process_title = _('Pledge Process')
-    process_description = _('This process is for pledge form processing.')
+    process_title = _("Pledge Process")
+    process_description = _("This process is for pledge form processing.")
     summary_template = "{{ flow_class.process_title }} - {{ process.chapter }}"
 
     start = flow.StartFunction(
@@ -450,51 +441,41 @@ class PledgeProcessFlow(Flow):
 
     invoice_chapter = (
         NoAssignView(
-            AutoAssignUpdateProcessView, fields=['invoice', ],
-            task_title=_('Invoice Chapter'),
+            AutoAssignUpdateProcessView,
+            fields=["invoice",],
+            task_title=_("Invoice Chapter"),
             task_description=_("Send invoice to chapter"),
-            task_result_summary=_("Invoice was sent to chapter"))
-        .Permission('auth.central_office')
+            task_result_summary=_("Invoice was sent to chapter"),
+        )
+        .Permission("auth.central_office")
         .Next(this.send_invoice)
     )
 
-    send_invoice = (
-        flow.Handler(
-            this.send_invoice_func,
-            task_title=_('Send Invoice'),
-        )
-        .Next(this.invoice_payment)
-    )
+    send_invoice = flow.Handler(
+        this.send_invoice_func, task_title=_("Send Invoice"),
+    ).Next(this.invoice_payment)
 
     invoice_payment = (
         NoAssignView(
             AutoAssignUpdateProcessView,
-            task_title=_('Invoice Payment'),
+            task_title=_("Invoice Payment"),
             task_description=_("Invoice payment by chapter"),
-            task_result_summary=_("Invoice paid by chapter"))
-        .Permission('auth.central_office')
+            task_result_summary=_("Invoice paid by chapter"),
+        )
+        .Permission("auth.central_office")
         .Next(this.invoice_payment_email)
     )
 
-    invoice_payment_email = (
-        flow.Handler(
-            this.send_invoice_payment_email,
-            task_title=_('Send Invoice Payment Email'),
-        )
-        .Next(this.sync_member_info)
-    )
+    invoice_payment_email = flow.Handler(
+        this.send_invoice_payment_email, task_title=_("Send Invoice Payment Email"),
+    ).Next(this.sync_member_info)
 
-    sync_member_info = (
-        flow.Handler(
-            this.sync_member_info_function,
-            task_title=_('Sync Member Info'),
-        )
-        .Next(this.complete)
-    )
+    sync_member_info = flow.Handler(
+        this.sync_member_info_function, task_title=_("Sync Member Info"),
+    ).Next(this.complete)
 
     complete = flow.End(
-        task_title=_('Complete'),
-        task_result_summary=_("Pledge Process Complete")
+        task_title=_("Complete"), task_result_summary=_("Pledge Process Complete")
     )
 
     @method_decorator(flow.flow_start_func)
@@ -512,14 +493,15 @@ class PledgeProcessFlow(Flow):
         ...
 
     def send_invoice_payment_email(self, activation):
-        member_list = activation.process.pledges.values_list('email_school', flat=True)
-        member_list = ', '.join(member_list)
+        member_list = activation.process.pledges.values_list("email_school", flat=True)
+        member_list = ", ".join(member_list)
         EmailProcessUpdate(
-            activation, "Pledge Invoice Paid",
+            activation,
+            "Pledge Invoice Paid",
             "Complete",
             "Payment Received",
             "Your chapter has paid a pledge invoice.",
-            [{'members': member_list}, 'invoice', ]
+            [{"members": member_list}, "invoice",],
         ).send()
 
     def sync_member_info_function(self, activation):
@@ -544,59 +526,38 @@ class OSMFlow(Flow):
     After verification, email should be sent to the nominated member with
         link to fill out the application.
     """
+
     process_class = OSM
-    process_title = _('OSM Process')
-    process_description = _('This process is for outstanding student member selection.')
+    process_title = _("OSM Process")
+    process_description = _("This process is for outstanding student member selection.")
 
-    start = (
-        flow.Start(
-            OSMCreateView,
-            task_title=_('Submit OSM Form'))
-        .Next(this.email_signers)
+    start = flow.Start(OSMCreateView, task_title=_("Submit OSM Form")).Next(
+        this.email_signers
     )
 
-    email_signers = (
-        flow.Handler(
-            this.email_signers_func,
-            task_title=_('Email Signers'),
-        )
-        .Next(this.assign_approval)
-    )
+    email_signers = flow.Handler(
+        this.email_signers_func, task_title=_("Email Signers"),
+    ).Next(this.assign_approval)
 
-    assign_approval = (
-        flow.Split(
-        ).Next(
-            this.assign_o1
-        ).Next(
-            this.assign_o2
-        )
-    )
+    assign_approval = flow.Split().Next(this.assign_o1).Next(this.assign_o2)
 
     assign_o1 = (
-        flow.View(
-            OSMVerifyView,
-            task_title=_('Officer1 Sign'))
+        flow.View(OSMVerifyView, task_title=_("Officer1 Sign"))
         .Assign(lambda act: act.process.officer1)
         .Next(this.join_flow)
     )
 
     assign_o2 = (
-        flow.View(
-            OSMVerifyView,
-            task_title=_('Officer2 Sign'))
+        flow.View(OSMVerifyView, task_title=_("Officer2 Sign"))
         .Assign(lambda act: act.process.officer2)
         .Next(this.join_flow)
     )
 
     join_flow = flow.Join().Next(this.email_nominate)
 
-    email_nominate = (
-        flow.Handler(
-            this.email_nomination,
-            task_title=_('Email Nominate'),
-        )
-        .Next(this.end)
-    )
+    email_nominate = flow.Handler(
+        this.email_nomination, task_title=_("Email Nominate"),
+    ).Next(this.end)
 
     end = flow.End()
 
@@ -606,15 +567,17 @@ class OSMFlow(Flow):
         :param activation:
         :return:
         """
-        for user_role in ['officer1', 'officer2']:
+        for user_role in ["officer1", "officer2"]:
             user = getattr(activation.process, user_role)
             EmailOSMUpdate(
-                activation, user, "OSM Form Submitted",
-                nominate=activation.process.nominate
-                ).send()
+                activation,
+                user,
+                "OSM Form Submitted",
+                nominate=activation.process.nominate,
+            ).send()
 
     def email_nomination(self, activation):
         user = activation.process.nominate
         EmailOSMUpdate(
             activation, user, "Outstanding Student Member Nomination",
-            ).send()
+        ).send()

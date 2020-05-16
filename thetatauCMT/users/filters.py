@@ -7,23 +7,24 @@ from regions.models import Region
 class UserListFilter(django_filters.FilterSet):
     current_status = django_filters.MultipleChoiceFilter(
         choices=[
-            ('active', 'active'),
-            ('pnm', 'prospective'),
-            ('alumni', 'alumni'),
-            ("activepend", 'activepend'),
-            ("alumnipend", 'alumnipend'),
-            ],
-        method='filter_current_status',
+            ("active", "active"),
+            ("pnm", "prospective"),
+            ("alumni", "alumni"),
+            ("activepend", "activepend"),
+            ("alumnipend", "alumnipend"),
+        ],
+        method="filter_current_status",
     )
 
     class Meta:
         model = User
-        fields = {'name': ['icontains'],
-                  'current_status': ['exact'],
-                  'major': ['icontains'],
-                  'graduation_year': ['icontains'],
-                  }
-        order_by = ['name']
+        fields = {
+            "name": ["icontains"],
+            "current_status": ["exact"],
+            "major": ["icontains"],
+            "graduation_year": ["icontains"],
+        }
+        order_by = ["name"]
 
     def filter_current_status(self, queryset, field_name, value):
         if value:
@@ -33,30 +34,26 @@ class UserListFilter(django_filters.FilterSet):
 
 class UserRoleListFilter(django_filters.FilterSet):
     current_status = django_filters.ChoiceFilter(
-        choices=[
-            ('active', 'active'),
-            ('pnm', 'prospective'),
-            ],
-        method='filter_current_status'
+        choices=[("active", "active"), ("pnm", "prospective"),],
+        method="filter_current_status",
     )
     role = django_filters.MultipleChoiceFilter(
-        choices=UserRoleChange.ROLES,
-        method='filter_role'
+        choices=UserRoleChange.ROLES, method="filter_role"
     )
     region = django_filters.ChoiceFilter(
-        choices=Region.region_choices(),
-        method='filter_region'
+        choices=Region.region_choices(), method="filter_region"
     )
 
     class Meta:
         model = User
-        fields = {'name': ['icontains'],
-                  'current_status': ['exact'],
-                  'major': ['icontains'],
-                  'graduation_year': ['icontains'],
-                  'chapter': ['exact'],
-                  }
-        order_by = ['name']
+        fields = {
+            "name": ["icontains"],
+            "current_status": ["exact"],
+            "major": ["icontains"],
+            "graduation_year": ["icontains"],
+            "chapter": ["exact"],
+        }
+        order_by = ["name"]
 
     def filter_current_status(self, queryset, field_name, value):
         if value:
@@ -69,9 +66,9 @@ class UserRoleListFilter(django_filters.FilterSet):
         return queryset
 
     def filter_region(self, queryset, field_name, value):
-        if value == 'national':
+        if value == "national":
             return queryset
-        elif value == 'colony':
+        elif value == "colony":
             queryset = queryset.filter(chapter__colony=True)
         else:
             queryset = queryset.filter(chapter__region__slug=value)
@@ -80,21 +77,21 @@ class UserRoleListFilter(django_filters.FilterSet):
 
 class AdvisorListFilter(django_filters.FilterSet):
     region = django_filters.ChoiceFilter(
-        choices=Region.region_choices(),
-        method='filter_region'
+        choices=Region.region_choices(), method="filter_region"
     )
 
     class Meta:
         model = User
-        fields = {'name': ['icontains'],
-                  'chapter': ['exact'],
-                  }
-        order_by = ['name']
+        fields = {
+            "name": ["icontains"],
+            "chapter": ["exact"],
+        }
+        order_by = ["name"]
 
     def filter_region(self, queryset, field_name, value):
-        if value == 'national':
+        if value == "national":
             return queryset
-        elif value == 'colony':
+        elif value == "colony":
             queryset = queryset.filter(chapter__colony=True)
         else:
             queryset = queryset.filter(chapter__region__slug=value)

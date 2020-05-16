@@ -27,11 +27,13 @@ class Command(BaseCommand):
                     continue
                 result = OfficerMonthly(chapter).send()
                 change_messages.append(f"{result}: {chapter}")
-            change_message = '\n'.join(change_messages)
-            send_mail(f'CMT Monthly Email Task',
-                      f'Email sent to chapters:\n{change_message}',
-                      'cmt@thetatau.org',
-                      ['cmt@thetatau.org'],
-                      fail_silently=True)
+            change_message = "\n".join(change_messages)
+            send_mail(
+                f"CMT Monthly Email Task",
+                f"Email sent to chapters:\n{change_message}",
+                "cmt@thetatau.org",
+                ["cmt@thetatau.org"],
+                fail_silently=True,
+            )
         else:
             print("Not Today")

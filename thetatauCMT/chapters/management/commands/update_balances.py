@@ -10,17 +10,17 @@ class Command(BaseCommand):
     help = "Update chapter balances"
 
     def add_arguments(self, parser):
-        parser.add_argument('file_path', nargs=1, type=str)
+        parser.add_argument("file_path", nargs=1, type=str)
 
     # A command must define handle()
     def handle(self, *args, **options):
         balances = {}
-        print(options['file_path'])
-        with open(options['file_path'][0]) as csvfile:
+        print(options["file_path"])
+        with open(options["file_path"][0]) as csvfile:
             reader = csv.DictReader(csvfile)
             for row in reader:
-                balance = row['Balance'].replace(",", "")
-                chapter_name = row['Chapter'].lower()
+                balance = row["Balance"].replace(",", "")
+                chapter_name = row["Chapter"].lower()
                 if chapter_name in GREEK_ABR:
                     chapter_name = GREEK_ABR[chapter_name]
                 balances[chapter_name] = float(balance)
