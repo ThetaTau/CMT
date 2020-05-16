@@ -1,7 +1,13 @@
-from django import forms
-from django.utils import timezone
-from dal import autocomplete, forward
 from betterforms.multiform import MultiModelForm
+from crispy_forms.bootstrap import (
+    FormActions,
+    Field,
+    InlineField,
+    StrictButton,
+    InlineRadios,
+    Accordion,
+    AccordionGroup,
+)
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import (
     Layout,
@@ -12,17 +18,16 @@ from crispy_forms.layout import (
     Column,
     HTML,
 )
-from crispy_forms.bootstrap import (
-    FormActions,
-    Field,
-    InlineField,
-    StrictButton,
-    InlineRadios,
-    Accordion,
-    AccordionGroup,
-    Div,
-)
+from dal import autocomplete, forward
+from django import forms
+from django.utils import timezone
 from tempus_dominus.widgets import DatePicker
+
+from chapters.forms import ChapterForm
+from chapters.models import Chapter, ChapterCurricula
+from core.models import CHAPTER_ROLES_CHOICES, NAT_OFFICERS_CHOICES
+from regions.models import Region
+from users.models import User, UserRoleChange
 from .models import (
     Initiation,
     Depledge,
@@ -36,11 +41,6 @@ from .models import (
     Convention,
     OSM,
 )
-from core.models import CHAPTER_ROLES_CHOICES, NAT_OFFICERS_CHOICES
-from users.models import User, UserRoleChange
-from regions.models import Region
-from chapters.models import Chapter, ChapterCurricula
-from chapters.forms import ChapterForm
 
 
 class SetNoValidateField(forms.CharField):
