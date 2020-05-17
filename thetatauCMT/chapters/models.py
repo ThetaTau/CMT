@@ -163,7 +163,6 @@ class Chapter(models.Model):
         on_delete=models.SET_NULL,
         blank=True,
         null=True,
-        unique=True,
     )
     balance = models.DecimalField(
         default=0, decimal_places=2, max_digits=7, help_text="Balance chapter owes."

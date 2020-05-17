@@ -62,9 +62,7 @@ class User(AbstractUser):
         blank=True,
         help_text="Format: 9999999999 no spaces, dashes, etc.",
     )
-    address = AddressField(
-        on_delete=models.SET_NULL, blank=True, null=True, unique=True
-    )
+    address = AddressField(on_delete=models.SET_NULL, blank=True, null=True,)
     chapter = models.ForeignKey(
         Chapter, on_delete=models.CASCADE, default=1, related_name="members"
     )
