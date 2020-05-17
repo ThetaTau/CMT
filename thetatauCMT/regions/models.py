@@ -1,7 +1,9 @@
+import warnings
 from django.db import models
 from django.conf import settings
 from django.utils.translation import ugettext_lazy as _
 from django.utils.text import slugify
+from django.db.utils import ProgrammingError
 
 
 class Region(models.Model):
@@ -21,7 +23,14 @@ class Region(models.Model):
 
     @classmethod
     def region_choices(cls):
-        regions = [(region.slug, region.name.title()) for region in cls.objects.all()]
+        regions = []
+        try:
+            regions = [
+                (region.slug, region.name.title()) for region in cls.objects.all()
+            ]
+        except ProgrammingError:
+            # Likely the database hasn't been setup yet?
+            warnings.warn("Could not find region relation")
         regions = regions + [("colony", "Colony")]
         regions.sort(key=lambda tup: tup[1])
         regions = [("national", "National")] + regions
