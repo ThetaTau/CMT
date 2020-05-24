@@ -53,12 +53,12 @@ class Event(TimeStampedModel):
             },
         )
 
-    def save(self, calculate_score=True):
+    def save(self, calculate_score=True, **kwargs):
         self.slug = slugify(self.name)
         if calculate_score:
             cal_score = self.type.calculate_score(self)
             self.score = cal_score
-            super().save()
+            super().save(**kwargs)
             self.type.update_chapter_score(self.chapter, self.date)
 
     def chapter_events(self, chapter):
