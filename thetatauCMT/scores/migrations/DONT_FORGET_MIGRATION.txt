@@ -1,0 +1,3 @@
+# We want the scoretypes to be the same even in test
+
+python manage.py dumpdata scores.scoretype --indent 4 --output thetatauCMT\scores\fixtures\scoretypes.json --verbosity 3
