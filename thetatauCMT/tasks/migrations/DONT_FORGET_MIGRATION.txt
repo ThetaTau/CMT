@@ -1,0 +1,4 @@
+# We want the task and task tates to be the same even in test
+
+python manage.py dumpdata tasks.task tasks.taskdate --indent 4 --output thetatauCMT\tasks\fixtures\tasks.json --verbosity 3
+
