@@ -17,6 +17,13 @@ from ..models import (
     PledgeProcess,
     OSM,
 )
+from ..flows import (
+    PrematureAlumnusFlow,
+    InitiationProcessFlow,
+    ConventionFlow,
+    PledgeProcessFlow,
+    OSMFlow,
+)
 from chapters.tests.factories import ChapterFactory, ChapterCurriculaFactory
 from users.tests.factories import UserFactory
 from submissions.tests.factories import SubmissionFactory
@@ -256,3 +263,89 @@ class PledgeFactory(factory.django.DjangoModelFactory):
 
     class Meta:
         model = Pledge
+
+
+class PrematureAlumnusFactory(factory.django.DjangoModelFactory):
+    flow_class = PrematureAlumnusFlow
+    user = factory.SubFactory(UserFactory)
+    form = factory.django.FileField(filename="test.pdf")
+    good_standing = factory.Faker("boolean")
+    financial = factory.Faker("boolean")
+    semesters = factory.Faker("boolean")
+    lifestyle = factory.Faker("boolean")
+    consideration = factory.Faker("boolean")
+    prealumn_type = factory.Faker(
+        "random_element", elements=[item.value[0] for item in PrematureAlumnus.TYPES]
+    )
+    approved_exec = factory.Faker("boolean")
+    exec_comments = factory.Faker("sentence")
+    vote = factory.Faker("boolean")
+
+    class Meta:
+        model = PrematureAlumnus
+
+
+class InitiationProcessFactory(factory.django.DjangoModelFactory):
+    flow_class = InitiationProcessFlow
+    invoice = factory.Faker("random_int", max=999999999)
+    chapter = factory.SubFactory(ChapterFactory)
+
+    @factory.post_generation
+    def add_initiations(self, create, extracted, **kwargs):
+        initiations = InitiationFactory.create_batch(5)
+        for initiation in initiations:
+            self.initiations.add(initiation)
+
+    class Meta:
+        model = InitiationProcess
+
+
+class ConventionFactory(factory.django.DjangoModelFactory):
+    flow_class = ConventionFlow
+    meeting_date = factory.Faker("date_between", start_date="-1y", end_date="-1d")
+    delegate = factory.SubFactory(UserFactory)
+    alternate = factory.SubFactory(UserFactory)
+    understand_del = factory.Faker("boolean")
+    understand_alt = factory.Faker("boolean")
+    chapter = factory.SubFactory(ChapterFactory)
+    officer1 = factory.SubFactory(UserFactory)
+    officer2 = factory.SubFactory(UserFactory)
+    signature_del = factory.LazyAttribute(lambda o: f"{o.name} Signature")
+    signature_alt = factory.LazyAttribute(lambda o: f"{o.name} Signature")
+    signature_o1 = factory.LazyAttribute(lambda o: f"{o.name} Signature")
+    signature_o2 = factory.LazyAttribute(lambda o: f"{o.name} Signature")
+    approved_o1 = factory.Faker("boolean")
+    approved_o2 = factory.Faker("boolean")
+
+    class Meta:
+        model = Convention
+
+
+class PledgeProcessFactory(factory.django.DjangoModelFactory):
+    flow_class = PledgeProcessFlow
+    invoice = factory.Faker("random_int", max=999999999)
+    chapter = factory.SubFactory(ChapterFactory)
+
+    class Meta:
+        model = PledgeProcess
+
+    @factory.post_generation
+    def add_pledges(self, create, extracted, **kwargs):
+        pledges = PledgeFactory.create_batch(5)
+        for pledge in pledges:
+            self.pledges.add(pledge)
+
+
+class OSMFactory(factory.django.DjangoModelFactory):
+    flow_class = OSMFlow
+    meeting_date = factory.Faker("date_between", start_date="-1y", end_date="-1d")
+    nominate = factory.SubFactory(UserFactory)
+    selection_process = factory.Faker("paragraph")
+    chapter = factory.SubFactory(ChapterFactory)
+    officer1 = factory.SubFactory(UserFactory)
+    officer2 = factory.SubFactory(UserFactory)
+    approved_o1 = factory.Faker("boolean")
+    approved_o2 = factory.Faker("boolean")
+
+    class Meta:
+        model = OSM
