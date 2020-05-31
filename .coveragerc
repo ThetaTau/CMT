@@ -1,5 +1,22 @@
 [run]
 include = thetatauCMT/*
-omit = *migrations*, *tests*
 plugins =
     django_coverage_plugin
+omit =
+  *scratchpad*,
+  *staticfiles*,
+  *utility*,
+  *docs*,
+  *node_modules/*,
+  *media/*,
+  *apps.py,
+  *conftest.py,
+  *contrib/*,
+  *migrations/*,
+  *settings*,
+  *taskapp/*,
+  *tests/*,
+  *urls.py,
+  *wsgi*,
+  manage.py
+
