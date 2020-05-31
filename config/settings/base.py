@@ -317,7 +317,7 @@ rollbar.init(**ROLLBAR)
 GOOGLE_API_KEY = env("GOOGLE_API_KEY", default="")
 if not GOOGLE_API_KEY:
     # Try and load from secrets file
-    with open("secrets/GOOGLE_API_KEY") as key_file:
+    with open(str(ROOT_DIR("secrets", "GOOGLE_API_KEY"))) as key_file:
         GOOGLE_API_KEY = key_file.read()
 GOOGLE_APPLICATION_CREDENTIALS = env(
     "GOOGLE_APPLICATION_CREDENTIALS",
