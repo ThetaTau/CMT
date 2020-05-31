@@ -3,6 +3,7 @@ include = thetatauCMT/*
 plugins =
     django_coverage_plugin
 omit =
+  *htmlcov*,
   *scratchpad*,
   *staticfiles*,
   *utility*,
