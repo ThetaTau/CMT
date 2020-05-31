@@ -35,3 +35,16 @@ def test_chapter_str(chapter):
 def test_chapter_curricula_str(chapter_curricula):
     assert chapter_curricula.major == "Electrical Engineering"
     assert str(chapter_curricula) == "Electrical Engineering"
+
+
+@pytest.mark.django_db
+def test_get_school_chapter(chapter):
+    chapter_result = Chapter.get_school_chapter(chapter.school)
+    assert chapter_result == chapter
+
+
+@pytest.mark.django_db
+def test_get_school_chapter_missing():
+    with pytest.warns(UserWarning):
+        chapter_result = Chapter.get_school_chapter("Does not exist")
+    assert chapter_result is None
