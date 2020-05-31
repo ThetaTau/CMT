@@ -391,7 +391,8 @@ class Chapter(models.Model):
                 (school["pk"], school["school"])
                 for school in cls.objects.values("school", "pk").order_by("school")
             ]
-        except ProgrammingError:
+        except ProgrammingError:  # pragma: no cover
+            # Likely the database hasn't been setup yet?
             warnings.warn("Could not find school relation")
             return []
 
