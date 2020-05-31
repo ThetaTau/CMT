@@ -1,6 +1,6 @@
 import random
 import factory
-from ..models import Chapter, ChapterCurricula, GREEK_ABR
+from chapters.models import Chapter, ChapterCurricula, GREEK_ABR
 from regions.tests.factories import RegionFactory
 
 
@@ -17,7 +17,7 @@ class ChapterFactory(factory.django.DjangoModelFactory):
     balance = factory.Faker("pydecimal", left_digits=5, right_digits=2)
     balance_date = factory.Faker("date_between", start_date="-4y", end_date="+4y")
     tax = factory.Faker("random_int")
-    greek = factory.LazyAttribute(lambda o: GREEK_ABR_NAME[o.name])
+    greek = factory.LazyAttribute(lambda o: GREEK_ABR_NAME[o.name.lower()])
     active = True
     colony = False
     school = factory.LazyAttribute(lambda o: f"{o.name} SCHOOL")
