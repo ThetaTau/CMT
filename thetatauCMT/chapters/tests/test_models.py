@@ -31,6 +31,12 @@ def test_chapter_str(chapter):
 
 
 @pytest.mark.django_db
+@pytest.mark.parametrize("chapter__colony,suffix", [(True, "Co"), (False, "Ch")])
+def test_chapter_account(chapter, suffix):
+    assert chapter.account == f"{chapter.greek}0{suffix}"
+
+
+@pytest.mark.django_db
 @pytest.mark.parametrize("chapter_curricula__major", ["Electrical Engineering"])
 def test_chapter_curricula_str(chapter_curricula):
     assert chapter_curricula.major == "Electrical Engineering"
