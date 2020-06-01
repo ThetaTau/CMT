@@ -24,3 +24,10 @@ class EventFactory(factory.django.DjangoModelFactory):
 
     class Meta:
         model = Event
+
+    @classmethod
+    def _create(cls, model_class, *args, **kwargs):
+        calculate_score = kwargs.pop("calculate_score", False)
+        instance = model_class(**kwargs)
+        instance.save(calculate_score=calculate_score)
+        return instance
