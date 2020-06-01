@@ -14,7 +14,7 @@ from chapters.tests.factories import ChapterFactory
 class UserFactory(factory.django.DjangoModelFactory):
     email = factory.Sequence(lambda n: f"user-{n}@example.com")
     password = factory.PostGenerationMethodCall("set_password", "password")
-
+    username = factory.LazyAttribute(lambda o: o.email)
     name = factory.Faker("name")
     modified = factory.Faker("date_time_between", start_date="-1y", end_date="+1y")
     badge_number = factory.Faker("random_int", min=1950, max=999999999)
