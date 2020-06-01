@@ -8,7 +8,7 @@ class TransactionFactory(factory.django.DjangoModelFactory):
     created = factory.Faker("date_time_between", start_date="-1y", end_date="+1y")
     modified = factory.Faker("date_time_between", start_date="-1y", end_date="+1y")
     type = factory.Faker(
-        "random_element", elements=[item.value[0] for item in Transaction.TYPES]
+        "random_element", elements=[item[0] for item in Transaction.TYPES]
     )
     due_date = factory.Faker("date_between", start_date="-4y", end_date="+4y")
     central_id = factory.Faker("random_int")
