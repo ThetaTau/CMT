@@ -61,8 +61,9 @@ class Event(TimeStampedModel):
             super().save(**kwargs)
             self.type.update_chapter_score(self.chapter, self.date)
 
-    def chapter_events(self, chapter):
-        result = self.objects.filter(chapter=chapter)
+    @classmethod
+    def chapter_events(cls, chapter):
+        result = cls.objects.filter(chapter=chapter)
         return result
 
     @classmethod
