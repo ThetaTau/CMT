@@ -77,6 +77,19 @@ def test_forever():
     assert models.forever() == datetime.datetime(4755, 11, 29, 0, 0)
 
 
+def test_validate_year():
+    this_year = datetime.datetime.now().year + 1
+    assert models.validate_year(str(this_year)) is None
+    with pytest.raises(ValidationError, match=r".* is not a valid year."):
+        models.validate_year("Notyear")
+    past_year = this_year - 2
+    with pytest.raises(
+        ValidationError,
+        match=r".* is a year in the past; please enter a current or future year.",
+    ):
+        models.validate_year(str(past_year))
+
+
 def test_no_future():
     date = fake.date_between(start_date="-4y")
     models.no_future(date)
