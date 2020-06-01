@@ -38,3 +38,10 @@ def test_get_absolute_url(event):
             "slug": slugify("Very Special event"),
         },
     )
+
+
+@pytest.mark.django_db
+def test_chapter_events(chapter, event_factory):
+    expected_events = event_factory.create_batch(10, chapter=chapter)
+    actual_events = Event.chapter_events(chapter)
+    assert set(list(actual_events)) == set(expected_events)
