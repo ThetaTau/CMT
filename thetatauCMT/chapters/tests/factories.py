@@ -26,7 +26,7 @@ class ChapterFactory(factory.django.DjangoModelFactory):
     school_type = factory.Faker(
         "random_element", elements=[item[0] for item in Chapter.TYPES]
     )
-    council = factory.Faker("sentence")
+    council = factory.Faker("text", max_nb_chars=55)
     recognition = factory.Faker(
         "random_element", elements=[item.value[0] for item in Chapter.RECOGNITION]
     )
