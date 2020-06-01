@@ -1,6 +1,7 @@
 import pytest
 from pytest_factoryboy import register
 from django.core.management import call_command
+from django.contrib.sites.models import Site
 from ballots.tests.factories import BallotFactory, BallotCompleteFactory
 from chapters.tests.factories import ChapterFactory, ChapterCurriculaFactory
 from events.tests.factories import EventFactory
@@ -25,6 +26,25 @@ def django_db_setup(django_db_setup, django_db_blocker):
     with django_db_blocker.unblock():
         call_command("loaddata", "scoretypes.json")
         call_command("loaddata", "tasks.json")
+        current_site = Site.objects.get_current()
+        SocialApp1 = current_site.socialapp_set.create(
+            provider="facebook",
+            name="facebook",
+            client_id="1234567890",
+            secret="0987654321",
+        )
+        SocialApp2 = current_site.socialapp_set.create(
+            provider="google",
+            name="google",
+            client_id="1234567890",
+            secret="0987654321",
+        )
+        SocialApp3 = current_site.socialapp_set.create(
+            provider="linkedin",
+            name="linkedin",
+            client_id="1234567890",
+            secret="0987654321",
+        )
 
 
 register(RegionFactory)
