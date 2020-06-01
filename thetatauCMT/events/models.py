@@ -60,6 +60,8 @@ class Event(TimeStampedModel):
             self.score = cal_score
             super().save(**kwargs)
             self.type.update_chapter_score(self.chapter, self.date)
+        else:
+            super().save(**kwargs)
 
     @classmethod
     def chapter_events(cls, chapter):
