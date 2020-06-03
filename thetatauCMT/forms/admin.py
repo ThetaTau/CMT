@@ -21,6 +21,7 @@ from .resources import (
     PledgeResource,
     PledgeFormResource,
     StatusChangeResource,
+    PledgeProgramResource,
 )
 from core.admin import user_chapter
 
@@ -47,21 +48,24 @@ class ChapterReportAdmin(admin.ModelAdmin):
 admin.site.register(ChapterReport, ChapterReportAdmin)
 
 
-class PledgeProgramAdmin(admin.ModelAdmin):
+class PledgeProgramAdmin(ImportExportActionModelAdmin):
     list_display = (
         "chapter",
         "manual",
         "year",
         "term",
+        "modified",
     )
     list_filter = [
         "chapter",
         "manual",
         "year",
+        "modified",
     ]
     ordering = [
-        "-year",
+        "-modified",
     ]
+    resource_class = PledgeProgramResource
 
 
 admin.site.register(PledgeProgram, PledgeProgramAdmin)
