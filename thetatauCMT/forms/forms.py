@@ -950,11 +950,7 @@ class OSMForm(forms.ModelForm):
     nominate = forms.ModelChoiceField(
         queryset=User.objects.all(),
         widget=autocomplete.ModelSelect2(
-            url="users:autocomplete",
-            forward=(
-                forward.Const("true", "chapter"),
-                forward.Const("true", "actives"),
-            ),
+            url="users:autocomplete", forward=(forward.Const("true", "chapter"),),
         ),
     )
     meeting_date = forms.DateField(
