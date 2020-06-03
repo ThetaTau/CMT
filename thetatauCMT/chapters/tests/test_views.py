@@ -1,3 +1,9 @@
+"""
+https://www.pythoncentral.io/writing-tests-for-your-django-applications-views/
+https://django-testing-docs.readthedocs.io/en/latest/views.html
+https://developer.mozilla.org/en-US/docs/Learn/Server-side/Django/Testing
+"""
+
 import pytest
 from django.urls import reverse
 from .factories import ChapterFactory, ChapterCurriculaFactory
