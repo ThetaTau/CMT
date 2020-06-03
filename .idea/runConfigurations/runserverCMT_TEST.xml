@@ -1,5 +1,5 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="runserverCMT" type="Python.DjangoServer" factoryName="Django server" singleton="true">
+  <configuration default="false" name="runserverCMT TEST" type="Python.DjangoServer" factoryName="Django server" singleton="true">
     <module name="thetatauCMT" />
     <option name="INTERPRETER_OPTIONS" value="" />
     <option name="PARENT_ENVS" value="true" />
