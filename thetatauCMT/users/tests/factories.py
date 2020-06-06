@@ -37,7 +37,10 @@ class UserFactory(factory.django.DjangoModelFactory):
     @factory.post_generation
     def make_officer(self, create, extracted, **kwargs):
         if extracted:
-            UserRoleChangeFactory.create(user=self, current=True, officer=extracted)
+            current = kwargs.get("current", True)
+            UserRoleChangeFactory.create(
+                user=self, current=current, officer=extracted,
+            )
 
 
 class UserAlterFactory(factory.django.DjangoModelFactory):
@@ -109,21 +112,25 @@ class UserRoleChangeFactory(factory.django.DjangoModelFactory):
 
     @factory.post_generation
     def current(self, create, extracted, **kwargs):
-        self.start = factory.Faker("date_between", start_date="-4y").generate()
-        self.end = factory.Faker(
-            "date_between", start_date="+1d", end_date="+4y"
-        ).generate()
+        if extracted:
+            self.start = factory.Faker("date_between", start_date="-4y").generate()
+            self.end = factory.Faker(
+                "date_between", start_date="+1d", end_date="+4y"
+            ).generate()
+        else:
+            self.end = factory.Faker(
+                "date_between", start_date="-239d", end_date="-1d"
+            ).generate()
 
     @factory.post_generation
     def officer(self, create, extracted, **kwargs):
         if extracted == "chapter":
-            self.role = factory.Faker(
-                "random_element", elements=CHAPTER_OFFICER
-            ).generate()
+            elements = CHAPTER_OFFICER
         elif extracted == "national":
-            self.role = factory.Faker(
-                "random_element", elements=NAT_OFFICERS
-            ).generate()
+            elements = NAT_OFFICERS
+        else:
+            elements = [extracted]
+        self.role = factory.Faker("random_element", elements=elements).generate()
 
 
 class UserOrgParticipateFactory(factory.django.DjangoModelFactory):
