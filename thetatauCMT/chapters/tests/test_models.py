@@ -63,3 +63,13 @@ def test_next_badge_number(chapter, user_factory):
     assert chapter.next_badge_number() == 1235
     user_factory.create_batch(10, chapter=chapter)
     assert chapter.next_badge_number() == 1245
+
+
+@pytest.mark.django_db
+def test_next_advisor_number(chapter, user_factory):
+    assert chapter.next_advisor_number == 7000
+    user_factory.create_batch(1234, chapter=chapter)
+    assert chapter.next_advisor_number == 7000
+    user_factory.reset_sequence(7000)
+    user_factory.create_batch(10, chapter=chapter)
+    assert chapter.next_advisor_number == 7011
