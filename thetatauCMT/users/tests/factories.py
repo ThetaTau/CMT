@@ -1,6 +1,6 @@
 import datetime
 import factory
-from core.models import NAT_OFFICERS, CHAPTER_OFFICER
+from core.models import NAT_OFFICERS, CHAPTER_OFFICER, ADVISOR_ROLES
 from ..models import (
     UserAlter,
     UserSemesterServiceHours,
@@ -41,6 +41,11 @@ class UserFactory(factory.django.DjangoModelFactory):
             UserRoleChangeFactory.create(
                 user=self, current=current, officer=extracted,
             )
+
+    @factory.post_generation
+    def status(self, create, extracted, **kwargs):
+        if extracted:
+            UserStatusChangeFactory.create(user=self, current=True, status=extracted)
 
 
 class UserAlterFactory(factory.django.DjangoModelFactory):
@@ -96,6 +101,14 @@ class UserStatusChangeFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = UserStatusChange
 
+    @factory.post_generation
+    def current(self, create, extracted, **kwargs):
+        if extracted:
+            self.start = factory.Faker("date_between", start_date="-4y").generate()
+            self.end = factory.Faker(
+                "date_between", start_date="+1d", end_date="+4y"
+            ).generate()
+
 
 class UserRoleChangeFactory(factory.django.DjangoModelFactory):
     start = factory.Faker("date_between", start_date="-4y", end_date="+4y")
@@ -128,6 +141,8 @@ class UserRoleChangeFactory(factory.django.DjangoModelFactory):
             elements = CHAPTER_OFFICER
         elif extracted == "national":
             elements = NAT_OFFICERS
+        elif extracted == "advisor":
+            elements = ADVISOR_ROLES
         else:
             elements = [extracted]
         self.role = factory.Faker("random_element", elements=elements).generate()
