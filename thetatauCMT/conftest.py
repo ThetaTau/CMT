@@ -54,9 +54,11 @@ def test_password():
 
 @pytest.fixture
 def auto_login_user(db, client, user_factory, test_password):
-    def make_auto_login(user=None):
+    def make_auto_login(user=None, make_officer=False):
         if user is None:
-            user = user_factory(password=test_password)
+            user = user_factory.create(
+                password=test_password, make_officer=make_officer
+            )
         client.login(username=user.username, password=test_password)
         return client, user
 

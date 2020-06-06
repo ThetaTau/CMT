@@ -1,5 +1,6 @@
 import datetime
 import factory
+from core.models import NAT_OFFICERS, CHAPTER_OFFICER
 from ..models import (
     UserAlter,
     UserSemesterServiceHours,
@@ -32,6 +33,11 @@ class UserFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = "users.User"
         django_get_or_create = ("username",)
+
+    @factory.post_generation
+    def make_officer(self, create, extracted, **kwargs):
+        if extracted:
+            UserRoleChangeFactory.create(user=self, current=True, officer=extracted)
 
 
 class UserAlterFactory(factory.django.DjangoModelFactory):
@@ -100,6 +106,24 @@ class UserRoleChangeFactory(factory.django.DjangoModelFactory):
 
     class Meta:
         model = UserRoleChange
+
+    @factory.post_generation
+    def current(self, create, extracted, **kwargs):
+        self.start = factory.Faker("date_between", start_date="-4y").generate()
+        self.end = factory.Faker(
+            "date_between", start_date="+1d", end_date="+4y"
+        ).generate()
+
+    @factory.post_generation
+    def officer(self, create, extracted, **kwargs):
+        if extracted == "chapter":
+            self.role = factory.Faker(
+                "random_element", elements=CHAPTER_OFFICER
+            ).generate()
+        elif extracted == "national":
+            self.role = factory.Faker(
+                "random_element", elements=NAT_OFFICERS
+            ).generate()
 
 
 class UserOrgParticipateFactory(factory.django.DjangoModelFactory):
