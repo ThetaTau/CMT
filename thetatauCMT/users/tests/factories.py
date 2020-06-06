@@ -18,7 +18,7 @@ class UserFactory(factory.django.DjangoModelFactory):
     username = factory.LazyAttribute(lambda o: o.email)
     name = factory.Faker("name")
     modified = factory.Faker("date_time_between", start_date="-1y", end_date="+1y")
-    badge_number = factory.Faker("random_int", min=1950, max=999999999)
+    badge_number = factory.Sequence(lambda n: n + 1)
     title = factory.Faker("prefix")
     major = factory.Faker("sentence", nb_words=3)
     employer = factory.Faker("sentence", nb_words=3)

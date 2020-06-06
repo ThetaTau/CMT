@@ -54,3 +54,12 @@ def test_get_school_chapter_missing():
     with pytest.warns(UserWarning):
         chapter_result = Chapter.get_school_chapter("Does not exist")
     assert chapter_result is None
+
+
+@pytest.mark.django_db
+def test_next_badge_number(chapter, user_factory):
+    assert chapter.next_badge_number() == 1
+    user_factory.create_batch(1234, chapter=chapter)
+    assert chapter.next_badge_number() == 1235
+    user_factory.create_batch(10, chapter=chapter)
+    assert chapter.next_badge_number() == 1245
