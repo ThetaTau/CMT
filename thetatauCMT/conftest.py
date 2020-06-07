@@ -65,6 +65,22 @@ def auto_login_user(db, client, user_factory, test_password):
     return make_auto_login
 
 
+@pytest.fixture(params=["chrome", "firefox"], scope="session")
+def driver_get(request):
+    from selenium import webdriver
+
+    if request.param == "chrome":
+        web_driver = webdriver.Chrome()
+    if request.param == "firefox":
+        web_driver = webdriver.Firefox()
+    session = request.node
+    for item in session.items:
+        cls = item.getparent(pytest.Class)
+        setattr(cls.obj, "driver", web_driver)
+    yield
+    web_driver.close()
+
+
 register(RegionFactory)
 register(ChapterFactory)
 register(ChapterCurriculaFactory)
