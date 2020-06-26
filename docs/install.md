@@ -1,5 +1,92 @@
-Install
+# Install
 =========
+
+## Instructions for MacOS
+
+### Install Python 3.6 with Homebrew
+
+`brew update && brew upgrade`
+`brew install python` (This will install python3 by default)
+
+To make python3 the default python in your environment, do either one of the following:
+_temporarily modify PATH_
+`export PATH="/usr/local/opt/python/libexec/bin:/usr/local/sbin:$PATH"` 
+_permanently modify PATH_
+`echo 'export PATH="/usr/local/opt/python/libexec/bin:/usr/local/sbin:$PATH"' >> ~/.bashrc
+If chose this option, be sure to do `source ~/.bashrc` before continuing
+
+Verify python version with `python --version` and you should get output `Python 3.7.7`
+Verify pip version with `pip -V` and you should get output `pip 20.0.2 from /usr/local/lib/python3.7/site-packages/pip (python 3.7)`
+
+### Install Node 9.9.0 (or latest)
+
+Install Node at https://nodejs.org/en/
+Verify Node version with `node -v`and you should get output `v12.16.3` (or later)
+
+### Install and configure virtualenvwrapper
+`pip install virtualenv`
+`pip install virtualenvwrapper`
+
+Add the following lines to the shell startup file (.bashrc):
+`export WORKON_HOME=~/virtualenvs
+export VIRTUALENVWRAPPER_PYTHON=/usr/bin/python
+source /usr/local/bin/virtualenvwrapper.sh`
+
+Then, either restart Terminal window or do `source ~/.bashrc` to put these changes into effect
+
+To create virtual environment for our project:
+`mkvirtualenv cmt` -> output: `created virtual environment CPython3.7.7.final.0-64 in 682ms`
+`workon cmt`
+
+cd to location to clone project repository (For example: `cd ~/Desktop/CMT`)
+`git clone https://github.com/VenturaFranklin/thetatauCMT.git`
+
+cd to the repo location (`cd ~/Desktop/CMT/thetatauCMT`), then do:
+`setvirtualenvproject`in that directory
+`add2virtualenv ~/Desktop/CMT/thetatauCMT/thetatauCMT` 
+
+    NOTE: THIS IS NOT THE SAME FOLDER AS ABOVE, BUT A SUBDIRECTORY
+
+`workon cmt`
+
+### Install PostgreSQL 10.X 
+
+Install PostgreSQL app to run the database server and follow instructions at https://postgresapp.com/
+Run the Postgres server with the app and make sure that the server status is __Running__
+
+Install PostgreSQL 10.X at https://www.postgresql.org/download/
+    __Remember where you set the data folder! For example: `/Library/PostgreSQL/10`__
+
+Try to run `pg_config`, if get a *not found* error, then you need to find the path of this command with:
+`sudo find / -name pg_config` and receive an output similar to `/Library/PostgreSQL/10/bin`
+Change the PATH to run Postgres command line tools:
+`export PATH=/Library/PostgreSQL/10/bin:${PATH}`
+
+Re-run `pg_config` to verify that our database works! 
+
+### Install dependencies
+Install PostgreSQL database adapter for Django
+`pip install psycopg2`
+
+Install Django
+`pip install Django`
+
+Install other requirements
+`pip install -r requirements/local.txt` (Postgres has to be installed first)
+
+Create Postgres database (make sure that the server is Running in Postgres app)
+`export PATH=/Library/PostgreSQL/10/bin:${PATH}`
+`createdb thetatauCMT`
+
+Find the location of the Postgres server HBA file by going on the Postgres app -> Server Settings... -> HBA File
+
+Check that your pg_hba.conf file has the following:
+`# IPv4 local connections:
+host    all             all             127.0.0.1/32            trust`
+
+If changes needed to be made, make sure to restart the Postgres service.
+
+## Instructions for Windows
 
 Install python 3.6
 
