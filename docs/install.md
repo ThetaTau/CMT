@@ -7,6 +7,7 @@
 ### Install Python 3.7 (or latest) with Homebrew
 
 `brew update && brew upgrade`
+
 `brew install python` (This will install python3 by default)
 
 To make python3 the default python in your environment, do either one of the following:
@@ -29,6 +30,7 @@ Verify Node version with `node -v`and you should get output `v12.16.3` (or later
 ### Install and configure virtualenvwrapper
 
 `pip install virtualenv`
+
 `pip install virtualenvwrapper`
 
 Add the following lines to the shell startup file (.bashrc):
