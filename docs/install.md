@@ -47,9 +47,11 @@ To create virtual environment for our project:
 `workon cmt`
 
 cd to location to clone project repository (For example: `cd ~/Desktop/CMT`)
+
 `git clone https://github.com/VenturaFranklin/thetatauCMT.git`
 
 cd to the repo location (`cd ~/Desktop/CMT/thetatauCMT`), then do:
+
 `setvirtualenvproject`in that directory
 
 `add2virtualenv ~/Desktop/CMT/thetatauCMT/thetatauCMT`
@@ -68,6 +70,7 @@ Install PostgreSQL 10.X at https://www.postgresql.org/download/
 
 Try to run `pg_config`, if get a _not found_ error, then you need to find the path of this command with:
 `sudo find / -name pg_config` and receive an output similar to `/Library/PostgreSQL/10/bin`
+
 Change the PATH to run Postgres command line tools:
 `export PATH=/Library/PostgreSQL/10/bin:${PATH}`
 
@@ -93,6 +96,7 @@ Install other requirements
 
 Create Postgres database (make sure that the server is Running in Postgres app)
 `export PATH=/Library/PostgreSQL/10/bin:${PATH}`
+
 `createdb thetatauCMT`
 
 Find the location of the Postgres server HBA file by going on the Postgres app -> Server Settings... -> HBA File
