@@ -11,10 +11,11 @@
 `brew install python` (This will install python3 by default)
 
 To make python3 the default python in your environment, do either one of the following:
-_temporarily modify PATH_
+
+_temporarily modify PATH:_
 `export PATH="/usr/local/opt/python/libexec/bin:/usr/local/sbin:$PATH"`
 
-_permanently modify PATH_
+_permanently modify PATH:_
 `echo 'export PATH="/usr/local/opt/python/libexec/bin:/usr/local/sbin:$PATH"' >> ~/.bashrc`
 
 If chose this option, be sure to do `source ~/.bashrc` before continuing or whenever restart terminal
@@ -97,9 +98,11 @@ _If receive an Symbol not found error, reinstall psycopg2 and psycopg2-binary wi
 `pip install pyscopg2-binary==2.7.7`
 
 Install Django
+
 `pip install Django`
 
 Install other requirements
+
 `pip install -r requirements/local.txt` (Postgres has to be installed first)
 
 Create Postgres database (make sure that the server is Running in Postgres app)
