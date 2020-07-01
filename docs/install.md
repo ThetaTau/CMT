@@ -69,9 +69,10 @@ Install PostgreSQL 10.X at https://www.postgresql.org/download/
 **Remember where you set the data folder! For example: `/Library/PostgreSQL/10`**
 
 Try to run `pg_config`, if get a _not found_ error, then you need to find the path of this command with:
-`sudo find / -name pg_config` and receive an output similar to `/Library/PostgreSQL/10/bin`
+`sudo find / -name pg_config` -> output: `/Library/PostgreSQL/10/bin`
 
 Change the PATH to run Postgres command line tools:
+
 `export PATH=/Library/PostgreSQL/10/bin:${PATH}`
 
 Re-run `pg_config` to verify that our database works!
