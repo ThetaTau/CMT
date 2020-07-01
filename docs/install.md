@@ -16,6 +16,7 @@ _temporarily modify PATH_
 
 _permanently modify PATH_
 `echo 'export PATH="/usr/local/opt/python/libexec/bin:/usr/local/sbin:$PATH"' >> ~/.bashrc`
+
 If chose this option, be sure to do `source ~/.bashrc` before continuing or whenever restart terminal
 
 Verify python version with `python --version` and you should get output `Python 3.7.7`
@@ -83,12 +84,16 @@ Re-run `pg_config` to verify that our database works!
 
 Install PostgreSQL database adapter for Django
 `pip install psycopg2`
+
 `pip install psycopg2-binary`
 
 _If receive an Symbol not found error, reinstall psycopg2 and psycopg2-binary with the base Python version. (i.e. 2.7.7)_
 `pip uninstall psycopg2`
+
 `pip uninstall psycopg2-binary`
+
 `pip install pyscopg2==2.7.7`
+
 `pip install pyscopg2-binary==2.7.7`
 
 Install Django
@@ -98,6 +103,7 @@ Install other requirements
 `pip install -r requirements/local.txt` (Postgres has to be installed first)
 
 Create Postgres database (make sure that the server is Running in Postgres app)
+
 `export PATH=/Library/PostgreSQL/10/bin:${PATH}`
 
 `createdb thetatauCMT`
@@ -110,6 +116,7 @@ Check that your pg_hba.conf file has the following:
 If changes needed to be made, make sure to restart the Postgres service.
 
 Setting up Django app and creating superuser:
+
 `python manage.py migrate`
 
 `python manage.py createsuperuser`
