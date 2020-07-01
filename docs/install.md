@@ -88,7 +88,8 @@ Install PostgreSQL database adapter for Django
 
 `pip install psycopg2-binary`
 
-_If receive an Symbol not found error, reinstall psycopg2 and psycopg2-binary with the base Python version. (i.e. 2.7.7)_
+_If receive a 'Symbol not found' error, reinstall psycopg2 and psycopg2-binary with the base Python version. (i.e. 2.7.7)_
+
 `pip uninstall psycopg2`
 
 `pip uninstall psycopg2-binary`
