@@ -587,7 +587,14 @@ class Pledge(TimeStampedModel):
     )
     title = models.CharField(
         max_length=5,
-        choices=[("mr", "Mr."), ("miss", "Miss"), ("ms", "Ms"), ("mrs", "Mrs"),],
+        choices=[
+            ("mr", "Mr."),
+            ("miss", "Miss"),
+            ("ms", "Ms"),
+            ("mrs", "Mrs"),
+            ("mx", "Mx"),
+            ("none", ""),
+        ],
     )
     first_name = models.CharField(_("Legal First Name"), max_length=30)
     middle_name = models.CharField(_("Full Middle Name"), max_length=30, blank=True)
