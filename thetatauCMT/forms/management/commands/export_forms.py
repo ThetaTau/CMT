@@ -73,6 +73,8 @@ DEPLEDGE = [
     "Chapter Name",
     "First Name",
     "Last Name",
+    "*ChapRoll",
+    "EmailAddress",
     "Reason Depledged",
     "Date Depledged (M/D/YYYY)",
 ]
@@ -211,6 +213,8 @@ class Command(BaseCommand):
                         "Chapter Name": depledge.user.chapter.name,
                         "First Name": depledge.user.first_name,
                         "Last Name": depledge.user.last_name,
+                        "*ChapRoll": depledge.user.clean_user_id,
+                        "EmailAddress": depledge.user.email,
                         "Reason Depledged": depledge.REASONS.get_value(depledge.reason),
                         "Date Depledged (M/D/YYYY)": depledge.date.strftime("%m/%d/%Y"),
                     }
