@@ -182,7 +182,9 @@ class Initiation(TimeStampedModel):
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="initiation"
     )
     date_graduation = models.DateField(default=timezone.now)
-    date = models.DateField("Initiation Date", default=timezone.now)
+    date = models.DateField(
+        "Initiation Date", default=timezone.now, validators=[no_future]
+    )
     roll = models.PositiveIntegerField(default=999999999)
     gpa = models.FloatField()
     test_a = models.IntegerField(validators=[MaxValueValidator(100)])
@@ -275,7 +277,9 @@ class Depledge(TimeStampedModel):
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="depledge"
     )
     reason = models.CharField(max_length=10, choices=[x.value for x in REASONS])
-    date = models.DateField("Depledge Date", default=timezone.now)
+    date = models.DateField(
+        "Depledge Date", default=timezone.now, validators=[no_future]
+    )
 
     def __str__(self):
         return f"{self.user} depledged on {self.date}"
