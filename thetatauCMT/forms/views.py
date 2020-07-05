@@ -197,7 +197,7 @@ class InitDeplSelectView(
         processes = InitiationProcess.objects.filter(
             chapter__name=self.request.user.current_chapter
         )
-        data = []
+        initiation_data = []
         for process in processes:
             active_task = process.active_tasks().first()
             if active_task:
@@ -207,7 +207,7 @@ class InitDeplSelectView(
             members = ", ".join(
                 list(process.initiations.values_list("user__name", flat=True))
             )
-            data.append(
+            initiation_data.append(
                 {
                     "initiation": process.initiations.first().date,
                     "submitted": process.created,
@@ -215,12 +215,32 @@ class InitDeplSelectView(
                     "member_names": members,
                 }
             )
-        pledges = PledgeFormTable(
-            PledgeForm.objects.filter(
-                chapter=self.request.user.current_chapter
-            ).order_by("-created")
+        pledgeprocesses = PledgeProcess.objects.filter(
+            chapter__name=self.request.user.current_chapter
         )
-        inits = InitiationTable(data=data, order_by="-submitted")
+        pledge_data = []
+        for process in pledgeprocesses:
+            active_task = process.active_tasks().first()
+            if active_task:
+                status = active_task.flow_task.task_description
+            else:
+                status = "Pledge Process Complete"
+            pledges = ", ".join(
+                [
+                    " ".join(pledge)
+                    for pledge in process.pledges.values_list("first_name", "last_name")
+                ]
+            )
+            pledge_data.append(
+                {
+                    "pledge": process.pledges.last().created,
+                    "submitted": process.created,
+                    "status": status,
+                    "pledge_names": pledges,
+                }
+            )
+        pledges = PledgeFormTable(data=pledge_data, order_by="-submitted")
+        inits = InitiationTable(data=initiation_data, order_by="-submitted")
         depledges = DepledgeTable(
             Depledge.objects.filter(
                 user__chapter=self.request.user.current_chapter

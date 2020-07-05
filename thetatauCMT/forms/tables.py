@@ -39,11 +39,12 @@ class BadgeTable(tables.Table):
 
 
 class PledgeFormTable(tables.Table):
-    created = tables.DateColumn(verbose_name="Submitted")
+    pledge = tables.DateColumn(verbose_name="Pledge Date")
+    submitted = tables.DateColumn()
+    status = tables.Column()
+    pledge_names = tables.Column()
 
     class Meta:
-        model = PledgeForm
-        fields = ("name", "created")
         attrs = {"class": "table-striped table-bordered"}
 
 
