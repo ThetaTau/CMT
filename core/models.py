@@ -246,6 +246,15 @@ class TimeStampedModel(models.Model):
         abstract = True
 
 
+class EnumClass(Enum):
+    @classmethod
+    def get_value(cls, member):
+        value = ""
+        if hasattr(cls, member):
+            value = cls[member].value[1]
+        return value
+
+
 class StartEndModel(models.Model):
     """
     An abstract base class model that provides

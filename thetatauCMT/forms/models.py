@@ -20,6 +20,7 @@ from core.models import (
     forever,
     CHAPTER_ROLES_CHOICES,
     academic_encompass_start_end_date,
+    EnumClass,
 )
 from users.models import User, UserStatusChange
 from chapters.models import Chapter, ChapterCurricula
@@ -1310,4 +1311,174 @@ class OSM(Process, YearTermModel):
     )
     approved_o2 = models.BooleanField(
         "Officer Approved", choices=BOOL_CHOICES, default=False
+    )
+
+
+def get_discipline_upload_path(instance, filename):
+    if hasattr(instance, "attachment"):
+        instance = instance.process
+    return os.path.join(
+        "discipline",
+        f"{instance.chapter.slug}",
+        f"{instance.user.user_id}",
+        f"{instance.chapter.slug}_{instance.user.user_id}_{filename}",
+    )
+
+
+class DisciplinaryProcess(Process, TimeStampedModel):
+    """
+Restart:
+https://stackoverflow.com/questions/61136760/allowing-users-to-select-which-flow-to-roll-back-to-django-viewflow
+Delay:
+https://stackoverflow.com/questions/31658996/viewflow-io-implementing-a-queue-task
+    """
+
+    BOOL_CHOICES = ((True, "Yes"), (False, "No"))
+
+    class METHODS(EnumClass):
+        postal = ("postal", "Postal Mail")
+        email = ("email", "Email")
+        text = ("text", "Text Message")
+        social = ("social", "Social Media")
+        phone = ("phone", "Phone Call")
+        person = ("person", "In Person")
+        chat = ("chat", "Chat Message")
+
+    class REASONS(EnumClass):
+        waived = ("waived", "Accused Waived Right to Trial")
+        rescheduled = ("rescheduled", "Rescheduled")
+
+    class PUNISHMENT(EnumClass):
+        expelled = ("expelled", "Expelled")
+        suspended = ("suspended", "Suspended")
+
+    class PROCESS(EnumClass):
+        process = ("process", "Accept and Process")
+        accept = ("accept", "Accept With No Action")
+        reject = ("reject", "Reject")
+
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        verbose_name="Name of Accused",
+        on_delete=models.CASCADE,
+        related_name="discipline",
+    )
+    chapter = models.ForeignKey(
+        Chapter, on_delete=models.CASCADE, related_name="discipline"
+    )
+    charges = models.TextField(
+        help_text="Please specify which section of the PPM the member is "
+        "accused of violating."
+    )
+    verbose_resolve = (
+        "Did chapter officers try to resolve the problem through "
+        "private discussion with the brother?"
+    )
+    resolve = models.BooleanField(verbose_resolve, choices=BOOL_CHOICES, default=False)
+    verbose_advisor = (
+        "Was the chapter alumni adviser involved in trying to resolve this problem?"
+    )
+    advisor = models.BooleanField(verbose_advisor, choices=BOOL_CHOICES, default=False)
+    verbose_faculty = (
+        "Was a campus/faculty adviser involved in trying to resolve this problem?"
+    )
+    faculty = models.BooleanField(verbose_faculty, choices=BOOL_CHOICES, default=False)
+    verbose_financial = (
+        "Is a simple collections action (for financial delinquency) "
+        "better suited as a resolution to this issue?"
+    )
+    financial = models.BooleanField(
+        verbose_financial, choices=BOOL_CHOICES, default=False
+    )
+    charges_filed = models.DateField(
+        "Charges filed by majority vote at a chapter meeting on date",
+        default=timezone.now,
+        validators=[no_future],
+    )
+    notify_date = models.DateField(
+        "Accused first notified of charges on date",
+        default=timezone.now,
+        validators=[no_future],
+    )
+    notify_method = models.CharField(max_length=100, choices=[x.value for x in METHODS])
+    trial_date = models.DateField("Trial scheduled for date", default=timezone.now,)
+    charging_letter = models.FileField(
+        upload_to=get_discipline_upload_path,
+        help_text="Please attach a copy of the charging letter that was sent to the member.",
+    )
+    verbose_take = "Did the trial take place as planned?"
+    take = models.BooleanField(verbose_take, choices=BOOL_CHOICES, default=False)
+    verbose_why_take = "Why did the trial not take place?"
+    why_take = models.CharField(
+        verbose_why_take, max_length=100, choices=[x.value for x in REASONS]
+    )
+    rescheduled_date = models.DateField(
+        "When will the new trial be held?", default=timezone.now,
+    )
+    verbose_attend = "Did the accused attend the trial and defend?"
+    attend = models.BooleanField(verbose_attend, choices=BOOL_CHOICES, default=False)
+    verbose_guilty = (
+        "Was the accused found guilty of the charges by a 4/5 majority of the jury?"
+    )
+    verbose = models.BooleanField(verbose_guilty, choices=BOOL_CHOICES, default=False)
+    verbose_notify_results = (
+        "Did the chapter notify the member by mail/email of the results of the trial?"
+    )
+    notify_results = models.BooleanField(
+        verbose_notify_results, choices=BOOL_CHOICES, default=False
+    )
+    notify_results_date = models.DateField(
+        "On what date was the member notified of the results of the trial?",
+        default=timezone.now,
+        validators=[no_future],
+    )
+    verbose_punishment = "What was the punishment agreed to by the chapter?"
+    punishment = models.CharField(
+        verbose_punishment, max_length=100, choices=[x.value for x in PUNISHMENT]
+    )
+    suspension_end = models.DateField(
+        "When will this member’s suspension end?", default=timezone.now,
+    )
+    verbose_punishment_other = (
+        "What other punishments, if any, were agreed to by the chapter?"
+    )
+    punishment_other = models.TextField(verbose_punishment_other)
+    verbose_collect_items = (
+        "If the member was suspended pending expulsion, did the chapter collect "
+        "and receive the member’s badge, shingle and/or other Theta Tau property?"
+    )
+    collect_items = models.BooleanField(
+        verbose_collect_items, choices=BOOL_CHOICES, default=False
+    )
+    minutes = models.FileField(
+        upload_to=get_discipline_upload_path,
+        help_text="Please attach a copy of the minutes from the meeting "
+        "where the trial was held.",
+    )
+    results_letter = models.FileField(
+        upload_to=get_discipline_upload_path,
+        help_text="Please attach a copy of the letter you sent to the member "
+        "informing them of the outcome of the trial.",
+    )
+    ed_process = models.CharField(
+        "Executive Director Review", max_length=10, choices=[x.value for x in PROCESS],
+    )
+    ed_notes = models.TextField("Executive Director Review Notes")
+    ec_approval = models.BooleanField(
+        verbose_collect_items,
+        choices=((True, "Outcome approved by EC"), (False, "Outcome Rejected by EC")),
+        default=False,
+    )
+    ec_notes = models.TextField("Executive Council Review Notes")
+
+
+class DisciplinaryAttachment(models.Model):
+    attachment = True
+    file = models.FileField(
+        upload_to=get_discipline_upload_path,
+        help_text="Please attach a copy of the letter you sent to the member "
+        "informing them of the outcome of the trial.",
+    )
+    process = models.ForeignKey(
+        DisciplinaryProcess, on_delete=models.CASCADE, related_name="attachments"
     )
