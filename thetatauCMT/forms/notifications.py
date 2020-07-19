@@ -298,7 +298,10 @@ class EmailProcessUpdate(EmailNotification):
         direct_user=None,
     ):
         emails = set()
-        user, obj = direct_user, direct_user.chapter
+        user = direct_user
+        obj = None
+        if direct_user:
+            obj = direct_user.chapter
         if direct_user is None:
             if hasattr(activation.process, "user"):
                 user = activation.process.user
@@ -330,11 +333,15 @@ class EmailProcessUpdate(EmailNotification):
             if isinstance(field, dict):
                 info.update(field)
                 continue
-            key = activation.process._meta.get_field(field).verbose_name
-            value = getattr(activation.process, field, "")
-            if activation.process._meta.get_field(field).choices:
-                value = activation.process.TYPES.get_value(value)
-            info[key] = value
+            object = activation.process
+            field_obj = object._meta.get_field(field)
+            if field == "user":
+                info[field_obj.verbose_name] = object.user
+                continue
+            try:
+                info[field_obj.verbose_name] = object._get_FIELD_display(field_obj)
+            except TypeError:
+                info[field_obj.verbose_name] = field_obj.value_to_string(object)
         files = []
         if hasattr(activation.process, "form"):
             file = activation.process.form
