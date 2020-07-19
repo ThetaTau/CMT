@@ -2272,6 +2272,9 @@ class DisciplinaryCreateView(
     model = DisciplinaryProcess
     form_class = DisciplinaryForm1
 
+    def get_success_url(self):
+        return reverse("viewflow:forms:disciplinaryprocess:start")
+
     def activation_done(self, *args, **kwargs):
         """Finish task activation."""
         self.activation.done()
@@ -2289,18 +2292,27 @@ class DisciplinaryCreateView(
             chapter=self.request.user.current_chapter
         )
         for process in processes:
+            link = "#"
             if process.finished is None:
-                status = process.active_tasks().first().flow_task.task_title
+                task = process.active_tasks().first()
+                status = task.flow_task.task_title
                 approved = "Pending"
+                if "Submit Form 2" in status:
+                    link = reverse(
+                        f"viewflow:forms:disciplinaryprocess:submit_form2",
+                        kwargs={"process_pk": process.pk, "task_pk": task.pk},
+                    )
             else:
                 status = "Complete"
                 approved = process.approved_exec
+
             data.append(
                 {
                     "status": status,
                     "user": process.user,
                     "created": process.created,
                     "approved": approved,
+                    "link": link,
                 }
             )
         context["table"] = DisciplinaryStatusTable(data=data)
