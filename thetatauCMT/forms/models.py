@@ -1400,7 +1400,7 @@ https://stackoverflow.com/questions/31658996/viewflow-io-implementing-a-queue-ta
         default=timezone.now,
         validators=[no_future],
     )
-    notify_method = models.CharField(max_length=100, choices=[x.value for x in METHODS])
+    notify_method = MultiSelectField(choices=[x.value for x in METHODS])
     trial_date = models.DateField("Trial scheduled for date", default=timezone.now,)
     charging_letter = models.FileField(
         upload_to=get_discipline_upload_path,
@@ -1420,7 +1420,7 @@ https://stackoverflow.com/questions/31658996/viewflow-io-implementing-a-queue-ta
     verbose_guilty = (
         "Was the accused found guilty of the charges by a 4/5 majority of the jury?"
     )
-    verbose = models.BooleanField(verbose_guilty, choices=BOOL_CHOICES, default=False)
+    guilty = models.BooleanField(verbose_guilty, choices=BOOL_CHOICES, default=False)
     verbose_notify_results = (
         "Did the chapter notify the member by mail/email of the results of the trial?"
     )
@@ -1470,10 +1470,30 @@ https://stackoverflow.com/questions/31658996/viewflow-io-implementing-a-queue-ta
         default=False,
     )
     ec_notes = models.TextField("Executive Council Review Notes")
+    # Letter of outcome of trial
+    outcome_letter = models.FileField(upload_to=get_discipline_upload_path,)
+    # Letter at the end of whole process
+    final_letter = models.FileField(upload_to=get_discipline_upload_path,)
+
+    def get_all_files(self):
+        files = []
+        for file_field in [
+            "charging_letter",
+            "minutes",
+            "results_letter",
+            "outcome_letter",
+            "final_letter",
+        ]:
+            value = getattr(self, file_field)
+            if value.name:
+                files.append(value)
+        for attach in self.attachments.all():
+            files.append(attach.file)
+        return files
 
 
 class DisciplinaryAttachment(models.Model):
-    attachment = True
+    attachment = True  # This allows reuse of get_discipline_upload_path
     file = models.FileField(
         upload_to=get_discipline_upload_path,
         help_text="Please attach a copy of the letter you sent to the member "
