@@ -6,9 +6,13 @@
 
 {% block head_title %}{% trans "Disciplinary Form 2" %}{% endblock %}
 {% block content %}
-  <h1>Disciplinary Form</h1>
+  <h1>Disciplinary Form 2</h1>
     <br>
+  Disciplinary process for {{ object.user }} for trial on {{ object.trial_date }}
   <hr>
+  {% if object.trial_date > date %}
+    Trial date not yet reached, please return on or after the trial date to submit the form.
+  {% else %}
   <form method="POST" enctype="multipart/form-data" class="form">
     {{ form.media }}
     <link href="{% static 'css/project.css' %}" rel="stylesheet">
@@ -17,4 +21,49 @@
     {{ activation.management_form }}
     <button class="primaryAction btn btn-primary" name='action' value='form' type="submit">{% trans "Submit Form" %}</button>
   </form>
+  {% endif %}
+<script type="text/javascript">
+  $(document).ready(function() {
+    $.each($('div[class="form-group"]'), function(){
+        $(this).hide();
+    });
+    $('#div_id_chapter').show();
+    $('#div_id_role').show();
+    $('#div_id_why_take').show();
+    $('#div_id_take').show();
+    $('select[name="why_take"]').on('change', function(){
+      var selected_value = $('select[name="why_take"] option:selected').text();
+      if(selected_value==="Rescheduled"){
+        $('#div_id_rescheduled_date').show();
+      } else{
+        $('#div_id_rescheduled_date').hide();
+      }
+    })
+    $('select[name="take"]').on('change', function(){
+        var selected_value = $('select[name="take"] option:selected').text();
+         if(selected_value==="No"){
+           $.each($('div[class="form-group"]'), function(){
+              $(this).hide();
+          });
+           $('#div_id_chapter').show();
+           $('#div_id_role').show();
+           $('#div_id_why_take').show();
+           $('#div_id_take').show();
+           var selected_value = $('select[name="why_take"] option:selected').text();
+            if(selected_value==="Rescheduled"){
+              $('#div_id_rescheduled_date').show();
+            } else{
+              $('#div_id_rescheduled_date').hide();
+            }
+         }
+         else{
+           $.each($('div[class="form-group"]'), function(){
+              $(this).show();
+          });
+           $('#div_id_rescheduled_date').hide();
+           $('#div_id_why_take').hide();
+         }
+     });
+  });
+  </script>
 {% endblock %}

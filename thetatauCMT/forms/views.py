@@ -2321,26 +2321,7 @@ class DisciplinaryForm2View(
 
     def get_context_data(self, *args, **kwargs):
         context = super().get_context_data(**kwargs)
-        data = []
-        processes = DisciplinaryProcess.objects.filter(
-            chapter=self.request.user.current_chapter
-        )
-        for process in processes:
-            if process.finished is None:
-                status = process.active_tasks().first().flow_task.task_title
-                approved = "Pending"
-            else:
-                status = "Complete"
-                approved = process.approved_exec
-            data.append(
-                {
-                    "status": status,
-                    "user": process.user,
-                    "created": process.created,
-                    "approved": approved,
-                }
-            )
-        context["table"] = DisciplinaryStatusTable(data=data)
+        context["date"] = datetime.datetime.today().date()
         return context
 
 
