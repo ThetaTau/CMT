@@ -40,6 +40,7 @@ from .models import (
     PrematureAlumnus,
     Convention,
     OSM,
+    DisciplinaryProcess,
 )
 
 
@@ -966,4 +967,75 @@ class OSMForm(forms.ModelForm):
             "meeting_date",
             "nominate",
             "selection_process",
+        ]
+
+
+class DisciplinaryForm1(forms.ModelForm):
+    user = forms.ModelChoiceField(
+        queryset=User.objects.all(),
+        widget=autocomplete.ModelSelect2(
+            url="users:autocomplete",
+            forward=(
+                forward.Const("true", "chapter"),
+                forward.Const("true", "actives"),
+            ),
+        ),
+    )
+    notify_date = forms.DateField(
+        label="Accused first notified of charges on date",
+        widget=DatePicker(
+            options={"format": "M/DD/YYYY"}, attrs={"autocomplete": "off"},
+        ),
+    )
+    charges_filed = forms.DateField(
+        label="Charges filed by majority vote at a chapter meeting on date",
+        widget=DatePicker(
+            options={"format": "M/DD/YYYY"}, attrs={"autocomplete": "off"},
+        ),
+    )
+    trial_date = forms.DateField(
+        label="Trial scheduled for date",
+        widget=DatePicker(
+            options={"format": "M/DD/YYYY"}, attrs={"autocomplete": "off"},
+        ),
+    )
+    notify_method = forms.MultipleChoiceField(
+        widget=forms.CheckboxSelectMultiple,
+        choices=[x.value for x in DisciplinaryProcess.METHODS],
+    )
+
+    class Meta:
+        model = DisciplinaryProcess
+        fields = [
+            "financial",
+            "user",
+            "charges",
+            "resolve",
+            "advisor",
+            "faculty",
+            "charges_filed",
+            "notify_date",
+            "notify_method",
+            "trial_date",
+            "charging_letter",
+        ]
+
+
+class DisciplinaryForm2(forms.ModelForm):
+    class Meta:
+        model = DisciplinaryProcess
+        fields = [
+            "take",
+            "why_take",
+            "rescheduled_date",
+            "attend",
+            "guilty",
+            "notify_results",
+            "notify_results_date",
+            "punishment",
+            "suspension_end",
+            "punishment_other",
+            "collect_items",
+            "minutes",
+            "results_letter",
         ]
