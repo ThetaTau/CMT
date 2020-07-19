@@ -1,0 +1,20 @@
+{% extends "account/base.html" %}
+{% load i18n %}
+{% load static %}
+{% load crispy_forms_tags %}
+{% load render_table from django_tables2 %}
+
+{% block head_title %}{% trans "Disciplinary Form 2" %}{% endblock %}
+{% block content %}
+  <h1>Disciplinary Form</h1>
+    <br>
+  <hr>
+  <form method="POST" enctype="multipart/form-data" class="form">
+    {{ form.media }}
+    <link href="{% static 'css/project.css' %}" rel="stylesheet">
+    {% csrf_token %}
+    {{ form|crispy }}
+    {{ activation.management_form }}
+    <button class="primaryAction btn btn-primary" name='action' value='form' type="submit">{% trans "Submit Form" %}</button>
+  </form>
+{% endblock %}

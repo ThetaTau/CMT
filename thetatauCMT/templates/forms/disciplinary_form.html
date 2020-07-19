@@ -1,0 +1,56 @@
+{% extends "account/base.html" %}
+{% load i18n %}
+{% load static %}
+{% load crispy_forms_tags %}
+{% load render_table from django_tables2 %}
+
+
+{% block head_title %}{% trans "Disciplinary Form" %}{% endblock %}
+{% block content %}
+  <h1>Disciplinary Form</h1>
+  <p>This form need only be submitted if your chapter is seeking to suspend or
+    expel a member from the Fraternity. If you are seeking other outcomes that
+    do not include expulsion you do not need to notify the Central Office.
+    Consult the Policies & Procedures Manual for specific instructions and rules
+    governing discipline by Chapter.</p>
+  <hr>
+  <form method="POST" enctype="multipart/form-data">
+    {{ form.media }}
+    <link href="{% static 'css/project.css' %}" rel="stylesheet">
+    {% csrf_token %}
+    {{ form|crispy }}
+    {{ activation.management_form }}
+    <button class="primaryAction btn btn-primary" type="submit">{% trans "Submit Form" %}</button>
+  </form>
+  <div id="collection"><p>Please fill out the collection referral form instead.<br>
+  See Collection Referral Form at: <a href="http://thetatau.org/forms-manuals-resources" target="_blank">http://thetatau.org/forms-manuals-resources</a> </p></div>
+  <br>
+  <h3>Previously submitted Disciplinary Forms</h3>
+  <hr>
+    {% render_table table %}
+<script type="text/javascript">
+  $(document).ready(function() {
+    $('#collection').hide();
+    $('select[name="financial"]').on('change', function(){
+        var selected_value = $('select[name="financial"] option:selected').text();
+         if(selected_value==="Yes"){
+           $.each($('div[class="form-group"]'), function(){
+              $(this).hide();
+          });
+           $('#div_id_chapter').show();
+           $('#div_id_role').show();
+           $('#div_id_financial').show();
+           $('#collection').show();
+           $('button[class*="primaryAction"]').hide()
+         }
+         else{
+           $.each($('div[class="form-group"]'), function(){
+              $(this).show();
+          });
+           $('button[class*="primaryAction"]').show()
+           $('#collection').hide();
+         }
+     });
+  });
+  </script>
+{% endblock %}
