@@ -647,7 +647,7 @@ class DisciplinaryProcessFlow(Flow):
     ).Next(this.delay)
 
     delay = flow.Function(
-        lambda t: None,
+        this.placeholder,
         task_loader=lambda flow_task, task: task,
         task_title=_("Wait Until Trial"),
     ).Next(this.email_regent)
@@ -658,7 +658,9 @@ class DisciplinaryProcessFlow(Flow):
 
     submit_form2 = (
         flow.View(DisciplinaryForm2View, task_title=_("Submit Form 2"))
-        .Assign(this.chapter_regent)
+        .Assign(
+            lambda act: act.process.chapter.get_current_officers_council_specific()[0]
+        )
         .Next(this.check_reschedule)
     )
 
@@ -719,7 +721,7 @@ class DisciplinaryProcessFlow(Flow):
     ).Next(this.delay_ec)
 
     delay_ec = flow.Function(
-        lambda t: None,
+        this.placeholder,
         task_loader=lambda flow_task, task: task,
         task_title=_("Wait for Review"),
     ).Next(this.send_ec)
@@ -767,6 +769,12 @@ class DisciplinaryProcessFlow(Flow):
         activation.done()
         return activation
 
+    @method_decorator(flow.flow_func)
+    def placeholder(self, activation, task):
+        activation.prepare()
+        activation.done()
+        return activation
+
     def email_all(self, activation):
         """
         A copy of forms should be sent to all chapter officers, central.office,
@@ -785,10 +793,10 @@ class DisciplinaryProcessFlow(Flow):
             next_step = "Wait for Trial"
             if "Rescheduled" in task_title:
                 complete_step = "Disciplinary Process Rescheduled"
-                state = "Disciplinary Process Rescheduled"
+                state = "Rescheduled"
             else:
                 complete_step = "Disciplinary Process Started"
-                state = "Disciplinary Process Form 1 Submitted"
+                state = "Form 1 Submitted"
             message = "MESSAGE PLACEHOLDER"
             fields = DisciplinaryForm1._meta.fields
             fields.remove("charging_letter")
@@ -796,7 +804,7 @@ class DisciplinaryProcessFlow(Flow):
         elif "Email Form 2 Result" in task_title:
             complete_step = "Trial Complete"
             next_step = "Executive Director Review"
-            state = "Disciplinary Process Form 2 Submitted"
+            state = "Form 2 Submitted"
             message = "MESSAGE PLACEHOLDER"
             fields = DisciplinaryForm2._meta.fields
             fields.remove("minutes")
@@ -835,7 +843,7 @@ class DisciplinaryProcessFlow(Flow):
             )
             complete_step = "Executive Council Review"
             next_step = "Disciplinary Process Complete"
-            state = "Disciplinary Process Complete"
+            state = "Complete"
             message = "MESSAGE PLACEHOLDER"
             attachments = ["final_letter"]
             fields = ["ec_approval", "ec_notes"]
@@ -882,7 +890,7 @@ class DisciplinaryProcessFlow(Flow):
                 f"Please review notes below and fix at: {link}"
             )
         else:
-            fields = DisciplinaryForm1.fields
+            fields = DisciplinaryForm1._meta.fields
             fields.remove("charging_letter")
             complete_step = "Wait for Trial"
             next_step = "Complete Trial Outcome Form"
@@ -897,6 +905,7 @@ class DisciplinaryProcessFlow(Flow):
             next_step=next_step,
             state=state,
             message=message,
+            fields=fields,
             direct_user=self.chapter_regent(activation),
         ).send()
 
@@ -946,3 +955,13 @@ class DisciplinaryProcessFlow(Flow):
                 )
             ],
         )
+
+    @classmethod
+    def start_email_regent(cls, pk):
+        process = DisciplinaryProcess.objects.get(pk=pk)
+        cls.delay.run(process.get_task(cls.delay))
+
+    @classmethod
+    def start_send_ec(cls, pk):
+        process = DisciplinaryProcess.objects.get(pk=pk)
+        cls.delay_ec.run(process.get_task(cls.delay_ec))
