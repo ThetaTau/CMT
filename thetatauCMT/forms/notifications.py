@@ -1,6 +1,7 @@
 from herald import registry
 from herald.base import EmailNotification
 from django.conf import settings
+from django.core.files.base import ContentFile
 from django.forms.models import model_to_dict
 from core.models import current_term, current_year
 from forms.tables import SignTable
@@ -470,3 +471,40 @@ class EmailOSMUpdate(EmailNotification):
         # return [test, test.officer1,
         #         "Outstanding Student Member Form Submission", test.nominate]
         return [test, test.nominate, "Outstanding Student Member Nomination"]
+
+
+@registry.register_decorator()
+class CentralOfficeGenericEmail(EmailNotification):
+    render_types = ["html"]
+    template_name = "central_office"
+
+    def __init__(self, message, attachments=None):
+        self.to_emails = ["central.office@thetatau.org"]
+        self.cc = ["cmt@thetatau.org"]
+        self.reply_to = ["cmt@thetatau.org"]
+        self.subject = f"[CMT] Record Message"
+        file_names = []
+        if attachments:
+            file_names = [file.name for file in attachments]
+        self.context = {
+            "file_names": file_names,
+            "host": settings.CURRENT_URL,
+            "message": message,
+        }
+        # https://github.com/worthwhile/django-herald#email-attachments
+        for file in attachments:
+            file.seek(0)
+            self.attachments = [
+                (file.name, file.read(), None),
+            ]
+
+    @staticmethod
+    def get_demo_args():
+        from forms.flows import render_to_pdf
+
+        info = {"Test": "This is a test"}
+        forms = render_to_pdf(
+            "forms/disciplinary_form_pdf.html", context={"info": info},
+        )
+
+        return ["This is a test message", [ContentFile(forms, name="Testfile.pdf")]]
