@@ -24,21 +24,6 @@
   {% endif %}
 <script type="text/javascript">
   $(document).ready(function() {
-    $.each($('div[class="form-group"]'), function(){
-        $(this).hide();
-    });
-    $('#div_id_chapter').show();
-    $('#div_id_role').show();
-    $('#div_id_why_take').show();
-    $('#div_id_take').show();
-    $('select[name="why_take"]').on('change', function(){
-      var selected_value = $('select[name="why_take"] option:selected').text();
-      if(selected_value==="Rescheduled"){
-        $('#div_id_rescheduled_date').show();
-      } else{
-        $('#div_id_rescheduled_date').hide();
-      }
-    })
     $('select[name="take"]').on('change', function(){
         var selected_value = $('select[name="take"] option:selected').text();
          if(selected_value==="No"){
@@ -64,6 +49,7 @@
            $('#div_id_why_take').hide();
          }
      });
+    $('select[name="take"]').trigger('change');
   });
   </script>
 {% endblock %}
