@@ -1022,6 +1022,25 @@ class DisciplinaryForm1(forms.ModelForm):
 
 
 class DisciplinaryForm2(forms.ModelForm):
+    rescheduled_date = forms.DateField(
+        label="When will the new trial be held?",
+        widget=DatePicker(
+            options={"format": "M/DD/YYYY"}, attrs={"autocomplete": "off"},
+        ),
+    )
+    notify_results_date = forms.DateField(
+        label="On what date was the member notified of the results of the trial?",
+        widget=DatePicker(
+            options={"format": "M/DD/YYYY"}, attrs={"autocomplete": "off"},
+        ),
+    )
+    suspension_end = forms.DateField(
+        label="If suspended, when will this member’s suspension end?",
+        widget=DatePicker(
+            options={"format": "M/DD/YYYY"}, attrs={"autocomplete": "off"},
+        ),
+    )
+
     class Meta:
         model = DisciplinaryProcess
         fields = [

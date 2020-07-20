@@ -2347,7 +2347,9 @@ class DisciplinaryPDFTest(
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["signature"] = "Jim Gaffney Signature"
-        all_fields = DisciplinaryForm1._meta.fields + DisciplinaryForm2._meta.fields
+        all_fields = (
+            DisciplinaryForm1._meta.fields[:] + DisciplinaryForm2._meta.fields[:]
+        )
         all_fields.extend(["ed_process", "ed_notes", "ec_approval", "ec_notes"])
         info = {}
         for field in all_fields:

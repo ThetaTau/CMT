@@ -758,7 +758,7 @@ class DisciplinaryProcessFlow(Flow):
 
     @method_decorator(flow.flow_start_func)
     def restart_flow(self, activation, old_activation, **kwargs):
-        fields = DisciplinaryForm1.fields
+        fields = DisciplinaryForm1._meta.fields[:]
         process = old_activation.process
         for field in fields:
             value = getattr(process, field)
@@ -798,7 +798,7 @@ class DisciplinaryProcessFlow(Flow):
                 complete_step = "Disciplinary Process Started"
                 state = "Form 1 Submitted"
             message = "MESSAGE PLACEHOLDER"
-            fields = DisciplinaryForm1._meta.fields
+            fields = DisciplinaryForm1._meta.fields[:]
             fields.remove("charging_letter")
             attachments = ["charging_letter"]
         elif "Email Form 2 Result" in task_title:
@@ -806,7 +806,7 @@ class DisciplinaryProcessFlow(Flow):
             next_step = "Executive Director Review"
             state = "Form 2 Submitted"
             message = "MESSAGE PLACEHOLDER"
-            fields = DisciplinaryForm2._meta.fields
+            fields = DisciplinaryForm2._meta.fields[:]
             fields.remove("minutes")
             fields.remove("results_letter")
             attachments = ["minutes", "results_letter"]
@@ -875,8 +875,8 @@ class DisciplinaryProcessFlow(Flow):
             kwargs={"process_pk": activation.process.pk, "task_pk": activation.task.pk},
         )
         if "Reject Chapter Fix" in task_title:
-            fields = DisciplinaryForm1._meta.fields
-            fields2 = DisciplinaryForm2._meta.fields
+            fields = DisciplinaryForm1._meta.fields[:]
+            fields2 = DisciplinaryForm2._meta.fields[:]
             fields.extend(fields2)
             fields.extend(["ed_process", "ed_notes"])
             fields.remove("charging_letter")
@@ -890,7 +890,7 @@ class DisciplinaryProcessFlow(Flow):
                 f"Please review notes below and fix at: {link}"
             )
         else:
-            fields = DisciplinaryForm1._meta.fields
+            fields = DisciplinaryForm1._meta.fields[:]
             fields.remove("charging_letter")
             complete_step = "Wait for Trial"
             next_step = "Complete Trial Outcome Form"
@@ -929,7 +929,9 @@ class DisciplinaryProcessFlow(Flow):
         If accepted with no action, generate PDFs of the two forms and email
             to CO for filing, complete workflow.
         """
-        all_fields = DisciplinaryForm1._meta.fields + DisciplinaryForm2._meta.fields
+        all_fields = (
+            DisciplinaryForm1._meta.fields[:] + DisciplinaryForm2._meta.fields[:]
+        )
         all_fields.extend(["ed_process", "ed_notes", "ec_approval", "ec_notes"])
         info = {}
         object = activation.process
