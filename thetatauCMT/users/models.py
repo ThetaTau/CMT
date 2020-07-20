@@ -1,6 +1,7 @@
 import datetime
 from django.contrib.auth.models import AbstractUser, Group
 from django.db import models
+from django.contrib.auth.models import UserManager
 from django.urls import reverse
 from django.conf import settings
 from django.utils import timezone
@@ -24,12 +25,20 @@ from core.models import (
 from chapters.models import Chapter
 
 
+class CustomUserManager(UserManager):
+    def create_superuser(self, email, password, **extra_fields):
+        chapter = Chapter.objects.first()
+        extra_fields.setdefault("chapter", chapter)
+        super().create_superuser(email=email, password=password, **extra_fields)
+
+
 class User(AbstractUser):
     class Meta:
         ordering = [
             "last_name",
         ]
 
+    objects = CustomUserManager()
     # First Name and Last Name do not cover name patterns
     # around the globe.
     name = models.CharField(_("Member Name"), blank=True, max_length=255)
