@@ -1357,7 +1357,7 @@ https://stackoverflow.com/questions/31658996/viewflow-io-implementing-a-queue-ta
         accept = ("accept", "Accept With No Action")
         reject = ("reject", "Reject")
 
-    user = models.OneToOneField(
+    user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         verbose_name="Name of Accused",
         on_delete=models.CASCADE,
@@ -1437,7 +1437,7 @@ https://stackoverflow.com/questions/31658996/viewflow-io-implementing-a-queue-ta
         verbose_punishment, max_length=100, choices=[x.value for x in PUNISHMENT]
     )
     suspension_end = models.DateField(
-        "When will this member’s suspension end?", default=timezone.now,
+        "If suspended, when will this member’s suspension end?", default=timezone.now,
     )
     verbose_punishment_other = (
         "What other punishments, if any, were agreed to by the chapter?"
