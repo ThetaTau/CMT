@@ -349,7 +349,8 @@ class EmailProcessUpdate(EmailNotification):
         if attachments:
             for attachment in attachments:
                 file = getattr(activation.process, attachment)
-                files.append(file)
+                if file.name:
+                    files.append(file)
         file_names = [file.name for file in files]
         self.context = {
             "user": user,
