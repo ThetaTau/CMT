@@ -1058,3 +1058,22 @@ class DisciplinaryForm2(forms.ModelForm):
             "minutes",
             "results_letter",
         ]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for field in self.fields:
+            if field in ["punishment_other", "minutes", "results_letter", "why_take"]:
+                continue
+            self.fields[field].required = True
+
+    def clean(self):
+        cleaned_data = super().clean()
+        take = cleaned_data.get("take")
+        why_take = cleaned_data.get("why_take")
+        minutes = cleaned_data.get("minutes")
+        results_letter = cleaned_data.get("results_letter")
+        if not take and not why_take:
+            raise forms.ValidationError("A reason for not taking place is required")
+        if take and (minutes is None or results_letter is None):
+            raise forms.ValidationError("Both minutes and results letter are required")
+        return cleaned_data

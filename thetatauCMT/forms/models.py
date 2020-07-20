@@ -1410,7 +1410,11 @@ https://stackoverflow.com/questions/31658996/viewflow-io-implementing-a-queue-ta
     take = models.BooleanField(verbose_take, choices=BOOL_CHOICES, default=False)
     verbose_why_take = "Why did the trial not take place?"
     why_take = models.CharField(
-        verbose_why_take, max_length=100, choices=[x.value for x in REASONS]
+        verbose_why_take,
+        max_length=100,
+        blank=True,
+        null=True,
+        choices=[x.value for x in REASONS],
     )
     rescheduled_date = models.DateField(
         "When will the new trial be held?", default=timezone.now,
@@ -1434,7 +1438,10 @@ https://stackoverflow.com/questions/31658996/viewflow-io-implementing-a-queue-ta
     )
     verbose_punishment = "What was the punishment agreed to by the chapter?"
     punishment = models.CharField(
-        verbose_punishment, max_length=100, choices=[x.value for x in PUNISHMENT]
+        verbose_punishment,
+        max_length=100,
+        default="suspended",
+        choices=[x.value for x in PUNISHMENT],
     )
     suspension_end = models.DateField(
         "If suspended, when will this member’s suspension end?", default=timezone.now,
@@ -1442,7 +1449,7 @@ https://stackoverflow.com/questions/31658996/viewflow-io-implementing-a-queue-ta
     verbose_punishment_other = (
         "What other punishments, if any, were agreed to by the chapter?"
     )
-    punishment_other = models.TextField(verbose_punishment_other)
+    punishment_other = models.TextField(verbose_punishment_other, blank=True, null=True)
     verbose_collect_items = (
         "If the member was suspended pending expulsion, did the chapter collect "
         "and receive the member’s badge, shingle and/or other Theta Tau property?"
@@ -1452,11 +1459,15 @@ https://stackoverflow.com/questions/31658996/viewflow-io-implementing-a-queue-ta
     )
     minutes = models.FileField(
         upload_to=get_discipline_upload_path,
+        blank=True,
+        null=True,
         help_text="Please attach a copy of the minutes from the meeting "
         "where the trial was held.",
     )
     results_letter = models.FileField(
         upload_to=get_discipline_upload_path,
+        blank=True,
+        null=True,
         help_text="Please attach a copy of the letter you sent to the member "
         "informing them of the outcome of the trial.",
     )
@@ -1465,7 +1476,7 @@ https://stackoverflow.com/questions/31658996/viewflow-io-implementing-a-queue-ta
     )
     ed_notes = models.TextField("Executive Director Review Notes")
     ec_approval = models.BooleanField(
-        verbose_collect_items,
+        "Executive Council Outcome",
         choices=((True, "Outcome approved by EC"), (False, "Outcome Rejected by EC")),
         default=False,
     )
