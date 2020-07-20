@@ -666,12 +666,11 @@ class DisciplinaryProcessFlow(Flow):
 
     check_reschedule = (
         flow.If(
-            cond=lambda act: act.process.rescheduled_date
-            > datetime.datetime.now().date(),
+            cond=lambda act: act.process.why_take == "rescheduled",
             task_title=_("Reschedule check"),
         )
-        .Then(this.email_form2)
-        .Else(this.reschedule)
+        .Then(this.reschedule)
+        .Else(this.email_form2)
     )
 
     reschedule = flow.Handler(
@@ -764,6 +763,7 @@ class DisciplinaryProcessFlow(Flow):
             value = getattr(process, field)
             setattr(activation.process, field, value)
         activation.process.trial_date = process.rescheduled_date
+        activation.process.chapter = process.chapter
         activation.process.save()
         activation.prepare()
         activation.done()
