@@ -2303,8 +2303,8 @@ class DisciplinaryCreateView(
                         kwargs={"process_pk": process.pk, "task_pk": task.pk},
                     )
             else:
-                status = "Complete"
-                approved = process.approved_exec
+                status = process.task_set.first().flow_task.task_title
+                approved = process.ec_approval
 
             data.append(
                 {
@@ -2326,10 +2326,16 @@ class DisciplinaryForm2View(
     model = DisciplinaryProcess
     form_class = DisciplinaryForm2
 
+    def get_success_url(self):
+        return reverse("viewflow:forms:disciplinaryprocess:start")
+
     def activation_done(self, *args, **kwargs):
         """Finish task activation."""
         self.activation.done()
         self.success("Disciplinary form 2 submitted successfully.")
+
+    def form_valid(self, form, *args, **kwargs):
+        return super().form_valid(form)
 
     def get_context_data(self, *args, **kwargs):
         context = super().get_context_data(**kwargs)
