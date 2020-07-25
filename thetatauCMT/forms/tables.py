@@ -208,11 +208,14 @@ class PrematureAlumnusStatusTable(tables.Table):
 
 
 class DisciplinaryStatusTable(tables.Table):
-    user = tables.Column()
+    user = tables.Column(verbose_name="Name of Accused")
     status = tables.Column()
     approved = tables.Column()
     created = tables.DateColumn()
-    link = tables.TemplateColumn('<a href="{{ record.link }}">Form 2 Link</a>')
+    trial_date = tables.DateColumn()
+    link = tables.TemplateColumn(
+        '{% if record.link %}<a href="{{ record.link }}">Form 2 Link</a>{% endif %}'
+    )
 
     class Meta:
         attrs = {

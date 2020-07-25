@@ -2293,12 +2293,12 @@ class DisciplinaryCreateView(
             chapter=self.request.user.current_chapter
         )
         for process in processes:
-            link = "#"
+            link = False
             if process.finished is None:
                 task = process.active_tasks().first()
                 status = task.flow_task.task_title
                 approved = "Pending"
-                if "Submit Form 2" in status:
+                if "Submit Form 2" in status and task.owner == self.request.user:
                     link = reverse(
                         f"viewflow:forms:disciplinaryprocess:submit_form2",
                         kwargs={"process_pk": process.pk, "task_pk": task.pk},
@@ -2312,6 +2312,7 @@ class DisciplinaryCreateView(
                     "status": status,
                     "user": process.user,
                     "created": process.created,
+                    "trial_date": process.trial_date,
                     "approved": approved,
                     "link": link,
                 }
