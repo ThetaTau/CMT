@@ -26,6 +26,7 @@ from .views import (
     OSMVerifyView,
     DisciplinaryCreateView,
     DisciplinaryForm2View,
+    get_signature,
 )
 from .forms import DisciplinaryForm1, DisciplinaryForm2
 from .notifications import (
@@ -811,9 +812,10 @@ class DisciplinaryProcessFlow(Flow):
             fields.remove("results_letter")
             attachments = ["minutes", "results_letter"]
         elif "Email Outcome Letter" in task_title:
+            image_string = get_signature()
             content = render_to_pdf(
                 "forms/disciplinary_outcome_letter.html",
-                context={"object": activation.process},
+                context={"object": activation.process, "signature": image_string},
             )
             # with open("tests/outcome_letter.pdf", "wb") as f:
             #     f.write(content)
@@ -827,25 +829,22 @@ class DisciplinaryProcessFlow(Flow):
             attachments = ["outcome_letter"]
             fields = ["ed_process", "ed_notes"]
         elif "Email Final Result" in task_title:
+            attachments = []
             if activation.process.ec_approval:
                 # EC approved the expulsion
+                image_string = get_signature()
                 content = render_to_pdf(
                     "forms/disciplinary_expel_letter.html",
-                    context={"object": activation.process},
+                    context={"object": activation.process, "signature": image_string},
                 )
-            else:
-                content = render_to_pdf(
-                    "forms/disciplinary_reject_letter.html",
-                    context={"object": activation.process},
+                activation.process.final_letter.save(
+                    "final_letter.pdf", ContentFile(content), save=True
                 )
-            activation.process.final_letter.save(
-                "final_letter.pdf", ContentFile(content), save=True
-            )
+                attachments = ["final_letter"]
             complete_step = "Executive Council Review"
             next_step = "Disciplinary Process Complete"
             state = "Complete"
             message = "MESSAGE PLACEHOLDER"
-            attachments = ["final_letter"]
             fields = ["ec_approval", "ec_notes"]
         EmailProcessUpdate(
             activation,

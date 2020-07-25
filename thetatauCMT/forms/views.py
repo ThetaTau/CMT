@@ -1,5 +1,6 @@
 import csv
 import json
+import base64
 import datetime
 import zipfile
 from io import BytesIO
@@ -2343,16 +2344,26 @@ class DisciplinaryForm2View(
         return context
 
 
+def get_signature():
+    with open(r"secrets/JimGaffney_signature.jpg", "rb") as file:
+        image = BytesIO(file.read())
+        image_string = "data:image/png;base64," + base64.b64encode(
+            image.getvalue()
+        ).decode("utf-8").replace("\n", "")
+    return image_string
+
+
 class DisciplinaryPDFTest(
     NatOfficerRequiredMixin, PDFTemplateResponseMixin, DetailView, ModelFormMixin
 ):
     model = DisciplinaryProcess
-    template_name = "forms/disciplinary_form_pdf.html"
+    template_name = "forms/disciplinary_expel_letter.html"
     form_class = DisciplinaryForm1
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["signature"] = "Jim Gaffney Signature"
+        image_string = get_signature()
+        context["signature"] = image_string
         all_fields = (
             DisciplinaryForm1._meta.fields[:] + DisciplinaryForm2._meta.fields[:]
         )
