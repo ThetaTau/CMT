@@ -1013,13 +1013,29 @@ class DisciplinaryForm1(forms.ModelForm):
             "charges",
             "resolve",
             "advisor",
+            "advisor_name",
             "faculty",
+            "faculty_name",
             "charges_filed",
             "notify_date",
             "notify_method",
             "trial_date",
             "charging_letter",
         ]
+
+    def clean(self):
+        cleaned_data = super().clean()
+        advisor = cleaned_data.get("advisor")
+        faculty = cleaned_data.get("faculty")
+        advisor_name = cleaned_data.get("advisor_name")
+        faculty_name = cleaned_data.get("faculty_name")
+        if advisor and advisor_name is None:
+            raise forms.ValidationError("Please provide the alumni advisor's name")
+        if faculty and faculty_name is None:
+            raise forms.ValidationError(
+                "Please provide the campus/faculty adviser name"
+            )
+        return cleaned_data
 
 
 class DisciplinaryForm2(forms.ModelForm):

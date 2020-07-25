@@ -1379,10 +1379,16 @@ https://stackoverflow.com/questions/31658996/viewflow-io-implementing-a-queue-ta
         "Was the chapter alumni adviser involved in trying to resolve this problem?"
     )
     advisor = models.BooleanField(verbose_advisor, choices=BOOL_CHOICES, default=False)
+    advisor_name = models.CharField(
+        "If yes, alumni advisor name", max_length=200, blank=True, null=True,
+    )
     verbose_faculty = (
         "Was a campus/faculty adviser involved in trying to resolve this problem?"
     )
     faculty = models.BooleanField(verbose_faculty, choices=BOOL_CHOICES, default=False)
+    faculty_name = models.CharField(
+        "If yes, campus/faculty adviser name", max_length=200, blank=True, null=True,
+    )
     verbose_financial = (
         "Is a simple collections action (for financial delinquency) "
         "better suited as a resolution to this issue?"
