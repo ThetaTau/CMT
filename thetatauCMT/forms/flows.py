@@ -911,10 +911,12 @@ class DisciplinaryProcessFlow(Flow):
     def chapter_regent(self, activation):
         (
             regent,
-            _,
+            vice_regent,
             _,
             _,
         ) = activation.process.chapter.get_current_officers_council_specific()
+        if activation.process.user == regent:
+            regent = vice_regent
         return regent
 
     def reschedule_func(self, activation):
