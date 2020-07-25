@@ -972,6 +972,7 @@ class OSMForm(forms.ModelForm):
 
 class DisciplinaryForm1(forms.ModelForm):
     user = forms.ModelChoiceField(
+        label="Name of Accused",
         queryset=User.objects.all(),
         widget=autocomplete.ModelSelect2(
             url="users:autocomplete",
