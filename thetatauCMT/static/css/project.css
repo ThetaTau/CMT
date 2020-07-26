@@ -137,3 +137,7 @@ a.nav-link:focus, a.nav-link:hover, .dropdown-header,
 .form-control {
   padding: .5rem .25rem;
 }
+
+.invalid-feedback {
+  display: inline;
+}
