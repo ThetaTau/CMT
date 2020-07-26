@@ -671,7 +671,7 @@ class DisciplinaryProcessFlow(Flow):
             task_title=_("Reschedule check"),
         )
         .Then(this.reschedule)
-        .Else(this.email_form2)
+        .Else(this.exec_approve)
     )
 
     reschedule = flow.Handler(
@@ -682,10 +682,6 @@ class DisciplinaryProcessFlow(Flow):
         task_title=_("Rescheduled Disciplinary Process"),
         task_result_summary=_("Disciplinary process rescheduled by the chapter"),
     )
-
-    email_form2 = flow.Handler(
-        this.email_all, task_title=_("Email Form 2 Result"),
-    ).Next(this.exec_approve)
 
     exec_approve = (
         flow.View(
@@ -802,15 +798,6 @@ class DisciplinaryProcessFlow(Flow):
             fields = DisciplinaryForm1._meta.fields[:]
             fields.remove("charging_letter")
             attachments = ["charging_letter"]
-        elif "Email Form 2 Result" in task_title:
-            complete_step = "Trial Complete"
-            next_step = "Executive Director Review"
-            state = "Form 2 Submitted"
-            message = "MESSAGE PLACEHOLDER"
-            fields = DisciplinaryForm2._meta.fields[:]
-            fields.remove("minutes")
-            fields.remove("results_letter")
-            attachments = ["minutes", "results_letter"]
         elif "Email Outcome Letter" in task_title:
             image_string = get_signature()
             content = render_to_pdf(
