@@ -791,10 +791,23 @@ class DisciplinaryProcessFlow(Flow):
             if "Rescheduled" in task_title:
                 complete_step = "Disciplinary Process Rescheduled"
                 state = "Rescheduled"
+                message = (
+                    "This is a notification that the Central Office has been "
+                    "informed that your disciplinary trial has been rescheduled. "
+                    "Please contact the Central Office if you have concerns or "
+                    "questions."
+                )
             else:
                 complete_step = "Disciplinary Process Started"
                 state = "Form 1 Submitted"
-            message = "MESSAGE PLACEHOLDER"
+                message = (
+                    "This is a notification that your chapter has"
+                    " reported a disciplinary proceeding against you."
+                    " Please see below for the details of the charges and "
+                    "proceedings. If you have questions, please email or call "
+                    "the Central Office at central.office@thetatau.org // "
+                    "512-472-1904."
+                )
             fields = DisciplinaryForm1._meta.fields[:]
             fields.remove("charging_letter")
             attachments = ["charging_letter"]
@@ -812,7 +825,24 @@ class DisciplinaryProcessFlow(Flow):
             complete_step = "Executive Director Review"
             next_step = "Wait for Executive Council Review"
             state = "Pending Executive Council Review"
-            message = "MESSAGE PLACEHOLDER"
+            if activation.process.why_take == "waived":
+                message = (
+                    "This if a notification that the Central Office has "
+                    "received word from your Chapter that you waived your right "
+                    "to a trial in the pending disciplinary matter against you. "
+                    "As such, please see the link below for a letter outlining "
+                    "the Chapter’s decision and what will happen next. "
+                    "If you have questions, please email or call the Central "
+                    "Office at central.office@thetatau.org // 512-472-1904."
+                )
+            else:
+                message = (
+                    "This is a notification that a trial was held by your chapter "
+                    "pursuant to the charges that were filed on "
+                    f"{activation.process.trial_date} "
+                    "Please see the attached letter for details on the outcome of "
+                    "that trial and what will happen next."
+                )
             attachments = ["outcome_letter"]
             fields = ["ed_process", "ed_notes"]
         elif "Email Final Result" in task_title:
@@ -831,7 +861,11 @@ class DisciplinaryProcessFlow(Flow):
             complete_step = "Executive Council Review"
             next_step = "Disciplinary Process Complete"
             state = "Complete"
-            message = "MESSAGE PLACEHOLDER"
+            message = (
+                "This is a notification that the Executive Council has reviewed "
+                "your case and the outcome has been finalized.  "
+                "Please click the link below to learn that outcome."
+            )
             fields = ["ec_approval", "ec_notes"]
         EmailProcessUpdate(
             activation,
@@ -872,8 +906,11 @@ class DisciplinaryProcessFlow(Flow):
             next_step = "Executive Director Review"
             state = "Executive Director Rejected"
             message = (
-                "The executive director rejected the form with notes. "
-                f"Please review notes below and fix at: {link}"
+                "Unfortunately, I was unable to accept the outcome of your "
+                f"chapter’s proceedings against {activation.process.user}.  "
+                "The reason is listed at the bottom of this email next to "
+                '"Executive Director Notes."  Please follow this link to '
+                f"correct the issue and resubmit: {link}"
             )
         else:
             fields = DisciplinaryForm1._meta.fields[:]
@@ -882,8 +919,13 @@ class DisciplinaryProcessFlow(Flow):
             next_step = "Complete Trial Outcome Form"
             state = "Pending Trial"
             message = (
-                f"The trial is schedule for today, as soon as the trial is "
-                f"finished please complete the form: {link}"
+                "This is a reminder that, per the form you filed on "
+                f"{activation.process.created}, you are scheduled to have a trial for "
+                f"{activation.process.user} on {activation.process.trial_date}.  "
+                "Please remember to update us on the status "
+                f"of this trial by filling out the form located at: {link}"
+                "If you have questions, please email or call the Central Office "
+                "at central.office@thetatau.org // 512-472-1904."
             )
         EmailProcessUpdate(
             activation,
