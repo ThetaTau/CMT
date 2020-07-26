@@ -471,7 +471,7 @@
 Dear {{ user }},
                             <div id="hijacked"></div>
 <p>This is a notification for update on {{ process_title }} for {{ obj }}</p>
-<p>{{ message }}</p>
+<p>{{ message|safe }}</p>
 {% if file_names %}
   {% for file_name in file_names %}
     <p><strong>Attached is a copy of "{{ file_name }}".</strong></p>

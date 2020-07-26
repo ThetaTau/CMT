@@ -1,4 +1,5 @@
 import datetime
+from django.conf import settings
 from django.core.files.base import ContentFile
 from django.urls import reverse
 from django.utils.decorators import method_decorator
@@ -830,7 +831,7 @@ class DisciplinaryProcessFlow(Flow):
                     "This if a notification that the Central Office has "
                     "received word from your Chapter that you waived your right "
                     "to a trial in the pending disciplinary matter against you. "
-                    "As such, please see the link below for a letter outlining "
+                    "As such, please see the attached document for a letter outlining "
                     "the Chapter’s decision and what will happen next. "
                     "If you have questions, please email or call the Central "
                     "Office at central.office@thetatau.org // 512-472-1904."
@@ -864,7 +865,7 @@ class DisciplinaryProcessFlow(Flow):
             message = (
                 "This is a notification that the Executive Council has reviewed "
                 "your case and the outcome has been finalized.  "
-                "Please click the link below to learn that outcome."
+                "Please see the attached document to learn that outcome."
             )
             fields = ["ec_approval", "ec_notes"]
         EmailProcessUpdate(
@@ -890,10 +891,12 @@ class DisciplinaryProcessFlow(Flow):
         If rejected, form 2 should be reopened so that the chapter can edit it again.
         """
         task_title = activation.flow_task.task_title
+        host = settings.CURRENT_URL
         link = reverse(
             f"viewflow:forms:disciplinaryprocess:submit_form2",
             kwargs={"process_pk": activation.process.pk, "task_pk": activation.task.pk},
         )
+        link = host + link
         if "Reject Chapter Fix" in task_title:
             fields = DisciplinaryForm1._meta.fields[:]
             fields2 = DisciplinaryForm2._meta.fields[:]
@@ -910,7 +913,7 @@ class DisciplinaryProcessFlow(Flow):
                 f"chapter’s proceedings against {activation.process.user}.  "
                 "The reason is listed at the bottom of this email next to "
                 '"Executive Director Notes."  Please follow this link to '
-                f"correct the issue and resubmit: {link}"
+                f"correct the issue and resubmit: <a href='{link}'>Disciplinary Process Form 2</a>"
             )
         else:
             fields = DisciplinaryForm1._meta.fields[:]
@@ -923,8 +926,8 @@ class DisciplinaryProcessFlow(Flow):
                 f"{activation.process.created}, you are scheduled to have a trial for "
                 f"{activation.process.user} on {activation.process.trial_date}.  "
                 "Please remember to update us on the status "
-                f"of this trial by filling out the form located at: {link}"
-                "If you have questions, please email or call the Central Office "
+                f"of this trial by filling out the form located at: <a href='{link}'>Disciplinary Process Form 2</a>"
+                " If you have questions, please email or call the Central Office "
                 "at central.office@thetatau.org // 512-472-1904."
             )
         EmailProcessUpdate(

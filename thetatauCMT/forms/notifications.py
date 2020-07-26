@@ -404,7 +404,7 @@ class EmailProcessUpdate(EmailNotification):
             "Badge/Shingles Order Submitted",
             "Initiation Process Complete",
             "Badges/Shingles Ordered",
-            "A badges and shingles order has been sent to the vendor.",
+            "A badges and shingles order has been sent to the vendor. <a href='http://www.google.com'>Test link</a>",
             [{"members": member_list}, "invoice",],
         ]
 
