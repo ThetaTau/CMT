@@ -24,6 +24,14 @@
   {% endif %}
 <script type="text/javascript">
   $(document).ready(function() {
+    $('select[name="why_take"]').on('change', function(){
+      var selected_value = $('select[name="why_take"] option:selected').text();
+      if(selected_value==="Rescheduled"){
+        $('#div_id_rescheduled_date').show();
+      } else{
+        $('#div_id_rescheduled_date').hide();
+      }
+    })
     $('select[name="take"]').on('change', function(){
         var selected_value = $('select[name="take"] option:selected').text();
          if(selected_value==="No"){
