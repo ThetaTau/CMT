@@ -1422,6 +1422,7 @@ https://stackoverflow.com/questions/31658996/viewflow-io-implementing-a-queue-ta
         null=True,
         choices=[x.value for x in REASONS],
     )
+    send_ec_date = models.DateField(blank=True, null=True)
     rescheduled_date = models.DateField(
         "When will the new trial be held?", default=timezone.now,
     )
@@ -1478,19 +1479,31 @@ https://stackoverflow.com/questions/31658996/viewflow-io-implementing-a-queue-ta
         "informing them of the outcome of the trial.",
     )
     ed_process = models.CharField(
-        "Executive Director Review", max_length=10, choices=[x.value for x in PROCESS],
+        "Executive Director Review",
+        max_length=10,
+        choices=[x.value for x in PROCESS],
+        blank=True,
+        null=True,
     )
-    ed_notes = models.TextField("Executive Director Review Notes")
+    ed_notes = models.TextField(
+        "Executive Director Review Notes", blank=True, null=True
+    )
     ec_approval = models.BooleanField(
         "Executive Council Outcome",
         choices=((True, "Outcome approved by EC"), (False, "Outcome Rejected by EC")),
         default=False,
+        blank=True,
+        null=True,
     )
-    ec_notes = models.TextField("Executive Council Review Notes")
+    ec_notes = models.TextField("Executive Council Review Notes", blank=True, null=True)
     # Letter of outcome of trial
-    outcome_letter = models.FileField(upload_to=get_discipline_upload_path,)
+    outcome_letter = models.FileField(
+        upload_to=get_discipline_upload_path, blank=True, null=True
+    )
     # Letter at the end of whole process
-    final_letter = models.FileField(upload_to=get_discipline_upload_path,)
+    final_letter = models.FileField(
+        upload_to=get_discipline_upload_path, blank=True, null=True
+    )
 
     def get_all_files(self):
         files = []

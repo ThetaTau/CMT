@@ -846,6 +846,9 @@ class DisciplinaryProcessFlow(Flow):
                 )
             attachments = ["outcome_letter"]
             fields = ["ed_process", "ed_notes"]
+            today = datetime.datetime.today()
+            activation.process.send_ec_date = today + datetime.timedelta(days=45)
+            activation.process.save()
         elif "Email Final Result" in task_title:
             attachments = []
             if activation.process.ec_approval:

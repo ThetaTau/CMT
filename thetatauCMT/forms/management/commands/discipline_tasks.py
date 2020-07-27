@@ -44,6 +44,10 @@ class Command(BaseCommand):
                 print("Email regent task")
                 func = DisciplinaryProcessFlow.start_email_regent
             else:  # function_task.flow_task.name == "delay_ec"
+                if function_task.flow_process.send_ec_date > date.date():
+                    # if the send ec date is greater than do not send
+                    print("EC date not yet reached")
+                    continue
                 print("Send to EC task")
                 func = DisciplinaryProcessFlow.start_send_ec
             func(function_task.process.pk)
