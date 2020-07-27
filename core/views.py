@@ -1,4 +1,5 @@
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth.decorators import user_passes_test
 from django.http.request import QueryDict
 from django.urls import reverse
 from django_tables2 import SingleTableView
@@ -21,6 +22,18 @@ from viewflow.frontend.views import (
     DataTableMixin,
     generic,
 )
+
+
+def group_required(*group_names):
+    """Requires user membership in at least one of the groups passed in."""
+
+    def in_groups(u):
+        if u.is_authenticated:
+            if bool(u.groups.filter(name__in=group_names)) | u.is_superuser:
+                return True
+        return False
+
+    return user_passes_test(in_groups)
 
 
 class NatOfficerRequiredMixin(GroupRequiredMixin):

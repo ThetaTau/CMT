@@ -1,7 +1,11 @@
 import csv
 import json
+import base64
 import datetime
+import zipfile
+from io import BytesIO
 from copy import deepcopy
+from pathlib import Path
 from django.db.models import Q
 from django.core.mail import send_mail
 from django.forms import models as model_forms
@@ -17,7 +21,7 @@ from django.urls import reverse
 from django.utils import timezone
 from django.shortcuts import render
 from django import forms
-from django.views.generic import UpdateView
+from django.views.generic import UpdateView, DetailView
 from django.views.generic.edit import FormView, CreateView, ModelFormMixin
 from django.views.decorators.http import require_POST
 from django.views.decorators.csrf import csrf_exempt
@@ -40,6 +44,7 @@ from core.views import (
     RequestConfig,
     PagedFilteredTableView,
     NatOfficerRequiredMixin,
+    group_required,
 )
 from .forms import (
     InitiationFormSet,
@@ -71,6 +76,8 @@ from .forms import (
     CompleteFormHelper,
     ConventionForm,
     OSMForm,
+    DisciplinaryForm1,
+    DisciplinaryForm2,
 )
 from tasks.models import TaskChapter, Task
 from scores.models import ScoreType
@@ -103,6 +110,7 @@ from .tables import (
     SignTable,
     ConventionListTable,
     OSMListTable,
+    DisciplinaryStatusTable,
 )
 from .models import (
     Guard,
@@ -119,6 +127,7 @@ from .models import (
     Convention,
     PledgeProcess,
     OSM,
+    DisciplinaryProcess,
 )
 from .filters import AuditListFilter, PledgeProgramListFilter, CompleteListFilter
 from .notifications import (
@@ -1572,6 +1581,7 @@ class PrematureAlumnusCreateView(
         return context
 
 
+@group_required("natoff")
 @csrf_exempt
 def badge_shingle_init_csv(request, csv_type, process_pk):
     process = InitiationProcess.objects.get(pk=process_pk)
@@ -2000,6 +2010,7 @@ class FilterableFlowViewSet(FlowViewSet):
     process_list_view = [r"^$", FilterProcessListView.as_view(), "index"]
 
 
+@group_required("natoff")
 @csrf_exempt
 def pledge_process_csvs(request, csv_type, process_pk):
     process = PledgeProcess.objects.get(pk=process_pk)
@@ -2253,3 +2264,138 @@ class OSMListView(
         RequestConfig(self.request, paginate={"per_page": 100}).configure(table)
         context["table"] = table
         return context
+
+
+class DisciplinaryCreateView(
+    OfficerRequiredMixin, LoginRequiredMixin, OfficerMixin, CreateProcessView
+):
+    template_name = "forms/disciplinary_form.html"
+    model = DisciplinaryProcess
+    form_class = DisciplinaryForm1
+
+    def get_success_url(self):
+        return reverse("viewflow:forms:disciplinaryprocess:start")
+
+    def activation_done(self, *args, **kwargs):
+        """Finish task activation."""
+        self.activation.done()
+        self.success("Disciplinary form submitted successfully.")
+
+    def form_valid(self, form, *args, **kwargs):
+        chapter = self.request.user.current_chapter
+        form.instance.chapter = chapter
+        return super().form_valid(form)
+
+    def get_context_data(self, *args, **kwargs):
+        context = super().get_context_data(**kwargs)
+        data = []
+        processes = DisciplinaryProcess.objects.filter(
+            chapter=self.request.user.current_chapter
+        )
+        for process in processes:
+            link = False
+            if process.finished is None:
+                task = process.active_tasks().first()
+                status = task.flow_task.task_title
+                approved = "Pending"
+                if "Submit Form 2" in status and task.owner == self.request.user:
+                    link = reverse(
+                        f"viewflow:forms:disciplinaryprocess:submit_form2",
+                        kwargs={"process_pk": process.pk, "task_pk": task.pk},
+                    )
+            else:
+                status = process.task_set.first().flow_task.task_title
+                approved = process.ec_approval
+
+            data.append(
+                {
+                    "status": status,
+                    "user": process.user,
+                    "created": process.created,
+                    "trial_date": process.trial_date,
+                    "approved": approved,
+                    "link": link,
+                }
+            )
+        context["table"] = DisciplinaryStatusTable(data=data)
+        return context
+
+
+class DisciplinaryForm2View(
+    LoginRequiredMixin, OfficerMixin, UpdateProcessView, ModelFormMixin
+):
+    template_name = "forms/disciplinary_form2.html"
+    model = DisciplinaryProcess
+    form_class = DisciplinaryForm2
+
+    def get_success_url(self):
+        return reverse("viewflow:forms:disciplinaryprocess:start")
+
+    def activation_done(self, *args, **kwargs):
+        """Finish task activation."""
+        self.activation.done()
+        self.success("Disciplinary form 2 submitted successfully.")
+
+    def form_valid(self, form, *args, **kwargs):
+        return super().form_valid(form)
+
+    def get_context_data(self, *args, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["date"] = datetime.datetime.today().date()
+        return context
+
+
+def get_signature():
+    with open(r"secrets/JimGaffney_signature.jpg", "rb") as file:
+        image = BytesIO(file.read())
+        image_string = "data:image/png;base64," + base64.b64encode(
+            image.getvalue()
+        ).decode("utf-8").replace("\n", "")
+    return image_string
+
+
+class DisciplinaryPDFTest(
+    NatOfficerRequiredMixin, PDFTemplateResponseMixin, DetailView, ModelFormMixin
+):
+    model = DisciplinaryProcess
+    template_name = "forms/disciplinary_expel_letter.html"
+    form_class = DisciplinaryForm1
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        image_string = get_signature()
+        context["signature"] = image_string
+        all_fields = (
+            DisciplinaryForm1._meta.fields[:] + DisciplinaryForm2._meta.fields[:]
+        )
+        all_fields.extend(["ed_process", "ed_notes", "ec_approval", "ec_notes"])
+        info = {}
+        for field in all_fields:
+            field_obj = self.object._meta.get_field(field)
+            if field == "user":
+                info[field_obj.verbose_name] = self.object.user
+                continue
+            try:
+                info[field_obj.verbose_name] = self.object._get_FIELD_display(field_obj)
+            except TypeError:
+                info[field_obj.verbose_name] = field_obj.value_to_string(self.object)
+        context["info"] = info
+        return context
+
+
+@group_required("natoff")
+@csrf_exempt
+def disciplinary_process_files(request, process_pk):
+    process = DisciplinaryProcess.objects.get(pk=process_pk)
+    zip_filename = f"{process.chapter.slug}_{process.user.user_id}.zip"
+    zip_io = BytesIO()
+    files = process.get_all_files()
+    with zipfile.ZipFile(zip_io, "w") as zf:
+        for file in files:
+            zf.writestr(Path(file.name).name, file.read())
+    response = HttpResponse(
+        zip_io.getvalue(), content_type="application/x-zip-compressed"
+    )
+    response["Cache-Control"] = "no-cache"
+    response["Content-Disposition"] = f"attachment; filename={zip_filename}"
+    return response

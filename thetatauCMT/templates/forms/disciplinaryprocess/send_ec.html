@@ -1,0 +1,19 @@
+{% extends 'viewflow/flow/task.html' %}
+{% load i18n viewflow viewflow_frontend material_form material_frontend %}
+{% block task_form %}
+  <h7>{{ activation.process.chapter }}</h7>
+  {% csrf_token %}
+  {% form form=form %}{% endform %}
+  {{ activation.management_form }}
+  <br>
+{#  TODO: Need to provide point to upload anything provided by the member/chapter#}
+  <button type="button" class="btn btn-primary" id="download">Download All Files</button>
+<script>
+$(function(){
+  $("#download").click(function(event){
+      window.open("{% url 'forms:discipline_download' activation.process.pk %}", '_blank');
+  });
+});
+</script>
+{% endblock %}
+

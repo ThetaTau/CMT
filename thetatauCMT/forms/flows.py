@@ -1,12 +1,23 @@
 import datetime
+from django.conf import settings
+from django.core.files.base import ContentFile
+from django.urls import reverse
 from django.utils.decorators import method_decorator
 from viewflow import flow, frontend
 from viewflow.base import this, Flow
 from viewflow.compat import _
 from viewflow.flow import views as flow_views
+from easy_pdf.rendering import render_to_pdf
 from core.models import forever
 from core.flows import AutoAssignUpdateProcessView, NoAssignView
-from .models import PrematureAlumnus, InitiationProcess, Convention, PledgeProcess, OSM
+from .models import (
+    PrematureAlumnus,
+    InitiationProcess,
+    Convention,
+    PledgeProcess,
+    OSM,
+    DisciplinaryProcess,
+)
 from .views import (
     PrematureAlumnusCreateView,
     ConventionCreateView,
@@ -14,8 +25,17 @@ from .views import (
     FilterableFlowViewSet,
     OSMCreateView,
     OSMVerifyView,
+    DisciplinaryCreateView,
+    DisciplinaryForm2View,
+    get_signature,
 )
-from .notifications import EmailProcessUpdate, EmailConventionUpdate, EmailOSMUpdate
+from .forms import DisciplinaryForm1, DisciplinaryForm2
+from .notifications import (
+    EmailProcessUpdate,
+    EmailConventionUpdate,
+    EmailOSMUpdate,
+    CentralOfficeGenericEmail,
+)
 from users.models import User, UserStatusChange
 
 
@@ -581,3 +601,402 @@ class OSMFlow(Flow):
         EmailOSMUpdate(
             activation, user, "Outstanding Student Member Nomination",
         ).send()
+
+
+@register_factory(viewset_class=FilterableFlowViewSet)
+class DisciplinaryProcessFlow(Flow):
+    """
+    Form 1 - Initial Report of Charges
+        Copy of form result sent to all
+    Form 2 - Trial Report
+        Form automatically emailed to chapter regent on the day of the trial
+            rescheduling the form should ‘snooze’ until the new date
+        Copy of form result sent to all
+    It should generate a workflow item for the ED to process the form,
+    If rejected, form 2 should be reopened so that the chapter can edit it again.
+    If accepted with no action, generate PDFs of the two forms and email to CO for filing, complete workflow.
+    If accepted for processing of expulsion/suspension, a form letter should be generated
+        and it should be emailed to all
+    Form 3 -- Send to EC
+        show up as a task 45 days after the email above is sent and be assigned to ED.
+        It should include a download option for forms 1 & 2 as well as all of the attachments and the form-letter form 2.
+            Once downloaded I should be able to click “sent to EC.”
+    Form 4 -- Outcome of EC
+        This form should be assigned to ED. Option will be “Outcome approved by EC” or “Outcome Rejected by EC”
+    “Rejected” completes workflow.
+    “Approved” should generate a form letter (I’ll email that to you separately) and email it to all.
+    Workflow complete.
+    """
+
+    process_class = DisciplinaryProcess
+    process_title = _("Disciplinary Process")
+    process_description = _("This process is for chapter disciplinary process.")
+
+    restart = flow.StartFunction(
+        this.restart_flow, activation_class=flow.nodes.ManagedStartViewActivation
+    ).Next(this.email_form1_rescheduled)
+
+    email_form1_rescheduled = flow.Handler(
+        this.email_all, task_title=_("Email Form 1 Rescheduled"),
+    ).Next(this.delay)
+
+    start = flow.Start(
+        DisciplinaryCreateView, task_title=_("Submit Disciplinary Form")
+    ).Next(this.email_form1)
+
+    email_form1 = flow.Handler(
+        this.email_all, task_title=_("Email Form 1 Result"),
+    ).Next(this.delay)
+
+    delay = flow.Function(
+        this.placeholder,
+        task_loader=lambda flow_task, task: task,
+        task_title=_("Wait Until Trial"),
+    ).Next(this.email_regent)
+
+    email_regent = flow.Handler(
+        this.email_regent_func, task_title=_("Email Regent Form 2"),
+    ).Next(this.submit_form2)
+
+    submit_form2 = (
+        flow.View(DisciplinaryForm2View, task_title=_("Submit Form 2"))
+        .Assign(
+            lambda act: act.process.chapter.get_current_officers_council_specific()[0]
+        )
+        .Next(this.check_reschedule)
+    )
+
+    check_reschedule = (
+        flow.If(
+            cond=lambda act: act.process.why_take == "rescheduled",
+            task_title=_("Reschedule check"),
+        )
+        .Then(this.reschedule)
+        .Else(this.exec_approve)
+    )
+
+    reschedule = flow.Handler(
+        this.reschedule_func, task_title=_("Reschedule Disciplinary Process"),
+    ).Next(this.end_reschedule)
+
+    end_reschedule = flow.End(
+        task_title=_("Rescheduled Disciplinary Process"),
+        task_result_summary=_("Disciplinary process rescheduled by the chapter"),
+    )
+
+    exec_approve = (
+        flow.View(
+            flow_views.UpdateProcessView,
+            fields=["ed_process", "ed_notes"],
+            task_title=_("Executive Director Review"),
+            task_description=_("Disciplinary Executive Director Review"),
+            task_result_summary=_(
+                "Message was {{ process.approved_exec|yesno:'Approved,Rejected' }}"
+            ),
+        )
+        .Assign(lambda act: User.objects.get(username="Jim.Gaffney@thetatau.org"))
+        .Next(this.check_approve)
+    )
+
+    check_approve = (
+        flow.Switch()
+        .Case(this.reject_fix, cond=lambda act: act.process.ed_process == "reject")
+        .Case(this.accept_done, cond=lambda act: act.process.ed_process == "accept")
+        .Default(this.email_outcome_letter)
+    )
+
+    reject_fix = flow.Handler(
+        this.email_regent_func, task_title=_("Reject Chapter Fix"),
+    ).Next(this.submit_form2)
+
+    accept_done = flow.Handler(
+        this.accept_done_func, task_title=_("Accept File Done"),
+    ).Next(this.end)
+
+    email_outcome_letter = flow.Handler(
+        this.email_all, task_title=_("Email Outcome Letter"),
+    ).Next(this.delay_ec)
+
+    delay_ec = flow.Function(
+        this.placeholder,
+        task_loader=lambda flow_task, task: task,
+        task_title=_("Wait for Review"),
+    ).Next(this.send_ec)
+
+    send_ec = (
+        flow.View(
+            flow_views.UpdateProcessView,
+            task_title=_("Send to EC"),
+            task_description=_("Send to EC for review"),
+        )
+        .Assign(lambda act: User.objects.get(username="Jim.Gaffney@thetatau.org"))
+        .Next(this.ec_review)
+    )
+
+    ec_review = (
+        flow.View(
+            flow_views.UpdateProcessView,
+            fields=["ec_approval", "ec_notes"],
+            task_title=_("Executive Council Review"),
+            task_description=_("Disciplinary Executive Council Review"),
+            task_result_summary=_(
+                "Process was {{ process.ec_approval|yesno:'Outcome approved by EC,Outcome Rejected by EC' }}"
+            ),
+        )
+        .Assign(lambda act: User.objects.get(username="Jim.Gaffney@thetatau.org"))
+        .Next(this.email_final)
+    )
+
+    email_final = flow.Handler(
+        this.email_all, task_title=_("Email Final Result"),
+    ).Next(this.end)
+
+    end = flow.End(task_title=_("Disciplinary Process Complete"),)
+
+    @method_decorator(flow.flow_start_func)
+    def restart_flow(self, activation, old_activation, **kwargs):
+        fields = DisciplinaryForm1._meta.fields[:]
+        process = old_activation.process
+        for field in fields:
+            value = getattr(process, field)
+            setattr(activation.process, field, value)
+        activation.process.trial_date = process.rescheduled_date
+        activation.process.chapter = process.chapter
+        activation.process.save()
+        activation.prepare()
+        activation.done()
+        return activation
+
+    @method_decorator(flow.flow_func)
+    def placeholder(self, activation, task):
+        activation.prepare()
+        activation.done()
+        return activation
+
+    def email_all(self, activation):
+        """
+        A copy of forms should be sent to all chapter officers, central.office,
+            the RD and the ED and riskchair@thetatau.org and accused
+        """
+        task_title = activation.flow_task.task_title
+        complete_step, next_step, state, message, fields, attachments = (
+            "",
+            "",
+            "",
+            "",
+            [],
+            [],
+        )
+        if "Email Form 1" in task_title:
+            next_step = "Wait for Trial"
+            if "Rescheduled" in task_title:
+                complete_step = "Disciplinary Process Rescheduled"
+                state = "Rescheduled"
+                message = (
+                    "This is a notification that the Central Office has been "
+                    "informed that your disciplinary trial has been rescheduled. "
+                    "Please contact the Central Office if you have concerns or "
+                    "questions."
+                )
+            else:
+                complete_step = "Disciplinary Process Started"
+                state = "Form 1 Submitted"
+                message = (
+                    "This is a notification that your chapter has"
+                    " reported a disciplinary proceeding against you."
+                    " Please see below for the details of the charges and "
+                    "proceedings. If you have questions, please email or call "
+                    "the Central Office at central.office@thetatau.org // "
+                    "512-472-1904."
+                )
+            fields = DisciplinaryForm1._meta.fields[:]
+            fields.remove("charging_letter")
+            attachments = ["charging_letter"]
+        elif "Email Outcome Letter" in task_title:
+            image_string = get_signature()
+            content = render_to_pdf(
+                "forms/disciplinary_outcome_letter.html",
+                context={"object": activation.process, "signature": image_string},
+            )
+            # with open("tests/outcome_letter.pdf", "wb") as f:
+            #     f.write(content)
+            activation.process.outcome_letter.save(
+                "outcome_letter.pdf", ContentFile(content), save=True,
+            )
+            complete_step = "Executive Director Review"
+            next_step = "Wait for Executive Council Review"
+            state = "Pending Executive Council Review"
+            if activation.process.why_take == "waived":
+                message = (
+                    "This if a notification that the Central Office has "
+                    "received word from your Chapter that you waived your right "
+                    "to a trial in the pending disciplinary matter against you. "
+                    "As such, please see the attached document for a letter outlining "
+                    "the Chapter’s decision and what will happen next. "
+                    "If you have questions, please email or call the Central "
+                    "Office at central.office@thetatau.org // 512-472-1904."
+                )
+            else:
+                message = (
+                    "This is a notification that a trial was held by your chapter "
+                    "pursuant to the charges that were filed on "
+                    f"{activation.process.trial_date} "
+                    "Please see the attached letter for details on the outcome of "
+                    "that trial and what will happen next."
+                )
+            attachments = ["outcome_letter"]
+            fields = ["ed_process", "ed_notes"]
+        elif "Email Final Result" in task_title:
+            attachments = []
+            if activation.process.ec_approval:
+                # EC approved the expulsion
+                image_string = get_signature()
+                content = render_to_pdf(
+                    "forms/disciplinary_expel_letter.html",
+                    context={"object": activation.process, "signature": image_string},
+                )
+                activation.process.final_letter.save(
+                    "final_letter.pdf", ContentFile(content), save=True
+                )
+                attachments = ["final_letter"]
+            complete_step = "Executive Council Review"
+            next_step = "Disciplinary Process Complete"
+            state = "Complete"
+            message = (
+                "This is a notification that the Executive Council has reviewed "
+                "your case and the outcome has been finalized.  "
+                "Please see the attached document to learn that outcome."
+            )
+            fields = ["ec_approval", "ec_notes"]
+        EmailProcessUpdate(
+            activation,
+            complete_step=complete_step,
+            next_step=next_step,
+            state=state,
+            message=message,
+            fields=fields,
+            attachments=attachments,
+            email_officers=True,
+            extra_emails={
+                activation.process.chapter.region.email,
+                "Jim.Gaffney@thetatau.org",
+                "riskchair@thetatau.org",
+            },
+        ).send()
+
+    def email_regent_func(self, activation):
+        """
+        Form should be automatically emailed to the chapter regent on the day of the trial.
+
+        If rejected, form 2 should be reopened so that the chapter can edit it again.
+        """
+        task_title = activation.flow_task.task_title
+        host = settings.CURRENT_URL
+        link = reverse(
+            f"viewflow:forms:disciplinaryprocess:submit_form2",
+            kwargs={"process_pk": activation.process.pk, "task_pk": activation.task.pk},
+        )
+        link = host + link
+        if "Reject Chapter Fix" in task_title:
+            fields = DisciplinaryForm1._meta.fields[:]
+            fields2 = DisciplinaryForm2._meta.fields[:]
+            fields.extend(fields2)
+            fields.extend(["ed_process", "ed_notes"])
+            fields.remove("charging_letter")
+            fields.remove("minutes")
+            fields.remove("results_letter")
+            complete_step = "Executive Director Review"
+            next_step = "Executive Director Review"
+            state = "Executive Director Rejected"
+            message = (
+                "Unfortunately, I was unable to accept the outcome of your "
+                f"chapter’s proceedings against {activation.process.user}.  "
+                "The reason is listed at the bottom of this email next to "
+                '"Executive Director Notes."  Please follow this link to '
+                f"correct the issue and resubmit: <a href='{link}'>Disciplinary Process Form 2</a>"
+            )
+        else:
+            fields = DisciplinaryForm1._meta.fields[:]
+            fields.remove("charging_letter")
+            complete_step = "Wait for Trial"
+            next_step = "Complete Trial Outcome Form"
+            state = "Pending Trial"
+            message = (
+                "This is a reminder that, per the form you filed on "
+                f"{activation.process.created}, you are scheduled to have a trial for "
+                f"{activation.process.user} on {activation.process.trial_date}.  "
+                "Please remember to update us on the status "
+                f"of this trial by filling out the form located at: <a href='{link}'>Disciplinary Process Form 2</a>"
+                " If you have questions, please email or call the Central Office "
+                "at central.office@thetatau.org // 512-472-1904."
+            )
+        EmailProcessUpdate(
+            activation,
+            complete_step=complete_step,
+            next_step=next_step,
+            state=state,
+            message=message,
+            fields=fields,
+            direct_user=self.chapter_regent(activation),
+        ).send()
+
+    def chapter_regent(self, activation):
+        (
+            regent,
+            vice_regent,
+            _,
+            _,
+        ) = activation.process.chapter.get_current_officers_council_specific()
+        if activation.process.user == regent:
+            regent = vice_regent
+        return regent
+
+    def reschedule_func(self, activation):
+        """
+        rescheduling the form should 'snooze' until the new date
+        """
+        DisciplinaryProcessFlow.restart.run(old_activation=activation)
+
+    def accept_done_func(self, activation):
+        """
+        If accepted with no action, generate PDFs of the two forms and email
+            to CO for filing, complete workflow.
+        """
+        all_fields = (
+            DisciplinaryForm1._meta.fields[:] + DisciplinaryForm2._meta.fields[:]
+        )
+        all_fields.extend(["ed_process", "ed_notes", "ec_approval", "ec_notes"])
+        info = {}
+        object = activation.process
+        for field in all_fields:
+            field_obj = object._meta.get_field(field)
+            if field == "user":
+                info[field_obj.verbose_name] = object.user
+                continue
+            try:
+                info[field_obj.verbose_name] = object._get_FIELD_display(field_obj)
+            except TypeError:
+                info[field_obj.verbose_name] = field_obj.value_to_string(object)
+        forms = render_to_pdf(
+            "forms/disciplinary_form_pdf.html", context={"info": info},
+        )
+        CentralOfficeGenericEmail(
+            message=f"Disciplinary Process complete for {object.user},"
+            f"See attached documents to file.",
+            attachments=[
+                ContentFile(
+                    forms,
+                    name=f"{object.chapter.slug}_{object.user.user_id}_disciplinary_forms.pdf",
+                )
+            ],
+        )
+
+    @classmethod
+    def start_email_regent(cls, pk):
+        process = DisciplinaryProcess.objects.get(pk=pk)
+        cls.delay.run(process.get_task(cls.delay))
+
+    @classmethod
+    def start_send_ec(cls, pk):
+        process = DisciplinaryProcess.objects.get(pk=pk)
+        cls.delay_ec.run(process.get_task(cls.delay_ec))

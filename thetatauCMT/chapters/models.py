@@ -217,6 +217,13 @@ class Chapter(models.Model):
             suffix = "Co"
         return f"{self.greek}0{suffix}"
 
+    @property
+    def full_name(self):
+        suffix = "Chapter"
+        if self.colony:
+            suffix = "Colony"
+        return f"{self.name} {suffix}"
+
     def get_actives_for_date(self, date):
         # Do not annotate, need the queryset not a list
         return self.members.filter(

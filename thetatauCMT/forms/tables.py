@@ -207,6 +207,22 @@ class PrematureAlumnusStatusTable(tables.Table):
         }
 
 
+class DisciplinaryStatusTable(tables.Table):
+    user = tables.Column(verbose_name="Name of Accused")
+    status = tables.Column()
+    approved = tables.Column()
+    created = tables.DateColumn()
+    trial_date = tables.DateColumn()
+    link = tables.TemplateColumn(
+        '{% if record.link %}<a href="{{ record.link }}">Form 2 Link</a>{% endif %}'
+    )
+
+    class Meta:
+        attrs = {
+            "class": "table-striped table-bordered",
+        }
+
+
 class SignTable(tables.Table):
     owner = tables.Column()
     role = tables.Column()

@@ -1,4 +1,5 @@
 from django.conf.urls import url
+from django.views.generic import RedirectView
 from . import views
 
 
@@ -78,6 +79,23 @@ urlpatterns = [
         regex=r"^rmp-list/$",
         view=views.RiskManagementListView.as_view(),
         name="rmp_list",
+    ),
+    url(
+        r"^discipline/$",
+        RedirectView.as_view(
+            pattern_name="viewflow:forms:disciplinaryprocess:start", permanent=True
+        ),
+        name="discipline",
+    ),
+    url(
+        regex=r"^discipline/outcome-pdf/(?P<pk>\d+)/$",
+        view=views.DisciplinaryPDFTest.as_view(),
+        name="discipline_pdftest",
+    ),
+    url(
+        regex=r"^discipline/download_files/(?P<process_pk>\d+)/$",
+        view=views.disciplinary_process_files,
+        name="discipline_download",
     ),
     # url(
     #     regex=r'^~status-change/$',

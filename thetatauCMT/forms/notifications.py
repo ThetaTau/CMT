@@ -1,6 +1,7 @@
 from herald import registry
 from herald.base import EmailNotification
 from django.conf import settings
+from django.core.files.base import ContentFile
 from django.forms.models import model_to_dict
 from core.models import current_term, current_year
 from forms.tables import SignTable
@@ -283,28 +284,46 @@ class EmailProcessUpdate(EmailNotification):
     render_types = ["html"]
     template_name = "process"
 
-    def __init__(self, activation, complete_step, next_step, state, message, fields):
-        if hasattr(activation.process, "user"):
-            user = activation.process.user
-            obj = user
-            emails = set()
-        else:
-            user = activation.process.created_by
-            obj = activation.process.chapter
+    def __init__(
+        self,
+        activation,
+        complete_step,
+        next_step,
+        state,
+        message,
+        fields,
+        email_officers=False,
+        attachments=None,
+        extra_emails=None,
+        direct_user=None,
+    ):
+        emails = set()
+        user = direct_user
+        obj = None
+        if direct_user:
+            obj = direct_user.chapter
+        if direct_user is None:
+            if hasattr(activation.process, "user"):
+                user = activation.process.user
+                obj = user
+            else:
+                user = activation.process.created_by
+                obj = activation.process.chapter
+                email_officers = True
+        if email_officers:
             officers, _ = activation.process.chapter.get_current_officers_council(
                 combine=False
             )
             emails = set([officer.email for officer in officers])
             if user.email in emails:
                 emails.remove(user.email)
-        file = False
-        file_name = None
-        if hasattr(activation.process, "form"):
-            file = activation.process.form
-            file_name = file.name
+        if extra_emails:
+            emails = emails | set(extra_emails)
         process_title = activation.flow_class.process_title
         self.to_emails = {user.email}  # set list of emails to send to
-        self.cc = list({"cmt@thetatau.org", "central.office@thetatau.org"} | emails)
+        self.cc = list(
+            set({"cmt@thetatau.org", "central.office@thetatau.org"} | emails)
+        )
         self.reply_to = [
             "cmt@thetatau.org",
         ]
@@ -314,15 +333,29 @@ class EmailProcessUpdate(EmailNotification):
             if isinstance(field, dict):
                 info.update(field)
                 continue
-            key = activation.process._meta.get_field(field).verbose_name
-            value = getattr(activation.process, field, "")
-            if activation.process._meta.get_field(field).choices:
-                value = activation.process.TYPES.get_value(value)
-            info[key] = value
+            object = activation.process
+            field_obj = object._meta.get_field(field)
+            if field == "user":
+                info[field_obj.verbose_name] = object.user
+                continue
+            try:
+                info[field_obj.verbose_name] = object._get_FIELD_display(field_obj)
+            except TypeError:
+                info[field_obj.verbose_name] = field_obj.value_to_string(object)
+        files = []
+        if hasattr(activation.process, "form"):
+            file = activation.process.form
+            files.append(file)
+        if attachments:
+            for attachment in attachments:
+                file = getattr(activation.process, attachment)
+                if file.name:
+                    files.append(file)
+        file_names = [file.name for file in files]
         self.context = {
             "user": user,
             "obj": obj,
-            "file_name": file_name,
+            "file_names": file_names,
             "complete_step": complete_step,
             "next_step": next_step,
             "info": info,
@@ -332,10 +365,10 @@ class EmailProcessUpdate(EmailNotification):
             "state": state,
         }
         # https://github.com/worthwhile/django-herald#email-attachments
-        if file:
+        for file in files:
             file.seek(0)
             self.attachments = [
-                (file_name, file.read(), None),
+                (file.name, file.read(), None),
             ]
 
     @staticmethod
@@ -371,7 +404,7 @@ class EmailProcessUpdate(EmailNotification):
             "Badge/Shingles Order Submitted",
             "Initiation Process Complete",
             "Badges/Shingles Ordered",
-            "A badges and shingles order has been sent to the vendor.",
+            "A badges and shingles order has been sent to the vendor. <a href='http://www.google.com'>Test link</a>",
             [{"members": member_list}, "invoice",],
         ]
 
@@ -446,3 +479,40 @@ class EmailOSMUpdate(EmailNotification):
         # return [test, test.officer1,
         #         "Outstanding Student Member Form Submission", test.nominate]
         return [test, test.nominate, "Outstanding Student Member Nomination"]
+
+
+@registry.register_decorator()
+class CentralOfficeGenericEmail(EmailNotification):
+    render_types = ["html"]
+    template_name = "central_office"
+
+    def __init__(self, message, attachments=None):
+        self.to_emails = ["central.office@thetatau.org"]
+        self.cc = ["cmt@thetatau.org"]
+        self.reply_to = ["cmt@thetatau.org"]
+        self.subject = f"[CMT] Record Message"
+        file_names = []
+        if attachments:
+            file_names = [file.name for file in attachments]
+        self.context = {
+            "file_names": file_names,
+            "host": settings.CURRENT_URL,
+            "message": message,
+        }
+        # https://github.com/worthwhile/django-herald#email-attachments
+        for file in attachments:
+            file.seek(0)
+            self.attachments = [
+                (file.name, file.read(), None),
+            ]
+
+    @staticmethod
+    def get_demo_args():
+        from forms.flows import render_to_pdf
+
+        info = {"Test": "This is a test"}
+        forms = render_to_pdf(
+            "forms/disciplinary_form_pdf.html", context={"info": info},
+        )
+
+        return ["This is a test message", [ContentFile(forms, name="Testfile.pdf")]]

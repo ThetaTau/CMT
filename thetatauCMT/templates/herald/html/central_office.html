@@ -468,38 +468,14 @@
                         <td valign="top" class="mcnTextContent" style="padding: 0px 18px 9px;text-align: left;mso-table-lspace: 0pt;mso-table-rspace: 0pt;-ms-text-size-adjust: 100%;-webkit-text-size-adjust: 100%;color: #606060;font-family: Helvetica;font-size: 15px;line-height: 150%;">
                             <h2 class="null" style="margin: 0;padding: 0;display: block;font-family: Helvetica;font-size: 30px;font-style: normal;font-weight: bold;line-height: 125%;letter-spacing: -1px;text-align: left;color: #606060 !important;">{{ process_title }} {{ state }}</h2>
                         <br>
-Dear {{ user }},
+Dear Central Office,
                             <div id="hijacked"></div>
-<p>This is a notification for update on {{ process_title }} for {{ obj }}</p>
-<p>{{ message|safe }}</p>
+<p>{{ message }}</p>
 {% if file_names %}
   {% for file_name in file_names %}
     <p><strong>Attached is a copy of "{{ file_name }}".</strong></p>
   {% endfor %}
 {% endif %}
-<table>
-  <tr>
-    <th>Step Complete</th>
-    <td>{{ complete_step }}</td>
-  </tr>
-  <tr>
-    <th>Next Step</th>
-    <td>{{ next_step }}</td>
-  </tr>
-  <tr>
-    <th>&nbsp;</th>
-    <td>&nbsp;</td>
-  </tr>
-  <tr>
-    <th colspan="2"><hr><h3>Process Details</h3></th>
-  </tr>
-  {% for key, value in info.items %}
-    <tr>
-    <th>{{ key|title }}</th>
-    <td>{{ value }}</td>
-    </tr>
-  {% endfor %}
-</table>
 <p>Please review the {% if file_names %}document(s) and {% endif %}above information and reach out with any questions/concerns.</p>
 <p>In H&T,<br>Chapter Management Tool</p>
                         </td>

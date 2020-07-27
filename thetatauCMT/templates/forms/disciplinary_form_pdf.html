@@ -1,0 +1,9 @@
+{% extends "easy_pdf/base.html" %}
+{% load crispy_forms_tags %}
+
+{% load i18n %}
+{% block content %}
+    {% for name, value in info.items %}
+      <li><b>{{ name|title }}:</b> {{ value }}</li>
+    {% endfor %}
+{% endblock %}

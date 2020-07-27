@@ -1,0 +1,62 @@
+{% extends "easy_pdf/base.html" %}
+{% load static i18n %}
+{%block page_header%}
+  {% include "forms/ed_header.html" %}
+{%endblock%}
+{% block content %}
+<div style="font-size:12px">
+<p>
+  {{ object.user }}<br>
+  {{ object.chapter.full_name }}<br>
+  {{ object.user.graduation_year }}</p>
+<p>Sent Via Electronic Mail: {{ object.user.email }}</p>
+<p>{% now "DATE_FORMAT" %}</p>
+<p>Dear Brother {{ object.user.last_name }},</p>
+<p align="justify">
+  We were very sorry to learn that {{ object.chapter.full_name }} held a trial on {{ object.trial_date }} .
+  Further, the jury recommended that the national Fraternity expel you from Theta Tau,
+  or you have in advance of trial date waived your right to defend yourself.
+  This letter is to inform you of your rights in accordance with Theta Tau laws.
+</p>
+
+<p align="justify">
+  To begin, you should understand that your membership in Theta Tau continues
+  until the national Fraternity has acted upon the recommendation for expulsion;
+  however, a member suspended by a chapter has no rights in Theta Tau except that of appeal.
+</p>
+
+<p align="justify">
+  To appeal, you should write the Central Office to explain why you feel the
+  chapter's verdict was improper. Include any appropriate evidence with your letter.
+  This information will be used by the Executive Council in the consideration of your case.
+  In accordance with Theta Tau laws and policies, the Executive Council may
+  expel you after its review of the matter.
+  If no information is forthcoming from you, the Executive Council
+  will act based on the information available so please respond as soon as possible.
+</p>
+<p>
+  The specific charges of which you were found guilty included:
+</p>
+<p align="justify">
+{{ object.charges|linebreaks }}
+</p>
+<p align="justify">
+  At this time, if you have not already done so, you should return to your
+  Chapter your badge, shingle, Pledge  and Membership Manual,
+  and any other Theta Tau insignia. I hope to hear from you very soon, and I am
+  sorry that your experiences in Theta Tau seem to have been less than ideal.
+  Any suggestions which you may provide to help us ensure that membership
+  is valuable for all those initiated into our Fraternity would be greatly appreciated.
+</p>
+<p>Sincerely,</p>
+<img src="{{ signature }}"  alt="James Gaffney Signature" title="James Gaffney Signature" width="200px" height="100px" />
+<p>
+  James Gaffney
+  <br>
+  Executive Director
+</p>
+</div>
+{% endblock %}
+{% block page_foot %}
+  {% include "forms/footer.html" %}
+{% endblock %}

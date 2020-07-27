@@ -40,6 +40,7 @@ from .models import (
     PrematureAlumnus,
     Convention,
     OSM,
+    DisciplinaryProcess,
 )
 
 
@@ -967,3 +968,129 @@ class OSMForm(forms.ModelForm):
             "nominate",
             "selection_process",
         ]
+
+
+class DisciplinaryForm1(forms.ModelForm):
+    user = forms.ModelChoiceField(
+        label="Name of Accused",
+        queryset=User.objects.all(),
+        widget=autocomplete.ModelSelect2(
+            url="users:autocomplete",
+            forward=(
+                forward.Const("true", "chapter"),
+                forward.Const("true", "actives"),
+            ),
+        ),
+    )
+    notify_date = forms.DateField(
+        label="Accused first notified of charges on date",
+        widget=DatePicker(
+            options={"format": "M/DD/YYYY"}, attrs={"autocomplete": "off"},
+        ),
+    )
+    charges_filed = forms.DateField(
+        label="Charges filed by majority vote at a chapter meeting on date",
+        widget=DatePicker(
+            options={"format": "M/DD/YYYY"}, attrs={"autocomplete": "off"},
+        ),
+    )
+    trial_date = forms.DateField(
+        label="Trial scheduled for date",
+        widget=DatePicker(
+            options={"format": "M/DD/YYYY"}, attrs={"autocomplete": "off"},
+        ),
+    )
+    notify_method = forms.MultipleChoiceField(
+        widget=forms.CheckboxSelectMultiple,
+        choices=[x.value for x in DisciplinaryProcess.METHODS],
+    )
+
+    class Meta:
+        model = DisciplinaryProcess
+        fields = [
+            "financial",
+            "user",
+            "charges",
+            "resolve",
+            "advisor",
+            "advisor_name",
+            "faculty",
+            "faculty_name",
+            "charges_filed",
+            "notify_date",
+            "notify_method",
+            "trial_date",
+            "charging_letter",
+        ]
+
+    def clean(self):
+        cleaned_data = super().clean()
+        advisor = cleaned_data.get("advisor")
+        faculty = cleaned_data.get("faculty")
+        advisor_name = cleaned_data.get("advisor_name")
+        faculty_name = cleaned_data.get("faculty_name")
+        if advisor and advisor_name is None:
+            raise forms.ValidationError("Please provide the alumni advisor's name")
+        if faculty and faculty_name is None:
+            raise forms.ValidationError(
+                "Please provide the campus/faculty adviser name"
+            )
+        return cleaned_data
+
+
+class DisciplinaryForm2(forms.ModelForm):
+    rescheduled_date = forms.DateField(
+        label="When will the new trial be held?",
+        widget=DatePicker(
+            options={"format": "M/DD/YYYY"}, attrs={"autocomplete": "off"},
+        ),
+    )
+    notify_results_date = forms.DateField(
+        label="On what date was the member notified of the results of the trial?",
+        widget=DatePicker(
+            options={"format": "M/DD/YYYY"}, attrs={"autocomplete": "off"},
+        ),
+    )
+    suspension_end = forms.DateField(
+        label="If suspended, when will this member’s suspension end?",
+        widget=DatePicker(
+            options={"format": "M/DD/YYYY"}, attrs={"autocomplete": "off"},
+        ),
+    )
+
+    class Meta:
+        model = DisciplinaryProcess
+        fields = [
+            "take",
+            "why_take",
+            "rescheduled_date",
+            "attend",
+            "guilty",
+            "notify_results",
+            "notify_results_date",
+            "punishment",
+            "suspension_end",
+            "punishment_other",
+            "collect_items",
+            "minutes",
+            "results_letter",
+        ]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for field in self.fields:
+            if field in ["punishment_other", "minutes", "results_letter", "why_take"]:
+                continue
+            self.fields[field].required = True
+
+    def clean(self):
+        cleaned_data = super().clean()
+        take = cleaned_data.get("take")
+        why_take = cleaned_data.get("why_take")
+        minutes = cleaned_data.get("minutes")
+        results_letter = cleaned_data.get("results_letter")
+        if not take and not why_take:
+            raise forms.ValidationError("A reason for not taking place is required")
+        if take and (minutes is None or results_letter is None):
+            raise forms.ValidationError("Both minutes and results letter are required")
+        return cleaned_data
