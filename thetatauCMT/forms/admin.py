@@ -14,6 +14,8 @@ from .models import (
     ChapterReport,
     Convention,
     OSM,
+    DisciplinaryProcess,
+    DisciplinaryAttachment,
 )
 from .resources import (
     InitiationResource,
@@ -250,3 +252,41 @@ class OSMAdmin(admin.ModelAdmin):
 
 
 admin.site.register(OSM, OSMAdmin)
+
+
+class DisciplinaryAttachmentInline(admin.TabularInline):
+    model = DisciplinaryAttachment
+    fields = ["file"]
+    show_change_link = True
+
+
+class DisciplinaryProcessAdmin(admin.ModelAdmin):
+    inlines = [DisciplinaryAttachmentInline]
+    raw_id_fields = [
+        "user",
+    ]
+    list_display = (
+        "user",
+        "chapter",
+        "created",
+        "trial_date",
+        "why_take",
+        "ed_process",
+        "ec_approval",
+    )
+    list_filter = [
+        "chapter",
+        "created",
+        "why_take",
+        "ed_process",
+        "ec_approval",
+    ]
+    ordering = [
+        "-created",
+    ]
+    search_fields = [
+        "user__name",
+    ]
+
+
+admin.site.register(DisciplinaryProcess, DisciplinaryProcessAdmin)
