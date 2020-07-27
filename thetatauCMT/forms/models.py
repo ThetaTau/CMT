@@ -10,12 +10,12 @@ from django.contrib.auth.models import Group
 from django.core.validators import MaxValueValidator, RegexValidator
 from django.conf import settings
 from django.utils import timezone
-from django.utils.text import slugify
 from core.models import TimeStampedModel, YearTermModel, validate_year, no_future
 from django.utils.translation import gettext_lazy as _
 from address.models import AddressField
 from multiselectfield import MultiSelectField
 from viewflow.models import Process
+from easy_pdf.rendering import render_to_pdf
 from core.models import (
     forever,
     CHAPTER_ROLES_CHOICES,
@@ -1504,6 +1504,28 @@ https://stackoverflow.com/questions/31658996/viewflow-io-implementing-a-queue-ta
     final_letter = models.FileField(
         upload_to=get_discipline_upload_path, blank=True, null=True
     )
+
+    def forms_pdf(self):
+        from forms.forms import DisciplinaryForm1, DisciplinaryForm2
+
+        all_fields = (
+            DisciplinaryForm1._meta.fields[:] + DisciplinaryForm2._meta.fields[:]
+        )
+        all_fields.extend(["ed_process", "ed_notes", "ec_approval", "ec_notes"])
+        info = {}
+        for field in all_fields:
+            field_obj = self._meta.get_field(field)
+            if field == "user":
+                info[field_obj.verbose_name] = self.user
+                continue
+            try:
+                info[field_obj.verbose_name] = self._get_FIELD_display(field_obj)
+            except TypeError:
+                info[field_obj.verbose_name] = field_obj.value_to_string(self)
+        forms = render_to_pdf(
+            "forms/disciplinary_form_pdf.html", context={"info": info},
+        )
+        return forms
 
     def get_all_files(self):
         files = []

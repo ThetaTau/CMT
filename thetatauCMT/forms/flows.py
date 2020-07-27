@@ -963,24 +963,7 @@ class DisciplinaryProcessFlow(Flow):
         If accepted with no action, generate PDFs of the two forms and email
             to CO for filing, complete workflow.
         """
-        all_fields = (
-            DisciplinaryForm1._meta.fields[:] + DisciplinaryForm2._meta.fields[:]
-        )
-        all_fields.extend(["ed_process", "ed_notes", "ec_approval", "ec_notes"])
-        info = {}
-        object = activation.process
-        for field in all_fields:
-            field_obj = object._meta.get_field(field)
-            if field == "user":
-                info[field_obj.verbose_name] = object.user
-                continue
-            try:
-                info[field_obj.verbose_name] = object._get_FIELD_display(field_obj)
-            except TypeError:
-                info[field_obj.verbose_name] = field_obj.value_to_string(object)
-        forms = render_to_pdf(
-            "forms/disciplinary_form_pdf.html", context={"info": info},
-        )
+        forms = activation.process.forms_pdf()
         CentralOfficeGenericEmail(
             message=f"Disciplinary Process complete for {object.user},"
             f"See attached documents to file.",

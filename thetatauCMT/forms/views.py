@@ -2390,9 +2390,14 @@ def disciplinary_process_files(request, process_pk):
     zip_filename = f"{process.chapter.slug}_{process.user.user_id}.zip"
     zip_io = BytesIO()
     files = process.get_all_files()
+    forms = process.forms_pdf()
     with zipfile.ZipFile(zip_io, "w") as zf:
         for file in files:
             zf.writestr(Path(file.name).name, file.read())
+        zf.writestr(
+            f"{process.chapter.slug}_{process.user.user_id}_disciplinary_forms.pdf",
+            forms,
+        )
     response = HttpResponse(
         zip_io.getvalue(), content_type="application/x-zip-compressed"
     )
