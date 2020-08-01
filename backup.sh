@@ -23,7 +23,7 @@ if ! workon thetatauCMT; then
 fi
 export GNUPGHOME="/home/Venturafranklin/thetatauCMT/secrets"
 export DBBACKUP_STORAGE_LOCATION="/home/Venturafranklin/thetatauCMT/database_backups"
-if ! python manage.py dbbackup --encrypt --noinput --clean; then
+if ! python manage.py dbbackup --encrypt --noinput --clean 2; then
   echo "An error occurred backing up database"
   exit
 fi
