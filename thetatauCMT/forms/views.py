@@ -2011,9 +2011,14 @@ class FilterProcessListView(ProcessListView, FlowListMixin):
                     self.request, self.get_task_url(task), back_link="here"
                 )
                 return mark_safe('<a href="{}">{}</a>'.format(task_url, summary))
-        return "Complete"
+        process_url = self.get_process_url(process)
+        return mark_safe('<a href="{}">Complete</a>'.format(process_url))
 
     current_task.short_description = _("Current Task")
+
+    def get_process_url(self, process, url_type="detail"):
+        namespace = self.request.resolver_match.namespace
+        return reverse("{}:{}".format(namespace, url_type), args=[process.pk])
 
     def get_task_url(self, task, url_type=None):
         namespace = self.request.resolver_match.namespace
