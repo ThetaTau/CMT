@@ -12,6 +12,8 @@ fi
 
 PASSPHRASE=$1
 
+RESTORE_TEST=${2:-true}
+
 source virtualenvwrapper.sh
 
 echo "Backup production to local drive"
@@ -26,21 +28,25 @@ if ! python manage.py dbbackup --encrypt --noinput --clean; then
   exit
 fi
 
-deactivate
+if [ "$RESTORE_TEST" = true ]; then
+  deactivate
 
-echo "Restore test restore to staging"
-if ! workon testCMT; then
-  echo "An error occurred setting testCMT"
-  exit
-fi
-export GNUPGHOME="/home/Venturafranklin/thetatauCMT/secrets"
-export DBBACKUP_STORAGE_LOCATION="/home/Venturafranklin/thetatauCMT/database_backups"
-if ! python manage.py dbrestore --database default --decrypt --noinput --passphrase=$PASSPHRASE; then
-  echo "An error occurred restoring database"
-  exit
-fi
+  echo "Restore test restore to staging"
+  if ! workon testCMT; then
+    echo "An error occurred setting testCMT"
+    exit
+  fi
+  export GNUPGHOME="/home/Venturafranklin/thetatauCMT/secrets"
+  export DBBACKUP_STORAGE_LOCATION="/home/Venturafranklin/thetatauCMT/database_backups"
+  if ! python manage.py dbrestore --database default --decrypt --noinput --passphrase=$PASSPHRASE; then
+    echo "An error occurred restoring database"
+    exit
+  fi
 
-deactivate
+  deactivate
+else
+  echo "Skipping restore test"
+fi
 
 echo "Backup production to Google Cloud"
 if ! workon thetatauCMT; then
