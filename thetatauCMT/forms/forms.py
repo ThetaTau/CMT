@@ -270,6 +270,17 @@ class CSMTForm(forms.ModelForm):
             self.fields["date_end"].required = False
             self.fields["employer"].widget = forms.HiddenInput()
             self.fields["employer"].required = False
+        if reason == "covid":
+            self.fields["miles"].widget.attrs["disabled"] = "true"
+            self.fields["miles"].required = False
+            self.fields["date_end"].widget.attrs["disabled"] = "true"
+            self.fields["date_end"].required = False
+            self.fields["date_start"].widget.attrs["disabled"] = "true"
+            self.fields["date_start"].required = False
+            self.fields["employer"].widget.attrs["disabled"] = "true"
+            self.fields["employer"].required = False
+            self.fields["new_school"].widget = forms.HiddenInput()
+            self.fields["new_school"].required = False
 
     def clean_user(self):
         data = self.cleaned_data["user"]

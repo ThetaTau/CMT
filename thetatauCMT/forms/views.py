@@ -37,7 +37,7 @@ from viewflow.frontend.views import ProcessListView
 from viewflow.flow.views.mixins import FlowListMixin
 from material.frontend import frontend_url
 from core.forms import MultiFormsView
-from core.models import TODAY_START, forever
+from core.models import TODAY_START, forever, semester_encompass_start_end_date
 from core.views import (
     OfficerMixin,
     OfficerRequiredMixin,
@@ -477,6 +477,7 @@ class StatusChangeSelectView(
         selections = {
             "graduate": [],
             "coop": [],
+            "covid": [],
             "military": [],
             "withdraw": [],
             "transfer": [],
@@ -508,11 +509,16 @@ class StatusChangeView(
         actives = self.request.user.current_chapter.actives()
         self.to_graduate = actives.filter(pk__in=status_change["graduate"])
         self.to_coop = actives.filter(pk__in=status_change["coop"])
+        self.to_covid = actives.filter(pk__in=status_change["covid"])
         self.to_military = actives.filter(pk__in=status_change["military"])
         self.to_withdraw = actives.filter(pk__in=status_change["withdraw"])
         self.to_transfer = actives.filter(pk__in=status_change["transfer"])
         self.to_csmt = (
-            self.to_coop | self.to_military | self.to_withdraw | self.to_transfer
+            self.to_coop
+            | self.to_military
+            | self.to_withdraw
+            | self.to_transfer
+            | self.to_covid
         )
 
     def get(self, request, *args, **kwargs):
@@ -537,8 +543,13 @@ class StatusChangeView(
         csmt_formset = kwargs.get("csmt_formset", None)
         if csmt_formset is None:
             csmt_formset = CSMTFormSet(prefix="csmt")
+            next_semester = semester_encompass_start_end_date()[1]
             csmt_formset.initial = (
-                [{"user": user.name, "reason": "coop"} for user in self.to_coop]
+                [
+                    {"user": user.name, "reason": "covid", "date_end": next_semester}
+                    for user in self.to_covid
+                ]
+                + [{"user": user.name, "reason": "coop"} for user in self.to_coop]
                 + [
                     {"user": user.name, "reason": "military"}
                     for user in self.to_military
@@ -569,8 +580,13 @@ class StatusChangeView(
             for user in self.to_graduate
         ]
         csmt_formset = CSMTFormSet(request.POST, request.FILES, prefix="csmt")
+        next_semester = semester_encompass_start_end_date()[1]
         csmt_formset.initial = (
-            [{"user": user.name, "reason": "coop"} for user in self.to_coop]
+            [
+                {"user": user.name, "reason": "covid", "date_end": next_semester}
+                for user in self.to_covid
+            ]
+            + [{"user": user.name, "reason": "coop"} for user in self.to_coop]
             + [{"user": user.name, "reason": "military"} for user in self.to_military]
             + [{"user": user.name, "reason": "withdraw"} for user in self.to_withdraw]
             + [{"user": user.name, "reason": "transfer"} for user in self.to_transfer]
@@ -584,6 +600,9 @@ class StatusChangeView(
             form.save()
             update_list.append(form.instance.user)
         for form in csmt_formset:
+            if form.instance.reason == "covid":
+                # Because the form field is disabled the value will not carry through
+                form.instance.date_end = next_semester
             form.save()
             update_list.append(form.instance.user)
         task = Task.objects.get(name="Member Updates")

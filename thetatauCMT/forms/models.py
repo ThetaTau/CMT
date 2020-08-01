@@ -332,6 +332,10 @@ class StatusChange(TimeStampedModel):
     class REASONS(Enum):
         graduate = ("graduate", "Member is graduating")  # Graduated from school
         coop = ("coop", "Member is going on CoOp or Study abroad")  # Co-Op/Internship
+        covid = (
+            "covid",
+            "Member is leaving for the semester due to COVID-19",
+        )
         military = (
             "military",
             "Member is being deployed",
@@ -433,6 +437,7 @@ class StatusChange(TimeStampedModel):
                     end=forever(),
                 ).save()
         else:
+            # military, coop, covid
             alumnis = self.user.status.filter(status="alumni")
             for alumni in alumnis:
                 alumni.delete()
