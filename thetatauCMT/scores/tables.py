@@ -22,7 +22,7 @@ class ScoreTable(tables.Table):
             "score4",
             "total",
         )
-        attrs = {"class": "table-striped table-bordered"}
+        attrs = {"class": "table table-striped table-bordered"}
         empty_text = "There are no score types matching the search criteria..."
 
     def __init__(self, *args, **kwargs):
@@ -49,5 +49,5 @@ class ChapterScoreTable(tables.Table):
     total = tables.Column()
 
     class Meta:
-        attrs = {"class": "table-striped table-bordered"}
+        attrs = {"class": "table table-striped table-bordered"}
         empty_text = "There are no chapter scores matching the search criteria..."

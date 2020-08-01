@@ -13,7 +13,7 @@ class TransactionTable(tables.Table):
             "paid",
             "total",
         )
-        attrs = {"class": "table-striped table-bordered"}
+        attrs = {"class": "table table-striped table-bordered"}
         empty_text = "There are no transactions matching the search criteria..."
 
 

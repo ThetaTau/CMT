@@ -18,7 +18,7 @@ class UserTable(tables.Table):
             "role",
             "role_end",
         )
-        attrs = {"class": "table-striped table-bordered"}
+        attrs = {"class": "table table-striped table-bordered"}
         empty_text = (
             "There are no members matching the search criteria...\n"
             + "Only officers can view alumni contact information."

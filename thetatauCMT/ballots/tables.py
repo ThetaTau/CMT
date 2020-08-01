@@ -18,7 +18,7 @@ class BallotTable(tables.Table):
             "abstains",
             # 'incomplete',
         )
-        attrs = {"class": "table-striped table-bordered"}
+        attrs = {"class": "table table-striped table-bordered"}
         empty_text = "There are no ballots matching the search criteria..."
 
     def render_voters(self, value):
@@ -32,7 +32,7 @@ class BallotCompleteTable(tables.Table):
     class Meta:
         model = BallotComplete
         fields = ("user_name", "chapter", "region", "motion", "role")
-        attrs = {"class": "table-striped table-bordered"}
+        attrs = {"class": "table table-striped table-bordered"}
         empty_text = "There are no ballots matching the search criteria..."
 
     def render_motion(self, value):
@@ -53,7 +53,7 @@ class BallotUserTable(tables.Table):
             "due_date",
             "motion",
         )
-        attrs = {"class": "table-striped table-bordered"}
+        attrs = {"class": "table table-striped table-bordered"}
         empty_text = "There are no ballots matching the search criteria..."
 
     def render_motion(self, value):

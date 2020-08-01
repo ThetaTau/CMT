@@ -24,7 +24,7 @@ class GuardTable(tables.Table):
             "description",
             "letters",
         )
-        attrs = {"class": "table-striped table-bordered"}
+        attrs = {"class": "table table-striped table-bordered"}
 
 
 class BadgeTable(tables.Table):
@@ -35,7 +35,7 @@ class BadgeTable(tables.Table):
             "cost",
             "description",
         )
-        attrs = {"class": "table-striped table-bordered"}
+        attrs = {"class": "table table-striped table-bordered"}
 
 
 class PledgeFormTable(tables.Table):
@@ -45,7 +45,7 @@ class PledgeFormTable(tables.Table):
     pledge_names = tables.Column()
 
     class Meta:
-        attrs = {"class": "table-striped table-bordered"}
+        attrs = {"class": "table table-striped table-bordered"}
 
 
 class InitiationTable(tables.Table):
@@ -56,7 +56,7 @@ class InitiationTable(tables.Table):
 
     class Meta:
         attrs = {
-            "class": "table-striped table-bordered",
+            "class": "table table-striped table-bordered",
         }
 
 
@@ -68,7 +68,7 @@ class DepledgeTable(tables.Table):
     class Meta:
         model = Depledge
         fields = ("user", "date", "created")
-        attrs = {"class": "table-striped table-bordered"}
+        attrs = {"class": "table table-striped table-bordered"}
 
 
 class StatusChangeTable(tables.Table):
@@ -79,7 +79,7 @@ class StatusChangeTable(tables.Table):
     class Meta:
         model = StatusChange
         fields = ("user", "date_start", "created", "reason", "date_end")
-        attrs = {"class": "table-striped table-bordered"}
+        attrs = {"class": "table table-striped table-bordered"}
 
 
 class AuditTable(tables.Table):
@@ -87,7 +87,7 @@ class AuditTable(tables.Table):
 
     class Meta:
         model = Audit
-        attrs = {"class": "table-striped table-bordered"}
+        attrs = {"class": "table table-striped table-bordered"}
         fields = [
             "user.chapter",
             "user.chapter.region",
@@ -120,7 +120,7 @@ class PledgeProgramTable(tables.Table):
     class Meta:
         model = PledgeProgram
         order_by = "chapter"
-        attrs = {"class": "table-striped table-bordered"}
+        attrs = {"class": "table table-striped table-bordered"}
         fields = [
             "chapter",
             "region",
@@ -142,7 +142,7 @@ class ChapterReportTable(tables.Table):
     class Meta:
         model = ChapterReport
         order_by = "chapter"
-        attrs = {"class": "table-striped table-bordered"}
+        attrs = {"class": "table table-striped table-bordered"}
         fields = [
             "chapter",
             "region",
@@ -187,7 +187,7 @@ class RiskFormTable(tables.Table):
 
     class Meta:
         attrs = {
-            "class": "table-striped table-bordered",
+            "class": "table table-striped table-bordered",
             "td": {"align": "center"},
             "td": {"complete": lambda value: get_value_from_a(value)},
             "th": {"class": "text-center"},
@@ -203,7 +203,7 @@ class PrematureAlumnusStatusTable(tables.Table):
 
     class Meta:
         attrs = {
-            "class": "table-striped table-bordered",
+            "class": "table table-striped table-bordered",
         }
 
 
@@ -219,7 +219,7 @@ class DisciplinaryStatusTable(tables.Table):
 
     class Meta:
         attrs = {
-            "class": "table-striped table-bordered",
+            "class": "table table-striped table-bordered",
         }
 
 
@@ -232,7 +232,7 @@ class SignTable(tables.Table):
 
     class Meta:
         attrs = {
-            "class": "table-striped table-bordered",
+            "class": "table table-striped table-bordered",
         }
 
 
@@ -240,7 +240,7 @@ class ConventionListTable(tables.Table):
     class Meta:
         model = ChapterReport
         order_by = "chapter"
-        attrs = {"class": "table-striped table-bordered"}
+        attrs = {"class": "table table-striped table-bordered"}
         fields = [
             "chapter",
             "region",
@@ -255,7 +255,7 @@ class OSMListTable(tables.Table):
     class Meta:
         model = OSM
         order_by = "chapter"
-        attrs = {"class": "table-striped table-bordered"}
+        attrs = {"class": "table table-striped table-bordered"}
         fields = [
             "chapter",
             "region",

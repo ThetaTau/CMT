@@ -22,5 +22,5 @@ class EventTable(tables.Table):
             "host",
             "miles",
         )
-        attrs = {"class": "table-striped table-bordered"}
+        attrs = {"class": "table table-striped table-bordered"}
         empty_text = "There are no events matching the search criteria..."

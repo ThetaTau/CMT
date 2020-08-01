@@ -7,7 +7,7 @@ class ChapterCurriculaTable(tables.Table):
     class Meta:
         model = ChapterCurricula
         fields = ("major",)
-        attrs = {"class": "table-striped table-bordered"}
+        attrs = {"class": "table table-striped table-bordered"}
         empty_text = "There are no curricula matching the search criteria..."
 
 
@@ -53,7 +53,7 @@ class AuditTable(tables.Table):
 
     class Meta:
         attrs = {
-            "class": "table-striped table-bordered",
+            "class": "table table-striped table-bordered",
             "td": {"align": "center"},
             "th": {"class": "text-center"},
         }

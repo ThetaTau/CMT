@@ -27,7 +27,7 @@ class TaskTable(tables.Table):
             "task.description",
             "complete_result",
         )
-        attrs = {"class": "table-striped table-bordered"}
+        attrs = {"class": "table table-striped table-bordered"}
         empty_text = "There are no tasks matching the search criteria..."
 
 
@@ -41,7 +41,7 @@ class TaskIncompleteTable(tables.Table):
     class Meta:
         model = TaskDate
         fields = ("task_name", "date", "task.owner", "task.description", "form")
-        attrs = {"class": "table-striped table-bordered"}
+        attrs = {"class": "table table-striped table-bordered"}
         empty_text = "There are no tasks matching the search criteria..."
 
     def render_form(self, record):
