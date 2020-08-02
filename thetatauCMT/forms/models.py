@@ -779,7 +779,11 @@ class Pledge(TimeStampedModel):
 
 
 def get_premature_alumn_upload_path(instance, filename):
-    return os.path.join("submissions", "prealumn", f"TEST_TEST_{filename}")
+    return os.path.join(
+        "submissions",
+        "prealumn",
+        f"{instance.user.chapter.slug}_{instance.user.user_id}_{filename}",
+    )
 
 
 class PrematureAlumnus(Process):
