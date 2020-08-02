@@ -2444,27 +2444,32 @@ class CollectionReferralFormView(
     }
     grouped_forms = {"collection_referral": ["collection", "user"]}
     collection_form = None
+    emailed = False
 
     def get_success_url(self, form_name=None):
-        EmailProcessUpdate(
-            self.collection_form.instance,
-            "Referral Submitted",
-            "Central Office Processing",
-            "Submitted",
-            "This is a notification that your chapter has"
-            " referred you to collections."
-            " Please see below for the details of the referral and"
-            " attached ledger sheet. If you have questions, please email or call"
-            " the Central Office at central.office@thetatau.org //"
-            " 512-472-1904.",
-            process_title="Collection Referral",
-            email_officers=True,
-            fields=["balance_due", "created"],
-            attachments=["ledger_sheet"],
-        ).send()
-        messages.add_message(
-            self.request, messages.INFO, "Successfully submitted collection referral",
-        )
+        if not self.emailed:
+            EmailProcessUpdate(
+                self.collection_form.instance,
+                "Referral Submitted",
+                "Central Office Processing",
+                "Submitted",
+                "This is a notification that your chapter has"
+                " referred you to collections."
+                " Please see below for the details of the referral and"
+                " attached ledger sheet. If you have questions, please email or call"
+                " the Central Office at central.office@thetatau.org //"
+                " 512-472-1904.",
+                process_title="Collection Referral",
+                email_officers=True,
+                fields=["balance_due", "created"],
+                attachments=["ledger_sheet"],
+            ).send()
+            messages.add_message(
+                self.request,
+                messages.INFO,
+                "Successfully submitted collection referral",
+            )
+        self.emailed = True
         return reverse("forms:collection")
 
     def collection_form_valid(self, form, *args, **kwargs):
