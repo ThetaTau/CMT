@@ -2442,47 +2442,52 @@ class CollectionReferralFormView(
         "collection": CollectionReferralForm,
         "user": UserForm,
     }
-    grouped_forms = {"collection_referral": ["collection", "user"]}
-    collection_form = None
-    emailed = False
+    grouped_forms = {"collection_referral": ["user", "collection"]}
 
-    def get_success_url(self, form_name=None):
-        if not self.emailed:
-            EmailProcessUpdate(
-                self.collection_form.instance,
-                "Referral Submitted",
-                "Central Office Processing",
-                "Submitted",
-                "This is a notification that your chapter has"
-                " referred you to collections."
-                " Please see below for the details of the referral and"
-                " attached ledger sheet. If you have questions, please email or call"
-                " the Central Office at central.office@thetatau.org //"
-                " 512-472-1904.",
-                process_title="Collection Referral",
-                email_officers=True,
-                fields=["balance_due", "created"],
-                attachments=["ledger_sheet"],
-            ).send()
-            messages.add_message(
-                self.request,
-                messages.INFO,
-                "Successfully submitted collection referral",
-            )
-        self.emailed = True
+    def get_success_url(self, form):
+        user = User.objects.get(pk=form.instance.user.pk)
+        extra_emails = []
+        if user.email != form.instance.user.email:
+            extra_emails = [user.email]
+        EmailProcessUpdate(
+            form.instance,
+            "Referral Submitted",
+            "Central Office Processing",
+            "Submitted",
+            "This is a notification that your chapter has"
+            " referred you to collections."
+            " Please see below for the details of the referral and"
+            " attached ledger sheet. If you have questions, please email or call"
+            " the Central Office at central.office@thetatau.org //"
+            " 512-472-1904.",
+            process_title="Collection Referral",
+            email_officers=True,
+            fields=[
+                "balance_due",
+                "created",
+                {"Member Chapter": user.chapter},
+                {"Member Roll Number": user.clean_user_id},
+                {"Member Email": user.email},
+                {"Member Phone": user.phone_number},
+                {"Member Address": user.address},
+            ],
+            attachments=["ledger_sheet"],
+            extra_emails=extra_emails,
+        ).send()
+        messages.add_message(
+            self.request, messages.INFO, "Successfully submitted collection referral",
+        )
         return reverse("forms:collection")
 
     def collection_form_valid(self, form, *args, **kwargs):
         if form.has_changed():
             form.instance.created_by = self.request.user
             form.save()
-            self.collection_form = form
-        return HttpResponseRedirect(self.get_success_url())
+        return HttpResponseRedirect(self.get_success_url(form=form))
 
     def user_form_valid(self, form, *args, **kwargs):
         if form.has_changed():
             form.save()
-        return HttpResponseRedirect(self.get_success_url())
 
     def get_user_kwargs(self):
         kwargs = {"verify": True}
