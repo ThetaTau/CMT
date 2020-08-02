@@ -1573,8 +1573,6 @@ class CollectionReferral(TimeStampedModel):
         on_delete=models.CASCADE,
         related_name="collection",
     )
-    created_by = models.OneToOneField(
-        settings.AUTH_USER_MODEL, on_delete=models.CASCADE
-    )
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     balance_due = MoneyField(max_digits=19, decimal_places=4, default_currency="USD")
     ledger_sheet = models.FileField(upload_to=get_discipline_upload_path)
