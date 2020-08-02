@@ -23,7 +23,7 @@
     <button class="primaryAction btn btn-primary" type="submit">{% trans "Submit Form" %}</button>
   </form>
   <div id="collection"><p>Please fill out the collection referral form instead.<br>
-  See Collection Referral Form at: <a href="http://thetatau.org/forms-manuals-resources" target="_blank">http://thetatau.org/forms-manuals-resources</a> </p></div>
+  See Collection Referral Form at: <a href="{% url 'forms:collection' %}">{% trans "Collection Referral" %}</a> </p></div>
   <br>
   <h3>Previously submitted Disciplinary Forms</h3>
   <p>Only the regent (or the vice regent if the regent is the accused) can submit the disciplinary process form 2.
