@@ -7,6 +7,7 @@ from django.http.response import HttpResponseRedirect
 from django.http import HttpResponse
 from django.urls import reverse
 from django.forms.models import modelformset_factory
+from django.shortcuts import render
 from django.utils.http import is_safe_url
 from django.contrib import messages
 from django.views.generic import RedirectView, FormView
@@ -19,6 +20,7 @@ from core.views import (
     OfficerMixin,
     NatOfficerRequiredMixin,
     OfficerRequiredMixin,
+    group_required,
 )
 from core.forms import MultiFormsView
 from core.models import (
@@ -56,6 +58,14 @@ class UserRedirectView(LoginRequiredMixin, RedirectView):
 
     def get_redirect_url(self):
         return reverse("users:detail")
+
+
+@group_required(["officer", "natoff"])
+def user_verify(request):
+    user_id = request.GET.get("user_pk")
+    user = User.objects.get(pk=user_id)
+    form = UserForm(instance=user, verify=True)
+    return render(request, "users/user_verify_form.html", {"form": form})
 
 
 class UserDetailUpdateView(LoginRequiredMixin, OfficerMixin, MultiFormsView):

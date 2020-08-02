@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% load static %}
+{% load crispy_forms_tags %}
+{% load render_table from django_tables2 %}
+{% block title %}Collection Referral Form{% endblock %}
+{% block content %}
+  <h1>Collection Referral Form</h1>
+  <p>
+    This method of collection should be pursued in a timely way before one becomes
+    an alumnus, before any Fraternity disciplinary process (trial) is implemented,
+    and as part of a on-going, comprehensive financial management/collection effort.
+  </p>
+  <p>
+    Submit this completed form, copy of the member's "ledger sheet" which shows
+    his credit history with the chapter, date of last debit, date of last payment,
+    and balance due. (See Chapter Officer's Manual, Figure 2-2, for example.)
+  </p>
+  <p>
+  Your chapter will be charged $20 for each member referred for collection.
+  </p>
+  <form class="collection_referral" enctype="multipart/form-data" method="POST">
+    {% csrf_token %}
+      {{ forms.collection.media }}
+      {{ forms.collection.management_form|crispy }}
+    <link href="{% static 'css/project.css' %}" rel="stylesheet">
+      {{ forms.collection|crispy }}
+    <div id="user_verify">
+      {% include "users/user_verify_form.html" with form=forms.user %}
+    </div>
+    <div class="control-group">
+      <div class="controls">
+        <button class="btn btn-primary" name='action' value='collection_referral' type="submit">Submit</button>
+      </div>
+    </div>
+  </form>
+  <hr>
+  <h2>Previously submitted collection referral forms:</h2>
+  All forms below have been submitted to the central office but may not have yet been processed.<br>
+  {% render_table collections_table %}
+<script type="text/javascript">
+$("#id_user").change(function () {
+  const url = "{% url 'users:user_verify' %}";
+  let user_pk = $(this).val();
+  $.ajax({
+        url: url,
+        data: {
+          'user_pk': user_pk
+        },
+        success: function (data) {
+          $("#user_verify").html(data);
+        }
+     });
+    });
+</script>
+{% endblock content %}

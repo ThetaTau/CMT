@@ -1,0 +1,6 @@
+{% load static %}
+{% load crispy_forms_tags %}
+{{ form.media }}
+{{ form.management_form|crispy }}
+<link href="{% static 'css/project.css' %}" rel="stylesheet">
+{{ form|crispy }}

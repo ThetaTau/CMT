@@ -141,7 +141,16 @@ class UserForm(forms.ModelForm):
 
     class Meta:
         model = User
-        fields = ["major", "graduation_year", "phone_number", "address"]
+        fields = ["major", "graduation_year", "phone_number", "address", "email"]
+
+    def __init__(self, *args, **kwargs):
+        verify = kwargs.pop("verify", False)
+        super().__init__(*args, **kwargs)
+        if verify:
+            self.fields["major"].widget = forms.HiddenInput()
+            self.fields["graduation_year"].widget = forms.HiddenInput()
+        else:
+            self.fields["email"].widget = forms.HiddenInput()
 
 
 class UserGPAForm(forms.Form):

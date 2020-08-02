@@ -10,6 +10,7 @@ from django.contrib.auth.models import Group
 from django.core.validators import MaxValueValidator, RegexValidator
 from django.conf import settings
 from django.utils import timezone
+from djmoney.models.fields import MoneyField
 from core.models import TimeStampedModel, YearTermModel, validate_year, no_future
 from django.utils.translation import gettext_lazy as _
 from address.models import AddressField
@@ -1322,11 +1323,15 @@ class OSM(Process, YearTermModel):
 def get_discipline_upload_path(instance, filename):
     if hasattr(instance, "attachment"):
         instance = instance.process
+    if not hasattr(instance, "chapter"):
+        chapter = instance.user.chapter
+    else:
+        chapter = instance.chapter
     return os.path.join(
         "discipline",
-        f"{instance.chapter.slug}",
+        f"{chapter.slug}",
         f"{instance.user.user_id}",
-        f"{instance.chapter.slug}_{instance.user.user_id}_{filename}",
+        f"{chapter.slug}_{instance.user.user_id}_{filename}",
     )
 
 
@@ -1559,3 +1564,17 @@ class DisciplinaryAttachment(models.Model):
     process = models.ForeignKey(
         DisciplinaryProcess, on_delete=models.CASCADE, related_name="attachments"
     )
+
+
+class CollectionReferral(TimeStampedModel):
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        verbose_name="Indebted Member",
+        on_delete=models.CASCADE,
+        related_name="collection",
+    )
+    created_by = models.OneToOneField(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE
+    )
+    balance_due = MoneyField(max_digits=19, decimal_places=4, default_currency="USD")
+    ledger_sheet = models.FileField(upload_to=get_discipline_upload_path)

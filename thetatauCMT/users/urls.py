@@ -13,6 +13,7 @@ urlpatterns = [
     url(regex=r"^redirect/$", view=views.UserRedirectView.as_view(), name="redirect"),
     url(regex=r"^myinfo/$", view=views.UserDetailUpdateView.as_view(), name="detail"),
     url(regex=r"^lookup/$", view=views.UserLookupView.as_view(), name="lookup"),
+    url(regex=r"^verify-form/$", view=views.user_verify, name="user_verify"),
     url(
         regex=r"^autocomplete/$",
         view=views.UserAutocomplete.as_view(),

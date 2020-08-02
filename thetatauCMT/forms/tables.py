@@ -4,14 +4,13 @@ from django.utils.html import mark_safe
 from .models import (
     Guard,
     Badge,
-    Initiation,
     Depledge,
     StatusChange,
-    PledgeForm,
     Audit,
     PledgeProgram,
     ChapterReport,
     OSM,
+    CollectionReferral,
 )
 
 
@@ -263,3 +262,13 @@ class OSMListTable(tables.Table):
             "term",
             "nominate",
         ]
+
+
+class CollectionReferralTable(tables.Table):
+    user = tables.Column(verbose_name="Indebted Member", accessor="user.name")
+    created = tables.DateColumn(verbose_name="Submitted")
+
+    class Meta:
+        model = CollectionReferral
+        fields = ("user", "created")
+        attrs = {"class": "table table-striped table-bordered"}

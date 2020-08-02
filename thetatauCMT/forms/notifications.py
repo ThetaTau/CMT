@@ -286,12 +286,14 @@ class EmailProcessUpdate(EmailNotification):
 
     def __init__(
         self,
-        activation,
+        model_obj,
         complete_step,
         next_step,
         state,
         message,
         fields,
+        *,  # This requires all following parameters to be keyword args
+        process_title="Process Update",
         email_officers=False,
         attachments=None,
         extra_emails=None,
@@ -300,26 +302,30 @@ class EmailProcessUpdate(EmailNotification):
         emails = set()
         user = direct_user
         obj = None
+        if hasattr(model_obj, "process"):
+            process_title = model_obj.flow_class.process_title
+            model_obj = model_obj.process
+        if hasattr(model_obj, "chapter"):
+            chapter = model_obj.chapter
+        else:
+            chapter = model_obj.user.chapter
         if direct_user:
             obj = direct_user.chapter
         if direct_user is None:
-            if hasattr(activation.process, "user"):
-                user = activation.process.user
+            if hasattr(model_obj, "user"):
+                user = model_obj.user
                 obj = user
             else:
-                user = activation.process.created_by
-                obj = activation.process.chapter
+                user = model_obj.created_by
+                obj = chapter
                 email_officers = True
         if email_officers:
-            officers, _ = activation.process.chapter.get_current_officers_council(
-                combine=False
-            )
+            officers, _ = chapter.get_current_officers_council(combine=False)
             emails = set([officer.email for officer in officers])
             if user.email in emails:
                 emails.remove(user.email)
         if extra_emails:
             emails = emails | set(extra_emails)
-        process_title = activation.flow_class.process_title
         self.to_emails = {user.email}  # set list of emails to send to
         self.cc = list(
             set({"cmt@thetatau.org", "central.office@thetatau.org"} | emails)
@@ -333,22 +339,21 @@ class EmailProcessUpdate(EmailNotification):
             if isinstance(field, dict):
                 info.update(field)
                 continue
-            object = activation.process
-            field_obj = object._meta.get_field(field)
+            field_obj = model_obj._meta.get_field(field)
             if field == "user":
-                info[field_obj.verbose_name] = object.user
+                info[field_obj.verbose_name] = model_obj.user
                 continue
             try:
-                info[field_obj.verbose_name] = object._get_FIELD_display(field_obj)
+                info[field_obj.verbose_name] = model_obj._get_FIELD_display(field_obj)
             except TypeError:
-                info[field_obj.verbose_name] = field_obj.value_to_string(object)
+                info[field_obj.verbose_name] = field_obj.value_to_string(model_obj)
         files = []
-        if hasattr(activation.process, "form"):
-            file = activation.process.form
+        if hasattr(model_obj, "form"):
+            file = model_obj.form
             files.append(file)
         if attachments:
             for attachment in attachments:
-                file = getattr(activation.process, attachment)
+                file = getattr(model_obj, attachment)
                 if file.name:
                     files.append(file)
         file_names = [file.name for file in files]

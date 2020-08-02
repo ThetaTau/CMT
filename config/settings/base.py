@@ -396,3 +396,6 @@ else:
         bucket_name="theta-tau-database",
         max_memory_size=100 * 1024 * 1024,  # Set 100 MB blob size,
     )
+
+USE_DJANGO_JQUERY = False
+JQUERY_URL = False

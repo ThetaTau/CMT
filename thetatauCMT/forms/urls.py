@@ -97,6 +97,11 @@ urlpatterns = [
         view=views.disciplinary_process_files,
         name="discipline_download",
     ),
+    url(
+        regex=r"^collection/$",
+        view=views.CollectionReferralFormView.as_view(),
+        name="collection",
+    ),
     # url(
     #     regex=r'^~status-change/$',
     #     view=views.StatusChangeView.as_view(),

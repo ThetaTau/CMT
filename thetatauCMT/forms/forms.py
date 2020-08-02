@@ -19,10 +19,10 @@ from crispy_forms.layout import (
     HTML,
 )
 from dal import autocomplete, forward
+from djmoney.forms.fields import MoneyField
 from django import forms
 from django.utils import timezone
 from tempus_dominus.widgets import DatePicker
-
 from chapters.forms import ChapterForm
 from chapters.models import Chapter, ChapterCurricula
 from core.models import CHAPTER_ROLES_CHOICES, NAT_OFFICERS_CHOICES
@@ -41,6 +41,7 @@ from .models import (
     Convention,
     OSM,
     DisciplinaryProcess,
+    CollectionReferral,
 )
 
 
@@ -1105,3 +1106,28 @@ class DisciplinaryForm2(forms.ModelForm):
         if take and (minutes is None or results_letter is None):
             raise forms.ValidationError("Both minutes and results letter are required")
         return cleaned_data
+
+
+class CollectionReferralForm(forms.ModelForm):
+    user = forms.ModelChoiceField(
+        label="Indebted Member",
+        queryset=User.objects.all(),
+        widget=autocomplete.ModelSelect2(
+            url="users:autocomplete",
+            forward=(
+                forward.Const("true", "chapter"),
+                forward.Const("true", "actives"),
+            ),
+        ),
+    )
+    balance_due = MoneyField(
+        currency_widget=forms.HiddenInput(), default_currency="USD"
+    )
+
+    class Meta:
+        model = CollectionReferral
+        fields = [
+            "user",
+            "balance_due",
+            "ledger_sheet",
+        ]

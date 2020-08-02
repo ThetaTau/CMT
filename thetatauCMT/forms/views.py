@@ -78,6 +78,7 @@ from .forms import (
     OSMForm,
     DisciplinaryForm1,
     DisciplinaryForm2,
+    CollectionReferralForm,
 )
 from tasks.models import TaskChapter, Task
 from scores.models import ScoreType
@@ -111,6 +112,7 @@ from .tables import (
     ConventionListTable,
     OSMListTable,
     DisciplinaryStatusTable,
+    CollectionReferralTable,
 )
 from .models import (
     Guard,
@@ -128,6 +130,7 @@ from .models import (
     PledgeProcess,
     OSM,
     DisciplinaryProcess,
+    CollectionReferral,
 )
 from .filters import AuditListFilter, PledgeProgramListFilter, CompleteListFilter
 from .notifications import (
@@ -138,6 +141,7 @@ from .notifications import (
     EmailPledgeConfirmation,
     EmailPledgeWelcome,
     EmailPledgeOfficer,
+    EmailProcessUpdate,
 )
 
 
@@ -2428,3 +2432,68 @@ def disciplinary_process_files(request, process_pk):
     response["Cache-Control"] = "no-cache"
     response["Content-Disposition"] = f"attachment; filename={zip_filename}"
     return response
+
+
+class CollectionReferralFormView(
+    OfficerRequiredMixin, LoginRequiredMixin, OfficerMixin, MultiFormsView
+):
+    template_name = "forms/collection.html"
+    form_classes = {
+        "collection": CollectionReferralForm,
+        "user": UserForm,
+    }
+    grouped_forms = {"collection_referral": ["collection", "user"]}
+    collection_form = None
+
+    def get_success_url(self, form_name=None):
+        EmailProcessUpdate(
+            self.collection_form.instance,
+            "Referral Submitted",
+            "Central Office Processing",
+            "Submitted",
+            "This is a notification that your chapter has"
+            " referred you to collections."
+            " Please see below for the details of the referral and"
+            " attached ledger sheet. If you have questions, please email or call"
+            " the Central Office at central.office@thetatau.org //"
+            " 512-472-1904.",
+            process_title="Collection Referral",
+            email_officers=True,
+            fields=["balance_due", "created"],
+            attachments=["ledger_sheet"],
+        ).send()
+        messages.add_message(
+            self.request, messages.INFO, "Successfully submitted collection referral",
+        )
+        return reverse("forms:collection")
+
+    def collection_form_valid(self, form, *args, **kwargs):
+        if form.has_changed():
+            form.instance.created_by = self.request.user
+            form.save()
+            self.collection_form = form
+        return HttpResponseRedirect(self.get_success_url())
+
+    def user_form_valid(self, form, *args, **kwargs):
+        if form.has_changed():
+            form.save()
+        return HttpResponseRedirect(self.get_success_url())
+
+    def get_user_kwargs(self):
+        kwargs = {"verify": True}
+        if self.request.method == "POST":
+            user_id = self.request.POST.get("user")
+            user = User.objects.get(pk=user_id)
+            kwargs.update({"instance": user})
+        return kwargs
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        collections_table = CollectionReferralTable(
+            CollectionReferral.objects.filter(
+                user__chapter=self.request.user.current_chapter
+            ).order_by("-created")
+        )
+        RequestConfig(self.request).configure(collections_table)
+        context["collections_table"] = collections_table
+        return context
