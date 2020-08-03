@@ -102,6 +102,18 @@ urlpatterns = [
         view=views.CollectionReferralFormView.as_view(),
         name="collection",
     ),
+    url(
+        r"^resignation/$",
+        RedirectView.as_view(
+            pattern_name="viewflow:forms:resignation:start", permanent=True
+        ),
+        name="resignation",
+    ),
+    url(
+        regex=r"^resignation-list/$",
+        view=views.ResignationListView.as_view(),
+        name="resign_list",
+    ),
     # url(
     #     regex=r'^~status-change/$',
     #     view=views.StatusChangeView.as_view(),

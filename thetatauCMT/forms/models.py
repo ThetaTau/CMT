@@ -1580,3 +1580,102 @@ class CollectionReferral(TimeStampedModel):
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     balance_due = MoneyField(max_digits=19, decimal_places=4, default_currency="USD")
     ledger_sheet = models.FileField(upload_to=get_discipline_upload_path)
+
+
+def get_resign_upload_path(instance, filename):
+    return os.path.join(
+        "submissions",
+        "resign",
+        f"{instance.user.chapter.slug}_{instance.user.user_id}_{filename}",
+    )
+
+
+class ResignationProcess(Process):
+    BOOL_CHOICES = ((True, "Yes"), (False, "No"))
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="resignation",
+        null=True,
+        blank=True,
+    )
+    letter = models.FileField("Resignation Letter", upload_to=get_resign_upload_path)
+    verbose_resign = _(
+        "For reasons which I deem good and sufficient, I wish to resign as a "
+        "member of Theta Tau Fraternity."
+    )
+    resign = models.BooleanField(verbose_resign, choices=BOOL_CHOICES, default=False)
+    verbose_secrets = _(
+        "I recognize that I am under a solemn obligation never to reveal any of "
+        "the Secrets of the Fraternity, and I reaffirm my previous obligation "
+        "never to reveal any secrets of Theta Tau Fraternity."
+    )
+    secrets = models.BooleanField(verbose_secrets, choices=BOOL_CHOICES, default=False)
+    verbose_expel = _(
+        "I understand that I will be treated as an expelled member of Theta Tau "
+        "and can only rejoin the fraternity by special petition to the Grand Regent."
+    )
+    expel = models.BooleanField(verbose_expel, choices=BOOL_CHOICES, default=False)
+    verbose_return_evidence = _(
+        "I have or will returned all evidence of my membership in Theta Tau "
+        "and all insignia previously possessed by me and now in my possession, "
+        "and certify that evidence and insignia not returned to the chapter "
+        "herewith has been lost or misplaced and if hereafter located will be returned."
+    )
+    return_evidence = models.BooleanField(
+        verbose_return_evidence, choices=BOOL_CHOICES, default=False
+    )
+    verbose_obligation = _(
+        "I consent to the retention by my chapter and by Theta Tau Fraternity "
+        "of all fees and dues heretofore paid by me while a member of said "
+        "chapter and said Fraternity hereby releasing them from any and all "
+        "obligations to me henceforth and forever."
+    )
+    obligation = models.BooleanField(
+        verbose_obligation, choices=BOOL_CHOICES, default=False
+    )
+    verbose_fee = _(
+        "I have or will submit the $100 Resignation Processing Fee to the chapter."
+    )
+    fee = models.BooleanField(verbose_fee, choices=BOOL_CHOICES, default=False)
+    signature = models.CharField(
+        max_length=255, help_text="Please sign using your proper/legal name"
+    )
+    verbose_good_standing = _("The member is in good standing of Theta Tau.")
+    good_standing = models.BooleanField(
+        verbose_good_standing, choices=BOOL_CHOICES, default=False
+    )
+    verbose_returned = "Did the member return all evidence of membership in Theta Tau?"
+    returned = models.BooleanField(
+        verbose_returned, choices=BOOL_CHOICES, default=False
+    )
+    verbose_financial = _("Member has no current financial obligation to the chapter.")
+    financial = models.BooleanField(verbose_financial, default=False)
+    verbose_fee_paid = _(
+        "Member submitted the $100 Resignation Processing Fee to the chapter."
+    )
+    fee_paid = models.BooleanField(verbose_fee_paid, default=False)
+    officer1 = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="resign_off1",
+        verbose_name="Officer Signature",
+    )
+    officer2 = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="resign_off2",
+        verbose_name="Officer Signature",
+    )
+    signature_o1 = models.CharField(
+        max_length=255, help_text="Please sign using your proper/legal name"
+    )
+    signature_o2 = models.CharField(
+        max_length=255, help_text="Please sign using your proper/legal name"
+    )
+    approved_o1 = models.BooleanField(
+        "Officer Approved", choices=BOOL_CHOICES, default=False
+    )
+    approved_o2 = models.BooleanField(
+        "Officer Approved", choices=BOOL_CHOICES, default=False
+    )

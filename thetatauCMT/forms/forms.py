@@ -42,6 +42,7 @@ from .models import (
     OSM,
     DisciplinaryProcess,
     CollectionReferral,
+    ResignationProcess,
 )
 
 
@@ -1130,4 +1131,19 @@ class CollectionReferralForm(forms.ModelForm):
             "user",
             "balance_due",
             "ledger_sheet",
+        ]
+
+
+class ResignationForm(forms.ModelForm):
+    class Meta:
+        model = ResignationProcess
+        fields = [
+            "letter",
+            "resign",
+            "secrets",
+            "expel",
+            "return_evidence",
+            "obligation",
+            "fee",
+            "signature",
         ]

@@ -272,3 +272,28 @@ class CollectionReferralTable(tables.Table):
         model = CollectionReferral
         fields = ("user", "created")
         attrs = {"class": "table table-striped table-bordered"}
+
+
+class ResignationStatusTable(tables.Table):
+    description = tables.Column()
+    owner = tables.Column()
+    started = tables.Column()
+    finished = tables.Column()
+    status = tables.Column()
+
+    class Meta:
+        attrs = {
+            "class": "table table-striped table-bordered",
+        }
+
+
+class ResignationListTable(tables.Table):
+    member = tables.Column()
+    finished = tables.Column()
+    status = tables.Column()
+    link = tables.TemplateColumn('<a href="{{ record.link }}">Sign Link</a>')
+
+    class Meta:
+        attrs = {
+            "class": "table table-striped table-bordered",
+        }

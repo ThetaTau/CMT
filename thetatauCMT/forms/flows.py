@@ -17,6 +17,7 @@ from .models import (
     PledgeProcess,
     OSM,
     DisciplinaryProcess,
+    ResignationProcess,
 )
 from .views import (
     PrematureAlumnusCreateView,
@@ -28,6 +29,8 @@ from .views import (
     DisciplinaryCreateView,
     DisciplinaryForm2View,
     get_signature,
+    ResignationCreateView,
+    ResignationSignView,
 )
 from .forms import DisciplinaryForm1, DisciplinaryForm2
 from .notifications import (
@@ -973,7 +976,7 @@ class DisciplinaryProcessFlow(Flow):
                     name=f"{object.chapter.slug}_{object.user.user_id}_disciplinary_forms.pdf",
                 )
             ],
-        )
+        ).send()
 
     @classmethod
     def start_email_regent(cls, pk):
@@ -984,3 +987,76 @@ class DisciplinaryProcessFlow(Flow):
     def start_send_ec(cls, pk):
         process = DisciplinaryProcess.objects.get(pk=pk)
         cls.delay_ec.run(process.get_task(cls.delay_ec))
+
+
+@frontend.register
+class ResignationFlow(Flow):
+    process_class = ResignationProcess
+    process_title = _("Resignation Process")
+    process_description = _("This process is for member resignation.")
+
+    start = flow.Start(
+        ResignationCreateView, task_title=_("Submit Resignation Form")
+    ).Next(this.email_signers)
+
+    email_signers = flow.Handler(
+        this.email_signers_func, task_title=_("Email Signers"),
+    ).Next(this.assign_approval)
+
+    assign_approval = flow.Split().Next(this.assign_o1).Next(this.assign_o2)
+
+    assign_o1 = (
+        flow.View(ResignationSignView, task_title=_("Officer1 Sign"))
+        .Assign(lambda act: act.process.officer1)
+        .Next(this.join_flow)
+    )
+
+    assign_o2 = (
+        flow.View(ResignationSignView, task_title=_("Officer2 Sign"))
+        .Assign(lambda act: act.process.officer2)
+        .Next(this.join_flow)
+    )
+
+    join_flow = flow.Join().Next(this.email_complete)
+
+    email_complete = flow.Handler(
+        this.email_complete_func, task_title=_("Email Complete"),
+    ).Next(this.end)
+
+    end = flow.End(task_title=_("Complete"))
+
+    def email_signers_func(self, activation):
+        """
+        Send emails to the signers
+        :param activation:
+        :return:
+        """
+        for user_role in ["officer1", "officer2"]:
+            user = getattr(activation.process, user_role)
+            EmailProcessUpdate(
+                activation,
+                complete_step="Submitted",
+                next_step="Central Office Process",
+                state="Sign",
+                message="Please complete the form and sign here: ",
+                fields=[],
+                attachments=["letter"],
+                direct_user=user,
+            ).send()
+
+    def email_complete_func(self, activation):
+        """
+        Send emails to the signers
+        :param activation:
+        :return:
+        """
+        EmailProcessUpdate(
+            activation,
+            complete_step="Officer Acknowledge and Sign",
+            next_step="Central Office Process",
+            state="Submitted",
+            message="",
+            fields=[],
+            email_officers=True,
+            attachments=["letter"],
+        ).send()

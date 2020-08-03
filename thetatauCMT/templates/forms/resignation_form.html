@@ -1,0 +1,29 @@
+{% extends "account/base.html" %}
+{% load i18n %}
+{% load static %}
+{% load crispy_forms_tags %}
+{% load render_table from django_tables2 %}
+{% block head_title %}{% trans "Resignation Form" %}{% endblock %}
+{% block content %}
+  <h1>Resignation Form</h1>
+  A member who resigns in accord with this process shall be classified as expelled.
+  No other form of resignation is permitted. Complete the form below to submit your resignation.<br>
+  <h3><i>You must submit a written resignation letter, an example is in the Policy and Procedures Manual appendix:</i><br>
+  <a href="http://thetatau.org/policies">http://thetatau.org/policies</a></h3>
+  <i>A $100 charge will be added to the chapter's next invoice.</i>
+  <hr>
+  {% if not submitted %}
+    <form method="POST" enctype="multipart/form-data">
+      {{ form.media }}
+      <link href="{% static 'css/project.css' %}" rel="stylesheet">
+      {% csrf_token %}
+      {{ form|crispy }}
+      {{ activation.management_form }}
+      <button class="primaryAction btn btn-primary" type="submit">{% trans "Submit" %}</button>
+    </form>
+  {% else %}
+    See below for status of the form submission. <br>
+      If you need to check on the status, please reach out to <a href="mailto:central.office@thetatau.org">central.office@thetatau.org</a>
+    {% render_table table %}
+  {% endif %}
+{% endblock %}

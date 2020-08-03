@@ -79,6 +79,7 @@ from .forms import (
     DisciplinaryForm1,
     DisciplinaryForm2,
     CollectionReferralForm,
+    ResignationForm,
 )
 from tasks.models import TaskChapter, Task
 from scores.models import ScoreType
@@ -113,6 +114,8 @@ from .tables import (
     OSMListTable,
     DisciplinaryStatusTable,
     CollectionReferralTable,
+    ResignationStatusTable,
+    ResignationListTable,
 )
 from .models import (
     Guard,
@@ -131,6 +134,7 @@ from .models import (
     OSM,
     DisciplinaryProcess,
     CollectionReferral,
+    ResignationProcess,
 )
 from .filters import AuditListFilter, PledgeProgramListFilter, CompleteListFilter
 from .notifications import (
@@ -2506,4 +2510,130 @@ class CollectionReferralFormView(
         )
         RequestConfig(self.request).configure(collections_table)
         context["collections_table"] = collections_table
+        return context
+
+
+class ResignationCreateView(LoginRequiredMixin, OfficerMixin, CreateProcessView):
+    template_name = "forms/resignation_form.html"
+    model = ResignationProcess
+    form_class = ResignationForm
+    data = {}
+
+    def get_success_url(self):
+        return reverse("forms:resignation")
+
+    def activation_done(self, *args, **kwargs):
+        """Finish task activation."""
+        self.activation.done()
+        self.success("Resignation Form submitted successfully.")
+
+    def form_valid(self, form, *args, **kwargs):
+        user = self.request.user
+        form.instance.user = user
+        chapter = user.current_chapter
+        (
+            regent,
+            scribe,
+            vice,
+            treasurer,
+        ) = chapter.get_current_officers_council_specific()
+        officer1 = officer2 = False
+        if regent != user:
+            form.instance.officer1 = regent
+            officer1 = True
+        if scribe != user:
+            form.instance.officer2 = scribe
+            officer2 = True
+        if not officer1:
+            if vice != user:
+                form.instance.officer1 = vice
+            else:
+                form.instance.officer1 = treasurer
+        if not officer2:
+            if vice != user:
+                form.instance.officer2 = vice
+            else:
+                form.instance.officer2 = treasurer
+        return super().form_valid(form)
+
+    def get_context_data(self, *args, **kwargs):
+        context = super().get_context_data(**kwargs)
+        try:
+            submitted = self.request.user.resignation
+        except ResignationProcess.DoesNotExist:
+            submitted = False
+        else:
+            data = []
+            for task in submitted.task_set.all():
+                if task.flow_task.task_title:
+                    data.append(
+                        {
+                            "description": task.flow_task.task_title,
+                            "owner": task.owner,
+                            "started": task.started,
+                            "finished": task.finished,
+                            "status": task.status,
+                        }
+                    )
+            context["table"] = ResignationStatusTable(data=data)
+        context["submitted"] = submitted
+        return context
+
+
+class ResignationSignView(LoginRequiredMixin, OfficerMixin, UpdateProcessView):
+    template_name = "forms/resignation_sign_form.html"
+    model = ResignationProcess
+    fields_options = {
+        "assign_o1": [
+            "good_standing",
+            "returned",
+            "financial",
+            "fee_paid",
+            "signature_o1",
+            "approved_o1",
+        ],
+        "assign_o2": ["signature_o2", "approved_o2",],
+    }
+
+    def get_success_url(self):
+        return reverse("forms:resignation")
+
+    def activation_done(self, *args, **kwargs):
+        """Finish task activation."""
+        self.activation.done()
+        self.success("Resignation form signed successfully.")
+
+    def get_form_class(self, *args, **kwargs):
+        task_name = self.activation.flow_task.name
+        self.fields = self.fields_options[task_name]
+        return model_forms.modelform_factory(self.model, fields=self.fields)(
+            **self.get_form_kwargs()
+        )
+
+
+class ResignationListView(
+    OfficerRequiredMixin, LoginRequiredMixin, OfficerMixin, PagedFilteredTableView
+):
+    model = ResignationProcess
+    context_object_name = "osm_list"
+    table_class = ResignationListTable
+
+    def get_queryset(self, **kwargs):
+        qs = self.model.objects.filter(user__chapter=self.request.user.current_chapter)
+        return qs
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        data = []
+        for form in self.object_list:
+            data.append(
+                {
+                    "member": form.user,
+                    "finished": form.chapter.region.name,
+                    "status": form.year,
+                    "link": ChapterReport.TERMS.get_value(form.term),
+                }
+            )
+        table = ResignationListTable(data=data)
+        context["table"] = table
         return context
