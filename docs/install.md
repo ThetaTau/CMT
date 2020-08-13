@@ -7,16 +7,21 @@
 ### Install Python 3.7 (or latest) with Homebrew
 
 `brew update && brew upgrade`
+
 `brew install python` (This will install python3 by default)
 
 To make python3 the default python in your environment, do either one of the following:
-_temporarily modify PATH_
+
+_temporarily modify PATH:_
 `export PATH="/usr/local/opt/python/libexec/bin:/usr/local/sbin:$PATH"`
-_permanently modify PATH_
+
+_permanently modify PATH:_
 `echo 'export PATH="/usr/local/opt/python/libexec/bin:/usr/local/sbin:$PATH"' >> ~/.bashrc`
+
 If chose this option, be sure to do `source ~/.bashrc` before continuing or whenever restart terminal
 
 Verify python version with `python --version` and you should get output `Python 3.7.7`
+
 Verify pip version with `pip -V` and you should get output `pip 20.0.2 from /usr/local/lib/python3.7/site-packages/pip (python 3.7)`
 
 ### Install Node 9.9.0 (or latest)
@@ -27,6 +32,7 @@ Verify Node version with `node -v`and you should get output `v12.16.3` (or later
 ### Install and configure virtualenvwrapper
 
 `pip install virtualenv`
+
 `pip install virtualenvwrapper`
 
 Add the following lines to the shell startup file (.bashrc):
@@ -41,13 +47,17 @@ Then, either restart Terminal window or do `source ~/.bashrc` to put these chang
 
 To create virtual environment for our project:
 `mkvirtualenv cmt` -> output: `created virtual environment CPython3.7.7.final.0-64 in 682ms`
+
 `workon cmt`
 
 cd to location to clone project repository (For example: `cd ~/Desktop/CMT`)
+
 `git clone https://github.com/VenturaFranklin/thetatauCMT.git`
 
 cd to the repo location (`cd ~/Desktop/CMT/thetatauCMT`), then do:
+
 `setvirtualenvproject`in that directory
+
 `add2virtualenv ~/Desktop/CMT/thetatauCMT/thetatauCMT`
 
     NOTE: THIS IS NOT THE SAME FOLDER AS ABOVE, BUT A SUBDIRECTORY
@@ -63,8 +73,10 @@ Install PostgreSQL 10.X at https://www.postgresql.org/download/
 **Remember where you set the data folder! For example: `/Library/PostgreSQL/10`**
 
 Try to run `pg_config`, if get a _not found_ error, then you need to find the path of this command with:
-`sudo find / -name pg_config` and receive an output similar to `/Library/PostgreSQL/10/bin`
+`sudo find / -name pg_config` -> output: `/Library/PostgreSQL/10/bin`
+
 Change the PATH to run Postgres command line tools:
+
 `export PATH=/Library/PostgreSQL/10/bin:${PATH}`
 
 Re-run `pg_config` to verify that our database works!
@@ -73,22 +85,31 @@ Re-run `pg_config` to verify that our database works!
 
 Install PostgreSQL database adapter for Django
 `pip install psycopg2`
+
 `pip install psycopg2-binary`
 
-_If receive an Symbol not found error, reinstall psycopg2 and psycopg2-binary with the base Python version. (i.e. 2.7.7)_
+_If receive a 'Symbol not found' error, reinstall psycopg2 and psycopg2-binary with the base Python version. (i.e. 2.7.7)_
+
 `pip uninstall psycopg2`
+
 `pip uninstall psycopg2-binary`
+
 `pip install pyscopg2==2.7.7`
+
 `pip install pyscopg2-binary==2.7.7`
 
 Install Django
+
 `pip install Django`
 
 Install other requirements
+
 `pip install -r requirements/local.txt` (Postgres has to be installed first)
 
 Create Postgres database (make sure that the server is Running in Postgres app)
+
 `export PATH=/Library/PostgreSQL/10/bin:${PATH}`
+
 `createdb thetatauCMT`
 
 Find the location of the Postgres server HBA file by going on the Postgres app -> Server Settings... -> HBA File
@@ -99,13 +120,14 @@ Check that your pg_hba.conf file has the following:
 If changes needed to be made, make sure to restart the Postgres service.
 
 Setting up Django app and creating superuser:
+
 `python manage.py migrate`
 
 `python manage.py createsuperuser`
 
 for dev we will use test as the superuser
 
-npm install compass
+`npm install compass`
 
 ### Setting up VSCode and virtual environments
 
@@ -115,7 +137,7 @@ Find directory of our virtualenv as set up with:
 Change interpreter path in VSCode and replace it with your output.
 To setup our debugger, click 'Run and Debug' and select 'Django' which will run our server
 
-Install Black in your virtual environment, which can now be run directly in VSCode in our terminal. Make sure to do `workon cmt` to activate our virtual environment and that `(cmt)` appears in front of our command line.
+Install Black in your virtual environment, which can now be run directly in VSCode terminal. Make sure to do `workon cmt` to activate our virtual environment and that `(cmt)` appears in front of our command line.
 (Follow instructions at https://dev.to/adamlombard/how-to-use-the-black-python-code-formatter-in-vscode-3lo0#:~:text=Open%20your%20VSCode%20settings%2C%20by,%3E%20Preferences%20%2D%3E%20Settings%27.&text=Black%20will%20now%20format%20your%20code%20whenever%20you%20save%20a%20*)
 
 ## Instructions for Windows
