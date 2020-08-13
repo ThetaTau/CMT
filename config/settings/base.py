@@ -396,3 +396,16 @@ else:
         bucket_name="theta-tau-database",
         max_memory_size=100 * 1024 * 1024,  # Set 100 MB blob size,
     )
+
+# Django Plotly Dash
+# -------------------------------------
+INSTALLED_APPS += ["django_plotly_dash.apps.DjangoPlotlyDashConfig"]
+MIDDLEWARE += ["django_plotly_dash.middleware.BaseMiddleware"]
+
+PLOTLY_COMPONENTS = [
+    "dash_core_components",
+    "dash_html_components",
+    "dash_renderer",
+    "dpd_components",
+]
+

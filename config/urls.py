@@ -9,6 +9,7 @@ from django.contrib.auth.views import (
 )
 from allauth.account.views import LogoutView
 from django.contrib import admin
+from django.urls import path, include
 from django.views.generic import TemplateView, RedirectView
 from material.frontend.urls import modules
 from core.views import HomeView
@@ -16,6 +17,7 @@ from users.views import UserLookupLoginView
 from django.views import defaults as default_views
 
 urlpatterns = [
+    path("django_plotly_dash/", include("django_plotly_dash.urls")),
     url(r"^$", HomeView.as_view(template_name="pages/home.html"), name="home"),
     url(
         r"^about/$",
