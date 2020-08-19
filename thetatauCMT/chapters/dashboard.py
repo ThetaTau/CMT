@@ -26,26 +26,14 @@ from chapters.models import Chapter
 from users.models import User, UserStatusChange
 
 colors = {
-    "actives": "darkred",
-    "pledges": "gold",
-    "depledges": "firebrick",
-    "alumnis": "black",
+    "Actives": "darkred",
+    "Inactives": "grey",
+    "Pledges": "green",
+    "Depledges": "firebrick",
+    "Alumnis": "black",
+    "Fall": "#EB8686",
+    "Spring": "#E66868",
 }
-
-YEARS = [
-    "2010",
-    "2011",
-    "2012",
-    "2013",
-    "2014",
-    "2015",
-    "2016",
-    "2017",
-    "2018",
-    "2019",
-    "2020",
-    "2021",
-]
 
 ## -------------------------------------------------------------------------------
 ## HELPER FUNCTIONS
@@ -236,59 +224,45 @@ def load_data(clicks, **kwargs):
     return df.to_dict(orient="records")
 
 
-@app.callback(Output("composition-graph", "figure"), [Input("chapter-data", "data")])
-def members_graph(data, **kwargs):
-    DataOut = []
-    ActivesData = []
-    InactivesData = []
-    PledgesData = []
-
+@app.callback(
+    Output("composition-graph", "figure"),
+    [Input("chapter-data", "data"), Input("years-slider", "value")],
+)
+def members_graph(data, years, **kwargs):
+    groups = {
+        "Actives": [],
+        "Inactives": [],
+        "Pledges": [],
+    }
+    YEARS = [str(year) for year in range(years[0], years[1] + 1)]
     df = pd.DataFrame.from_dict(data)
-    # dictionary to store Data and loop through to create each trace
+    DataOut = []
+
     for year in YEARS:
         date = year + "-01-01"
         df["term"] = (df["start"] <= date) & (df["end"] >= date)
         gb = df.groupby(["status", "term"])
-        ActivesData.append(get_group(gb, ("active", True)))
-        InactivesData.append(get_group(gb, ("away", True)))
-        PledgesData.append(get_group(gb, ("prospective", True)))
+        groups["Actives"].append(get_group(gb, ("active", True)))
+        groups["Inactives"].append(get_group(gb, ("away", True)))
+        groups["Pledges"].append(get_group(gb, ("prospective", True)))
 
     TotalMembers = [
-        x + y + z for x, y, z in zip(ActivesData, InactivesData, PledgesData)
+        x + y + z
+        for x, y, z in zip(groups["Actives"], groups["Inactives"], groups["Pledges"])
     ]
-    percent = [percentage(x, y) for x, y in zip(ActivesData, TotalMembers)]
-    trace = go.Scatter(
-        name="Actives",
-        x=YEARS,
-        y=ActivesData,
-        hovertemplate="<i>Actives</i>: %{y}" + "<br>%{text}%</br>",
-        text=percent,
-        marker=dict(color=colors["actives"]),
-        showlegend=False,
-    )
-    DataOut.append(trace)
-    percent = [percentage(x, y) for x, y in zip(InactivesData, TotalMembers)]
-    trace = go.Scatter(
-        name="Inactives",
-        x=YEARS,
-        y=InactivesData,
-        hovertemplate="<i>Inactives</i>: %{y}" + "<br>%{text}%</br>",
-        text=percent,
-        marker=dict(color=colors["alumnis"]),
-        showlegend=False,
-    )
-    DataOut.append(trace)
-    percent = [percentage(x, y) for x, y in zip(PledgesData, TotalMembers)]
-    trace = go.Scatter(
-        name="Pledges",
-        x=YEARS,
-        y=PledgesData,
-        hovertemplate="<i>Pledges</i>: %{y}" + "<br>%{text}%</br>",
-        text=percent,
-        marker=dict(color=colors["pledges"]),
-        showlegend=False,
-    )
-    DataOut.append(trace)
+
+    for key, value in groups.items():
+        percent = [percentage(x, y) for x, y in zip(value, TotalMembers)]
+        trace = go.Scatter(
+            name=key,
+            x=YEARS,
+            y=value,
+            hovertemplate="<i>Count</i>: %{y}" + "<br>%{text}%</br>",
+            text=percent,
+            marker=dict(color=colors[key]),
+            showlegend=False,
+        )
+        DataOut.append(trace)
 
     fig = go.Figure(data=DataOut)
 
@@ -354,43 +328,40 @@ def members_graph(data, **kwargs):
     return fig
 
 
-@app.callback(Output("retention-graph", "figure"), [Input("chapter-data", "data")])
-def pledge_depledge_graph(data, **kwargs):
-    DataOut = []
-    PledgeData = []
-    DepledgeData = []
-    # create dictionary and loop through
+@app.callback(
+    Output("retention-graph", "figure"),
+    [Input("chapter-data", "data"), Input("years-slider", "value")],
+)
+def pledge_depledge_graph(data, years, **kwargs):
+    groups = {
+        "Pledges": [],
+        "Depledges": [],
+    }
+    YEARS = [str(year) for year in range(years[0], years[1] + 1)]
     df = pd.DataFrame.from_dict(data)
+    DataOut = []
+
     for year in YEARS:
         date = year + "-01-01"
         df["term"] = (df["start"] <= date) & (df["end"] >= date)
         gb = df.groupby(["status", "term"])
-        PledgeData.append(get_group(gb, ("prospective", True)))
-        DepledgeData.append(get_group(gb, ("depledge", True)))
+        groups["Pledges"].append(get_group(gb, ("prospective", True)))
+        groups["Depledges"].append(get_group(gb, ("depledge", True)))
 
-    TotalMembers = [x + y for x, y in zip(PledgeData, DepledgeData)]
-    percent = [percentage(x, y) for x, y in zip(PledgeData, TotalMembers)]
-    trace = go.Scatter(
-        name=f"Pledges",
-        x=YEARS,
-        y=PledgeData,
-        hovertemplate="<i>Pledges</i>: %{y}" + "<br>%{text}%</br>",
-        text=percent,
-        marker=dict(color="#3EA935"),
-        showlegend=False,
-    )
-    DataOut.append(trace)
-    percent = [percentage(x, y) for x, y in zip(DepledgeData, TotalMembers)]
-    trace = go.Scatter(
-        name=f"Depledges",
-        x=YEARS,
-        y=DepledgeData,
-        hovertemplate="<i>Depledges</i>: %{y}" + "<br>%{text}%</br>",
-        text=percent,
-        marker=dict(color="#BE1A1A"),
-        showlegend=False,
-    )
-    DataOut.append(trace)
+    TotalMembers = [x + y for x, y in zip(groups["Pledges"], groups["Depledges"])]
+
+    for key, value in groups.items():
+        percent = [percentage(x, y) for x, y in zip(value, TotalMembers)]
+        trace = go.Scatter(
+            name=key,
+            x=YEARS,
+            y=value,
+            hovertemplate="<i>Count</i>: %{y}" + "<br>%{text}%</br>",
+            text=percent,
+            marker=dict(color=colors[key]),
+            showlegend=False,
+        )
+        DataOut.append(trace)
 
     fig = go.Figure(data=DataOut)
 
@@ -454,37 +425,33 @@ def pledge_depledge_graph(data, **kwargs):
 
 @app.callback(
     Output("chapter-size-graph", "figure"),
-    [
-        Input("chapter-data", "data"),
-        Input("semester-dropdown", "value"),
-        Input("years-slider", "value"),
-    ],
+    [Input("chapter-data", "data"), Input("years-slider", "value"),],
 )
-def chapter_size_graph(data, value, years_slider, **kwargs):
-    DataOut = []
-    Data = []
-    colors = []
-
-    for i in range(2010, 2022):
-        if i >= int(years_slider[0]) and i <= int(years_slider[1]):
-            colors.append("rgb(168, 7, 7)")
-        else:
-            colors.append("rgba(168, 7, 7, 0.2)")
-
-    if value == 1:
-        date_str = "-12-01"
-    if value == 2:
-        date_str = "-05-01"
-
+def chapter_size_graph(data, years, **kwargs):
+    groups = {"Fall": [], "Spring": []}
+    YEARS = [str(year) for year in range(years[0], years[1] + 1)]
     df = pd.DataFrame.from_dict(data)
-    for year in YEARS:
-        date = year + date_str
-        df["term"] = (df["start"] <= date) & (df["end"] >= date)
-        gb = df.groupby(["status", "term"])
-        Data.append(get_group(gb, ("active", True)) + get_group(gb, ("alumni", True)))
+    DataOut = []
 
-    trace = go.Bar(x=YEARS, y=Data, marker=dict(color=colors), showlegend=False,)
-    DataOut.append(trace)
+    for key, value in groups.items():
+        for year in YEARS:
+            if key == "Fall":
+                date = year + "-12-01"
+            if key == "Spring":
+                date = year + "-05-01"
+            df["term"] = (df["start"] <= date) & (df["end"] >= date)
+            gb = df.groupby(["status", "term"])
+            groups[key].append(
+                get_group(gb, ("active", True)) + get_group(gb, ("alumni", True))
+            )
+        trace = go.Bar(
+            name=key,
+            x=YEARS,
+            y=value,
+            marker=dict(color=colors[key]),
+            showlegend=False,
+        )
+        DataOut.append(trace)
 
     fig = go.Figure(data=DataOut)
 
