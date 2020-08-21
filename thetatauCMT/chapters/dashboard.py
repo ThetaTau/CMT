@@ -167,7 +167,21 @@ app.layout = html.Div(
             style=dict(display="flex", flexDirection="row"),
         ),
         html.Div(
-            children=[dcc.Graph(id="composition-graph"),],
+            children=[
+                dcc.Loading(
+                    id="loading-1",
+                    type="default",
+                    children=[
+                        html.Div(
+                            children=[
+                                html.Div(id="loading-output-1"),
+                                # Graph 1: Chapter size over time
+                                dcc.Graph(id="composition-graph"),
+                            ],
+                        ),
+                    ],
+                ),
+            ],
             style=dict(
                 borderRadius=5,
                 backgroundColor="#f9f9f9",
@@ -181,7 +195,20 @@ app.layout = html.Div(
             children=[
                 # Graph 2: Number of Actives/Inactives/Pledges Over Time
                 html.Div(
-                    children=[dcc.Graph(id="chapter-size-graph"),],
+                    children=[
+                        dcc.Loading(
+                            id="loading-2",
+                            type="default",
+                            children=[
+                                html.Div(
+                                    children=[
+                                        html.Div(id="loading-output-2"),
+                                        dcc.Graph(id="chapter-size-graph"),
+                                    ],
+                                ),
+                            ],
+                        ),
+                    ],
                     style=dict(
                         borderRadius=5,
                         backgroundColor="#f9f9f9",
@@ -194,7 +221,20 @@ app.layout = html.Div(
                 ),
                 # Graph 3: Pledges/Depledges Over Time
                 html.Div(
-                    children=[dcc.Graph(id="retention-graph"),],
+                    children=[
+                        dcc.Loading(
+                            id="loading-3",
+                            type="default",
+                            children=[
+                                html.Div(
+                                    children=[
+                                        html.Div(id="loading-output-3"),
+                                        dcc.Graph(id="retention-graph"),
+                                    ],
+                                ),
+                            ],
+                        ),
+                    ],
                     style=dict(
                         borderRadius=5,
                         backgroundColor="#f9f9f9",
@@ -219,9 +259,9 @@ def load_data(clicks, **kwargs):
     user = kwargs.get("user", None)
     chapter = user.current_chapter
     df = read_frame(UserStatusChange.objects.filter(user__chapter=chapter))
-    df = df[["start", "end", "status"]]
     if df.empty:
         raise PreventUpdate
+    df = df[["start", "end", "status"]]
     print("Load Data")
     return df.to_dict(orient="records")
 
