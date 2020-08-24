@@ -35,6 +35,43 @@ colors = {
     "Spring": "#E66868",
 }
 
+style = {
+    "slider": dict(
+        borderRadius=5,
+        backgroundColor="#f9f9f9",
+        margin=5,
+        padding=30,
+        position="relative",
+        boxShadow="2px 2px 2px lightgrey",
+    ),
+    "number": dict(
+        borderRadius=5,
+        backgroundColor="#f9f9f9",
+        margin=10,
+        padding=15,
+        width="20%",
+        position="relative",
+        boxShadow="2px 2px 2px lightgrey",
+    ),
+    "big_graph": dict(
+        borderRadius=5,
+        backgroundColor="#f9f9f9",
+        margin=10,
+        padding=15,
+        position="relative",
+        boxShadow="2px 2px 2px lightgrey",
+    ),
+    "small_graph": dict(
+        borderRadius=5,
+        backgroundColor="#f9f9f9",
+        margin=10,
+        padding=15,
+        width="48%",
+        position="relative",
+        boxShadow="2px 2px 2px lightgrey",
+    ),
+}
+
 ## -------------------------------------------------------------------------------
 ## HELPER FUNCTIONS
 ## -------------------------------------------------------------------------------
@@ -92,76 +129,29 @@ app.layout = html.Div(
                     value=[2014, 2020],
                 ),
             ],
-            style=dict(
-                borderRadius=5,
-                backgroundColor="#f9f9f9",
-                margin=5,
-                padding=30,
-                position="relative",
-                boxShadow="2px 2px 2px lightgrey",
-            ),
+            style=style["slider"],
         ),
         html.Div(
             children=[
                 html.Div(
                     children=[html.H6("Actives"), html.Div(id="actives-num")],
-                    style=dict(
-                        borderRadius=5,
-                        backgroundColor="#f9f9f9",
-                        margin=10,
-                        padding=15,
-                        width="20%",
-                        position="relative",
-                        boxShadow="2px 2px 2px lightgrey",
-                    ),
+                    style=style["number"],
                 ),
                 html.Div(
                     children=[html.H6("Inactives"), html.Div(id="inactives-num")],
-                    style=dict(
-                        borderRadius=5,
-                        backgroundColor="#f9f9f9",
-                        margin=10,
-                        padding=15,
-                        width="20%",
-                        position="relative",
-                        boxShadow="2px 2px 2px lightgrey",
-                    ),
+                    style=style["number"],
                 ),
                 html.Div(
                     children=[html.H6("Pledges"), html.Div(id="pledges-num")],
-                    style=dict(
-                        borderRadius=5,
-                        backgroundColor="#f9f9f9",
-                        margin=10,
-                        padding=15,
-                        width="20%",
-                        position="relative",
-                        boxShadow="2px 2px 2px lightgrey",
-                    ),
+                    style=style["number"],
                 ),
                 html.Div(
                     children=[html.H6("Depledges"), html.Div(id="depledges-num")],
-                    style=dict(
-                        borderRadius=5,
-                        backgroundColor="#f9f9f9",
-                        margin=10,
-                        padding=15,
-                        width="20%",
-                        position="relative",
-                        boxShadow="2px 2px 2px lightgrey",
-                    ),
+                    style=style["number"],
                 ),
                 html.Div(
                     children=[html.H6("Alumnis"), html.Div(id="alumni-num")],
-                    style=dict(
-                        borderRadius=5,
-                        backgroundColor="#f9f9f9",
-                        margin=10,
-                        padding=15,
-                        width="20%",
-                        position="relative",
-                        boxShadow="2px 2px 2px lightgrey",
-                    ),
+                    style=style["number"],
                 ),
             ],
             style=dict(display="flex", flexDirection="row"),
@@ -169,81 +159,64 @@ app.layout = html.Div(
         html.Div(
             children=[
                 dcc.Loading(
-                    id="loading-1",
                     type="default",
                     children=[
-                        html.Div(
-                            children=[
-                                html.Div(id="loading-output-1"),
-                                # Graph 1: Chapter size over time
-                                dcc.Graph(id="composition-graph"),
-                            ],
-                        ),
+                        # Graph 1: Chapter size over time
+                        dcc.Graph(id="composition-graph"),
                     ],
-                ),
+                )
             ],
-            style=dict(
-                borderRadius=5,
-                backgroundColor="#f9f9f9",
-                margin=10,
-                padding=15,
-                position="relative",
-                boxShadow="2px 2px 2px lightgrey",
-            ),
+            style=style["big_graph"],
         ),
         html.Div(
             children=[
-                # Graph 2: Number of Actives/Inactives/Pledges Over Time
                 html.Div(
                     children=[
                         dcc.Loading(
-                            id="loading-2",
                             type="default",
                             children=[
-                                html.Div(
-                                    children=[
-                                        html.Div(id="loading-output-2"),
-                                        dcc.Graph(id="chapter-size-graph"),
-                                    ],
-                                ),
+                                # Graph 2: Number of Actives/Inactives/Pledges Over Time
+                                dcc.Graph(id="chapter-size-graph"),
                             ],
                         ),
                     ],
-                    style=dict(
-                        borderRadius=5,
-                        backgroundColor="#f9f9f9",
-                        margin=10,
-                        padding=15,
-                        width="48%",
-                        position="relative",
-                        boxShadow="2px 2px 2px lightgrey",
-                    ),
+                    style=style["small_graph"],
                 ),
-                # Graph 3: Pledges/Depledges Over Time
                 html.Div(
                     children=[
                         dcc.Loading(
-                            id="loading-3",
                             type="default",
                             children=[
-                                html.Div(
-                                    children=[
-                                        html.Div(id="loading-output-3"),
-                                        dcc.Graph(id="retention-graph"),
-                                    ],
-                                ),
+                                # Graph 3: Pledges/Depledges Over Time
+                                dcc.Graph(id="retention-graph"),
                             ],
                         ),
                     ],
-                    style=dict(
-                        borderRadius=5,
-                        backgroundColor="#f9f9f9",
-                        margin=10,
-                        padding=15,
-                        width="48%",
-                        position="relative",
-                        boxShadow="2px 2px 2px lightgrey",
-                    ),
+                    style=style["small_graph"],
+                ),
+            ],
+            style=dict(display="flex", flexDirection="row"),
+        ),
+        html.Div(
+            children=[
+                html.Div(
+                    children=[
+                        html.P("Select year: "),
+                        dcc.Dropdown(id="years-dropdown"),
+                    ],
+                    style=style["small_graph"],
+                ),
+                html.Div(
+                    children=[
+                        dcc.Loading(
+                            type="default",
+                            children=[
+                                # Graph 4: Majors of Study
+                                dcc.Graph(id="majors-graph"),
+                            ],
+                        )
+                    ],
+                    style=style["big_graph"],
                 ),
             ],
             style=dict(display="flex", flexDirection="row"),
@@ -255,15 +228,62 @@ app.layout = html.Div(
 @app.expanded_callback(
     Output("chapter-data", "data"), [Input("invisible-button", "n_clicks")]
 )
-def load_data(clicks, **kwargs):
+def load_chapter_data(clicks, **kwargs):
     user = kwargs.get("user", None)
     chapter = user.current_chapter
-    df = read_frame(UserStatusChange.objects.filter(user__chapter=chapter))
-    if df.empty:
+    df_user = read_frame(User.objects.filter(chapter=chapter))
+    df_status = read_frame(UserStatusChange.objects.filter(user__chapter=chapter))
+    if df_status.empty or df_user.empty:
         raise PreventUpdate
-    df = df[["start", "end", "status"]]
+    df_user = df_user[["name", "major"]]
+    df_status = df_status[["start", "end", "status", "user"]]
+    df = pd.merge(df_user, df_status, left_on="name", right_on="user", how="left").drop(
+        "user", axis=1
+    )
     print("Load Data")
     return df.to_dict(orient="records")
+
+
+@app.callback(Output("years-dropdown", "options"), [Input("years-slider", "value")])
+def dropdown(years, **kwargs):
+    options = []
+    YEARS = [x for x in range(years[0], years[1] + 1)]
+    for year in YEARS:
+        options.append({"label": str(year), "value": year})
+    return options
+
+
+@app.callback(
+    Output("majors-graph", "figure"),
+    [Input("chapter-data", "data"), Input("years-dropdown", "value")],
+)
+def majors_graph(data, year, **kwargs):
+    df = pd.DataFrame.from_dict(data)
+    MAJORS = set()
+    values = []
+    date = str(year) + "-01-01"
+    df["term"] = (df["start"] <= date) & (df["end"] >= date)
+    gb = df.groupby(["major", "status", "term"])
+    for name, group in gb:
+        MAJORS.add(name[0])
+
+    for major in MAJORS:
+        values.append(get_group(gb, (major, "active", True)))
+
+    fig = go.Figure(data=[go.Pie(labels=list(MAJORS), values=values, hole=0.35,)])
+    fig.update_layout(
+        title={
+            "text": "Majors of Study",
+            "x": 0.5,
+            "y": 0.9,
+            "font": dict(family="Arial", size=22),
+            "xanchor": "center",
+            "yanchor": "top",
+        },
+        plot_bgcolor="#F9F9F9",
+        paper_bgcolor="#F9F9F9",
+    )
+    return fig
 
 
 @app.callback(
