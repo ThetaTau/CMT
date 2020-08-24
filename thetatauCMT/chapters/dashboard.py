@@ -549,7 +549,7 @@ def majors_graph(data, year, **kwargs):
     fig = go.Figure(data=[go.Pie(labels=list(MAJORS), values=values, hole=0.35,)])
     fig.update_layout(
         title={
-            "text": "Majors of Study",
+            "text": "Majors of Study (" + str(year) + ")",
             "x": 0.5,
             "y": 0.9,
             "font": dict(family="Arial", size=22),
