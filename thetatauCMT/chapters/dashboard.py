@@ -25,10 +25,14 @@ else:
 from chapters.models import Chapter
 from users.models import User, UserStatusChange
 
+## -------------------------------------------------------------------------------
+## STYLING ASSETS
+## -------------------------------------------------------------------------------
+
 colors = {
     "Actives": "#ff9f43",
     "Inactives": "#a29bfe",
-    "Pledges": "#1dd1a1",
+    "Pledges": "#57606f",
     "Depledges": "#d63031",
     "Alumnis": "#2e86de",
     "Fall": "#EB8686",
@@ -98,6 +102,54 @@ def calculateChange(initial, final):
         return 0
 
 
+def layout(fig, title, YEARS):
+    fig.update_layout(
+        title={
+            "text": title,
+            "x": 0.5,
+            "y": 0.9,
+            "font": dict(family="Arial", size=22),
+            "xanchor": "center",
+            "yanchor": "top",
+        },
+        xaxis=dict(
+            showline=True,
+            showgrid=False,
+            showticklabels=True,
+            linecolor="rgb(204, 204, 204)",
+            linewidth=2,
+            ticks="outside",
+            tickfont=dict(family="Arial", size=12, color="rgb(82,82,82)"),
+            ticktext=YEARS,
+            tickvals=YEARS,
+        ),
+        yaxis=dict(
+            showgrid=False, zeroline=False, showline=False, showticklabels=False
+        ),
+        plot_bgcolor="#F9F9F9",
+        paper_bgcolor="#F9F9F9",
+    )
+
+
+def fetchStats(data, years, status):
+    df = pd.DataFrame.from_dict(data)
+    date_start = str(years[0]) + "-01-01"
+    date_end = str(years[1]) + "-01-01"
+    df["start_range"] = (df["start"] <= date_start) & (df["end"] >= date_start)
+    df["end_range"] = (df["start"] <= date_end) & (df["end"] >= date_end)
+    gb_start = df.groupby(["status", "start_range"])
+    gb_end = df.groupby(["status", "end_range"])
+    change = calculateChange(
+        get_group(gb_start, (status, True)), get_group(gb_end, (status, True))
+    )
+    if change > 0:
+        return html.H2("+{}%".format(change), style=dict(color="#1dd1a1"))
+    if change < 0:
+        return html.H2("{}%".format(change), style=dict(color="#ff6b6b"))
+    else:
+        return html.H2("N/A", style=dict(color="#b2bec3"))
+
+
 ## -------------------------------------------------------------------------------
 
 app.layout = html.Div(
@@ -134,23 +186,38 @@ app.layout = html.Div(
         html.Div(
             children=[
                 html.Div(
-                    children=[html.H6("Actives"), html.Div(id="actives-num")],
+                    children=[
+                        html.H6("Actives", style=dict(color=colors["Actives"])),
+                        html.Div(id="actives-num"),
+                    ],
                     style=style["number"],
                 ),
                 html.Div(
-                    children=[html.H6("Inactives"), html.Div(id="inactives-num")],
+                    children=[
+                        html.H6("Inactives", style=dict(color=colors["Inactives"])),
+                        html.Div(id="inactives-num"),
+                    ],
                     style=style["number"],
                 ),
                 html.Div(
-                    children=[html.H6("Pledges"), html.Div(id="pledges-num")],
+                    children=[
+                        html.H6("Pledges", style=dict(color=colors["Pledges"])),
+                        html.Div(id="pledges-num"),
+                    ],
                     style=style["number"],
                 ),
                 html.Div(
-                    children=[html.H6("Depledges"), html.Div(id="depledges-num")],
+                    children=[
+                        html.H6("Depledges", style=dict(color=colors["Depledges"])),
+                        html.Div(id="depledges-num"),
+                    ],
                     style=style["number"],
                 ),
                 html.Div(
-                    children=[html.H6("Alumnis"), html.Div(id="alumni-num")],
+                    children=[
+                        html.H6("Alumnis", style=dict(color=colors["Alumnis"])),
+                        html.Div(id="alumni-num"),
+                    ],
                     style=style["number"],
                 ),
             ],
@@ -244,48 +311,6 @@ def load_chapter_data(clicks, **kwargs):
     return df.to_dict(orient="records")
 
 
-@app.callback(Output("years-dropdown", "options"), [Input("years-slider", "value")])
-def dropdown(years, **kwargs):
-    options = []
-    YEARS = [x for x in range(years[0], years[1] + 1)]
-    for year in YEARS:
-        options.append({"label": str(year), "value": year})
-    return options
-
-
-@app.callback(
-    Output("majors-graph", "figure"),
-    [Input("chapter-data", "data"), Input("years-dropdown", "value")],
-)
-def majors_graph(data, year, **kwargs):
-    df = pd.DataFrame.from_dict(data)
-    MAJORS = set()
-    values = []
-    date = str(year) + "-01-01"
-    df["term"] = (df["start"] <= date) & (df["end"] >= date)
-    gb = df.groupby(["major", "status", "term"])
-    for name, group in gb:
-        MAJORS.add(name[0])
-
-    for major in MAJORS:
-        values.append(get_group(gb, (major, "active", True)))
-
-    fig = go.Figure(data=[go.Pie(labels=list(MAJORS), values=values, hole=0.35,)])
-    fig.update_layout(
-        title={
-            "text": "Majors of Study",
-            "x": 0.5,
-            "y": 0.9,
-            "font": dict(family="Arial", size=22),
-            "xanchor": "center",
-            "yanchor": "top",
-        },
-        plot_bgcolor="#F9F9F9",
-        paper_bgcolor="#F9F9F9",
-    )
-    return fig
-
-
 @app.callback(
     Output("composition-graph", "figure"),
     [Input("chapter-data", "data"), Input("years-slider", "value")],
@@ -337,32 +362,8 @@ def members_graph(data, years, **kwargs):
         DataOut.append(trace)
 
     fig = go.Figure(data=DataOut)
-
+    layout(fig, "Membership Composition", YEARS)
     fig.update_layout(
-        title={
-            "text": "Membership Composition",
-            "x": 0.5,
-            "y": 0.9,
-            "font": dict(family="Arial", size=22),
-            "xanchor": "center",
-            "yanchor": "top",
-        },
-        xaxis=dict(
-            showline=True,
-            showgrid=False,
-            showticklabels=True,
-            linecolor="rgb(204, 204, 204)",
-            linewidth=2,
-            ticks="outside",
-            tickfont=dict(family="Arial", size=12, color="rgb(82,82,82)"),
-            ticktext=YEARS,
-            tickvals=YEARS,
-        ),
-        yaxis=dict(
-            showgrid=False, zeroline=False, showline=False, showticklabels=False
-        ),
-        plot_bgcolor="#F9F9F9",
-        paper_bgcolor="#F9F9F9",
         updatemenus=[
             dict(
                 direction="down",
@@ -446,32 +447,8 @@ def pledge_depledge_graph(data, years, **kwargs):
         DataOut.append(trace)
 
     fig = go.Figure(data=DataOut)
-
+    layout(fig, "Recruitment Retention", YEARS)
     fig.update_layout(
-        title={
-            "text": "Recruitment Retention",
-            "x": 0.5,
-            "y": 0.9,
-            "font": dict(family="Arial", size=22),
-            "xanchor": "center",
-            "yanchor": "top",
-        },
-        plot_bgcolor="#F9F9F9",
-        paper_bgcolor="#F9F9F9",
-        xaxis=dict(
-            showline=True,
-            showgrid=False,
-            showticklabels=True,
-            linecolor="rgb(204, 204, 204)",
-            linewidth=2,
-            ticks="outside",
-            tickfont=dict(family="Arial", size=12, color="rgb(82,82,82)"),
-            ticktext=YEARS,
-            tickvals=YEARS,
-        ),
-        yaxis=dict(
-            showgrid=False, zeroline=False, showline=False, showticklabels=False
-        ),
         updatemenus=[
             dict(
                 type="buttons",
@@ -538,26 +515,47 @@ def chapter_size_graph(data, years, **kwargs):
         DataOut.append(trace)
 
     fig = go.Figure(data=DataOut)
+    layout(fig, "Chapter Size by Semester", YEARS)
+    fig.update_layout(barmode="group")
+    return fig
 
+
+@app.callback(Output("years-dropdown", "options"), [Input("years-slider", "value")])
+def dropdown(years, **kwargs):
+    options = []
+    YEARS = [x for x in range(years[0], years[1] + 1)]
+    for year in YEARS:
+        options.append({"label": str(year), "value": year})
+    return options
+
+
+@app.callback(
+    Output("majors-graph", "figure"),
+    [Input("chapter-data", "data"), Input("years-dropdown", "value")],
+)
+def majors_graph(data, year, **kwargs):
+    df = pd.DataFrame.from_dict(data)
+    MAJORS = set()
+    values = []
+    date = str(year) + "-01-01"
+    df["term"] = (df["start"] <= date) & (df["end"] >= date)
+    gb = df.groupby(["major", "status", "term"])
+    for name, group in gb:
+        MAJORS.add(name[0])
+
+    for major in MAJORS:
+        values.append(get_group(gb, (major, "active", True)))
+
+    fig = go.Figure(data=[go.Pie(labels=list(MAJORS), values=values, hole=0.35,)])
     fig.update_layout(
-        barmode="group",
         title={
-            "text": "Chapter Size by Semester",
+            "text": "Majors of Study",
             "x": 0.5,
             "y": 0.9,
+            "font": dict(family="Arial", size=22),
             "xanchor": "center",
             "yanchor": "top",
         },
-        xaxis=dict(
-            showgrid=False,
-            zeroline=False,
-            showline=False,
-            ticktext=YEARS,
-            tickvals=YEARS,
-        ),
-        yaxis=dict(
-            showgrid=False, zeroline=False, showline=False, showticklabels=False
-        ),
         plot_bgcolor="#F9F9F9",
         paper_bgcolor="#F9F9F9",
     )
@@ -570,22 +568,7 @@ def chapter_size_graph(data, years, **kwargs):
 )
 def actives_stats(data, years, **kwargs):
     df = pd.DataFrame.from_dict(data)
-    date_start = str(years[0]) + "-01-01"
-    date_end = str(years[1]) + "-01-01"
-    df["start_range"] = (df["start"] <= date_start) & (df["end"] >= date_start)
-    df["end_range"] = (df["start"] <= date_end) & (df["end"] >= date_end)
-    gb_start = df.groupby(["status", "start_range"])
-    gb_end = df.groupby(["status", "end_range"])
-    change = calculateChange(
-        get_group(gb_start, ("active", True)), get_group(gb_end, ("active", True))
-    )
-
-    if change > 0:
-        return html.H2("+{}%".format(change), style=dict(color="#1dd1a1"))
-    if change < 0:
-        return html.H2("{}%".format(change), style=dict(color="#ff6b6b"))
-    else:
-        return html.H2("N/A", style=dict(color="#b2bec3"))
+    return fetchStats(df, years, "active")
 
 
 @app.callback(
@@ -593,23 +576,7 @@ def actives_stats(data, years, **kwargs):
     [Input("chapter-data", "data"), Input("years-slider", "value"),],
 )
 def actives_stats(data, years, **kwargs):
-    df = pd.DataFrame.from_dict(data)
-    date_start = str(years[0]) + "-01-01"
-    date_end = str(years[1]) + "-01-01"
-    df["start_range"] = (df["start"] <= date_start) & (df["end"] >= date_start)
-    df["end_range"] = (df["start"] <= date_end) & (df["end"] >= date_end)
-    gb_start = df.groupby(["status", "start_range"])
-    gb_end = df.groupby(["status", "end_range"])
-    change = calculateChange(
-        get_group(gb_start, ("away", True)), get_group(gb_end, ("away", True))
-    )
-
-    if change > 0:
-        return html.H2("+{}%".format(change), style=dict(color="#1dd1a1"))
-    if change < 0:
-        return html.H2("{}%".format(change), style=dict(color="#ff6b6b"))
-    else:
-        return html.H2("N/A", style=dict(color="#b2bec3"))
+    return fetchStats(data, years, "away")
 
 
 @app.callback(
@@ -617,24 +584,7 @@ def actives_stats(data, years, **kwargs):
     [Input("chapter-data", "data"), Input("years-slider", "value"),],
 )
 def pledges_stats(data, years, **kwargs):
-    df = pd.DataFrame.from_dict(data)
-    date_start = str(years[0]) + "-01-01"
-    date_end = str(years[1]) + "-01-01"
-    df["start_range"] = (df["start"] <= date_start) & (df["end"] >= date_start)
-    df["end_range"] = (df["start"] <= date_end) & (df["end"] >= date_end)
-    gb_start = df.groupby(["status", "start_range"])
-    gb_end = df.groupby(["status", "end_range"])
-    change = calculateChange(
-        get_group(gb_start, ("prospective", True)),
-        get_group(gb_end, ("prospective", True)),
-    )
-
-    if change > 0:
-        return html.H2("+{}%".format(change), style=dict(color="#1dd1a1"))
-    if change < 0:
-        return html.H2("{}%".format(change), style=dict(color="#ff6b6b"))
-    else:
-        return html.H2("N/A", style=dict(color="#b2bec3"))
+    return fetchStats(data, years, "prospective")
 
 
 @app.callback(
@@ -642,23 +592,7 @@ def pledges_stats(data, years, **kwargs):
     [Input("chapter-data", "data"), Input("years-slider", "value"),],
 )
 def actives_stats(data, years, **kwargs):
-    df = pd.DataFrame.from_dict(data)
-    date_start = str(years[0]) + "-01-01"
-    date_end = str(years[1]) + "-01-01"
-    df["start_range"] = (df["start"] <= date_start) & (df["end"] >= date_start)
-    df["end_range"] = (df["start"] <= date_end) & (df["end"] >= date_end)
-    gb_start = df.groupby(["status", "start_range"])
-    gb_end = df.groupby(["status", "end_range"])
-    change = calculateChange(
-        get_group(gb_start, ("depledge", True)), get_group(gb_end, ("depledge", True))
-    )
-
-    if change > 0:
-        return html.H2("+{}%".format(change), style=dict(color="#1dd1a1"))
-    if change < 0:
-        return html.H2("{}%".format(change), style=dict(color="#ff6b6b"))
-    else:
-        return html.H2("N/A", style=dict(color="#b2bec3"))
+    return fetchStats(data, years, "depledge")
 
 
 @app.callback(
@@ -666,23 +600,7 @@ def actives_stats(data, years, **kwargs):
     [Input("chapter-data", "data"), Input("years-slider", "value"),],
 )
 def alumni_stats(data, years, **kwargs):
-    df = pd.DataFrame.from_dict(data)
-    date_start = str(years[0]) + "-01-01"
-    date_end = str(years[1]) + "-01-01"
-    df["start_range"] = (df["start"] <= date_start) & (df["end"] >= date_start)
-    df["end_range"] = (df["start"] <= date_end) & (df["end"] >= date_end)
-    gb_start = df.groupby(["status", "start_range"])
-    gb_end = df.groupby(["status", "end_range"])
-    change = calculateChange(
-        get_group(gb_start, ("alumni", True)), get_group(gb_end, ("alumni", True))
-    )
-
-    if change > 0:
-        return html.H2("+{}%".format(change), style=dict(color="#1dd1a1"))
-    if change < 0:
-        return html.H2("{}%".format(change), style=dict(color="#ff6b6b"))
-    else:
-        return html.H2("N/A", style=dict(color="#b2bec3"))
+    return fetchStats(data, years, "alumni")
 
 
 if __name__ == "__main__":
