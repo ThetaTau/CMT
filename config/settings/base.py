@@ -408,4 +408,3 @@ PLOTLY_COMPONENTS = [
     "dash_renderer",
     "dpd_components",
 ]
-
