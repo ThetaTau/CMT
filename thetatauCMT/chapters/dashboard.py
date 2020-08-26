@@ -1,3 +1,4 @@
+import dash
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
@@ -8,7 +9,6 @@ from django_pandas.io import read_frame
 from dash.exceptions import PreventUpdate
 
 if __name__ == "__main__":
-    import dash
     import os
     import django
 
@@ -156,7 +156,7 @@ app.layout = html.Div(
     children=[
         # invisible button for initial loading
         html.Button(id="invisible-button", style={"display": "none"}),
-        dcc.Store(id="chapter-data", storage_type="session"),
+        dcc.Store(id="chapter-data", storage_type="local"),
         html.Div(
             children=[html.H1("Status Dashboard")],
             style=dict(
@@ -301,7 +301,8 @@ def load_chapter_data(clicks, **kwargs):
     df_user = read_frame(User.objects.filter(chapter=chapter))
     df_status = read_frame(UserStatusChange.objects.filter(user__chapter=chapter))
     if df_status.empty or df_user.empty:
-        raise PreventUpdate
+        df = pd.DataFrame()
+        return df.to_dict()
     df_user = df_user[["name", "major"]]
     df_status = df_status[["start", "end", "status", "user"]]
     df = pd.merge(df_user, df_status, left_on="name", right_on="user", how="left").drop(
@@ -316,6 +317,7 @@ def load_chapter_data(clicks, **kwargs):
     [Input("chapter-data", "data"), Input("years-slider", "value")],
 )
 def members_graph(data, years, **kwargs):
+    print(data)
     groups = {
         "Actives": [],
         "Inactives": [],
@@ -549,7 +551,7 @@ def majors_graph(data, year, **kwargs):
     fig = go.Figure(data=[go.Pie(labels=list(MAJORS), values=values, hole=0.35,)])
     fig.update_layout(
         title={
-            "text": "Majors of Study (" + str(year) + ")",
+            "text": "Major of Study (" + str(year) + ")",
             "x": 0.5,
             "y": 0.9,
             "font": dict(family="Arial", size=22),
