@@ -399,3 +399,15 @@ else:
 
 USE_DJANGO_JQUERY = False
 JQUERY_URL = False
+
+# Django Plotly Dash
+# -------------------------------------
+INSTALLED_APPS += ["django_plotly_dash.apps.DjangoPlotlyDashConfig"]
+MIDDLEWARE += ["django_plotly_dash.middleware.BaseMiddleware"]
+
+PLOTLY_COMPONENTS = [
+    "dash_core_components",
+    "dash_html_components",
+    "dash_renderer",
+    "dpd_components",
+]

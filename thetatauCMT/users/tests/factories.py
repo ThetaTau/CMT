@@ -16,6 +16,7 @@ class UserFactory(factory.django.DjangoModelFactory):
     email = factory.Sequence(lambda n: f"user-{n}@example.com")
     password = factory.PostGenerationMethodCall("set_password", "password")
     username = factory.LazyAttribute(lambda o: o.email)
+    user_id = factory.LazyAttribute(lambda o: f"{o.chapter.greek}{o.badge_number}")
     name = factory.Faker("name")
     modified = factory.Faker("date_time_between", start_date="-1y", end_date="+1y")
     badge_number = factory.Sequence(lambda n: n + 1)
@@ -32,7 +33,7 @@ class UserFactory(factory.django.DjangoModelFactory):
 
     class Meta:
         model = "users.User"
-        django_get_or_create = ("username",)
+        django_get_or_create = ("username", "user_id")
 
     @factory.post_generation
     def make_officer(self, create, extracted, **kwargs):
