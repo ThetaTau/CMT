@@ -677,7 +677,7 @@ def actives_stats(data, years, **kwargs):
     [Input("chapter-data", "data"), Input("years-slider", "value"),],
 )
 def actives_stats(data, years, **kwargs):
-    return fetchStats(data, years, "alumnipend")
+    return fetchStats(data, years, "alumni pending")
 
 
 @app.callback(
