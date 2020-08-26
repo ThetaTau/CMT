@@ -1,12 +1,10 @@
 import dash
-import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 import dash_core_components as dcc
 import dash_html_components as html
 from dash.dependencies import Input, Output, State
 from django_pandas.io import read_frame
-from dash.exceptions import PreventUpdate
 
 if __name__ == "__main__":
     import os
@@ -23,7 +21,7 @@ else:
     app = DjangoDash("Dashboard")
 
 from chapters.models import Chapter
-from users.models import User, UserStatusChange
+from users.models import User, UserStatusChange, UserSemesterGPA
 
 ## -------------------------------------------------------------------------------
 ## STYLING ASSETS
@@ -35,8 +33,10 @@ colors = {
     "Pledges": "#57606f",
     "Depledges": "#d63031",
     "Alumnis": "#2e86de",
-    "Fall": "#EB8686",
-    "Spring": "#E66868",
+    "Fall": "#c0392b",
+    "Winter": "#2e86de",
+    "Spring": "#fbc531",
+    "Summer": "#8c7ae6",
 }
 
 style = {
@@ -177,8 +177,9 @@ app.layout = html.Div(
                         2016: "2016",
                         2018: "2018",
                         2020: "2020",
+                        2022: "2022",
                     },
-                    value=[2014, 2020],
+                    value=[2016, 2020],
                 ),
             ],
             style=style["slider"],
@@ -288,6 +289,18 @@ app.layout = html.Div(
             ],
             style=dict(display="flex", flexDirection="row"),
         ),
+        html.Div(
+            children=[
+                dcc.Loading(
+                    type="default",
+                    children=[
+                        # Graph 5: Average GPA over time
+                        dcc.Graph(id="gpa-graph"),
+                    ],
+                )
+            ],
+            style=style["big_graph"],
+        ),
     ]
 )
 
@@ -300,13 +313,22 @@ def load_chapter_data(clicks, **kwargs):
     chapter = user.current_chapter
     df_user = read_frame(User.objects.filter(chapter=chapter))
     df_status = read_frame(UserStatusChange.objects.filter(user__chapter=chapter))
-    if df_status.empty or df_user.empty:
+    df_gpa = read_frame(UserSemesterGPA.objects.filter(user__chapter=chapter))
+    if df_user.empty or df_status.empty or df_gpa.empty:
         df = pd.DataFrame()
+        # initialize empty dataframe with NA values to prevent error queries when loading empty chapters
+        df["start"] = df["end"] = ["0001-01-01"]
+        df["status"] = df["major"] = [""]
         return df.to_dict()
     df_user = df_user[["name", "major"]]
     df_status = df_status[["start", "end", "status", "user"]]
-    df = pd.merge(df_user, df_status, left_on="name", right_on="user", how="left").drop(
-        "user", axis=1
+    df = pd.merge(
+        pd.merge(
+            df_user.rename(columns={"name": "user"}), df_status, on="user", how="left"
+        ),
+        df_gpa,
+        on="user",
+        how="left",
     )
     print("Load Data")
     return df.to_dict(orient="records")
@@ -317,7 +339,6 @@ def load_chapter_data(clicks, **kwargs):
     [Input("chapter-data", "data"), Input("years-slider", "value")],
 )
 def members_graph(data, years, **kwargs):
-    print(data)
     groups = {
         "Actives": [],
         "Inactives": [],
@@ -333,8 +354,12 @@ def members_graph(data, years, **kwargs):
         date = year + "-01-01"
         df["term"] = (df["start"] <= date) & (df["end"] >= date)
         gb = df.groupby(["status", "term"])
-        groups["Actives"].append(get_group(gb, ("active", True)))
-        groups["Inactives"].append(get_group(gb, ("away", True)))
+        groups["Actives"].append(
+            get_group(gb, ("active", True)) + get_group(gb, ("active pending", True))
+        )
+        groups["Inactives"].append(
+            get_group(gb, ("alumni pending", True)) + get_group(gb, ("away", True))
+        )
         groups["Pledges"].append(get_group(gb, ("prospective", True)))
         groups["Depledges"].append(get_group(gb, ("depledge", True)))
         groups["Alumnis"].append(get_group(gb, ("alumni", True)))
@@ -491,27 +516,27 @@ def pledge_depledge_graph(data, years, **kwargs):
     [Input("chapter-data", "data"), Input("years-slider", "value"),],
 )
 def chapter_size_graph(data, years, **kwargs):
-    groups = {"Fall": [], "Spring": []}
+    TERMS = {"Fall": [], "Spring": []}
     YEARS = [str(year) for year in range(years[0], years[1] + 1)]
     df = pd.DataFrame.from_dict(data)
     DataOut = []
 
-    for key, value in groups.items():
+    for term in TERMS:
         for year in YEARS:
-            if key == "Fall":
+            if term == "Fall":
                 date = year + "-12-01"
-            if key == "Spring":
+            if term == "Spring":
                 date = year + "-05-01"
             df["term"] = (df["start"] <= date) & (df["end"] >= date)
             gb = df.groupby(["status", "term"])
-            groups[key].append(
+            TERMS[term].append(
                 get_group(gb, ("active", True)) + get_group(gb, ("alumni", True))
             )
         trace = go.Bar(
-            name=key,
+            name=term,
             x=YEARS,
-            y=value,
-            marker=dict(color=colors[key]),
+            y=TERMS[term],
+            marker=dict(color=colors[term]),
             showlegend=False,
         )
         DataOut.append(trace)
@@ -565,6 +590,80 @@ def majors_graph(data, year, **kwargs):
 
 
 @app.callback(
+    Output("gpa-graph", "figure"),
+    [Input("chapter-data", "data"), Input("years-slider", "value"),],
+)
+def gpa_graph(data, years, **kwargs):
+    YEARS = [x for x in range(years[0], years[1] + 1)]
+    TERMS = {"Fall": [], "Winter": [], "Spring": [], "Summer": []}
+    df = pd.DataFrame.from_dict(data)
+    gb = df.groupby(["term", "year"])
+    DataOut = []
+
+    for term in TERMS:
+        for year in YEARS:
+            TERMS[term].append(gb.get_group((term, str(year)))["gpa"].mean())
+
+    for key, value in TERMS.items():
+        trace = go.Scatter(
+            name=key,
+            x=YEARS,
+            y=value,
+            hovertemplate="<i>Average</i>: %{y}",
+            marker=dict(color=colors[key]),
+            showlegend=False,
+        )
+        DataOut.append(trace)
+
+    fig = go.Figure(data=DataOut)
+    layout(fig, "Average GPA", YEARS)
+    fig.update_layout(
+        yaxis=dict(showgrid=True, gridcolor="#dcdde1", ticks="outside"),
+        updatemenus=[
+            dict(
+                type="buttons",
+                direction="right",
+                active=0,
+                xanchor="center",
+                x=0.5,
+                y=-0.5,
+                yanchor="bottom",
+                buttons=list(
+                    [
+                        dict(
+                            label="All",
+                            method="update",
+                            args=[{"visible": [True, True, True, True]}],
+                        ),
+                        dict(
+                            label="Fall",
+                            method="update",
+                            args=[{"visible": [True, False, False, False]}],
+                        ),
+                        dict(
+                            label="Winter",
+                            method="update",
+                            args=[{"visible": [False, True, False, False]}],
+                        ),
+                        dict(
+                            label="Spring",
+                            method="update",
+                            args=[{"visible": [False, False, True, False]}],
+                        ),
+                        dict(
+                            label="Summer",
+                            method="update",
+                            args=[{"visible": [False, False, False, True]}],
+                        ),
+                    ]
+                ),
+            )
+        ],
+    )
+    return fig
+
+
+@app.callback(
     Output("actives-num", "children"),
     [Input("chapter-data", "data"), Input("years-slider", "value"),],
 )
@@ -578,7 +677,7 @@ def actives_stats(data, years, **kwargs):
     [Input("chapter-data", "data"), Input("years-slider", "value"),],
 )
 def actives_stats(data, years, **kwargs):
-    return fetchStats(data, years, "away")
+    return fetchStats(data, years, "alumnipend")
 
 
 @app.callback(
