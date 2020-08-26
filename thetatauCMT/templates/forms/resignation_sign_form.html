@@ -5,14 +5,23 @@
 {% block head_title %}{% trans "Sign Resignation Form" %}{% endblock %}
 {% block content %}
   <h1>Sign Resignation Form</h1>
-  Member {{ object }} has submitted for their resignation from the chapter.
+  Member {{ object.user }} has submitted for their resignation from the chapter.
   <hr>
   <form method="POST" enctype="multipart/form-data" class="form">
     {% csrf_token %}
     {{ form.media }}
     {{ form.management_form|crispy }}
     <link href="{% static 'css/project.css' %}" rel="stylesheet">
-      <h5>Please verify the following information is correct and sign:</h5>
+      <h5>Please verify the following information provided by the member is correct and sign:</h5>
+    <table width="100%">
+      {% for key, value in info.items %}
+        <tr>
+          <th width="80%">{{ key|title }}</th>
+          <td>{{ value }}</td>
+        </tr>
+      {% endfor %}
+    </table>
+    {{ form|crispy }}
     {{ activation.management_form }}
     <button class="primaryAction btn btn-primary" type="submit">{% trans "Submit" %}</button>
   </form>

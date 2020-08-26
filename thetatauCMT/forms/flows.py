@@ -1031,14 +1031,20 @@ class ResignationFlow(Flow):
         :param activation:
         :return:
         """
+        host = settings.CURRENT_URL
         for user_role in ["officer1", "officer2"]:
             user = getattr(activation.process, user_role)
+            # You can not link directly to the task b/c it has not been assigned yet
+            link = reverse("forms:resign_list")
+            link = host + link
             EmailProcessUpdate(
                 activation,
                 complete_step="Submitted",
-                next_step="Central Office Process",
+                next_step="Officer Review/Approval",
                 state="Sign",
-                message="Please complete the form and sign here: ",
+                message=f"{activation.process.user} has submitted for resignation from the chapter."
+                f" Please review and complete the form here: <a href='{link}'>"
+                f"Resignation List</a>",
                 fields=[],
                 attachments=["letter"],
                 direct_user=user,

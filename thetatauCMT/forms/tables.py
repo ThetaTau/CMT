@@ -223,11 +223,14 @@ class DisciplinaryStatusTable(tables.Table):
 
 
 class SignTable(tables.Table):
-    owner = tables.Column()
+    member = tables.Column()
+    owner = tables.Column(verbose_name="Task Owner")
     role = tables.Column()
     status = tables.Column()
     approved = tables.Column()
-    link = tables.TemplateColumn('<a href="{{ record.link }}">Sign Link</a>')
+    link = tables.TemplateColumn(
+        '{% if record.link %}<a href="{{ record.link }}">Sign Link</a>{% endif %}'
+    )
 
     class Meta:
         attrs = {

@@ -1625,6 +1625,8 @@ def badge_shingle_init_csv(request, csv_type, process_pk):
 
 def get_sign_status(user, type_sign="creds", initial=False):
     data = []
+    extra_filter = {}
+    member_field_names = ["user"]
     if type_sign == "creds":
         model = Convention
         url = f"viewflow:forms:convention:assign_"
@@ -1634,16 +1636,22 @@ def get_sign_status(user, type_sign="creds", initial=False):
             "officer1": "o1",
             "officer2": "o2",
         }
+        member_field_names = ["delegate", "alternate"]
+        extra_filter = {"year": model.current_year()}
+    elif type_sign == "resign":
+        model = ResignationProcess
+        url = f"viewflow:forms:resignation:assign_"
+        signatures = {"officer1": "o1", "officer2": "o2"}
     else:
         model = OSM
         url = f"viewflow:forms:osm:assign_"
         signatures = {"officer1": "o1", "officer2": "o2"}
-    process = model.objects.filter(
-        chapter=user.current_chapter, year=model.current_year()
-    ).first()
+        extra_filter = {"year": model.current_year()}
+        member_field_names = ["nominate"]
+    processes = model.objects.filter(chapter=user.current_chapter, **extra_filter)
     submitted = False
     users = []
-    if process:
+    for process in processes:
         submitted = True
         task_ids = {}
         for task in process.task_set.all():
@@ -1656,8 +1664,14 @@ def get_sign_status(user, type_sign="creds", initial=False):
             if not initial:
                 task_pk, task_status = task_ids[signature]
             signer = getattr(process, signature)
+            member = ", ".join(
+                [
+                    str(getattr(process, member_field_name))
+                    for member_field_name in member_field_names
+                ]
+            )
             users.append(signer)
-            link = "#"
+            link = False
             approved = "N/A"
             status = "Complete"
             if task_status == "ASSIGNED":
@@ -1670,12 +1684,15 @@ def get_sign_status(user, type_sign="creds", initial=False):
                         url + abbr,
                         kwargs={"process_pk": process.pk, "task_pk": task_pk},
                     )
+            else:
+                # If still assigned should be N/A only when complete grab approval
                 approved = getattr(process, f"approved_{abbr}", "N/A")
             if user.current_chapter.colony:
                 if signature in ["delegate", "alternate"]:
                     signature = "representative"
             data.append(
                 {
+                    "member": member,
                     "owner": signer,
                     "role": signature,
                     "status": status,
@@ -2530,6 +2547,7 @@ class ResignationCreateView(LoginRequiredMixin, OfficerMixin, CreateProcessView)
     def form_valid(self, form, *args, **kwargs):
         user = self.request.user
         form.instance.user = user
+        form.instance.chapter = user.current_chapter
         chapter = user.current_chapter
         (
             regent,
@@ -2589,14 +2607,14 @@ class ResignationSignView(LoginRequiredMixin, OfficerMixin, UpdateProcessView):
             "returned",
             "financial",
             "fee_paid",
-            "signature_o1",
             "approved_o1",
+            "signature_o1",
         ],
-        "assign_o2": ["signature_o2", "approved_o2",],
+        "assign_o2": ["approved_o2", "signature_o2",],
     }
 
     def get_success_url(self):
-        return reverse("forms:resignation")
+        return reverse("forms:resign_list")
 
     def activation_done(self, *args, **kwargs):
         """Finish task activation."""
@@ -2606,16 +2624,35 @@ class ResignationSignView(LoginRequiredMixin, OfficerMixin, UpdateProcessView):
     def get_form_class(self, *args, **kwargs):
         task_name = self.activation.flow_task.name
         self.fields = self.fields_options[task_name]
-        return model_forms.modelform_factory(self.model, fields=self.fields)(
-            **self.get_form_kwargs()
-        )
+        return model_forms.modelform_factory(self.model, fields=self.fields)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        fields = ResignationForm._meta.fields[:]
+        fields.remove("letter")
+        info = {}
+        model_obj = self.object
+        for field in fields:
+            if isinstance(field, dict):
+                info.update(field)
+                continue
+            field_obj = model_obj._meta.get_field(field)
+            if field == "user":
+                info[field_obj.verbose_name] = model_obj.user
+                continue
+            try:
+                info[field_obj.verbose_name] = model_obj._get_FIELD_display(field_obj)
+            except TypeError:
+                info[field_obj.verbose_name] = field_obj.value_to_string(model_obj)
+        context["info"] = info
+        return context
 
 
 class ResignationListView(
     OfficerRequiredMixin, LoginRequiredMixin, OfficerMixin, PagedFilteredTableView
 ):
     model = ResignationProcess
-    context_object_name = "osm_list"
+    context_object_name = "resign_list"
     table_class = ResignationListTable
 
     def get_queryset(self, **kwargs):
@@ -2624,16 +2661,7 @@ class ResignationListView(
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        data = []
-        for form in self.object_list:
-            data.append(
-                {
-                    "member": form.user,
-                    "finished": form.chapter.region.name,
-                    "status": form.year,
-                    "link": ChapterReport.TERMS.get_value(form.term),
-                }
-            )
-        table = ResignationListTable(data=data)
+        data, submitted, users = get_sign_status(self.request.user, type_sign="resign")
+        table = SignTable(data=data)
         context["table"] = table
         return context

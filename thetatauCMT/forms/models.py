@@ -1599,6 +1599,9 @@ class ResignationProcess(Process):
         null=True,
         blank=True,
     )
+    chapter = models.ForeignKey(
+        Chapter, on_delete=models.CASCADE, related_name="resignations"
+    )
     letter = models.FileField("Resignation Letter", upload_to=get_resign_upload_path)
     verbose_resign = _(
         "For reasons which I deem good and sufficient, I wish to resign as a "
@@ -1650,11 +1653,15 @@ class ResignationProcess(Process):
         verbose_returned, choices=BOOL_CHOICES, default=False
     )
     verbose_financial = _("Member has no current financial obligation to the chapter.")
-    financial = models.BooleanField(verbose_financial, default=False)
+    financial = models.BooleanField(
+        verbose_financial, choices=BOOL_CHOICES, default=False
+    )
     verbose_fee_paid = _(
         "Member submitted the $100 Resignation Processing Fee to the chapter."
     )
-    fee_paid = models.BooleanField(verbose_fee_paid, default=False)
+    fee_paid = models.BooleanField(
+        verbose_fee_paid, choices=BOOL_CHOICES, default=False
+    )
     officer1 = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,

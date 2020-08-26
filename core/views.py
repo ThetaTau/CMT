@@ -93,6 +93,7 @@ class PagedFilteredTableView(SingleTableView):
     formhelper_class = None
     context_filter_name = "filter"
     filter_chapter = False
+    filter = None
 
     def get_queryset(self, **kwargs):
         other_qs = kwargs.get("other_qs", None)

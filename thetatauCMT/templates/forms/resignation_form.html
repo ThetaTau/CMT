@@ -6,13 +6,13 @@
 {% block head_title %}{% trans "Resignation Form" %}{% endblock %}
 {% block content %}
   <h1>Resignation Form</h1>
-  A member who resigns in accord with this process shall be classified as expelled.
-  No other form of resignation is permitted. Complete the form below to submit your resignation.<br>
-  <h3><i>You must submit a written resignation letter, an example is in the Policy and Procedures Manual appendix:</i><br>
-  <a href="http://thetatau.org/policies">http://thetatau.org/policies</a></h3>
-  <i>A $100 charge will be added to the chapter's next invoice.</i>
-  <hr>
   {% if not submitted %}
+    A member who resigns in accord with this process shall be classified as expelled.
+    No other form of resignation is permitted. Complete the form below to submit your resignation.<br>
+    <h3><i>You must submit a written resignation letter, an example is in the Policy and Procedures Manual appendix:</i><br>
+      <a href="http://thetatau.org/policies">http://thetatau.org/policies</a></h3>
+    <i>A $100 charge will be added to the chapter's next invoice.</i>
+    <hr>
     <form method="POST" enctype="multipart/form-data">
       {{ form.media }}
       <link href="{% static 'css/project.css' %}" rel="stylesheet">
