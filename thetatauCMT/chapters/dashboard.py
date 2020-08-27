@@ -95,6 +95,13 @@ def get_group(g, key):
         return 0
 
 
+def get_term_average(g, key):
+    try:
+        return g.get_group(key)["gpa"].mean()
+    except KeyError:
+        return 0
+
+
 def calculateChange(initial, final):
     try:
         return round(((final - initial) / initial * 100), 2)
@@ -330,6 +337,7 @@ def load_chapter_data(clicks, **kwargs):
         on="user",
         how="left",
     )
+    print(df)
     print("Load Data")
     return df.to_dict(orient="records")
 
@@ -602,7 +610,7 @@ def gpa_graph(data, years, **kwargs):
 
     for term in TERMS:
         for year in YEARS:
-            TERMS[term].append(gb.get_group((term, str(year)))["gpa"].mean())
+            TERMS[term].append(get_term_average(gb, (term, str(year))))
 
     for key, value in TERMS.items():
         trace = go.Scatter(
@@ -676,7 +684,7 @@ def actives_stats(data, years, **kwargs):
     Output("inactives-num", "children"),
     [Input("chapter-data", "data"), Input("years-slider", "value"),],
 )
-def actives_stats(data, years, **kwargs):
+def inactives_stats(data, years, **kwargs):
     return fetchStats(data, years, "alumni pending")
 
 
