@@ -391,8 +391,11 @@ class InitiationView(OfficerRequiredMixin, LoginRequiredMixin, OfficerMixin, For
             )
         from .flows import InitiationProcessFlow
 
+        ceremony = request.POST.get("initiates-__prefix__-ceremony", "normal")
         if initiations:
-            InitiationProcessFlow.start.run(initiations=initiations, request=request)
+            InitiationProcessFlow.start.run(
+                initiations=initiations, ceremony=ceremony, request=request
+            )
         return HttpResponseRedirect(self.get_success_url())
 
     def get_success_url(self):

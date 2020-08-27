@@ -16,6 +16,7 @@ from .models import (
     OSM,
     DisciplinaryProcess,
     DisciplinaryAttachment,
+    InitiationProcess,
 )
 from .resources import (
     InitiationResource,
@@ -298,3 +299,35 @@ class DisciplinaryProcessAdmin(admin.ModelAdmin):
 
 
 admin.site.register(DisciplinaryProcess, DisciplinaryProcessAdmin)
+
+
+class InitiationProcessAdmin(admin.ModelAdmin):
+    list_display = (
+        "chapter",
+        "created",
+        "ceremony",
+        "invoice",
+    )
+    list_filter = [
+        "chapter",
+        "created",
+        "ceremony",
+    ]
+    ordering = [
+        "-created",
+    ]
+    search_fields = [
+        "chapter",
+    ]
+    exclude = [
+        "flow_class",
+        "status",
+        "finished",
+        "artifact_content_type",
+        "artifact_object_id",
+        "data",
+        "initiations",
+    ]
+
+
+admin.site.register(InitiationProcess, InitiationProcessAdmin)

@@ -847,10 +847,35 @@ class PrematureAlumnus(Process):
 
 
 class InitiationProcess(Process):
+    class CEREMONIES(Enum):
+        normal = (
+            "normal",
+            "Normal in-person ceremony",
+        )
+        extra = (
+            "extra",
+            "In-person extraordinary initiation ceremony",
+        )
+        remote = (
+            "remote",
+            "Remote extraordinary initiation ceremony",
+        )
+
+        @classmethod
+        def get_value(cls, member):
+            return cls[member].value[1]
+
     initiations = models.ManyToManyField(Initiation, related_name="process", blank=True)
     invoice = models.PositiveIntegerField("Invoice Number", default=999999999)
     chapter = models.ForeignKey(
         Chapter, on_delete=models.CASCADE, related_name="initiation_process"
+    )
+    verbose_ceremony = "What ceremony did you use to initiate these members?"
+    ceremony = models.CharField(
+        verbose_ceremony,
+        default="normal",
+        max_length=10,
+        choices=[x.value for x in CEREMONIES],
     )
 
     def generate_invoice(self):

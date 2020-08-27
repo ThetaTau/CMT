@@ -52,6 +52,18 @@ function update_dates() {
          update_dates();
          return false;"/>
     </td>
+  </tr>
+    <tr>
+    <td>
+      What ceremony did you use to initiate these members?
+    </td>
+      <td>
+        <select name="initiates-__prefix__-ceremony" class="select form-control" id="id_initiates-__prefix__-ceremony">
+          <option value="normal">Normal in-person ceremony</option>
+          <option value="extra">In-person extraordinary initiation ceremony</option>
+          <option value="remote">Remote extraordinary initiation ceremony</option>
+        </select>
+      </td>
   </tr></table>
   <table{% if form_id %} id="{{ form_id }}_table"{% endif%} class="table table-striped table-sm">
         <thead>
