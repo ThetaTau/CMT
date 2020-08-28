@@ -1,4 +1,5 @@
 import dash
+import datetime
 import pandas as pd
 import plotly.graph_objects as go
 import dash_core_components as dcc
@@ -38,6 +39,9 @@ colors = {
     "Spring": "#fbc531",
     "Summer": "#8c7ae6",
 }
+
+now = datetime.datetime.now()
+YEARS = [x for x in range(2010, now.year + 1)]
 
 style = {
     "slider": dict(
@@ -146,15 +150,42 @@ def fetchStats(data, years, status):
     df["end_range"] = (df["start"] <= date_end) & (df["end"] >= date_end)
     gb_start = df.groupby(["status", "start_range"])
     gb_end = df.groupby(["status", "end_range"])
-    change = calculateChange(
-        get_group(gb_start, (status, True)), get_group(gb_end, (status, True))
-    )
-    if change > 0:
-        return html.H2("+{}%".format(change), style=dict(color="#1dd1a1"))
-    if change < 0:
-        return html.H2("{}%".format(change), style=dict(color="#ff6b6b"))
+    if status == "active":
+        change = calculateChange(
+            (
+                get_group(gb_start, ("active", True))
+                + get_group(gb_start, ("active pending", True))
+            ),
+            (
+                get_group(gb_end, ("active", True))
+                + get_group(gb_end, ("active pending", True))
+            ),
+        )
+    elif status == "inactive":
+        change = calculateChange(
+            (
+                get_group(gb_start, ("away", True))
+                + get_group(gb_start, ("alumni pending", True))
+            ),
+            (
+                get_group(gb_end, ("away", True))
+                + get_group(gb_end, ("alumni pending", True))
+            ),
+        )
     else:
-        return html.H2("N/A", style=dict(color="#b2bec3"))
+        change = calculateChange(
+            get_group(gb_start, (status, True)), get_group(gb_end, (status, True))
+        )
+    if change > 0:
+        return html.H2(
+            "+{}%".format(change), style=dict(color="#20bf6b", textAlign="center")
+        )
+    if change < 0:
+        return html.H2(
+            "{}%".format(change), style=dict(color="#ff6b6b", textAlign="center")
+        )
+    else:
+        return html.H2("N/A", style=dict(color="#b2bec3", textAlign="center"))
 
 
 ## -------------------------------------------------------------------------------
@@ -175,61 +206,35 @@ app.layout = html.Div(
                 html.P("Select date range:"),
                 dcc.RangeSlider(
                     id="years-slider",
-                    min=2010,
-                    max=2021,
+                    min=min(YEARS),
+                    max=max(YEARS),
+                    dots=True,
                     marks={
-                        2010: "2010",
-                        2012: "2012",
-                        2014: "2014",
-                        2016: "2016",
-                        2018: "2018",
-                        2020: "2020",
-                        2022: "2022",
+                        str(year): {"label": str(year), "style": dict(color="#c0392b")}
+                        for year in YEARS
                     },
-                    value=[2016, 2020],
+                    value=[now.year - 4, now.year],
                 ),
             ],
             style=style["slider"],
         ),
         html.Div(
             children=[
-                html.Div(
-                    children=[
-                        html.H6("Actives", style=dict(color=colors["Actives"])),
-                        html.Div(id="actives-num"),
+                html.P("Select status: "),
+                dcc.Dropdown(
+                    id="status-dropdown",
+                    options=[
+                        {"label": "Actives", "value": "Actives"},
+                        {"label": "Inactives", "value": "Inactives"},
+                        {"label": "Pledges", "value": "Pledges"},
+                        {"label": "Depledges", "value": "Depledges"},
+                        {"label": "Alumnis", "value": "Alumnis"},
                     ],
-                    style=style["number"],
-                ),
-                html.Div(
-                    children=[
-                        html.H6("Inactives", style=dict(color=colors["Inactives"])),
-                        html.Div(id="inactives-num"),
-                    ],
-                    style=style["number"],
-                ),
-                html.Div(
-                    children=[
-                        html.H6("Pledges", style=dict(color=colors["Pledges"])),
-                        html.Div(id="pledges-num"),
-                    ],
-                    style=style["number"],
-                ),
-                html.Div(
-                    children=[
-                        html.H6("Depledges", style=dict(color=colors["Depledges"])),
-                        html.Div(id="depledges-num"),
-                    ],
-                    style=style["number"],
-                ),
-                html.Div(
-                    children=[
-                        html.H6("Alumnis", style=dict(color=colors["Alumnis"])),
-                        html.Div(id="alumni-num"),
-                    ],
-                    style=style["number"],
+                    value=["Actives", "Inactives"],
+                    multi=True,
                 ),
             ],
-            style=dict(display="flex", flexDirection="row"),
+            style=style["big_graph"],
         ),
         html.Div(
             children=[
@@ -247,37 +252,76 @@ app.layout = html.Div(
             children=[
                 html.Div(
                     children=[
-                        dcc.Loading(
-                            type="default",
-                            children=[
-                                # Graph 2: Number of Actives/Inactives/Pledges Over Time
-                                dcc.Graph(id="chapter-size-graph"),
-                            ],
+                        html.Div(id="actives-num"),
+                        html.H6(
+                            "Actives",
+                            style=dict(color=colors["Actives"], textAlign="center"),
                         ),
                     ],
-                    style=style["small_graph"],
+                    style=style["number"],
                 ),
                 html.Div(
                     children=[
-                        dcc.Loading(
-                            type="default",
-                            children=[
-                                # Graph 3: Pledges/Depledges Over Time
-                                dcc.Graph(id="retention-graph"),
-                            ],
+                        html.Div(id="inactives-num"),
+                        html.H6(
+                            "Inactives",
+                            style=dict(color=colors["Inactives"], textAlign="center"),
                         ),
                     ],
-                    style=style["small_graph"],
+                    style=style["number"],
+                ),
+                html.Div(
+                    children=[
+                        html.Div(id="pledges-num"),
+                        html.H6(
+                            "Pledges",
+                            style=dict(color=colors["Pledges"], textAlign="center"),
+                        ),
+                    ],
+                    style=style["number"],
+                ),
+                html.Div(
+                    children=[
+                        html.Div(id="depledges-num"),
+                        html.H6(
+                            "Depledges",
+                            style=dict(color=colors["Depledges"], textAlign="center"),
+                        ),
+                    ],
+                    style=style["number"],
+                ),
+                html.Div(
+                    children=[
+                        html.Div(id="alumni-num"),
+                        html.H6(
+                            "Alumnis",
+                            style=dict(color=colors["Alumnis"], textAlign="center"),
+                        ),
+                    ],
+                    style=style["number"],
                 ),
             ],
             style=dict(display="flex", flexDirection="row"),
+        ),
+        html.Div(children=[html.P(id="years-text", style=dict(textAlign="center"))]),
+        html.Div(
+            children=[
+                dcc.Loading(
+                    type="default",
+                    children=[
+                        # Graph 2: Number of Actives/Inactives/Pledges Over Time
+                        dcc.Graph(id="chapter-size-graph"),
+                    ],
+                ),
+            ],
+            style=style["big_graph"],
         ),
         html.Div(
             children=[
                 html.Div(
                     children=[
                         html.P("Select year: "),
-                        dcc.Dropdown(id="years-dropdown"),
+                        dcc.Dropdown(id="years-dropdown", value=now.year),
                     ],
                     style=style["small_graph"],
                 ),
@@ -286,7 +330,7 @@ app.layout = html.Div(
                         dcc.Loading(
                             type="default",
                             children=[
-                                # Graph 4: Majors of Study
+                                # Graph 3: Majors of Study
                                 dcc.Graph(id="majors-graph"),
                             ],
                         )
@@ -301,7 +345,7 @@ app.layout = html.Div(
                 dcc.Loading(
                     type="default",
                     children=[
-                        # Graph 5: Average GPA over time
+                        # Graph 4: Average GPA over time
                         dcc.Graph(id="gpa-graph"),
                     ],
                 )
@@ -337,185 +381,59 @@ def load_chapter_data(clicks, **kwargs):
         on="user",
         how="left",
     )
-    print(df)
     print("Load Data")
     return df.to_dict(orient="records")
 
 
+@app.callback(Output("years-text", "children"), [Input("years-slider", "value")])
+def update_text(value, **kwargs):
+    return "NOTE: Percent change of member status will result in 'N/A' if value at either {0} or {1} is zero.".format(
+        value[0], value[1]
+    )
+
+
 @app.callback(
     Output("composition-graph", "figure"),
-    [Input("chapter-data", "data"), Input("years-slider", "value")],
+    [
+        Input("chapter-data", "data"),
+        Input("years-slider", "value"),
+        Input("status-dropdown", "value"),
+    ],
 )
-def members_graph(data, years, **kwargs):
-    groups = {
-        "Actives": [],
-        "Inactives": [],
-        "Pledges": [],
-        "Depledges": [],
-        "Alumnis": [],
-    }
+def members_graph(data, years, status, **kwargs):
     YEARS = [str(year) for year in range(years[0], years[1] + 1)]
     df = pd.DataFrame.from_dict(data)
+    query = {
+        "Actives": ["active", "active pending"],
+        "Inactives": ["alumni pending", "away"],
+        "Pledges": ["prospective"],
+        "Depledges": ["depledge"],
+        "Alumnis": ["alumni"],
+    }
     DataOut = []
 
-    for year in YEARS:
-        date = year + "-01-01"
-        df["term"] = (df["start"] <= date) & (df["end"] >= date)
-        gb = df.groupby(["status", "term"])
-        groups["Actives"].append(
-            get_group(gb, ("active", True)) + get_group(gb, ("active pending", True))
-        )
-        groups["Inactives"].append(
-            get_group(gb, ("alumni pending", True)) + get_group(gb, ("away", True))
-        )
-        groups["Pledges"].append(get_group(gb, ("prospective", True)))
-        groups["Depledges"].append(get_group(gb, ("depledge", True)))
-        groups["Alumnis"].append(get_group(gb, ("alumni", True)))
-
-    TotalMembers = [
-        j + k + x + y + z
-        for j, k, x, y, z in zip(
-            groups["Actives"],
-            groups["Inactives"],
-            groups["Pledges"],
-            groups["Depledges"],
-            groups["Alumnis"],
-        )
-    ]
-
-    for key, value in groups.items():
-        percent = [percentage(x, y) for x, y in zip(value, TotalMembers)]
+    for s in status:
+        data = []
+        for year in YEARS:
+            date = year + "-01-01"
+            df["term"] = (df["start"] <= date) & (df["end"] >= date)
+            gb = df.groupby(["status", "term"])
+            total = 0
+            for q in query[s]:
+                total += get_group(gb, (q, True))
+            data.append(total)
         trace = go.Scatter(
-            name=key,
+            name=s,
             x=YEARS,
-            y=value,
-            hovertemplate="<i>Count</i>: %{y}" + "<br>%{text}%</br>",
-            text=percent,
-            marker=dict(color=colors[key]),
+            y=data,
+            hovertemplate="<i>Count</i>: %{y}",
+            marker=dict(color=colors[s]),
             showlegend=False,
         )
         DataOut.append(trace)
 
     fig = go.Figure(data=DataOut)
     layout(fig, "Membership Composition", YEARS)
-    fig.update_layout(
-        updatemenus=[
-            dict(
-                direction="down",
-                showactive=True,
-                y=2.0,
-                xanchor="left",
-                yanchor="top",
-                buttons=list(
-                    [
-                        dict(
-                            label="All",
-                            method="update",
-                            args=[{"visible": [True, True, True, True, True]}],
-                        ),
-                        dict(
-                            label="Actives",
-                            method="update",
-                            args=[{"visible": [True, False, False, False, False]}],
-                        ),
-                        dict(
-                            label="Inactives",
-                            method="update",
-                            args=[{"visible": [False, True, False, False, False]}],
-                        ),
-                        dict(
-                            label="Pledges",
-                            method="update",
-                            args=[{"visible": [False, False, True, False, False]}],
-                        ),
-                        dict(
-                            label="Depledges",
-                            method="update",
-                            args=[{"visible": [False, False, False, True, False]}],
-                        ),
-                        dict(
-                            label="Alumni",
-                            method="update",
-                            args=[{"visible": [False, False, False, False, True]}],
-                        ),
-                    ]
-                ),
-            )
-        ],
-    )
-    return fig
-
-
-@app.callback(
-    Output("retention-graph", "figure"),
-    [Input("chapter-data", "data"), Input("years-slider", "value")],
-)
-def pledge_depledge_graph(data, years, **kwargs):
-    groups = {
-        "Pledges": [],
-        "Depledges": [],
-    }
-    YEARS = [str(year) for year in range(years[0], years[1] + 1)]
-    df = pd.DataFrame.from_dict(data)
-    DataOut = []
-
-    for year in YEARS:
-        date = year + "-01-01"
-        df["term"] = (df["start"] <= date) & (df["end"] >= date)
-        gb = df.groupby(["status", "term"])
-        groups["Pledges"].append(get_group(gb, ("prospective", True)))
-        groups["Depledges"].append(get_group(gb, ("depledge", True)))
-
-    TotalMembers = [x + y for x, y in zip(groups["Pledges"], groups["Depledges"])]
-
-    for key, value in groups.items():
-        percent = [percentage(x, y) for x, y in zip(value, TotalMembers)]
-        trace = go.Scatter(
-            name=key,
-            x=YEARS,
-            y=value,
-            hovertemplate="<i>Count</i>: %{y}" + "<br>%{text}%</br>",
-            text=percent,
-            marker=dict(color=colors[key]),
-            showlegend=False,
-        )
-        DataOut.append(trace)
-
-    fig = go.Figure(data=DataOut)
-    layout(fig, "Recruitment Retention", YEARS)
-    fig.update_layout(
-        updatemenus=[
-            dict(
-                type="buttons",
-                direction="right",
-                active=0,
-                xanchor="center",
-                x=0.5,
-                y=-0.5,
-                yanchor="bottom",
-                buttons=list(
-                    [
-                        dict(
-                            label="All",
-                            method="update",
-                            args=[{"visible": [True, True]}],
-                        ),
-                        dict(
-                            label="Pledges",
-                            method="update",
-                            args=[{"visible": [True, False]}],
-                        ),
-                        dict(
-                            label="Depledges",
-                            method="update",
-                            args=[{"visible": [False, True]}],
-                        ),
-                    ]
-                ),
-            )
-        ],
-    )
-
     return fig
 
 
@@ -538,14 +456,15 @@ def chapter_size_graph(data, years, **kwargs):
             df["term"] = (df["start"] <= date) & (df["end"] >= date)
             gb = df.groupby(["status", "term"])
             TERMS[term].append(
-                get_group(gb, ("active", True)) + get_group(gb, ("alumni", True))
+                get_group(gb, ("active", True))
+                + get_group(gb, ("active pending", True))
             )
         trace = go.Bar(
             name=term,
             x=YEARS,
             y=TERMS[term],
             marker=dict(color=colors[term]),
-            showlegend=False,
+            showlegend=True,
         )
         DataOut.append(trace)
 
@@ -576,10 +495,11 @@ def majors_graph(data, year, **kwargs):
     df["term"] = (df["start"] <= date) & (df["end"] >= date)
     gb = df.groupby(["major", "status", "term"])
     for name, group in gb:
-        MAJORS.add(name[0])
-
-    for major in MAJORS:
-        values.append(get_group(gb, (major, "active", True)))
+        major = name[0]
+        # only add major if group size is greater than 0
+        if get_group(gb, (major, "active", True)) != 0:
+            MAJORS.add(major)
+            values.append(get_group(gb, (major, "active", True)))
 
     fig = go.Figure(data=[go.Pie(labels=list(MAJORS), values=values, hole=0.35,)])
     fig.update_layout(
@@ -619,55 +539,13 @@ def gpa_graph(data, years, **kwargs):
             y=value,
             hovertemplate="<i>Average</i>: %{y}",
             marker=dict(color=colors[key]),
-            showlegend=False,
+            showlegend=True,
         )
         DataOut.append(trace)
 
     fig = go.Figure(data=DataOut)
     layout(fig, "Average GPA", YEARS)
-    fig.update_layout(
-        yaxis=dict(showgrid=True, gridcolor="#dcdde1", ticks="outside"),
-        updatemenus=[
-            dict(
-                type="buttons",
-                direction="right",
-                active=0,
-                xanchor="center",
-                x=0.5,
-                y=-0.5,
-                yanchor="bottom",
-                buttons=list(
-                    [
-                        dict(
-                            label="All",
-                            method="update",
-                            args=[{"visible": [True, True, True, True]}],
-                        ),
-                        dict(
-                            label="Fall",
-                            method="update",
-                            args=[{"visible": [True, False, False, False]}],
-                        ),
-                        dict(
-                            label="Winter",
-                            method="update",
-                            args=[{"visible": [False, True, False, False]}],
-                        ),
-                        dict(
-                            label="Spring",
-                            method="update",
-                            args=[{"visible": [False, False, True, False]}],
-                        ),
-                        dict(
-                            label="Summer",
-                            method="update",
-                            args=[{"visible": [False, False, False, True]}],
-                        ),
-                    ]
-                ),
-            )
-        ],
-    )
+    fig.update_layout(yaxis=dict(showgrid=True, gridcolor="#dcdde1", ticks="outside"))
     return fig
 
 
@@ -685,7 +563,7 @@ def actives_stats(data, years, **kwargs):
     [Input("chapter-data", "data"), Input("years-slider", "value"),],
 )
 def inactives_stats(data, years, **kwargs):
-    return fetchStats(data, years, "alumni pending")
+    return fetchStats(data, years, "inactive")
 
 
 @app.callback(
