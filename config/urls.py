@@ -73,9 +73,11 @@ urlpatterns = [
     url(r"^forms/", include("forms.urls", namespace="forms")),
     url(r"^tasks/", include("tasks.urls", namespace="tasks")),
     url(r"^ballots/", include("ballots.urls", namespace="ballots")),
-    # url(r'^rmp/$',
-    #     RedirectView.as_view(pattern_name='forms:rmp',
-    #                          permanent=True)),
+    url(
+        r"^rmp/$",
+        RedirectView.as_view(pattern_name="forms:rmp", permanent=True),
+        name="rmp",
+    ),
     url(
         r"^initiation/$",
         RedirectView.as_view(pattern_name="forms:initiation", permanent=True),
