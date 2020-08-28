@@ -509,6 +509,7 @@ class RiskManagement(YearTermModel):
     photo_release = models.BooleanField(default=False)
     arbitration = models.BooleanField(default=False)
     dues = models.BooleanField(default=False)
+    fines = models.BooleanField(default=False)
     terms_agreement = models.BooleanField()
     typed_name = models.CharField(max_length=255)
 

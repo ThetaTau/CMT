@@ -445,6 +445,7 @@ class RiskManagementForm(forms.ModelForm):
     )
     photo_release = forms.BooleanField(label="I accept the Photo and Image Release")
     arbitration = forms.BooleanField(label="I accept the Arbitration Agreement")
+    fines = forms.BooleanField(label="I accept the Fines and Late Fees Schedule")
     dues = forms.BooleanField(label="I accept the Dues Agreement")
     agreement = forms.BooleanField(label="I agree")
 
@@ -470,6 +471,7 @@ class RiskManagementForm(forms.ModelForm):
             "electronic_agreement",
             "photo_release",
             "arbitration",
+            "fines",
             "dues",
             "terms_agreement",
             "typed_name",

@@ -3,7 +3,7 @@
 <div class="jumbotron">
   <div class="container">
 <h1>{% trans "Risk Management Policies and Agreements of Theta Tau" %}</h1>
-  <h4><i>Revised Spring 2020</i></h4>
+  <h4><i>Revised Fall 2020</i></h4>
 Whereas, The purpose of Theta Tau  is to develop and maintain a high standard of professional interest among its members  and to unite them in a strong bond of fraternal fellowship, and Whereas realizing that abuse of controlled substances and/or alcohol can erode these two cornerstones on which the Fraternity was founded, and Whereas it is the obligation of the  Fraternity to ensure the social and physical well-being of its members and to limit the liability of our members, chapters and the national Fraternity. Therefore, Be it resolved that the Theta Tau 2002 National Convention adopts the following Risk Management policies pursuant to the Articles and Bylaws of the National Constitution.
   </div>
 </div>
@@ -298,13 +298,39 @@ I hereby hold harmless and release and forever discharge the Department of Labor
 <hr />
   <h3>Arbitration Agreement</h3>
   <p>
-As the exclusive means of resolving disputes between a member and the Fraternity, the parties agree to attempt to resolve any dispute through the use of non-binding mediation utilizing a mutually agreeable arbitrator, if one cannot be agreed upon then the parties agree that the American Arbitration Association shall appoint a mediator to conduct a non-binding mediation. In the event that mediation fails, the parties agree to submit any disputes arising out of this agreement to a binding resolution by arbitration administered by the American Arbitration Association in accordance with its Commercial Arbitration Rules, and each party hereby consents to any such disputes being so resolved pursuant the Federal Arbitration Act as well as under any applicable state law and/or state contract law. Judgment on the award rendered in any such arbitration may be entered in any court having jurisdiction.
+    As the exclusive means of resolving disputes between an individual member and the Fraternity, the
+    parties agree to attempt to resolve any dispute through the use of non-binding mediation utilizing a
+    mutually agreeable arbitrator, if one cannot be agreed upon then the parties agree that the
+    American Arbitration Association shall appoint a mediator to conduct a non-binding mediation. In
+    the event that mediation fails, the parties agree to submit any disputes arising out of this agreement
+    to a binding resolution by arbitration administered by the American Arbitration Association in
+    accordance with its Commercial Arbitration Rules, and each party hereby consents to any such
+    disputes being so resolved pursuant the Federal Arbitration Act as well as under any applicable
+    state law and/or state contract law. Judgment on the award rendered in any such arbitration may
+    be entered in any court having jurisdiction.
   </p>
   {{ form.arbitration|as_crispy_field }}
   {% if form.arbitration.errors %}
       {% for error in form.arbitration.errors %}
         <strong style="color:red">{{ error }}</strong>
       {% endfor %}
+  {% endif %}
+  <hr/>
+  <h3>Fines and Late Fees Schedule</h3>
+  <p>
+    I understand that, as a chapter officer, it is my responsibility to keep the Chapter Management Tool (CMT) up to
+    date so that the Central Office can accurately invoice my chapter, and so that the National Fraternity can have
+    information about the Fraternity’s general membership. I understand that, should I fail to report pledges in a
+    timely manner, my chapter may be subject to a $30 fine per pledge. I understand that, should I fail to report
+    initiations in a timely manner, my chapter may be subject to a $25 fine per member whose initiation is reported
+    late. I understand that, should I fail to pay my chapter’s dues in a timely manner, without entering into a payment
+    plan with the Central Office, my chapter may be subject to a $10 late fee per member.
+  </p>
+  {{ form.fines|as_crispy_field }}
+  {% if form.fines.errors %}
+    {% for error in form.fines.errors %}
+      <strong style="color:red">{{ error }}</strong>
+    {% endfor %}
   {% endif %}
 <hr />
   <h3>Dues Agreement</h3>
