@@ -22,7 +22,12 @@ else:
     app = DjangoDash("Dashboard")
 
 from chapters.models import Chapter
-from users.models import User, UserStatusChange, UserSemesterGPA
+from users.models import (
+    User,
+    UserStatusChange,
+    UserSemesterGPA,
+    UserSemesterServiceHours,
+)
 
 ## -------------------------------------------------------------------------------
 ## STYLING ASSETS
@@ -34,10 +39,10 @@ colors = {
     "Pledges": "#57606f",
     "Depledges": "#d63031",
     "Alumnis": "#2e86de",
-    "Fall": "#c0392b",
-    "Winter": "#2e86de",
-    "Spring": "#fbc531",
-    "Summer": "#8c7ae6",
+    "Fall": "#AC2414",
+    "Winter": "#FCC30C",
+    "Spring": "#E8472D",
+    "Summer": "#000000",
 }
 
 now = datetime.datetime.now()
@@ -99,9 +104,9 @@ def get_group(g, key):
         return 0
 
 
-def get_term_average(g, key):
+def get_term_average(g, key, topic):
     try:
-        return g.get_group(key)["gpa"].mean()
+        return g.get_group(key)[topic].mean()
     except KeyError:
         return 0
 
@@ -342,15 +347,32 @@ app.layout = html.Div(
         ),
         html.Div(
             children=[
-                dcc.Loading(
-                    type="default",
+                html.Div(
                     children=[
-                        # Graph 4: Average GPA over time
-                        dcc.Graph(id="gpa-graph"),
+                        dcc.Loading(
+                            type="default",
+                            children=[
+                                # Graph 4: Average GPA over time
+                                dcc.Graph(id="gpa-graph"),
+                            ],
+                        )
                     ],
-                )
+                    style=style["small_graph"],
+                ),
+                html.Div(
+                    children=[
+                        dcc.Loading(
+                            type="default",
+                            children=[
+                                # Graph 5: Service Hours over time
+                                dcc.Graph(id="servicehours-graph"),
+                            ],
+                        )
+                    ],
+                    style=style["small_graph"],
+                ),
             ],
-            style=style["big_graph"],
+            style=dict(display="flex", flexDirection="row"),
         ),
     ]
 )
@@ -364,23 +386,38 @@ def load_chapter_data(clicks, **kwargs):
     chapter = user.current_chapter
     df_user = read_frame(User.objects.filter(chapter=chapter))
     df_status = read_frame(UserStatusChange.objects.filter(user__chapter=chapter))
-    df_gpa = read_frame(UserSemesterGPA.objects.filter(user__chapter=chapter))
-    if df_user.empty or df_status.empty or df_gpa.empty:
+    df_gpa = read_frame(UserSemesterGPA.objects.filter(user__chapter=chapter)).rename(
+        columns={"term": "gpa_term", "year": "gpa_year"}
+    )
+    df_servicehours = read_frame(
+        UserSemesterServiceHours.objects.filter(user__chapter=chapter)
+    ).rename(columns={"term": "servicehours_term", "year": "servicehours_year"})
+    if df_user.empty or df_status.empty or df_gpa.empty or df_servicehours.empty:
         df = pd.DataFrame()
         # initialize empty dataframe with NA values to prevent error queries when loading empty chapters
         df["start"] = df["end"] = ["0001-01-01"]
-        df["status"] = df["major"] = [""]
+        df["status"] = df["major"] = df["gpa_term"] = df["servicehours_term"] = df[
+            "gpa_year"
+        ] = df["servicehours_year"] = [""]
         return df.to_dict()
     df_user = df_user[["name", "major"]]
     df_status = df_status[["start", "end", "status", "user"]]
     df = pd.merge(
         pd.merge(
-            df_user.rename(columns={"name": "user"}), df_status, on="user", how="left"
+            pd.merge(
+                df_user.rename(columns={"name": "user"}),
+                df_status,
+                on="user",
+                how="left",
+            ),
+            df_gpa,
+            on="user",
+            how="left",
         ),
-        df_gpa,
+        df_servicehours,
         on="user",
         how="left",
-    )
+    ).drop(columns=["id_x", "id_y"])
     print("Load Data")
     return df.to_dict(orient="records")
 
@@ -525,12 +562,12 @@ def gpa_graph(data, years, **kwargs):
     YEARS = [x for x in range(years[0], years[1] + 1)]
     TERMS = {"Fall": [], "Winter": [], "Spring": [], "Summer": []}
     df = pd.DataFrame.from_dict(data)
-    gb = df.groupby(["term", "year"])
+    gb = df.groupby(["gpa_term", "gpa_year"])
     DataOut = []
 
     for term in TERMS:
         for year in YEARS:
-            TERMS[term].append(get_term_average(gb, (term, str(year))))
+            TERMS[term].append(get_term_average(gb, (term, str(year)), "gpa"))
 
     for key, value in TERMS.items():
         trace = go.Scatter(
@@ -545,6 +582,38 @@ def gpa_graph(data, years, **kwargs):
 
     fig = go.Figure(data=DataOut)
     layout(fig, "Average GPA", YEARS)
+    fig.update_layout(yaxis=dict(showgrid=True, gridcolor="#dcdde1", ticks="outside"))
+    return fig
+
+
+@app.callback(
+    Output("servicehours-graph", "figure"),
+    [Input("chapter-data", "data"), Input("years-slider", "value"),],
+)
+def servicehours_graph(data, years, **kwargs):
+    YEARS = [x for x in range(years[0], years[1] + 1)]
+    TERMS = {"Fall": [], "Winter": [], "Spring": [], "Summer": []}
+    df = pd.DataFrame.from_dict(data)
+    gb = df.groupby(["servicehours_term", "servicehours_year"])
+    DataOut = []
+
+    for term in TERMS:
+        for year in YEARS:
+            TERMS[term].append(get_term_average(gb, (term, str(year)), "service_hours"))
+
+    for key, value in TERMS.items():
+        trace = go.Scatter(
+            name=key,
+            x=YEARS,
+            y=value,
+            hovertemplate="<i>Average</i>: %{y}",
+            marker=dict(color=colors[key]),
+            showlegend=True,
+        )
+        DataOut.append(trace)
+
+    fig = go.Figure(data=DataOut)
+    layout(fig, "Average Service Hours", YEARS)
     fig.update_layout(yaxis=dict(showgrid=True, gridcolor="#dcdde1", ticks="outside"))
     return fig
 
