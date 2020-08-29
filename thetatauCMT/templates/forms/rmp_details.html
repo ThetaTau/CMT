@@ -377,7 +377,7 @@ By signing this document, I agree that I will do everything in my power to cause
   {% endfor %}
 {% endif %}
 <hr />
-<p><h5>I accept the <a href="{% url 'electronic_terms' %}">Electronic Terms of Service</a>.
+<p><h5>I accept the <a href="{% url 'electronic_terms' %}" target="_blank">Electronic Terms of Service</a>.
 </h5></p>
 {{ form.terms_agreement|as_crispy_field }}
 {% if form.terms_agreement.errors %}

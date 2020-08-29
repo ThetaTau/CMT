@@ -21,7 +21,7 @@ class RMPSignMiddleware:
 
         # pages to not redirect on (no recursion please!)
         path = path.strip("/")
-        if path in "logout forms/rmp rmp".split():
+        if path in "logout forms/rmp rmp electronic_terms".split():
             return response
         if request.user.is_officer:
             if not RiskManagement.user_signed_this_year(request.user):
