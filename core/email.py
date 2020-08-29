@@ -1,12 +1,14 @@
 from django.conf import settings
-from sendgrid_backend import SendgridBackend
 
-# from django.core.mail.backends.console import EmailBackend
+if settings.DJANGO_EMAIL_LIVE:
+    from anymail.backends.mailjet import EmailBackend
+else:
+    from django.core.mail.backends.console import EmailBackend
 from bandit.backends.base import HijackBackendMixin
 from django_middleware_global_request.middleware import get_request
 
 
-class MyHijackBackend(HijackBackendMixin, SendgridBackend):
+class MyHijackBackend(HijackBackendMixin, EmailBackend):
     """
     This backend intercepts outgoing messages drops them to a single email
     address, using the SendgridBackend

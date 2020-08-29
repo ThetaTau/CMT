@@ -236,6 +236,7 @@ FIXTURE_DIRS = (str(APPS_DIR.path("fixtures")),)
 # EMAIL
 # ------------------------------------------------------------------------------
 # https://docs.djangoproject.com/en/dev/ref/settings/#email-backend
+DEFAULT_FROM_EMAIL = "cmt@thetatau.org"
 DJANGO_EMAIL_LIVE = env.bool("DJANGO_EMAIL_LIVE", True)
 if DJANGO_EMAIL_LIVE:
     EMAIL_BACKEND = env(
