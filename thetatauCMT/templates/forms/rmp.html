@@ -4,12 +4,5 @@
 
 {% block head_title %}{% trans "Risk Management Policies" %}{% endblock %}
 {% block content %}
-<script type="text/javascript">
-  $(document).ready(function() {
-       window.onload = function() {
-       $("#id_alcohol").focus();
-      };
-  });
-</script>
 {% include "forms/rmp_details.html" with form=form %}
 {% endblock %}
