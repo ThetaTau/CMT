@@ -12,6 +12,7 @@ from .models import (
 
 class InitiationResource(resources.ModelResource):
     chapter = Field("user__chapter__name")
+    school = Field("user__chapter__school")
 
     class Meta:
         model = Initiation
@@ -26,6 +27,7 @@ class InitiationResource(resources.ModelResource):
 
 class DepledgeResource(resources.ModelResource):
     chapter = Field("user__chapter__name")
+    school = Field("user__chapter__school")
 
     class Meta:
         model = Depledge
@@ -44,6 +46,7 @@ class PledgeResource(resources.ModelResource):
 
 class PledgeFormResource(resources.ModelResource):
     chapter = Field("chapter__name")
+    school = Field("chapter__school")
 
     class Meta:
         model = PledgeForm
@@ -57,6 +60,7 @@ class PledgeFormResource(resources.ModelResource):
 
 class PledgeProgramResource(resources.ModelResource):
     chapter = Field("chapter__name")
+    school = Field("chapter__school")
 
     class Meta:
         model = PledgeProgram
@@ -76,6 +80,7 @@ class PledgeProgramResource(resources.ModelResource):
 
 class StatusChangeResource(resources.ModelResource):
     chapter = Field("user__chapter__name")
+    school = Field("user__chapter__school")
 
     class Meta:
         model = StatusChange
