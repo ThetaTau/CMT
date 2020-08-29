@@ -17,9 +17,11 @@ class MyHijackBackend(HijackBackendMixin, EmailBackend):
     def send_messages(self, email_messages):
         request = get_request()
         # Test is needed to trick bandit with an unapproved email
-        if request.user.is_anonymous:
-            return
-        setattr(settings, "BANDIT_EMAIL", [request.user.email, "test@thetatau.org"])
+        if request is None or request.user.is_anonymous:
+            email = "cmt@thetatau.org"
+        else:
+            email = request.user.email
+        setattr(settings, "BANDIT_EMAIL", [email, "test@thetatau.org"])
         for message in email_messages:
             message.subject = f"[TEST] {message.subject}"
             try:

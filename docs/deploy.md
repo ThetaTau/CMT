@@ -36,14 +36,11 @@ export DJANGO_SETTINGS_MODULE='config.settings.production'
 export DJANGO_SECRET_KEY=''  # https://www.miniwebtool.com/django-secret-key-generator/
 export DJANGO_ALLOWED_HOSTS='cmt.thetatau.org'
 export DJANGO_ADMIN_URL=''  # Unique url
-export MAILGUN_API_KEY=''
-export SENDGRID_API_KEY=''
-export MAILGUN_DOMAIN=''
-export DJANGO_AWS_ACCESS_KEY_ID=
-export DJANGO_AWS_SECRET_ACCESS_KEY=
-export DJANGO_AWS_STORAGE_BUCKET_NAME=
+export MAILJET_API_KEY=''
+export MAILJET_SECRET_KEY=''
 export ROLLBAR_ACCESS=''
 export DATABASE_URL='postgres://{user}:{password}@{postgres-url}:{postgres-port}/{database_name}'
+export GOOGLE_APPLICATION_CREDENTIALS=''
 ````
 In the wsgi file (with the settings copied from above):
 ````
@@ -53,18 +50,18 @@ path = '/home/Venturafranklin/thetatauCMT'
 if path not in sys.path:
     sys.path.append(path)
 
-os.environ['DJANGO_SETTINGS_MODULE'] = 'config.settings.production'
-os.environ['DJANGO_SECRET_KEY'] = ''
-os.environ['DJANGO_ALLOWED_HOSTS'] = 'cmt.thetatau.org'
-os.environ['DJANGO_ADMIN_URL'] = ''
-os.environ['MAILGUN_API_KEY'] = ''
-os.environ['SENDGRID_API_KEY'] = ''
-os.environ['MAILGUN_DOMAIN'] = ''
-os.environ['DJANGO_AWS_ACCESS_KEY_ID'] = ''
-os.environ['DJANGO_AWS_SECRET_ACCESS_KEY'] = ''
-os.environ['DJANGO_AWS_STORAGE_BUCKET_NAME'] = ''
-os.environ['ROLLBAR_ACCESS'] = ''
-os.environ['DATABASE_URL'] = ''
+os.environ["DJANGO_SETTINGS_MODULE"] = 'config.settings.production'
+os.environ["DJANGO_SECRET_KEY"] = ""
+os.environ["DJANGO_ALLOWED_HOSTS"] = 'cmt.thetatau.org'
+os.environ["DJANGO_ADMIN_URL"] = ""
+os.environ["MAILJET_API_KEY"] = ""
+os.environ["MAILJET_SECRET_KEY"] = ""
+os.environ["DJANGO_AWS_ACCESS_KEY_ID"] = ""
+os.environ["DJANGO_AWS_SECRET_ACCESS_KEY"] = ""
+os.environ["DJANGO_AWS_STORAGE_BUCKET_NAME"] = ""
+os.environ["ROLLBAR_ACCESS"] = ""
+os.environ["DATABASE_URL"] = ""
+os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = ""
 
 from django.core.wsgi import get_wsgi_application
 application = get_wsgi_application()

@@ -1,0 +1,15 @@
+#!/bin/bash
+# This hook is sourced after this virtualenv is activated.
+
+export WEB_CONCURRENCY=4
+export DJANGO_SETTINGS_MODULE='config.settings.production'
+export DJANGO_SECRET_KEY=''
+export DJANGO_ALLOWED_HOSTS='cmt.thetatau.info, cmt.thetatau.org'
+export DJANGO_ADMIN_URL=''
+export MAILJET_API_KEY=''
+export MAILJET_SECRET_KEY=''
+export ROLLBAR_ACCESS=''
+export DATABASE_URL_MYSQL=''
+export DATABASE_URL=''
+export GOOGLE_APPLICATION_CREDENTIALS='{PATH TO SECRETS FOLDER}/{credentials}.json'
+cd ~/thetatauCMT
