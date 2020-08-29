@@ -1,10 +1,10 @@
-{% extends "base.html" %} 
-{% load render_table from django_tables2 %} 
-{% block content %} 
-{% load plotly_dash %} 
-{% plotly_header %} 
-{% plotly_direct name="Dashboard" %} 
+{% extends "base.html" %}
+{% load render_table from django_tables2 %}
+{% block content %}
+{% load plotly_dash %}
+{% plotly_header %}
+{#{% plotly_direct name="Dashboard" %} #}
 {% plotly_footer %}
 <h2>Incomplete Tasks:</h2>
-{% render_table table %} 
+{% render_table table %}
 {% endblock %}
