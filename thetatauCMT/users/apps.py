@@ -1,4 +1,5 @@
 from django.apps import AppConfig
+from watson import search as watson
 
 
 class UsersConfig(AppConfig):
@@ -14,3 +15,15 @@ class UsersConfig(AppConfig):
             import users.signals  # noqa F401
         except ImportError:
             pass
+        model = self.get_model("User")
+        watson.register(
+            model,
+            fields=[
+                "name",
+                "badge_number",
+                "user_id",
+                "first_name",
+                "last_name",
+                "email",
+            ],
+        )

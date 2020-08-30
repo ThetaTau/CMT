@@ -96,6 +96,7 @@ THIRD_PARTY_APPS = [
     "material.admin",
     "import_export",
     "dbbackup",
+    "watson",
 ]
 LOCAL_APPS = [
     "thetatauCMT.users.apps.UsersConfig",
@@ -163,6 +164,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "watson.middleware.SearchContextMiddleware",
     "core.middleware.RMPSignMiddleware",
     "rollbar.contrib.django.middleware.RollbarNotifierMiddleware",  # Last
 ]

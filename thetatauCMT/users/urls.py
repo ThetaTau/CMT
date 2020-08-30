@@ -12,6 +12,7 @@ urlpatterns = [
     url(regex=r"orgs/$", view=views.UserOrgsFormSetView.as_view(), name="orgs"),
     url(regex=r"^redirect/$", view=views.UserRedirectView.as_view(), name="redirect"),
     url(regex=r"^myinfo/$", view=views.UserDetailUpdateView.as_view(), name="detail"),
+    url(regex=r"^search/$", view=views.UserSearchView.as_view(), name="search"),
     url(regex=r"^lookup/$", view=views.UserLookupView.as_view(), name="lookup"),
     url(regex=r"^verify-form/$", view=views.user_verify, name="user_verify"),
     url(

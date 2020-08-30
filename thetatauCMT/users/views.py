@@ -14,6 +14,7 @@ from django.views.generic import RedirectView, FormView
 from crispy_forms.layout import Submit
 from allauth.account.views import LoginView
 from extra_views import FormSetView, ModelFormSetView
+from watson import search as watson
 from core.views import (
     PagedFilteredTableView,
     RequestConfig,
@@ -197,6 +198,27 @@ class UserDetailUpdateView(LoginRequiredMixin, OfficerMixin, MultiFormsView):
     def get_object(self):
         # Only get the User record for the user making the request
         return User.objects.get(username=self.request.user.username)
+
+
+class UserSearchView(
+    NatOfficerRequiredMixin, LoginRequiredMixin, OfficerMixin, PagedFilteredTableView
+):
+    model = User
+    # These next two lines tell the view to index lookups by username
+    slug_field = "username"
+    slug_url_kwarg = "username"
+    context_object_name = "user"
+    ordering = ["-badge_number"]
+    table_class = UserTable
+    template_name = "users/user_search.html"
+
+    def get_queryset(self):
+        queryset = User.objects.none()
+        q = self.request.GET.get("q", "")
+        if q:
+            queryset = watson.filter(User, q)
+        queryset = annotate_role_status(queryset)
+        return queryset
 
 
 class UserListView(LoginRequiredMixin, OfficerMixin, PagedFilteredTableView):
