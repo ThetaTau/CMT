@@ -159,7 +159,7 @@ class PledgeProgram(YearTermModel, TimeStampedModel):
     )
 
     @classmethod
-    def form_chapter_term(cls, chapter):
+    def signed_this_year(cls, chapter):
         """
         If the current term is the spring, the form could have been submitted
         in the fall of last year.
@@ -171,12 +171,17 @@ class PledgeProgram(YearTermModel, TimeStampedModel):
             program_fa = cls.objects.filter(
                 chapter=chapter, year=YearTermModel.current_year() - 1, term="fa",
             ).first()
+        program = cls.signed_this_semester(chapter)
+        return program or program_fa
+
+    @classmethod
+    def signed_this_semester(cls, chapter):
         program = cls.objects.filter(
             chapter=chapter,
             year=YearTermModel.current_year(),
             term=YearTermModel.current_term(),
         ).first()
-        return program or program_fa
+        return program
 
 
 class Initiation(TimeStampedModel):
