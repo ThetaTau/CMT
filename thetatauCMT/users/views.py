@@ -220,6 +220,9 @@ class UserSearchView(
         queryset = annotate_role_status(queryset)
         return queryset
 
+    def get_table_kwargs(self):
+        return {"chapter": True}
+
 
 class UserListView(LoginRequiredMixin, OfficerMixin, PagedFilteredTableView):
     model = User

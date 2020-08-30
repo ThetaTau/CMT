@@ -23,3 +23,12 @@ class UserTable(tables.Table):
             "There are no members matching the search criteria...\n"
             + "Only officers can view alumni contact information."
         )
+
+    def __init__(self, chapter=False, *args, **kwargs):
+        extra_columns = None
+        if chapter:
+            extra_columns = [
+                ("chapter", tables.Column("Chapter")),
+                ("chapter.region", tables.Column("Region")),
+            ]
+        super().__init__(extra_columns=extra_columns, *args, **kwargs)
