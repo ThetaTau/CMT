@@ -2,6 +2,12 @@
 {% load render_table from django_tables2 %}
 {% block content %}
 {% load plotly_dash %}
+  <h1>Announcements</h1>
+  <hr>
+  {% for announcement in announcements %}
+    {{ announcement.content|safe }}
+    <hr>
+  {% endfor %}
 {% plotly_header %}
 {#{% plotly_direct name="Dashboard" %} #}
 {% plotly_footer %}
