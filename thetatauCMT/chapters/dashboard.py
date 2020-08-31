@@ -46,7 +46,7 @@ colors = {
 }
 
 now = datetime.datetime.now()
-YEARS = [x for x in range(2010, now.year + 1)]
+YEARS = [x for x in range(2018, now.year + 1)]
 
 style = {
     "slider": dict(
@@ -99,7 +99,12 @@ def percentage(x, y):
 
 def get_group(g, key):
     try:
-        return len(g.get_group(key))
+        # create set of unique users
+        users = set()
+        group = pd.DataFrame(g.get_group(key))
+        for ind in group.index:
+            users.add((group["user"][ind]))
+        return len(users)
     except KeyError:
         return 0
 
@@ -218,7 +223,7 @@ app.layout = html.Div(
                         str(year): {"label": str(year), "style": dict(color="#c0392b")}
                         for year in YEARS
                     },
-                    value=[now.year - 4, now.year],
+                    value=[2018, now.year],
                 ),
             ],
             style=style["slider"],
@@ -347,33 +352,34 @@ app.layout = html.Div(
         ),
         html.Div(
             children=[
-                html.Div(
+                dcc.Loading(
+                    type="default",
                     children=[
-                        dcc.Loading(
-                            type="default",
-                            children=[
-                                # Graph 4: Average GPA over time
-                                dcc.Graph(id="gpa-graph"),
-                            ],
-                        )
+                        # Graph 4: Average GPA over time
+                        dcc.Graph(id="gpa-graph"),
                     ],
-                    style=style["small_graph"],
-                ),
-                html.Div(
-                    children=[
-                        dcc.Loading(
-                            type="default",
-                            children=[
-                                # Graph 5: Service Hours over time
-                                dcc.Graph(id="servicehours-graph"),
-                            ],
-                        )
-                    ],
-                    style=style["small_graph"],
-                ),
+                )
             ],
-            style=dict(display="flex", flexDirection="row"),
+            style=style["big_graph"],
         ),
+        # html.Div(
+        #     children=[
+        #         ),
+        #         # html.Div(
+        #         #     children=[
+        #         #         dcc.Loading(
+        #         #             type="default",
+        #         #             children=[
+        #         #                 # Graph 5: Service Hours over time
+        #         #                 dcc.Graph(id="servicehours-graph"),
+        #         #             ],
+        #         #         )
+        #         #     ],
+        #         #     style=style["small_graph"],
+        #         # ),
+        #     ],
+        #     style=dict(display="flex", flexDirection="row"),
+        # ),
     ]
 )
 
@@ -389,35 +395,26 @@ def load_chapter_data(clicks, **kwargs):
     df_gpa = read_frame(UserSemesterGPA.objects.filter(user__chapter=chapter)).rename(
         columns={"term": "gpa_term", "year": "gpa_year"}
     )
-    df_servicehours = read_frame(
-        UserSemesterServiceHours.objects.filter(user__chapter=chapter)
-    ).rename(columns={"term": "servicehours_term", "year": "servicehours_year"})
-    if df_user.empty or df_status.empty or df_gpa.empty or df_servicehours.empty:
+    # df_servicehours = read_frame(
+    #     UserSemesterServiceHours.objects.filter(user__chapter=chapter)
+    # ).rename(columns={"term": "servicehours_term", "year": "servicehours_year"})
+    if df_user.empty or df_status.empty or df_gpa.empty:
         df = pd.DataFrame()
         # initialize empty dataframe with NA values to prevent error queries when loading empty chapters
         df["start"] = df["end"] = ["0001-01-01"]
-        df["status"] = df["major"] = df["gpa_term"] = df["servicehours_term"] = df[
-            "gpa_year"
-        ] = df["servicehours_year"] = [""]
+        df["status"] = df["major"] = df["gpa_term"] = df["gpa_year"] = [""]
         return df.to_dict()
     df_user = df_user[["name", "major"]]
     df_status = df_status[["start", "end", "status", "user"]]
     df = pd.merge(
         pd.merge(
-            pd.merge(
-                df_user.rename(columns={"name": "user"}),
-                df_status,
-                on="user",
-                how="left",
-            ),
-            df_gpa,
-            on="user",
-            how="left",
+            df_user.rename(columns={"name": "user"}), df_status, on="user", how="left",
         ),
-        df_servicehours,
+        df_gpa,
         on="user",
         how="left",
-    ).drop(columns=["id_x", "id_y"])
+    )
+    print(df)
     print("Load Data")
     return df.to_dict(orient="records")
 
@@ -471,6 +468,9 @@ def members_graph(data, years, status, **kwargs):
 
     fig = go.Figure(data=DataOut)
     layout(fig, "Membership Composition", YEARS)
+    fig.update_layout(
+        xaxis_title="*Members count as measured on January 1st of each year"
+    )
     return fig
 
 
@@ -479,35 +479,49 @@ def members_graph(data, years, status, **kwargs):
     [Input("chapter-data", "data"), Input("years-slider", "value"),],
 )
 def chapter_size_graph(data, years, **kwargs):
-    TERMS = {"Fall": [], "Spring": []}
     YEARS = [str(year) for year in range(years[0], years[1] + 1)]
+    academic_terms = []
+    for i in range(len(YEARS) - 1):
+        academic_terms.append("-".join(YEARS[i : i + 2]))
     df = pd.DataFrame.from_dict(data)
     DataOut = []
-
-    for term in TERMS:
-        for year in YEARS:
-            if term == "Fall":
-                date = year + "-12-01"
-            if term == "Spring":
-                date = year + "-05-01"
-            df["term"] = (df["start"] <= date) & (df["end"] >= date)
-            gb = df.groupby(["status", "term"])
-            TERMS[term].append(
-                get_group(gb, ("active", True))
-                + get_group(gb, ("active pending", True))
-            )
-        trace = go.Bar(
-            name=term,
-            x=YEARS,
-            y=TERMS[term],
-            marker=dict(color=colors[term]),
-            showlegend=True,
+    Fall = []
+    Spring = []
+    for term in academic_terms:
+        fall = term[:4] + "-01-01"
+        spring = term[5:] + "-06-01"
+        df["fall_term"] = (df["start"] <= fall) & (df["end"] >= fall)
+        df["spring_term"] = (df["start"] <= spring) & (df["end"] >= spring)
+        gb = df.groupby(["status", "fall_term"])
+        Fall.append(
+            get_group(gb, ("active", True)) + get_group(gb, ("active pending", True))
         )
-        DataOut.append(trace)
-
+        gb = df.groupby(["status", "spring_term"])
+        Spring.append(
+            get_group(gb, ("active", True)) + get_group(gb, ("active pending", True))
+        )
+    trace = go.Bar(
+        name="Fall",
+        x=academic_terms,
+        y=Fall,
+        marker=dict(color=colors["Fall"]),
+        showlegend=True,
+    )
+    DataOut.append(trace)
+    trace = go.Bar(
+        name="Spring",
+        x=academic_terms,
+        y=Spring,
+        marker=dict(color=colors["Spring"]),
+        showlegend=True,
+    )
+    DataOut.append(trace)
     fig = go.Figure(data=DataOut)
-    layout(fig, "Chapter Size by Semester", YEARS)
-    fig.update_layout(barmode="group")
+    layout(fig, "Chapter Size per Academic Term", academic_terms)
+    fig.update_layout(
+        barmode="group",
+        xaxis_title="*Fall measured as of January 1st; Spring measured as of June 1st (count includes active/activepend status)",
+    )
     return fig
 
 
@@ -586,36 +600,36 @@ def gpa_graph(data, years, **kwargs):
     return fig
 
 
-@app.callback(
-    Output("servicehours-graph", "figure"),
-    [Input("chapter-data", "data"), Input("years-slider", "value"),],
-)
-def servicehours_graph(data, years, **kwargs):
-    YEARS = [x for x in range(years[0], years[1] + 1)]
-    TERMS = {"Fall": [], "Winter": [], "Spring": [], "Summer": []}
-    df = pd.DataFrame.from_dict(data)
-    gb = df.groupby(["servicehours_term", "servicehours_year"])
-    DataOut = []
+# @app.callback(
+#     Output("servicehours-graph", "figure"),
+#     [Input("chapter-data", "data"), Input("years-slider", "value"),],
+# )
+# def servicehours_graph(data, years, **kwargs):
+#     YEARS = [x for x in range(years[0], years[1] + 1)]
+#     TERMS = {"Fall": [], "Winter": [], "Spring": [], "Summer": []}
+#     df = pd.DataFrame.from_dict(data)
+#     gb = df.groupby(["servicehours_term", "servicehours_year"])
+#     DataOut = []
 
-    for term in TERMS:
-        for year in YEARS:
-            TERMS[term].append(get_term_average(gb, (term, str(year)), "service_hours"))
+#     for term in TERMS:
+#         for year in YEARS:
+#             TERMS[term].append(get_term_average(gb, (term, str(year)), "service_hours"))
 
-    for key, value in TERMS.items():
-        trace = go.Scatter(
-            name=key,
-            x=YEARS,
-            y=value,
-            hovertemplate="<i>Average</i>: %{y}",
-            marker=dict(color=colors[key]),
-            showlegend=True,
-        )
-        DataOut.append(trace)
+#     for key, value in TERMS.items():
+#         trace = go.Scatter(
+#             name=key,
+#             x=YEARS,
+#             y=value,
+#             hovertemplate="<i>Average</i>: %{y}",
+#             marker=dict(color=colors[key]),
+#             showlegend=True,
+#         )
+#         DataOut.append(trace)
 
-    fig = go.Figure(data=DataOut)
-    layout(fig, "Average Service Hours", YEARS)
-    fig.update_layout(yaxis=dict(showgrid=True, gridcolor="#dcdde1", ticks="outside"))
-    return fig
+#     fig = go.Figure(data=DataOut)
+#     layout(fig, "Average Service Hours", YEARS)
+#     fig.update_layout(yaxis=dict(showgrid=True, gridcolor="#dcdde1", ticks="outside"))
+#     return fig
 
 
 @app.callback(
