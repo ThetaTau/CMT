@@ -26,7 +26,6 @@ from users.models import (
     User,
     UserStatusChange,
     UserSemesterGPA,
-    UserSemesterServiceHours,
 )
 
 ## -------------------------------------------------------------------------------
@@ -382,24 +381,6 @@ app.layout = html.Div(
             ],
             style=style["big_graph"],
         ),
-        # html.Div(
-        #     children=[
-        #         ),
-        #         # html.Div(
-        #         #     children=[
-        #         #         dcc.Loading(
-        #         #             type="default",
-        #         #             children=[
-        #         #                 # Graph 5: Service Hours over time
-        #         #                 dcc.Graph(id="servicehours-graph"),
-        #         #             ],
-        #         #         )
-        #         #     ],
-        #         #     style=style["small_graph"],
-        #         # ),
-        #     ],
-        #     style=dict(display="flex", flexDirection="row"),
-        # ),
     ]
 )
 
@@ -415,9 +396,6 @@ def load_chapter_data(clicks, **kwargs):
     df_gpa = read_frame(UserSemesterGPA.objects.filter(user__chapter=chapter)).rename(
         columns={"term": "gpa_term", "year": "gpa_year"}
     )
-    # df_servicehours = read_frame(
-    #     UserSemesterServiceHours.objects.filter(user__chapter=chapter)
-    # ).rename(columns={"term": "servicehours_term", "year": "servicehours_year"})
     if df_user.empty or df_status.empty or df_gpa.empty:
         df = pd.DataFrame()
         # initialize empty dataframe with NA values to prevent error queries when loading empty chapters
@@ -618,38 +596,6 @@ def gpa_graph(data, years, **kwargs):
     layout(fig, "Average GPA", YEARS)
     fig.update_layout(yaxis=dict(showgrid=True, gridcolor="#dcdde1", ticks="outside"))
     return fig
-
-
-# @app.callback(
-#     Output("servicehours-graph", "figure"),
-#     [Input("chapter-data", "data"), Input("years-slider", "value"),],
-# )
-# def servicehours_graph(data, years, **kwargs):
-#     YEARS = [x for x in range(years[0], years[1] + 1)]
-#     TERMS = {"Fall": [], "Winter": [], "Spring": [], "Summer": []}
-#     df = pd.DataFrame.from_dict(data)
-#     gb = df.groupby(["servicehours_term", "servicehours_year"])
-#     DataOut = []
-
-#     for term in TERMS:
-#         for year in YEARS:
-#             TERMS[term].append(get_term_average(gb, (term, str(year)), "service_hours"))
-
-#     for key, value in TERMS.items():
-#         trace = go.Scatter(
-#             name=key,
-#             x=YEARS,
-#             y=value,
-#             hovertemplate="<i>Average</i>: %{y}",
-#             marker=dict(color=colors[key]),
-#             showlegend=True,
-#         )
-#         DataOut.append(trace)
-
-#     fig = go.Figure(data=DataOut)
-#     layout(fig, "Average Service Hours", YEARS)
-#     fig.update_layout(yaxis=dict(showgrid=True, gridcolor="#dcdde1", ticks="outside"))
-#     return fig
 
 
 @app.callback(
