@@ -267,6 +267,10 @@ app.layout = html.Div(
                             "Actives",
                             style=dict(color=colors["Actives"], textAlign="center"),
                         ),
+                        html.H6(
+                            "[ activepend + active ]",
+                            style=dict(fontSize=14, color="grey", textAlign="center"),
+                        ),
                     ],
                     style=style["number"],
                 ),
@@ -276,6 +280,10 @@ app.layout = html.Div(
                         html.H6(
                             "Inactives",
                             style=dict(color=colors["Inactives"], textAlign="center"),
+                        ),
+                        html.H6(
+                            "[ alumnipend + away ]",
+                            style=dict(fontSize=14, color="grey", textAlign="center"),
                         ),
                     ],
                     style=style["number"],
@@ -287,6 +295,10 @@ app.layout = html.Div(
                             "Pledges",
                             style=dict(color=colors["Pledges"], textAlign="center"),
                         ),
+                        html.H6(
+                            "[ pledge ]",
+                            style=dict(fontSize=14, color="grey", textAlign="center"),
+                        ),
                     ],
                     style=style["number"],
                 ),
@@ -297,6 +309,10 @@ app.layout = html.Div(
                             "Depledges",
                             style=dict(color=colors["Depledges"], textAlign="center"),
                         ),
+                        html.H6(
+                            "[ depledge ]",
+                            style=dict(fontSize=14, color="grey", textAlign="center"),
+                        ),
                     ],
                     style=style["number"],
                 ),
@@ -306,6 +322,10 @@ app.layout = html.Div(
                         html.H6(
                             "Alumnis",
                             style=dict(color=colors["Alumnis"], textAlign="center"),
+                        ),
+                        html.H6(
+                            "[ alumni ]",
+                            style=dict(fontSize=14, color="grey", textAlign="center"),
                         ),
                     ],
                     style=style["number"],
