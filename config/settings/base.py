@@ -98,6 +98,7 @@ THIRD_PARTY_APPS = [
     "dbbackup",
     "watson",
     "ckeditor",
+    "ckeditor_uploader",
 ]
 LOCAL_APPS = [
     "thetatauCMT.users.apps.UsersConfig",
@@ -417,3 +418,5 @@ PLOTLY_COMPONENTS = [
     "dash_renderer",
     "dpd_components",
 ]
+
+CKEDITOR_UPLOAD_PATH = "uploads/"
