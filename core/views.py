@@ -1,3 +1,4 @@
+import datetime
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.decorators import user_passes_test
 from django.http.request import QueryDict
@@ -13,6 +14,7 @@ from django.contrib import messages
 from scores.models import ScoreType
 from tasks.models import TaskChapter, TaskDate
 from tasks.tables import TaskIncompleteTable
+from announcements.models import Announcement
 from .utils import check_officer, check_nat_officer
 from braces.views import GroupRequiredMixin
 from viewflow.frontend.views import (
@@ -205,4 +207,9 @@ class HomeView(LoginRequiredMixin, OfficerMixin, TemplateView):
         table = TaskIncompleteTable(qs)
         RequestConfig(self.request, paginate={"per_page": 40}).configure(table)
         context["table"] = table
+        announcements = Announcement.objects.filter(
+            publish_start__lt=datetime.datetime.now(),
+            publish_end__gt=datetime.datetime.now(),
+        )
+        context["announcements"] = announcements
         return context

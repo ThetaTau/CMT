@@ -97,6 +97,8 @@ THIRD_PARTY_APPS = [
     "import_export",
     "dbbackup",
     "watson",
+    "ckeditor",
+    "ckeditor_uploader",
 ]
 LOCAL_APPS = [
     "thetatauCMT.users.apps.UsersConfig",
@@ -109,6 +111,7 @@ LOCAL_APPS = [
     "thetatauCMT.tasks.apps.TasksConfig",
     "thetatauCMT.finances.apps.FinancesConfig",
     "thetatauCMT.ballots.apps.BallotsConfig",
+    "thetatauCMT.announcements.apps.AnnouncementsConfig",
 ]
 # https://docs.djangoproject.com/en/dev/ref/settings/#installed-apps
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -415,3 +418,5 @@ PLOTLY_COMPONENTS = [
     "dash_renderer",
     "dpd_components",
 ]
+
+CKEDITOR_UPLOAD_PATH = "uploads/"
