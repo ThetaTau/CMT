@@ -1593,8 +1593,11 @@ class PrematureAlumnusCreateView(
             user__chapter=self.request.user.current_chapter
         )
         for process in processes:
+            status = "N/A"
             if process.finished is None:
-                status = process.active_tasks().first().flow_task.task_title
+                active_task = process.active_tasks().first()
+                if active_task:
+                    status = active_task.flow_task.task_title
                 approved = "Pending"
             else:
                 status = "Complete"
