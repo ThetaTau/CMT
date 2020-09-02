@@ -2,7 +2,7 @@ from django.shortcuts import redirect
 from django.contrib import messages
 from django.conf import settings
 
-from forms.models import RiskManagement, PledgeProgram
+from forms.models import RiskManagement, PledgeProgram, ChapterReport
 
 
 class RMPSignMiddleware:
@@ -21,7 +21,7 @@ class RMPSignMiddleware:
         path = path.strip("/")
         if (
             path
-            in "logout forms/rmp rmp electronic_terms forms/pledge_program forms/report".split()
+            in "logout forms/rmp rmp electronic_terms forms/pledgeprogram forms/report forms/report".split()
         ) or settings.DEBUG:
             return response
         if request.user.is_officer:
@@ -41,4 +41,11 @@ class RMPSignMiddleware:
                     f"Your chapter must submit the New Member Education Program this semester.",
                 )
                 return redirect("forms:pledge_program")
+            if not ChapterReport.signed_this_semester(request.user.current_chapter):
+                messages.add_message(
+                    request,
+                    messages.ERROR,
+                    f"Your chapter must submit the Chapter Report this semester.",
+                )
+                return redirect("forms:report")
         return response

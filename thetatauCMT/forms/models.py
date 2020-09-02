@@ -481,6 +481,15 @@ class ChapterReport(YearTermModel, TimeStampedModel):
     chapter = models.ForeignKey(Chapter, on_delete=models.CASCADE, related_name="info")
     report = models.FileField(upload_to=get_chapter_report_upload_path)
 
+    @classmethod
+    def signed_this_semester(cls, chapter):
+        program = cls.objects.filter(
+            chapter=chapter,
+            year=YearTermModel.current_year(),
+            term=YearTermModel.current_term(),
+        ).first()
+        return program
+
 
 class RiskManagement(YearTermModel):
     user = models.ForeignKey(
