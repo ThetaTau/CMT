@@ -395,6 +395,8 @@ class RoleChangeSelectFormHelper(FormHelper):
 
 
 class ChapterReportForm(forms.ModelForm):
+    report = forms.FileField(required=False)
+
     class Meta:
         model = ChapterReport
         fields = [

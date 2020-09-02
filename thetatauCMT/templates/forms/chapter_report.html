@@ -13,19 +13,16 @@
     <ol>
       <li>
         Each chapter officer should read and become sufficiently knowledgeable
-        about the document at <a href="http://thetatau.org/Websites/thetatauhq/images/SemesterReport.pdf">http://thetatau.org/Websites/thetatauhq/images/SemesterReport.pdf</a>
+        about <a data-toggle="modal" href="" data-target="#myModal">the Risk Management Policies and Agreements (RMP)</a>
         to be able to answer questions from the rest of the chapter.
       </li>
       <li>
-        Each chapter officer should sign the report.
-      </li>
-      <li>
-        Each member of the chapter should sign the report.
+        Each chapter officer should sign <a data-toggle="modal" href="" data-target="#myModal">the Risk Management Policies and Agreements</a>.
       </li>
       <li>
         During the chapter meeting immediately after you pledge in your new
         members for the semester, a period of time should be devoted to covering
-        the materials in this report.</br>Specifically:</br>
+        the materials in the RMP.</br>Specifically:</br>
         <ul>
           <li>
             Marshall should review the Risk Management Policy and expectations with the members;
@@ -41,11 +38,6 @@
           </li>
         </ul>
       </li>
-      <li>
-        The designated chapter officer should scan each section individually
-        (preferably on a scanner and not with a scanner app on your phone) and
-        upload the form below.
-      </li>
     </ol>
     <form class="chapter_report" enctype="multipart/form-data" method="POST">
       {% csrf_token %}
@@ -56,8 +48,6 @@
       >
         {{ forms.report.media }}
         <div>{{ forms.report.management_form|crispy }}</div>
-        <h3>Report Upload</h3>
-        {{ forms.report.report|crispy }}
         <h3>Update Chapter Information:</h3>
         {{ forms.report.info|crispy }}
         <h3>Advisors:</h3>
@@ -113,6 +103,33 @@
   </div>
 </div>
 {% endblock content %}
+{% block modal %}
+  <div class="modal hide fade" tabindex="-1" id="myModal" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <form id="audits-create" class="form" method="post">
+          {% csrf_token %}
+          <div class="modal-content">
+            <div class="modal-header">
+              <h4 class="modal-title">Risk Management Policies and Agreements</h4>
+              <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                <span aria-hidden="true">×</span>
+                <span class="sr-only">Close</span>
+              </button>
+            </div>
+            <div class="modal-body">
+              {% include "forms/rmp_details.html" %}
+            </div>
+            <div class="modal-footer">
+              <button type="button" id='cancel-modal' class="btn btn-secondary" data-dismiss="modal">Close</button>
+            </div>
+          </div><!-- /.modal-content -->
+        </form>
+      </div>
+      <div id="modal-data" url="" action="" run_id=""></div>
+    </div>
+  </div>
+{% endblock modal %}
 {% block javascript %}
 {{ block.super }}
 <script src="{% static 'js/dynamic_formset.js' %}"></script>
