@@ -1,6 +1,11 @@
 {% extends "base.html" %}
 {% load render_table from django_tables2 %}
 {% block content %}
+  <style>
+    hr {
+      border-top: 3px double #8c8b8b;
+    }
+  </style>
 {% load plotly_dash %}
   <h1>Announcements</h1>
   <hr>
