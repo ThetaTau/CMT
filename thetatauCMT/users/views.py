@@ -318,7 +318,7 @@ class UserListView(LoginRequiredMixin, OfficerMixin, PagedFilteredTableView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        table = UserTable(self.object_list)
+        table = UserTable(data=self.object_list)
         table.exclude = ("role", "role_end")
         RequestConfig(self.request, paginate={"per_page": 30}).configure(table)
         context["table"] = table
