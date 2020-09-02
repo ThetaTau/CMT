@@ -10,7 +10,13 @@
   <h1>Announcements</h1>
   <hr>
   {% for announcement in announcements %}
-    {{ announcement.content|safe }}
+    <div class="card bg-light">
+      <div class="card-body">
+        <h5 class="card-title">{{ announcement.title }}</h5>
+        {{ announcement.content|safe }}
+      </div>
+      <div class="card-footer bg-transparent text-muted">Published: {{ announcement.publish_start }}</div>
+    </div>
     <hr>
   {% endfor %}
 {% plotly_header %}
