@@ -160,7 +160,7 @@ class User(AbstractUser):
         else:
             return "", current_roles
 
-    def chapter_officer(self):
+    def chapter_officer(self, altered=True):
         """
         An member can have multiple roles need to see if any are officer
         :return: Bool if officer, set of officer roles
@@ -169,7 +169,7 @@ class User(AbstractUser):
         # officer = not current_roles.isdisjoint(CHAPTER_OFFICER)
         officer_roles = CHAPTER_OFFICER & current_roles
         if self.is_national_officer_group:
-            if self.altered.all():
+            if altered and self.altered.all():
                 new_role = self.altered.first().role
                 if new_role is not None and new_role != "":
                     officer_roles.add(new_role)

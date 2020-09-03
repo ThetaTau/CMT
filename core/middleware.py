@@ -33,7 +33,7 @@ class RMPSignMiddleware:
                     f"of Theta Tau this year.",
                 )
                 return redirect("rmp")
-        if request.user.is_council_officer():
+        if request.user.chapter_officer(altered=False):
             if not PledgeProgram.signed_this_semester(request.user.current_chapter):
                 messages.add_message(
                     request,
