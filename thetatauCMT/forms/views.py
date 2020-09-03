@@ -998,15 +998,14 @@ class ChapterInfoReportView(LoginRequiredMixin, OfficerMixin, MultiFormsView):
     def report_form_valid(self, form):
         report = form["report"]
         info = form["info"]
-        if report.has_changed():
-            report.instance.user = self.request.user
-            report.instance.chapter = self.request.user.current_chapter
-            report.save()
-            messages.add_message(
-                self.request,
-                messages.INFO,
-                f"You successfully submitted the RMP and Agreements of Theta Tau!\n",
-            )
+        report.instance.user = self.request.user
+        report.instance.chapter = self.request.user.current_chapter
+        report.save()
+        messages.add_message(
+            self.request,
+            messages.INFO,
+            f"You successfully submitted the RMP and Agreements of Theta Tau!\n",
+        )
         if info.has_changed():
             info.save()
         return HttpResponseRedirect(self.get_success_url())
