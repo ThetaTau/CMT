@@ -532,6 +532,7 @@ class PledgeProcessFlow(Flow):
             "Payment Received",
             "Your chapter has paid a pledge invoice.",
             [{"members": member_list}, "invoice",],
+            email_officers=True,
         ).send()
 
     def sync_member_info_function(self, activation):
