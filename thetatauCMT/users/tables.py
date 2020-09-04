@@ -25,10 +25,10 @@ class UserTable(tables.Table):
         )
 
     def __init__(self, chapter=False, *args, **kwargs):
-        extra_columns = None
         if chapter:
             extra_columns = [
                 ("chapter", tables.Column("Chapter")),
                 ("chapter.region", tables.Column("Region")),
             ]
-        super().__init__(extra_columns=extra_columns, *args, **kwargs)
+            kwargs["extra_columns"] = extra_columns
+        super().__init__(*args, **kwargs)
