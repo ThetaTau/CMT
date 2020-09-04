@@ -248,9 +248,13 @@ class InitDeplSelectView(
                     for pledge in process.pledges.values_list("first_name", "last_name")
                 ]
             )
+            last_pledge = process.pledges.last()
+            pledge_created = None
+            if last_pledge:
+                pledge_created = last_pledge.created
             pledge_data.append(
                 {
-                    "pledge": process.pledges.last().created,
+                    "pledge": pledge_created,
                     "submitted": process.created,
                     "status": status,
                     "pledge_names": pledges,
