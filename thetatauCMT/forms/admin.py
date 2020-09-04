@@ -17,6 +17,10 @@ from .models import (
     DisciplinaryProcess,
     DisciplinaryAttachment,
     InitiationProcess,
+    PledgeProcess,
+    PrematureAlumnus,
+    CollectionReferral,
+    ResignationProcess,
 )
 from .resources import (
     InitiationResource,
@@ -331,3 +335,123 @@ class InitiationProcessAdmin(admin.ModelAdmin):
 
 
 admin.site.register(InitiationProcess, InitiationProcessAdmin)
+
+
+class PledgeProcessAdmin(admin.ModelAdmin):
+    list_display = (
+        "chapter",
+        "created",
+        "invoice",
+    )
+    list_filter = [
+        "created",
+        "chapter",
+    ]
+    ordering = [
+        "-created",
+    ]
+    search_fields = [
+        "chapter",
+        "invoice",
+    ]
+    exclude = [
+        "flow_class",
+        "status",
+        "finished",
+        "artifact_content_type",
+        "artifact_object_id",
+        "data",
+        "pledges",
+    ]
+
+
+admin.site.register(PledgeProcess, PledgeProcessAdmin)
+
+
+class ResignationProcessAdmin(admin.ModelAdmin):
+    readonly_fields = ("user",)
+    raw_id_fields = (
+        "officer1",
+        "officer2",
+    )
+    list_display = (
+        "user",
+        "chapter",
+        "created",
+    )
+    list_filter = [
+        "created",
+        "chapter",
+    ]
+    ordering = [
+        "-created",
+    ]
+    search_fields = [
+        "user",
+        "chapter",
+    ]
+    exclude = [
+        "flow_class",
+        "status",
+        "finished",
+        "artifact_content_type",
+        "artifact_object_id",
+        "data",
+    ]
+
+
+admin.site.register(ResignationProcess, ResignationProcessAdmin)
+
+
+class PrematureAlumnusAdmin(admin.ModelAdmin):
+    readonly_fields = ("user",)
+    list_display = (
+        "user",
+        "created",
+        "prealumn_type",
+        "approved_exec",
+    )
+    list_filter = [
+        "created",
+        "prealumn_type",
+        "approved_exec",
+    ]
+    ordering = [
+        "-created",
+    ]
+    search_fields = [
+        "user",
+    ]
+    exclude = [
+        "flow_class",
+        "status",
+        "finished",
+        "artifact_content_type",
+        "artifact_object_id",
+        "data",
+    ]
+
+
+admin.site.register(PrematureAlumnus, PrematureAlumnusAdmin)
+
+
+class CollectionReferralAdmin(ImportExportActionModelAdmin):
+    readonly_fields = ("user",)
+    raw_id_fields = ("created_by",)
+    list_display = (
+        "user",
+        "balance_due",
+        "created",
+    )
+    list_filter = [
+        "created",
+    ]
+    ordering = [
+        "-created",
+    ]
+    search_fields = [
+        "user",
+    ]
+
+
+admin.site.register(CollectionReferral, CollectionReferralAdmin)
