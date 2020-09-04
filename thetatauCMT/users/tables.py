@@ -29,6 +29,7 @@ class UserTable(tables.Table):
             extra_columns = [
                 ("chapter", tables.Column("Chapter")),
                 ("chapter.region", tables.Column("Region")),
+                ("chapter.school", tables.Column("School")),
             ]
             kwargs["extra_columns"] = extra_columns
         super().__init__(*args, **kwargs)
