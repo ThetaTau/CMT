@@ -106,6 +106,7 @@ class RegionOfficerView(
                     tables.LinkColumn("chapters:detail", args=[A("chapter.slug")]),
                 ),
                 ("chapter.region", tables.Column("Region")),
+                ("chapter.school", tables.Column("School")),
             ],
         )
         RequestConfig(self.request, paginate={"per_page": 50}).configure(table)
@@ -189,6 +190,7 @@ class RegionAdvisorView(
                     tables.LinkColumn("chapters:detail", args=[A("chapter.slug")]),
                 ),
                 ("chapter.region", tables.Column("Region")),
+                ("chapter.school", tables.Column("School")),
             ],
         )
         table.exclude = (

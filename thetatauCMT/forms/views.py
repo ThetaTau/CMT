@@ -1247,6 +1247,7 @@ class PledgeProgramListView(
             all_forms.values(
                 "chapter__name",
                 "chapter__region__name",
+                "chapter__school",
                 "year",
                 "term",
                 "manual",
@@ -1261,6 +1262,8 @@ class PledgeProgramListView(
         for dat in data:
             dat["chapter"] = dat["chapter__name"]
             del dat["chapter__name"]
+            dat["school"] = dat["chapter__school"]
+            del dat["chapter__school"]
             dat["region"] = dat["chapter__region__name"]
             del dat["chapter__region__name"]
             dat["term"] = PledgeProgram.TERMS.get_value(dat["term"])
@@ -1283,6 +1286,7 @@ class PledgeProgramListView(
             missing_data = [
                 {
                     "chapter": chapter.name,
+                    "school": chapter.school,
                     "region": chapter.region.name,
                     "manual": None,
                     "term": None,
@@ -1873,7 +1877,15 @@ class ConventionListView(
             emails = context["email_list"]
             if emails != "":
                 writer.writerow(
-                    ["Chapter", "Region", "Role", "Email", "Phone Number", "Address"]
+                    [
+                        "Chapter",
+                        "Region",
+                        "School",
+                        "Role",
+                        "Email",
+                        "Phone Number",
+                        "Address",
+                    ]
                 )
                 for form in self.object_list:
                     for user_type in ["delegate", "alternate"]:
@@ -1882,6 +1894,7 @@ class ConventionListView(
                             [
                                 form.chapter,
                                 form.chapter.region,
+                                form.chapter.school,
                                 user_type,
                                 user.email,
                                 user.phone_number,
@@ -2217,7 +2230,15 @@ class OSMListView(
             emails = context["email_list"]
             if emails != "":
                 writer.writerow(
-                    ["Chapter", "Region", "Role", "Email", "Phone Number", "Address"]
+                    [
+                        "Chapter",
+                        "Region",
+                        "School",
+                        "Role",
+                        "Email",
+                        "Phone Number",
+                        "Address",
+                    ]
                 )
                 for form in self.object_list:
                     for user_type in ["nominate"]:
@@ -2226,6 +2247,7 @@ class OSMListView(
                             [
                                 form.chapter,
                                 form.chapter.region,
+                                form.chapter.school,
                                 user_type,
                                 user.email,
                                 user.phone_number,

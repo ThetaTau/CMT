@@ -123,6 +123,7 @@ class PledgeProgramTable(tables.Table):
         fields = [
             "chapter",
             "region",
+            "school",
             "year",
             "term",
             "remote",
