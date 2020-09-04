@@ -150,6 +150,7 @@ COMMITTEE_CHAIR = {
     "events chair",
     "fundraising chair",
     "housing chair",
+    "marshal",
     "other appointee",
     "parent",
     "pd chair",
