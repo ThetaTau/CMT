@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import ScoreType
+from .models import ScoreType, ScoreChapter
 
 # Register your models here.
 
@@ -11,3 +11,12 @@ class ScoreTypeAdmin(admin.ModelAdmin):
 
 
 admin.site.register(ScoreType, ScoreTypeAdmin)
+
+
+class ScoreChapterAdmin(admin.ModelAdmin):
+    list_display = ("chapter", "score", "type", "year", "term")
+    list_filter = ["year", "term", "chapter", "type"]
+    search_fields = ["chapter", "year", "term", "type"]
+
+
+admin.site.register(ScoreChapter, ScoreChapterAdmin)
