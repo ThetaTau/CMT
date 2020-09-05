@@ -186,13 +186,9 @@ def fetchStats(data, years, status):
             get_group(gb_start, (status, True)), get_group(gb_end, (status, True))
         )
     if change > 0:
-        return html.H2(
-            "+{}%".format(change), style=dict(color="#20bf6b", textAlign="center")
-        )
+        return html.H2(f"+{change}%", style=dict(color="#20bf6b", textAlign="center"))
     if change < 0:
-        return html.H2(
-            "{}%".format(change), style=dict(color="#ff6b6b", textAlign="center")
-        )
+        return html.H2(f"{change}%", style=dict(color="#ff6b6b", textAlign="center"))
     else:
         return html.H2("N/A", style=dict(color="#b2bec3", textAlign="center"))
 
@@ -419,8 +415,9 @@ def load_chapter_data(clicks, **kwargs):
 
 @app.callback(Output("years-text", "children"), [Input("years-slider", "value")])
 def update_text(value, **kwargs):
-    return "NOTE: Percent change of member status will result in 'N/A' if value at either {0} or {1} is zero.".format(
-        value[0], value[1]
+    return (
+        f"NOTE: Percent change of member status will result in 'N/A' if value "
+        f"at either {value[0]} or {value[1]} is zero."
     )
 
 
