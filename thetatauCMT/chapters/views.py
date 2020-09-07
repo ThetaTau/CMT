@@ -5,7 +5,6 @@ from django.http.response import HttpResponseRedirect
 from django.views.generic import RedirectView
 from core.views import (
     RequestConfig,
-    OfficerMixin,
     OfficerRequiredMixin,
     PagedFilteredTableView,
 )
@@ -23,7 +22,7 @@ from submissions.models import Submission
 from forms.notifications import EmailAdvisorWelcome
 
 
-class ChapterDetailView(LoginRequiredMixin, OfficerMixin, MultiFormsView):
+class ChapterDetailView(LoginRequiredMixin, MultiFormsView):
     template_name = "chapters/chapter_detail.html"
     form_classes = {
         "chapter": ChapterForm,
@@ -199,9 +198,7 @@ class ChapterRedirectView(LoginRequiredMixin, RedirectView):
         )
 
 
-class ChapterListView(
-    OfficerRequiredMixin, LoginRequiredMixin, OfficerMixin, PagedFilteredTableView
-):
+class ChapterListView(OfficerRequiredMixin, LoginRequiredMixin, PagedFilteredTableView):
     model = Chapter
     context_object_name = "chapter"
     ordering = ["name"]

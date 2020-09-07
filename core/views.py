@@ -83,13 +83,6 @@ class OfficerRequiredMixin(GroupRequiredMixin):
         return reverse("home")
 
 
-class OfficerMixin:
-    def dispatch(self, request, *args, **kwargs):
-        request = check_nat_officer(request)
-        request = check_officer(request)
-        return super().dispatch(request, *args, **kwargs)
-
-
 class PagedFilteredTableView(SingleTableView):
     filter_class = None
     formhelper_class = None
@@ -198,7 +191,7 @@ class TypeFieldFilteredChapterAdd(FormMixin):
         return context
 
 
-class HomeView(LoginRequiredMixin, OfficerMixin, TemplateView):
+class HomeView(LoginRequiredMixin, TemplateView):
     template_name = "pages/home.html"
 
     def get_context_data(self, **kwargs):

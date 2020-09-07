@@ -39,7 +39,6 @@ from material.frontend import frontend_url
 from core.forms import MultiFormsView
 from core.models import TODAY_START, forever, semester_encompass_start_end_date
 from core.views import (
-    OfficerMixin,
     OfficerRequiredMixin,
     RequestConfig,
     PagedFilteredTableView,
@@ -177,9 +176,7 @@ def pledge_form(request):
     return HttpResponse("Webhook received", status=200)
 
 
-class InitDeplSelectView(
-    OfficerRequiredMixin, LoginRequiredMixin, OfficerMixin, FormSetView
-):
+class InitDeplSelectView(OfficerRequiredMixin, LoginRequiredMixin, FormSetView):
     form_class = InitDeplSelectForm
     template_name = "forms/init-depl-select.html"
     factory_kwargs = {"extra": 0}
@@ -287,7 +284,7 @@ class InitDeplSelectView(
         return reverse("forms:initiation")
 
 
-class InitiationView(OfficerRequiredMixin, LoginRequiredMixin, OfficerMixin, FormView):
+class InitiationView(OfficerRequiredMixin, LoginRequiredMixin, FormView):
     form_class = InitiationForm
     template_name = "forms/initiation.html"
     to_initiate = []
@@ -406,9 +403,7 @@ class InitiationView(OfficerRequiredMixin, LoginRequiredMixin, OfficerMixin, For
         return reverse("home")
 
 
-class StatusChangeSelectView(
-    OfficerRequiredMixin, LoginRequiredMixin, OfficerMixin, FormSetView
-):
+class StatusChangeSelectView(OfficerRequiredMixin, LoginRequiredMixin, FormSetView):
     form_class = StatusChangeSelectForm
     template_name = "forms/status-select.html"
     factory_kwargs = {"extra": 1}
@@ -507,9 +502,7 @@ class StatusChangeSelectView(
         return reverse("forms:status")
 
 
-class StatusChangeView(
-    OfficerRequiredMixin, LoginRequiredMixin, OfficerMixin, FormView
-):
+class StatusChangeView(OfficerRequiredMixin, LoginRequiredMixin, FormView):
     form_class = GraduateForm
     officer_edit = "member status"
     template_name = "forms/status.html"
@@ -650,9 +643,7 @@ def remove_extra_form(formset, **kwargs):
     return formset
 
 
-class RoleChangeView(
-    OfficerRequiredMixin, LoginRequiredMixin, OfficerMixin, ModelFormSetView
-):
+class RoleChangeView(OfficerRequiredMixin, LoginRequiredMixin, ModelFormSetView):
     form_class = RoleChangeSelectForm
     template_name = "forms/officer.html"
     factory_kwargs = {"extra": 1, "can_delete": True}
@@ -751,7 +742,7 @@ class RoleChangeView(
 
 
 class RoleChangeNationalView(
-    NatOfficerRequiredMixin, LoginRequiredMixin, OfficerMixin, ModelFormSetView
+    NatOfficerRequiredMixin, LoginRequiredMixin, ModelFormSetView
 ):
     form_class = RoleChangeNationalSelectForm
     template_name = "forms/officer_national.html"
@@ -837,7 +828,7 @@ class RoleChangeNationalView(
 
 
 class ChapterReportListView(
-    NatOfficerRequiredMixin, LoginRequiredMixin, OfficerMixin, PagedFilteredTableView
+    NatOfficerRequiredMixin, LoginRequiredMixin, PagedFilteredTableView
 ):
     model = ChapterReport
     context_object_name = "chapter_report_list"
@@ -914,7 +905,7 @@ class ChapterReportListView(
         return context
 
 
-class ChapterInfoReportView(LoginRequiredMixin, OfficerMixin, MultiFormsView):
+class ChapterInfoReportView(LoginRequiredMixin, MultiFormsView):
     template_name = "forms/chapter_report.html"
     form_classes = {
         "report": ChapterInfoReportForm,
@@ -1025,7 +1016,7 @@ class ChapterInfoReportView(LoginRequiredMixin, OfficerMixin, MultiFormsView):
         return self.request.user.current_chapter
 
 
-class RiskManagementFormView(LoginRequiredMixin, OfficerMixin, FormView):
+class RiskManagementFormView(LoginRequiredMixin, FormView):
     form_class = RiskManagementForm
     template_name = "forms/rmp.html"
 
@@ -1079,7 +1070,7 @@ class RiskManagementFormView(LoginRequiredMixin, OfficerMixin, FormView):
 
 
 class RiskManagementDetailView(
-    LoginRequiredMixin, OfficerMixin, PDFTemplateResponseMixin, UpdateView
+    LoginRequiredMixin, PDFTemplateResponseMixin, UpdateView
 ):
     model = RiskManagement
     form_class = RiskManagementForm
@@ -1092,7 +1083,7 @@ class RiskManagementDetailView(
 
 
 class RiskManagementListView(
-    NatOfficerRequiredMixin, LoginRequiredMixin, OfficerMixin, PagedFilteredTableView
+    NatOfficerRequiredMixin, LoginRequiredMixin, PagedFilteredTableView
 ):
     model = RiskManagement
     context_object_name = "risk"
@@ -1188,7 +1179,7 @@ class RiskManagementListView(
 
 
 class PledgeProgramListView(
-    NatOfficerRequiredMixin, LoginRequiredMixin, OfficerMixin, PagedFilteredTableView
+    NatOfficerRequiredMixin, LoginRequiredMixin, PagedFilteredTableView
 ):
     model = PledgeProgram
     context_object_name = "pledge_program"
@@ -1331,9 +1322,7 @@ class PledgeProgramListView(
         return context
 
 
-class PledgeProgramFormView(
-    OfficerRequiredMixin, LoginRequiredMixin, OfficerMixin, UpdateView
-):
+class PledgeProgramFormView(OfficerRequiredMixin, LoginRequiredMixin, UpdateView):
     form_class = PledgeProgramForm
     model = PledgeProgram
     template_name = "forms/pledge_program.html"
@@ -1396,7 +1385,7 @@ class PledgeProgramFormView(
         return reverse("home")
 
 
-class AuditFormView(OfficerRequiredMixin, LoginRequiredMixin, OfficerMixin, UpdateView):
+class AuditFormView(OfficerRequiredMixin, LoginRequiredMixin, UpdateView):
     form_class = AuditForm
     template_name = "forms/audit.html"
     model = Audit
@@ -1493,7 +1482,7 @@ class AuditFormView(OfficerRequiredMixin, LoginRequiredMixin, OfficerMixin, Upda
 
 
 class AuditListView(
-    NatOfficerRequiredMixin, LoginRequiredMixin, OfficerMixin, PagedFilteredTableView
+    NatOfficerRequiredMixin, LoginRequiredMixin, PagedFilteredTableView
 ):
     model = Audit
     context_object_name = "audit"
@@ -1569,7 +1558,7 @@ class PledgeFormView(CreateView):
 
 
 class PrematureAlumnusCreateView(
-    OfficerRequiredMixin, LoginRequiredMixin, OfficerMixin, CreateProcessView
+    OfficerRequiredMixin, LoginRequiredMixin, CreateProcessView
 ):
     template_name = "forms/prematurealumnus_form.html"
     model = PrematureAlumnus
@@ -1705,7 +1694,7 @@ def get_sign_status(user, type_sign="creds", initial=False):
     return data, submitted, users
 
 
-class ConventionCreateView(LoginRequiredMixin, OfficerMixin, CreateProcessView):
+class ConventionCreateView(LoginRequiredMixin, CreateProcessView):
     template_name = "forms/convention_form.html"
     model = Convention
     form_class = ConventionForm
@@ -1780,9 +1769,7 @@ class ConventionCreateView(LoginRequiredMixin, OfficerMixin, CreateProcessView):
         return context
 
 
-class ConventionSignView(
-    LoginRequiredMixin, OfficerMixin, UpdateProcessView, MultiFormsView
-):
+class ConventionSignView(LoginRequiredMixin, UpdateProcessView, MultiFormsView):
     template_name = "forms/convention_sign_form.html"
     form_classes = {
         "process": None,
@@ -1857,7 +1844,7 @@ class ConventionSignView(
 
 
 class ConventionListView(
-    NatOfficerRequiredMixin, LoginRequiredMixin, OfficerMixin, PagedFilteredTableView
+    NatOfficerRequiredMixin, LoginRequiredMixin, PagedFilteredTableView
 ):
     model = Convention
     context_object_name = "convention_list"
@@ -2083,7 +2070,7 @@ def pledge_process_csvs(request, csv_type, process_pk):
     return response
 
 
-class OSMCreateView(LoginRequiredMixin, OfficerMixin, CreateProcessView):
+class OSMCreateView(LoginRequiredMixin, CreateProcessView):
     template_name = "forms/osm_form.html"
     model = OSM
     form_class = OSMForm
@@ -2165,9 +2152,7 @@ class OSMCreateView(LoginRequiredMixin, OfficerMixin, CreateProcessView):
         return context
 
 
-class OSMVerifyView(
-    LoginRequiredMixin, OfficerMixin, UpdateProcessView, ModelFormMixin
-):
+class OSMVerifyView(LoginRequiredMixin, UpdateProcessView, ModelFormMixin):
     template_name = "forms/osm_verify_form.html"
     model = OSM
     fields_options = {
@@ -2209,9 +2194,7 @@ class OSMVerifyView(
         return context
 
 
-class OSMListView(
-    NatOfficerRequiredMixin, LoginRequiredMixin, OfficerMixin, PagedFilteredTableView
-):
+class OSMListView(NatOfficerRequiredMixin, LoginRequiredMixin, PagedFilteredTableView):
     model = OSM
     context_object_name = "osm_list"
     table_class = OSMListTable
@@ -2336,7 +2319,7 @@ class OSMListView(
 
 
 class DisciplinaryCreateView(
-    OfficerRequiredMixin, LoginRequiredMixin, OfficerMixin, CreateProcessView
+    OfficerRequiredMixin, LoginRequiredMixin, CreateProcessView
 ):
     template_name = "forms/disciplinary_form.html"
     model = DisciplinaryProcess
@@ -2390,9 +2373,7 @@ class DisciplinaryCreateView(
         return context
 
 
-class DisciplinaryForm2View(
-    LoginRequiredMixin, OfficerMixin, UpdateProcessView, ModelFormMixin
-):
+class DisciplinaryForm2View(LoginRequiredMixin, UpdateProcessView, ModelFormMixin):
     template_name = "forms/disciplinary_form2.html"
     model = DisciplinaryProcess
     form_class = DisciplinaryForm2
@@ -2476,7 +2457,7 @@ def disciplinary_process_files(request, process_pk):
 
 
 class CollectionReferralFormView(
-    OfficerRequiredMixin, LoginRequiredMixin, OfficerMixin, MultiFormsView
+    OfficerRequiredMixin, LoginRequiredMixin, MultiFormsView
 ):
     template_name = "forms/collection.html"
     form_classes = {
@@ -2550,7 +2531,7 @@ class CollectionReferralFormView(
         return context
 
 
-class ResignationCreateView(LoginRequiredMixin, OfficerMixin, CreateProcessView):
+class ResignationCreateView(LoginRequiredMixin, CreateProcessView):
     template_name = "forms/resignation_form.html"
     model = ResignationProcess
     form_class = ResignationForm
@@ -2618,7 +2599,7 @@ class ResignationCreateView(LoginRequiredMixin, OfficerMixin, CreateProcessView)
         return context
 
 
-class ResignationSignView(LoginRequiredMixin, OfficerMixin, UpdateProcessView):
+class ResignationSignView(LoginRequiredMixin, UpdateProcessView):
     template_name = "forms/resignation_sign_form.html"
     model = ResignationProcess
     fields_options = {
@@ -2669,7 +2650,7 @@ class ResignationSignView(LoginRequiredMixin, OfficerMixin, UpdateProcessView):
 
 
 class ResignationListView(
-    OfficerRequiredMixin, LoginRequiredMixin, OfficerMixin, PagedFilteredTableView
+    OfficerRequiredMixin, LoginRequiredMixin, PagedFilteredTableView
 ):
     model = ResignationProcess
     context_object_name = "resign_list"

@@ -18,7 +18,6 @@ from watson import search as watson
 from core.views import (
     PagedFilteredTableView,
     RequestConfig,
-    OfficerMixin,
     NatOfficerRequiredMixin,
     OfficerRequiredMixin,
     group_required,
@@ -69,7 +68,7 @@ def user_verify(request):
     return render(request, "users/user_verify_form.html", {"form": form})
 
 
-class UserDetailUpdateView(LoginRequiredMixin, OfficerMixin, MultiFormsView):
+class UserDetailUpdateView(LoginRequiredMixin, MultiFormsView):
     template_name = "users/user_detail.html"
     form_classes = {
         "gpa": UserGPAForm,
@@ -201,7 +200,7 @@ class UserDetailUpdateView(LoginRequiredMixin, OfficerMixin, MultiFormsView):
 
 
 class UserSearchView(
-    NatOfficerRequiredMixin, LoginRequiredMixin, OfficerMixin, PagedFilteredTableView
+    NatOfficerRequiredMixin, LoginRequiredMixin, PagedFilteredTableView
 ):
     model = User
     # These next two lines tell the view to index lookups by username
@@ -224,7 +223,7 @@ class UserSearchView(
         return {"chapter": True}
 
 
-class UserListView(LoginRequiredMixin, OfficerMixin, PagedFilteredTableView):
+class UserListView(LoginRequiredMixin, PagedFilteredTableView):
     model = User
     # These next two lines tell the view to index lookups by username
     slug_field = "username"
@@ -431,9 +430,7 @@ class UserAlterView(NatOfficerRequiredMixin, LoginRequiredMixin, FormView):
         return super().form_valid(form)
 
 
-class UserGPAFormSetView(
-    OfficerRequiredMixin, LoginRequiredMixin, OfficerMixin, FormSetView
-):
+class UserGPAFormSetView(OfficerRequiredMixin, LoginRequiredMixin, FormSetView):
     template_name = "users/gpa_formset.html"
     form_class = UserGPAForm
     factory_kwargs = {"extra": 0}
@@ -496,9 +493,7 @@ class UserGPAFormSetView(
         return super().formset_valid(formset)
 
 
-class UserServiceFormSetView(
-    OfficerRequiredMixin, LoginRequiredMixin, OfficerMixin, FormSetView
-):
+class UserServiceFormSetView(OfficerRequiredMixin, LoginRequiredMixin, FormSetView):
     template_name = "users/service_formset.html"
     form_class = UserServiceForm
     factory_kwargs = {"extra": 0}
@@ -561,9 +556,7 @@ class UserServiceFormSetView(
         return super().formset_valid(formset)
 
 
-class UserOrgsFormSetView(
-    OfficerRequiredMixin, LoginRequiredMixin, OfficerMixin, ModelFormSetView
-):
+class UserOrgsFormSetView(OfficerRequiredMixin, LoginRequiredMixin, ModelFormSetView):
     template_name = "users/orgs_formset.html"
     model = UserOrgParticipate
     form_class = UserOrgForm

@@ -1,13 +1,12 @@
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.http.request import QueryDict
-from core.views import PagedFilteredTableView, RequestConfig, OfficerMixin
+from core.views import PagedFilteredTableView
 from .models import Transaction
 from .tables import TransactionTable, ChapterBalanceTable
 from .filters import TransactionListFilter, ChapterBalanceListFilter
 from .forms import TransactionListFormHelper, ChapterBalanceListFormHelper
 
 
-class TransactionListView(LoginRequiredMixin, OfficerMixin, PagedFilteredTableView):
+class TransactionListView(LoginRequiredMixin, PagedFilteredTableView):
     model = Transaction
     context_object_name = "transaction"
     ordering = ["-created"]
@@ -24,7 +23,7 @@ class TransactionListView(LoginRequiredMixin, OfficerMixin, PagedFilteredTableVi
         return context
 
 
-class ChapterBalancesListView(LoginRequiredMixin, OfficerMixin, PagedFilteredTableView):
+class ChapterBalancesListView(LoginRequiredMixin, PagedFilteredTableView):
     model = Transaction
     context_object_name = "transaction"
     ordering = ["chapter"]

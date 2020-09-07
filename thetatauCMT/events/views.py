@@ -4,7 +4,6 @@ from django.views.generic import DetailView, UpdateView, RedirectView, CreateVie
 from core.views import (
     PagedFilteredTableView,
     TypeFieldFilteredChapterAdd,
-    OfficerMixin,
     OfficerRequiredMixin,
 )
 from .models import Event
@@ -13,18 +12,14 @@ from .filters import EventListFilter
 from .forms import EventListFormHelper
 
 
-class EventDetailView(LoginRequiredMixin, OfficerMixin, DetailView):
+class EventDetailView(LoginRequiredMixin, DetailView):
     model = Event
     slug_field = "chapter"
     slug_url_kwarg = "chapter"
 
 
 class EventCreateView(
-    OfficerRequiredMixin,
-    LoginRequiredMixin,
-    OfficerMixin,
-    TypeFieldFilteredChapterAdd,
-    CreateView,
+    OfficerRequiredMixin, LoginRequiredMixin, TypeFieldFilteredChapterAdd, CreateView,
 ):
     model = Event
     template_name_suffix = "_create_form"
@@ -77,11 +72,7 @@ class EventRedirectView(LoginRequiredMixin, RedirectView):
 
 
 class EventUpdateView(
-    OfficerRequiredMixin,
-    OfficerMixin,
-    LoginRequiredMixin,
-    TypeFieldFilteredChapterAdd,
-    UpdateView,
+    OfficerRequiredMixin, LoginRequiredMixin, TypeFieldFilteredChapterAdd, UpdateView,
 ):
     officer_edit = "events"
     officer_edit_type = "edit"
@@ -105,7 +96,7 @@ class EventUpdateView(
         return reverse("events:list")
 
 
-class EventListView(LoginRequiredMixin, OfficerMixin, PagedFilteredTableView):
+class EventListView(LoginRequiredMixin, PagedFilteredTableView):
     # These next two lines tell the view to index lookups by username
     model = Event
     slug_field = "chapter"

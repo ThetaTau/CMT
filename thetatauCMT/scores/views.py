@@ -1,8 +1,7 @@
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.db import models
 from django.urls import reverse
 from django.views.generic import DetailView, RedirectView
-from core.views import PagedFilteredTableView, RequestConfig, OfficerMixin
+from core.views import PagedFilteredTableView, RequestConfig
 from .models import ScoreType, ScoreChapter
 from .tables import ScoreTable, ChapterScoreTable
 from events.tables import EventTable
@@ -12,7 +11,7 @@ from .filters import ScoreListFilter, ChapterScoreListFilter, BIENNIUM_FILTERS
 from .forms import ScoreListFormHelper, ChapterScoreListFormHelper
 
 
-class ScoreDetailView(LoginRequiredMixin, OfficerMixin, DetailView):
+class ScoreDetailView(LoginRequiredMixin, DetailView):
     model = ScoreType
     # These next two lines tell the view to index lookups by chapter
     slug_field = "slug"
@@ -48,7 +47,7 @@ class ScoreRedirectView(LoginRequiredMixin, RedirectView):
         )
 
 
-class ScoreListView(LoginRequiredMixin, OfficerMixin, PagedFilteredTableView):
+class ScoreListView(LoginRequiredMixin, PagedFilteredTableView):
     model = ScoreType
     template_name = "scores/score_list.html"
     slug_field = "slug"
@@ -68,7 +67,7 @@ class ScoreListView(LoginRequiredMixin, OfficerMixin, PagedFilteredTableView):
         return score_list
 
 
-class ChapterScoreListView(LoginRequiredMixin, OfficerMixin, PagedFilteredTableView):
+class ChapterScoreListView(LoginRequiredMixin, PagedFilteredTableView):
     model = Chapter
     template_name = "scores/chapterscore_list.html"
     slug_field = "slug"

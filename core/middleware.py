@@ -1,15 +1,14 @@
 from django.shortcuts import redirect
 from django.contrib import messages
 from django.conf import settings
+from django.utils.deprecation import MiddlewareMixin
 
 from forms.models import RiskManagement, PledgeProgram, ChapterReport
+from core.utils import check_officer, check_nat_officer
 
 
-class RMPSignMiddleware:
+class RMPSignMiddleware(MiddlewareMixin):
     """Django Middleware (add to MIDDLEWARE) to enforce members to sign rmp"""
-
-    def __init__(self, get_response):
-        self.get_response = get_response
 
     def __call__(self, request):
         response = self.get_response(request)
@@ -49,3 +48,12 @@ class RMPSignMiddleware:
                 )
                 return redirect("forms:report")
         return response
+
+
+class OfficerMiddleware(MiddlewareMixin):
+    """Django Middleware (add to MIDDLEWARE) to officer info to every page"""
+
+    def process_request(self, request):
+        if request.user.is_authenticated:
+            check_nat_officer(request)
+            check_officer(request)

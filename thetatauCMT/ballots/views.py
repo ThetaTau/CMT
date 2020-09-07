@@ -8,7 +8,6 @@ from core.views import (
     PagedFilteredTableView,
     RequestConfig,
     TypeFieldFilteredChapterAdd,
-    OfficerMixin,
     OfficerRequiredMixin,
     NatOfficerRequiredMixin,
 )
@@ -26,11 +25,7 @@ from .forms import (
 
 
 class BallotDetailView(
-    NatOfficerRequiredMixin,
-    LoginRequiredMixin,
-    OfficerMixin,
-    PagedFilteredTableView,
-    DetailView,
+    NatOfficerRequiredMixin, LoginRequiredMixin, PagedFilteredTableView, DetailView,
 ):
     model = Ballot
     context_object_name = "ballot"
@@ -128,9 +123,7 @@ class BallotDetailView(
         return context
 
 
-class BallotCreateView(
-    NatOfficerRequiredMixin, LoginRequiredMixin, OfficerMixin, CreateView
-):
+class BallotCreateView(NatOfficerRequiredMixin, LoginRequiredMixin, CreateView):
     model = Ballot
     template_name_suffix = "_create_form"
     officer_edit = "ballots"
@@ -172,7 +165,6 @@ class BallotRedirectView(LoginRequiredMixin, RedirectView):
 
 class BallotUpdateView(
     NatOfficerRequiredMixin,
-    OfficerMixin,
     LoginRequiredMixin,
     TypeFieldFilteredChapterAdd,
     UpdateView,
@@ -195,7 +187,7 @@ class BallotUpdateView(
 
 
 class BallotListView(
-    NatOfficerRequiredMixin, LoginRequiredMixin, OfficerMixin, PagedFilteredTableView
+    NatOfficerRequiredMixin, LoginRequiredMixin, PagedFilteredTableView
 ):
     model = Ballot
     context_object_name = "ballot"
@@ -225,9 +217,7 @@ class BallotListView(
         return context
 
 
-class BallotCompleteCreateView(
-    OfficerRequiredMixin, LoginRequiredMixin, OfficerMixin, CreateView
-):
+class BallotCompleteCreateView(OfficerRequiredMixin, LoginRequiredMixin, CreateView):
     model = BallotComplete
     template_name_suffix = "_vote"
     officer_edit = "ballots"
@@ -280,7 +270,7 @@ class BallotCompleteCreateView(
         return reverse("ballots:votelist")
 
 
-class BallotUserListView(LoginRequiredMixin, OfficerMixin, PagedFilteredTableView):
+class BallotUserListView(LoginRequiredMixin, PagedFilteredTableView):
     model = Ballot
     context_object_name = "ballot"
     template_name_suffix = "_votelist"

@@ -6,7 +6,6 @@ from core.views import (
     PagedFilteredTableView,
     RequestConfig,
     TypeFieldFilteredChapterAdd,
-    OfficerMixin,
     OfficerRequiredMixin,
 )
 from .models import Submission
@@ -22,11 +21,7 @@ class SubmissionDetailView(LoginRequiredMixin, DetailView):
 
 
 class SubmissionCreateView(
-    OfficerRequiredMixin,
-    OfficerMixin,
-    LoginRequiredMixin,
-    TypeFieldFilteredChapterAdd,
-    CreateView,
+    OfficerRequiredMixin, LoginRequiredMixin, TypeFieldFilteredChapterAdd, CreateView,
 ):
     model = Submission
     score_type = "Sub"
@@ -103,7 +98,7 @@ class SubmissionUpdateView(
         return reverse("submissions:list")
 
 
-class SubmissionListView(LoginRequiredMixin, OfficerMixin, PagedFilteredTableView):
+class SubmissionListView(LoginRequiredMixin, PagedFilteredTableView):
     # These next two lines tell the view to index lookups by username
     model = Submission
     slug_field = "slug"

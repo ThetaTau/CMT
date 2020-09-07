@@ -11,7 +11,6 @@ from core.views import (
     PagedFilteredTableView,
     RequestConfig,
     TypeFieldFilteredChapterAdd,
-    OfficerMixin,
     OfficerRequiredMixin,
 )
 from core.models import current_year_term_slug
@@ -21,9 +20,7 @@ from .filters import TaskListFilter
 from .forms import TaskListFormHelper
 
 
-class TaskCompleteView(
-    OfficerRequiredMixin, LoginRequiredMixin, OfficerMixin, CreateView
-):
+class TaskCompleteView(OfficerRequiredMixin, LoginRequiredMixin, CreateView):
     model = TaskChapter
     fields = []
     template_name = "tasks/task_complete.html"
@@ -93,7 +90,7 @@ class TaskDetailView(LoginRequiredMixin, DetailView):
     model = TaskChapter
 
 
-class TaskListView(LoginRequiredMixin, OfficerMixin, PagedFilteredTableView):
+class TaskListView(LoginRequiredMixin, PagedFilteredTableView):
     model = TaskDate
     template_name = "tasks/task_list.html"
     context_object_name = "task"

@@ -10,7 +10,7 @@ from django.db import models
 from django.views.generic import DetailView, ListView, RedirectView
 import django_tables2 as tables
 from django_tables2.utils import A
-from core.views import OfficerMixin, NatOfficerRequiredMixin, RequestConfig
+from core.views import NatOfficerRequiredMixin, RequestConfig
 from core.models import combine_annotations
 from .models import Region
 from tasks.models import TaskDate
@@ -24,9 +24,7 @@ from users.filters import UserRoleListFilter, AdvisorListFilter
 from users.forms import UserRoleListFormHelper, AdvisorListFormHelper
 
 
-class RegionOfficerView(
-    NatOfficerRequiredMixin, LoginRequiredMixin, OfficerMixin, DetailView
-):
+class RegionOfficerView(NatOfficerRequiredMixin, LoginRequiredMixin, DetailView):
     model = Region
     slug_field = "slug"
     slug_url_kwarg = "slug"
@@ -117,9 +115,7 @@ class RegionOfficerView(
         return context
 
 
-class RegionAdvisorView(
-    NatOfficerRequiredMixin, LoginRequiredMixin, OfficerMixin, DetailView
-):
+class RegionAdvisorView(NatOfficerRequiredMixin, LoginRequiredMixin, DetailView):
     model = Region
     slug_field = "slug"
     slug_url_kwarg = "slug"
@@ -208,17 +204,13 @@ class RegionAdvisorView(
         return context
 
 
-class RegionDetailView(
-    NatOfficerRequiredMixin, LoginRequiredMixin, OfficerMixin, DetailView
-):
+class RegionDetailView(NatOfficerRequiredMixin, LoginRequiredMixin, DetailView):
     model = Region
     slug_field = "slug"
     slug_url_kwarg = "slug"
 
 
-class RegionTaskView(
-    NatOfficerRequiredMixin, LoginRequiredMixin, OfficerMixin, DetailView
-):
+class RegionTaskView(NatOfficerRequiredMixin, LoginRequiredMixin, DetailView):
     model = Region
     slug_field = "slug"
     slug_url_kwarg = "slug"
@@ -336,7 +328,7 @@ class RegionRedirectView(LoginRequiredMixin, RedirectView):
         )
 
 
-class RegionListView(LoginRequiredMixin, OfficerMixin, ListView):
+class RegionListView(LoginRequiredMixin, ListView):
     model = Region
     # These next two lines tell the view to index lookups by username
     slug_field = "slug"
