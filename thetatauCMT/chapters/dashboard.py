@@ -9,12 +9,20 @@ from django_pandas.io import read_frame
 
 if __name__ == "__main__":
     import os
+    import sys
     import django
+    from pathlib import Path
 
     app = dash.Dash(__name__)
+    app.expanded_callback = app.callback
     os.chdir("../")
-    os.getcwd()
-    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings.local")
+    print(os.getcwd())
+    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings.local_ventura")
+    print("Django %s" % django.get_version())
+    if Path(sys.path[0]) == Path(__file__).parent:
+        # Something is adding the __file__ to sys path and causing issues
+        # as forms are being imported things wrong in pycharm
+        sys.path.pop(0)
     django.setup()
 else:
     from django_plotly_dash import DjangoDash
