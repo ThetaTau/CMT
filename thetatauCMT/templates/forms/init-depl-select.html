@@ -21,8 +21,9 @@
   {% else %}
     <h1>No Potential New Members</h1>
     <p>Your chapter currently has no potential new members.<br>
-    If this is incorrect, those members should fill out the pledge form ASAP!<br>
-    <a href="http://thetatau.org/pledgeform" target="_blank">Pledge Form</a> </p>
+    If this is incorrect, those members should fill out the
+      <a href="{% url 'forms:pledgeform' %}" target="_blank">Pledge Form</a> ASAP!<br>
+      </p>
   {% endif %}
 <h2>Previously submitted forms:</h2>
   All forms below have been submitted to the central office but may not have yet been processed.
