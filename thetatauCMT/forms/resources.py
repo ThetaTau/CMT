@@ -7,6 +7,8 @@ from .models import (
     PledgeForm,
     StatusChange,
     PledgeProgram,
+    PrematureAlumnus,
+    CollectionReferral,
 )
 
 
@@ -95,4 +97,33 @@ class StatusChangeResource(resources.ModelResource):
             "miles",
             "email_work",
             "new_school",
+        )
+
+
+class PrematureAlumnusResource(resources.ModelResource):
+    chapter = Field("user__chapter__name")
+    school = Field("user__chapter__school")
+
+    class Meta:
+        model = PrematureAlumnus
+        fields = (
+            "user__name",
+            "created",
+            "approved_exec",
+            "exec_comments",
+            "prealumn_type",
+        )
+
+
+class CollectionReferralResource(resources.ModelResource):
+    chapter = Field("user__chapter__name")
+    school = Field("user__chapter__school")
+
+    class Meta:
+        model = CollectionReferral
+        fields = (
+            "user__name",
+            "created",
+            "created_by__name",
+            "balance_due",
         )

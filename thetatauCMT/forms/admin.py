@@ -29,6 +29,8 @@ from .resources import (
     PledgeFormResource,
     StatusChangeResource,
     PledgeProgramResource,
+    PrematureAlumnusResource,
+    CollectionReferralResource,
 )
 from core.admin import user_chapter
 
@@ -403,7 +405,7 @@ class ResignationProcessAdmin(admin.ModelAdmin):
 admin.site.register(ResignationProcess, ResignationProcessAdmin)
 
 
-class PrematureAlumnusAdmin(admin.ModelAdmin):
+class PrematureAlumnusAdmin(ImportExportActionModelAdmin):
     readonly_fields = ("user",)
     list_display = (
         "user",
@@ -430,6 +432,7 @@ class PrematureAlumnusAdmin(admin.ModelAdmin):
         "artifact_object_id",
         "data",
     ]
+    resource_class = PrematureAlumnusResource
 
 
 admin.site.register(PrematureAlumnus, PrematureAlumnusAdmin)
@@ -452,6 +455,7 @@ class CollectionReferralAdmin(ImportExportActionModelAdmin):
     search_fields = [
         "user",
     ]
+    resource_class = CollectionReferralResource
 
 
 admin.site.register(CollectionReferral, CollectionReferralAdmin)
