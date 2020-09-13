@@ -18,6 +18,9 @@
   {% crispy form form.helper %}
 <script src="https://ajax.aspnetcdn.com/ajax/jquery.validate/1.11.1/jquery.validate.min.js"></script>
 <script type="text/javascript">
+  $("#submit-id-submit").click(function (event) {
+    document.getElementById("submit-id-submit").value = "Submitting...";
+  })
 $("#id_school_name").change(function () {
       var url = "{% url 'forms:ajax_load_majors' %}";  // get the url of the `load_majors` view
       var chapterId = $(this).val();  // get the selected chapter ID from the HTML input
