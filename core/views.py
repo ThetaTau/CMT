@@ -201,8 +201,7 @@ class HomeView(LoginRequiredMixin, TemplateView):
         RequestConfig(self.request, paginate={"per_page": 40}).configure(table)
         context["table"] = table
         announcements = Announcement.objects.filter(
-            publish_start__lt=datetime.datetime.now(),
-            publish_end__gt=datetime.datetime.now(),
+            publish_start__lt=timezone.now(), publish_end__gt=timezone.now(),
         )
         context["announcements"] = announcements
         return context
