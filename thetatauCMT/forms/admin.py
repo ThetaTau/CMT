@@ -422,7 +422,8 @@ class PrematureAlumnusAdmin(ImportExportActionModelAdmin):
         "-created",
     ]
     search_fields = [
-        "user",
+        "user__username",
+        "user__name",
     ]
     exclude = [
         "flow_class",
@@ -452,9 +453,7 @@ class CollectionReferralAdmin(ImportExportActionModelAdmin):
     ordering = [
         "-created",
     ]
-    search_fields = [
-        "user",
-    ]
+    search_fields = ["user__username", "user__name"]
     resource_class = CollectionReferralResource
 
 
