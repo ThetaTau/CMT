@@ -1,5 +1,7 @@
 import csv
 import datetime
+import zipfile
+from io import BytesIO, StringIO
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.forms import PasswordResetForm
 from django.http.request import QueryDict
@@ -221,6 +223,41 @@ class UserSearchView(
 
     def get_table_kwargs(self):
         return {"chapter": True}
+
+
+class ExportActiveMixin:
+    def export_chapter_actives(self, request, queryset):
+        time_name = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        zip_filename = f"ThetaTauActiveExport_{time_name}.zip"
+        zip_io = BytesIO()
+        qs = self.model._default_manager.filter(
+            status__status__in=["active", "activepend", "alumnipend", "away"],
+            status__start__lte=TODAY_END,
+            status__end__gte=TODAY_END,
+        )
+        with zipfile.ZipFile(zip_io, "w") as zf:
+            total = Chapter.objects.all().count()
+            for count, chapter in enumerate(Chapter.objects.all()):
+                print(f"Export {chapter} {count+1}/{total}")
+                members = annotate_role_status(
+                    qs.filter(chapter=chapter,), combine=True,
+                )
+                table = UserTable(data=members, chapter=True,)
+                writer_file = StringIO()
+                writer = csv.writer(writer_file)
+                writer.writerows(table.as_values())
+                zf.writestr(
+                    f"{chapter}_{chapter.school}_activeexport_{time_name}.csv",
+                    writer_file.getvalue(),
+                )
+        response = HttpResponse(
+            zip_io.getvalue(), content_type="application/x-zip-compressed"
+        )
+        response["Cache-Control"] = "no-cache"
+        response["Content-Disposition"] = f"attachment; filename={zip_filename}"
+        return response
+
+    export_chapter_actives.short_description = "Export Chapter Actives"
 
 
 class UserListView(LoginRequiredMixin, PagedFilteredTableView):

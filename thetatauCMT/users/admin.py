@@ -14,6 +14,7 @@ from .models import (
     UserAlter,
 )
 from .resources import UserRoleChangeResource
+from .views import ExportActiveMixin
 from forms.models import Depledge, Initiation, StatusChange
 from core.admin import user_chapter
 
@@ -166,7 +167,8 @@ class UserAlterInline(admin.StackedInline):
 
 
 @admin.register(User)
-class MyUserAdmin(AuthUserAdmin):
+class MyUserAdmin(AuthUserAdmin, ExportActiveMixin):
+    actions = ["export_chapter_actives"]
     inlines = [
         UserAlterInline,
         StatusInline,
