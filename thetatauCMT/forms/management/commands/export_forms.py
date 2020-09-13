@@ -8,7 +8,7 @@ from email.mime.base import MIMEBase
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from django.core.management import BaseCommand
-from forms.models import Initiation, StatusChange, Depledge
+from forms.models import Initiation, StatusChange, Depledge, PrematureAlumnus
 from users.models import UserRoleChange
 
 
@@ -112,7 +112,10 @@ class Command(BaseCommand):
         parser.add_argument("-date_end", nargs=1, type=str)
         parser.add_argument("-chapter", nargs=1, type=str)
         parser.add_argument(
-            "-exclude", nargs=1, type=str, help="mscr, init, depledge, coop, oer"
+            "-exclude",
+            nargs=1,
+            type=str,
+            help="mscr, init, depledge, coop, oer, prealumn",
         )
         parser.add_argument("-no-email", action="store_true")
 
@@ -137,16 +140,23 @@ class Command(BaseCommand):
             exclude = ""
         print("Exluding", exclude)
         query = {"created__gte": date_start, "created__lte": date_end}
+        pre_alumn_query = {
+            "finished__gte": date_start,
+            "finished__lte": date_end,
+            "approved_exec": True,
+        }
         file_path = f"exports//{TODAY_DATE}"
         if chapter_only is not None:
             chapter_only = chapter_only[0]
             print(f"Only for chapter {chapter_only}")
             query.update({"user__chapter__name": chapter_only})
+            pre_alumn_query.update({"user__chapter__name": chapter_only})
             file_path += f"_{chapter_only.upper().replace(' ', '_')}"
         initiations = Initiation.objects.filter(**query)
         depledges = Depledge.objects.filter(**query)
         officers = UserRoleChange.objects.filter(**query)
         statuses = StatusChange.objects.filter(**query)
+        prealumns = PrematureAlumnus.objects.filter(**pre_alumn_query)
         file_paths_out = []
         if initiations and "init" not in exclude:
             file_paths_out.append(f"{file_path}_init.csv")
@@ -246,7 +256,7 @@ class Command(BaseCommand):
                     writer.writerow(row)
         mscr_true = False
         coop_true = False
-        if statuses:
+        if statuses or prealumns:
             with open(f"{file_path}_mscr.csv", "w", newline="") as mscr_file:
                 mscr_writer = csv.DictWriter(mscr_file, fieldnames=MSCR)
                 mscr_writer.writeheader()
@@ -323,6 +333,30 @@ class Command(BaseCommand):
                             }
                             row.update(main_row)
                             coop_writer.writerow(row)
+                for prealumn in prealumns:
+                    if "prealumn" in exclude:
+                        continue
+                    row = {
+                        "Submitted by": "",
+                        "Date Submitted": prealumn.created,
+                        "*ChapRoll": prealumn.user.clean_user_id,
+                        "First Name": prealumn.user.first_name,
+                        "Last Name": prealumn.user.last_name,
+                        "School Name": prealumn.user.chapter.school,
+                        "Mobile Phone": prealumn.user.phone_number,
+                        "EmailAddress": prealumn.user.email,
+                        "Reason for Status Change": f"Prealumn",
+                        "Degree Received": "",
+                        "Graduation Date (M/D/YYYY)": "",
+                        "Employer": "",
+                        "Work Email": "",
+                        "Attending Graduate School where ?": "",
+                        "Withdrawing from school?": "",
+                        "Date withdrawn (M/D/YYYY)": "",
+                        "Transferring to what school ?": "",
+                        "Date of transfer (M/D/YYYY)": "",
+                    }
+                    mscr_writer.writerow(row)
             if mscr_true:
                 file_paths_out.append(f"{file_path}_mscr.csv")
             if coop_true:
