@@ -323,7 +323,7 @@ class EmailProcessUpdate(EmailNotification):
             officers = chapter.get_current_officers_council_specific()
             if user is None:
                 user = officers.pop(0)
-            emails = set([officer.email for officer in officers])
+            emails = set([officer.email for officer in officers if officer])
             if user and user.email in emails:
                 emails.remove(user.email)
         if extra_emails:
