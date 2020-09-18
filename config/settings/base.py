@@ -336,6 +336,8 @@ DEFAULT_FILE_STORAGE = "storages.backends.gcloud.GoogleCloudStorage"
 GS_BUCKET_NAME = "theta-tau"
 from google.oauth2 import service_account
 
+GS_DEFAULT_ACL = "publicRead"
+
 GS_CREDENTIALS = service_account.Credentials.from_service_account_file(
     os.path.join(ROOT_DIR, "secrets", "chaptermanagementtool-e11151065a69.json")
 )
