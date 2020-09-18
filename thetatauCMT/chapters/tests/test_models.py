@@ -111,7 +111,7 @@ def test_get_current_officers_council(chapter, user_factory):
     assert result[1] is False
     assertQuerysetEqual(result[0], officer_pks, lambda o: o.pk, ordered=False)
     result = chapter.get_current_officers_council_specific()
-    assert (regent, scribe, vice, treasurer) == result
+    assert [regent, scribe, vice, treasurer] == result
 
 
 def make_many_users_status(user_factory, chapter, testing):

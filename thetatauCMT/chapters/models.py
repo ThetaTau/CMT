@@ -371,7 +371,7 @@ class Chapter(models.Model):
         scribe = officers.filter(role="scribe").first()
         vice = officers.filter(role="vice regent").first()
         treasurer = officers.filter(role="treasurer").first()
-        return regent, scribe, vice, treasurer
+        return [regent, scribe, vice, treasurer]
 
     def next_badge_number(self):
         # Jan 2019 highest badge number was Mu with 1754
