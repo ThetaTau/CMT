@@ -368,7 +368,7 @@ def load_chapter_data(clicks, **kwargs):
         "Depledges": ["depledge"],
         "Alumnis": ["alumni"],
     }
-    df = pd.concat(dfs)
+    df = pd.concat(dfs, sort=True)
     for main_status, align_statuss in align_status.items():
         if all([status in df.columns for status in align_statuss]):
             df[main_status] = df[align_statuss].sum(axis=1)
