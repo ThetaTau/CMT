@@ -167,6 +167,9 @@ class PrematureAlumnusFlow(Flow):
         if alumnipends:
             for alumnipend in alumnipends:
                 alumnipend.delete()
+        active = user.status.order_by("-end").filter(status="active").first()
+        active.end = forever()
+        active.save()
 
     def set_alumni_status(self, activation):
         user = activation.process.user
