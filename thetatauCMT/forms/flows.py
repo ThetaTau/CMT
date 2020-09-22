@@ -159,6 +159,7 @@ class PrematureAlumnusFlow(Flow):
                 "prealumn_type",
                 "vote",
             ],
+            extra_emails=[activation.process.created_by.email],
         ).send()
 
     def pending_undo_func(self, activation):
@@ -217,6 +218,7 @@ class PrematureAlumnusFlow(Flow):
             state,
             "",
             ["approved_exec", "exec_comments",],
+            extra_emails=[activation.process.created_by.email],
         ).send()
 
 
