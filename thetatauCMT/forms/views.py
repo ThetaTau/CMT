@@ -1719,7 +1719,11 @@ class ConventionCreateView(LoginRequiredMixin, CreateProcessView):
         if self.submitted and self.request.user in self.signers:
             for sign in self.data:
                 link = sign["link"]
-                if self.request.user == sign["owner"] and link != "#":
+                if (
+                    self.request.user == sign["owner"]
+                    and link != "#"
+                    and not isinstance(link, bool)
+                ):
                     return redirect(link)
         return super().get(request, *args, **kwargs)
 
@@ -2097,7 +2101,11 @@ class OSMCreateView(LoginRequiredMixin, CreateProcessView):
         if self.submitted and self.request.user in self.signers:
             for sign in self.data:
                 link = sign["link"]
-                if self.request.user == sign["owner"] and link != "#":
+                if (
+                    self.request.user == sign["owner"]
+                    and link != "#"
+                    and not isinstance(link, bool)
+                ):
                     return redirect(link)
         return super().get(request, *args, **kwargs)
 
