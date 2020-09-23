@@ -401,7 +401,7 @@ def load_chapter_data(clicks, **kwargs):
     [Input("chapter-data", "data"), Input("years-slider", "value")],
 )
 def update_text(data, years, **kwargs):
-    if years in None:
+    if years is None:
         raise PreventUpdate
     statuss = ["Actives", "Inactives", "Pledges", "Depledges", "Alumnis"]
     df = pd.DataFrame.from_dict(data)
