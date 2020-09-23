@@ -3,6 +3,7 @@ Base settings to build other settings files upon.
 """
 import os
 import environ
+import warnings
 
 ROOT_DIR = (
     environ.Path(__file__) - 3
@@ -322,11 +323,14 @@ ROLLBAR = {
 import rollbar
 
 rollbar.init(**ROLLBAR)
-GOOGLE_API_KEY = env("GOOGLE_API_KEY", default="")
-if not GOOGLE_API_KEY:
+GOOGLE_API_KEY = env("GOOGLE_API_KEY", default="TESTING")
+if GOOGLE_API_KEY == "TESTING":
     # Try and load from secrets file
-    with open(str(ROOT_DIR("secrets", "GOOGLE_API_KEY"))) as key_file:
-        GOOGLE_API_KEY = key_file.read()
+    try:
+        with open(str(ROOT_DIR("secrets", "GOOGLE_API_KEY"))) as key_file:
+            GOOGLE_API_KEY = key_file.read()
+    except FileNotFoundError:
+        warnings.warn("GOOGLE_API_KEY is not set in environment or secrets folder!")
 GOOGLE_APPLICATION_CREDENTIALS = env(
     "GOOGLE_APPLICATION_CREDENTIALS",
     default="secrets\chaptermanagementtool-e11151065a69.json",
