@@ -1,5 +1,6 @@
 import dash
 import datetime
+import textwrap
 import pandas as pd
 from django.db.models import Count, Avg
 import plotly.graph_objects as go
@@ -456,6 +457,7 @@ def majors_graph(data, yearterm, **kwargs):
     df = pd.DataFrame.from_dict(data)
     majors = df[df["Year Term"] == yearterm]["majors"].iloc[0]
     labels = list(majors.keys())
+    labels = ["<br>".join(textwrap.wrap(label, width=26)) for label in labels]
     values = list(majors.values())
     fig = go.Figure(data=[go.Pie(labels=labels, values=values, hole=0.35)])
     fig.update_layout(
