@@ -8,6 +8,7 @@ import plotly.express as px
 import dash_core_components as dcc
 import dash_html_components as html
 from dash.dependencies import Input, Output, State
+from dash.exceptions import PreventUpdate
 
 if __name__ == "__main__":
     import os
@@ -400,6 +401,8 @@ def load_chapter_data(clicks, **kwargs):
     [Input("chapter-data", "data"), Input("years-slider", "value")],
 )
 def update_text(data, years, **kwargs):
+    if years in None:
+        raise PreventUpdate
     statuss = ["Actives", "Inactives", "Pledges", "Depledges", "Alumnis"]
     df = pd.DataFrame.from_dict(data)
     outs = []
@@ -435,6 +438,8 @@ def update_text(data, years, **kwargs):
     [State("years-slider", "marks"),],
 )
 def members_graph(data, years, status, year_info, **kwargs):
+    if year_info is None:
+        raise PreventUpdate
     df = pd.DataFrame.from_dict(data)
     start_indx = df.index[df["Year Term"] == year_info[str(years[0])]["label"]]
     end_indx = df.index[df["Year Term"] == year_info[str(years[-1])]["label"]]
@@ -455,7 +460,10 @@ def members_graph(data, years, status, year_info, **kwargs):
 )
 def majors_graph(data, yearterm, **kwargs):
     df = pd.DataFrame.from_dict(data)
-    majors = df[df["Year Term"] == yearterm]["majors"].iloc[0]
+    try:
+        majors = df[df["Year Term"] == yearterm]["majors"].iloc[0]
+    except IndexError:
+        raise PreventUpdate
     labels = list(majors.keys())
     labels = ["<br>".join(textwrap.wrap(label, width=26)) for label in labels]
     values = list(majors.values())
@@ -481,6 +489,8 @@ def majors_graph(data, yearterm, **kwargs):
     [State("years-slider", "marks")],
 )
 def gpa_graph(data, years, year_info, **kwargs):
+    if year_info is None:
+        raise PreventUpdate
     df = pd.DataFrame.from_dict(data)
     start_indx = df.index[df["Year Term"] == year_info[str(years[0])]["label"]]
     end_indx = df.index[df["Year Term"] == year_info[str(years[-1])]["label"]]
