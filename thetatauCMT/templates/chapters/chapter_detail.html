@@ -55,7 +55,8 @@
       {% render_table audit_table %}
     {% endif %}
     <h3>Update Chapter Information:</h3>
-    <p>Only can be updated by chapter officers.</p>
+    <p>Only can be updated by chapter officers.
+      <br> Last Updated {{ object.modified }}</p>
     <form class="chapter" method="POST">
       {% csrf_token %}
       <fieldset

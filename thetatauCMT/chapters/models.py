@@ -144,6 +144,7 @@ class Chapter(models.Model):
             return cls[member.lower()].value[1]
 
     name = models.CharField(max_length=50)
+    modified = models.DateTimeField(auto_now=True)
     region = models.ForeignKey(
         Region, on_delete=models.PROTECT, related_name="chapters"
     )
