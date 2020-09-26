@@ -28,6 +28,12 @@ from chapters.models import Chapter
 class CustomUserManager(UserManager):
     def create_superuser(self, email, password, **extra_fields):
         chapter = Chapter.objects.first()
+        if chapter is None:
+            # this would happen on first install; make a default test region/chapter
+            from regions.models import Region
+
+            region = Region(name="Test Region").save()
+            chapter = Chapter(name="Test Chapter", region=region).save()
         extra_fields.setdefault("chapter", chapter)
         super().create_superuser(email=email, password=password, **extra_fields)
 
