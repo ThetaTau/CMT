@@ -32,7 +32,9 @@ class CustomUserManager(UserManager):
             # this would happen on first install; make a default test region/chapter
             from regions.models import Region
 
-            region = Region(name="Test Region").save()
+            region = Region.objects.first()
+            if region is None:
+                region = Region(name="Test Region").save()
             chapter = Chapter(name="Test Chapter", region=region).save()
         extra_fields.setdefault("chapter", chapter)
         super().create_superuser(email=email, password=password, **extra_fields)
@@ -86,7 +88,8 @@ class User(AbstractUser):
         if not self.id:
             # Newly created object, so set user_id
             # Combination of badge number and chapter abbr, eg. X1311
-            self.user_id = f"{self.chapter.greek}{self.badge_number}"
+            chapter = kwargs.get("chapter", self.chapter)
+            self.user_id = f"{chapter.greek}{self.badge_number}"
         if self.name == "":
             self.name = self.first_name + " " + self.last_name
         if self.username == "":
