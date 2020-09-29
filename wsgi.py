@@ -18,6 +18,7 @@ os.environ["DJANGO_AWS_STORAGE_BUCKET_NAME"] = ""
 os.environ["ROLLBAR_ACCESS"] = ""
 os.environ["DATABASE_URL"] = ""
 os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = ""
+os.environ["DJANGO_GCP_STORAGE_BUCKET_NAME"] = "theta-tau"
 
 
 from django.core.wsgi import get_wsgi_application
