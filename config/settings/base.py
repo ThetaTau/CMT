@@ -320,7 +320,7 @@ SOCIALACCOUNT_ADAPTER = "users.adapters.SocialAccountAdapter"
 ROLLBAR = {
     "access_token": env("ROLLBAR_ACCESS", default=""),
     "environment": "development" if DEBUG else "production",
-    "root": ROOT_DIR,
+    "root": str(ROOT_DIR),
     "capture_username": True,
 }
 import rollbar
