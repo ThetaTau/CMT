@@ -1,21 +1,20 @@
 """
 Base settings to build other settings files upon.
 """
-import os
+from pathlib import Path
+
 import environ
 import warnings
 
-ROOT_DIR = (
-    environ.Path(__file__) - 3
-)  # (thetatauCMT/config/settings/base.py - 3 = thetatauCMT/)
-APPS_DIR = ROOT_DIR.path("thetatauCMT")
-
+ROOT_DIR = Path(__file__).resolve(strict=True).parent.parent.parent
+# thetataucmt/
+APPS_DIR = ROOT_DIR / "thetatauCMT"
 env = environ.Env()
 
 READ_DOT_ENV_FILE = env.bool("DJANGO_READ_DOT_ENV_FILE", default=False)
 if READ_DOT_ENV_FILE:
     # OS environment variables take precedence over variables from .env
-    env.read_env(str(ROOT_DIR.path(".env")))
+    env.read_env(str(ROOT_DIR / ".env"))
 
 # GENERAL
 # ------------------------------------------------------------------------------
@@ -36,6 +35,8 @@ USE_I18N = True
 USE_L10N = True
 # https://docs.djangoproject.com/en/dev/ref/settings/#use-tz
 USE_TZ = True
+# https://docs.djangoproject.com/en/dev/ref/settings/#locale-paths
+LOCALE_PATHS = [str(ROOT_DIR / "locale")]
 
 # DATABASES
 # ------------------------------------------------------------------------------
@@ -47,7 +48,6 @@ DATABASES = {
     ),
 }
 DATABASES["default"]["ATOMIC_REQUESTS"] = True
-
 
 # URLS
 # ------------------------------------------------------------------------------
@@ -101,6 +101,7 @@ THIRD_PARTY_APPS = [
     "ckeditor",
     "ckeditor_uploader",
 ]
+
 LOCAL_APPS = [
     "thetatauCMT.users.apps.UsersConfig",
     "thetatauCMT.chapters.apps.ChaptersConfig",
@@ -145,7 +146,6 @@ PASSWORD_HASHERS = [
     "django.contrib.auth.hashers.PBKDF2PasswordHasher",
     "django.contrib.auth.hashers.PBKDF2SHA1PasswordHasher",
     "django.contrib.auth.hashers.BCryptSHA256PasswordHasher",
-    "django.contrib.auth.hashers.BCryptPasswordHasher",
 ]
 # https://docs.djangoproject.com/en/dev/ref/settings/#auth-password-validators
 AUTH_PASSWORD_VALIDATORS = [
@@ -162,11 +162,14 @@ AUTH_PASSWORD_VALIDATORS = [
 # https://docs.djangoproject.com/en/dev/ref/settings/#middleware
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
+    "django.middleware.locale.LocaleMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
+    "django.middleware.common.BrokenLinkEmailsMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "watson.middleware.SearchContextMiddleware",
     "core.middleware.OfficerMiddleware",
@@ -177,13 +180,11 @@ MIDDLEWARE = [
 # STATIC
 # ------------------------------------------------------------------------------
 # https://docs.djangoproject.com/en/dev/ref/settings/#static-root
-STATIC_ROOT = str(ROOT_DIR("staticfiles"))
+STATIC_ROOT = str(ROOT_DIR / "staticfiles")
 # https://docs.djangoproject.com/en/dev/ref/settings/#static-url
 STATIC_URL = "/static/"
 # https://docs.djangoproject.com/en/dev/ref/contrib/staticfiles/#std:setting-STATICFILES_DIRS
-STATICFILES_DIRS = [
-    str(APPS_DIR.path("static")),
-]
+STATICFILES_DIRS = [str(APPS_DIR / "static")]
 # https://docs.djangoproject.com/en/dev/ref/contrib/staticfiles/#staticfiles-finders
 STATICFILES_FINDERS = [
     "django.contrib.staticfiles.finders.FileSystemFinder",
@@ -193,7 +194,7 @@ STATICFILES_FINDERS = [
 # MEDIA
 # ------------------------------------------------------------------------------
 # https://docs.djangoproject.com/en/dev/ref/settings/#media-root
-MEDIA_ROOT = str(APPS_DIR("media"))
+MEDIA_ROOT = str(APPS_DIR / "media")
 # https://docs.djangoproject.com/en/dev/ref/settings/#media-url
 MEDIA_URL = "/media/"
 
@@ -205,10 +206,8 @@ TEMPLATES = [
         # https://docs.djangoproject.com/en/dev/ref/settings/#std:setting-TEMPLATES-BACKEND
         "BACKEND": "django.template.backends.django.DjangoTemplates",
         # https://docs.djangoproject.com/en/dev/ref/settings/#template-dirs
-        "DIRS": [str(APPS_DIR.path("templates")),],
+        "DIRS": [str(APPS_DIR / "templates")],
         "OPTIONS": {
-            # https://docs.djangoproject.com/en/dev/ref/settings/#template-debug
-            "debug": DEBUG,
             # https://docs.djangoproject.com/en/dev/ref/settings/#template-loaders
             # https://docs.djangoproject.com/en/dev/ref/templates/api/#loader-types
             "loaders": [
@@ -225,9 +224,10 @@ TEMPLATES = [
                 "django.template.context_processors.static",
                 "django.template.context_processors.tz",
                 "django.contrib.messages.context_processors.messages",
+                "thetatauCMT.utils.context_processors.settings_context",
             ],
         },
-    },
+    }
 ]
 # http://django-crispy-forms.readthedocs.io/en/latest/install.html#template-packs
 CRISPY_TEMPLATE_PACK = "bootstrap4"
@@ -238,7 +238,18 @@ DJANGO_TABLES2_TEMPLATE = "django_tables2/bootstrap4.html"
 # FIXTURES
 # ------------------------------------------------------------------------------
 # https://docs.djangoproject.com/en/dev/ref/settings/#fixture-dirs
-FIXTURE_DIRS = (str(APPS_DIR.path("fixtures")),)
+FIXTURE_DIRS = (str(APPS_DIR / "fixtures"),)
+
+# SECURITY
+# ------------------------------------------------------------------------------
+# https://docs.djangoproject.com/en/dev/ref/settings/#session-cookie-httponly
+SESSION_COOKIE_HTTPONLY = True
+# https://docs.djangoproject.com/en/dev/ref/settings/#csrf-cookie-httponly
+CSRF_COOKIE_HTTPONLY = True
+# https://docs.djangoproject.com/en/dev/ref/settings/#secure-browser-xss-filter
+SECURE_BROWSER_XSS_FILTER = True
+# https://docs.djangoproject.com/en/dev/ref/settings/#x-frame-options
+X_FRAME_OPTIONS = "DENY"
 
 # EMAIL
 # ------------------------------------------------------------------------------
@@ -251,11 +262,12 @@ if DJANGO_EMAIL_LIVE:
     )
 else:
     EMAIL_BACKEND = "django.core.mail.backends.filebased.EmailBackend"
-EMAIL_FILE_PATH = str(ROOT_DIR("email_tests"))
+EMAIL_FILE_PATH = str(ROOT_DIR / "email_tests")
+EMAIL_TIMEOUT = 5
 # ADMIN
 # ------------------------------------------------------------------------------
-# Django Admin URL regex.
-ADMIN_URL = r"^admin/"
+# Django Admin URL.
+ADMIN_URL = "admin/"
 # https://docs.djangoproject.com/en/dev/ref/settings/#admins
 ADMINS = [
     ("""Theta Tau""", "cmt@thetatau.org"),
@@ -263,39 +275,30 @@ ADMINS = [
 # https://docs.djangoproject.com/en/dev/ref/settings/#managers
 MANAGERS = ADMINS
 
-# Celery
+# LOGGING
 # ------------------------------------------------------------------------------
-from celery.schedules import crontab
-
-INSTALLED_APPS += ["thetatauCMT.taskapp.celery.CeleryConfig"]
-if USE_TZ:
-    # http://docs.celeryproject.org/en/latest/userguide/configuration.html#std:setting-timezone
-    CELERY_TIMEZONE = TIME_ZONE
-# http://docs.celeryproject.org/en/latest/userguide/configuration.html#std:setting-broker_url
-CELERY_BROKER_URL = env("CELERY_BROKER_URL", default="redis://localhost:6379/0")
-# http://docs.celeryproject.org/en/latest/userguide/configuration.html#std:setting-result_backend
-if CELERY_BROKER_URL == "django://":
-    CELERY_RESULT_BACKEND = "redis://"
-else:
-    CELERY_RESULT_BACKEND = CELERY_BROKER_URL
-# http://docs.celeryproject.org/en/latest/userguide/configuration.html#std:setting-accept_content
-CELERY_ACCEPT_CONTENT = ["json"]
-# http://docs.celeryproject.org/en/latest/userguide/configuration.html#std:setting-task_serializer
-CELERY_TASK_SERIALIZER = "json"
-# http://docs.celeryproject.org/en/latest/userguide/configuration.html#std:setting-result_serializer
-CELERY_RESULT_SERIALIZER = "json"
-# http://docs.celeryproject.org/en/latest/userguide/configuration.html#task-time-limit
-# set to whatever value is adequate in your circumstances
-CELERYD_TASK_TIME_LIMIT = 30 * 60
-# http://docs.celeryproject.org/en/latest/userguide/configuration.html#task-soft-time-limit
-# set to whatever value is adequate in your circumstances
-CELERYD_TASK_SOFT_TIME_LIMIT = 60
-CELERY_BEAT_SCHEDULE = {
-    "monthly_chapter_officer_email": {
-        "task": "users.tasks.monthly_chapter_officer_email",
-        "schedule": crontab(day_of_month=1, hour=7, minute=30),  # 3600 seconds = 1 hr
+# https://docs.djangoproject.com/en/dev/ref/settings/#logging
+# See https://docs.djangoproject.com/en/dev/topics/logging for
+# more details on how to customize your logging configuration.
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "verbose": {
+            "format": "%(levelname)s %(asctime)s %(module)s "
+            "%(process)d %(thread)d %(message)s"
+        }
     },
+    "handlers": {
+        "console": {
+            "level": "DEBUG",
+            "class": "logging.StreamHandler",
+            "formatter": "verbose",
+        }
+    },
+    "root": {"level": "INFO", "handlers": ["console"]},
 }
+
 
 # django-allauth
 # ------------------------------------------------------------------------------
@@ -327,7 +330,7 @@ GOOGLE_API_KEY = env("GOOGLE_API_KEY", default="TESTING")
 if GOOGLE_API_KEY == "TESTING":
     # Try and load from secrets file
     try:
-        with open(str(ROOT_DIR("secrets", "GOOGLE_API_KEY"))) as key_file:
+        with open(str(ROOT_DIR / "secrets" / "GOOGLE_API_KEY")) as key_file:
             GOOGLE_API_KEY = key_file.read()
     except FileNotFoundError:
         warnings.warn("GOOGLE_API_KEY is not set in environment or secrets folder!")
@@ -343,7 +346,7 @@ from google.oauth2 import service_account
 GS_DEFAULT_ACL = "publicRead"
 
 GS_CREDENTIALS = service_account.Credentials.from_service_account_file(
-    os.path.join(ROOT_DIR, "secrets", "chaptermanagementtool-e11151065a69.json")
+    str(ROOT_DIR / "secrets" / "chaptermanagementtool-e11151065a69.json")
 )
 
 SOCIALACCOUNT_QUERY_EMAIL = True
