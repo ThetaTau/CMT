@@ -930,7 +930,7 @@ class ChapterInfoReportView(LoginRequiredMixin, MultiFormsView):
                     except User.DoesNotExist:
                         user = form.save()
                     try:
-                        status = UserStatusChange.objects.get(user=user)
+                        status = UserStatusChange.objects.last(user=user)
                     except UserStatusChange.DoesNotExist:
                         UserStatusChange(
                             user=user,
@@ -939,6 +939,12 @@ class ChapterInfoReportView(LoginRequiredMixin, MultiFormsView):
                             end=forever(),
                         ).save()
                         EmailAdvisorWelcome(user).send()
+                    else:
+                        messages.add_message(
+                            self.request,
+                            messages.INFO,
+                            f"Advisor {user} already exists.",
+                        )
                 elif form.changed_data and "DELETE" in form.changed_data:
                     user = form.instance
                     try:
