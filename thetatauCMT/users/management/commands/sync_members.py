@@ -236,7 +236,10 @@ class Command(BaseCommand):
                     active_list.append(user_obj.pk)
                 end = forever().date()  # datetime.date(graduation, 7, 1)
                 status_obj = UserStatusChange.objects.filter(
-                    user=user_obj, status=status
+                    user=user_obj,
+                    status=status,
+                    start__lte=TODAY_END,
+                    end__gte=TODAY_END,
                 )
                 if len(status_obj) == 0:
                     change_messages.append(f"New status for user {user_obj} {status}")
@@ -277,6 +280,7 @@ class Command(BaseCommand):
                 # alumnipend       active         delete curent_status; keep alumnipend
                 # alumni           active/pnm     delete other_status; active/pnm can't be alumni
                 # depledge         active/pnm     delete current_status;
+                # away             active         keep away; set active end before away start
                 for other_status in other_statuss:
                     if other_status.status.lower() == "colony":
                         # This should just not happen
@@ -349,6 +353,11 @@ class Command(BaseCommand):
                             other_status.delete()
                             continue
                     # activepend       active         pass through
+                    if other_status.status == "away":
+                        status_obj.end = other_status.start - datetime.timedelta(days=1)
+                        status_obj.save()
+                        change_messages.append(f"    Member is still away {user_obj}")
+                        continue
                     # The remaining status should be pledge or
                     # activepend that is no longer pending
                     # If the central is active and current is activepend; update
