@@ -929,9 +929,10 @@ class ChapterInfoReportView(LoginRequiredMixin, MultiFormsView):
                         user = User.objects.get(username=form.instance.email)
                     except User.DoesNotExist:
                         user = form.save()
-                    try:
-                        status = UserStatusChange.objects.last(user=user)
-                    except UserStatusChange.DoesNotExist:
+                    status = UserStatusChange.objects.filter(
+                        user=user, status="advisor",
+                    ).last()
+                    if status is None:
                         UserStatusChange(
                             user=user,
                             status="advisor",
