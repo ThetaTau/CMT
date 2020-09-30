@@ -20,6 +20,12 @@ urlpatterns = [
     path("django_plotly_dash/", include("django_plotly_dash.urls")),
     url(r"^$", HomeView.as_view(template_name="pages/home.html"), name="home"),
     url(
+        r"^favicon\.ico$",
+        RedirectView.as_view(
+            url=settings.STATIC_URL + "images/favicon.png", permanent=True
+        ),
+    ),
+    url(
         r"^about/$",
         TemplateView.as_view(template_name="pages/about.html"),
         name="about",
