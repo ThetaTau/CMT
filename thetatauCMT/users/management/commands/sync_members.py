@@ -27,12 +27,8 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         run_time = datetime.datetime.now()
         change_messages = []
-        id_file = os.path.join(
-            settings.ROOT_DIR.root, r"secrets/GoogleSheetsClient_id.json"
-        )
-        id_file_out = os.path.join(
-            settings.ROOT_DIR.root, r"secrets/GoogleSheetsClient_id_out.json"
-        )
+        id_file = str(settings.ROOT_DIR / r"secrets/GoogleSheetsClient_id.json")
+        id_file_out = str(settings.ROOT_DIR / r"secrets/GoogleSheetsClient_id_out.json")
         GoogleAuth.DEFAULT_SETTINGS["client_config_file"] = id_file
         GoogleAuth.DEFAULT_SETTINGS["save_credentials_backend"] = "file"
         GoogleAuth.DEFAULT_SETTINGS["save_credentials"] = True
