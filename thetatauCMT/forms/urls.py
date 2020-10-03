@@ -24,7 +24,6 @@ urlpatterns = [
     ),
     url(regex=r"^osm-list/$", view=views.OSMListView.as_view(), name="osm_list"),
     url(regex=r"^audit-list/$", view=views.AuditListView.as_view(), name="audit_list"),
-    url(regex=r"^pledgeform/$", view=views.pledge_form, name="pledge_form"),
     url(regex=r"^load-majors/$", view=views.load_majors, name="ajax_load_majors"),
     url(
         regex=r"^pledgeform_full/$",

@@ -1,5 +1,4 @@
 import csv
-import json
 import base64
 import datetime
 import zipfile
@@ -7,7 +6,6 @@ from io import BytesIO
 from copy import deepcopy
 from pathlib import Path
 from django.db.models import Q
-from django.core.mail import send_mail
 from django.forms import models as model_forms
 from django.forms.models import modelformset_factory
 from django.utils.decorators import method_decorator
@@ -23,10 +21,9 @@ from django.shortcuts import render
 from django import forms
 from django.views.generic import UpdateView, DetailView
 from django.views.generic.edit import FormView, CreateView, ModelFormMixin
-from django.views.decorators.http import require_POST
 from django.views.decorators.csrf import csrf_exempt
 from django.shortcuts import redirect
-from django.http import HttpResponseRedirect, HttpResponse, HttpResponseBadRequest
+from django.http import HttpResponseRedirect, HttpResponse
 from crispy_forms.layout import Submit
 from extra_views import FormSetView, ModelFormSetView
 from easy_pdf.views import PDFTemplateResponseMixin
@@ -88,8 +85,6 @@ from core.models import (
     CHAPTER_OFFICER,
     COL_OFFICER_ALIGN,
     SEMESTER,
-    NAT_OFFICERS_CHOICES,
-    CHAPTER_ROLES_CHOICES,
 )
 from users.models import UserRoleChange
 from users.forms import ExternalUserForm, UserForm
@@ -123,7 +118,6 @@ from .models import (
     Depledge,
     StatusChange,
     RiskManagement,
-    PledgeForm,
     PledgeProgram,
     Audit,
     PrematureAlumnus,
@@ -139,41 +133,12 @@ from .filters import AuditListFilter, PledgeProgramListFilter, CompleteListFilte
 from .notifications import (
     EmailRMPSigned,
     EmailPledgeOther,
-    EmailRMPReport,
     EmailAdvisorWelcome,
     EmailPledgeConfirmation,
     EmailPledgeWelcome,
     EmailPledgeOfficer,
     EmailProcessUpdate,
 )
-
-
-sensitive_post_parameters_m = method_decorator(
-    sensitive_post_parameters("password", "password1", "password2")
-)
-
-
-@require_POST
-@csrf_exempt
-def pledge_form(request):
-    if "rawRequest" not in request.POST:
-        return HttpResponseBadRequest("POST must contain right information")
-    data = json.loads(request.POST["rawRequest"])
-    name = f"{data['q35_name']['first']} {data['q35_name']['middle']} {data['q35_name']['last']}"
-    email = data["q36_schoolEmail"]
-    school = data["q37_schoolName"]
-    chapter = Chapter.get_school_chapter(school)
-    if chapter is not None:
-        PledgeForm.objects.get_or_create(name=name, email=email, chapter=chapter)
-    else:
-        send_mail(
-            "[CMT] New Pledge Form Chapter",
-            f"There is a new school {school}",
-            "cmt@thetatau.org",
-            ["cmt@thetatau.org"],
-            fail_silently=False,
-        )
-    return HttpResponse("Webhook received", status=200)
 
 
 class InitDeplSelectView(OfficerRequiredMixin, LoginRequiredMixin, FormSetView):
@@ -239,12 +204,7 @@ class InitDeplSelectView(OfficerRequiredMixin, LoginRequiredMixin, FormSetView):
                 status = active_task.flow_task.task_description
             else:
                 status = "Pledge Process Complete"
-            pledges = ", ".join(
-                [
-                    " ".join(pledge)
-                    for pledge in process.pledges.values_list("first_name", "last_name")
-                ]
-            )
+            pledges = ", ".join(process.pledges.values_list("user"))
             last_pledge = process.pledges.last()
             pledge_created = None
             if last_pledge:
@@ -1535,12 +1495,20 @@ class PledgeFormView(CreateView):
 
     def form_valid(self, form):
         """If the form is valid, redirect to the supplied URL."""
-        response = super().form_valid(form)
+        pledge = form["pledge"]
+        user = form["user"]
+        user.instance.badge_number = User.next_pledge_number()
+        user.save()
+        pledge.instance.user = user
+        self.object = pledge.save()
+        UserStatusChange(
+            user=user, status="pnm", start=TODAY_START, end=forever(),
+        ).save()
         EmailPledgeConfirmation(self.object).send()
         EmailPledgeWelcome(self.object).send()
         EmailPledgeOfficer(self.object).send()
         processes = PledgeProcess.objects.filter(
-            chapter__name=self.object.school_name, finished__isnull=True
+            chapter=user.chapter, finished__isnull=True
         )
         active_process = None
         for process in processes:
@@ -1552,11 +1520,11 @@ class PledgeFormView(CreateView):
             from .flows import PledgeProcessFlow
 
             activation = PledgeProcessFlow.start.run(
-                chapter=self.object.school_name, request=self.request
+                chapter=user.chapter, request=self.request
             )
             active_process = activation.process
         active_process.pledges.add(self.object)
-        return response
+        return HttpResponseRedirect(self.get_success_url())
 
     def get_success_url(self):
         messages.add_message(

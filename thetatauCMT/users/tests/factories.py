@@ -9,7 +9,7 @@ from ..models import (
     UserRoleChange,
     UserOrgParticipate,
 )
-from chapters.tests.factories import ChapterFactory
+from chapters.tests.factories import ChapterFactory, ChapterCurriculaFactory
 
 
 class UserFactory(factory.django.DjangoModelFactory):
@@ -18,10 +18,17 @@ class UserFactory(factory.django.DjangoModelFactory):
     username = factory.LazyAttribute(lambda o: o.email)
     user_id = factory.LazyAttribute(lambda o: f"{o.chapter.greek}{o.badge_number}")
     name = factory.Faker("name")
+    title = factory.Faker("random_element", elements=["mr", "miss", "ms", "mrs"])
+    first_name = factory.Faker("first_name")
+    middle_name = factory.Faker("first_name")
+    last_name = factory.Faker("last_name")
+    suffix = factory.Faker("suffix")
+    nickname = factory.Faker("name")
+    email_school = factory.Faker("email")
+    birth_date = factory.Faker("date_of_birth", minimum_age=18, maximum_age=70)
     modified = factory.Faker("date_time_between", start_date="-1y", end_date="+1y")
     badge_number = factory.Sequence(lambda n: n + 1)
-    title = factory.Faker("prefix")
-    major = factory.Faker("sentence", nb_words=3)
+    major = factory.SubFactory(ChapterCurriculaFactory)
     employer = factory.Faker("sentence", nb_words=3)
     employer_position = factory.Faker("sentence", nb_words=3)
     graduation_year = factory.Faker(

@@ -6,7 +6,6 @@ from .models import (
     Initiation,
     Depledge,
     StatusChange,
-    PledgeForm,
     RiskManagement,
     PledgeProgram,
     Audit,
@@ -26,7 +25,6 @@ from .resources import (
     InitiationResource,
     DepledgeResource,
     PledgeResource,
-    PledgeFormResource,
     StatusChangeResource,
     PledgeProgramResource,
     PrematureAlumnusResource,
@@ -128,28 +126,6 @@ class AuditAdmin(admin.ModelAdmin):
 admin.site.register(Audit, AuditAdmin)
 
 
-class PledgeFormAdmin(ImportExportActionModelAdmin):
-    list_display = (
-        "name",
-        "chapter",
-        "created",
-    )
-    list_filter = [
-        "chapter",
-        "created",
-    ]
-    ordering = [
-        "-created",
-    ]
-    search_fields = [
-        "name",
-    ]
-    resource_class = PledgeFormResource
-
-
-admin.site.register(PledgeForm, PledgeFormAdmin)
-
-
 class InitiationAdmin(ImportExportActionModelAdmin):
     raw_id_fields = ["user"]
     list_display = ("user", "date", "created", user_chapter)
@@ -193,22 +169,15 @@ admin.site.register(StatusChange, StatusChangeAdmin)
 
 
 class PledgeAdmin(ImportExportActionModelAdmin):
-    list_display = (
-        "first_name",
-        "last_name",
-        "school_name",
-        "email_school",
-        "email_personal",
-        "created",
-    )
+    list_display = ("user", "created", user_chapter)
     list_filter = [
-        "school_name",
+        "user__chapter",
         "created",
     ]
     ordering = [
         "-created",
     ]
-    search_fields = ["first_name", "last_name"]
+    search_fields = ["user__username", "user__name"]
     resource_class = PledgeResource
 
 

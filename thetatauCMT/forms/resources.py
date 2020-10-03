@@ -4,7 +4,6 @@ from .models import (
     Initiation,
     Depledge,
     Pledge,
-    PledgeForm,
     StatusChange,
     PledgeProgram,
     PrematureAlumnus,
@@ -44,20 +43,6 @@ class DepledgeResource(resources.ModelResource):
 class PledgeResource(resources.ModelResource):
     class Meta:
         model = Pledge
-
-
-class PledgeFormResource(resources.ModelResource):
-    chapter = Field("chapter__name")
-    school = Field("chapter__school")
-
-    class Meta:
-        model = PledgeForm
-        fields = (
-            "name",
-            "created",
-            "reason",
-            "email",
-        )
 
 
 class PledgeProgramResource(resources.ModelResource):

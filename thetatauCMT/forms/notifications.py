@@ -169,15 +169,13 @@ class EmailPledgeConfirmation(
     subject = "Theta Tau Prospective New Member Confirmation"  # subject of email
 
     def __init__(self, pledge_form):
-        self.to_emails = set(
-            [pledge_form.email_school]
-        )  # set list of emails to send to
-        if pledge_form.email_school != pledge_form.email_personal:
-            self.cc = [pledge_form.email_personal]
+        self.to_emails = {pledge_form.user.email_school, pledge_form.user.email}
         self.reply_to = [
             "cmt@thetatau.org",
         ]
         model_dict = model_to_dict(pledge_form)
+        user_dict = model_to_dict(pledge_form.user)
+        model_dict.update(user_dict)
         form_dict = {}
         for key, value in model_dict.items():
             if hasattr(pledge_form, f"verbose_{key}"):
@@ -329,9 +327,7 @@ class EmailProcessUpdate(EmailNotification):
         if extra_emails:
             emails = emails | set(extra_emails)
         self.to_emails = {user.email}  # set list of emails to send to
-        self.cc = list(
-            set({"cmt@thetatau.org", "central.office@thetatau.org"} | emails)
-        )
+        self.cc = list(set({"central.office@thetatau.org"} | emails))
         self.reply_to = [
             "cmt@thetatau.org",
         ]

@@ -2,7 +2,6 @@ import factory
 from ..models import (
     Badge,
     Guard,
-    PledgeForm,
     PledgeProgram,
     Initiation,
     Depledge,
@@ -50,15 +49,6 @@ class GuardFactory(factory.django.DjangoModelFactory):
 
     class Meta:
         model = Guard
-
-
-class PledgeFormFactory(factory.django.DjangoModelFactory):
-    name = factory.Faker("name")
-    chapter = factory.SubFactory(ChapterFactory)
-    email = factory.LazyAttribute(lambda o: f"user-{o.name}@example.com")
-
-    class Meta:
-        model = PledgeForm
 
 
 class PledgeProgramFactory(factory.django.DjangoModelFactory):
@@ -219,24 +209,12 @@ class AuditFactory(factory.django.DjangoModelFactory):
 class PledgeFactory(factory.django.DjangoModelFactory):
     created = factory.Faker("date_time_between", start_date="-1y", end_date="+1y")
     modified = factory.Faker("date_time_between", start_date="-1y", end_date="+1y")
-    signature = factory.LazyAttribute(lambda o: f"{o.first_name}{o.last_name}")
-    title = factory.Faker("random_element", elements=["mr", "miss", "ms", "mrs"])
-    first_name = factory.Faker("first_name")
-    middle_name = factory.Faker("first_name")
-    last_name = factory.Faker("last_name")
-    suffix = factory.Faker("suffix")
-    nickname = factory.Faker("name")
+    user = factory.SubFactory(UserFactory)
+    signature = factory.LazyAttribute(
+        lambda o: f"{o.user.first_name}{o.user.last_name}"
+    )
     parent_name = factory.Faker("name")
-    email_school = factory.Faker("email")
-    email_personal = factory.Faker("email")
-    phone_mobile = factory.Faker("msisdn")
-    phone_home = factory.Faker("msisdn")
-    address = factory.Faker("address")
-    birth_date = factory.Faker("date_of_birth", minimum_age=18, maximum_age=70)
     birth_place = factory.Faker("city")
-    school_name = factory.SubFactory(ChapterFactory)
-    major = factory.SubFactory(ChapterCurriculaFactory)
-    grad_date_year = factory.Faker("future_date", end_date="+6y")
     other_degrees = factory.Faker("sentence")
     relative_members = factory.Faker("sentence")
     other_greeks = factory.Faker("sentence")

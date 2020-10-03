@@ -503,10 +503,6 @@ class PledgeProcessFlow(Flow):
 
     invoice_payment_email = flow.Handler(
         this.send_invoice_payment_email, task_title=_("Send Invoice Payment Email"),
-    ).Next(this.sync_member_info)
-
-    sync_member_info = flow.Handler(
-        this.sync_member_info_function, task_title=_("Sync Member Info"),
     ).Next(this.complete)
 
     complete = flow.End(
@@ -528,7 +524,9 @@ class PledgeProcessFlow(Flow):
         ...
 
     def send_invoice_payment_email(self, activation):
-        member_list = activation.process.pledges.values_list("email_school", flat=True)
+        member_list = activation.process.pledges.values_list(
+            "user.email_school", flat=True
+        )
         member_list = ", ".join(member_list)
         EmailProcessUpdate(
             activation,
@@ -539,13 +537,6 @@ class PledgeProcessFlow(Flow):
             [{"members": member_list}, "invoice",],
             email_officers=True,
         ).send()
-
-    def sync_member_info_function(self, activation):
-        pledges = activation.process.pledges.all()
-        for pledge in pledges:
-            # Update the User database with the new members
-            # currently this is done in the CRM
-            print(pledge)
 
 
 @frontend.register

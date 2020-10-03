@@ -2,6 +2,7 @@
 import django_filters
 from .models import User, UserStatusChange, UserRoleChange
 from regions.models import Region
+from chapters.models import ChapterCurricula
 
 
 class UserListFilter(django_filters.FilterSet):
@@ -15,13 +16,16 @@ class UserListFilter(django_filters.FilterSet):
         ],
         method="filter_current_status",
     )
+    major = django_filters.MultipleChoiceFilter(
+        choices=ChapterCurricula.objects.none(), method="filter_major",
+    )
 
     class Meta:
         model = User
         fields = {
             "name": ["icontains"],
             "current_status": ["exact"],
-            "major": ["icontains"],
+            "major": ["exact"],
             "graduation_year": ["icontains"],
         }
         order_by = ["name"]
@@ -29,6 +33,11 @@ class UserListFilter(django_filters.FilterSet):
     def filter_current_status(self, queryset, field_name, value):
         if value:
             queryset = queryset.filter(current_status__in=value)
+        return queryset
+
+    def filter_major(self, queryset, field_name, value):
+        if value:
+            queryset = queryset.filter(major__in=value)
         return queryset
 
 
@@ -43,13 +52,16 @@ class UserRoleListFilter(django_filters.FilterSet):
     region = django_filters.ChoiceFilter(
         choices=Region.region_choices(), method="filter_region"
     )
+    major = django_filters.MultipleChoiceFilter(
+        choices=ChapterCurricula.objects.none(), method="filter_major",
+    )
 
     class Meta:
         model = User
         fields = {
             "name": ["icontains"],
             "current_status": ["exact"],
-            "major": ["icontains"],
+            "major": ["exact"],
             "graduation_year": ["icontains"],
             "chapter": ["exact"],
         }
@@ -72,6 +84,11 @@ class UserRoleListFilter(django_filters.FilterSet):
             queryset = queryset.filter(chapter__colony=True)
         else:
             queryset = queryset.filter(chapter__region__slug=value)
+        return queryset
+
+    def filter_major(self, queryset, field_name, value):
+        if value:
+            queryset = queryset.filter(major__in=value)
         return queryset
 
 

@@ -701,16 +701,7 @@ class SchoolModelChoiceField(forms.ModelChoiceField):
         return f"{obj.school}"
 
 
-class PledgeFormFull(forms.ModelForm):
-    school_name = SchoolModelChoiceField(
-        queryset=Chapter.objects.all().order_by("school")
-    )
-    birth_date = forms.DateField(
-        label="Birth Date",
-        widget=DatePicker(
-            options={"format": "M/DD/YYYY"}, attrs={"autocomplete": "off"},
-        ),
-    )
+class PledgeForm(forms.ModelForm):
     other_college_choice = forms.ChoiceField(
         label="Have you ever attended any other college?",
         choices=[("true", "Yes"), ("false", "No")],
@@ -804,7 +795,44 @@ class PledgeFormFull(forms.ModelForm):
 
     class Meta:
         model = Pledge
-        exclude = ["created", "modified"]
+        exclude = ["user", "created", "modified"]
+
+
+class PledgeUser(forms.ModelForm):
+    school_name = SchoolModelChoiceField(
+        queryset=Chapter.objects.all().order_by("school")
+    )
+    birth_date = forms.DateField(
+        label="Birth Date",
+        widget=DatePicker(
+            options={"format": "M/DD/YYYY"}, attrs={"autocomplete": "off"},
+        ),
+    )
+
+    class Meta:
+        model = User
+        fields = [
+            "title",
+            "first_name",
+            "middle_name",
+            "last_name",
+            "suffix",
+            "nickname",
+            "birth_date",
+            "address",
+            "email",
+            "email_school",
+            "major",
+            "graduation_year",
+            "phone_number",
+        ]
+
+
+class PledgeFormFull(MultiModelForm):
+    form_classes = {
+        "pledge": PledgeForm,
+        "user": PledgeUser,
+    }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -833,14 +861,14 @@ class PledgeFormFull(forms.ModelForm):
                     "nickname",
                     "parent_name",
                     Row(Column("email_school",), Column("email_personal",),),
-                    Row(Column("phone_mobile",), Column("phone_home",),),
+                    Row(Column("phone_number",),),
                     "address",
                     Row(Column("birth_date",), Column("birth_place",),),
                 ),
                 AccordionGroup(
                     "College & Degree Information",
                     Row(Column("school_name",), Column("major",),),
-                    "grad_date_year",
+                    "graduation_year",
                     "other_degrees",
                     "relative_members",
                     "other_greeks",

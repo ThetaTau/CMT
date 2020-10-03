@@ -1,13 +1,12 @@
-import datetime
 from django import forms
 from django.utils import timezone
 from address.forms import AddressField
 from crispy_forms.helper import FormHelper
-from crispy_forms.layout import Layout, Fieldset, Row, Column, Submit, Button
+from crispy_forms.layout import Layout, Fieldset, Row, Column, Submit
 from crispy_forms.bootstrap import FormActions, InlineField, StrictButton
 from tempus_dominus.widgets import DatePicker
 from core.models import BIENNIUM_YEARS
-from chapters.models import Chapter, ChapterCurricula
+from chapters.models import Chapter
 from .models import (
     UserAlter,
     User,

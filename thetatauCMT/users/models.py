@@ -4,7 +4,6 @@ from django.db import models
 from django.contrib.auth.models import UserManager
 from django.urls import reverse
 from django.conf import settings
-from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 from django.core.validators import MinValueValidator, MaxValueValidator, RegexValidator
 from address.models import AddressField
@@ -15,14 +14,13 @@ from core.models import (
     CHAPTER_OFFICER,
     ALL_ROLES_CHOICES,
     TimeStampedModel,
-    NATIONAL_OFFICER,
     COL_OFFICER_ALIGN,
     CHAPTER_OFFICER_CHOICES,
     CHAPTER_ROLES,
     NAT_OFFICERS,
     COUNCIL,
 )
-from chapters.models import Chapter
+from chapters.models import Chapter, ChapterCurricula
 
 
 class CustomUserManager(UserManager):
@@ -50,15 +48,40 @@ class User(AbstractUser):
     # First Name and Last Name do not cover name patterns
     # around the globe.
     name = models.CharField(_("Member Name"), blank=True, max_length=255)
+    middle_name = models.CharField(_("Full Middle Name"), max_length=30, blank=True)
+    suffix = models.CharField(_("Suffix (such as Jr., III)"), max_length=10, blank=True)
+    nickname = models.CharField(
+        max_length=30,
+        blank=True,
+        help_text="If different than your first name - eg Buddy, Skip, or Mike. Do NOT indicate 'pledge names'",
+    )
+    email_school = models.EmailField(
+        _("School Email"),
+        help_text="We will send an acknowledgement message. (ends in .edu)",
+    )
     modified = models.DateTimeField(auto_now=True)
     badge_number = models.PositiveIntegerField(default=999999999)
-    title = models.CharField(_("Title"), blank=True, max_length=255)
+    title = models.CharField(
+        _("Title"),
+        blank=True,
+        max_length=5,
+        choices=[
+            ("mr", "Mr."),
+            ("miss", "Miss"),
+            ("ms", "Ms"),
+            ("mrs", "Mrs"),
+            ("mx", "Mx"),
+            ("none", ""),
+        ],
+    )
     user_id = models.CharField(
         max_length=20,
         unique=True,
         help_text="Combination of badge number and chapter abbr, eg. X1311",
     )
-    major = models.CharField(max_length=100, blank=True)
+    major = models.ForeignKey(
+        ChapterCurricula, on_delete=models.CASCADE, related_name="pledges"
+    )
     employer = models.CharField(max_length=100, blank=True)
     employer_position = models.CharField(max_length=100, blank=True)
     graduation_year = models.PositiveIntegerField(
@@ -79,6 +102,7 @@ class User(AbstractUser):
         blank=True,
         help_text="Format: 9999999999 no spaces, dashes, etc.",
     )
+    birth_date = models.DateField()
     address = AddressField(on_delete=models.SET_NULL, blank=True, null=True,)
     chapter = models.ForeignKey(
         Chapter, on_delete=models.CASCADE, default=1, related_name="members"
@@ -91,7 +115,7 @@ class User(AbstractUser):
             chapter = kwargs.get("chapter", self.chapter)
             self.user_id = f"{chapter.greek}{self.badge_number}"
         if self.name == "":
-            self.name = self.first_name + " " + self.last_name
+            self.name = f"{self.first_name} {self.middle_name} {self.last_name}"
         if self.username == "":
             self.username = self.email
         super(User, self).save(*args, **kwargs)
@@ -128,6 +152,18 @@ class User(AbstractUser):
     @current_status.setter
     def current_status(self, val):
         self._current_status = val
+
+    @classmethod
+    def next_pledge_number(cls):
+        pledge_numbers = list(
+            cls.objects.filter(
+                badge_number__gte=2_000_000, badge_number__lte=3_000_000
+            ).values_list("badge_number", flat=True)
+        )
+        if not pledge_numbers:
+            pledge_numbers.append(1_999_999)
+        pledge_number = max(pledge_numbers) + 1
+        return pledge_number
 
     def get_current_status(self):
         if hasattr(self, "_current_status"):

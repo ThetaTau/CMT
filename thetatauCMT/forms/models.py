@@ -67,20 +67,6 @@ class Guard(models.Model):
         return f"{self.name}; ${self.cost}"
 
 
-class PledgeForm(TimeStampedModel):
-    class Meta:
-        unique_together = (
-            "name",
-            "email",
-        )
-
-    name = models.CharField(_("Pledge Name"), max_length=255)
-    chapter = models.ForeignKey(
-        Chapter, on_delete=models.CASCADE, related_name="pledge_forms"
-    )
-    email = models.EmailField(_("email address"), blank=True)
-
-
 def get_pledge_program_upload_path(instance, filename):
     return os.path.join(
         "submissions",
@@ -608,56 +594,13 @@ class Audit(YearTermModel, TimeStampedModel):
 
 class Pledge(TimeStampedModel):
     BOOL_CHOICES = ((True, "Yes"), (False, "No"))
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="pledge_form"
+    )
     signature = models.CharField(
         max_length=255, help_text="Please sign using your proper/legal name"
     )
-    title = models.CharField(
-        max_length=5,
-        choices=[
-            ("mr", "Mr."),
-            ("miss", "Miss"),
-            ("ms", "Ms"),
-            ("mrs", "Mrs"),
-            ("mx", "Mx"),
-            ("none", ""),
-        ],
-    )
-    first_name = models.CharField(_("Legal First Name"), max_length=30)
-    middle_name = models.CharField(_("Full Middle Name"), max_length=30, blank=True)
-    last_name = models.CharField(_("Legal Last Name"), max_length=30)
-    suffix = models.CharField(_("Suffix (such as Jr., III)"), max_length=10, blank=True)
-    nickname = models.CharField(
-        max_length=30,
-        blank=True,
-        help_text="If different than your first name - eg Buddy, Skip, or Mike. Do NOT indicate 'pledge names'",
-    )
     parent_name = models.CharField(_("Parent / Guardian Name"), max_length=60)
-    email_school = models.EmailField(
-        _("School Email"),
-        help_text="We will send an acknowledgement message. (ends in .edu)",
-    )
-    email_personal = models.EmailField(
-        _("Personal Email"),
-        help_text="Personal email address like @gmail.com, @yahoo.com, @outlook.com, etc",
-    )
-    phone_regex = RegexValidator(
-        regex=r"^\+?1?\d{9,15}$",
-        message="Phone number must be entered in the format: '+999999999'. Up to 15 digits allowed.",
-    )
-    phone_mobile = models.CharField(
-        _("Mobile Phone"),
-        validators=[phone_regex],
-        max_length=17,
-        help_text="Format: 9999999999 no spaces, dashes, etc.",
-    )
-    phone_home = models.CharField(
-        _("Home Phone"),
-        validators=[phone_regex],
-        max_length=17,
-        help_text="Format: 9999999999 no spaces, dashes, etc.",
-    )
-    address = AddressField(on_delete=models.PROTECT)
-    birth_date = models.DateField()
     birth_place = models.CharField(
         _("Place of Birth"),
         max_length=50,
@@ -668,14 +611,6 @@ class Pledge(TimeStampedModel):
         to_field="school",
         on_delete=models.CASCADE,
         related_name="pledge_forms_full",
-    )
-    major = models.ForeignKey(
-        ChapterCurricula, on_delete=models.CASCADE, related_name="pledges"
-    )
-    grad_date_year = models.IntegerField(
-        _("Expected date of graduation"),
-        validators=[validate_year],
-        help_text="The year closest to your expected date of graduation in YYYY format.",
     )
     other_degrees = models.CharField(
         _("College degrees already received"),
@@ -1176,16 +1111,16 @@ class PledgeProcess(Process):
         for pledge in self.pledges.all():
             row = {
                 "Submission Date": pledge.created,
-                "Title": pledge.title,
-                "Legal First Name": pledge.first_name,
-                "Full Middle Name": pledge.middle_name,
-                "Last Name": pledge.last_name,
-                "Nickname": pledge.nickname,
-                "School E-mail": pledge.email_school,
-                "Mobile Number:": pledge.phone_mobile,
+                "Title": pledge.user.title,
+                "Legal First Name": pledge.user.first_name,
+                "Full Middle Name": pledge.user.middle_name,
+                "Last Name": pledge.user.last_name,
+                "Nickname": pledge.user.nickname,
+                "School E-mail": pledge.user.email_school,
+                "Mobile Number:": pledge.user.phone_number,
                 "Chapter": self.chapter,
-                "Major": pledge.major,
-                "Expected date of graduation": pledge.grad_date_year,
+                "Major": pledge.user.major,
+                "Expected date of graduation": pledge.user.graduation_year,
             }
             writer.writerow(row)
         if response is None:
@@ -1263,39 +1198,39 @@ class PledgeProcess(Process):
         writer.writeheader()
         for pledge in self.pledges.all():
             city, state, zipcode, country = "", "", "", ""
-            if pledge.address.locality:
-                city = pledge.address.locality.name
-                state = pledge.address.locality.state.code
-                zipcode = pledge.address.locality.postal_code
-                country = pledge.address.locality.state.country
+            if pledge.user.address.locality:
+                city = pledge.user.address.locality.name
+                state = pledge.user.address.locality.state.code
+                zipcode = pledge.user.address.locality.postal_code
+                country = pledge.user.address.locality.state.country
             expelled_college = False
             if pledge.explain_expelled_college:
                 expelled_college = True
             row = {
                 "Submission Date": pledge.created,
-                "Title": pledge.title,
-                "Legal First Name": pledge.first_name,
-                "Full Middle Name": pledge.middle_name,
-                "Last Name": pledge.last_name,
-                "Suffix (such as Jr., III)": pledge.suffix,
-                "Nickname": pledge.nickname,
+                "Title": pledge.user.title,
+                "Legal First Name": pledge.user.first_name,
+                "Full Middle Name": pledge.user.middle_name,
+                "Last Name": pledge.user.last_name,
+                "Suffix (such as Jr., III)": pledge.user.suffix,
+                "Nickname": pledge.user.nickname,
                 "Parent / Guardian Name": pledge.parent_name,
-                "School E-mail": pledge.email_school,
-                "Personal Email": pledge.email_personal,
-                "Mobile Number:": pledge.phone_mobile,
-                "Home Phone": pledge.phone_home,
-                "Street Address": pledge.address,
+                "School E-mail": pledge.user.email_school,
+                "Personal Email": pledge.user.email,
+                "Mobile Number:": pledge.user.phone_number,
+                "Home Phone": "",
+                "Street Address": pledge.user.address,
                 "City": city,
                 "Permanent Home Address State/Province": state,
                 "Zip Code 2": zipcode,
                 "Country": country,
-                "Birth Date:": pledge.birth_date,
+                "Birth Date:": pledge.user.birth_date,
                 "Place of Birth": pledge.birth_place,
                 "School Name": self.chapter.school,
                 "Abbrev": chapter_abr,
                 "Chapter": self.chapter,
-                "Major": pledge.major,
-                "Expected date of graduation": pledge.grad_date_year,
+                "Major": pledge.user.major,
+                "Expected date of graduation": pledge.user.graduation_year,
                 "College degrees already received": pledge.other_degrees,
                 "Theta Tau Relatives": pledge.relative_members,
                 "Of which Greek Letter Honor Societies are you a member?": pledge.other_greeks,

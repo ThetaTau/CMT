@@ -3,7 +3,7 @@ import warnings
 from datetime import datetime
 from django.db import transaction
 from django.db.utils import IntegrityError
-from forms.models import PledgeForm
+from forms.models import Pledge
 from chapters.models import Chapter
 
 
@@ -20,7 +20,7 @@ def run(*args):
             for pledge_form in reader:
                 chapter_obj = Chapter.get_school_chapter(pledge_form["School Name"])
                 name = f'{pledge_form["Legal First Name"]} {pledge_form["Full Middle Name"]} {pledge_form["Last Name"]}'
-                form_obj = PledgeForm(
+                form_obj = Pledge(
                     name=name,
                     chapter=chapter_obj,
                     email=pledge_form["School E-mail"],
