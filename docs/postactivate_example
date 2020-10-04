@@ -12,4 +12,8 @@ export ROLLBAR_ACCESS=''
 export DATABASE_URL_MYSQL=''
 export DATABASE_URL=''
 export GOOGLE_APPLICATION_CREDENTIALS='{PATH TO SECRETS FOLDER}/{credentials}.json'
+export DJANGO_GCP_STORAGE_BUCKET_NAME='theta-tau'
+export RECAPTCHA_PUBLIC_KEY=''
+export RECAPTCHA_PRIVATE_KEY=''
+
 cd ~/thetatauCMT
