@@ -321,12 +321,15 @@ class EmailProcessUpdate(EmailNotification):
         if email_officers:
             officers = chapter.get_current_officers_council_specific()
             if user is None:
+                # TODO: This first officer could be None
                 user = officers.pop(0)
             emails = set([officer.email for officer in officers if officer])
             if user and user.email in emails:
                 emails.remove(user.email)
         if extra_emails:
             emails = emails | set(extra_emails)
+        # TODO: If the user is still None at this point. Something is wrong
+        #       eg. no officers in the chapter. Send to CMT? "cmt@thetatau.org",
         self.to_emails = {user.email}  # set list of emails to send to
         self.cc = list(set({"central.office@thetatau.org"} | emails))
         self.reply_to = [
