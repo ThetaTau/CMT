@@ -828,7 +828,17 @@ class PledgeUser(forms.ModelForm):
         ]
 
 
-class PledgeFormFull(MultiModelForm):
+class CrispyCompatableMultiModelForm(MultiModelForm):
+    def __getitem__(self, key):
+        if "-" in key:
+            form, key = key.split("-")
+            return self.forms[form][key]
+        elif hasattr(self, key):
+            return getattr(self, key)
+        return self.forms[key]
+
+
+class PledgeFormFull(CrispyCompatableMultiModelForm):
     form_classes = {
         "pledge": PledgeForm,
         "user": PledgeUser,
@@ -836,73 +846,79 @@ class PledgeFormFull(MultiModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields["major"].queryset = ChapterCurricula.objects.none()
-        if "school_name" in self.data:
+        self.forms["user"].fields["major"].queryset = ChapterCurricula.objects.none()
+        if "user-school_name" in self.forms["user"].data:
             try:
-                chapter_id = int(self.data.get("school_name"))
-                self.fields["major"].queryset = ChapterCurricula.objects.filter(
+                chapter_id = int(self.data.get("user-school_name"))
+                self.forms["user"].fields[
+                    "major"
+                ].queryset = ChapterCurricula.objects.filter(
                     chapter__pk=chapter_id
-                ).order_by("major")
+                ).order_by(
+                    "major"
+                )
             except (ValueError, TypeError):
                 pass  # invalid input from the client; ignore and fallback to empty City queryset
-        elif self.instance.pk:
-            self.fields[
-                "major"
-            ].queryset = self.instance.school_name.major_set.order_by("major")
+        elif self.forms["user"].instance.pk:
+            self.forms["user"].fields["major"].queryset = self.forms[
+                "user"
+            ].instance.school_name.major_set.order_by("major")
         self.helper = FormHelper()
         self.helper.layout = Layout(
             Accordion(
                 AccordionGroup(
                     "Personal Information",
                     Row(
-                        Column("title",), Column("first_name",), Column("middle_name",),
+                        Column("user-title",),
+                        Column("user-first_name",),
+                        Column("user-middle_name",),
                     ),
-                    Row(Column("last_name",), Column("suffix",),),
-                    "nickname",
-                    "parent_name",
-                    Row(Column("email_school",), Column("email_personal",),),
-                    Row(Column("phone_number",),),
-                    "address",
-                    Row(Column("birth_date",), Column("birth_place",),),
+                    Row(Column("user-last_name",), Column("user-suffix",),),
+                    "user-nickname",
+                    "pledge-parent_name",
+                    Row(Column("user-email_school",), Column("user-email",),),
+                    Row(Column("user-phone_number",),),
+                    "user-address",
+                    Row(Column("user-birth_date",), Column("pledge-birth_place",),),
                 ),
                 AccordionGroup(
                     "College & Degree Information",
-                    Row(Column("school_name",), Column("major",),),
-                    "graduation_year",
-                    "other_degrees",
-                    "relative_members",
-                    "other_greeks",
-                    "other_tech",
-                    "other_frat",
-                    InlineRadios("other_college_choice"),
-                    "other_college",
-                    InlineRadios("explain_expelled_org_choice"),
-                    "explain_expelled_org",
-                    InlineRadios("explain_expelled_college_choice"),
-                    "explain_expelled_college",
-                    InlineRadios("explain_crime_choice"),
-                    "explain_crime",
+                    Row(Column("user-school_name",), Column("user-major",),),
+                    "user-graduation_year",
+                    "pledge-other_degrees",
+                    "pledge-relative_members",
+                    "pledge-other_greeks",
+                    "pledge-other_tech",
+                    "pledge-other_frat",
+                    InlineRadios("pledge-other_college_choice"),
+                    "pledge-other_college",
+                    InlineRadios("pledge-explain_expelled_org_choice"),
+                    "pledge-explain_expelled_org",
+                    InlineRadios("pledge-explain_expelled_college_choice"),
+                    "pledge-explain_expelled_college",
+                    InlineRadios("pledge-explain_crime_choice"),
+                    "pledge-explain_crime",
                 ),
                 AccordionGroup(
                     "Pause and Deliberate",
                     HTML(
                         "<h2>Please carefully read and answer each question below honestly</h2>"
                     ),
-                    "loyalty",
-                    "not_honor",
-                    "accountable",
-                    "life",
-                    "unlawful",
-                    "unlawful_org",
-                    "brotherhood",
-                    "engineering",
-                    "engineering_grad",
-                    "payment",
-                    "attendance",
-                    "harmless",
-                    "alumni",
-                    "honest",
-                    "signature",
+                    "pledge-loyalty",
+                    "pledge-not_honor",
+                    "pledge-accountable",
+                    "pledge-life",
+                    "pledge-unlawful",
+                    "pledge-unlawful_org",
+                    "pledge-brotherhood",
+                    "pledge-engineering",
+                    "pledge-engineering_grad",
+                    "pledge-payment",
+                    "pledge-attendance",
+                    "pledge-harmless",
+                    "pledge-alumni",
+                    "pledge-honest",
+                    "pledge-signature",
                 ),
                 ButtonHolder(Submit("submit", "Submit", css_class="btn-primary")),
             )

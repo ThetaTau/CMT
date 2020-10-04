@@ -189,7 +189,7 @@ class EmailPledgeConfirmation(
                 if key not in ["id", "address"]:
                     form_dict[key.replace("_", " ").title()] = value
                 elif key == "address":
-                    form_dict["Address"] = getattr(pledge_form, key).formatted
+                    form_dict["Address"] = getattr(pledge_form.user, key).formatted
         self.context = {
             "form": form_dict,
             "host": settings.CURRENT_URL,
@@ -209,10 +209,11 @@ class EmailPledgeWelcome(EmailNotification):  # extend from EmailNotification fo
     subject = "Theta Tau Welcome Prospective New Member"  # subject of email
 
     def __init__(self, pledge_form):
-        name = pledge_form.first_name
-        email_school = pledge_form.email_school
-        email_personal = pledge_form.email_personal
-        chapter = pledge_form.school_name
+        user = pledge_form.user
+        name = user.first_name
+        email_school = user.email_school
+        email_personal = user.email
+        chapter = user.chapter
         school_type = chapter.school_type
         no_later_month = {
             "sp_semester": "March 15",
@@ -247,7 +248,7 @@ class EmailPledgeOfficer(EmailNotification):
     subject = "Theta Tau Prospective New Member Submission"
 
     def __init__(self, pledge_form):
-        officers = pledge_form.school_name.get_current_officers_council(combine=False)[
+        officers = pledge_form.user.chapter.get_current_officers_council(combine=False)[
             0
         ]
         scribe = officers.filter(role="scribe").first()
@@ -259,13 +260,13 @@ class EmailPledgeOfficer(EmailNotification):
             emails.add(vice.email)
         self.to_emails = emails
         self.cc = [
-            pledge_form.email_school,
+            pledge_form.user.email_school,
         ]
         self.reply_to = [
             "cmt@thetatau.org",
         ]
         self.context = {
-            "pledge": pledge_form.first_name + " " + pledge_form.last_name,
+            "pledge": pledge_form.user.first_name + " " + pledge_form.user.last_name,
             "host": settings.CURRENT_URL,
         }
 

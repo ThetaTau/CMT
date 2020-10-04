@@ -1473,9 +1473,9 @@ def load_majors(request):
     chapter_id = request.GET.get("chapter")
     majors = []
     if chapter_id:
-        majors = ChapterCurricula.objects.filter(chapter__pk=chapter_id).order_by(
-            "major"
-        )
+        majors = ChapterCurricula.objects.filter(
+            chapter__pk=chapter_id, approved=True
+        ).order_by("major")
     return render(
         request, "forms/majors_dropdown_list_options.html", {"majors": majors}
     )
@@ -1498,7 +1498,7 @@ class PledgeFormView(CreateView):
         pledge = form["pledge"]
         user = form["user"]
         user.instance.badge_number = User.next_pledge_number()
-        user.save()
+        user = user.save()
         pledge.instance.user = user
         self.object = pledge.save()
         UserStatusChange(

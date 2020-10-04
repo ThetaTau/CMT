@@ -57,6 +57,7 @@ class User(AbstractUser):
     )
     email_school = models.EmailField(
         _("School Email"),
+        default="test@thetatau.org",
         help_text="We will send an acknowledgement message. (ends in .edu)",
     )
     modified = models.DateTimeField(auto_now=True)
@@ -80,7 +81,11 @@ class User(AbstractUser):
         help_text="Combination of badge number and chapter abbr, eg. X1311",
     )
     major = models.ForeignKey(
-        ChapterCurricula, on_delete=models.CASCADE, related_name="pledges"
+        ChapterCurricula,
+        on_delete=models.SET_NULL,
+        related_name="user",
+        blank=True,
+        null=True,
     )
     employer = models.CharField(max_length=100, blank=True)
     employer_position = models.CharField(max_length=100, blank=True)
@@ -102,7 +107,7 @@ class User(AbstractUser):
         blank=True,
         help_text="Format: 9999999999 no spaces, dashes, etc.",
     )
-    birth_date = models.DateField()
+    birth_date = models.DateField(default=datetime.date(year=1904, month=10, day=15))
     address = AddressField(on_delete=models.SET_NULL, blank=True, null=True,)
     chapter = models.ForeignKey(
         Chapter, on_delete=models.CASCADE, default=1, related_name="members"

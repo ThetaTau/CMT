@@ -4,8 +4,8 @@ from chapters.models import Chapter, ChapterCurricula
 
 class ChapterCurriculaInline(admin.TabularInline):
     model = ChapterCurricula
-    fields = ["major"]
-    ordering = ["major"]
+    fields = ["major", "approved"]
+    ordering = ["-approved", "major"]
     show_change_link = True
 
 

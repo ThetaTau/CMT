@@ -422,6 +422,7 @@ class ChapterCurricula(models.Model):
     chapter = models.ForeignKey(
         Chapter, on_delete=models.CASCADE, related_name="curricula"
     )
+    approved = models.BooleanField(default=True)
     major = models.CharField(max_length=100)
 
     def __str__(self):

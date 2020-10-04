@@ -595,7 +595,10 @@ class Audit(YearTermModel, TimeStampedModel):
 class Pledge(TimeStampedModel):
     BOOL_CHOICES = ((True, "Yes"), (False, "No"))
     user = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="pledge_form"
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="pledge_form",
+        default=1,
     )
     signature = models.CharField(
         max_length=255, help_text="Please sign using your proper/legal name"
@@ -605,12 +608,6 @@ class Pledge(TimeStampedModel):
         _("Place of Birth"),
         max_length=50,
         help_text=_("City and state or province is sufficient"),
-    )
-    school_name = models.ForeignKey(
-        Chapter,
-        to_field="school",
-        on_delete=models.CASCADE,
-        related_name="pledge_forms_full",
     )
     other_degrees = models.CharField(
         _("College degrees already received"),

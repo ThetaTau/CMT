@@ -21,7 +21,7 @@
   $("#submit-id-submit").click(function (event) {
     document.getElementById("submit-id-submit").value = "Submitting...";
   })
-$("#id_school_name").change(function () {
+$("#id_user-school_name").change(function () {
       var url = "{% url 'forms:ajax_load_majors' %}";  // get the url of the `load_majors` view
       var chapterId = $(this).val();  // get the selected chapter ID from the HTML input
       $.ajax({                       // initialize an AJAX request
@@ -30,34 +30,34 @@ $("#id_school_name").change(function () {
           'chapter': chapterId       // add the chapter id to the GET parameters
         },
         success: function (data) {   // `data` is the return of the `load_major` view function
-          $("#id_major").html(data);  // replace the contents of the major input with the data that came from the server
+          $("#id_user-major").html(data);  // replace the contents of the major input with the data that came from the server
         }
       });
     });
   $(document).ready(function() {
-    $('#div_id_other_college').hide();
-    $('#div_id_explain_expelled_org').hide();
-    $('#div_id_explain_expelled_college').hide();
-    $('#div_id_explain_crime').hide();
-    $('input[name="other_college_choice"]').on('change', function(){
-        var selected_value = $('input[name="other_college_choice"]:checked').val();
-         if(selected_value=="true"){$("#div_id_other_college").show();}
-         else{$("#div_id_other_college").hide();}
+    $('#div_id_pledge-other_college').hide();
+    $('#div_id_pledge-explain_expelled_org').hide();
+    $('#div_id_pledge-explain_expelled_college').hide();
+    $('#div_id_pledge-explain_crime').hide();
+    $('input[name="pledge-other_college_choice"]').on('change', function(){
+        var selected_value = $('input[name="pledge-other_college_choice"]:checked').val();
+         if(selected_value=="true"){$("#div_id_pledge-other_college").show();}
+         else{$("#div_id_pledge-other_college").hide();}
      });
-    $('input[name="explain_expelled_org_choice"]').on('change', function(){
-        var selected_value = $('input[name="explain_expelled_org_choice"]:checked').val();
-         if(selected_value=="true"){$("#div_id_explain_expelled_org").show();}
-         else{$("#div_id_explain_expelled_org").hide();}
+    $('input[name="pledge-explain_expelled_org_choice"]').on('change', function(){
+        var selected_value = $('input[name="pledge-explain_expelled_org_choice"]:checked').val();
+         if(selected_value=="true"){$("#div_id_pledge-explain_expelled_org").show();}
+         else{$("#div_id_pledge-explain_expelled_org").hide();}
      });
-    $('input[name="explain_expelled_college_choice"]').on('change', function(){
-        var selected_value = $('input[name="explain_expelled_college_choice"]:checked').val();
-         if(selected_value=="true"){$("#div_id_explain_expelled_college").show();}
-         else{$("#div_id_explain_expelled_college").hide();}
+    $('input[name="pledge-explain_expelled_college_choice"]').on('change', function(){
+        var selected_value = $('input[name="pledge-explain_expelled_college_choice"]:checked').val();
+         if(selected_value=="true"){$("#div_id_pledge-explain_expelled_college").show();}
+         else{$("#div_id_pledge-explain_expelled_college").hide();}
      });
-    $('input[name="explain_crime_choice"]').on('change', function(){
-        var selected_value = $('input[name="explain_crime_choice"]:checked').val();
-         if(selected_value=="true"){$("#div_id_explain_crime").show();}
-         else{$("#div_id_explain_crime").hide();}
+    $('input[name="pledge-explain_crime_choice"]').on('change', function(){
+        var selected_value = $('input[name="pledge-explain_crime_choice"]:checked').val();
+         if(selected_value=="true"){$("#div_id_pledge-explain_crime").show();}
+         else{$("#div_id_pledge-explain_crime").hide();}
      });
     $('form').validate({
       invalidHandler: function(event, validator) {

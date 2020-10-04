@@ -1,9 +1,11 @@
 from django import forms
 from django.contrib import admin
 from django.contrib.auth.models import Permission
+from django.utils.translation import gettext_lazy as _
 from django.contrib.auth.admin import UserAdmin as AuthUserAdmin
 from django.contrib.auth.forms import UserChangeForm, UserCreationForm
 from import_export.admin import ImportExportActionModelAdmin
+from address.widgets import AddressWidget
 from .models import (
     User,
     UserRoleChange,
@@ -12,6 +14,7 @@ from .models import (
     UserSemesterGPA,
     UserSemesterServiceHours,
     UserAlter,
+    ChapterCurricula,
 )
 from .resources import UserRoleChangeResource
 from .views import ExportActiveMixin
@@ -181,7 +184,43 @@ class MyUserAdmin(AuthUserAdmin, ExportActiveMixin):
     add_form = MyUserCreationForm
     fieldsets = (
         ("User Profile", {"fields": ("name", "chapter", "badge_number", "user_id")}),
-    ) + AuthUserAdmin.fieldsets
+        (None, {"fields": ("username", "password")}),
+        (
+            _("Personal info"),
+            {
+                "fields": (
+                    "title",
+                    "first_name",
+                    "middle_name",
+                    "last_name",
+                    "suffix",
+                    "nickname",
+                    "birth_date",
+                    "email",
+                    "email_school",
+                    "address",
+                    "phone_number",
+                    "major",
+                    "employer",
+                    "employer_position",
+                    "graduation_year",
+                )
+            },
+        ),
+        (
+            _("Permissions"),
+            {
+                "fields": (
+                    "is_active",
+                    "is_staff",
+                    "is_superuser",
+                    "groups",
+                    "user_permissions",
+                ),
+            },
+        ),
+        (_("Important dates"), {"fields": ("last_login", "date_joined")}),
+    )
     list_display = (
         "username",
         "name",
@@ -192,3 +231,17 @@ class MyUserAdmin(AuthUserAdmin, ExportActiveMixin):
     )
     list_filter = ("is_superuser", "last_login", "groups", "chapter")
     search_fields = ("user_id", "badge_number") + AuthUserAdmin.search_fields
+
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        if db_field.name == "major":
+            try:
+                user_id = request.resolver_match.kwargs.get("object_id")
+                user = User.objects.get(id=user_id)
+                kwargs["queryset"] = ChapterCurricula.objects.filter(
+                    chapter=user.chapter
+                )
+            except IndexError:
+                pass
+        if db_field.name == "address":
+            kwargs["widget"] = AddressWidget()
+        return super().formfield_for_foreignkey(db_field, request, **kwargs)
