@@ -15,7 +15,25 @@
   <component name="NewModuleRootManager">
     <content url="file://$MODULE_DIR$">
       <sourceFolder url="file://$MODULE_DIR$/thetatauCMT" isTestSource="false" />
+      <excludeFolder url="file://$MODULE_DIR$/.envs/.production" />
+      <excludeFolder url="file://$MODULE_DIR$/.idea/dictionaries" />
+      <excludeFolder url="file://$MODULE_DIR$/.ipynb_checkpoints" />
+      <excludeFolder url="file://$MODULE_DIR$/.ipython" />
+      <excludeFolder url="file://$MODULE_DIR$/.pytest_cache" />
+      <excludeFolder url="file://$MODULE_DIR$/core/tests/htmlcov" />
+      <excludeFolder url="file://$MODULE_DIR$/database_backups" />
       <excludeFolder url="file://$MODULE_DIR$/node_modules" />
+      <excludeFolder url="file://$MODULE_DIR$/scratchpad/.ipynb_checkpoints" />
+      <excludeFolder url="file://$MODULE_DIR$/scratchpad/output/2020Update" />
+      <excludeFolder url="file://$MODULE_DIR$/scratchpad/output/Fall2018" />
+      <excludeFolder url="file://$MODULE_DIR$/staticfiles" />
+      <excludeFolder url="file://$MODULE_DIR$/submissions" />
+      <excludeFolder url="file://$MODULE_DIR$/thetatauCMT/chapters/htmlcov" />
+      <excludeFolder url="file://$MODULE_DIR$/thetatauCMT/chapters/tests/htmlcov" />
+      <excludeFolder url="file://$MODULE_DIR$/thetatauCMT/events/tests/htmlcov" />
+      <excludeFolder url="file://$MODULE_DIR$/thetatauCMT/media" />
+      <excludeFolder url="file://$MODULE_DIR$/utility/GnuPG" />
+      <excludeFolder url="file://$MODULE_DIR$/utility/smartmenus-1.1.0" />
     </content>
     <orderEntry type="jdk" jdkName="Python 3.6 (cmt)" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
