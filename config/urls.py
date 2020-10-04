@@ -1,6 +1,7 @@
 from django.conf import settings
 from django.conf.urls import include, url
 from django.conf.urls.static import static
+from django.shortcuts import redirect
 from django.contrib.auth.views import (
     PasswordResetConfirmView,
     PasswordResetCompleteView,
@@ -16,6 +17,11 @@ from core.views import HomeView
 from users.views import UserLookupLoginView
 from django.views import defaults as default_views
 
+
+def home_redirect(request):
+    return redirect("http://127.0.0.1")
+
+
 urlpatterns = [
     path("django_plotly_dash/", include("django_plotly_dash.urls")),
     url(r"^$", HomeView.as_view(template_name="pages/home.html"), name="home"),
@@ -25,6 +31,7 @@ urlpatterns = [
             url=settings.STATIC_URL + "images/favicon.png", permanent=True
         ),
     ),
+    url(r"^wp-content/*", home_redirect),
     url(
         r"^about/$",
         TemplateView.as_view(template_name="pages/about.html"),
