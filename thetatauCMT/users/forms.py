@@ -5,6 +5,8 @@ from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Layout, Fieldset, Row, Column, Submit
 from crispy_forms.bootstrap import FormActions, InlineField, StrictButton
 from tempus_dominus.widgets import DatePicker
+from allauth.account.forms import LoginForm
+from captcha.fields import ReCaptchaField
 from core.models import BIENNIUM_YEARS
 from chapters.models import Chapter
 from .models import (
@@ -14,6 +16,10 @@ from .models import (
     UserSemesterServiceHours,
     UserOrgParticipate,
 )
+
+
+class CaptchaLoginForm(LoginForm):
+    captcha = ReCaptchaField()
 
 
 class UserListFormHelper(FormHelper):
@@ -125,6 +131,7 @@ class AdvisorListFormHelper(FormHelper):
 class UserLookupForm(forms.Form):
     university = forms.ChoiceField(choices=Chapter.schools())
     badge_number = forms.IntegerField()
+    captcha = ReCaptchaField()
 
 
 class UserAlterForm(forms.ModelForm):

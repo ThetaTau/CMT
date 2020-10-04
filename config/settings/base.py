@@ -100,6 +100,7 @@ THIRD_PARTY_APPS = [
     "watson",
     "ckeditor",
     "ckeditor_uploader",
+    "captcha",
 ]
 
 LOCAL_APPS = [
@@ -431,3 +432,5 @@ PLOTLY_COMPONENTS = [
 ]
 
 CKEDITOR_UPLOAD_PATH = "uploads/"
+RECAPTCHA_REQUIRED_SCORE = 0.85
+SILENCED_SYSTEM_CHECKS = ["captcha.recaptcha_test_key_error"]

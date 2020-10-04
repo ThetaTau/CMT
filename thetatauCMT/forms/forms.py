@@ -23,6 +23,7 @@ from djmoney.forms.fields import MoneyField
 from django import forms
 from django.utils import timezone
 from tempus_dominus.widgets import DatePicker
+from captcha.fields import ReCaptchaField
 from chapters.forms import ChapterForm
 from chapters.models import Chapter, ChapterCurricula
 from core.models import CHAPTER_ROLES_CHOICES, NAT_OFFICERS_CHOICES
@@ -799,6 +800,7 @@ class PledgeForm(forms.ModelForm):
 
 
 class PledgeUser(forms.ModelForm):
+    captcha = ReCaptchaField()
     school_name = SchoolModelChoiceField(
         queryset=Chapter.objects.all().order_by("school")
     )
@@ -920,8 +922,9 @@ class PledgeFormFull(CrispyCompatableMultiModelForm):
                     "pledge-honest",
                     "pledge-signature",
                 ),
+                Field("user-captcha",),
                 ButtonHolder(Submit("submit", "Submit", css_class="btn-primary")),
-            )
+            ),
         )
 
 

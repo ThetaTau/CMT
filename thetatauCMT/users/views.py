@@ -42,6 +42,7 @@ from .models import (
 from .tables import UserTable
 from .filters import UserListFilter
 from .forms import (
+    CaptchaLoginForm,
     UserListFormHelper,
     UserLookupForm,
     UserAlterForm,
@@ -366,7 +367,11 @@ class PasswordResetFormNotActive(PasswordResetForm):
         return [User.objects.filter(email=email).first()]
 
 
-class UserLookupLoginView(LoginView):
+class CaptchaLoginView(LoginView):
+    form_class = CaptchaLoginForm
+
+
+class UserLookupLoginView(CaptchaLoginView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["lookup_form"] = UserLookupForm()
