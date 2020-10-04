@@ -406,6 +406,7 @@ if DBBACKUP_LOCAL:
         "DBBACKUP_STORAGE_LOCATION", default="database_backups"
     )
     DBBACKUP_STORAGE_OPTIONS = {"location": DBBACKUP_STORAGE_LOCATION}
+    DBBACKUP_CLEANUP_KEEP = 2
 else:
     DBBACKUP_STORAGE = "storages.backends.gcloud.GoogleCloudStorage"
     # 1.1 Mbps is the minimum required to upload 8 MB within the 60 second timeout
