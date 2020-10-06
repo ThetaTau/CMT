@@ -830,6 +830,21 @@ class PledgeUser(forms.ModelForm):
             "phone_number",
         ]
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for field in self.fields:
+            if field in ["nickname", "suffix"]:
+                continue
+            if field == "email_school":
+                self.fields["email_school"].initial = ""
+            self.fields[field].required = True
+
+    def clean_address(self):
+        address = self.cleaned_data["address"]
+        if address.raw == "None":
+            raise forms.ValidationError("Address should not be None")
+        return address
+
 
 class CrispyCompatableMultiModelForm(MultiModelForm):
     def __getitem__(self, key):
