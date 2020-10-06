@@ -170,6 +170,9 @@ admin.site.register(StatusChange, StatusChangeAdmin)
 
 class PledgeAdmin(ImportExportActionModelAdmin):
     list_display = ("user", "created", user_chapter)
+    raw_id_fields = [
+        "user",
+    ]
     list_filter = [
         "user__chapter",
         "created",
