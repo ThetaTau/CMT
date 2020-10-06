@@ -173,9 +173,26 @@ class EmailPledgeConfirmation(
         self.reply_to = [
             "cmt@thetatau.org",
         ]
-        model_dict = model_to_dict(pledge_form)
-        user_dict = model_to_dict(pledge_form.user)
-        model_dict.update(user_dict)
+        pledge_dict = model_to_dict(pledge_form)
+        model_dict = model_to_dict(pledge_form.user)
+        model_dict.update(pledge_dict)
+        for remove_item in [
+            "user",
+            "password",
+            "badge_number",
+            "user_id",
+            "last_login",
+            "is_staff",
+            "is_active",
+            "date_joined",
+            "is_superuser",
+            "employer",
+            "employer_position",
+            "groups",
+            "user_permissions",
+        ]:
+            if remove_item in model_dict:
+                del model_dict[remove_item]
         form_dict = {}
         for key, value in model_dict.items():
             if hasattr(pledge_form, f"verbose_{key}"):
@@ -186,10 +203,16 @@ class EmailPledgeConfirmation(
                     key.startswith("explain_") or key.startswith("other_")
                 ) and value == "":
                     continue
-                if key not in ["id", "address"]:
+                if key not in ["id", "address", "major", "chapter"]:
                     form_dict[key.replace("_", " ").title()] = value
                 elif key == "address":
                     form_dict["Address"] = getattr(pledge_form.user, key).formatted
+                elif key == "major":
+                    form_dict["Major"] = pledge_form.user.major.major
+                elif key == "chapter":
+                    form_dict["Chapter"] = pledge_form.user.chapter.name
+                    form_dict["School"] = pledge_form.user.chapter.school
+
         self.context = {
             "form": form_dict,
             "host": settings.CURRENT_URL,
