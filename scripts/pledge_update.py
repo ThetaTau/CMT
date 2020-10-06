@@ -59,7 +59,7 @@ def run(*args):
                     ),
                 )
                 created = datetime.datetime.strptime(
-                    row["created"].split(".")[0], "%Y-%m-%d %H:%M:%S"
+                    row["created"].split(".")[0].split("+")[0], "%Y-%m-%d %H:%M:%S"
                 )  # 2020-04-26 20:49:47.210573+00:00
                 Pledge(
                     id=row["id"],
