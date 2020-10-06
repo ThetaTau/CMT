@@ -339,7 +339,7 @@ def load_chapter_data(clicks, **kwargs):
                 .annotate(count=Count("status"))
             )
             majors = dict(
-                User.objects.values_list("major")
+                User.objects.values_list("major__major")
                 .filter(
                     chapter=chapter,
                     status__start__lte=end,
