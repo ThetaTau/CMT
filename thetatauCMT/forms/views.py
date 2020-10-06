@@ -1498,6 +1498,7 @@ class PledgeFormView(CreateView):
         pledge = form["pledge"]
         user = form["user"]
         user.instance.badge_number = User.next_pledge_number()
+        user.chapter = user.cleaned_data["school_name"]
         user = user.save()
         pledge.instance.user = user
         self.object = pledge.save()
