@@ -35,7 +35,10 @@ def run(*args):
                 print(f"Processing row: {row}")
                 chapter = Chapter.objects.get(school=row["school_name"])
                 major = ChapterCurricula.objects.get(id=row["major"])
-                address = Address.objects.get(id=row["address"])
+                try:
+                    address = Address.objects.get(id=row["address"])
+                except Address.DoesNotExist:
+                    address = None
                 birth_date = datetime.datetime.strptime(row["birth_date"], "%Y-%m-%d")
                 user, created = User.objects.filter(
                     Q(email=row["email_personal"]) | Q(email_school=row["email_school"])
