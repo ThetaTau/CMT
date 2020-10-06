@@ -21,6 +21,7 @@ from crispy_forms.layout import (
 from dal import autocomplete, forward
 from djmoney.forms.fields import MoneyField
 from django import forms
+from django.conf import settings
 from django.utils import timezone
 from tempus_dominus.widgets import DatePicker
 from captcha.fields import ReCaptchaField
@@ -801,7 +802,9 @@ class PledgeForm(forms.ModelForm):
 
 
 class PledgeUser(forms.ModelForm):
-    captcha = ReCaptchaField(widget=ReCaptchaV3)
+    captcha = ReCaptchaField(label="", widget=ReCaptchaV3)
+    if getattr(settings, "DEBUG", False):
+        captcha.clean = lambda x: True
     school_name = SchoolModelChoiceField(
         queryset=Chapter.objects.all().order_by("school")
     )
