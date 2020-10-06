@@ -24,6 +24,7 @@ from django import forms
 from django.utils import timezone
 from tempus_dominus.widgets import DatePicker
 from captcha.fields import ReCaptchaField
+from captcha.widgets import ReCaptchaV3
 from chapters.forms import ChapterForm
 from chapters.models import Chapter, ChapterCurricula
 from core.models import CHAPTER_ROLES_CHOICES, NAT_OFFICERS_CHOICES
@@ -800,7 +801,7 @@ class PledgeForm(forms.ModelForm):
 
 
 class PledgeUser(forms.ModelForm):
-    captcha = ReCaptchaField()
+    captcha = ReCaptchaField(widget=ReCaptchaV3)
     school_name = SchoolModelChoiceField(
         queryset=Chapter.objects.all().order_by("school")
     )

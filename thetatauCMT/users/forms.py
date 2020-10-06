@@ -7,6 +7,7 @@ from crispy_forms.bootstrap import FormActions, InlineField, StrictButton
 from tempus_dominus.widgets import DatePicker
 from allauth.account.forms import LoginForm
 from captcha.fields import ReCaptchaField
+from captcha.widgets import ReCaptchaV3
 from core.models import BIENNIUM_YEARS
 from chapters.models import Chapter
 from .models import (
@@ -19,7 +20,7 @@ from .models import (
 
 
 class CaptchaLoginForm(LoginForm):
-    captcha = ReCaptchaField()
+    captcha = ReCaptchaField(widget=ReCaptchaV3)
 
 
 class UserListFormHelper(FormHelper):
@@ -131,7 +132,7 @@ class AdvisorListFormHelper(FormHelper):
 class UserLookupForm(forms.Form):
     university = forms.ChoiceField(choices=Chapter.schools())
     badge_number = forms.IntegerField()
-    captcha = ReCaptchaField()
+    captcha = ReCaptchaField(widget=ReCaptchaV3)
 
 
 class UserAlterForm(forms.ModelForm):
