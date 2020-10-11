@@ -16,8 +16,8 @@ class UserListFilter(django_filters.FilterSet):
         ],
         method="filter_current_status",
     )
-    major = django_filters.MultipleChoiceFilter(
-        choices=ChapterCurricula.objects.none(), method="filter_major",
+    major = django_filters.ModelChoiceFilter(
+        queryset=ChapterCurricula.objects.none(), method="filter_major",
     )
 
     class Meta:
@@ -30,6 +30,12 @@ class UserListFilter(django_filters.FilterSet):
         }
         order_by = ["name"]
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.filters["major"].queryset = ChapterCurricula.objects.filter(
+            chapter=self.request.user.current_chapter
+        )
+
     def filter_current_status(self, queryset, field_name, value):
         if value:
             queryset = queryset.filter(current_status__in=value)
@@ -37,7 +43,7 @@ class UserListFilter(django_filters.FilterSet):
 
     def filter_major(self, queryset, field_name, value):
         if value:
-            queryset = queryset.filter(major__in=value)
+            queryset = queryset.filter(major=value)
         return queryset
 
 
@@ -52,8 +58,8 @@ class UserRoleListFilter(django_filters.FilterSet):
     region = django_filters.ChoiceFilter(
         choices=Region.region_choices(), method="filter_region"
     )
-    major = django_filters.MultipleChoiceFilter(
-        choices=ChapterCurricula.objects.none(), method="filter_major",
+    major = django_filters.ModelChoiceFilter(
+        queryset=ChapterCurricula.objects.none(), method="filter_major",
     )
 
     class Meta:
@@ -66,6 +72,12 @@ class UserRoleListFilter(django_filters.FilterSet):
             "chapter": ["exact"],
         }
         order_by = ["name"]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.filters["major"].queryset = ChapterCurricula.objects.values(
+            "major"
+        ).distinct()
 
     def filter_current_status(self, queryset, field_name, value):
         if value:
@@ -88,7 +100,7 @@ class UserRoleListFilter(django_filters.FilterSet):
 
     def filter_major(self, queryset, field_name, value):
         if value:
-            queryset = queryset.filter(major__in=value)
+            queryset = queryset.filter(major__major=value.major)
         return queryset
 
 

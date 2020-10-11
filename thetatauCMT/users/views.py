@@ -348,7 +348,7 @@ class UserListView(LoginRequiredMixin, PagedFilteredTableView):
                 request_get.setlist(
                     "current_status", ["active", "pnm", "activepend", "alumnipend",]
                 )
-        self.filter = self.filter_class(request_get, queryset=qs)
+        self.filter = self.filter_class(request_get, queryset=qs, request=self.request)
         self.filter.form.helper = self.formhelper_class()
         qs = combine_annotations(self.filter.qs)
         return qs
@@ -490,7 +490,9 @@ class UserGPAFormSetView(OfficerRequiredMixin, LoginRequiredMixin, FormSetView):
         if cancel:
             request_get = QueryDict()
         self.filter = UserListFilter(
-            request_get, queryset=annotate_role_status(all_members, combine=False)
+            request_get,
+            queryset=annotate_role_status(all_members, combine=False),
+            request=self.request,
         )
         all_members = combine_annotations(self.filter.qs)
         initials = []
@@ -553,7 +555,9 @@ class UserServiceFormSetView(OfficerRequiredMixin, LoginRequiredMixin, FormSetVi
         if cancel:
             request_get = QueryDict()
         self.filter = UserListFilter(
-            request_get, queryset=annotate_role_status(all_members, combine=False)
+            request_get,
+            queryset=annotate_role_status(all_members, combine=False),
+            request=self.request,
         )
         all_members = combine_annotations(self.filter.qs)
         initials = []
