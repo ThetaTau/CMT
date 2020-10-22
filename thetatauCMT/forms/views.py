@@ -327,6 +327,7 @@ class InitiationView(OfficerRequiredMixin, LoginRequiredMixin, FormView):
         depledge_list = []
         initiations = []
         for form in formset:
+            form.instance.chapter = self.request.user.current_chapter
             form.save()
             update_list.append(form.instance.user)
             initiations.append(form.instance)

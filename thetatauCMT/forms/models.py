@@ -174,6 +174,14 @@ class Initiation(TimeStampedModel):
     user = models.OneToOneField(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="initiation"
     )
+    # The user chapter could change, so we record the initiation chapter
+    chapter = models.ForeignKey(
+        Chapter,
+        on_delete=models.CASCADE,
+        related_name="initiations",
+        blank=True,
+        null=True,
+    )
     date_graduation = models.DateField(default=timezone.now)
     date = models.DateField(
         "Initiation Date", default=timezone.now, validators=[no_future]

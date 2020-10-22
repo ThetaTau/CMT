@@ -128,8 +128,8 @@ admin.site.register(Audit, AuditAdmin)
 
 class InitiationAdmin(ImportExportActionModelAdmin):
     raw_id_fields = ["user"]
-    list_display = ("user", "date", "created", user_chapter)
-    list_filter = ["date", "created", "user__chapter"]
+    list_display = ("user", "date", "created", "chapter")
+    list_filter = ["date", "created", "chapter"]
     ordering = [
         "-created",
     ]
