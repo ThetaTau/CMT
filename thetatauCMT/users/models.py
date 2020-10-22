@@ -32,8 +32,10 @@ class CustomUserManager(UserManager):
 
             region = Region.objects.first()
             if region is None:
-                region = Region(name="Test Region").save()
-            chapter = Chapter(name="Test Chapter", region=region).save()
+                Region(name="Test Region").save()
+                region = Region.objects.first()
+            Chapter(name="Test Chapter", region=region).save()
+            chapter = Chapter.objects.first()
         extra_fields.setdefault("chapter", chapter)
         super().create_superuser(email=email, password=password, **extra_fields)
 
