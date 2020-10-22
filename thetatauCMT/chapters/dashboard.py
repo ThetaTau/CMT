@@ -401,10 +401,10 @@ def load_chapter_data(clicks, **kwargs):
     [Input("chapter-data", "data"), Input("years-slider", "value")],
 )
 def update_text(data, years, **kwargs):
-    if years is None:
-        raise PreventUpdate
     statuss = ["Actives", "Inactives", "Pledges", "Depledges", "Alumnis"]
     df = pd.DataFrame.from_dict(data)
+    if years is None or "year" not in df:
+        raise PreventUpdate
     outs = []
     for status in statuss:
         start, end = years
@@ -438,9 +438,9 @@ def update_text(data, years, **kwargs):
     [State("years-slider", "marks"),],
 )
 def members_graph(data, years, status, year_info, **kwargs):
-    if year_info is None:
-        raise PreventUpdate
     df = pd.DataFrame.from_dict(data)
+    if year_info is None or "Year Term" not in df:
+        raise PreventUpdate
     start_indx = df.index[df["Year Term"] == year_info[str(years[0])]["label"]]
     end_indx = df.index[df["Year Term"] == year_info[str(years[-1])]["label"]]
     fig = px.line(
@@ -489,9 +489,9 @@ def majors_graph(data, yearterm, **kwargs):
     [State("years-slider", "marks")],
 )
 def gpa_graph(data, years, year_info, **kwargs):
-    if year_info is None:
-        raise PreventUpdate
     df = pd.DataFrame.from_dict(data)
+    if year_info is None or "Year Term" not in df:
+        raise PreventUpdate
     start_indx = df.index[df["Year Term"] == year_info[str(years[0])]["label"]]
     end_indx = df.index[df["Year Term"] == year_info[str(years[-1])]["label"]]
     fig = px.line(
