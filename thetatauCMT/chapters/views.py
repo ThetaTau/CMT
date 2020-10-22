@@ -1,5 +1,6 @@
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.urls import reverse
+from django.shortcuts import get_object_or_404
 from django.forms.models import modelformset_factory
 from django.http.response import HttpResponseRedirect
 from django.views.generic import RedirectView
@@ -97,7 +98,7 @@ class ChapterDetailView(LoginRequiredMixin, MultiFormsView):
         return reverse("chapters:detail", kwargs={"slug": self.kwargs["slug"]})
 
     def get_chapter_kwargs(self,):
-        return {"instance": Chapter.objects.get(slug=self.kwargs["slug"])}
+        return {"instance": get_object_or_404(Chapter, slug=self.kwargs["slug"])}
 
     def chapter_form_valid(self, form):
         if form.has_changed():
