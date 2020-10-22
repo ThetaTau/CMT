@@ -150,11 +150,6 @@ LOGGING = {
     },
     "root": {"level": "INFO", "handlers": ["console"]},
     "loggers": {
-        "django.request": {
-            "handlers": ["mail_admins"],
-            "level": "ERROR",
-            "propagate": True,
-        },
         "django.security.DisallowedHost": {
             "level": "ERROR",
             "handlers": ["console", "mail_admins"],
@@ -165,3 +160,5 @@ LOGGING = {
 
 # Your stuff...
 # ------------------------------------------------------------------------------
+RECAPTCHA_PUBLIC_KEY = env("RECAPTCHA_PUBLIC_KEY")
+RECAPTCHA_PRIVATE_KEY = env("RECAPTCHA_PRIVATE_KEY")

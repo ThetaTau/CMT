@@ -20,7 +20,7 @@ from .models import (
 
 
 class CaptchaLoginForm(LoginForm):
-    captcha = ReCaptchaField(widget=ReCaptchaV3)
+    captcha = ReCaptchaField(label="", widget=ReCaptchaV3)
 
 
 class UserListFormHelper(FormHelper):
@@ -132,7 +132,7 @@ class AdvisorListFormHelper(FormHelper):
 class UserLookupForm(forms.Form):
     university = forms.ChoiceField(choices=Chapter.schools())
     badge_number = forms.IntegerField()
-    captcha = ReCaptchaField(widget=ReCaptchaV3)
+    captcha = ReCaptchaField(label="", widget=ReCaptchaV3)
 
 
 class UserAlterForm(forms.ModelForm):

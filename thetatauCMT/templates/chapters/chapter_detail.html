@@ -72,6 +72,7 @@
     {% endif %}
     </form>
       <br>
+    {% if request.user.current_chapter == object %}
     <h3>Chapter Advisors:</h3>
     <p>We occasionally need to speak with someone on your campus and it is helpful
           to know who your advisor or Fraternity & Student Life staffer is so that we may direct our questions to them.</p>
@@ -80,7 +81,7 @@
     <form class="facutly" method="POST">
       {% csrf_token %}
     <fieldset
-        {% if not request.is_officer or request.user.current_chapter != object %}
+        {% if not request.is_officer%}
           disabled
         {% endif %}
       >
@@ -130,6 +131,7 @@
       <button class="btn btn-primary" name='action' value='faculty' type="submit">Update Advisors</button>
     {% endif %}
     </form>
+    {% endif %}
       <br>
     <h3>Approved Majors:</h3>
       <p>If your chapter would like to add majors,

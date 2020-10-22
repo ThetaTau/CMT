@@ -204,7 +204,7 @@ class InitDeplSelectView(OfficerRequiredMixin, LoginRequiredMixin, FormSetView):
                 status = active_task.flow_task.task_description
             else:
                 status = "Pledge Process Complete"
-            pledges = ", ".join(process.pledges.values_list("user"))
+            pledges = ", ".join(process.pledges.values_list("user__name", flat=True))
             last_pledge = process.pledges.last()
             pledge_created = None
             if last_pledge:
@@ -1499,6 +1499,7 @@ class PledgeFormView(CreateView):
         pledge = form["pledge"]
         user = form["user"]
         user.instance.badge_number = User.next_pledge_number()
+        user.instance.chapter = user.cleaned_data["school_name"]
         user = user.save()
         pledge.instance.user = user
         self.object = pledge.save()
