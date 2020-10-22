@@ -525,7 +525,7 @@ class PledgeProcessFlow(Flow):
 
     def send_invoice_payment_email(self, activation):
         member_list = activation.process.pledges.values_list(
-            "user.email_school", flat=True
+            "user__email_school", flat=True
         )
         member_list = ", ".join(member_list)
         EmailProcessUpdate(
