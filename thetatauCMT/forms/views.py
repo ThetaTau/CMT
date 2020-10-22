@@ -5,6 +5,7 @@ import zipfile
 from io import BytesIO
 from copy import deepcopy
 from pathlib import Path
+from django.db import IntegrityError, transaction
 from django.db.models import Q
 from django.forms import models as model_forms
 from django.forms.models import modelformset_factory
@@ -1500,7 +1501,17 @@ class PledgeFormView(CreateView):
         user = form["user"]
         user.instance.badge_number = User.next_pledge_number()
         user.instance.chapter = user.cleaned_data["school_name"]
-        user = user.save()
+        try:
+            with transaction.atomic():
+                user = user.save()
+        except IntegrityError:
+            user = User.objects.filter(email=user.instance.email).first()
+            messages.add_message(
+                self.request,
+                messages.ERROR,
+                f"Pledge form already submitted for {user}!",
+            )
+            return HttpResponseRedirect(self.get_success_url())
         pledge.instance.user = user
         self.object = pledge.save()
         UserStatusChange(
@@ -1526,15 +1537,15 @@ class PledgeFormView(CreateView):
             )
             active_process = activation.process
         active_process.pledges.add(self.object)
-        return HttpResponseRedirect(self.get_success_url())
-
-    def get_success_url(self):
         messages.add_message(
             self.request,
             messages.INFO,
             f"You successfully submitted the Prospective New Member / Pledge Form! "
             f"A confirmation email was sent to your school and personal email.",
         )
+        return HttpResponseRedirect(self.get_success_url())
+
+    def get_success_url(self):
         return reverse("forms:pledgeform")
 
 

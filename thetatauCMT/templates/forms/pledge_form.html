@@ -20,6 +20,9 @@
 <script type="text/javascript">
   $("#submit-id-submit").click(function (event) {
     document.getElementById("submit-id-submit").value = "Submitting...";
+    setTimeout(function () {
+      document.getElementById("submit-id-submit").setAttribute("disabled", true);
+    }, 0);
   })
 $("#id_user-school_name").change(function () {
       var url = "{% url 'forms:ajax_load_majors' %}";  // get the url of the `load_majors` view
