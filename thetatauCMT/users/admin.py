@@ -156,7 +156,16 @@ class StatusChangeInline(admin.TabularInline):
 
 class InitiationInline(admin.TabularInline):
     model = Initiation
-    fields = ["date", "created", "roll", "date_graduation", "chapter"]
+    fields = [
+        "date",
+        "created",
+        "roll",
+        "date_graduation",
+        "chapter",
+        "gpa",
+        "test_a",
+        "test_b",
+    ]
     show_change_link = True
     ordering = ["date"]
     extra = 0

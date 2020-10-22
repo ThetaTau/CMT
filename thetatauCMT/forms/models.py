@@ -224,6 +224,7 @@ class Initiation(TimeStampedModel):
                 start=self.date - datetime.timedelta(days=120),
                 end=self.date,
             ).save()
+            pnm = self.user.status.get(status="pnm")
         except UserStatusChange.MultipleObjectsReturned:
             self.user.status.filter(status="pnm").order_by("created").last().delete()
             pnm = self.user.status.filter(status="pnm").last()
