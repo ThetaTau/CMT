@@ -1204,7 +1204,7 @@ class PledgeProcess(Process):
         writer.writeheader()
         for pledge in self.pledges.all():
             city, state, zipcode, country = "", "", "", ""
-            if pledge.user.address.locality:
+            if pledge.user.address and pledge.user.address.locality:
                 city = pledge.user.address.locality.name
                 state = pledge.user.address.locality.state.code
                 zipcode = pledge.user.address.locality.postal_code
