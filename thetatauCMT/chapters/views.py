@@ -167,7 +167,7 @@ class ChapterDetailView(LoginRequiredMixin, MultiFormsView):
         table.exclude = ("badge_number", "graduation_year")
         RequestConfig(self.request, paginate={"per_page": 100}).configure(table)
         context["table"] = table
-        majors = chapter.curricula.all().order_by("major")
+        majors = chapter.curricula.filter(approved=True).order_by("major")
         major_table = ChapterCurriculaTable(data=majors)
         context["majors"] = major_table
         email_list = ", ".join([x.email for x in chapter_officers])

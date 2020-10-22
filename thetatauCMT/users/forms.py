@@ -38,7 +38,7 @@ class UserListFormHelper(FormHelper):
             '<i class="fas fa-search"></i> Filter Members',
             Row(
                 InlineField("name__icontains"),
-                InlineField("major__icontains"),
+                InlineField("major"),
                 InlineField("graduation_year__icontains"),
                 FormActions(
                     StrictButton(
@@ -77,7 +77,7 @@ class UserRoleListFormHelper(FormHelper):
             Row(
                 Column(InlineField("name__icontains")),
                 Column(InlineField("current_status")),
-                Column(InlineField("major__icontains")),
+                Column(InlineField("major")),
                 Column(InlineField("graduation_year__icontains")),
                 Column(InlineField("region")),
                 Column(InlineField("chapter")),

@@ -76,7 +76,7 @@ class RegionOfficerView(NatOfficerRequiredMixin, LoginRequiredMixin, DetailView)
                 ],
             )
             request_get.setlist("region", [self.object])
-        self.filter = self.filter_class(request_get)
+        self.filter = self.filter_class(request_get, request=self.request)
         chapters = Chapter.objects.all()
         if self.filter.is_bound and self.filter.is_valid():
             region_slug = self.filter.form.cleaned_data["region"]
@@ -89,7 +89,9 @@ class RegionOfficerView(NatOfficerRequiredMixin, LoginRequiredMixin, DetailView)
         for chapter in chapters:
             chapter_officers, _ = chapter.get_current_officers(combine=False)
             all_chapter_officers = chapter_officers | all_chapter_officers
-        self.filter = self.filter_class(request_get, queryset=all_chapter_officers)
+        self.filter = self.filter_class(
+            request_get, queryset=all_chapter_officers, request=self.request
+        )
         self.filter.form.helper = self.formhelper_class()
         email_list = ", ".join(
             [x[0] for x in self.filter.qs.values_list("email").distinct()]
