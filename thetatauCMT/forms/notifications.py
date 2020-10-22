@@ -5,6 +5,7 @@ from django.core.files.base import ContentFile
 from django.forms.models import model_to_dict
 from core.models import current_term, current_year
 from forms.tables import SignTable
+from users.models import User
 
 
 @registry.register_decorator()
@@ -344,15 +345,22 @@ class EmailProcessUpdate(EmailNotification):
         if email_officers:
             officers = chapter.get_current_officers_council_specific()
             if user is None:
-                # TODO: This first officer could be None
-                user = officers.pop(0)
+                for ind, officer in enumerate(officers):
+                    if officer:
+                        user = officers.pop(ind)
+                        break
+                else:
+                    # No officers
+                    process_title = "NO OFFICERS"
+                    user = User.objects.get(username="Jim.Gaffney@thetatau.org")
             emails = set([officer.email for officer in officers if officer])
             if user and user.email in emails:
                 emails.remove(user.email)
         if extra_emails:
             emails = emails | set(extra_emails)
-        # TODO: If the user is still None at this point. Something is wrong
-        #       eg. no officers in the chapter. Send to CMT? "cmt@thetatau.org",
+        if user is None:
+            process_title = "NO OFFICERS"
+            user = User.objects.get(username="Jim.Gaffney@thetatau.org")
         self.to_emails = {user.email}  # set list of emails to send to
         self.cc = list(set({"central.office@thetatau.org"} | emails))
         self.reply_to = [
