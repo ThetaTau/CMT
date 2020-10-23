@@ -946,6 +946,7 @@ class InitiationProcess(Process):
         """
         badge_header = [
             "Chapter Name",
+            "Chapter Address",
             "Chapter Description",
             "Roll Number",
             "Education Class of",
@@ -957,6 +958,7 @@ class InitiationProcess(Process):
             "Middle Name",
             "Last Name",
             "Chapter Name",
+            "Chapter Address",
             "Education Class of",
             "Initiation Date",
         ]
@@ -994,6 +996,7 @@ class InitiationProcess(Process):
                 badge = initiation.badge.code
             row_badge = {
                 "Chapter Name": chapter,
+                "Chapter Address": self.chapter.address,
                 "Chapter Description": chapter_abr,
                 "Roll Number": initiation.roll,
                 "Education Class of": initiation.date_graduation.year,
@@ -1006,6 +1009,7 @@ class InitiationProcess(Process):
                 "Middle Name": "",
                 "Last Name": initiation.user.last_name,
                 "Chapter Name": chapter,
+                "Chapter Address": self.chapter.address,
                 "Education Class of": initiation.date_graduation.year,
                 "Initiation Date": initiation.date.strftime("%B %d, %Y"),
             }
