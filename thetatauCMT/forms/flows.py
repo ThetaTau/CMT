@@ -1021,19 +1021,49 @@ class ResignationFlow(Flow):
         .Next(this.join_flow)
     )
 
-    join_flow = flow.Join().Next(this.email_complete)
+    join_flow = flow.Join().Next(this.exec_approve)
+
+    exec_approve = (
+        flow.View(
+            flow_views.UpdateProcessView,
+            fields=["approved_exec", "exec_comments",],
+            task_title=_("Executive Director Review"),
+            task_description=_("Resignation Executive Director Review"),
+            task_result_summary=_(
+                "Messsage was {{ process.approved_exec|yesno:'Approved,Rejected' }}"
+            ),
+        )
+        .Assign(lambda act: User.objects.get(username="Jim.Gaffney@thetatau.org"))
+        .Next(this.check_approve)
+    )
+
+    check_approve = (
+        flow.If(
+            cond=lambda act: act.process.approved_exec,
+            task_title=_("Resignation Approvement check"),
+        )
+        .Then(this.resign_status)
+        .Else(this.email_complete)
+    )
+
+    resign_status = flow.Handler(
+        this.set_resign_status, task_title=_("Set status resigned"),
+    ).Next(this.email_complete)
 
     email_complete = flow.Handler(
         this.email_complete_func, task_title=_("Email Complete"),
     ).Next(this.end)
 
-    end = flow.End(task_title=_("Complete"))
+    end = flow.End(
+        task_title=_("Complete"),
+        task_result_summary=_(
+            "Request was {{ process.approved_exec|yesno:'Approved,Rejected' }}"
+        ),
+    )
 
     def email_signers_func(self, activation):
         """
         Send emails to the signers
-        :param activation:
-        :return:
         """
         host = settings.CURRENT_URL
         for user_role in ["officer1", "officer2"]:
@@ -1056,17 +1086,36 @@ class ResignationFlow(Flow):
 
     def email_complete_func(self, activation):
         """
-        Send emails to the signers
-        :param activation:
-        :return:
+        Send complete
         """
         EmailProcessUpdate(
             activation,
-            complete_step="Officer Acknowledge and Sign",
+            complete_step="Executive Director Review",
             next_step="Central Office Process",
-            state="Submitted",
+            state="Reviewed",
             message="",
-            fields=[],
+            fields=["approved_exec", "exec_comments",],
             email_officers=True,
             attachments=["letter"],
         ).send()
+
+    def set_resign_status(self, activation):
+        user = activation.process.user
+        resigned = user.status.order_by("-end").filter(status="resigned").first()
+        created = activation.task.created
+        if not resigned:
+            print(f"There was no resigned status for user {user}")
+            UserStatusChange(
+                user=user,
+                status="resigned",
+                created=created,
+                start=created,
+                end=forever(),
+            ).save()
+        else:
+            resigned.end = forever()
+            resigned.save()
+        statuss = user.status.filter(end__gte=created).exclude(status="resigned")
+        for status in statuss:
+            status.end = created - datetime.timedelta(days=1)
+            status.save()

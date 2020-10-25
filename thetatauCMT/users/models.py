@@ -299,6 +299,7 @@ class UserStatusChange(StartEndModel, TimeStampedModel):
         ("away", "away"),
         ("depledge", "depledge"),
         ("advisor", "advisor"),
+        ("resigned", "resigned"),
     ]
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="status"

@@ -1667,3 +1667,5 @@ class ResignationProcess(Process):
     approved_o2 = models.BooleanField(
         "Officer Approved", choices=BOOL_CHOICES, default=False
     )
+    approved_exec = models.BooleanField("Executive Director Approved", default=False)
+    exec_comments = models.TextField(_("If rejecting, please explain why."), blank=True)
