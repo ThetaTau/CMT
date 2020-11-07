@@ -177,6 +177,9 @@ class User(AbstractUser):
             return self._current_status
         return self.status.filter(start__lte=TODAY_END, end__gte=TODAY_END).first()
 
+    def get_current_status_all(self):
+        return self.status.filter(start__lte=TODAY_END, end__gte=TODAY_END).all()
+
     @property
     def role(self):
         return self.get_current_role()

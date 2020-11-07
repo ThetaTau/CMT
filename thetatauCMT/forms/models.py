@@ -7,13 +7,12 @@ from email.mime.base import MIMEBase
 from django.db import models, transaction
 from django.db.utils import IntegrityError
 from django.contrib.auth.models import Group
-from django.core.validators import MaxValueValidator, RegexValidator
+from django.core.validators import MaxValueValidator
 from django.conf import settings
 from django.utils import timezone
 from djmoney.models.fields import MoneyField
-from core.models import TimeStampedModel, YearTermModel, validate_year, no_future
+from core.models import TimeStampedModel, YearTermModel, no_future
 from django.utils.translation import gettext_lazy as _
-from address.models import AddressField
 from multiselectfield import MultiSelectField
 from viewflow.models import Process
 from easy_pdf.rendering import render_to_pdf
@@ -399,66 +398,38 @@ class StatusChange(TimeStampedModel):
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
         # if graduate, withdraw, transfer
-        # Need to adjust old status active, save new status alumni
+        #   save new status alumni
         # if coop, military
-        # Need to adjust old status active, save new status away
-        active = self.user.status.order_by("-end").filter(status="active").first()
-        if not active:
-            print(f"There was no active status for user {self.user}")
+        #   save new status away
+        current_status = self.user.get_current_status_all()
+        for status in current_status:
+            status.end = self.date_start - datetime.timedelta(days=1)
+            status.save()
+        if self.reason in ["graduate", "withdraw", "transfer"]:
             UserStatusChange(
                 user=self.user,
-                status="active",
                 created=self.created,
-                start=self.date_start - datetime.timedelta(days=365),
-                end=self.date_start,
+                status="alumni",
+                start=self.date_start,
+                end=forever(),
             ).save()
         else:
-            active.end = self.date_start
-            active.created = self.created
-            active.save()
-        if self.reason in ["graduate", "withdraw", "transfer"]:
-            alumnis = self.user.status.filter(status="alumni")
-            for alumni in alumnis:
-                alumni.delete()
-            alumnipends = self.user.status.filter(status="alumnipend")
-            if alumnipends:
-                alumnipend = alumnipends[0]
-                alumnipend.start = self.date_start
-                alumnipend.end = forever()
-                alumnipend.created = self.created
-                alumnipend.save()
-                for alumnipend in alumnipends[1:]:
-                    alumnipend.delete()
-            else:
-                UserStatusChange(
-                    user=self.user,
-                    created=self.created,
-                    status="alumnipend",
-                    start=self.date_start,
-                    end=forever(),
-                ).save()
-        else:
             # military, coop, covid
-            alumnis = self.user.status.filter(status="alumni")
-            for alumni in alumnis:
-                alumni.delete()
-            aways = self.user.status.filter(status="away")
-            if aways:
-                away = aways[0]
-                away.start = self.date_start
-                away.end = self.date_end
-                away.created = self.created
-                away.save()
-                for away in aways[1:]:
-                    away.delete()
-            else:
-                UserStatusChange(
-                    user=self.user,
-                    created=self.created,
-                    status="away",
-                    start=self.date_start,
-                    end=self.date_end,
-                ).save()
+            UserStatusChange(
+                user=self.user,
+                created=self.created,
+                status="away",
+                start=self.date_start,
+                end=self.date_end,
+            ).save()
+            # User will return active as soon as away ends
+            UserStatusChange(
+                user=self.user,
+                created=self.created,
+                status="active",
+                start=self.date_end + datetime.timedelta(days=1),
+                end=forever(),
+            ).save()
 
 
 def get_chapter_report_upload_path(instance, filename):
