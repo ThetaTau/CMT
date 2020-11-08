@@ -2451,7 +2451,13 @@ class CollectionReferralFormView(
     }
     grouped_forms = {"collection_referral": ["user", "collection"]}
 
-    def get_success_url(self, form):
+    def get_success_url(self):
+        return reverse("forms:collection")
+
+    def collection_form_valid(self, form, *args, **kwargs):
+        if form.has_changed():
+            form.instance.created_by = self.request.user
+            form.save()
         user = User.objects.get(pk=form.instance.user.pk)
         extra_emails = []
         if user.email != form.instance.user.email:
@@ -2484,13 +2490,7 @@ class CollectionReferralFormView(
         messages.add_message(
             self.request, messages.INFO, "Successfully submitted collection referral",
         )
-        return reverse("forms:collection")
-
-    def collection_form_valid(self, form, *args, **kwargs):
-        if form.has_changed():
-            form.instance.created_by = self.request.user
-            form.save()
-        return HttpResponseRedirect(self.get_success_url(form=form))
+        return HttpResponseRedirect(self.get_success_url())
 
     def user_form_valid(self, form, *args, **kwargs):
         if form.has_changed():
