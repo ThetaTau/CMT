@@ -9,10 +9,8 @@ from django.db import IntegrityError, transaction
 from django.db.models import Q
 from django.forms import models as model_forms
 from django.forms.models import modelformset_factory
-from django.utils.decorators import method_decorator
 from django.utils.safestring import mark_safe
 from django.http.request import QueryDict
-from django.views.decorators.debug import sensitive_post_parameters
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.files.base import ContentFile
 from django.contrib import messages
@@ -77,6 +75,7 @@ from .forms import (
     DisciplinaryForm2,
     CollectionReferralForm,
     ResignationForm,
+    ReturnStudentForm,
 )
 from tasks.models import TaskChapter, Task
 from scores.models import ScoreType
@@ -111,6 +110,7 @@ from .tables import (
     CollectionReferralTable,
     ResignationStatusTable,
     ResignationListTable,
+    ReturnStudentStatusTable,
 )
 from .models import (
     Guard,
@@ -129,6 +129,7 @@ from .models import (
     DisciplinaryProcess,
     CollectionReferral,
     ResignationProcess,
+    ReturnStudent,
 )
 from .filters import AuditListFilter, PledgeProgramListFilter, CompleteListFilter
 from .notifications import (
@@ -2666,3 +2667,48 @@ class ResignationListView(
         table = SignTable(data=data)
         context["table"] = table
         return context
+
+
+class ReturnStudentCreateView(
+    OfficerRequiredMixin, LoginRequiredMixin, CreateProcessView
+):
+    template_name = "forms/returnstudent_form.html"
+    model = ReturnStudent
+    form_class = ReturnStudentForm
+
+    def activation_done(self, *args, **kwargs):
+        """Finish task activation."""
+        self.activation.done()
+        self.success(
+            "Return Student form submitted successfully to Executive Director for review"
+        )
+
+    def get_context_data(self, *args, **kwargs):
+        context = super().get_context_data(**kwargs)
+        data = []
+        processes = ReturnStudent.objects.filter(
+            user__chapter=self.request.user.current_chapter
+        )
+        for process in processes:
+            status = "N/A"
+            if process.finished is None:
+                active_task = process.active_tasks().first()
+                if active_task:
+                    status = active_task.flow_task.task_title
+                approved = "Pending"
+            else:
+                status = "Complete"
+                approved = process.approved_exec
+            data.append(
+                {
+                    "status": status,
+                    "user": process.user,
+                    "created": process.created,
+                    "approved": approved,
+                }
+            )
+        context["table"] = ReturnStudentStatusTable(data=data)
+        return context
+
+
+#

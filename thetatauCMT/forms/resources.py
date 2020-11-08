@@ -112,3 +112,17 @@ class CollectionReferralResource(resources.ModelResource):
             "created_by__name",
             "balance_due",
         )
+
+
+class ReturnStudentResource(resources.ModelResource):
+    chapter = Field("user__chapter__name")
+    school = Field("user__chapter__school")
+
+    class Meta:
+        model = PrematureAlumnus
+        fields = (
+            "user__name",
+            "created",
+            "approved_exec",
+            "exec_comments",
+        )

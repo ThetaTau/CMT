@@ -10,6 +10,8 @@ from address.models import AddressField
 from core.models import (
     StartEndModel,
     YearTermModel,
+    forever,
+    TODAY,
     TODAY_END,
     CHAPTER_OFFICER,
     ALL_ROLES_CHOICES,
@@ -179,6 +181,19 @@ class User(AbstractUser):
 
     def get_current_status_all(self):
         return self.status.filter(start__lte=TODAY_END, end__gte=TODAY_END).all()
+
+    def set_current_status(self, status, created=None, start=None):
+        if start is None:
+            start = TODAY
+        if created is None:
+            created = TODAY
+        current_status = self.get_current_status_all()
+        for old_status in current_status:
+            old_status.end = start - datetime.timedelta(days=1)
+            old_status.save()
+        UserStatusChange(
+            user=self, created=created, status=status, start=start, end=forever(),
+        ).save()
 
     @property
     def role(self):

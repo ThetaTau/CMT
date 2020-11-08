@@ -425,11 +425,14 @@ class UserAutocomplete(autocomplete.Select2QuerySetView):
             return User.objects.none()
         chapter = self.forwarded.get("chapter", "true")
         actives = self.forwarded.get("actives", "false")
+        alumni = self.forwarded.get("alumni", "false")
         qs = User.objects.all()
         if chapter == "true":
             chapter = self.request.user.current_chapter
             if actives == "true":
                 qs = chapter.active_actives()
+            elif alumni == "true":
+                qs = chapter.alumni()
             else:
                 qs = qs.filter(chapter=chapter)
         if self.q:

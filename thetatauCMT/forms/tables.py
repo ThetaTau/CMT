@@ -207,6 +207,18 @@ class PrematureAlumnusStatusTable(tables.Table):
         }
 
 
+class ReturnStudentStatusTable(tables.Table):
+    user = tables.Column()
+    status = tables.Column()
+    approved = tables.Column()
+    created = tables.DateColumn()
+
+    class Meta:
+        attrs = {
+            "class": "table table-striped table-bordered",
+        }
+
+
 class DisciplinaryStatusTable(tables.Table):
     user = tables.Column(verbose_name="Name of Accused")
     status = tables.Column()

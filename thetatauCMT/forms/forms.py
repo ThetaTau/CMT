@@ -46,6 +46,7 @@ from .models import (
     DisciplinaryProcess,
     CollectionReferral,
     ResignationProcess,
+    ReturnStudent,
 )
 
 
@@ -1216,4 +1217,37 @@ class ResignationForm(forms.ModelForm):
             "obligation",
             "fee",
             "signature",
+        ]
+
+
+class ReturnStudentForm(forms.ModelForm):
+    CHOICES = [("", ""), (True, "True"), (False, "False")]
+    financial = forms.ChoiceField(
+        label=ReturnStudent.verbose_financial, choices=CHOICES, initial=""
+    )
+    debt = forms.ChoiceField(
+        label=ReturnStudent.verbose_debt, choices=CHOICES, initial=""
+    )
+    vote = forms.ChoiceField(
+        label=PrematureAlumnus.verbose_vote, choices=CHOICES, initial=""
+    )
+    user = forms.ModelChoiceField(
+        queryset=User.objects.all(),
+        widget=autocomplete.ModelSelect2(
+            url="users:autocomplete",
+            forward=(
+                forward.Const("true", "chapter"),
+                forward.Const("true", "alumni"),
+            ),
+        ),
+    )
+
+    class Meta:
+        model = ReturnStudent
+        fields = [
+            "user",
+            "reason",
+            "financial",
+            "debt",
+            "vote",
         ]

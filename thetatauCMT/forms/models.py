@@ -1644,3 +1644,31 @@ class ResignationProcess(Process):
     )
     approved_exec = models.BooleanField("Executive Director Approved", default=False)
     exec_comments = models.TextField(_("If rejecting, please explain why."), blank=True)
+
+
+class ReturnStudent(Process):
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="return_form",
+        null=True,
+        blank=True,
+    )
+    verbose_reason = _("""Reasons member requests transfer to student member status.""")
+    reason = models.TextField(verbose_reason)
+    verbose_financial = _(
+        """I understand that semiannual dues obligation for the current semester
+        must be met if student member status
+        is resumed on or before the semiannual dues deadline (November 1/March 15)."""
+    )
+    financial = models.BooleanField(verbose_financial, default=False)
+    verbose_debt = _(
+        """This member has paid previous fraternity debt to the chapter."""
+    )
+    debt = models.BooleanField(verbose_debt, default=False)
+    approved_exec = models.BooleanField("Executive Director Approved", default=False)
+    exec_comments = models.TextField(_("If rejecting, please explain why."), blank=True)
+    verbose_vote = _(
+        """The status change for the member was approved by a four-fifths favorable vote of the chapter."""
+    )
+    vote = models.BooleanField(verbose_vote, default=False)

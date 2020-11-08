@@ -301,6 +301,14 @@ class Chapter(models.Model):
             status__end__gte=TODAY_END,
         )
 
+    def alumni(self):
+        # Do not annotate, need the queryset not a list
+        return self.members.filter(
+            status__status__in=["alumni",],
+            status__start__lte=TODAY_END,
+            status__end__gte=TODAY_END,
+        )
+
     def actives(self):
         # Do not annotate, need the queryset not a list
         return self.members.filter(

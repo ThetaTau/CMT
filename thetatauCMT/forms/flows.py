@@ -18,6 +18,7 @@ from .models import (
     OSM,
     DisciplinaryProcess,
     ResignationProcess,
+    ReturnStudent,
 )
 from .views import (
     PrematureAlumnusCreateView,
@@ -31,6 +32,7 @@ from .views import (
     get_signature,
     ResignationCreateView,
     ResignationSignView,
+    ReturnStudentCreateView,
 )
 from .forms import DisciplinaryForm1, DisciplinaryForm2
 from .notifications import (
@@ -57,7 +59,7 @@ class PrematureAlumnusFlow(Flow):
     )
 
     pending_status = flow.Handler(
-        this.set_status_email, task_title=_("Set pending status, send email."),
+        this.set_status_email, task_title=_("Set pending alumni status, send email."),
     ).Next(this.exec_approve)
 
     exec_approve = (
@@ -1119,3 +1121,109 @@ class ResignationFlow(Flow):
         for status in statuss:
             status.end = created - datetime.timedelta(days=1)
             status.save()
+
+
+@frontend.register
+class ReturnStudentFlow(Flow):
+    process_class = ReturnStudent
+    process_title = _("Return Student Process")
+    process_description = _("This process is for return student processing.")
+
+    start = (
+        flow.Start(ReturnStudentCreateView, task_title=_("Request Return Student"))
+        .Permission(auto_create=True)
+        .Next(this.pending_status)
+    )
+
+    pending_status = flow.Handler(
+        this.set_status_email, task_title=_("Set pending active status, send email."),
+    ).Next(this.exec_approve)
+
+    exec_approve = (
+        flow.View(
+            flow_views.UpdateProcessView,
+            fields=["approved_exec", "exec_comments",],
+            task_title=_("Executive Director Review"),
+            task_description=_("Return Student Executive Director Review"),
+            task_result_summary=_(
+                "Messsage was {{ process.approved_exec|yesno:'Approved,Rejected' }}"
+            ),
+        )
+        .Assign(lambda act: User.objects.get(username="Jim.Gaffney@thetatau.org"))
+        .Next(this.check_approve)
+    )
+
+    check_approve = (
+        flow.If(
+            cond=lambda act: act.process.approved_exec,
+            task_title=_("Return Student Approvement check"),
+        )
+        .Then(this.active_status)
+        .Else(this.pending_undo)
+    )
+
+    active_status = flow.Handler(
+        this.set_active_status, task_title=_("Set status active"),
+    ).Next(this.send)
+
+    pending_undo = flow.Handler(
+        this.pending_undo_func, task_title=_("Set status alumni"),
+    ).Next(this.send)
+
+    send = flow.Handler(
+        this.send_approval_complete, task_title=_("Send request complete message"),
+    ).Next(this.complete)
+
+    complete = flow.End(
+        task_title=_("Complete"),
+        task_result_summary=_(
+            "Request was {{ process.approved_exec|yesno:'Approved,Rejected' }}"
+        ),
+    )
+
+    def set_status_email(self, activation):
+        """
+        Need to set the pending status
+        Email the user the form was received
+        :param activation:
+        :return:
+        """
+        user = activation.process.user
+        created = activation.process.created
+        user.set_current_status("activepend", start=created, created=created)
+        EmailProcessUpdate(
+            activation,
+            "Return Student Request",
+            "Executive Director Review",
+            "Submitted",
+            "Your chapter has submitted a return student form on your behalf."
+            + " Once the Central Office processes "
+            + "the form, you will receive an email confirming your change in status.",
+            ["reason", "financial", "debt", "vote",],
+            extra_emails=[activation.process.created_by.email],
+        ).send()
+
+    def pending_undo_func(self, activation):
+        user = activation.process.user
+        created = activation.task.created
+        user.set_current_status("alumni", start=created, created=created)
+
+    def set_active_status(self, activation):
+        user = activation.process.user
+        created = activation.task.created
+        user.set_current_status("active", start=created, created=created)
+
+    def send_approval_complete(self, activation):
+        if activation.process.approved_exec:
+            state = "Approved"
+        else:
+            state = "Rejected"
+        EmailProcessUpdate(
+            activation,
+            "Executive Director Review",
+            "Complete",
+            state,
+            "",
+            ["approved_exec", "exec_comments",],
+            extra_emails=[activation.process.created_by.email],
+        ).send()

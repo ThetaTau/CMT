@@ -20,6 +20,7 @@ from .models import (
     PrematureAlumnus,
     CollectionReferral,
     ResignationProcess,
+    ReturnStudent,
 )
 from .resources import (
     InitiationResource,
@@ -29,6 +30,7 @@ from .resources import (
     PledgeProgramResource,
     PrematureAlumnusResource,
     CollectionReferralResource,
+    ReturnStudentResource,
 )
 from core.admin import user_chapter
 
@@ -430,3 +432,35 @@ class CollectionReferralAdmin(ImportExportActionModelAdmin):
 
 
 admin.site.register(CollectionReferral, CollectionReferralAdmin)
+
+
+class ReturnStudentAdmin(ImportExportActionModelAdmin):
+    readonly_fields = ("user",)
+    list_display = (
+        "user",
+        "created",
+        "approved_exec",
+    )
+    list_filter = [
+        "created",
+        "approved_exec",
+    ]
+    ordering = [
+        "-created",
+    ]
+    search_fields = [
+        "user__username",
+        "user__name",
+    ]
+    exclude = [
+        "flow_class",
+        "status",
+        "finished",
+        "artifact_content_type",
+        "artifact_object_id",
+        "data",
+    ]
+    resource_class = ReturnStudentResource
+
+
+admin.site.register(ReturnStudent, ReturnStudentAdmin)
