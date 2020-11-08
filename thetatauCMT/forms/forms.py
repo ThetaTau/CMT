@@ -26,6 +26,7 @@ from django.utils import timezone
 from tempus_dominus.widgets import DatePicker
 from captcha.fields import ReCaptchaField
 from captcha.widgets import ReCaptchaV3
+from upload_validator import FileTypeValidator
 from chapters.forms import ChapterForm
 from chapters.models import Chapter, ChapterCurricula
 from core.models import CHAPTER_ROLES_CHOICES, NAT_OFFICERS_CHOICES
@@ -399,7 +400,11 @@ class RoleChangeSelectFormHelper(FormHelper):
 
 
 class ChapterReportForm(forms.ModelForm):
-    report = forms.FileField(required=False)
+    report = forms.FileField(
+        required=False,
+        help_text="Only PDF format accepted",
+        validators=[FileTypeValidator(allowed_types=["application/pdf"])],
+    )
 
     class Meta:
         model = ChapterReport
@@ -978,6 +983,10 @@ class PrematureAlumnusForm(forms.ModelForm):
             ),
         ),
     )
+    form = forms.FileField(
+        help_text="Only PDF format accepted",
+        validators=[FileTypeValidator(allowed_types=["application/pdf"])],
+    )
 
     class Meta:
         model = PrematureAlumnus
@@ -1088,6 +1097,10 @@ class DisciplinaryForm1(forms.ModelForm):
         widget=forms.CheckboxSelectMultiple,
         choices=[x.value for x in DisciplinaryProcess.METHODS],
     )
+    charging_letter = forms.FileField(
+        help_text="Only PDF format accepted",
+        validators=[FileTypeValidator(allowed_types=["application/pdf"])],
+    )
 
     class Meta:
         model = DisciplinaryProcess
@@ -1140,6 +1153,14 @@ class DisciplinaryForm2(forms.ModelForm):
         widget=DatePicker(
             options={"format": "M/DD/YYYY"}, attrs={"autocomplete": "off"},
         ),
+    )
+    minutes = forms.FileField(
+        help_text="Only PDF format accepted",
+        validators=[FileTypeValidator(allowed_types=["application/pdf"])],
+    )
+    results_letter = forms.FileField(
+        help_text="Only PDF format accepted",
+        validators=[FileTypeValidator(allowed_types=["application/pdf"])],
     )
 
     class Meta:
@@ -1195,6 +1216,10 @@ class CollectionReferralForm(forms.ModelForm):
     balance_due = MoneyField(
         currency_widget=forms.HiddenInput(), default_currency="USD"
     )
+    ledger_sheet = forms.FileField(
+        help_text="Only PDF format accepted",
+        validators=[FileTypeValidator(allowed_types=["application/pdf"])],
+    )
 
     class Meta:
         model = CollectionReferral
@@ -1206,6 +1231,11 @@ class CollectionReferralForm(forms.ModelForm):
 
 
 class ResignationForm(forms.ModelForm):
+    letter = forms.FileField(
+        help_text="Only PDF format accepted",
+        validators=[FileTypeValidator(allowed_types=["application/pdf"])],
+    )
+
     class Meta:
         model = ResignationProcess
         fields = [
@@ -1229,7 +1259,7 @@ class ReturnStudentForm(forms.ModelForm):
         label=ReturnStudent.verbose_debt, choices=CHOICES, initial=""
     )
     vote = forms.ChoiceField(
-        label=PrematureAlumnus.verbose_vote, choices=CHOICES, initial=""
+        label=ReturnStudent.verbose_vote, choices=CHOICES, initial=""
     )
     user = forms.ModelChoiceField(
         queryset=User.objects.all(),
