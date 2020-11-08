@@ -76,6 +76,7 @@ urlpatterns = [
     url(r"^accounts/", include("allauth.urls")),
     # Your stuff: custom urls includes go here
     url(r"^$", RedirectView.as_view(url="/workflow/", permanent=False)),
+    url(r"^report_builder/", include("report_builder.urls")),
     url(r"", include((modules.urls))),
     url(r"^ckeditor/", include("ckeditor_uploader.urls")),
     url(r"^regions/", include("regions.urls", namespace="regions")),
