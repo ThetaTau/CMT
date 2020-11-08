@@ -182,17 +182,25 @@ class User(AbstractUser):
     def get_current_status_all(self):
         return self.status.filter(start__lte=TODAY_END, end__gte=TODAY_END).all()
 
-    def set_current_status(self, status, created=None, start=None):
+    def set_current_status(self, status, created=None, start=None, end=None):
         if start is None:
             start = TODAY
         if created is None:
             created = TODAY
+        if end is None:
+            end = forever()
         current_status = self.get_current_status_all()
         for old_status in current_status:
             old_status.end = start - datetime.timedelta(days=1)
             old_status.save()
+        if status is None:
+            # if alumni, set back alumni, else nonmember
+            status = "alumni"
+            alumni = UserStatusChange.objects.filter(user=self, status="alumni")
+            if not alumni:
+                status = "nonmember"
         UserStatusChange(
-            user=self, created=created, status=status, start=start, end=forever(),
+            user=self, created=created, status=status, start=start, end=end,
         ).save()
 
     @property
@@ -271,6 +279,10 @@ class User(AbstractUser):
     def is_officer(self):
         return len(self.chapter_officer()) > 0 or len(self.is_national_officer()) > 0
 
+    @property
+    def is_advisor(self):
+        return self.get_current_status_all().filter(status="advisor").first()
+
     def is_officer_group(self):
         groups = ["officer", "natoff"]
         user_groups = self.groups.values_list("name", flat=True)
@@ -317,6 +329,7 @@ class UserStatusChange(StartEndModel, TimeStampedModel):
         ("away", "away"),
         ("depledge", "depledge"),
         ("advisor", "advisor"),
+        ("nonmember", "nonmember"),
         ("resigned", "resigned"),
     ]
     user = models.ForeignKey(

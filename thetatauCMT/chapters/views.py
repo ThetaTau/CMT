@@ -1,6 +1,7 @@
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.urls import reverse
 from django.shortcuts import get_object_or_404
+from django.contrib import messages
 from django.forms.models import modelformset_factory
 from django.http.response import HttpResponseRedirect
 from django.views.generic import RedirectView
@@ -16,7 +17,7 @@ from .forms import ChapterForm, ChapterFormHelper
 from .filters import ChapterListFilter
 from .tables import ChapterCurriculaTable, ChapterTable, AuditTable
 from users.tables import UserTable
-from users.models import UserStatusChange, User
+from users.models import User
 from users.forms import ExternalUserForm
 from tasks.models import Task
 from submissions.models import Submission
@@ -43,25 +44,18 @@ class ChapterDetailView(LoginRequiredMixin, MultiFormsView):
                         user = User.objects.get(username=form.instance.email)
                     except User.DoesNotExist:
                         user = form.save()
-                    try:
-                        status = UserStatusChange.objects.get(user=user)
-                    except UserStatusChange.DoesNotExist:
-                        UserStatusChange(
-                            user=user,
-                            status="advisor",
-                            start=TODAY_START,
-                            end=forever(),
-                        ).save()
+                    if not user.is_advisor:
+                        user.set_current_status(status="advisor")
                         EmailAdvisorWelcome(user).send()
+                    else:
+                        messages.add_message(
+                            self.request,
+                            messages.INFO,
+                            f"Advisor {user} already exists.",
+                        )
                 elif form.changed_data and "DELETE" in form.changed_data:
                     user = form.instance
-                    try:
-                        status = UserStatusChange.objects.get(user=user)
-                    except UserStatusChange.DoesNotExist:
-                        continue
-                    else:
-                        status.end = TODAY_START
-                        status.save()
+                    user.set_current_status(None)
         return HttpResponseRedirect(self.get_success_url())
 
     def create_faculty_form(self, **kwargs):

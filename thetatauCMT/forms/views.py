@@ -80,7 +80,7 @@ from .forms import (
 from tasks.models import TaskChapter, Task
 from scores.models import ScoreType
 from submissions.models import Submission
-from users.models import User, UserStatusChange
+from users.models import User
 from core.models import (
     CHAPTER_OFFICER,
     COL_OFFICER_ALIGN,
@@ -892,16 +892,8 @@ class ChapterInfoReportView(LoginRequiredMixin, MultiFormsView):
                         user = User.objects.get(username=form.instance.email)
                     except User.DoesNotExist:
                         user = form.save()
-                    status = UserStatusChange.objects.filter(
-                        user=user, status="advisor",
-                    ).last()
-                    if status is None:
-                        UserStatusChange(
-                            user=user,
-                            status="advisor",
-                            start=TODAY_START,
-                            end=forever(),
-                        ).save()
+                    if not user.is_advisor:
+                        user.set_current_status(status="advisor")
                         EmailAdvisorWelcome(user).send()
                     else:
                         messages.add_message(
@@ -911,13 +903,7 @@ class ChapterInfoReportView(LoginRequiredMixin, MultiFormsView):
                         )
                 elif form.changed_data and "DELETE" in form.changed_data:
                     user = form.instance
-                    try:
-                        status = UserStatusChange.objects.get(user=user)
-                    except UserStatusChange.DoesNotExist:
-                        continue
-                    else:
-                        status.end = TODAY_START
-                        status.save()
+                    user.set_current_status(None)
         return HttpResponseRedirect(self.get_success_url())
 
     def create_faculty_form(self, **kwargs):
@@ -1515,9 +1501,7 @@ class PledgeFormView(CreateView):
             return HttpResponseRedirect(self.get_success_url())
         pledge.instance.user = user
         self.object = pledge.save()
-        UserStatusChange(
-            user=user, status="pnm", start=TODAY_START, end=forever(),
-        ).save()
+        user.set_current_status(status="pnm")
         EmailPledgeConfirmation(self.object).send()
         EmailPledgeWelcome(self.object).send()
         EmailPledgeOfficer(self.object).send()

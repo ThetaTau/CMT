@@ -22,7 +22,7 @@ from core.models import (
     academic_encompass_start_end_date,
     EnumClass,
 )
-from users.models import User, UserStatusChange
+from users.models import User
 from chapters.models import Chapter, ChapterCurricula
 from tasks.models import TaskChapter
 from submissions.models import Submission
@@ -212,47 +212,9 @@ class Initiation(TimeStampedModel):
                     self.user.save()
             except IntegrityError as e:
                 print("User ALREADY EXISTS", str(e))
-        try:
-            pnm = self.user.status.get(status="pnm")
-        except UserStatusChange.DoesNotExist:
-            print(f"There was no pledge status for user {self.user}")
-            UserStatusChange(
-                user=self.user,
-                status="pnm",
-                created=self.created,
-                start=self.date - datetime.timedelta(days=120),
-                end=self.date,
-            ).save()
-            pnm = self.user.status.get(status="pnm")
-        except UserStatusChange.MultipleObjectsReturned:
-            self.user.status.filter(status="pnm").order_by("created").last().delete()
-            pnm = self.user.status.filter(status="pnm").last()
-        pnm.end = self.date
-        pnm.created = self.created
-        pnm.save()
-        actives = self.user.status.filter(status="active")
-        for active in actives:
-            active.delete()
-        alumnis = self.user.status.filter(status="alumni")
-        for alumni in alumnis:
-            alumni.delete()
-        activepends = self.user.status.filter(status="activepend")
-        if activepends:
-            activepend = activepends[0]
-            activepend.start = self.date
-            activepend.created = self.created
-            activepend.end = forever()
-            activepend.save()
-            for activepend in activepends[1:]:
-                activepend.delete()
-        else:
-            UserStatusChange(
-                user=self.user,
-                created=self.created,
-                status="activepend",
-                start=self.date,
-                end=forever(),
-            ).save()
+        self.user.set_current_status(
+            status="activepend", start=self.date, created=self.created
+        )
 
     def chapter_initiations(self, chapter):
         result = self.objects.filter(user__chapter=chapter)
@@ -287,45 +249,9 @@ class Depledge(TimeStampedModel):
 
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
-        # Need to adjust old status pnm, save new status depledge
-        try:
-            pnm = self.user.status.get(status="pnm")
-        except UserStatusChange.DoesNotExist:
-            print(f"There was no pledge status for user {self.user}")
-            UserStatusChange(
-                user=self.user,
-                status="pnm",
-                created=self.created,
-                start=self.date - datetime.timedelta(days=120),
-                end=self.date,
-            ).save()
-        else:
-            pnm.end = self.date
-            pnm.created = self.created
-            pnm.save()
-        actives = self.user.status.filter(status="active")
-        for active in actives:
-            active.delete()
-        alumnis = self.user.status.filter(status="alumni")
-        for alumni in alumnis:
-            alumni.delete()
-        depledges = self.user.status.filter(status="depledge")
-        if depledges:
-            depledge = depledges[0]
-            depledge.start = self.date
-            depledge.created = self.created
-            depledge.end = forever()
-            depledge.save()
-            for depledge in depledges[1:]:
-                depledge.delete()
-        else:
-            UserStatusChange(
-                user=self.user,
-                status="depledge",
-                created=self.created,
-                start=self.date,
-                end=forever(),
-            ).save()
+        self.user.set_current_status(
+            status="depledge", created=self.created, start=self.date,
+        )
 
 
 class StatusChange(TimeStampedModel):
@@ -406,30 +332,23 @@ class StatusChange(TimeStampedModel):
             status.end = self.date_start - datetime.timedelta(days=1)
             status.save()
         if self.reason in ["graduate", "withdraw", "transfer"]:
-            UserStatusChange(
-                user=self.user,
-                created=self.created,
-                status="alumni",
-                start=self.date_start,
-                end=forever(),
-            ).save()
+            self.user.set_current_status(
+                created=self.created, status="alumni", start=self.date_start,
+            )
         else:
             # military, coop, covid
-            UserStatusChange(
-                user=self.user,
+            self.user.set_current_status(
                 created=self.created,
                 status="away",
                 start=self.date_start,
                 end=self.date_end,
-            ).save()
+            )
             # User will return active as soon as away ends
-            UserStatusChange(
-                user=self.user,
+            self.user.set_current_status(
                 created=self.created,
                 status="active",
                 start=self.date_end + datetime.timedelta(days=1),
-                end=forever(),
-            ).save()
+            )
 
 
 def get_chapter_report_upload_path(instance, filename):

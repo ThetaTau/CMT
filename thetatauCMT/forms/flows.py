@@ -41,7 +41,7 @@ from .notifications import (
     EmailOSMUpdate,
     CentralOfficeGenericEmail,
 )
-from users.models import User, UserStatusChange
+from users.models import User
 
 
 @frontend.register
@@ -113,37 +113,7 @@ class PrematureAlumnusFlow(Flow):
         """
         user = activation.process.user
         created = activation.process.created
-        active = user.status.order_by("-end").filter(status="active").first()
-        if not active:
-            print(f"There was no active status for user {user}")
-            UserStatusChange(
-                user=user,
-                status="active",
-                created=created,
-                start=created - datetime.timedelta(days=365),
-                end=created,
-            ).save()
-        else:
-            active.end = created
-            active.created = created
-            active.save()
-        alumnipends = user.status.filter(status="alumnipend")
-        if alumnipends:
-            alumnipend = alumnipends[0]
-            alumnipend.start = created
-            alumnipend.end = forever()
-            alumnipend.created = created
-            alumnipend.save()
-            for alumnipend in alumnipends[1:]:
-                alumnipend.delete()
-        else:
-            UserStatusChange(
-                user=user,
-                created=created,
-                status="alumnipend",
-                start=created,
-                end=forever(),
-            ).save()
+        user.set_current_status(status="alumnipend", created=created, start=created)
         EmailProcessUpdate(
             activation,
             "Premature Alumnus Request",
@@ -166,47 +136,13 @@ class PrematureAlumnusFlow(Flow):
 
     def pending_undo_func(self, activation):
         user = activation.process.user
-        alumnipends = user.status.filter(status="alumnipend")
-        if alumnipends:
-            for alumnipend in alumnipends:
-                alumnipend.delete()
-        active = user.status.order_by("-end").filter(status="active").first()
-        active.end = forever()
-        active.save()
+        created = activation.task.created
+        user.set_current_status(status="active", created=created, start=created)
 
     def set_alumni_status(self, activation):
         user = activation.process.user
-        alumnipend = user.status.order_by("-end").filter(status="alumnipend").first()
         created = activation.task.created
-        if not alumnipend:
-            print(f"There was no alumnipend status for user {user}")
-            UserStatusChange(
-                user=user,
-                status="alumnipend",
-                created=created,
-                start=created - datetime.timedelta(days=365),
-                end=created,
-            ).save()
-        else:
-            alumnipend.end = created
-            alumnipend.save()
-        alumnis = user.status.filter(status="alumni")
-        if alumnis:
-            alumni = alumnis[0]
-            alumni.start = created
-            alumni.end = forever()
-            alumni.created = created
-            alumni.save()
-            for alumni in alumnis[1:]:
-                alumni.delete()
-        else:
-            UserStatusChange(
-                user=user,
-                created=created,
-                status="alumni",
-                start=created,
-                end=forever(),
-            ).save()
+        user.set_current_status(status="alumni", created=created, start=created)
 
     def send_approval_complete(self, activation):
         if activation.process.approved_exec:
@@ -1103,24 +1039,8 @@ class ResignationFlow(Flow):
 
     def set_resign_status(self, activation):
         user = activation.process.user
-        resigned = user.status.order_by("-end").filter(status="resigned").first()
         created = activation.task.created
-        if not resigned:
-            print(f"There was no resigned status for user {user}")
-            UserStatusChange(
-                user=user,
-                status="resigned",
-                created=created,
-                start=created,
-                end=forever(),
-            ).save()
-        else:
-            resigned.end = forever()
-            resigned.save()
-        statuss = user.status.filter(end__gte=created).exclude(status="resigned")
-        for status in statuss:
-            status.end = created - datetime.timedelta(days=1)
-            status.save()
+        user.set_current_status(status="resigned", created=created, start=created)
 
 
 @frontend.register
