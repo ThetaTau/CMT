@@ -21,6 +21,8 @@ googleapis-common-protos==1.51.0
 protobuf==3.11.3
 rollbar==0.14.7  # https://github.com/rollbar/pyrollbar
 python-gnupg==0.4.6  # https://pythonhosted.org/python-gnupg/
+# python anywhere does not work with latest version
+python-magic==0.4.12 # https://github.com/ahupp/python-magic
 
 # Django
 # ------------------------------------------------------------------------------
