@@ -5,7 +5,7 @@
     <option name="PARENT_ENVS" value="true" />
     <envs>
       <env name="PYTHONUNBUFFERED" value="1" />
-      <env name="USE_DOCKER" value="false" />
+      <env name="DJANGO_EMAIL_LIVE" value="False" />
     </envs>
     <option name="SDK_HOME" value="D:\workspace\.virtualenvs\cmt\Scripts\python.exe" />
     <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />

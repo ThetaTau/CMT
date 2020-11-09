@@ -8,6 +8,12 @@ See notes on using docker for this project as a part of the cookiecutter django 
 Build the docker image
 
     docker-compose -f local.yml build
+    
+Run the image for the first time
+
+    docker-compose -f local.yml up
+
+Kill the image with ctrl+c
 
 Then you will need to create a super user, generally locally I use
 user test and email test@gmail.com and a password easy to remember
@@ -17,6 +23,16 @@ user test and email test@gmail.com and a password easy to remember
 Finally, to run
 
     docker-compose -f local.yml up
+
+Then navigate to localhost:8000/admin, log in with your superuser go to:
+http://localhost:8000/admin/socialaccount/socialapp/ click on "Add Social Application"
+Set following:
+    Provider: Facebook
+    Name: Facebook
+    Client ID: 1234
+    Secret Key: 1234
+    Add cmt.thetatau.org to the chosen sites (click the right arrow after selecting) 
+
 
 I also have a pycharm run configuration that I use that should be in git.
 
