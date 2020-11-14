@@ -49,7 +49,7 @@ COLORS = {
     "Inactives": "#a29bfe",
     "Pledges": "#57606f",
     "Depledges": "#d63031",
-    "Alumnis": "#2e86de",
+    "Alumni": "#2e86de",
     "Fall": "#AC2414",
     "Winter": "#FCC30C",
     "Spring": "#E8472D",
@@ -172,7 +172,7 @@ app.layout = html.Div(
                         {"label": "Inactives", "value": "Inactives"},
                         {"label": "Pledges", "value": "Pledges"},
                         {"label": "Depledges", "value": "Depledges"},
-                        {"label": "Alumnis", "value": "Alumnis"},
+                        {"label": "Alumni", "value": "Alumni"},
                     ],
                     value=["Actives", "Inactives"],
                     multi=True,
@@ -254,8 +254,8 @@ app.layout = html.Div(
                     children=[
                         html.Div(id="alumni-num"),
                         html.H6(
-                            "Alumnis",
-                            style=dict(color=COLORS["Alumnis"], textAlign="center"),
+                            "Alumni",
+                            style=dict(color=COLORS["Alumni"], textAlign="center"),
                         ),
                         html.H6(
                             "[ alumni ]",
@@ -368,7 +368,7 @@ def load_chapter_data(clicks, **kwargs):
         "Inactives": ["away"],
         "Pledges": ["pnm"],
         "Depledges": ["depledge"],
-        "Alumnis": ["alumni"],
+        "Alumni": ["alumni"],
     }
     df = pd.concat(dfs, sort=True)
     for main_status, align_statuss in align_status.items():
@@ -401,7 +401,7 @@ def load_chapter_data(clicks, **kwargs):
     [Input("chapter-data", "data"), Input("years-slider", "value")],
 )
 def update_text(data, years, **kwargs):
-    statuss = ["Actives", "Inactives", "Pledges", "Depledges", "Alumnis"]
+    statuss = ["Actives", "Inactives", "Pledges", "Depledges", "Alumni"]
     df = pd.DataFrame.from_dict(data)
     if years is None or "year" not in df:
         raise PreventUpdate
