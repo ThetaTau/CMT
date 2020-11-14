@@ -2,9 +2,16 @@ from django.shortcuts import redirect
 from django.contrib import messages
 from django.conf import settings
 from django.utils.deprecation import MiddlewareMixin
+from allauth_2fa.middleware import BaseRequire2FAMiddleware
 
 from forms.models import RiskManagement, PledgeProgram, ChapterReport
 from core.utils import check_officer, check_nat_officer
+
+
+class RequireSuperuser2FAMiddleware(BaseRequire2FAMiddleware):
+    def require_2fa(self, request):
+        # Superusers are require to have 2FA.
+        return request.user.is_superuser
 
 
 class RMPSignMiddleware(MiddlewareMixin):

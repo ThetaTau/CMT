@@ -1,6 +1,8 @@
 import datetime
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.decorators import user_passes_test
+from django.contrib import admin
+from django.contrib.auth.decorators import login_required
 from django.http.request import QueryDict
 from django.urls import reverse
 from django_tables2 import SingleTableView
@@ -24,6 +26,10 @@ from viewflow.frontend.views import (
     DataTableMixin,
     generic,
 )
+
+
+# https://django-allauth.readthedocs.io/en/latest/advanced.html#admin
+admin.site.login = login_required(admin.site.login)
 
 
 def group_required(*group_names):

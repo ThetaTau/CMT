@@ -25,6 +25,7 @@ def home_redirect(request):
 urlpatterns = [
     path("django_plotly_dash/", include("django_plotly_dash.urls")),
     url(r"^$", HomeView.as_view(template_name="pages/home.html"), name="home"),
+    url(r"^", include("allauth_2fa.urls")),
     url(
         r"^favicon\.ico$",
         RedirectView.as_view(

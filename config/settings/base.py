@@ -102,6 +102,10 @@ THIRD_PARTY_APPS = [
     "ckeditor_uploader",
     "captcha",
     "report_builder",
+    "django_otp",
+    "django_otp.plugins.otp_static",
+    "django_otp.plugins.otp_totp",
+    "allauth_2fa",
 ]
 
 LOCAL_APPS = [
@@ -170,12 +174,15 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "django_otp.middleware.OTPMiddleware",
+    "allauth_2fa.middleware.AllauthTwoFactorMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.common.BrokenLinkEmailsMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "watson.middleware.SearchContextMiddleware",
     "core.middleware.OfficerMiddleware",
     "core.middleware.RMPSignMiddleware",
+    "core.middleware.RequireSuperuser2FAMiddleware",
     "rollbar.contrib.django.middleware.RollbarNotifierMiddleware",  # Last
 ]
 

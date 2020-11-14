@@ -1,10 +1,10 @@
 from django.conf import settings
-from allauth.account.adapter import DefaultAccountAdapter
 from allauth.socialaccount.adapter import DefaultSocialAccountAdapter
+from allauth_2fa.adapter import OTPAdapter
 from .models import User
 
 
-class AccountAdapter(DefaultAccountAdapter):
+class AccountAdapter(OTPAdapter):
     def is_open_for_signup(self, request):
         return getattr(settings, "ACCOUNT_ALLOW_REGISTRATION", True)
 
