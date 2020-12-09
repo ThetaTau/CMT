@@ -264,7 +264,7 @@ class MyUserAdmin(AuthUserAdmin, ExportActiveMixin):
 class LogEntryAdmin(admin.ModelAdmin):
     date_hierarchy = "action_time"
 
-    list_filter = ["user", "content_type", "action_flag"]
+    list_filter = ["content_type", "action_flag"]
 
     search_fields = ["object_repr", "change_message"]
 
