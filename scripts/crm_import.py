@@ -1,9 +1,10 @@
 import re
 import csv
-from datetime import datetime
+from datetime import datetime, timedelta
 from django.db.models import Q
 from chapters.models import Chapter, ChapterCurricula, Region
 from users.models import User
+from forms.models import StatusChange
 
 inactive_chapters = [
     ["Gamma", "G", "Colorado School of Mines", "Central",],
@@ -166,7 +167,7 @@ def run(*args):
                 ]  # could be grad date, only want year
                 grad_date_year = int(grad_date_year)
             else:
-                grad_date_year = 1900
+                grad_date_year = 1904
             emergency_first_name = None
             emergency_middle_name = None
             emergency_last_name = None
@@ -333,7 +334,20 @@ def run(*args):
                 "Prospective Pledge": "pnm",
             }
             if status in status_trans:
-                user.set_current_status(status_trans[status])
+                start = None
+                if "alum" in status.lower():
+                    if not StatusChange.objects.filter(user=user):
+                        grad_date_year = int(grad_date_year)
+                        start = datetime(grad_date_year, 1, 1)
+                        user.set_current_status(
+                            "pnm",
+                            start=start - timedelta(365 * 3.5),
+                            end=start - timedelta(365 * 3),
+                        )
+                        user.set_current_status(
+                            "active", start=start - timedelta(365 * 3), end=start
+                        )
+                user.set_current_status(status_trans[status], start=start)
             if (
                 status == "Off Mailing List"
                 or member["CnBio_Requests_no_e-mail"] == "Yes"
