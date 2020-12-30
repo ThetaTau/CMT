@@ -41,7 +41,7 @@ def test_core_dates_even_spring():
     assert models.BIENNIUM_YEARS == [2016, 2017, 2017, 2018]
     assert models.current_term() == "sp"
     assert models.current_year() == 2018
-    assert models.current_year_term_slug() == f"Spring_2018"
+    assert models.current_year_term_slug() == "Spring_2018"
 
 
 @pytest.mark.freeze_time("2019-10-21")
@@ -70,7 +70,7 @@ def test_core_dates_odd_fall():
     assert models.BIENNIUM_YEARS == [2018, 2019, 2019, 2020]
     assert models.current_term() == "fa"
     assert models.current_year() == 2019
-    assert models.current_year_term_slug() == f"Fall_2019"
+    assert models.current_year_term_slug() == "Fall_2019"
 
 
 def test_forever():

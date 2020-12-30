@@ -52,7 +52,7 @@ class RegionOfficerView(NatOfficerRequiredMixin, LoginRequiredMixin, DetailView)
                 messages.add_message(
                     self.request,
                     messages.ERROR,
-                    f"All officers are filtered! Clear or change filter.",
+                    "All officers are filtered! Clear or change filter.",
                 )
         return self.render_to_response(context)
 
@@ -147,7 +147,7 @@ class RegionAdvisorView(NatOfficerRequiredMixin, LoginRequiredMixin, DetailView)
                 messages.add_message(
                     self.request,
                     messages.ERROR,
-                    f"All officers are filtered! Clear or change filter.",
+                    "All officers are filtered! Clear or change filter.",
                 )
         return self.render_to_response(context)
 

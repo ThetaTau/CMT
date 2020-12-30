@@ -29,7 +29,7 @@ class Command(BaseCommand):
                 change_messages.append(f"{result}: {chapter}")
             change_message = "\n".join(change_messages)
             send_mail(
-                f"CMT Monthly Email Task",
+                "CMT Monthly Email Task",
                 f"Email sent to chapters:\n{change_message}",
                 "cmt@thetatau.org",
                 ["cmt@thetatau.org"],

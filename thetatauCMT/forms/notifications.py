@@ -531,7 +531,7 @@ class CentralOfficeGenericEmail(EmailNotification):
         self.to_emails = ["central.office@thetatau.org"]
         self.cc = ["cmt@thetatau.org"]
         self.reply_to = ["cmt@thetatau.org"]
-        self.subject = f"[CMT] Record Message"
+        self.subject = "[CMT] Record Message"
         file_names = []
         if attachments:
             file_names = [file.name for file in attachments]

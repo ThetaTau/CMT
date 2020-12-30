@@ -25,7 +25,7 @@ def test_event_instance(event):
     "event__name,event__date", [("Very Special event", datetime.date(2016, 10, 1))]
 )
 def test_event_str(event):
-    assert str(event) == f"Very Special event on 2016-10-01"
+    assert str(event) == "Very Special event on 2016-10-01"
 
 
 @pytest.mark.django_db

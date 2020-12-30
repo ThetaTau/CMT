@@ -17,7 +17,7 @@ fields = [
 
 def run():
     all_users = User.objects.all()
-    with open(f"exports/officer_export.csv", "w", newline="") as export_file:
+    with open("exports/officer_export.csv", "w", newline="") as export_file:
         writer = csv.DictWriter(export_file, fieldnames=fields)
         writer.writeheader()
         for user in all_users:

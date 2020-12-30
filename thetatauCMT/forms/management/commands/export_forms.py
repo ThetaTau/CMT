@@ -345,7 +345,7 @@ class Command(BaseCommand):
                         "School Name": prealumn.user.chapter.school,
                         "Mobile Phone": prealumn.user.phone_number,
                         "EmailAddress": prealumn.user.email,
-                        "Reason for Status Change": f"Prealumn",
+                        "Reason for Status Change": "Prealumn",
                         "Degree Received": "",
                         "Graduation Date (M/D/YYYY)": "",
                         "Employer": "",

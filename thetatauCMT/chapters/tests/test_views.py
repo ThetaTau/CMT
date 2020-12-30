@@ -29,7 +29,7 @@ def test_chapter_list_view_denied(auto_login_user):
     assert response_no_redirect.url == r"/"
     response = client.get(url, follow=True)
     assert response.status_code == 200
-    assert f"Only officers can edit this" in response.content.decode("UTF-8")
+    assert "Only officers can edit this" in response.content.decode("UTF-8")
 
 
 def test_chapter_list_view_chapter_officer(auto_login_user):
@@ -37,7 +37,7 @@ def test_chapter_list_view_chapter_officer(auto_login_user):
     url = reverse("chapters:list")
     response = client.get(url, follow=True)
     assert response.status_code == 200
-    assert f"Filter Chapters" in response.content.decode("UTF-8")
+    assert "Filter Chapters" in response.content.decode("UTF-8")
 
 
 def test_chapter_list_view_natoff(auto_login_user):
@@ -45,4 +45,4 @@ def test_chapter_list_view_natoff(auto_login_user):
     url = reverse("chapters:list")
     response = client.get(url, follow=True)
     assert response.status_code == 200
-    assert f"Filter Chapters" in response.content.decode("UTF-8")
+    assert "Filter Chapters" in response.content.decode("UTF-8")

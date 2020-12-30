@@ -70,7 +70,7 @@ class TaskCompleteView(OfficerRequiredMixin, LoginRequiredMixin, CreateView):
                 result = super().form_valid(form)
         except IntegrityError:
             messages.add_message(
-                self.request, messages.ERROR, f"The task only needs to be complete once"
+                self.request, messages.ERROR, "The task only needs to be complete once"
             )
             result = super().form_invalid(form)
         else:

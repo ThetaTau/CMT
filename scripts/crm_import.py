@@ -198,7 +198,7 @@ def run(*args):
             try:
                 user_id = f"{chapter.greek}{badge_number}"
                 if email == "" or email is None:
-                    print(f"    !!! User missing email")
+                    print("    !!! User missing email")
                     email = email_school = f"{user_id}@FAKE.org"
                 user, created = User.objects.filter(
                     Q(email__iexact=email)
@@ -249,7 +249,7 @@ def run(*args):
                     else:
                         print(f"    !!! Multiple users {users}")
                         print(
-                            f"        should be: ",
+                            "        should be: ",
                             [
                                 f"{inf.split('_')[-1]}: {val}"
                                 for inf, val in member.items()
@@ -268,7 +268,7 @@ def run(*args):
                             )
                         pick = int(input("Pick user: "))
                         user = users[pick]
-                        print(f"Picked user: ", user)
+                        print("Picked user: ", user)
             if created:
                 print(f"    creat user {user}")
             else:

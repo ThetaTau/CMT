@@ -35,8 +35,8 @@ class RMPSignMiddleware(MiddlewareMixin):
                 messages.add_message(
                     request,
                     messages.ERROR,
-                    f"You must sign the Risk Management Policies and Agreements "
-                    f"of Theta Tau this year.",
+                    "You must sign the Risk Management Policies and Agreements "
+                    "of Theta Tau this year.",
                 )
                 return redirect("rmp")
         if request.user.chapter_officer(altered=False):
@@ -44,14 +44,14 @@ class RMPSignMiddleware(MiddlewareMixin):
                 messages.add_message(
                     request,
                     messages.ERROR,
-                    f"Your chapter must submit the New Member Education Program this semester.",
+                    "Your chapter must submit the New Member Education Program this semester.",
                 )
                 return redirect("forms:pledge_program")
             if not ChapterReport.signed_this_semester(request.user.current_chapter):
                 messages.add_message(
                     request,
                     messages.ERROR,
-                    f"Your chapter must submit the Chapter Report this semester.",
+                    "Your chapter must submit the Chapter Report this semester.",
                 )
                 return redirect("forms:report")
         return response

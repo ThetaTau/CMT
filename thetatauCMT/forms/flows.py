@@ -838,7 +838,7 @@ class DisciplinaryProcessFlow(Flow):
         task_title = activation.flow_task.task_title
         host = settings.CURRENT_URL
         link = reverse(
-            f"viewflow:forms:disciplinaryprocess:submit_form2",
+            "viewflow:forms:disciplinaryprocess:submit_form2",
             kwargs={"process_pk": activation.process.pk, "task_pk": activation.task.pk},
         )
         link = host + link

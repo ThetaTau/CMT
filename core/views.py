@@ -47,7 +47,7 @@ class NatOfficerRequiredMixin(GroupRequiredMixin):
 
     def get_login_url(self):
         messages.add_message(
-            self.request, messages.ERROR, f"Only National officers can edit this."
+            self.request, messages.ERROR, "Only National officers can edit this."
         )
         return self.get_success_url()
 
@@ -155,11 +155,11 @@ class TypeFieldFilteredChapterAdd(FormMixin):
             messages.add_message(
                 self.request,
                 messages.ERROR,
-                f"Name, date, and type together must be unique."
+                "Name, date, and type together must be unique."
                 " You can have the same name on different dates or different type.",
             )
             message = (
-                f"Name, date, and type together must be unique. "
+                "Name, date, and type together must be unique. "
                 + f"Another {self.officer_edit} has the same name & date & type."
             )
             form.add_error("name", message)

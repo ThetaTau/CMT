@@ -955,7 +955,7 @@ class ChapterInfoReportView(LoginRequiredMixin, MultiFormsView):
         messages.add_message(
             self.request,
             messages.INFO,
-            f"You successfully submitted the RMP and Agreements of Theta Tau!\n",
+            "You successfully submitted the RMP and Agreements of Theta Tau!\n",
         )
         if info.has_changed():
             info.save()
@@ -981,7 +981,7 @@ class RiskManagementFormView(LoginRequiredMixin, FormView):
             messages.add_message(
                 self.request,
                 messages.INFO,
-                f"RMP Previously signed this year, see previous submissions.",
+                "RMP Previously signed this year, see previous submissions.",
             )
             return redirect(reverse("users:detail") + "#submissions")
         return super().get(request, *args, **kwargs)
@@ -1017,7 +1017,7 @@ class RiskManagementFormView(LoginRequiredMixin, FormView):
         messages.add_message(
             self.request,
             messages.INFO,
-            f"You successfully signed the RMP and Agreements of Theta Tau!\n",
+            "You successfully signed the RMP and Agreements of Theta Tau!\n",
         )
         return super().form_valid(form)
 
@@ -1162,7 +1162,7 @@ class PledgeProgramListView(
                 messages.add_message(
                     self.request,
                     messages.ERROR,
-                    f"All forms are filtered! Clear or change filter.",
+                    "All forms are filtered! Clear or change filter.",
                 )
         return self.render_to_response(context)
 
@@ -1478,7 +1478,7 @@ class PledgeFormView(CreateView):
         messages.add_message(
             self.request,
             messages.ERROR,
-            f"Error with pledge form, please expand sections and correct error(s).",
+            "Error with pledge form, please expand sections and correct error(s).",
         )
         return self.render_to_response(self.get_context_data(form=form))
 
@@ -1525,8 +1525,8 @@ class PledgeFormView(CreateView):
         messages.add_message(
             self.request,
             messages.INFO,
-            f"You successfully submitted the Prospective New Member / Pledge Form! "
-            f"A confirmation email was sent to your school and personal email.",
+            "You successfully submitted the Prospective New Member / Pledge Form! "
+            "A confirmation email was sent to your school and personal email.",
         )
         return HttpResponseRedirect(self.get_success_url())
 
@@ -1597,7 +1597,7 @@ def get_sign_status(user, type_sign="creds", initial=False):
     member_field_names = ["user"]
     if type_sign == "creds":
         model = Convention
-        url = f"viewflow:forms:convention:assign_"
+        url = "viewflow:forms:convention:assign_"
         signatures = {
             "delegate": "del",
             "alternate": "alt",
@@ -1608,11 +1608,11 @@ def get_sign_status(user, type_sign="creds", initial=False):
         extra_filter = {"year": model.current_year()}
     elif type_sign == "resign":
         model = ResignationProcess
-        url = f"viewflow:forms:resignation:assign_"
+        url = "viewflow:forms:resignation:assign_"
         signatures = {"officer1": "o1", "officer2": "o2"}
     else:
         model = OSM
-        url = f"viewflow:forms:osm:assign_"
+        url = "viewflow:forms:osm:assign_"
         signatures = {"officer1": "o1", "officer2": "o2"}
         extra_filter = {"year": model.current_year()}
         member_field_names = ["nominate"]
@@ -1874,7 +1874,7 @@ class ConventionListView(
                 messages.add_message(
                     self.request,
                     messages.ERROR,
-                    f"All officers are filtered! Clear or change filter.",
+                    "All officers are filtered! Clear or change filter.",
                 )
         return self.render_to_response(context)
 
@@ -2227,7 +2227,7 @@ class OSMListView(NatOfficerRequiredMixin, LoginRequiredMixin, PagedFilteredTabl
                 messages.add_message(
                     self.request,
                     messages.ERROR,
-                    f"All forms are filtered! Clear or change filter.",
+                    "All forms are filtered! Clear or change filter.",
                 )
         return self.render_to_response(context)
 
@@ -2337,7 +2337,7 @@ class DisciplinaryCreateView(
                 approved = "Pending"
                 if "Submit Form 2" in status and task.owner == self.request.user:
                     link = reverse(
-                        f"viewflow:forms:disciplinaryprocess:submit_form2",
+                        "viewflow:forms:disciplinaryprocess:submit_form2",
                         kwargs={"process_pk": process.pk, "task_pk": task.pk},
                     )
             else:

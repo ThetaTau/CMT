@@ -289,7 +289,7 @@ class UserListView(LoginRequiredMixin, PagedFilteredTableView):
                 messages.add_message(
                     self.request,
                     messages.ERROR,
-                    f"All members are filtered! Clear or change filter.",
+                    "All members are filtered! Clear or change filter.",
                 )
         else:
             return super().get(request, *args, **kwargs)
