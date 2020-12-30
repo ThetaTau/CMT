@@ -12,7 +12,13 @@ class Region(models.Model):
     email = models.EmailField(_("email address"), blank=True)
     website = models.URLField()
     facebook = models.URLField()
-    directors = models.ManyToManyField(settings.AUTH_USER_MODEL, related_name="region")
+    directors = models.ManyToManyField(
+        settings.AUTH_USER_MODEL,
+        related_name="region",
+        null=True,
+        default=None,
+        blank=True,
+    )
 
     def __str__(self):
         return self.name
