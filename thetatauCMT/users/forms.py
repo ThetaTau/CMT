@@ -166,6 +166,8 @@ class UserForm(forms.ModelForm):
             raise forms.ValidationError("Address should not be None or blank")
         if not address.locality:
             address = fix_address(address)
+        if address is None:
+            raise forms.ValidationError("Invalid Address")
         return address
 
 

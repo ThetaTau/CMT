@@ -6,7 +6,7 @@ from address.models import (
     Country,
     unicode,
 )
-from pygeocoder import Geocoder
+from pygeocoder import Geocoder, GeocoderError
 
 
 def xstr(s):
@@ -112,7 +112,12 @@ def update_address(value, address_obj):
 
 def fix_address(address):
     coder = Geocoder(settings.GOOGLE_API_KEY)
-    parsed = coder.geocode(address.raw)
+    try:
+        parsed = coder.geocode(address.raw)
+    except GeocoderError:
+        print("    !!! Bad address")
+        address.delete()
+        return None
     print("    ", address.raw, parsed.formatted_address, sep="\n    ")
     postal_code = parsed.postal_code
     if parsed.postal_code_suffix:
