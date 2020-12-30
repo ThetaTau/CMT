@@ -11,7 +11,7 @@ def get_first_from_list(list_items):
 
 
 role_map = {
-    "chapter officer": "",
+    "chapter officer": "committee chair",
     "president": "regent",
     "vice president": "vice regent",
     "secretary": "scribe",
