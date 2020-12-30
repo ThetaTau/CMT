@@ -1,6 +1,7 @@
 import datetime
 from django.contrib.auth.models import AbstractUser, Group
 from django.db import models
+from django.db.models.query import QuerySet
 from django.contrib.auth.models import UserManager
 from django.urls import reverse
 from django.conf import settings
@@ -270,6 +271,8 @@ class User(AbstractUser):
 
     def get_current_role(self):
         if hasattr(self, "_role"):
+            if isinstance(self._role, QuerySet):
+                self._role = self._role.first()
             return self._role
         return self.roles.filter(end__gte=TODAY_END).first()
 
