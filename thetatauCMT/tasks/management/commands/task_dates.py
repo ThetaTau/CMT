@@ -1,9 +1,9 @@
 from django.core.management import BaseCommand
-
-file_path = r"thetatauCMT/tasks/management/commands/date_data.csv"
 from csv import DictReader
 from datetime import datetime
 from tasks.models import Task, TaskDate
+
+file_path = r"thetatauCMT/tasks/management/commands/date_data.csv"
 
 
 # The class must be named Command, and subclass BaseCommand

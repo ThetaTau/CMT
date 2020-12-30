@@ -23,7 +23,7 @@ from ..flows import (
     PledgeProcessFlow,
     OSMFlow,
 )
-from chapters.tests.factories import ChapterFactory, ChapterCurriculaFactory
+from chapters.tests.factories import ChapterFactory
 from users.tests.factories import UserFactory
 from submissions.tests.factories import SubmissionFactory
 

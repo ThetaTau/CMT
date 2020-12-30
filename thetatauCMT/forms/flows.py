@@ -8,7 +8,6 @@ from viewflow.base import this, Flow
 from viewflow.compat import _
 from viewflow.flow import views as flow_views
 from easy_pdf.rendering import render_to_pdf
-from core.models import forever
 from core.flows import AutoAssignUpdateProcessView, NoAssignView
 from .models import (
     PrematureAlumnus,

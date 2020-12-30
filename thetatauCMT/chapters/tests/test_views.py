@@ -6,7 +6,7 @@ https://developer.mozilla.org/en-US/docs/Learn/Server-side/Django/Testing
 
 import pytest
 from django.urls import reverse
-from .factories import ChapterFactory, ChapterCurriculaFactory
+from .factories import ChapterFactory
 
 
 @pytest.mark.django_db

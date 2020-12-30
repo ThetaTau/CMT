@@ -415,7 +415,6 @@ class EmailProcessUpdate(EmailNotification):
 
     @staticmethod
     def get_demo_args():  # define a static method to return list of args needed to initialize class for testing
-        from forms.models import PrematureAlumnus
         from forms.models import InitiationProcess
 
         # test = PrematureAlumnus.objects.order_by('?')[0]

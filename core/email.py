@@ -1,11 +1,11 @@
 from django.conf import settings
+from bandit.backends.base import HijackBackendMixin
+from django_middleware_global_request.middleware import get_request
 
 if settings.DJANGO_EMAIL_LIVE:
     from anymail.backends.mailjet import EmailBackend
 else:
     from django.core.mail.backends.console import EmailBackend
-from bandit.backends.base import HijackBackendMixin
-from django_middleware_global_request.middleware import get_request
 
 
 class MyHijackBackend(HijackBackendMixin, EmailBackend):
@@ -34,6 +34,6 @@ class MyHijackBackend(HijackBackendMixin, EmailBackend):
                         "text/html",
                     )
                 ]
-            except:
+            except:  # noqa: E722
                 pass
         super().send_messages(email_messages)

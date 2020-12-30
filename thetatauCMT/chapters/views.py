@@ -11,7 +11,6 @@ from core.views import (
     PagedFilteredTableView,
 )
 from core.forms import MultiFormsView
-from core.models import TODAY_START, forever
 from .models import Chapter
 from .forms import ChapterForm, ChapterFormHelper
 from .filters import ChapterListFilter

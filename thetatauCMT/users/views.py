@@ -52,7 +52,6 @@ from .forms import (
     UserOrgForm,
 )
 from chapters.models import Chapter
-from submissions.models import Submission
 from submissions.tables import SubmissionTable
 
 

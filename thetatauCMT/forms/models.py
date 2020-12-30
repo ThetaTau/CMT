@@ -22,9 +22,7 @@ from core.models import (
     academic_encompass_start_end_date,
     EnumClass,
 )
-from users.models import User
-from chapters.models import Chapter, ChapterCurricula
-from tasks.models import TaskChapter
+from chapters.models import Chapter
 from submissions.models import Submission
 
 
@@ -753,7 +751,7 @@ class InitiationProcess(Process):
             for column in update_remove:
                 INIT.remove(column)
         chapter = self.chapter.name
-        chapter_abr = self.chapter.greek
+        # chapter_abr = self.chapter.greek
         init_date = self.initiations.first().date.strftime("%Y%m%d")
         filename = f"{chapter}_{init_date}_initiation.csv"
         if response is not None:

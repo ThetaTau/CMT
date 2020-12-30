@@ -4,7 +4,6 @@ from django.shortcuts import redirect, reverse
 from django.views.generic import DetailView, UpdateView, RedirectView, CreateView
 from core.views import (
     PagedFilteredTableView,
-    RequestConfig,
     TypeFieldFilteredChapterAdd,
     OfficerRequiredMixin,
 )

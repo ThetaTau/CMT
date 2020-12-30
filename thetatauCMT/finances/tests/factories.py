@@ -1,4 +1,3 @@
-import random
 import factory
 from ..models import Transaction
 from chapters.tests.factories import ChapterFactory

@@ -1,6 +1,6 @@
 # filters.py
 import django_filters
-from .models import User, UserStatusChange, UserRoleChange
+from .models import User, UserRoleChange
 from regions.models import Region
 from chapters.models import ChapterCurricula
 

@@ -2,9 +2,10 @@
 Base settings to build other settings files upon.
 """
 from pathlib import Path
-
+from google.oauth2 import service_account
 import environ
 import warnings
+import rollbar
 
 ROOT_DIR = Path(__file__).resolve(strict=True).parent.parent.parent
 # thetataucmt/
@@ -333,7 +334,6 @@ ROLLBAR = {
     "branch": "master",
     "capture_username": True,
 }
-import rollbar
 
 rollbar.init(**ROLLBAR)
 GOOGLE_API_KEY = env("GOOGLE_API_KEY", default="TESTING")
@@ -346,12 +346,11 @@ if GOOGLE_API_KEY == "TESTING":
         warnings.warn("GOOGLE_API_KEY is not set in environment or secrets folder!")
 GOOGLE_APPLICATION_CREDENTIALS = env(
     "GOOGLE_APPLICATION_CREDENTIALS",
-    default="secrets\chaptermanagementtool-e11151065a69.json",
+    default=r"secrets\chaptermanagementtool-e11151065a69.json",
 )
 # GoogleCloudStorage LINK https://console.cloud.google.com/storage/browser/theta-tau?authuser=3&folder=true&organizationId=true&project=chaptermanagementtool
 DEFAULT_FILE_STORAGE = "storages.backends.gcloud.GoogleCloudStorage"
 GS_BUCKET_NAME = "theta-tau"
-from google.oauth2 import service_account
 
 GS_DEFAULT_ACL = "publicRead"
 

@@ -31,6 +31,6 @@ def run(*args):
                 try:
                     with transaction.atomic():
                         form_obj.save()
-                except IntegrityError as e:
+                except IntegrityError:
                     warnings.warn(f"{name} already existed for {chapter_obj}")
                     continue

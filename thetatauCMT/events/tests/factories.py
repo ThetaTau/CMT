@@ -1,4 +1,3 @@
-from datetime import date
 import factory
 from scores.models import ScoreType
 from chapters.tests.factories import ChapterFactory

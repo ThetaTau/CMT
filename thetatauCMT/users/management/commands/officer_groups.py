@@ -1,11 +1,13 @@
 from django.core.management import BaseCommand
+from csv import DictReader
+from django.contrib.auth.models import Group
+from users.models import User
 
 file_path = r"secrets/natoff.csv"
-from csv import DictReader
-from django.contrib.auth.models import Group, Permission
+
 
 # from django.contrib.contenttypes.models import ContentType
-from users.models import User
+# from django.contrib.auth.models import Group, Permission
 
 # ct = ContentType.objects.get_for_model(User)
 # permission = Permission.objects.create(

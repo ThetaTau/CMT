@@ -6,11 +6,12 @@ IMPORTANT: pydrive uses v2 of Google Drive API
 """
 import os
 from django.conf import settings
-import gspread
-from oauth2client import file, client, tools
-from events.models import Event
-from chapters.models import Chapter
-from scores.models import ScoreType
+
+# import gspread
+# from oauth2client import file, client, tools
+# from events.models import Event
+# from chapters.models import Chapter
+# from scores.models import ScoreType
 
 
 def get_all_ids():

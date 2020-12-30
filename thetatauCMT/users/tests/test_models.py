@@ -1,6 +1,3 @@
-from test_plus.test import TestCase
-
-
 def test_get_absolute_url(tp):
     expected_url = "/users/testuser/"
     user = tp.make_user()

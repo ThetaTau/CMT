@@ -2,7 +2,7 @@
 import django_filters
 from core.filters import DateRangeFilter
 from core.models import ALL_ROLES_CHOICES
-from .models import TaskDate, Task
+from .models import TaskDate
 from django.db import models
 
 

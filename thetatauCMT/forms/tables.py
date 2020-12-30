@@ -1,6 +1,5 @@
 import django_tables2 as tables
 from django_tables2.utils import A
-from django.utils.html import mark_safe
 from .models import (
     Guard,
     Badge,
@@ -188,8 +187,10 @@ class RiskFormTable(tables.Table):
     class Meta:
         attrs = {
             "class": "table table-striped table-bordered",
-            "td": {"align": "center"},
-            "td": {"complete": lambda value: get_value_from_a(value)},
+            "td": {
+                "align": "center",
+                "complete": lambda value: get_value_from_a(value),
+            },
             "th": {"class": "text-center"},
         }
         # orderable = False

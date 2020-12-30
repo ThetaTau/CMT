@@ -33,7 +33,7 @@ from viewflow.frontend.views import ProcessListView
 from viewflow.flow.views.mixins import FlowListMixin
 from material.frontend import frontend_url
 from core.forms import MultiFormsView
-from core.models import TODAY_START, forever, semester_encompass_start_end_date
+from core.models import semester_encompass_start_end_date
 from core.views import (
     OfficerRequiredMixin,
     RequestConfig,

@@ -9,6 +9,13 @@ import dash_core_components as dcc
 import dash_html_components as html
 from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
+from django.conf import settings
+from core.models import semester_encompass_start_end_date
+from users.models import (
+    User,
+    UserStatusChange,
+    UserSemesterGPA,
+)
 
 if __name__ == "__main__":
     import os
@@ -32,17 +39,10 @@ else:
 
     app = DjangoDash("Dashboard")
 
-from django.conf import settings
-from core.models import semester_encompass_start_end_date
-from users.models import (
-    User,
-    UserStatusChange,
-    UserSemesterGPA,
-)
 
-## -------------------------------------------------------------------------------
-## STYLING ASSETS
-## -------------------------------------------------------------------------------
+# -------------------------------------------------------------------------------
+# STYLING ASSETS
+# -------------------------------------------------------------------------------
 
 COLORS = {
     "Actives": "#ff9f43",
@@ -306,6 +306,7 @@ app.layout = html.Div(
         ),
     ]
 )
+
 
 # invisible button
 @app.expanded_callback(

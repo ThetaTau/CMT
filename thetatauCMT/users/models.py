@@ -340,11 +340,6 @@ class User(AbstractUser):
     def is_advisor(self):
         return self.get_current_status_all().filter(status="advisor").first()
 
-    def is_officer_group(self):
-        groups = ["officer", "natoff"]
-        user_groups = self.groups.values_list("name", flat=True)
-        return set(groups).intersection(set(user_groups))
-
 
 class UserAlter(models.Model):
     """

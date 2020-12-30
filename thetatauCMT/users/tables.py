@@ -1,6 +1,4 @@
-from django.conf import settings
 import django_tables2 as tables
-from django_tables2.utils import A
 from .models import User
 
 

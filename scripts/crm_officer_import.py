@@ -1,4 +1,3 @@
-import re
 import csv
 from datetime import datetime
 from django.db.models import Q

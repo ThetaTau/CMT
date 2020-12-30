@@ -23,7 +23,7 @@ os.environ["RECAPTCHA_PUBLIC_KEY"] = ""
 os.environ["RECAPTCHA_PRIVATE_KEY"] = ""
 
 
-from django.core.wsgi import get_wsgi_application
+from django.core.wsgi import get_wsgi_application  # noqa: E402
 
 MAINTENANCE_FILE = rf"{path}/maintenance_active"
 

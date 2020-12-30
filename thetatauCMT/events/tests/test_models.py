@@ -57,14 +57,14 @@ def test_calculate_meeting_attendance(
     chapter, event_factory, user_status_change_factory
 ):
     score_type = ScoreType.objects.get(name="Attendance at meetings")
-    users = user_status_change_factory.create_batch(
+    user_status_change_factory.create_batch(
         20,
         status="active",
         user__chapter=chapter,
         start=factory.Faker("date_between", start_date="-1y", end_date="today"),
         end=factory.Faker("date_between", start_date="today", end_date="+1y"),
     )
-    events = event_factory.create_batch(
+    event_factory.create_batch(
         10,
         calculate_score=False,
         type=score_type,
@@ -81,7 +81,7 @@ def test_calculate_meeting_attendance(
 
 @pytest.mark.django_db
 def test_calculate_meeting_attendance_no_events(chapter, user_status_change_factory):
-    users = user_status_change_factory.create_batch(
+    user_status_change_factory.create_batch(
         20,
         status="active",
         user__chapter=chapter,

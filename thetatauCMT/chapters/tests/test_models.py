@@ -187,6 +187,6 @@ def test_advisors_external(chapter, user_factory):
     result = chapter.advisors_external
     assert set(expected_users) == set(result)
     # External advisors should NOT include members with advisor role
-    users = user_factory.create_batch(5, chapter=chapter, make_officer="advisor")
+    user_factory.create_batch(5, chapter=chapter, make_officer="advisor")
     result = chapter.advisors_external
     assert set(expected_users) == set(result)

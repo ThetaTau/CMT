@@ -1,4 +1,3 @@
-import datetime
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.decorators import user_passes_test
 from django.contrib import admin
@@ -17,7 +16,6 @@ from scores.models import ScoreType
 from tasks.models import TaskChapter, TaskDate
 from tasks.tables import TaskIncompleteTable
 from announcements.models import Announcement
-from .utils import check_officer, check_nat_officer
 from braces.views import GroupRequiredMixin
 from viewflow.frontend.views import (
     AllTaskListView,
@@ -153,7 +151,7 @@ class TypeFieldFilteredChapterAdd(FormMixin):
         try:
             with transaction.atomic():
                 response = super().form_valid(form)  # This saves the form
-        except IntegrityError as e:
+        except IntegrityError:
             messages.add_message(
                 self.request,
                 messages.ERROR,

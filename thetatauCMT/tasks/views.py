@@ -2,19 +2,16 @@ import datetime
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.shortcuts import redirect, reverse
-from django.http.request import QueryDict
 from django.db import models, transaction
 from django.db.utils import IntegrityError
 from django.utils.text import slugify
-from django.views.generic import DetailView, UpdateView, RedirectView, CreateView
+from django.views.generic import DetailView, CreateView
 from core.views import (
     PagedFilteredTableView,
     RequestConfig,
-    TypeFieldFilteredChapterAdd,
     OfficerRequiredMixin,
 )
-from core.models import current_year_term_slug
-from .models import TaskChapter, TaskDate, Task
+from .models import TaskChapter, TaskDate
 from .tables import TaskTable
 from .filters import TaskListFilter
 from .forms import TaskListFormHelper
@@ -71,7 +68,7 @@ class TaskCompleteView(OfficerRequiredMixin, LoginRequiredMixin, CreateView):
         try:
             with transaction.atomic():
                 result = super().form_valid(form)
-        except IntegrityError as e:
+        except IntegrityError:
             messages.add_message(
                 self.request, messages.ERROR, f"The task only needs to be complete once"
             )
