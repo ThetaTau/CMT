@@ -3,6 +3,7 @@ import io
 import os
 import csv
 from enum import Enum
+from address.models import AddressField
 from email.mime.base import MIMEBase
 from django.db import models, transaction
 from django.db.utils import IntegrityError
@@ -1249,6 +1250,12 @@ https://stackoverflow.com/questions/31658996/viewflow-io-implementing-a-queue-ta
         verbose_name="Name of Accused",
         on_delete=models.CASCADE,
         related_name="discipline",
+    )
+    address = AddressField(
+        verbose_name=_("Mailing Address of Accused"),
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True,
     )
     chapter = models.ForeignKey(
         Chapter, on_delete=models.CASCADE, related_name="discipline"

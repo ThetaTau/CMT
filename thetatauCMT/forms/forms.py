@@ -1112,6 +1112,7 @@ class DisciplinaryForm1(forms.ModelForm):
         fields = [
             "financial",
             "user",
+            "address",
             "charges",
             "resolve",
             "advisor",
@@ -1138,6 +1139,16 @@ class DisciplinaryForm1(forms.ModelForm):
                 "Please provide the campus/faculty adviser name"
             )
         return cleaned_data
+
+    def clean_address(self):
+        address = self.cleaned_data["address"]
+        if address.raw == "None" or address.raw == "":
+            raise forms.ValidationError("Address should not be None or blank")
+        if not address.locality:
+            address = fix_address(address)
+        if address is None:
+            raise forms.ValidationError("Invalid Address")
+        return address
 
 
 class DisciplinaryForm2(forms.ModelForm):
