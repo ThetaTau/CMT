@@ -3,6 +3,7 @@ from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Layout, Fieldset, Row, Submit
 from crispy_forms.bootstrap import FormActions, InlineField, StrictButton
 from .models import Chapter
+from core.address import fix_address
 
 
 class ChapterForm(forms.ModelForm):
@@ -21,6 +22,14 @@ class ChapterForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         for key in self.fields:
             self.fields[key].required = True
+
+    def clean_address(self):
+        address = self.cleaned_data["address"]
+        if address.raw == "None" or address.raw == "":
+            raise forms.ValidationError("Address should not be None or blank")
+        if not address.locality:
+            address = fix_address(address)
+        return address
 
 
 class ChapterFormHelper(FormHelper):

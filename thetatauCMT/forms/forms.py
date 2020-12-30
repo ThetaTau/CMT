@@ -29,6 +29,7 @@ from captcha.widgets import ReCaptchaV3
 from upload_validator import FileTypeValidator
 from chapters.forms import ChapterForm
 from chapters.models import Chapter, ChapterCurricula
+from core.address import fix_address
 from core.models import CHAPTER_ROLES_CHOICES, NAT_OFFICERS_CHOICES
 from regions.models import Region
 from users.models import User, UserRoleChange
@@ -850,8 +851,10 @@ class PledgeUser(forms.ModelForm):
 
     def clean_address(self):
         address = self.cleaned_data["address"]
-        if address.raw == "None":
-            raise forms.ValidationError("Address should not be None")
+        if address.raw == "None" or address.raw == "":
+            raise forms.ValidationError("Address should not be None or blank")
+        if not address.locality:
+            address = fix_address(address)
         return address
 
 

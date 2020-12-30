@@ -8,6 +8,7 @@ from tempus_dominus.widgets import DatePicker
 from allauth.account.forms import LoginForm
 from captcha.fields import ReCaptchaField
 from captcha.widgets import ReCaptchaV3
+from core.address import fix_address
 from core.models import BIENNIUM_YEARS
 from chapters.models import Chapter
 from .models import (
@@ -158,6 +159,14 @@ class UserForm(forms.ModelForm):
             self.fields["graduation_year"].widget = forms.HiddenInput()
         else:
             self.fields["email"].widget = forms.HiddenInput()
+
+    def clean_address(self):
+        address = self.cleaned_data["address"]
+        if address.raw == "None" or address.raw == "":
+            raise forms.ValidationError("Address should not be None or blank")
+        if not address.locality:
+            address = fix_address(address)
+        return address
 
 
 class UserGPAForm(forms.Form):
