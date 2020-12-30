@@ -1,14 +1,21 @@
 from users.models import User
 from core.address import fix_address
+from core.models import TODAY_END
 
 
-def run():
+def run(*args):
     """
-    python manage.py runscript address_fixes
+    python manage.py runscript address_fixes --script-args active pnm
     """
     # addresses = Address.objects.filter(locality__isnull=True).all()
     # Not all addresses are needed only care about addresses connected to user
-    users = User.objects.all()
+    if not args:
+        args = ["active", "activepend", "alumnipend", "pnm"]
+    users = User.objects.filter(
+        status__status__in=args,
+        status__start__lte=TODAY_END,
+        status__end__gte=TODAY_END,
+    )
     total = users.count()
     for count, user in enumerate(users):
         address = user.address
