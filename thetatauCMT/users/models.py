@@ -6,6 +6,7 @@ from django.urls import reverse
 from django.conf import settings
 from django.utils.translation import ugettext_lazy as _
 from django.core.validators import MinValueValidator, MaxValueValidator, RegexValidator
+from model_utils.fields import MonitorField
 from address.models import AddressField
 from core.models import (
     StartEndModel,
@@ -21,6 +22,7 @@ from core.models import (
     CHAPTER_ROLES,
     NAT_OFFICERS,
     COUNCIL,
+    EnumClass,
 )
 from chapters.models import Chapter, ChapterCurricula
 
@@ -43,6 +45,25 @@ class CustomUserManager(UserManager):
 
 
 class User(AbstractUser):
+    class EMERGENCY_RELATIONSHIP(EnumClass):
+        parent = ("parent", "Parent")
+        guardian = ("guardian", "Guardian")
+        grandparent = ("grandparent", "Grandparent")
+        partner = ("partner", "Spouse/Partner")
+        sibling = ("sibling", "Sibling (over 18)")
+        other = ("other", "Other relative")
+        friend = ("friend", "Friend")
+
+    class DEGREES(EnumClass):
+        BS = ("bs", "Bachelor of Science")
+        MS = ("ms", "Master of Science")
+        MBA = ("mba", "Master of Business Administration")
+        PhD = ("phd", "Doctor of Philosophy")
+        BA = ("ba", "Bachelor of Arts")
+        MA = ("ma", "Master of Arts")
+        ME = ("me", "Master of Engineering")
+        NONE = ("none", "None")
+
     class Meta:
         ordering = [
             "last_name",
@@ -53,6 +74,7 @@ class User(AbstractUser):
     # around the globe.
     name = models.CharField(_("Member Name"), blank=True, max_length=255)
     middle_name = models.CharField(_("Full Middle Name"), max_length=30, blank=True)
+    maiden_name = models.CharField(_("Maiden Name"), max_length=150, blank=True)
     suffix = models.CharField(_("Suffix (such as Jr., III)"), max_length=10, blank=True)
     nickname = models.CharField(
         max_length=30,
@@ -79,6 +101,9 @@ class User(AbstractUser):
             ("none", ""),
         ],
     )
+    degree = models.CharField(
+        max_length=4, choices=[x.value for x in DEGREES], default="bs"
+    )
     user_id = models.CharField(
         max_length=20,
         unique=True,
@@ -92,18 +117,47 @@ class User(AbstractUser):
         null=True,
     )
     employer = models.CharField(max_length=100, blank=True)
-    employer_position = models.CharField(max_length=100, blank=True)
-    graduation_year = models.PositiveIntegerField(
-        default=datetime.datetime.now().year,
-        validators=[
-            MinValueValidator(1950),
-            MaxValueValidator(datetime.datetime.now().year + 10),
-        ],
-        help_text="Use the following format: YYYY",
+    employer_changed = MonitorField(monitor="employer")
+    employer_position = models.CharField(max_length=100, blank=True, default="")
+    employer_address = AddressField(
+        on_delete=models.SET_NULL, blank=True, null=True, related_name="employer"
+    )
+    emergency_first_name = models.CharField(
+        _("Emergency Contact first name"), max_length=30, blank=True, null=True
+    )
+    emergency_middle_name = models.CharField(
+        _("Emergency Contact Middle Name"), max_length=30, blank=True, null=True
+    )
+    emergency_last_name = models.CharField(
+        _("Emergency Contact last name"), max_length=150, blank=True, null=True
+    )
+    emergency_nickname = models.CharField(
+        _("Emergency Contact nickname name"), max_length=30, blank=True, null=True
     )
     phone_regex = RegexValidator(
         regex=r"^\+?1?\d{9,15}$",
         message="Phone number must be entered in the format: '+999999999'. Up to 15 digits allowed.",
+    )
+    emergency_phone_number = models.CharField(
+        validators=[phone_regex],
+        max_length=17,
+        blank=True,
+        null=True,
+        help_text="Format: 9999999999 no spaces, dashes, etc.",
+    )
+    emergency_relation = models.CharField(
+        max_length=20,
+        choices=[x.value for x in EMERGENCY_RELATIONSHIP],
+        blank=True,
+        null=True,
+    )
+    graduation_year = models.PositiveIntegerField(
+        default=datetime.datetime.now().year,
+        validators=[
+            MinValueValidator(1900),
+            MaxValueValidator(datetime.datetime.now().year + 10),
+        ],
+        help_text="Use the following format: YYYY",
     )
     phone_number = models.CharField(
         validators=[phone_regex],
@@ -113,9 +167,12 @@ class User(AbstractUser):
     )
     birth_date = models.DateField(default=datetime.date(year=1904, month=10, day=15))
     address = AddressField(on_delete=models.SET_NULL, blank=True, null=True,)
+    address_changed = MonitorField(monitor="address")
     chapter = models.ForeignKey(
         Chapter, on_delete=models.CASCADE, default=1, related_name="members"
     )
+    deceased = models.BooleanField(default=False)
+    no_contact = models.BooleanField(default=False)
 
     def save(self, *args, **kwargs):
         if not self.id:
@@ -331,6 +388,8 @@ class UserStatusChange(StartEndModel, TimeStampedModel):
         ("advisor", "advisor"),
         ("nonmember", "nonmember"),
         ("resigned", "resigned"),
+        ("expelled", "expelled"),
+        ("friend", "friend"),
     ]
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="status"
