@@ -43,7 +43,7 @@ def run(*args):
     python manage.py runscript crm_officer_import --script-args database_backups/AllOfficers12Nov2020_GOOD.csv
     """
     path = args[0]
-    with open(path) as f:
+    with open(path, encoding="ISO-8859-1") as f:
         reader = csv.DictReader(f)
         for count, member in enumerate(reader):
             user_id = member["Constituent ID"]
