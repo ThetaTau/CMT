@@ -1,4 +1,5 @@
 from django.conf import settings
+import address as address_module
 from address.models import (
     InconsistentDictError,
     State,
@@ -114,7 +115,7 @@ def fix_address(address):
     coder = Geocoder(settings.GOOGLE_API_KEY)
     try:
         parsed = coder.geocode(address.raw)
-    except (GeocoderError, InconsistentDictError):
+    except (GeocoderError, address_module.models.InconsistentDictError):
         print("    !!! Bad address")
         address.delete()
         return None
