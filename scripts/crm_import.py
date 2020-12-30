@@ -27,7 +27,6 @@ inactive_chapters = [
 ]
 
 for name, abbr, school, region in inactive_chapters:
-    break
     region = Region.objects.get(name=region)
     chapter, created = Chapter.objects.update_or_create(
         name=name,
