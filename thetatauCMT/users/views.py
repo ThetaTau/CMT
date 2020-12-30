@@ -419,7 +419,7 @@ class UserAutocomplete(autocomplete.Select2QuerySetView):
     def get_queryset(self):
         if (
             not self.request.user.is_authenticated
-            or not self.request.user.is_officer_group()
+            or not self.request.user.is_officer_group
         ):
             return User.objects.none()
         chapter = self.forwarded.get("chapter", "true")
