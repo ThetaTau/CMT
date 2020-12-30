@@ -114,7 +114,7 @@ def fix_address(address):
     coder = Geocoder(settings.GOOGLE_API_KEY)
     try:
         parsed = coder.geocode(address.raw)
-    except GeocoderError:
+    except (GeocoderError, InconsistentDictError):
         print("    !!! Bad address")
         address.delete()
         return None
