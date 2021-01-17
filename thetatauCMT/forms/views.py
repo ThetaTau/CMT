@@ -151,16 +151,7 @@ class InitDeplSelectView(OfficerRequiredMixin, LoginRequiredMixin, FormSetView):
 
     def get_initial(self):
         pledges = self.request.user.current_chapter.pledges()
-        inits = Initiation.objects.filter(
-            user__chapter=self.request.user.current_chapter
-        ).order_by("-date")
-        inits = [init.user.pk for init in inits]
-        depledges = Depledge.objects.filter(
-            user__chapter=self.request.user.current_chapter
-        ).order_by("-date")
-        depledges = [depledge.user.pk for depledge in depledges]
-        init_depl = inits + depledges
-        initial = [{"user": user.pk} for user in pledges if user.pk not in init_depl]
+        initial = [{"user": user.pk} for user in pledges]
         return initial
 
     def get_formset(self):
