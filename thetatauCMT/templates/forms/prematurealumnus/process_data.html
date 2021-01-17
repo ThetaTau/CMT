@@ -8,6 +8,12 @@
         <a href="{{ root_url }}" class="card-edit" target="_blank" data-turbolinks="false" style="float:right">({% trans 'edit' %})</a>
         {% endif %}
         <dl class="dl-horizontal">
+          <dt>Chapter:</dt>
+            <dd>{{ process.user.chapter }}</dd>
+          <dt>Name of Member:</dt>
+          <dd><a href="{% url 'admin:users_user_change' process.user.id %}">{{ process.user }}</a></dd>
+          <dt>Initiation Date:</dt>
+            <dd>{% if process.user.initiation %}{{ process.user.initiation.date }}{% else %}Date not available{% endif %}</dd>
             {% for name, value in fields %}
             <dt>{{ name }}:</dt>
             <dd>
