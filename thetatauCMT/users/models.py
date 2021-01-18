@@ -245,12 +245,17 @@ class User(AbstractUser):
             start = TODAY
         if created is None:
             created = TODAY
-        if end is None:
+        if type(end) is datetime.datetime:
+            end = end.date()
+        if type(start) is datetime.datetime:
+            start = start.date()
+        if end is None or (end > TODAY > start):
             end = forever()
-        current_status = self.get_current_status_all()
-        for old_status in current_status:
-            old_status.end = start - datetime.timedelta(days=1)
-            old_status.save()
+            # If the current current status is being set.
+            current_status = self.get_current_status_all()
+            for old_status in current_status:
+                old_status.end = start - datetime.timedelta(days=1)
+                old_status.save()
         if status is None:
             # if alumni, set back alumni, else nonmember
             status = "alumni"

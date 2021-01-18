@@ -103,3 +103,7 @@ def run():
                 print("            Update status: ", user_status, next_status)
                 user_status.end = next_status.start
                 user_status.save()
+        final_statuses = (
+            user.status.all().order_by("start").values_list("status", flat=True)
+        )
+        print("    Final Status", final_statuses)
