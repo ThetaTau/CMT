@@ -385,6 +385,9 @@ IMPORT_EXPORT_USE_TRANSACTIONS = True
 
 DBBACKUP_LOCAL = env.bool("DBBACKUP_LOCAL", default=True)
 DBBACKUP_GPG_RECIPIENT = "Frank.Ventura@thetatau.org"
+DBBACKUP_CONNECTORS = {
+    "default": {"CONNECTOR": "dbbackup.db.postgresql.PgDumpBinaryConnector"}
+}
 if DBBACKUP_LOCAL:
     DBBACKUP_STORAGE = "django.core.files.storage.FileSystemStorage"
     DBBACKUP_STORAGE_LOCATION = env(
