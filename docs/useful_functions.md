@@ -38,6 +38,18 @@ Need to fix social accounts
 - Go to: https://console.cloud.google.com/apis/credentials?authuser=2&folder=&organizationId=&project=chaptermanagementtool
   - Make sure to get ChapterManagementTool
 - Fix the creds (id & secret) here: http://localhost:8000/admin/socialaccount/socialapp/
+```
+from allauth.socialaccount.models import SocialApp
+from django.contrib.sites.models import Site
+app = SocialApp(
+    provider="google",
+    name="Google",
+    client_id="", # Client ID called developer
+    secret="",)
+app.save()
+app.sites.set(Site.objects.all())
+app.save()
+```
 
 ## Backups/Restore
 
@@ -79,4 +91,17 @@ CREATE DATABASE testcmt OWNER testthetatau;
 \c testcmt
 
 \dt
+```
+
+### Decrypt a file
+
+```
+import os
+import gnupg
+filename = r""
+passphrase = input("What is passphrase")
+new_basename = filename.replace('.gpg', '')
+g = gnupg.GPG()
+with open(filename, 'rb') as inputfile:
+  result = g.decrypt_file(file=inputfile, passphrase=passphrase, output=new_basename)
 ```
