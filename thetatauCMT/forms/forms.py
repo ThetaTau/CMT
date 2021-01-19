@@ -107,6 +107,17 @@ class InitiationForm(forms.ModelForm):
         user = User.objects.filter(name=data, chapter__name=self.data["chapter"]).last()
         return user.pk
 
+    def clean_roll(self):
+        data = self.cleaned_data["roll"]
+        chapter = Chapter.objects.get(name=self.data["chapter"])
+        max_badge = chapter.next_badge_number()
+        chapter_badge_numbers = chapter.members.values_list("badge_number", flat=True)
+        if data in chapter_badge_numbers:
+            raise forms.ValidationError(
+                f"Badge number taken, chapter max badge number: {max_badge-1}"
+            )
+        return data
+
 
 InitiationFormSet = forms.formset_factory(InitiationForm, extra=0)
 
