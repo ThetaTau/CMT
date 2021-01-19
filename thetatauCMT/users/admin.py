@@ -108,22 +108,25 @@ class MyUserChangeForm(UserChangeForm):
         model = User
 
 
-class MyUserCreationForm(UserCreationForm):
-
-    error_message = UserCreationForm.error_messages.update(
-        {"duplicate_username": "This username has already been taken."}
-    )
-
-    class Meta(UserCreationForm.Meta):
+class MyUserCreationForm(forms.ModelForm):
+    class Meta:
         model = User
+        # Needs to be duplicated at MyUserAdmin.add_fieldsets
+        fields = (
+            "first_name",
+            "middle_name",
+            "last_name",
+            "email",
+            "chapter",
+            "badge_number",
+        )
 
-    def clean_username(self):
-        username = self.cleaned_data["username"]
-        try:
-            User.objects.get(username=username)
-        except User.DoesNotExist:
-            return username
-        raise forms.ValidationError(self.error_messages["duplicate_username"])
+    def save(self, commit=True):
+        user = super().save(commit=False)
+        user.set_password("")
+        if commit:
+            user.save()
+        return user
 
 
 class StatusInline(admin.TabularInline):
@@ -195,6 +198,22 @@ class MyUserAdmin(AuthUserAdmin, ExportActiveMixin):
     ]
     form = MyUserChangeForm
     add_form = MyUserCreationForm
+    # Needs to be duplicated at MyUserCreationForm.Meta.fields
+    add_fieldsets = (
+        (
+            None,
+            {
+                "fields": (
+                    "first_name",
+                    "middle_name",
+                    "last_name",
+                    "email",
+                    "chapter",
+                    "badge_number",
+                ),
+            },
+        ),
+    )
     fieldsets = (
         ("User Profile", {"fields": ("name", "chapter", "badge_number", "user_id")}),
         (None, {"fields": ("username", "password")}),
