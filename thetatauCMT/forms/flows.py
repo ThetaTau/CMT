@@ -319,6 +319,11 @@ class InitiationProcessFlow(Flow):
         member_list = activation.process.initiations.values_list(
             "user__name", flat=True
         )
+        for initiation in activation.process.initiations.all():
+            if initiation.user.current_status != "active":
+                initiation.user.set_current_status(
+                    status="active", start=initiation.date,
+                )
         member_list = ", ".join(member_list)
         host = settings.CURRENT_URL
         link = reverse(
