@@ -5,7 +5,7 @@ from viewflow.activation import now, Activation, STATUS
 
 class AutoAssignUpdateProcessView(flow_views.UpdateProcessView):
     """
-    This class will automatically assign the task to the user that compeletes it.
+    This class will automatically assign the task to the user that completes it.
     """
 
     def dispatch(self, request, **kwargs):

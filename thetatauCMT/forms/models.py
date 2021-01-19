@@ -716,6 +716,9 @@ class InitiationProcess(Process):
         Chapter, on_delete=models.CASCADE, related_name="initiation_process"
     )
     verbose_ceremony = "What ceremony did you use to initiate these members?"
+    scheduled_date = models.DateField(
+        "Date order scheduled to be shipped on", default=timezone.now
+    )
     ceremony = models.CharField(
         verbose_ceremony,
         default="normal",

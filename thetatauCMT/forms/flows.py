@@ -239,8 +239,24 @@ class InitiationProcessFlow(Flow):
     )
 
     send_order = flow.Handler(this.send_order_func, task_title=_("Send Order"),).Next(
-        this.complete
+        this.order_received
     )
+
+    order_received = (
+        NoAssignView(
+            AutoAssignUpdateProcessView,
+            fields=["scheduled_date",],
+            task_title=_("Order received"),
+            task_description=_("Badge/shingle order received"),
+            task_result_summary=_("Badge/shingle order has been received"),
+        )
+        .Permission("auth.central_office")
+        .Next(this.send_received)
+    )
+
+    send_received = flow.Handler(
+        this.send_received_func, task_title=_("Send Received"),
+    ).Next(this.complete)
 
     complete = flow.End(
         task_title=_("Complete"), task_result_summary=_("Initiation Process Complete")
@@ -272,6 +288,11 @@ class InitiationProcessFlow(Flow):
             activation.process.initiations.add(initiation)
             member_list.append(initiation.user.name)
         member_list = ", ".join(member_list)
+        host = settings.CURRENT_URL
+        link = reverse(
+            "chapters:detail", kwargs={"slug": activation.process.chapter.slug},
+        )
+        link = host + link
         EmailProcessUpdate(
             activation,
             "Initiation Report Submitted",
@@ -279,8 +300,15 @@ class InitiationProcessFlow(Flow):
             "Submitted",
             "Your chapter has submitted an initiation report."
             + " Once the Central Office processes the report, an invoice will be generated"
-            + " and will be sent to your chapter on the last business day of this month.",
-            [{"members": member_list},],
+            + " and will be sent to your chapter on the last business day of this month. "
+            "<b>Please verify the address for the chapter below is correct.</b> "
+            f"<a href='{link}'>Update chapter address here.</a>",
+            [
+                {
+                    "members": member_list,
+                    "Chapter Mailing Address": activation.process.chapter.address,
+                },
+            ],
         ).send()
         return activation
 
@@ -289,9 +317,14 @@ class InitiationProcessFlow(Flow):
 
     def send_invoice_payment_email(self, activation):
         member_list = activation.process.initiations.values_list(
-            "user__email", flat=True
+            "user__name", flat=True
         )
         member_list = ", ".join(member_list)
+        host = settings.CURRENT_URL
+        link = reverse(
+            "chapters:detail", kwargs={"slug": activation.process.chapter.slug},
+        )
+        link = host + link
         EmailProcessUpdate(
             activation,
             "Initiation Invoice Paid",
@@ -299,22 +332,47 @@ class InitiationProcessFlow(Flow):
             "Payment Received",
             "Your chapter has paid an initiation invoice."
             + " Once the Central Office processes the payment, an order will be sent"
-            + " to the jeweler/shingler.",
-            [{"members": member_list}, "invoice",],
+            + " to the jeweler/shingler. <b>Please verify the address for the chapter below is correct.</b> "
+            f"<a href='{link}'>Update chapter address here.</a>",
+            [
+                {
+                    "members": member_list,
+                    "Chapter Mailing Address": activation.process.chapter.address,
+                },
+                "invoice",
+            ],
         ).send()
 
     def send_order_func(self, activation):
         member_list = activation.process.initiations.values_list(
-            "user__email", flat=True
+            "user__name", flat=True
         )
         member_list = ", ".join(member_list)
         EmailProcessUpdate(
             activation,
             "Badge/Shingles Order Submitted",
-            "Initiation Process Complete",
+            "Badge/Shingles Order Received",
             "Badges/Shingles Ordered",
-            "A badges and shingles order has been sent to the vendor.",
-            [{"members": member_list}, "invoice",],
+            "A badges and shingles order has been sent to the vendor. "
+            "You will be notified next when the order is scheduled to ship.",
+            [{"members": member_list,}, "invoice"],
+        ).send()
+
+    def send_received_func(self, activation):
+        member_list = activation.process.initiations.values_list(
+            "user__name", flat=True
+        )
+        member_list = ", ".join(member_list)
+        EmailProcessUpdate(
+            activation,
+            "Badge/Shingles Order Received",
+            "Initiation Process Complete",
+            "Badges/Shingles Order Received",
+            "Herff Jones reports that your order will be shipped on "
+            f"{activation.process.scheduled_date}. "
+            "<b>If you have not received your badges within two weeks of this date, "
+            "please call the central office.</b>",
+            [{"members": member_list}, "invoice", "scheduled_date"],
         ).send()
 
 
@@ -461,9 +519,7 @@ class PledgeProcessFlow(Flow):
         ...
 
     def send_invoice_payment_email(self, activation):
-        member_list = activation.process.pledges.values_list(
-            "user__email_school", flat=True
-        )
+        member_list = activation.process.pledges.values_list("user__name", flat=True)
         member_list = ", ".join(member_list)
         EmailProcessUpdate(
             activation,
