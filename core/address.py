@@ -5,23 +5,19 @@ from address.models import (
     Locality,
     Country,
     unicode,
+    Address,
 )
 from pygeocoder import Geocoder, GeocoderError
+from users.models import User
+from chapters.models import Chapter
+from forms.models import DisciplinaryProcess
 
 
 def xstr(s):
     return s or ""
 
 
-def update_address(value, address_obj):
-    """
-    from address.models import _to_python
-    Original function from django_address does not allow
-        for updating existing address with new address data
-    :param value:
-    :param address_obj:
-    :return:
-    """
+def process_value(value):
     raw = xstr(value.get("raw", ""))
     country = xstr(value.get("country", ""))
     country_code = xstr(value.get("country_code", ""))
@@ -90,6 +86,77 @@ def update_address(value, address_obj):
             )
         else:
             locality_obj = None
+
+    return (
+        street_number,
+        route,
+        raw,
+        locality_obj,
+        formatted,
+        latitude,
+        longitude,
+    )
+
+
+def deduplicate(addresses):
+    addresses_list = list(addresses)
+    main_address = addresses_list[0]
+    address_ids = addresses.values("id")
+    print("    Total to fix:", address_ids.count())
+    update_objs = set()
+    users = User.objects.filter(address__in=address_ids)
+    update_objs.update(list(users))
+    chapters = Chapter.objects.filter(address__in=address_ids)
+    update_objs.update(list(chapters))
+    disciplinary = DisciplinaryProcess.objects.filter(address__in=address_ids)
+    update_objs.update(list(disciplinary))
+    print("        objs found: ", update_objs)
+    for update_obj in update_objs:
+        update_obj.address = main_address
+    if users:
+        User.objects.bulk_update(users, ["address"])
+    if chapters:
+        Chapter.objects.bulk_update(chapters, ["address"])
+    if disciplinary:
+        DisciplinaryProcess.objects.bulk_update(disciplinary, ["address"])
+    for old_address in addresses_list[1:]:
+        old_address.delete()
+
+
+def fix_duplicate_address(value):
+    (
+        street_number,
+        route,
+        raw,
+        locality_obj,
+        formatted,
+        latitude,
+        longitude,
+    ) = process_value(value)
+    addresses = Address.objects.filter(
+        street_number=street_number, route=route, locality=locality_obj
+    )
+    deduplicate(addresses)
+
+
+def update_address(value, address_obj):
+    """
+    from address.models import _to_python
+    Original function from django_address does not allow
+        for updating existing address with new address data
+    :param value:
+    :param address_obj:
+    :return:
+    """
+    (
+        street_number,
+        route,
+        raw,
+        locality_obj,
+        formatted,
+        latitude,
+        longitude,
+    ) = process_value(value)
 
     # Handle the address.
     address_obj.street_number = street_number

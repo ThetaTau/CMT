@@ -1,3 +1,4 @@
+from address.forms import AddressWidget
 from betterforms.multiform import MultiModelForm
 from crispy_forms.bootstrap import (
     FormActions,
@@ -30,6 +31,7 @@ from upload_validator import FileTypeValidator
 from chapters.forms import ChapterForm
 from chapters.models import Chapter, ChapterCurricula
 from core.address import fix_address
+from core.forms import DuplicateAddressField
 from core.models import CHAPTER_ROLES_CHOICES, NAT_OFFICERS_CHOICES
 from regions.models import Region
 from users.models import User, UserRoleChange
@@ -832,6 +834,7 @@ class PledgeUser(forms.ModelForm):
             options={"format": "M/DD/YYYY"}, attrs={"autocomplete": "off"},
         ),
     )
+    address = DuplicateAddressField(widget=AddressWidget)
 
     class Meta:
         model = User
@@ -1123,6 +1126,7 @@ class DisciplinaryForm1(forms.ModelForm):
         help_text="Only PDF format accepted",
         validators=[FileTypeValidator(allowed_types=["application/pdf"])],
     )
+    address = DuplicateAddressField(widget=AddressWidget)
 
     class Meta:
         model = DisciplinaryProcess

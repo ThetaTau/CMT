@@ -1,12 +1,16 @@
 from django import forms
+from address.forms import AddressWidget
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Layout, Fieldset, Row, Submit
 from crispy_forms.bootstrap import FormActions, InlineField, StrictButton
 from .models import Chapter
 from core.address import fix_address
+from core.forms import DuplicateAddressField
 
 
 class ChapterForm(forms.ModelForm):
+    address = DuplicateAddressField(widget=AddressWidget)
+
     class Meta:
         model = Chapter
         fields = [

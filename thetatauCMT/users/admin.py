@@ -7,7 +7,7 @@ from django.utils.safestring import mark_safe
 from django.contrib.auth.models import Permission
 from django.utils.translation import gettext_lazy as _
 from django.contrib.auth.admin import UserAdmin as AuthUserAdmin
-from django.contrib.auth.forms import UserChangeForm, UserCreationForm
+from django.contrib.auth.forms import UserChangeForm
 from import_export.admin import ImportExportActionModelAdmin
 from address.widgets import AddressWidget
 from .models import (
@@ -24,6 +24,7 @@ from .resources import UserRoleChangeResource
 from .views import ExportActiveMixin
 from forms.models import Depledge, Initiation, StatusChange
 from core.admin import user_chapter
+from core.forms import DuplicateAddressField
 
 
 admin.site.register(Permission)
@@ -104,6 +105,8 @@ admin.site.register(UserRoleChange, UserRoleChangeAdmin)
 
 
 class MyUserChangeForm(UserChangeForm):
+    address = DuplicateAddressField(widget=AddressWidget, required=False)
+
     class Meta(UserChangeForm.Meta):
         model = User
 
@@ -274,8 +277,6 @@ class MyUserAdmin(AuthUserAdmin, ExportActiveMixin):
                 )
             except IndexError:
                 pass
-        if db_field.name == "address":
-            kwargs["widget"] = AddressWidget()
         return super().formfield_for_foreignkey(db_field, request, **kwargs)
 
 

@@ -1,6 +1,6 @@
 from django import forms
 from django.utils import timezone
-from address.forms import AddressField
+from address.widgets import AddressWidget
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Layout, Fieldset, Row, Column, Submit
 from crispy_forms.bootstrap import FormActions, InlineField, StrictButton
@@ -10,6 +10,7 @@ from captcha.fields import ReCaptchaField
 from captcha.widgets import ReCaptchaV3
 from core.address import fix_address
 from core.models import BIENNIUM_YEARS
+from core.forms import DuplicateAddressField
 from chapters.models import Chapter
 from .models import (
     UserAlter,
@@ -145,7 +146,7 @@ class UserAlterForm(forms.ModelForm):
 
 
 class UserForm(forms.ModelForm):
-    address = AddressField()
+    address = DuplicateAddressField(widget=AddressWidget)
 
     class Meta:
         model = User

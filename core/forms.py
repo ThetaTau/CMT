@@ -5,6 +5,8 @@ Copied from: https://gist.github.com/jamesbrobb/748c47f46b9bd224b07f
 from django.views.generic.base import ContextMixin, TemplateResponseMixin
 from django.views.generic.edit import ProcessFormView
 from django.http.response import HttpResponseRedirect, HttpResponseForbidden
+from address.forms import AddressField, Address
+from core.address import fix_duplicate_address
 
 
 class MultiFormMixin(ContextMixin):
@@ -147,3 +149,24 @@ class MultiFormsView(TemplateResponseMixin, BaseMultipleFormsView):
     """
     A view for displaying several forms, and rendering a template response.
     """
+
+
+class DuplicateAddressField(AddressField):
+    """
+    Django Address does not handle duplicates https://github.com/furious-luke/django-address
+    When cleaning if duplicate it just errors
+    """
+
+    def to_python(self, value):
+        try:
+            value = super().to_python(value)
+        except Address.MultipleObjectsReturned:
+            if (
+                not value["street_number"]
+                and not value["route"]
+                and value["locality"] is None
+            ):
+                return None
+            fix_duplicate_address(value)
+            value = super().to_python(value)
+        return value
