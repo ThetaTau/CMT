@@ -41,6 +41,7 @@ Need to fix social accounts
 ```
 from allauth.socialaccount.models import SocialApp
 from django.contrib.sites.models import Site
+SocialApp.objects.filter(name="Google").first().delete()
 app = SocialApp(
     provider="google",
     name="Google",
