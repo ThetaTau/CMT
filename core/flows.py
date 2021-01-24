@@ -11,7 +11,8 @@ class AutoAssignUpdateProcessView(flow_views.UpdateProcessView):
     def dispatch(self, request, **kwargs):
         """Lock the process, initialize `self.activation`, check permission and execute."""
         result = super().dispatch(request, **kwargs)
-        self.activation.task.owner = request.user
+        if not self.activation.task.owner:
+            self.activation.task.owner = request.user
         if self.activation.task.status == STATUS.DONE:
             self.activation.task.save()
         return result
@@ -23,6 +24,7 @@ class NoAssignActivation(flow.nodes.ManagedViewActivation):
     Also will check permission based on permission to view
     """
 
+    @Activation.status.transition(source=STATUS.NEW, target=STATUS.ASSIGNED)
     def assign(self, user=None):
         """Assign user to the task."""
         pass
@@ -62,10 +64,11 @@ class NoAssignView(flow.View):
     def assign_view(self):
         return self.view
 
-    @property
-    def unassign_view(self):
-        return self.view
+    def can_unassign(self, user, task):
+        return True
 
-    @property
-    def detail_view(self):
-        return self.view
+    def can_assign(self, user, task):
+        return True
+
+    def can_execute(self, user, task):
+        return True
