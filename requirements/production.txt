@@ -11,3 +11,5 @@ psycopg2==2.8.4 --no-binary psycopg2  # https://github.com/psycopg/psycopg2
 # ------------------------------------------------------------------------------
 django-anymail[mailjet]==7.2.0  # https://github.com/anymail/django-anymail
 django-sendgrid-v5==0.8.1  # https://github.com/sklarsa/django-sendgrid-v5
+django-email-bandit==1.5  # https://github.com/caktus/django-email-bandit
+django-middleware-global-request==0.2.0  # https://github.com/appstore-zencore/django-middleware-global-request
