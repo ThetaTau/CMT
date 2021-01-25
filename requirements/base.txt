@@ -23,6 +23,7 @@ rollbar==0.14.7  # https://github.com/rollbar/pyrollbar
 python-gnupg==0.4.6  # https://pythonhosted.org/python-gnupg/
 # python anywhere does not work with latest version
 python-magic==0.4.12 # https://github.com/ahupp/python-magic
+git+git://github.com/VenturaFranklin/api-wrappers-python.git#egg=moosend_api_wrapper
 
 # Django
 # ------------------------------------------------------------------------------

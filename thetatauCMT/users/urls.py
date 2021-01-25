@@ -1,4 +1,5 @@
 from django.conf.urls import url
+from core.email import sync_email_provider
 
 from . import views
 
@@ -24,5 +25,10 @@ urlpatterns = [
         regex=r"^alterchapter/$",
         view=views.UserAlterView.as_view(),
         name="alterchapter",
+    ),
+    url(
+        regex=r"^sync_email_provider/(?P<report_id>\d+)$",
+        view=sync_email_provider,
+        name="sync_email_provider",
     ),
 ]

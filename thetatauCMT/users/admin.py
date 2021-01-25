@@ -10,6 +10,7 @@ from django.contrib.auth.admin import UserAdmin as AuthUserAdmin
 from django.contrib.auth.forms import UserChangeForm
 from import_export.admin import ImportExportActionModelAdmin
 from address.widgets import AddressWidget
+from report_builder.admin import Report
 from .models import (
     User,
     UserRoleChange,
@@ -23,11 +24,13 @@ from .models import (
 from .resources import UserRoleChangeResource
 from .views import ExportActiveMixin
 from forms.models import Depledge, Initiation, StatusChange
-from core.admin import user_chapter
+from core.admin import user_chapter, ReportAdminSync
 from core.forms import DuplicateAddressField
 
 
 admin.site.register(Permission)
+admin.site.unregister(Report)
+admin.site.register(Report, ReportAdminSync)
 
 
 class UserStatusChangeAdmin(admin.ModelAdmin):
