@@ -325,6 +325,8 @@ def load_chapter_data(clicks, **kwargs):
     user = kwargs.get("user", None)
     if user is None and settings.DEBUG:
         user = User.objects.get(username="venturafranklin@gmail.com")
+    elif user.is_anonymous:
+        raise PreventUpdate
     chapter = user.current_chapter
     dfs = []
     year_terms_marks = {}
