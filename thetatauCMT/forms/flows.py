@@ -43,7 +43,14 @@ from .notifications import (
 from users.models import User
 
 
-@frontend.register
+def register_factory(viewset_class):
+    def decorator(function):
+        return frontend.register(function, viewset_class=viewset_class)
+
+    return decorator
+
+
+@register_factory(viewset_class=FilterableFlowViewSet)
 class PrematureAlumnusFlow(Flow):
     process_class = PrematureAlumnus
     process_title = _("Premature Alumnus Process")
@@ -153,13 +160,6 @@ class PrematureAlumnusFlow(Flow):
             ["approved_exec", "exec_comments",],
             extra_emails=[activation.process.created_by.email],
         ).send()
-
-
-def register_factory(viewset_class):
-    def decorator(function):
-        return frontend.register(function, viewset_class=viewset_class)
-
-    return decorator
 
 
 @register_factory(viewset_class=FilterableFlowViewSet)
@@ -987,7 +987,7 @@ class DisciplinaryProcessFlow(Flow):
         cls.delay_ec.run(process.get_task(cls.delay_ec))
 
 
-@frontend.register
+@register_factory(viewset_class=FilterableFlowViewSet)
 class ResignationFlow(Flow):
     process_class = ResignationProcess
     process_title = _("Resignation Process")
@@ -1099,7 +1099,7 @@ class ResignationFlow(Flow):
         user.set_current_status(status="resigned", created=created, start=created)
 
 
-@frontend.register
+@register_factory(viewset_class=FilterableFlowViewSet)
 class ReturnStudentFlow(Flow):
     process_class = ReturnStudent
     process_title = _("Return Student Process")
