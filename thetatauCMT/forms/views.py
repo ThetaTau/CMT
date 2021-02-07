@@ -1956,7 +1956,12 @@ class FilterProcessListView(ProcessListView, FlowListMixin):
     datatable_config = {"searching": True}
 
     def chapter(self, process):
-        return process.chapter
+        chapter = "unknown"
+        if hasattr(process, "chapter"):
+            chapter = process.chapter
+        elif hasattr(process, "user"):
+            chapter = process.user.chapter
+        return chapter
 
     chapter.short_description = "Chapter"
 

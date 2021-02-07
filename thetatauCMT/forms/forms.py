@@ -107,7 +107,9 @@ class InitiationForm(forms.ModelForm):
     def clean_user(self):
         data = self.cleaned_data["user"]
         user = User.objects.filter(name=data, chapter__name=self.data["chapter"]).last()
-        return user.pk
+        if user:
+            return user.pk
+        return ""
 
     def clean_roll(self):
         data = self.cleaned_data["roll"]
@@ -156,7 +158,9 @@ class DepledgeForm(forms.ModelForm):
     def clean_user(self):
         data = self.cleaned_data["user"]
         user = User.objects.filter(name=data, chapter__name=self.data["chapter"]).last()
-        return user.pk
+        if user:
+            return user.pk
+        return ""
 
 
 DepledgeFormSet = forms.formset_factory(DepledgeForm, extra=0)
@@ -211,7 +215,9 @@ class GraduateForm(forms.ModelForm):
     def clean_user(self):
         data = self.cleaned_data["user"]
         user = User.objects.filter(name=data, chapter__name=self.data["chapter"]).last()
-        return user
+        if user:
+            return user.pk
+        return ""
 
 
 GraduateFormSet = forms.formset_factory(GraduateForm, extra=0)
@@ -306,7 +312,9 @@ class CSMTForm(forms.ModelForm):
     def clean_user(self):
         data = self.cleaned_data["user"]
         user = User.objects.filter(name=data, chapter__name=self.data["chapter"]).last()
-        return user
+        if user:
+            return user.pk
+        return ""
 
 
 CSMTFormSet = forms.formset_factory(CSMTForm, extra=0)

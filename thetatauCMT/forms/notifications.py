@@ -191,6 +191,17 @@ class EmailPledgeConfirmation(
             "employer_position",
             "groups",
             "user_permissions",
+            "no_contact",
+            "deceased",
+            "address_changed",
+            "employer_changed",
+            "employer_address",
+            "emergency_first_name",
+            "emergency_middle_name",
+            "emergency_last_name",
+            "emergency_nickname",
+            "emergency_phone_number",
+            "emergency_relation",
         ]:
             if remove_item in model_dict:
                 del model_dict[remove_item]

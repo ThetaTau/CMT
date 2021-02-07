@@ -43,19 +43,22 @@ from .notifications import (
 from users.models import User
 
 
-@frontend.register
+def register_factory(viewset_class):
+    def decorator(function):
+        return frontend.register(function, viewset_class=viewset_class)
+
+    return decorator
+
+
+@register_factory(viewset_class=FilterableFlowViewSet)
 class PrematureAlumnusFlow(Flow):
     process_class = PrematureAlumnus
     process_title = _("Premature Alumnus Process")
     process_description = _("This process is for premature alumnus processing.")
 
-    start = (
-        flow.Start(
-            PrematureAlumnusCreateView, task_title=_("Request Premature Alumnus")
-        )
-        .Permission(auto_create=True)
-        .Next(this.pending_status)
-    )
+    start = flow.Start(
+        PrematureAlumnusCreateView, task_title=_("Request Premature Alumnus")
+    ).Next(this.pending_status)
 
     pending_status = flow.Handler(
         this.set_status_email, task_title=_("Set pending alumni status, send email."),
@@ -157,13 +160,6 @@ class PrematureAlumnusFlow(Flow):
             ["approved_exec", "exec_comments",],
             extra_emails=[activation.process.created_by.email],
         ).send()
-
-
-def register_factory(viewset_class):
-    def decorator(function):
-        return frontend.register(function, viewset_class=viewset_class)
-
-    return decorator
 
 
 @register_factory(viewset_class=FilterableFlowViewSet)
@@ -991,7 +987,7 @@ class DisciplinaryProcessFlow(Flow):
         cls.delay_ec.run(process.get_task(cls.delay_ec))
 
 
-@frontend.register
+@register_factory(viewset_class=FilterableFlowViewSet)
 class ResignationFlow(Flow):
     process_class = ResignationProcess
     process_title = _("Resignation Process")
@@ -1103,17 +1099,15 @@ class ResignationFlow(Flow):
         user.set_current_status(status="resigned", created=created, start=created)
 
 
-@frontend.register
+@register_factory(viewset_class=FilterableFlowViewSet)
 class ReturnStudentFlow(Flow):
     process_class = ReturnStudent
     process_title = _("Return Student Process")
     process_description = _("This process is for return student processing.")
 
-    start = (
-        flow.Start(ReturnStudentCreateView, task_title=_("Request Return Student"))
-        .Permission(auto_create=True)
-        .Next(this.pending_status)
-    )
+    start = flow.Start(
+        ReturnStudentCreateView, task_title=_("Request Return Student")
+    ).Next(this.pending_status)
 
     pending_status = flow.Handler(
         this.set_status_email, task_title=_("Set pending active status, send email."),
