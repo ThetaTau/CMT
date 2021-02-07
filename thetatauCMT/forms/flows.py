@@ -49,13 +49,9 @@ class PrematureAlumnusFlow(Flow):
     process_title = _("Premature Alumnus Process")
     process_description = _("This process is for premature alumnus processing.")
 
-    start = (
-        flow.Start(
-            PrematureAlumnusCreateView, task_title=_("Request Premature Alumnus")
-        )
-        .Permission(auto_create=True)
-        .Next(this.pending_status)
-    )
+    start = flow.Start(
+        PrematureAlumnusCreateView, task_title=_("Request Premature Alumnus")
+    ).Next(this.pending_status)
 
     pending_status = flow.Handler(
         this.set_status_email, task_title=_("Set pending alumni status, send email."),
@@ -1109,11 +1105,9 @@ class ReturnStudentFlow(Flow):
     process_title = _("Return Student Process")
     process_description = _("This process is for return student processing.")
 
-    start = (
-        flow.Start(ReturnStudentCreateView, task_title=_("Request Return Student"))
-        .Permission(auto_create=True)
-        .Next(this.pending_status)
-    )
+    start = flow.Start(
+        ReturnStudentCreateView, task_title=_("Request Return Student")
+    ).Next(this.pending_status)
 
     pending_status = flow.Handler(
         this.set_status_email, task_title=_("Set pending active status, send email."),
