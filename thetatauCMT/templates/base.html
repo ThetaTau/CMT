@@ -88,6 +88,11 @@
             <li class="nav-item">
               <a class="nav-link" href="{% url 'home' %}">Home <span class="sr-only">(current)</span></a>
             </li>
+            {% if not request.user.is_authenticated %}
+            <li class="nav-item">
+              <a class="nav-link" href="{% url 'forms:pledgeform' %}">Pledge Form</a>
+            </li>
+            {% endif %}
             {% if request.user.is_authenticated %}
               <li class="nav-item">
                 <a class="nav-link" href="{% url 'chapters:detail' request.user.current_chapter.slug %}">Chapter</a>
