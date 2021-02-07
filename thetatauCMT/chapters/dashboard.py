@@ -465,7 +465,7 @@ def majors_graph(data, yearterm, **kwargs):
     df = pd.DataFrame.from_dict(data)
     try:
         majors = df[df["Year Term"] == yearterm]["majors"].iloc[0]
-    except IndexError:
+    except (IndexError, KeyError):
         raise PreventUpdate
     labels = list(majors.keys())
     labels = ["<br>".join(textwrap.wrap(label, width=26)) for label in labels]
