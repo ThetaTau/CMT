@@ -25,7 +25,7 @@ from .forms import (
 
 
 class BallotDetailView(
-    NatOfficerRequiredMixin, LoginRequiredMixin, PagedFilteredTableView, DetailView,
+    LoginRequiredMixin, NatOfficerRequiredMixin, PagedFilteredTableView, DetailView,
 ):
     model = Ballot
     context_object_name = "ballot"
@@ -123,7 +123,7 @@ class BallotDetailView(
         return context
 
 
-class BallotCreateView(NatOfficerRequiredMixin, LoginRequiredMixin, CreateView):
+class BallotCreateView(LoginRequiredMixin, NatOfficerRequiredMixin, CreateView):
     model = Ballot
     template_name_suffix = "_create_form"
     officer_edit = "ballots"
@@ -187,7 +187,7 @@ class BallotUpdateView(
 
 
 class BallotListView(
-    NatOfficerRequiredMixin, LoginRequiredMixin, PagedFilteredTableView
+    LoginRequiredMixin, NatOfficerRequiredMixin, PagedFilteredTableView
 ):
     model = Ballot
     context_object_name = "ballot"
@@ -217,7 +217,7 @@ class BallotListView(
         return context
 
 
-class BallotCompleteCreateView(OfficerRequiredMixin, LoginRequiredMixin, CreateView):
+class BallotCompleteCreateView(LoginRequiredMixin, OfficerRequiredMixin, CreateView):
     model = BallotComplete
     template_name_suffix = "_vote"
     officer_edit = "ballots"

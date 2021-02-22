@@ -24,7 +24,7 @@ from users.filters import UserRoleListFilter, AdvisorListFilter
 from users.forms import UserRoleListFormHelper, AdvisorListFormHelper
 
 
-class RegionOfficerView(NatOfficerRequiredMixin, LoginRequiredMixin, DetailView):
+class RegionOfficerView(LoginRequiredMixin, NatOfficerRequiredMixin, DetailView):
     model = Region
     slug_field = "slug"
     slug_url_kwarg = "slug"
@@ -117,7 +117,7 @@ class RegionOfficerView(NatOfficerRequiredMixin, LoginRequiredMixin, DetailView)
         return context
 
 
-class RegionAdvisorView(NatOfficerRequiredMixin, LoginRequiredMixin, DetailView):
+class RegionAdvisorView(LoginRequiredMixin, NatOfficerRequiredMixin, DetailView):
     model = Region
     slug_field = "slug"
     slug_url_kwarg = "slug"
@@ -206,13 +206,13 @@ class RegionAdvisorView(NatOfficerRequiredMixin, LoginRequiredMixin, DetailView)
         return context
 
 
-class RegionDetailView(NatOfficerRequiredMixin, LoginRequiredMixin, DetailView):
+class RegionDetailView(LoginRequiredMixin, NatOfficerRequiredMixin, DetailView):
     model = Region
     slug_field = "slug"
     slug_url_kwarg = "slug"
 
 
-class RegionTaskView(NatOfficerRequiredMixin, LoginRequiredMixin, DetailView):
+class RegionTaskView(LoginRequiredMixin, NatOfficerRequiredMixin, DetailView):
     model = Region
     slug_field = "slug"
     slug_url_kwarg = "slug"

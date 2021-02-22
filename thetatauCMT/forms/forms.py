@@ -216,7 +216,7 @@ class GraduateForm(forms.ModelForm):
         data = self.cleaned_data["user"]
         user = User.objects.filter(name=data, chapter__name=self.data["chapter"]).last()
         if user:
-            return user.pk
+            return user
         return ""
 
 
@@ -313,7 +313,7 @@ class CSMTForm(forms.ModelForm):
         data = self.cleaned_data["user"]
         user = User.objects.filter(name=data, chapter__name=self.data["chapter"]).last()
         if user:
-            return user.pk
+            return user
         return ""
 
 
