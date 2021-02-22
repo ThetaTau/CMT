@@ -17,7 +17,7 @@ from .filters import TaskListFilter
 from .forms import TaskListFormHelper
 
 
-class TaskCompleteView(OfficerRequiredMixin, LoginRequiredMixin, CreateView):
+class TaskCompleteView(LoginRequiredMixin, OfficerRequiredMixin, CreateView):
     model = TaskChapter
     fields = []
     template_name = "tasks/task_complete.html"

@@ -192,7 +192,7 @@ class ChapterRedirectView(LoginRequiredMixin, RedirectView):
         )
 
 
-class ChapterListView(OfficerRequiredMixin, LoginRequiredMixin, PagedFilteredTableView):
+class ChapterListView(LoginRequiredMixin, OfficerRequiredMixin, PagedFilteredTableView):
     model = Chapter
     context_object_name = "chapter"
     ordering = ["name"]

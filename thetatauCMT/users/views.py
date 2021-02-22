@@ -202,7 +202,7 @@ class UserDetailUpdateView(LoginRequiredMixin, MultiFormsView):
 
 
 class UserSearchView(
-    NatOfficerRequiredMixin, LoginRequiredMixin, PagedFilteredTableView
+    LoginRequiredMixin, NatOfficerRequiredMixin, PagedFilteredTableView
 ):
     model = User
     # These next two lines tell the view to index lookups by username
@@ -439,7 +439,7 @@ class UserAutocomplete(autocomplete.Select2QuerySetView):
         return qs
 
 
-class UserAlterView(NatOfficerRequiredMixin, LoginRequiredMixin, FormView):
+class UserAlterView(LoginRequiredMixin, NatOfficerRequiredMixin, FormView):
     model = UserAlter
     form_class = UserAlterForm
 
@@ -476,7 +476,7 @@ class UserAlterView(NatOfficerRequiredMixin, LoginRequiredMixin, FormView):
         return super().form_valid(form)
 
 
-class UserGPAFormSetView(OfficerRequiredMixin, LoginRequiredMixin, FormSetView):
+class UserGPAFormSetView(LoginRequiredMixin, OfficerRequiredMixin, FormSetView):
     template_name = "users/gpa_formset.html"
     form_class = UserGPAForm
     factory_kwargs = {"extra": 0}
@@ -541,7 +541,7 @@ class UserGPAFormSetView(OfficerRequiredMixin, LoginRequiredMixin, FormSetView):
         return super().formset_valid(formset)
 
 
-class UserServiceFormSetView(OfficerRequiredMixin, LoginRequiredMixin, FormSetView):
+class UserServiceFormSetView(LoginRequiredMixin, OfficerRequiredMixin, FormSetView):
     template_name = "users/service_formset.html"
     form_class = UserServiceForm
     factory_kwargs = {"extra": 0}
@@ -606,7 +606,7 @@ class UserServiceFormSetView(OfficerRequiredMixin, LoginRequiredMixin, FormSetVi
         return super().formset_valid(formset)
 
 
-class UserOrgsFormSetView(OfficerRequiredMixin, LoginRequiredMixin, ModelFormSetView):
+class UserOrgsFormSetView(LoginRequiredMixin, OfficerRequiredMixin, ModelFormSetView):
     template_name = "users/orgs_formset.html"
     model = UserOrgParticipate
     form_class = UserOrgForm

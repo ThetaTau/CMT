@@ -20,7 +20,7 @@ class SubmissionDetailView(LoginRequiredMixin, DetailView):
 
 
 class SubmissionCreateView(
-    OfficerRequiredMixin, LoginRequiredMixin, TypeFieldFilteredChapterAdd, CreateView,
+    LoginRequiredMixin, OfficerRequiredMixin, TypeFieldFilteredChapterAdd, CreateView,
 ):
     model = Submission
     score_type = "Sub"
@@ -46,7 +46,7 @@ class SubmissionRedirectView(LoginRequiredMixin, RedirectView):
 
 
 class SubmissionUpdateView(
-    OfficerRequiredMixin, LoginRequiredMixin, TypeFieldFilteredChapterAdd, UpdateView
+    LoginRequiredMixin, OfficerRequiredMixin, TypeFieldFilteredChapterAdd, UpdateView
 ):
     fields = [
         "name",
