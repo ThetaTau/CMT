@@ -6,6 +6,10 @@
 {% block title %}Chapter Resignations{% endblock %}
 
 {% block content %}
+  <h1>Chapter Resignations</h1>
+  <p>Below is a list of resignations for the chapter and their status.</p>
+  <p>Only the member themself can submit their own resignation by going to
+    <a href="{% url 'users:detail' %}">"My Profile"</a> and selecting "Resign Membership"</p>
 {#  {% render_table table %}#}
 {% if table.page %}
   <div class="table-container">
