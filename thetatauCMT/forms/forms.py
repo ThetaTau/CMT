@@ -27,6 +27,7 @@ from django.utils import timezone
 from tempus_dominus.widgets import DatePicker
 from captcha.fields import ReCaptchaField
 from captcha.widgets import ReCaptchaV3
+from hcaptcha.fields import hCaptchaField
 from upload_validator import FileTypeValidator
 from chapters.forms import ChapterForm
 from chapters.models import Chapter, ChapterCurricula
@@ -829,10 +830,7 @@ class PledgeForm(forms.ModelForm):
         exclude = ["user", "created", "modified"]
 
 
-class PledgeUser(forms.ModelForm):
-    captcha = ReCaptchaField(label="", widget=ReCaptchaV3)
-    if getattr(settings, "DEBUG", False):
-        captcha.clean = lambda x: True
+class PledgeUserBase(forms.ModelForm):
     school_name = SchoolModelChoiceField(
         queryset=Chapter.objects.all().order_by("school")
     )
@@ -888,6 +886,16 @@ class PledgeUser(forms.ModelForm):
         return address
 
 
+class PledgeUser(PledgeUserBase):
+    captcha = ReCaptchaField(label="", widget=ReCaptchaV3)
+    if getattr(settings, "DEBUG", False):
+        captcha.clean = lambda x: True
+
+
+class PledgeUserAlt(PledgeUserBase):
+    captcha = hCaptchaField()
+
+
 class CrispyCompatableMultiModelForm(MultiModelForm):
     def __getitem__(self, key):
         if "-" in key:
@@ -905,6 +913,13 @@ class PledgeFormFull(CrispyCompatableMultiModelForm):
     }
 
     def __init__(self, *args, **kwargs):
+        alt_form = kwargs.get("alt_form", False)
+        if alt_form:
+            self.form_classes["user"] = PledgeUserAlt
+        else:
+            self.form_classes["user"] = PledgeUser
+        if "alt_form" in kwargs:
+            kwargs.pop("alt_form")
         super().__init__(*args, **kwargs)
         self.forms["user"].fields["major"].queryset = ChapterCurricula.objects.none()
         if "user-school_name" in self.forms["user"].data:

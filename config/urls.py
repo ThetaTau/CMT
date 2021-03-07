@@ -110,6 +110,10 @@ urlpatterns = [
         RedirectView.as_view(pattern_name="forms:pledgeform", permanent=True),
     ),
     url(
+        r"^pledgeform-alt/$",
+        RedirectView.as_view(pattern_name="forms:pledgeform-alt", permanent=True),
+    ),
+    url(
         r"^report/$", RedirectView.as_view(pattern_name="forms:report", permanent=True)
     ),
     url(

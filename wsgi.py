@@ -22,6 +22,8 @@ os.environ["DJANGO_GCP_STORAGE_BUCKET_NAME"] = "theta-tau"
 os.environ["RECAPTCHA_PUBLIC_KEY"] = ""
 os.environ["RECAPTCHA_PRIVATE_KEY"] = ""
 os.environ["MOOSEND_API_KEY"] = ""
+os.environ["HCAPTCHA_SITEKEY"] = ""
+os.environ["HCAPTCHA_SECRET"] = ""
 
 
 from django.core.wsgi import get_wsgi_application  # noqa: E402

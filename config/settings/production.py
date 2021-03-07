@@ -162,3 +162,6 @@ LOGGING = {
 # ------------------------------------------------------------------------------
 RECAPTCHA_PUBLIC_KEY = env("RECAPTCHA_PUBLIC_KEY")
 RECAPTCHA_PRIVATE_KEY = env("RECAPTCHA_PRIVATE_KEY")
+
+HCAPTCHA_SITEKEY = env("HCAPTCHA_SITEKEY")
+HCAPTCHA_SECRET = env("HCAPTCHA_SECRET")

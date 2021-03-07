@@ -31,6 +31,12 @@ urlpatterns = [
         name="pledgeform",
     ),
     url(
+        regex=r"^pledgeform_alt/$",
+        view=views.PledgeFormView.as_view(),
+        name="pledgeform-alt",
+        kwargs={"alt_form": True},
+    ),
+    url(
         regex=r"^pledgeprogram/$",
         view=views.PledgeProgramFormView.as_view(),
         name="pledge_program",

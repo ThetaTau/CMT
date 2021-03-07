@@ -1462,8 +1462,11 @@ def load_majors(request):
 
 
 class PledgeFormView(CreateView):
-    form_class = PledgeFormFull
     template_name = "forms/pledge_form.html"
+
+    def get_form(self):
+        alt_form = self.kwargs.get("alt_form", False)
+        return PledgeFormFull(alt_form=alt_form)
 
     def form_invalid(self, form):
         messages.add_message(

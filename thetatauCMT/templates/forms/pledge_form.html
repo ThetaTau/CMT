@@ -16,6 +16,7 @@
     To be completed at time of pledging by candidates for student membership.</p>
   {% csrf_token %}
   {% crispy form form.helper %}
+  <a>If you have trouble with the Captcha try filling out the alternative form captcha here: <a href="{% url 'forms:pledgeform-alt' %}">cmt.thetatau.org/pledgeform-alt</a></p>
 <script src="https://ajax.aspnetcdn.com/ajax/jquery.validate/1.11.1/jquery.validate.min.js"></script>
 <script type="text/javascript">
   $("#submit-id-submit").click(function (event) {

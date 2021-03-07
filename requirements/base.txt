@@ -60,6 +60,7 @@ django-recaptcha==2.0.6 # https://github.com/praekelt/django-recaptcha
 django-report-builder==6.4.0 # https://gitlab.com/burke-software/django-report-builder
 django-upload-validator==1.1.5 # https://github.com/mckinseyacademy/django-upload-validator
 django-allauth-2fa==0.8  # https://github.com/percipient/django-allauth-2fa
+django-hCaptcha==0.1.0  # https://pypi.org/project/django-hCaptcha/
 
 # Django REST Framework
 djangorestframework==3.11.0  # https://github.com/encode/django-rest-framework

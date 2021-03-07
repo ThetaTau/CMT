@@ -16,5 +16,7 @@ export DJANGO_GCP_STORAGE_BUCKET_NAME='theta-tau'
 export RECAPTCHA_PUBLIC_KEY=''
 export RECAPTCHA_PRIVATE_KEY=''
 export MOOSEND_API_KEY=''
+export HCAPTCHA_SITEKEY=''
+export HCAPTCHA_SECRET=''
 
 cd ~/thetatauCMT

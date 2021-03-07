@@ -106,6 +106,7 @@ THIRD_PARTY_APPS = [
     "django_otp.plugins.otp_static",
     "django_otp.plugins.otp_totp",
     "allauth_2fa",
+    "hcaptcha",
 ]
 
 LOCAL_APPS = [
