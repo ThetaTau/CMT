@@ -102,7 +102,7 @@ def deduplicate(addresses):
     addresses_list = list(addresses)
     main_address = addresses_list[0]
     address_ids = addresses.values("id")
-    print("    Total to fix:", address_ids.count())
+    # print("    Total to fix:", address_ids.count())
     update_objs = set()
     users = User.objects.filter(address__in=address_ids)
     update_objs.update(list(users))
@@ -110,7 +110,7 @@ def deduplicate(addresses):
     update_objs.update(list(chapters))
     disciplinary = DisciplinaryProcess.objects.filter(address__in=address_ids)
     update_objs.update(list(disciplinary))
-    print("        objs found: ", update_objs)
+    # print("        objs found: ", update_objs)
     for update_obj in update_objs:
         update_obj.address = main_address
     if users:
@@ -182,10 +182,10 @@ def fix_address(address):
     try:
         parsed = coder.geocode(address.raw)
     except GeocoderError:
-        print("    !!! Bad address")
+        # print("    !!! Bad address")
         address.delete()
         return None
-    print("    ", address.raw, parsed.formatted_address, sep="\n    ")
+    # print("    ", address.raw, parsed.formatted_address, sep="\n    ")
     postal_code = parsed.postal_code
     if parsed.postal_code_suffix:
         postal_code = f"{postal_code}-{parsed.postal_code_suffix}"
@@ -205,7 +205,7 @@ def fix_address(address):
     try:
         address = update_address(parsed_values, address)
     except InconsistentDictError:
-        print("    !!! Bad address")
+        # print("    !!! Bad address")
         address.delete()
         return None
     return address
