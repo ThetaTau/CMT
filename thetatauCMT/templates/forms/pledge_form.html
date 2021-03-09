@@ -16,8 +16,12 @@
     To be completed at time of pledging by candidates for student membership.</p>
   {% csrf_token %}
   {% crispy form form.helper %}
-  <a>If you have trouble with the Captcha try filling out the alternative form captcha here: <a href="{% url 'forms:pledgeform-alt' %}">cmt.thetatau.org/pledgeform-alt</a></p>
+  <p>If you have trouble with the Captcha try filling out the alternative form captcha here: <a href="{% url 'forms:pledgeform-alt' %}">cmt.thetatau.org/pledgeform-alt</a></p>
 <script src="https://ajax.aspnetcdn.com/ajax/jquery.validate/1.11.1/jquery.validate.min.js"></script>
+{# Handle issues with jquery validate of dates https://github.com/johnnyreilly/jquery-validation-globalize #}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/globalize/1.6.0/globalize.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jquery-validation-globalize@0.1.1/jquery.validate.globalize.min.js"></script>
+
 <script type="text/javascript">
   $("#submit-id-submit").click(function (event) {
     document.getElementById("submit-id-submit").value = "Submitting...";
