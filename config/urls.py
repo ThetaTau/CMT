@@ -81,8 +81,16 @@ urlpatterns = [
     url(r"", include((modules.urls))),
     url(r"^ckeditor/", include("ckeditor_uploader.urls")),
     url(r"^terms/", include("termsandconditions.urls")),
-    url(r"^privacy/", RedirectView.as_view(url="/terms/view/privacy/", permanent=True)),
-    url(r"^eula/", RedirectView.as_view(url="/terms/view/eula/", permanent=True)),
+    url(
+        r"^privacy/",
+        RedirectView.as_view(url="/terms/view/privacy/", permanent=True),
+        name="privacy",
+    ),
+    url(
+        r"^eula/",
+        RedirectView.as_view(url="/terms/view/eula/", permanent=True),
+        name="eula",
+    ),
     url(r"^regions/", include("regions.urls", namespace="regions")),
     url(r"^chapters/", include("chapters.urls", namespace="chapters")),
     url(r"^events/", include("events.urls", namespace="events")),
