@@ -107,6 +107,7 @@ THIRD_PARTY_APPS = [
     "django_otp.plugins.otp_totp",
     "allauth_2fa",
     "hcaptcha",
+    "termsandconditions",
 ]
 
 LOCAL_APPS = [
@@ -183,6 +184,7 @@ MIDDLEWARE = [
     "watson.middleware.SearchContextMiddleware",
     "core.middleware.OfficerMiddleware",
     "core.middleware.RMPSignMiddleware",
+    "termsandconditions.middleware.TermsAndConditionsRedirectMiddleware",
     "core.middleware.RequireSuperuser2FAMiddleware",
     "rollbar.contrib.django.middleware.RollbarNotifierMiddleware",  # Last
 ]
@@ -425,3 +427,8 @@ CKEDITOR_UPLOAD_PATH = "uploads/"
 RECAPTCHA_REQUIRED_SCORE = 0.69
 
 MOOSEND_API_KEY = env("MOOSEND_API_KEY", default=None)
+
+TERMS_EXCLUDE_URL_LIST = {
+    "/terms/required/",
+    "/accounts/logout/",
+}
