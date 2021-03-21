@@ -24,11 +24,7 @@ class RMPSignMiddleware(MiddlewareMixin):
             return response
         path = request.path
         # pages to not redirect on (no recursion please!)
-        path = path.strip("/")
-        if (
-            path
-            in "logout forms/rmp rmp electronic_terms forms/pledgeprogram forms/report forms/report".split()
-        ) or settings.DEBUG:
+        if path in settings.TERMS_EXCLUDE_URL_LIST:
             return response
         if request.user.is_officer:
             if not RiskManagement.user_signed_this_year(request.user):

@@ -428,7 +428,13 @@ RECAPTCHA_REQUIRED_SCORE = 0.69
 
 MOOSEND_API_KEY = env("MOOSEND_API_KEY", default=None)
 
+# These will be excluded for the terms accept and the officer/RMP middleware
 TERMS_EXCLUDE_URL_LIST = {
     "/terms/required/",
     "/accounts/logout/",
+    "/rmp/",
+    "/forms/rmp/",
+    "/electronic_terms/",
+    "/forms/pledgeprogram/",
+    "/forms/report/",
 }
