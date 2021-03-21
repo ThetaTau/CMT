@@ -1,3 +1,4 @@
+# https://www.pythonanywhere.com/user/Venturafranklin/files/var/www
 import os
 import sys
 
@@ -24,6 +25,8 @@ os.environ["RECAPTCHA_PRIVATE_KEY"] = ""
 os.environ["MOOSEND_API_KEY"] = ""
 os.environ["HCAPTCHA_SITEKEY"] = ""
 os.environ["HCAPTCHA_SECRET"] = ""
+os.environ["QUICKBOOKS_CLIENT"] = ""
+os.environ["QUICKBOOKS_SECRET"] = ""
 
 
 from django.core.wsgi import get_wsgi_application  # noqa: E402

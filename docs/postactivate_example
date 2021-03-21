@@ -1,5 +1,7 @@
 #!/bin/bash
 # This hook is sourced after this virtualenv is activated.
+# https://www.pythonanywhere.com/user/Venturafranklin/files/home/Venturafranklin/.virtualenvs/testCMT/bin/postactivate?edit
+# https://www.pythonanywhere.com/user/Venturafranklin/files/home/Venturafranklin/.virtualenvs/thetatauCMT/bin/postactivate?edit
 
 export WEB_CONCURRENCY=4
 export DJANGO_SETTINGS_MODULE='config.settings.production'
@@ -18,5 +20,7 @@ export RECAPTCHA_PRIVATE_KEY=''
 export MOOSEND_API_KEY=''
 export HCAPTCHA_SITEKEY=''
 export HCAPTCHA_SECRET=''
+export QUICKBOOKS_CLIENT=''
+export QUICKBOOKS_SECRET=''
 
 cd ~/thetatauCMT
