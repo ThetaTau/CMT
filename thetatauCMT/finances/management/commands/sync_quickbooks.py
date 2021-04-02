@@ -54,8 +54,8 @@ class Command(BaseCommand):
                     chapter_name = customer.CompanyName.split(" Chapter")[0]
             elif customer_type == "7300000000000214211":
                 # This is a colony
-                if "Colony" in chapter_name:
-                    chapter_name = customer.CompanyName.split(" Colony")[0]
+                # Colony is normally in the name
+                pass
             elif customer_type == "7300000000000220483":
                 # This is a natoff
                 continue
