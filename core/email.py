@@ -51,7 +51,13 @@ class MyHijackBackend(HijackBackendMixin, EmailBackend):
 @group_required(["officer", "natoff"])
 def sync_email_provider(request, report_id):
     report = get_object_or_404(Report, pk=report_id)
-    if report.root_model.name != "user":
+    if report.root_model.name == "user":
+        values = ["name", "email"]
+    elif "user" in [
+        field.name for field in report.root_model.model_class()._meta.fields
+    ]:
+        values = ["user__name", "user__email"]
+    else:
         messages.add_message(
             request,
             messages.ERROR,
@@ -59,9 +65,9 @@ def sync_email_provider(request, report_id):
         )
         return redirect(reverse("admin:report_builder_report_changelist"))
     queryset = report.get_query()
-    subscribers = queryset.values("name", "email")
+    subscribers = queryset.values(*values)
     subscribers = [
-        {key.title(): val for key, val in subscriber_dict.items()}
+        {key.title().replace("User__", ""): val for key, val in subscriber_dict.items()}
         for subscriber_dict in subscribers
     ]
     # objects_list = report.report_to_list(user=request.user, preview=True,)
