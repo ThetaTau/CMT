@@ -31,6 +31,10 @@ me.is_superuser=True
 me.is_staff=True
 me.set_password('_new_password_')
 me.save()
+
+from django.contrib.auth.models import Group
+group, created = Group.objects.get_or_create(name="officer")
+group.user_set.add(me)
 ```
     
 #### If delete/reload everything
