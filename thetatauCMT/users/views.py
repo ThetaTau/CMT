@@ -442,6 +442,7 @@ class UserAutocomplete(autocomplete.Select2QuerySetView):
 class UserAlterView(LoginRequiredMixin, NatOfficerRequiredMixin, FormView):
     model = UserAlter
     form_class = UserAlterForm
+    template_name = "users/lookup.html"  # dummy template should not be seen
 
     def get_success_url(self):
         redirect_to = self.request.POST.get("next", "")
