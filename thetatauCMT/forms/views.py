@@ -796,16 +796,16 @@ class ChapterReportListView(
         cancel = self.request.GET.get("cancel", False)
         request_get = self.request.GET.copy()
         if cancel:
-            request_get = QueryDict()
+            request_get = QueryDict(mutable=True)
         if not request_get:
             # Create a mutable QueryDict object, default is immutable
             request_get = QueryDict(mutable=True)
             request_get.setlist("year", [""])
             request_get.setlist("term", [""])
         if not cancel:
-            if request_get["year"] == "":
+            if request_get.get("year", "") == "":
                 request_get["year"] = datetime.datetime.now().year
-            if request_get["term"] == "":
+            if request_get.get("term", "") == "":
                 request_get["term"] = SEMESTER[datetime.datetime.now().month]
         self.filter = self.filter_class(request_get, queryset=qs)
         self.filter.request = self.request
@@ -1163,16 +1163,16 @@ class PledgeProgramListView(
         cancel = self.request.GET.get("cancel", False)
         request_get = self.request.GET.copy()
         if cancel:
-            request_get = QueryDict()
+            request_get = QueryDict(mutable=True)
         if not request_get:
             # Create a mutable QueryDict object, default is immutable
             request_get = QueryDict(mutable=True)
             request_get.setlist("year", [""])
             request_get.setlist("term", [""])
         if not cancel:
-            if request_get["year"] == "":
+            if request_get.get("year", "") == "":
                 request_get["year"] = datetime.datetime.now().year
-            if request_get["term"] == "":
+            if request_get.get("term", "") == "":
                 request_get["term"] = SEMESTER[datetime.datetime.now().month]
         self.filter = self.filter_class(request_get, queryset=qs)
         self.filter.request = self.request
@@ -1885,9 +1885,9 @@ class ConventionListView(
             request_get.setlist("year", [""])
             request_get.setlist("term", [""])
         if not cancel:
-            if request_get["year"] == "":
+            if request_get.get("year", "") == "":
                 request_get["year"] = datetime.datetime.now().year
-            if request_get["term"] == "":
+            if request_get.get("term", "") == "":
                 request_get["term"] = SEMESTER[datetime.datetime.now().month]
         self.filter = self.filter_class(request_get, queryset=qs)
         self.filter.request = self.request
@@ -2236,16 +2236,16 @@ class OSMListView(LoginRequiredMixin, NatOfficerRequiredMixin, PagedFilteredTabl
         cancel = self.request.GET.get("cancel", False)
         request_get = self.request.GET.copy()
         if cancel:
-            request_get = QueryDict()
+            request_get = QueryDict(mutable=True)
         if not request_get:
             # Create a mutable QueryDict object, default is immutable
             request_get = QueryDict(mutable=True)
             request_get.setlist("year", [""])
             request_get.setlist("term", [""])
         if not cancel:
-            if request_get["year"] == "":
+            if request_get.get("year", "") == "":
                 request_get["year"] = datetime.datetime.now().year
-            if request_get["term"] == "":
+            if request_get.get("term", "") == "":
                 request_get["term"] = SEMESTER[datetime.datetime.now().month]
         self.filter = self.filter_class(request_get, queryset=qs)
         self.filter.request = self.request
