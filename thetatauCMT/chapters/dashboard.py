@@ -446,15 +446,19 @@ def members_graph(data, years, status, year_info, **kwargs):
         raise PreventUpdate
     start_indx = df.index[df["Year Term"] == year_info[str(years[0])]["label"]]
     end_indx = df.index[df["Year Term"] == year_info[str(years[-1])]["label"]]
-    fig = px.line(
-        df.iloc[start_indx[0] : end_indx[0] + 1],
-        x="Year Term",
-        y=status,
-        title="Membership Composition",
-        color_discrete_map=COLORS,
-    )
-    fig.layout.update(showlegend=False, yaxis_title="", xaxis_title="")
-    return fig
+    try:
+        fig = px.line(
+            df.iloc[start_indx[0] : end_indx[0] + 1],
+            x="Year Term",
+            y=status,
+            title="Membership Composition",
+            color_discrete_map=COLORS,
+        )
+        fig.layout.update(showlegend=False, yaxis_title="", xaxis_title="")
+    except KeyError:
+        raise PreventUpdate
+    else:
+        return fig
 
 
 @app.callback(
