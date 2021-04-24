@@ -168,5 +168,11 @@ class DuplicateAddressField(AddressField):
             ):
                 return None
             fix_duplicate_address(value)
-            value = super().to_python(value)
+            try:
+                value = super().to_python(value)
+            except Address.MultipleObjectsReturned:
+                try:
+                    fix_duplicate_address(value)
+                except:
+                    return None
         return value
