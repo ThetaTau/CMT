@@ -7,11 +7,25 @@
 
 {% block title %}Initiation Report Selection{{ object.name }}{% endblock %}
 {% block content %}
+<script>
+  function update_state() {
+    var selects = $("select[id$=-state]");
+    for (i = 0; i < selects.length; i++) {
+      var select = selects[i];
+      select.value = "Defer";
+    }
+  }
+</script>
 {% specialspaceless %}
   {% if formset.initial_forms %}
     <h1>Please select new members to be initiated:</h1>
     <p>If you will not initiate nor depledge a potential new member listed below at this time, select "Defer".
       This allows you to initiate or depledge them at a later date.</p>
+    <p><input type="submit" id="default_defer_submit"
+              value="Set All Defer"
+              onclick="this.value='Applied';
+         update_state();
+         return false;"/></p>
     <form action="" method="post">
       {% csrf_token %}
       <div>{{ formset.management_form|crispy }}</div>
