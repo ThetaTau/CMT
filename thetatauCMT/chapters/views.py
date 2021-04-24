@@ -1,4 +1,3 @@
-from django.contrib.auth.mixins import LoginRequiredMixin
 from django.urls import reverse
 from django.shortcuts import get_object_or_404
 from django.contrib import messages
@@ -8,6 +7,7 @@ from django.views.generic import RedirectView
 from core.views import (
     RequestConfig,
     OfficerRequiredMixin,
+    LoginRequiredMixin,
     PagedFilteredTableView,
 )
 from core.forms import MultiFormsView

@@ -1,5 +1,4 @@
-from django.contrib.auth.mixins import LoginRequiredMixin
-from core.views import PagedFilteredTableView
+from core.views import PagedFilteredTableView, LoginRequiredMixin
 from .models import Transaction
 from .tables import TransactionTable, ChapterBalanceTable
 from .filters import TransactionListFilter, ChapterBalanceListFilter

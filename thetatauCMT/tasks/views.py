@@ -1,6 +1,5 @@
 import datetime
 from django.contrib import messages
-from django.contrib.auth.mixins import LoginRequiredMixin
 from django.shortcuts import redirect, reverse
 from django.db import models, transaction
 from django.db.utils import IntegrityError
@@ -10,6 +9,7 @@ from core.views import (
     PagedFilteredTableView,
     RequestConfig,
     OfficerRequiredMixin,
+    LoginRequiredMixin,
 )
 from .models import TaskChapter, TaskDate
 from .tables import TaskTable

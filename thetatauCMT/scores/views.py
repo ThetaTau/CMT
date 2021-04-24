@@ -1,7 +1,6 @@
-from django.contrib.auth.mixins import LoginRequiredMixin
 from django.urls import reverse
 from django.views.generic import DetailView, RedirectView
-from core.views import PagedFilteredTableView, RequestConfig
+from core.views import PagedFilteredTableView, RequestConfig, LoginRequiredMixin
 from .models import ScoreType, ScoreChapter
 from .tables import ScoreTable, ChapterScoreTable
 from events.tables import EventTable

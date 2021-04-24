@@ -2,7 +2,6 @@ import csv
 import datetime
 from collections import defaultdict
 from django.http import HttpResponse
-from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib import messages
 from django.urls import reverse
 from django.http.request import QueryDict
@@ -10,7 +9,7 @@ from django.db import models
 from django.views.generic import DetailView, ListView, RedirectView
 import django_tables2 as tables
 from django_tables2.utils import A
-from core.views import NatOfficerRequiredMixin, RequestConfig
+from core.views import NatOfficerRequiredMixin, RequestConfig, LoginRequiredMixin
 from core.models import combine_annotations
 from .models import Region
 from tasks.models import TaskDate

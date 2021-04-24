@@ -1,10 +1,10 @@
-from django.contrib.auth.mixins import LoginRequiredMixin
 from django.urls import reverse
 from django.views.generic import DetailView, UpdateView, RedirectView, CreateView
 from core.views import (
     PagedFilteredTableView,
     TypeFieldFilteredChapterAdd,
     OfficerRequiredMixin,
+    LoginRequiredMixin,
 )
 from .models import Event
 from .tables import EventTable

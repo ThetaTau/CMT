@@ -1,7 +1,6 @@
 from django.db import models
 from django.contrib import messages
 from django.http.request import QueryDict
-from django.contrib.auth.mixins import LoginRequiredMixin
 from django.urls import reverse
 from django.views.generic import DetailView, UpdateView, RedirectView, CreateView
 from core.views import (
@@ -9,6 +8,7 @@ from core.views import (
     RequestConfig,
     TypeFieldFilteredChapterAdd,
     OfficerRequiredMixin,
+    LoginRequiredMixin,
     NatOfficerRequiredMixin,
 )
 from core.models import NAT_OFFICERS, COUNCIL

@@ -11,7 +11,7 @@ from django.forms import models as model_forms
 from django.forms.models import modelformset_factory
 from django.utils.safestring import mark_safe
 from django.http.request import QueryDict
-from django.contrib.auth.mixins import LoginRequiredMixin
+
 from django.core.files.base import ContentFile
 from django.contrib import messages
 from django.urls import reverse
@@ -36,6 +36,7 @@ from core.forms import MultiFormsView
 from core.models import semester_encompass_start_end_date
 from core.views import (
     OfficerRequiredMixin,
+    LoginRequiredMixin,
     RequestConfig,
     PagedFilteredTableView,
     NatOfficerRequiredMixin,

@@ -1,4 +1,3 @@
-from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.decorators import user_passes_test
 from django.contrib import admin
 from django.contrib.auth.decorators import login_required
@@ -16,7 +15,7 @@ from scores.models import ScoreType
 from tasks.models import TaskChapter, TaskDate
 from tasks.tables import TaskIncompleteTable
 from announcements.models import Announcement
-from braces.views import GroupRequiredMixin
+from braces.views import GroupRequiredMixin, LoginRequiredMixin
 from viewflow.frontend.views import (
     AllTaskListView,
     FlowListMixin,

@@ -2,7 +2,6 @@ import csv
 import datetime
 import zipfile
 from io import BytesIO, StringIO
-from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.forms import PasswordResetForm
 from django.http.request import QueryDict
 from django.http.response import HttpResponseRedirect
@@ -22,6 +21,7 @@ from core.views import (
     RequestConfig,
     NatOfficerRequiredMixin,
     OfficerRequiredMixin,
+    LoginRequiredMixin,
     group_required,
 )
 from core.forms import MultiFormsView

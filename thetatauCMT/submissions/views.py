@@ -1,4 +1,3 @@
-from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib import messages
 from django.shortcuts import redirect, reverse
 from django.views.generic import DetailView, UpdateView, RedirectView, CreateView
@@ -6,6 +5,7 @@ from core.views import (
     PagedFilteredTableView,
     TypeFieldFilteredChapterAdd,
     OfficerRequiredMixin,
+    LoginRequiredMixin,
 )
 from .models import Submission
 from .tables import SubmissionTable
