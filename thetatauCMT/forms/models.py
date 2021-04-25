@@ -844,6 +844,7 @@ class InitiationProcess(Process):
             "Education Class of",
             "Last Name",
             "Badge Style",
+            "Guard Type",
         ]
         shingle_header = [
             "First Name",
@@ -884,8 +885,11 @@ class InitiationProcess(Process):
         shingle_writer.writeheader()
         for initiation in self.initiations.all():
             badge = ""
+            guard = ""
             if initiation.badge:
                 badge = initiation.badge.code
+            if initiation.guard.name != "None":
+                guard = initiation.guard.code
             row_badge = {
                 "Chapter Name": chapter,
                 "Chapter Address": self.chapter.address,
@@ -894,6 +898,7 @@ class InitiationProcess(Process):
                 "Education Class of": initiation.date_graduation.year,
                 "Last Name": initiation.user.last_name,
                 "Badge Style": badge,
+                "Guard Type": guard,
             }
             badge_writer.writerow(row_badge)
             row_shingle = {
