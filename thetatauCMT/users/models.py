@@ -458,7 +458,7 @@ class UserRoleChange(StartEndModel, TimeStampedModel):
         return cls.objects.filter(
             role__in=CHAPTER_ROLES,
             user__chapter=user.current_chapter,
-            start__lte=TODAY_END,
+            # start__lte=TODAY_END,
             end__gte=TODAY_END,
         ).order_by("user__last_name")
 
