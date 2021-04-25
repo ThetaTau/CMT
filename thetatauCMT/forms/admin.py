@@ -313,7 +313,13 @@ class InitiationProcessAdmin(admin.ModelAdmin):
 admin.site.register(InitiationProcess, InitiationProcessAdmin)
 
 
+class PledgeInline(admin.TabularInline):
+    model = PledgeProcess.pledges.through
+    extra = 1
+
+
 class PledgeProcessAdmin(admin.ModelAdmin):
+    inlines = [PledgeInline]
     list_display = (
         "chapter",
         "created",
