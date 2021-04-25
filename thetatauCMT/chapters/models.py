@@ -150,6 +150,31 @@ class Chapter(models.Model):
     )
     slug = models.SlugField(max_length=50, null=True, default=None, unique=True)
     email = models.EmailField(_("email address"), blank=True)
+    email_regent = models.EmailField(
+        _("Regent Generic email address"),
+        blank=True,
+        help_text="A generic email used for communication, NOT the member email",
+    )
+    email_vice_regent = models.EmailField(
+        _("Vice Regent Generic email address"),
+        blank=True,
+        help_text="A generic email used for communication, NOT the member email",
+    )
+    email_treasurer = models.EmailField(
+        _("Treasurer Generic email address"),
+        blank=True,
+        help_text="A generic email used for communication, NOT the member email",
+    )
+    email_scribe = models.EmailField(
+        _("Scribe Generic email address"),
+        blank=True,
+        help_text="A generic email used for communication, NOT the member email",
+    )
+    email_corresponding_secretary = models.EmailField(
+        _("Corresponding Secretary Generic email address"),
+        blank=True,
+        help_text="A generic email used for communication, NOT the member email",
+    )
     website = models.URLField(
         blank=True,
         help_text="You must include the full URL including https:// or http://",
@@ -381,6 +406,16 @@ class Chapter(models.Model):
         vice = officers.filter(role="vice regent").first()
         treasurer = officers.filter(role="treasurer").first()
         return [regent, scribe, vice, treasurer]
+
+    def get_generic_chapter_emails(self):
+        return [
+            self.email_regent,
+            self.email_scribe,
+            self.email_vice_regent,
+            self.email_treasurer,
+            self.email_corresponding_secretary,
+            self.email,
+        ]
 
     def next_badge_number(self):
         # Jan 2019 highest badge number was Mu with 1754

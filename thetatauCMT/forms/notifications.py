@@ -288,11 +288,16 @@ class EmailPledgeOfficer(EmailNotification):
         ]
         scribe = officers.filter(role="scribe").first()
         vice = officers.filter(role="vice regent").first()
+        generics = pledge_form.user.chapter.get_generic_chapter_emails()
         emails = set()
         if scribe:
             emails.add(scribe.email)
         if vice:
             emails.add(vice.email)
+        if generics[1]:  # Scribe
+            emails.add(generics[1])
+        if generics[2]:  # Vice
+            emails.add(generics[2])
         self.to_emails = emails
         self.cc = [
             pledge_form.user.email_school,
@@ -366,7 +371,9 @@ class EmailProcessUpdate(EmailNotification):
                     message = "THIS CHAPTER HAS NO OFFICERS, PLEASE REACH OUT TO THE CHAPTER ASAP TO FIX THIS!"
                     emails.append(chapter.region.email)
                     user = User.objects.get(username="Jim.Gaffney@thetatau.org")
-            emails = set([officer.email for officer in officers if officer])
+            emails = set([officer.email for officer in officers if officer]) | set(
+                chapter.get_generic_chapter_emails()
+            )
             if user and user.email in emails:
                 emails.remove(user.email)
         if extra_emails:

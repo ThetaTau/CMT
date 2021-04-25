@@ -20,12 +20,18 @@ class ChapterForm(forms.ModelForm):
             "address",
             "council",
             "recognition",
+            "email_regent",
+            "email_vice_regent",
+            "email_scribe",
+            "email_treasurer",
+            "email_corresponding_secretary",
         ]
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         for key in self.fields:
-            self.fields[key].required = True
+            if "email" not in key:
+                self.fields[key].required = True
 
     def clean_address(self):
         address = self.cleaned_data["address"]

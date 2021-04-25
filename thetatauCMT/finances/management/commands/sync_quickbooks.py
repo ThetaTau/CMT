@@ -81,7 +81,7 @@ class Command(BaseCommand):
                 chapter.get_current_officers_council(False)[0].values_list(
                     "email", flat=True
                 )
-            )
+            ) | set(chapter.get_generic_chapter_emails())
             if not emails:
                 print("    NO EMAILS")
             email_str = ", ".join(emails)
