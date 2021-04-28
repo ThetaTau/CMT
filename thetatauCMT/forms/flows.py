@@ -242,9 +242,9 @@ class InitiationProcessFlow(Flow):
         NoAssignView(
             AutoAssignUpdateProcessView,
             fields=["scheduled_date",],
-            task_title=_("Order received"),
-            task_description=_("Badge/shingle order received"),
-            task_result_summary=_("Badge/shingle order has been received"),
+            task_title=_("Shipping received"),
+            task_description=_("Shipping notification received"),
+            task_result_summary=_("Shipping notification received"),
         )
         .Permission("auth.central_office")
         .Next(this.send_received)
