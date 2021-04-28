@@ -241,7 +241,7 @@ class InitiationProcessFlow(Flow):
     order_received = (
         NoAssignView(
             AutoAssignUpdateProcessView,
-            fields=["scheduled_date",],
+            fields=["scheduled_date", "badge_order",],
             task_title=_("Shipping received"),
             task_description=_("Shipping notification received"),
             task_result_summary=_("Shipping notification received"),

@@ -691,6 +691,14 @@ class PrematureAlumnus(Process):
     vote = models.BooleanField(verbose_vote, default=False)
 
 
+def get_badge_order_upload_path(instance, filename):
+    return os.path.join(
+        "submissions",
+        "initiation",
+        f"{instance.chapter.slug}_{instance.invoice}_{filename}",
+    )
+
+
 class InitiationProcess(Process):
     class CEREMONIES(Enum):
         normal = (
@@ -724,6 +732,9 @@ class InitiationProcess(Process):
         default="normal",
         max_length=10,
         choices=[x.value for x in CEREMONIES],
+    )
+    badge_order = models.FileField(
+        blank=True, null=True, upload_to=get_badge_order_upload_path
     )
 
     def generate_invoice(self):

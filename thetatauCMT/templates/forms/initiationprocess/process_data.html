@@ -1,4 +1,5 @@
 {% load i18n viewflow material_frontend viewflow_frontend %}
+{% load custom_tags %}
 
 {% for root, fields, root_url in process_data %}
 <div class="card detail-card">
@@ -16,9 +17,10 @@
             <dt>{{ name }}:</dt>
             <dd>
               {% if value == True %}<span style="background-color:#00FF00">{{ value }}</span>{% else %}
-                {% if value == False %}<span style="background-color:#FF0000">{{ value }}</span>{% else %}
-                {% if value.url %}<a href="{{ value.url }}" target=”_blank”>{{ value.name }}</a>{% else %}
-                {{ value }}{% endif %}{% endif %}{% endif %}
+                {% if value == False %}<span style="background-color:#FF0000">{{ value }}</span>
+                {% else %}
+                {% safeURLfile value %}
+                {% endif %}{% endif %}
             </dd>
             {% endfor %}
         </dl>
