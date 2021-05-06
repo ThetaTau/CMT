@@ -374,6 +374,7 @@ class EmailProcessUpdate(EmailNotification):
             emails = set([officer.email for officer in officers if officer]) | set(
                 chapter.get_generic_chapter_emails()
             )
+            emails = {email for email in emails if email}
             if user and user.email in emails:
                 emails.remove(user.email)
         if extra_emails:

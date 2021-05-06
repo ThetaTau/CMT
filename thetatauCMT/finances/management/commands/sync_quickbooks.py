@@ -82,6 +82,7 @@ class Command(BaseCommand):
                     "email", flat=True
                 )
             ) | set(chapter.get_generic_chapter_emails())
+            emails = {email for email in emails if email}
             if not emails:
                 print("    NO EMAILS")
             email_str = ", ".join(emails)
