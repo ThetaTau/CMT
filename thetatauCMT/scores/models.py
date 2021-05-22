@@ -175,11 +175,11 @@ class ScoreType(models.Model):
                 mod = 1
             formula_out = formula_out.replace("UNMODIFIED", str(unmod))
             formula_out = formula_out.replace("MODIFIED", str(mod))
-        return eval(formula_out)
+        return round(eval(formula_out), 2)
 
     def calculate_score(self, obj, extra_info=None):
         total_score = 0
-        if self.special:
+        if self.special and self.special != "0":
             return self.calculate_special(obj, extra_info=extra_info)
         # Some events have base points just for having event
         total_score += self.base_points
