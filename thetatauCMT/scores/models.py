@@ -1,3 +1,4 @@
+import datetime
 from enum import Enum
 from django.db import models
 from django.db.models import Sum
@@ -110,6 +111,8 @@ class ScoreType(models.Model):
         for score_info in score_types:
             if score_info["id"] in score_values_ids:
                 for score_value in scores_values.filter(id=score_info["id"]):
+                    if score_value["chapters__year"] not in BIENNIUM_YEARS:
+                        continue
                     year = score_value["chapters__year"] - BIENNIUM_YEARS[0]
                     term = score_value["chapters__term"]
                     # if year = 0 or 2 continue
@@ -207,17 +210,55 @@ class ScoreType(models.Model):
         :return:
         """
         term = ScoreChapter.get_term(date)
+        year = date.year
+        term_opp_options = {"sp": "fa", "fa": "sp"}
+        # if current fall, next spring
+        year_opp = year + 1
+        term_opp = term_opp_options[term]
+        month = 3
+        if term == "sp":
+            # if current spring term, last fall
+            year_opp = year - 1
+            month = 10
+        score = self.chapter_score(chapter, date)
+        date_opp = datetime.date(year_opp, month, 1)
+        score_opp = self.chapter_score(chapter, date_opp)
+        # the score is the term score
+        #   max for year is the self.points
+        #   max for semester is self.term_points
+        total_points_year = score + score_opp
+        if total_points_year > self.points:
+            # Some scores allow all points to be earned in one semester
+            # should not go over max for year
+            # eg. if max is 100, 60 in fall and 80 in spring
+            #       will allow 60 in fall and sum-max
+            #           spring = max - fall
+            #           spring = 100 - 60 = 40
+            if term == "sp":
+                # the current spring semester will be limited
+                limited_points = self.points - score_opp
+                score = limited_points
+            else:
+                limited_points = self.points - score
+                score_opp = limited_points
         try:
-            score_chapter = self.chapters.get(
-                chapter=chapter, year=date.year, term=term
-            )
+            score_chapter = self.chapters.get(chapter=chapter, year=year, term=term)
         except ScoreChapter.DoesNotExist:
             score_chapter = ScoreChapter(
-                chapter=chapter, type=self, year=date.year, term=term
+                chapter=chapter, type=self, year=year, term=term
             )
-        score = self.chapter_score(chapter, date)
         score_chapter.score = score
         score_chapter.save()
+        try:
+            score_chapter_opp = self.chapters.get(
+                chapter=chapter, year=year_opp, term=term_opp
+            )
+        except ScoreChapter.DoesNotExist:
+            score_chapter_opp = ScoreChapter(
+                chapter=chapter, type=self, year=year_opp, term=term_opp
+            )
+        score_chapter_opp.score = score_opp
+        score_chapter_opp.save()
 
 
 class ScoreChapter(YearTermModel):
