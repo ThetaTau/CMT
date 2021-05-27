@@ -7,6 +7,7 @@ from core.models import BIENNIUM_YEARS
 class ScoreTable(tables.Table):
     name = tables.LinkColumn("scores:detail", args=[A("slug")])
     total = tables.Column("Biennium Total")
+    points = tables.Column("Points/Year")
 
     class Meta:
         model = ScoreType

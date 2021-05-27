@@ -76,7 +76,7 @@ class ChapterScoreListView(LoginRequiredMixin, PagedFilteredTableView):
     table_class = ChapterScoreTable
     filter_class = ChapterScoreListFilter
     formhelper_class = ChapterScoreListFormHelper
-    table_pagination = {"per_page": 100}
+    table_pagination = {"per_page": 150}
 
     def get_queryset(self):
         request_get = self.request.GET.copy()
