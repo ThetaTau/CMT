@@ -275,6 +275,12 @@ class Chapter(models.Model):
         semester_start, semester_end = semester_encompass_start_end_date()
         return self.events.filter(date__lte=semester_end, date__gte=semester_start)
 
+    def initiations_semester(self, given_date):
+        semester_start, semester_end = semester_encompass_start_end_date(
+            given_date=given_date
+        )
+        return self.initiations.filter(date__lte=semester_end, date__gte=semester_start)
+
     def current_members(self):
         return self.actives() | self.pledges()
 
@@ -342,13 +348,31 @@ class Chapter(models.Model):
             status__end__gte=TODAY_END,
         )
 
-    def pledges(self):
-        # Do not annotate, need the queryset not a list
-        return self.members.filter(
-            status__status="pnm",
-            status__start__lte=TODAY_END,
-            status__end__gte=TODAY_END,
+    def pledges(self, given_date):
+        """
+        This uses forms submitted
+        semester_start, semester_end = semester_encompass_start_end_date(
+            given_date=given_date
         )
+        return self.members.filter(
+            pledge_form__created__lte=semester_end,
+            pledge_form__created__gte=semester_start,
+        )
+        """
+        # started pledge status in this semester
+        semester_start, semester_end = semester_encompass_start_end_date(
+            given_date=given_date
+        )
+        dates = dict(status__start__lte=semester_end, status__start__gte=semester_start)
+        return self.members.filter(status__status="pnm", **dates)
+
+    def graduates(self, given_date):
+        # Alumni that started in this semester
+        semester_start, semester_end = semester_encompass_start_end_date(
+            given_date=given_date
+        )
+        dates = dict(status__start__lte=semester_end, status__start__gte=semester_start)
+        return self.members.filter(status__status="alumni", **dates)
 
     def depledges(self):
         return self.members.exclude(depledge__isnull=True,)
