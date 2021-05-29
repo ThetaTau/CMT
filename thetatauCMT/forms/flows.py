@@ -24,6 +24,7 @@ from .views import (
     ConventionCreateView,
     ConventionSignView,
     FilterableFlowViewSet,
+    FilterableInvoiceFlowViewSet,
     OSMCreateView,
     OSMVerifyView,
     DisciplinaryCreateView,
@@ -162,7 +163,7 @@ class PrematureAlumnusFlow(Flow):
         ).send()
 
 
-@register_factory(viewset_class=FilterableFlowViewSet)
+@register_factory(viewset_class=FilterableInvoiceFlowViewSet)
 class InitiationProcessFlow(Flow):
     """
     Chapter submits initiation report

@@ -1,3 +1,4 @@
+import re
 import csv
 import base64
 import datetime
@@ -1976,6 +1977,12 @@ class FilterProcessListView(ProcessListView, FlowListMixin):
         if search:
             search_chapter = search
             search_status = False
+            if "invoice:" in search:
+                matches = re.findall(r"invoice:\s*(\d*)", search)
+                search = re.sub(r"invoice:\s*(\d*)", "", search)
+                search_chapter = search
+                invoice_number = matches[0]
+                queryset = queryset.filter(Q(invoice__contains=invoice_number))
             if "," in search:
                 search_chapter, search_status = search.split(",", 1)
                 search_chapter = search_chapter.strip()
@@ -2034,8 +2041,30 @@ class FilterProcessListView(ProcessListView, FlowListMixin):
         )
 
 
+class FilterProcessInvoiceListView(FilterProcessListView):
+    list_display = [
+        "current_task",
+        "chapter",
+        "invoice",
+        "created",
+        "finished",
+    ]
+
+    def invoice(self, process):
+        invoice = "unknown"
+        if hasattr(process, "invoice"):
+            invoice = process.invoice
+        return invoice
+
+    invoice.short_description = "Invoice"
+
+
 class FilterableFlowViewSet(FlowViewSet):
     process_list_view = [r"^$", FilterProcessListView.as_view(), "index"]
+
+
+class FilterableInvoiceFlowViewSet(FlowViewSet):
+    process_list_view = [r"^$", FilterProcessInvoiceListView.as_view(), "index"]
 
 
 @group_required("natoff")
