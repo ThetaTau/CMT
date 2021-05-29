@@ -200,6 +200,9 @@ class Initiation(TimeStampedModel):
         return f"{self.user} initiated on {self.date}"
 
     def save(self, *args, **kwargs):
+        status_update = True
+        if "status_update" in kwargs:
+            status_update = kwargs.pop("status_update")
         super().save(*args, **kwargs)
         # Need to adjust old status pnm, save new status active
         new_user_id = f"{self.user.chapter.greek}{self.roll}"
@@ -211,9 +214,10 @@ class Initiation(TimeStampedModel):
                     self.user.save()
             except IntegrityError as e:
                 print("User ALREADY EXISTS", str(e))
-        self.user.set_current_status(
-            status="activepend", start=self.date, created=self.created
-        )
+        if status_update:
+            self.user.set_current_status(
+                status="activepend", start=self.date, created=self.created
+            )
 
     def chapter_initiations(self, chapter):
         result = self.objects.filter(user__chapter=chapter)
