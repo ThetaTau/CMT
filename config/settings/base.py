@@ -122,6 +122,7 @@ LOCAL_APPS = [
     "thetatauCMT.finances.apps.FinancesConfig",
     "thetatauCMT.ballots.apps.BallotsConfig",
     "thetatauCMT.announcements.apps.AnnouncementsConfig",
+    "thetatauCMT.notes.apps.NotesConfig",
 ]
 # https://docs.djangoproject.com/en/dev/ref/settings/#installed-apps
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS

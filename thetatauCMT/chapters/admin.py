@@ -1,5 +1,6 @@
 from django.contrib import admin
 from chapters.models import Chapter, ChapterCurricula
+from notes.admin import ChapterNoteInline
 
 
 class ChapterCurriculaInline(admin.TabularInline):
@@ -10,7 +11,7 @@ class ChapterCurriculaInline(admin.TabularInline):
 
 
 class ChapterAdmin(admin.ModelAdmin):
-    inlines = [ChapterCurriculaInline]
+    inlines = [ChapterNoteInline, ChapterCurriculaInline]
     list_filter = ["region", "active", "colony", "school_type", "recognition"]
     search_fields = ["name", "school"]
     ordering = ["name"]

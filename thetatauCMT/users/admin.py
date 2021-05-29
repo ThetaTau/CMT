@@ -26,6 +26,7 @@ from .views import ExportActiveMixin
 from forms.models import Depledge, Initiation, StatusChange
 from core.admin import user_chapter, ReportAdminSync
 from core.forms import DuplicateAddressField
+from notes.admin import UserNoteInline
 
 
 admin.site.register(Permission)
@@ -195,6 +196,7 @@ class UserAlterInline(admin.StackedInline):
 class MyUserAdmin(AuthUserAdmin, ExportActiveMixin):
     actions = ["export_chapter_actives"]
     inlines = [
+        UserNoteInline,
         UserAlterInline,
         StatusInline,
         RoleInline,
