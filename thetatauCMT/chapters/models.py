@@ -348,7 +348,15 @@ class Chapter(models.Model):
             status__end__gte=TODAY_END,
         )
 
-    def pledges(self, given_date):
+    def pledges(self):
+        # Do not annotate, need the queryset not a list
+        return self.members.filter(
+            status__status="pnm",
+            status__start__lte=TODAY_END,
+            status__end__gte=TODAY_END,
+        )
+
+    def pledges_semester(self, given_date):
         """
         This uses forms submitted
         semester_start, semester_end = semester_encompass_start_end_date(

@@ -41,7 +41,7 @@ class Command(BaseCommand):
                     #   and then init in January once freshmen pledge have GPA
                     #       Mabybe get list of pledges and check each for init?
                     # initiated = chapter.initiations_semester(date).count()
-                    pledges = chapter.pledges(date)
+                    pledges = chapter.pledges_semester(date)
                     # only those members that have an initiation form were initiated
                     initiated = pledges.exclude(initiation=None).count()
                     pledged = max([pledges.count(), 1])
