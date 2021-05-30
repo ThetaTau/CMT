@@ -258,6 +258,12 @@ class Chapter(models.Model):
             status__end__gte=date,
         )
 
+    def notes_filtered(self, current_user):
+        notes = self.notes.all()
+        if not current_user.is_council_officer():
+            notes = notes.exclude(restricted=True)
+        return notes
+
     def events_by_semester_biennium(self):
         semester_events = {}
         for names, dates in BIENNIUM_DATES.items():

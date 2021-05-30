@@ -40,6 +40,12 @@
           </tr>
         </table>
       {% endif %}
+      {% if request.is_nat_officer %}
+        <h3 id="audit">Chapter Notes:</h3>
+        <p>Notes about the chapter available to National Officers.
+          <a href="{% url 'notes:add' object.slug %}">Add notes here.</a></p>
+        {% render_table note_table %}
+      {% endif %}
     {% if request.user.current_chapter == object %}
     <h3 id="audit">Chapter Audit:</h3>
       <p>An audit should be conducted by the chapter officers at the beginning of fall semester, in January, and end of spring semester.

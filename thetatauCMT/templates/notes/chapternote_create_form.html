@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+
+{% block title %}Create New Note{% endblock %}
+
+{% block content %}
+  <h1>Create New Note</h1>
+  <form class="form-horizontal" enctype="multipart/form-data" method="post" novalidate>
+    {% csrf_token %}
+    {{ form.media }}
+    {{ form|crispy }}
+    <button type="submit" class="btn btn-primary" value="Save">Save</button>
+  </form>
+{% endblock %}
