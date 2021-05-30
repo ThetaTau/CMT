@@ -13,12 +13,18 @@ def get_upload_path(instance, filename):
         chapter = instance.user.chapter
     else:
         chapter = instance.chapter
-    return os.path.join(
-        "notes",
-        f"{chapter.slug}",
-        f"{instance.user.user_id}",
-        f"{chapter.slug}_{instance.user.user_id}_{filename}",
-    )
+    if hasattr(instance, "user"):
+        file_path = os.path.join(
+            "notes",
+            f"{chapter.slug}",
+            f"{instance.user.user_id}",
+            f"{chapter.slug}_{instance.user.user_id}_{filename}",
+        )
+    else:
+        file_path = os.path.join(
+            "notes", f"{chapter.slug}", "chapter_notes", f"{chapter.slug}_{filename}",
+        )
+    return file_path
 
 
 class Note(TimeStampedModel):
