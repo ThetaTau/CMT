@@ -967,12 +967,12 @@ class DisciplinaryProcessFlow(Flow):
         """
         forms = activation.process.forms_pdf()
         CentralOfficeGenericEmail(
-            message=f"Disciplinary Process complete for {object.user},"
+            message=f"Disciplinary Process complete for {activation.process.user},"
             f"See attached documents to file.",
             attachments=[
                 ContentFile(
                     forms,
-                    name=f"{object.chapter.slug}_{object.user.user_id}_disciplinary_forms.pdf",
+                    name=f"{activation.process.chapter.slug}_{activation.process.user.user_id}_disciplinary_forms.pdf",
                 )
             ],
         ).send()
