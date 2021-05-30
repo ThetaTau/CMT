@@ -6,8 +6,8 @@ from .models import UserNote, ChapterNote
 class UserNoteAdmin(admin.ModelAdmin):
     raw_id_fields = ["user"]
     readonly_fields = ("created_by", "modified_by", "created", "modified")
-    list_display = ("user", "title", "type", "created", "modified")
-    list_filter = ["type", "user__chapter", "created", "modified"]
+    list_display = ("user", "title", "restricted", "type", "created", "modified")
+    list_filter = ["type", "restricted", "user__chapter", "created", "modified"]
     search_fields = ["user__name", "title"]
     ordering = [
         "-created",
@@ -29,8 +29,8 @@ admin.site.register(UserNote, UserNoteAdmin)
 
 class ChapterNoteAdmin(admin.ModelAdmin):
     readonly_fields = ("created_by", "modified_by", "created", "modified")
-    list_display = ("chapter", "title", "type", "created", "modified")
-    list_filter = ["type", "chapter", "created", "modified"]
+    list_display = ("chapter", "title", "restricted", "type", "created", "modified")
+    list_filter = ["type", "restricted", "chapter", "created", "modified"]
     search_fields = ["title"]
     ordering = [
         "-created",

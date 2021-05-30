@@ -40,9 +40,17 @@ class Note(TimeStampedModel):
     type = models.CharField(
         max_length=20, default="note", choices=[x.value for x in TYPES]
     )
+    restricted = models.BooleanField(
+        verbose_name="Restrict read/write to Executive Council",
+        default=False,
+        help_text="If True only EC will be able to read or edit",
+    )
 
     class Meta:
         abstract = True
+        ordering = [
+            "-modified",
+        ]
 
 
 class ChapterNote(Note):
