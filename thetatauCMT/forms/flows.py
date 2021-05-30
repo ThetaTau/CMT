@@ -692,7 +692,7 @@ class DisciplinaryProcessFlow(Flow):
             fields=["ed_process", "ed_notes"],
             task_title=_("Executive Director Review"),
             task_description=_("Disciplinary Executive Director Review"),
-            task_result_summary=_("Message was {{ process.ed_process' }}"),
+            task_result_summary=_("Message was {{ process.ed_process }}"),
         )
         .Assign(lambda act: User.objects.get(username="Jim.Gaffney@thetatau.org"))
         .Next(this.check_approve)
