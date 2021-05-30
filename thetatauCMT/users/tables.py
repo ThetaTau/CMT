@@ -1,4 +1,5 @@
 import django_tables2 as tables
+from django_tables2.utils import A
 from .models import User
 
 
@@ -22,7 +23,13 @@ class UserTable(tables.Table):
             + "Only officers can view alumni contact information."
         )
 
-    def __init__(self, chapter=False, *args, **kwargs):
+    def __init__(self, chapter=False, natoff=False, *args, **kwargs):
+        if natoff:
+            self.base_columns["name"] = tables.LinkColumn(
+                "users:info", kwargs={"user_id": A("user_id")}
+            )
+        else:
+            self.base_columns["name"] = tables.Column()
         if chapter:
             extra_columns = [
                 ("chapter", tables.Column("Chapter")),

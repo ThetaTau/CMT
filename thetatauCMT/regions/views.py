@@ -99,6 +99,7 @@ class RegionOfficerView(LoginRequiredMixin, NatOfficerRequiredMixin, DetailView)
         self.filter.form.fields["chapter"].queryset = chapters
         table = UserTable(
             data=all_chapter_officers,
+            natoff=True,
             extra_columns=[
                 (
                     "chapter",
@@ -181,6 +182,7 @@ class RegionAdvisorView(LoginRequiredMixin, NatOfficerRequiredMixin, DetailView)
         self.filter.form.fields["chapter"].queryset = chapters
         table = UserTable(
             data=all_chapter_advisors,
+            natoff=True,
             extra_columns=[
                 (
                     "chapter",

@@ -9,4 +9,9 @@ urlpatterns = [
         view=views.ChapterNoteCreateView.as_view(),
         name="add",
     ),
+    url(
+        regex=r"^add_user/(?P<user_id>[\w.@+-]+)/$",
+        view=views.UserNoteCreateView.as_view(),
+        name="add_user",
+    ),
 ]

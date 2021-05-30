@@ -21,6 +21,7 @@ from users.forms import ExternalUserForm
 from tasks.models import Task
 from submissions.models import Submission
 from forms.notifications import EmailAdvisorWelcome
+from notes.tables import ChapterNoteTable
 
 
 class ChapterDetailView(LoginRequiredMixin, MultiFormsView):
@@ -153,11 +154,17 @@ class ChapterDetailView(LoginRequiredMixin, MultiFormsView):
         RequestConfig(self.request).configure(audit_table)
         context["audit_table"] = audit_table
         chapter = self.get_object()
+        note_table = ChapterNoteTable(data=chapter.notes_filtered(self.request.user))
+        RequestConfig(self.request).configure(note_table)
+        context["note_table"] = note_table
         context.update(
             {"object": chapter,}
         )
         chapter_officers, previous = chapter.get_current_officers()
-        table = UserTable(data=chapter_officers)
+        natoff = False
+        if self.request.user.is_national_officer():
+            natoff = True
+        table = UserTable(data=chapter_officers, natoff=natoff)
         table.exclude = ("badge_number", "graduation_year")
         RequestConfig(self.request, paginate={"per_page": 100}).configure(table)
         context["table"] = table

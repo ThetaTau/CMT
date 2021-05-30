@@ -20,6 +20,8 @@ class ChapterNoteTable(tables.Table):
 
 
 class UserNoteTable(tables.Table):
+    note = tables.TemplateColumn("{{ value|safe }}")
+
     class Meta:
         model = UserNote
         fields = (
@@ -27,7 +29,6 @@ class UserNoteTable(tables.Table):
             "note",
             "type",
             "file",
-            "created",
             "modified",
         )
         attrs = {"class": "table table-striped table-bordered"}

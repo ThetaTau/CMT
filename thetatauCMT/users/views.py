@@ -11,7 +11,7 @@ from django.forms.models import modelformset_factory
 from django.shortcuts import render
 from django.utils.http import is_safe_url
 from django.contrib import messages
-from django.views.generic import RedirectView, FormView
+from django.views.generic import RedirectView, FormView, DetailView
 from crispy_forms.layout import Submit
 from allauth.account.views import LoginView
 from extra_views import FormSetView, ModelFormSetView
@@ -53,6 +53,7 @@ from .forms import (
 )
 from chapters.models import Chapter
 from submissions.tables import SubmissionTable
+from notes.tables import UserNoteTable
 
 
 class UserRedirectView(LoginRequiredMixin, RedirectView):
@@ -68,6 +69,20 @@ def user_verify(request):
     user = User.objects.get(pk=user_id)
     form = UserForm(instance=user, verify=True)
     return render(request, "users/user_verify_form.html", {"form": form})
+
+
+class UserDetailView(LoginRequiredMixin, NatOfficerRequiredMixin, DetailView):
+    slug_field = "user_id"
+    slug_url_kwarg = "user_id"
+    template_name = "users/user_info.html"
+    model = User
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        table = UserNoteTable(self.object.notes.all())
+        RequestConfig(self.request).configure(table)
+        context["note_table"] = table
+        return context
 
 
 class UserDetailUpdateView(LoginRequiredMixin, MultiFormsView):
@@ -222,7 +237,10 @@ class UserSearchView(
         return queryset
 
     def get_table_kwargs(self):
-        return {"chapter": True}
+        natoff = False
+        if self.request.user.is_national_officer():
+            natoff = True
+        return {"chapter": True, "natoff": natoff}
 
 
 class ExportActiveMixin:
@@ -354,7 +372,10 @@ class UserListView(LoginRequiredMixin, PagedFilteredTableView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        table = UserTable(data=self.object_list)
+        natoff = False
+        if self.request.user.is_national_officer():
+            natoff = True
+        table = UserTable(data=self.object_list, natoff=natoff)
         table.exclude = ("role", "role_end")
         RequestConfig(self.request, paginate={"per_page": 30}).configure(table)
         context["table"] = table
