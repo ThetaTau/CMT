@@ -421,7 +421,8 @@ class UserRoleChange(StartEndModel, TimeStampedModel):
         # Need to check current role, b/c user could have multiple
         current_role = self.user.get_current_role()
         if current_role:
-            off_group.user_set.add(self.user)
+            if self.user not in off_group.user_set.all():
+                off_group.user_set.add(self.user)
             if current_role.role in NAT_OFFICERS:
                 nat_group.user_set.add(self.user)
         else:
