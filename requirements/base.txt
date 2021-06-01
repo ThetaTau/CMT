@@ -1,4 +1,4 @@
-urllib3==1.25.8
+urllib3==1.26.5
 requests==2.23.0
 pytz==2019.3  # https://github.com/stub42/pytz
 python-slugify==4.0.0  # https://github.com/un33k/python-slugify
