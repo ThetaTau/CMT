@@ -36,7 +36,7 @@ from forms.models import (
 )
 from core.admin import user_chapter, ReportAdminSync
 from core.forms import DuplicateAddressField
-from notes.admin import UserNoteInline
+from notes.admin import UserNoteInline, UserNote
 
 
 admin.site.register(Permission)
@@ -402,6 +402,18 @@ class MyUserAdmin(AuthUserAdmin, ExportActiveMixin):
             except IndexError:
                 pass
         return super().formfield_for_foreignkey(db_field, request, **kwargs)
+
+    def save_formset(self, request, form, formset, change):
+        instances = formset.save(commit=False)
+
+        for instance in instances:
+            if isinstance(instance, UserNote):
+                user = request.user
+                if not change or not hasattr(instance, "created_by"):
+                    instance.created_by = user
+                instance.modified_by = user
+                instance.save()
+        formset.save()
 
 
 @admin.register(LogEntry)
