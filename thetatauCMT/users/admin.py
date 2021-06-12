@@ -9,7 +9,6 @@ from django.utils.translation import gettext_lazy as _
 from django.contrib.auth.admin import UserAdmin as AuthUserAdmin
 from django.contrib.auth.forms import UserChangeForm
 from import_export.admin import ImportExportActionModelAdmin
-from address.widgets import AddressWidget
 from report_builder.admin import Report
 from .models import (
     User,
@@ -35,7 +34,6 @@ from forms.models import (
     ReturnStudent,
 )
 from core.admin import user_chapter, ReportAdminSync
-from core.forms import DuplicateAddressField
 from notes.admin import UserNoteInline, UserNote
 
 
@@ -119,8 +117,6 @@ admin.site.register(UserRoleChange, UserRoleChangeAdmin)
 
 
 class MyUserChangeForm(UserChangeForm):
-    address = DuplicateAddressField(widget=AddressWidget, required=False)
-
     class Meta(UserChangeForm.Meta):
         model = User
 
@@ -357,7 +353,6 @@ class MyUserAdmin(AuthUserAdmin, ExportActiveMixin):
                     "birth_date",
                     "email",
                     "email_school",
-                    "address",
                     "phone_number",
                     "major",
                     "employer",
