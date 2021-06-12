@@ -23,7 +23,17 @@ from .models import (
 )
 from .resources import UserRoleChangeResource
 from .views import ExportActiveMixin
-from forms.models import Depledge, Initiation, StatusChange
+from forms.models import (
+    Depledge,
+    Initiation,
+    StatusChange,
+    CollectionReferral,
+    DisciplinaryProcess,
+    OSM,
+    PrematureAlumnus,
+    ResignationProcess,
+    ReturnStudent,
+)
 from core.admin import user_chapter, ReportAdminSync
 from core.forms import DuplicateAddressField
 from notes.admin import UserNoteInline
@@ -185,6 +195,79 @@ class InitiationInline(admin.TabularInline):
     extra = 0
 
 
+class CollectionReferralInline(admin.TabularInline):
+    model = CollectionReferral
+    fk_name = "user"
+    readonly_fields = ("created",)
+    fields = [
+        "balance_due",
+        "ledger_sheet",
+    ]
+    extra = 0
+
+
+class DisciplinaryProcessInline(admin.TabularInline):
+    model = DisciplinaryProcess
+    fk_name = "user"
+    readonly_fields = ("created",)
+    fields = [
+        "charges",
+        "trial_date",
+        "punishment",
+        "ec_approval",
+    ]
+    extra = 0
+
+
+class OSMInline(admin.TabularInline):
+    model = OSM
+    fk_name = "nominate"
+    fields = [
+        "meeting_date",
+        "year",
+        "term",
+        "selection_process",
+    ]
+    extra = 0
+
+
+class PrematureAlumnusInline(admin.TabularInline):
+    model = PrematureAlumnus
+    fk_name = "user"
+    readonly_fields = ("created",)
+    fields = [
+        "prealumn_type",
+        "approved_exec",
+        "exec_comments",
+    ]
+    extra = 0
+
+
+class ResignationProcessInline(admin.TabularInline):
+    model = ResignationProcess
+    fk_name = "user"
+    readonly_fields = ("created",)
+    fields = [
+        "approved_o1",
+        "approved_o2",
+        "approved_exec",
+        "exec_comments",
+    ]
+    extra = 0
+
+
+class ReturnStudentInline(admin.TabularInline):
+    model = ReturnStudent
+    fk_name = "user"
+    readonly_fields = ("created",)
+    fields = [
+        "reason",
+        "approved_exec",
+        "exec_comments",
+    ]
+    extra = 0
+
+
 class UserAlterInline(admin.StackedInline):
     model = UserAlter
     fields = ["chapter", "role"]
@@ -203,6 +286,12 @@ class MyUserAdmin(AuthUserAdmin, ExportActiveMixin):
         InitiationInline,
         StatusChangeInline,
         DepledgeInline,
+        PrematureAlumnusInline,
+        ReturnStudentInline,
+        ResignationProcessInline,
+        OSMInline,
+        DisciplinaryProcessInline,
+        CollectionReferralInline,
     ]
     form = MyUserChangeForm
     add_form = MyUserCreationForm
