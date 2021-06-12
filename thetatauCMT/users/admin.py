@@ -194,6 +194,9 @@ class InitiationInline(admin.TabularInline):
     ordering = ["date"]
     extra = 0
 
+    def has_add_permission(self, request, obj=None):
+        return False
+
 
 class CollectionReferralInline(admin.TabularInline):
     model = CollectionReferral
@@ -203,7 +206,11 @@ class CollectionReferralInline(admin.TabularInline):
         "balance_due",
         "ledger_sheet",
     ]
+    show_change_link = True
     extra = 0
+
+    def has_add_permission(self, request, obj=None):
+        return False
 
 
 class DisciplinaryProcessInline(admin.TabularInline):
@@ -216,7 +223,11 @@ class DisciplinaryProcessInline(admin.TabularInline):
         "punishment",
         "ec_approval",
     ]
+    show_change_link = True
     extra = 0
+
+    def has_add_permission(self, request, obj=None):
+        return False
 
 
 class OSMInline(admin.TabularInline):
@@ -228,7 +239,11 @@ class OSMInline(admin.TabularInline):
         "term",
         "selection_process",
     ]
+    show_change_link = True
     extra = 0
+
+    def has_add_permission(self, request, obj=None):
+        return False
 
 
 class PrematureAlumnusInline(admin.TabularInline):
@@ -240,7 +255,11 @@ class PrematureAlumnusInline(admin.TabularInline):
         "approved_exec",
         "exec_comments",
     ]
+    show_change_link = True
     extra = 0
+
+    def has_add_permission(self, request, obj=None):
+        return False
 
 
 class ResignationProcessInline(admin.TabularInline):
@@ -253,7 +272,11 @@ class ResignationProcessInline(admin.TabularInline):
         "approved_exec",
         "exec_comments",
     ]
+    show_change_link = True
     extra = 0
+
+    def has_add_permission(self, request, obj=None):
+        return False
 
 
 class ReturnStudentInline(admin.TabularInline):
@@ -265,7 +288,11 @@ class ReturnStudentInline(admin.TabularInline):
         "approved_exec",
         "exec_comments",
     ]
+    show_change_link = True
     extra = 0
+
+    def has_add_permission(self, request, obj=None):
+        return False
 
 
 class UserAlterInline(admin.StackedInline):
@@ -273,6 +300,9 @@ class UserAlterInline(admin.StackedInline):
     fields = ["chapter", "role"]
     show_change_link = True
     extra = 0
+
+    def has_add_permission(self, request, obj=None):
+        return False
 
 
 @admin.register(User)
