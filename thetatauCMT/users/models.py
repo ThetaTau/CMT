@@ -233,7 +233,7 @@ class User(AbstractUser):
         return pledge_number
 
     def get_current_status(self):
-        if hasattr(self, "_current_status"):
+        if hasattr(self, "_current_status") and self._current_status is not None:
             return self._current_status
         return self.status.filter(start__lte=TODAY_END, end__gte=TODAY_END).first()
 
@@ -275,7 +275,7 @@ class User(AbstractUser):
         self._role = val
 
     def get_current_role(self):
-        if hasattr(self, "_role"):
+        if hasattr(self, "_role") and self._role is not None:
             if isinstance(self._role, QuerySet):
                 self._role = self._role.first()
             return self._role

@@ -1,6 +1,7 @@
 # filters.py
 import django_filters
 from .models import User, UserRoleChange
+from core.models import TODAY_END
 from regions.models import Region
 from chapters.models import ChapterCurricula
 
@@ -86,7 +87,7 @@ class UserRoleListFilter(django_filters.FilterSet):
 
     def filter_role(self, queryset, field_name, value):
         if value:
-            queryset = queryset.filter(role__in=value)
+            queryset = queryset.filter(roles__role__in=value, roles__end__gte=TODAY_END)
         return queryset
 
     def filter_region(self, queryset, field_name, value):

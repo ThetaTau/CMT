@@ -377,17 +377,20 @@ def combine_annotations(user_queryset):
         for duplicate_obj in duplicate_objs:
             if duplicate_obj.role is not None:
                 if uniques[pk].role is not None:
-                    if duplicate_obj.role not in uniques[pk].role:
+                    if duplicate_obj.role != uniques[pk].role:
                         uniques[pk].role = ", ".join(
-                            [duplicate_obj.role, uniques[pk].role]
+                            [str(duplicate_obj.role), str(uniques[pk].role)]
                         )
                 else:
                     uniques[pk].role = duplicate_obj.role
             if duplicate_obj.current_status is not None:
                 if uniques[pk].current_status is not None:
-                    if duplicate_obj.current_status not in uniques[pk].current_status:
+                    if duplicate_obj.current_status != uniques[pk].current_status:
                         uniques[pk].current_status = ", ".join(
-                            [duplicate_obj.current_status, uniques[pk].current_status]
+                            [
+                                str(duplicate_obj.current_status),
+                                str(uniques[pk].current_status),
+                            ]
                         )
                 else:
                     uniques[pk].current_status = duplicate_obj.current_status
