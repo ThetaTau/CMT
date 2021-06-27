@@ -4,15 +4,19 @@ from users.models import User
 from users.models import UserStatusChange
 
 
-def run():
+def run(*args):
     """
-    python manage.py runscript status_fixes
+    python manage.py runscript status_fixes --script-args {username sep spaces}
     For every user should have at least 3 status, pledge, active, alumn
         More status possible eg. pledge->active-->away-->active-->alumn-->active-->alumn
     No status should overlap
     Ideally not have same status next to each other. eg. active --> active
         These would be combined
     """
+    user_names = None
+    if args:
+        # automatically separated by spaces
+        user_names = args
     # First issue, many dates start/end were flipped, need to fix
     flipped_dates = UserStatusChange.objects.filter(Q(start__gt=F("end")))
     print("Fix flipped dates start ", flipped_dates.count())
@@ -22,7 +26,10 @@ def run():
         flipped_date.end = start
     UserStatusChange.objects.bulk_update(flipped_dates, ["start", "end"])
     print("Fix flipped dates end")
-    users = User.objects.all()
+    if user_names is None:
+        users = User.objects.all()
+    else:
+        users = User.objects.filter(username__in=user_names)
     total = users.count()
     for count, user in enumerate(users):
         print(f"{count+1}/{total}")
