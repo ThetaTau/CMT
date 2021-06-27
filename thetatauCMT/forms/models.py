@@ -331,9 +331,6 @@ class StatusChange(TimeStampedModel):
         # if coop, military
         #   save new status away
         current_status = self.user.get_current_status_all()
-        for status in current_status:
-            status.end = self.date_start - datetime.timedelta(days=1)
-            status.save()
         if self.reason in ["graduate", "withdraw", "transfer"]:
             self.user.set_current_status(
                 created=self.created, status="alumni", start=self.date_start,
@@ -351,7 +348,11 @@ class StatusChange(TimeStampedModel):
                 created=self.created,
                 status="active",
                 start=self.date_end + datetime.timedelta(days=1),
+                current=False,
             )
+            for status in current_status:
+                status.end = self.date_start - datetime.timedelta(days=1)
+                status.save()
 
 
 def get_chapter_report_upload_path(instance, filename):

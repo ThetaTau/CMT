@@ -240,7 +240,9 @@ class User(AbstractUser):
     def get_current_status_all(self):
         return self.status.filter(start__lte=TODAY_END, end__gte=TODAY_END).all()
 
-    def set_current_status(self, status, created=None, start=None, end=None):
+    def set_current_status(
+        self, status, created=None, start=None, end=None, current=True
+    ):
         if start is None:
             start = TODAY
         if created is None:
@@ -251,11 +253,12 @@ class User(AbstractUser):
             start = start.date()
         if end is None or (end > TODAY > start):
             end = forever()
-            # If the current current status is being set.
-            current_status = self.get_current_status_all()
-            for old_status in current_status:
-                old_status.end = start - datetime.timedelta(days=1)
-                old_status.save()
+            if current:
+                # If the current current status is being set.
+                current_status = self.get_current_status_all()
+                for old_status in current_status:
+                    old_status.end = start - datetime.timedelta(days=1)
+                    old_status.save()
         if status is None:
             # if alumni, set back alumni, else nonmember
             status = "alumni"
