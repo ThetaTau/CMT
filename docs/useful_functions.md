@@ -49,7 +49,7 @@ SocialApp.objects.filter(name="Google").first().delete()
 app = SocialApp(
     provider="google",
     name="Google",
-    client_id="", # Client ID called developer
+    client_id="", # Client ID called development
     secret="",)
 app.save()
 app.sites.set(Site.objects.all())
@@ -64,14 +64,20 @@ app.save()
 pg_dump --format c --no-owner --oids \
 --host venturafranklin-874.postgres.pythonanywhere-services.com \
 --port 10874 --username thetatau --dbname thetataucmt \
---file=database_backups/20200411.bak
+--file=database_backups/20210626.bak
 ```
 #### Restore
 __This does not work when the staging db is off from prod. ie. new table name etc.__
+This is the new way using the backup from dbbackup
 ```shell script
-dropdb thetatauCMT
-createdb thetatauCMT
-pg_restore --no-owner --dbname=thetatauCMT --format=c database_backups\20200411_postupdate.bak
+python manage.py dbrestore --database default --decrypt --noinput --pa
+ssphrase=
+```
+```shell script
+"C:\Program Files\PostgreSQL\10\pg_env.bat"
+dropdb -U postgres thetatauCMT
+createdb -U postgres thetatauCMT
+pg_restore --no-owner --dbname=thetatauCMT --format=c database_backups\20210626.bak
     
 pg_restore --no-owner --dbname=testcmt --port 10874 \
 --host venturafranklin-874.postgres.pythonanywhere-services.com \
