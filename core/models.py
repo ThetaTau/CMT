@@ -375,25 +375,22 @@ def combine_annotations(user_queryset):
         pk = duplicate["pk"]
         duplicate_objs = user_queryset.filter(pk=pk)
         for duplicate_obj in duplicate_objs:
-            if duplicate_obj.role is not None:
-                if uniques[pk].role is not None:
-                    if duplicate_obj.role != uniques[pk].role:
-                        uniques[pk].role = ", ".join(
-                            [str(duplicate_obj.role), str(uniques[pk].role)]
-                        )
+            dup_role = str(duplicate_obj.role)
+            roles = str(uniques[pk].role)
+            if dup_role != "None":
+                if roles != "None":
+                    if dup_role not in roles:
+                        uniques[pk].role = ", ".join([dup_role, roles])
                 else:
-                    uniques[pk].role = duplicate_obj.role
-            if duplicate_obj.current_status is not None:
-                if uniques[pk].current_status is not None:
-                    if duplicate_obj.current_status != uniques[pk].current_status:
-                        uniques[pk].current_status = ", ".join(
-                            [
-                                str(duplicate_obj.current_status),
-                                str(uniques[pk].current_status),
-                            ]
-                        )
+                    uniques[pk].role = dup_role
+            dup_status = str(duplicate_obj.current_status)
+            status = str(uniques[pk].current_status)
+            if dup_status != "None":
+                if status != "None":
+                    if dup_status not in status:
+                        uniques[pk].current_status = ", ".join([dup_status, status])
                 else:
-                    uniques[pk].current_status = duplicate_obj.current_status
+                    uniques[pk].current_status = dup_status
     return list(uniques.values())
 
 
