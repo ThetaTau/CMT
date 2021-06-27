@@ -70,8 +70,7 @@ pg_dump --format c --no-owner --oids \
 __This does not work when the staging db is off from prod. ie. new table name etc.__
 This is the new way using the backup from dbbackup
 ```shell script
-python manage.py dbrestore --database default --decrypt --noinput --pa
-ssphrase=
+python manage.py dbrestore --database default --decrypt --noinput --passphrase=
 ```
 ```shell script
 "C:\Program Files\PostgreSQL\10\pg_env.bat"
