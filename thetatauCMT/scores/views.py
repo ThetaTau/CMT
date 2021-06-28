@@ -1,3 +1,4 @@
+from datetime import datetime
 from django.urls import reverse
 from django.views.generic import DetailView, RedirectView
 from core.views import PagedFilteredTableView, RequestConfig, LoginRequiredMixin
@@ -6,7 +7,8 @@ from .tables import ScoreTable, ChapterScoreTable
 from events.tables import EventTable
 from chapters.models import Chapter
 from submissions.tables import SubmissionTable
-from .filters import ScoreListFilter, ChapterScoreListFilter, BIENNIUM_FILTERS
+from core.models import BIENNIUM_START
+from .filters import ScoreListFilter, ChapterScoreListFilter
 from .forms import ScoreListFormHelper, ChapterScoreListFormHelper
 
 
@@ -64,6 +66,7 @@ class ScoreListView(LoginRequiredMixin, PagedFilteredTableView):
         start_year = None
         if not cancel:
             start_year = request_get.get("start_year", None)
+            start_year = None if not start_year else start_year
         self.start_year = start_year
         qs = super().get_queryset()
         score_list = self.model.annotate_chapter_score(
@@ -89,11 +92,16 @@ class ChapterScoreListView(LoginRequiredMixin, PagedFilteredTableView):
 
     def get_queryset(self):
         request_get = self.request.GET.copy()
-        date_info = request_get.get("date", "")
         cancel = self.request.GET.get("cancel", False)
-        qs = super().get_queryset(request_get=request_get, clean_date=True,)
-        date = None
-        if date_info and not cancel:
-            date = BIENNIUM_FILTERS[(date_info, date_info.replace("_", " "))][0]
+        term = "fa"
+        year = BIENNIUM_START
+        if not cancel:
+            year = request_get.get("year", BIENNIUM_START)
+            year = BIENNIUM_START if not year else year
+            term = request_get.get("term", "fa")
+            term = "fa" if not term else term
+        qs = super().get_queryset(request_get=request_get)
+        month = {"sp": 3, "fa": 10}[term]
+        date = datetime(int(year), month, 1)
         data = ScoreChapter.type_score_biennium(date=date, chapters=qs)
         return data

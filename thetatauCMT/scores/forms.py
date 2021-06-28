@@ -49,7 +49,8 @@ class ChapterScoreListFormHelper(FormHelper):
             '<i class="fas fa-search"></i> Filter Chapter Scores',
             Row(
                 InlineField("region"),
-                InlineField("date"),
+                InlineField("year"),
+                InlineField("term"),
                 FormActions(
                     StrictButton(
                         '<i class="fa fa-search"></i> Filter',
