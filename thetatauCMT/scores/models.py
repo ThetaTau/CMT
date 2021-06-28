@@ -97,11 +97,16 @@ class ScoreType(models.Model):
         return round(min(total, self.term_points), 2)
 
     @classmethod
-    def annotate_chapter_score(cls, chapter, qs=None):
+    def annotate_chapter_score(cls, chapter, start_year=None, qs=None):
         if qs is None:
             qs = cls.objects.all()
+        if start_year is None:
+            start_year = BIENNIUM_YEARS[0]
+        start_year = int(start_year)
         scores_values = qs.filter(
-            chapters__chapter=chapter, chapters__year__gte=BIENNIUM_YEARS[0]
+            chapters__chapter=chapter,
+            chapters__year__gte=start_year,
+            chapters__year__lte=start_year + 2,
         ).values("chapters__year", "chapters__score", "chapters__term", "id")
         score_values_ids = set(scores_values.values_list("id", flat=True))
         score_types = qs.all().values(
@@ -111,9 +116,7 @@ class ScoreType(models.Model):
         for score_info in score_types:
             if score_info["id"] in score_values_ids:
                 for score_value in scores_values.filter(id=score_info["id"]):
-                    if score_value["chapters__year"] not in BIENNIUM_YEARS:
-                        continue
-                    year = score_value["chapters__year"] - BIENNIUM_YEARS[0]
+                    year = score_value["chapters__year"] - start_year
                     term = score_value["chapters__term"]
                     # if year = 0 or 2 continue
                     offset = {0: 1, 2: 4}

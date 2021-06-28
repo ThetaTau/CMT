@@ -20,6 +20,7 @@ class ScoreListFormHelper(FormHelper):
                 InlineField("name"),
                 InlineField("section"),
                 InlineField("type"),
+                InlineField("start_year"),
                 FormActions(
                     StrictButton(
                         '<i class="fa fa-search"></i> Filter',

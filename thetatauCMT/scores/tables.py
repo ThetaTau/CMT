@@ -27,11 +27,17 @@ class ScoreTable(tables.Table):
         empty_text = "There are no score types matching the search criteria..."
 
     def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+        start_year = kwargs.pop("start_year")
+        adds = [0, 1, 1, 2]
+        if start_year is None:
+            start_year = BIENNIUM_YEARS[0]
+        start_year = int(start_year)
         for i in range(4):
-            year = BIENNIUM_YEARS[i]
+            # it is always fall year+0, spring year+1, fall year+1, spring year+2
+            year = start_year + adds[i]
             semester = "Spring" if i % 2 else "Fall"
             self.base_columns[f"score{i + 1}"].verbose_name = f"{semester} {year}"
+        super().__init__(*args, **kwargs)
 
     def render_section(self, value):
         return ScoreType.SECTION.get_value(value)

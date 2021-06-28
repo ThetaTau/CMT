@@ -59,11 +59,20 @@ class ScoreListView(LoginRequiredMixin, PagedFilteredTableView):
     table_pagination = {"per_page": 50}
 
     def get_queryset(self):
+        request_get = self.request.GET.copy()
+        cancel = self.request.GET.get("cancel", False)
+        start_year = None
+        if not cancel:
+            start_year = request_get.get("start_year", None)
+        self.start_year = start_year
         qs = super().get_queryset()
         score_list = self.model.annotate_chapter_score(
-            self.request.user.current_chapter, qs
+            self.request.user.current_chapter, qs=qs, start_year=self.start_year,
         )
         return score_list
+
+    def get_table_kwargs(self):
+        return {"start_year": self.start_year}
 
 
 class ChapterScoreListView(LoginRequiredMixin, PagedFilteredTableView):
