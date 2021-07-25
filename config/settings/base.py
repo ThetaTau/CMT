@@ -161,9 +161,15 @@ AUTH_PASSWORD_VALIDATORS = [
     {
         "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",
     },
-    {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",},
-    {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator",},
-    {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",},
+    {
+        "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
+    },
+    {
+        "NAME": "django.contrib.auth.password_validation.CommonPasswordValidator",
+    },
+    {
+        "NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",
+    },
 ]
 
 # MIDDLEWARE
@@ -357,7 +363,9 @@ try:
         str(ROOT_DIR / "secrets" / "chaptermanagementtool-e11151065a69.json")
     )
 except FileNotFoundError:
-    warnings.warn("Google credentials not found! Missing secrets/chaptermanagementtool-e11151065a69.json")
+    warnings.warn(
+        "Google credentials not found! Missing secrets/chaptermanagementtool-e11151065a69.json"
+    )
 else:
     # GoogleCloudStorage LINK https://console.cloud.google.com/storage/browser/theta-tau?authuser=3&folder=true&organizationId=true&project=chaptermanagementtool
     DEFAULT_FILE_STORAGE = "storages.backends.gcloud.GoogleCloudStorage"
@@ -371,11 +379,19 @@ SOCIALACCOUNT_QUERY_EMAIL = True
 
 SOCIALACCOUNT_PROVIDERS = {
     "google": {
-        "SCOPE": ["profile", "email",],
-        "AUTH_PARAMS": {"access_type": "online",},
+        "SCOPE": [
+            "profile",
+            "email",
+        ],
+        "AUTH_PARAMS": {
+            "access_type": "online",
+        },
     },
     "linkedin": {
-        "SCOPE": ["r_basicprofile", "r_emailaddress",],
+        "SCOPE": [
+            "r_basicprofile",
+            "r_emailaddress",
+        ],
         "PROFILE_FIELDS": [
             "id",
             "first-name",
