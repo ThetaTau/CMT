@@ -11,6 +11,8 @@ from core.utils import check_officer, check_nat_officer
 class RequireSuperuser2FAMiddleware(BaseRequire2FAMiddleware):
     def require_2fa(self, request):
         # Superusers are require to have 2FA.
+        if settings.DEBUG:
+            return False
         return request.user.is_superuser
 
 
