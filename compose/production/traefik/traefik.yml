@@ -5,6 +5,11 @@ entryPoints:
   web:
     # http
     address: ":80"
+    http:
+      # https://docs.traefik.io/routing/entrypoints/#entrypoint
+      redirections:
+        entryPoint:
+          to: web-secure
 
   web-secure:
     # https
@@ -22,15 +27,6 @@ certificatesResolvers:
 
 http:
   routers:
-    web-router:
-      rule: "Host(`cmt.thetatau.org`)"
-      entryPoints:
-        - web
-      middlewares:
-        - redirect
-        - csrf
-      service: django
-
     web-secure-router:
       rule: "Host(`cmt.thetatau.org`)"
       entryPoints:
@@ -43,11 +39,6 @@ http:
         certResolver: letsencrypt
 
   middlewares:
-    redirect:
-      # https://docs.traefik.io/master/middlewares/redirectscheme/
-      redirectScheme:
-        scheme: https
-        permanent: true
     csrf:
       # https://docs.traefik.io/master/middlewares/headers/#hostsproxyheaders
       # https://docs.djangoproject.com/en/dev/ref/csrf/#ajax
