@@ -348,19 +348,21 @@ if GOOGLE_API_KEY == "TESTING":
             GOOGLE_API_KEY = key_file.read()
     except FileNotFoundError:
         warnings.warn("GOOGLE_API_KEY is not set in environment or secrets folder!")
-GOOGLE_APPLICATION_CREDENTIALS = env(
-    "GOOGLE_APPLICATION_CREDENTIALS",
-    default=r"secrets\chaptermanagementtool-e11151065a69.json",
-)
-# GoogleCloudStorage LINK https://console.cloud.google.com/storage/browser/theta-tau?authuser=3&folder=true&organizationId=true&project=chaptermanagementtool
-DEFAULT_FILE_STORAGE = "storages.backends.gcloud.GoogleCloudStorage"
-GS_BUCKET_NAME = "theta-tau"
-
-GS_DEFAULT_ACL = "publicRead"
-
-GS_CREDENTIALS = service_account.Credentials.from_service_account_file(
-    str(ROOT_DIR / "secrets" / "chaptermanagementtool-e11151065a69.json")
-)
+try:
+    GOOGLE_APPLICATION_CREDENTIALS = env(
+        "GOOGLE_APPLICATION_CREDENTIALS",
+        default=r"secrets\chaptermanagementtool-e11151065a69.json",
+    )
+    GS_CREDENTIALS = service_account.Credentials.from_service_account_file(
+        str(ROOT_DIR / "secrets" / "chaptermanagementtool-e11151065a69.json")
+    )
+except FileNotFoundError:
+    warnings.warn("Google credentials not found! Missing secrets/chaptermanagementtool-e11151065a69.json")
+else:
+    # GoogleCloudStorage LINK https://console.cloud.google.com/storage/browser/theta-tau?authuser=3&folder=true&organizationId=true&project=chaptermanagementtool
+    DEFAULT_FILE_STORAGE = "storages.backends.gcloud.GoogleCloudStorage"
+    GS_BUCKET_NAME = "theta-tau"
+    GS_DEFAULT_ACL = "publicRead"
 
 SOCIALACCOUNT_QUERY_EMAIL = True
 # https://console.developers.google.com/apis/credentials?project=chaptermanagementtool&authuser=2
