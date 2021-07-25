@@ -95,13 +95,17 @@ def sync_email_provider(request, report_id):
         )
         subscriber_mailing_responses = [create_mailing_response]
         for subscriber_body in subscriber_bodies:
-            subscriber_mailing_response = subscriber_api_instance.adding_multiple_subscribers(
-                format, apikey, create_mailing_response.context, subscriber_body
+            subscriber_mailing_response = (
+                subscriber_api_instance.adding_multiple_subscribers(
+                    format, apikey, create_mailing_response.context, subscriber_body
+                )
             )
             subscriber_mailing_responses.append(subscriber_mailing_response)
     except ApiException as e:
         messages.add_message(
-            request, messages.ERROR, f"Error sync with email provider {e}",
+            request,
+            messages.ERROR,
+            f"Error sync with email provider {e}",
         )
     else:
         errors = [
@@ -111,10 +115,14 @@ def sync_email_provider(request, report_id):
         ]
         if errors:
             messages.add_message(
-                request, messages.ERROR, f"Error sync with email provider {errors}",
+                request,
+                messages.ERROR,
+                f"Error sync with email provider {errors}",
             )
         else:
             messages.add_message(
-                request, messages.INFO, "Report sync with email provider complete",
+                request,
+                messages.INFO,
+                "Report sync with email provider complete",
             )
     return redirect(reverse("admin:report_builder_report_changelist"))

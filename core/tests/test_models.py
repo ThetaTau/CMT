@@ -107,13 +107,25 @@ def test_no_future_false():
     [
         (
             datetime.date(2016, 10, 1),
-            (datetime.datetime(2016, 7, 1), datetime.datetime(2017, 1, 1),),
+            (
+                datetime.datetime(2016, 7, 1),
+                datetime.datetime(2017, 1, 1),
+            ),
         ),
         (
             datetime.date(2018, 3, 1),
-            (datetime.datetime(2018, 1, 1), datetime.datetime(2018, 7, 1),),
+            (
+                datetime.datetime(2018, 1, 1),
+                datetime.datetime(2018, 7, 1),
+            ),
         ),
-        (None, (datetime.datetime(2020, 1, 1), datetime.datetime(2020, 7, 1),),),
+        (
+            None,
+            (
+                datetime.datetime(2020, 1, 1),
+                datetime.datetime(2020, 7, 1),
+            ),
+        ),
     ],
 )
 def test_semester_encompass_start_end_date(given_date, expected_dates):
@@ -126,14 +138,32 @@ def test_semester_encompass_start_end_date(given_date, expected_dates):
     [
         (
             datetime.date(2016, 10, 1),
-            (datetime.datetime(2016, 7, 1), datetime.datetime(2017, 7, 1),),
+            (
+                datetime.datetime(2016, 7, 1),
+                datetime.datetime(2017, 7, 1),
+            ),
         ),
         (
             datetime.date(2018, 3, 1),
-            (datetime.datetime(2017, 7, 1), datetime.datetime(2018, 7, 1),),
+            (
+                datetime.datetime(2017, 7, 1),
+                datetime.datetime(2018, 7, 1),
+            ),
         ),
-        ("2019", (datetime.datetime(2019, 7, 1), datetime.datetime(2020, 7, 1),),),
-        (None, (datetime.datetime(2019, 7, 1), datetime.datetime(2020, 7, 1),),),
+        (
+            "2019",
+            (
+                datetime.datetime(2019, 7, 1),
+                datetime.datetime(2020, 7, 1),
+            ),
+        ),
+        (
+            None,
+            (
+                datetime.datetime(2019, 7, 1),
+                datetime.datetime(2020, 7, 1),
+            ),
+        ),
     ],
 )
 def test_academic_encompass_start_end_date(given_date, expected_dates):

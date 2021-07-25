@@ -4,7 +4,9 @@ from .models import BIENNIUM_DATES
 
 
 DateRangeFilter.filters["year_last"] = lambda qs, name: qs.filter(
-    **{"%s__year" % name: now().year - 1,}
+    **{
+        "%s__year" % name: now().year - 1,
+    }
 )
 DateRangeFilter.choices.append(("year_last", "Last Year"))
 

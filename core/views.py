@@ -168,7 +168,9 @@ class TypeFieldFilteredChapterAdd(FormMixin):
         if task:
             if next_date:
                 prev_task = TaskChapter.check_previous(
-                    task=next_date, chapter=chapter, date=timezone.now(),
+                    task=next_date,
+                    chapter=chapter,
+                    date=timezone.now(),
                 )
                 if not prev_task:
                     TaskChapter(
@@ -204,7 +206,8 @@ class HomeView(LoginRequiredMixin, TemplateView):
         RequestConfig(self.request, paginate={"per_page": 40}).configure(table)
         context["table"] = table
         announcements = Announcement.objects.filter(
-            publish_start__lt=timezone.now(), publish_end__gt=timezone.now(),
+            publish_start__lt=timezone.now(),
+            publish_end__gt=timezone.now(),
         )
         context["announcements"] = announcements
         return context
