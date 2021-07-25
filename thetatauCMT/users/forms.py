@@ -1,4 +1,5 @@
 from django import forms
+from django.conf import settings
 from django.utils import timezone
 from address.widgets import AddressWidget
 from crispy_forms.helper import FormHelper
@@ -22,7 +23,12 @@ from .models import (
 
 
 class CaptchaLoginForm(LoginForm):
-    captcha = ReCaptchaField(label="", widget=ReCaptchaV3)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if not settings.DEBUG:
+            captcha = ReCaptchaField(label="", widget=ReCaptchaV3)
+            self.fields.update({"captcha": captcha})
+
 
 
 class UserListFormHelper(FormHelper):
