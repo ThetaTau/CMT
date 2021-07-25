@@ -47,7 +47,9 @@ class UserFactory(factory.django.DjangoModelFactory):
         if extracted:
             current = kwargs.get("current", True)
             UserRoleChangeFactory.create(
-                user=self, current=current, officer=extracted,
+                user=self,
+                current=current,
+                officer=extracted,
             )
 
     @factory.post_generation
@@ -87,7 +89,8 @@ class UserSemesterGPAFactory(factory.django.DjangoModelFactory):
         "random_element", elements=[item[0] for item in UserSemesterGPA.YEARS]
     )
     term = factory.Faker(
-        "random_element", elements=[item.value[0] for item in UserSemesterGPA.TERMS],
+        "random_element",
+        elements=[item.value[0] for item in UserSemesterGPA.TERMS],
     )
     user = factory.SubFactory(UserFactory)
     gpa = factory.Faker("pyfloat", min_value=0, max_value=20)

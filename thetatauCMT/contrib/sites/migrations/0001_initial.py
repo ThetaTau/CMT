@@ -37,6 +37,8 @@ class Migration(migrations.Migration):
                 "verbose_name_plural": "sites",
             },
             bases=(models.Model,),
-            managers=[("objects", django.contrib.sites.models.SiteManager()),],
+            managers=[
+                ("objects", django.contrib.sites.models.SiteManager()),
+            ],
         ),
     ]

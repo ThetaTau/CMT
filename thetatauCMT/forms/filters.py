@@ -23,7 +23,11 @@ class CompleteListFilter(django_filters.FilterSet):
     complete = django_filters.ChoiceFilter(
         label="Complete",
         method="filter_complete",
-        choices=(("1", "Complete"), ("0", "Incomplete"), ("", "All"),),
+        choices=(
+            ("1", "Complete"),
+            ("0", "Incomplete"),
+            ("", "All"),
+        ),
     )
     region = django_filters.ChoiceFilter(
         label="Region", choices=Region.region_choices(), method="filter_region"

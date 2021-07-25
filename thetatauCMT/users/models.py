@@ -167,7 +167,11 @@ class User(AbstractUser):
         help_text="Format: 9999999999 no spaces, dashes, etc.",
     )
     birth_date = models.DateField(default=datetime.date(year=1904, month=10, day=15))
-    address = AddressField(on_delete=models.SET_NULL, blank=True, null=True,)
+    address = AddressField(
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True,
+    )
     address_changed = MonitorField(monitor="address")
     chapter = models.ForeignKey(
         Chapter, on_delete=models.CASCADE, default=1, related_name="members"
@@ -266,7 +270,11 @@ class User(AbstractUser):
             if not alumni:
                 status = "nonmember"
         UserStatusChange(
-            user=self, created=created, status=status, start=start, end=end,
+            user=self,
+            created=created,
+            status=status,
+            start=start,
+            end=end,
         ).save()
 
     @property

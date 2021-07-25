@@ -55,7 +55,9 @@ class Command(BaseCommand):
                         type=score_type,
                         year=year,
                         term=semester,
-                        defaults=dict(score=pledge_vs_init_score,),
+                        defaults=dict(
+                            score=pledge_vs_init_score,
+                        ),
                     )
 
                     # Membership
@@ -63,7 +65,10 @@ class Command(BaseCommand):
                     current_size = chapter.get_actives_for_date(date).count()
                     graduated = max([chapter.graduates(date).count(), 1])
                     membership_score = min(
-                        [25, round(((current_size * initiated) / (graduated * 2)), 2),]
+                        [
+                            25,
+                            round(((current_size * initiated) / (graduated * 2)), 2),
+                        ]
                     )
                     score_type = ScoreType.objects.get(slug="membership")
                     ScoreChapter.objects.get_or_create(
@@ -71,7 +76,9 @@ class Command(BaseCommand):
                         type=score_type,
                         year=year,
                         term=semester,
-                        defaults=dict(score=membership_score,),
+                        defaults=dict(
+                            score=membership_score,
+                        ),
                     )
                     print(
                         f"        Init: {initiated}, Pledged: {pledged}, Current: {current_size}, grad: {graduated}"
@@ -89,7 +96,9 @@ class Command(BaseCommand):
                         type=score_type,
                         year=year,
                         term=semester,
-                        defaults=dict(score=report_review_score,),
+                        defaults=dict(
+                            score=report_review_score,
+                        ),
                     )
 
                     # Adopted New Member Education Program
@@ -101,7 +110,9 @@ class Command(BaseCommand):
                         type=score_type,
                         year=year,
                         term=semester,
-                        defaults=dict(score=program_score,),
+                        defaults=dict(
+                            score=program_score,
+                        ),
                     )
                 # Only needs to be done once per year
                 for score_type in ScoreType.objects.filter(type__in=["Evt", "Sub"]):

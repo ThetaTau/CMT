@@ -42,7 +42,8 @@ class ChapterScoreListFilter(ChapterListFilter):
         label="",
     )
     term = django_filters.ChoiceFilter(
-        choices=(("fa", "Fall"), ("sp", "Spring")), method="filter_pass",
+        choices=(("fa", "Fall"), ("sp", "Spring")),
+        method="filter_pass",
     )
 
     class Meta:

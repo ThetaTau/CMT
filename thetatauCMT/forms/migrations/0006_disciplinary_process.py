@@ -322,7 +322,9 @@ class Migration(migrations.Migration):
                     ),
                 ),
             ],
-            options={"abstract": False,},
+            options={
+                "abstract": False,
+            },
             bases=("viewflow.process", models.Model),
         ),
         migrations.CreateModel(

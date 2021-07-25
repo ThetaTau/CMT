@@ -22,7 +22,10 @@ def get_upload_path(instance, filename):
         )
     else:
         file_path = os.path.join(
-            "notes", f"{chapter.slug}", "chapter_notes", f"{chapter.slug}_{filename}",
+            "notes",
+            f"{chapter.slug}",
+            "chapter_notes",
+            f"{chapter.slug}_{filename}",
         )
     return file_path
 
@@ -71,7 +74,9 @@ class ChapterNote(Note):
 
 class UserNote(Note):
     user = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="notes",
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="notes",
     )
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,

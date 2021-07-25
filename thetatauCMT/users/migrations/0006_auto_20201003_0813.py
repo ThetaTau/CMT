@@ -56,5 +56,8 @@ class Migration(migrations.Migration):
             ),
         ),
         migrations.RunPython(str_to_major, major_to_str),
-        migrations.RemoveField(model_name="user", name="major_str",),
+        migrations.RemoveField(
+            model_name="user",
+            name="major_str",
+        ),
     ]

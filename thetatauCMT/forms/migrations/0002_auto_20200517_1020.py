@@ -288,9 +288,11 @@ class Migration(migrations.Migration):
             ),
         ),
         migrations.AlterUniqueTogether(
-            name="pledgeprogram", unique_together={("chapter", "year", "term")},
+            name="pledgeprogram",
+            unique_together={("chapter", "year", "term")},
         ),
         migrations.AlterUniqueTogether(
-            name="pledgeform", unique_together={("name", "email")},
+            name="pledgeform",
+            unique_together={("name", "email")},
         ),
     ]

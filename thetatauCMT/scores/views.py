@@ -70,7 +70,9 @@ class ScoreListView(LoginRequiredMixin, PagedFilteredTableView):
         self.start_year = start_year
         qs = super().get_queryset()
         score_list = self.model.annotate_chapter_score(
-            self.request.user.current_chapter, qs=qs, start_year=self.start_year,
+            self.request.user.current_chapter,
+            qs=qs,
+            start_year=self.start_year,
         )
         return score_list
 

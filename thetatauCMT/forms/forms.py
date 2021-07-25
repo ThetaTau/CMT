@@ -73,7 +73,10 @@ class InitDeplSelectFormHelper(FormHelper):
     help_text_inline = False
     error_text_inline = True
     html5_required = False
-    layout = Layout("user", "state",)
+    layout = Layout(
+        "user",
+        "state",
+    )
 
 
 class InitiationForm(forms.ModelForm):
@@ -81,13 +84,15 @@ class InitiationForm(forms.ModelForm):
     date_graduation = forms.DateField(
         label="Graduation Date",
         widget=DatePicker(
-            options={"format": "M/DD/YYYY"}, attrs={"autocomplete": "off"},
+            options={"format": "M/DD/YYYY"},
+            attrs={"autocomplete": "off"},
         ),
     )
     date = forms.DateField(
         label="Initiation Date",
         widget=DatePicker(
-            options={"format": "M/DD/YYYY"}, attrs={"autocomplete": "off"},
+            options={"format": "M/DD/YYYY"},
+            attrs={"autocomplete": "off"},
         ),
     )
 
@@ -148,7 +153,8 @@ class DepledgeForm(forms.ModelForm):
     date = forms.DateField(
         label="Depledge Date",
         widget=DatePicker(
-            options={"format": "M/DD/YYYY"}, attrs={"autocomplete": "off"},
+            options={"format": "M/DD/YYYY"},
+            attrs={"autocomplete": "off"},
         ),
     )
 
@@ -194,7 +200,8 @@ class GraduateForm(forms.ModelForm):
     date_start = forms.DateField(
         label="Graduation Date",
         widget=DatePicker(
-            options={"format": "M/DD/YYYY"}, attrs={"autocomplete": "off"},
+            options={"format": "M/DD/YYYY"},
+            attrs={"autocomplete": "off"},
         ),
     )
     email_personal = forms.EmailField()
@@ -248,13 +255,15 @@ class CSMTForm(forms.ModelForm):
     date_start = forms.DateField(
         label="Start Date",
         widget=DatePicker(
-            options={"format": "M/DD/YYYY"}, attrs={"autocomplete": "off"},
+            options={"format": "M/DD/YYYY"},
+            attrs={"autocomplete": "off"},
         ),
     )
     date_end = forms.DateField(
         label="End Date",
         widget=DatePicker(
-            options={"format": "M/DD/YYYY"}, attrs={"autocomplete": "off"},
+            options={"format": "M/DD/YYYY"},
+            attrs={"autocomplete": "off"},
         ),
     )
 
@@ -350,7 +359,8 @@ class RoleChangeNationalSelectForm(forms.ModelForm):
         initial=timezone.now().date(),
         label="Start Date",
         widget=DatePicker(
-            options={"format": "M/DD/YYYY"}, attrs={"autocomplete": "off"},
+            options={"format": "M/DD/YYYY"},
+            attrs={"autocomplete": "off"},
         ),
         disabled=True,
     )
@@ -358,7 +368,8 @@ class RoleChangeNationalSelectForm(forms.ModelForm):
         initial=timezone.now().date() + timezone.timedelta(days=365),
         label="End Date",
         widget=DatePicker(
-            options={"format": "M/DD/YYYY"}, attrs={"autocomplete": "off"},
+            options={"format": "M/DD/YYYY"},
+            attrs={"autocomplete": "off"},
         ),
         disabled=True,
     )
@@ -389,7 +400,8 @@ class RoleChangeSelectForm(forms.ModelForm):
         initial=timezone.now().date(),
         label="Start Date",
         widget=DatePicker(
-            options={"format": "M/DD/YYYY"}, attrs={"autocomplete": "off"},
+            options={"format": "M/DD/YYYY"},
+            attrs={"autocomplete": "off"},
         ),
         disabled=True,
     )
@@ -397,7 +409,8 @@ class RoleChangeSelectForm(forms.ModelForm):
         initial=timezone.now().date() + timezone.timedelta(days=365),
         label="End Date",
         widget=DatePicker(
-            options={"format": "M/DD/YYYY"}, attrs={"autocomplete": "off"},
+            options={"format": "M/DD/YYYY"},
+            attrs={"autocomplete": "off"},
         ),
         disabled=True,
     )
@@ -419,7 +432,12 @@ class RoleChangeSelectFormHelper(FormHelper):
     help_text_inline = False
     error_text_inline = True
     html5_required = False
-    layout = Layout("user", "role", "start", "end",)
+    layout = Layout(
+        "user",
+        "role",
+        "start",
+        "end",
+    )
 
 
 class ChapterReportForm(forms.ModelForm):
@@ -516,13 +534,15 @@ class PledgeProgramForm(forms.ModelForm):
     date_complete = forms.DateField(
         label=PledgeProgram.verbose_complete,
         widget=DatePicker(
-            options={"format": "M/DD/YYYY"}, attrs={"autocomplete": "off"},
+            options={"format": "M/DD/YYYY"},
+            attrs={"autocomplete": "off"},
         ),
     )
     date_initiation = forms.DateField(
         label=PledgeProgram.verbose_initiation,
         widget=DatePicker(
-            options={"format": "M/DD/YYYY"}, attrs={"autocomplete": "off"},
+            options={"format": "M/DD/YYYY"},
+            attrs={"autocomplete": "off"},
         ),
     )
 
@@ -837,7 +857,8 @@ class PledgeUserBase(forms.ModelForm):
     birth_date = forms.DateField(
         label="Birth Date",
         widget=DatePicker(
-            options={"format": "M/DD/YYYY"}, attrs={"autocomplete": "off"},
+            options={"format": "M/DD/YYYY"},
+            attrs={"autocomplete": "off"},
         ),
     )
     address = DuplicateAddressField(widget=AddressWidget)
@@ -944,21 +965,59 @@ class PledgeFormFull(CrispyCompatableMultiModelForm):
                 AccordionGroup(
                     "Personal Information",
                     Row(
-                        Column("user-title",),
-                        Column("user-first_name",),
-                        Column("user-middle_name",),
+                        Column(
+                            "user-title",
+                        ),
+                        Column(
+                            "user-first_name",
+                        ),
+                        Column(
+                            "user-middle_name",
+                        ),
                     ),
-                    Row(Column("user-last_name",), Column("user-suffix",),),
+                    Row(
+                        Column(
+                            "user-last_name",
+                        ),
+                        Column(
+                            "user-suffix",
+                        ),
+                    ),
                     "user-nickname",
                     "pledge-parent_name",
-                    Row(Column("user-email_school",), Column("user-email",),),
-                    Row(Column("user-phone_number",),),
+                    Row(
+                        Column(
+                            "user-email_school",
+                        ),
+                        Column(
+                            "user-email",
+                        ),
+                    ),
+                    Row(
+                        Column(
+                            "user-phone_number",
+                        ),
+                    ),
                     "user-address",
-                    Row(Column("user-birth_date",), Column("pledge-birth_place",),),
+                    Row(
+                        Column(
+                            "user-birth_date",
+                        ),
+                        Column(
+                            "pledge-birth_place",
+                        ),
+                    ),
                 ),
                 AccordionGroup(
                     "College & Degree Information",
-                    Row(Column("user-school_name",), Column("user-major",),),
+                    Row(
+                        Column(
+                            "user-school_name",
+                        ),
+                        Column(
+                            "user-major",
+                        ),
+                    ),
                     "user-graduation_year",
                     "pledge-other_degrees",
                     "pledge-relative_members",
@@ -995,7 +1054,9 @@ class PledgeFormFull(CrispyCompatableMultiModelForm):
                     "pledge-honest",
                     "pledge-signature",
                 ),
-                Field("user-captcha",),
+                Field(
+                    "user-captcha",
+                ),
                 ButtonHolder(Submit("submit", "Submit", css_class="btn-primary")),
             ),
         )
@@ -1075,7 +1136,8 @@ class ConventionForm(forms.ModelForm):
     meeting_date = forms.DateField(
         label="Meeting Date",
         widget=DatePicker(
-            options={"format": "M/DD/YYYY"}, attrs={"autocomplete": "off"},
+            options={"format": "M/DD/YYYY"},
+            attrs={"autocomplete": "off"},
         ),
     )
 
@@ -1092,13 +1154,15 @@ class OSMForm(forms.ModelForm):
     nominate = forms.ModelChoiceField(
         queryset=User.objects.all(),
         widget=autocomplete.ModelSelect2(
-            url="users:autocomplete", forward=(forward.Const("true", "chapter"),),
+            url="users:autocomplete",
+            forward=(forward.Const("true", "chapter"),),
         ),
     )
     meeting_date = forms.DateField(
         label="Meeting Date",
         widget=DatePicker(
-            options={"format": "M/DD/YYYY"}, attrs={"autocomplete": "off"},
+            options={"format": "M/DD/YYYY"},
+            attrs={"autocomplete": "off"},
         ),
     )
 
@@ -1126,19 +1190,22 @@ class DisciplinaryForm1(forms.ModelForm):
     notify_date = forms.DateField(
         label="Accused first notified of charges on date",
         widget=DatePicker(
-            options={"format": "M/DD/YYYY"}, attrs={"autocomplete": "off"},
+            options={"format": "M/DD/YYYY"},
+            attrs={"autocomplete": "off"},
         ),
     )
     charges_filed = forms.DateField(
         label="Charges filed by majority vote at a chapter meeting on date",
         widget=DatePicker(
-            options={"format": "M/DD/YYYY"}, attrs={"autocomplete": "off"},
+            options={"format": "M/DD/YYYY"},
+            attrs={"autocomplete": "off"},
         ),
     )
     trial_date = forms.DateField(
         label="Trial scheduled for date",
         widget=DatePicker(
-            options={"format": "M/DD/YYYY"}, attrs={"autocomplete": "off"},
+            options={"format": "M/DD/YYYY"},
+            attrs={"autocomplete": "off"},
         ),
     )
     notify_method = forms.MultipleChoiceField(
@@ -1199,19 +1266,22 @@ class DisciplinaryForm2(forms.ModelForm):
     rescheduled_date = forms.DateField(
         label="When will the new trial be held?",
         widget=DatePicker(
-            options={"format": "M/DD/YYYY"}, attrs={"autocomplete": "off"},
+            options={"format": "M/DD/YYYY"},
+            attrs={"autocomplete": "off"},
         ),
     )
     notify_results_date = forms.DateField(
         label="On what date was the member notified of the results of the trial?",
         widget=DatePicker(
-            options={"format": "M/DD/YYYY"}, attrs={"autocomplete": "off"},
+            options={"format": "M/DD/YYYY"},
+            attrs={"autocomplete": "off"},
         ),
     )
     suspension_end = forms.DateField(
         label="If suspended, when will this member’s suspension end?",
         widget=DatePicker(
-            options={"format": "M/DD/YYYY"}, attrs={"autocomplete": "off"},
+            options={"format": "M/DD/YYYY"},
+            attrs={"autocomplete": "off"},
         ),
     )
     minutes = forms.FileField(

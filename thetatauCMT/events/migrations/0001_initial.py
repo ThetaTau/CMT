@@ -81,6 +81,8 @@ class Migration(migrations.Migration):
                     ),
                 ),
             ],
-            options={"unique_together": {("name", "date", "chapter")},},
+            options={
+                "unique_together": {("name", "date", "chapter")},
+            },
         ),
     ]

@@ -25,7 +25,10 @@ from .forms import (
 
 
 class BallotDetailView(
-    LoginRequiredMixin, NatOfficerRequiredMixin, PagedFilteredTableView, DetailView,
+    LoginRequiredMixin,
+    NatOfficerRequiredMixin,
+    PagedFilteredTableView,
+    DetailView,
 ):
     model = Ballot
     context_object_name = "ballot"
@@ -78,7 +81,13 @@ class BallotDetailView(
             "chapter", flat=True
         )
         data = list(
-            all_ballots.values("user_name", "chapter", "region", "motion", "role",)
+            all_ballots.values(
+                "user_name",
+                "chapter",
+                "region",
+                "motion",
+                "role",
+            )
         )
         nat_offs = UserRoleChange.get_current_natoff().exclude(user__in=users)
         incomplete_chapter = []

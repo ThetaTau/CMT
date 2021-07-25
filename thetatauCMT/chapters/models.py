@@ -294,7 +294,9 @@ class Chapter(models.Model):
     def advisors_external(self):
         # Do not annotate, need the queryset not a list
         all_advisors = self.members.filter(
-            status__status__in=["advisor",],
+            status__status__in=[
+                "advisor",
+            ],
             status__start__lte=TODAY_END,
             status__end__gte=TODAY_END,
         )
@@ -304,7 +306,9 @@ class Chapter(models.Model):
     def advisors(self):
         # Do not annotate, need the queryset not a list
         all_advisors = self.members.filter(
-            status__status__in=["advisor",],
+            status__status__in=[
+                "advisor",
+            ],
             status__start__lte=TODAY_END,
             status__end__gte=TODAY_END,
         ) | self.members.filter(
@@ -341,7 +345,9 @@ class Chapter(models.Model):
     def alumni(self):
         # Do not annotate, need the queryset not a list
         return self.members.filter(
-            status__status__in=["alumni",],
+            status__status__in=[
+                "alumni",
+            ],
             status__start__lte=TODAY_END,
             status__end__gte=TODAY_END,
         )
@@ -389,7 +395,9 @@ class Chapter(models.Model):
         return self.members.filter(status__status="alumni", **dates)
 
     def depledges(self):
-        return self.members.exclude(depledge__isnull=True,)
+        return self.members.exclude(
+            depledge__isnull=True,
+        )
 
     def gpas(self):
         return self.current_members().filter(gpas__year__gte=BIENNIUM_START)
@@ -493,7 +501,9 @@ class Chapter(models.Model):
     @classmethod
     def get_school_chapter(cls, school_name):
         try:
-            return cls.objects.get(school=school_name,)
+            return cls.objects.get(
+                school=school_name,
+            )
         except cls.DoesNotExist:
             warnings.warn("Could not find school")
             return None

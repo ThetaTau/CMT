@@ -10,7 +10,9 @@ from .models import ChapterNote, UserNote
 
 
 class ChapterNoteCreateView(
-    LoginRequiredMixin, NatOfficerRequiredMixin, CreateView,
+    LoginRequiredMixin,
+    NatOfficerRequiredMixin,
+    CreateView,
 ):
     model = ChapterNote
     template_name = "notes/create_form.html"
@@ -44,7 +46,9 @@ class ChapterNoteCreateView(
 
 
 class UserNoteCreateView(
-    LoginRequiredMixin, NatOfficerRequiredMixin, CreateView,
+    LoginRequiredMixin,
+    NatOfficerRequiredMixin,
+    CreateView,
 ):
     model = UserNote
     template_name = "notes/create_form.html"

@@ -87,7 +87,10 @@ class Migration(migrations.Migration):
                     ),
                 ),
             ],
-            options={"ordering": ["-modified"], "abstract": False,},
+            options={
+                "ordering": ["-modified"],
+                "abstract": False,
+            },
         ),
         migrations.CreateModel(
             name="ChapterNote",
@@ -159,6 +162,9 @@ class Migration(migrations.Migration):
                     ),
                 ),
             ],
-            options={"ordering": ["-modified"], "abstract": False,},
+            options={
+                "ordering": ["-modified"],
+                "abstract": False,
+            },
         ),
     ]

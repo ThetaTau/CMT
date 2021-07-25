@@ -62,13 +62,17 @@ class PrematureAlumnusFlow(Flow):
     ).Next(this.pending_status)
 
     pending_status = flow.Handler(
-        this.set_status_email, task_title=_("Set pending alumni status, send email."),
+        this.set_status_email,
+        task_title=_("Set pending alumni status, send email."),
     ).Next(this.exec_approve)
 
     exec_approve = (
         flow.View(
             flow_views.UpdateProcessView,
-            fields=["approved_exec", "exec_comments",],
+            fields=[
+                "approved_exec",
+                "exec_comments",
+            ],
             task_title=_("Executive Director Review"),
             task_description=_("Pre Alumn Executive Director Review"),
             task_result_summary=_(
@@ -89,15 +93,18 @@ class PrematureAlumnusFlow(Flow):
     )
 
     alumni_status = flow.Handler(
-        this.set_alumni_status, task_title=_("Set status alumni"),
+        this.set_alumni_status,
+        task_title=_("Set status alumni"),
     ).Next(this.send)
 
     pending_undo = flow.Handler(
-        this.pending_undo_func, task_title=_("Set status active"),
+        this.pending_undo_func,
+        task_title=_("Set status active"),
     ).Next(this.send)
 
     send = flow.Handler(
-        this.send_approval_complete, task_title=_("Send request complete message"),
+        this.send_approval_complete,
+        task_title=_("Send request complete message"),
     ).Next(this.complete)
 
     complete = flow.End(
@@ -158,7 +165,10 @@ class PrematureAlumnusFlow(Flow):
             "Complete",
             state,
             "",
-            ["approved_exec", "exec_comments",],
+            [
+                "approved_exec",
+                "exec_comments",
+            ],
             extra_emails=[activation.process.created_by.email],
         ).send()
 
@@ -188,7 +198,12 @@ class InitiationProcessFlow(Flow):
         this.create_flow, activation_class=flow.nodes.ManagedStartViewActivation
     ).Next(this.invoice_chapter)
     start_manual = (
-        flow.Start(flow_views.CreateProcessView, fields=["chapter",])
+        flow.Start(
+            flow_views.CreateProcessView,
+            fields=[
+                "chapter",
+            ],
+        )
         .Permission(auto_create=True)
         .Next(this.invoice_chapter)
     )
@@ -196,7 +211,9 @@ class InitiationProcessFlow(Flow):
     invoice_chapter = (
         NoAssignView(
             AutoAssignUpdateProcessView,
-            fields=["invoice",],
+            fields=[
+                "invoice",
+            ],
             task_title=_("Invoice Chapter"),
             task_description=_("Send invoice to chapter"),
             task_result_summary=_("Invoice was sent to chapter"),
@@ -206,7 +223,8 @@ class InitiationProcessFlow(Flow):
     )
 
     send_invoice = flow.Handler(
-        this.send_invoice_func, task_title=_("Send Invoice"),
+        this.send_invoice_func,
+        task_title=_("Send Invoice"),
     ).Next(this.invoice_payment)
 
     invoice_payment = (
@@ -221,7 +239,8 @@ class InitiationProcessFlow(Flow):
     )
 
     invoice_payment_email = flow.Handler(
-        this.send_invoice_payment_email, task_title=_("Send Invoice Payment Email"),
+        this.send_invoice_payment_email,
+        task_title=_("Send Invoice Payment Email"),
     ).Next(this.order_complete)
 
     order_complete = (
@@ -235,14 +254,18 @@ class InitiationProcessFlow(Flow):
         .Next(this.send_order)
     )
 
-    send_order = flow.Handler(this.send_order_func, task_title=_("Send Order"),).Next(
-        this.order_received
-    )
+    send_order = flow.Handler(
+        this.send_order_func,
+        task_title=_("Send Order"),
+    ).Next(this.order_received)
 
     order_received = (
         NoAssignView(
             AutoAssignUpdateProcessView,
-            fields=["scheduled_date", "badge_order",],
+            fields=[
+                "scheduled_date",
+                "badge_order",
+            ],
             task_title=_("Shipping received"),
             task_description=_("Shipping notification received"),
             task_result_summary=_("Shipping notification received"),
@@ -252,7 +275,8 @@ class InitiationProcessFlow(Flow):
     )
 
     send_received = flow.Handler(
-        this.send_received_func, task_title=_("Send Received"),
+        this.send_received_func,
+        task_title=_("Send Received"),
     ).Next(this.complete)
 
     complete = flow.End(
@@ -287,7 +311,8 @@ class InitiationProcessFlow(Flow):
         member_list = ", ".join(member_list)
         host = settings.CURRENT_URL
         link = reverse(
-            "chapters:detail", kwargs={"slug": activation.process.chapter.slug},
+            "chapters:detail",
+            kwargs={"slug": activation.process.chapter.slug},
         )
         link = host + link
         EmailProcessUpdate(
@@ -319,12 +344,14 @@ class InitiationProcessFlow(Flow):
         for initiation in activation.process.initiations.all():
             if initiation.user.current_status != "active":
                 initiation.user.set_current_status(
-                    status="active", start=initiation.date,
+                    status="active",
+                    start=initiation.date,
                 )
         member_list = ", ".join(member_list)
         host = settings.CURRENT_URL
         link = reverse(
-            "chapters:detail", kwargs={"slug": activation.process.chapter.slug},
+            "chapters:detail",
+            kwargs={"slug": activation.process.chapter.slug},
         )
         link = host + link
         EmailProcessUpdate(
@@ -357,7 +384,12 @@ class InitiationProcessFlow(Flow):
             "Badges/Shingles Ordered",
             "A badges and shingles order has been sent to the vendor. "
             "You will be notified next when the order is scheduled to ship.",
-            [{"members": member_list,}, "invoice"],
+            [
+                {
+                    "members": member_list,
+                },
+                "invoice",
+            ],
         ).send()
 
     def send_received_func(self, activation):
@@ -391,13 +423,18 @@ class ConventionFlow(Flow):
     ).Next(this.email_signers)
 
     email_signers = flow.Handler(
-        this.email_signers_func, task_title=_("Email Signers"),
+        this.email_signers_func,
+        task_title=_("Email Signers"),
     ).Next(this.assign_approval)
 
     assign_approval = (
         flow.Split()
-        .Next(this.assign_del,)
-        .Next(this.assign_alt,)
+        .Next(
+            this.assign_del,
+        )
+        .Next(
+            this.assign_alt,
+        )
         .Next(this.assign_o1)
         .Next(this.assign_o2)
     )
@@ -439,7 +476,9 @@ class ConventionFlow(Flow):
         for user_role in ["delegate", "alternate", "officer1", "officer2"]:
             user = getattr(activation.process, user_role)
             EmailConventionUpdate(
-                activation, user, "Convention Credential Form Submitted",
+                activation,
+                user,
+                "Convention Credential Form Submitted",
             ).send()
 
 
@@ -474,7 +513,9 @@ class PledgeProcessFlow(Flow):
     invoice_chapter = (
         NoAssignView(
             AutoAssignUpdateProcessView,
-            fields=["invoice",],
+            fields=[
+                "invoice",
+            ],
             task_title=_("Invoice Chapter"),
             task_description=_("Send invoice to chapter"),
             task_result_summary=_("Invoice was sent to chapter"),
@@ -484,7 +525,8 @@ class PledgeProcessFlow(Flow):
     )
 
     send_invoice = flow.Handler(
-        this.send_invoice_func, task_title=_("Send Invoice"),
+        this.send_invoice_func,
+        task_title=_("Send Invoice"),
     ).Next(this.invoice_payment)
 
     invoice_payment = (
@@ -499,7 +541,8 @@ class PledgeProcessFlow(Flow):
     )
 
     invoice_payment_email = flow.Handler(
-        this.send_invoice_payment_email, task_title=_("Send Invoice Payment Email"),
+        this.send_invoice_payment_email,
+        task_title=_("Send Invoice Payment Email"),
     ).Next(this.complete)
 
     complete = flow.End(
@@ -529,7 +572,10 @@ class PledgeProcessFlow(Flow):
             "Complete",
             "Payment Received",
             "Your chapter has paid a pledge invoice.",
-            [{"members": member_list}, "invoice",],
+            [
+                {"members": member_list},
+                "invoice",
+            ],
             email_officers=True,
         ).send()
 
@@ -558,7 +604,8 @@ class OSMFlow(Flow):
     )
 
     email_signers = flow.Handler(
-        this.email_signers_func, task_title=_("Email Signers"),
+        this.email_signers_func,
+        task_title=_("Email Signers"),
     ).Next(this.assign_approval)
 
     assign_approval = flow.Split().Next(this.assign_o1).Next(this.assign_o2)
@@ -578,7 +625,8 @@ class OSMFlow(Flow):
     join_flow = flow.Join().Next(this.email_nominate)
 
     email_nominate = flow.Handler(
-        this.email_nomination, task_title=_("Email Nominate"),
+        this.email_nomination,
+        task_title=_("Email Nominate"),
     ).Next(this.end)
 
     end = flow.End()
@@ -601,7 +649,9 @@ class OSMFlow(Flow):
     def email_nomination(self, activation):
         user = activation.process.nominate
         EmailOSMUpdate(
-            activation, user, "Outstanding Student Member Nomination",
+            activation,
+            user,
+            "Outstanding Student Member Nomination",
         ).send()
 
 
@@ -639,7 +689,8 @@ class DisciplinaryProcessFlow(Flow):
     ).Next(this.email_form1_rescheduled)
 
     email_form1_rescheduled = flow.Handler(
-        this.email_all, task_title=_("Email Form 1 Rescheduled"),
+        this.email_all,
+        task_title=_("Email Form 1 Rescheduled"),
     ).Next(this.delay)
 
     start = flow.Start(
@@ -647,7 +698,8 @@ class DisciplinaryProcessFlow(Flow):
     ).Next(this.email_form1)
 
     email_form1 = flow.Handler(
-        this.email_all, task_title=_("Email Form 1 Result"),
+        this.email_all,
+        task_title=_("Email Form 1 Result"),
     ).Next(this.delay)
 
     delay = flow.Function(
@@ -657,7 +709,8 @@ class DisciplinaryProcessFlow(Flow):
     ).Next(this.email_regent)
 
     email_regent = flow.Handler(
-        this.email_regent_func, task_title=_("Email Regent Form 2"),
+        this.email_regent_func,
+        task_title=_("Email Regent Form 2"),
     ).Next(this.submit_form2)
 
     submit_form2 = (
@@ -678,7 +731,8 @@ class DisciplinaryProcessFlow(Flow):
     )
 
     reschedule = flow.Handler(
-        this.reschedule_func, task_title=_("Reschedule Disciplinary Process"),
+        this.reschedule_func,
+        task_title=_("Reschedule Disciplinary Process"),
     ).Next(this.end_reschedule)
 
     end_reschedule = flow.End(
@@ -706,15 +760,18 @@ class DisciplinaryProcessFlow(Flow):
     )
 
     reject_fix = flow.Handler(
-        this.email_regent_func, task_title=_("Reject Chapter Fix"),
+        this.email_regent_func,
+        task_title=_("Reject Chapter Fix"),
     ).Next(this.submit_form2)
 
     accept_done = flow.Handler(
-        this.accept_done_func, task_title=_("Accept File Done"),
+        this.accept_done_func,
+        task_title=_("Accept File Done"),
     ).Next(this.end)
 
     email_outcome_letter = flow.Handler(
-        this.email_all, task_title=_("Email Outcome Letter"),
+        this.email_all,
+        task_title=_("Email Outcome Letter"),
     ).Next(this.delay_ec)
 
     delay_ec = flow.Function(
@@ -748,10 +805,13 @@ class DisciplinaryProcessFlow(Flow):
     )
 
     email_final = flow.Handler(
-        this.email_all, task_title=_("Email Final Result"),
+        this.email_all,
+        task_title=_("Email Final Result"),
     ).Next(this.end)
 
-    end = flow.End(task_title=_("Disciplinary Process Complete"),)
+    end = flow.End(
+        task_title=_("Disciplinary Process Complete"),
+    )
 
     @method_decorator(flow.flow_start_func)
     def restart_flow(self, activation, old_activation, **kwargs):
@@ -821,7 +881,9 @@ class DisciplinaryProcessFlow(Flow):
             # with open("tests/outcome_letter.pdf", "wb") as f:
             #     f.write(content)
             activation.process.outcome_letter.save(
-                "outcome_letter.pdf", ContentFile(content), save=True,
+                "outcome_letter.pdf",
+                ContentFile(content),
+                save=True,
             )
             complete_step = "Executive Director Review"
             next_step = "Wait for Executive Council Review"
@@ -999,7 +1061,8 @@ class ResignationFlow(Flow):
     ).Next(this.email_signers)
 
     email_signers = flow.Handler(
-        this.email_signers_func, task_title=_("Email Signers"),
+        this.email_signers_func,
+        task_title=_("Email Signers"),
     ).Next(this.assign_approval)
 
     assign_approval = flow.Split().Next(this.assign_o1).Next(this.assign_o2)
@@ -1021,7 +1084,10 @@ class ResignationFlow(Flow):
     exec_approve = (
         flow.View(
             flow_views.UpdateProcessView,
-            fields=["approved_exec", "exec_comments",],
+            fields=[
+                "approved_exec",
+                "exec_comments",
+            ],
             task_title=_("Executive Director Review"),
             task_description=_("Resignation Executive Director Review"),
             task_result_summary=_(
@@ -1042,11 +1108,13 @@ class ResignationFlow(Flow):
     )
 
     resign_status = flow.Handler(
-        this.set_resign_status, task_title=_("Set status resigned"),
+        this.set_resign_status,
+        task_title=_("Set status resigned"),
     ).Next(this.email_complete)
 
     email_complete = flow.Handler(
-        this.email_complete_func, task_title=_("Email Complete"),
+        this.email_complete_func,
+        task_title=_("Email Complete"),
     ).Next(this.end)
 
     end = flow.End(
@@ -1089,7 +1157,10 @@ class ResignationFlow(Flow):
             next_step="Central Office Process",
             state="Reviewed",
             message="",
-            fields=["approved_exec", "exec_comments",],
+            fields=[
+                "approved_exec",
+                "exec_comments",
+            ],
             email_officers=True,
             attachments=["letter"],
         ).send()
@@ -1111,13 +1182,17 @@ class ReturnStudentFlow(Flow):
     ).Next(this.pending_status)
 
     pending_status = flow.Handler(
-        this.set_status_email, task_title=_("Set pending active status, send email."),
+        this.set_status_email,
+        task_title=_("Set pending active status, send email."),
     ).Next(this.exec_approve)
 
     exec_approve = (
         flow.View(
             flow_views.UpdateProcessView,
-            fields=["approved_exec", "exec_comments",],
+            fields=[
+                "approved_exec",
+                "exec_comments",
+            ],
             task_title=_("Executive Director Review"),
             task_description=_("Return Student Executive Director Review"),
             task_result_summary=_(
@@ -1138,15 +1213,18 @@ class ReturnStudentFlow(Flow):
     )
 
     active_status = flow.Handler(
-        this.set_active_status, task_title=_("Set status active"),
+        this.set_active_status,
+        task_title=_("Set status active"),
     ).Next(this.send)
 
     pending_undo = flow.Handler(
-        this.pending_undo_func, task_title=_("Set status alumni"),
+        this.pending_undo_func,
+        task_title=_("Set status alumni"),
     ).Next(this.send)
 
     send = flow.Handler(
-        this.send_approval_complete, task_title=_("Send request complete message"),
+        this.send_approval_complete,
+        task_title=_("Send request complete message"),
     ).Next(this.complete)
 
     complete = flow.End(
@@ -1174,7 +1252,12 @@ class ReturnStudentFlow(Flow):
             "Your chapter has submitted a return student form on your behalf."
             + " Once the Central Office processes "
             + "the form, you will receive an email confirming your change in status.",
-            ["reason", "financial", "debt", "vote",],
+            [
+                "reason",
+                "financial",
+                "debt",
+                "vote",
+            ],
             extra_emails=[activation.process.created_by.email],
         ).send()
 
@@ -1199,6 +1282,9 @@ class ReturnStudentFlow(Flow):
             "Complete",
             state,
             "",
-            ["approved_exec", "exec_comments",],
+            [
+                "approved_exec",
+                "exec_comments",
+            ],
             extra_emails=[activation.process.created_by.email],
         ).send()

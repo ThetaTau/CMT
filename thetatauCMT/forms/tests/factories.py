@@ -187,7 +187,8 @@ class AuditFactory(factory.django.DjangoModelFactory):
     dues_member = factory.Faker("pyfloat", min_value=0, max_value=5000)
     dues_pledge = factory.Faker("pyfloat", min_value=0, max_value=5000)
     frequency = factory.Faker(
-        "random_element", elements=["month", "semester", "quarter", "year"],
+        "random_element",
+        elements=["month", "semester", "quarter", "year"],
     )
     payment_plan = factory.Faker("boolean")
     cash_book = factory.Faker("boolean")

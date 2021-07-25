@@ -14,6 +14,9 @@ def user_alter_form(context):
             if user.altered.all():
                 new_role = user.altered.first().role
             return UserAlterForm(
-                data={"chapter": user.current_chapter.pk, "role": new_role,}
+                data={
+                    "chapter": user.current_chapter.pk,
+                    "role": new_role,
+                }
             )
     return None

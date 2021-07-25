@@ -13,21 +13,66 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RemoveField(model_name="pledge", name="address",),
-        migrations.RemoveField(model_name="pledge", name="birth_date",),
-        migrations.RemoveField(model_name="pledge", name="email_personal",),
-        migrations.RemoveField(model_name="pledge", name="email_school",),
-        migrations.RemoveField(model_name="pledge", name="first_name",),
-        migrations.RemoveField(model_name="pledge", name="grad_date_year",),
-        migrations.RemoveField(model_name="pledge", name="last_name",),
-        migrations.RemoveField(model_name="pledge", name="major",),
-        migrations.RemoveField(model_name="pledge", name="middle_name",),
-        migrations.RemoveField(model_name="pledge", name="nickname",),
-        migrations.RemoveField(model_name="pledge", name="phone_home",),
-        migrations.RemoveField(model_name="pledge", name="phone_mobile",),
-        migrations.RemoveField(model_name="pledge", name="school_name",),
-        migrations.RemoveField(model_name="pledge", name="suffix",),
-        migrations.RemoveField(model_name="pledge", name="title",),
+        migrations.RemoveField(
+            model_name="pledge",
+            name="address",
+        ),
+        migrations.RemoveField(
+            model_name="pledge",
+            name="birth_date",
+        ),
+        migrations.RemoveField(
+            model_name="pledge",
+            name="email_personal",
+        ),
+        migrations.RemoveField(
+            model_name="pledge",
+            name="email_school",
+        ),
+        migrations.RemoveField(
+            model_name="pledge",
+            name="first_name",
+        ),
+        migrations.RemoveField(
+            model_name="pledge",
+            name="grad_date_year",
+        ),
+        migrations.RemoveField(
+            model_name="pledge",
+            name="last_name",
+        ),
+        migrations.RemoveField(
+            model_name="pledge",
+            name="major",
+        ),
+        migrations.RemoveField(
+            model_name="pledge",
+            name="middle_name",
+        ),
+        migrations.RemoveField(
+            model_name="pledge",
+            name="nickname",
+        ),
+        migrations.RemoveField(
+            model_name="pledge",
+            name="phone_home",
+        ),
+        migrations.RemoveField(
+            model_name="pledge",
+            name="phone_mobile",
+        ),
+        migrations.RemoveField(
+            model_name="pledge",
+            name="school_name",
+        ),
+        migrations.RemoveField(
+            model_name="pledge",
+            name="suffix",
+        ),
+        migrations.RemoveField(
+            model_name="pledge",
+            name="title",
+        ),
         migrations.AddField(
             model_name="pledge",
             name="user",
@@ -38,5 +83,7 @@ class Migration(migrations.Migration):
                 to=settings.AUTH_USER_MODEL,
             ),
         ),
-        migrations.DeleteModel(name="PledgeForm",),
+        migrations.DeleteModel(
+            name="PledgeForm",
+        ),
     ]

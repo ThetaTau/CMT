@@ -20,7 +20,10 @@ class SubmissionDetailView(LoginRequiredMixin, DetailView):
 
 
 class SubmissionCreateView(
-    LoginRequiredMixin, OfficerRequiredMixin, TypeFieldFilteredChapterAdd, CreateView,
+    LoginRequiredMixin,
+    OfficerRequiredMixin,
+    TypeFieldFilteredChapterAdd,
+    CreateView,
 ):
     model = Submission
     score_type = "Sub"

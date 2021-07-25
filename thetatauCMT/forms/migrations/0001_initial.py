@@ -155,7 +155,9 @@ class Migration(migrations.Migration):
                 ),
                 ("agreement", models.BooleanField()),
             ],
-            options={"abstract": False,},
+            options={
+                "abstract": False,
+            },
         ),
         migrations.CreateModel(
             name="Badge",
@@ -236,7 +238,9 @@ class Migration(migrations.Migration):
                     ),
                 ),
             ],
-            options={"abstract": False,},
+            options={
+                "abstract": False,
+            },
         ),
         migrations.CreateModel(
             name="Convention",
@@ -352,7 +356,9 @@ class Migration(migrations.Migration):
                     ),
                 ),
             ],
-            options={"abstract": False,},
+            options={
+                "abstract": False,
+            },
             bases=("viewflow.process", models.Model),
         ),
         migrations.CreateModel(
@@ -392,7 +398,9 @@ class Migration(migrations.Migration):
                     ),
                 ),
             ],
-            options={"abstract": False,},
+            options={
+                "abstract": False,
+            },
         ),
         migrations.CreateModel(
             name="Guard",
@@ -464,7 +472,9 @@ class Migration(migrations.Migration):
                     ),
                 ),
             ],
-            options={"abstract": False,},
+            options={
+                "abstract": False,
+            },
         ),
         migrations.CreateModel(
             name="InitiationProcess",
@@ -487,7 +497,9 @@ class Migration(migrations.Migration):
                     ),
                 ),
             ],
-            options={"abstract": False,},
+            options={
+                "abstract": False,
+            },
             bases=("viewflow.process",),
         ),
         migrations.CreateModel(
@@ -566,7 +578,9 @@ class Migration(migrations.Migration):
                     ),
                 ),
             ],
-            options={"abstract": False,},
+            options={
+                "abstract": False,
+            },
             bases=("viewflow.process", models.Model),
         ),
         migrations.CreateModel(
@@ -883,7 +897,9 @@ class Migration(migrations.Migration):
                     ),
                 ),
             ],
-            options={"abstract": False,},
+            options={
+                "abstract": False,
+            },
         ),
         migrations.CreateModel(
             name="PledgeForm",
@@ -929,7 +945,9 @@ class Migration(migrations.Migration):
                     ),
                 ),
             ],
-            options={"abstract": False,},
+            options={
+                "abstract": False,
+            },
             bases=("viewflow.process",),
         ),
         migrations.CreateModel(
@@ -1160,7 +1178,9 @@ class Migration(migrations.Migration):
                     ),
                 ),
             ],
-            options={"abstract": False,},
+            options={
+                "abstract": False,
+            },
             bases=("viewflow.process",),
         ),
         migrations.CreateModel(
@@ -1237,7 +1257,9 @@ class Migration(migrations.Migration):
                 ("terms_agreement", models.BooleanField()),
                 ("typed_name", models.CharField(max_length=255)),
             ],
-            options={"abstract": False,},
+            options={
+                "abstract": False,
+            },
         ),
         migrations.CreateModel(
             name="StatusChange",
@@ -1318,6 +1340,8 @@ class Migration(migrations.Migration):
                     ),
                 ),
             ],
-            options={"abstract": False,},
+            options={
+                "abstract": False,
+            },
         ),
     ]

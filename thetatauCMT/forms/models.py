@@ -153,7 +153,9 @@ class PledgeProgram(YearTermModel, TimeStampedModel):
         program_fa = None
         if YearTermModel.current_term() == "sp":
             program_fa = cls.objects.filter(
-                chapter=chapter, year=YearTermModel.current_year() - 1, term="fa",
+                chapter=chapter,
+                year=YearTermModel.current_year() - 1,
+                term="fa",
             ).first()
         program = cls.signed_this_semester(chapter)
         return program or program_fa
@@ -253,7 +255,9 @@ class Depledge(TimeStampedModel):
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
         self.user.set_current_status(
-            status="depledge", created=self.created, start=self.date,
+            status="depledge",
+            created=self.created,
+            start=self.date,
         )
 
 
@@ -333,7 +337,9 @@ class StatusChange(TimeStampedModel):
         current_status = self.user.get_current_status_all()
         if self.reason in ["graduate", "withdraw", "transfer"]:
             self.user.set_current_status(
-                created=self.created, status="alumni", start=self.date_start,
+                created=self.created,
+                status="alumni",
+                start=self.date_start,
             )
         else:
             # military, coop, covid
@@ -1239,10 +1245,10 @@ def get_discipline_upload_path(instance, filename):
 
 class DisciplinaryProcess(Process, TimeStampedModel):
     """
-Restart:
-https://stackoverflow.com/questions/61136760/allowing-users-to-select-which-flow-to-roll-back-to-django-viewflow
-Delay:
-https://stackoverflow.com/questions/31658996/viewflow-io-implementing-a-queue-task
+    Restart:
+    https://stackoverflow.com/questions/61136760/allowing-users-to-select-which-flow-to-roll-back-to-django-viewflow
+    Delay:
+    https://stackoverflow.com/questions/31658996/viewflow-io-implementing-a-queue-task
     """
 
     BOOL_CHOICES = ((True, "Yes"), (False, "No"))
@@ -1298,14 +1304,20 @@ https://stackoverflow.com/questions/31658996/viewflow-io-implementing-a-queue-ta
     )
     advisor = models.BooleanField(verbose_advisor, choices=BOOL_CHOICES, default=False)
     advisor_name = models.CharField(
-        "If yes, alumni advisor name", max_length=200, blank=True, null=True,
+        "If yes, alumni advisor name",
+        max_length=200,
+        blank=True,
+        null=True,
     )
     verbose_faculty = (
         "Was a campus/faculty adviser involved in trying to resolve this problem?"
     )
     faculty = models.BooleanField(verbose_faculty, choices=BOOL_CHOICES, default=False)
     faculty_name = models.CharField(
-        "If yes, campus/faculty adviser name", max_length=200, blank=True, null=True,
+        "If yes, campus/faculty adviser name",
+        max_length=200,
+        blank=True,
+        null=True,
     )
     verbose_financial = (
         "Is a simple collections action (for financial delinquency) "
@@ -1325,7 +1337,10 @@ https://stackoverflow.com/questions/31658996/viewflow-io-implementing-a-queue-ta
         validators=[no_future],
     )
     notify_method = MultiSelectField(choices=[x.value for x in METHODS])
-    trial_date = models.DateField("Trial scheduled for date", default=timezone.now,)
+    trial_date = models.DateField(
+        "Trial scheduled for date",
+        default=timezone.now,
+    )
     charging_letter = models.FileField(
         upload_to=get_discipline_upload_path,
         help_text="Please attach a copy of the charging letter that was sent to the member.",
@@ -1342,7 +1357,8 @@ https://stackoverflow.com/questions/31658996/viewflow-io-implementing-a-queue-ta
     )
     send_ec_date = models.DateField(blank=True, null=True)
     rescheduled_date = models.DateField(
-        "When will the new trial be held?", default=timezone.now,
+        "When will the new trial be held?",
+        default=timezone.now,
     )
     verbose_attend = "Did the accused attend the trial and defend?"
     attend = models.BooleanField(verbose_attend, choices=BOOL_CHOICES, default=False)
@@ -1369,7 +1385,8 @@ https://stackoverflow.com/questions/31658996/viewflow-io-implementing-a-queue-ta
         choices=[x.value for x in PUNISHMENT],
     )
     suspension_end = models.DateField(
-        "If suspended, when will this member’s suspension end?", default=timezone.now,
+        "If suspended, when will this member’s suspension end?",
+        default=timezone.now,
     )
     verbose_punishment_other = (
         "What other punishments, if any, were agreed to by the chapter?"
@@ -1441,7 +1458,8 @@ https://stackoverflow.com/questions/31658996/viewflow-io-implementing-a-queue-ta
             except TypeError:
                 info[field_obj.verbose_name] = field_obj.value_to_string(self)
         forms = render_to_pdf(
-            "forms/disciplinary_form_pdf.html", context={"info": info},
+            "forms/disciplinary_form_pdf.html",
+            context={"info": info},
         )
         return forms
 

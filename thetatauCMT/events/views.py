@@ -19,7 +19,10 @@ class EventDetailView(LoginRequiredMixin, DetailView):
 
 
 class EventCreateView(
-    LoginRequiredMixin, OfficerRequiredMixin, TypeFieldFilteredChapterAdd, CreateView,
+    LoginRequiredMixin,
+    OfficerRequiredMixin,
+    TypeFieldFilteredChapterAdd,
+    CreateView,
 ):
     model = Event
     template_name_suffix = "_create_form"
@@ -72,7 +75,10 @@ class EventRedirectView(LoginRequiredMixin, RedirectView):
 
 
 class EventUpdateView(
-    LoginRequiredMixin, OfficerRequiredMixin, TypeFieldFilteredChapterAdd, UpdateView,
+    LoginRequiredMixin,
+    OfficerRequiredMixin,
+    TypeFieldFilteredChapterAdd,
+    UpdateView,
 ):
     officer_edit = "events"
     officer_edit_type = "edit"

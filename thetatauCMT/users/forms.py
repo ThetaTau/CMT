@@ -30,7 +30,6 @@ class CaptchaLoginForm(LoginForm):
             self.fields.update({"captcha": captcha})
 
 
-
 class UserListFormHelper(FormHelper):
     form_method = "GET"
     form_id = "user-search-form"
@@ -64,7 +63,9 @@ class UserListFormHelper(FormHelper):
                     ),
                 ),
             ),
-            Row(InlineField("current_status"),),
+            Row(
+                InlineField("current_status"),
+            ),
         ),
     )
 
@@ -205,9 +206,17 @@ class UserGPAForm(forms.Form):
             semester = "sp" if i % 2 else "fa"
             year = BIENNIUM_YEARS[i]
             try:
-                obj = UserSemesterGPA.objects.get(user=user, year=year, term=semester,)
+                obj = UserSemesterGPA.objects.get(
+                    user=user,
+                    year=year,
+                    term=semester,
+                )
             except UserSemesterGPA.DoesNotExist:
-                obj = UserSemesterGPA(user=user, year=year, term=semester,)
+                obj = UserSemesterGPA(
+                    user=user,
+                    year=year,
+                    term=semester,
+                )
             obj.gpa = gpa
             obj.save()
 
@@ -240,10 +249,16 @@ class UserServiceForm(forms.Form):
             year = BIENNIUM_YEARS[i]
             try:
                 obj = UserSemesterServiceHours.objects.get(
-                    user=user, year=year, term=semester,
+                    user=user,
+                    year=year,
+                    term=semester,
                 )
             except UserSemesterServiceHours.DoesNotExist:
-                obj = UserSemesterServiceHours(user=user, year=year, term=semester,)
+                obj = UserSemesterServiceHours(
+                    user=user,
+                    year=year,
+                    term=semester,
+                )
             obj.service_hours = service
             obj.save()
 
@@ -254,14 +269,16 @@ class UserOrgForm(forms.ModelForm):
         initial=timezone.now(),
         label="Start Date",
         widget=DatePicker(
-            options={"format": "M/DD/YYYY"}, attrs={"autocomplete": "off"},
+            options={"format": "M/DD/YYYY"},
+            attrs={"autocomplete": "off"},
         ),
     )
     end = forms.DateField(
         initial=timezone.now() + timezone.timedelta(days=365),
         label="End Date",
         widget=DatePicker(
-            options={"format": "M/DD/YYYY"}, attrs={"autocomplete": "off"},
+            options={"format": "M/DD/YYYY"},
+            attrs={"autocomplete": "off"},
         ),
     )
     officer = forms.TypedChoiceField(

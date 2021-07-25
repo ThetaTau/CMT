@@ -18,7 +18,8 @@ class UserListFilter(django_filters.FilterSet):
         method="filter_current_status",
     )
     major = django_filters.ModelChoiceFilter(
-        queryset=ChapterCurricula.objects.none(), method="filter_major",
+        queryset=ChapterCurricula.objects.none(),
+        method="filter_major",
     )
 
     class Meta:
@@ -49,7 +50,10 @@ class UserListFilter(django_filters.FilterSet):
 
 class UserRoleListFilter(django_filters.FilterSet):
     current_status = django_filters.ChoiceFilter(
-        choices=[("active", "active"), ("pnm", "prospective"),],
+        choices=[
+            ("active", "active"),
+            ("pnm", "prospective"),
+        ],
         method="filter_current_status",
     )
     role = django_filters.MultipleChoiceFilter(
@@ -59,7 +63,8 @@ class UserRoleListFilter(django_filters.FilterSet):
         choices=Region.region_choices(), method="filter_region"
     )
     major = django_filters.ModelChoiceFilter(
-        queryset=ChapterCurricula.objects.none(), method="filter_major",
+        queryset=ChapterCurricula.objects.none(),
+        method="filter_major",
     )
 
     class Meta:

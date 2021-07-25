@@ -158,7 +158,11 @@ app.layout = html.Div(
         html.Div(
             children=[
                 html.P("Select date range:"),
-                dcc.RangeSlider(id="years-slider", dots=True, step=0.5,),
+                dcc.RangeSlider(
+                    id="years-slider",
+                    dots=True,
+                    step=0.5,
+                ),
             ],
             style=style["slider"],
         ),
@@ -338,7 +342,11 @@ def load_chapter_data(clicks, **kwargs):
             #                      end of status > start of semester
             status = dict(
                 UserStatusChange.objects.values_list("status")
-                .filter(user__chapter=chapter, start__lte=end, end__gte=start,)
+                .filter(
+                    user__chapter=chapter,
+                    start__lte=end,
+                    end__gte=start,
+                )
                 .annotate(count=Count("status"))
             )
             majors = dict(
@@ -386,7 +394,10 @@ def load_chapter_data(clicks, **kwargs):
         year_terms_marks,
         list(year_terms_marks.keys())[0],
         list(year_terms_marks.keys())[-1],
-        [list(year_terms_marks.keys())[0], list(year_terms_marks.keys())[-1],],
+        [
+            list(year_terms_marks.keys())[0],
+            list(year_terms_marks.keys())[-1],
+        ],
         year_terms,
         year_terms[-1]["value"],
     )
@@ -438,7 +449,9 @@ def update_text(data, years, **kwargs):
         Input("years-slider", "value"),
         Input("status-dropdown", "value"),
     ],
-    [State("years-slider", "marks"),],
+    [
+        State("years-slider", "marks"),
+    ],
 )
 def members_graph(data, years, status, year_info, **kwargs):
     df = pd.DataFrame.from_dict(data)
@@ -492,7 +505,10 @@ def majors_graph(data, yearterm, **kwargs):
 
 @app.callback(
     Output("gpa-graph", "figure"),
-    [Input("chapter-data", "data"), Input("years-slider", "value"),],
+    [
+        Input("chapter-data", "data"),
+        Input("years-slider", "value"),
+    ],
     [State("years-slider", "marks")],
 )
 def gpa_graph(data, years, year_info, **kwargs):

@@ -925,7 +925,9 @@ class ChapterInfoReportView(LoginRequiredMixin, MultiFormsView):
         if self.request.method in ("POST", "PUT"):
             # if self.request.POST.get('action') == 'faculty': Not needed b/c grouped forms
             formset_kwargs.update(
-                {"data": self.request.POST.copy(),}
+                {
+                    "data": self.request.POST.copy(),
+                }
             )
         return factory(**formset_kwargs)
 
@@ -957,7 +959,9 @@ class ChapterInfoReportView(LoginRequiredMixin, MultiFormsView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context.update(
-            {"object": self.get_object(),}
+            {
+                "object": self.get_object(),
+            }
         )
         return context
 
@@ -1303,7 +1307,9 @@ class PledgeProgramFormView(LoginRequiredMixin, OfficerRequiredMixin, UpdateView
             next_date = task.incomplete_dates_for_task_chapter(chapter).first()
             if next_date:
                 task_obj = TaskChapter(
-                    task=next_date, chapter=chapter, date=timezone.now(),
+                    task=next_date,
+                    chapter=chapter,
+                    date=timezone.now(),
                 )
                 score_type = ScoreType.objects.filter(slug="pledge-program").first()
                 submit_obj = Submission(
@@ -1405,7 +1411,9 @@ class AuditFormView(LoginRequiredMixin, OfficerRequiredMixin, UpdateView):
             next_date = task.incomplete_dates_for_task_chapter(chapter).first()
             if next_date:
                 task_obj = TaskChapter(
-                    task=next_date, chapter=chapter, date=timezone.now(),
+                    task=next_date,
+                    chapter=chapter,
+                    date=timezone.now(),
                 )
                 score_type = ScoreType.objects.filter(slug="audit").first()
                 submit_obj = Submission(
@@ -1754,10 +1762,22 @@ class ConventionSignView(LoginRequiredMixin, UpdateProcessView, MultiFormsView):
     }
     grouped_forms = {"form": ["process", "user"]}
     fields_options = {
-        "assign_del": ["understand_del", "signature_del",],
-        "assign_alt": ["understand_alt", "signature_alt",],
-        "assign_o1": ["signature_o1", "approved_o1",],
-        "assign_o2": ["signature_o2", "approved_o2",],
+        "assign_del": [
+            "understand_del",
+            "signature_del",
+        ],
+        "assign_alt": [
+            "understand_alt",
+            "signature_alt",
+        ],
+        "assign_o1": [
+            "signature_o1",
+            "approved_o1",
+        ],
+        "assign_o2": [
+            "signature_o2",
+            "approved_o2",
+        ],
     }
 
     def _get_success_url(self, form=None):
@@ -1768,7 +1788,9 @@ class ConventionSignView(LoginRequiredMixin, UpdateProcessView, MultiFormsView):
         kwargs = super()._get_form_kwargs(form_name, bind_form)
         if form_name == "user":
             kwargs.update(
-                {"instance": self.request.user,}
+                {
+                    "instance": self.request.user,
+                }
             )
         return kwargs
 
@@ -2172,8 +2194,12 @@ class OSMVerifyView(LoginRequiredMixin, UpdateProcessView, ModelFormMixin):
     template_name = "forms/osm_verify_form.html"
     model = OSM
     fields_options = {
-        "assign_o1": ["approved_o1",],
-        "assign_o2": ["approved_o2",],
+        "assign_o1": [
+            "approved_o1",
+        ],
+        "assign_o2": [
+            "approved_o2",
+        ],
     }
 
     def get_success_url(self):
@@ -2521,7 +2547,9 @@ class CollectionReferralFormView(
             extra_emails=extra_emails,
         ).send()
         messages.add_message(
-            self.request, messages.INFO, "Successfully submitted collection referral",
+            self.request,
+            messages.INFO,
+            "Successfully submitted collection referral",
         )
         return HttpResponseRedirect(self.get_success_url())
 
@@ -2629,7 +2657,10 @@ class ResignationSignView(LoginRequiredMixin, UpdateProcessView):
             "approved_o1",
             "signature_o1",
         ],
-        "assign_o2": ["approved_o2", "signature_o2",],
+        "assign_o2": [
+            "approved_o2",
+            "signature_o2",
+        ],
     }
 
     def get_success_url(self):

@@ -82,7 +82,11 @@ class Ballot(TimeStampedModel):
                 description=f"{self.TYPES.get_value(self.type)}: {self.description}",
             )
             new_task.save()
-            due_date = TaskDate(task=new_task, school_type="all", date=self.due_date,)
+            due_date = TaskDate(
+                task=new_task,
+                school_type="all",
+                date=self.due_date,
+            )
             due_date.save()
         super().save()
 
@@ -180,9 +184,14 @@ class BallotComplete(TimeStampedModel):
     def save(self):
         natoffs = UserRoleChange.get_current_natoff().values_list("user__pk", flat=True)
         if self.ballot.voters == "convention" and self.user.pk not in natoffs:
-            task = Task.objects.filter(name=self.ballot.name,).first()
+            task = Task.objects.filter(
+                name=self.ballot.name,
+            ).first()
             task_date = TaskDate.objects.filter(task=task).first()
             if not TaskChapter.check_previous(task_date, self.user.chapter):
-                task_complete = TaskChapter(task=task_date, chapter=self.user.chapter,)
+                task_complete = TaskChapter(
+                    task=task_date,
+                    chapter=self.user.chapter,
+                )
                 task_complete.save()
         super().save()

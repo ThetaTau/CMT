@@ -465,7 +465,10 @@ class EmailProcessUpdate(EmailNotification):
             "Initiation Process Complete",
             "Badges/Shingles Ordered",
             "A badges and shingles order has been sent to the vendor. <a href='http://www.google.com'>Test link</a>",
-            [{"members": member_list}, "invoice",],
+            [
+                {"members": member_list},
+                "invoice",
+            ],
         ]
 
 
@@ -572,7 +575,8 @@ class CentralOfficeGenericEmail(EmailNotification):
 
         info = {"Test": "This is a test"}
         forms = render_to_pdf(
-            "forms/disciplinary_form_pdf.html", context={"info": info},
+            "forms/disciplinary_form_pdf.html",
+            context={"info": info},
         )
 
         return ["This is a test message", [ContentFile(forms, name="Testfile.pdf")]]

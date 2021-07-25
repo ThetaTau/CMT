@@ -77,7 +77,9 @@ class Migration(migrations.Migration):
                 ("guest_add", models.FloatField(default=0)),
                 ("special", models.CharField(max_length=200)),
             ],
-            options={"ordering": ["name"],},
+            options={
+                "ordering": ["name"],
+            },
         ),
         migrations.CreateModel(
             name="ScoreChapter",
@@ -141,6 +143,8 @@ class Migration(migrations.Migration):
                     ),
                 ),
             ],
-            options={"unique_together": {("term", "year", "type", "chapter")},},
+            options={
+                "unique_together": {("term", "year", "type", "chapter")},
+            },
         ),
     ]

@@ -25,9 +25,11 @@ class Migration(migrations.Migration):
             ),
         ),
         migrations.AlterUniqueTogether(
-            name="ballot", unique_together={("name", "due_date")},
+            name="ballot",
+            unique_together={("name", "due_date")},
         ),
         migrations.AlterUniqueTogether(
-            name="ballotcomplete", unique_together={("user", "ballot")},
+            name="ballotcomplete",
+            unique_together={("user", "ballot")},
         ),
     ]

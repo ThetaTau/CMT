@@ -152,7 +152,9 @@ class UserDetailUpdateView(LoginRequiredMixin, MultiFormsView):
         if self.request.method in ("POST", "PUT"):
             if self.request.POST.get("action") == "orgs":
                 formset_kwargs.update(
-                    {"data": self.request.POST.copy(),}
+                    {
+                        "data": self.request.POST.copy(),
+                    }
                 )
         return factory(**formset_kwargs)
 
@@ -185,7 +187,9 @@ class UserDetailUpdateView(LoginRequiredMixin, MultiFormsView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context.update(
-            {"object": self.get_object(),}
+            {
+                "object": self.get_object(),
+            }
         )
         headers = [""]
         for i in range(4):
@@ -203,11 +207,15 @@ class UserDetailUpdateView(LoginRequiredMixin, MultiFormsView):
         kwargs = super()._get_form_kwargs(form_name, bind_form)
         if form_name == "user":
             kwargs.update(
-                {"instance": self.get_object(),}
+                {
+                    "instance": self.get_object(),
+                }
             )
         if form_name in ["gpa", "service"]:
             kwargs.update(
-                {"hide_user": True,}
+                {
+                    "hide_user": True,
+                }
             )
         return kwargs
 
@@ -258,9 +266,15 @@ class ExportActiveMixin:
             for count, chapter in enumerate(Chapter.objects.all()):
                 print(f"Export {chapter} {count+1}/{total}")
                 members = annotate_role_status(
-                    qs.filter(chapter=chapter,), combine=True,
+                    qs.filter(
+                        chapter=chapter,
+                    ),
+                    combine=True,
                 )
-                table = UserTable(data=members, chapter=True,)
+                table = UserTable(
+                    data=members,
+                    chapter=True,
+                )
                 writer_file = StringIO()
                 writer = csv.writer(writer_file)
                 writer.writerows(table.as_values())
@@ -357,13 +371,25 @@ class UserListView(LoginRequiredMixin, PagedFilteredTableView):
             # Create a mutable QueryDict object, default is immutable
             request_get = QueryDict(mutable=True)
             request_get.setlist(
-                "current_status", ["active", "pnm", "activepend", "alumnipend",]
+                "current_status",
+                [
+                    "active",
+                    "pnm",
+                    "activepend",
+                    "alumnipend",
+                ],
             )
         if not cancel:
             current_status = request_get.get("current_status", "")
             if current_status == "":
                 request_get.setlist(
-                    "current_status", ["active", "pnm", "activepend", "alumnipend",]
+                    "current_status",
+                    [
+                        "active",
+                        "pnm",
+                        "activepend",
+                        "alumnipend",
+                    ],
                 )
         self.filter = self.filter_class(request_get, queryset=qs, request=self.request)
         self.filter.form.helper = self.formhelper_class()

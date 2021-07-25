@@ -84,14 +84,18 @@ class ChapterDetailView(LoginRequiredMixin, MultiFormsView):
         if self.request.method in ("POST", "PUT"):
             if self.request.POST.get("action") == "faculty":
                 formset_kwargs.update(
-                    {"data": self.request.POST.copy(),}
+                    {
+                        "data": self.request.POST.copy(),
+                    }
                 )
         return factory(**formset_kwargs)
 
     def get_success_url(self, form_name=None):
         return reverse("chapters:detail", kwargs={"slug": self.kwargs["slug"]})
 
-    def get_chapter_kwargs(self,):
+    def get_chapter_kwargs(
+        self,
+    ):
         return {"instance": get_object_or_404(Chapter, slug=self.kwargs["slug"])}
 
     def chapter_form_valid(self, form):
@@ -158,7 +162,9 @@ class ChapterDetailView(LoginRequiredMixin, MultiFormsView):
         RequestConfig(self.request).configure(note_table)
         context["note_table"] = note_table
         context.update(
-            {"object": chapter,}
+            {
+                "object": chapter,
+            }
         )
         chapter_officers, previous = chapter.get_current_officers()
         natoff = False
@@ -181,7 +187,9 @@ class ChapterDetailView(LoginRequiredMixin, MultiFormsView):
         kwargs = super()._get_form_kwargs(form_name, bind_form)
         if form_name == "chapter":
             kwargs.update(
-                {"instance": self.get_object(),}
+                {
+                    "instance": self.get_object(),
+                }
             )
         return kwargs
 

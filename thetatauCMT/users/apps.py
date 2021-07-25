@@ -8,8 +8,8 @@ class UsersConfig(AppConfig):
 
     def ready(self):
         """Override this to put in:
-            Users system checks
-            Users signal registration
+        Users system checks
+        Users signal registration
         """
         try:
             import users.signals  # noqa F401

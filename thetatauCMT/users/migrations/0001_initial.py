@@ -193,8 +193,12 @@ class Migration(migrations.Migration):
                     ),
                 ),
             ],
-            options={"ordering": ["last_name"],},
-            managers=[("objects", django.contrib.auth.models.UserManager()),],
+            options={
+                "ordering": ["last_name"],
+            },
+            managers=[
+                ("objects", django.contrib.auth.models.UserManager()),
+            ],
         ),
         migrations.CreateModel(
             name="UserStatusChange",
@@ -237,7 +241,9 @@ class Migration(migrations.Migration):
                     ),
                 ),
             ],
-            options={"abstract": False,},
+            options={
+                "abstract": False,
+            },
         ),
         migrations.CreateModel(
             name="UserSemesterServiceHours",
@@ -293,7 +299,9 @@ class Migration(migrations.Migration):
                     ),
                 ),
             ],
-            options={"abstract": False,},
+            options={
+                "abstract": False,
+            },
         ),
         migrations.CreateModel(
             name="UserSemesterGPA",
@@ -349,7 +357,9 @@ class Migration(migrations.Migration):
                     ),
                 ),
             ],
-            options={"abstract": False,},
+            options={
+                "abstract": False,
+            },
         ),
         migrations.CreateModel(
             name="UserRoleChange",
@@ -446,7 +456,9 @@ class Migration(migrations.Migration):
                     ),
                 ),
             ],
-            options={"abstract": False,},
+            options={
+                "abstract": False,
+            },
         ),
         migrations.CreateModel(
             name="UserOrgParticipate",
@@ -485,7 +497,9 @@ class Migration(migrations.Migration):
                     ),
                 ),
             ],
-            options={"abstract": False,},
+            options={
+                "abstract": False,
+            },
         ),
         migrations.CreateModel(
             name="UserAlter",

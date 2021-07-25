@@ -9,7 +9,11 @@ from django.db import models
 class TaskListFilter(django_filters.FilterSet):
     complete = django_filters.ChoiceFilter(
         method="filter_complete",
-        choices=(("1", "Complete"), ("0", "Incomplete"), ("", "All"),),
+        choices=(
+            ("1", "Complete"),
+            ("0", "Incomplete"),
+            ("", "All"),
+        ),
     )
     date = DateRangeFilter(field_name="date")
     task__owner = django_filters.MultipleChoiceFilter(choices=ALL_ROLES_CHOICES)
