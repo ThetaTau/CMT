@@ -14,7 +14,9 @@ key = gpg.gen_key(input_data)
 ascii_armored_public_keys = gpg.export_keys(key.fingerprint)
 passphrase = input("Please enter passphrase")
 ascii_armored_private_keys = gpg.export_keys(
-    keyids=key.fingerprint, secret=True, passphrase=passphrase,
+    keyids=key.fingerprint,
+    secret=True,
+    passphrase=passphrase,
 )
 
 with open(rf"{os.getcwd()}/secrets/mykeyfile.asc", "w") as f:
