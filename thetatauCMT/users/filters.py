@@ -25,7 +25,6 @@ class UserListFilter(django_filters.FilterSet):
         model = User
         fields = {
             "name": ["icontains"],
-            "current_status": ["exact"],
             "major": ["exact"],
             "graduation_year": ["icontains"],
         }
@@ -67,7 +66,6 @@ class UserRoleListFilter(django_filters.FilterSet):
         model = User
         fields = {
             "name": ["icontains"],
-            "current_status": ["exact"],
             "major": ["exact"],
             "graduation_year": ["icontains"],
             "chapter": ["exact"],
