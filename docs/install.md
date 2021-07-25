@@ -1,14 +1,16 @@
 # Install
+
 You can use docker or install locally for development.
 
 ## Docker
+
 See notes on using docker for this project as a part of the cookiecutter django project at:
-[Getting Up and Running Locally With Docker](https://cookiecutter-django.readthedocs.io/en/latest/developing-locally-docker.html) 
+[Getting Up and Running Locally With Docker](https://cookiecutter-django.readthedocs.io/en/latest/developing-locally-docker.html)
 
 Build the docker image
 
     docker-compose -f local.yml build
-    
+
 Run the image for the first time
 
     docker-compose -f local.yml up
@@ -27,22 +29,25 @@ Finally, to run
 Then navigate to localhost:8000/admin, log in with your superuser go to:
 http://localhost:8000/admin/socialaccount/socialapp/ click on "Add Social Application"
 Set following:
-    Provider: Facebook
-    Name: Facebook
-    Client ID: 1234
-    Secret Key: 1234
-    Add cmt.thetatau.org to the chosen sites (click the right arrow after selecting) 
-
+Provider: Facebook
+Name: Facebook
+Client ID: 1234
+Secret Key: 1234
+Add cmt.thetatau.org to the chosen sites (click the right arrow after selecting)
 
 I also have a pycharm run configuration that I use that should be in git.
 
 ## Instructions for Installing Locally Windows/MacOS
-### Get the code
-cd to location to clone (For example: `cd E:\workspace\` or `cd ~/Desktop`)
 
-    git clone https://github.com/VenturaFranklin/thetatauCMT.git
+### Get the code
+
+- [Install git if you don't already have it.](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git)
+- Open a folder or cd to location where you want to clone the code. (For example: `cd E:\workspace\` or `cd ~/Desktop`)
+
+      git clone https://github.com/VenturaFranklin/thetatauCMT.git
 
 ### Install Python
+
 The latest version of python should be fine, nothing older than 3.6 as we use f-strings
 
 Verify python version with `python --version` and you should get output `Python 3.X.X`
@@ -52,24 +57,27 @@ Verify python version with `python --version` and you should get output `Python 
     brew update && brew upgrade
 
     brew install python # (This will install python3 by default)
-    
+
 To make python3 the default python in your environment, do either one of the following:
-    
-__temporarily modify PATH:__
-    `export PATH="/usr/local/opt/python/libexec/bin:/usr/local/sbin:$PATH"`
-    
-__permanently modify PATH:__
-    `echo 'export PATH="/usr/local/opt/python/libexec/bin:/usr/local/sbin:$PATH"' >> ~/.bashrc`
+
+**temporarily modify PATH:**
+`export PATH="/usr/local/opt/python/libexec/bin:/usr/local/sbin:$PATH"`
+
+**permanently modify PATH:**
+`echo 'export PATH="/usr/local/opt/python/libexec/bin:/usr/local/sbin:$PATH"' >> ~/.bashrc`
 
 #### Windows
+
     Make sure to select the option "Add to Path" or know how to do it yourself
-    
+
     Download and install from executable: https://www.python.org/downloads/windows/
 
 ### Install and configure virtualenvwrapper
+
 _NOT WINDOWS_: `pip install virtualenvwrapper` (_WINDOWS_: `pip install virtualenvwrapper-win`)
 
 Add the following Windows environment variables or Mac add the following lines to the shell startup file (.bashrc):
+
 ```
 export WORKON_HOME=~/virtualenvs
 export VIRTUALENVWRAPPER_PYTHON=/usr/bin/python
@@ -86,7 +94,7 @@ To create virtual environment for our project, if this doesn't work then virtual
 
 cd to location where you cloned project repository (For example: `cd ~/Desktop/thetatauCMT`)
 
-    setprojectdir Your_project_dir # (For example: setprojectdir E:\workspace\thetatauCMT)
+    setprojectdir {Your_project_dir} # (For example: setprojectdir E:\workspace\thetatauCMT)
 
 Add files to virtualenv path THIS IS NOT THE SAME FOLDER AS ABOVE, BUT A SUBDIRECTORY For example: add2virtualenv E:\workspace\thetatauCMT\thetatauCMT
 
@@ -95,22 +103,24 @@ Add files to virtualenv path THIS IS NOT THE SAME FOLDER AS ABOVE, BUT A SUBDIRE
     workon cmt
 
 ### Install PostgreSQL
-Install PostgreSQL app to run the database server and follow instructions at https://postgresapp.com/
-Run the Postgres server with the app and make sure that the server status is **Running**
 
 Production is currently running Postgres server version: 9.4.
 I have 10.X and 12.X installed with no issues pulling data from production to debug
 
+You do not need stackbuilder.
+
 Install PostgreSQL at https://www.postgresql.org/download/
 **Remember where you set the data folder! For example: `/Library/PostgreSQL/10`**
 
-Try to run `pg_config`, if get a _not found_ error, then you need to find the path of this command with:
-`sudo find / -name pg_config` -> output: `/Library/PostgreSQL/10/bin`
+In order to verify that postgres was install, try to run `pg_config`, if you get a _not found_ error, then you need to find the path of this command with:
 
-Add the following Windows environment variables or change the PATH to run Postgres command line tools:
+This will add all of the postgres commands to your command line
 
-    export PATH=/Library/PostgreSQL/10/bin:${PATH}
-    
+    mac: `sudo find / -name pg_config` -> output: `/Library/PostgreSQL/10/bin`
+
+windows: `export PATH=/Library/PostgreSQL/10/bin:${PATH}`
+
+And then to get the environment
 or Windows run from commandline
 
     "C:\Program Files\PostgreSQL\10\pg_env.bat"
@@ -125,34 +135,36 @@ If you get a "createdb is not a command" error, you need to make sure the path i
 Find the location of the Postgres server HBA file by going on the Postgres app -> Server Settings... -> HBA File
 
 Check that your pg_hba.conf file has the following:
-    
+
     # IPv4 local connections:
     host all all 127.0.0.1/32 trust
 
 If changes needed to be made, make sure to restart the Postgres service.
 
 ### Install dependencies
+
 Install PostgreSQL database adapter for Django
 
-    pip install psycopg2
+    pip install psycopg2==2.8.6
 
     pip install psycopg2-binary
 
 _ONLY If receive a 'Symbol not found' error, reinstall psycopg2 and psycopg2-binary with the base Python version. (i.e. 2.7.7)_
 
-    pip uninstall psycopg2
+    pip uninstall psycopg2==2.8.6
 
     pip uninstall psycopg2-binary
 
-    pip install pyscopg2==2.7.7
+    pip install psycopg2==2.8.6
 
-    pip install pyscopg2-binary==2.7.7
+    pip install psycopg2-binary==2.9.1
 
 Install other requirements, (Postgres python library has to be installed first)
 
     pip install -r requirements/local.txt
 
 ## Setting up Django app and creating superuser:
+
 Activate the virtual environment created above
 
     workon cmt
@@ -167,6 +179,7 @@ user test and email test@gmail.com and a password easy to remember
     python manage.py createsuperuser
 
 #### Running the server:
+
 First you need to set the postgres variables, if you don't want to run this every time see the environment section below
 
     "C:\Program Files\PostgreSQL\10\pg_env.bat"
@@ -176,14 +189,15 @@ and then
     python manage.py runserver
 
 ## Environments
+
 Find directory of our virtualenv as set up with:
 
     workon cmt
-    
+
     cdvirtualenv
-    
+
     pwd
-    
+
 -> output something like: `/Users/[username]/virtualenvs/cmt` or `C:\Users\[username]\Envs\cmt`
 
 I don't want to run pg_env.bat every time so I edit the post activation file for the virtualenv
@@ -197,6 +211,7 @@ Add the lines at the bottom of the activate file:
 ```
 
 ### VSCode and virtual environments
+
 Change interpreter path in VSCode and replace it with your output from environments above.
 To setup our debugger, click 'Run and Debug' and select 'Django' which will run our server
 

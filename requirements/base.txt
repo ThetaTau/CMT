@@ -22,10 +22,12 @@ protobuf==3.11.3
 rollbar==0.14.7  # https://github.com/rollbar/pyrollbar
 python-gnupg==0.4.6  # https://pythonhosted.org/python-gnupg/
 # python anywhere does not work with latest version
-python-magic==0.4.12 # https://github.com/ahupp/python-magic
+python-magic==0.4.24 # https://github.com/ahupp/python-magic
+python-magic-bin==0.4.14
 git+git://github.com/VenturaFranklin/api-wrappers-python.git#egg=moosend_api_wrapper
 python-quickbooks==0.8.4  # https://github.com/ej2/python-quickbooks
 intuit-oauth==1.2.3  # https://github.com/intuit/oauth-pythonclient
+pygeocoder==1.2.5
 
 # Django
 # ------------------------------------------------------------------------------
@@ -64,6 +66,9 @@ django-upload-validator==1.1.5 # https://github.com/mckinseyacademy/django-uploa
 django-allauth-2fa==0.8  # https://github.com/percipient/django-allauth-2fa
 django-hCaptcha==0.1.0  # https://pypi.org/project/django-hCaptcha/
 django-termsandconditions==2.0.8  # https://github.com/cyface/django-termsandconditions
+django-email-bandit==1.5
+django-middleware-global-request==0.2.0
+django-anymail==8.4
 
 # Django REST Framework
 djangorestframework==3.11.0  # https://github.com/encode/django-rest-framework
