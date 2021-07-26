@@ -362,7 +362,7 @@ class User(AbstractUser):
 
 
 class UserDemographic(models.Model):
-    BOOL_CHOICES = ((True, "Yes"), (False, "No"))
+    BOOL_CHOICES = ((None, ""), (True, "Yes"), (False, "No"))
 
     class GENDER(EnumClass):
         not_listed = ("not_listed", "An identity not listed (write-in)")
@@ -483,12 +483,16 @@ class UserDemographic(models.Model):
     first_gen = models.BooleanField(
         _("Are you a first-generation college student?"),
         choices=BOOL_CHOICES,
-        default=False,
+        default=None,
+        blank=True,
+        null=True,
     )
     english = models.BooleanField(
         _("Is English your first language?"),
         choices=BOOL_CHOICES,
-        default=False,
+        default=None,
+        blank=True,
+        null=True,
     )
 
 

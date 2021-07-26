@@ -851,6 +851,19 @@ class PledgeForm(forms.ModelForm):
 
 
 class PledgeDemographicsForm(forms.ModelForm):
+    first_gen = forms.ChoiceField(
+        label="Are you a first-generation college student?",
+        choices=[("", ""), (True, "Yes"), (False, "No")],
+        initial="",
+        required=False,
+    )
+    english = forms.ChoiceField(
+        label="Is English your first language?",
+        choices=[("", ""), (True, "Yes"), (False, "No")],
+        initial="",
+        required=False,
+    )
+
     class Meta:
         model = UserDemographic
         exclude = ["user"]

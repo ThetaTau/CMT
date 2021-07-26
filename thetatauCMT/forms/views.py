@@ -1473,6 +1473,9 @@ def load_majors(request):
 
 class PledgeFormView(CreateView):
     template_name = "forms/pledge_form.html"
+    initial = {
+        "demographics": {"gender": "", "sexual": "", "racial": "", "ability": ""}
+    }
 
     def get_form(self):
         alt_form = self.kwargs.get("alt_form", False)
