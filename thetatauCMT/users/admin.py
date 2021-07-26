@@ -77,7 +77,6 @@ class UserDemographicAdmin(admin.ModelAdmin):
         "english",
     ]
     search_fields = ["user__chapter"]
-    gender.short_description = "Gender ID"
 
 
 admin.site.register(UserDemographic, UserDemographicAdmin)
