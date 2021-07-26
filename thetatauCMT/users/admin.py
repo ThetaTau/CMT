@@ -19,6 +19,7 @@ from .models import (
     UserSemesterServiceHours,
     UserAlter,
     ChapterCurricula,
+    UserDemographic,
 )
 from .resources import UserRoleChangeResource
 from .views import ExportActiveMixin
@@ -53,6 +54,33 @@ class UserStatusChangeAdmin(admin.ModelAdmin):
 
 
 admin.site.register(UserStatusChange, UserStatusChangeAdmin)
+
+
+class UserDemographicAdmin(admin.ModelAdmin):
+    exclude = ("user",)
+    list_display = (
+        user_chapter,
+        "gender",
+        "sexual",
+        "racial",
+        "ability",
+        "first_gen",
+        "english",
+    )
+    list_filter = [
+        "user__chapter",
+        "gender",
+        "sexual",
+        "racial",
+        "ability",
+        "first_gen",
+        "english",
+    ]
+    search_fields = ["user__chapter"]
+    gender.short_description = "Gender ID"
+
+
+admin.site.register(UserDemographic, UserDemographicAdmin)
 
 
 class UserOrgParticipateAdmin(admin.ModelAdmin):
