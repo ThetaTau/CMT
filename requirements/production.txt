@@ -2,12 +2,11 @@
 
 -r base.txt
 
-gevent==1.4.0
-gunicorn==20.0.4  # https://github.com/benoitc/gunicorn
+gevent==21.1.2
+gunicorn==20.1.0  # https://github.com/benoitc/gunicorn
 boto3==1.18.6  # pyup: update minor  # https://github.com/boto/boto3
 psycopg2==2.8.4 --no-binary psycopg2  # https://github.com/psycopg/psycopg2
 
 # Django
 # ------------------------------------------------------------------------------
 django-sendgrid-v5==0.8.1  # https://github.com/sklarsa/django-sendgrid-v5
-django-middleware-global-request==0.2.0  # https://github.com/appstore-zencore/django-middleware-global-request
