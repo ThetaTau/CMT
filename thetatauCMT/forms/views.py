@@ -1490,6 +1490,7 @@ class PledgeFormView(CreateView):
         """If the form is valid, redirect to the supplied URL."""
         pledge = form["pledge"]
         user = form["user"]
+        demographics = form["demographics"]
         user.instance.badge_number = User.next_pledge_number()
         user.instance.chapter = user.cleaned_data["school_name"]
         try:
@@ -1503,6 +1504,8 @@ class PledgeFormView(CreateView):
                 f"Pledge form already submitted for {user}!",
             )
             return HttpResponseRedirect(self.get_success_url())
+        demographics.instance.user = user
+        demographics.save()
         pledge.instance.user = user
         self.object = pledge.save()
         user.set_current_status(status="pnm")

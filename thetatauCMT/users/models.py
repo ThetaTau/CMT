@@ -9,6 +9,7 @@ from django.utils.translation import ugettext_lazy as _
 from django.core.validators import MinValueValidator, MaxValueValidator, RegexValidator
 from model_utils.fields import MonitorField
 from address.models import AddressField
+from multiselectfield import MultiSelectField
 from core.models import (
     StartEndModel,
     YearTermModel,
@@ -358,6 +359,137 @@ class User(AbstractUser):
     @property
     def is_advisor(self):
         return self.get_current_status_all().filter(status="advisor").first()
+
+
+class UserDemographic(models.Model):
+    BOOL_CHOICES = ((True, "Yes"), (False, "No"))
+
+    class GENDER(EnumClass):
+        not_listed = ("not_listed", "An identity not listed (write-in)")
+        agender = ("agender", "Agender")
+        cisgender = ("cisgender", "Cisgender")
+        female = ("female", "Female")
+        genderqueer = ("genderqueer", "Genderqueer/Gender non-conforming")
+        intersex = ("intersex", "Intersex")
+        male = ("male", "Male")
+        nonbinary = ("nonbinary", "Nonbinary")
+        no_answer = ("no_answer", "Prefer not to answer")
+        trans_male = ("trans_male", "Trans man/Trans male")
+        trans_female = ("trans_female", "Trans woman/Trans female")
+
+    class SEXUAL(EnumClass):
+        asexual = ("asexual", "Asexual")
+        bisexual = ("bisexual", "Bisexual")
+        not_listed = ("not_listed", "An identity not listed (write-in)")
+        heterosexual = ("heterosexual", "Heterosexual / straight")
+        homosexual = ("homosexual", "Homosexual / gay / lesbian")
+        no_answer = ("no_answer", "Prefer not to answer")
+        queer = ("queer", "Queer")
+
+    class RACIAL(EnumClass):
+        asian = ("asian", "Asian")
+        black = ("black", "Black or African American")
+        caucasian = ("caucasian", "Caucasian / White")
+        islander = ("islander", "Native Hawaiiain or Other Pacific Islander")
+        middle_eastern = ("middle_eastern", "Middle Eastern or North African")
+        not_listed = ("not_listed", "An identity not listed (write-in)")
+        latinx = ("latinx", "Latinx or Hispanic")
+        mixed = ("mixed", "Mixed race")
+        native = ("native", "Native American / First Nations")
+        no_answer = ("no_answer", "Prefer not to answer")
+
+    class ABILITY(EnumClass):
+        sensory = ("sensory", "A sensory impairment (vision or hearing)")
+        learning = ("learning", "A learning disability (eg. ADHD, dyslexia)")
+        medical = (
+            "medical",
+            "A long-term medical illness (eg. epilepsy, cystic fibrosis)",
+        )
+        mobility = ("mobility", "A mobility impairment")
+        mental = ("mental", "A mental health disorder")
+        temp = (
+            "temp",
+            "A temporary impairment due to illness or injury (eg. broken ankle, surgery)",
+        )
+        no_impairment = (
+            "no_impairment",
+            "I do not identify with a disability or impairment",
+        )
+        not_listed = ("not_listed", "A disability or impairment not listed (write-in)")
+        no_answer = ("no_answer", "Prefer not to answer")
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="demographic"
+    )
+    gender = MultiSelectField(
+        _("How would you describe your gender identity? (Select all that apply)"),
+        choices=[x.value for x in GENDER],
+        default="no_answer",
+        blank=True,
+        null=True,
+    )
+    gender_write = models.CharField(
+        _("Gender identity write-in"), max_length=30, blank=True, null=True
+    )
+    sexual = MultiSelectField(
+        _("How would you describe your sexual identity? (Select all that apply)"),
+        choices=[x.value for x in SEXUAL],
+        default="no_answer",
+        blank=True,
+        null=True,
+    )
+    sexual_write = models.CharField(
+        _("Sexual identity write-in"), max_length=30, blank=True, null=True
+    )
+    racial = MultiSelectField(
+        _(
+            "With which racial and ethnic group(s) do you identify? (Select all that apply)"
+        ),
+        choices=[x.value for x in RACIAL],
+        default="no_answer",
+        blank=True,
+        null=True,
+    )
+    racial_write = models.CharField(
+        _("Racial and ethnic identity write-in"), max_length=30, blank=True, null=True
+    )
+    specific_ethnicity = models.CharField(
+        _(
+            "Please print your specific ethnicities. "
+            "Examples of ethnicities include (for example): "
+            "German, Korean, Midwesterner (American), Mexican American, "
+            "Navajo Nation, Samoan, Puerto Rican, Southerner (American), "
+            "Chinese, etc. Note, you may report more that one group."
+        ),
+        max_length=300,
+        blank=True,
+        null=True,
+    )
+    ability = MultiSelectField(
+        _(
+            "How do you describe your disability / ability status? "
+            "We are interested in this identification "
+            "regardless of whether you typically request accommodations "
+            "for this disability."
+        ),
+        choices=[x.value for x in ABILITY],
+        default="no_answer",
+        blank=True,
+        null=True,
+    )
+    ability_write = models.CharField(
+        _("Disability or impairment write-in"), max_length=30, blank=True, null=True
+    )
+    first_gen = models.BooleanField(
+        _("Are you a first-generation college student?"),
+        choices=BOOL_CHOICES,
+        default=False,
+    )
+    english = models.BooleanField(
+        _("Is English your first language?"),
+        choices=BOOL_CHOICES,
+        default=False,
+    )
 
 
 class UserAlter(models.Model):

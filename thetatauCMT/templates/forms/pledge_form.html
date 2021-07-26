@@ -47,6 +47,10 @@ $("#id_user-school_name").change(function () {
     $('#div_id_pledge-explain_expelled_org').hide();
     $('#div_id_pledge-explain_expelled_college').hide();
     $('#div_id_pledge-explain_crime').hide();
+    $('#div_id_demographics-gender_write').hide();
+    $('#div_id_demographics-sexual_write').hide();
+    $('#div_id_demographics-racial_write').hide();
+    $('#div_id_demographics-ability_write').hide();
     $('input[name="pledge-other_college_choice"]').on('change', function(){
         var selected_value = $('input[name="pledge-other_college_choice"]:checked').val();
          if(selected_value=="true"){$("#div_id_pledge-other_college").show();}
@@ -67,6 +71,70 @@ $("#id_user-school_name").change(function () {
          if(selected_value=="true"){$("#div_id_pledge-explain_crime").show();}
          else{$("#div_id_pledge-explain_crime").hide();}
      });
+    $('input[name="demographics-gender"]').on('change', function () {
+      var selected_values = $('input[name="demographics-gender"]:checked');
+      var set = false;
+      selected_values.each(function () {
+        if ($(this).val() === "not_listed") {
+          $("#div_id_demographics-gender_write").show();
+          set = true;
+        }
+      })
+      if (set === false) {
+        $("#div_id_demographics-gender_write").hide();
+      }
+    });
+    $('input[name="demographics-sexual"]').on('change', function () {
+      var selected_values = $('input[name="demographics-sexual"]:checked');
+      var set = false;
+      selected_values.each(function () {
+        if ($(this).val() === "not_listed") {
+          $("#div_id_demographics-sexual_write").show();
+          set = true;
+        }
+      })
+      if (set === false) {
+        $("#div_id_demographics-sexual_write").hide();
+      }
+    });
+    $('input[name="demographics-racial"]').on('change', function () {
+      var selected_values = $('input[name="demographics-racial"]:checked');
+      var set = false;
+      selected_values.each(function(){
+        if ($(this).val() === "not_listed") {
+          $("#div_id_demographics-racial_write").show();
+          set = true;
+        }
+      })
+      if (set === false){
+        $("#div_id_demographics-racial_write").hide();
+      }
+    });
+    $('input[name="demographics-ability"]').on('change', function () {
+      var selected_values = $('input[name="demographics-ability"]:checked');
+      var set = false;
+      selected_values.each(function () {
+        if ($(this).val() === "not_listed") {
+          $("#div_id_demographics-ability_write").show();
+          set = true;
+        }
+      })
+      if (set === false) {
+        $("#div_id_demographics-ability_write").hide();
+      }
+    });
+    {# https://stackoverflow.com/a/35992958/3166424 #}
+    $('.collapse').on('show.bs.collapse', function (e) {
+      var $card = $(this).closest('.card');
+      var $open = $($(this).data('parent')).find('.collapse.show');
+      var additionalOffset = 0;
+      if ($card.prevAll().filter($open.closest('.card')).length !== 0) {
+        additionalOffset = $open.height();
+      }
+      $('html,body').animate({
+        scrollTop: $card.offset().top - additionalOffset
+      }, 500);
+    });
     $('form').validate({
       invalidHandler: function(event, validator) {
         if (validator.numberOfInvalids() > 0) {

@@ -35,7 +35,7 @@ from core.address import fix_address
 from core.forms import DuplicateAddressField
 from core.models import CHAPTER_ROLES_CHOICES, NAT_OFFICERS_CHOICES
 from regions.models import Region
-from users.models import User, UserRoleChange
+from users.models import User, UserRoleChange, UserDemographic
 from .models import (
     Initiation,
     Depledge,
@@ -850,6 +850,12 @@ class PledgeForm(forms.ModelForm):
         exclude = ["user", "created", "modified"]
 
 
+class PledgeDemographicsForm(forms.ModelForm):
+    class Meta:
+        model = UserDemographic
+        exclude = ["user"]
+
+
 class PledgeUserBase(forms.ModelForm):
     school_name = SchoolModelChoiceField(
         queryset=Chapter.objects.all().order_by("school")
@@ -931,6 +937,7 @@ class PledgeFormFull(CrispyCompatableMultiModelForm):
     form_classes = {
         "pledge": PledgeForm,
         "user": PledgeUser,
+        "demographics": PledgeDemographicsForm,
     }
 
     def __init__(self, *args, **kwargs):
@@ -1032,6 +1039,48 @@ class PledgeFormFull(CrispyCompatableMultiModelForm):
                     "pledge-explain_expelled_college",
                     InlineRadios("pledge-explain_crime_choice"),
                     "pledge-explain_crime",
+                ),
+                AccordionGroup(
+                    "Demographics",
+                    HTML(
+                        "<h3>Why are we asking for these data?</h3>"
+                        "<p>Theta Tau is committed to diversity, equity, "
+                        "and inclusion. As part of that commitment, "
+                        "we want to understand who our members are so that we "
+                        "can gauge how diverse we are.</p>"
+                    ),
+                    HTML(
+                        "<h3>What will Theta Tau do with these data?</h3>"
+                        "<p>Our target right now is for our chapters to be at "
+                        "least as diverse (in terms of gender and race "
+                        "identities) as the population of engineers that they "
+                        "draw from.  These data will be used to inform chapters "
+                        "of how they compare.  These data will also be used to "
+                        "study regional and national trends.</p>"
+                        "<p>Theta Tau will not associate these data with "
+                        "individual member records; e.g., "
+                        "when a member is looked up in the database, "
+                        "it will not say “John Doe, black gay male.” "
+                        "These data will only be used and reviewed in the aggregate. "
+                        "These data will also never be broken down to the "
+                        "point where a casual observer would be able to "
+                        "identify individual members from the data "
+                        "(we will never share data about an individual pledge "
+                        "class, or a very small chapter.)</p>"
+                        "<p>We will never use these data to target "
+                        "communications or programming advertisements to you.</p>"
+                    ),
+                    "demographics-gender",
+                    "demographics-gender_write",
+                    "demographics-sexual",
+                    "demographics-sexual_write",
+                    "demographics-racial",
+                    "demographics-racial_write",
+                    "demographics-specific_ethnicity",
+                    "demographics-ability",
+                    "demographics-ability_write",
+                    "demographics-first_gen",
+                    "demographics-english",
                 ),
                 AccordionGroup(
                     "Pause and Deliberate",
