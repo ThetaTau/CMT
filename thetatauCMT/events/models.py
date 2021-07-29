@@ -26,7 +26,10 @@ class Event(TimeStampedModel):
     pledges = models.PositiveIntegerField(default=0)
     # Number of non members
     guests = models.PositiveIntegerField(default=0)
-    duration = models.PositiveIntegerField(default=0)
+    duration = models.PositiveIntegerField(
+        default=0,
+        help_text="In Hours",
+    )
     stem = models.BooleanField(
         default=False,
         help_text="Does the event relate to Science Technology Engineering or Math (STEM)?",
