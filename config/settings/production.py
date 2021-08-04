@@ -114,7 +114,6 @@ if DJANGO_EMAIL_LIVE:
 ANYMAIL = {
     "MAILJET_API_KEY": env("MAILJET_API_KEY"),
     "MAILJET_SECRET_KEY": env("MAILJET_SECRET_KEY"),
-    "MAILJET_API_URL": env("MAILJET_API_URL", default="https://api.mailjet.com/v3"),
 }
 
 
