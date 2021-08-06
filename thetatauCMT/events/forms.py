@@ -2,7 +2,6 @@ from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Layout, Fieldset, Row, Submit
 from crispy_forms.bootstrap import FormActions, InlineField, StrictButton
 from django import forms
-from django.db import models
 from .models import Event
 
 class EventListFormHelper(FormHelper):
