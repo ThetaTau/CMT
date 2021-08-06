@@ -1,7 +1,8 @@
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Layout, Fieldset, Row, Submit
 from crispy_forms.bootstrap import FormActions, InlineField, StrictButton
-
+from django import forms
+from .models import Event
 
 class EventListFormHelper(FormHelper):
     form_method = "GET"
@@ -31,3 +32,30 @@ class EventListFormHelper(FormHelper):
             ),
         ),
     )
+
+class EventForm(forms.ModelForm):
+    '''
+    This is a Model From created to add help text to the create
+    event form without changing database model. The Duration field
+    is the onlt field that is updated. 
+    '''
+    duration = forms.IntegerField(
+        min_value=0,
+        help_text="In Hours",
+    )
+    class Meta:
+        model = Event
+        fields = [
+            "name",
+            "date",
+            "type",
+            "description",
+            "members",
+            "pledges",
+            "alumni",
+            "guests",
+            "duration",
+            "stem",
+            "host",
+            "miles",
+        ]
