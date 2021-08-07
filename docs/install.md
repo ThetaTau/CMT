@@ -132,6 +132,11 @@ If you get a "createdb is not a command" error, you need to make sure the path i
 
     createdb thetatauCMT
 
+  If coming from the prod database need the thetatau user:
+
+    psql
+    CREATE USER thetatau;
+
 Find the location of the Postgres server HBA file by going on the Postgres app -> Server Settings... -> HBA File
 
 Check that your pg_hba.conf file has the following:
