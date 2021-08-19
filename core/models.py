@@ -125,7 +125,7 @@ COUNCIL = {
 NATIONAL_OFFICER = {
     "national operations manager",
     "regional director",
-    "colony director",
+    "candidate chapter director",
     "expansion director",
     "professional development director",
     "service director",

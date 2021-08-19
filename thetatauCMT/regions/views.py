@@ -82,8 +82,8 @@ class RegionOfficerView(LoginRequiredMixin, NatOfficerRequiredMixin, DetailView)
             region = Region.objects.filter(slug=region_slug).first()
             if region:
                 chapters = Chapter.objects.filter(region__in=[region])
-            elif region_slug == "colony":
-                chapters = Chapter.objects.filter(colony=True)
+            elif region_slug == "candidate_chapter":
+                chapters = Chapter.objects.filter(candidate_chapter=True)
         all_chapter_officers = User.objects.none()
         for chapter in chapters:
             chapter_officers, _ = chapter.get_current_officers(combine=False)
@@ -168,8 +168,8 @@ class RegionAdvisorView(LoginRequiredMixin, NatOfficerRequiredMixin, DetailView)
             region = Region.objects.filter(slug=region_slug).first()
             if region:
                 chapters = Chapter.objects.filter(region__in=[region])
-            elif region_slug == "colony":
-                chapters = Chapter.objects.filter(colony=True)
+            elif region_slug == "candidate_chapter":
+                chapters = Chapter.objects.filter(candidate_chapter=True)
         all_chapter_advisors = User.objects.none()
         for chapter in chapters:
             all_chapter_advisors = chapter.advisors | all_chapter_advisors

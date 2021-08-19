@@ -19,7 +19,7 @@ class ChapterFactory(factory.django.DjangoModelFactory):
     tax = factory.Faker("random_int")
     greek = factory.LazyAttribute(lambda o: GREEK_ABR_NAME[o.name.lower()])
     active = True
-    colony = False
+    candidate_chapter = False
     school = factory.LazyAttribute(lambda o: f"{o.name} SCHOOL")
     latitude = factory.Faker("latitude")
     longitude = factory.Faker("longitude")

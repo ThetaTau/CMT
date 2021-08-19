@@ -10,7 +10,7 @@ class Transaction(TimeStampedModel):
         ("pledge", "Pledge Fees"),
         ("late", "Late Fees"),
         ("member", "Member Dues"),
-        ("colony", "Colony Dues"),
+        ("candidate_chapter", "Candidate Chapter Dues"),
         ("insurance", "Insurance"),
         ("fine", "Fine"),
         ("payment", "Payment"),
@@ -61,13 +61,13 @@ class Transaction(TimeStampedModel):
             cls.objects.values(
                 "chapter__name",
                 "chapter__region__name",
-                "chapter__colony",
+                "chapter__candidate_chapter",
                 "chapter__region__slug",
             )
             .filter(paid=False, estimate=False)
             .annotate(
                 chapter=models.F("chapter__name"),
-                colony=models.F("chapter__colony"),
+                candidate_chapter=models.F("chapter__candidate_chapter"),
                 region=models.F("chapter__region__name"),
                 region_slug=models.F("chapter__region__slug"),
                 balance=models.Sum("total"),
@@ -76,7 +76,7 @@ class Transaction(TimeStampedModel):
 
 
 """
-Colony Dues are $30/member, due 11/1 and 3/15 of each year.
+Candidate Chapter Dues are $30/member, due 11/1 and 3/15 of each year.
 
 Semiannual Chapter Dues are $80/member if mailed by 11/1 and 3/15 of each year.
 $5 of dues per person are set aside to subsidize your chapter's future National Convention participation.

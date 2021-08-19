@@ -44,8 +44,8 @@ class CompleteListFilter(django_filters.FilterSet):
     def filter_region(self, queryset, field_name, value):
         if value == "national":
             return queryset
-        elif value == "colony":
-            queryset = queryset.filter(chapter__colony=True)
+        elif value == "candidate_chapter":
+            queryset = queryset.filter(chapter__candidate_chapter=True)
         else:
             queryset = queryset.filter(chapter__region__slug=value)
         return queryset

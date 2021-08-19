@@ -273,13 +273,13 @@ class InitiationView(LoginRequiredMixin, OfficerRequiredMixin, FormView):
             for num, user in enumerate(self.to_initiate)
         ]
         chapter = self.request.user.current_chapter
-        if chapter.colony:
+        if chapter.candidate_chapter:
             formset.form.base_fields["badge"].queryset = Badge.objects.filter(
-                Q(name__icontains="Colony")
+                Q(name__icontains="Candidate Chapter")
             )
         else:
             formset.form.base_fields["badge"].queryset = Badge.objects.filter(
-                ~Q(name__icontains="Colony")
+                ~Q(name__icontains="Candidate Chapter")
             )
         context["formset"] = formset
         context["helper"] = InitiationFormHelper()
@@ -835,9 +835,9 @@ class ChapterReportListView(
                 missing_chapters = Chapter.objects.exclude(id__in=form_chapters).filter(
                     region__in=[region]
                 )
-            elif region_slug == "colony":
+            elif region_slug == "candidate_chapter":
                 missing_chapters = Chapter.objects.exclude(id__in=form_chapters).filter(
-                    colony=True
+                    candidate_chapter=True
                 )
             else:
                 missing_chapters = Chapter.objects.exclude(id__in=form_chapters)
@@ -1060,8 +1060,8 @@ class RiskManagementListView(
             region = Region.objects.filter(slug=region_slug).first()
             if region:
                 self.chapters_list = Chapter.objects.filter(region__in=[region])
-            elif region_slug == "colony":
-                self.chapters_list = Chapter.objects.filter(colony=True)
+            elif region_slug == "candidate_chapter":
+                self.chapters_list = Chapter.objects.filter(candidate_chapter=True)
             qs = qs.filter(user__chapter__in=self.chapters_list)
             self.all_complete_status = int(
                 self.filter.cleaned_data["all_complete_status"]
@@ -1221,9 +1221,9 @@ class PledgeProgramListView(
                 missing_chapters = Chapter.objects.exclude(id__in=form_chapters).filter(
                     region__in=[region]
                 )
-            elif region_slug == "colony":
+            elif region_slug == "candidate_chapter":
                 missing_chapters = Chapter.objects.exclude(id__in=form_chapters).filter(
-                    colony=True
+                    candidate_chapter=True
                 )
             else:
                 missing_chapters = Chapter.objects.exclude(id__in=form_chapters)
@@ -1665,7 +1665,7 @@ def get_sign_status(user, type_sign="creds", initial=False):
             else:
                 # If still assigned should be N/A only when complete grab approval
                 approved = getattr(process, f"approved_{abbr}", "N/A")
-            if user.current_chapter.colony:
+            if user.current_chapter.candidate_chapter:
                 if signature in ["delegate", "alternate"]:
                     signature = "representative"
             data.append(
@@ -1948,9 +1948,9 @@ class ConventionListView(
                 missing_chapters = Chapter.objects.exclude(id__in=form_chapters).filter(
                     region__in=[region]
                 )
-            elif region_slug == "colony":
+            elif region_slug == "candidate_chapter":
                 missing_chapters = Chapter.objects.exclude(id__in=form_chapters).filter(
-                    colony=True
+                    candidate_chapter=True
                 )
             else:
                 missing_chapters = Chapter.objects.exclude(id__in=form_chapters)
@@ -2339,9 +2339,9 @@ class OSMListView(LoginRequiredMixin, NatOfficerRequiredMixin, PagedFilteredTabl
                 missing_chapters = Chapter.objects.exclude(id__in=form_chapters).filter(
                     region__in=[region]
                 )
-            elif region_slug == "colony":
+            elif region_slug == "candidate_chapter":
                 missing_chapters = Chapter.objects.exclude(id__in=form_chapters).filter(
-                    colony=True
+                    candidate_chapter=True
                 )
             else:
                 missing_chapters = Chapter.objects.exclude(id__in=form_chapters)

@@ -12,7 +12,7 @@ class ChapterCurriculaInline(admin.TabularInline):
 
 class ChapterAdmin(admin.ModelAdmin):
     inlines = [ChapterNoteInline, ChapterCurriculaInline]
-    list_filter = ["region", "active", "colony", "school_type", "recognition"]
+    list_filter = ["region", "active", "candidate_chapter", "school_type", "recognition"]
     search_fields = ["name", "school"]
     ordering = ["name"]
 

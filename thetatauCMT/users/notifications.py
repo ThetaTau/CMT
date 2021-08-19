@@ -20,7 +20,7 @@ class OfficerMonthly(EmailNotification):  # extend from EmailNotification for em
         self.reply_to = [
             "cmt@thetatau.org",
         ]
-        if "colony" not in chapter.name.lower():
+        if not chapter.candidate_chapter:
             chapter_name = chapter.name + " Chapter"
         else:
             chapter_name = chapter.name

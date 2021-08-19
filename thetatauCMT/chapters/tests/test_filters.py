@@ -7,19 +7,19 @@ from regions.models import Region
 @pytest.mark.django_db
 def test_chapter_list_filter(chapter_factory):
     chapters = chapter_factory.create_batch(10)
-    colonies = chapter_factory.create_batch(10, colony=True)
+    candidate_chapters = chapter_factory.create_batch(10, candidate_chapter=True)
     from chapters.filters import ChapterListFilter
 
-    all_chapters = chapters + colonies
+    all_chapters = chapters + candidate_chapters
     chapter_pks = {chapter.pk for chapter in all_chapters}
     qs = Chapter.objects.all()
     filter_default = ChapterListFilter(queryset=qs)
     assertQuerysetEqual(filter_default.qs, chapter_pks, lambda o: o.pk, ordered=False)
     filter_national = ChapterListFilter({"region": "national"}, queryset=qs)
     assertQuerysetEqual(filter_national.qs, chapter_pks, lambda o: o.pk, ordered=False)
-    filter_colony = ChapterListFilter({"region": "colony"}, queryset=qs)
-    colony_pks = {chapter.pk for chapter in colonies if chapter.colony}
-    assertQuerysetEqual(filter_colony.qs, colony_pks, lambda o: o.pk, ordered=False)
+    filter_candidate_chapter = ChapterListFilter({"region": "candidate_chapter"}, queryset=qs)
+    candidate_chapter_pks = {chapter.pk for chapter in candidate_chapters if chapter.candidate_chapter}
+    assertQuerysetEqual(filter_candidate_chapter.qs, candidate_chapter_pks, lambda o: o.pk, ordered=False)
     regions = Region.objects.all()
     for region in regions:
         filter_region = ChapterListFilter({"region": region.slug}, queryset=qs)

@@ -204,7 +204,7 @@ class Chapter(models.Model):
         max_length=10, blank=True, help_text="Greek letter abbreviation"
     )
     active = models.BooleanField(default=True)
-    colony = models.BooleanField(default=False)
+    candidate_chapter = models.BooleanField(default=False)
     school = models.CharField(max_length=50, blank=True, unique=True)
     latitude = models.DecimalField(
         max_digits=22, decimal_places=16, blank=True, null=True
@@ -239,14 +239,14 @@ class Chapter(models.Model):
     @property
     def account(self):
         suffix = "Ch"
-        if self.colony:
+        if self.candidate_chapter:
             suffix = "Co"
         return f"{self.greek}0{suffix}"
 
     @property
     def full_name(self):
         suffix = "Chapter"
-        if self.colony:
+        if self.candidate_chapter:
             suffix = "Colony"
         return f"{self.name} {suffix}"
 

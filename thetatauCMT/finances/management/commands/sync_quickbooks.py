@@ -53,8 +53,8 @@ class Command(BaseCommand):
                 if "Chapter" in chapter_name:
                     chapter_name = customer.CompanyName.split(" Chapter")[0]
             elif customer_type == "7300000000000214211":
-                # This is a colony
-                # Colony is normally in the name
+                # This is a candidate chapter
+                # Candidate Chapter is normally in the name
                 pass
             elif customer_type == "7300000000000220483":
                 # This is a natoff
@@ -63,7 +63,7 @@ class Command(BaseCommand):
                 # This is other
                 continue
             else:
-                # Maybe not chapter/colony, but other?
+                # Maybe not chapter/candidate chapter, but other?
                 continue
             print(f"Syncing: ", chapter_name)
             try:

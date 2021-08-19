@@ -24,7 +24,7 @@ class Ballot(TimeStampedModel):
         unique_together = ("name", "due_date")
 
     class TYPES(Enum):
-        colony = ("colony", "Colony Petition")
+        candidate_chapter = ("candidate_chapter", "Candidate Chapter Petition")
         chapter = ("chapter", "Chapter Petition")
         suspension = ("suspension", "Suspension")
         other = ("other", "Other")
@@ -53,7 +53,7 @@ class Ballot(TimeStampedModel):
 
     sender = models.CharField("From", max_length=50, default="Grand Scribe")
     slug = models.SlugField(unique=False)
-    # eg. NJIT Colony Petition
+    # eg. NJIT Candidate Chapter Petition
     name = models.CharField(max_length=50)
     type = models.CharField(max_length=20, choices=[x.value for x in TYPES])
     attachment = models.FileField(
