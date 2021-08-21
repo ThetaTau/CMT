@@ -376,6 +376,7 @@ class MyUserAdmin(AuthUserAdmin, ExportActiveMixin):
                     "first_name",
                     "middle_name",
                     "last_name",
+                    "deceased",
                     "suffix",
                     "nickname",
                     "preferred_name",
