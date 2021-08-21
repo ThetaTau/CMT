@@ -890,6 +890,7 @@ class PledgeUserBase(forms.ModelForm):
             "middle_name",
             "last_name",
             "suffix",
+            "preferred_name",
             "nickname",
             "birth_date",
             "address",
@@ -907,13 +908,15 @@ class PledgeUserBase(forms.ModelForm):
                 continue
             if field == "email_school":
                 self.fields["email_school"].initial = ""
-            if field != "middle_name":
+            if field not in ["middle_name", "preferred_name"]:
                 self.fields[field].required = True
             else:
                 self.fields[field].widget = forms.TextInput(
                     attrs={"placeholder": "If None, leave blank"}
                 )
-                self.fields[field].help_text = "If None, leave blank"
+                if field == "middle_name":
+                    self.fields[field].help_text = "If None, leave blank"
+            
 
     def clean_address(self):
         address = self.cleaned_data["address"]
@@ -1003,6 +1006,7 @@ class PledgeFormFull(CrispyCompatableMultiModelForm):
                             "user-suffix",
                         ),
                     ),
+                    "user-preferred_name",
                     "user-nickname",
                     "pledge-parent_name",
                     Row(

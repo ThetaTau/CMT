@@ -78,10 +78,17 @@ class User(AbstractUser):
     middle_name = models.CharField(_("Full Middle Name"), max_length=30, blank=True)
     maiden_name = models.CharField(_("Maiden Name"), max_length=150, blank=True)
     suffix = models.CharField(_("Suffix (such as Jr., III)"), max_length=10, blank=True)
+    preferred_name = models.CharField(
+        _("Preferred Name"),
+        max_length=255,
+        blank=True,
+        null=True,
+        help_text="Prefered First Name - eg my first name is Kevin but I go by my middle name Henry."
+    )
     nickname = models.CharField(
         max_length=30,
         blank=True,
-        help_text="If different than your first name - eg Buddy, Skip, or Mike. Do NOT indicate 'pledge names'",
+        help_text="Other than first name and preferred first name - eg Bud, Skip, Frank The Tank, Etc. Do NOT indicate 'pledge names'",
     )
     email_school = models.EmailField(
         _("School Email"),
@@ -188,6 +195,8 @@ class User(AbstractUser):
             self.user_id = f"{chapter.greek}{self.badge_number}"
         if self.name == "":
             self.name = f"{self.first_name} {self.middle_name} {self.last_name}"
+        if self.preferred_name is not None:
+            self.name = f"{self.preferred_name} {self.last_name}"
         if self.username == "":
             self.username = self.email
         super(User, self).save(*args, **kwargs)
