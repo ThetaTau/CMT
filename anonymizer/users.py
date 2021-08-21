@@ -40,6 +40,7 @@ class UserAnonym(AnonymBase):
     email = anonym_field.string("{seq}@thetatau.org")
     username = anonym_field.string("{seq}@thetatau.org")
     middle_name = anonym_field.function(fake.first_name)
+    preferred_name = anonym_field.function(fake.first_name)
     first_name = anonym_field.function(fake.first_name)
     last_name = anonym_field.function(fake.last_name)
     maiden_name = anonym_field.function(fake.last_name)
