@@ -163,8 +163,8 @@ class UserForm(forms.ModelForm):
             "graduation_year",
             "phone_number",
             "address",
-            "email"
-            ]
+            "email",
+        ]
 
     def __init__(self, *args, **kwargs):
         verify = kwargs.pop("verify", False)

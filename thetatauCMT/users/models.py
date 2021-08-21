@@ -83,7 +83,7 @@ class User(AbstractUser):
         max_length=255,
         blank=True,
         null=True,
-        help_text="Prefered First Name - eg my first name is Kevin but I go by my middle name Henry."
+        help_text="Prefered First Name - eg my first name is Kevin but I go by my middle name Henry.",
     )
     nickname = models.CharField(
         max_length=30,
