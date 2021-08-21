@@ -15,3 +15,8 @@ BANDIT_EMAIL = [
 ACCOUNT_EMAIL_VERIFICATION = "none"
 RECAPTCHA_PUBLIC_KEY = env("RECAPTCHA_PUBLIC_KEY")
 RECAPTCHA_PRIVATE_KEY = env("RECAPTCHA_PRIVATE_KEY")
+
+# dj_anonymizer DO NOT ADD TO PRODUCTION
+# ------------------------------------------------------------------------------
+# https://dj-anonymizer.readthedocs.io
+INSTALLED_APPS = ["dj_anonymizer"] + INSTALLED_APPS  # noqa F405
