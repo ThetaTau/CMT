@@ -75,3 +75,8 @@ if env("USE_DOCKER", default="no") == "yes":
 
 ACCOUNT_EMAIL_VERIFICATION = "none"
 SILENCED_SYSTEM_CHECKS = ["captcha.recaptcha_test_key_error"]
+
+# dj_anonymizer DO NOT ADD TO PRODUCTION
+# ------------------------------------------------------------------------------
+# https://dj-anonymizer.readthedocs.io
+INSTALLED_APPS = ["dj_anonymizer"] + INSTALLED_APPS  # noqa F405
