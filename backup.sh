@@ -5,9 +5,9 @@
 # call_command('dbrestore', '--decrypt', '--noinput',
 #              '--passphrase=%passphrase%', database='default')
 
-if [[ $1 == "" ]] ; then
-    echo 'You must provide database encryption passphrase'
-    exit 1
+if [[ $1 == "" ]]; then
+  echo 'You must provide database encryption passphrase'
+  exit 1
 fi
 
 PASSPHRASE=$1
@@ -42,6 +42,11 @@ if [ "$RESTORE_TEST" = true ]; then
     echo "An error occurred restoring database"
     exit
   fi
+
+  echo "De-identify staging database"
+  export DBBACKUP_STORAGE_LOCATION="/home/Venturafranklin/testCMT/database_backups"
+  python manage.py anonymize_db
+  python manage.py dbbackup --noinput --clean --servername DEIDENTIFED
 
   deactivate
 else
