@@ -377,12 +377,16 @@ class ChapterReport(YearTermModel, TimeStampedModel):
     report = models.FileField(upload_to=get_chapter_report_upload_path)
 
     @classmethod
-    def signed_this_semester(cls, chapter):
+    def signed_this_semester(cls, chapter, report=True):
         program = cls.objects.filter(
             chapter=chapter,
             year=YearTermModel.current_year(),
             term=YearTermModel.current_term(),
-        ).first()
+        )
+
+        if report:
+            program = program.exclude(report__in=[""])
+        program = program.last()
         return program
 
 

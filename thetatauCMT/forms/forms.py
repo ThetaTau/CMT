@@ -442,7 +442,7 @@ class RoleChangeSelectFormHelper(FormHelper):
 
 class ChapterReportForm(forms.ModelForm):
     report = forms.FileField(
-        required=False,
+        required=True,
         help_text="Only PDF format accepted",
         validators=[FileTypeValidator(allowed_types=["application/pdf"])],
     )
@@ -916,7 +916,6 @@ class PledgeUserBase(forms.ModelForm):
                 )
                 if field == "middle_name":
                     self.fields[field].help_text = "If None, leave blank"
-            
 
     def clean_address(self):
         address = self.cleaned_data["address"]

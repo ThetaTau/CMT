@@ -936,7 +936,10 @@ class ChapterInfoReportView(LoginRequiredMixin, MultiFormsView):
         kwargs.update(
             instance={
                 "info": self.get_object(),
-                # 'report': self.object.current_report,
+                "report": ChapterReport.signed_this_semester(
+                    self.request.user.current_chapter,
+                    report=True,
+                ),
             }
         )
         return kwargs
@@ -950,7 +953,7 @@ class ChapterInfoReportView(LoginRequiredMixin, MultiFormsView):
         messages.add_message(
             self.request,
             messages.INFO,
-            "You successfully submitted the RMP and Agreements of Theta Tau!\n",
+            "You successfully submitted the Chapter RMP and Agreements of Theta Tau!\n",
         )
         if info.has_changed():
             info.save()
@@ -958,9 +961,14 @@ class ChapterInfoReportView(LoginRequiredMixin, MultiFormsView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        previous_report_rmp = ChapterReport.signed_this_semester(
+            self.request.user.current_chapter,
+            report=True,
+        )
         context.update(
             {
                 "object": self.get_object(),
+                "previous_report": previous_report_rmp,
             }
         )
         return context
