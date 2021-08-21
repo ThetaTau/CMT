@@ -42,16 +42,16 @@ class RMPSignMiddleware(MiddlewareMixin):
                 messages.add_message(
                     request,
                     messages.ERROR,
-                    "Your chapter must submit the New Member Education Program this semester.",
+                    "Your chapter must submit the New Member Education Program this semester. "
+                    "Please go to Forms --> Pledge Program",
                 )
-                return redirect("forms:pledge_program")
             if not ChapterReport.signed_this_semester(request.user.current_chapter):
                 messages.add_message(
                     request,
                     messages.ERROR,
-                    "Your chapter must submit the Chapter Report this semester.",
+                    "Your chapter must submit the Chapter Report this semester. "
+                    "Please go to Forms -> Chapter Report",
                 )
-                return redirect("forms:report")
         return response
 
 
