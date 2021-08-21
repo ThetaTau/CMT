@@ -185,6 +185,11 @@ class User(AbstractUser):
         Chapter, on_delete=models.CASCADE, default=1, related_name="members"
     )
     deceased = models.BooleanField(default=False)
+    deceased_changed = MonitorField(monitor="deceased", default=forever)
+    deceased_date = models.DateField(
+        blank=True,
+        null=True,
+    )
     no_contact = models.BooleanField(default=False)
 
     def save(self, *args, **kwargs):
