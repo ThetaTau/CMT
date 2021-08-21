@@ -1,0 +1,77 @@
+{% extends "account/base.html" %}
+
+{% load i18n %}
+{% load crispy_forms_tags %}
+
+{% block head_title %}{% trans "Theta Tau Forms" %}{% endblock %}
+{% block content %}
+  <table class="table table-hover table-bordered table-striped">
+  <thead>
+    <tr>
+      <th>Form Name</th>
+      <th>Form Description</th>
+    </tr>
+  </thead>
+  <tr>
+    <td><a href="{% url 'forms:init_selection' %}">{% trans "Initiate/Depledge" %}</a></td>
+    <td>To initiate or depledge potential new members</td>
+  </tr>
+  <tr>
+    <td><a href="{% url 'forms:status_selection' %}">{% trans "Status Change" %}</a></td>
+    <td>To update the status of a member. Graduation, Coop, study abroad,
+        deployment, withdrawing from school, or transferring schools.</td>
+  </tr>
+  <tr>
+    <td><a href="{% url 'forms:officer' %}">{% trans "Officer Report" %}</a></td>
+    <td>To submit the officers of the chapter.</td>
+  </tr>
+  <tr>
+    <td><a href="{% url 'viewflow:forms:prematurealumnus:start' %}">{% trans "Premature Alumnus" %}</a></td>
+    <td>For members prematurely becoming alumni.</td>
+  </tr>
+  <tr>
+    <td><a href="{% url 'forms:collection' %}">{% trans "Collection Referral" %}</a></td>
+    <td>To recommend a member for collections for unpaid dues.</td>
+  </tr>
+  <tr>
+    <td><a href="{% url 'viewflow:forms:disciplinaryprocess:start' %}">{% trans "Disciplinary Process" %}</a></td>
+    <td>To begin the process to suspend or expel a member from the Fraternity.</td>
+  </tr>
+  <tr>
+    <td><a href="{% url 'forms:resign_list' %}">{% trans "Resignations" %}</a></td>
+    <td>List of members who have requested resignation from the chapter. Only a member can resign their membership</td>
+  </tr>
+  <tr>
+    <td><a href="{% url 'viewflow:forms:returnstudent:start' %}">{% trans "Return Student" %}</a></td>
+    <td>For returning an existing member of your chapter to student member status.</td>
+  </tr>
+  <tr>
+    <td><a href="{% url 'forms:rmp' %}">{% trans "Risk Management Policies" %}</a></td>
+    <td>The risk management policies electronic form.</td>
+  </tr>
+  <tr>
+    <td><a href="{% url 'forms:report' %}">{% trans "Chapter Report" %}</a></td>
+    <td>The report of the chapter.</td>
+  </tr>
+  <tr>
+    <td><a href="{% url 'forms:pledge_program' %}">{% trans "New Member Education Program" %}</a></td>
+    <td>Report on the new member education program.</td>
+  </tr>
+  <tr>
+    <td><a href="{% url 'forms:audit' %}">{% trans "Audit" %}</a></td>
+    <td>To submit an audit of the chapter finances.</td>
+  </tr>
+  <tr>
+    <td><a href="{% url 'ballots:votelist' %}">{% trans "Ballots" %}</a></td>
+    <td>To submit electronic ballots for the chapter.</td>
+  </tr>
+  <tr>
+    <td><a href="{% url 'conventionform' %}">{% trans "Convention Form" %}</a></td>
+    <td>In convention years, the form that sets the delegate and alternate for the chapter to attend convention.</td>
+  </tr>
+  <tr>
+    <td><a href="{% url 'osmform' %}">{% trans "OSM Form" %}</a></td>
+    <td>To elect the outstanding student member of the chapter.</td>
+  </tr>
+  </table>
+{% endblock %}

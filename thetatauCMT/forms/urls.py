@@ -1,3 +1,4 @@
+from django.urls import path
 from django.conf.urls import url
 from django.views.generic import RedirectView
 from . import views
@@ -5,6 +6,7 @@ from . import views
 
 app_name = "forms"
 urlpatterns = [
+    path("", views.FormLanding.as_view(), name="landing"),
     url(regex=r"^audit/$", view=views.AuditFormView.as_view(), name="audit"),
     url(
         regex=r"^audit/(?P<pk>\d+)/$",

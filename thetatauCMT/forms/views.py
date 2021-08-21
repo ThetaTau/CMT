@@ -19,7 +19,7 @@ from django.urls import reverse
 from django.utils import timezone
 from django.shortcuts import render
 from django import forms
-from django.views.generic import UpdateView, DetailView
+from django.views.generic import UpdateView, DetailView, TemplateView
 from django.views.generic.edit import FormView, CreateView, ModelFormMixin
 from django.views.decorators.csrf import csrf_exempt
 from django.shortcuts import redirect
@@ -143,6 +143,10 @@ from .notifications import (
     EmailPledgeOfficer,
     EmailProcessUpdate,
 )
+
+
+class FormLanding(LoginRequiredMixin, TemplateView):
+    template_name = "forms/landing.html"
 
 
 class InitDeplSelectView(LoginRequiredMixin, OfficerRequiredMixin, FormSetView):

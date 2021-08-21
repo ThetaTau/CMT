@@ -138,59 +138,8 @@
               <li class="nav-item">
                 <a class="nav-link" href="{% url 'chapters:list' %}">{% trans "Chapters" %}</a>
               </li>
-              <li class="nav-item dropdown"><a class="nav-link dropdown-toggle" href="#">{% trans "Forms" %}</a>
-                <ul class="dropdown-menu">
-                  <li class="dropdown"><a class="dropdown-item dropdown-toggle" href="#">Member Updates</a>
-                    <ul class="dropdown-menu">
-                      <li class="dropdown-item">
-                        <a class="nav-link" href="{% url 'forms:init_selection' %}">{% trans "Initiate/Depledge" %}</a>
-                      </li>
-                      <li class="dropdown-item">
-                        <a class="nav-link" href="{% url 'forms:status_selection' %}">{% trans "Status Change" %}</a>
-                      </li>
-                      <li class="dropdown-item">
-                        <a class="nav-link" href="{% url 'forms:officer' %}">{% trans "Officer Report" %}</a>
-                      </li>
-                      <li class="dropdown-item">
-                        <a class="nav-link" href="{% url 'viewflow:forms:prematurealumnus:start' %}">{% trans "Premature Alumnus" %}</a>
-                      </li>
-                      <li class="dropdown-item">
-                        <a class="nav-link" href="{% url 'forms:collection' %}">{% trans "Collection Referral" %}</a>
-                      </li>
-                      <li class="dropdown-item">
-                        <a class="nav-link" href="{% url 'viewflow:forms:disciplinaryprocess:start' %}">{% trans "Disciplinary Process" %}</a>
-                      </li>
-                      <li class="dropdown-item">
-                        <a class="nav-link"
-                           href="{% url 'forms:resign_list' %}">{% trans "Resignations" %}</a>
-                      </li>
-                      <li class="dropdown-item">
-                        <a class="nav-link"
-                           href="{% url 'viewflow:forms:returnstudent:start' %}">{% trans "Return Student" %}</a>
-                      </li>
-                    </ul>
-                  <li class="dropdown-item">
-                    <a class="nav-link" href="{% url 'forms:rmp' %}">{% trans "Risk Management Policies" %}</a>
-                  </li>
-                  <li class="dropdown-item">
-                    <a class="nav-link" href="{% url 'forms:report' %}">{% trans "Chapter Report" %}</a>
-                  </li>
-                  <li class="dropdown-item">
-                    <a class="nav-link" href="{% url 'forms:pledge_program' %}">{% trans "Pledge Program" %}</a>
-                  </li>
-                  <li class="dropdown-item">
-                    <a class="nav-link" href="{% url 'forms:audit' %}">{% trans "Audit" %}</a>
-                  </li>
-                  <li class="dropdown-item">
-                    <a class="nav-link" href="{% url 'ballots:votelist' %}">{% trans "Ballots" %}</a>
-                  </li>
-                  <li class="dropdown-item">
-                    <a class="nav-link" href="{% url 'conventionform' %}">{% trans "Convention Form" %}</a>
-                  </li>
-                  <li class="dropdown-item">
-                    <a class="nav-link" href="{% url 'osmform' %}">{% trans "OSM Form" %}</a>
-                  </li>
-                </ul>
+              <li class="nav-item">
+                <a class="nav-link" href="{% url 'forms:landing' %}">{% trans "Forms" %}</a>
               </li>
                 {% endif %}
               {% if request.is_nat_officer %}
