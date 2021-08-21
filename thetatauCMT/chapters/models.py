@@ -155,6 +155,12 @@ class Chapter(models.Model):
         blank=True,
         help_text="A generic email used for communication, NOT the member email",
     )
+    house = models.BooleanField(
+        _("Does your chapter have a house?"),
+        default=False,
+        blank=True,
+        null=True,
+    )
     email_vice_regent = models.EmailField(
         _("Vice Regent Generic email address"),
         blank=True,

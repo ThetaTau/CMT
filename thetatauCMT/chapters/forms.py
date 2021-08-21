@@ -19,6 +19,7 @@ class ChapterForm(forms.ModelForm):
             "facebook",
             "address",
             "council",
+            "house",
             "recognition",
             "email_regent",
             "email_vice_regent",
