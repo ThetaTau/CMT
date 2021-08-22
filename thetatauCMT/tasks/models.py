@@ -5,7 +5,7 @@ from django.db.models import Q
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
 from django.utils.text import slugify
-from core.models import ALL_ROLES_CHOICES, TODAY_END
+from core.models import ALL_ROLES_CHOICES, TODAY_END, academic_encompass_start_end_date
 from chapters.models import Chapter
 from scores.models import ScoreType
 
@@ -123,10 +123,12 @@ class TaskDate(models.Model):
     @classmethod
     def incomplete_dates_for_chapter_past(cls, chapter):
         school_type = chapter.school_type
+        academic_start, _ = academic_encompass_start_end_date()
         tasks = cls.objects.filter(
             Q(school_type=school_type) | Q(school_type="all"),
             ~Q(chapters__chapter=chapter),
             Q(date__lte=TODAY_END),
+            Q(date__gte=academic_start),
         ).all()
         return tasks
 

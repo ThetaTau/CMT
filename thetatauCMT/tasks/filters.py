@@ -1,7 +1,7 @@
 # filters.py
 import django_filters
 from core.filters import DateRangeFilter
-from core.models import ALL_ROLES_CHOICES
+from core.models import CHAPTER_OFFICER_CHOICES
 from .models import TaskDate
 from django.db import models
 
@@ -16,7 +16,7 @@ class TaskListFilter(django_filters.FilterSet):
         ),
     )
     date = DateRangeFilter(field_name="date")
-    task__owner = django_filters.MultipleChoiceFilter(choices=ALL_ROLES_CHOICES)
+    task__owner = django_filters.MultipleChoiceFilter(choices=CHAPTER_OFFICER_CHOICES)
 
     class Meta:
         model = TaskDate
