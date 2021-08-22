@@ -24,6 +24,7 @@ from django.views.generic.edit import FormView, CreateView, ModelFormMixin
 from django.views.decorators.csrf import csrf_exempt
 from django.shortcuts import redirect
 from django.http import HttpResponseRedirect, HttpResponse
+from allauth.account.models import EmailAddress
 from crispy_forms.layout import Submit
 from extra_views import FormSetView, ModelFormSetView
 from easy_pdf.views import PDFTemplateResponseMixin
@@ -1527,6 +1528,14 @@ class PledgeFormView(CreateView):
         EmailPledgeConfirmation(self.object).send()
         EmailPledgeWelcome(self.object).send()
         EmailPledgeOfficer(self.object).send()
+        try:
+            EmailAddress.objects.add_email(self.request, user, user.email_school, True)
+        except IntegrityError:
+            pass
+        try:
+            EmailAddress.objects.add_email(self.request, user, user.email, True)
+        except IntegrityError:
+            pass
         processes = PledgeProcess.objects.filter(
             chapter=user.chapter, finished__isnull=True
         )
