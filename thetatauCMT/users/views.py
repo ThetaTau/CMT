@@ -443,10 +443,19 @@ class UserLookupView(FormView):
         else:
             orig_email = user.email
             email = self.hide_email(orig_email)
+            orig_email_school = user.email_school
+            email_school = self.hide_email(orig_email_school)
             messages.add_message(
-                self.request, messages.INFO, f"Email for account is: {email}"
+                self.request,
+                messages.INFO,
+                f"Email for account is: {email} or {email_school}",
             )
             form = PasswordResetFormNotActive({"email": orig_email})
+            # This does not work because not active user
+            # form = PasswordResetForm({'email': orig_email})
+            form.is_valid()
+            form.save()
+            form = PasswordResetFormNotActive({"email": orig_email_school})
             # This does not work because not active user
             # form = PasswordResetForm({'email': orig_email})
             form.is_valid()
