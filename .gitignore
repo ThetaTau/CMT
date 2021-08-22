@@ -340,3 +340,4 @@ submissions/*
 
 *.ipynb_checkpoints
 /.idea/shelf/
+/urls.txt
