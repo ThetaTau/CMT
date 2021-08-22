@@ -60,6 +60,15 @@ class SetNoValidateField(forms.CharField):
         return
 
 
+class UserSelectForm(forms.Form):
+    user = forms.ModelChoiceField(
+        queryset=User.objects.all(),
+        widget=autocomplete.ModelSelect2(
+            url="users:autocomplete", forward=(forward.Const("false", "chapter"),)
+        ),
+    )
+
+
 class InitDeplSelectForm(forms.Form):
     user = forms.ModelChoiceField(queryset=Initiation.objects.none(), disabled=True)
     state = forms.ChoiceField(

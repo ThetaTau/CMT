@@ -1,6 +1,7 @@
 import datetime
 from django.conf import settings
 from django.core.files.base import ContentFile
+from django.http import HttpResponseRedirect
 from django.urls import reverse
 from django.utils.decorators import method_decorator
 from viewflow import flow, frontend
@@ -34,7 +35,7 @@ from .views import (
     ResignationSignView,
     ReturnStudentCreateView,
 )
-from .forms import DisciplinaryForm1, DisciplinaryForm2
+from .forms import DisciplinaryForm1, DisciplinaryForm2, UserSelectForm
 from .notifications import (
     EmailProcessUpdate,
     EmailConventionUpdate,
@@ -49,6 +50,33 @@ def register_factory(viewset_class):
         return frontend.register(function, viewset_class=viewset_class)
 
     return decorator
+
+
+class ReassignTaskView(flow_views.AssignTaskView):
+    template_name = "forms/task_assign.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["form"] = UserSelectForm()
+        return context
+
+    def post(self, request, *args, **kwargs):
+        """
+        Assign task to the current user.
+
+        Expect that form submitted with `_continue` or `_assign` button::
+
+            <button type="submit" name="_continue">Assign and continue on this process</button>
+            <button type="submit" name="_assign">Assign</button>
+        """
+        user = User.objects.get(id=request.POST["user"])
+        self.activation.assign(user)
+        self.success(_("Task {task} has been assigned to" f"{user}"))
+        return HttpResponseRedirect(self.get_success_url())
+
+
+class ReassignView(flow.View):
+    assign_view_class = ReassignTaskView
 
 
 @register_factory(viewset_class=FilterableFlowViewSet)
@@ -440,25 +468,25 @@ class ConventionFlow(Flow):
     )
 
     assign_del = (
-        flow.View(ConventionSignView, task_title=_("Delegate Sign"))
+        ReassignView(ConventionSignView, task_title=_("Delegate Sign"))
         .Assign(lambda act: act.process.delegate)
         .Next(this.join_flow)
     )
 
     assign_alt = (
-        flow.View(ConventionSignView, task_title=_("Alternate Sign"))
+        ReassignView(ConventionSignView, task_title=_("Alternate Sign"))
         .Assign(lambda act: act.process.alternate)
         .Next(this.join_flow)
     )
 
     assign_o1 = (
-        flow.View(ConventionSignView, task_title=_("Officer1 Sign"))
+        ReassignView(ConventionSignView, task_title=_("Officer1 Sign"))
         .Assign(lambda act: act.process.officer1)
         .Next(this.join_flow)
     )
 
     assign_o2 = (
-        flow.View(ConventionSignView, task_title=_("Officer2 Sign"))
+        ReassignView(ConventionSignView, task_title=_("Officer2 Sign"))
         .Assign(lambda act: act.process.officer2)
         .Next(this.join_flow)
     )
@@ -611,13 +639,13 @@ class OSMFlow(Flow):
     assign_approval = flow.Split().Next(this.assign_o1).Next(this.assign_o2)
 
     assign_o1 = (
-        flow.View(OSMVerifyView, task_title=_("Officer1 Sign"))
+        ReassignView(OSMVerifyView, task_title=_("Officer1 Sign"))
         .Assign(lambda act: act.process.officer1)
         .Next(this.join_flow)
     )
 
     assign_o2 = (
-        flow.View(OSMVerifyView, task_title=_("Officer2 Sign"))
+        ReassignView(OSMVerifyView, task_title=_("Officer2 Sign"))
         .Assign(lambda act: act.process.officer2)
         .Next(this.join_flow)
     )
@@ -714,7 +742,7 @@ class DisciplinaryProcessFlow(Flow):
     ).Next(this.submit_form2)
 
     submit_form2 = (
-        flow.View(DisciplinaryForm2View, task_title=_("Submit Form 2"))
+        ReassignView(DisciplinaryForm2View, task_title=_("Submit Form 2"))
         .Assign(
             lambda act: act.process.chapter.get_current_officers_council_specific()[0]
         )
@@ -1068,13 +1096,13 @@ class ResignationFlow(Flow):
     assign_approval = flow.Split().Next(this.assign_o1).Next(this.assign_o2)
 
     assign_o1 = (
-        flow.View(ResignationSignView, task_title=_("Officer1 Sign"))
+        ReassignView(ResignationSignView, task_title=_("Officer1 Sign"))
         .Assign(lambda act: act.process.officer1)
         .Next(this.join_flow)
     )
 
     assign_o2 = (
-        flow.View(ResignationSignView, task_title=_("Officer2 Sign"))
+        ReassignView(ResignationSignView, task_title=_("Officer2 Sign"))
         .Assign(lambda act: act.process.officer2)
         .Next(this.join_flow)
     )
