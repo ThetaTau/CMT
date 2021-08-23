@@ -63,6 +63,8 @@ class UserAnonym(AnonymBase):
         queryset = User.objects.exclude(is_superuser=True)
         exclude_fields = [
             "address_changed",
+            "deceased_changed",
+            "deceased_date",
             "is_staff",
             "last_login",
             "emergency_relation",
