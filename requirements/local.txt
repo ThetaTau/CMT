@@ -5,7 +5,7 @@ ipdb==0.13.9  # https://github.com/gotcha/ipdb
 Sphinx==4.1.1  # https://github.com/sphinx-doc/sphinx
 psycopg2==2.8.6
 psycopg2-binary==2.9.1; platform_system == "Windows"  # https://github.com/psycopg/psycopg2
-git+https://github.com/preply/dj_anonymizer.git@a9828d0efa6eb304d75c94184d03c9f85fed69f0
+dj_anonymizer==0.3.1
 
 # Testing
 # ------------------------------------------------------------------------------
