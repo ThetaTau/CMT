@@ -19,7 +19,9 @@ fake = Factory.create()
 class EmailAddressAnonym(AnonymBase):
     email = anonym_field.string("{seq}@thetatau.org")
     verified = anonym_field.function(lambda: True)
-    primary = anonym_field.function(lambda: True)
+
+    class Meta:
+        exclude_fields = ["primary"]
 
 
 register_anonym(
