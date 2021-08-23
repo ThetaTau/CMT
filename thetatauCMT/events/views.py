@@ -28,7 +28,7 @@ class EventCreateView(
     template_name_suffix = "_create_form"
     officer_edit = "events"
     officer_edit_type = "create"
-    form_class = EventForm 
+    form_class = EventForm
 
     def get_success_url(self):
         return reverse("events:list")
