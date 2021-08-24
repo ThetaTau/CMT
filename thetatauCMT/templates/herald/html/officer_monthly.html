@@ -60,8 +60,5 @@ If any of these are incorrect, the basic forms:
   {% endfor %}
   </ul>
 {% endif %}
-<h2 class="null" style="margin: 0;padding: 0;display: block;font-family: Helvetica;font-size: 26px;font-style: normal;font-weight: bold;line-height: 125%;letter-spacing: -.75px;text-align: left;color: #404040 !important;">Risk Management:</h2>
-If you see something, speak up!<br>
-Do not hesitate to reach out to your regional directors, or the risk management chair. <br>
-<a href="mailto:Stuart.Kardian@thetatau.org?subject=Risk%20Management%20Question%2FIssue" target="_blank" style="word-wrap: break-word;-ms-text-size-adjust: 100%;-webkit-text-size-adjust: 100%;color: #6DC6DD;font-weight: normal;text-decoration: underline;">Stuart Kardian</a>, 804-909-3486
+  {% include "herald/html/rm_contact.html" %}
 {% endblock content %}

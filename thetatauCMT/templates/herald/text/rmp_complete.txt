@@ -5,11 +5,8 @@ Thank you for signing the Risk Management Policies of Theta Tau.
 Attached is a final copy of "{{ file_name }}".
 You can also view the document in your Chapter Management Tool account.
 {{ host }}{% url 'users:detail' %}#submissions
-------------------------------------------------------------
-If you see something, speak up!
-Do not hesitate to reach out to your regional directors, or the risk management chair.
-Stuart.Kardian@thetatau.org, 804-909-3486
 
+{% include "herald/text/rm_contact.txt" %}
 ============================================================
 ** Facebook (https://www.facebook.com/thetatau/)
 ** Theta Tau (thetatau.org)
