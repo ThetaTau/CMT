@@ -16,7 +16,7 @@ class OfficerMonthly(EmailNotification):  # extend from EmailNotification for em
         self.to_emails = set([officer.email for officer in officer_list]) | set(
             chapter.get_generic_chapter_emails()
         )
-        self.cc = [chapter.region.email, "cmt@thetatau.org"]
+        self.cc = []
         self.reply_to = [
             "cmt@thetatau.org",
         ]
