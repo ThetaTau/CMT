@@ -58,3 +58,27 @@ class AuditTable(tables.Table):
             "th": {"class": "text-center"},
         }
         orderable = False
+
+
+class ChapterStatusTable(tables.Table):
+    name = tables.LinkColumn("chapters:detail", args=[A("slug")])
+
+    # Chapter, Members, Pledges, Events Last Month, Submissions Last Month, Current Balance, Tasks Overdue
+    class Meta:
+        model = Chapter
+        fields = (
+            "name",
+            "balance",
+            "balance_date",
+            "officer_missing",
+            "member_count",
+            "pledge_count",
+            "event_count",
+            "tasks_overdue",
+        )
+        attrs = {
+            "class": "table table-striped table-bordered",
+            "td": {"align": "center"},
+            "th": {"class": "text-center"},
+        }
+        orderable = False

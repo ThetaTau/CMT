@@ -2,6 +2,8 @@ from herald import registry
 from herald.base import EmailNotification
 from tasks.models import TaskDate
 from django.conf import settings
+from chapters.models import Chapter
+from chapters.tables import ChapterStatusTable
 
 
 @registry.register_decorator()
@@ -41,9 +43,67 @@ class OfficerMonthly(EmailNotification):  # extend from EmailNotification for em
 
     @staticmethod
     def get_demo_args():  # define a static method to return list of args needed to initialize class for testing
-        from users.models import User
+        return [Chapter.objects.order_by("?")[0]]
 
-        return [User.objects.order_by("?")[0].chapter]
+
+@registry.register_decorator()
+class RDMonthly(EmailNotification):  # extend from EmailNotification for emails
+    template_name = "rd_monthly"  # name of template, without extension
+    subject = "CMT Monthly Update Region Summary"  # subject of email
+    render_types = ["html"]
+
+    def __init__(self, region):  # optionally customize the initialization
+        # Chapter, Members, Pledges, Events Last Month, Submissions Last Month, Current Balance, Tasks Overdue
+        # List of tasks due next 45 days
+        if region == "colony":
+            email = "coldir@thetatau.org"
+            chapters = Chapter.objects.filter(colony=True)
+        else:
+            email = region.email
+            chapters = region.chapters.all()
+        self.to_emails = {email}
+        self.cc = []
+        self.reply_to = [
+            "cmt@thetatau.org",
+        ]
+        data = []
+        for chapter in chapters:
+            if not chapter.active or (chapter.colony and not region == "colony"):
+                continue
+            officers = chapter.get_current_officers_council_specific()
+            officer_order = {0: "Regent", 1: "Scribe", 2: "Vice", 3: "Treasurer"}
+            missing = ", ".join(
+                [
+                    officer_order[ind]
+                    for ind, officer in enumerate(officers)
+                    if officer is None
+                ]
+            )
+            data.append(
+                {
+                    "name": chapter.name,
+                    "slug": chapter.slug,
+                    "balance": chapter.balance,
+                    "balance_date": chapter.balance_date,
+                    "officer_missing": missing,
+                    "member_count": chapter.actives().count(),
+                    "pledge_count": chapter.pledges().count(),
+                    "event_count": chapter.events_last_month().count(),
+                    "tasks_overdue": TaskDate.incomplete_dates_for_chapter_past(
+                        chapter
+                    ).count(),
+                }
+            )
+        table = ChapterStatusTable(data=data)
+        self.context = {
+            "region": region,
+            "table": table,
+        }
+
+    @staticmethod
+    def get_demo_args():  # define a static method to return list of args needed to initialize class for testing
+        # return ["colony"]
+        return [Chapter.objects.order_by("?")[0].region]
 
 
 @registry.register_decorator()

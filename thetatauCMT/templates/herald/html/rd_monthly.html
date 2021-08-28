@@ -1,0 +1,15 @@
+{% extends "herald/html/base_email.html" %}
+{% load querystring from django_tables2 %}
+{% load render_table from django_tables2 %}
+{% block title %}CMT Monthly Email{% endblock %}
+{% block content %}
+<h1 class="null" style="margin: 0;padding: 0;display: block;font-family: Helvetica;font-size: 40px;font-style: normal;font-weight: bold;line-height: 125%;letter-spacing: -1px;text-align: left;color: #606060 !important;">
+  CMT Monthly Update</h1>
+  <br>
+Dear Theta Tau {{ region }} Regional Directors,
+<p>
+Below is an overview of your region. Member/Pledge/Officer counts are as of today.
+  Events for the past month. Tasks past due for the semester.</p>
+  <br>
+  {% render_table table %}
+{% endblock content %}
