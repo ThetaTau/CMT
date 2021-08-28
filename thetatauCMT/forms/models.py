@@ -1278,6 +1278,7 @@ class DisciplinaryProcess(Process, TimeStampedModel):
         process = ("process", "Accept and Process")
         accept = ("accept", "Accept With No Action")
         reject = ("reject", "Reject")
+        not_review = ("not_review", "Not Reviewed")
 
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -1421,6 +1422,7 @@ class DisciplinaryProcess(Process, TimeStampedModel):
         "Executive Director Review",
         max_length=10,
         choices=[x.value for x in PROCESS],
+        default="not_review",
         blank=True,
         null=True,
     )
@@ -1429,8 +1431,12 @@ class DisciplinaryProcess(Process, TimeStampedModel):
     )
     ec_approval = models.BooleanField(
         "Executive Council Outcome",
-        choices=((True, "Outcome approved by EC"), (False, "Outcome Rejected by EC")),
-        default=False,
+        choices=(
+            (True, "Outcome approved by EC"),
+            (False, "Outcome Rejected by EC"),
+            ("", "Not reviewed yet"),
+        ),
+        default="",
         blank=True,
         null=True,
     )
