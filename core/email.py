@@ -14,7 +14,7 @@ from .views import group_required
 if settings.DJANGO_EMAIL_LIVE:
     from anymail.backends.mailjet import EmailBackend
 else:
-    from django.core.mail.backends.console import EmailBackend
+    from django.core.mail.backends.filebased import EmailBackend
 
 
 class MyHijackBackend(HijackBackendMixin, EmailBackend):

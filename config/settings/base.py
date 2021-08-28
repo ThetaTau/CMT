@@ -276,12 +276,10 @@ X_FRAME_OPTIONS = "DENY"
 # https://docs.djangoproject.com/en/dev/ref/settings/#email-backend
 DEFAULT_FROM_EMAIL = "cmt@thetatau.org"
 DJANGO_EMAIL_LIVE = env.bool("DJANGO_EMAIL_LIVE", True)
-if DJANGO_EMAIL_LIVE:
-    EMAIL_BACKEND = env(
-        "DJANGO_EMAIL_BACKEND", default="django.core.mail.backends.console.EmailBackend"
-    )
-else:
-    EMAIL_BACKEND = "django.core.mail.backends.filebased.EmailBackend"
+EMAIL_BACKEND = env(
+    "DJANGO_EMAIL_BACKEND",
+    default="django.core.mail.backends.filebased.EmailBackend",
+)
 EMAIL_FILE_PATH = str(ROOT_DIR / "email_tests")
 EMAIL_TIMEOUT = 5
 # ADMIN
