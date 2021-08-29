@@ -82,15 +82,38 @@ class Command(BaseCommand):
                 chapter.balance = balance
                 chapter.balance_date = timezone.now()
                 chapter.save()
-            emails = set(
-                chapter.get_current_officers_council(False)[0].values_list(
-                    "email", flat=True
-                )
-            ) | set(chapter.get_generic_chapter_emails())
+            # Total emails are limited to 100 characters, need to be strategic
+            # [regent, scribe, vice, treasurer]
+            council_emails = chapter.get_current_officers_council_specific()
+            # [email_regent, email_scribe, email_vice_regent, email_treasurer, email_corresponding_secretary, email,
+            generic_emails = chapter.get_generic_chapter_emails()
+            emails = {
+                # Tresurer
+                council_emails[3],
+                generic_emails[3],
+                # Generic
+                generic_emails[5],
+                # Regent
+                council_emails[0],
+                generic_emails[0],
+                # Vice
+                council_emails[2],
+                generic_emails[2],
+                # Scribe
+                council_emails[1],
+                generic_emails[1],
+                # Corsec
+                generic_emails[4],
+            }
             emails = {email for email in emails if email}
             if not emails:
                 print("    NO EMAILS")
-            email_str = ", ".join(emails)
+            email_str = ""
+            for email in emails:
+                if len(email_str + email + 1) < 100:
+                    email_str = email_str + email + ","
+                else:
+                    break
             print("    Current Email: ", customer.PrimaryEmailAddr.Address)
             if customer.PrimaryEmailAddr.Address != email_str:
                 print("    New Email: ", email_str)
