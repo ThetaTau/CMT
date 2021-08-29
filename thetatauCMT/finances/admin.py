@@ -1,25 +1,19 @@
 from django.contrib import admin
-from .models import Transaction
+from .models import Invoice
 
 
-class TransactionAdmin(admin.ModelAdmin):
+class InvoiceAdmin(admin.ModelAdmin):
     list_display = (
-        "type",
         "due_date",
         "chapter",
-        "paid",
         "total",
-        "estimate",
     )
     list_filter = [
         "chapter",
-        "type",
-        "paid",
-        "estimate",
     ]
     ordering = [
         "-due_date",
     ]
 
 
-admin.site.register(Transaction, TransactionAdmin)
+admin.site.register(Invoice, InvoiceAdmin)

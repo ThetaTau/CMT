@@ -27,15 +27,6 @@
                     <td>${{ open_balance }}</td>
                     <td colspan="3">For balance questions/invoices contact accounting@thetatau.org</td>
                 </tr>
-                <tr>
-                    <th>Estimate</th>
-                    <td colspan="4">
-                        Invoice has not yet been generated, <a href="{% url "forms:status_selection" %}">MSCRs</a>
-                        are due September 15 and January 15 to ensure that dues invoice for
-                        November 1 and March 15 respectively are as accurate as possible.
-                    </td>
-                </tr>
-
               <tr>
                 {% for column in table.columns %}
                     {% if column.orderable %}

@@ -6,9 +6,12 @@ from django.utils import timezone
 from quickbooks import QuickBooks
 from intuitlib.client import AuthClient
 from quickbooks.objects.customer import Customer
+from quickbooks.objects.invoice import Invoice as QBInvoice
 from chapters.models import Chapter
+from finances.models import Invoice
 
 
+# python manage.py sync_quickbooks
 class Command(BaseCommand):
     # Show this when the user types help
     help = "Sync Quickbooks"
@@ -20,6 +23,7 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         live = options.get("live", False)
         print(f"This is LIVE: ", live)
+        Invoice.objects.all().delete()
         env = environ.Env()
         auth_client = AuthClient(
             client_id=env("QUICKBOOKS_CLIENT"),
@@ -41,6 +45,7 @@ class Command(BaseCommand):
             auth_client=auth_client,
             refresh_token=auth_client.refresh_token,
             company_id="9130348538823906",
+            minorversion=62,
         )
         customers = Customer.all(qb=client)
         for customer in customers:
@@ -94,3 +99,43 @@ class Command(BaseCommand):
                     customer.save(qb=client)
             else:
                 print("    No new emails")
+            if not balance > 0:
+                continue
+            invoices = QBInvoice.query(
+                select=f"select * from Invoice where balance > '0' AND CustomerRef = '{customer.Id}'",
+                qb=client,
+            )
+            for invoice_res in invoices:
+                invoice = QBInvoice.get(invoice_res.Id, qb=client)
+                Invoice(
+                    link=invoice.InvoiceLink,
+                    due_date=invoice.DueDate,
+                    central_id=invoice.DocNumber,
+                    description="<br>".join(
+                        [
+                            f"{line.Description}; Line Amount: {line.Amount} <br>"
+                            for line in invoice.Line
+                            if line.DetailType == "SalesItemLineDetail"
+                        ]
+                    ),
+                    total=invoice.Balance,
+                    chapter=chapter,
+                ).save()
+
+
+"""
+{'Id': '28122', # ID in Quickbooks
+ 'Balance': 559.0,
+ 'DocNumber': '23337', # ID used by central office
+ 'DueDate': '2021-04-11',
+ 'TotalAmt': 559.0,
+ 'TxnDate': '2021-02-01',
+ 'EmailStatus': 'EmailSent',
+ 'InvoiceLink': ''
+ 'BillEmail': invoice.BillEmail.Address
+ 'CustomerMemo': None,
+ 'Line': [<quickbooks.objects.detailline.SalesItemLine at 0x12581a50>,
+  <quickbooks.objects.detailline.SalesItemLine at 0x12581b70>,
+  <quickbooks.objects.detailline.SalesItemLine at 0x12581a70>,
+  <quickbooks.objects.detailline.SubtotalLine at 0x149aea90>],
+ """

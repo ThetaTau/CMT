@@ -3,9 +3,9 @@ from crispy_forms.layout import Layout, Fieldset, Row, Submit
 from crispy_forms.bootstrap import FormActions, StrictButton, Field
 
 
-class TransactionListFormHelper(FormHelper):
+class InvoiceListFormHelper(FormHelper):
     form_method = "GET"
-    form_id = "transaction-search-form"
+    form_id = "invoice-search-form"
     form_class = "form-inline"
     field_template = "bootstrap3/layout/inline_field.html"
     field_class = "col-xs-3"
@@ -15,11 +15,8 @@ class TransactionListFormHelper(FormHelper):
     html5_required = True
     layout = Layout(
         Fieldset(
-            '<i class="fas fa-search"></i> Filter Transactions',
+            '<i class="fas fa-search"></i> Filter Invoices',
             Row(
-                Field("type"),
-                Field("paid"),
-                Field("estimate"),
                 Field("due_date"),
                 FormActions(
                     StrictButton(

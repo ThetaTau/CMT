@@ -1,30 +1,30 @@
 from core.views import PagedFilteredTableView, LoginRequiredMixin
-from .models import Transaction
-from .tables import TransactionTable, ChapterBalanceTable
-from .filters import TransactionListFilter, ChapterBalanceListFilter
-from .forms import TransactionListFormHelper, ChapterBalanceListFormHelper
+from .models import Invoice
+from .tables import InvoiceTable, ChapterBalanceTable
+from .filters import InvoiceListFilter, ChapterBalanceListFilter
+from .forms import InvoiceListFormHelper, ChapterBalanceListFormHelper
 
 
-class TransactionListView(LoginRequiredMixin, PagedFilteredTableView):
-    model = Transaction
-    context_object_name = "transaction"
+class InvoiceListView(LoginRequiredMixin, PagedFilteredTableView):
+    model = Invoice
+    context_object_name = "invoice"
     ordering = ["-created"]
-    table_class = TransactionTable
-    filter_class = TransactionListFilter
-    formhelper_class = TransactionListFormHelper
+    table_class = InvoiceTable
+    filter_class = InvoiceListFilter
+    formhelper_class = InvoiceListFormHelper
     filter_chapter = True
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["open_balance"] = Transaction.open_balance_chapter(
+        context["open_balance"] = Invoice.open_balance_chapter(
             chapter=self.request.user.current_chapter
         )
         return context
 
 
 class ChapterBalancesListView(LoginRequiredMixin, PagedFilteredTableView):
-    model = Transaction
-    context_object_name = "transaction"
+    model = Invoice
+    context_object_name = "Invoice"
     ordering = ["chapter"]
     template_name = "finances/chapter_balances.html"
     table_class = ChapterBalanceTable
@@ -33,6 +33,6 @@ class ChapterBalancesListView(LoginRequiredMixin, PagedFilteredTableView):
     table_pagination = {"per_page": 30}
 
     def get_queryset(self, **kwargs):
-        qs = Transaction.open_balances_all().order_by("chapter")
+        qs = Invoice.open_balances_all().order_by("chapter")
         qs = super().get_queryset(other_qs=qs)
         return qs
