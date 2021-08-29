@@ -110,10 +110,13 @@ class Command(BaseCommand):
                 print("    NO EMAILS")
             email_str = ""
             for email in emails:
-                if len(email_str + email + 1) < 100:
+                if not isinstance(email, str):
+                    email = email.email
+                if (len(email_str + email) + 1) < 100:
                     email_str = email_str + email + ","
                 else:
                     break
+            email_str = email_str[:-1]
             print("    Current Email: ", customer.PrimaryEmailAddr.Address)
             if customer.PrimaryEmailAddr.Address != email_str:
                 print("    New Email: ", email_str)
