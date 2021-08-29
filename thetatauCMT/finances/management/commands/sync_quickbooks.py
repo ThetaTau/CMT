@@ -112,6 +112,8 @@ class Command(BaseCommand):
             for email in emails:
                 if not isinstance(email, str):
                     email = email.email
+                if not email:
+                    continue
                 if (len(email_str + email) + 1) < 100:
                     email_str = email_str + email + ","
                 else:
