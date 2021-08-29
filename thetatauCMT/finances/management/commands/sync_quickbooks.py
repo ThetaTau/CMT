@@ -47,7 +47,7 @@ class Command(BaseCommand):
             company_id="9130348538823906",
             minorversion=62,
         )
-        customers = Customer.all(qb=client)
+        customers = Customer.all(qb=client, max_results=1000)
         for customer in customers:
             chapter_name = customer.CompanyName
             if not chapter_name or not hasattr(customer, "CustomerTypeRef"):
@@ -87,7 +87,7 @@ class Command(BaseCommand):
             council_emails = chapter.get_current_officers_council_specific()
             # [email_regent, email_scribe, email_vice_regent, email_treasurer, email_corresponding_secretary, email,
             generic_emails = chapter.get_generic_chapter_emails()
-            emails = {
+            emails = [
                 # Tresurer
                 council_emails[3],
                 generic_emails[3],
@@ -104,8 +104,8 @@ class Command(BaseCommand):
                 generic_emails[1],
                 # Corsec
                 generic_emails[4],
-            }
-            emails = {email for email in emails if email}
+            ]
+            emails = [email for email in emails if email]
             if not emails:
                 print("    NO EMAILS")
             email_str = ""
