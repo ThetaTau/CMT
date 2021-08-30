@@ -1160,6 +1160,7 @@ class PrematureAlumnusForm(forms.ModelForm):
         label=PrematureAlumnus.verbose_vote, choices=CHOICES, initial=""
     )
     user = forms.ModelChoiceField(
+        label="Member requesting prealumn status",
         queryset=User.objects.all(),
         widget=autocomplete.ModelSelect2(
             url="users:autocomplete",
@@ -1469,6 +1470,7 @@ class ReturnStudentForm(forms.ModelForm):
         label=ReturnStudent.verbose_vote, choices=CHOICES, initial=""
     )
     user = forms.ModelChoiceField(
+        label="Member requesting return",
         queryset=User.objects.all(),
         widget=autocomplete.ModelSelect2(
             url="users:autocomplete",
