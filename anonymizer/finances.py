@@ -1,5 +1,5 @@
 from dj_anonymizer.register_models import register_clean
 
-from finances.models import Transaction
+from finances.models import Invoice
 
-register_clean([Transaction])
+register_clean([Invoice])
