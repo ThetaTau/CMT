@@ -72,7 +72,7 @@ class RDMonthly(EmailNotification):  # extend from EmailNotification for emails
         ]
         data = []
         for chapter in chapters:
-            if not chapter.active or (chapter.colony and not region == "colony"):
+            if not chapter.active:
                 continue
             officers = chapter.get_current_officers_council_specific()
             officer_order = {0: "Regent", 1: "Scribe", 2: "Vice", 3: "Treasurer"}
