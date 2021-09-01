@@ -61,7 +61,7 @@ class AuditTable(tables.Table):
 
 
 class ChapterStatusTable(tables.Table):
-    name = tables.LinkColumn("chapters:detail", args=[A("slug")])
+    name = tables.TemplateColumn('<a href="{{ record.link }}">{{ record.name }}</a>')
 
     # Chapter, Members, Pledges, Events Last Month, Submissions Last Month, Current Balance, Tasks Overdue
     class Meta:

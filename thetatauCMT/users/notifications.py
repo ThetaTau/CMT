@@ -39,6 +39,7 @@ class OfficerMonthly(EmailNotification):  # extend from EmailNotification for em
             "tasks_upcoming": TaskDate.incomplete_dates_for_chapter_next_month(chapter),
             "tasks_overdue": TaskDate.incomplete_dates_for_chapter_past(chapter),
             "region_announcements": None,
+            "host": settings.CURRENT_URL,
         }
 
     @staticmethod
@@ -79,10 +80,14 @@ class RDMonthly(EmailNotification):  # extend from EmailNotification for emails
                     if officer is None
                 ]
             )
+            host = settings.CURRENT_URL
+            link = reverse("chapters:detail", kwargs={"slug": chapter.slug})
+            link = host + link
             data.append(
                 {
                     "name": chapter.name,
                     "slug": chapter.slug,
+                    "link": link,
                     "balance": chapter.balance,
                     "balance_date": chapter.balance_date,
                     "officer_missing": missing,
@@ -92,6 +97,7 @@ class RDMonthly(EmailNotification):  # extend from EmailNotification for emails
                     "tasks_overdue": TaskDate.incomplete_dates_for_chapter_past(
                         chapter
                     ).count(),
+                    "host": host,
                 }
             )
         table = ChapterStatusTable(data=data)
