@@ -35,6 +35,8 @@ class Command(BaseCommand):
             for count, row in enumerate(reader):
                 print(row)
                 email = row["email"].strip()
+                if not email:
+                    continue
                 # try:
                 user = User.objects.get(
                     Q(email__iexact=email) | Q(email_school__iexact=email)
@@ -63,7 +65,7 @@ class Command(BaseCommand):
             conflict_users = User.objects.filter(user_id__in=new_ids)
             nl = "\n"  # can't have backslashes in f-strings
             print(
-                f"Conflicting users:\n {nl.join(conflict_users.values_list('name', 'email'))}"
+                f"Conflicting users:\n {nl.join(conflict_users.values_list('email', flat=True))}"
             )
             start = 90_000
             conflict_users_update = [
