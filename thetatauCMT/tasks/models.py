@@ -92,7 +92,7 @@ class TaskDate(models.Model):
     date = models.DateField("Due Date")
 
     def __str__(self):
-        return f"{self.task.name} due on {self.date}"
+        return f"{self.task.name} for {self.task.owner} due on {self.date}"
 
     def complete(self, chapter):
         tasks = self.chapters.filter(chapter=chapter).all()
