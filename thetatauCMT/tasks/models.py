@@ -121,6 +121,14 @@ class TaskDate(models.Model):
         return tasks
 
     @classmethod
+    def dates_for_next_month(cls):
+        tasks = cls.objects.filter(
+            Q(date__gte=TODAY_END),
+            Q(date__lte=TODAY_END + timedelta(30)),
+        ).all()
+        return tasks
+
+    @classmethod
     def incomplete_dates_for_chapter_past(cls, chapter):
         school_type = chapter.school_type
         academic_start, _ = academic_encompass_start_end_date()

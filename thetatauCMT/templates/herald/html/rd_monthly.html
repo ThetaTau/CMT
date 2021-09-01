@@ -12,4 +12,19 @@ Below is an overview of your region. Member/Pledge/Officer counts are as of toda
   Events for the past month. Tasks past due for the semester.</p>
   <br>
   {% render_table table %}
+  <br>
+  {% if tasks_upcoming %}
+    <h2 class="mc-toc-title"
+        style="margin: 0;padding: 0;display: block;font-family: Helvetica;font-size: 26px;font-style: normal;font-weight: bold;line-height: 125%;letter-spacing: -.75px;text-align: left;color: #404040 !important;">
+      Upcoming Tasks for chapters:</h2>
+    <ul>
+      {% for task in tasks_upcoming %}
+        <li style="-ms-text-size-adjust: 100%;-webkit-text-size-adjust: 100%;">
+          <a href="{{ host }}{% url 'tasks:complete' task.pk %}" target="_blank"
+             style="word-wrap: break-word;-ms-text-size-adjust: 100%;-webkit-text-size-adjust: 100%;color: #6DC6DD;font-weight: normal;text-decoration: underline;">
+            {{ task }}</a>
+        </li>
+      {% endfor %}
+    </ul>
+  {% endif %}
 {% endblock content %}

@@ -2,6 +2,7 @@ from herald import registry
 from herald.base import EmailNotification
 from tasks.models import TaskDate
 from django.conf import settings
+from django.shortcuts import reverse
 from chapters.models import Chapter
 from chapters.tables import ChapterStatusTable
 
@@ -104,6 +105,7 @@ class RDMonthly(EmailNotification):  # extend from EmailNotification for emails
         self.context = {
             "region": region,
             "table": table,
+            "tasks_upcoming": TaskDate.dates_for_next_month(),
         }
 
     @staticmethod
