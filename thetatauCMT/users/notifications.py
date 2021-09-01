@@ -16,9 +16,11 @@ class OfficerMonthly(EmailNotification):  # extend from EmailNotification for em
         self.context = {"user": chapter}  # set context for the template rendering
         officer_list, previous = chapter.get_current_officers_council(False)
         # set list of emails to send to
-        self.to_emails = set([officer.email for officer in officer_list]) | set(
+        emails = set([officer.email for officer in officer_list]) | set(
             chapter.get_generic_chapter_emails()
         )
+        emails = {email for email in emails if email}
+        self.to_emails = emails
         self.cc = []
         self.reply_to = [
             "cmt@thetatau.org",
