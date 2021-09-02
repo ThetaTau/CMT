@@ -388,8 +388,7 @@ class UserDemographic(models.Model):
         male = ("male", "Male")
         nonbinary = ("nonbinary", "Nonbinary")
         no_answer = ("no_answer", "Prefer not to answer")
-        trans_male = ("trans_male", "Trans man/Trans male")
-        trans_female = ("trans_female", "Trans woman/Trans female")
+        transgender = ("transgender", "Transgender")
 
     class SEXUAL(EnumClass):
         asexual = ("asexual", "Asexual")
@@ -404,11 +403,10 @@ class UserDemographic(models.Model):
         asian = ("asian", "Asian")
         black = ("black", "Black or African American")
         caucasian = ("caucasian", "Caucasian / White")
-        islander = ("islander", "Native Hawaiiain or Other Pacific Islander")
+        islander = ("islander", "Native Hawaiian or Other Pacific Islander")
         middle_eastern = ("middle_eastern", "Middle Eastern or North African")
         not_listed = ("not_listed", "An identity not listed (write-in)")
-        latinx = ("latinx", "Latinx or Hispanic")
-        mixed = ("mixed", "Mixed race")
+        latinx = ("latinx/a/o", "Latinx/a/o or Hispanic")
         native = ("native", "Native American / First Nations")
         no_answer = ("no_answer", "Prefer not to answer")
 

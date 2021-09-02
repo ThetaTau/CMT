@@ -878,7 +878,7 @@ class PledgeDemographicsForm(forms.ModelForm):
 
     class Meta:
         model = UserDemographic
-        exclude = ["user"]
+        exclude = ["user", "specific_ethnicity"]
 
 
 class PledgeUserBase(forms.ModelForm):
