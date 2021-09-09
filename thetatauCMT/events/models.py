@@ -42,6 +42,9 @@ class Event(TimeStampedModel):
     miles = models.PositiveIntegerField(
         default=0, help_text="Miles traveled to an event hosted by another chapter."
     )
+    raised = models.DecimalField(default=0.00, decimal_places=2, max_digits=10, help_text="How many philanthropy funds "
+                                                                                          "were raised at this event?")
+    virtual = models.BooleanField(default=False, help_text="Was your event virtual?")
 
     def __str__(self):
         return f"{self.name} on {self.date}"
@@ -116,13 +119,13 @@ class Event(TimeStampedModel):
             chapters = Chapter.objects.all()
         events = (
             query.filter(chapter__in=chapters)
-            .values("chapter", "type__section")
-            .annotate(
+                .values("chapter", "type__section")
+                .annotate(
                 section_count=models.Count("name"),
                 region=models.F("chapter__region__name"),
                 chapter_name=models.F("chapter__name"),
             )
-            .order_by("chapter_name")
+                .order_by("chapter_name")
         )
         grouped_events = {}
         for event in events:

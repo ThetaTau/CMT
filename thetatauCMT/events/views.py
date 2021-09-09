@@ -50,6 +50,8 @@ class EventCopyView(EventCreateView):
             "stem": event.stem,
             "host": event.host,
             "miles": event.miles,
+            "raised": event.raised,
+            "virtual": event.virtual,
         }
         return self.initial
 
@@ -81,7 +83,9 @@ class EventUpdateView(
         "duration",
         "stem",
         "host",
+        "virtual",
         "miles",
+        "raised",
     ]
     model = Event
 
