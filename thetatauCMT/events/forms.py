@@ -39,7 +39,7 @@ class EventForm(forms.ModelForm):
     """
     This is a Model From created to add help text to the create
     event form without changing database model. The Duration field
-    is the onlt field that is updated.
+    is the only field that is updated.
     """
 
     duration = forms.IntegerField(
@@ -61,5 +61,7 @@ class EventForm(forms.ModelForm):
             "duration",
             "stem",
             "host",
+            "virtual",
             "miles",
+            "raised",
         ]
