@@ -12,7 +12,7 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ("chapters", "0007_chapter_house"),
+        ("chapters", "0006_auto_20210424_1306"),
     ]
 
     operations = [
