@@ -23,8 +23,12 @@ class UserTable(tables.Table):
             + "Only officers can view alumni contact information."
         )
 
-    def __init__(self, chapter=False, natoff=False, *args, **kwargs):
-        if natoff:
+    def __init__(self, chapter=False, natoff=False, admin=False, *args, **kwargs):
+        if admin:
+            self.base_columns["name"] = tables.LinkColumn(
+                "admin:users_user_change", kwargs={"object_id": A("id")}
+            )
+        elif natoff:
             self.base_columns["name"] = tables.LinkColumn(
                 "users:info", kwargs={"user_id": A("user_id")}
             )

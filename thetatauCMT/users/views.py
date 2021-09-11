@@ -248,10 +248,11 @@ class UserSearchView(
         return queryset
 
     def get_table_kwargs(self):
-        natoff = False
-        if self.request.user.is_national_officer():
-            natoff = True
-        return {"chapter": True, "natoff": natoff}
+        return {
+            "chapter": True,
+            "natoff": self.request.user.is_national_officer(),
+            "admin": self.request.user.is_superuser,
+        }
 
 
 class ExportActiveMixin:
