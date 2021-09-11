@@ -8,7 +8,7 @@
 <div class="container">
   <div class="row">
     <div class="col-sm-12">
-    <h1>Theta Tau Report</h1>
+    <h1>Theta Tau Chapter Report</h1>
     <h3>Instructions</h3>
     <ol>
       <li>
@@ -18,6 +18,11 @@
       </li>
       <li>
         Each chapter officer should sign <a data-toggle="modal" href="" data-target="#myModal">the Risk Management Policies and Agreements</a>.
+      </li>
+      <li>
+        Each member of the chapter should sign the report <a
+              href="https://drive.google.com/file/d/1TU2_c4VrzOBpbxi0EIX4U7-C6Qw7yWAV/view?usp=sharing" ,
+              target="_blank"> available here.</a>
       </li>
       <li>
         During the chapter meeting immediately after you pledge in your new
@@ -38,6 +43,11 @@
           </li>
         </ul>
       </li>
+      <li>
+        The designated chapter officer should scan each section individually
+        (preferably on a scanner and not with a scanner app on your phone) and
+        upload the form below.
+      </li>
     </ol>
     <form class="chapter_report" enctype="multipart/form-data" method="POST">
       {% csrf_token %}
@@ -48,6 +58,21 @@
       >
         {{ forms.report.media }}
         <div>{{ forms.report.management_form|crispy }}</div>
+        <h3>Report Upload</h3>
+        <p>This is the document that each member signs acknowledging the Risk Management Policies of Theta Tau.
+          Officers are required to also electronically sign the RMP form above, all members sign the paper form.</p>
+
+      {% if previous_report %}
+        Report already submitted for the semester.<br>
+        {% if previous_report.report.url %}
+          <a href="{{ previous_report.report.url }}" target=”_blank”> {{ previous_report.report }}</a>
+        {% endif %}
+        {% else %}
+        <p>The report to be submitted is <a
+                href="https://drive.google.com/file/d/1TU2_c4VrzOBpbxi0EIX4U7-C6Qw7yWAV/view?usp=sharing" ,
+                target="_blank"> available here.</a></p>
+        {{ forms.report.report|crispy }}
+      {% endif %}
         <h3>Update Chapter Information:</h3>
         {{ forms.report.info|crispy }}
         <h3>Advisors:</h3>

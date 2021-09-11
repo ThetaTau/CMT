@@ -17,9 +17,18 @@ def test_chapter_list_filter(chapter_factory):
     assertQuerysetEqual(filter_default.qs, chapter_pks, lambda o: o.pk, ordered=False)
     filter_national = ChapterListFilter({"region": "national"}, queryset=qs)
     assertQuerysetEqual(filter_national.qs, chapter_pks, lambda o: o.pk, ordered=False)
-    filter_candidate_chapter = ChapterListFilter({"region": "candidate_chapter"}, queryset=qs)
-    candidate_chapter_pks = {chapter.pk for chapter in candidate_chapters if chapter.candidate_chapter}
-    assertQuerysetEqual(filter_candidate_chapter.qs, candidate_chapter_pks, lambda o: o.pk, ordered=False)
+    filter_candidate_chapter = ChapterListFilter(
+        {"region": "candidate_chapter"}, queryset=qs
+    )
+    candidate_chapter_pks = {
+        chapter.pk for chapter in candidate_chapters if chapter.candidate_chapter
+    }
+    assertQuerysetEqual(
+        filter_candidate_chapter.qs,
+        candidate_chapter_pks,
+        lambda o: o.pk,
+        ordered=False,
+    )
     regions = Region.objects.all()
     for region in regions:
         filter_region = ChapterListFilter({"region": region.slug}, queryset=qs)

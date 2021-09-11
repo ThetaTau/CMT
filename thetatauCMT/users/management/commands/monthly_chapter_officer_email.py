@@ -1,13 +1,20 @@
 import datetime
 from django.core.management import BaseCommand
 from django.core.mail import send_mail
-from users.notifications import OfficerMonthly
+from users.notifications import OfficerMonthly, RDMonthly
 from chapters.models import Chapter
+from regions.models import Region
 
 
+# python manage.py monthly_chapter_officer_email
 class Command(BaseCommand):
     # Show this when the user types help
     help = "Send monthly email to chapter officers on the first of the month"
+
+    def add_arguments(self, parser):
+        parser.add_argument("-override", action="store_true")
+        parser.add_argument("-chapter", nargs="+", type=str)
+        parser.add_argument("-rdonly", action="store_true")
 
     # A command must define handle()
     def handle(self, *args, **options):
@@ -20,17 +27,37 @@ class Command(BaseCommand):
         :return:
         """
         today = datetime.date.today().day
-        if today == 1:
+        override = options.get("override", False)
+        chapters_only = options.get("chapter", None)
+        rdonly = options.get("rdonly", False)
+        if today == 1 or override:
             change_messages = []
-            for chapter in Chapter.objects.all():
+            if rdonly:
+                chapters = []
+            elif chapters_only is not None:
+                chapters = Chapter.objects.filter(slug__in=chapters_only)
+            else:
+                chapters = Chapter.objects.all()
+            for chapter in chapters:
                 if not chapter.active:
                     continue
+                print(f"Sending message to: {chapter}")
                 result = OfficerMonthly(chapter).send()
                 change_messages.append(f"{result}: {chapter}")
-            change_message = "\n".join(change_messages)
+            if chapters_only is None or rdonly:
+                change_messages.append("<br>REGIONS<br>")
+                for region in Region.objects.all():
+                    if region.slug == "test":
+                        continue
+                    print(f"Sending message to: {region}")
+                    result = RDMonthly(region).send()
+                    change_messages.append(f"{result}: {region}")
+                result = RDMonthly(region="colony").send()
+                change_messages.append(f"{result}: colony")
+            change_message = "<br>".join(change_messages)
             send_mail(
                 "CMT Monthly Email Task",
-                f"Email sent to chapters:\n{change_message}",
+                f"Email sent to chapters:<br>{change_message}",
                 "cmt@thetatau.org",
                 ["cmt@thetatau.org"],
                 fail_silently=True,

@@ -5,6 +5,7 @@ ipdb==0.13.9  # https://github.com/gotcha/ipdb
 Sphinx==4.1.1  # https://github.com/sphinx-doc/sphinx
 psycopg2==2.8.6
 psycopg2-binary==2.9.1; platform_system == "Windows"  # https://github.com/psycopg/psycopg2
+dj_anonymizer==0.3.1
 
 # Testing
 # ------------------------------------------------------------------------------
@@ -14,7 +15,7 @@ pytest-factoryboy==2.0.3  # https://pytest-factoryboy.readthedocs.io
 pytest-cov==2.9.0  # https://github.com/pytest-dev/pytest-cov
 freezegun==0.3.15  # https://github.com/spulec/freezegun
 pytest-freezegun==0.4.1  # https://github.com/ktosiek/pytest-freezegun
-Faker==4.0.2  # https://faker.readthedocs.io/
+Faker==8.11.0  # https://faker.readthedocs.io/
 selenium==3.141.0
 
 

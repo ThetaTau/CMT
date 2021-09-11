@@ -60,6 +60,15 @@ class SetNoValidateField(forms.CharField):
         return
 
 
+class UserSelectForm(forms.Form):
+    user = forms.ModelChoiceField(
+        queryset=User.objects.all(),
+        widget=autocomplete.ModelSelect2(
+            url="users:autocomplete", forward=(forward.Const("false", "chapter"),)
+        ),
+    )
+
+
 class InitDeplSelectForm(forms.Form):
     user = forms.ModelChoiceField(queryset=Initiation.objects.none(), disabled=True)
     state = forms.ChoiceField(
@@ -181,7 +190,10 @@ class DepledgeFormHelper(FormHelper):
 
 class StatusChangeSelectForm(forms.Form):
     user = forms.ModelChoiceField(queryset=User.objects.none())
-    state = forms.ChoiceField(choices=[x.value for x in StatusChange.REASONS])
+    state = forms.ChoiceField(
+        label="New Status",
+        choices=[x.value for x in StatusChange.REASONS if x.name not in ["covid"]],
+    )
     selected = forms.BooleanField(label="Remove", required=False)
 
 
@@ -442,7 +454,7 @@ class RoleChangeSelectFormHelper(FormHelper):
 
 class ChapterReportForm(forms.ModelForm):
     report = forms.FileField(
-        required=False,
+        required=True,
         help_text="Only PDF format accepted",
         validators=[FileTypeValidator(allowed_types=["application/pdf"])],
     )
@@ -866,7 +878,7 @@ class PledgeDemographicsForm(forms.ModelForm):
 
     class Meta:
         model = UserDemographic
-        exclude = ["user"]
+        exclude = ["user", "specific_ethnicity"]
 
 
 class PledgeUserBase(forms.ModelForm):
@@ -890,6 +902,7 @@ class PledgeUserBase(forms.ModelForm):
             "middle_name",
             "last_name",
             "suffix",
+            "preferred_name",
             "nickname",
             "birth_date",
             "address",
@@ -907,13 +920,14 @@ class PledgeUserBase(forms.ModelForm):
                 continue
             if field == "email_school":
                 self.fields["email_school"].initial = ""
-            if field != "middle_name":
+            if field not in ["middle_name", "preferred_name"]:
                 self.fields[field].required = True
             else:
                 self.fields[field].widget = forms.TextInput(
                     attrs={"placeholder": "If None, leave blank"}
                 )
-                self.fields[field].help_text = "If None, leave blank"
+                if field == "middle_name":
+                    self.fields[field].help_text = "If None, leave blank"
 
     def clean_address(self):
         address = self.cleaned_data["address"]
@@ -1003,6 +1017,7 @@ class PledgeFormFull(CrispyCompatableMultiModelForm):
                             "user-suffix",
                         ),
                     ),
+                    "user-preferred_name",
                     "user-nickname",
                     "pledge-parent_name",
                     Row(
@@ -1145,6 +1160,7 @@ class PrematureAlumnusForm(forms.ModelForm):
         label=PrematureAlumnus.verbose_vote, choices=CHOICES, initial=""
     )
     user = forms.ModelChoiceField(
+        label="Member requesting prealumn status",
         queryset=User.objects.all(),
         widget=autocomplete.ModelSelect2(
             url="users:autocomplete",
@@ -1454,6 +1470,7 @@ class ReturnStudentForm(forms.ModelForm):
         label=ReturnStudent.verbose_vote, choices=CHOICES, initial=""
     )
     user = forms.ModelChoiceField(
+        label="Member requesting return",
         queryset=User.objects.all(),
         widget=autocomplete.ModelSelect2(
             url="users:autocomplete",

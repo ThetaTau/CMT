@@ -56,6 +56,7 @@ else:
 
 
 BIENNIUM_START_DATE = datetime.date(BIENNIUM_START, 7, 1)
+BIENNIUM_END_DATE = datetime.date(BIENNIUM_START + 2, 7, 1)
 BIENNIUM_YEARS = [
     BIENNIUM_START,
     BIENNIUM_START + 1,
@@ -271,12 +272,12 @@ class StartEndModel(models.Model):
 
 def validate_year(value):
     """
-        Validator function for model.IntegerField()
-        * Validates a valid four-digit year.
-        * Must be a current or future year.
-        In your model:
-        year = models.IntegerField(_(u'Year'), help_text=_(u'Current or future year in YYYY format.'), validators=[
-        validate_year], unique=True)
+    Validator function for model.IntegerField()
+    * Validates a valid four-digit year.
+    * Must be a current or future year.
+    In your model:
+    year = models.IntegerField(_(u'Year'), help_text=_(u'Current or future year in YYYY format.'), validators=[
+    validate_year], unique=True)
     """
 
     # Matches any 4-digit number:
@@ -365,7 +366,9 @@ class YearTermModel(models.Model):
 def combine_annotations(user_queryset):
     uniques = {user.pk: user for user in user_queryset.order_by("pk").distinct("pk")}
     duplicates = (
-        user_queryset.values("pk",)
+        user_queryset.values(
+            "pk",
+        )
         .annotate(models.Count("id"))
         .order_by()
         .filter(id__count__gt=1)

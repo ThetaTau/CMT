@@ -29,12 +29,8 @@ If any of these are incorrect, the basic forms and reports are to be filled out 
 ------------------------------------------------------------
 {% for task in tasks_overdue %}* {{ task }}
 {% endfor %}
-{% endif %}** Risk Management:
-------------------------------------------------------------
-If you see something, speak up!
-Do not hesitate to reach out to your regional directors, or the risk management chair.
-Stuart.Kardian@thetatau.org, 804-909-3486
-
+{% endif %}
+{% include "herald/text/rm_contact.txt" %}
 ============================================================
 ** Facebook (https://www.facebook.com/thetatau/)
 ** Theta Tau (thetatau.org)

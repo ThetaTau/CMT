@@ -3,13 +3,16 @@ import datetime
 import zipfile
 from io import BytesIO, StringIO
 from django.contrib.auth.forms import PasswordResetForm
+from django.contrib.auth.tokens import default_token_generator
+from django.contrib.sites.shortcuts import get_current_site
 from django.http.request import QueryDict
 from django.http.response import HttpResponseRedirect
 from django.http import HttpResponse
 from django.urls import reverse
 from django.forms.models import modelformset_factory
 from django.shortcuts import render
-from django.utils.http import is_safe_url
+from django.utils.http import is_safe_url, urlsafe_base64_encode
+from django.utils.encoding import force_bytes
 from django.contrib import messages
 from django.views.generic import RedirectView, FormView, DetailView
 from crispy_forms.layout import Submit
@@ -245,10 +248,11 @@ class UserSearchView(
         return queryset
 
     def get_table_kwargs(self):
-        natoff = False
-        if self.request.user.is_national_officer():
-            natoff = True
-        return {"chapter": True, "natoff": natoff}
+        return {
+            "chapter": True,
+            "natoff": self.request.user.is_national_officer(),
+            "admin": self.request.user.is_superuser,
+        }
 
 
 class ExportActiveMixin:
@@ -412,6 +416,70 @@ class PasswordResetFormNotActive(PasswordResetForm):
     def get_users(self, email):
         return [User.objects.filter(email=email).first()]
 
+    def save(
+        self,
+        domain_override=None,
+        subject_template_name="registration/password_reset_subject.txt",
+        email_template_name="registration/password_reset_email.html",
+        use_https=False,
+        token_generator=default_token_generator,
+        from_email=None,
+        request=None,
+        html_email_template_name=None,
+        extra_email_context=None,
+    ):
+        """
+        Generate a one-use only link for resetting password and send it to the
+        user.
+        """
+        email = self.cleaned_data["email"]
+        for user in self.get_users(email):
+            if not domain_override:
+                current_site = get_current_site(request)
+                site_name = current_site.name
+                domain = current_site.domain
+            else:
+                site_name = domain = domain_override
+            user_email = user.email
+            context = {
+                "email": user_email,
+                "domain": domain,
+                "site_name": site_name,
+                "uid": urlsafe_base64_encode(force_bytes(user.pk)),
+                "user": user,
+                "token": token_generator.make_token(user),
+                "protocol": "https" if use_https else "http",
+                **(extra_email_context or {}),
+            }
+            self.send_mail(
+                subject_template_name,
+                email_template_name,
+                context,
+                from_email,
+                user_email,
+                html_email_template_name=html_email_template_name,
+            )
+            user_email_school = user.email_school
+            if user_email_school != user_email:
+                context = {
+                    "email": user_email_school,
+                    "domain": domain,
+                    "site_name": site_name,
+                    "uid": urlsafe_base64_encode(force_bytes(user.pk)),
+                    "user": user,
+                    "token": token_generator.make_token(user),
+                    "protocol": "https" if use_https else "http",
+                    **(extra_email_context or {}),
+                }
+                self.send_mail(
+                    subject_template_name,
+                    email_template_name,
+                    context,
+                    from_email,
+                    user_email_school,
+                    html_email_template_name=html_email_template_name,
+                )
+
 
 class CaptchaLoginView(LoginView):
     form_class = CaptchaLoginForm
@@ -443,8 +511,12 @@ class UserLookupView(FormView):
         else:
             orig_email = user.email
             email = self.hide_email(orig_email)
+            orig_email_school = user.email_school
+            email_school = self.hide_email(orig_email_school)
             messages.add_message(
-                self.request, messages.INFO, f"Email for account is: {email}"
+                self.request,
+                messages.INFO,
+                f"Email for account is: {email} or {email_school}",
             )
             form = PasswordResetFormNotActive({"email": orig_email})
             # This does not work because not active user

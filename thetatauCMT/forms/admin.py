@@ -351,8 +351,8 @@ admin.site.register(PledgeProcess, PledgeProcessAdmin)
 
 
 class ResignationProcessAdmin(admin.ModelAdmin):
-    readonly_fields = ("user",)
     raw_id_fields = (
+        "user",
         "officer1",
         "officer2",
     )
@@ -386,7 +386,7 @@ admin.site.register(ResignationProcess, ResignationProcessAdmin)
 
 
 class PrematureAlumnusAdmin(ImportExportActionModelAdmin):
-    readonly_fields = ("user",)
+    raw_id_fields = ("user",)
     list_display = (
         "user",
         "created",
@@ -420,8 +420,10 @@ admin.site.register(PrematureAlumnus, PrematureAlumnusAdmin)
 
 
 class CollectionReferralAdmin(ImportExportActionModelAdmin):
-    readonly_fields = ("user",)
-    raw_id_fields = ("created_by",)
+    raw_id_fields = (
+        "created_by",
+        "user",
+    )
     list_display = (
         "user",
         "balance_due",
@@ -441,7 +443,7 @@ admin.site.register(CollectionReferral, CollectionReferralAdmin)
 
 
 class ReturnStudentAdmin(ImportExportActionModelAdmin):
-    readonly_fields = ("user",)
+    raw_id_fields = ("user",)
     list_display = (
         "user",
         "created",

@@ -1,25 +1,25 @@
 import django_tables2 as tables
-from .models import Transaction
+from .models import Invoice
 
 
-class TransactionTable(tables.Table):
+class InvoiceTable(tables.Table):
+    link = tables.TemplateColumn('<a href="{{record.link}}">Invoice Link</a>')
+    description = tables.TemplateColumn("{{ value|safe }}")
+
     class Meta:
-        model = Transaction
+        model = Invoice
         fields = (
-            "type",
             "due_date",
             "description",
-            "estimate",
-            "paid",
             "total",
         )
         attrs = {"class": "table table-striped table-bordered"}
-        empty_text = "There are no transactions matching the search criteria..."
+        empty_text = "There are no invoices matching the search criteria..."
 
 
 class ChapterBalanceTable(tables.Table):
     class Meta:
-        model = Transaction
+        model = Invoice
         fields = (
             "chapter",
             "region",

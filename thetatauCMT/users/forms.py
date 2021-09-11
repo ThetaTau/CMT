@@ -157,7 +157,14 @@ class UserForm(forms.ModelForm):
 
     class Meta:
         model = User
-        fields = ["major", "graduation_year", "phone_number", "address", "email"]
+        fields = [
+            "preferred_name",
+            "major",
+            "graduation_year",
+            "phone_number",
+            "address",
+            "email",
+        ]
 
     def __init__(self, *args, **kwargs):
         verify = kwargs.pop("verify", False)

@@ -1,7 +1,12 @@
 from django.db import models
 from django.utils import timezone
 from django.utils.text import slugify
-from core.models import TimeStampedModel, semester_encompass_start_end_date
+from core.models import (
+    TimeStampedModel,
+    semester_encompass_start_end_date,
+    BIENNIUM_START_DATE,
+    BIENNIUM_END_DATE,
+)
 from scores.models import ScoreType
 from chapters.models import Chapter
 
@@ -37,6 +42,13 @@ class Event(TimeStampedModel):
     miles = models.PositiveIntegerField(
         default=0, help_text="Miles traveled to an event hosted by another chapter."
     )
+    raised = models.DecimalField(
+        default=0.00,
+        decimal_places=2,
+        max_digits=10,
+        help_text="How many philanthropy funds " "were raised at this event?",
+    )
+    virtual = models.BooleanField(default=False, help_text="Was your event virtual?")
 
     def __str__(self):
         return f"{self.name} on {self.date}"
@@ -97,3 +109,39 @@ class Event(TimeStampedModel):
             event.score = event_score
             event.save(calculate_score=False)
         return event_score
+
+    @classmethod
+    def count_events_biennium(cls, date=None, chapters=None):
+        if date is None:
+            query = cls.objects.filter(
+                date__gte=BIENNIUM_START_DATE, date__lte=BIENNIUM_END_DATE
+            )
+        else:
+            semester_start, semester_end = semester_encompass_start_end_date(date)
+            cls.objects.filter(date__gte=semester_start, date__lte=semester_end)
+        if chapters is None:
+            chapters = Chapter.objects.all()
+        events = (
+            query.filter(chapter__in=chapters)
+            .values("chapter", "type__section")
+            .annotate(
+                section_count=models.Count("name"),
+                region=models.F("chapter__region__name"),
+                chapter_name=models.F("chapter__name"),
+            )
+            .order_by("chapter_name")
+        )
+        grouped_events = {}
+        for event in events:
+            chapter = event["chapter"]
+            event[f"{event.pop('type__section')}"] = event.pop("section_count")
+            chapter_dict = grouped_events.get(
+                chapter, {"Bro": 0, "Ops": 0, "Ser": 0, "Pro": 0}
+            )
+            chapter_dict.update(event)
+            grouped_events[chapter] = chapter_dict
+        for chapter, score in grouped_events.items():
+            grouped_events[chapter]["total"] = round(
+                score["Bro"] + score["Ops"] + score["Ser"] + score["Pro"], 2
+            )
+        return grouped_events.values()

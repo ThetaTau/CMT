@@ -10,7 +10,7 @@ Your are getting this message because you are listed as an officer for your chap
   <br>
 {% endif %}
 If you are no longer an officer, you or any officer can update the officer list here:
-<a href="https://cmt.thetatau.org{% url 'forms:officer' %}">cmt.thetatau.org{% url 'forms:officer' %}</a>
+<a href="{{ host }}{% url 'forms:officer' %}">cmt.thetatau.org{% url 'forms:officer' %}</a>
 {% if region_announcements %}
   <h2 class="mc-toc-title" style="margin: 0;padding: 0;display: block;font-family: Helvetica;font-size: 26px;font-style: normal;font-weight: bold;line-height: 125%;letter-spacing: -.75px;text-align: left;color: #404040 !important;">Region Announcements:</h2>
   {{ region_announcements }}
@@ -18,32 +18,32 @@ If you are no longer an officer, you or any officer can update the officer list 
 <h2 class="mc-toc-title" style="margin: 0;padding: 0;display: block;font-family: Helvetica;font-size: 26px;font-style: normal;font-weight: bold;line-height: 125%;letter-spacing: -.75px;text-align: left;color: #404040 !important;">Current chapter information:</h2>
 <ul>
   <li style="-ms-text-size-adjust: 100%;-webkit-text-size-adjust: 100%;">
-    Your chapter had {{ last_month_events }} events last month, {{ semester_events }} <a href="https://cmt.thetatau.org{% url 'events:list' %}">events this semester</a>
+    Your chapter had {{ last_month_events }} events last month, {{ semester_events }} <a href="{{ host }}{% url 'events:list' %}">events this semester</a>
   </li>
 	<li style="-ms-text-size-adjust: 100%;-webkit-text-size-adjust: 100%;">
-    Your chapter currently has {{ count_members }} <a href="https://cmt.thetatau.org{% url 'users:list' %}">members</a>
+    Your chapter currently has {{ count_members }} <a href="{{ host }}{% url 'users:list' %}">members</a>
   </li>
   <li style="-ms-text-size-adjust: 100%;-webkit-text-size-adjust: 100%;">
-    Your chapter currently has {{ count_pledges }} <a href="https://cmt.thetatau.org{% url 'forms:init_selection' %}">pledges</a>
+    Your chapter currently has {{ count_pledges }} <a href="{{ host }}{% url 'forms:init_selection' %}">pledges</a>
   </li>
   <li style="-ms-text-size-adjust: 100%;-webkit-text-size-adjust: 100%;">
     On {{ balance_date }} your chapter had a balance of ${{ balance }}, however, this may not be your current balance.
   </li>
   <li style="-ms-text-size-adjust: 100%;-webkit-text-size-adjust: 100%;">
-    A current list of members is here: <a href="https://cmt.thetatau.org{% url 'users:list' %}">cmt.thetatau.org{% url 'users:list' %}</a>
+    A current list of members is here: <a href="{{ host }}{% url 'users:list' %}">cmt.thetatau.org{% url 'users:list' %}</a>
   </li>
 </ul>
 If any of these are incorrect, the basic forms:
-<a href="https://cmt.thetatau.org{% url 'forms:officer' %}">officer election</a>,
-<a href="https://cmt.thetatau.org{% url 'forms:init_selection' %}">initiation,</a> and
-<a href="https://cmt.thetatau.org{% url 'forms:status_selection' %}">member status change</a>
+<a href="{{ host }}{% url 'forms:officer' %}">officer election</a>,
+<a href="{{ host }}{% url 'forms:init_selection' %}">initiation,</a> and
+<a href="{{ host }}{% url 'forms:status_selection' %}">member status change</a>
                           reports are to be filled out and submitted.
 {% if tasks_upcoming %}
 <h2 class="mc-toc-title" style="margin: 0;padding: 0;display: block;font-family: Helvetica;font-size: 26px;font-style: normal;font-weight: bold;line-height: 125%;letter-spacing: -.75px;text-align: left;color: #404040 !important;">Upcoming Tasks:</h2>
     <ul>
     {% for task in tasks_upcoming %}
       <li style="-ms-text-size-adjust: 100%;-webkit-text-size-adjust: 100%;">
-        <a href="https://cmt.thetatau.org{% url 'tasks:complete' task.pk %}" target="_blank" style="word-wrap: break-word;-ms-text-size-adjust: 100%;-webkit-text-size-adjust: 100%;color: #6DC6DD;font-weight: normal;text-decoration: underline;">
+        <a href="{{ host }}{% url 'tasks:complete' task.pk %}" target="_blank" style="word-wrap: break-word;-ms-text-size-adjust: 100%;-webkit-text-size-adjust: 100%;color: #6DC6DD;font-weight: normal;text-decoration: underline;">
           {{ task }}</a>
       </li>
     {% endfor %}
@@ -54,14 +54,11 @@ If any of these are incorrect, the basic forms:
   <ul>
   {% for task in tasks_overdue %}
     <li style="-ms-text-size-adjust: 100%;-webkit-text-size-adjust: 100%;">
-      <a href="https://cmt.thetatau.org{% url 'tasks:complete' task.pk %}" target="_blank" style="word-wrap: break-word;-ms-text-size-adjust: 100%;-webkit-text-size-adjust: 100%;color: #6DC6DD;font-weight: normal;text-decoration: underline;">
+      <a href="{{ host }}{% url 'tasks:complete' task.pk %}" target="_blank" style="word-wrap: break-word;-ms-text-size-adjust: 100%;-webkit-text-size-adjust: 100%;color: #6DC6DD;font-weight: normal;text-decoration: underline;">
         {{ task }}</a>
     </li>
   {% endfor %}
   </ul>
 {% endif %}
-<h2 class="null" style="margin: 0;padding: 0;display: block;font-family: Helvetica;font-size: 26px;font-style: normal;font-weight: bold;line-height: 125%;letter-spacing: -.75px;text-align: left;color: #404040 !important;">Risk Management:</h2>
-If you see something, speak up!<br>
-Do not hesitate to reach out to your regional directors, or the risk management chair. <br>
-<a href="mailto:Stuart.Kardian@thetatau.org?subject=Risk%20Management%20Question%2FIssue" target="_blank" style="word-wrap: break-word;-ms-text-size-adjust: 100%;-webkit-text-size-adjust: 100%;color: #6DC6DD;font-weight: normal;text-decoration: underline;">Stuart Kardian</a>, 804-909-3486
+  {% include "herald/html/rm_contact.html" %}
 {% endblock content %}

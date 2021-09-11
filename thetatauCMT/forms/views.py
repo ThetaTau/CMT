@@ -19,11 +19,12 @@ from django.urls import reverse
 from django.utils import timezone
 from django.shortcuts import render
 from django import forms
-from django.views.generic import UpdateView, DetailView
+from django.views.generic import UpdateView, DetailView, TemplateView
 from django.views.generic.edit import FormView, CreateView, ModelFormMixin
 from django.views.decorators.csrf import csrf_exempt
 from django.shortcuts import redirect
 from django.http import HttpResponseRedirect, HttpResponse
+from allauth.account.models import EmailAddress
 from crispy_forms.layout import Submit
 from extra_views import FormSetView, ModelFormSetView
 from easy_pdf.views import PDFTemplateResponseMixin
@@ -143,6 +144,10 @@ from .notifications import (
     EmailPledgeOfficer,
     EmailProcessUpdate,
 )
+
+
+class FormLanding(LoginRequiredMixin, TemplateView):
+    template_name = "forms/landing.html"
 
 
 class InitDeplSelectView(LoginRequiredMixin, OfficerRequiredMixin, FormSetView):
@@ -936,7 +941,10 @@ class ChapterInfoReportView(LoginRequiredMixin, MultiFormsView):
         kwargs.update(
             instance={
                 "info": self.get_object(),
-                # 'report': self.object.current_report,
+                "report": ChapterReport.signed_this_semester(
+                    self.request.user.current_chapter,
+                    report=True,
+                ),
             }
         )
         return kwargs
@@ -950,7 +958,7 @@ class ChapterInfoReportView(LoginRequiredMixin, MultiFormsView):
         messages.add_message(
             self.request,
             messages.INFO,
-            "You successfully submitted the RMP and Agreements of Theta Tau!\n",
+            "You successfully submitted the Chapter RMP and Agreements of Theta Tau!\n",
         )
         if info.has_changed():
             info.save()
@@ -958,9 +966,14 @@ class ChapterInfoReportView(LoginRequiredMixin, MultiFormsView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        previous_report_rmp = ChapterReport.signed_this_semester(
+            self.request.user.current_chapter,
+            report=True,
+        )
         context.update(
             {
                 "object": self.get_object(),
+                "previous_report": previous_report_rmp,
             }
         )
         return context
@@ -1515,6 +1528,14 @@ class PledgeFormView(CreateView):
         EmailPledgeConfirmation(self.object).send()
         EmailPledgeWelcome(self.object).send()
         EmailPledgeOfficer(self.object).send()
+        try:
+            EmailAddress.objects.add_email(self.request, user, user.email_school, True)
+        except IntegrityError:
+            pass
+        try:
+            EmailAddress.objects.add_email(self.request, user, user.email, True)
+        except IntegrityError:
+            pass
         processes = PledgeProcess.objects.filter(
             chapter=user.chapter, finished__isnull=True
         )

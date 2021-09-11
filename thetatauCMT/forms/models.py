@@ -377,12 +377,16 @@ class ChapterReport(YearTermModel, TimeStampedModel):
     report = models.FileField(upload_to=get_chapter_report_upload_path)
 
     @classmethod
-    def signed_this_semester(cls, chapter):
+    def signed_this_semester(cls, chapter, report=True):
         program = cls.objects.filter(
             chapter=chapter,
             year=YearTermModel.current_year(),
             term=YearTermModel.current_term(),
-        ).first()
+        )
+
+        if report:
+            program = program.exclude(report__in=[""])
+        program = program.last()
         return program
 
 
@@ -1274,6 +1278,7 @@ class DisciplinaryProcess(Process, TimeStampedModel):
         process = ("process", "Accept and Process")
         accept = ("accept", "Accept With No Action")
         reject = ("reject", "Reject")
+        not_review = ("not_review", "Not Reviewed")
 
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -1417,6 +1422,7 @@ class DisciplinaryProcess(Process, TimeStampedModel):
         "Executive Director Review",
         max_length=10,
         choices=[x.value for x in PROCESS],
+        default="not_review",
         blank=True,
         null=True,
     )
@@ -1425,8 +1431,12 @@ class DisciplinaryProcess(Process, TimeStampedModel):
     )
     ec_approval = models.BooleanField(
         "Executive Council Outcome",
-        choices=((True, "Outcome approved by EC"), (False, "Outcome Rejected by EC")),
-        default=False,
+        choices=(
+            (True, "Outcome approved by EC"),
+            (False, "Outcome Rejected by EC"),
+            ("", "Not reviewed yet"),
+        ),
+        default="",
         blank=True,
         null=True,
     )

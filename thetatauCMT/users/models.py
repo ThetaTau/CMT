@@ -78,10 +78,17 @@ class User(AbstractUser):
     middle_name = models.CharField(_("Full Middle Name"), max_length=30, blank=True)
     maiden_name = models.CharField(_("Maiden Name"), max_length=150, blank=True)
     suffix = models.CharField(_("Suffix (such as Jr., III)"), max_length=10, blank=True)
+    preferred_name = models.CharField(
+        _("Preferred Name"),
+        max_length=255,
+        blank=True,
+        null=True,
+        help_text="Prefered First Name - eg my first name is Kevin but I go by my middle name Henry.",
+    )
     nickname = models.CharField(
         max_length=30,
         blank=True,
-        help_text="If different than your first name - eg Buddy, Skip, or Mike. Do NOT indicate 'pledge names'",
+        help_text="Other than first name and preferred first name - eg Bud, Skip, Frank The Tank, Etc. Do NOT indicate 'pledge names'",
     )
     email_school = models.EmailField(
         _("School Email"),
@@ -178,6 +185,11 @@ class User(AbstractUser):
         Chapter, on_delete=models.CASCADE, default=1, related_name="members"
     )
     deceased = models.BooleanField(default=False)
+    deceased_changed = MonitorField(monitor="deceased", default=forever)
+    deceased_date = models.DateField(
+        blank=True,
+        null=True,
+    )
     no_contact = models.BooleanField(default=False)
 
     def save(self, *args, **kwargs):
@@ -188,6 +200,8 @@ class User(AbstractUser):
             self.user_id = f"{chapter.greek}{self.badge_number}"
         if self.name == "":
             self.name = f"{self.first_name} {self.middle_name} {self.last_name}"
+        if self.preferred_name is not None:
+            self.name = f"{self.preferred_name} {self.last_name}"
         if self.username == "":
             self.username = self.email
         super(User, self).save(*args, **kwargs)
@@ -374,8 +388,7 @@ class UserDemographic(models.Model):
         male = ("male", "Male")
         nonbinary = ("nonbinary", "Nonbinary")
         no_answer = ("no_answer", "Prefer not to answer")
-        trans_male = ("trans_male", "Trans man/Trans male")
-        trans_female = ("trans_female", "Trans woman/Trans female")
+        transgender = ("transgender", "Transgender")
 
     class SEXUAL(EnumClass):
         asexual = ("asexual", "Asexual")
@@ -390,11 +403,10 @@ class UserDemographic(models.Model):
         asian = ("asian", "Asian")
         black = ("black", "Black or African American")
         caucasian = ("caucasian", "Caucasian / White")
-        islander = ("islander", "Native Hawaiiain or Other Pacific Islander")
+        islander = ("islander", "Native Hawaiian or Other Pacific Islander")
         middle_eastern = ("middle_eastern", "Middle Eastern or North African")
         not_listed = ("not_listed", "An identity not listed (write-in)")
-        latinx = ("latinx", "Latinx or Hispanic")
-        mixed = ("mixed", "Mixed race")
+        latinx = ("latinx/a/o", "Latinx/a/o or Hispanic")
         native = ("native", "Native American / First Nations")
         no_answer = ("no_answer", "Prefer not to answer")
 

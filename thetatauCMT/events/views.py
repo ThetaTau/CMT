@@ -9,7 +9,7 @@ from core.views import (
 from .models import Event
 from .tables import EventTable
 from .filters import EventListFilter
-from .forms import EventListFormHelper
+from .forms import EventListFormHelper, EventForm
 
 
 class EventDetailView(LoginRequiredMixin, DetailView):
@@ -28,20 +28,7 @@ class EventCreateView(
     template_name_suffix = "_create_form"
     officer_edit = "events"
     officer_edit_type = "create"
-    fields = [
-        "name",
-        "date",
-        "type",
-        "description",
-        "members",
-        "pledges",
-        "alumni",
-        "guests",
-        "duration",
-        "stem",
-        "host",
-        "miles",
-    ]
+    form_class = EventForm
 
     def get_success_url(self):
         return reverse("events:list")
@@ -63,6 +50,8 @@ class EventCopyView(EventCreateView):
             "stem": event.stem,
             "host": event.host,
             "miles": event.miles,
+            "raised": event.raised,
+            "virtual": event.virtual,
         }
         return self.initial
 
@@ -94,7 +83,9 @@ class EventUpdateView(
         "duration",
         "stem",
         "host",
+        "virtual",
         "miles",
+        "raised",
     ]
     model = Event
 

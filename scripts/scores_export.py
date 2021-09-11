@@ -2,6 +2,8 @@ import csv
 import datetime
 from scores.models import ScoreChapter
 from chapters.models import Chapter
+from events.models import Event
+from submissions.models import Submission
 
 fields = [
     "Chapter name",
@@ -13,6 +15,11 @@ fields = [
     "Term",
     "Year",
     "Total",
+    "Brotherhood #",
+    "Operate #",
+    "Professional #",
+    "Service #",
+    "Total #",
 ]
 
 
