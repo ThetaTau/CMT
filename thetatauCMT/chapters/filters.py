@@ -20,8 +20,8 @@ class ChapterListFilter(django_filters.FilterSet):
     def filter_region(self, queryset, field_name, value):
         if value == "national":
             return queryset
-        elif value == "colony":
-            queryset = queryset.filter(colony=True)
+        elif value == "candidate_chapter":
+            queryset = queryset.filter(candidate_chapter=True)
         else:
             queryset = queryset.filter(region__slug=value)
         return queryset

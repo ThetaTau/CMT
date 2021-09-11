@@ -62,7 +62,7 @@ class EmailRMPReport(EmailNotification):  # extend from EmailNotification for em
         ]
         file_name = file.name
         chapter = user.current_chapter
-        if "colony" not in chapter.name.lower():
+        if not chapter.candidate_chapter:
             chapter_name = chapter.name + " Chapter"
         else:
             chapter_name = chapter.name
@@ -106,7 +106,7 @@ class EmailAdvisorWelcome(
             "jim.gaffney@thetatau.org",
         ]
         chapter = user.current_chapter
-        if "colony" not in chapter.name.lower():
+        if not chapter.candidate_chapter:
             chapter_name = chapter.name + " Chapter"
         else:
             chapter_name = chapter.name

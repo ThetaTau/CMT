@@ -94,8 +94,10 @@ class BallotDetailView(
         if self.object.voters == "council":
             nat_offs = nat_offs.filter(role__in=COUNCIL)
         elif self.object.voters == "convention" and region != "national":
-            # Colonies can not vote
-            chapters = Chapter.objects.filter(colony=False).exclude(name__in=chapters)
+            # Candidate Chapters can not vote
+            chapters = Chapter.objects.filter(candidate_chapter=False).exclude(
+                name__in=chapters
+            )
             if region != "":
                 chapters = chapters.filter(region__slug=region)
             incomplete_chapter = [

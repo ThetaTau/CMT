@@ -133,7 +133,7 @@ class Command(BaseCommand):
                     else:
                         current_status = current_status[0]
             for other_status in other_statuss:
-                if other_status.status == "Colony":
+                if other_status.status == "Candidate Chapter":
                     other_status.delete()
                     continue
                 other_status.end = current_status.start - datetime.timedelta(days=1)

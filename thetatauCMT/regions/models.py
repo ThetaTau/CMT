@@ -37,7 +37,7 @@ class Region(models.Model):
         except ProgrammingError:
             # Likely the database hasn't been setup yet?
             warnings.warn("Could not find region relation")
-        regions = regions + [("colony", "Colony")]
+        regions = regions + [("candidate_chapter", "Candidate Chapter")]
         regions.sort(key=lambda tup: tup[1])
         regions = [("national", "National")] + regions
         return regions
