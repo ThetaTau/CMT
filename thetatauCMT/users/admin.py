@@ -331,6 +331,7 @@ class UserAlterInline(admin.StackedInline):
 @admin.register(User)
 class MyUserAdmin(AuthUserAdmin, ExportActiveMixin):
     actions = ["export_chapter_actives"]
+    raw_id_fields = ["address"]
     readonly_fields = ("deceased_changed",)
     inlines = [
         UserNoteInline,
@@ -377,6 +378,7 @@ class MyUserAdmin(AuthUserAdmin, ExportActiveMixin):
                     "first_name",
                     "middle_name",
                     "last_name",
+                    "address",
                     "deceased",
                     "deceased_date",
                     "deceased_changed",
