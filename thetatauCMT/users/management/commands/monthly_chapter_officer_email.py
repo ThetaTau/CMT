@@ -52,8 +52,8 @@ class Command(BaseCommand):
                     print(f"Sending message to: {region}")
                     result = RDMonthly(region).send()
                     change_messages.append(f"{result}: {region}")
-                result = RDMonthly(region="colony").send()
-                change_messages.append(f"{result}: colony")
+                result = RDMonthly(region="candidate_chapter").send()
+                change_messages.append(f"{result}: candidate chapter")
             change_message = "<br>".join(change_messages)
             send_mail(
                 "CMT Monthly Email Task",

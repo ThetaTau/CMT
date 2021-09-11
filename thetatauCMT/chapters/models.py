@@ -253,7 +253,7 @@ class Chapter(models.Model):
     def full_name(self):
         suffix = "Chapter"
         if self.candidate_chapter:
-            suffix = "Colony"
+            suffix = "Candidate Chapter"
         return f"{self.name} {suffix}"
 
     def get_actives_for_date(self, date):

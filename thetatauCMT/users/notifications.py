@@ -59,9 +59,9 @@ class RDMonthly(EmailNotification):  # extend from EmailNotification for emails
     def __init__(self, region):  # optionally customize the initialization
         # Chapter, Members, Pledges, Events Last Month, Submissions Last Month, Current Balance, Tasks Overdue
         # List of tasks due next 45 days
-        if region == "colony":
+        if region == "candidate_chapter":
             email = "coldir@thetatau.org"
-            chapters = Chapter.objects.filter(colony=True)
+            chapters = Chapter.objects.filter(candidate_chapter=True)
         else:
             email = region.email
             chapters = region.chapters.all()
