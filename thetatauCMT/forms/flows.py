@@ -987,7 +987,12 @@ class DisciplinaryProcessFlow(Flow):
         host = settings.CURRENT_URL
         link = reverse(
             "viewflow:forms:disciplinaryprocess:submit_form2",
-            kwargs={"process_pk": activation.process.pk, "task_pk": activation.task.pk},
+            kwargs={
+                "process_pk": activation.process.pk,
+                # b/c we want the next task not this one + 1;
+                #   likely race condition, but chance is very small
+                "task_pk": activation.task.pk + 1,
+            },
         )
         link = host + link
         if "Reject Chapter Fix" in task_title:
