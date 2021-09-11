@@ -6,18 +6,20 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('events', '0002_event_raised'),
+        ("events", "0002_event_raised"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='event',
-            name='virtual',
-            field=models.BooleanField(default=False, help_text='Was your event virtual?'),
+            model_name="event",
+            name="virtual",
+            field=models.BooleanField(
+                default=False, help_text="Was your event virtual?"
+            ),
         ),
         migrations.AlterField(
-            model_name='event',
-            name='raised',
+            model_name="event",
+            name="raised",
             field=models.DecimalField(decimal_places=2, default=0.0, max_digits=10),
         ),
     ]
