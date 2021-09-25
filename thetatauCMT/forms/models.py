@@ -926,15 +926,17 @@ class InitiationProcess(Process):
             self.initiations.values_list("user__name", flat=True)
         )
         old_memo = invoice.CustomerMemo.value
-        memo = old_memo + "\n" + memo
+        memo = old_memo + "\n" + memo if old_memo else memo
         # Maximum 1000 chars
         memo = memo[0:999]
         invoice.CustomerMemo.value = memo
+        invoice.DeliveryInfo = None
         invoice_obj = invoice.save(qb=client)
         attachment_path = self.generate_blackbaud_update(invoice=True, file_obj=True)
         attachment = Attachable()
         attachable_ref = AttachableRef()
         attachable_ref.EntityRef = invoice.to_ref()
+        attachable_ref.IncludeOnSend = True
         attachment.AttachableRef.append(attachable_ref)
         attachment.FileName = attachment_path.name
         attachment._FilePath = str(attachment_path.absolute())
@@ -1106,7 +1108,54 @@ class PledgeProcess(Process):
         Chapter, on_delete=models.CASCADE, related_name="pledge_process"
     )
 
-    def generate_invoice_attachment(self, response=None):
+    def sync_invoice(self, request, invoice_number):
+        """
+        This will sync with quickbooks
+        """
+        client = get_quickbooks_client()
+        chapter = self.chapter
+        chapter_name = chapter.name
+        customer = Customer.query(
+            select=f"SELECT * FROM Customer WHERE CompanyName LIKE '{chapter_name} chapter%'",
+            qb=client,
+        )
+        if customer:
+            customer = customer[0]
+        else:
+            messages.add_message(
+                request,
+                messages.ERROR,
+                f"Quickbooks Customer matching name: '{chapter_name} Chapter...' not found",
+            )
+            return
+        invoice, linenumber_count = invoice_search(invoice_number, customer, client)
+        count = self.pledges.count()
+        line = create_line(count, linenumber_count, name="P1A", client=client)
+        invoice.Line.append(line)
+        memo = "Pledges: " + ", ".join(
+            self.pledges.values_list("user__name", flat=True)
+        )
+        old_memo = invoice.CustomerMemo.value
+        memo = old_memo + "\n" + memo if old_memo else memo
+        # Maximum 1000 chars
+        memo = memo[0:999]
+        invoice.CustomerMemo.value = memo
+        invoice.DeliveryInfo = None
+        invoice_obj = invoice.save(qb=client)
+        attachment_path = self.generate_invoice_attachment(file_obj=True)
+        attachment = Attachable()
+        attachable_ref = AttachableRef()
+        attachable_ref.EntityRef = invoice.to_ref()
+        attachable_ref.IncludeOnSend = True
+        attachment.AttachableRef.append(attachable_ref)
+        attachment.FileName = attachment_path.name
+        attachment._FilePath = str(attachment_path.absolute())
+        attachment.ContentType = "text/csv"
+        attachment.save(qb=client)
+        attachment_path.unlink()  # Delete the file when we are done
+        return invoice_obj.DocNumber
+
+    def generate_invoice_attachment(self, response=None, file_obj=False):
         columns = [
             "Submission Date",
             "Title",
@@ -1123,10 +1172,10 @@ class PledgeProcess(Process):
         chapter = self.chapter.name
         todays_date = datetime.datetime.now().date().strftime("%Y%m%d")
         filename = f"{chapter}_{todays_date}_pledges_invoice.csv"
-        out = response
         if response is not None:
             pledge_file = response
             response["Content-Disposition"] = f'attachment; filename="{filename}"'
+            out = None
         else:
             pledge_file = io.StringIO()
             pledge_mail = MIMEBase("application", "csv")
@@ -1150,9 +1199,14 @@ class PledgeProcess(Process):
                 "Expected date of graduation": pledge.user.graduation_year,
             }
             writer.writerow(row)
-        if response is None:
+        if response is None and not file_obj:
             pledge_mail.set_payload(pledge_file)
             out = pledge_mail
+        else:
+            filepath = Path(r"exports/" + filename)
+            with open(filepath, mode="w", newline="") as f:
+                print(pledge_file.getvalue(), file=f)
+            out = filepath
         return out
 
     def generate_blackbaud_update(self, response=None):

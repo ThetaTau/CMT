@@ -65,7 +65,7 @@ def invoice_search(invoice_number, customer, client=None):
     if client is None:
         client = get_quickbooks_client()
     invoice = None
-    if invoice_number == 999999999:
+    if invoice_number == "999999999":
         # search for any NeedToSend invoices for chapter
         #   however, can not filter on EmailStatus directly
         invoices = Invoice.query(
@@ -76,14 +76,14 @@ def invoice_search(invoice_number, customer, client=None):
             if invoice_test.EmailStatus == "NeedToSend":
                 invoice = invoice_test
                 break
-    elif invoice_number != 1 and invoice_number != "":
+    elif invoice_number != "1" and invoice_number != "":
         # search for specific invoice number
         invoices = Invoice.query(
             select=f"select * from Invoice where DocNumber = '{invoice_number}' AND CustomerRef = '{customer.Id}'",
             qb=client,
         )
         if invoices:
-            invoice = invoice[0]
+            invoice = invoices[0]
     if invoice is None:
         invoice = Invoice()
         term = Term.filter(name="Two Weeks", qb=client)[0]

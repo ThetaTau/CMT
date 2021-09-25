@@ -69,6 +69,11 @@ urlpatterns = [
         view=views.pledge_process_csvs,
         name="pledge_csv",
     ),
+    url(
+        regex=r"^pledge-sync/(?P<process_pk>\d+)/(?P<invoice_number>\d+)$",
+        view=views.pledge_process_sync,
+        name="pledge_sync",
+    ),
     url(regex=r"^status/$", view=views.StatusChangeView.as_view(), name="status"),
     url(
         regex=r"^status-selection/$",

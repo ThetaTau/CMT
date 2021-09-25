@@ -2138,6 +2138,14 @@ def pledge_process_csvs(request, csv_type, process_pk):
     return response
 
 
+@group_required("natoff")
+@csrf_exempt
+def pledge_process_sync(request, process_pk, invoice_number):
+    process = PledgeProcess.objects.get(pk=process_pk)
+    new_invoice_number = process.sync_invoice(request, invoice_number)
+    return JsonResponse({"invoice_number": new_invoice_number})
+
+
 class OSMCreateView(LoginRequiredMixin, CreateProcessView):
     template_name = "forms/osm_form.html"
     model = OSM
