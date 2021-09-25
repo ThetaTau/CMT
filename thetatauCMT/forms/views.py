@@ -12,7 +12,6 @@ from django.forms import models as model_forms
 from django.forms.models import modelformset_factory
 from django.utils.safestring import mark_safe
 from django.http.request import QueryDict
-
 from django.core.files.base import ContentFile
 from django.contrib import messages
 from django.urls import reverse
@@ -23,7 +22,7 @@ from django.views.generic import UpdateView, DetailView, TemplateView
 from django.views.generic.edit import FormView, CreateView, ModelFormMixin
 from django.views.decorators.csrf import csrf_exempt
 from django.shortcuts import redirect
-from django.http import HttpResponseRedirect, HttpResponse
+from django.http import HttpResponseRedirect, HttpResponse, JsonResponse
 from allauth.account.models import EmailAddress
 from crispy_forms.layout import Submit
 from extra_views import FormSetView, ModelFormSetView
@@ -1620,6 +1619,14 @@ def badge_shingle_init_csv(request, csv_type, process_pk):
         process.generate_blackbaud_update(response=response)
     response["Cache-Control"] = "no-cache"
     return response
+
+
+@group_required("natoff")
+@csrf_exempt
+def badge_shingle_init_sync(request, process_pk, invoice_number):
+    process = InitiationProcess.objects.get(pk=process_pk)
+    new_invoice_number = process.sync_badge_shingle_invoice(request, invoice_number)
+    return JsonResponse({"invoice_number": new_invoice_number})
 
 
 def get_sign_status(user, type_sign="creds", initial=False):

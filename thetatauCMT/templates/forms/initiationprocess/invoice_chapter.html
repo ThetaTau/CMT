@@ -5,13 +5,31 @@
   {% csrf_token %}
   {% form form=form %}{% endform %}
   {{ activation.management_form }}
+  <p>Leave invoice number at 999999999 to find existing unsent invoice or create new invoice if not found.</p>
+  <p>Set invoice number to 1 in order to force new invoice even if existing unsent invoice.</p>
+  <p>Set invoice number to number of existing invoice to force sync to existing invoice.</p>
   <br>
   <button type="button" class="btn btn-primary" id="csv-invoice">CSV Invoice</button>
+  <button type="button" class="btn btn-primary" id="sync-invoice">Sync Invoice</button>
 <script>
 $(function(){
   $("#csv-invoice").click(function(event){
       window.open("{% url 'forms:init_csv' activation.process.pk 'invoice' %}", '_blank');
   });
+  $("#sync-invoice").click(function (event) {
+    $("#sync-invoice").html("Syncing...");
+    let value = $('#id_invoice').val();
+    let url = "{% url 'forms:init_sync' activation.process.pk "111" %}";
+    url = url.replace('111', value);
+    $.ajax({
+      type: "POST",
+      url: url,
+      success: function (response) {
+        $('#id_invoice').val(response['invoice_number']);
+        $("#sync-invoice").html("Sync Complete");
+      }
+    });
+  })
 });
 </script>
 {% endblock %}

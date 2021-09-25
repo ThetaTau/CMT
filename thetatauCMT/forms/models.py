@@ -3,11 +3,14 @@ import io
 import os
 import csv
 from enum import Enum
+from pathlib import Path
+from collections import Counter
 from address.models import AddressField
 from email.mime.base import MIMEBase
 from django.db import models, transaction
 from django.db.utils import IntegrityError
 from django.contrib.auth.models import Group
+from django.contrib import messages
 from django.core.validators import MaxValueValidator
 from django.conf import settings
 from django.utils import timezone
@@ -17,6 +20,9 @@ from django.utils.translation import gettext_lazy as _
 from multiselectfield import MultiSelectField
 from viewflow.models import Process
 from easy_pdf.rendering import render_to_pdf
+from quickbooks.objects.customer import Customer
+from quickbooks.objects.attachable import Attachable, AttachableRef
+from core.finances import get_quickbooks_client, invoice_search, create_line
 from core.models import (
     forever,
     CHAPTER_ROLES_CHOICES,
@@ -752,10 +758,26 @@ class InitiationProcess(Process):
         blank=True, null=True, upload_to=get_badge_order_upload_path
     )
 
-    def generate_invoice(self):
-        ...
+    def get_fees(self, chapter, initiation):
+        init_fee = 75
+        if chapter.candidate_chapter:
+            init_fee = 30
+        late_fee = 0
+        init_date = initiation.date
+        init_submit = initiation.created.date()
+        delta = init_submit - init_date
+        if delta.days > 28:
+            if not chapter.candidate_chapter:
+                late_fee = 25
+        return init_fee, late_fee
 
-    def generate_blackbaud_update(self, invoice=False, response=None):
+    def generate_blackbaud_update(self, invoice=False, response=None, file_obj=False):
+        """
+        invoice is when the file is for an invoice, otherwise used for badge orders
+        response is to send a file to the user in the browser
+            if no response assume want to email the file add to
+        file_obj is when we want file to send to quickbooks not email and not response
+        """
         INIT = [
             "Date Submitted",
             "Chapter Name",
@@ -809,16 +831,8 @@ class InitiationProcess(Process):
                     guard_code = guard.code
                     guard_cost = guard.cost
             chapter = initiation.user.chapter
-            init_fee = 75
-            if chapter.candidate_chapter:
-                init_fee = 30
-            late_fee = 0
-            init_date = initiation.date
+            init_fee, late_fee = self.get_fees(chapter, initiation)
             init_submit = initiation.created.date()
-            delta = init_submit - init_date
-            if delta.days > 28:
-                if not chapter.candidate_chapter:
-                    late_fee = 25
             total = badge_cost + guard_cost + init_fee + late_fee
             row = {
                 "Date Submitted": init_submit,
@@ -844,10 +858,90 @@ class InitiationProcess(Process):
                 for column in update_remove:
                     row.pop(column, None)
             writer.writerow(row)
-        if response is None:
+        if response is None and not file_obj:
             init_mail.set_payload(init_file)
             out = init_mail
+        elif file_obj:
+            filepath = Path(r"exports/" + filename)
+            with open(filepath, mode="w", newline="") as f:
+                print(init_file.getvalue(), file=f)
+            out = filepath
         return out
+
+    def sync_badge_shingle_invoice(self, request, invoice_number):
+        """
+        This will sync with quickbooks
+        """
+        client = get_quickbooks_client()
+        chapter = self.chapter
+        if chapter.candidate_chapter:
+            messages.add_message(
+                request, messages.ERROR, "Candidate chapters do not pay initiation fees"
+            )
+            return
+        chapter_name = chapter.name
+        customer = Customer.query(
+            select=f"SELECT * FROM Customer WHERE CompanyName LIKE '{chapter_name} chapter%'",
+            qb=client,
+        )
+        if customer:
+            customer = customer[0]
+        else:
+            messages.add_message(
+                request,
+                messages.ERROR,
+                f"Quickbooks Customer matching name: '{chapter_name} Chapter...' not found",
+            )
+            return
+        invoice, linenumber_count = invoice_search(invoice_number, customer, client)
+        late_fee_count = 0
+        fee_count = 0
+        for initiation in self.initiations.all():
+            _, late_fee = self.get_fees(self.chapter, initiation)
+            if not late_fee:
+                fee_count += 1
+            else:
+                late_fee_count += 1
+        if fee_count:
+            line = create_line(fee_count, linenumber_count, name="I1A", client=client)
+            invoice.Line.append(line)
+            linenumber_count += 1
+        if late_fee_count:
+            line = create_line(
+                late_fee_count, linenumber_count, name="I1B", client=client
+            )
+            invoice.Line.append(line)
+        badge_guard_count = Counter(
+            self.initiations.values_list("guard__code", flat=True)
+        ) + Counter(self.initiations.values_list("badge__code", flat=True))
+        for badge_guard_code, count in badge_guard_count.items():
+            if badge_guard_code == "None":
+                continue
+            line = create_line(
+                count, linenumber_count, name=badge_guard_code, client=client
+            )
+            invoice.Line.append(line)
+            linenumber_count += 1
+        memo = "Initiated: " + ", ".join(
+            self.initiations.values_list("user__name", flat=True)
+        )
+        old_memo = invoice.CustomerMemo.value
+        memo = old_memo + "\n" + memo
+        # Maximum 1000 chars
+        memo = memo[0:999]
+        invoice.CustomerMemo.value = memo
+        invoice_obj = invoice.save(qb=client)
+        attachment_path = self.generate_blackbaud_update(invoice=True, file_obj=True)
+        attachment = Attachable()
+        attachable_ref = AttachableRef()
+        attachable_ref.EntityRef = invoice.to_ref()
+        attachment.AttachableRef.append(attachable_ref)
+        attachment.FileName = attachment_path.name
+        attachment._FilePath = str(attachment_path.absolute())
+        attachment.ContentType = "text/csv"
+        attachment.save(qb=client)
+        attachment_path.unlink()  # Delete the file when we are done
+        return invoice_obj.DocNumber
 
     def generate_badge_shingle_order(self, response=None, csv_type=None):
         """

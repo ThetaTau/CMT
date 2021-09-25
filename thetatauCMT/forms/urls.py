@@ -60,6 +60,11 @@ urlpatterns = [
         name="init_csv",
     ),
     url(
+        regex=r"^initiation-sync/(?P<process_pk>\d+)/(?P<invoice_number>\d+)$",
+        view=views.badge_shingle_init_sync,
+        name="init_sync",
+    ),
+    url(
         regex=r"^pledge-csv/(?P<process_pk>\d+)/(?P<csv_type>[\w.@+-]+)$",
         view=views.pledge_process_csvs,
         name="pledge_csv",
