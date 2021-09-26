@@ -28,7 +28,7 @@ from core.models import (
     EnumClass,
 )
 from regions.models import Region
-
+from .notifications import DuesReminder
 
 GREEK_ABR = {
     "a": "alpha",
@@ -570,7 +570,7 @@ class Chapter(models.Model):
             )
             return
         invoice, linenumber_count = invoice_search("1", customer, client)
-        count = self.actives().count()
+        count = self.active_actives().count()
         if not self.candidate_chapter:
             # D1; Service; Semiannual Chapter Dues payable @ $80 each # Minimum per chapter is $1600.
             line = create_line(
@@ -620,8 +620,9 @@ class Chapter(models.Model):
         attachment_path.unlink()  # Delete the file when we are done
         return invoice_obj.DocNumber
 
-    def reminder_dues(self, request):
-        ...
+    def reminder_dues(self):
+        attachment = self.generate_dues_attachment()
+        return DuesReminder(self, attachment).send()
 
     def generate_dues_attachment(self, response=None, file_obj=False):
         from users.tables import UserTable
@@ -636,12 +637,12 @@ class Chapter(models.Model):
             dues_file = io.StringIO()
             dues_mail = MIMEBase("application", "csv")
             dues_mail.add_header("Content-Disposition", "attachment", filename=filename)
-        members = annotate_role_status(self.actives(), combine=True)
+        members = annotate_role_status(self.active_actives(), combine=True)
         table = UserTable(data=members)
         writer = csv.writer(dues_file)
         writer.writerows(table.as_values())
         if response is None and not file_obj:
-            dues_mail.set_payload(dues_file)
+            dues_mail.set_payload(dues_file.getvalue())
             out = dues_mail
         elif file_obj:
             filepath = Path(r"exports/" + filename)

@@ -4,6 +4,7 @@ from django.contrib import messages
 from django.forms.models import modelformset_factory
 from django.http.response import HttpResponseRedirect
 from django.views.generic import RedirectView
+from django.utils.safestring import mark_safe
 from core.views import (
     RequestConfig,
     OfficerRequiredMixin,
@@ -224,13 +225,19 @@ class ChapterListView(LoginRequiredMixin, OfficerRequiredMixin, PagedFilteredTab
 
 class DuesSyncMixin:
     def sync_dues(self, request, queryset):
+        message = "Sync complete for chapters: <br>"
         for chapter in queryset.all():
-            chapter.sync_dues(request)
+            invoice_number = chapter.sync_dues(request)
+            message += f"{chapter}: {invoice_number}<br>"
+        messages.add_message(request, messages.INFO, mark_safe(message))
 
     sync_dues.short_description = "Sync selected chapters dues to Quickbooks"
 
     def reminder_dues(self, request, queryset):
+        message = "Sent reminders to chapters: <br>"
         for chapter in queryset.all():
-            chapter.reminder_dues(request)
+            result = chapter.reminder_dues()
+            message += f"{chapter}: {result}<br>"
+        messages.add_message(request, messages.INFO, mark_safe(message))
 
     reminder_dues.short_description = "Send selected chapters dues reminder"

@@ -1,0 +1,30 @@
+{% extends "herald/html/base_email.html" %}
+{% block title %}Chapter Dues Test Roster{% endblock %}
+{% block content %}
+<h1 class="null" style="margin: 0;padding: 0;display: block;font-family: Helvetica;font-size: 40px;font-style: normal;font-weight: bold;line-height: 125%;letter-spacing: -1px;text-align: left;color: #606060 !important;">
+  Chapter Dues Test Roster</h1>
+Dear Theta Tau {{ chapter }} Officers,
+<br>
+Your are getting this message because you are listed as an officer for your chapter.<br>
+{% if previous_officers %}
+  <strong><b>Your chapter officer list is out of date, please update ASAP!</b></strong>
+  <br>
+{% endif %}
+If you are no longer an officer, you or any officer can update the officer list here:
+<a href="{{ host }}{% url 'forms:officer' %}">cmt.thetatau.org{% url 'forms:officer' %}</a>
+<p>
+  Please find attached your test roster. This is the roster which, if you do not make any changes in the CMT, will be
+  used to to create your invoice.
+</p>
+<p>
+  Please note that only those with a status of active or activepend will be reflected on your invoice. Please also note
+  that those who are on co-op/inactive will not be reflected. Similarly, any members who are currently awaiting trial
+  for expulsion, and for whom you have initiated a disciplinary process in the CMT, will be manually removed from your
+  invoice before it is sent. They may appear on the attached list, but they will be removed prior to invoicing.
+</p>
+<p>
+  Your invoice will be sent on {{ invoice_date }}, unless you have been given an extension by the Central Office. Please make
+  any changes to your roster no later than {{ change_date }}, to allow us time to write your invoices.
+</p>
+  {% include "herald/html/rm_contact.html" %}
+{% endblock content %}
