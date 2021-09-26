@@ -2,6 +2,7 @@ from django.conf import settings
 from django.utils.safestring import mark_safe
 from django.urls import reverse
 from report_builder.admin import ReportAdmin
+from herald.admin import SentNotificationAdmin, SentNotification
 
 
 def user_chapter(obj):
@@ -21,3 +22,7 @@ class ReportAdminSync(ReportAdmin):
 
     sync_mail.short_description = "Email Sync"
     sync_mail.allow_tags = True
+
+
+class SentNotificationAdminUpdate(SentNotificationAdmin):
+    raw_id_fields = ["user"]

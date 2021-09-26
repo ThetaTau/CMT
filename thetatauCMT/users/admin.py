@@ -34,13 +34,20 @@ from forms.models import (
     ResignationProcess,
     ReturnStudent,
 )
-from core.admin import user_chapter, ReportAdminSync
+from core.admin import (
+    user_chapter,
+    ReportAdminSync,
+    SentNotificationAdminUpdate,
+    SentNotification,
+)
 from notes.admin import UserNoteInline, UserNote
 
 
 admin.site.register(Permission)
 admin.site.unregister(Report)
 admin.site.register(Report, ReportAdminSync)
+admin.site.unregister(SentNotification)
+admin.site.register(SentNotification, SentNotificationAdminUpdate)
 
 
 class UserStatusChangeAdmin(admin.ModelAdmin):
