@@ -859,7 +859,7 @@ class InitiationProcess(Process):
                     row.pop(column, None)
             writer.writerow(row)
         if response is None and not file_obj:
-            init_mail.set_payload(init_file)
+            init_mail.set_payload(init_file.getvalue())
             out = init_mail
         elif file_obj:
             filepath = Path(r"exports/" + filename)
@@ -1034,8 +1034,8 @@ class InitiationProcess(Process):
             }
             shingle_writer.writerow(row_shingle)
         if response is None:
-            badge_mail.set_payload(badge_file)
-            shingle_mail.set_payload(shingle_file)
+            badge_mail.set_payload(badge_file.getvalue())
+            shingle_mail.set_payload(shingle_file.getvalue())
             out = badge_mail, shingle_mail
         return out
 
@@ -1200,7 +1200,7 @@ class PledgeProcess(Process):
             }
             writer.writerow(row)
         if response is None and not file_obj:
-            pledge_mail.set_payload(pledge_file)
+            pledge_mail.set_payload(pledge_file.getvalue())
             out = pledge_mail
         else:
             filepath = Path(r"exports/" + filename)
@@ -1340,7 +1340,7 @@ class PledgeProcess(Process):
             }
             writer.writerow(row)
         if response is None:
-            pledge_mail.set_payload(pledge_file)
+            pledge_mail.set_payload(pledge_file.getvalue())
             out = pledge_mail
         return out
 
