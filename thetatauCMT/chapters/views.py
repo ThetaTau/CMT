@@ -220,3 +220,17 @@ class ChapterListView(LoginRequiredMixin, OfficerRequiredMixin, PagedFilteredTab
         return {
             "officer": self.request.user.is_national_officer(),
         }
+
+
+class DuesSyncMixin:
+    def sync_dues(self, request, queryset):
+        for chapter in queryset.all():
+            chapter.sync_dues(request)
+
+    sync_dues.short_description = "Sync selected chapters dues to Quickbooks"
+
+    def reminder_dues(self, request, queryset):
+        for chapter in queryset.all():
+            chapter.reminder_dues(request)
+
+    reminder_dues.short_description = "Send selected chapters dues reminder"

@@ -1,6 +1,7 @@
 from django.contrib import admin
 from chapters.models import Chapter, ChapterCurricula
 from notes.admin import ChapterNoteInline
+from .views import DuesSyncMixin
 
 
 class ChapterCurriculaInline(admin.TabularInline):
@@ -10,7 +11,9 @@ class ChapterCurriculaInline(admin.TabularInline):
     show_change_link = True
 
 
-class ChapterAdmin(admin.ModelAdmin):
+class ChapterAdmin(admin.ModelAdmin, DuesSyncMixin):
+    actions = ["sync_dues", "reminder_dues"]
+    list_per_page = 200
     inlines = [ChapterNoteInline, ChapterCurriculaInline]
     list_filter = [
         "region",

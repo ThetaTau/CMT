@@ -1,12 +1,21 @@
+import io
+import csv
 import warnings
+import datetime
+from pathlib import Path
 from enum import Enum
 from datetime import timedelta
+from django.contrib import messages
 from django.db import models
 from django.db.models.functions import Concat
 from django.db.utils import ProgrammingError
 from address.models import AddressField
+from email.mime.base import MIMEBase
 from django.utils.translation import ugettext_lazy as _
 from django.utils.text import slugify
+from quickbooks.objects.customer import Customer
+from quickbooks.objects.attachable import Attachable, AttachableRef
+from core.finances import get_quickbooks_client, invoice_search, create_line
 from core.models import (
     TODAY_END,
     annotate_role_status,
@@ -16,6 +25,7 @@ from core.models import (
     BIENNIUM_START_DATE,
     BIENNIUM_DATES,
     ADVISOR_ROLES,
+    EnumClass,
 )
 from regions.models import Region
 
@@ -143,6 +153,24 @@ class Chapter(models.Model):
                 member = "not_rec"
             return cls[member.lower()].value[1]
 
+    class SURCHARGE(EnumClass):
+        L1a = (
+            "L1a",
+            "Between 51% and 75% of prior-year new members completed the online health and safety programming",
+        )
+        L1b = (
+            "L1b",
+            "Between 26% and 50% of prior-year new members completed the online health and safety programming",
+        )
+        L1c = (
+            "L1c",
+            "Between 0% and 25% of prior-year new members completed the online health and safety programming",
+        )
+        none = (
+            "none",
+            ">75% of prior-year new members completed the online health and safety programming",
+        )
+
     name = models.CharField(max_length=50)
     modified = models.DateTimeField(auto_now=True)
     region = models.ForeignKey(
@@ -233,6 +261,12 @@ class Chapter(models.Model):
         default="not_rec",
         max_length=10,
         choices=[x.value for x in RECOGNITION],
+    )
+    health_safety_surcharge = models.CharField(
+        help_text="Surcharge for chapters not completing X% online health and safety programming",
+        max_length=10,
+        default="none",
+        choices=[x.value for x in SURCHARGE],
     )
 
     def __str__(self):
@@ -513,6 +547,108 @@ class Chapter(models.Model):
         except cls.DoesNotExist:
             warnings.warn("Could not find school")
             return None
+
+    def sync_dues(self, request):
+        """
+        This will sync with quickbooks
+        """
+        client = get_quickbooks_client()
+        chapter_name = self.name
+        if "Chapter" in chapter_name:
+            chapter_name = chapter_name.replace(" Chapter", "")
+        customer = Customer.query(
+            select=f"SELECT * FROM Customer WHERE CompanyName LIKE '{chapter_name} chapter%'",
+            qb=client,
+        )
+        if customer:
+            customer = customer[0]
+        else:
+            messages.add_message(
+                request,
+                messages.ERROR,
+                f"Quickbooks Customer matching name: '{chapter_name} Chapter...' not found",
+            )
+            return
+        invoice, linenumber_count = invoice_search("1", customer, client)
+        count = self.actives().count()
+        if not self.candidate_chapter:
+            # D1; Service; Semiannual Chapter Dues payable @ $80 each # Minimum per chapter is $1600.
+            line = create_line(
+                count, linenumber_count, name="D1", minimum=1600, client=client
+            )
+            l1_min = 250
+            if self.house:
+                l1_min = 1125
+        else:
+            # D2; Service; Semiannual Colony Dues
+            line = create_line(count, linenumber_count, name="D2", client=client)
+            l1_min = 125
+        linenumber_count += 1
+        invoice.Line.append(line)
+        # L1; Service; Health and Safety Assessment - Semesterly
+        #   minimum for housed chapters ($1125)
+        #   unhoused chapters ($250)
+        #   Colony Minimum is $125
+        line = create_line(
+            count, linenumber_count, name="L1", minimum=l1_min, client=client
+        )
+        linenumber_count += 1
+        invoice.Line.append(line)
+        if self.health_safety_surcharge != "none":
+            line = create_line(
+                line.Amount,
+                linenumber_count,
+                name=self.health_safety_surcharge,
+                client=client,
+            )
+            invoice.Line.append(line)
+        memo = f"Actives: {count}; Surcharge: {self.SURCHARGE.get_value(self.health_safety_surcharge)}"
+        memo = memo[0:999]
+        invoice.CustomerMemo.value = memo
+        invoice.DeliveryInfo = None
+        invoice_obj = invoice.save(qb=client)
+        attachment_path = self.generate_dues_attachment(file_obj=True)
+        attachment = Attachable()
+        attachable_ref = AttachableRef()
+        attachable_ref.EntityRef = invoice.to_ref()
+        attachable_ref.IncludeOnSend = True
+        attachment.AttachableRef.append(attachable_ref)
+        attachment.FileName = attachment_path.name
+        attachment._FilePath = str(attachment_path.absolute())
+        attachment.ContentType = "text/csv"
+        attachment.save(qb=client)
+        attachment_path.unlink()  # Delete the file when we are done
+        return invoice_obj.DocNumber
+
+    def reminder_dues(self, request):
+        ...
+
+    def generate_dues_attachment(self, response=None, file_obj=False):
+        from users.tables import UserTable
+
+        time_name = datetime.datetime.now().strftime("%Y%m%d")
+        filename = f"{self}_{time_name}_dues.csv"
+        if response is not None:
+            dues_file = response
+            response["Content-Disposition"] = f'attachment; filename="{filename}"'
+            out = None
+        else:
+            dues_file = io.StringIO()
+            dues_mail = MIMEBase("application", "csv")
+            dues_mail.add_header("Content-Disposition", "attachment", filename=filename)
+        members = annotate_role_status(self.actives(), combine=True)
+        table = UserTable(data=members)
+        writer = csv.writer(dues_file)
+        writer.writerows(table.as_values())
+        if response is None and not file_obj:
+            dues_mail.set_payload(dues_file)
+            out = dues_mail
+        elif file_obj:
+            filepath = Path(r"exports/" + filename)
+            with open(filepath, mode="w", newline="") as f:
+                print(dues_file.getvalue(), file=f)
+            out = filepath
+        return out
 
 
 class ChapterCurricula(models.Model):

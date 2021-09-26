@@ -38,7 +38,7 @@ def get_quickbooks_client():
     return client
 
 
-def create_line(item_count, linenumber_count, name=None, client=None):
+def create_line(item_count, linenumber_count, name=None, minimum=None, client=None):
     today = datetime.datetime.today().strftime("%Y/%m/%d")
     if client is None:
         client = get_quickbooks_client()
@@ -46,12 +46,21 @@ def create_line(item_count, linenumber_count, name=None, client=None):
     line.LineNum = linenumber_count
     item = Item.filter(name=name, qb=client)[0]
     line.Description = item.Description
-    line.Amount = item_count * item.UnitPrice
+    total = item_count * item.UnitPrice
+    unit = item.UnitPrice
+    if minimum is not None:
+        total = max(minimum, total)
+        if total == minimum:
+            # API requires that UnitPrice * Qty == Amount Error 6070
+            item_count = 1
+            unit = total
+            line.Description = "AT MINIMUM;\n" + line.Description
+    line.Amount = total
     line.SalesItemLineDetail = SalesItemLineDetail()
     line.SalesItemLineDetail.ItemRef = item.to_ref()
     line.SalesItemLineDetail.Qty = item_count
     line.SalesItemLineDetail.ServiceDate = today
-    line.SalesItemLineDetail.UnitPrice = item.UnitPrice
+    line.SalesItemLineDetail.UnitPrice = unit
     return line
 
 
