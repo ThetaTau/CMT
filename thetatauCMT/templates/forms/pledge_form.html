@@ -9,6 +9,8 @@
     AFTER you have an invite from the chapter to do so.</span></h4>
   Complete the form below to begin the membership process
   <hr>
+  <p>This form should only be completed by the person wishing to pledge a chapter
+    of Theta Tau, not a chapter officer or any other active member.</p>
   <p>Each candidate for pledging is obliged to answer all questions on the following
     pages as a formal pledge as given herein.</p>
   <p>The questions in this form are asked to give the candidate information as to
@@ -16,6 +18,10 @@
     assumed by reason of membership.</p>
   <p>This form is confidential within the Fraternity.
     To be completed at time of pledging by candidates for student membership.</p>
+  <p>If you previously pledged Theta Tau, please have a chapter officer contact
+    <a href="mailto:central.office@thetatau.org">central.office@thetatau.org</a> to restart your pledge process.</p>
+  <p>If you have trouble with the Captcha try filling out the alternative form captcha here:
+    <a href="{% url 'forms:pledgeform-alt' %}">cmt.thetatau.org/pledgeform-alt</a></p>
   {% csrf_token %}
   {% crispy form form.helper %}
   <p>If you have trouble with the Captcha try filling out the alternative form captcha here: <a href="{% url 'forms:pledgeform-alt' %}">cmt.thetatau.org/pledgeform-alt</a></p>

@@ -1516,7 +1516,12 @@ class PledgeFormView(CreateView):
             messages.add_message(
                 self.request,
                 messages.ERROR,
-                f"Pledge form already submitted for {user}!",
+                mark_safe(
+                    f"Pledge form already submitted for {user}!<br>"
+                    f"If you previously pledged Theta Tau, "
+                    f"please have a chapter officer contact<br> "
+                    f"central.office@thetatau.org to restart your pledge process."
+                ),
             )
             return HttpResponseRedirect(self.get_success_url())
         demographics.instance.user = user
