@@ -18,6 +18,8 @@ class ChapterForm(forms.ModelForm):
             "website",
             "facebook",
             "address",
+            "address_contact",
+            "address_phone_number",
             "council",
             "house",
             "recognition",

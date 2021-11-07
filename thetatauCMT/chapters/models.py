@@ -8,6 +8,7 @@ from datetime import timedelta
 from django.contrib import messages
 from django.db import models
 from django.db.models.functions import Concat
+from django.core.validators import RegexValidator
 from django.db.utils import ProgrammingError
 from address.models import AddressField
 from email.mime.base import MIMEBase
@@ -216,6 +217,20 @@ class Chapter(models.Model):
     facebook = models.URLField(
         blank=True,
         help_text="You must include the full URL including https:// or http://",
+    )
+    address_contact = models.CharField(
+        max_length=100,
+        help_text="Name of person to contact at address for deliveries",
+    )
+    phone_regex = RegexValidator(
+        regex=r"^\+?1?\d{9,15}$",
+        message="Phone number must be entered in the format: '+999999999'. Up to 15 digits allowed.",
+    )
+    address_phone_number = models.CharField(
+        validators=[phone_regex],
+        max_length=17,
+        help_text="Phone number to contact at address for deliveries."
+        "Format: 9999999999 no spaces, dashes, etc.",
     )
     address = AddressField(
         verbose_name=_("Mailing Address"),
