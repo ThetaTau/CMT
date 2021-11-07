@@ -79,9 +79,9 @@ _NOT WINDOWS_: `pip install virtualenvwrapper` (_WINDOWS_: `pip install virtuale
 Add the following Windows environment variables or Mac add the following lines to the shell startup file (.bashrc):
 
 ```
-export WORKON_HOME=~/virtualenvs
-export VIRTUALENVWRAPPER_PYTHON=/usr/bin/python
-source /usr/local/bin/virtualenvwrapper.sh
+export WORKON_HOME=~/virtualenvs                    WINDOWS: setx WORKON_HOME %HOME%\virtualenvs
+export VIRTUALENVWRAPPER_PYTHON=/usr/bin/python     WINDOWS: skip this
+source /usr/local/bin/virtualenvwrapper.sh          WINDOWS: skip this
 ```
 
 Then, either restart cmd/Terminal window or do `source ~/.bashrc` to put these changes into effect
@@ -94,17 +94,17 @@ To create virtual environment for our project, if this doesn't work then virtual
 
 cd to location where you cloned project repository (For example: `cd ~/Desktop/thetatauCMT`)
 
-    setprojectdir {Your_project_dir} # (For example: setprojectdir E:\workspace\thetatauCMT)
+    setprojectdir {Your_project_dir} # (WHERE YOU CLONED THE REPO For example: setprojectdir E:\workspace\thetatauCMT)
 
 Add files to virtualenv path THIS IS NOT THE SAME FOLDER AS ABOVE, BUT A SUBDIRECTORY For example: add2virtualenv E:\workspace\thetatauCMT\thetatauCMT
 
-    add2virtualenv ~/Desktop/thetatauCMT/thetatauCMT # NOTE: THIS IS NOT THE SAME FOLDER AS ABOVE, BUT A SUBDIRECTORY
+    add2virtualenv {Your_project_dir}/thetatauCMT # NOTE: THIS IS NOT THE SAME FOLDER AS ABOVE, BUT A SUBDIRECTORY For example: setprojectdir E:\workspace\thetatauCMT\thetatauCMT
 
     workon cmt
 
 ### Install PostgreSQL
 
-Production is currently running Postgres server version: 9.4.
+Production is currently running Postgres server version: 12.
 I have 10.X and 12.X installed with no issues pulling data from production to debug
 
 You do not need stackbuilder.
@@ -123,9 +123,18 @@ windows: `export PATH=/Library/PostgreSQL/10/bin:${PATH}`
 And then to get the environment
 or Windows run from commandline
 
-    "C:\Program Files\PostgreSQL\10\pg_env.bat"
+    "C:\Program Files\PostgreSQL\10\pg_env.bat" (your postgres version will be different!)
 
 Re-run `pg_config` to verify that our database works!
+
+Find the location of the Postgres server HBA file by going on the Postgres app -> Server Settings... -> HBA File This is
+generally in your data folder. The default is normally C:\Program Files\PostgreSQL\13\data\pg_hba.conf or
+/etc/postgresql/13/main/pg_hba.conf Check that your pg_hba.conf file has the following:
+
+    # IPv4 local connections:
+    host all all all trust
+
+Make sure to restart the Postgres service!
 
 Create Postgres database (make sure that the server is Running in Postgres app).
 If you get a "createdb is not a command" error, you need to make sure the path is properly set, see instructions above for editing path.
@@ -137,34 +146,9 @@ If you get a "createdb is not a command" error, you need to make sure the path i
     psql
     CREATE USER thetatau;
 
-Find the location of the Postgres server HBA file by going on the Postgres app -> Server Settings... -> HBA File
-
-Check that your pg_hba.conf file has the following:
-
-    # IPv4 local connections:
-    host all all 127.0.0.1/32 trust
-
-If changes needed to be made, make sure to restart the Postgres service.
-
 ### Install dependencies
 
-Install PostgreSQL database adapter for Django
-
-    pip install psycopg2==2.8.6
-
-    pip install psycopg2-binary
-
-_ONLY If receive a 'Symbol not found' error, reinstall psycopg2 and psycopg2-binary with the base Python version. (i.e. 2.7.7)_
-
-    pip uninstall psycopg2==2.8.6
-
-    pip uninstall psycopg2-binary
-
-    pip install psycopg2==2.8.6
-
-    pip install psycopg2-binary==2.9.1
-
-Install other requirements, (Postgres python library has to be installed first)
+Install requirements
 
     pip install -r requirements/local.txt
 
@@ -179,7 +163,7 @@ Setup the database
     python manage.py migrate
 
 Then you will need to create a superuser, generally locally I use
-user test and email test@gmail.com and a password easy to remember
+user test and email test@gmail.com and a password easy to remember (I use test)
 
     python manage.py createsuperuser
 
