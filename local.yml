@@ -9,6 +9,8 @@ services:
     build:
       context: .
       dockerfile: ./compose/local/django/Dockerfile
+    environment:
+      - DJANGO_SETTINGS_MODULE=config.settings.local
     image: thetataucmt_local_django
     container_name: django
     depends_on:
@@ -19,7 +21,8 @@ services:
       - ./.envs/.local/.django
       - ./.envs/.local/.postgres
     ports:
-      - "8000:8000"
+      - "8000:8000" # webserver
+      - "8888:8888" # ipython notebook
     command: /start
 
   postgres:
