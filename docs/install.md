@@ -22,9 +22,13 @@ user test and email test@gmail.com and a password easy to remember
 
     docker-compose -f local.yml run --rm django python manage.py createsuperuser
 
-Finally, to run
+Finally, to run the application run:
 
     docker-compose -f local.yml up
+
+If you want to run a jupyter notebook, you can run:
+
+    docker-compose -f local.yml run --rm -p 8888:8888 django python manage.py shell_plus --notebook
 
 Then navigate to localhost:8000/admin, log in with your superuser go to:
 http://localhost:8000/admin/socialaccount/socialapp/ click on "Add Social Application"
