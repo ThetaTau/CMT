@@ -405,7 +405,8 @@ class UserListView(LoginRequiredMixin, PagedFilteredTableView):
         natoff = False
         if self.request.user.is_national_officer():
             natoff = True
-        table = UserTable(data=self.object_list, natoff=natoff)
+        admin = self.request.user.is_superuser
+        table = UserTable(data=self.object_list, natoff=natoff, admin=admin)
         table.exclude = ("role", "role_end")
         RequestConfig(self.request, paginate={"per_page": 30}).configure(table)
         context["table"] = table
