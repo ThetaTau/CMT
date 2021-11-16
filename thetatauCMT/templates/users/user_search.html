@@ -18,9 +18,13 @@
             {% block table.thead %}
             <thead>
                 <tr>
-                    <th colspan="6">
+                    <th colspan="12">
                         <form method="get" class="form-inline form-search pull-right">
                           <input name="q" value="{{ request.GET.q }}">
+                          <input name="zip" value="{{ request.GET.zip }}" placeholder="zipcode" maxlength="5"
+                                 size="6">
+                          <input name="dist" value="{{ request.GET.dist }}" placeholder="distance" maxlength="3"
+                                 size="4">
                           <button type="submit" class="btn btn-small btn-primary">
                             <i class="fas fa-search"></i> Search
                           </button>

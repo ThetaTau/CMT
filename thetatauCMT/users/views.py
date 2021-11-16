@@ -19,6 +19,7 @@ from crispy_forms.layout import Submit
 from allauth.account.views import LoginView
 from extra_views import FormSetView, ModelFormSetView
 from watson import search as watson
+from core.address import isinradius
 from core.views import (
     PagedFilteredTableView,
     RequestConfig,
@@ -242,8 +243,19 @@ class UserSearchView(
     def get_queryset(self):
         queryset = User.objects.none()
         q = self.request.GET.get("q", "")
+        zip = self.request.GET.get("zip", "")
         if q:
             queryset = watson.filter(User, q)
+        if zip:
+            distance = self.request.GET.get("dist", "")
+            user_pks = []
+            addressess = isinradius(zip, distance)
+            user_pks = [
+                user.pk for address in addressess for user in address.user_set.all()
+            ]
+            if not queryset:
+                queryset = User.objects
+            queryset = queryset.filter(pk__in=user_pks)
         queryset = annotate_role_status(queryset)
         return queryset
 

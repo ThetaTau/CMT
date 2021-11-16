@@ -1,4 +1,7 @@
+import math
+from haversine import haversine
 from django.conf import settings
+from django.db.models import Q
 from address.models import (
     InconsistentDictError,
     State,
@@ -209,3 +212,42 @@ def fix_address(address):
         address.delete()
         return None
     return address
+
+
+def isinradius(zip, distance):
+    """Takes a zip, and a distance in miles.
+    Returns a list of zipcodes near the zip."""
+    zips_in_radius = list()
+
+    address = (
+        Locality.objects.get(postal_code=zip).addresses.exclude(longitude=0).first()
+    )
+
+    point = (address.latitude, address.longitude)
+
+    dist_btwn_lat_deg = 69.172
+    dist_btwn_lng_deg = math.cos(point[0]) * 69.172
+    lat_degr_rad = float(distance) / dist_btwn_lat_deg
+    lng_degr_rad = float(distance) / dist_btwn_lng_deg
+
+    latmin = point[0] - lat_degr_rad
+    latmax = point[0] + lat_degr_rad
+    lngmin = point[1] - lng_degr_rad
+    lngmax = point[1] + lng_degr_rad
+
+    if latmin > latmax:
+        latmin, latmax = latmax, latmin
+    if lngmin > lngmax:
+        lngmin, lngmax = lngmax, lngmin
+
+    zips = Address.objects.filter(
+        Q(longitude__gt=lngmin)
+        & Q(longitude__lt=lngmax)
+        & Q(latitude__gt=latmin)
+        & Q(latitude__lt=latmax)
+    ).prefetch_related("user_set")
+
+    for z in zips:
+        if haversine(point, (z.latitude, z.longitude)) <= float(distance):
+            zips_in_radius.append(z)
+    return zips_in_radius

@@ -28,6 +28,7 @@ git+git://github.com/VenturaFranklin/api-wrappers-python.git#egg=moosend_api_wra
 python-quickbooks==0.9.0  # https://github.com/ej2/python-quickbooks
 intuit-oauth==1.2.4  # https://github.com/intuit/oauth-pythonclient
 pygeocoder==1.2.5
+haversine==2.5.1
 
 # Django
 # ------------------------------------------------------------------------------
