@@ -40,6 +40,7 @@ admin.site.register(Guard)
 
 
 class ChapterReportAdmin(admin.ModelAdmin):
+    raw_id_fields = ["user"]
     list_display = (
         "chapter",
         "year",

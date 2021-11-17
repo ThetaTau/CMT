@@ -69,7 +69,7 @@ from .forms import (
     AuditListFormHelper,
     RiskListFilter,
     PledgeProgramFormHelper,
-    ChapterInfoReportForm,
+    ChapterReportForm,
     CompleteFormHelper,
     ConventionForm,
     OSMForm,
@@ -819,7 +819,7 @@ class ChapterReportListView(
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        all_forms = self.object_list
+        all_forms = self.object_list.exclude(report__in=[""])
         data = [
             {
                 "chapter": form.chapter.name,
@@ -865,92 +865,16 @@ class ChapterReportListView(
         return context
 
 
-class ChapterInfoReportView(LoginRequiredMixin, MultiFormsView):
+class ChapterInfoReportView(LoginRequiredMixin, CreateView):
     template_name = "forms/chapter_report.html"
-    form_classes = {
-        "report": ChapterInfoReportForm,
-        "faculty": ExternalUserForm,
-    }
-    grouped_forms = {"chapter_report": ["report", "faculty"]}
+    form_class = ChapterReportForm
+    model = ChapterReport
 
     def get_success_url(self, form_name=None):
         return reverse("forms:report")
 
-    def faculty_form_valid(self, formset):
-        if formset.has_changed():
-            for form in formset.forms:
-                if form.changed_data and "DELETE" not in form.changed_data:
-                    chapter = self.request.user.current_chapter
-                    if form.instance.badge_number == 999999999:
-                        form.instance.chapter = chapter
-                        form.instance.badge_number = chapter.next_advisor_number
-                    try:
-                        # This is either a previous faculty or alumni
-                        user = User.objects.get(username=form.instance.email)
-                    except User.DoesNotExist:
-                        user = form.save()
-                    if not user.is_advisor:
-                        user.set_current_status(status="advisor")
-                        EmailAdvisorWelcome(user).send()
-                    else:
-                        messages.add_message(
-                            self.request,
-                            messages.INFO,
-                            f"Advisor {user} already exists.",
-                        )
-                elif form.changed_data and "DELETE" in form.changed_data:
-                    user = form.instance
-                    user.set_current_status(None)
-        return HttpResponseRedirect(self.get_success_url())
-
-    def create_faculty_form(self, **kwargs):
-        chapter = self.request.user.current_chapter
-        facultys = chapter.advisors_external
-        extra = 0
-        min_num = 0
-        if not facultys:
-            extra = 0
-            min_num = 1
-        factory = modelformset_factory(
-            User,
-            form=ExternalUserForm,
-            **{
-                "can_delete": True,
-                "extra": extra,
-                "min_num": min_num,
-                "validate_min": True,
-            },
-        )
-        # factory.form.base_fields['chapter'].queryset = chapter
-        formset_kwargs = {
-            "queryset": facultys,
-            "form_kwargs": {"initial": {"chapter": chapter}},
-        }
-        if self.request.method in ("POST", "PUT"):
-            # if self.request.POST.get('action') == 'faculty': Not needed b/c grouped forms
-            formset_kwargs.update(
-                {
-                    "data": self.request.POST.copy(),
-                }
-            )
-        return factory(**formset_kwargs)
-
-    def _get_form_kwargs(self, form_name, bind_form=False):
-        kwargs = super()._get_form_kwargs(form_name, bind_form)
-        kwargs.update(
-            instance={
-                "info": self.get_object(),
-                "report": ChapterReport.signed_this_semester(
-                    self.request.user.current_chapter,
-                    report=True,
-                ),
-            }
-        )
-        return kwargs
-
-    def report_form_valid(self, form):
-        report = form["report"]
-        info = form["info"]
+    def form_valid(self, form):
+        report = form
         report.instance.user = self.request.user
         report.instance.chapter = self.request.user.current_chapter
         report.save()
@@ -959,8 +883,6 @@ class ChapterInfoReportView(LoginRequiredMixin, MultiFormsView):
             messages.INFO,
             "You successfully submitted the Chapter RMP and Agreements of Theta Tau!\n",
         )
-        if info.has_changed():
-            info.save()
         return HttpResponseRedirect(self.get_success_url())
 
     def get_context_data(self, **kwargs):
@@ -975,6 +897,7 @@ class ChapterInfoReportView(LoginRequiredMixin, MultiFormsView):
                 "previous_report": previous_report_rmp,
             }
         )
+        context["report"] = context.pop("form")
         return context
 
     def get_object(self):
@@ -1516,7 +1439,12 @@ class PledgeFormView(CreateView):
             messages.add_message(
                 self.request,
                 messages.ERROR,
-                f"Pledge form already submitted for {user}!",
+                mark_safe(
+                    f"Pledge form already submitted for {user}!<br>"
+                    f"If you previously pledged Theta Tau, "
+                    f"please have a chapter officer contact<br> "
+                    f"central.office@thetatau.org to restart your pledge process."
+                ),
             )
             return HttpResponseRedirect(self.get_success_url())
         demographics.instance.user = user

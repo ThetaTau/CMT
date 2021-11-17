@@ -92,7 +92,7 @@ class User(AbstractUser):
     )
     email_school = models.EmailField(
         _("School Email"),
-        default="test@thetatau.org",
+        blank=True,
         help_text="We will send an acknowledgement message. (ends in .edu)",
     )
     modified = models.DateTimeField(auto_now=True)

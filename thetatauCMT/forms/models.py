@@ -1015,6 +1015,8 @@ class InitiationProcess(Process):
             row_badge = {
                 "Chapter Name": chapter,
                 "Chapter Address": self.chapter.address,
+                "Chapter Contact": self.chapter.address_contact,
+                "Chapter Phone": self.chapter.address_phone_number,
                 "Chapter Description": chapter_abr,
                 "Roll Number": initiation.roll,
                 "Education Class of": initiation.date_graduation.year,
@@ -1029,6 +1031,8 @@ class InitiationProcess(Process):
                 "Last Name": initiation.user.last_name,
                 "Chapter Name": chapter,
                 "Chapter Address": self.chapter.address,
+                "Chapter Contact": self.chapter.address_contact,
+                "Chapter Phone": self.chapter.address_phone_number,
                 "Education Class of": initiation.date_graduation.year,
                 "Initiation Date": initiation.date.strftime("%B %d, %Y"),
             }

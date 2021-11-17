@@ -97,9 +97,11 @@ class RegionOfficerView(LoginRequiredMixin, NatOfficerRequiredMixin, DetailView)
         )
         all_chapter_officers = combine_annotations(self.filter.qs)
         self.filter.form.fields["chapter"].queryset = chapters
+        admin = self.request.user.is_superuser
         table = UserTable(
             data=all_chapter_officers,
             natoff=True,
+            admin=admin,
             extra_columns=[
                 (
                     "chapter",
@@ -180,9 +182,11 @@ class RegionAdvisorView(LoginRequiredMixin, NatOfficerRequiredMixin, DetailView)
         )
         all_chapter_advisors = combine_annotations(self.filter.qs)
         self.filter.form.fields["chapter"].queryset = chapters
+        admin = self.request.user.is_superuser
         table = UserTable(
             data=all_chapter_advisors,
             natoff=True,
+            admin=admin,
             extra_columns=[
                 (
                     "chapter",

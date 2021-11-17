@@ -357,6 +357,8 @@ class InitiationProcessFlow(Flow):
                 {
                     "members": member_list,
                     "Chapter Mailing Address": activation.process.chapter.address,
+                    "Chapter Mailing Contact": activation.process.chapter.address_contact,
+                    "Chapter Mailing Phone": activation.process.chapter.address_phone_number,
                 },
             ],
         ).send()
@@ -395,6 +397,8 @@ class InitiationProcessFlow(Flow):
                 {
                     "members": member_list,
                     "Chapter Mailing Address": activation.process.chapter.address,
+                    "Chapter Mailing Contact": activation.process.chapter.address_contact,
+                    "Chapter Mailing Phone": activation.process.chapter.address_phone_number,
                 },
                 "invoice",
             ],

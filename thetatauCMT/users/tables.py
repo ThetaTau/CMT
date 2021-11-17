@@ -23,7 +23,16 @@ class UserTable(tables.Table):
             + "Only officers can view alumni contact information."
         )
 
-    def __init__(self, chapter=False, natoff=False, admin=False, *args, **kwargs):
+    def __init__(
+        self,
+        chapter=False,
+        natoff=False,
+        admin=False,
+        extra_info=False,
+        *args,
+        **kwargs
+    ):
+        extra_columns = []
         if admin:
             self.base_columns["name"] = tables.LinkColumn(
                 "admin:users_user_change", kwargs={"object_id": A("id")}
@@ -34,11 +43,25 @@ class UserTable(tables.Table):
             )
         else:
             self.base_columns["name"] = tables.Column()
+        if extra_info:
+            extra_columns.extend(
+                [
+                    ("address", tables.Column("Address")),
+                    ("initiation", tables.Column("Initiation")),
+                ]
+            )
         if chapter:
-            extra_columns = [
-                ("chapter", tables.Column("Chapter")),
-                ("chapter.region", tables.Column("Region")),
-                ("chapter.school", tables.Column("School")),
-            ]
-            kwargs["extra_columns"] = extra_columns
+            extra_columns.extend(
+                [
+                    ("chapter", tables.Column("Chapter")),
+                    ("chapter.region", tables.Column("Region")),
+                    ("chapter.school", tables.Column("School")),
+                ]
+            )
+        kwargs["extra_columns"] = extra_columns
         super().__init__(*args, **kwargs)
+
+    def render_initiation(self, value):
+        if value:
+            value = value.date
+        return value

@@ -171,7 +171,8 @@ class ChapterDetailView(LoginRequiredMixin, MultiFormsView):
         natoff = False
         if self.request.user.is_national_officer():
             natoff = True
-        table = UserTable(data=chapter_officers, natoff=natoff)
+        admin = self.request.user.is_superuser
+        table = UserTable(data=chapter_officers, natoff=natoff, admin=admin)
         table.exclude = ("badge_number", "graduation_year")
         RequestConfig(self.request, paginate={"per_page": 100}).configure(table)
         context["table"] = table

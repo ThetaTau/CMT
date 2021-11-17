@@ -19,6 +19,7 @@ from crispy_forms.layout import Submit
 from allauth.account.views import LoginView
 from extra_views import FormSetView, ModelFormSetView
 from watson import search as watson
+from core.address import isinradius
 from core.views import (
     PagedFilteredTableView,
     RequestConfig,
@@ -239,17 +240,41 @@ class UserSearchView(
     table_class = UserTable
     template_name = "users/user_search.html"
 
+    def get(self, request, *args, **kwargs):
+        response = super().get(request, *args, **kwargs)
+        if request.GET.get("csv", "False").lower() == "download csv":
+            response = HttpResponse(content_type="text/csv")
+            context = self.get_context_data()
+            time_name = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename = f"ThetaTauSearchExport_{time_name}.csv"
+            response["Content-Disposition"] = f'attachment; filename="{filename}"'
+            writer = csv.writer(response)
+            for row in context["table"].as_values():
+                writer.writerow(row)
+        return response
+
     def get_queryset(self):
         queryset = User.objects.none()
         q = self.request.GET.get("q", "")
+        zip = self.request.GET.get("zip", "")
         if q:
             queryset = watson.filter(User, q)
+        if zip:
+            distance = self.request.GET.get("dist", "1")
+            addressess = isinradius(zip, distance)
+            user_pks = [
+                user.pk for address in addressess for user in address.user_set.all()
+            ]
+            if not queryset:
+                queryset = User.objects
+            queryset = queryset.filter(pk__in=user_pks)
         queryset = annotate_role_status(queryset)
         return queryset
 
     def get_table_kwargs(self):
         return {
             "chapter": True,
+            "extra_info": True,
             "natoff": self.request.user.is_national_officer(),
             "admin": self.request.user.is_superuser,
         }
@@ -405,7 +430,8 @@ class UserListView(LoginRequiredMixin, PagedFilteredTableView):
         natoff = False
         if self.request.user.is_national_officer():
             natoff = True
-        table = UserTable(data=self.object_list, natoff=natoff)
+        admin = self.request.user.is_superuser
+        table = UserTable(data=self.object_list, natoff=natoff, admin=admin)
         table.exclude = ("role", "role_end")
         RequestConfig(self.request, paginate={"per_page": 30}).configure(table)
         context["table"] = table
