@@ -218,6 +218,8 @@ def isinradius(zip, distance):
     """Takes a zip, and a distance in miles.
     Returns a list of zipcodes near the zip."""
     zips_in_radius = list()
+    if not distance:
+        distance = 1
     try:
         address = (
             Locality.objects.filter(postal_code=zip)
