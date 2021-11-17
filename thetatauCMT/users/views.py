@@ -240,6 +240,19 @@ class UserSearchView(
     table_class = UserTable
     template_name = "users/user_search.html"
 
+    def get(self, request, *args, **kwargs):
+        response = super().get(request, *args, **kwargs)
+        if request.GET.get("csv", "False").lower() == "download csv":
+            response = HttpResponse(content_type="text/csv")
+            context = self.get_context_data()
+            time_name = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename = f"ThetaTauSearchExport_{time_name}.csv"
+            response["Content-Disposition"] = f'attachment; filename="{filename}"'
+            writer = csv.writer(response)
+            for row in context["table"].as_values():
+                writer.writerow(row)
+        return response
+
     def get_queryset(self):
         queryset = User.objects.none()
         q = self.request.GET.get("q", "")
@@ -247,8 +260,7 @@ class UserSearchView(
         if q:
             queryset = watson.filter(User, q)
         if zip:
-            distance = self.request.GET.get("dist", "")
-            user_pks = []
+            distance = self.request.GET.get("dist", "1")
             addressess = isinradius(zip, distance)
             user_pks = [
                 user.pk for address in addressess for user in address.user_set.all()
@@ -262,6 +274,7 @@ class UserSearchView(
     def get_table_kwargs(self):
         return {
             "chapter": True,
+            "extra_info": True,
             "natoff": self.request.user.is_national_officer(),
             "admin": self.request.user.is_superuser,
         }

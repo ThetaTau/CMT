@@ -17,9 +17,10 @@
         <table class="table table-hover table-bordered table-striped"{% if table.attrs %} {{ table.attrs.as_html }}{% endif %}>
             {% block table.thead %}
             <thead>
+
                 <tr>
                     <th colspan="12">
-                        <form method="get" class="form-inline form-search pull-right">
+                      <form method="get" class="form-inline form-search pull-right">
                           <input name="q" value="{{ request.GET.q }}">
                           <input name="zip" value="{{ request.GET.zip }}" placeholder="zipcode" maxlength="5"
                                  size="6">
@@ -28,10 +29,13 @@
                           <button type="submit" class="btn btn-small btn-primary">
                             <i class="fas fa-search"></i> Search
                           </button>
-                        </form>
+                        {% csrf_token %}
+                        <input type='hidden'>
+                        <input type='submit' class="btn btn-primary" name="csv" value="Download CSV"
+                               style="float: right;">
+                      </form>
                     </th>
                 </tr>
-
               <tr>
                 {% for column in table.columns %}
                     {% if column.orderable %}
