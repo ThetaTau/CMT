@@ -491,7 +491,8 @@ class Chapter(models.Model):
         scribe = officers.filter(role="scribe").first()
         vice = officers.filter(role="vice regent").first()
         treasurer = officers.filter(role="treasurer").first()
-        return [regent, scribe, vice, treasurer]
+        cosec = officers.filter(role="corresponding secretary").first()
+        return [regent, scribe, vice, treasurer, cosec]
 
     def get_generic_chapter_emails(self):
         return [
@@ -502,6 +503,107 @@ class Chapter(models.Model):
             self.email_corresponding_secretary,
             self.email,
         ]
+
+    """
+    Testing for now
+    """
+    def get_about_expired_coucil(self):
+        """
+        Maybe a good idea would be to get all the emails here since I keep getting a weird format.
+        """
+        officers,previous_officers = self.get_current_officers_council(combine=False)
+        regent = officers.filter(role="regent")
+        scribe = officers.filter(role="scribe")
+        vice = officers.filter(role="vice regent")
+        treasurer = officers.filter(role="treasurer")
+        cosec = officers.filter(role="corresponding secretary")
+        futureRegent = ""
+        futureScribe = ""
+        futureVice = ""
+        futureTreasurer = ""
+        futureCosec = ""
+        
+
+        if regent:
+            futureRegent = regent.filter( #Now i can filter the role regent if I can filter the role ends in the next 14 days and check if empty
+                roles__end__gte=TODAY_END + timedelta(14),
+            )#two terms would be filter and exclued 
+            # if no future regent, check current regent if no regen
+            # else send to previous and other officers
+            #keep track of current and no future
+            #at the end give a list of what roles need a update "missing a officer next 14 days"
+            #figure out who to contact start current if not send to previous officers.
+        if scribe:
+            futureScribe = scribe.filter( 
+                roles__end__gte=TODAY_END + timedelta(14),
+            )
+        if vice:
+            futureVice = vice.filter(
+                roles__end__gte=TODAY_END + timedelta(14),
+            )
+        if treasurer:
+            futureTreasurer = treasurer.filter(
+                roles__end__gte=TODAY_END + timedelta(14),
+            )
+        if cosec:
+            futureCosec = cosec.filter(
+                roles__end__gte=TODAY_END + timedelta(14),
+            )
+                      
+        
+        # for people in regent:
+        #     print(f"Regent: {people}") #PYTHON WAY TO WRITE THIS
+        # if regent.count() > 1:
+        #     if not futureRegent:
+        #         print("Send Email to update")
+
+        # for people in vice:
+        #     print(f"vice: {people}")
+        # for people in scribe:
+        #     print(f"scribe: {people}")
+        # for people in treasurer:
+        #     print(f"treasurer: {people}")
+        # for people in cosec:
+        #     print(f"cosec: {people}")
+
+        eboard = self.members.filter(
+            roles__role__in=CHAPTER_OFFICER,
+            roles__start__lte=TODAY_END,
+            roles__end__gte=TODAY_END + timedelta(14),
+        )
+#end less than 14 day but
+#greater than 14 days ago
+#from this list are there other current officers
+#if so no email will be sent
+# is there a role where the end is greater that 14 days
+
+
+        # previous = False
+        # date = TODAY_END
+        # print(date)
+        # if eboard.count() < 2:
+        #     # If there are not enough previous officers
+        #     # get officers from last 8 months
+        #     previous_officers = self.members.filter(
+        #         roles__role__in=CHAPTER_OFFICER,
+        #         roles__end__gte=TODAY_END - timedelta(14),#
+        #     )
+        #     eboard = previous_officers | officers
+        #     previous = True
+        #     date = TODAY_END - timedelta(14)
+        #     #ADD A LOOP TO CHECK THROUGH ALL THE DAYS
+        # if date.today()  == TODAY_END - timedelta(14): #only would work if WORKS when 14 days out
+        #     print(date)
+        #     print(date.today)
+
+        # for eoffic in eboard:
+        #     print(f"Eboard {eoffic}")
+
+
+        return [futureRegent,futureVice,futureScribe,futureTreasurer,futureCosec]
+
+        #get the emails fo reach member in eboard
+
 
     def next_badge_number(self):
         # Jan 2019 highest badge number was Mu with 1754
