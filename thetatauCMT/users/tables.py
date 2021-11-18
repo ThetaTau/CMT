@@ -37,6 +37,11 @@ class UserTable(tables.Table):
             self.base_columns["name"] = tables.LinkColumn(
                 "admin:users_user_change", kwargs={"object_id": A("id")}
             )
+            extra_columns.extend(
+                [
+                    ("full_address", tables.Column(accessor="address")),
+                ]
+            )
         elif natoff:
             self.base_columns["name"] = tables.LinkColumn(
                 "users:info", kwargs={"user_id": A("user_id")}
@@ -64,4 +69,12 @@ class UserTable(tables.Table):
     def render_initiation(self, value):
         if value:
             value = value.date
+        return value
+
+    def render_address(self, value):
+        if value:
+            if hasattr(value, "locality"):
+                value = value.locality
+            else:
+                value = ""
         return value
