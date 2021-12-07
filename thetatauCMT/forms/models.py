@@ -961,6 +961,8 @@ class InitiationProcess(Process):
         badge_header = [
             "Chapter Name",
             "Chapter Address",
+            "Chapter Contact",
+            "Chapter Phone",
             "Chapter Description",
             "Roll Number",
             "Education Class of",
@@ -974,6 +976,8 @@ class InitiationProcess(Process):
             "Last Name",
             "Chapter Name",
             "Chapter Address",
+            "Chapter Contact",
+            "Chapter Phone",
             "Education Class of",
             "Initiation Date",
         ]
