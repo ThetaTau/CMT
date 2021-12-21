@@ -4,43 +4,33 @@
 <h1 class="null" style="margin: 0;padding: 0;display: block;font-family: Helvetica;font-size: 40px;font-style: normal;font-weight: bold;line-height: 125%;letter-spacing: -1px;text-align: left;color: #606060 !important;">CMT Officer Update</h1>
 Dear Theta Tau {{ chapter }} Officers,
 <br>
-This message is being sent to you because you are listed as a current officer for {{ chapter }} chapter of Theta Tau.<br>
-{% if previous_officers %}
-  <strong><b>Your chapter officer list is out of date, please update ASAP!</b></strong>
-  <br>
-{% endif %}
-If you are no longer an officer, please update the CMT and include all the new officers or update the old officer list here:
+You are getting this message because you are listed as an officer for your chapter.<br>
+The term of {{ update_officers }} is set to expire within the next fourteen days, and no future {{ update_officers }} has been set.
+<b>Please update the position of {{ update_officers }} on the CMT ASAP.</b>
+<br>
+If you are no longer an officer, any current officer can update the officer list here:
 <a href="{{ host }}{% url 'forms:officer' %}">cmt.thetatau.org{% url 'forms:officer' %}</a>
-{% if region_announcements %}
-  <h2 class="mc-toc-title" style="margin: 0;padding: 0;display: block;font-family: Helvetica;font-size: 26px;font-style: normal;font-weight: bold;line-height: 125%;letter-spacing: -.75px;text-align: left;color: #404040 !important;">Region Announcements:</h2>
-  {{ region_announcements }}
-{% endif %}
-<br>Otherwise if any of these are incorrect, the basic forms:
-<a href="{{ host }}{% url 'forms:officer' %}">officer election</a>,
-<a href="{{ host }}{% url 'forms:init_selection' %}">initiation,</a> and
+<br><br>
+<h2 class="mc-toc-title" style="margin: 0;padding: 0;display: block;font-family: Helvetica;font-size: 26px;font-style: normal;font-weight: bold;line-height: 125%;letter-spacing: -.75px;text-align: left;color: #404040 !important;">Current chapter members:</h2>
+<ul>
+  <li style="-ms-text-size-adjust: 100%;-webkit-text-size-adjust: 100%;">
+    Your chapter currently has {{ count_members }} <a href="{{ host }}{% url 'users:list' %}">members</a>
+  </li>
+  <li style="-ms-text-size-adjust: 100%;-webkit-text-size-adjust: 100%;">
+    Your chapter currently has {{ count_pledges }} <a href="{{ host }}{% url 'forms:init_selection' %}">pledges</a>
+  </li>
+</ul>
+If any of these are incorrect, the basic form:
 <a href="{{ host }}{% url 'forms:status_selection' %}">member status change</a>
                           reports are to be filled out and submitted.
-{% if tasks_upcoming %}
-<h2 class="mc-toc-title" style="margin: 0;padding: 0;display: block;font-family: Helvetica;font-size: 26px;font-style: normal;font-weight: bold;line-height: 125%;letter-spacing: -.75px;text-align: left;color: #404040 !important;">Upcoming Tasks:</h2>
-    <ul>
-    {% for task in tasks_upcoming %}
-      <li style="-ms-text-size-adjust: 100%;-webkit-text-size-adjust: 100%;">
-        <a href="{{ host }}{% url 'tasks:complete' task.pk %}" target="_blank" style="word-wrap: break-word;-ms-text-size-adjust: 100%;-webkit-text-size-adjust: 100%;color: #6DC6DD;font-weight: normal;text-decoration: underline;">
-          {{ task }}</a>
-      </li>
-    {% endfor %}
-    </ul>
-{% endif %}
-{% if tasks_overdue %}
-  <h2 class="null" style="margin: 0;padding: 0;display: block;font-family: Helvetica;font-size: 26px;font-style: normal;font-weight: bold;line-height: 125%;letter-spacing: -.75px;text-align: left;color: #404040 !important;">Past Overdue Tasks:</h2>
-  <ul>
-  {% for task in tasks_overdue %}
-    <li style="-ms-text-size-adjust: 100%;-webkit-text-size-adjust: 100%;">
-      <a href="{{ host }}{% url 'tasks:complete' task.pk %}" target="_blank" style="word-wrap: break-word;-ms-text-size-adjust: 100%;-webkit-text-size-adjust: 100%;color: #6DC6DD;font-weight: normal;text-decoration: underline;">
-        {{ task }}</a>
-    </li>
-  {% endfor %}
-  </ul>
-{% endif %}
+<br>
+<br>
+
+============================================================<br>
+** Facebook (https://www.facebook.com/thetatau/)<br>
+** Theta Tau (thetatau.org)<br>
+** Email (mailto:cmt@thetatau.org)<br>
+Copyright 2018 Theta Tau, All rights reserved.<br><br>
+
   {% include "herald/html/rm_contact.html" %}
 {% endblock content %}

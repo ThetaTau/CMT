@@ -149,7 +149,7 @@ class NewOfficers(EmailNotification):  # extend from EmailNotification for email
             ]
         ]
 
-#template from herald git 
+
 @registry.register_decorator()
 class OfficerUpdateRemider(EmailNotification):  # extend from EmailNotification for emails
     template_name = "update_reminder"  # name of template, without extension
@@ -158,12 +158,8 @@ class OfficerUpdateRemider(EmailNotification):  # extend from EmailNotification 
     """
     subject = "CMT Update"  # subject of email
 
-    def __init__(self, chapter):  # optionally customize the initialization
+    def __init__(self, chapter, emails, officersToUpdate):  # optionally customize the initialization
         self.context = {"user": chapter}  # set context for the template rendering
-        officer_list, previous = chapter.get_current_officers_council(False)
-        emails = set([officer.email for officer in officer_list]) | set(
-            chapter.get_generic_chapter_emails()
-        )
         emails = {email for email in emails if email}
         self.to_emails = emails
         self.cc = []
@@ -176,11 +172,15 @@ class OfficerUpdateRemider(EmailNotification):  # extend from EmailNotification 
             chapter_name = chapter.name
         self.subject = f"CMT Officer update {chapter_name}"
         self.context = {
-            "previous_officers": previous,
+            "email": emails,
             "chapter": chapter_name,
+            "update_officers": officersToUpdate,
+            "count_members": chapter.actives().count(),
+            "count_pledges": chapter.pledges().count(),
+            "host": settings.CURRENT_URL,
+
         }
-        
 
     @staticmethod
     def get_demo_args():  # define a static method to return list of args needed to initialize class for testing
-        return [Chapter.objects.order_by("?")[0]]
+        return [Chapter.objects.order_by("?")[0],'HLJ@gmail.com','Vice Regent']

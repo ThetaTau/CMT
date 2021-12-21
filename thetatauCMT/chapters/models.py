@@ -7,6 +7,7 @@ from enum import Enum
 from datetime import timedelta
 from django.contrib import messages
 from django.db import models
+from django.db.models.fields import EmailField
 from django.db.models.functions import Concat
 from django.core.validators import RegexValidator
 from django.db.utils import ProgrammingError
@@ -517,107 +518,126 @@ class Chapter(models.Model):
             self.email_treasurer,
             self.email_corresponding_secretary,
             self.email,
-        ]
+        ]   
 
-    """
-    Testing for now
-    """
-    def get_about_expired_coucil(self):
-        """
-        Maybe a good idea would be to get all the emails here since I keep getting a weird format.
-        """
-        officers,previous_officers = self.get_current_officers_council(combine=False)
-        regent = officers.filter(role="regent")
-        scribe = officers.filter(role="scribe")
-        vice = officers.filter(role="vice regent")
-        treasurer = officers.filter(role="treasurer")
-        cosec = officers.filter(role="corresponding secretary")
-        futureRegent = ""
-        futureScribe = ""
-        futureVice = ""
-        futureTreasurer = ""
-        futureCosec = ""
-        
-
-        if regent:
-            futureRegent = regent.filter( #Now i can filter the role regent if I can filter the role ends in the next 14 days and check if empty
-                roles__end__gte=TODAY_END + timedelta(14),
-            )#two terms would be filter and exclued 
-            # if no future regent, check current regent if no regen
-            # else send to previous and other officers
-            #keep track of current and no future
-            #at the end give a list of what roles need a update "missing a officer next 14 days"
-            #figure out who to contact start current if not send to previous officers.
-        if scribe:
-            futureScribe = scribe.filter( 
-                roles__end__gte=TODAY_END + timedelta(14),
-            )
-        if vice:
-            futureVice = vice.filter(
-                roles__end__gte=TODAY_END + timedelta(14),
-            )
-        if treasurer:
-            futureTreasurer = treasurer.filter(
-                roles__end__gte=TODAY_END + timedelta(14),
-            )
-        if cosec:
-            futureCosec = cosec.filter(
-                roles__end__gte=TODAY_END + timedelta(14),
-            )
-                      
-        
-        # for people in regent:
-        #     print(f"Regent: {people}") #PYTHON WAY TO WRITE THIS
-        # if regent.count() > 1:
-        #     if not futureRegent:
-        #         print("Send Email to update")
-
-        # for people in vice:
-        #     print(f"vice: {people}")
-        # for people in scribe:
-        #     print(f"scribe: {people}")
-        # for people in treasurer:
-        #     print(f"treasurer: {people}")
-        # for people in cosec:
-        #     print(f"cosec: {people}")
-
-        eboard = self.members.filter(
+    def get_current_and_future(self):
+        officers = self.members.filter(
             roles__role__in=CHAPTER_OFFICER,
-            roles__start__lte=TODAY_END,
-            roles__end__gte=TODAY_END + timedelta(14),
+            roles__end__gte=TODAY_END,
         )
-#end less than 14 day but
-#greater than 14 days ago
-#from this list are there other current officers
-#if so no email will be sent
-# is there a role where the end is greater that 14 days
+        CurrentAndFutureRegent = officers.filter(roles__role="regent")
+        CurrentAndFutureScribe = officers.filter(roles__role="scribe")
+        CurrentAndFutureVice = officers.filter(roles__role="vice regent")
+        CurrentAndFutureTreasurer = officers.filter(roles__role="treasurer")
+        CurrentAndFutureCosec = officers.filter(roles__role="corresponding secretary")
+        return CurrentAndFutureRegent,CurrentAndFutureScribe,CurrentAndFutureVice,CurrentAndFutureTreasurer,CurrentAndFutureCosec
+
+    def get_previous_officers(self):
+        previous_officers = self.members.filter(
+                roles__role__in=CHAPTER_OFFICER,
+                roles__end__gte=TODAY_END - timedelta(30 * 8),# they ended their role in the last 8 months
+            )
+        pastRegent = previous_officers.filter(roles__role="regent").order_by('roles__end').first()
+        pastScribe = previous_officers.filter(roles__role="scribe").order_by('roles__end').first()
+        pastVice = previous_officers.filter(roles__role="vice regent").order_by('roles__end').first()
+        pastTreasurer = previous_officers.filter(roles__role="treasurer").order_by('roles__end').first()
+        pastCosec = previous_officers.filter(roles__role="corresponding secretary").order_by('roles__end').first()
+        
+        return pastRegent,pastVice,pastScribe,pastTreasurer,pastCosec
 
 
-        # previous = False
-        # date = TODAY_END
-        # print(date)
-        # if eboard.count() < 2:
-        #     # If there are not enough previous officers
-        #     # get officers from last 8 months
-        #     previous_officers = self.members.filter(
-        #         roles__role__in=CHAPTER_OFFICER,
-        #         roles__end__gte=TODAY_END - timedelta(14),#
-        #     )
-        #     eboard = previous_officers | officers
-        #     previous = True
-        #     date = TODAY_END - timedelta(14)
-        #     #ADD A LOOP TO CHECK THROUGH ALL THE DAYS
-        # if date.today()  == TODAY_END - timedelta(14): #only would work if WORKS when 14 days out
-        #     print(date)
-        #     print(date.today)
+    def get_about_expired_coucil(self):
+        CurrentAndFutureRegent,CurrentAndFutureScribe,CurrentAndFutureVice,CurrentAndFutureTreasurer,CurrentAndFutureCosec = self.get_current_and_future()
+        pastRegent,pastVice,pastScribe,pastTreasurer,pastCosec = self.get_previous_officers() 
+        officersToUpdate,officersToNotify = [],[]
+        regentEmail,scribeEmail,viceEmail,tresEmail,cosecEmail,chapterEmail = self.get_generic_chapter_emails()
+        regent,vice,scribe,treasurer,cosec = 'regent','vice regent','scribe','treasurer','corresponding secretary'
+        officersEmail = [chapterEmail,regentEmail,scribeEmail]
+        emails = []
+        update = False
 
-        # for eoffic in eboard:
-        #     print(f"Eboard {eoffic}")
+        if CurrentAndFutureRegent:
+            futureRegent = CurrentAndFutureRegent.filter(roles__end__gte=TODAY_END + timedelta(14),)
+            
+            if not futureRegent:
+                currentRegent = CurrentAndFutureRegent.first()
+                officersToUpdate.append(regent)
+                officersToNotify.append(currentRegent)
+                update = True
+
+        else:
+            officersToUpdate.append(regent)
+            officersToNotify.append(pastRegent)
+            update = True
+
+        if CurrentAndFutureScribe:
+            futureScribe = CurrentAndFutureScribe.filter(
+                roles__end__gte=TODAY_END + timedelta(14),
+            )
+            if not futureScribe:
+                currentScribe = CurrentAndFutureScribe.first()
+                officersToUpdate.append(scribe)
+                officersToNotify.append(currentScribe)
+                update = True
+        else:
+            officersToUpdate.append(scribe)
+            officersToNotify.append(pastScribe)
+            update = True
 
 
-        return [futureRegent,futureVice,futureScribe,futureTreasurer,futureCosec]
+        if CurrentAndFutureVice:
+            futureVice = CurrentAndFutureVice.filter(
+                roles__end__gte=TODAY_END + timedelta(14),
+            )
+            if not futureVice:
+                currentVice = CurrentAndFutureVice.first()
+                officersToUpdate.append(vice)
+                officersToNotify.append(currentVice)
+                update = True
+        else:
+            officersToUpdate.append(vice)
+            officersToNotify.append(pastVice)
+            update = True
 
-        #get the emails fo reach member in eboard
+
+        if CurrentAndFutureTreasurer:
+            futureTreasurer = CurrentAndFutureTreasurer.filter(
+                roles__end__gte=TODAY_END + timedelta(14),
+            )
+            if not futureTreasurer:
+                currentTreasurer = CurrentAndFutureTreasurer.first()
+                officersToUpdate.append(treasurer)
+                officersToNotify.append(currentTreasurer)
+                update = True
+        else:
+            officersToUpdate.append(treasurer)
+            officersToNotify.append(pastTreasurer)
+            update = True
+
+        if CurrentAndFutureCosec:
+            futureCosec = CurrentAndFutureCosec.filter(
+                roles__end__gte=TODAY_END + timedelta(14),
+            )
+            if not futureCosec:
+                currentCosec = CurrentAndFutureCosec.first()
+                officersToUpdate.append(cosec)
+                officersToNotify.append(currentCosec)
+                update = True
+        else:
+            officersToUpdate.append(cosec)
+            officersToNotify.append(pastCosec)
+            update = True
+
+        emails = [user.email for user in officersToNotify]
+        if update:
+            emails.extend([chapterEmail,regentEmail,scribeEmail])
+         
+
+        #Officers to notify with
+        print("Officer to notify list", officersToNotify)
+        print("Emails: ",emails) 
+        print("Officers that will need to be updated",officersToUpdate)
+        return emails,officersToUpdate
 
 
     def next_badge_number(self):

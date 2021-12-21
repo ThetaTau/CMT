@@ -1,0 +1,24 @@
+** Update CMT Email
+------------------------------------------------------------
+Dear Theta Tau {{ chapter }} Officers,
+You are getting this message because you are listed as an officer for your chapter.<br>
+The term of {{ update_officers }} is set to expire within the next fourteen days, and no future {{ update_officers }} has been set.
+Please update the position of {{ update_officers }} on the CMT ASAP.
+* A current list of members is here: cmt.thetatau.org{% url 'users:list' %}
+
+------------------------------------------------------------
+* Your chapter currently has {{ count_members }} members cmt.thetatau.org{% url 'users:list' %}
+* Your chapter currently has {{ count_pledges }} pledges cmt.thetatau.org{% url 'forms:init_selection' %}
+
+If any of these are incorrect, the basic form reports are to be filled out and submitted.
+* Member Status Change Report: cmt.thetatau.org{% url 'forms:status_selection' %}
+
+{% include "herald/text/rm_contact.txt" %}
+============================================================
+** Facebook (https://www.facebook.com/thetatau/)
+** Theta Tau (thetatau.org)
+** Email (mailto:cmt@thetatau.org)
+Copyright 2018 Theta Tau, All rights reserved.
+
+The purpose of Theta Tau is to develop and maintain a high standard of professional interest among its members,
+and to unite them in a strong bond of fraternal fellowship.

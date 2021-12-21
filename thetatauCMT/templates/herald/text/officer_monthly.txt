@@ -1,7 +1,7 @@
 ** CMT Monthly Email
 ------------------------------------------------------------
 Dear Theta Tau {{ chapter }} Officers,
-Your are getting this message because you are listed as an officer for your chapter.
+You are getting this message because you are listed as an officer for your chapter.
 If you are no longer an officer, you or any officer can update the officer list here: http://cmt.thetatau.org/officer
 
 {% if region_announcements %}
