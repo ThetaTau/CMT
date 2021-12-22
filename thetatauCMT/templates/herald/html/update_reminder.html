@@ -1,28 +1,12 @@
-{% extends "herald/html/base_email.html" %}
-{% block title %}CMT Officer update email{% endblock %}
+{{% extends "herald/html/base_email.html" %}
+{% block title %}Update CMT Email{% endblock %}
 {% block content %}
-<h1 class="null" style="margin: 0;padding: 0;display: block;font-family: Helvetica;font-size: 40px;font-style: normal;font-weight: bold;line-height: 125%;letter-spacing: -1px;text-align: left;color: #606060 !important;">CMT Officer Update</h1>
+<h1 class="null" style="margin: 0;padding: 0;display: block;font-family: Helvetica;font-size: 40px;font-style: normal;font-weight: bold;line-height: 125%;letter-spacing: -1px;text-align: left;color: #606060 !important;">Update CMT Email</h1>
 Dear Theta Tau {{ chapter }} Officers,
 <br>
 You are getting this message because you are listed as an officer for your chapter.<br>
-The term of {{ update_officers }} is set to expire within the next fourteen days, and no future {{ update_officers }} has been set.
-<b>Please update the position of {{ update_officers }} on the CMT ASAP.</b>
-<br>
-If you are no longer an officer, any current officer can update the officer list here:
-<a href="{{ host }}{% url 'forms:officer' %}">cmt.thetatau.org{% url 'forms:officer' %}</a>
-<br><br>
-<h2 class="mc-toc-title" style="margin: 0;padding: 0;display: block;font-family: Helvetica;font-size: 26px;font-style: normal;font-weight: bold;line-height: 125%;letter-spacing: -.75px;text-align: left;color: #404040 !important;">Current chapter members:</h2>
-<ul>
-  <li style="-ms-text-size-adjust: 100%;-webkit-text-size-adjust: 100%;">
-    Your chapter currently has {{ count_members }} <a href="{{ host }}{% url 'users:list' %}">members</a>
-  </li>
-  <li style="-ms-text-size-adjust: 100%;-webkit-text-size-adjust: 100%;">
-    Your chapter currently has {{ count_pledges }} <a href="{{ host }}{% url 'forms:init_selection' %}">pledges</a>
-  </li>
-</ul>
-If any of these are incorrect, the basic form:
-<a href="{{ host }}{% url 'forms:status_selection' %}">member status change</a>
-                          reports are to be filled out and submitted.
+The term(s) of {{ officers }} is set to expire within the next fourteen days, and no future {{ list }} has been set.
+<b>Please update the position of {{ list }} on the CMT ASAP.</b>
 <br>
 <br>
 

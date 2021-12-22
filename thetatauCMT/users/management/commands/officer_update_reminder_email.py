@@ -30,32 +30,33 @@ class Command(BaseCommand):
 
     # A command must define handle()
     def handle(self, *args, **options):
-        override = options.get("override", False)
-        chapters_only = options.get("chapter", ['Test Chapter'])
+        today = datetime.date.today().strftime("%d")
+        chapters_only = options.get("chapter", None)
         change_messages = []
-        # if chapters_only is not None:
-        chapters = Chapter.objects.filter(name__in=['Test Chapter'])
-        # else:
-        #     chapters = Chapter.objects.all()
+        if chapters_only is not None:
+            chapters = Chapter.objects.filter(slug__in=chapters_only)
+        else:
+             chapters = Chapter.objects.all()
         for chapter in chapters:
             if not chapter.active:
                 continue
-            print(chapter)
-            emails, OfficerstoUpdate = chapter.get_about_expired_coucil()
-            #officers = chapter.get_current_officers_council(combine=False)[0]
+            emails, officers_to_update, html_officers = chapter.get_about_expired_coucil()
             if not chapter.active:
                 continue
             print(f"Sending message to: {chapter}\n")
-            result = OfficerUpdateRemider(chapter,emails,OfficerstoUpdate).send()
-            # change_messages.append(f"{result}: {chapter}")
-            # change_message = "<br>".join(change_messages)
-            # send_mail(
-            #     "CMT Officers need to be Updated",
-            #     f"Email sent to chapters:<br>{change_message}",
-            #     "cmt@thetatau.org",
-            #     ["cmt@thetatau.org"],
-            #     fail_silently=True,
-            # )
+            result = OfficerUpdateRemider(chapter,emails,officers_to_update,html_officers).send()
+            change_messages.append(f"{result}: {chapter}")
+        change_message = "<br>".join(change_messages)
+        if int(today) == 22:
+            send_mail(
+                "UPDATE CMT Task",
+                f"Email sent to chapters:<br>{change_message}",
+                "cmt@thetatau.org",
+                ["cmt@thetatau.org"],
+                fail_silently=True,
+            )
+
+
             
 
             

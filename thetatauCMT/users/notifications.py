@@ -158,9 +158,10 @@ class OfficerUpdateRemider(EmailNotification):  # extend from EmailNotification 
     """
     subject = "CMT Update"  # subject of email
 
-    def __init__(self, chapter, emails, officersToUpdate):  # optionally customize the initialization
+    def __init__(self, chapter, emails, officers_to_update,html_officers):  # optionally customize the initialization
         self.context = {"user": chapter}  # set context for the template rendering
         emails = {email for email in emails if email}
+        print(f"emails in notifications{emails}")
         self.to_emails = emails
         self.cc = []
         self.reply_to = [
@@ -172,15 +173,12 @@ class OfficerUpdateRemider(EmailNotification):  # extend from EmailNotification 
             chapter_name = chapter.name
         self.subject = f"CMT Officer update {chapter_name}"
         self.context = {
-            "email": emails,
             "chapter": chapter_name,
-            "update_officers": officersToUpdate,
-            "count_members": chapter.actives().count(),
-            "count_pledges": chapter.pledges().count(),
-            "host": settings.CURRENT_URL,
+            "list": html_officers,
+            "officers": officers_to_update
 
         }
 
     @staticmethod
     def get_demo_args():  # define a static method to return list of args needed to initialize class for testing
-        return [Chapter.objects.order_by("?")[0],'HLJ@gmail.com','Vice Regent']
+        return [Chapter.objects.order_by("?")[0],'HLJ@gmail.com','Vice Regent',['vice','scribe']]
