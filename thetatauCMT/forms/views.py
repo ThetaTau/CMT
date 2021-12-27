@@ -970,6 +970,16 @@ class RiskManagementDetailView(
         return context
 
 
+class BillOfRightsDetailView(LoginRequiredMixin, PDFTemplateResponseMixin, DetailView):
+    model = Region
+    template_name = "forms/billofrights_pdf.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["regionaldirectors"] = self.object.directors.all()
+        return context
+
+
 class RiskManagementListView(
     LoginRequiredMixin, NatOfficerRequiredMixin, PagedFilteredTableView
 ):
