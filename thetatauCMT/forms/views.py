@@ -970,14 +970,20 @@ class RiskManagementDetailView(
         return context
 
 
-class BillOfRightsDetailView(LoginRequiredMixin, PDFTemplateResponseMixin, DetailView):
-    model = Region
-    template_name = "forms/billofrights_pdf.html"
+class BillOfRightsDetailView(LoginRequiredMixin, DetailView):
+    model = Chapter
+    template_name = "forms/billofrights.html"
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        self.object = self.object.region
+        context["object"] = self.object
         context["regionaldirectors"] = self.object.directors.all()
         return context
+
+
+class BillOfRightsPDFView(PDFTemplateResponseMixin, BillOfRightsDetailView):
+    template_name = "forms/billofrights_pdf.html"
 
 
 class RiskManagementListView(

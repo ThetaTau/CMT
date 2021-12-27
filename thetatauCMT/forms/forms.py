@@ -856,6 +856,11 @@ class PledgeForm(forms.ModelForm):
         choices=[("", ""), (True, "Yes"), (False, "No")],
         initial="",
     )
+    bill = forms.ChoiceField(
+        label=Pledge.verbose_bill,
+        choices=[("", ""), (True, "Yes"), (False, "No")],
+        initial="",
+    )
 
     class Meta:
         model = Pledge
@@ -1109,6 +1114,13 @@ class PledgeFormFull(CrispyCompatableMultiModelForm):
                     "demographics-ability_write",
                     "demographics-first_gen",
                     "demographics-english",
+                ),
+                AccordionGroup(
+                    "BILL OF RIGHTS",
+                    HTML(
+                        "<div id='bill'>Select your 'School Name' under 'College & Degree Information'</div>"
+                    ),
+                    "pledge-bill",
                 ),
                 AccordionGroup(
                     "Pause and Deliberate",
