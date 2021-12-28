@@ -27,6 +27,7 @@ from allauth.account.models import EmailAddress
 from crispy_forms.layout import Submit
 from extra_views import FormSetView, ModelFormSetView
 from easy_pdf.views import PDFTemplateResponseMixin
+from django_weasyprint import WeasyTemplateResponseMixin
 from viewflow.compat import _
 from viewflow.flow.views import CreateProcessView, UpdateProcessView
 from viewflow.frontend.viewset import FlowViewSet
@@ -984,6 +985,13 @@ class BillOfRightsDetailView(DetailView):
 
 class BillOfRightsPDFView(PDFTemplateResponseMixin, BillOfRightsDetailView):
     template_name = "forms/billofrights_pdf.html"
+
+
+class RollBookPDFView(
+    LoginRequiredMixin, OfficerRequiredMixin, WeasyTemplateResponseMixin, DetailView
+):
+    model = User
+    template_name = "forms/rollbook_pdf.html"
 
 
 class RiskManagementListView(

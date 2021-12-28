@@ -1,0 +1,33 @@
+{% extends "easy_pdf/base.html" %}
+{% load static i18n %}
+{% block style_base %}
+  <style type="text/css">
+    @page {
+      size: {{ pagesize|default:"A4" }};
+      margin-left: 1.38in;
+      margin-right: 1.38in;
+      margin-top: 0.5in;
+      margin-bottom: 0.5in;
+    }
+  </style>
+{% endblock %}
+{% block content %}
+  <span style="position: absolute;top: 0.5in;left: 0.5in;">**chapter name**</span>
+  <span style="position: absolute;top: 0.5in;left: 4.75in;">**init_type**</span>
+  <span style="position: absolute;top: 1.0in;left: 0.5in;">**page**</span>
+  <span style="position: absolute;top: 1.0in;left: 5.25in;">**roll#**</span>
+  <span style="position: absolute;top: 2.5in;left: 0.0in;">**Init Day**</span>
+  <span style="position: absolute;top: 2.5in;left: 2.75in;">**Init Month**</span>
+  <span style="position: absolute;top: 2.5in;left: 4.75in;">**Init Year**</span>
+  <span style="position: absolute;top: 3.5in;left: 0.75in;">**First Middle Last Full Name**</span>
+  <span style="position: absolute;top: 4.0in;left: 0.5in;">**Grad Year**</span>
+  <span style="position: absolute;top: 4.0in;left: 2.5in;">**Degree Major**</span>
+  <span style="position: absolute;top: 4.5in;left: 0.25in;">**School**</span>
+  <span style="position: absolute;top: 5.0in;left: 1.0in;">**Birthdate**</span>
+  <span style="position: absolute;top: 5.0in;left: 4.0in;">**Hometown**</span>
+  <span style="position: absolute;top: 5.5in;left: 2.0in;">**Mailing Street**</span>
+  <span style="position: absolute;top: 6.0in;left: 0.5in;">**City, State Zipcode, Country**</span>
+  <span style="position: absolute;top: 6.5in;left: 0.75in;">**Phone**</span>
+  <span style="position: absolute;top: 6.5in;left: 3.5in;">**Email**</span>
+{% endblock %}
+

@@ -96,6 +96,11 @@ urlpatterns = [
         view=views.BillOfRightsDetailView.as_view(),
         name="bill_of_rights",
     ),
+    path(
+        "rool-book-page/<int:pk>/",
+        view=views.RollBookPDFView.as_view(),
+        name="roll_book_page",
+    ),
     url(regex=r"^rmp/$", view=views.RiskManagementFormView.as_view(), name="rmp"),
     url(
         regex=r"^rmp-complete/(?P<pk>\d+)/$",
