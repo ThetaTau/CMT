@@ -158,10 +158,15 @@ class OfficerUpdateRemider(EmailNotification):  # extend from EmailNotification 
     """
     subject = "CMT Update"  # subject of email
 
-    def __init__(self, chapter, emails, officers_to_update,html_officers):  # optionally customize the initialization
+    def __init__(self, chapter, emails, officers_to_update):  # optionally customize the initialization
         self.context = {"user": chapter}  # set context for the template rendering
+        format_officers = "" #used to add all positions in a type string to use in the html
         emails = {email for email in emails if email}
-        print(f"emails in notifications{emails}")
+        for positions in officers_to_update:
+            if positions == officers_to_update[-1]:
+                format_officers = format_officers + positions
+            else:
+                format_officers = format_officers + positions + ", "
         self.to_emails = emails
         self.cc = []
         self.reply_to = [
@@ -174,11 +179,9 @@ class OfficerUpdateRemider(EmailNotification):  # extend from EmailNotification 
         self.subject = f"CMT Officer update {chapter_name}"
         self.context = {
             "chapter": chapter_name,
-            "list": html_officers,
-            "officers": officers_to_update
-
+            "officers": format_officers
         }
 
     @staticmethod
     def get_demo_args():  # define a static method to return list of args needed to initialize class for testing
-        return [Chapter.objects.order_by("?")[0],'HLJ@gmail.com','Vice Regent',['vice','scribe']]
+        return [Chapter.objects.order_by("?")[0],'HLJ@gmail.com',["Vice Regent","Regent","Scribe"]]

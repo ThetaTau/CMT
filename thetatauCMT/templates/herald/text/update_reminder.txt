@@ -2,8 +2,8 @@
 ------------------------------------------------------------
 Dear Theta Tau {{ chapter }} Officers,
 You are getting this message because you are listed as an officer for your chapter.<br>
-The term of {{ officers }}   is set to expire within the next fourteen days, and no future {{list}}  has been set.
-Please update the position of  {{list}}   on the CMT ASAP.
+The term of {{ officers }}   is set to expire within the next fourteen days, and no future {{officers}}  has been set.
+Please update the position(s) on the CMT as soon as possible.
 * A current list of members is here: cmt.thetatau.org{% url 'users:list' %}
 
 ------------------------------------------------------------

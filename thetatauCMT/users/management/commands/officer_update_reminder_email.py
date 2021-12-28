@@ -40,11 +40,11 @@ class Command(BaseCommand):
         for chapter in chapters:
             if not chapter.active:
                 continue
-            emails, officers_to_update, html_officers = chapter.get_about_expired_coucil()
+            emails, officers_to_update = chapter.get_about_expired_coucil()
             if not chapter.active:
                 continue
             print(f"Sending message to: {chapter}\n")
-            result = OfficerUpdateRemider(chapter,emails,officers_to_update,html_officers).send()
+            result = OfficerUpdateRemider(chapter,emails,officers_to_update).send()
             change_messages.append(f"{result}: {chapter}")
         change_message = "<br>".join(change_messages)
         if int(today) == 22:

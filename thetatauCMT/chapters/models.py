@@ -559,8 +559,6 @@ class Chapter(models.Model):
         #gathers past officers by postion
         current_and_future_regent,current_and_future_cosec,current_and_future_scribe,current_and_future_treasurer,current_and_future_vice = self.get_current_and_future()
         #gathers current and future officers by postion
-
-        html_officers = "" 
         
         #dictionary that contains all the chapter officer positions as a key with values of type tuple
         current_past = {
@@ -598,7 +596,7 @@ class Chapter(models.Model):
         print(f"Officers that will need to be updated: {officers_to_update}")
         print(f"Brothers that need to be notified list: {members_to_notify}")
 
-        return emails,officers_to_update,html_officers
+        return emails,officers_to_update
 
 
     def next_badge_number(self):
