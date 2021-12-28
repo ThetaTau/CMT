@@ -970,7 +970,7 @@ class RiskManagementDetailView(
         return context
 
 
-class BillOfRightsDetailView(LoginRequiredMixin, DetailView):
+class BillOfRightsDetailView(DetailView):
     model = Chapter
     template_name = "forms/billofrights.html"
 
