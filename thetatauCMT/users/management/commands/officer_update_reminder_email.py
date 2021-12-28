@@ -41,20 +41,26 @@ class Command(BaseCommand):
             if not chapter.active:
                 continue
             emails, officers_to_update = chapter.get_about_expired_coucil()
-            if not chapter.active:
-                continue
-            print(f"Sending message to: {chapter}\n")
-            result = OfficerUpdateRemider(chapter,emails,officers_to_update).send()
-            change_messages.append(f"{result}: {chapter}")
-        change_message = "<br>".join(change_messages)
-        if int(today) == 22:
-            send_mail(
-                "UPDATE CMT Task",
-                f"Email sent to chapters:<br>{change_message}",
-                "cmt@thetatau.org",
-                ["cmt@thetatau.org"],
-                fail_silently=True,
-            )
+            if officers_to_update:
+                if not chapter.active:
+                    continue
+                print(f"Sending message to: {chapter}\n")
+                result = OfficerUpdateRemider(chapter,emails,officers_to_update).send()
+                change_messages.append(f"{result}: {chapter}")
+            else:
+                if not chapter.active:
+                    continue
+                print(f"{chapter} does not need to update CMT\n")
+            change_message = "<br>".join(change_messages)
+            if int(today) == 22:
+                send_mail(
+                    "UPDATE CMT Task",
+                    f"Email sent to chapters:<br>{change_message}",
+                    "cmt@thetatau.org",
+                    ["cmt@thetatau.org"],
+                    fail_silently=True,
+                )
+            
 
 
             

@@ -592,10 +592,11 @@ class Chapter(models.Model):
         emails = [return_value for return_value in self.get_generic_chapter_emails() if return_value] 
         emails.extend([user.email for user in members_to_notify if user])
         
-        print("Emails: ",emails)
-        print(f"Officers that will need to be updated: {officers_to_update}")
-        print(f"Brothers that need to be notified list: {members_to_notify}")
-
+        if officers_to_update:
+            print("Emails: ",emails)
+            print(f"Officers that will need to be updated: {officers_to_update}")
+            print(f"Brothers that need to be notified list: {members_to_notify}")
+            
         return emails,officers_to_update
 
 
