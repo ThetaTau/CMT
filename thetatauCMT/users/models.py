@@ -552,6 +552,9 @@ class UserStatusChange(StartEndModel, TimeStampedModel):
         ("resigned", "resigned"),
         ("expelled", "expelled"),
         ("friend", "friend"),
+        ("deceased", "deceased"),
+        ("suspended", "suspended"),
+        ("probation", "probation"),
     ]
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="status"
