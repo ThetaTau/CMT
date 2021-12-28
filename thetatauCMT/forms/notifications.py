@@ -193,6 +193,8 @@ class EmailPledgeConfirmation(
             "user_permissions",
             "no_contact",
             "deceased",
+            "deceased_changed",
+            "deceased_date",
             "address_changed",
             "employer_changed",
             "employer_address",
