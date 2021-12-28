@@ -911,17 +911,6 @@ class InitiationProcess(Process):
                 late_fee_count, linenumber_count, name="I1B", client=client
             )
             invoice.Line.append(line)
-        badge_guard_count = Counter(
-            self.initiations.values_list("guard__code", flat=True)
-        ) + Counter(self.initiations.values_list("badge__code", flat=True))
-        for badge_guard_code, count in badge_guard_count.items():
-            if badge_guard_code == "None":
-                continue
-            line = create_line(
-                count, linenumber_count, name=badge_guard_code, client=client
-            )
-            invoice.Line.append(line)
-            linenumber_count += 1
         memo = "Initiated: " + ", ".join(
             self.initiations.values_list("user__name", flat=True)
         )
