@@ -426,11 +426,12 @@ class EmailProcessUpdate(EmailNotification):
             "state": state,
         }
         # https://github.com/worthwhile/django-herald#email-attachments
+        self.attachments = []
         for file in files:
             file.seek(0)
-            self.attachments = [
+            self.attachments.append(
                 (file.name, file.read(), None),
-            ]
+            )
 
     @staticmethod
     def get_demo_args():  # define a static method to return list of args needed to initialize class for testing
@@ -556,18 +557,88 @@ class CentralOfficeGenericEmail(EmailNotification):
         self.subject = "[CMT] Record Message"
         file_names = []
         if attachments:
-            file_names = [file.name for file in attachments]
+            for file in attachments:
+                if hasattr(file, "name"):
+                    file_names.append(file.name)
+                elif hasattr(file, "get_filename"):
+                    file_names.append(file.get_filename())
         self.context = {
             "file_names": file_names,
             "host": settings.CURRENT_URL,
             "message": message,
         }
         # https://github.com/worthwhile/django-herald#email-attachments
+        self.attachments = []
         for file in attachments:
-            file.seek(0)
-            self.attachments = [
-                (file.name, file.read(), None),
-            ]
+            if hasattr(file, "seek"):
+                file.seek(0)
+                self.attachments.append(
+                    (file.name, file.read(), None),
+                )
+            elif hasattr(file, "get_content_type"):
+                self.attachments.append(file)
+
+    @staticmethod
+    def get_demo_args():
+        from forms.flows import render_to_pdf
+
+        info = {"Test": "This is a test"}
+        forms = render_to_pdf(
+            "forms/disciplinary_form_pdf.html",
+            context={"info": info},
+        )
+
+        return ["This is a test message", [ContentFile(forms, name="Testfile.pdf")]]
+
+
+@registry.register_decorator()
+class GenericEmail(EmailNotification):
+    render_types = ["html"]
+    template_name = "generic"
+
+    def __init__(
+        self,
+        emails,
+        subject,
+        message,
+        cc=None,
+        reply=None,
+        attachments=None,
+    ):
+        self.to_emails = {email for email in emails if email}
+        if cc is None:
+            cc = {"central.office@thetatau.org"}
+        elif isinstance(cc, str):
+            cc = {cc}
+        if reply is None:
+            reply = {"central.office@thetatau.org"}
+        elif isinstance(reply, str):
+            reply = {reply}
+        self.cc = list({email for email in cc})
+        self.reply_to = list({email for email in reply})
+        self.subject = subject
+        file_names = []
+        if attachments:
+            for file in attachments:
+                if hasattr(file, "name"):
+                    file_names.append(file.name)
+                elif hasattr(file, "get_filename"):
+                    file_names.append(file.get_filename())
+        self.context = {
+            "file_names": file_names,
+            "host": settings.CURRENT_URL,
+            "message": message,
+        }
+        # https://github.com/worthwhile/django-herald#email-attachments
+        self.attachments = []
+        for file in attachments:
+            if hasattr(file, "seek"):
+                file.seek(0)
+                self.attachments.append(
+                    (file.name, file.read(), None),
+                )
+            elif hasattr(file, "get_content_type"):
+                self.attachments.append(file)
 
     @staticmethod
     def get_demo_args():

@@ -41,6 +41,7 @@ from .notifications import (
     EmailConventionUpdate,
     EmailOSMUpdate,
     CentralOfficeGenericEmail,
+    GenericEmail,
 )
 from users.models import User
 
@@ -207,14 +208,13 @@ class InitiationProcessFlow(Flow):
     Chapter submits initiation report
     CO receives a weekly batch of initiation reports (pref on Wednesday)
         that include individual csv files for each chapter with all of the info.
-            These will be used for invoicing and eventual upload into Blackbaud
     CO invoices chapters based on those csv forms.
     CO goes into CMT and indicates which chapters have been invoiced.
     Invoice is paid by chapter.
     CO goes into CMT and indicates invoice paid.
-    CMT provides (via email or download, whatever) csv files for jeweler and shingle company
-    CO updates blackbaud using the CSV you previously sent and sends orders to badge/shingle company.
-    CO goes into CMT to indicate that badge/shingle order has been placed
+        - shingle csv to be emailed to goosecreekpublishing@yahoo.com
+        - invoice CSV (which would still include the badge and guard info) to be sent to central.office@thetatau.org.
+        - email sent to the chapter officers with instructions on how to order their badges directly from Herff.
     """
 
     process_class = InitiationProcess
@@ -259,7 +259,7 @@ class InitiationProcessFlow(Flow):
         NoAssignView(
             AutoAssignUpdateProcessView,
             task_title=_("Invoice Payment"),
-            task_description=_("Invoice payment by chapter"),
+            task_description=_("The chapter has paid initiation invoice."),
             task_result_summary=_("Invoice paid by chapter"),
         )
         .Permission("auth.central_office")
@@ -268,43 +268,7 @@ class InitiationProcessFlow(Flow):
 
     invoice_payment_email = flow.Handler(
         this.send_invoice_payment_email,
-        task_title=_("Send Invoice Payment Email"),
-    ).Next(this.order_complete)
-
-    order_complete = (
-        NoAssignView(
-            AutoAssignUpdateProcessView,
-            task_title=_("Order Complete"),
-            task_description=_("Badge/shingle placing order"),
-            task_result_summary=_("Badge/shingle order has been placed"),
-        )
-        .Permission("auth.central_office")
-        .Next(this.send_order)
-    )
-
-    send_order = flow.Handler(
-        this.send_order_func,
-        task_title=_("Send Order"),
-    ).Next(this.order_received)
-
-    order_received = (
-        NoAssignView(
-            AutoAssignUpdateProcessView,
-            fields=[
-                "scheduled_date",
-                "badge_order",
-            ],
-            task_title=_("Shipping received"),
-            task_description=_("Shipping notification received"),
-            task_result_summary=_("Shipping notification received"),
-        )
-        .Permission("auth.central_office")
-        .Next(this.send_received)
-    )
-
-    send_received = flow.Handler(
-        this.send_received_func,
-        task_title=_("Send Received"),
+        task_title=_("Send Initiation Process Complete Emails"),
     ).Next(this.complete)
 
     complete = flow.End(
@@ -378,44 +342,13 @@ class InitiationProcessFlow(Flow):
                     start=initiation.date,
                 )
         member_list = ", ".join(member_list)
-        host = settings.CURRENT_URL
-        link = reverse(
-            "chapters:detail",
-            kwargs={"slug": activation.process.chapter.slug},
-        )
-        link = host + link
         EmailProcessUpdate(
             activation,
             "Initiation Invoice Paid",
-            "Central Office Badge/Shingle Order",
+            "Badge/Shingle Order by CHAPTER",
             "Payment Received",
             "Your chapter has paid an initiation invoice."
-            + " Once the Central Office processes the payment, an order will be sent"
-            + " to the jeweler/shingler. <b>Please verify the address for the chapter below is correct.</b> "
-            f"<a href='{link}'>Update chapter address here.</a>",
-            [
-                {
-                    "members": member_list,
-                    "Chapter Mailing Address": activation.process.chapter.address,
-                    "Chapter Mailing Contact": activation.process.chapter.address_contact,
-                    "Chapter Mailing Phone": activation.process.chapter.address_phone_number,
-                },
-                "invoice",
-            ],
-        ).send()
-
-    def send_order_func(self, activation):
-        member_list = activation.process.initiations.values_list(
-            "user__name", flat=True
-        )
-        member_list = ", ".join(member_list)
-        EmailProcessUpdate(
-            activation,
-            "Badge/Shingles Order Submitted",
-            "Badge/Shingles Order Received",
-            "Badges/Shingles Ordered",
-            "A badges and shingles order has been sent to the vendor. "
-            "You will be notified next when the order is scheduled to ship.",
+            + " The chapter should now follow instructions below for ordering badges and guards.",
             [
                 {
                     "members": member_list,
@@ -423,22 +356,19 @@ class InitiationProcessFlow(Flow):
                 "invoice",
             ],
         ).send()
-
-    def send_received_func(self, activation):
-        member_list = activation.process.initiations.values_list(
-            "user__name", flat=True
-        )
-        member_list = ", ".join(member_list)
-        EmailProcessUpdate(
-            activation,
-            "Badge/Shingles Order Received",
-            "Initiation Process Complete",
-            "Badges/Shingles Order Received",
-            "Herff Jones reports that your order will be shipped on "
-            f"{activation.process.scheduled_date}. "
-            "<b>If you have not received your badges within two weeks of this date, "
-            "please call the central office.</b>",
-            [{"members": member_list}, "invoice", "scheduled_date"],
+        badge_mail, shingle_mail = activation.process.generate_badge_shingle_order()
+        CentralOfficeGenericEmail(
+            message=f"Initiation Invoice {activation.process.chapter}, "
+            f" Invoice # {activation.process.invoice}"
+            f"See attached documents to file.",
+            attachments=[badge_mail],
+        ).send()
+        GenericEmail(
+            emails=["goosecreekpublishing@yahoo.com"],
+            subject=f"Theta Tau Shingle Order {activation.process.invoice}",
+            message=f"Shingle order for {activation.process.chapter},"
+            f" Invoice # {activation.process.invoice} See attached documents.",
+            attachments=[shingle_mail],
         ).send()
 
 
