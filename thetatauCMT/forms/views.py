@@ -9,7 +9,7 @@ from pathlib import Path
 from django.db import IntegrityError, transaction
 from django.db.models import Q
 from django.forms import models as model_forms
-from django.forms.models import modelformset_factory
+from django.http import HttpRequest
 from django.utils.safestring import mark_safe
 from django.http.request import QueryDict
 from django.core.files.base import ContentFile
@@ -1468,7 +1468,12 @@ class PledgeFormView(CreateView):
         pledge.instance.user = user
         self.object = pledge.save()
         user.set_current_status(status="pnm")
-        EmailPledgeConfirmation(self.object).send()
+        view = BillOfRightsPDFView.as_view()
+        new_request = HttpRequest()
+        new_request.method = "GET"
+        bill_view = view(new_request, pk=self.object.user.chapter.id)
+        bill_file = bill_view.content
+        EmailPledgeConfirmation(self.object, bill_file).send()
         EmailPledgeWelcome(self.object).send()
         EmailPledgeOfficer(self.object).send()
         try:

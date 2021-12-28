@@ -169,7 +169,7 @@ class EmailPledgeConfirmation(
     template_name = "pledge"  # name of template, without extension
     subject = "Theta Tau Prospective New Member Confirmation"  # subject of email
 
-    def __init__(self, pledge_form):
+    def __init__(self, pledge_form, bill_file):
         self.to_emails = {pledge_form.user.email_school, pledge_form.user.email}
         self.reply_to = [
             "cmt@thetatau.org",
@@ -231,13 +231,24 @@ class EmailPledgeConfirmation(
             "form": form_dict,
             "host": settings.CURRENT_URL,
         }
+        file_name = "Potential New Member Bill of Rights.pdf"
+        self.attachments = [
+            (file_name, bill_file, "application/pdf"),
+        ]
 
     @staticmethod
     def get_demo_args():  # define a static method to return list of args needed to initialize class for testing
         from forms.models import Pledge
+        from forms.views import BillOfRightsPDFView
+        from django.http import HttpRequest
 
         test_pledge_form = Pledge.objects.order_by("?")[0]
-        return [test_pledge_form]
+        new_request = HttpRequest()
+        new_request.method = "GET"
+        view = BillOfRightsPDFView.as_view()
+        bill_view = view(new_request, pk=test_pledge_form.user.chapter.id)
+        bill_file = bill_view.content
+        return [test_pledge_form, bill_file]
 
 
 @registry.register_decorator()
