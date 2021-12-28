@@ -1,5 +1,6 @@
 import io
 import csv
+#from types import NoneType
 import warnings
 import datetime
 from pathlib import Path
@@ -532,7 +533,7 @@ class Chapter(models.Model):
         current_and_future_vice = officers.filter(roles__role="vice regent")
         current_and_future_treasurer = officers.filter(roles__role="treasurer")
         current_and_future_cosec = officers.filter(roles__role="corresponding secretary")
-        return current_and_future_regent,current_and_future_scribe,current_and_future_vice,current_and_future_treasurer,current_and_future_cosec
+        return current_and_future_regent,current_and_future_cosec,current_and_future_scribe,current_and_future_treasurer,current_and_future_vice
 
     def get_previous_officers(self):
         # list the most recent officer that held position
@@ -546,92 +547,58 @@ class Chapter(models.Model):
         past_treasurer = previous_officers.filter(roles__role="treasurer").order_by('roles__end').first()
         past_cosec = previous_officers.filter(roles__role="corresponding secretary").order_by('roles__end').first()
         
-        return past_regent,past_scribe,past_vice,past_treasurer,past_cosec
+        return past_regent,past_cosec,past_scribe,past_treasurer,past_vice
 
 
     def get_about_expired_coucil(self):
-        pos = ['regent','scribe','vice regent','treasurer','corresponding secretary'] #list all the positions to check for and loop through
-        officers_to_update,officers_to_notify,current_and_future_officer,previous_officer,emails = [],[],[],[],[]
-        #officer to update is a list of current positions name 
-        #officer to notify is a list of the positions that need to emailed
-        #current and future is a list that is used in a foor loop to get all the current officers listed
-        #previous officer get the most previous officer
-        #emails gets all the emails that this message will be sent to
-        html_officers,html_members = "","" #a string used in the html officers is used for the position, members are used for members holding that position
-        no_current_or_future,no_previous = False, False 
-        #Bool that are use to distiguish if any retured value has noneType
+        officers_to_update,members_to_notify = [],[] 
+        #officer_to_update is a list of all officers that need to be updated on the CMT
+        #members_to_notify is a list of members that currently hold and/or held within the last eight months
+        #the officer postion that needs to be updated
+        past_regent,past_cosec,past_scribe,past_treasurer,past_vice = self.get_previous_officers()
+        #gathers past officers by postion
+        current_and_future_regent,current_and_future_cosec,current_and_future_scribe,current_and_future_treasurer,current_and_future_vice = self.get_current_and_future()
+        #gathers current and future officers by postion
 
-        #adds chapter's emails to a list labeled email
-        for chapter_and_officer_emails in self.get_generic_chapter_emails():
-            emails.append(chapter_and_officer_emails)
-
-        #adds all current and future in a list 
-        for i in self.get_current_and_future():
-            if i == None:
-                no_current_or_future = True
-            else:
-                current_and_future_officer.append(i)
-
-        #adds most previous officer on a list
-        for j in self.get_previous_officers():
-            if j == None:
-                no_previous = True
-            else:
-                previous_officer.append(j)
-
+        html_officers = "" 
         
-        if no_current_or_future == False: #if not here breaks code since the other test chapters have no previous officers
-            if no_previous == False: #  in the for loop would not work
-                #loops for the number of officers (5 officer positions as of Dec 2021)
-                #checks if current and future officer at a specific index is true
-                #if true filter the list at index and checks if query set has a officer set to expire after 14 days labeled future
-                #if future is not true then the current officer needs to be notified and that position needs to be updates
-                #if current_and_future_officer[officers] is false then that position is et to be updated and the previous officer will be notified
-                for officers in range(len(pos)): 
-                    if current_and_future_officer[officers]: 
-                        future = current_and_future_officer[officers].filter(roles__end__gte=TODAY_END + timedelta(14),) #gets the next true
-                        if not future:
-                            current = current_and_future_officer[officers].first()
-                            officers_to_update.append(pos[officers])
-                            officers_to_notify.append(current)
-                    else:
-                        officers_to_update.append(pos[officers])
-                        officers_to_notify.append(previous_officer[officers])
-
-                #gets the email of the user that we need to Notify
-                emails_from_user = [user.email for user in officers_to_notify]
-                #adds emails from user to the email list already used
-                emails.extend(emails_from_user)
-                    
-                #gets all the positions that need to change and formats 
-                #it to one string to use as a varaible in the html
-                for officers in range(len(officers_to_notify)):
-                    end = len(officers_to_notify) - 1
-                    if end == officers:
-                        html_officers = html_officers + " and " + str(officers_to_update[officers])
-                    else:
-                        html_officers = html_officers + str(officers_to_update[officers]) + ", "
-
-                #gets all the positions that need to change and formats 
-                #it to one string to use as a varaible in the html
-                for officers in range(len(officers_to_notify)):
-                    end = len(officers_to_notify) - 1
-                    if end == officers:
-                        html_members = html_members + " and " + str(officers_to_notify[officers])
-                    else:
-                        html_members = html_members +  str(officers_to_notify[officers]) + ", "
-            else:#for all empty chapter sends email about all positions to just the chapter email
-                for officers in pos:
-                    officers_to_notify.append(officers)
-                while("" in emails) :
-                    emails.remove("")
-                
-
+        #dictionary that contains all the chapter officer positions as a key with values of type tuple
+        current_past = {
+            "regent": (current_and_future_regent,past_regent,),
+            "vice regent": (current_and_future_vice,past_vice,),
+            "corresponding secretary": (current_and_future_cosec,past_cosec,),
+            "scribe": (current_and_future_scribe,past_scribe,),
+            "treasurer": (current_and_future_treasurer,past_treasurer,),
+        }
+        
+        #position is the key of the dictionary that contains chapter officer positions while
+        #info is the value that contains the tuple
+        for position, info in current_past.items():
+            current_and_future, past = info  
+            #current_and_future holds all the members that currenty hold a specific officer position
+            #past holds the member that most recently held the officer position
+            if current_and_future: 
+                future = current_and_future.filter(roles__end__gte=TODAY_END + timedelta(14),)
+                #future holds the officer who is set to expire after 14 days 
+                if not future:
+                    current = current_and_future.first()
+                    #current hold the officer who is set to expire within the next 14 days
+                    officers_to_update.append(position)
+                    members_to_notify.append(current)
+            else:
+                officers_to_update.append(position)
+                if past:
+                    members_to_notify.append(past)
+            
+        #List Comprehension for all the official chapter emails and chapter officer's personal emails  
+        emails = [return_value for return_value in self.get_generic_chapter_emails() if return_value] 
+        emails.extend([user.email for user in members_to_notify if user])
+        
         print("Emails: ",emails)
         print(f"Officers that will need to be updated: {officers_to_update}")
-        print(f"Officer to notify list: {officers_to_notify}")
+        print(f"Brothers that need to be notified list: {members_to_notify}")
 
-        return emails,html_members,html_officers
+        return emails,officers_to_update,html_officers
 
 
     def next_badge_number(self):
