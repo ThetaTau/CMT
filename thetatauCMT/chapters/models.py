@@ -1,5 +1,6 @@
 import io
 import csv
+#from types import NoneType
 import warnings
 import datetime
 from pathlib import Path
@@ -7,6 +8,7 @@ from enum import Enum
 from datetime import timedelta
 from django.contrib import messages
 from django.db import models
+from django.db.models.fields import EmailField
 from django.db.models.functions import Concat
 from django.core.validators import RegexValidator
 from django.db.utils import ProgrammingError
@@ -506,7 +508,8 @@ class Chapter(models.Model):
         scribe = officers.filter(role="scribe").first()
         vice = officers.filter(role="vice regent").first()
         treasurer = officers.filter(role="treasurer").first()
-        return [regent, scribe, vice, treasurer]
+        cosec = officers.filter(role="corresponding secretary").first()
+        return [regent, scribe, vice, treasurer, cosec]
 
     def get_generic_chapter_emails(self):
         return [
@@ -516,7 +519,86 @@ class Chapter(models.Model):
             self.email_treasurer,
             self.email_corresponding_secretary,
             self.email,
-        ]
+        ]   
+
+    def get_current_and_future(self):
+        # list all officers that currently hold an executive board position
+        # current and future
+        officers = self.members.filter(
+            roles__role__in=CHAPTER_OFFICER,
+            roles__end__gte=TODAY_END,
+        )
+        current_and_future_regent = officers.filter(roles__role="regent")
+        current_and_future_scribe = officers.filter(roles__role="scribe")
+        current_and_future_vice = officers.filter(roles__role="vice regent")
+        current_and_future_treasurer = officers.filter(roles__role="treasurer")
+        current_and_future_cosec = officers.filter(roles__role="corresponding secretary")
+        return current_and_future_regent,current_and_future_cosec,current_and_future_scribe,current_and_future_treasurer,current_and_future_vice
+
+    def get_previous_officers(self):
+        # list the most recent officer that held position
+        previous_officers = self.members.filter(
+                roles__role__in=CHAPTER_OFFICER,
+                roles__end__gte=TODAY_END - timedelta(30 * 8),# they ended their role in the last 8 months
+            )
+        past_regent = previous_officers.filter(roles__role="regent").order_by('roles__end').first()
+        past_scribe = previous_officers.filter(roles__role="scribe").order_by('roles__end').first()
+        past_vice = previous_officers.filter(roles__role="vice regent").order_by('roles__end').first()
+        past_treasurer = previous_officers.filter(roles__role="treasurer").order_by('roles__end').first()
+        past_cosec = previous_officers.filter(roles__role="corresponding secretary").order_by('roles__end').first()
+        
+        return past_regent,past_cosec,past_scribe,past_treasurer,past_vice
+
+
+    def get_about_expired_coucil(self):
+        officers_to_update,members_to_notify = [],[] 
+        #officer_to_update is a list of all officers that need to be updated on the CMT
+        #members_to_notify is a list of members that currently hold and/or held within the last eight months
+        #the officer postion that needs to be updated
+        past_regent,past_cosec,past_scribe,past_treasurer,past_vice = self.get_previous_officers()
+        #gathers past officers by postion
+        current_and_future_regent,current_and_future_cosec,current_and_future_scribe,current_and_future_treasurer,current_and_future_vice = self.get_current_and_future()
+        #gathers current and future officers by postion
+        
+        #dictionary that contains all the chapter officer positions as a key with values of type tuple
+        current_past = {
+            "regent": (current_and_future_regent,past_regent,),
+            "vice regent": (current_and_future_vice,past_vice,),
+            "corresponding secretary": (current_and_future_cosec,past_cosec,),
+            "scribe": (current_and_future_scribe,past_scribe,),
+            "treasurer": (current_and_future_treasurer,past_treasurer,),
+        }
+        
+        #position is the key of the dictionary that contains chapter officer positions while
+        #info is the value that contains the tuple
+        for position, info in current_past.items():
+            current_and_future, past = info  
+            #current_and_future holds all the members that currenty hold a specific officer position
+            #past holds the member that most recently held the officer position
+            if current_and_future: 
+                future = current_and_future.filter(roles__end__gte=TODAY_END + timedelta(14),)
+                #future holds the officer who is set to expire after 14 days 
+                if not future:
+                    current = current_and_future.first()
+                    #current hold the officer who is set to expire within the next 14 days
+                    officers_to_update.append(position)
+                    members_to_notify.append(current)
+            else:
+                officers_to_update.append(position)
+                if past:
+                    members_to_notify.append(past)
+            
+        #List Comprehension for all the official chapter emails and chapter officer's personal emails  
+        emails = [return_value for return_value in self.get_generic_chapter_emails() if return_value] 
+        emails.extend([user.email for user in members_to_notify if user])
+        
+        if officers_to_update:
+            print("Emails: ",emails)
+            print(f"Officers that will need to be updated: {officers_to_update}")
+            print(f"Brothers that need to be notified list: {members_to_notify}")
+            
+        return emails,officers_to_update
+
 
     def next_badge_number(self):
         # Jan 2019 highest badge number was Mu with 1754

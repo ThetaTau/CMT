@@ -1,0 +1,20 @@
+{{% extends "herald/html/base_email.html" %}
+{% block title %}Update CMT Email{% endblock %}
+{% block content %}
+<h1 class="null" style="margin: 0;padding: 0;display: block;font-family: Helvetica;font-size: 40px;font-style: normal;font-weight: bold;line-height: 125%;letter-spacing: -1px;text-align: left;color: #606060 !important;">Update CMT Email</h1>
+Dear Theta Tau {{ chapter }} Officers,
+<br>
+You are getting this message because you are listed as an officer for your chapter.<br>
+The term(s) of {{ officers }} is set to expire within the next fourteen days, and no replacement has been set.
+<b>Please update the position(s) on the CMT as soon as possible.</b>
+<br>
+<br>
+
+============================================================<br>
+** Facebook (https://www.facebook.com/thetatau/)<br>
+** Theta Tau (thetatau.org)<br>
+** Email (mailto:cmt@thetatau.org)<br>
+Copyright 2018 Theta Tau, All rights reserved.<br><br>
+
+  {% include "herald/html/rm_contact.html" %}
+{% endblock content %}
