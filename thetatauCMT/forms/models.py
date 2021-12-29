@@ -168,6 +168,13 @@ class PledgeProgram(YearTermModel, TimeStampedModel):
     schedule = models.FileField(
         upload_to=get_pledge_program_upload_path, null=True, blank=True
     )
+    process = models.ForeignKey(
+        PledgeProgramProcess,
+        on_delete=models.CASCADE,
+        blank=True,
+        null=True,
+        related_name="pledge_programs",
+    )
 
     @classmethod
     def signed_this_year(cls, chapter):
