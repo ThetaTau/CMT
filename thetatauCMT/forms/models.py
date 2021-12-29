@@ -79,6 +79,24 @@ def get_pledge_program_upload_path(instance, filename):
     )
 
 
+class PledgeProgramProcess(Process):
+    class APPROVAL(Enum):
+        approved = ("approved", "Approved")
+        revisions = ("revisions", "Revisions needed")
+        denied = ("denied", "Denied")
+        not_reviewed = ("not_reviewed", "Not Reviewed")
+
+    approval = models.CharField(
+        verbose_name="Pledge program approval status",
+        max_length=20,
+        choices=[x.value for x in APPROVAL],
+        default="not_reviewed",
+    )
+    approval_comments = models.TextField(
+        _("If rejecting, please explain why."), blank=True
+    )
+
+
 class PledgeProgram(YearTermModel, TimeStampedModel):
     BOOL_CHOICES = ((True, "Yes"), (False, "No"))
 
@@ -145,6 +163,9 @@ class PledgeProgram(YearTermModel, TimeStampedModel):
     )
     manual = models.CharField(max_length=10, choices=[x.value for x in MANUALS])
     other_manual = models.FileField(
+        upload_to=get_pledge_program_upload_path, null=True, blank=True
+    )
+    schedule = models.FileField(
         upload_to=get_pledge_program_upload_path, null=True, blank=True
     )
 
