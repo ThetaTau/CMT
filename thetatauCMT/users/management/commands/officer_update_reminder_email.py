@@ -1,22 +1,14 @@
-
 """
 Notes:
     To test run command
         docker-compose -f local.yml run --rm django python manage.py officer_update_reminder_email
 """
-
-#Includes
+# Includes
 import datetime
 from django.core.management import BaseCommand
 from django.core.mail import send_mail
-from users.notifications import OfficerMonthly, RDMonthly,OfficerUpdateRemider
+from users.notifications import OfficerUpdateReminder
 from chapters.models import Chapter
-from regions.models import Region
-
-#Variables for send mail function
-emailSubject = 'Officer update reminder'
-emailMessage = "Please update all officers."
-ThetaTauEmail = "cmt@thetatau.org"
 
 
 class Command(BaseCommand):
@@ -36,20 +28,18 @@ class Command(BaseCommand):
         if chapters_only is not None:
             chapters = Chapter.objects.filter(slug__in=chapters_only)
         else:
-             chapters = Chapter.objects.all()
+            chapters = Chapter.objects.all()
         for chapter in chapters:
             if not chapter.active:
                 continue
             emails, officers_to_update = chapter.get_about_expired_coucil()
             if officers_to_update:
-                if not chapter.active:
-                    continue
                 print(f"Sending message to: {chapter}\n")
-                result = OfficerUpdateRemider(chapter,emails,officers_to_update).send()
+                result = OfficerUpdateReminder(
+                    chapter, emails, officers_to_update
+                ).send()
                 change_messages.append(f"{result}: {chapter}")
             else:
-                if not chapter.active:
-                    continue
                 print(f"{chapter} does not need to update CMT\n")
             change_message = "<br>".join(change_messages)
             if int(today) == 22:
@@ -60,9 +50,3 @@ class Command(BaseCommand):
                     ["cmt@thetatau.org"],
                     fail_silently=True,
                 )
-            
-
-
-            
-
-            

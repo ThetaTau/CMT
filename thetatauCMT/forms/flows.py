@@ -978,6 +978,7 @@ class DisciplinaryProcessFlow(Flow):
             vice_regent,
             _,
             _,
+            _,
         ) = activation.process.chapter.get_current_officers_council_specific()
         if activation.process.user == regent:
             regent = vice_regent

@@ -1648,7 +1648,13 @@ class ConventionCreateView(LoginRequiredMixin, CreateProcessView):
         officers = request.user.current_chapter.get_current_officers_council_specific()
         if not all(officers):
             missing = [
-                ["regent", "scribe", "vice regent", "treasurer"][ind]
+                [
+                    "regent",
+                    "scribe",
+                    "vice regent",
+                    "treasurer",
+                    "corresponding secretary",
+                ][ind]
                 for ind, miss in enumerate(officers)
                 if not miss
             ]
@@ -1688,6 +1694,7 @@ class ConventionCreateView(LoginRequiredMixin, CreateProcessView):
             scribe,
             vice,
             treasurer,
+            corsec,
         ) = chapter.get_current_officers_council_specific()
         officer1 = officer2 = False
         if regent not in del_alt:
@@ -2085,7 +2092,13 @@ class OSMCreateView(LoginRequiredMixin, CreateProcessView):
         officers = request.user.current_chapter.get_current_officers_council_specific()
         if not all(officers):
             missing = [
-                ["regent", "scribe", "vice regent", "treasurer"][ind]
+                [
+                    "regent",
+                    "scribe",
+                    "vice regent",
+                    "treasurer",
+                    "corresponding secretary",
+                ][ind]
                 for ind, miss in enumerate(officers)
                 if not miss
             ]
@@ -2127,6 +2140,7 @@ class OSMCreateView(LoginRequiredMixin, CreateProcessView):
             scribe,
             vice,
             treasurer,
+            corsec,
         ) = chapter.get_current_officers_council_specific()
         officer1 = officer2 = False
         if regent not in nominate:
@@ -2571,6 +2585,7 @@ class ResignationCreateView(LoginRequiredMixin, CreateProcessView):
             scribe,
             vice,
             treasurer,
+            corsec,
         ) = chapter.get_current_officers_council_specific()
         officer1 = officer2 = False
         if regent != user:

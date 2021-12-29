@@ -75,7 +75,13 @@ class RDMonthly(EmailNotification):  # extend from EmailNotification for emails
             if not chapter.active:
                 continue
             officers = chapter.get_current_officers_council_specific()
-            officer_order = {0: "Regent", 1: "Scribe", 2: "Vice", 3: "Treasurer"}
+            officer_order = {
+                0: "Regent",
+                1: "Scribe",
+                2: "Vice",
+                3: "Treasurer",
+                4: "Corresponding Secretary",
+            }
             missing = ", ".join(
                 [
                     officer_order[ind]
@@ -151,16 +157,22 @@ class NewOfficers(EmailNotification):  # extend from EmailNotification for email
 
 
 @registry.register_decorator()
-class OfficerUpdateRemider(EmailNotification):  # extend from EmailNotification for emails
+class OfficerUpdateReminder(
+    EmailNotification
+):  # extend from EmailNotification for emails
     template_name = "update_reminder"  # name of template, without extension
     """
     Need to change to unique template for this program
     """
-    subject = "CMT Update"  # subject of email
+    subject = "Officer update reminder"  # subject of email
 
-    def __init__(self, chapter, emails, officers_to_update):  # optionally customize the initialization
+    def __init__(
+        self, chapter, emails, officers_to_update
+    ):  # optionally customize the initialization
         self.context = {"user": chapter}  # set context for the template rendering
-        format_officers = "" #used to add all positions in a type string to use in the html
+        format_officers = (
+            ""  # used to add all positions in a type string to use in the html
+        )
         emails = {email for email in emails if email}
         for positions in officers_to_update:
             if positions == officers_to_update[-1]:
@@ -179,9 +191,14 @@ class OfficerUpdateRemider(EmailNotification):  # extend from EmailNotification 
         self.subject = f"CMT Officer update {chapter_name}"
         self.context = {
             "chapter": chapter_name,
-            "officers": format_officers
+            "officers": format_officers,
+            "host": settings.CURRENT_URL,
         }
 
     @staticmethod
     def get_demo_args():  # define a static method to return list of args needed to initialize class for testing
-        return [Chapter.objects.order_by("?")[0],'HLJ@gmail.com',["Vice Regent","Regent","Scribe"]]
+        return [
+            Chapter.objects.order_by("?")[0],
+            "HLJ@gmail.com",
+            ["Vice Regent", "Regent", "Scribe"],
+        ]
