@@ -341,7 +341,7 @@ class EmailProcessUpdate(EmailNotification):
         emails = set()
         user = direct_user
         obj = None
-        if hasattr(model_obj, "process"):
+        if hasattr(model_obj, "process") and hasattr(model_obj, "flow_class"):
             process_title = model_obj.flow_class.process_title
             model_obj = model_obj.process
         if hasattr(model_obj, "chapter"):

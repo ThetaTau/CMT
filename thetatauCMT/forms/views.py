@@ -9,7 +9,6 @@ from pathlib import Path
 from django.db import IntegrityError, transaction
 from django.db.models import Q
 from django.forms import models as model_forms
-from django.forms.models import modelformset_factory
 from django.utils.safestring import mark_safe
 from django.http.request import QueryDict
 from django.core.files.base import ContentFile
@@ -89,7 +88,7 @@ from core.models import (
     SEMESTER,
 )
 from users.models import UserRoleChange
-from users.forms import ExternalUserForm, UserForm
+from users.forms import UserForm
 from users.notifications import NewOfficers
 from chapters.models import Chapter, ChapterCurricula
 from regions.models import Region
@@ -113,11 +112,11 @@ from .tables import (
     ResignationStatusTable,
     ResignationListTable,
     ReturnStudentStatusTable,
+    PledgeProgramStatusTable,
 )
 from .models import (
     Guard,
     Badge,
-    Initiation,
     Depledge,
     StatusChange,
     RiskManagement,
@@ -132,12 +131,12 @@ from .models import (
     CollectionReferral,
     ResignationProcess,
     ReturnStudent,
+    PledgeProgramProcess,
 )
 from .filters import AuditListFilter, PledgeProgramListFilter, CompleteListFilter
 from .notifications import (
     EmailRMPSigned,
     EmailPledgeOther,
-    EmailAdvisorWelcome,
     EmailPledgeConfirmation,
     EmailPledgeWelcome,
     EmailPledgeOfficer,
@@ -1208,71 +1207,6 @@ class PledgeProgramListView(
             ]
         )
         return context
-
-
-class PledgeProgramFormView(LoginRequiredMixin, OfficerRequiredMixin, UpdateView):
-    form_class = PledgeProgramForm
-    model = PledgeProgram
-    template_name = "forms/pledge_program.html"
-
-    def get_object(self, queryset=None):
-        program = PledgeProgram.objects.filter(
-            chapter=self.request.user.current_chapter,
-            year=PledgeProgram.current_year(),
-            term=PledgeProgram.current_term(),
-        ).first()
-        return program
-
-    def form_valid(self, form):
-        form.instance.chapter = self.request.user.current_chapter
-        form.instance.year = datetime.datetime.now().year
-        current_roles = self.request.user.chapter_officer()
-        if not current_roles or current_roles == {""}:
-            messages.add_message(
-                self.request,
-                messages.ERROR,
-                f"Only executive officers can sign submit pledge program: {CHAPTER_OFFICER}\n"
-                f"Your current roles are: {current_roles}",
-            )
-            return super().form_invalid(form)
-        else:
-            form.save()
-            task = Task.objects.get(name="Pledge Program")
-            chapter = self.request.user.current_chapter
-            next_date = task.incomplete_dates_for_task_chapter(chapter).first()
-            if next_date:
-                task_obj = TaskChapter(
-                    task=next_date,
-                    chapter=chapter,
-                    date=timezone.now(),
-                )
-                score_type = ScoreType.objects.filter(slug="pledge-program").first()
-                submit_obj = Submission(
-                    user=self.request.user,
-                    file="forms:pledge_program",
-                    name="Pledge program",
-                    type=score_type,
-                    chapter=self.request.user.current_chapter,
-                )
-                submit_obj.save(
-                    extra_info={"unmodified": form.instance.manual != "other"}
-                )
-                task_obj.submission_object = submit_obj
-                task_obj.save()
-                if form.instance.manual == "other":
-                    EmailPledgeOther(
-                        self.request.user, form.instance.other_manual.file
-                    ).send()
-            messages.add_message(
-                self.request,
-                messages.INFO,
-                f"You successfully submitted the Pledge Program!\n"
-                f"Your current roles are: {current_roles}",
-            )
-        return super().form_valid(form)
-
-    def get_success_url(self):
-        return reverse("home")
 
 
 class AuditFormView(LoginRequiredMixin, OfficerRequiredMixin, UpdateView):
@@ -2744,4 +2678,100 @@ class ReturnStudentCreateView(
         return context
 
 
-#
+class PledgeProgramProcessCreateView(
+    LoginRequiredMixin, OfficerRequiredMixin, CreateProcessView
+):
+    template_name = "forms/pledge_program_process.html"
+    model = PledgeProgramProcess
+    form_class = PledgeProgramForm
+
+    def get_success_url(self):
+        return reverse("viewflow:forms:pledgeprogramprocess:start")
+
+    def get_object(self, queryset=None):
+        program = PledgeProgram.objects.filter(
+            chapter=self.request.user.current_chapter,
+            year=PledgeProgram.current_year(),
+            term=PledgeProgram.current_term(),
+        ).first()
+        return program
+
+    def activation_done(self, *args, **kwargs):
+        """Finish task activation."""
+        self.activation.done()
+        self.success("Pledge Program submitted successfully.")
+
+    def form_valid(self, form, *args, **kwargs):
+        form.instance.chapter = self.request.user.current_chapter
+        form.instance.year = datetime.datetime.now().year
+        current_roles = self.request.user.chapter_officer()
+        if not current_roles or current_roles == {""}:
+            messages.add_message(
+                self.request,
+                messages.ERROR,
+                f"Only executive officers can sign submit pledge program: {CHAPTER_OFFICER}\n"
+                f"Your current roles are: {*current_roles,}",
+            )
+            return super().form_invalid(form)
+        else:
+            program = form.save()
+            task = Task.objects.get(name="Pledge Program")
+            chapter = self.request.user.current_chapter
+            next_date = task.incomplete_dates_for_task_chapter(chapter).first()
+            if next_date:
+                task_obj = TaskChapter(
+                    task=next_date,
+                    chapter=chapter,
+                    date=timezone.now(),
+                )
+                score_type = ScoreType.objects.filter(slug="pledge-program").first()
+                submit_obj = Submission(
+                    user=self.request.user,
+                    file="forms:pledge_program",
+                    name="Pledge program",
+                    type=score_type,
+                    chapter=self.request.user.current_chapter,
+                )
+                submit_obj.save(
+                    extra_info={"unmodified": form.instance.manual != "other"}
+                )
+                task_obj.submission_object = submit_obj
+                task_obj.save()
+                if form.instance.manual == "other":
+                    EmailPledgeOther(
+                        self.request.user, form.instance.other_manual.file
+                    ).send()
+            self.activation.process.program = program
+            self.activation.process.chapter = chapter
+            return super().form_valid(form)
+
+    def get_context_data(self, *args, **kwargs):
+        context = super().get_context_data(**kwargs)
+        data = []
+        processes = PledgeProgramProcess.objects.filter(
+            program__chapter=self.request.user.current_chapter
+        )
+        for process in processes:
+            if process.finished is None:
+                task = process.active_tasks().first()
+                status = task.flow_task.task_title
+                approved = "Pending"
+            else:
+                status = process.task_set.first().flow_task.task_title
+                approved = process.APPROVAL.get_value(process.approval)
+
+            data.append(
+                {
+                    "status": status,
+                    "created": process.created,
+                    "approved": approved,
+                }
+            )
+        submitted = False
+        if "NEW" in self.object.process.values_list("status", flat=True):
+            submitted = "review"
+        elif "approved" in self.object.process.values_list("approval", flat=True):
+            submitted = "approved"
+        context["submitted"] = submitted
+        context["table"] = PledgeProgramStatusTable(data=data)
+        return context

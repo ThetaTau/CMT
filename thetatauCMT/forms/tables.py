@@ -236,6 +236,17 @@ class DisciplinaryStatusTable(tables.Table):
         }
 
 
+class PledgeProgramStatusTable(tables.Table):
+    status = tables.Column()
+    approved = tables.Column()
+    created = tables.DateColumn()
+
+    class Meta:
+        attrs = {
+            "class": "table table-striped table-bordered",
+        }
+
+
 class SignTable(tables.Table):
     member = tables.Column()
     owner = tables.Column(verbose_name="Task Owner")

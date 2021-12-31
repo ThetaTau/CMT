@@ -1,0 +1,27 @@
+{% extends "account/base.html" %}
+{% load i18n %}
+{% load static %}
+{% load crispy_forms_tags %}
+{% load render_table from django_tables2 %}
+{% block head_title %}{% trans "New Member Education Program" %}{% endblock %}
+{% block content %}
+  <h2>{% trans "New Member Education Program" %}</h2>
+  <hr>
+  {% if submitted == "review" %}
+    <p>The chapter pledge program is pending approval.</p>
+  {% elif submitted == "approved" %}
+    <p>The chapter pledge program has been approved for this semester.</p>
+  {% else %}
+    <form method="POST" enctype="multipart/form-data">
+      {{ form.media }}
+      <link href="{% static 'css/project.css' %}" rel="stylesheet">
+      {% csrf_token %}
+      {{ form|crispy }}
+      {{ activation.management_form }}
+      <button class="primaryAction btn btn-primary" type="submit">{% trans "Submit Form" %}</button>
+    </form>
+  {% endif %}
+  <h3>Previously submitted Pledge Programs</h3>
+  <hr>
+    {% render_table table %}
+{% endblock %}
