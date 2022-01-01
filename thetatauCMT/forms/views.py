@@ -7,7 +7,8 @@ from io import BytesIO
 from copy import deepcopy
 from pathlib import Path
 from django.db import IntegrityError, transaction
-from django.db.models import Q
+from django.db.models import Q, F
+from django.contrib.postgres.aggregates import StringAgg
 from django.forms import models as model_forms
 from django.utils.safestring import mark_safe
 from django.http.request import QueryDict
@@ -1120,32 +1121,24 @@ class PledgeProgramListView(
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        all_forms = self.object_list
-        data = list(
-            all_forms.values(
-                "chapter__name",
-                "chapter__region__name",
-                "chapter__school",
-                "year",
-                "term",
-                "manual",
-                "remote",
-                "date_complete",
-                "date_initiation",
-                "weeks",
-                "weeks_left",
-                "status",
-            )
+        all_forms = self.object_list.prefetch_related("chapter", "process")
+        all_forms = all_forms.values(
+            "year",
+            "term",
+            "manual",
+            "remote",
+            "date_complete",
+            "date_initiation",
+            "weeks",
+            "weeks_left",
+            "status",
+            "term",
+            "manual",
+            chapter_name=F("chapter__name"),
+            region=F("chapter__region__name"),
+            school=F("chapter__school"),
+            approval=StringAgg("process__approval", ", "),
         )
-        for dat in data:
-            dat["chapter"] = dat["chapter__name"]
-            del dat["chapter__name"]
-            dat["school"] = dat["chapter__school"]
-            del dat["chapter__school"]
-            dat["region"] = dat["chapter__region__name"]
-            del dat["chapter__region__name"]
-            dat["term"] = PledgeProgram.TERMS.get_value(dat["term"])
-            dat["manual"] = PledgeProgram.MANUALS.get_value(dat["manual"])
         complete = self.filter.form.cleaned_data["complete"]
         if complete in ["0", ""]:
             form_chapters = all_forms.values_list("chapter__id", flat=True)
@@ -1163,7 +1156,7 @@ class PledgeProgramListView(
                 missing_chapters = Chapter.objects.exclude(id__in=form_chapters)
             missing_data = [
                 {
-                    "chapter": chapter.name,
+                    "chapter_name": chapter.name,
                     "school": chapter.school,
                     "region": chapter.region.name,
                     "manual": None,
@@ -1175,17 +1168,24 @@ class PledgeProgramListView(
                     "status": "none",
                     "weeks": 0,
                     "weeks_left": 0,
+                    "approval": "not_submitted",
                 }
                 for chapter in missing_chapters
             ]
             if complete == "0":  # Incomplete
-                data = [dat for dat in data if dat["status"] == "none"]
+                # These are old forms that did not have approval as an option
+                all_forms_no_approval = all_forms.filter(approval__isnull=True)
+                all_forms = all_forms.exclude(approval__contains="approved")
+                all_forms = all_forms | all_forms_no_approval
+                data = list(all_forms)
                 data.extend(missing_data)
             else:  # All
+                data = list(all_forms)
                 data.extend(missing_data)
         else:
-            data = [dat for dat in data if dat["status"] != "none"]
-        chapter_names = [dat["chapter"] for dat in data]
+            all_forms = all_forms.filter(approval__contains="approved")
+            data = list(all_forms)
+        chapter_names = list(all_forms.values_list("chapter_name", flat=True))
         chapter_officer_emails = {
             chapter: [
                 user.email
@@ -2768,10 +2768,11 @@ class PledgeProgramProcessCreateView(
                 }
             )
         submitted = False
-        if "NEW" in self.object.process.values_list("status", flat=True):
-            submitted = "review"
-        elif "approved" in self.object.process.values_list("approval", flat=True):
-            submitted = "approved"
+        if self.object:
+            if "NEW" in self.object.process.values_list("status", flat=True):
+                submitted = "review"
+            elif "approved" in self.object.process.values_list("approval", flat=True):
+                submitted = "approved"
         context["submitted"] = submitted
         context["table"] = PledgeProgramStatusTable(data=data)
         return context
