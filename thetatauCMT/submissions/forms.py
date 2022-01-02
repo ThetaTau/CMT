@@ -1,6 +1,10 @@
+from django import forms
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Layout, Fieldset, Row, Submit
 from crispy_forms.bootstrap import FormActions, InlineField, StrictButton
+from dal import autocomplete, forward
+from .models import Picture, GearArticle
+from users.models import User
 
 
 class SubmissionListFormHelper(FormHelper):
@@ -31,3 +35,37 @@ class SubmissionListFormHelper(FormHelper):
             ),
         ),
     )
+
+
+class PictureForm(forms.ModelForm):
+    image = forms.ImageField()
+
+    class Meta:
+        model = Picture
+        fields = [
+            "description",
+            "image",
+        ]
+
+
+class GearArticleForm(forms.ModelForm):
+    name = forms.CharField(label="Article Title")
+    file = forms.FileField(
+        required=False,
+        help_text="You can optionally attach your article or supporting documents",
+    )
+    authors = forms.ModelMultipleChoiceField(
+        queryset=User.objects.all(),
+        widget=autocomplete.ModelSelect2Multiple(
+            url="users:autocomplete", forward=(forward.Const("true", "chapter"),)
+        ),
+    )
+
+    class Meta:
+        model = GearArticle
+        fields = [
+            "name",
+            "authors",
+            "article",
+            "file",
+        ]

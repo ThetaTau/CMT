@@ -1,4 +1,5 @@
 from django.conf.urls import url
+from django.urls import path
 
 from . import views
 
@@ -26,4 +27,5 @@ urlpatterns = [
         view=views.SubmissionDetailView.as_view(),
         name="detail",
     ),
+    path("gear", views.GearArticleFormView.as_view(), name="gear"),
 ]

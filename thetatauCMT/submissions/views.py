@@ -1,16 +1,20 @@
 from django.contrib import messages
+from django.http.response import HttpResponseRedirect
 from django.shortcuts import redirect, reverse
 from django.views.generic import DetailView, UpdateView, RedirectView, CreateView
+from django.forms.models import modelformset_factory
 from core.views import (
     PagedFilteredTableView,
     TypeFieldFilteredChapterAdd,
     OfficerRequiredMixin,
     LoginRequiredMixin,
 )
-from .models import Submission
+from core.forms import MultiFormsView
+from scores.models import ScoreType
+from .models import Submission, Picture
 from .tables import SubmissionTable
 from .filters import SubmissionListFilter
-from .forms import SubmissionListFormHelper
+from .forms import SubmissionListFormHelper, GearArticleForm, PictureForm
 
 
 class SubmissionDetailView(LoginRequiredMixin, DetailView):
@@ -111,3 +115,47 @@ class SubmissionListView(LoginRequiredMixin, PagedFilteredTableView):
     filter_class = SubmissionListFilter
     formhelper_class = SubmissionListFormHelper
     filter_chapter = True
+
+
+class GearArticleFormView(LoginRequiredMixin, OfficerRequiredMixin, MultiFormsView):
+    template_name = "submissions/gear.html"
+    form_classes = {
+        "gear": GearArticleForm,
+        "picture": PictureForm,
+    }
+    grouped_forms = {"article": ["gear", "picture"]}
+
+    def get_success_url(self):
+        return reverse("submissions:list")
+
+    def _group_exists(self, group_name):
+        return False
+
+    def forms_valid(self, forms):
+        gear_form = forms["gear"]
+        picture_forms = forms["picture"]
+        submission = Submission(
+            user=self.request.user,
+            file=gear_form.cleaned_data.get("file"),
+            name=gear_form.cleaned_data.get("name"),
+            type=ScoreType.objects.get(name="Gear Article"),
+            chapter=self.request.user.current_chapter,
+        )
+        submission.save()
+        gear_form.instance.submission = submission
+        gear_form.save()
+        for picture_form in picture_forms:
+            picture_form.instance.submission = gear_form.instance
+            picture_form.save()
+        return HttpResponseRedirect(self.get_success_url())
+
+    def create_picture_form(self, **kwargs):
+        factory = modelformset_factory(
+            Picture, form=PictureForm, **{"can_delete": True, "extra": 1}
+        )
+        formset_kwargs = dict(queryset=Picture.objects.none())
+        if self.request.method in ("POST", "PUT"):
+            formset_kwargs.update(
+                {"data": self.request.POST.copy(), "files": self.request.FILES.copy()}
+            )
+        return factory(**formset_kwargs)

@@ -4,6 +4,8 @@ from django.db import models, transaction
 from django.contrib.contenttypes.fields import GenericRelation
 from django.utils import timezone
 from django.utils.text import slugify
+from ckeditor.fields import RichTextField
+
 from core.models import TimeStampedModel
 from scores.models import ScoreType
 from chapters.models import Chapter
@@ -55,3 +57,44 @@ class Submission(TimeStampedModel):
     def chapter_submissions(self, chapter):
         result = self.objects.filter(chapter=chapter)
         return result
+
+
+class GearArticle(TimeStampedModel):
+    authors = models.ManyToManyField(
+        settings.AUTH_USER_MODEL,
+        related_name="gear_articles",
+        null=True,
+    )
+    submission = models.ForeignKey(
+        Submission,
+        on_delete=models.CASCADE,
+        related_name="submission",
+    )
+    article = RichTextField()
+    reviewed = models.BooleanField(
+        default=False,
+        blank=True,
+        null=True,
+    )
+    notes = models.TextField(
+        blank=True,
+        null=True,
+    )
+
+
+def get_picture_upload_path(instance, filename):
+    return os.path.join(
+        "submissions",
+        "article",
+        f"{instance.submission.submission.chapter.slug}_{filename}",
+    )
+
+
+class Picture(TimeStampedModel):
+    description = models.TextField()
+    image = models.ImageField(upload_to=get_picture_upload_path)
+    submission = models.ForeignKey(
+        GearArticle,
+        on_delete=models.CASCADE,
+        related_name="gear",
+    )
