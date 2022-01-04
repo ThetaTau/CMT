@@ -28,4 +28,10 @@ urlpatterns = [
         name="detail",
     ),
     path("gear", views.GearArticleFormView.as_view(), name="gear"),
+    path("gearlist", views.GearArticleListView.as_view(), name="gearlist"),
+    path(
+        "gear-detail/<int:pk>",
+        views.GearArticleDetailView.as_view(),
+        name="gear_detail",
+    ),
 ]

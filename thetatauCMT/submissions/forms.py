@@ -1,7 +1,7 @@
 from django import forms
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Layout, Fieldset, Row, Submit
-from crispy_forms.bootstrap import FormActions, InlineField, StrictButton
+from crispy_forms.bootstrap import FormActions, InlineField, StrictButton, Field
 from dal import autocomplete, forward
 from .models import Picture, GearArticle
 from users.models import User
@@ -69,3 +69,34 @@ class GearArticleForm(forms.ModelForm):
             "article",
             "file",
         ]
+
+
+class GearArticleListFormHelper(FormHelper):
+    form_method = "GET"
+    form_id = "gear-article-search-form"
+    form_class = "form-inline"
+    field_template = "bootstrap3/layout/inline_field.html"
+    field_class = "col-xs-3"
+    label_class = "col-xs-3"
+    form_show_errors = True
+    help_text_inline = False
+    html5_required = True
+    layout = Layout(
+        Fieldset(
+            "",
+            Row(
+                Field("region"),
+                Field("chapter"),
+                Field("reviewed"),
+                Field("date"),
+                FormActions(
+                    StrictButton(
+                        '<i class="fa fa-search"></i> Filter',
+                        type="submit",
+                        css_class="btn-primary",
+                    ),
+                    Submit("cancel", "Clear", css_class="btn-primary"),
+                ),
+            ),
+        ),
+    )

@@ -68,7 +68,7 @@ class GearArticle(TimeStampedModel):
     submission = models.ForeignKey(
         Submission,
         on_delete=models.CASCADE,
-        related_name="submission",
+        related_name="gear",
     )
     article = RichTextField()
     reviewed = models.BooleanField(
@@ -96,5 +96,5 @@ class Picture(TimeStampedModel):
     submission = models.ForeignKey(
         GearArticle,
         on_delete=models.CASCADE,
-        related_name="gear",
+        related_name="pictures",
     )

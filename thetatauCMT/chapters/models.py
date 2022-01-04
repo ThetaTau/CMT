@@ -305,6 +305,19 @@ class Chapter(models.Model):
             suffix = "Candidate Chapter"
         return f"{self.name} {suffix}"
 
+    @classmethod
+    def chapter_choices(cls):
+        chapters = []
+        try:
+            chapters = [
+                (chapter.slug, chapter.name.title()) for chapter in cls.objects.all()
+            ]
+        except ProgrammingError:
+            # Likely the database hasn't been setup yet?
+            warnings.warn("Could not find chapter relation")
+        chapters.sort(key=lambda tup: tup[1])
+        return chapters
+
     def get_actives_for_date(self, date):
         # Do not annotate, need the queryset not a list
         return self.members.filter(

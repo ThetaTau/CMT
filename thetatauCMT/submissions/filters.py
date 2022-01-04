@@ -1,7 +1,9 @@
 # filters.py
 import django_filters
 from core.filters import DateRangeFilter
-from .models import Submission
+from .models import Submission, GearArticle
+from chapters.models import Chapter
+from regions.models import Region
 from scores.models import ScoreType
 
 
@@ -20,3 +22,27 @@ class SubmissionListFilter(django_filters.FilterSet):
             "type",
         ]
         order_by = ["date"]
+
+
+class GearArticleListFilter(django_filters.FilterSet):
+    region = django_filters.ChoiceFilter(
+        label="Region", choices=Region.region_choices(), method="filter_region"
+    )
+    chapter = django_filters.ChoiceFilter(
+        label="Chapter", choices=Chapter.chapter_choices(), method="filter_chapter"
+    )
+    date = DateRangeFilter(label="Submit Date")
+
+    class Meta:
+        fields = ["region", "chapter", "reviewed", "date"]
+        model = GearArticle
+        order_by = ["chapter"]
+
+    def filter_region(self, queryset, field_name, value):
+        if value == "national":
+            return queryset
+        elif value == "candidate_chapter":
+            queryset = queryset.filter(chapter__candidate_chapter=True)
+        else:
+            queryset = queryset.filter(chapter__region__slug=value)
+        return queryset
