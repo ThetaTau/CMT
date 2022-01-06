@@ -59,7 +59,7 @@ class TaskCompleteView(LoginRequiredMixin, OfficerRequiredMixin, CreateView):
                 self.request,
                 messages.ERROR,
                 f"Only executive officers can sign off tasks. "
-                f"Your current roles are: {current_roles}",
+                f"Your current roles are: {*current_roles,}",
             )
             return super().form_invalid(form)
         form.instance.chapter = self.request.user.current_chapter

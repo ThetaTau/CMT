@@ -1248,8 +1248,8 @@ class AuditFormView(LoginRequiredMixin, OfficerRequiredMixin, UpdateView):
             messages.add_message(
                 self.request,
                 messages.ERROR,
-                f"Only executive officers can submit an audit: {CHAPTER_OFFICER}\n"
-                f"Your current roles are: {current_roles}",
+                f"Only executive officers can submit an audit: {*CHAPTER_OFFICER,}\n"
+                f"Your current roles are: {*current_roles,}",
             )
             return None
         else:
@@ -1286,8 +1286,8 @@ class AuditFormView(LoginRequiredMixin, OfficerRequiredMixin, UpdateView):
             messages.add_message(
                 self.request,
                 messages.ERROR,
-                f"Only executive officers can submit an audit: {CHAPTER_OFFICER}\n"
-                f"Your current roles are: {current_roles}",
+                f"Only executive officers can submit an audit: {*CHAPTER_OFFICER,}\n"
+                f"Your current roles are: {*current_roles,}",
             )
             return super().form_invalid(form)
         else:
@@ -1316,7 +1316,7 @@ class AuditFormView(LoginRequiredMixin, OfficerRequiredMixin, UpdateView):
                 self.request,
                 messages.INFO,
                 f"You successfully submitted the Audit Form!\n"
-                f"Your current roles are: {current_roles}",
+                f"Your current roles are: {*current_roles,}",
             )
         return super().form_valid(form)
 
@@ -2731,7 +2731,7 @@ class PledgeProgramProcessCreateView(
             messages.add_message(
                 self.request,
                 messages.ERROR,
-                f"Only executive officers can sign submit pledge program: {CHAPTER_OFFICER}\n"
+                f"Only executive officers can sign submit pledge program: {*CHAPTER_OFFICER,}\n"
                 f"Your current roles are: {*current_roles,}",
             )
             return super().form_invalid(form)
