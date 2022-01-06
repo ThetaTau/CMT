@@ -2,8 +2,8 @@
 {% block title %}{{ subject }}{% endblock %}
 {% block content %}
 <br>
-To Whom It May Concern,
-<p>{{ message }}</p>
+{{ addressee }},
+<p>{{ message | safe }}</p>
 {% if file_names %}
   {% for file_name in file_names %}
     <p><strong>Attached is a copy of "{{ file_name }}".</strong></p>

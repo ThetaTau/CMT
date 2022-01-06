@@ -10,6 +10,7 @@ from viewflow.compat import _
 from viewflow.flow import views as flow_views
 from easy_pdf.rendering import render_to_pdf
 from core.flows import AutoAssignUpdateProcessView, NoAssignView
+from core.notifications import GenericEmail
 from .models import (
     PrematureAlumnus,
     InitiationProcess,
@@ -41,7 +42,6 @@ from .notifications import (
     EmailConventionUpdate,
     EmailOSMUpdate,
     CentralOfficeGenericEmail,
-    GenericEmail,
 )
 from users.models import User
 

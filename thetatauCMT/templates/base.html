@@ -121,8 +121,20 @@
               <li class="nav-item">
                 <a class="nav-link" href="{% url 'events:list' %}">Events</a>
               </li>
-              <li class="nav-item">
-                <a class="nav-link" href="{% url 'submissions:list' %}">Submissions</a>
+              <li class="nav-item dropdown"><a class="nav-link dropdown-toggle" href="#">{% trans "Submissions" %}</a>
+                <ul class="dropdown-menu">
+                  {% if request.is_officer %}
+                    <li class="dropdown-item">
+                      <a class="nav-link" href="{% url 'submissions:list' %}">List</a>
+                    </li>
+                    <li class="dropdown-item">
+                      <a class="nav-link" href="{% url 'submissions:add' %}">Add Submission</a>
+                    </li>
+                    <li class="dropdown-item">
+                      <a class="nav-link" href="{% url 'gear' %}">Gear Article</a>
+                    </li>
+                  {% endif %}
+                </ul>
               </li>
               <li class="nav-item">
                 <a class="nav-link" href="{% url 'tasks:list' %}">Tasks</a>
