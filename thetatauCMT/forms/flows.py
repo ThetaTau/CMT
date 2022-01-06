@@ -20,6 +20,7 @@ from .models import (
     DisciplinaryProcess,
     ResignationProcess,
     ReturnStudent,
+    PledgeProgramProcess,
 )
 from .views import (
     PrematureAlumnusCreateView,
@@ -35,6 +36,7 @@ from .views import (
     ResignationCreateView,
     ResignationSignView,
     ReturnStudentCreateView,
+    PledgeProgramProcessCreateView,
 )
 from .forms import DisciplinaryForm1, DisciplinaryForm2, UserSelectForm
 from .notifications import (
@@ -1255,4 +1257,109 @@ class ReturnStudentFlow(Flow):
                 "exec_comments",
             ],
             extra_emails=[activation.process.created_by.email],
+        ).send()
+
+
+@register_factory(viewset_class=FilterableFlowViewSet)
+class PledgeProgramProcessFlow(Flow):
+    """
+    Chapter officer can submit pledge program
+    Send to RD/central office
+    Approve/deny/revise
+    Approve done
+    deny/revise sent to chapter to fix
+    """
+
+    process_class = PledgeProgramProcess
+    process_title = _("Pledge Program Process")
+    process_description = _("This process is for chapter pledge programs.")
+
+    start = flow.Start(
+        PledgeProgramProcessCreateView, task_title=_("Submit Disciplinary Form")
+    ).Next(this.email_all)
+
+    email_all = flow.Handler(
+        this.email_all_func,
+        task_title=_("Email All Pledge Program"),
+    ).Next(this.review)
+
+    review = (
+        NoAssignView(
+            AutoAssignUpdateProcessView,
+            fields=["approval", "approval_comments"],
+            task_title=_("Central Office Review"),
+            task_description=_("Review of Pledge Program by Central Office"),
+            task_result_summary=_("Message was: {{ process.get_approval_display  }}"),
+        )
+        .Permission("auth.central_office")
+        .Next(this.check_approve)
+    )
+
+    check_approve = (
+        flow.Switch()
+        .Case(this.reject_fix, cond=lambda act: act.process.approval == "denied")
+        .Case(this.reject_fix, cond=lambda act: act.process.approval == "revisions")
+        .Case(this.end, cond=lambda act: act.process.approval == "approved")
+        .Default(this.end)
+    )
+
+    reject_fix = flow.Handler(
+        this.reject_fix_func,
+        task_title=_("Reject Fix Pledge Program"),
+    ).Next(this.end_reject)
+
+    end_reject = flow.End(
+        task_title=_("Pledge Program Process Rejected"),
+    )
+
+    end = flow.End(
+        task_title=_("Pledge Program Process Complete"),
+    )
+
+    def email_all_func(self, activation):
+        """
+        A copy of program should be sent to
+            - all chapter officers
+            - central.office,
+            - RDs
+        """
+        model_obj = activation.process.program
+        EmailProcessUpdate(
+            model_obj,
+            complete_step="Pledge Program Submitted",
+            next_step="Central Office Review",
+            state="Pending Central Office Review",
+            message=(
+                "This if a notification that the Central Office has "
+                "received the pledge program for you chapter."
+            ),
+            fields=["manual"],
+            attachments=["other_manual", "schedule"],
+            email_officers=True,
+            extra_emails={
+                model_obj.chapter.region.email,
+                "central.office@thetatau.org",
+            },
+            direct_user=activation.process.created_by,
+        ).send()
+
+    def reject_fix_func(self, activation):
+        model_obj = activation.process.program
+        EmailProcessUpdate(
+            activation,
+            complete_step="Pledge Program Reviewed",
+            next_step="Chapter Resubmit",
+            state="Chapter Pledge Program Rejected",
+            message=(
+                "This is a notification that the Central Office has "
+                "rejected the pledge program for you chapter."
+                "Please review the notes and resubmit ASAP."
+            ),
+            fields=["approval", "approval_comments"],
+            attachments=[],
+            email_officers=True,
+            extra_emails={
+                model_obj.chapter.region.email,
+            },
+            direct_user=activation.process.created_by,
         ).send()

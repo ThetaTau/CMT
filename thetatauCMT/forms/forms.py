@@ -557,6 +557,19 @@ class PledgeProgramForm(forms.ModelForm):
             attrs={"autocomplete": "off"},
         ),
     )
+    other_manual = forms.FileField(
+        label="Other/Changes",
+        required=False,
+        help_text=(
+            "If you are following a different program upload that full program. "
+            "If you have made any changes to official program, "
+            "upload ONLY THOSE CHANGES"
+        ),
+    )
+    schedule = forms.FileField(
+        help_text="Please upload a schedule of the pledge program process.",
+        required=True,
+    )
 
     class Meta:
         model = PledgeProgram
@@ -564,9 +577,11 @@ class PledgeProgramForm(forms.ModelForm):
             "remote",
             "weeks",
             "weeks_left",
-            "status",
             "date_complete",
             "date_initiation",
+            "manual",
+            "other_manual",
+            "schedule",
         ]
 
     def clean_other_manual(self):
