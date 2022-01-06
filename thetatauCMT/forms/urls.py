@@ -86,6 +86,16 @@ urlpatterns = [
         view=views.RoleChangeNationalView.as_view(),
         name="natoff",
     ),
+    path(
+        "bill-of-rights-pdf/<int:pk>/",
+        view=views.BillOfRightsPDFView.as_view(),
+        name="bill_of_rights_pdf",
+    ),
+    path(
+        "bill-of-rights/<int:pk>/",
+        view=views.BillOfRightsDetailView.as_view(),
+        name="bill_of_rights",
+    ),
     url(regex=r"^rmp/$", view=views.RiskManagementFormView.as_view(), name="rmp"),
     url(
         regex=r"^rmp-complete/(?P<pk>\d+)/$",

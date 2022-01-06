@@ -1,0 +1,107 @@
+{% load i18n %}
+{% load crispy_forms_tags %}
+<div class="jumbotron">
+  <div class="container">
+    <h1 style="text-align: center;"><u>{% trans "POTENTIAL NEW MEMBER BILL OF RIGHTS" %}</u>
+    <br><i>Adopted by the Executive Council on December 20, 2021</i></h1>
+  </div>
+</div>
+<h3>Potential New Members of Theta Tau have the right to:</h3>
+<p >
+<ol style="padding-left: 2em;">
+  <li>
+    An education. Theta Tau supports our student members' objective to receive an education from
+    their host institution and will ensure that the new member education process does not impede
+    that objective.
+  </li>
+  <li>
+    Be treated with respect and as an individual.
+  </li>
+  <li>
+    A potential new member education process that is free from mental, emotional or physical
+    abuse or harm.
+  </li>
+  <li>
+    A new member education process that does not violate the values of Theta Tau, or those of the
+    host institution, or violate any local, state, or federal laws.
+  </li>
+  <li>
+    A new member education process that respects and maintains members’ dignity.
+  </li>
+  <li>
+    A new member education process that does not require you to participate in activities that
+violate host institution policies or local, state or federal law.
+  </li>
+    Ask appropriate questions and receive true, objective answers.
+  <li>
+    Make their own choices, free from the influence of others.
+  </li>
+  <li>
+    Have and express opinions, without fear of retribution.
+  </li>
+  <li>
+    Understand the financial, academic and operational commitments that they are making by
+joining Theta Tau.
+  </li>
+</ol>
+<p><b>This list should not be considered exhaustive.</b></p>
+
+<h3>REPORTING STRUCTURES</h3>
+<p>If you feel like your rights have been violated, or you are uncomfortable with something happening in
+  your Chapter, we urge you to reach out to any of the resources below:</p>
+<p><b>Your Regional Directors</b>
+  are the Executive Council’s representatives in your region of the country.<br>
+  They are:
+  <ul>
+  {% for user in regionaldirectors %}
+    <li>{{ user.name }}, {{ user.email }}, {{ user.phone_number }}</li>
+  {% endfor %}
+    <li>Region email: {{ object.email }}</li>
+</ul>
+</p>
+<p><b>The Central Office</b>
+  is the headquarters of the Theta Tau Fraternity. You can call and speak to a member
+  of staff between 9am and 5pm Eastern time, or send an email to
+  <a href="mailto:central.office@thetatau.org">
+    central.office@thetatau.org</a></p>
+<p><b>The Hazing Reporting Hotline (<a href="tel:800-748-5948">800-748-5948</a>)</b> is a resource to report hazing or any other violation of
+Fraternal law, including Theta Tau’s Constitution and the Policies and Procedures Manual. It is a
+voicemail where your report, which can be anonymous, will be received by a member of staff and
+  investigated.</p>
+
+<h3>FINANCIAL INFORMATION</h3>
+<p>Each member of Theta Tau is responsible for certain financial obligations. They are laid out in
+  <a href="https://drive.google.com/file/d/10sj6cF0dfOU9BgjWSDtlx1R_KZ2dw1xR" target="_blank">
+    this document.</a>
+</p>
+
+<h3>EXAMPLES OF HAZING</h3>
+<p>We realize (and hope) that most of you have never been exposed to hazing before and may not have a
+clear understanding of what constitutes hazing. The following list contains examples of hazing our staff
+  and volunteers have seen within the Greek Community. <br><b>This list should not be considered exhaustive.</b></p>
+<ol style="padding-left: 2em;">
+  <li>
+    Verbal quizzes on the material from the pledge test.
+  </li>
+  <li>
+    Requiring potential new members to memorize biographical information on the members of a
+chapter.
+  </li>
+  <li>
+    Requiring, encouraging or coercing potential new members to do personal favors for initiated
+members.
+  </li>
+  <li>
+    Involving pledges in the cleaning of the chapter house - potential new members should <b>never</b> be
+asked to clean a chapter house, or any other residence, even in cooperation with the initiated
+members.
+  </li>
+  <li>
+    Requiring, encouraging or conditioning continued membership on the carrying of any item that
+they might not ordinarily carry, such as a pledge manual or other fraternity item.
+  </li>
+  <li>
+    Requiring potential new members to address initiated members in a certain way or using certain
+language that goes beyond what a reasonable person would consider to be common courtesy.
+  </li>
+</ol>

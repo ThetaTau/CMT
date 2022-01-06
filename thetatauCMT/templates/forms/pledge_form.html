@@ -49,6 +49,14 @@ $("#id_user-school_name").change(function () {
           $("#id_user-major").html(data);  // replace the contents of the major input with the data that came from the server
         }
       });
+    var url = "{% url 'forms:bill_of_rights' 999 %}";  // get the url of the `load_majors` view
+    url = url.replace(999, chapterId);
+    $.ajax({                       // initialize an AJAX request
+      url: url,                    // set the url of the request
+      success: function (data) {   // `data` is the return of the view function
+        $("#bill").html(data);  // replace the contents of the input with the data that came from the server
+      }
+    });
     });
   $(document).ready(function() {
     $('#div_id_pledge-other_college').hide();

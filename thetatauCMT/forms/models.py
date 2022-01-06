@@ -642,6 +642,8 @@ class Pledge(TimeStampedModel):
         """My answers to these questions are my honest and sincere convictions."""
     )
     honest = models.BooleanField(verbose_honest, choices=BOOL_CHOICES, default=False)
+    verbose_bill = _("I understand and accept the potential new member bill of rights.")
+    bill = models.BooleanField(verbose_bill, choices=BOOL_CHOICES, default=False)
 
 
 def get_premature_alumn_upload_path(instance, filename):
@@ -911,6 +913,17 @@ class InitiationProcess(Process):
                 late_fee_count, linenumber_count, name="I1B", client=client
             )
             invoice.Line.append(line)
+        badge_guard_count = Counter(
+            self.initiations.values_list("guard__code", flat=True)
+        ) + Counter(self.initiations.values_list("badge__code", flat=True))
+        for badge_guard_code, count in badge_guard_count.items():
+            if badge_guard_code == "None":
+                continue
+            line = create_line(
+                count, linenumber_count, name=badge_guard_code, client=client
+            )
+            invoice.Line.append(line)
+            linenumber_count += 1
         memo = "Initiated: " + ", ".join(
             self.initiations.values_list("user__name", flat=True)
         )
@@ -950,8 +963,8 @@ class InitiationProcess(Process):
         badge_header = [
             "Chapter Name",
             "Chapter Address",
-            "Chapter Phone",
             "Chapter Contact",
+            "Chapter Phone",
             "Chapter Description",
             "Roll Number",
             "Education Class of",
@@ -965,8 +978,8 @@ class InitiationProcess(Process):
             "Last Name",
             "Chapter Name",
             "Chapter Address",
-            "Chapter Phone",
             "Chapter Contact",
+            "Chapter Phone",
             "Education Class of",
             "Initiation Date",
         ]
