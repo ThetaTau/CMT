@@ -14,6 +14,7 @@
     <link href="{% static 'css/project.css' %}" rel="stylesheet">
       {{ forms.gear|crispy }}
     <h4 id="picture">Add pictures:</h4>
+    <p>For each picture, you must include name of person who took the photo as well as a brief description.</p>
     {{ forms.picture.media }}
   <link href="{% static 'css/project.css' %}" rel="stylesheet">
       {% csrf_token %}
