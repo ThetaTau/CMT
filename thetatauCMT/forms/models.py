@@ -673,7 +673,9 @@ class Pledge(TimeStampedModel):
         """My answers to these questions are my honest and sincere convictions."""
     )
     honest = models.BooleanField(verbose_honest, choices=BOOL_CHOICES, default=False)
-    verbose_bill = _("I understand and accept the potential new member bill of rights.")
+    verbose_bill = _(
+        "I understand and have read the potential new member bill of rights."
+    )
     bill = models.BooleanField(verbose_bill, choices=BOOL_CHOICES, default=False)
 
 
