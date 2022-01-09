@@ -117,6 +117,7 @@ class PledgeProgramTable(tables.Table):
     status = tables.Column(verbose_name="Program Status")
     approval = tables.Column()
     chapter_name = tables.Column(verbose_name="Chapter")
+    term = tables.LinkColumn("forms:pledge_program_detail", args=[A("pk")])
 
     class Meta:
         model = PledgeProgram
@@ -257,11 +258,18 @@ class PledgeProgramStatusTable(tables.Table):
     status = tables.Column()
     approved = tables.Column()
     created = tables.DateColumn()
+    term = tables.LinkColumn("forms:pledge_program_detail", args=[A("pk")])
 
     class Meta:
         attrs = {
             "class": "table table-striped table-bordered",
         }
+
+    def render_term(self, value):
+        if value:
+            term, year = value.split(" ")
+            return f"{PledgeProgram.TERMS.get_value(term)} {year}"
+        return value
 
 
 class SignTable(tables.Table):

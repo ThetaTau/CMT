@@ -1151,6 +1151,7 @@ class PledgeProgramListView(
             "status",
             "term",
             "manual",
+            pk=F("process__pk"),
             chapter_name=F("chapter__name"),
             region=F("chapter__region__name"),
             school=F("chapter__school"),
@@ -1186,6 +1187,7 @@ class PledgeProgramListView(
                     "weeks": 0,
                     "weeks_left": 0,
                     "approval": "not_submitted",
+                    "pk": None,
                 }
                 for chapter in missing_chapters
             ]
@@ -2700,6 +2702,10 @@ class ReturnStudentCreateView(
         return context
 
 
+class PledgeProgramProcessDetailView(LoginRequiredMixin, DetailView):
+    model = PledgeProgramProcess
+
+
 class PledgeProgramProcessCreateView(
     LoginRequiredMixin, OfficerRequiredMixin, CreateProcessView
 ):
@@ -2787,6 +2793,8 @@ class PledgeProgramProcessCreateView(
                     "status": status,
                     "created": process.created,
                     "approved": approved,
+                    "term": f"{process.program.term} {process.program.year}",
+                    "pk": process.pk,
                 }
             )
         submitted = False
