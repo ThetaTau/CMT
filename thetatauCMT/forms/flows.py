@@ -271,6 +271,12 @@ class InitiationProcessFlow(Flow):
     invoice_payment_email = flow.Handler(
         this.send_invoice_payment_email,
         task_title=_("Send Initiation Process Complete Emails"),
+    ).Next(this.shingle_order_delay)
+
+    shingle_order_delay = flow.Function(
+        this.placeholder,
+        task_loader=lambda flow_task, task: task,
+        task_title=_("Wait shingle order"),
     ).Next(this.complete)
 
     complete = flow.End(
@@ -365,13 +371,33 @@ class InitiationProcessFlow(Flow):
             f"See attached documents to file.",
             attachments=[badge_mail],
         ).send()
-        GenericEmail(
-            emails=["goosecreekpublishing@yahoo.com"],
-            subject=f"Theta Tau Shingle Order {activation.process.invoice}",
-            message=f"Shingle order for {activation.process.chapter},"
-            f" Invoice # {activation.process.invoice} See attached documents.",
-            attachments=[shingle_mail],
-        ).send()
+
+    @method_decorator(flow.flow_func)
+    def placeholder(self, activation, task):
+        activation.prepare()
+        activation.done()
+        return activation
+
+    @classmethod
+    def shingle_orders(cls, processes):
+        chapters, invoices, attachments = [], [], []
+        for process in processes:
+            process_init = process.initiationprocess
+            _, shingle_mail = process_init.generate_badge_shingle_order()
+            attachments.append(shingle_mail)
+            chapters.append(process_init.chapter.name)
+            invoices.append(str(process_init.invoice))
+            cls.shingle_order_delay.run(process.get_task(cls.shingle_order_delay))
+        if chapters:
+            date_str = datetime.datetime.today().strftime("%Y%m%d")
+            print("Sending shingle orders for", chapters)
+            GenericEmail(
+                emails=["goosecreekpublishing@yahoo.com"],
+                subject=f"Theta Tau Shingle Order {date_str}",
+                message=f"Shingle order for {', '.join(chapters)},"
+                f" Invoice numbers {', '.join(invoices)} See attached documents.",
+                attachments=attachments,
+            ).send()
 
 
 @frontend.register
