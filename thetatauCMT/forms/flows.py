@@ -1299,7 +1299,7 @@ class PledgeProgramProcessFlow(Flow):
         flow.Switch()
         .Case(this.reject_fix, cond=lambda act: act.process.approval == "denied")
         .Case(this.reject_fix, cond=lambda act: act.process.approval == "revisions")
-        .Case(this.end, cond=lambda act: act.process.approval == "approved")
+        .Case(this.approve, cond=lambda act: act.process.approval == "approved")
         .Default(this.end)
     )
 
@@ -1307,6 +1307,11 @@ class PledgeProgramProcessFlow(Flow):
         this.reject_fix_func,
         task_title=_("Reject Fix Pledge Program"),
     ).Next(this.end_reject)
+
+    approve = flow.Handler(
+        this.approve_func,
+        task_title=_("Approve Pledge Program"),
+    ).Next(this.end)
 
     end_reject = flow.End(
         task_title=_("Pledge Program Process Rejected"),
@@ -1354,6 +1359,26 @@ class PledgeProgramProcessFlow(Flow):
                 "This is a notification that the Central Office has "
                 "rejected the pledge program for you chapter."
                 "Please review the notes and resubmit ASAP."
+            ),
+            fields=["approval", "approval_comments"],
+            attachments=[],
+            email_officers=True,
+            extra_emails={
+                model_obj.chapter.region.email,
+            },
+            direct_user=activation.process.created_by,
+        ).send()
+
+    def approve_func(self, activation):
+        model_obj = activation.process.program
+        EmailProcessUpdate(
+            activation,
+            complete_step="Pledge Program Reviewed",
+            next_step="Complete",
+            state="Chapter Pledge Program Approved",
+            message=(
+                "This is a notification that the Central Office has "
+                "approved the pledge program for you chapter."
             ),
             fields=["approval", "approval_comments"],
             attachments=[],
