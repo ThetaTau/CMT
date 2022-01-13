@@ -179,8 +179,10 @@ class InitDeplSelectView(LoginRequiredMixin, OfficerRequiredMixin, FormSetView):
         initiation_data = []
         for process in processes:
             active_task = process.active_tasks().first()
+            status = active_task
             if active_task:
-                status = active_task.flow_task.task_description
+                if active_task.flow_task:
+                    status = active_task.flow_task.task_description
             else:
                 status = "Initiation Process Complete"
             members = ", ".join(
