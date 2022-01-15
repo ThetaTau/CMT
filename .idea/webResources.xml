@@ -6,6 +6,11 @@
         <entryData>
           <resourceRoots>
             <path value="file://$PROJECT_DIR$/thetatauCMT/static" />
+            <path value="file://$PROJECT_DIR$/staticfiles" />
+            <path value="file://$PROJECT_DIR$/secrets" />
+            <path value="file://$PROJECT_DIR$/requirements" />
+            <path value="file://$PROJECT_DIR$/compose" />
+            <path value="file://$PROJECT_DIR$/.envs" />
           </resourceRoots>
         </entryData>
       </entry>
