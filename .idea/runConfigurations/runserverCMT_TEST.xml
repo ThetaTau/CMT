@@ -32,7 +32,7 @@
     <option name="launchJavascriptDebuger" value="false" />
     <option name="port" value="8000" />
     <option name="host" value="localhost" />
-    <option name="additionalOptions" value="" />
+    <option name="additionalOptions" value="--noreload" />
     <option name="browserUrl" value="http://localhost:8000/" />
     <option name="runTestServer" value="false" />
     <option name="runNoReload" value="false" />
