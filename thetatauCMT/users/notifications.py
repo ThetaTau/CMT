@@ -160,25 +160,15 @@ class NewOfficers(EmailNotification):  # extend from EmailNotification for email
 class OfficerUpdateReminder(
     EmailNotification
 ):  # extend from EmailNotification for emails
-    template_name = "update_reminder"  # name of template, without extension
-    """
-    Need to change to unique template for this program
-    """
+    render_types = ["html"]
+    template_name = "officer_update_reminder"  # name of template, without extension
     subject = "Officer update reminder"  # subject of email
 
     def __init__(
         self, chapter, emails, officers_to_update
     ):  # optionally customize the initialization
-        self.context = {"user": chapter}  # set context for the template rendering
-        format_officers = (
-            ""  # used to add all positions in a type string to use in the html
-        )
         emails = {email for email in emails if email}
-        for positions in officers_to_update:
-            if positions == officers_to_update[-1]:
-                format_officers = format_officers + positions
-            else:
-                format_officers = format_officers + positions + ", "
+        format_officers = ", ".join(officers_to_update)
         self.to_emails = emails
         self.cc = []
         self.reply_to = [
@@ -197,8 +187,10 @@ class OfficerUpdateReminder(
 
     @staticmethod
     def get_demo_args():  # define a static method to return list of args needed to initialize class for testing
+        chapter = Chapter.objects.order_by("?")[0]
+        emails, officers_to_update = chapter.get_about_expired_coucil()
         return [
-            Chapter.objects.order_by("?")[0],
-            "HLJ@gmail.com",
-            ["Vice Regent", "Regent", "Scribe"],
+            chapter,
+            emails,
+            officers_to_update,
         ]
