@@ -626,7 +626,7 @@ class UserAlterView(LoginRequiredMixin, NatOfficerRequiredMixin, FormView):
         user = self.request.user
         form.instance.user = user
         try:
-            instance = UserAlter.objects.get(user=user)
+            instance = UserAlter.objects.filter(user=user).first()
         except UserAlter.DoesNotExist:
             instance = None
         if self.request.POST["alter-action"] == "Reset":
