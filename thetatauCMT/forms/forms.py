@@ -544,18 +544,32 @@ class RiskManagementForm(forms.ModelForm):
 
 class PledgeProgramForm(forms.ModelForm):
     date_complete = forms.DateField(
-        label=PledgeProgram.verbose_complete,
+        label="When do you anticipate completing new member education?",
         widget=DatePicker(
             options={"format": "M/DD/YYYY"},
             attrs={"autocomplete": "off"},
         ),
     )
     date_initiation = forms.DateField(
-        label=PledgeProgram.verbose_initiation,
+        label="When do you plan to initiate your pledges?",
+        help_text="Best estimated date is sufficient.",
         widget=DatePicker(
             options={"format": "M/DD/YYYY"},
             attrs={"autocomplete": "off"},
         ),
+    )
+    other_manual = forms.FileField(
+        label="Other/Changes",
+        required=False,
+        help_text=(
+            "If you are following a different program upload that full program. "
+            "If you have made any changes to official program, "
+            "upload ONLY THOSE CHANGES"
+        ),
+    )
+    schedule = forms.FileField(
+        help_text="Please upload a schedule of the pledge program process.",
+        required=True,
     )
 
     class Meta:
@@ -563,10 +577,11 @@ class PledgeProgramForm(forms.ModelForm):
         fields = [
             "remote",
             "weeks",
-            "weeks_left",
-            "status",
             "date_complete",
             "date_initiation",
+            "manual",
+            "other_manual",
+            "schedule",
         ]
 
     def clean_other_manual(self):

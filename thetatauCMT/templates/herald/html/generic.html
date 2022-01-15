@@ -1,0 +1,14 @@
+{% extends "herald/html/base_email.html" %}
+{% block title %}{{ subject }}{% endblock %}
+{% block content %}
+<br>
+{{ addressee }},
+<p>{{ message | safe }}</p>
+{% if file_names %}
+  {% for file_name in file_names %}
+    <p><strong>Attached is a copy of "{{ file_name }}".</strong></p>
+  {% endfor %}
+{% endif %}
+<p>Please review the {% if file_names %}document(s) and {% endif %}above information and reach out with any questions/concerns.</p>
+<p>In H&T,<br>Chapter Management Tool</p>
+{% endblock content %}

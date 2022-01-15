@@ -16,6 +16,7 @@ from django.utils.translation import ugettext_lazy as _
 from django.utils.text import slugify
 from quickbooks.objects.customer import Customer
 from quickbooks.objects.attachable import Attachable, AttachableRef
+from herald.models import SentNotification
 from core.finances import get_quickbooks_client, invoice_search, create_line
 from core.models import (
     TODAY_END,
@@ -305,6 +306,19 @@ class Chapter(models.Model):
             suffix = "Candidate Chapter"
         return f"{self.name} {suffix}"
 
+    @classmethod
+    def chapter_choices(cls):
+        chapters = []
+        try:
+            chapters = [
+                (chapter.slug, chapter.name.title()) for chapter in cls.objects.all()
+            ]
+        except ProgrammingError:
+            # Likely the database hasn't been setup yet?
+            warnings.warn("Could not find chapter relation")
+        chapters.sort(key=lambda tup: tup[1])
+        return chapters
+
     def get_actives_for_date(self, date):
         # Do not annotate, need the queryset not a list
         return self.members.filter(
@@ -506,7 +520,8 @@ class Chapter(models.Model):
         scribe = officers.filter(role="scribe").first()
         vice = officers.filter(role="vice regent").first()
         treasurer = officers.filter(role="treasurer").first()
-        return [regent, scribe, vice, treasurer]
+        corsec = officers.filter(role="corresponding secretary").first()
+        return [regent, scribe, vice, treasurer, corsec]
 
     def get_generic_chapter_emails(self):
         return [
@@ -517,6 +532,155 @@ class Chapter(models.Model):
             self.email_corresponding_secretary,
             self.email,
         ]
+
+    def get_current_and_future(self):
+        # list all officers that currently hold an executive board position
+        # current and future
+        officers = self.members.filter(
+            roles__role__in=CHAPTER_OFFICER,
+            roles__end__gte=TODAY_END,
+        ).prefetch_related("roles")
+        current_and_future_regent = officers.filter(roles__role="regent")
+        current_and_future_scribe = officers.filter(roles__role="scribe")
+        current_and_future_vice = officers.filter(roles__role="vice regent")
+        current_and_future_treasurer = officers.filter(roles__role="treasurer")
+        current_and_future_corsec = officers.filter(
+            roles__role="corresponding secretary"
+        )
+        return (
+            current_and_future_regent,
+            current_and_future_corsec,
+            current_and_future_scribe,
+            current_and_future_treasurer,
+            current_and_future_vice,
+        )
+
+    def get_previous_officers(self):
+        # list the most recent officer that held position
+        previous_officers = self.members.filter(
+            roles__role__in=CHAPTER_OFFICER,
+            roles__end__gte=TODAY_END
+            - timedelta(30 * 8),  # they ended their role in the last 8 months
+        ).prefetch_related("roles")
+        past_regent = (
+            previous_officers.filter(roles__role="regent")
+            .order_by("roles__end")
+            .first()
+        )
+        past_scribe = (
+            previous_officers.filter(roles__role="scribe")
+            .order_by("roles__end")
+            .first()
+        )
+        past_vice = (
+            previous_officers.filter(roles__role="vice regent")
+            .order_by("roles__end")
+            .first()
+        )
+        past_treasurer = (
+            previous_officers.filter(roles__role="treasurer")
+            .order_by("roles__end")
+            .first()
+        )
+        past_corsec = (
+            previous_officers.filter(roles__role="corresponding secretary")
+            .order_by("roles__end")
+            .first()
+        )
+
+        return past_regent, past_corsec, past_scribe, past_treasurer, past_vice
+
+    def get_about_expired_coucil(self):
+        officers_to_update, members_to_notify, emails = [], [], []
+        # officer_to_update is a list of all officers that need to be updated on the CMT
+        # members_to_notify is a list of members that currently hold and/or held within the last eight months
+        # the officer position that needs to be updated
+        (
+            past_regent,
+            past_corsec,
+            past_scribe,
+            past_treasurer,
+            past_vice,
+        ) = self.get_previous_officers()
+        # gathers past officers by position
+        (
+            current_and_future_regent,
+            current_and_future_corsec,
+            current_and_future_scribe,
+            current_and_future_treasurer,
+            current_and_future_vice,
+        ) = self.get_current_and_future()
+        # gathers current and future officers by position
+
+        # dictionary that contains all the chapter officer positions as a key with values of type tuple
+        current_past = {
+            "regent": (
+                current_and_future_regent,
+                past_regent,
+            ),
+            "vice regent": (
+                current_and_future_vice,
+                past_vice,
+            ),
+            "corresponding secretary": (
+                current_and_future_corsec,
+                past_corsec,
+            ),
+            "scribe": (
+                current_and_future_scribe,
+                past_scribe,
+            ),
+            "treasurer": (
+                current_and_future_treasurer,
+                past_treasurer,
+            ),
+        }
+
+        # position is the key of the dictionary that contains chapter officer positions while
+        # info is the value that contains the tuple
+        for position, info in current_past.items():
+            current_and_future, past = info
+            # current_and_future holds all the members that currenty hold a specific officer position
+            # past holds the member that most recently held the officer position
+            # we want to get officers @ 30, @14 and then every day < 5 Urgent
+            if current_and_future:
+                future_30_days = current_and_future.filter(
+                    roles__end__gte=TODAY_END + timedelta(30),
+                )
+                # future holds the officer who is set to expire after 30 days
+                if not future_30_days:
+                    future_5_days = current_and_future.filter(
+                        roles__end__gte=TODAY_END + timedelta(5),
+                    )
+                    current = current_and_future.first()
+                    already_notified = SentNotification.objects.filter(
+                        notification_class="users.notifications.OfficerUpdateReminder",
+                        recipients__icontains=current.email,
+                        date_sent__gte=TODAY_END - timedelta(7),
+                    )
+                    if not future_5_days or not already_notified:
+                        # only notify every 7 days or every day within 5
+                        # current hold the officer who is set to expire within the
+                        print(
+                            f"    {position} Not notified or 5 days, {already_notified=}"
+                        )
+                        members_to_notify.append(current)
+                    # There could be other positions to notify,
+                    # this position still needs to be updated just not notify the members
+                    officers_to_update.append(position)
+            else:
+                print(f"    {position} No current or future")
+                officers_to_update.append(position)
+                if past:
+                    members_to_notify.append(past)
+        if officers_to_update:
+            # Start with all chapter emails and generic emails
+            emails = [email for email in self.get_generic_chapter_emails() if email]
+            emails.extend([user.email for user in members_to_notify if user])
+            print("    Emails: ", emails)
+            print(f"    {officers_to_update=}")
+            print(f"    {members_to_notify=}")
+        return emails, officers_to_update
 
     def next_badge_number(self):
         # Jan 2019 highest badge number was Mu with 1754

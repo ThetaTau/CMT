@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+{% load static %}
+
+{% block title %}Gear Article: {{ object.name }}{% endblock %}
+
+{% block content %}
+<div class="container">
+
+  <div class="row">
+    <div class="col-sm-12">
+
+      <h2>Title: {{ object.submission.name | title }}</h2>
+    <table>
+      <tr>
+        <th>
+          Chapter
+        </th>
+        <td>
+          {{ object.submission.chapter   }}
+        </td>
+      </tr>
+      <tr>
+        <th>
+          School
+        </th>
+        <td>
+          {{ object.submission.chapter.school }}
+        </td>
+      </tr>
+      <tr>
+        <th>
+          Submission Date
+        </th>
+        <td>
+          {{ object.submission.date }}
+        </td>
+      </tr>
+      <tr>
+        <th>
+          Submitted by
+        </th>
+        <td>
+          {{ object.submission.user }}
+        </td>
+      </tr>
+      <tr>
+        <th>
+          Authors
+        </th>
+        <td>
+          <ul>
+          {% for author in object.authors.all %}
+            <li>{{ author }}, {{ author.graduation_year }}</li>
+          {% endfor %}
+          </ul>
+        </td>
+      </tr>
+      <tr>
+        <th>
+          Attachments
+        </th>
+        <td>
+          {{ object.submission.file }}
+        </td>
+      </tr>
+      <tr>
+        <th colspan="2">Article</th>
+      </tr>
+      <tr>
+        <td colspan="2">{{ object.article | safe }}</td>
+      </tr>
+      <tr>
+        <th colspan="2">Pictures</th>
+      </tr>
+      <tr>
+        <td colspan="2">
+          {% for picture in object.pictures.all %}
+            {% if picture.image.name %}
+            <li>
+              <a href="{{ picture.image.url }}" target="_blank">
+                <img src="{{ picture.image.url }}" width="150" height="150"/>
+              </a>
+              <ul>
+                <li>{{ picture.image.name }}</li>
+                <li>{{ picture.description }}</li>
+                <li>
+                  {{ picture.image.width }}px x {{ picture.image.height }}px & {{ picture.image.size | filesizeformat }}
+                </li>
+              </ul>
+            </li>
+            {% endif %}
+            <br>
+          {% endfor %}
+        </td>
+      </tr>
+      <tr>
+        <td colspan="2">
+          <form class="form-horizontal" method="post" action="{% url 'submissions:gear_detail' object.id %}">
+            {% csrf_token %}
+            {{ form|crispy }}
+            <div class="control-group">
+              <div class="controls">
+                <button type="submit" class="btn">Save</button>
+              </div>
+            </div>
+          </form>
+        </td>
+      </tr>
+    </table>
+    </div>
+  </div>
+</div>
+{% endblock content %}
+

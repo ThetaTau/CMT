@@ -16,7 +16,7 @@ class Migration(migrations.Migration):
             field=models.BooleanField(
                 choices=[(True, "Yes"), (False, "No")],
                 default=False,
-                verbose_name="I understand and accept the potential new member bill of rights.",
+                verbose_name="I understand and have read the potential new member bill of rights.",
             ),
         ),
     ]

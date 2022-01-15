@@ -75,7 +75,13 @@ class RDMonthly(EmailNotification):  # extend from EmailNotification for emails
             if not chapter.active:
                 continue
             officers = chapter.get_current_officers_council_specific()
-            officer_order = {0: "Regent", 1: "Scribe", 2: "Vice", 3: "Treasurer"}
+            officer_order = {
+                0: "Regent",
+                1: "Scribe",
+                2: "Vice",
+                3: "Treasurer",
+                4: "Corresponding Secretary",
+            }
             missing = ", ".join(
                 [
                     officer_order[ind]
@@ -147,4 +153,44 @@ class NewOfficers(EmailNotification):  # extend from EmailNotification for email
                 User.objects.order_by("?")[0],
                 User.objects.order_by("?")[0],
             ]
+        ]
+
+
+@registry.register_decorator()
+class OfficerUpdateReminder(
+    EmailNotification
+):  # extend from EmailNotification for emails
+    render_types = ["html"]
+    template_name = "officer_update_reminder"  # name of template, without extension
+    subject = "Officer update reminder"  # subject of email
+
+    def __init__(
+        self, chapter, emails, officers_to_update
+    ):  # optionally customize the initialization
+        emails = {email for email in emails if email}
+        format_officers = ", ".join(officers_to_update)
+        self.to_emails = emails
+        self.cc = []
+        self.reply_to = [
+            "cmt@thetatau.org",
+        ]
+        if not chapter.candidate_chapter:
+            chapter_name = chapter.name + " Chapter"
+        else:
+            chapter_name = chapter.name
+        self.subject = f"CMT Officer update {chapter_name}"
+        self.context = {
+            "chapter": chapter_name,
+            "officers": format_officers,
+            "host": settings.CURRENT_URL,
+        }
+
+    @staticmethod
+    def get_demo_args():  # define a static method to return list of args needed to initialize class for testing
+        chapter = Chapter.objects.order_by("?")[0]
+        emails, officers_to_update = chapter.get_about_expired_coucil()
+        return [
+            chapter,
+            emails,
+            officers_to_update,
         ]

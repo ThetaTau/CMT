@@ -1,6 +1,6 @@
 import datetime
 from django.contrib.auth.models import AbstractUser, Group
-from django.db import models
+from django.db import models, IntegrityError
 from django.db.models.query import QuerySet
 from django.contrib.auth.models import UserManager
 from django.urls import reverse
@@ -552,6 +552,9 @@ class UserStatusChange(StartEndModel, TimeStampedModel):
         ("resigned", "resigned"),
         ("expelled", "expelled"),
         ("friend", "friend"),
+        ("deceased", "deceased"),
+        ("suspended", "suspended"),
+        ("probation", "probation"),
     ]
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="status"
@@ -581,9 +584,17 @@ class UserRoleChange(StartEndModel, TimeStampedModel):
         current_role = self.user.get_current_role()
         if current_role:
             if self.user not in off_group.user_set.all():
-                off_group.user_set.add(self.user)
+                try:
+                    off_group.user_set.add(self.user)
+                except IntegrityError as e:
+                    if "unique constraint" in e.message:
+                        pass
             if current_role.role in NAT_OFFICERS:
-                nat_group.user_set.add(self.user)
+                try:
+                    nat_group.user_set.add(self.user)
+                except IntegrityError as e:
+                    if "unique constraint" in e.message:
+                        pass
         else:
             self.user.groups.remove(off_group)
             self.user.groups.remove(nat_group)

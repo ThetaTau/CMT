@@ -15,7 +15,7 @@ class ReportAdminSync(ReportAdmin):
     def sync_mail(self, model_object):
         return mark_safe(
             f'<a href="{reverse("users:sync_email_provider", kwargs={"report_id": model_object.id})}"'
-            f" onclick=\"alert('Start sync with email provider, this may take some time...');\">"
+            f" onclick=\"alert('Start sync with email provider, limit is 2000 every 10 seconds, this may take some time...');\">"
             '<img style="width: 26px; margin: -6px" src="'
             f'{getattr(settings, "STATIC_URL", "/static/")}report_builder/img/reorder.svg"/></a>'
         )

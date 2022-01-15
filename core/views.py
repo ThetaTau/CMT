@@ -133,9 +133,11 @@ class TypeFieldFilteredChapterAdd(FormMixin):
             form.initial = {"type": score_obj[0].pk}
             form.fields["type"].queryset = score_obj
         else:
-            form.fields["type"].queryset = ScoreType.objects.filter(
-                type=self.score_type
-            ).all()
+            form.fields["type"].queryset = (
+                ScoreType.objects.filter(type=self.score_type)
+                .all()
+                .exclude(slug="article")
+            )
         return form
 
     def form_valid(self, form):

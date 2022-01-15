@@ -39,14 +39,14 @@ urlpatterns = [
         kwargs={"alt_form": True},
     ),
     url(
-        regex=r"^pledgeprogram/$",
-        view=views.PledgeProgramFormView.as_view(),
-        name="pledge_program",
-    ),
-    url(
         regex=r"^pledge-program-list/$",
         view=views.PledgeProgramListView.as_view(),
         name="pledge_program_list",
+    ),
+    path(
+        "pledgeprogram-detail/<int:pk>/",
+        view=views.PledgeProgramProcessDetailView.as_view(),
+        name="pledge_program_detail",
     ),
     url(regex=r"^initiation/$", view=views.InitiationView.as_view(), name="initiation"),
     url(
@@ -118,6 +118,13 @@ urlpatterns = [
             pattern_name="viewflow:forms:disciplinaryprocess:start", permanent=True
         ),
         name="discipline",
+    ),
+    url(
+        r"^pledgeprogram/$",
+        RedirectView.as_view(
+            pattern_name="viewflow:forms:pledgeprogramprocess:start", permanent=True
+        ),
+        name="pledge_program",
     ),
     url(
         regex=r"^discipline/outcome-pdf/(?P<pk>\d+)/$",

@@ -140,6 +140,11 @@ urlpatterns = [
         RedirectView.as_view(pattern_name="viewflow:forms:osm:start", permanent=True),
         name="osmform",
     ),
+    url(
+        r"^gear/$",
+        RedirectView.as_view(pattern_name="submissions:gear", permanent=True),
+        name="gear",
+    ),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 if settings.DEBUG:

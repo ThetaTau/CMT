@@ -354,7 +354,7 @@ class EmailProcessUpdate(EmailNotification):
         emails = set()
         user = direct_user
         obj = None
-        if hasattr(model_obj, "process"):
+        if hasattr(model_obj, "process") and hasattr(model_obj, "flow_class"):
             process_title = model_obj.flow_class.process_title
             model_obj = model_obj.process
         if hasattr(model_obj, "chapter"):
@@ -439,11 +439,12 @@ class EmailProcessUpdate(EmailNotification):
             "state": state,
         }
         # https://github.com/worthwhile/django-herald#email-attachments
+        self.attachments = []
         for file in files:
             file.seek(0)
-            self.attachments = [
+            self.attachments.append(
                 (file.name, file.read(), None),
-            ]
+            )
 
     @staticmethod
     def get_demo_args():  # define a static method to return list of args needed to initialize class for testing
@@ -569,18 +570,26 @@ class CentralOfficeGenericEmail(EmailNotification):
         self.subject = "[CMT] Record Message"
         file_names = []
         if attachments:
-            file_names = [file.name for file in attachments]
+            for file in attachments:
+                if hasattr(file, "name"):
+                    file_names.append(file.name)
+                elif hasattr(file, "get_filename"):
+                    file_names.append(file.get_filename())
         self.context = {
             "file_names": file_names,
             "host": settings.CURRENT_URL,
             "message": message,
         }
         # https://github.com/worthwhile/django-herald#email-attachments
+        self.attachments = []
         for file in attachments:
-            file.seek(0)
-            self.attachments = [
-                (file.name, file.read(), None),
-            ]
+            if hasattr(file, "seek"):
+                file.seek(0)
+                self.attachments.append(
+                    (file.name, file.read(), None),
+                )
+            elif hasattr(file, "get_content_type"):
+                self.attachments.append(file)
 
     @staticmethod
     def get_demo_args():

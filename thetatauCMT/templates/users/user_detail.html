@@ -59,6 +59,39 @@
     {{ forms.user|crispy }}
     <button class="btn btn-primary" name='action' value='user' type="submit">Update Member Information</button>
 </form>
+  <h3 id="demo">Update Member Demographics:</h3>
+  <h4>Why are we asking for these data?</h4>
+  <p>Theta Tau is committed to diversity, equity,
+  and inclusion. As part of that commitment,
+  we want to understand who our members are so that we
+  can gauge how diverse we are.</p>
+  <h4>What will Theta Tau do with these data?</h4>
+  <p>Our target right now is for our chapters to be at
+  least as diverse (in terms of gender and race
+  identities) as the population of engineers that they
+  draw from. These data will be used to inform chapters
+  of how they compare. These data will also be used to
+  study regional and national trends.</p>
+  <p>Theta Tau will not associate these data with
+  individual member records; e.g.,
+  when a member is looked up in the database,
+  it will not say “John Doe, black gay male.”
+  These data will only be used and reviewed in the aggregate.
+  These data will also never be broken down to the
+  point where a casual observer would be able to
+  identify individual members from the data
+  (we will never share data about an individual pledge
+  class, or a very small chapter.)</p>
+  <p>We will never use these data to target
+  communications or programming advertisements to you.</p>
+  <p><b>Only you can see answers below, otherwise data is viewed in aggregate.</b></p>
+  <form class="demo" method="POST">
+    {% csrf_token %}
+    {{ forms.demo.management_form|crispy }}
+    {{ forms.demo.media }}
+    {{ forms.demo|crispy }}
+    <button class="btn btn-primary" name='action' value='demo' type="submit">Update Member Demographics</button>
+  </form>
 <br>
 <h4 id="member_gpaservice">Update Member GPA / Service Hours:</h4>
   <table>
@@ -163,4 +196,104 @@
 {% block javascript %}
 {{ block.super }}
 <script src="{% static 'js/dynamic_formset.js' %}"></script>
+<script type="text/javascript">
+  $(document).ready(function() {
+    var selected_values = $('input[name="gender"]:checked');
+    var set = false;
+    selected_values.each(function () {
+      if ($(this).val() === "not_listed") {
+        $("#div_id_gender_write").show();
+        set = true;
+      }
+    })
+    if (set === false) {
+      $("#div_id_gender_write").hide();
+    }
+    var selected_values = $('input[name="sexual"]:checked');
+    var set = false;
+    selected_values.each(function () {
+      if ($(this).val() === "not_listed") {
+        $("#div_id_sexual_write").show();
+        set = true;
+      }
+    })
+    if (set === false) {
+      $("#div_id_sexual_write").hide();
+    }
+    var selected_values = $('input[name="racial"]:checked');
+    var set = false;
+    selected_values.each(function () {
+      if ($(this).val() === "not_listed") {
+        $("#div_id_racial_write").show();
+        set = true;
+      }
+    })
+    if (set === false) {
+      $("#div_id_racial_write").hide();
+    }
+    var selected_values = $('input[name="ability"]:checked');
+    var set = false;
+    selected_values.each(function () {
+      if ($(this).val() === "not_listed") {
+        $("#div_id_ability_write").show();
+        set = true;
+      }
+    })
+    if (set === false) {
+      $("#div_id_ability_write").hide();
+    }
+    $('input[name="gender"]').on('change', function () {
+      var selected_values = $('input[name="gender"]:checked');
+      var set = false;
+      selected_values.each(function () {
+        if ($(this).val() === "not_listed") {
+          $("#div_id_gender_write").show();
+          set = true;
+        }
+      })
+      if (set === false) {
+        $("#div_id_gender_write").hide();
+      }
+    });
+    $('input[name="sexual"]').on('change', function () {
+      var selected_values = $('input[name="sexual"]:checked');
+      var set = false;
+      selected_values.each(function () {
+        if ($(this).val() === "not_listed") {
+          $("#div_id_sexual_write").show();
+          set = true;
+        }
+      })
+      if (set === false) {
+        $("#div_id_sexual_write").hide();
+      }
+    });
+    $('input[name="racial"]').on('change', function () {
+      var selected_values = $('input[name="racial"]:checked');
+      var set = false;
+      selected_values.each(function(){
+        if ($(this).val() === "not_listed") {
+          $("#div_id_racial_write").show();
+          set = true;
+        }
+      })
+      if (set === false){
+        $("#div_id_racial_write").hide();
+      }
+    });
+    $('input[name="ability"]').on('change', function () {
+      var selected_values = $('input[name="ability"]:checked');
+      var set = false;
+      selected_values.each(function () {
+        if ($(this).val() === "not_listed") {
+          $("#div_id_ability_write").show();
+          set = true;
+        }
+      })
+      if (set === false) {
+        $("#div_id_ability_write").hide();
+      }
+    });
+  });
+</script>
 {% endblock %}

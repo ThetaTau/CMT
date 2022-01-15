@@ -147,6 +147,9 @@ class PledgeProgram(YearTermModel, TimeStampedModel):
     other_manual = models.FileField(
         upload_to=get_pledge_program_upload_path, null=True, blank=True
     )
+    schedule = models.FileField(
+        upload_to=get_pledge_program_upload_path, null=True, blank=True
+    )
 
     @classmethod
     def signed_this_year(cls, chapter):
@@ -174,6 +177,34 @@ class PledgeProgram(YearTermModel, TimeStampedModel):
             term=YearTermModel.current_term(),
         ).first()
         return program
+
+
+class PledgeProgramProcess(Process):
+    class APPROVAL(EnumClass):
+        approved = ("approved", "Approved")
+        revisions = ("revisions", "Revisions needed")
+        denied = ("denied", "Denied")
+        not_reviewed = ("not_reviewed", "Not Reviewed")
+
+    approval = models.CharField(
+        verbose_name="Pledge program approval status",
+        max_length=20,
+        choices=[x.value for x in APPROVAL],
+        default="not_reviewed",
+    )
+    approval_comments = models.TextField(
+        _("If rejecting, please explain why."), blank=True
+    )
+    chapter = models.ForeignKey(
+        Chapter, on_delete=models.CASCADE, related_name="pledge_program_process"
+    )
+    program = models.ForeignKey(
+        PledgeProgram,
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True,
+        related_name="process",
+    )
 
 
 class Initiation(TimeStampedModel):
@@ -642,7 +673,9 @@ class Pledge(TimeStampedModel):
         """My answers to these questions are my honest and sincere convictions."""
     )
     honest = models.BooleanField(verbose_honest, choices=BOOL_CHOICES, default=False)
-    verbose_bill = _("I understand and accept the potential new member bill of rights.")
+    verbose_bill = _(
+        "I understand and have read the potential new member bill of rights."
+    )
     bill = models.BooleanField(verbose_bill, choices=BOOL_CHOICES, default=False)
 
 

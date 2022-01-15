@@ -8,11 +8,4 @@ If you need to correct anything, please respond to this email as soon as possibl
 {% endfor %}
 Fraternally,
 Theta Tau Central Office
-============================================================
-** Facebook (https://www.facebook.com/thetatau/)
-** Theta Tau (thetatau.org)
-** Email (mailto:central.office@thetatau.org)
-Copyright 2018-2020 Theta Tau, All rights reserved.
-
-The purpose of Theta Tau is to develop and maintain a high standard of professional interest among its members,
-and to unite them in a strong bond of fraternal fellowship.
+{% include "herald/text/footer.txt" %}

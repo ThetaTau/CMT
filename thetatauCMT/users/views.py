@@ -42,6 +42,7 @@ from .models import (
     UserSemesterGPA,
     UserSemesterServiceHours,
     UserOrgParticipate,
+    UserDemographic,
 )
 from .tables import UserTable
 from .filters import UserListFilter
@@ -55,6 +56,7 @@ from .forms import (
     UserServiceForm,
     UserOrgForm,
 )
+from forms.forms import PledgeDemographicsForm
 from chapters.models import Chapter
 from submissions.tables import SubmissionTable
 from notes.tables import UserNoteTable
@@ -95,6 +97,7 @@ class UserDetailUpdateView(LoginRequiredMixin, MultiFormsView):
         "gpa": UserGPAForm,
         "service": UserServiceForm,
         "user": UserForm,
+        "demo": PledgeDemographicsForm,
         "orgs": None,
     }
 
@@ -132,6 +135,13 @@ class UserDetailUpdateView(LoginRequiredMixin, MultiFormsView):
         if form.has_changed():
             form.save()
         return HttpResponseRedirect(self.get_success_url() + "#user")
+
+    def demo_form_valid(self, form):
+        if form.has_changed():
+            user = self.request.user
+            form.instance.user = user
+            form.save()
+        return HttpResponseRedirect(self.get_success_url() + "#demo")
 
     def orgs_form_valid(self, formset):
         if formset.has_changed():
@@ -215,6 +225,14 @@ class UserDetailUpdateView(LoginRequiredMixin, MultiFormsView):
                     "instance": self.get_object(),
                 }
             )
+        if form_name == "demo":
+            instance = UserDemographic.objects.filter(user=self.request.user).first()
+            if instance:
+                kwargs.update(
+                    {
+                        "instance": instance,
+                    }
+                )
         if form_name in ["gpa", "service"]:
             kwargs.update(
                 {
@@ -552,9 +570,13 @@ class UserLookupView(FormView):
         return super().form_valid(form)
 
     def hide_email(self, email):
-        email_start, email_domain = email.split("@")
-        email_start = email_start[:4]
-        return "".join([email_start, "****@", email_domain])
+        if "@" in email:
+            email_start, email_domain = email.split("@")
+            email_start = email_start[:4]
+            return "".join([email_start, "****@", email_domain])
+        else:
+            # Likely the email is empty
+            return ""
 
     def get_success_url(self):
         return reverse("login")
@@ -604,7 +626,7 @@ class UserAlterView(LoginRequiredMixin, NatOfficerRequiredMixin, FormView):
         user = self.request.user
         form.instance.user = user
         try:
-            instance = UserAlter.objects.get(user=user)
+            instance = UserAlter.objects.filter(user=user).first()
         except UserAlter.DoesNotExist:
             instance = None
         if self.request.POST["alter-action"] == "Reset":

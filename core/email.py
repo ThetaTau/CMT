@@ -1,3 +1,4 @@
+import time
 import datetime
 from itertools import zip_longest
 from django.conf import settings
@@ -100,6 +101,9 @@ def sync_email_provider(request, report_id):
                     format, apikey, create_mailing_response.context, subscriber_body
                 )
             )
+            # https://help.moosend.com/hc/en-us/articles/4405591335314-Does-Moosend-have-any-API-rate-limits-
+            # The rate limit for this call is 2 requests per 10 seconds
+            time.sleep(5)
             subscriber_mailing_responses.append(subscriber_mailing_response)
     except ApiException as e:
         messages.add_message(
