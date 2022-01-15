@@ -570,9 +570,13 @@ class UserLookupView(FormView):
         return super().form_valid(form)
 
     def hide_email(self, email):
-        email_start, email_domain = email.split("@")
-        email_start = email_start[:4]
-        return "".join([email_start, "****@", email_domain])
+        if "@" in email:
+            email_start, email_domain = email.split("@")
+            email_start = email_start[:4]
+            return "".join([email_start, "****@", email_domain])
+        else:
+            # Likely the email is empty
+            return ""
 
     def get_success_url(self):
         return reverse("login")
