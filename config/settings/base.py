@@ -341,6 +341,7 @@ ROLLBAR = {
     "root": str(ROOT_DIR),
     "branch": "master",
     "capture_username": True,
+    "capture_email": True,
 }
 
 rollbar.init(**ROLLBAR)
