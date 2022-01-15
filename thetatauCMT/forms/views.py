@@ -1986,12 +1986,15 @@ class FilterProcessListView(ProcessListView, FlowListMixin):
 
     def get_task_url(self, task, url_type=None):
         namespace = self.request.resolver_match.namespace
-        return task.flow_task.get_task_url(
-            task,
-            url_type=url_type if url_type else "guess",
-            user=self.request.user,
-            namespace=namespace,
-        )
+        if task.flow_task:
+            return task.flow_task.get_task_url(
+                task,
+                url_type=url_type if url_type else "guess",
+                user=self.request.user,
+                namespace=namespace,
+            )
+        else:
+            return ""
 
 
 class FilterProcessInvoiceListView(FilterProcessListView):
