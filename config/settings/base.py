@@ -407,7 +407,11 @@ IMPORT_EXPORT_USE_TRANSACTIONS = True
 DBBACKUP_LOCAL = env.bool("DBBACKUP_LOCAL", default=True)
 DBBACKUP_GPG_RECIPIENT = "Frank.Ventura@thetatau.org"
 DBBACKUP_CONNECTORS = {
-    "default": {"CONNECTOR": "dbbackup.db.postgresql.PgDumpBinaryConnector"}
+    "default": {
+        "CONNECTOR": "dbbackup.db.postgresql.PgDumpBinaryConnector",
+        # Sometimes this is needed for restore on local dev machine
+        # "SINGLE_TRANSACTION": False,
+    }
 }
 if DBBACKUP_LOCAL:
     DBBACKUP_STORAGE = "django.core.files.storage.FileSystemStorage"
