@@ -996,6 +996,13 @@ class RollBookPDFView(
     model = User
     template_name = "forms/rollbook_pdf.html"
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        with open(r"secrets/short_oath.txt", "r") as file:
+            context["short_oath"] = file.read()
+        context["pledge_form"] = self.object.pledge_form.last()
+        return context
+
 
 class RiskManagementListView(
     LoginRequiredMixin, NatOfficerRequiredMixin, PagedFilteredTableView
