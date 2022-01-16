@@ -25,7 +25,6 @@ class PictureAnonym(AnonymBase):
 
 
 class GearArticleAnonym(AnonymBase):
-    image = anonym_field.function(fake.file_path)
     article = anonym_field.function(fake.paragraph)
     notes = anonym_field.function(fake.sentence)
 
