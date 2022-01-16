@@ -3,8 +3,40 @@ from herald.base import EmailNotification
 from tasks.models import TaskDate
 from django.conf import settings
 from django.shortcuts import reverse
+from users.models import User
 from chapters.models import Chapter
 from chapters.tables import ChapterStatusTable
+
+
+@registry.register_decorator()
+class MemberInfoUpdate(EmailNotification):  # extend from EmailNotification for emails
+    render_types = ["html"]
+    template_name = "member_info_update"  # name of template, without extension
+    subject = "Update Member Information"  # subject of email
+
+    def __init__(self, user, updater):
+        emails = set(user.emailaddress_set.values_list("email", flat=True))
+        self.to_emails = emails
+        self.cc = []
+        self.reply_to = [
+            "cmt@thetatau.org",
+        ]
+        password = True
+        if not user.has_usable_password() or not user.password:
+            # Need link to generate password
+            password = False
+        self.context = {
+            "user": user,
+            "updater": updater,
+            "password": password,
+            "host": settings.CURRENT_URL,
+        }
+
+    @staticmethod
+    def get_demo_args():  # define a static method to return list of args needed to initialize class for testing
+        user = User.objects.order_by("?")[0]
+        updater = User.objects.order_by("?")[0]
+        return [user, updater]
 
 
 @registry.register_decorator()
