@@ -282,6 +282,7 @@ class PledgeAnonym(AnonymBase):
             "loyalty",
             "unlawful_org",
             "engineering",
+            "bill",
         ]
 
 
