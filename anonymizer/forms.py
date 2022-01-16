@@ -28,6 +28,7 @@ from forms.models import (
     ReturnStudent,
     RiskManagement,
     StatusChange,
+    PledgeProgramProcess,
 )
 
 fake = Factory.create()
@@ -46,6 +47,7 @@ register_skip(
         PledgeProcess,
         PledgeProgram,
         ReturnStudent,
+        PledgeProgramProcess,
     ]
 )
 
