@@ -59,7 +59,9 @@ class UserListFormHelper(FormHelper):
                         type="submit",
                         value="Download CSV",
                         name="csv",
+                        id="download-csv",
                         css_class="btn-secondary",
+                        style="display: none;",
                     ),
                     StrictButton(
                         '<i class="fa fa-envelope-square"></i> Email ALL',
@@ -68,6 +70,7 @@ class UserListFormHelper(FormHelper):
                         name="email",
                         css_class="btn-danger",
                         id="email-all",
+                        style="display: none;",
                     ),
                 ),
             ),
