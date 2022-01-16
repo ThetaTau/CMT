@@ -56,6 +56,7 @@ from .forms import (
     UserServiceForm,
     UserOrgForm,
 )
+from .notifications import MemberInfoUpdate
 from forms.forms import PledgeDemographicsForm
 from chapters.models import Chapter
 from submissions.tables import SubmissionTable
@@ -370,8 +371,25 @@ class UserListView(LoginRequiredMixin, PagedFilteredTableView):
                     messages.ERROR,
                     "All members are filtered! Clear or change filter.",
                 )
-        else:
-            return super().get(request, *args, **kwargs)
+        elif request.GET.get("email", "False").lower() == "email all":
+            self.object_list = self.get_queryset()
+            total = len(self.object_list)
+            if self.object_list:
+                for user in self.object_list:
+                    if user.email:
+                        MemberInfoUpdate(user, request.user).send()
+                messages.add_message(
+                    self.request,
+                    messages.INFO,
+                    f"Email sent to {total} members.",
+                )
+            else:
+                messages.add_message(
+                    self.request,
+                    messages.ERROR,
+                    "All members are filtered! Clear or change filter.",
+                )
+        return super().get(request, *args, **kwargs)
 
     def get_queryset(self):
         qs = self.model._default_manager.all()
