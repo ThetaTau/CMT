@@ -15,8 +15,46 @@ function update_dates() {
     date.value = default_date.value;
   }
 }
+function set_init(){
+  let value = $('#init_date').val();
+  $.ajax({
+    type: "POST",
+    data: {
+      'init_date': value
+    },
+    url: "{% url 'forms:set_init_date' %}",
+    success: function (response) {
+      alert(response);
+    }
+  });
+}
 </script>
   {{ form.media }}
+{% if roll_table %}
+  <table>
+  <tr>
+    <td>Date of Initiation:</td>
+    <td>
+      <div style="position: relative">
+        <input id="init_date" autocomplete="off" class="datepicker" data-toggle="datetimepicker"
+               data-target="#init_date">
+        <script type="text/javascript">
+          $(function () {
+            $('#init_date').datetimepicker({"format": "M/DD/YYYY"});
+          });
+        </script>
+      </div>
+    </td>
+    <td>
+      <input type="submit" id="init_date_submit"
+             onclick="this.value='Applied';
+         set_init();
+         return false;"/>
+    </td>
+  </tr>
+  </table>
+    {% render_table roll_table %}
+  {% else %}
 {% specialspaceless %}
   <form action="" method="post">
     {% csrf_token %}
@@ -200,4 +238,5 @@ function update_dates() {
   </div>
 </div>
 {% endspecialspaceless %}
+  {% endif %}
 {% endblock content %}

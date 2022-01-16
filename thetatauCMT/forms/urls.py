@@ -97,9 +97,24 @@ urlpatterns = [
         name="bill_of_rights",
     ),
     path(
-        "rool-book-page/<int:pk>/",
+        "roll-book-page/<int:pk>/",
         view=views.RollBookPDFView.as_view(),
         name="roll_book_page",
+    ),
+    path(
+        "roll-book-download-all",
+        view=views.download_all_rollbook,
+        name="roll_book_download_all",
+    ),
+    path(
+        "set-init-date/",
+        view=views.set_init_date,
+        name="set_init_date",
+    ),
+    path(
+        "set-init-date/",
+        view=views.set_init_date,
+        name="set_init_date",
     ),
     url(regex=r"^rmp/$", view=views.RiskManagementFormView.as_view(), name="rmp"),
     url(

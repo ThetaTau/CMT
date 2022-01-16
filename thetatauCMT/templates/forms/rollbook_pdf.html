@@ -23,12 +23,12 @@
   {{ short_oath }}
   </span>
   <span style="position: absolute;top: 2.5in;left: 0.5in;">In testimony whereof, I have hereunto signed my name on this</span>
-  <span style="position: absolute;top: 2.75in;left: 0.5in;">{% underscore 4|ordinal 10 %} day of {% underscore "December" 14 %}, A.D., {% underscore 2021 10 %}</span>
+  <span style="position: absolute;top: 2.75in;left: 0.5in;">{% underscore init_date.day|ordinal 10 %} day of {% underscore init_date|date:"F" 14 %}, A.D., {% underscore init_date.year 10 %}</span>
   <span style="position: absolute;top: 3.5in;right: 0.5in;">_____________________________________________ Signature</span>
   <span style="position: absolute;top: 3.85in;right: 0.5in;">{% underscore object.name 48 %} Full Name</span>
-  <span style="position: absolute;top: 4.25in;left: 0.0in;">
+  <span style="position: absolute;top: 4.25in;left: 0.0in;margin-left: 2.75in;text-indent: -2.75in;">
     Class of {% underscore object.graduation_year 14 %},
-    majoring in {% underscore object.major 32 %}</span>
+    majoring in {% underscore object.major.major 32 %}</span>
   <span style="position: absolute;top: 4.60in;left: 0.0in;">at {% underscore object.chapter.school 67 %}</span>
   <span style="position: absolute;top: 5.0in;left: 0.0in;">Date of Birth {% underscore object.birth_date 14 %}</span>
   <span style="position: absolute;top: 5.0in;right: 0.0in;">Birthplace {% underscore pledge_form.birth_place 30 %}</span>

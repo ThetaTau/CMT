@@ -7,7 +7,7 @@ from io import BytesIO
 from copy import deepcopy
 from pathlib import Path
 from django.db import IntegrityError, transaction
-from django.db.models import Q, F
+from django.db.models import Q, F, Value, CharField
 from django.contrib.postgres.aggregates import StringAgg
 from django.forms import models as model_forms
 from django.http import HttpRequest
@@ -45,6 +45,7 @@ from core.views import (
     NatOfficerRequiredMixin,
     group_required,
 )
+from users.tables import RollBookTable
 from .forms import (
     InitiationFormSet,
     InitiationForm,
@@ -236,7 +237,7 @@ class InitDeplSelectView(LoginRequiredMixin, OfficerRequiredMixin, FormSetView):
 
     def formset_valid(self, formset):
         cleaned_data = deepcopy(formset.cleaned_data)
-        selections = {"Initiate": [], "Depledge": [], "Defer": []}
+        selections = {"Initiate": [], "Depledge": [], "Defer": [], "Roll": []}
         for info in cleaned_data:
             user = info["user"]
             selections[info["state"]].append(user.pk)
@@ -245,6 +246,44 @@ class InitDeplSelectView(LoginRequiredMixin, OfficerRequiredMixin, FormSetView):
 
     def get_success_url(self):
         return reverse("forms:initiation")
+
+
+@group_required("officer")
+@csrf_exempt
+def set_init_date(request):
+    init_date = request.POST.get("init_date")
+    request.session["init_date"] = init_date
+    return HttpResponse(f"Initiation date set to: {init_date}")
+
+
+@group_required("officer")
+@csrf_exempt
+def download_all_rollbook(request):
+    time_name = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    zip_filename = f"RollBookPages_{time_name}.zip"
+    initiate = request.session.get("init-selection", None)
+    pledges = request.user.current_chapter.pledges()
+    to_roll = pledges.filter(pk__in=initiate["Roll"])
+    zip_io = BytesIO()
+    with zipfile.ZipFile(zip_io, "w") as zf:
+        for user in to_roll:
+            new_request = HttpRequest()
+            new_request.method = "GET"
+            new_request.user = request.user
+            new_request.session = request.session
+            new_request.META = request.META
+            view = RollBookPDFDownload.as_view()
+            roll_view = view(new_request, pk=user.pk)
+            roll_file = roll_view.rendered_content
+            zf.writestr(
+                f"RollBookPage_{user.chapter.slug}_{user.user_id}.pdf", roll_file
+            )
+    response = HttpResponse(
+        zip_io.getvalue(), content_type="application/x-zip-compressed"
+    )
+    response["Cache-Control"] = "no-cache"
+    response["Content-Disposition"] = f"attachment; filename={zip_filename}"
+    return response
 
 
 class InitiationView(LoginRequiredMixin, OfficerRequiredMixin, FormView):
@@ -261,6 +300,7 @@ class InitiationView(LoginRequiredMixin, OfficerRequiredMixin, FormView):
         self.to_initiate = pledges.filter(pk__in=initiate["Initiate"])
         self.to_depledge = pledges.filter(pk__in=initiate["Depledge"])
         self.to_defer = pledges.filter(pk__in=initiate["Defer"])
+        self.to_roll = pledges.filter(pk__in=initiate["Roll"])
         self.next_badge = self.request.user.current_chapter.next_badge_number()
 
     def get(self, request, *args, **kwargs):
@@ -273,39 +313,57 @@ class InitiationView(LoginRequiredMixin, OfficerRequiredMixin, FormView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        formset = kwargs.get("formset", None)
-        if formset is None:
-            formset = InitiationFormSet(prefix="initiates")
-        formset.initial = [
-            {"user": user.name, "roll": self.next_badge + num}
-            for num, user in enumerate(self.to_initiate)
-        ]
-        chapter = self.request.user.current_chapter
-        if chapter.candidate_chapter:
-            formset.form.base_fields["badge"].queryset = Badge.objects.filter(
-                Q(name__icontains="Candidate Chapter")
+        if self.to_roll:
+            data = self.to_roll.values(
+                "pk",
+                "name",
+                "email",
+                "graduation_year",
+                "phone_number",
+                "birth_date",
+                address_formatted=F("address__formatted"),
+                rollbook=Value("Link", output_field=CharField()),
+                major_name=F("major__major"),
+                birth_place=F("pledge_form__birth_place"),
+                other_degrees=F("pledge_form__other_degrees"),
             )
+            context["roll_table"] = RollBookTable(data=data)
         else:
-            formset.form.base_fields["badge"].queryset = Badge.objects.filter(
-                ~Q(name__icontains="Candidate Chapter")
-            )
-        context["formset"] = formset
-        context["helper"] = InitiationFormHelper()
-        depledge_formset = kwargs.get("depledge_formset", None)
-        if depledge_formset is None:
-            depledge_formset = DepledgeFormSet(prefix="depledges")
-        depledge_formset.initial = [{"user": user.name} for user in self.to_depledge]
-        context["depledge_formset"] = depledge_formset
-        context["depledge_helper"] = DepledgeFormHelper()
-        context["form_show_errors"] = True
-        context["error_text_inline"] = True
-        context["help_text_inline"] = True
-        guards = GuardTable(Guard.objects.all().order_by("name"))
-        badges = BadgeTable(Badge.objects.all().order_by("name"))
-        RequestConfig(self.request).configure(guards)
-        RequestConfig(self.request).configure(badges)
-        context["guard_table"] = guards
-        context["badge_table"] = badges
+            formset = kwargs.get("formset", None)
+            if formset is None:
+                formset = InitiationFormSet(prefix="initiates")
+            formset.initial = [
+                {"user": user.name, "roll": self.next_badge + num}
+                for num, user in enumerate(self.to_initiate)
+            ]
+            chapter = self.request.user.current_chapter
+            if chapter.candidate_chapter:
+                formset.form.base_fields["badge"].queryset = Badge.objects.filter(
+                    Q(name__icontains="Candidate Chapter")
+                )
+            else:
+                formset.form.base_fields["badge"].queryset = Badge.objects.filter(
+                    ~Q(name__icontains="Candidate Chapter")
+                )
+            context["formset"] = formset
+            context["helper"] = InitiationFormHelper()
+            depledge_formset = kwargs.get("depledge_formset", None)
+            if depledge_formset is None:
+                depledge_formset = DepledgeFormSet(prefix="depledges")
+            depledge_formset.initial = [
+                {"user": user.name} for user in self.to_depledge
+            ]
+            context["depledge_formset"] = depledge_formset
+            context["depledge_helper"] = DepledgeFormHelper()
+            context["form_show_errors"] = True
+            context["error_text_inline"] = True
+            context["help_text_inline"] = True
+            guards = GuardTable(Guard.objects.all().order_by("name"))
+            badges = BadgeTable(Badge.objects.all().order_by("name"))
+            RequestConfig(self.request).configure(guards)
+            RequestConfig(self.request).configure(badges)
+            context["guard_table"] = guards
+            context["badge_table"] = badges
         return context
 
     def post(self, request, *args, **kwargs):
@@ -998,10 +1056,21 @@ class RollBookPDFView(
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        init_date = self.request.session.get(
+            "init_date", datetime.datetime.today().date()
+        )
+        if isinstance(init_date, str):
+            init_date = datetime.datetime.strptime(init_date, "%m/%d/%Y")
         with open(r"secrets/short_oath.txt", "r") as file:
             context["short_oath"] = file.read()
+        context["init_date"] = init_date
         context["pledge_form"] = self.object.pledge_form.last()
         return context
+
+
+class RollBookPDFDownload(RollBookPDFView):
+    def get_pdf_filename(self):
+        return f"RollBookPage_{self.object.chapter.slug}_{self.object.user_id}.pdf"
 
 
 class RiskManagementListView(

@@ -72,7 +72,12 @@ class UserSelectForm(forms.Form):
 class InitDeplSelectForm(forms.Form):
     user = forms.ModelChoiceField(queryset=Initiation.objects.none(), disabled=True)
     state = forms.ChoiceField(
-        choices=[("Initiate", "Initiate"), ("Depledge", "Depledge"), ("Defer", "Defer")]
+        choices=[
+            ("Initiate", "Initiate"),
+            ("Depledge", "Depledge"),
+            ("Defer", "Defer"),
+            ("Roll", "Roll Book"),
+        ]
     )
 
 
