@@ -596,9 +596,7 @@ class PledgeProgramForm(forms.ModelForm):
                 "You must submit the other manual your chapter is "
                 "following if not one of the approved models."
             )
-        if other_manual == "" and other_manual_cleaned != "":
-            other_manual = other_manual_cleaned
-        return other_manual
+        return self.cleaned_data.get("manual")
 
 
 class AuditForm(forms.ModelForm):
