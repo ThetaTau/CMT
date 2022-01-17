@@ -264,7 +264,7 @@ class Initiation(TimeStampedModel):
 
 
 class Depledge(TimeStampedModel):
-    class REASONS(Enum):
+    class REASONS(EnumClass):
         volunteer = ("volunteer", "Voluntarily decided not to continue")
         time = ("time", "Too much time required")
         grades = ("grades", "Poor grades")
@@ -274,16 +274,84 @@ class Depledge(TimeStampedModel):
         transfer = ("transfer", "Transferring to another school")
         other = ("other", "Other")
 
-        @classmethod
-        def get_value(cls, member):
-            return cls[member].value[1]
+    class MEETING(EnumClass):
+        virtual = ("virtual", "Virtual")
+        in_person = ("in_person", "In Person")
+        no = ("no", "No")
+        na = ("na", "Not Applicable")
+
+    class ITEMS(EnumClass):
+        pin = ("pin", "Pledge Pin")
+        manual = ("manual", "Membership Manual")
+        other = ("other", "Other")
 
     user = models.OneToOneField(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="depledge"
     )
     reason = models.CharField(max_length=10, choices=[x.value for x in REASONS])
+    reason_other = models.CharField(
+        "Other reason for depledging",
+        max_length=100,
+        null=True,
+        blank=True,
+    )
     date = models.DateField(
         "Depledge Date", default=timezone.now, validators=[no_future]
+    )
+    meeting_held = models.CharField(
+        "Was a meeting held with the depledged PNM?",
+        max_length=10,
+        choices=[x.value for x in MEETING],
+        default="na",
+    )
+    meeting_date = models.DateField(
+        "When was the meeting with the depledged PNM?",
+        default=timezone.now,
+        validators=[no_future],
+        null=True,
+        blank=True,
+    )
+    meeting_attend = MultiSelectField(
+        "Who attended the meeting with the depledged PNM?",
+        choices=[("None", "None")] + CHAPTER_ROLES_CHOICES,
+        null=True,
+        blank=True,
+    )
+    meeting_not = models.CharField(
+        "Why was there no Meeting with the depledged PNM?",
+        max_length=100,
+        null=True,
+        blank=True,
+    )
+    informed = models.CharField(
+        "By whom and how was the depledged PNM informed?",
+        max_length=100,
+        null=True,
+        blank=True,
+    )
+    concerns = models.CharField(
+        "Did the depledged PNM express any concerns?",
+        max_length=200,
+        null=True,
+        blank=True,
+    )
+    returned_items = MultiSelectField(
+        "Have the following items been returned?",
+        max_length=10,
+        choices=[x.value for x in ITEMS],
+        null=True,
+        blank=True,
+    )
+    returned_other = models.CharField(
+        "Other returned items",
+        max_length=100,
+        null=True,
+        blank=True,
+    )
+    extra_notes = models.TextField(
+        "Is there anything else national Theta Tau should know?",
+        null=True,
+        blank=True,
     )
 
     def __str__(self):

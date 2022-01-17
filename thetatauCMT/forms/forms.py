@@ -169,7 +169,21 @@ class DepledgeForm(forms.ModelForm):
 
     class Meta:
         model = Depledge
-        fields = ["user", "reason", "date"]
+        fields = [
+            "user",
+            "reason",
+            "reason_other",
+            "date",
+            "meeting_held",
+            "meeting_date",
+            "meeting_attend",
+            "meeting_not",
+            "informed",
+            "concerns",
+            "returned_items",
+            "returned_other",
+            "extra_notes",
+        ]
 
     def clean_user(self):
         data = self.cleaned_data["user"]
@@ -185,7 +199,21 @@ DepledgeFormSet = forms.formset_factory(DepledgeForm, extra=0)
 class DepledgeFormHelper(FormHelper):
     template = "bootstrap4/table_inline_formset.html"
     form_tag = False
-    layout = Layout("user", "reason", "date")
+    layout = Layout(
+        "user",
+        "reason",
+        "reason_other",
+        "date",
+        "meeting_held",
+        "meeting_date",
+        "meeting_attend",
+        "meeting_not",
+        "informed",
+        "concerns",
+        "returned_items",
+        "returned_other",
+        "extra_notes",
+    )
 
 
 class StatusChangeSelectForm(forms.Form):
