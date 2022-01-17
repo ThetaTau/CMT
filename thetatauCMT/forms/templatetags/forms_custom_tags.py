@@ -12,3 +12,11 @@ def safeURLfile(value):
         return value
     else:
         return mark_safe(f'<a href="{value.url}" target="_blank">{value.name}</a>')
+
+
+@register.simple_tag
+def underscore(value, count):
+    total = len(str(value))
+    extra = count - total
+    half_char = "_" * int(extra // 2.0)
+    return mark_safe(f"{half_char}<u>{value}</u>{half_char}")

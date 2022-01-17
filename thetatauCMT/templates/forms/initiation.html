@@ -15,8 +15,64 @@ function update_dates() {
     date.value = default_date.value;
   }
 }
+function set_init(){
+  let value = $('#init_date').val();
+  $.ajax({
+    type: "POST",
+    data: {
+      'init_date': value
+    },
+    url: "{% url 'forms:set_init_date' %}",
+    success: function (response) {
+      alert(response);
+    }
+  });
+}
+function download() {
+  alert("This could take some time\nPlease be patient");
+  window.open("{% url 'forms:roll_book_download_all' %}", '_blank');
+}
 </script>
   {{ form.media }}
+  <a href="{% url 'forms:init_selection' %}">Return to Iniation Selection</a>
+{% if roll_table %}
+  <h1>Generate Roll Book Pages</h1>
+  <p>These roll book pages can be used for initation. We encourage the chapter to find good quality paper to print on.</p>
+  <p><strong>Please verify all information is correct for each potential new member.</strong>
+    Each PNM can update their information by logging into the CMT and clicking on "My Profile".</p>
+  <p>Once verified, set the date of initation and then download the roll book pages.</p>
+  <table>
+  <tr>
+    <td>Date of Initiation:</td>
+    <td>
+      <div style="position: relative">
+        <input id="init_date" autocomplete="off" class="datepicker" data-toggle="datetimepicker"
+               data-target="#init_date">
+        <script type="text/javascript">
+          $(function () {
+            $('#init_date').datetimepicker({"format": "M/DD/YYYY"});
+          });
+        </script>
+      </div>
+    </td>
+    <td>
+      <input type="submit" id="init_date_submit"
+             value="Set Initation Date For All" class="btn btn-secondary"
+             onclick="this.value='Applied';
+         set_init();
+         return false;"/>
+    </td>
+    <td>
+      <input type="submit" value="Download All Roll Book Pages"
+             id="download" class="btn btn-primary"
+             onclick="this.value='Downloading...';
+         download();
+         return false;"/>
+    </td>
+  </tr>
+  </table>
+    {% render_table roll_table %}
+  {% else %}
 {% specialspaceless %}
   <form action="" method="post">
     {% csrf_token %}
@@ -48,6 +104,7 @@ function update_dates() {
     </td>
     <td>
       <input type="submit" id="default_date_submit"
+             value="Apply Date to All" class="btn btn-secondary"
        onclick="this.value='Applied';
          update_dates();
          return false;"/>
@@ -64,7 +121,12 @@ function update_dates() {
           <option value="remote">Remote extraordinary initiation ceremony</option>
         </select>
       </td>
-  </tr></table>
+  </tr>
+  <tr>
+    <th colspan="3">
+      The Roll Column is the new member badge number, the current value is a best guess.
+      Please verify the correct member badge/roll number.</th></tr>
+  </table>
   <table{% if form_id %} id="{{ form_id }}_table"{% endif%} class="table table-striped table-sm">
         <thead>
                 <tr>
@@ -136,7 +198,7 @@ function update_dates() {
         </tbody>
     </table>
 {% endif %}
-  <input type="submit" value="Submit">
+  <input type="submit" value="Submit" class="btn btn-primary">
   </form>
 <small>
 <p>Additional useful information for chapter Treasurers:
@@ -168,4 +230,5 @@ function update_dates() {
   </div>
 </div>
 {% endspecialspaceless %}
+  {% endif %}
 {% endblock content %}

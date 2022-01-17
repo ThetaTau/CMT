@@ -78,3 +78,28 @@ class UserTable(tables.Table):
             else:
                 value = ""
         return value
+
+
+class RollBookTable(tables.Table):
+    rollbook = tables.LinkColumn(
+        "forms:roll_book_page", args=[A("pk")], attrs={"a": {"target": "_blank"}}
+    )
+    birth_place = tables.Column()
+    other_degrees = tables.Column()
+    major_name = tables.Column()
+
+    class Meta:
+        model = User
+        fields = (
+            "rollbook",
+            "name",
+            "email",
+            "major_name",
+            "graduation_year",
+            "phone_number",
+            "address_formatted",
+            "birth_place",
+            "birth_date",
+            "other_degrees",
+        )
+        attrs = {"class": "table table-striped table-bordered"}

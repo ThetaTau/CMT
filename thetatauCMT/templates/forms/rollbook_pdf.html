@@ -1,0 +1,60 @@
+{% extends "easy_pdf/base.html" %}
+{% load static i18n %}
+{% load humanize %}
+{% load forms_custom_tags %}
+{% block style_base %}
+  <style type="text/css">
+    @page {
+      size: {{ pagesize|default:"A4" }};
+      margin-left: 1.38in;
+      margin-right: 1.38in;
+      margin-top: 0.5in;
+      margin-bottom: 0.5in;
+    }
+  </style>
+{% endblock %}
+{% block content %}
+  <span style="position: absolute;top: 0.0in;left: 2.0in;"><strong>Membership Roll</strong></span>
+  <span style="position: absolute;top: 0.5in;left: 0.0in;">{% underscore object.chapter.name 20 %} {% if not object.chapter.candidate_chapter %}Chapter{% else %}{% endif %}</span>
+  <span style="position: absolute;top: 0.5in;right: 0.0in;">Initiation Type __<u>Student Member</u>__</span>
+  <span style="position: absolute;top: 1.0in;left: 0.0in;">__________ Book Page Number</span>
+  <span style="position: absolute;top: 1.0in;right: 0.0in;">Roll Number ____________</span>
+  <span style="position: absolute;top: 1.3in;left: 0.0in;text-align: justify;text-indent: 40px;">
+  {{ short_oath }}
+  </span>
+  <span style="position: absolute;top: 2.5in;left: 0.5in;">In testimony whereof, I have hereunto signed my name on this</span>
+  <span style="position: absolute;top: 2.75in;left: 0.5in;">{% underscore init_date.day|ordinal 10 %} day of {% underscore init_date|date:"F" 14 %}, A.D., {% underscore init_date.year 10 %}</span>
+  <span style="position: absolute;top: 3.5in;right: 0.5in;">_____________________________________________ Signature</span>
+  <span style="position: absolute;top: 3.85in;right: 0.5in;">{% underscore object.name 48 %} Full Name</span>
+  <span style="position: absolute;top: 4.25in;left: 0.0in;margin-left: 2.75in;text-indent: -2.75in;">
+    Class of {% underscore object.graduation_year 14 %},
+    majoring in {% underscore object.major.major 32 %}</span>
+  <span style="position: absolute;top: 4.60in;left: 0.0in;">at {% underscore object.chapter.school 67 %}</span>
+  <span style="position: absolute;top: 5.0in;left: 0.0in;">Date of Birth {% underscore object.birth_date 14 %}</span>
+  <span style="position: absolute;top: 5.0in;right: 0.0in;">Birthplace {% underscore pledge_form.birth_place 30 %}</span>
+  <span style="position: absolute;top: 5.5in;left: 0.0in;">Permanent Home Address:
+    {% with address=object.address.street_number|add:" "|add:object.address.route %}
+      {% underscore address 44 %}</span>
+    {% endwith %}
+  <span style="position: absolute;top: 6.0in;left: 1.8in;">{% underscore object.address.locality 45 %}</span>
+  <span style="position: absolute;top: 6.5in;left: 0.0in;">Phone {% underscore object.phone_number 15 %}</span>
+  <span style="position: absolute;top: 6.5in;right: 0.0in;">Email {% underscore object.email 40 %}</span>
+  <span style="position: absolute;top: 7.0in;left: 0.0in;">Previous Degrees {% underscore pledge_form.other_degrees 51 %}</span>
+  <span style="position: absolute;top: 7.5in;left: 0.0in;">Witnessed by</span>
+  <span style="position: absolute;top: 8.0in;left: 0.5in;">__________________________, X!</span>
+  <span style="position: absolute;top: 8.5in;left: 0.5in;">__________________________, V!</span>
+  <span style="position: absolute;top: 9.0in;left: 0.5in;">__________________________</span>
+  <span style="position: absolute;top: 9.4in;left: -0.75in;width: 120%"><hr></span>
+  <span style="position: absolute;top: 9.5in;left: -0.75in;width: 120%">
+    If the member later transfers or affiliates in accord with the Bylaws, please print portion below:</span>
+  <span style="position: absolute;top: 9.75in;left: 0.0in;">
+    Transferred from __<u>{{ object.chapter.name }}</u>__
+    {% if not object.chapter.candidate_chapter %}Chapter{% else %}{% endif %}, to _______________ Chapter</span>
+  <span style="position: absolute;top: 10.0in;left: 0.0in;">
+    on __________________, _________</span>
+  <span style="position: absolute;top: 10.35in;left: 0.0in;">
+    Completed by   _________________________________________, X!</span>
+  <span style="position: absolute;top: 10.65in;left: 1.0in;">
+                   _________________________________________, V!</span>
+{% endblock %}
+

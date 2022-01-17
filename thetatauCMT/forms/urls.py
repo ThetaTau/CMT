@@ -96,6 +96,26 @@ urlpatterns = [
         view=views.BillOfRightsDetailView.as_view(),
         name="bill_of_rights",
     ),
+    path(
+        "roll-book-page/<int:pk>/",
+        view=views.RollBookPDFView.as_view(),
+        name="roll_book_page",
+    ),
+    path(
+        "roll-book-download-all",
+        view=views.download_all_rollbook,
+        name="roll_book_download_all",
+    ),
+    path(
+        "set-init-date/",
+        view=views.set_init_date,
+        name="set_init_date",
+    ),
+    path(
+        "set-init-date/",
+        view=views.set_init_date,
+        name="set_init_date",
+    ),
     url(regex=r"^rmp/$", view=views.RiskManagementFormView.as_view(), name="rmp"),
     url(
         regex=r"^rmp-complete/(?P<pk>\d+)/$",
@@ -148,19 +168,4 @@ urlpatterns = [
         view=views.ResignationListView.as_view(),
         name="resign_list",
     ),
-    # url(
-    #     regex=r'^~status-change/$',
-    #     view=views.StatusChangeView.as_view(),
-    #     name='redirect'
-    # ),
-    # url(
-    #     regex=r'^~/$',
-    #     view=views.FormUpdateView.as_view(),
-    #     name='update'
-    # ),
-    # url(
-    #     regex=r'^(?P<year>d{4})/(?P<month>[0-9]{2})/(?P<day>[0-9]{2})/(?P<slug>[-w]+)/$',
-    #     view=views.EventDetailView.as_view(),
-    #     name='detail'
-    # ),
 ]
