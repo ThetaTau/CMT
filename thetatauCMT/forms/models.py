@@ -26,6 +26,7 @@ from core.finances import get_quickbooks_client, invoice_search, create_line
 from core.models import (
     forever,
     CHAPTER_ROLES_CHOICES,
+    CHAPTER_OFFICER_CHOICES,
     academic_encompass_start_end_date,
     EnumClass,
 )
@@ -313,7 +314,15 @@ class Depledge(TimeStampedModel):
     )
     meeting_attend = MultiSelectField(
         "Who attended the meeting with the depledged PNM?",
-        choices=[("None", "None")] + CHAPTER_ROLES_CHOICES,
+        choices=[
+            ("None", "None"),
+            ("pledge/new member educator", "Pledge/New Member Educator"),
+            ("recruitment chair", "Recruitment Chair"),
+            ("risk management chair", "Risk Management Chair"),
+            ("marshal", "Marshal"),
+            ("other appointee", "Other Appointee"),
+        ]
+        + CHAPTER_OFFICER_CHOICES,
         null=True,
         blank=True,
     )

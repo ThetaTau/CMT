@@ -166,6 +166,13 @@ class DepledgeForm(forms.ModelForm):
             attrs={"autocomplete": "off"},
         ),
     )
+    meeting_date = forms.DateField(
+        label="When was the meeting with the depledged PNM?",
+        widget=DatePicker(
+            options={"format": "M/DD/YYYY"},
+            attrs={"autocomplete": "off"},
+        ),
+    )
 
     class Meta:
         model = Depledge
@@ -197,21 +204,44 @@ DepledgeFormSet = forms.formset_factory(DepledgeForm, extra=0)
 
 
 class DepledgeFormHelper(FormHelper):
-    template = "bootstrap4/table_inline_formset.html"
-    form_tag = False
+    form_class = "form-inline"
     layout = Layout(
-        "user",
-        "reason",
-        "reason_other",
-        "date",
-        "meeting_held",
-        "meeting_date",
-        "meeting_attend",
-        "meeting_not",
+        Row(
+            Column(
+                "user",
+            ),
+            Column("date"),
+            Column(
+                "reason",
+            ),
+            Column(
+                "reason_other",
+            ),
+        ),
+        Row(
+            Column(
+                "meeting_held",
+            ),
+            Column(
+                "meeting_date",
+            ),
+            Column(
+                "meeting_attend",
+            ),
+            Column(
+                "meeting_not",
+            ),
+        ),
         "informed",
         "concerns",
-        "returned_items",
-        "returned_other",
+        Row(
+            Column(
+                "returned_items",
+            ),
+            Column(
+                "returned_other",
+            ),
+        ),
         "extra_notes",
     )
 
