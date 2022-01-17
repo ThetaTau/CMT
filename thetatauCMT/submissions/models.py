@@ -27,8 +27,8 @@ class Submission(TimeStampedModel):
     )
     date = models.DateField("Submission Date", default=timezone.now)
     file = models.FileField(upload_to=get_upload_path)
-    name = models.CharField("Submission Name", max_length=50)
-    slug = models.SlugField(unique=False)
+    name = models.CharField("Submission Name", max_length=200)
+    slug = models.SlugField(unique=False, max_length=200)
     type = models.ForeignKey(
         ScoreType, related_name="submissions", on_delete=models.PROTECT
     )
@@ -42,6 +42,7 @@ class Submission(TimeStampedModel):
         return f"{self.name}"  # from {self.chapter} on {self.date}"
 
     def save(self, extra_info=None):
+        self.name = self.name[: 200 - 1]
         self.slug = slugify(self.name)
         cal_score = self.type.calculate_score(self, extra_info=extra_info)
         self.score = cal_score
