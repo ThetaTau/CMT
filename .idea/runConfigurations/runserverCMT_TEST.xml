@@ -33,7 +33,7 @@
     <option name="port" value="8000" />
     <option name="host" value="localhost" />
     <option name="additionalOptions" value="--noreload" />
-    <option name="browserUrl" value="http://localhost:8000/" />
+    <option name="browserUrl" value="" />
     <option name="runTestServer" value="false" />
     <option name="runNoReload" value="false" />
     <option name="useCustomRunCommand" value="false" />
