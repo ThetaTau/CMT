@@ -584,7 +584,7 @@ class PledgeProgramForm(forms.ModelForm):
             "schedule",
         ]
 
-    def clean_other_manual(self):
+    def clean_manual(self):
         other_manual = self.data.get("other_manual", "")
         other_manual_cleaned = self.cleaned_data.get("other_manual", "")
         if (
