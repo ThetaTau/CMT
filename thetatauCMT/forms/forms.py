@@ -5,7 +5,6 @@ from crispy_forms.bootstrap import (
     Field,
     InlineField,
     StrictButton,
-    InlineRadios,
     Accordion,
     AccordionGroup,
 )
@@ -170,13 +169,16 @@ class DepledgeForm(forms.ModelForm):
             options={"format": "M/DD/YYYY"},
             attrs={"autocomplete": "off"},
         ),
+        help_text="Date can not be in the future",
     )
     meeting_date = forms.DateField(
         label="When was the meeting with the depledged PNM?",
+        required=False,
         widget=DatePicker(
             options={"format": "M/DD/YYYY"},
             attrs={"autocomplete": "off"},
         ),
+        help_text="Date can not be in the future",
     )
 
     class Meta:
@@ -197,6 +199,55 @@ class DepledgeForm(forms.ModelForm):
             "extra_notes",
         ]
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["informed"].required = True
+        self.fields["returned_items"].required = True
+
+    def clean(self):
+        super().clean()
+        reason_other = self.cleaned_data.get("reason_other", "")
+        if self.cleaned_data.get("reason") == "other" and reason_other == "":
+            self.add_error(
+                "reason_other",
+                forms.ValidationError(
+                    "You must submit the other reason for depledging"
+                ),
+            )
+        meeting_held = self.cleaned_data.get("meeting_held")
+        if "no" in meeting_held or "na" in meeting_held:
+            meeting_not = self.cleaned_data.get("meeting_not", "")
+            if meeting_not == "":
+                self.add_error(
+                    "meeting_not",
+                    forms.ValidationError(
+                        "You must submit a reason for no meeting with depledged."
+                    ),
+                )
+        else:
+            meeting_date = self.cleaned_data.get("meeting_date", "")
+            meeting_attend = self.cleaned_data.get("meeting_attend", "")
+            if meeting_date == "":
+                self.add_error(
+                    "meeting_date",
+                    forms.ValidationError(
+                        "You must submit meeting date for depledged meeting"
+                    ),
+                )
+            if meeting_attend == "":
+                self.add_error(
+                    "meeting_attend",
+                    forms.ValidationError(
+                        "You must submit meeting attendance for depledged meeting"
+                    ),
+                )
+        returned_other = self.cleaned_data.get("returned_other", "")
+        if "other" in self.cleaned_data.get("returned_items") and returned_other == "":
+            self.add_error(
+                "returned_other",
+                forms.ValidationError("You must submit the other returned items"),
+            )
+
     def clean_user(self):
         data = self.cleaned_data["user"]
         user = User.objects.filter(name=data, chapter__name=self.data["chapter"]).last()
@@ -210,23 +261,20 @@ DepledgeFormSet = forms.formset_factory(DepledgeForm, extra=0)
 
 class DepledgeFormHelper(FormHelper):
     form_class = "form-inline"
+    form_tag = False
     layout = Layout(
         Row(
             Column(
                 "user",
             ),
             Column("date"),
-            Column(
-                "reason",
-            ),
+            Column(Field("reason", css_class="reason-class")),
             Column(
                 "reason_other",
             ),
         ),
         Row(
-            Column(
-                "meeting_held",
-            ),
+            Column(Field("meeting_held", css_class="meeting-held-class")),
             Column(
                 "meeting_date",
             ),
@@ -240,9 +288,7 @@ class DepledgeFormHelper(FormHelper):
         "informed",
         "concerns",
         Row(
-            Column(
-                "returned_items",
-            ),
+            Column(Field("returned_items", css_class="returned_items-class")),
             Column(
                 "returned_other",
             ),
@@ -647,19 +693,17 @@ class PledgeProgramForm(forms.ModelForm):
             "schedule",
         ]
 
-    def clean_manual(self):
-        other_manual = self.data.get("other_manual", "")
-        other_manual_cleaned = self.cleaned_data.get("other_manual", "")
-        if (
-            self.cleaned_data.get("manual") == "other"
-            and other_manual == ""
-            and other_manual_cleaned == ""
-        ):
-            raise forms.ValidationError(
-                "You must submit the other manual your chapter is "
-                "following if not one of the approved models."
+    def clean(self):
+        super().clean()
+        other_manual = self.cleaned_data.get("other_manual", "")
+        if self.cleaned_data.get("manual") == "other" and other_manual == "":
+            self.add_error(
+                "other_manual",
+                forms.ValidationError(
+                    "You must submit the other manual your chapter is "
+                    "following if not one of the approved models."
+                ),
             )
-        return self.cleaned_data.get("manual")
 
 
 class AuditForm(forms.ModelForm):

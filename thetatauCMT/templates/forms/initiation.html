@@ -32,6 +32,71 @@ function download() {
   alert("This could take some time\nPlease be patient");
   window.open("{% url 'forms:roll_book_download_all' %}", '_blank');
 }
+$(function () {
+  $("[id ^=id][id$=meeting_held]").each(function (index, element) {
+    var value = $(this).find(":selected")[0].value;
+    var id = element.id.split("depledges-")[1].split("-meeting")[0];
+    if (value == 'na' || value == 'no') {
+      $('#div_id_depledges-' + id + '-meeting_date').parent().hide();
+      $('#div_id_depledges-' + id + '-meeting_attend').parent().hide();
+      $('#div_id_depledges-' + id + '-meeting_not').parent().show();
+    } else {
+      $('#div_id_depledges-' + id + '-meeting_date').parent().show();
+      $('#div_id_depledges-' + id + '-meeting_attend').parent().show();
+      $('#div_id_depledges-' + id + '-meeting_not').parent().hide();
+    }
+  });
+  $('.meeting-held-class').change(function () {
+    var value = $(this).find(":selected")[0].value;
+    var id = $(this)[0].id.split("depledges-")[1].split("-meeting")[0];
+    if (value == 'na' || value == 'no') {
+      $('#div_id_depledges-' + id + '-meeting_date').parent().hide();
+      $('#div_id_depledges-' + id + '-meeting_attend').parent().hide();
+      $('#div_id_depledges-' + id + '-meeting_not').parent().show();
+    } else {
+      $('#div_id_depledges-' + id + '-meeting_date').parent().show();
+      $('#div_id_depledges-' + id + '-meeting_attend').parent().show();
+      $('#div_id_depledges-' + id + '-meeting_not').parent().hide();
+    }
+  })
+  $("[id ^=id][id$=reason]").each(function (index, element) {
+    var value = $(this).find(":selected")[0].value;
+    var id = element.id.split("depledges-")[1].split("-reason")[0];
+    if (value != 'other') {
+      $('#div_id_depledges-' + id + '-reason_other').parent().hide();
+    } else {
+      $('#div_id_depledges-' + id + '-reason_other').parent().show();
+    }
+  });
+  $('.reason-class').change(function () {
+    var value = $(this).find(":selected")[0].value;
+    var id = $(this)[0].id.split("depledges-")[1].split("-reason")[0];
+    if (value != 'other') {
+      $('#div_id_depledges-' + id + '-reason_other').parent().hide();
+    } else {
+      $('#div_id_depledges-' + id + '-reason_other').parent().show();
+    }
+  })
+$(".returned_items-class input").each(function (index, element) {
+  var value = element.value;
+  var id = element.id.split("depledges-")[1].split("-returned_items")[0];
+  if (value == 'other' && $(this)[0].checked) {
+    $('#div_id_depledges-' + id + '-returned_other').parent().show();
+  } else if (value == 'other' && !$(this)[0].checked) {
+    $('#div_id_depledges-' + id + '-returned_other').parent().hide();
+  }
+});
+$('.returned_items-class input').change(function () {
+  var value = $(this)[0].value;
+  var id = $(this)[0].id.split("depledges-")[1].split("-returned_items")[0];
+  if (value == 'other' && $(this)[0].checked) {
+    $('#div_id_depledges-' + id + '-returned_other').parent().show();
+  } else if (value == 'other' && !$(this)[0].checked) {
+    $('#div_id_depledges-' + id + '-returned_other').parent().hide();
+  }
+})
+})
+  ;
 </script>
   {{ form.media }}
   <a href="{% url 'forms:init_selection' %}">Return to Iniation Selection</a>
@@ -74,7 +139,7 @@ function download() {
     {% render_table roll_table %}
   {% else %}
 {% specialspaceless %}
-  <form action="" method="post">
+  <form action="" enctype="multipart/form-data" method="post">
     {% csrf_token %}
     <input type="hidden" id="chapter" name="chapter" value="{{ user.current_chapter }}">
     <div>
@@ -183,12 +248,19 @@ function download() {
       {{ depledge_formset.management_form|crispy }}
     </div>
 {% if depledge_formset.initial %}
+  {% if depledge_formset.non_form_errors %}
+    <div class="alert alert-block alert-danger">
+      {% if formset_error_title %}<h4 class="alert-heading">{{ formset_error_title }}</h4>{% endif %}
+      <ul>
+        {{ depledge_formset.non_form_errors|unordered_list }}
+      </ul>
+    </div>
+  {% endif %}
   <h2> Depledge Form:</h2>
-  {% csrf_token %}
-
   <table{% if form_id %} id="{{ form_id }}_table"{% endif%} class="table table-striped table-sm">
         <tbody>
             {% for form in depledge_formset %}
+              {{ form.media }}
               {% crispy form depledge_helper %}
                 {% if form_show_errors and not form.is_extra %}
                     {% include "bootstrap4/errors.html" %}
