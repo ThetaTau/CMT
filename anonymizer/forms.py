@@ -288,9 +288,29 @@ class PledgeAnonym(AnonymBase):
         ]
 
 
+class DepledgeAnonym:
+    reason_other = anonym_field.function(fake.sentence)
+    meeting_not = anonym_field.function(fake.sentence)
+    informed = anonym_field.function(fake.sentence)
+    concerns = anonym_field.function(fake.sentence)
+    returned_other = anonym_field.function(fake.sentence)
+    extra_notes = anonym_field.function(fake.sentence)
+
+    class Meta:
+        exclude_fields = [
+            "reason",
+            "date",
+            "meeting_held",
+            "meeting_date",
+            "meeting_attend",
+            "returned_items",
+        ]
+
+
 register_anonym(
     [
         (DisciplinaryProcess, DisciplinaryProcessAnonym),
+        (Depledge, DepledgeAnonym),
         (Pledge, PledgeAnonym),
         (Initiation, InitiationAnonym),
         (ResignationProcess, ResignationProcessAnonym),
