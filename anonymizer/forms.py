@@ -288,7 +288,7 @@ class PledgeAnonym(AnonymBase):
         ]
 
 
-class DepledgeAnonym:
+class DepledgeAnonym(AnonymBase):
     reason_other = anonym_field.function(fake.sentence)
     meeting_not = anonym_field.function(fake.sentence)
     informed = anonym_field.function(fake.sentence)
