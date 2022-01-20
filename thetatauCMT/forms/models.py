@@ -267,10 +267,11 @@ class Initiation(TimeStampedModel):
 class Depledge(TimeStampedModel):
     class REASONS(EnumClass):
         volunteer = ("volunteer", "Voluntarily decided not to continue")
-        time = ("time", "Too much time required")
-        grades = ("grades", "Poor grades")
-        interest = ("interest", "Lost interest")
-        vote = ("vote", "Negative Chapter Vote")
+        time = ("time", "Unable/unwilling to meet time commitment")
+        grades = ("grades", "Unable/unwilling to meet academic requirement")
+        financial = ("financial", "Unable/unwilling to meet financial commitment")
+        violation = ("violation", "Policy/Procedure Violation")
+        vote = ("vote", "Poor fit with the chapter/candidate chapter")
         withdrew = ("withdrew", "Withdrew from Engineering/University")
         transfer = ("transfer", "Transferring to another school")
         other = ("other", "Other")
@@ -327,7 +328,7 @@ class Depledge(TimeStampedModel):
         blank=True,
     )
     meeting_not = models.CharField(
-        "Why was there no Meeting with the depledged PNM?",
+        "Why was there no meeting with the depledged PNM?",
         max_length=100,
         null=True,
         blank=True,
