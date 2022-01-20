@@ -11,7 +11,6 @@ class DepledgeSurvey(TimeStampedModel):
         time = ("time", "Unable/unwilling to meet time commitment")
         grades = ("grades", "Unable/unwilling to meet academic requirement")
         financial = ("financial", "Unable/unwilling to meet financial commitment")
-        interest = ("interest", "Lost interest")
         violation = ("violation", "Policy/Procedure Violation")
         vote = ("vote", "Poor fit with the chapter/candidate chapter")
         withdrew = ("withdrew", "Withdrew from Engineering/University")
