@@ -298,6 +298,8 @@ class DepledgeAnonym(AnonymBase):
 
     class Meta:
         exclude_fields = [
+            "modified",
+            "created",
             "reason",
             "date",
             "meeting_held",
