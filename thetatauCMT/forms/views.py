@@ -2635,19 +2635,19 @@ class ResignationCreateView(LoginRequiredMixin, CreateProcessView):
             corsec,
         ) = chapter.get_current_officers_council_specific()
         officer1 = officer2 = False
-        if regent != user:
+        if regent and regent != user:
             form.instance.officer1 = regent
             officer1 = True
-        if scribe != user:
+        if scribe and scribe != user:
             form.instance.officer2 = scribe
             officer2 = True
         if not officer1:
-            if vice != user:
+            if vice and vice != user:
                 form.instance.officer1 = vice
             else:
                 form.instance.officer1 = treasurer
         if not officer2:
-            if vice != user:
+            if vice and vice != user:
                 form.instance.officer2 = vice
             else:
                 form.instance.officer2 = treasurer
