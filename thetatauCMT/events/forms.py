@@ -2,7 +2,7 @@ from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Layout, Fieldset, Row, Submit
 from crispy_forms.bootstrap import FormActions, InlineField, StrictButton
 from django import forms
-from .models import Event
+from .models import Event, Picture
 
 
 class EventListFormHelper(FormHelper):
@@ -34,6 +34,15 @@ class EventListFormHelper(FormHelper):
         ),
     )
 
+class PictureForm(forms.ModelForm):
+    image = forms.ImageField()
+
+    class Meta:
+        model = Picture
+        fields = [
+            "description",
+            "image",
+        ]
 
 class EventForm(forms.ModelForm):
     """
