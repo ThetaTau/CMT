@@ -218,7 +218,7 @@ class InitiationProcessFlow(Flow):
     Invoice is paid by chapter.
     CO goes into CMT and indicates invoice paid.
         - shingle csv to be emailed to goosecreekpublishing@yahoo.com
-        - invoice CSV (which would still include the badge and guard info) to be sent to central.office@thetatau.org.
+        - invoice CSV (which would still include the badge info) to be sent to central.office@thetatau.org.
         - email sent to the chapter officers with instructions on how to order their badges directly from Herff.
     """
 

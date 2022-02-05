@@ -47,9 +47,6 @@ INIT = [
     "Initiation Fee",
     "Late Fee",
     "Badge Style",
-    "Guard Type",
-    "Badge Cost",
-    "Guard Cost",
     "Sum for member",
 ]
 
@@ -169,14 +166,6 @@ class Command(BaseCommand):
                     badge_cost = 0
                     if badge:
                         badge_code = badge.code
-                        badge_cost = badge.cost
-                    guard = initiation.guard
-                    guard_code = ""
-                    guard_cost = 0
-                    if guard:
-                        if guard.code != "None":
-                            guard_code = guard.code
-                            guard_cost = guard.cost
                     chapter = initiation.user.chapter
                     init_fee = 75
                     if chapter.candidate_chapter:
@@ -188,7 +177,7 @@ class Command(BaseCommand):
                     if delta.days > 28:
                         if not chapter.candidate_chapter:
                             late_fee = 25
-                    total = badge_cost + guard_cost + init_fee + late_fee
+                    total = init_fee + late_fee
                     row = {
                         "Submitted by": "",
                         "Date Submitted": init_submit,
@@ -205,9 +194,6 @@ class Command(BaseCommand):
                         "Initiation Fee": init_fee,
                         "Late Fee": late_fee,
                         "Badge Style": badge_code,
-                        "Guard Type": guard_code,
-                        "Badge Cost": badge_cost,
-                        "Guard Cost": guard_cost,
                         "Sum for member": total,
                     }
                     writer.writerow(row)

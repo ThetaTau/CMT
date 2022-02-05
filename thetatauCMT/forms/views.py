@@ -97,7 +97,6 @@ from users.notifications import NewOfficers
 from chapters.models import Chapter, ChapterCurricula
 from regions.models import Region
 from .tables import (
-    GuardTable,
     BadgeTable,
     InitiationTable,
     DepledgeTable,
@@ -119,7 +118,6 @@ from .tables import (
     PledgeProgramStatusTable,
 )
 from .models import (
-    Guard,
     Badge,
     Depledge,
     StatusChange,
@@ -358,11 +356,8 @@ class InitiationView(LoginRequiredMixin, OfficerRequiredMixin, FormView):
             context["form_show_errors"] = True
             context["error_text_inline"] = True
             context["help_text_inline"] = True
-            guards = GuardTable(Guard.objects.all().order_by("name"))
             badges = BadgeTable(Badge.objects.all().order_by("name"))
-            RequestConfig(self.request).configure(guards)
             RequestConfig(self.request).configure(badges)
-            context["guard_table"] = guards
             context["badge_table"] = badges
         return context
 

@@ -907,12 +907,9 @@ class InitiationProcess(Process):
             "Initiation Fee",
             "Late Fee",
             "Badge Style",
-            "Guard Type",
-            "Badge Cost",
-            "Guard Cost",
             "Sum for member",
         ]
-        update_remove = ["Date Submitted", "Badge Cost", "Guard Cost", "Sum for member"]
+        update_remove = ["Date Submitted", "Sum for member"]
         if not invoice:
             for column in update_remove:
                 INIT.remove(column)
@@ -933,21 +930,12 @@ class InitiationProcess(Process):
         for initiation in self.initiations.all():
             badge = initiation.badge
             badge_code = ""
-            badge_cost = 0
             if badge:
                 badge_code = badge.code
-                badge_cost = badge.cost
-            guard = initiation.guard
-            guard_code = ""
-            guard_cost = 0
-            if guard:
-                if guard.code != "None":
-                    guard_code = guard.code
-                    guard_cost = guard.cost
             chapter = initiation.user.chapter
             init_fee, late_fee = self.get_fees(chapter, initiation)
             init_submit = initiation.created.date()
-            total = badge_cost + guard_cost + init_fee + late_fee
+            total = init_fee + late_fee
             row = {
                 "Date Submitted": init_submit,
                 "Initiation Date": init_date,
@@ -963,9 +951,6 @@ class InitiationProcess(Process):
                 "Initiation Fee": init_fee,
                 "Late Fee": late_fee,
                 "Badge Style": badge_code,
-                "Guard Type": guard_code,
-                "Badge Cost": badge_cost,
-                "Guard Cost": guard_cost,
                 "Sum for member": total,
             }
             if not invoice:
@@ -1025,17 +1010,6 @@ class InitiationProcess(Process):
                 late_fee_count, linenumber_count, name="I1B", client=client
             )
             invoice.Line.append(line)
-        badge_guard_count = Counter(
-            self.initiations.values_list("guard__code", flat=True)
-        ) + Counter(self.initiations.values_list("badge__code", flat=True))
-        for badge_guard_code, count in badge_guard_count.items():
-            if badge_guard_code == "None":
-                continue
-            line = create_line(
-                count, linenumber_count, name=badge_guard_code, client=client
-            )
-            invoice.Line.append(line)
-            linenumber_count += 1
         memo = "Initiated: " + ", ".join(
             self.initiations.values_list("user__name", flat=True)
         )
@@ -1082,7 +1056,6 @@ class InitiationProcess(Process):
             "Education Class of",
             "Last Name",
             "Badge Style",
-            "Guard Type",
         ]
         shingle_header = [
             "First Name",
@@ -1125,11 +1098,8 @@ class InitiationProcess(Process):
         shingle_writer.writeheader()
         for initiation in self.initiations.all():
             badge = ""
-            guard = ""
             if initiation.badge:
                 badge = initiation.badge.code
-            if initiation.guard.name != "None":
-                guard = initiation.guard.code
             row_badge = {
                 "Chapter Name": chapter,
                 "Chapter Address": self.chapter.address,
@@ -1140,7 +1110,6 @@ class InitiationProcess(Process):
                 "Education Class of": initiation.date_graduation.year,
                 "Last Name": initiation.user.last_name,
                 "Badge Style": badge,
-                "Guard Type": guard,
             }
             badge_writer.writerow(row_badge)
             row_shingle = {

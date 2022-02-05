@@ -1,7 +1,6 @@
 import django_tables2 as tables
 from django_tables2.utils import A
 from .models import (
-    Guard,
     Badge,
     Depledge,
     StatusChange,
@@ -12,18 +11,6 @@ from .models import (
     CollectionReferral,
     PledgeProgramProcess,
 )
-
-
-class GuardTable(tables.Table):
-    class Meta:
-        model = Guard
-        fields = (
-            "name",
-            "cost",
-            "description",
-            "letters",
-        )
-        attrs = {"class": "table table-striped table-bordered"}
 
 
 class BadgeTable(tables.Table):

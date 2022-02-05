@@ -120,7 +120,6 @@ class InitiationForm(forms.ModelForm):
             "test_a",
             "test_b",
             "badge",
-            "guard",
         ]
 
     def clean_user(self):
@@ -157,7 +156,6 @@ class InitiationFormHelper(FormHelper):
         "test_a",
         "test_b",
         "badge",
-        "guard",
     )
 
 
