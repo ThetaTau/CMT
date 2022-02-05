@@ -160,7 +160,7 @@ class PrematureAlumnusFlow(Flow):
             "Premature Alumnus Request",
             "Executive Director Review",
             "Submitted",
-            "Your chapter has submitted a premature alumnus form on your behalf."
+            f"{user.chapter.full_name} has submitted a premature alumnus form on your behalf."
             + " Once the Central Office processes "
             + "the form, you will receive an email confirming your change in status.",
             [
