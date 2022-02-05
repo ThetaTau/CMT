@@ -202,7 +202,7 @@ class OfficerUpdateReminder(
         emails = {email for email in emails if email}
         format_officers = ", ".join(officers_to_update)
         self.to_emails = emails
-        self.cc = []
+        self.cc = [chapter.region.email]
         self.reply_to = [
             "cmt@thetatau.org",
         ]
