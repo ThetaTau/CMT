@@ -72,7 +72,12 @@ class User(AbstractUser):
         ]
 
     class ReportBuilder:
-        extra = ("current_status", "role", "is_officer", "is_advisor", )
+        extra = (
+            "current_status",
+            "role",
+            "is_officer",
+            "is_advisor",
+        )
 
     objects = CustomUserManager()
     # First Name and Last Name do not cover name patterns
