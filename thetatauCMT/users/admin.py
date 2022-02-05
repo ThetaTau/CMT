@@ -10,6 +10,7 @@ from django.contrib.auth.admin import UserAdmin as AuthUserAdmin
 from django.contrib.auth.forms import UserChangeForm
 from import_export.admin import ImportExportActionModelAdmin
 from report_builder.admin import Report
+from address.admin import Address
 from .models import (
     User,
     UserRoleChange,
@@ -39,6 +40,7 @@ from core.admin import (
     ReportAdminSync,
     SentNotificationAdminUpdate,
     SentNotification,
+    AddressAdmin,
 )
 from notes.admin import UserNoteInline, UserNote
 
@@ -48,6 +50,8 @@ admin.site.unregister(Report)
 admin.site.register(Report, ReportAdminSync)
 admin.site.unregister(SentNotification)
 admin.site.register(SentNotification, SentNotificationAdminUpdate)
+admin.site.unregister(Address)
+admin.site.register(Address, AddressAdmin)
 
 
 class UserStatusChangeAdmin(admin.ModelAdmin):
