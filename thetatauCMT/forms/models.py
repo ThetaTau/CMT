@@ -286,6 +286,7 @@ class Depledge(TimeStampedModel):
         pin = ("pin", "Pledge Pin")
         manual = ("manual", "Membership Manual")
         other = ("other", "Other")
+        na = ("na", "No Items Given")
 
     user = models.OneToOneField(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="depledge"

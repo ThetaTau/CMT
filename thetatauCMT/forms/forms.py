@@ -215,7 +215,12 @@ class DepledgeForm(forms.ModelForm):
                 ),
             )
         meeting_held = self.cleaned_data.get("meeting_held")
-        if "no" in meeting_held or "na" in meeting_held:
+        if not meeting_held:
+            self.add_error(
+                "meeting_held",
+                forms.ValidationError("You must select if a meeting was held or not."),
+            )
+        elif "no" in meeting_held or "na" in meeting_held:
             meeting_not = self.cleaned_data.get("meeting_not", "")
             if meeting_not == "":
                 self.add_error(
@@ -242,7 +247,13 @@ class DepledgeForm(forms.ModelForm):
                     ),
                 )
         returned_other = self.cleaned_data.get("returned_other", "")
-        if "other" in self.cleaned_data.get("returned_items") and returned_other == "":
+        returned_items = self.cleaned_data.get("returned_items")
+        if not returned_items:
+            self.add_error(
+                "returned_items",
+                forms.ValidationError("You must specify if items were returned."),
+            )
+        elif "other" in returned_items and returned_other == "":
             self.add_error(
                 "returned_other",
                 forms.ValidationError("You must submit the other returned items"),
