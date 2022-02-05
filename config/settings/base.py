@@ -121,6 +121,7 @@ LOCAL_APPS = [
     "thetatauCMT.tasks.apps.TasksConfig",
     "thetatauCMT.finances.apps.FinancesConfig",
     "thetatauCMT.ballots.apps.BallotsConfig",
+    "thetatauCMT.surveys.apps.SurveysConfig",
     "thetatauCMT.announcements.apps.AnnouncementsConfig",
     "thetatauCMT.notes.apps.NotesConfig",
 ]

@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+
+{% block title %}Depledge Survey{% endblock %}
+{% block content %}
+  <script>
+    $(function () {
+      var value = $('#id_reason').find(":selected")[0].value;
+      if (value != 'other') {
+        $('#div_id_reason_other').hide();
+      }
+      $('#id_reason').change(function () {
+        var value = $('#id_reason').find(":selected")[0].value;
+        if (value == 'other') {
+          $('#div_id_reason_other').show();
+        } else {
+          $('#div_id_reason_other').hide();
+        }
+      })
+      var value = $('#id_decided').find(":selected")[0].value;
+      if (value != 'other') {
+        $('#div_id_decided_other').hide();
+      }
+      $('#id_decided').change(function () {
+        var value = $('#id_decided').find(":selected")[0].value;
+        if (value == 'other') {
+          $('#div_id_decided_other').show();
+        } else {
+          $('#div_id_decided_other').hide();
+        }
+      })
+    });
+  </script>
+  <h1>Depledge Survey</h1>
+  <p>We are dedicated to the improvement of our organization and processes and value your opinion.
+    It would be appreciated if you could take about 5 minutes to complete this 6 question survey on your experience.
+    All answers will be kept confidential.</p>
+  <form class="form-horizontal" method="post" action="">
+    {% csrf_token %}
+    {{ form|crispy }}
+    <div class="control-group">
+      <div class="controls">
+        <button type="submit" class="btn primary">Submit</button>
+      </div>
+    </div>
+  </form>
+{% endblock %}
