@@ -21,32 +21,33 @@ class UserRoleChangeResource(resources.ModelResource):
 
 
 class UserResource(resources.ModelResource):
-    field_name = Field(column_name="field_name")
-
     class Meta:
         model = User
         skip_unchanged = True
         report_skipped = False
         import_id_fields = ("user_id", "email")
-        exclude = ("user_id",)
-
-    def before_import(self, dataset, using_transactions, dry_run, **kwargs):
-        dataset.headers = [header.strip() for header in dataset.headers]
-        UserResource.Meta.fields = dataset.headers
-        attrs = dict(vars(UserResource))
-        new = resources.ModelDeclarativeMetaclass.__new__(
-            resources.ModelDeclarativeMetaclass,
-            "UserResource",
-            (resources.ModelResource,),
-            attrs,
+        exclude = (
+            "user_id",
+            "address_changed",
+            "chapter",
+            "deceased_changed",
+            "employer_address",
+            "employer_changed",
+            "major",
+            "date_joined",
+            "is_active",
+            "is_staff",
+            "user_permissions",
+            "groups",
+            "is_superuser",
+            "last_login",
+            "password",
+            "id",
+            "modified",
         )
-        self.fields = new.fields
 
     def init_instance(self, row=None):
         raise ValidationError(f"There is no user with id {row['user_id']}")
-
-    def after_import(self, dataset, result, using_transactions, dry_run, **kwargs):
-        result.diff_headers = self.get_diff_headers()
 
     def get_instance(self, instance_loader, row):
         queries = []
