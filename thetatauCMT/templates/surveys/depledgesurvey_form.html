@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% load crispy_forms_tags %}
 
-{% block title %}Depledge Survey{% endblock %}
+{% block title %}Theta Tau PNM Exit Survey{% endblock %}
 {% block content %}
   <script>
     $(function () {
@@ -37,9 +37,9 @@
     <h2>Chapter has not submitted depledge form for {{ user }}</h2>
   {% elif object %}
     <h2>Thank you for submitting the survey and helping us improve our organization!</h2>
-    <h3>Depledge Survey already submitted for {{ user }}</h3>
+    <h3>Theta Tau PNM Exit Survey already submitted for {{ user }}</h3>
   {% else %}
-  <h1>Depledge Survey for {{ user }}</h1>
+  <h1>Theta Tau PNM Exit Survey for {{ user }}</h1>
   <p>We are dedicated to the improvement of our organization and processes and value your opinion.
     It would be appreciated if you could take about 5 minutes to complete this 6 question survey on your experience.
     All answers will be kept confidential.</p>

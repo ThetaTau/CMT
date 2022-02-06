@@ -45,6 +45,7 @@ from core.views import (
     NatOfficerRequiredMixin,
     group_required,
 )
+from surveys.notifications import DepledgeSurveyEmail
 from users.tables import RollBookTable
 from .forms import (
     InitiationFormSet,
@@ -407,6 +408,8 @@ class InitiationView(LoginRequiredMixin, OfficerRequiredMixin, FormView):
                 messages.INFO,
                 f"You successfully submitted depledge report for:\n" f"{depledge_list}",
             )
+            for depledge in depledge_list:
+                DepledgeSurveyEmail(depledge).send()
         from .flows import InitiationProcessFlow
 
         ceremony = request.POST.get("initiates-__prefix__-ceremony", "normal")
