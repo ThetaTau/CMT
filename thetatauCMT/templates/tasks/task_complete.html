@@ -5,6 +5,10 @@
 
 {% block content %}
   <h1>Mark Task As Complete</h1>
+  <p>This task is to help the officers of the chapter to remember to complete
+  tasks in a timely manner. Some tasks have forms/submissions associated with them.
+  You should try to complete the form or submit the appropriate document before marking the task complete.
+  </p>
   <table class="table">
     <tr>
       <th>Task Name</th>
@@ -13,6 +17,10 @@
     <tr>
       <th>Task Owner</th>
       <td>{{ task.owner|title }}</td>
+    </tr>
+    <tr>
+      <th>Form/Submission</th>
+      <td>{{ task.render_task_link }}</td>
     </tr>
     <tr>
       <th>Task Description</th>
@@ -26,7 +34,7 @@
           {{ form|crispy }}
           <div class="control-group">
             <div class="controls">
-              <button type="submit" class="btn-primary" value="Save"><i class="fas fa-check"></i> Complete</button>
+              <button type="submit" class="btn-primary" value="Save"><i class="fas fa-check"></i> Mark Complete</button>
             </div>
           </div>
         </form>

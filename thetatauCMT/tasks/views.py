@@ -26,24 +26,6 @@ class TaskCompleteView(LoginRequiredMixin, OfficerRequiredMixin, CreateView):
     officer_edit = "tasks"
     officer_edit_type = "complete"
 
-    def get(self, request, *args, **kwargs):
-        task_date_id = self.kwargs.get("pk")
-        task = TaskDate.objects.get(pk=task_date_id).task
-        if task.resource:
-            if "http" not in task.resource:
-                if "ballots" in task.resource:
-                    return redirect(reverse(task.resource, args=(slugify(task.name),)))
-                return redirect(reverse(task.resource))
-            else:
-                return redirect(task.resource)
-        if task.type == "sub":
-            if task.submission_type:
-                return redirect(
-                    reverse("submissions:add-direct", args=(task.submission_type.slug,))
-                )
-        self.object = None
-        return super().get(request, *args, **kwargs)
-
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         task_date_id = self.kwargs.get("pk")
@@ -143,7 +125,7 @@ class TaskListView(LoginRequiredMixin, PagedFilteredTableView):
         complete = qs.filter(complete_result=True)
         incomplete = qs.filter(~models.Q(pk__in=complete), complete_result="")
         all_tasks = complete | incomplete
-        table = TaskTable(all_tasks)
+        table = TaskTable(data=all_tasks)
         table.request = self.request
         RequestConfig(self.request, paginate={"per_page": 40}).configure(table)
         context["table"] = table

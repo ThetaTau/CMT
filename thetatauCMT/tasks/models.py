@@ -2,6 +2,8 @@ import datetime
 from datetime import timedelta
 from django.db import models
 from django.db.models import Q
+from django.shortcuts import reverse
+from django.utils.html import mark_safe
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
 from django.utils.text import slugify
@@ -40,6 +42,30 @@ class Task(models.Model):
     def save(self, *args, **kwargs):
         self.slug = slugify(self.name + self.owner)
         super().save(*args, **kwargs)
+
+    @property
+    def render_task_link(self):
+        value = ""
+        resource = self.resource
+        task_type = self.type
+        if task_type == "sub":
+            value = mark_safe(
+                "<a href="
+                + reverse("submissions:add-direct", args=(self.submission_type.slug,))
+                + ">Submission</a>"
+            )
+        if "http" in resource:
+            value = mark_safe(f'<a href="{resource}">Form</a>')
+        elif ":" in resource:
+            if "ballot" in resource:
+                value = mark_safe(
+                    "<a href="
+                    + reverse(resource, args=(slugify(self.name),))
+                    + ">Ballot</a>"
+                )
+            else:
+                value = mark_safe("<a href=" + reverse(resource) + ">Form</a>")
+        return value
 
     def all_dates_for_task_chapter(self, chapter):
         school_type = chapter.school_type
