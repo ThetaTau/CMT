@@ -390,11 +390,9 @@ class InitiationView(LoginRequiredMixin, OfficerRequiredMixin, FormView):
         for form in depledge_formset:
             form.save()
             depledge_list.append(form.instance.user)
-        task = Task.objects.get(name="Initiation Report")
-        chapter = self.request.user.current_chapter
-        next_date = task.incomplete_dates_for_task_chapter(chapter).first()
-        if next_date:
-            TaskChapter(task=next_date, chapter=chapter, date=timezone.now()).save()
+        Task.mark_complete(
+            name="Initiation Report", chapter=self.request.user.current_chapter
+        )
         if update_list:
             messages.add_message(
                 request,
@@ -630,11 +628,9 @@ class StatusChangeView(LoginRequiredMixin, OfficerRequiredMixin, FormView):
                 form.instance.date_end = next_semester
             form.save()
             update_list.append(form.instance.user)
-        task = Task.objects.get(name="Member Updates")
-        chapter = self.request.user.current_chapter
-        next_date = task.incomplete_dates_for_task_chapter(chapter).first()
-        if next_date:
-            TaskChapter(task=next_date, chapter=chapter, date=timezone.now()).save()
+        Task.mark_complete(
+            name="Member Updates", chapter=self.request.user.current_chapter
+        )
         messages.add_message(
             self.request,
             messages.INFO,
@@ -739,11 +735,10 @@ class RoleChangeView(LoginRequiredMixin, OfficerRequiredMixin, ModelFormSetView)
                         role_name = COL_OFFICER_ALIGN[role_name]
                     if role_name in CHAPTER_OFFICER:
                         officer_list.append(form.instance.user)
-            task = Task.objects.get(name="Officer Election Report")
-            chapter = self.request.user.current_chapter
-            next_date = task.incomplete_dates_for_task_chapter(chapter).first()
-            if next_date:
-                TaskChapter(task=next_date, chapter=chapter, date=timezone.now()).save()
+            Task.mark_complete(
+                name="Officer Election Report",
+                chapter=self.request.user.current_chapter,
+            )
             if officer_list:
                 NewOfficers(new_officers=officer_list).send()
             if update_list:
@@ -932,9 +927,17 @@ class ChapterInfoReportView(LoginRequiredMixin, CreateView):
 
     def form_valid(self, form):
         report = form
-        report.instance.user = self.request.user
-        report.instance.chapter = self.request.user.current_chapter
-        report.save()
+        chapter = self.request.user.current_chapter
+        user = self.request.user
+        report.instance.user = user
+        report.instance.chapter = chapter
+        obj = report.save()
+        Task.mark_complete(
+            name="Chapter Report",
+            chapter=chapter,
+            user=user,
+            obj=obj,
+        )
         messages.add_message(
             self.request,
             messages.INFO,
@@ -1001,7 +1004,14 @@ class RiskManagementFormView(LoginRequiredMixin, FormView):
         submit_obj.file.save(f"{file_name}.pdf", ContentFile(risk_file.content))
         submit_obj.save()
         form.instance.submission = submit_obj
-        form.save()
+        obj = form.save()
+        Task.mark_complete(
+            name="Risk Management Form",
+            chapter=self.request.user.current_chapter,
+            current_roles=[current_role],
+            user=self.request.user,
+            obj=obj,
+        )
         EmailRMPSigned(self.request.user, risk_file.content, file_name).send()
         messages.add_message(
             self.request,
@@ -1375,26 +1385,13 @@ class AuditFormView(LoginRequiredMixin, OfficerRequiredMixin, UpdateView):
             return super().form_invalid(form)
         else:
             saved_audit = form.save()
-            task = Task.objects.filter(name="Audit", owner__in=current_roles).first()
-            chapter = self.request.user.current_chapter
-            next_date = task.incomplete_dates_for_task_chapter(chapter).first()
-            if next_date:
-                task_obj = TaskChapter(
-                    task=next_date,
-                    chapter=chapter,
-                    date=timezone.now(),
-                )
-                score_type = ScoreType.objects.filter(slug="audit").first()
-                submit_obj = Submission(
-                    user=self.request.user,
-                    file=f"forms:audit_complete {saved_audit.pk}",
-                    name=f"Audit by {task.owner}",
-                    type=score_type,
-                    chapter=self.request.user.current_chapter,
-                )
-                submit_obj.save()
-                task_obj.submission_object = submit_obj
-                task_obj.save()
+            Task.mark_complete(
+                name="Audit",
+                chapter=self.request.user.current_chapter,
+                current_roles=current_roles,
+                user=self.request.user,
+                obj=saved_audit,
+            )
             messages.add_message(
                 self.request,
                 messages.INFO,
@@ -1543,6 +1540,12 @@ class PrematureAlumnusCreateView(
         self.activation.done()
         self.success(
             "Premature Alumnus form submitted successfully to Executive Director for review"
+        )
+        Task.mark_complete(
+            name="Premature Alumnus",
+            chapter=self.request.user.current_chapter,
+            user=self.request.user,
+            obj=self.object,
         )
 
     def get_context_data(self, *args, **kwargs):
@@ -1753,6 +1756,12 @@ class ConventionCreateView(LoginRequiredMixin, CreateProcessView):
                 form.instance.officer2 = vice
             else:
                 form.instance.officer2 = treasurer
+        Task.mark_complete(
+            name="Credentials",
+            chapter=chapter,
+            user=self.request.user,
+            obj=form.instance,
+        )
         return super().form_valid(form)
 
     def get_context_data(self, *args, **kwargs):
@@ -2202,6 +2211,12 @@ class OSMCreateView(LoginRequiredMixin, CreateProcessView):
                 form.instance.officer2 = scribe
             else:
                 form.instance.officer2 = treasurer
+        Task.mark_complete(
+            name="Outstanding Student Member",
+            chapter=chapter,
+            user=self.request.user,
+            obj=form.instance,
+        )
         return super().form_valid(form)
 
     def get_context_data(self, *args, **kwargs):
@@ -2827,32 +2842,16 @@ class PledgeProgramProcessCreateView(
             return super().form_invalid(form)
         else:
             program = form.save()
-            task = Task.objects.get(name="Pledge Program")
             chapter = self.request.user.current_chapter
-            next_date = task.incomplete_dates_for_task_chapter(chapter).first()
-            if next_date:
-                task_obj = TaskChapter(
-                    task=next_date,
-                    chapter=chapter,
-                    date=timezone.now(),
-                )
-                score_type = ScoreType.objects.filter(slug="pledge-program").first()
-                submit_obj = Submission(
-                    user=self.request.user,
-                    file="forms:pledge_program",
-                    name="Pledge program",
-                    type=score_type,
-                    chapter=self.request.user.current_chapter,
-                )
-                submit_obj.save(
-                    extra_info={"unmodified": form.instance.manual != "other"}
-                )
-                task_obj.submission_object = submit_obj
-                task_obj.save()
-                if form.instance.manual == "other":
-                    EmailPledgeOther(
-                        self.request.user, form.instance.other_manual.file
-                    ).send()
+            Task.mark_complete(
+                name="Pledge Program",
+                chapter=chapter,
+                current_roles=current_roles,
+                user=self.request.user,
+                obj=program,
+            )
+            if program.manual == "other":
+                EmailPledgeOther(self.request.user, program.other_manual.file).send()
             self.activation.process.program = program
             self.activation.process.chapter = chapter
             return super().form_valid(form)

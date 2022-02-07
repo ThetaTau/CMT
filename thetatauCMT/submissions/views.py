@@ -21,6 +21,7 @@ from core.forms import MultiFormsView
 from chapters.models import Chapter
 from regions.models import Region
 from scores.models import ScoreType
+from tasks.models import Task
 from .models import Submission, Picture, GearArticle
 from .tables import SubmissionTable, GearArticleTable
 from .filters import SubmissionListFilter, GearArticleListFilter
@@ -57,6 +58,18 @@ class SubmissionCreateView(
     officer_edit_type = "create"
 
     def get_success_url(self):
+        name = None
+        if self.object.type == "Lock-In and Goal Setting":
+            name = "Lock-in"
+        elif self.object.name == "Alumni Newsletter":
+            name = "Newsletter for Alumni"
+        if name:
+            Task.mark_complete(
+                name="Risk Management Form",
+                chapter=self.request.user.current_chapter,
+                user=self.request.user,
+                obj=self.object,
+            )
         return reverse("submissions:list")
 
 
@@ -159,13 +172,19 @@ class GearArticleFormView(LoginRequiredMixin, OfficerRequiredMixin, MultiFormsVi
         )
         submission.save()
         gear_form.instance.submission = submission
-        gear_form.save()
+        obj = gear_form.save()
         for picture_form in picture_forms:
             if picture_form.is_valid() and picture_form.instance.image.name != "":
                 picture_form.instance.submission = gear_form.instance
                 picture_form.save()
         link = reverse("submissions:gear_detail", kwargs={"pk": gear_form.instance.pk})
         link = settings.CURRENT_URL + link
+        Task.mark_complete(
+            name="Gear Article",
+            chapter=chapter,
+            user=self.request.user,
+            obj=obj,
+        )
         GenericEmail(
             emails=["gear@thetatau.org"],
             subject=f"{chapter.name} Gear Article Submission",
