@@ -1008,18 +1008,29 @@ class PledgeDemographicsForm(forms.ModelForm):
         label="Are you a first-generation college student?",
         choices=[("", ""), (True, "Yes"), (False, "No")],
         initial="",
-        required=False,
+        required=True,
     )
     english = forms.ChoiceField(
         label="Is English your first language?",
         choices=[("", ""), (True, "Yes"), (False, "No")],
         initial="",
-        required=False,
+        required=True,
     )
 
     class Meta:
         model = UserDemographic
         exclude = ["user", "specific_ethnicity"]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for field in self.fields:
+            if field not in [
+                "gender_write",
+                "sexual_write",
+                "racial_write",
+                "ability_write",
+            ]:
+                self.fields[field].required = True
 
 
 class PledgeUserBase(forms.ModelForm):
