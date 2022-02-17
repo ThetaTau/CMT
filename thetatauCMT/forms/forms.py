@@ -308,11 +308,18 @@ class DepledgeFormHelper(FormHelper):
 
 class StatusChangeSelectForm(forms.Form):
     user = forms.ModelChoiceField(queryset=User.objects.none())
-    state = forms.ChoiceField(
-        label="New Status",
-        choices=[x.value for x in StatusChange.REASONS if x.name not in ["covid"]],
-    )
+    state = forms.ChoiceField(label="New Status")
     selected = forms.BooleanField(label="Remove", required=False)
+
+    def __init__(self, *args, **kwargs):
+        colony = kwargs.pop("colony", False)
+        super().__init__(*args, **kwargs)
+        exclude = ["covid"]
+        if not colony:
+            exclude.append("resignedCC")
+        self.fields["state"].choices = [
+            x.value for x in StatusChange.REASONS if x.name not in exclude
+        ]
 
 
 class StatusChangeSelectFormHelper(FormHelper):
@@ -421,7 +428,7 @@ class CSMTForm(forms.ModelForm):
             self.fields["employer"].required = False
             self.fields["new_school"].widget = forms.HiddenInput()
             self.fields["new_school"].required = False
-        if reason == "withdraw":
+        if reason == "withdraw" or reason == "resignedCC":
             self.fields["miles"].widget.attrs["disabled"] = "true"
             self.fields["miles"].required = False
             self.fields["date_end"].widget.attrs["disabled"] = "true"

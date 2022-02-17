@@ -430,6 +430,17 @@ class StatusChangeSelectView(LoginRequiredMixin, OfficerRequiredMixin, FormSetVi
     prefix = "selection"
     officer_edit = "member status"
 
+    def get_formset_kwargs(self):
+        kwargs = super().get_formset_kwargs()
+        kwargs.update(
+            {
+                "form_kwargs": {
+                    "colony": self.request.user.current_chapter.candidate_chapter
+                },
+            }
+        )
+        return kwargs
+
     def get_formset_request(self, request, action):
         formset = forms.formset_factory(StatusChangeSelectForm, extra=1)
         info = request.POST.copy()
@@ -455,14 +466,26 @@ class StatusChangeSelectView(LoginRequiredMixin, OfficerRequiredMixin, FormSetVi
                         }
                     )
         if action in ["Add Row", "Delete Selected"]:
-            formset = formset(prefix="selection", initial=initial)
+            formset = formset(
+                prefix="selection",
+                initial=initial,
+                form_kwargs={
+                    "colony": self.request.user.current_chapter.candidate_chapter
+                },
+            )
         else:
             post_data = deepcopy(request.POST)
             post_data["selection-INITIAL_FORMS"] = str(
                 int(post_data["selection-INITIAL_FORMS"]) + 1
             )
             formset = formset(
-                post_data, request.FILES, initial=initial, prefix="selection"
+                post_data,
+                request.FILES,
+                initial=initial,
+                prefix="selection",
+                form_kwargs={
+                    "colony": self.request.user.current_chapter.candidate_chapter
+                },
             )
         return formset
 
@@ -511,6 +534,7 @@ class StatusChangeSelectView(LoginRequiredMixin, OfficerRequiredMixin, FormSetVi
             "military": [],
             "withdraw": [],
             "transfer": [],
+            "resignedCC": [],
         }
         for info in cleaned_data:
             user = info["user"]
@@ -532,6 +556,7 @@ class StatusChangeView(LoginRequiredMixin, OfficerRequiredMixin, FormView):
     to_withdraw = []
     to_transfer = []
     to_csmt = []
+    resignedCC = []
 
     def initial_info(self, status_change):
         actives = self.request.user.current_chapter.actives()
@@ -541,12 +566,14 @@ class StatusChangeView(LoginRequiredMixin, OfficerRequiredMixin, FormView):
         self.to_military = actives.filter(pk__in=status_change["military"])
         self.to_withdraw = actives.filter(pk__in=status_change["withdraw"])
         self.to_transfer = actives.filter(pk__in=status_change["transfer"])
+        self.resignedCC = actives.filter(pk__in=status_change["resignedCC"])
         self.to_csmt = (
             self.to_coop
             | self.to_military
             | self.to_withdraw
             | self.to_transfer
             | self.to_covid
+            | self.resignedCC
         )
 
     def get(self, request, *args, **kwargs):
@@ -590,6 +617,10 @@ class StatusChangeView(LoginRequiredMixin, OfficerRequiredMixin, FormView):
                     {"user": user.name, "reason": "transfer"}
                     for user in self.to_transfer
                 ]
+                + [
+                    {"user": user.name, "reason": "resignedCC"}
+                    for user in self.resignedCC
+                ]
             )
         context["csmt_formset"] = csmt_formset
         context["csmt_helper"] = CSMTFormHelper()
@@ -618,6 +649,7 @@ class StatusChangeView(LoginRequiredMixin, OfficerRequiredMixin, FormView):
             + [{"user": user.name, "reason": "military"} for user in self.to_military]
             + [{"user": user.name, "reason": "withdraw"} for user in self.to_withdraw]
             + [{"user": user.name, "reason": "transfer"} for user in self.to_transfer]
+            + [{"user": user.name, "reason": "resignedCC"} for user in self.resignedCC]
         )
         if not formset.is_valid() or not csmt_formset.is_valid():
             return self.render_to_response(
