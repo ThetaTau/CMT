@@ -478,7 +478,11 @@ class EmailProcessUpdate(EmailNotification):
             "Badge/Shingles Order Submitted",
             "Initiation Process Complete",
             "Badges/Shingles Ordered",
-            "A badges and shingles order has been sent to the vendor. <a href='http://www.google.com'>Test link</a>",
+            "Your chapter has paid an initiation invoice."
+            + " The chapter should now follow instructions here:<br>"
+            '<a href="https://drive.google.com/file/d/198mk-7e-Nef_oIN_WB8t2NijM8wo5UKM/view">'
+            "https://drive.google.com/file/d/198mk-7e-Nef_oIN_WB8t2NijM8wo5UKM/view</a>"
+            " for ordering badges and guards.",
             [
                 {"members": member_list},
                 "invoice",
