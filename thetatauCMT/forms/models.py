@@ -800,7 +800,7 @@ class PrematureAlumnus(Process):
     )
     financial = models.BooleanField(verbose_financial, default=False)
     verbose_semesters = _(
-        """Member has completed at least 2 semesters of active membership."""
+        """Member has completed at least six months of active membership."""
     )
     semesters = models.BooleanField(verbose_semesters, default=False)
     verbose_lifestyle = _(
