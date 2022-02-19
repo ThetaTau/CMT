@@ -72,7 +72,7 @@ class OfficerMonthly(EmailNotification):  # extend from EmailNotification for em
             "balance": chapter.balance,
             "balance_date": chapter.balance_date,
             "tasks_upcoming": TaskDate.incomplete_dates_for_chapter_next_month(chapter),
-            "tasks_overdue": TaskDate.incomplete_dates_for_chapter_past(chapter),
+            "tasks_overdue": TaskDate.incomplete_dates_for_chapter(chapter),
             "region_announcements": None,
             "host": settings.CURRENT_URL,
         }
@@ -135,7 +135,7 @@ class RDMonthly(EmailNotification):  # extend from EmailNotification for emails
                     "member_count": chapter.actives().count(),
                     "pledge_count": chapter.pledges().count(),
                     "event_count": chapter.events_last_month().count(),
-                    "tasks_overdue": TaskDate.incomplete_dates_for_chapter_past(
+                    "tasks_overdue": TaskDate.incomplete_dates_for_chapter(
                         chapter
                     ).count(),
                     "host": host,
