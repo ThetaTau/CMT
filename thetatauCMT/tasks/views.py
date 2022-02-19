@@ -29,8 +29,14 @@ class TaskCompleteView(LoginRequiredMixin, OfficerRequiredMixin, CreateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         task_date_id = self.kwargs.get("pk")
-        task = TaskDate.objects.get(pk=task_date_id).task
+        task_date = TaskDate.objects.get(pk=task_date_id)
+        task = task_date.task
         context["task"] = task
+        dates = task.incomplete_dates_for_task_chapter(
+            chapter=self.request.user.current_chapter
+        )
+        context["due_date"] = task_date
+        context["dates"] = dates
         return context
 
     def form_valid(self, form):
