@@ -199,6 +199,7 @@ class User(AbstractUser):
         null=True,
     )
     no_contact = models.BooleanField(default=False)
+    charter = models.BooleanField(default=False, help_text="Charter member")
 
     def save(self, *args, **kwargs):
         if not self.id:
@@ -548,21 +549,22 @@ class UserSemesterGPA(YearTermModel):
 
 class UserStatusChange(StartEndModel, TimeStampedModel):
     STATUS = [
-        ("alumni", "alumni"),
-        ("alumnipend", "alumni pending"),
         ("active", "active"),
         ("activepend", "active pending"),
-        ("pnm", "prospective"),
-        ("away", "away"),
-        ("depledge", "depledge"),
         ("advisor", "advisor"),
-        ("nonmember", "nonmember"),
-        ("resigned", "resigned"),
+        ("alumni", "alumni"),
+        ("alumnipend", "alumni pending"),
+        ("away", "away"),
+        ("deceased", "deceased"),
+        ("depledge", "depledge"),
         ("expelled", "expelled"),
         ("friend", "friend"),
-        ("deceased", "deceased"),
-        ("suspended", "suspended"),
+        ("nonmember", "nonmember"),
         ("probation", "probation"),
+        ("pnm", "prospective"),
+        ("resigned", "resigned"),
+        ("resignedCC", "resignedCC"),
+        ("suspended", "suspended"),
     ]
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="status"

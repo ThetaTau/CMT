@@ -397,6 +397,7 @@ class StatusChange(TimeStampedModel):
             "transfer",
             "Member is transferring to another school",
         )  # Transferring to another school
+        resignedCC = ("resignedCC", "Member is resigning from candidate chapter")
 
         @classmethod
         def get_value(cls, member):
@@ -451,7 +452,7 @@ class StatusChange(TimeStampedModel):
         # if coop, military
         #   save new status away
         current_status = self.user.get_current_status_all()
-        if self.reason in ["graduate", "withdraw", "transfer"]:
+        if self.reason in ["graduate", "withdraw", "transfer", "resignedCC"]:
             self.user.set_current_status(
                 created=self.created,
                 status="alumni",
@@ -800,7 +801,7 @@ class PrematureAlumnus(Process):
     )
     financial = models.BooleanField(verbose_financial, default=False)
     verbose_semesters = _(
-        """Member has completed at least 2 semesters of active membership."""
+        """Member has completed at least six months of active membership."""
     )
     semesters = models.BooleanField(verbose_semesters, default=False)
     verbose_lifestyle = _(

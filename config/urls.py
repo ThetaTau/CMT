@@ -98,6 +98,7 @@ urlpatterns = [
     url(r"^finances/", include("finances.urls", namespace="finances")),
     url(r"^scores/", include("scores.urls", namespace="scores")),
     url(r"^submissions/", include("submissions.urls", namespace="submissions")),
+    url(r"^surveys/", include("surveys.urls", namespace="surveys")),
     url(r"^forms/", include("forms.urls", namespace="forms")),
     url(r"^tasks/", include("tasks.urls", namespace="tasks")),
     url(r"^ballots/", include("ballots.urls", namespace="ballots")),

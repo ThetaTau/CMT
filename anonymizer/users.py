@@ -77,6 +77,7 @@ class UserAnonym(AnonymBase):
             "employer_changed",
             "is_active",
             "no_contact",
+            "charter",
         ]
 
 

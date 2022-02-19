@@ -37,28 +37,40 @@
       document.getElementById("submit-id-submit").setAttribute("disabled", true);
     }, 0);
   })
-$("#id_user-school_name").change(function () {
-      var url = "{% url 'forms:ajax_load_majors' %}";  // get the url of the `load_majors` view
-      var chapterId = $(this).val();  // get the selected chapter ID from the HTML input
-      $.ajax({                       // initialize an AJAX request
-        url: url,                    // set the url of the request
-        data: {
-          'chapter': chapterId       // add the chapter id to the GET parameters
-        },
-        success: function (data) {   // `data` is the return of the `load_major` view function
-          $("#id_user-major").html(data);  // replace the contents of the major input with the data that came from the server
-        }
-      });
-    var url = "{% url 'forms:bill_of_rights' 999 %}";  // get the url of the `load_majors` view
-    url = url.replace(999, chapterId);
-    $.ajax({                       // initialize an AJAX request
-      url: url,                    // set the url of the request
-      success: function (data) {   // `data` is the return of the view function
-        $("#bill").html(data);  // replace the contents of the input with the data that came from the server
+function update_school(chapterId, existing_major='') {
+  var url = "{% url 'forms:ajax_load_majors' %}";  // get the url of the `load_majors` view
+  $.ajax({                       // initialize an AJAX request
+    url: url,                    // set the url of the request
+    existing_major: existing_major,
+    data: {
+      'chapter': chapterId       // add the chapter id to the GET parameters
+    },
+    success: function (data) {   // `data` is the return of the `load_major` view function
+      $("#id_user-major").html(data);  // replace the contents of the major input with the data that came from the server
+      if (this.existing_major != ''){
+        $("#id_user-major").val(this.existing_major);
       }
-    });
-    });
+    }
+  });
+  var url = "{% url 'forms:bill_of_rights' 999 %}";  // get the url of the `load_majors` view
+  url = url.replace(999, chapterId);
+  $.ajax({                       // initialize an AJAX request
+    url: url,                    // set the url of the request
+    success: function (data) {   // `data` is the return of the view function
+      $("#bill").html(data);  // replace the contents of the input with the data that came from the server
+    }
+  });
+  }
+$("#id_user-school_name").change(function () {
+  var chapterId = $(this).val();  // get the selected chapter ID from the HTML input
+  update_school(chapterId);
+});
   $(document).ready(function() {
+    var chapterId = $("#id_user-school_name").val();
+    var existing_major = $("#id_user-major").val();
+    if (chapterId != ""){
+      update_school(chapterId, existing_major);
+    }
     $('#div_id_pledge-other_college').hide();
     $('#div_id_pledge-explain_expelled_org').hide();
     $('#div_id_pledge-explain_expelled_college').hide();
