@@ -106,12 +106,12 @@ class Task(models.Model):
         if current_roles:
             extra = {"owner__in": current_roles}
         task = Task.objects.filter(name=name, **extra).first()
+        if not task:
+            return
         next_date = task.incomplete_dates_for_task_chapter(chapter).first()
         if not next_date:
             return
-        task_obj = TaskChapter(
-            task=next_date, chapter=chapter, date=timezone.now()
-        ).save()
+        task_obj = TaskChapter(task=next_date, chapter=chapter, date=timezone.now())
         if obj:
             from submissions.models import Submission
 
@@ -133,7 +133,8 @@ class Task(models.Model):
                 submit_name = "Outstanding Student Member"
             else:
                 # Chapter Report, Credentials, Premature Alumnus, Risk Management Form
-                # Gear Article, Lock-in, Newsletter for Alumni
+                # Gear Article, Lock-in, Newsletter for Alumni, Initiation Report,
+                # Member Updates
                 create_submission = False
             if create_submission:
                 submit_obj = Submission(
@@ -145,7 +146,7 @@ class Task(models.Model):
                 )
                 submit_obj.save(extra_info=extra_info)
             task_obj.submission_object = submit_obj
-            task_obj.save()
+        task_obj.save()
 
 
 class TaskDate(models.Model):

@@ -2881,7 +2881,6 @@ class PledgeProgramProcessCreateView(
             Task.mark_complete(
                 name="Pledge Program",
                 chapter=chapter,
-                current_roles=current_roles,
                 user=self.request.user,
                 obj=program,
             )
