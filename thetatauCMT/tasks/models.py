@@ -49,13 +49,13 @@ class Task(models.Model):
         value = ""
         resource = self.resource
         task_type = self.type
-        if task_type == "sub":
+        if task_type == "sub" and self.submission_type:
             value = mark_safe(
                 "<a href="
                 + reverse("submissions:add-direct", args=(self.submission_type.slug,))
                 + ">Submission</a>"
             )
-        if "http" in resource:
+        elif "http" in resource:
             value = mark_safe(f'<a href="{resource}">Form</a>')
         elif ":" in resource:
             if "ballot" in resource:
