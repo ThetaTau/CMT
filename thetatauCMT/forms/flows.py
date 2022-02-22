@@ -8,6 +8,8 @@ from viewflow import flow, frontend
 from viewflow.base import this, Flow
 from viewflow.compat import _
 from viewflow.flow import views as flow_views
+from viewflow.templatetags.viewflow import register
+from viewflow.templatetags.viewflow import flowurl as old_flowurl
 from easy_pdf.rendering import render_to_pdf
 from core.flows import AutoAssignUpdateProcessView, NoAssignView
 from core.notifications import GenericEmail
@@ -46,6 +48,24 @@ from .notifications import (
     CentralOfficeGenericEmail,
 )
 from users.models import User
+
+
+@register.tag
+def flowurl(parser, token):
+    """Override existing url method to use pluses instead of spaces"""
+    url = old_flowurl(parser, token)
+    old_render = url.render
+
+    def new_render(context):
+        url = ""
+        try:
+            url = old_render(context)
+        except:
+            pass
+        return url
+
+    url.render = new_render
+    return url
 
 
 def register_factory(viewset_class):
