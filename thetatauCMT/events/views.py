@@ -40,6 +40,22 @@ class EventCreateView(
         "event": EventForm,
         "picture": PictureForm,
     }
+    fields = [
+            "name",
+            "date",
+            "type",
+            "description",
+            "members",
+            "pledges",
+            "alumni",
+            "guests",
+            "duration",
+            "stem",
+            "host",
+            "miles",
+            "raised",
+            "virtual",
+        ]
     grouped_forms = {"eventpage": ["event", "picture"]}
     def get_success_url(self):
         return reverse("events:list")
