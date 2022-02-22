@@ -1,3 +1,4 @@
+<!-- FOR CREATING A NEW EVENT -->
 {% extends "base.html" %}
 {% load crispy_forms_tags %}
 {% load static %}
@@ -35,6 +36,8 @@
           </h5>
       {% endif %}
     {% endfor %}
+    <link href="{% static 'css/project.css' %}" rel="stylesheet">
+      {{ forms.gear|crispy }}
     <h4 id="picture">Add pictures:</h4>
     {{ forms.picture.media }}
   <link href="{% static 'css/project.css' %}" rel="stylesheet">
@@ -47,10 +50,10 @@
           <tr>
             {% for field in forms.picture.forms.0 %}
               {% if field.label and not field.is_hidden and field.label != "Delete" %}
-                <th for="{{ field.auto_id }}"
+                <!-- <th for="{{ field.auto_id }}"
                     class="col-form-label {% if field.field.required %}requiredField{% endif %}">
                   {{ field.label|safe }}{% if field.field.required %}<span class="asteriskField">*</span>{% endif %}
-                </th>
+                </th> -->
               {% endif %}
             {% endfor %}
             <th>Add / <br>Remove</th>

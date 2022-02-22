@@ -29,7 +29,6 @@ class EventCreateView(
     LoginRequiredMixin,
     OfficerRequiredMixin,
     CreateView,
-
     MultiFormsView,
 ):
     model = Event
@@ -42,7 +41,6 @@ class EventCreateView(
         "picture": PictureForm,
     }
     grouped_forms = {"eventpage": ["event", "picture"]}
-
     def get_success_url(self):
         return reverse("events:list")
 
@@ -97,7 +95,24 @@ class EventCreateView(
 
 
 class EventCopyView(EventCreateView):
-    def get_initial(self):
+    logging.debug('\n\nTest Print\n')
+    fields = [
+            "name",
+            "date",
+            "type",
+            "description",
+            "members",
+            "pledges",
+            "alumni",
+            "guests",
+            "duration",
+            "stem",
+            "host",
+            "miles",
+            "raised",
+            "virtual",
+        ]
+    def get_event_initial(self):
         event = Event.objects.get(pk=self.kwargs["pk"])
         self.initial = {
             "name": event.name,
