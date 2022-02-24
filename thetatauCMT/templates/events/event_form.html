@@ -1,6 +1,8 @@
 {% extends "base.html" %}
 {% load crispy_forms_tags %}
 {% load static %}
+{% load crispy_forms_field %}
+{% load render_table from django_tables2 %}
 
 {% block title %}Update Event: {{ event.name }}{% endblock %}
 
@@ -10,7 +12,9 @@
     {% csrf_token %}
     {{ form|crispy }}
     <h2>Pictures</h2>
-    {% for picture in object.pictures.all %}
+    <link href="{% static 'css/project.css' %}" rel="stylesheet">
+    {{ forms.gear|crispy }}
+  {% for picture in object.pictures.all %}
       {% if picture.image %}
             <li>
               <a href="{{ picture.image.url }}" target="_blank">
@@ -22,55 +26,12 @@
             </li><br>
             {% endif %}
           {% endfor %}
-          <h4 id="picture">Add pictures:</h4>
-          {{ forms.picture.media }}
-        <link href="{% static 'css/project.css' %}" rel="stylesheet">
-            {% csrf_token %}
-            <div>{{ forms.picture.management_form|crispy }}</div>
-            <table{% if form_id %} id="{{ form_id }}_table"{% endif %} class="table table-striped table-sm">
-              <thead>
-              {% if forms.picture.readonly and not forms.picture.queryset.exists %}
-              {% else %}
-                <tr>
-                  {% for field in forms.picture.forms.0 %}
-                    {% if field.label and not field.is_hidden and field.label != "Delete" %}
-                      <th for="{{ field.auto_id }}"
-                          class="col-form-label {% if field.field.required %}requiredField{% endif %}">
-                        {{ field.label|safe }}{% if field.field.required %}<span class="asteriskField">*</span>{% endif %}
-                      </th>
-                    {% endif %}
-                  {% endfor %}
-                  <th>Add / <br>Remove</th>
-                </tr>
-              {% endif %}
-              </thead>
-              <tbody>
-              {% for form in forms.picture %}
-                <tr class="row_form">
-                  <div class="input-group">
-                    {% for field in form %}
-                      {% if field.label == "Delete" %}
-                        <td class="hidden" style="display: none;">
-                          {{ field }}
-                        </td>
-                      {% else %}
-                        {% include 'bootstrap4/field.html' with tag="td" form_show_labels=False form_show_errors=True %}
-                      {% endif %}
-                    {% endfor %}
-                    <td>
-                      <div class="input-group-append">
-                        <button class="btn btn-success add-row_form">+</button>
-                      </div>
-                    </td>
-                  </div>
-                </tr>
-                
-              {% endfor %}
-              </tbody>
-            </table>
     <div class="control-group">
       <div class="controls">
-        <button type="submit" class="btn">Update</button>
+        <input type="button" class='btn btn-secondary'
+               onclick='location.href="{% url 'events:list' %}";'
+               value="Cancel" />
+        <button type="submit" class="btn btn-primary" value="Save">Save</button>
       </div>
     </div>
   </form>
