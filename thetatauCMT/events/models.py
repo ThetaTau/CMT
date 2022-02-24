@@ -12,10 +12,12 @@ from core.models import (
 from scores.models import ScoreType
 from chapters.models import Chapter
 
+
 def get_event_upload_event(instance, filename):
     return os.path.join(
         "event-pictures", instance.type.slug, f"{instance.chapter.slug}_{filename}"
     )
+
 
 class Event(TimeStampedModel):
     class Meta:
@@ -153,12 +155,15 @@ class Event(TimeStampedModel):
         return grouped_events.values()
 
 
-def get_event_picture_upload_path(instance, filename):#instance refers to object road to data base
+def get_event_picture_upload_path(
+    instance, filename
+):  # instance refers to object road to data base
     return os.path.join(
         "event-pictures",
-        f"{instance.event.chapter.slug}",#name of chapter
-        f"{filename}",#name of file submitted
+        f"{instance.event.chapter.slug}",  # name of chapter
+        f"{filename}",  # name of file submitted
     )
+
 
 class Picture(TimeStampedModel):
     description = models.TextField()

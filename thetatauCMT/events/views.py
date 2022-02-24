@@ -41,28 +41,29 @@ class EventCreateView(
         "picture": PictureForm,
     }
     fields = [
-            "name",
-            "date",
-            "type",
-            "description",
-            "members",
-            "pledges",
-            "alumni",
-            "guests",
-            "duration",
-            "stem",
-            "host",
-            "miles",
-            "raised",
-            "virtual",
-        ]
+        "name",
+        "date",
+        "type",
+        "description",
+        "members",
+        "pledges",
+        "alumni",
+        "guests",
+        "duration",
+        "stem",
+        "host",
+        "miles",
+        "raised",
+        "virtual",
+    ]
     grouped_forms = {"eventpage": ["event", "picture"]}
+
     def get_success_url(self):
         return reverse("events:list")
 
     def _group_exists(self, group_name):
         return False
-    
+
     def forms_valid(self, forms):
         event_form = forms["event"]
         picture_forms = forms["picture"]
@@ -93,7 +94,6 @@ class EventCreateView(
             .values("id", "description", "formula", "points", "slug")
         )
         logging.debug(f"context {context}")
-        print(f"\n\n\ncontext: {context}")
         form = context["forms"]["event"]
         slug = self.kwargs.get("slug")
         if slug:
@@ -104,30 +104,29 @@ class EventCreateView(
             form.fields["type"].queryset = ScoreType.objects.filter(
                 type=self.score_type
             ).all()
-        #return form
+        # return form
         context["descriptions"] = descriptions
         return context
 
 
-
 class EventCopyView(EventCreateView):
-    logging.debug('\n\nTest Print\n')
     fields = [
-            "name",
-            "date",
-            "type",
-            "description",
-            "members",
-            "pledges",
-            "alumni",
-            "guests",
-            "duration",
-            "stem",
-            "host",
-            "miles",
-            "raised",
-            "virtual",
-        ]
+        "name",
+        "date",
+        "type",
+        "description",
+        "members",
+        "pledges",
+        "alumni",
+        "guests",
+        "duration",
+        "stem",
+        "host",
+        "miles",
+        "raised",
+        "virtual",
+    ]
+
     def get_event_initial(self):
         event = Event.objects.get(pk=self.kwargs["pk"])
         self.initial = {

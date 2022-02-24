@@ -34,6 +34,7 @@ class EventListFormHelper(FormHelper):
         ),
     )
 
+
 class PictureForm(forms.ModelForm):
     image = forms.ImageField()
 
@@ -43,6 +44,7 @@ class PictureForm(forms.ModelForm):
             "description",
             "image",
         ]
+
 
 class EventForm(forms.ModelForm):
     """
