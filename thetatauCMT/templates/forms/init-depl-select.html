@@ -15,6 +15,13 @@
       select.value = "Defer";
     }
   }
+  function update_rollbook() {
+    var selects = $("select[id$=-state]");
+    for (i = 0; i < selects.length; i++) {
+      var select = selects[i];
+      select.value = "Roll";
+    }
+  }
 </script>
 {% specialspaceless %}
   {% if formset.initial_forms %}
@@ -25,6 +32,11 @@
               value="Set All Defer"
               onclick="this.value='Applied';
          update_state();
+         return false;"/>
+      <input type="submit" id="default_rollbook_submit"
+             value="Set All Roll Book"
+             onclick="this.value='Applied';
+         update_rollbook();
          return false;"/></p>
     <form action="" method="post">
       {% csrf_token %}

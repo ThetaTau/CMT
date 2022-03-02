@@ -14,9 +14,9 @@
       <env name="DJANGO_DEBUG" value="TRUE" />
       <env name="GOOGLE_APPLICATION_CREDENTIALS" value="D:\\workspace\\thetatauCMT\\secrets\\chaptermanagementtool-e11151065a69.json" />
     </envs>
-    <option name="SDK_HOME" value="" />
+    <option name="SDK_HOME" value="D:\workspace\.virtualenvs\cmt39\Scripts\python.exe" />
     <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
-    <option name="IS_MODULE_SDK" value="true" />
+    <option name="IS_MODULE_SDK" value="false" />
     <option name="ADD_CONTENT_ROOTS" value="true" />
     <option name="ADD_SOURCE_ROOTS" value="true" />
     <EXTENSION ID="net.ashald.envfile">
@@ -32,8 +32,8 @@
     <option name="launchJavascriptDebuger" value="false" />
     <option name="port" value="8000" />
     <option name="host" value="localhost" />
-    <option name="additionalOptions" value="" />
-    <option name="browserUrl" value="http://localhost:8000/" />
+    <option name="additionalOptions" value="--noreload" />
+    <option name="browserUrl" value="" />
     <option name="runTestServer" value="false" />
     <option name="runNoReload" value="false" />
     <option name="useCustomRunCommand" value="false" />

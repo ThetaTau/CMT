@@ -66,7 +66,7 @@ DJANGO_APPS = [
     "django.contrib.sites",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    # 'django.contrib.humanize', # Handy template tags
+    "django.contrib.humanize",  # Handy template tags
     "dal",
     "dal_select2",
     "viewflow.frontend",
@@ -121,6 +121,7 @@ LOCAL_APPS = [
     "thetatauCMT.tasks.apps.TasksConfig",
     "thetatauCMT.finances.apps.FinancesConfig",
     "thetatauCMT.ballots.apps.BallotsConfig",
+    "thetatauCMT.surveys.apps.SurveysConfig",
     "thetatauCMT.announcements.apps.AnnouncementsConfig",
     "thetatauCMT.notes.apps.NotesConfig",
 ]
@@ -341,6 +342,7 @@ ROLLBAR = {
     "root": str(ROOT_DIR),
     "branch": "master",
     "capture_username": True,
+    "capture_email": True,
 }
 
 rollbar.init(**ROLLBAR)
@@ -406,7 +408,11 @@ IMPORT_EXPORT_USE_TRANSACTIONS = True
 DBBACKUP_LOCAL = env.bool("DBBACKUP_LOCAL", default=True)
 DBBACKUP_GPG_RECIPIENT = "Frank.Ventura@thetatau.org"
 DBBACKUP_CONNECTORS = {
-    "default": {"CONNECTOR": "dbbackup.db.postgresql.PgDumpBinaryConnector"}
+    "default": {
+        "CONNECTOR": "dbbackup.db.postgresql.PgDumpBinaryConnector",
+        # Sometimes this is needed for restore on local dev machine
+        # "SINGLE_TRANSACTION": False,
+    }
 }
 if DBBACKUP_LOCAL:
     DBBACKUP_STORAGE = "django.core.files.storage.FileSystemStorage"

@@ -1,6 +1,6 @@
 import datetime
 from django.contrib.auth.models import AbstractUser, Group
-from django.db import models
+from django.db import models, IntegrityError
 from django.db.models.query import QuerySet
 from django.contrib.auth.models import UserManager
 from django.urls import reverse
@@ -70,6 +70,14 @@ class User(AbstractUser):
         ordering = [
             "last_name",
         ]
+
+    class ReportBuilder:
+        extra = (
+            "current_status",
+            "role",
+            "is_officer",
+            "is_advisor",
+        )
 
     objects = CustomUserManager()
     # First Name and Last Name do not cover name patterns
@@ -191,6 +199,7 @@ class User(AbstractUser):
         null=True,
     )
     no_contact = models.BooleanField(default=False)
+    charter = models.BooleanField(default=False, help_text="Charter member")
 
     def save(self, *args, **kwargs):
         if not self.id:
@@ -540,21 +549,22 @@ class UserSemesterGPA(YearTermModel):
 
 class UserStatusChange(StartEndModel, TimeStampedModel):
     STATUS = [
-        ("alumni", "alumni"),
-        ("alumnipend", "alumni pending"),
         ("active", "active"),
         ("activepend", "active pending"),
-        ("pnm", "prospective"),
-        ("away", "away"),
-        ("depledge", "depledge"),
         ("advisor", "advisor"),
-        ("nonmember", "nonmember"),
-        ("resigned", "resigned"),
+        ("alumni", "alumni"),
+        ("alumnipend", "alumni pending"),
+        ("away", "away"),
+        ("deceased", "deceased"),
+        ("depledge", "depledge"),
         ("expelled", "expelled"),
         ("friend", "friend"),
-        ("deceased", "deceased"),
-        ("suspended", "suspended"),
+        ("nonmember", "nonmember"),
         ("probation", "probation"),
+        ("pnm", "prospective"),
+        ("resigned", "resigned"),
+        ("resignedCC", "resignedCC"),
+        ("suspended", "suspended"),
     ]
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="status"
@@ -584,9 +594,17 @@ class UserRoleChange(StartEndModel, TimeStampedModel):
         current_role = self.user.get_current_role()
         if current_role:
             if self.user not in off_group.user_set.all():
-                off_group.user_set.add(self.user)
+                try:
+                    off_group.user_set.add(self.user)
+                except IntegrityError as e:
+                    if "unique constraint" in e.message:
+                        pass
             if current_role.role in NAT_OFFICERS:
-                nat_group.user_set.add(self.user)
+                try:
+                    nat_group.user_set.add(self.user)
+                except IntegrityError as e:
+                    if "unique constraint" in e.message:
+                        pass
         else:
             self.user.groups.remove(off_group)
             self.user.groups.remove(nat_group)

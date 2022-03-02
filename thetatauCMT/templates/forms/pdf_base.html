@@ -1,0 +1,35 @@
+{% extends "easy_pdf/base.html" %}
+{% load static i18n %}
+{% block extra_style %}
+  <style type="text/css">
+    @page {
+      size: {{ pagesize|default:"A4" }};
+      margin-left: 2.5cm;
+      margin-right: 2.5cm;
+      margin-top: 3cm;
+      margin-bottom: 2cm;
+
+      @frame header {
+      -pdf-frame-content: page-header;
+      margin-top: 0.5cm;
+      margin-right: 5mm;
+      margin-bottom: 0.5cm;
+      margin-left: 1cm;
+    }
+
+    @frame footer {
+    -pdf-frame-content:page-footer;
+    bottom: 0cm;
+    margin-left: 1cm;
+    margin-right: 1cm;
+    height: 2cm;
+    }
+    }
+  </style>
+{% endblock %}
+{% block page_header %}
+  {% include "forms/header.html" %}
+{% endblock %}
+{% block page_foot %}
+  {% include "forms/footer.html" %}
+{% endblock %}

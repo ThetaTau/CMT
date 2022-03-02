@@ -1,7 +1,6 @@
 import django_tables2 as tables
 from django_tables2.utils import A
 from .models import (
-    Guard,
     Badge,
     Depledge,
     StatusChange,
@@ -10,19 +9,8 @@ from .models import (
     ChapterReport,
     OSM,
     CollectionReferral,
+    PledgeProgramProcess,
 )
-
-
-class GuardTable(tables.Table):
-    class Meta:
-        model = Guard
-        fields = (
-            "name",
-            "cost",
-            "description",
-            "letters",
-        )
-        attrs = {"class": "table table-striped table-bordered"}
 
 
 class BadgeTable(tables.Table):
@@ -114,17 +102,22 @@ class PledgeProgramTable(tables.Table):
     weeks = tables.Column(verbose_name="Weeks in Program")
     weeks_left = tables.Column(verbose_name="Weeks LEFT in Program")
     status = tables.Column(verbose_name="Program Status")
+    approval = tables.Column()
+    chapter_name = tables.Column(verbose_name="Chapter")
+    term = tables.LinkColumn("forms:pledge_program_detail", args=[A("pk")])
 
     class Meta:
         model = PledgeProgram
         order_by = "chapter"
         attrs = {"class": "table table-striped table-bordered"}
         fields = [
-            "chapter",
             "region",
+            "chapter_name",
             "school",
             "year",
             "term",
+            "manual",
+            "approval",
             "remote",
             "date_complete",
             "date_initiation",
@@ -135,6 +128,18 @@ class PledgeProgramTable(tables.Table):
 
     def render_status(self, value):
         return PledgeProgram.STATUS.get_value(value)
+
+    def render_term(self, value):
+        return PledgeProgram.TERMS.get_value(value)
+
+    def render_manual(self, value):
+        return PledgeProgram.MANUALS.get_value(value)
+
+    def render_approval(self, value):
+        if value == "not_submitted":
+            return "Not Submitted"
+        else:
+            return PledgeProgramProcess.APPROVAL.get_value(value)
 
 
 class ChapterReportTable(tables.Table):
@@ -234,6 +239,24 @@ class DisciplinaryStatusTable(tables.Table):
         attrs = {
             "class": "table table-striped table-bordered",
         }
+
+
+class PledgeProgramStatusTable(tables.Table):
+    status = tables.Column()
+    approved = tables.Column()
+    created = tables.DateColumn()
+    term = tables.LinkColumn("forms:pledge_program_detail", args=[A("pk")])
+
+    class Meta:
+        attrs = {
+            "class": "table table-striped table-bordered",
+        }
+
+    def render_term(self, value):
+        if value:
+            term, year = value.split(" ")
+            return f"{PledgeProgram.TERMS.get_value(term)} {year}"
+        return value
 
 
 class SignTable(tables.Table):

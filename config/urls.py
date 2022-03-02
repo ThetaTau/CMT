@@ -98,6 +98,7 @@ urlpatterns = [
     url(r"^finances/", include("finances.urls", namespace="finances")),
     url(r"^scores/", include("scores.urls", namespace="scores")),
     url(r"^submissions/", include("submissions.urls", namespace="submissions")),
+    url(r"^surveys/", include("surveys.urls", namespace="surveys")),
     url(r"^forms/", include("forms.urls", namespace="forms")),
     url(r"^tasks/", include("tasks.urls", namespace="tasks")),
     url(r"^ballots/", include("ballots.urls", namespace="ballots")),
@@ -139,6 +140,11 @@ urlpatterns = [
         r"^osmform/$",
         RedirectView.as_view(pattern_name="viewflow:forms:osm:start", permanent=True),
         name="osmform",
+    ),
+    url(
+        r"^gear/$",
+        RedirectView.as_view(pattern_name="submissions:gear", permanent=True),
+        name="gear",
     ),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 

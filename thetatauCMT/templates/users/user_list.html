@@ -83,3 +83,27 @@
   </div>
 {% endif %}
 {% endblock content %}
+{% block javascript %}
+{{ block.super }}
+  <script type="text/javascript">
+    $(function () {
+      let officer = {{ request.user.is_officer|yesno:"true,false" }};
+      if (officer) {
+        document.getElementById("email-all").style.display = "inline-block";
+        document.getElementById("download-csv").style.display = "inline-block";
+      }
+      $("#email-all").click(function (event) {
+        let count = {{ object_list|length|slugify }};
+        var c = confirm("This will email " + count + " members, Do you want to continue?");
+        // Of course, the following could be shortened to "return c;"
+        if (c == true) {
+          return true;
+        } else {
+          return false;
+        }
+      });
+
+      ;
+    })
+  </script>
+{% endblock %}

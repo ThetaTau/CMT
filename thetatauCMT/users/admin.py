@@ -8,8 +8,9 @@ from django.contrib.auth.models import Permission
 from django.utils.translation import gettext_lazy as _
 from django.contrib.auth.admin import UserAdmin as AuthUserAdmin
 from django.contrib.auth.forms import UserChangeForm
-from import_export.admin import ImportExportActionModelAdmin
+from import_export.admin import ImportExportActionModelAdmin, ImportMixin
 from report_builder.admin import Report
+from address.admin import Address
 from .models import (
     User,
     UserRoleChange,
@@ -21,7 +22,7 @@ from .models import (
     ChapterCurricula,
     UserDemographic,
 )
-from .resources import UserRoleChangeResource
+from .resources import UserRoleChangeResource, UserResource
 from .views import ExportActiveMixin
 from forms.models import (
     Depledge,
@@ -39,6 +40,7 @@ from core.admin import (
     ReportAdminSync,
     SentNotificationAdminUpdate,
     SentNotification,
+    AddressAdmin,
 )
 from notes.admin import UserNoteInline, UserNote
 
@@ -48,6 +50,8 @@ admin.site.unregister(Report)
 admin.site.register(Report, ReportAdminSync)
 admin.site.unregister(SentNotification)
 admin.site.register(SentNotification, SentNotificationAdminUpdate)
+admin.site.unregister(Address)
+admin.site.register(Address, AddressAdmin)
 
 
 class UserStatusChangeAdmin(admin.ModelAdmin):
@@ -336,7 +340,7 @@ class UserAlterInline(admin.StackedInline):
 
 
 @admin.register(User)
-class MyUserAdmin(AuthUserAdmin, ExportActiveMixin):
+class MyUserAdmin(ImportMixin, AuthUserAdmin, ExportActiveMixin):
     actions = ["export_chapter_actives"]
     raw_id_fields = ["address"]
     readonly_fields = ("deceased_changed",)
@@ -427,6 +431,7 @@ class MyUserAdmin(AuthUserAdmin, ExportActiveMixin):
     )
     list_filter = ("is_superuser", "last_login", "groups", "chapter")
     search_fields = ("user_id", "badge_number") + AuthUserAdmin.search_fields
+    resource_class = UserResource
 
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
         if db_field.name == "major":

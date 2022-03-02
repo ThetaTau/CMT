@@ -13,7 +13,7 @@ from django.db.utils import IntegrityError
 from django.contrib import messages
 from scores.models import ScoreType
 from tasks.models import TaskChapter, TaskDate
-from tasks.tables import TaskIncompleteTable
+from tasks.tables import TaskTable
 from announcements.models import Announcement
 from braces.views import GroupRequiredMixin, LoginRequiredMixin
 from viewflow.frontend.views import (
@@ -133,9 +133,11 @@ class TypeFieldFilteredChapterAdd(FormMixin):
             form.initial = {"type": score_obj[0].pk}
             form.fields["type"].queryset = score_obj
         else:
-            form.fields["type"].queryset = ScoreType.objects.filter(
-                type=self.score_type
-            ).all()
+            form.fields["type"].queryset = (
+                ScoreType.objects.filter(type=self.score_type)
+                .all()
+                .exclude(slug="article")
+            )
         return form
 
     def form_valid(self, form):
@@ -202,7 +204,7 @@ class HomeView(LoginRequiredMixin, TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         qs = TaskDate.incomplete_dates_for_chapter(self.request.user.current_chapter)
-        table = TaskIncompleteTable(qs)
+        table = TaskTable(data=qs, complete=False)
         RequestConfig(self.request, paginate={"per_page": 40}).configure(table)
         context["table"] = table
         announcements = Announcement.objects.filter(

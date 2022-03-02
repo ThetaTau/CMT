@@ -5,6 +5,12 @@
 
 {% block content %}
   <h1>Mark Task As Complete</h1>
+  <p>This task is to help the officers of the chapter to remember to complete
+  tasks in a timely manner. Some tasks have forms/submissions associated with them.
+  You should try to complete the form or submit the appropriate document before marking the task complete.
+  </p>
+  <p>Sometimes it does not make sense to submit a form (eg. no prealumn members this semester, so no need to submit a pre-alumn form).
+    In those cases, simply click the "Mark Complete" button below, as you acknowledge the task no longer needs to be completed.</p>
   <table class="table">
     <tr>
       <th>Task Name</th>
@@ -15,9 +21,37 @@
       <td>{{ task.owner|title }}</td>
     </tr>
     <tr>
+      <th>Due Date</th>
+      <td>This task is due on: {{ due_date.date }}</td>
+    </tr>
+    <tr>
+      <th>Advance Submission</th>
+      <td>You can submit this task {{ task.days_advance }} days in advance.</td>
+    </tr>
+    {% if task.render_task_link %}
+    <tr>
+      <th>Form/Submission</th>
+      <td>{{ task.render_task_link }}</td>
+    </tr>
+    {% endif %}
+    <tr>
       <th>Task Description</th>
       <td>{{ task.description }}</td>
     </tr>
+    {% if dates %}
+    <tr>
+      <th>
+        All upcoming/past due dates
+      </th>
+      <td>
+      <ul>
+        {% for date in dates %}
+          <li><a href="{% url 'tasks:complete' date.pk %}">{{ date }}</a></li>
+        {% endfor %}
+      </ul>
+      </td>
+    </tr>
+      {% if due_date in dates %}
     <tr>
       <th></th>
       <td>
@@ -26,12 +60,24 @@
           {{ form|crispy }}
           <div class="control-group">
             <div class="controls">
-              <button type="submit" class="btn-primary" value="Save"><i class="fas fa-check"></i> Complete</button>
+              <button type="submit" class="btn-primary" value="Save"><i class="fas fa-check"></i> Mark Complete</button>
             </div>
           </div>
         </form>
       </td>
     </tr>
+      {% else %}
+        <tr>
+          <th></th>
+          <td>This task is already complete or is too far in advance to complete.</td>
+        </tr>
+        {% endif %}
+    {% else %}
+      <tr>
+      <th></th>
+      <td>This task is already complete or is too far in advance to complete.</td>
+      </tr>
+    {% endif %}
   </table>
 {% endblock content %}
 

@@ -5,6 +5,7 @@
       <entry url="file://$PROJECT_DIR$">
         <entryData>
           <resourceRoots>
+            <path value="file://$PROJECT_DIR$/staticfiles" />
             <path value="file://$PROJECT_DIR$/thetatauCMT/static" />
           </resourceRoots>
         </entryData>

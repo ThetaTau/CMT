@@ -24,7 +24,6 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         today = datetime.date.today().strftime("%d")
         chapters_only = options.get("chapter", None)
-        change_messages = []
         if chapters_only is not None:
             chapters = Chapter.objects.filter(slug__in=chapters_only)
         else:
@@ -32,21 +31,13 @@ class Command(BaseCommand):
         for chapter in chapters:
             if not chapter.active:
                 continue
+            print(chapter)
             emails, officers_to_update = chapter.get_about_expired_coucil()
             if officers_to_update:
                 print(f"Sending message to: {chapter}\n")
                 result = OfficerUpdateReminder(
                     chapter, emails, officers_to_update
                 ).send()
-                change_messages.append(f"{result}: {chapter}")
+                print("    ", result)
             else:
                 print(f"{chapter} does not need to update CMT\n")
-            change_message = "<br>".join(change_messages)
-            if int(today) == 22:
-                send_mail(
-                    "UPDATE CMT Task",
-                    f"Email sent to chapters:<br>{change_message}",
-                    "cmt@thetatau.org",
-                    ["cmt@thetatau.org"],
-                    fail_silently=True,
-                )

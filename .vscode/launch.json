@@ -25,6 +25,10 @@
             "args": [
                 "runserver"
             ],
+            "env": {
+              "DJANGO_DEBUG": "TRUE",
+              "DJANGO_EMAIL_LIVE": "False"
+            },
             "django": true
         }
     ]

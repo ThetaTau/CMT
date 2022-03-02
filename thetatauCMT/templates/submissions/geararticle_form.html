@@ -76,17 +76,21 @@
       <tr>
         <td colspan="2">
           {% for picture in object.pictures.all %}
+            {% if picture.image.name %}
             <li>
               <a href="{{ picture.image.url }}" target="_blank">
                 <img src="{{ picture.image.url }}" width="150" height="150"/>
               </a>
               <ul>
+                <li>{{ picture.image.name }}</li>
                 <li>{{ picture.description }}</li>
                 <li>
                   {{ picture.image.width }}px x {{ picture.image.height }}px & {{ picture.image.size | filesizeformat }}
                 </li>
               </ul>
-            </li><br>
+            </li>
+            {% endif %}
+            <br>
           {% endfor %}
         </td>
       </tr>

@@ -26,6 +26,7 @@ from core.finances import get_quickbooks_client, invoice_search, create_line
 from core.models import (
     forever,
     CHAPTER_ROLES_CHOICES,
+    CHAPTER_OFFICER_CHOICES,
     academic_encompass_start_end_date,
     EnumClass,
 )
@@ -147,6 +148,9 @@ class PledgeProgram(YearTermModel, TimeStampedModel):
     other_manual = models.FileField(
         upload_to=get_pledge_program_upload_path, null=True, blank=True
     )
+    schedule = models.FileField(
+        upload_to=get_pledge_program_upload_path, null=True, blank=True
+    )
 
     @classmethod
     def signed_this_year(cls, chapter):
@@ -174,6 +178,34 @@ class PledgeProgram(YearTermModel, TimeStampedModel):
             term=YearTermModel.current_term(),
         ).first()
         return program
+
+
+class PledgeProgramProcess(Process):
+    class APPROVAL(EnumClass):
+        approved = ("approved", "Approved")
+        revisions = ("revisions", "Revisions needed")
+        denied = ("denied", "Denied")
+        not_reviewed = ("not_reviewed", "Not Reviewed")
+
+    approval = models.CharField(
+        verbose_name="Pledge program approval status",
+        max_length=20,
+        choices=[x.value for x in APPROVAL],
+        default="not_reviewed",
+    )
+    approval_comments = models.TextField(
+        _("If rejecting, please explain why."), blank=True
+    )
+    chapter = models.ForeignKey(
+        Chapter, on_delete=models.CASCADE, related_name="pledge_program_process"
+    )
+    program = models.ForeignKey(
+        PledgeProgram,
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True,
+        related_name="process",
+    )
 
 
 class Initiation(TimeStampedModel):
@@ -233,26 +265,104 @@ class Initiation(TimeStampedModel):
 
 
 class Depledge(TimeStampedModel):
-    class REASONS(Enum):
+    class REASONS(EnumClass):
         volunteer = ("volunteer", "Voluntarily decided not to continue")
-        time = ("time", "Too much time required")
-        grades = ("grades", "Poor grades")
-        interest = ("interest", "Lost interest")
-        vote = ("vote", "Negative Chapter Vote")
+        time = ("time", "Unable/unwilling to meet time commitment")
+        grades = ("grades", "Unable/unwilling to meet academic requirement")
+        financial = ("financial", "Unable/unwilling to meet financial commitment")
+        violation = ("violation", "Policy/Procedure Violation")
+        vote = ("vote", "Poor fit with the chapter/candidate chapter")
         withdrew = ("withdrew", "Withdrew from Engineering/University")
         transfer = ("transfer", "Transferring to another school")
         other = ("other", "Other")
 
-        @classmethod
-        def get_value(cls, member):
-            return cls[member].value[1]
+    class MEETING(EnumClass):
+        virtual = ("virtual", "Virtual")
+        in_person = ("in_person", "In Person")
+        no = ("no", "No")
+        na = ("na", "Not Applicable")
+
+    class ITEMS(EnumClass):
+        pin = ("pin", "Pledge Pin")
+        manual = ("manual", "Membership Manual")
+        other = ("other", "Other")
+        na = ("na", "No Items Given")
 
     user = models.OneToOneField(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="depledge"
     )
     reason = models.CharField(max_length=10, choices=[x.value for x in REASONS])
+    reason_other = models.CharField(
+        "Other reason for depledging",
+        max_length=100,
+        null=True,
+        blank=True,
+    )
     date = models.DateField(
         "Depledge Date", default=timezone.now, validators=[no_future]
+    )
+    meeting_held = models.CharField(
+        "Was a meeting held with the depledged PNM?",
+        max_length=10,
+        choices=[x.value for x in MEETING],
+        default="na",
+    )
+    meeting_date = models.DateField(
+        "When was the meeting with the depledged PNM?",
+        default=timezone.now,
+        validators=[no_future],
+        null=True,
+        blank=True,
+    )
+    meeting_attend = MultiSelectField(
+        "Who attended the meeting with the depledged PNM?",
+        choices=[
+            ("None", "None"),
+            ("pledge/new member educator", "Pledge/New Member Educator"),
+            ("recruitment chair", "Recruitment Chair"),
+            ("risk management chair", "Risk Management Chair"),
+            ("marshal", "Marshal"),
+            ("other appointee", "Other Appointee"),
+        ]
+        + CHAPTER_OFFICER_CHOICES,
+        null=True,
+        blank=True,
+    )
+    meeting_not = models.CharField(
+        "Why was there no meeting with the depledged PNM?",
+        max_length=100,
+        null=True,
+        blank=True,
+    )
+    informed = models.CharField(
+        "By whom and how was the depledged PNM informed?",
+        max_length=100,
+        null=True,
+        blank=True,
+    )
+    concerns = models.CharField(
+        "Did the depledged PNM express any concerns?",
+        max_length=200,
+        null=True,
+        blank=True,
+    )
+    returned_items = MultiSelectField(
+        "Have the following items been returned?",
+        max_length=10,
+        choices=[x.value for x in ITEMS],
+        null=True,
+        blank=True,
+    )
+    returned_other = models.CharField(
+        "Other returned items",
+        max_length=100,
+        null=True,
+        blank=True,
+    )
+    extra_notes = models.TextField(
+        "Is there anything else national Theta Tau should know?",
+        null=True,
+        blank=True,
     )
 
     def __str__(self):
@@ -287,6 +397,7 @@ class StatusChange(TimeStampedModel):
             "transfer",
             "Member is transferring to another school",
         )  # Transferring to another school
+        resignedCC = ("resignedCC", "Member is resigning from candidate chapter")
 
         @classmethod
         def get_value(cls, member):
@@ -341,7 +452,7 @@ class StatusChange(TimeStampedModel):
         # if coop, military
         #   save new status away
         current_status = self.user.get_current_status_all()
-        if self.reason in ["graduate", "withdraw", "transfer"]:
+        if self.reason in ["graduate", "withdraw", "transfer", "resignedCC"]:
             self.user.set_current_status(
                 created=self.created,
                 status="alumni",
@@ -642,6 +753,10 @@ class Pledge(TimeStampedModel):
         """My answers to these questions are my honest and sincere convictions."""
     )
     honest = models.BooleanField(verbose_honest, choices=BOOL_CHOICES, default=False)
+    verbose_bill = _(
+        "I understand and have read the potential new member bill of rights."
+    )
+    bill = models.BooleanField(verbose_bill, choices=BOOL_CHOICES, default=False)
 
 
 def get_premature_alumn_upload_path(instance, filename):
@@ -686,7 +801,7 @@ class PrematureAlumnus(Process):
     )
     financial = models.BooleanField(verbose_financial, default=False)
     verbose_semesters = _(
-        """Member has completed at least 2 semesters of active membership."""
+        """Member has completed at least six months of active membership."""
     )
     semesters = models.BooleanField(verbose_semesters, default=False)
     verbose_lifestyle = _(
@@ -793,12 +908,9 @@ class InitiationProcess(Process):
             "Initiation Fee",
             "Late Fee",
             "Badge Style",
-            "Guard Type",
-            "Badge Cost",
-            "Guard Cost",
             "Sum for member",
         ]
-        update_remove = ["Date Submitted", "Badge Cost", "Guard Cost", "Sum for member"]
+        update_remove = ["Date Submitted", "Sum for member"]
         if not invoice:
             for column in update_remove:
                 INIT.remove(column)
@@ -819,21 +931,12 @@ class InitiationProcess(Process):
         for initiation in self.initiations.all():
             badge = initiation.badge
             badge_code = ""
-            badge_cost = 0
             if badge:
                 badge_code = badge.code
-                badge_cost = badge.cost
-            guard = initiation.guard
-            guard_code = ""
-            guard_cost = 0
-            if guard:
-                if guard.code != "None":
-                    guard_code = guard.code
-                    guard_cost = guard.cost
             chapter = initiation.user.chapter
             init_fee, late_fee = self.get_fees(chapter, initiation)
             init_submit = initiation.created.date()
-            total = badge_cost + guard_cost + init_fee + late_fee
+            total = init_fee + late_fee
             row = {
                 "Date Submitted": init_submit,
                 "Initiation Date": init_date,
@@ -849,9 +952,6 @@ class InitiationProcess(Process):
                 "Initiation Fee": init_fee,
                 "Late Fee": late_fee,
                 "Badge Style": badge_code,
-                "Guard Type": guard_code,
-                "Badge Cost": badge_cost,
-                "Guard Cost": guard_cost,
                 "Sum for member": total,
             }
             if not invoice:
@@ -950,14 +1050,13 @@ class InitiationProcess(Process):
         badge_header = [
             "Chapter Name",
             "Chapter Address",
-            "Chapter Phone",
             "Chapter Contact",
+            "Chapter Phone",
             "Chapter Description",
             "Roll Number",
             "Education Class of",
             "Last Name",
             "Badge Style",
-            "Guard Type",
         ]
         shingle_header = [
             "First Name",
@@ -965,8 +1064,8 @@ class InitiationProcess(Process):
             "Last Name",
             "Chapter Name",
             "Chapter Address",
-            "Chapter Phone",
             "Chapter Contact",
+            "Chapter Phone",
             "Education Class of",
             "Initiation Date",
         ]
@@ -1000,11 +1099,8 @@ class InitiationProcess(Process):
         shingle_writer.writeheader()
         for initiation in self.initiations.all():
             badge = ""
-            guard = ""
             if initiation.badge:
                 badge = initiation.badge.code
-            if initiation.guard.name != "None":
-                guard = initiation.guard.code
             row_badge = {
                 "Chapter Name": chapter,
                 "Chapter Address": self.chapter.address,
@@ -1015,7 +1111,6 @@ class InitiationProcess(Process):
                 "Education Class of": initiation.date_graduation.year,
                 "Last Name": initiation.user.last_name,
                 "Badge Style": badge,
-                "Guard Type": guard,
             }
             badge_writer.writerow(row_badge)
             row_shingle = {

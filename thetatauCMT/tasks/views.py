@@ -3,8 +3,10 @@ from django.contrib import messages
 from django.shortcuts import redirect, reverse
 from django.db import models, transaction
 from django.db.utils import IntegrityError
+from django.http.request import QueryDict
 from django.utils.text import slugify
 from django.views.generic import DetailView, CreateView
+from core.models import current_year_term_slug
 from core.views import (
     PagedFilteredTableView,
     RequestConfig,
@@ -24,29 +26,17 @@ class TaskCompleteView(LoginRequiredMixin, OfficerRequiredMixin, CreateView):
     officer_edit = "tasks"
     officer_edit_type = "complete"
 
-    def get(self, request, *args, **kwargs):
-        task_date_id = self.kwargs.get("pk")
-        task = TaskDate.objects.get(pk=task_date_id).task
-        if task.resource:
-            if "http" not in task.resource:
-                if "ballots" in task.resource:
-                    return redirect(reverse(task.resource, args=(slugify(task.name),)))
-                return redirect(reverse(task.resource))
-            else:
-                return redirect(task.resource)
-        if task.type == "sub":
-            if task.submission_type:
-                return redirect(
-                    reverse("submissions:add-direct", args=(task.submission_type.slug,))
-                )
-        self.object = None
-        return super().get(request, *args, **kwargs)
-
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         task_date_id = self.kwargs.get("pk")
-        task = TaskDate.objects.get(pk=task_date_id).task
+        task_date = TaskDate.objects.get(pk=task_date_id)
+        task = task_date.task
         context["task"] = task
+        dates = task.incomplete_dates_for_task_chapter(
+            chapter=self.request.user.current_chapter
+        )
+        context["due_date"] = task_date
+        context["dates"] = dates
         return context
 
     def form_valid(self, form):
@@ -59,7 +49,7 @@ class TaskCompleteView(LoginRequiredMixin, OfficerRequiredMixin, CreateView):
                 self.request,
                 messages.ERROR,
                 f"Only executive officers can sign off tasks. "
-                f"Your current roles are: {current_roles}",
+                f"Your current roles are: {*current_roles,}",
             )
             return super().form_invalid(form)
         form.instance.chapter = self.request.user.current_chapter
@@ -98,7 +88,24 @@ class TaskListView(LoginRequiredMixin, PagedFilteredTableView):
     def get_queryset(self, **kwargs):
         qs = TaskDate.dates_for_chapter(self.request.user.current_chapter)
         qs = super().get_queryset(other_qs=qs)
-        return qs
+        cancel = self.request.GET.get("cancel", False)
+        request_get = self.request.GET.copy()
+        if cancel:
+            request_get = QueryDict()
+        if not request_get:
+            # Create a mutable QueryDict object, default is immutable
+            request_get = QueryDict(mutable=True)
+            request_get.setlist("date", [""])
+            request_get.setlist("complete", [""])
+        if not cancel:
+            if request_get.get("date", "") == "":
+                request_get["date"] = current_year_term_slug()
+            if request_get.get("complete", "") == "":
+                request_get["complete"] = "0"
+        self.filter = self.filter_class(request_get, queryset=qs)
+        self.filter.request = self.request
+        self.filter.form.helper = self.formhelper_class()
+        return self.filter.qs
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -124,7 +131,7 @@ class TaskListView(LoginRequiredMixin, PagedFilteredTableView):
         complete = qs.filter(complete_result=True)
         incomplete = qs.filter(~models.Q(pk__in=complete), complete_result="")
         all_tasks = complete | incomplete
-        table = TaskTable(all_tasks)
+        table = TaskTable(data=all_tasks)
         table.request = self.request
         RequestConfig(self.request, paginate={"per_page": 40}).configure(table)
         context["table"] = table

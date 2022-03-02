@@ -21,6 +21,7 @@ from .models import (
     CollectionReferral,
     ResignationProcess,
     ReturnStudent,
+    PledgeProgramProcess,
 )
 from .resources import (
     InitiationResource,
@@ -473,3 +474,29 @@ class ReturnStudentAdmin(ImportExportActionModelAdmin):
 
 
 admin.site.register(ReturnStudent, ReturnStudentAdmin)
+
+
+class PledgeProgramProcessAdmin(admin.ModelAdmin):
+    list_display = (
+        "chapter",
+        "approval",
+        "approval_comments",
+    )
+    list_filter = [
+        "chapter",
+        "approval",
+    ]
+    ordering = [
+        "-created",
+    ]
+    exclude = [
+        "flow_class",
+        "status",
+        "finished",
+        "artifact_content_type",
+        "artifact_object_id",
+        "data",
+    ]
+
+
+admin.site.register(PledgeProgramProcess, PledgeProgramProcessAdmin)

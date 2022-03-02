@@ -56,6 +56,7 @@ from .forms import (
     UserServiceForm,
     UserOrgForm,
 )
+from .notifications import MemberInfoUpdate
 from forms.forms import PledgeDemographicsForm
 from chapters.models import Chapter
 from submissions.tables import SubmissionTable
@@ -352,7 +353,16 @@ class UserListView(LoginRequiredMixin, PagedFilteredTableView):
     template_name = "users/user_list.html"
 
     def get(self, request, *args, **kwargs):
-        if request.GET.get("csv", "False").lower() == "download csv":
+        csv_action = request.GET.get("csv", "False").lower() == "download csv"
+        email_action = request.GET.get("email", "False").lower() == "email all"
+        if (csv_action or email_action) and not request.user.is_officer:
+            messages.add_message(
+                self.request,
+                messages.ERROR,
+                "Only chapter officers can email members through this method.",
+            )
+            return super().get(request, *args, **kwargs)
+        if csv_action:
             self.object_list = self.get_queryset()
             context = self.get_context_data()
             response = HttpResponse(content_type="text/csv")
@@ -370,8 +380,25 @@ class UserListView(LoginRequiredMixin, PagedFilteredTableView):
                     messages.ERROR,
                     "All members are filtered! Clear or change filter.",
                 )
-        else:
-            return super().get(request, *args, **kwargs)
+        elif email_action:
+            self.object_list = self.get_queryset()
+            total = len(self.object_list)
+            if self.object_list:
+                for user in self.object_list:
+                    if user.email:
+                        MemberInfoUpdate(user, request.user).send()
+                messages.add_message(
+                    self.request,
+                    messages.INFO,
+                    f"Email sent to {total} members.",
+                )
+            else:
+                messages.add_message(
+                    self.request,
+                    messages.ERROR,
+                    "All members are filtered! Clear or change filter.",
+                )
+        return super().get(request, *args, **kwargs)
 
     def get_queryset(self):
         qs = self.model._default_manager.all()
@@ -570,9 +597,13 @@ class UserLookupView(FormView):
         return super().form_valid(form)
 
     def hide_email(self, email):
-        email_start, email_domain = email.split("@")
-        email_start = email_start[:4]
-        return "".join([email_start, "****@", email_domain])
+        if "@" in email:
+            email_start, email_domain = email.split("@")
+            email_start = email_start[:4]
+            return "".join([email_start, "****@", email_domain])
+        else:
+            # Likely the email is empty
+            return ""
 
     def get_success_url(self):
         return reverse("login")
@@ -622,7 +653,7 @@ class UserAlterView(LoginRequiredMixin, NatOfficerRequiredMixin, FormView):
         user = self.request.user
         form.instance.user = user
         try:
-            instance = UserAlter.objects.get(user=user)
+            instance = UserAlter.objects.filter(user=user).first()
         except UserAlter.DoesNotExist:
             instance = None
         if self.request.POST["alter-action"] == "Reset":

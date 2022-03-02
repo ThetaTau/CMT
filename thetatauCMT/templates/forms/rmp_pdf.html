@@ -1,6 +1,4 @@
-{% extends "easy_pdf/base.html" %}
-
-{% load i18n %}
+{% extends "forms/pdf_base.html" %}
 {% block content %}
     {% include "forms/rmp_details.html" with form=form complete_form=object is_officer=is_officer %}
 {% endblock %}

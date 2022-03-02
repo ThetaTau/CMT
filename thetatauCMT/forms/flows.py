@@ -8,8 +8,11 @@ from viewflow import flow, frontend
 from viewflow.base import this, Flow
 from viewflow.compat import _
 from viewflow.flow import views as flow_views
+from viewflow.templatetags.viewflow import register
+from viewflow.templatetags.viewflow import flowurl as old_flowurl
 from easy_pdf.rendering import render_to_pdf
 from core.flows import AutoAssignUpdateProcessView, NoAssignView
+from core.notifications import GenericEmail
 from .models import (
     PrematureAlumnus,
     InitiationProcess,
@@ -19,6 +22,7 @@ from .models import (
     DisciplinaryProcess,
     ResignationProcess,
     ReturnStudent,
+    PledgeProgramProcess,
 )
 from .views import (
     PrematureAlumnusCreateView,
@@ -34,6 +38,7 @@ from .views import (
     ResignationCreateView,
     ResignationSignView,
     ReturnStudentCreateView,
+    PledgeProgramProcessCreateView,
 )
 from .forms import DisciplinaryForm1, DisciplinaryForm2, UserSelectForm
 from .notifications import (
@@ -41,9 +46,26 @@ from .notifications import (
     EmailConventionUpdate,
     EmailOSMUpdate,
     CentralOfficeGenericEmail,
-    GenericEmail,
 )
 from users.models import User
+
+
+@register.tag
+def flowurl(parser, token):
+    """Override existing url method to use pluses instead of spaces"""
+    url = old_flowurl(parser, token)
+    old_render = url.render
+
+    def new_render(context):
+        url = ""
+        try:
+            url = old_render(context)
+        except:
+            pass
+        return url
+
+    url.render = new_render
+    return url
 
 
 def register_factory(viewset_class):
@@ -158,7 +180,7 @@ class PrematureAlumnusFlow(Flow):
             "Premature Alumnus Request",
             "Executive Director Review",
             "Submitted",
-            "Your chapter has submitted a premature alumnus form on your behalf."
+            f"{user.chapter.full_name} has submitted a premature alumnus form on your behalf."
             + " Once the Central Office processes "
             + "the form, you will receive an email confirming your change in status.",
             [
@@ -170,7 +192,10 @@ class PrematureAlumnusFlow(Flow):
                 "prealumn_type",
                 "vote",
             ],
-            extra_emails=[activation.process.created_by.email],
+            extra_emails=[
+                activation.process.created_by.email,
+                user.current_chapter.region.email,
+            ],
         ).send()
 
     def pending_undo_func(self, activation):
@@ -213,7 +238,7 @@ class InitiationProcessFlow(Flow):
     Invoice is paid by chapter.
     CO goes into CMT and indicates invoice paid.
         - shingle csv to be emailed to goosecreekpublishing@yahoo.com
-        - invoice CSV (which would still include the badge and guard info) to be sent to central.office@thetatau.org.
+        - invoice CSV (which would still include the badge info) to be sent to central.office@thetatau.org.
         - email sent to the chapter officers with instructions on how to order their badges directly from Herff.
     """
 
@@ -269,6 +294,12 @@ class InitiationProcessFlow(Flow):
     invoice_payment_email = flow.Handler(
         this.send_invoice_payment_email,
         task_title=_("Send Initiation Process Complete Emails"),
+    ).Next(this.shingle_order_delay)
+
+    shingle_order_delay = flow.Function(
+        this.placeholder,
+        task_loader=lambda flow_task, task: task,
+        task_title=_("Wait shingle order"),
     ).Next(this.complete)
 
     complete = flow.End(
@@ -348,7 +379,10 @@ class InitiationProcessFlow(Flow):
             "Badge/Shingle Order by CHAPTER",
             "Payment Received",
             "Your chapter has paid an initiation invoice."
-            + " The chapter should now follow instructions below for ordering badges and guards.",
+            + " The chapter should now follow instructions here:<br>"
+            '<a href="https://drive.google.com/file/d/198mk-7e-Nef_oIN_WB8t2NijM8wo5UKM/view">'
+            "https://drive.google.com/file/d/198mk-7e-Nef_oIN_WB8t2NijM8wo5UKM/view</a>"
+            " for ordering badges and guards.",
             [
                 {
                     "members": member_list,
@@ -363,13 +397,33 @@ class InitiationProcessFlow(Flow):
             f"See attached documents to file.",
             attachments=[badge_mail],
         ).send()
-        GenericEmail(
-            emails=["goosecreekpublishing@yahoo.com"],
-            subject=f"Theta Tau Shingle Order {activation.process.invoice}",
-            message=f"Shingle order for {activation.process.chapter},"
-            f" Invoice # {activation.process.invoice} See attached documents.",
-            attachments=[shingle_mail],
-        ).send()
+
+    @method_decorator(flow.flow_func)
+    def placeholder(self, activation, task):
+        activation.prepare()
+        activation.done()
+        return activation
+
+    @classmethod
+    def shingle_orders(cls, processes):
+        chapters, invoices, attachments = [], [], []
+        for process in processes:
+            process_init = process.initiationprocess
+            _, shingle_mail = process_init.generate_badge_shingle_order()
+            attachments.append(shingle_mail)
+            chapters.append(process_init.chapter.name)
+            invoices.append(str(process_init.invoice))
+            cls.shingle_order_delay.run(process.get_task(cls.shingle_order_delay))
+        if chapters:
+            date_str = datetime.datetime.today().strftime("%Y%m%d")
+            print("Sending shingle orders for", chapters)
+            GenericEmail(
+                emails=["goosecreekpublishing@yahoo.com"],
+                subject=f"Theta Tau Shingle Order {date_str}",
+                message=f"Shingle order for {', '.join(chapters)},"
+                f" Invoice numbers {', '.join(invoices)} See attached documents.",
+                attachments=attachments,
+            ).send()
 
 
 @frontend.register
@@ -1255,4 +1309,134 @@ class ReturnStudentFlow(Flow):
                 "exec_comments",
             ],
             extra_emails=[activation.process.created_by.email],
+        ).send()
+
+
+@register_factory(viewset_class=FilterableFlowViewSet)
+class PledgeProgramProcessFlow(Flow):
+    """
+    Chapter officer can submit pledge program
+    Send to RD/central office
+    Approve/deny/revise
+    Approve done
+    deny/revise sent to chapter to fix
+    """
+
+    process_class = PledgeProgramProcess
+    process_title = _("Pledge Program Process")
+    process_description = _("This process is for chapter pledge programs.")
+
+    start = flow.Start(
+        PledgeProgramProcessCreateView, task_title=_("Submit Disciplinary Form")
+    ).Next(this.email_all)
+
+    email_all = flow.Handler(
+        this.email_all_func,
+        task_title=_("Email All Pledge Program"),
+    ).Next(this.review)
+
+    review = (
+        NoAssignView(
+            AutoAssignUpdateProcessView,
+            fields=["approval", "approval_comments"],
+            task_title=_("Central Office Review"),
+            task_description=_("Review of Pledge Program by Central Office"),
+            task_result_summary=_("Message was: {{ process.get_approval_display  }}"),
+        )
+        .Permission("auth.central_office")
+        .Next(this.check_approve)
+    )
+
+    check_approve = (
+        flow.Switch()
+        .Case(this.reject_fix, cond=lambda act: act.process.approval == "denied")
+        .Case(this.reject_fix, cond=lambda act: act.process.approval == "revisions")
+        .Case(this.approve, cond=lambda act: act.process.approval == "approved")
+        .Default(this.end)
+    )
+
+    reject_fix = flow.Handler(
+        this.reject_fix_func,
+        task_title=_("Reject Fix Pledge Program"),
+    ).Next(this.end_reject)
+
+    approve = flow.Handler(
+        this.approve_func,
+        task_title=_("Approve Pledge Program"),
+    ).Next(this.end)
+
+    end_reject = flow.End(
+        task_title=_("Pledge Program Process Rejected"),
+    )
+
+    end = flow.End(
+        task_title=_("Pledge Program Process Complete"),
+    )
+
+    def email_all_func(self, activation):
+        """
+        A copy of program should be sent to
+            - all chapter officers
+            - central.office,
+            - RDs
+        """
+        model_obj = activation.process.program
+        EmailProcessUpdate(
+            model_obj,
+            complete_step="Pledge Program Submitted",
+            next_step="Central Office Review",
+            state="Pending Central Office Review",
+            message=(
+                "This if a notification that the Central Office has "
+                "received the pledge program for you chapter."
+            ),
+            fields=["manual"],
+            attachments=["other_manual", "schedule"],
+            email_officers=True,
+            extra_emails={
+                model_obj.chapter.region.email,
+                "central.office@thetatau.org",
+            },
+            direct_user=activation.process.created_by,
+        ).send()
+
+    def reject_fix_func(self, activation):
+        model_obj = activation.process.program
+        EmailProcessUpdate(
+            activation,
+            complete_step="Pledge Program Reviewed",
+            next_step="Chapter Resubmit",
+            state="Chapter Pledge Program Rejected",
+            message=(
+                "This is a notification that the Central Office has "
+                "rejected the pledge program for you chapter."
+                "Please review the notes and resubmit ASAP."
+            ),
+            fields=["approval", "approval_comments"],
+            attachments=[],
+            email_officers=True,
+            extra_emails={
+                model_obj.chapter.region.email,
+            },
+            direct_user=activation.process.created_by,
+        ).send()
+
+    def approve_func(self, activation):
+        model_obj = activation.process.program
+        EmailProcessUpdate(
+            activation,
+            complete_step="Pledge Program Reviewed",
+            next_step="Complete",
+            state="Chapter Pledge Program Approved",
+            message=(
+                "This is a notification that the Central Office has "
+                "approved the pledge program for you chapter."
+            ),
+            fields=["approval", "approval_comments"],
+            attachments=[],
+            email_officers=True,
+            extra_emails={
+                model_obj.chapter.region.email,
+            },
+            direct_user=activation.process.created_by,
         ).send()

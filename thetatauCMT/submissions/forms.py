@@ -39,6 +39,10 @@ class SubmissionListFormHelper(FormHelper):
 
 class PictureForm(forms.ModelForm):
     image = forms.ImageField()
+    description = forms.CharField(
+        help_text="Include name of person who took the photo as well as a brief description.",
+        widget=forms.Textarea(),
+    )
 
     class Meta:
         model = Picture

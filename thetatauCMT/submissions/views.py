@@ -1,5 +1,6 @@
 import csv
 import datetime
+from django.conf import settings
 from django.contrib import messages
 from django.db.models import Count, F
 from django.http.response import HttpResponseRedirect, HttpResponse
@@ -7,6 +8,7 @@ from django.http.request import QueryDict
 from django.shortcuts import redirect, reverse
 from django.views.generic import DetailView, UpdateView, RedirectView, CreateView
 from django.forms.models import modelformset_factory
+from core.notifications import GenericEmail
 from core.views import (
     PagedFilteredTableView,
     TypeFieldFilteredChapterAdd,
@@ -19,6 +21,7 @@ from core.forms import MultiFormsView
 from chapters.models import Chapter
 from regions.models import Region
 from scores.models import ScoreType
+from tasks.models import Task
 from .models import Submission, Picture, GearArticle
 from .tables import SubmissionTable, GearArticleTable
 from .filters import SubmissionListFilter, GearArticleListFilter
@@ -55,6 +58,18 @@ class SubmissionCreateView(
     officer_edit_type = "create"
 
     def get_success_url(self):
+        name = None
+        if self.object.type == "Lock-In and Goal Setting":
+            name = "Lock-in"
+        elif self.object.name == "Alumni Newsletter":
+            name = "Newsletter for Alumni"
+        if name:
+            Task.mark_complete(
+                name="Risk Management Form",
+                chapter=self.request.user.current_chapter,
+                user=self.request.user,
+                obj=self.object,
+            )
         return reverse("submissions:list")
 
 
@@ -147,19 +162,40 @@ class GearArticleFormView(LoginRequiredMixin, OfficerRequiredMixin, MultiFormsVi
     def forms_valid(self, forms):
         gear_form = forms["gear"]
         picture_forms = forms["picture"]
+        chapter = self.request.user.current_chapter
         submission = Submission(
             user=self.request.user,
             file=gear_form.cleaned_data.get("file"),
             name=gear_form.cleaned_data.get("name"),
             type=ScoreType.objects.get(name="Gear Article"),
-            chapter=self.request.user.current_chapter,
+            chapter=chapter,
         )
         submission.save()
         gear_form.instance.submission = submission
-        gear_form.save()
+        obj = gear_form.save()
         for picture_form in picture_forms:
-            picture_form.instance.submission = gear_form.instance
-            picture_form.save()
+            if picture_form.is_valid() and picture_form.instance.image.name != "":
+                picture_form.instance.submission = gear_form.instance
+                picture_form.save()
+        link = reverse("submissions:gear_detail", kwargs={"pk": gear_form.instance.pk})
+        link = settings.CURRENT_URL + link
+        Task.mark_complete(
+            name="Gear Article",
+            chapter=chapter,
+            user=self.request.user,
+            obj=obj,
+        )
+        GenericEmail(
+            emails=["gear@thetatau.org"],
+            subject=f"{chapter.name} Gear Article Submission",
+            message=(
+                f"{chapter.name} Gear Article Submission <br>"
+                f"Please see the form at: <a href='{link}'>{submission.name}</a>"
+            ),
+            cc=False,
+            reply="cmt@thetatau.org",
+            addressee="Dear Gear Editor",
+        ).send()
         return HttpResponseRedirect(self.get_success_url())
 
     def create_picture_form(self, **kwargs):

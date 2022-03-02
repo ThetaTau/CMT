@@ -3,8 +3,40 @@ from herald.base import EmailNotification
 from tasks.models import TaskDate
 from django.conf import settings
 from django.shortcuts import reverse
+from users.models import User
 from chapters.models import Chapter
 from chapters.tables import ChapterStatusTable
+
+
+@registry.register_decorator()
+class MemberInfoUpdate(EmailNotification):  # extend from EmailNotification for emails
+    render_types = ["html"]
+    template_name = "member_info_update"  # name of template, without extension
+    subject = "Update Member Information"  # subject of email
+
+    def __init__(self, user, updater):
+        emails = set(user.emailaddress_set.values_list("email", flat=True))
+        self.to_emails = emails
+        self.cc = []
+        self.reply_to = [
+            "cmt@thetatau.org",
+        ]
+        password = True
+        if not user.has_usable_password() or not user.password:
+            # Need link to generate password
+            password = False
+        self.context = {
+            "user": user,
+            "updater": updater,
+            "password": password,
+            "host": settings.CURRENT_URL,
+        }
+
+    @staticmethod
+    def get_demo_args():  # define a static method to return list of args needed to initialize class for testing
+        user = User.objects.order_by("?")[0]
+        updater = User.objects.order_by("?")[0]
+        return [user, updater]
 
 
 @registry.register_decorator()
@@ -40,7 +72,7 @@ class OfficerMonthly(EmailNotification):  # extend from EmailNotification for em
             "balance": chapter.balance,
             "balance_date": chapter.balance_date,
             "tasks_upcoming": TaskDate.incomplete_dates_for_chapter_next_month(chapter),
-            "tasks_overdue": TaskDate.incomplete_dates_for_chapter_past(chapter),
+            "tasks_overdue": TaskDate.incomplete_dates_for_chapter(chapter),
             "region_announcements": None,
             "host": settings.CURRENT_URL,
         }
@@ -103,7 +135,7 @@ class RDMonthly(EmailNotification):  # extend from EmailNotification for emails
                     "member_count": chapter.actives().count(),
                     "pledge_count": chapter.pledges().count(),
                     "event_count": chapter.events_last_month().count(),
-                    "tasks_overdue": TaskDate.incomplete_dates_for_chapter_past(
+                    "tasks_overdue": TaskDate.incomplete_dates_for_chapter(
                         chapter
                     ).count(),
                     "host": host,
@@ -160,27 +192,17 @@ class NewOfficers(EmailNotification):  # extend from EmailNotification for email
 class OfficerUpdateReminder(
     EmailNotification
 ):  # extend from EmailNotification for emails
-    template_name = "update_reminder"  # name of template, without extension
-    """
-    Need to change to unique template for this program
-    """
+    render_types = ["html"]
+    template_name = "officer_update_reminder"  # name of template, without extension
     subject = "Officer update reminder"  # subject of email
 
     def __init__(
         self, chapter, emails, officers_to_update
     ):  # optionally customize the initialization
-        self.context = {"user": chapter}  # set context for the template rendering
-        format_officers = (
-            ""  # used to add all positions in a type string to use in the html
-        )
         emails = {email for email in emails if email}
-        for positions in officers_to_update:
-            if positions == officers_to_update[-1]:
-                format_officers = format_officers + positions
-            else:
-                format_officers = format_officers + positions + ", "
+        format_officers = ", ".join(officers_to_update)
         self.to_emails = emails
-        self.cc = []
+        self.cc = [chapter.region.email]
         self.reply_to = [
             "cmt@thetatau.org",
         ]
@@ -197,8 +219,10 @@ class OfficerUpdateReminder(
 
     @staticmethod
     def get_demo_args():  # define a static method to return list of args needed to initialize class for testing
+        chapter = Chapter.objects.order_by("?")[0]
+        emails, officers_to_update = chapter.get_about_expired_coucil()
         return [
-            Chapter.objects.order_by("?")[0],
-            "HLJ@gmail.com",
-            ["Vice Regent", "Regent", "Scribe"],
+            chapter,
+            emails,
+            officers_to_update,
         ]

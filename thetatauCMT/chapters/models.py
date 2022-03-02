@@ -16,6 +16,7 @@ from django.utils.translation import ugettext_lazy as _
 from django.utils.text import slugify
 from quickbooks.objects.customer import Customer
 from quickbooks.objects.attachable import Attachable, AttachableRef
+from herald.models import SentNotification
 from core.finances import get_quickbooks_client, invoice_search, create_line
 from core.models import (
     TODAY_END,
@@ -538,7 +539,7 @@ class Chapter(models.Model):
         officers = self.members.filter(
             roles__role__in=CHAPTER_OFFICER,
             roles__end__gte=TODAY_END,
-        )
+        ).prefetch_related("roles")
         current_and_future_regent = officers.filter(roles__role="regent")
         current_and_future_scribe = officers.filter(roles__role="scribe")
         current_and_future_vice = officers.filter(roles__role="vice regent")
@@ -560,7 +561,7 @@ class Chapter(models.Model):
             roles__role__in=CHAPTER_OFFICER,
             roles__end__gte=TODAY_END
             - timedelta(30 * 8),  # they ended their role in the last 8 months
-        )
+        ).prefetch_related("roles")
         past_regent = (
             previous_officers.filter(roles__role="regent")
             .order_by("roles__end")
@@ -590,7 +591,7 @@ class Chapter(models.Model):
         return past_regent, past_corsec, past_scribe, past_treasurer, past_vice
 
     def get_about_expired_coucil(self):
-        officers_to_update, members_to_notify = [], []
+        officers_to_update, members_to_notify, emails = [], [], []
         # officer_to_update is a list of all officers that need to be updated on the CMT
         # members_to_notify is a list of members that currently hold and/or held within the last eight months
         # the officer position that needs to be updated
@@ -641,34 +642,44 @@ class Chapter(models.Model):
             current_and_future, past = info
             # current_and_future holds all the members that currenty hold a specific officer position
             # past holds the member that most recently held the officer position
+            # we want to get officers @ 30, @14 and then every day < 5 Urgent
             if current_and_future:
-                future = current_and_future.filter(
-                    roles__end__gte=TODAY_END + timedelta(14),
+                future_30_days = current_and_future.filter(
+                    roles__end__gte=TODAY_END + timedelta(30),
                 )
-                # future holds the officer who is set to expire after 14 days
-                if not future:
+                # future holds the officer who is set to expire after 30 days
+                if not future_30_days:
+                    future_5_days = current_and_future.filter(
+                        roles__end__gte=TODAY_END + timedelta(5),
+                    )
                     current = current_and_future.first()
-                    # current hold the officer who is set to expire within the next 14 days
+                    already_notified = SentNotification.objects.filter(
+                        notification_class="users.notifications.OfficerUpdateReminder",
+                        recipients__icontains=current.email,
+                        date_sent__gte=TODAY_END - timedelta(7),
+                    )
+                    if not future_5_days or not already_notified:
+                        # only notify every 7 days or every day within 5
+                        # current hold the officer who is set to expire within the
+                        print(
+                            f"    {position} Not notified or 5 days, {already_notified=}"
+                        )
+                        members_to_notify.append(current)
+                    # There could be other positions to notify,
+                    # this position still needs to be updated just not notify the members
                     officers_to_update.append(position)
-                    members_to_notify.append(current)
             else:
+                print(f"    {position} No current or future")
                 officers_to_update.append(position)
                 if past:
                     members_to_notify.append(past)
-
-        # List Comprehension for all the official chapter emails and chapter officer's personal emails
-        emails = [
-            return_value
-            for return_value in self.get_generic_chapter_emails()
-            if return_value
-        ]
-        emails.extend([user.email for user in members_to_notify if user])
-
         if officers_to_update:
-            print("Emails: ", emails)
-            print(f"Officers that will need to be updated: {officers_to_update}")
-            print(f"Brothers that need to be notified list: {members_to_notify}")
-
+            # Start with all chapter emails and generic emails
+            emails = [email for email in self.get_generic_chapter_emails() if email]
+            emails.extend([user.email for user in members_to_notify if user])
+            print("    Emails: ", emails)
+            print(f"    {officers_to_update=}")
+            print(f"    {members_to_notify=}")
         return emails, officers_to_update
 
     def next_badge_number(self):

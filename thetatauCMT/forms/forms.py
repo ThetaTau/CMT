@@ -5,7 +5,6 @@ from crispy_forms.bootstrap import (
     Field,
     InlineField,
     StrictButton,
-    InlineRadios,
     Accordion,
     AccordionGroup,
 )
@@ -72,7 +71,12 @@ class UserSelectForm(forms.Form):
 class InitDeplSelectForm(forms.Form):
     user = forms.ModelChoiceField(queryset=Initiation.objects.none(), disabled=True)
     state = forms.ChoiceField(
-        choices=[("Initiate", "Initiate"), ("Depledge", "Depledge"), ("Defer", "Defer")]
+        choices=[
+            ("Initiate", "Initiate"),
+            ("Depledge", "Depledge"),
+            ("Defer", "Defer"),
+            ("Roll", "Roll Book"),
+        ]
     )
 
 
@@ -116,7 +120,6 @@ class InitiationForm(forms.ModelForm):
             "test_a",
             "test_b",
             "badge",
-            "guard",
         ]
 
     def clean_user(self):
@@ -153,7 +156,6 @@ class InitiationFormHelper(FormHelper):
         "test_a",
         "test_b",
         "badge",
-        "guard",
     )
 
 
@@ -165,11 +167,95 @@ class DepledgeForm(forms.ModelForm):
             options={"format": "M/DD/YYYY"},
             attrs={"autocomplete": "off"},
         ),
+        help_text="Date can not be in the future",
+    )
+    meeting_date = forms.DateField(
+        label="When was the meeting with the depledged PNM?",
+        required=False,
+        widget=DatePicker(
+            options={"format": "M/DD/YYYY"},
+            attrs={"autocomplete": "off"},
+        ),
+        help_text="Date can not be in the future",
     )
 
     class Meta:
         model = Depledge
-        fields = ["user", "reason", "date"]
+        fields = [
+            "user",
+            "reason",
+            "reason_other",
+            "date",
+            "meeting_held",
+            "meeting_date",
+            "meeting_attend",
+            "meeting_not",
+            "informed",
+            "concerns",
+            "returned_items",
+            "returned_other",
+            "extra_notes",
+        ]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["informed"].required = True
+        self.fields["returned_items"].required = True
+
+    def clean(self):
+        super().clean()
+        reason_other = self.cleaned_data.get("reason_other", "")
+        if self.cleaned_data.get("reason") == "other" and reason_other == "":
+            self.add_error(
+                "reason_other",
+                forms.ValidationError(
+                    "You must submit the other reason for depledging"
+                ),
+            )
+        meeting_held = self.cleaned_data.get("meeting_held")
+        if not meeting_held:
+            self.add_error(
+                "meeting_held",
+                forms.ValidationError("You must select if a meeting was held or not."),
+            )
+        elif "no" in meeting_held or "na" in meeting_held:
+            meeting_not = self.cleaned_data.get("meeting_not", "")
+            if meeting_not == "":
+                self.add_error(
+                    "meeting_not",
+                    forms.ValidationError(
+                        "You must submit a reason for no meeting with depledged."
+                    ),
+                )
+        else:
+            meeting_date = self.cleaned_data.get("meeting_date", "")
+            meeting_attend = self.cleaned_data.get("meeting_attend", "")
+            if meeting_date == "":
+                self.add_error(
+                    "meeting_date",
+                    forms.ValidationError(
+                        "You must submit meeting date for depledged meeting"
+                    ),
+                )
+            if meeting_attend == "":
+                self.add_error(
+                    "meeting_attend",
+                    forms.ValidationError(
+                        "You must submit meeting attendance for depledged meeting"
+                    ),
+                )
+        returned_other = self.cleaned_data.get("returned_other", "")
+        returned_items = self.cleaned_data.get("returned_items")
+        if not returned_items:
+            self.add_error(
+                "returned_items",
+                forms.ValidationError("You must specify if items were returned."),
+            )
+        elif "other" in returned_items and returned_other == "":
+            self.add_error(
+                "returned_other",
+                forms.ValidationError("You must submit the other returned items"),
+            )
 
     def clean_user(self):
         data = self.cleaned_data["user"]
@@ -183,18 +269,57 @@ DepledgeFormSet = forms.formset_factory(DepledgeForm, extra=0)
 
 
 class DepledgeFormHelper(FormHelper):
-    template = "bootstrap4/table_inline_formset.html"
+    form_class = "form-inline"
     form_tag = False
-    layout = Layout("user", "reason", "date")
+    layout = Layout(
+        Row(
+            Column(
+                "user",
+            ),
+            Column("date"),
+            Column(Field("reason", css_class="reason-class")),
+            Column(
+                "reason_other",
+            ),
+        ),
+        Row(
+            Column(Field("meeting_held", css_class="meeting-held-class")),
+            Column(
+                "meeting_date",
+            ),
+            Column(
+                "meeting_attend",
+            ),
+            Column(
+                "meeting_not",
+            ),
+        ),
+        "informed",
+        "concerns",
+        Row(
+            Column(Field("returned_items", css_class="returned_items-class")),
+            Column(
+                "returned_other",
+            ),
+        ),
+        "extra_notes",
+    )
 
 
 class StatusChangeSelectForm(forms.Form):
     user = forms.ModelChoiceField(queryset=User.objects.none())
-    state = forms.ChoiceField(
-        label="New Status",
-        choices=[x.value for x in StatusChange.REASONS if x.name not in ["covid"]],
-    )
+    state = forms.ChoiceField(label="New Status")
     selected = forms.BooleanField(label="Remove", required=False)
+
+    def __init__(self, *args, **kwargs):
+        colony = kwargs.pop("colony", False)
+        super().__init__(*args, **kwargs)
+        exclude = ["covid"]
+        if not colony:
+            exclude.append("resignedCC")
+        self.fields["state"].choices = [
+            x.value for x in StatusChange.REASONS if x.name not in exclude
+        ]
 
 
 class StatusChangeSelectFormHelper(FormHelper):
@@ -303,7 +428,7 @@ class CSMTForm(forms.ModelForm):
             self.fields["employer"].required = False
             self.fields["new_school"].widget = forms.HiddenInput()
             self.fields["new_school"].required = False
-        if reason == "withdraw":
+        if reason == "withdraw" or reason == "resignedCC":
             self.fields["miles"].widget.attrs["disabled"] = "true"
             self.fields["miles"].required = False
             self.fields["date_end"].widget.attrs["disabled"] = "true"
@@ -544,18 +669,32 @@ class RiskManagementForm(forms.ModelForm):
 
 class PledgeProgramForm(forms.ModelForm):
     date_complete = forms.DateField(
-        label=PledgeProgram.verbose_complete,
+        label="When do you anticipate completing new member education?",
         widget=DatePicker(
             options={"format": "M/DD/YYYY"},
             attrs={"autocomplete": "off"},
         ),
     )
     date_initiation = forms.DateField(
-        label=PledgeProgram.verbose_initiation,
+        label="When do you plan to initiate your pledges?",
+        help_text="Best estimated date is sufficient.",
         widget=DatePicker(
             options={"format": "M/DD/YYYY"},
             attrs={"autocomplete": "off"},
         ),
+    )
+    other_manual = forms.FileField(
+        label="Other/Changes",
+        required=False,
+        help_text=(
+            "If you are following a different program upload that full program. "
+            "If you have made any changes to official program, "
+            "upload ONLY THOSE CHANGES"
+        ),
+    )
+    schedule = forms.FileField(
+        help_text="Please upload a schedule of the pledge program process.",
+        required=True,
     )
 
     class Meta:
@@ -563,27 +702,24 @@ class PledgeProgramForm(forms.ModelForm):
         fields = [
             "remote",
             "weeks",
-            "weeks_left",
-            "status",
             "date_complete",
             "date_initiation",
+            "manual",
+            "other_manual",
+            "schedule",
         ]
 
-    def clean_other_manual(self):
-        other_manual = self.data.get("other_manual", "")
-        other_manual_cleaned = self.cleaned_data.get("other_manual", "")
-        if (
-            self.cleaned_data.get("manual") == "other"
-            and other_manual == ""
-            and other_manual_cleaned == ""
-        ):
-            raise forms.ValidationError(
-                "You must submit the other manual your chapter is "
-                "following if not one of the approved models."
+    def clean(self):
+        super().clean()
+        other_manual = self.cleaned_data.get("other_manual", "")
+        if self.cleaned_data.get("manual") == "other" and other_manual == "":
+            self.add_error(
+                "other_manual",
+                forms.ValidationError(
+                    "You must submit the other manual your chapter is "
+                    "following if not one of the approved models."
+                ),
             )
-        if other_manual == "" and other_manual_cleaned != "":
-            other_manual = other_manual_cleaned
-        return other_manual
 
 
 class AuditForm(forms.ModelForm):
@@ -856,6 +992,11 @@ class PledgeForm(forms.ModelForm):
         choices=[("", ""), (True, "Yes"), (False, "No")],
         initial="",
     )
+    bill = forms.ChoiceField(
+        label=Pledge.verbose_bill,
+        choices=[("", ""), (True, "Yes"), (False, "No")],
+        initial="",
+    )
 
     class Meta:
         model = Pledge
@@ -867,18 +1008,29 @@ class PledgeDemographicsForm(forms.ModelForm):
         label="Are you a first-generation college student?",
         choices=[("", ""), (True, "Yes"), (False, "No")],
         initial="",
-        required=False,
+        required=True,
     )
     english = forms.ChoiceField(
         label="Is English your first language?",
         choices=[("", ""), (True, "Yes"), (False, "No")],
         initial="",
-        required=False,
+        required=True,
     )
 
     class Meta:
         model = UserDemographic
         exclude = ["user", "specific_ethnicity"]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for field in self.fields:
+            if field not in [
+                "gender_write",
+                "sexual_write",
+                "racial_write",
+                "ability_write",
+            ]:
+                self.fields[field].required = True
 
 
 class PledgeUserBase(forms.ModelForm):
@@ -1109,6 +1261,13 @@ class PledgeFormFull(CrispyCompatableMultiModelForm):
                     "demographics-ability_write",
                     "demographics-first_gen",
                     "demographics-english",
+                ),
+                AccordionGroup(
+                    "BILL OF RIGHTS",
+                    HTML(
+                        "<div id='bill'>Select your 'School Name' under 'College & Degree Information'</div>"
+                    ),
+                    "pledge-bill",
                 ),
                 AccordionGroup(
                     "Pause and Deliberate",

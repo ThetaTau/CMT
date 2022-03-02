@@ -39,14 +39,14 @@ urlpatterns = [
         kwargs={"alt_form": True},
     ),
     url(
-        regex=r"^pledgeprogram/$",
-        view=views.PledgeProgramFormView.as_view(),
-        name="pledge_program",
-    ),
-    url(
         regex=r"^pledge-program-list/$",
         view=views.PledgeProgramListView.as_view(),
         name="pledge_program_list",
+    ),
+    path(
+        "pledgeprogram-detail/<int:pk>/",
+        view=views.PledgeProgramProcessDetailView.as_view(),
+        name="pledge_program_detail",
     ),
     url(regex=r"^initiation/$", view=views.InitiationView.as_view(), name="initiation"),
     url(
@@ -86,6 +86,36 @@ urlpatterns = [
         view=views.RoleChangeNationalView.as_view(),
         name="natoff",
     ),
+    path(
+        "bill-of-rights-pdf/<int:pk>/",
+        view=views.BillOfRightsPDFView.as_view(),
+        name="bill_of_rights_pdf",
+    ),
+    path(
+        "bill-of-rights/<int:pk>/",
+        view=views.BillOfRightsDetailView.as_view(),
+        name="bill_of_rights",
+    ),
+    path(
+        "roll-book-page/<int:pk>/",
+        view=views.RollBookPDFView.as_view(),
+        name="roll_book_page",
+    ),
+    path(
+        "roll-book-download-all",
+        view=views.download_all_rollbook,
+        name="roll_book_download_all",
+    ),
+    path(
+        "set-init-date/",
+        view=views.set_init_date,
+        name="set_init_date",
+    ),
+    path(
+        "set-init-date/",
+        view=views.set_init_date,
+        name="set_init_date",
+    ),
     url(regex=r"^rmp/$", view=views.RiskManagementFormView.as_view(), name="rmp"),
     url(
         regex=r"^rmp-complete/(?P<pk>\d+)/$",
@@ -103,6 +133,13 @@ urlpatterns = [
             pattern_name="viewflow:forms:disciplinaryprocess:start", permanent=True
         ),
         name="discipline",
+    ),
+    url(
+        r"^pledgeprogram/$",
+        RedirectView.as_view(
+            pattern_name="viewflow:forms:pledgeprogramprocess:start", permanent=True
+        ),
+        name="pledge_program",
     ),
     url(
         regex=r"^discipline/outcome-pdf/(?P<pk>\d+)/$",
@@ -131,19 +168,4 @@ urlpatterns = [
         view=views.ResignationListView.as_view(),
         name="resign_list",
     ),
-    # url(
-    #     regex=r'^~status-change/$',
-    #     view=views.StatusChangeView.as_view(),
-    #     name='redirect'
-    # ),
-    # url(
-    #     regex=r'^~/$',
-    #     view=views.FormUpdateView.as_view(),
-    #     name='update'
-    # ),
-    # url(
-    #     regex=r'^(?P<year>d{4})/(?P<month>[0-9]{2})/(?P<day>[0-9]{2})/(?P<slug>[-w]+)/$',
-    #     view=views.EventDetailView.as_view(),
-    #     name='detail'
-    # ),
 ]

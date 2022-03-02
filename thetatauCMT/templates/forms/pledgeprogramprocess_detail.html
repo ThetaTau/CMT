@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Pledge Program: {{ object.program.get_term_display }} {{ object.program.year }}{% endblock %}
+{% block content %}
+<div class="container">
+  <div class="row">
+    <div class="col-sm-12">
+      <h2>Pledge Program: {{ object.program.get_term_display }} {{ object.program.year }}</h2>
+      <table>
+        <tr>
+          <th>Chapter</th>
+          <td>{{ object.chapter }}</td>
+        </tr>
+        <tr>
+          <th>Created</th>
+          <td>{{ object.created }}</td>
+        </tr>
+        <tr>
+          <th>Approved</th>
+          <td>{{ object.get_approval_display }}</td>
+        </tr>
+        <tr>
+          <th>Comments</th>
+          <td>{{ object.approval_comments }}</td>
+        </tr>
+        <tr>
+          <th>Remote</th>
+          <td>{{ object.program.remote }}</td>
+        </tr>
+        <tr>
+          <th>Date Complete</th>
+          <td>{{ object.program.date_complete }}</td>
+        </tr>
+        <tr>
+          <th>Date Initiation</th>
+          <td>{{ object.program.date_initiation }}</td>
+        </tr>
+        <tr>
+          <th>Weeks of program</th>
+          <td>{{ object.program.weeks }}</td>
+        </tr>
+        <tr>
+          <th>Manual</th>
+          <td>{{ object.program.get_manual_display }}</td>
+        </tr>
+        <tr>
+          <th>Manual Changes</th>
+          <td>
+            {% if object.program.other_manual.name %}
+              <a href="{{ object.program.other_manual.url }}" target="_blank">
+                {{ object.program.other_manual.name }}</a>
+            {% endif %}
+          </td>
+        </tr>
+        <tr>
+          <th>Schedule</th>
+          <td>
+            {% if object.program.schedule.name %}
+              <a href="{{ object.program.schedule.url }}" target="_blank">
+                {{ object.program.schedule.name }}</a>
+            {% endif %}
+          </td>
+        </tr>
+      </table>
+    </div>
+  </div>
+
+</div>
+{% endblock content %}
+

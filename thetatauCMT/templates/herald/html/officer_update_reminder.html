@@ -1,0 +1,24 @@
+{% extends "herald/html/base_email.html" %}
+{% block title %}Officer update reminder{% endblock %}
+{% block content %}
+<h1 class="null" style="margin: 0;padding: 0;display: block;font-family: Helvetica;font-size: 40px;font-style: normal;font-weight: bold;line-height: 125%;letter-spacing: -1px;text-align: left;color: #606060 !important;">Officer update reminder</h1>
+Dear Theta Tau {{ chapter }} Officers,
+<p>
+You are getting this message because you are listed as an officer for your chapter,
+  or you are an immediate past officer with no replacement identified in the CMT<br><br>
+  The term(s) of <b><strong>{{ officers }}</strong></b>
+  is set to expire soon or has already expired, and no replacement has been set.
+</p>
+<p>
+Please update the position(s) on the CMT as soon as possible at
+  Officer Election Report <a href="{{ host }}{% url 'forms:officer' %}">{{ host }}{% url 'forms:officer' %}</a>
+<br><br>
+  If there are no current officers of your chapter with access to the CMT, then you will need to reach
+  out to <a href="mailto:central.office@thetatau.org">central.office@thetatau.org</a>
+  with the name of an officer who can then add all of the other officers.
+  <b>You will get this message weekly until the officers are updated,
+    and then daily within 5 days of the officer expiration.</b>
+</p>
+<br>
+  {% include "herald/html/rm_contact.html" %}
+{% endblock content %}
