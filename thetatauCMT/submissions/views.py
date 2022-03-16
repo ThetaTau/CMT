@@ -59,13 +59,15 @@ class SubmissionCreateView(
 
     def get_success_url(self):
         name = None
+        if not hasattr(self, "object"):
+            return reverse("submissions:list")
         if self.object.type == "Lock-In and Goal Setting":
             name = "Lock-in"
         elif self.object.name == "Alumni Newsletter":
             name = "Newsletter for Alumni"
         if name:
             Task.mark_complete(
-                name="Risk Management Form",
+                name=name,
                 chapter=self.request.user.current_chapter,
                 user=self.request.user,
                 obj=self.object,
