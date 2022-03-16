@@ -426,7 +426,7 @@ class InitiationProcessFlow(Flow):
             ).send()
 
 
-@frontend.register
+@register_factory(viewset_class=FilterableFlowViewSet)
 class ConventionFlow(Flow):
     process_class = Convention
     process_title = _("Convention Process")
@@ -596,7 +596,7 @@ class PledgeProcessFlow(Flow):
         ).send()
 
 
-@frontend.register
+@register_factory(viewset_class=FilterableFlowViewSet)
 class OSMFlow(Flow):
     """
     Chapter officer fills out form to nominate their chapter OSM for the national award.

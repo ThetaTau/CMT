@@ -11,13 +11,14 @@
   <div class="card">
     <div class="card-title">Search</div>
     <div class="card-content">
-      <p>Search first by chapter then status separated by a comma.
+      <p>Search first by chapter/user then status separated by a comma.
         Partial matching works. Case does not matter.<br>
         Add a '-' to get exact match.
-    ie. CHAPTER, STATUS<br>
+    ie. CHAPTER/USER, STATUS<br>
     <h5>Examples:</h5>
     <ul>
       <li>Chi, Complete</li>
+      <li>Joh</li>
       <li>epsi, send</li>
       <li>,pay</li>
       <li>Chi-, Complete (to get exactly Chi Chapter)</li>
@@ -25,9 +26,9 @@
       </p>
       <h5>Status options are:</h5>
       <ul>
-        <li>Complete</li>
-        <li>Send invoice to chapter</li>
-        <li>Invoice payment by chapter</li>
+        {% for task in task_titles %}
+          <li>{{ task }}</li>
+        {% endfor %}
       </ul>
     </div>
   </div>

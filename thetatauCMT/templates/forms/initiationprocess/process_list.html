@@ -33,10 +33,9 @@
       </p>
       <h5>Status options are:</h5>
       <ul>
-        <li>Complete</li>
-        <li>Send invoice to chapter</li>
-        <li>Invoice payment by chapter</li>
-        <li>Badge/shingle placing order</li>
+        {% for task in task_titles %}
+          <li>{{ task }}</li>
+        {% endfor %}
       </ul>
     </div>
   </div>

@@ -2028,13 +2028,27 @@ class ConventionListView(
 
 
 class FilterProcessListView(ProcessListView, FlowListMixin):
+    template_name = "forms/process_list.html"
     list_display = [
         "current_task",
+        "user",
         "chapter",
         "created",
         "finished",
     ]
     datatable_config = {"searching": True}
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        task_titles = []
+        for var_name in dir(self.flow_class):
+            var = getattr(self.flow_class, var_name)
+            if hasattr(var, "task_title"):
+                task_title = var.task_title
+                if task_title:
+                    task_titles.append(task_title)
+        context["task_titles"] = task_titles
+        return context
 
     def chapter(self, process):
         chapter = "unknown"
@@ -2045,6 +2059,18 @@ class FilterProcessListView(ProcessListView, FlowListMixin):
         return chapter
 
     chapter.short_description = "Chapter"
+
+    def user(self, process):
+        user = "N/A"
+        if hasattr(process, "user"):
+            user = process.user
+        elif hasattr(process, "nominate"):
+            user = process.nominate
+        elif hasattr(process, "delegate"):
+            user = f"{process.delegate} and {process.alternate}"
+        return user
+
+    user.short_description = "User"
 
     def get_object_list(self):
         """Create prepared queryset for datatables view."""
@@ -2068,21 +2094,32 @@ class FilterProcessListView(ProcessListView, FlowListMixin):
             if not search_status:
                 search_status = False
             if search_chapter:
+                # Search for chapter or user
+                extra = {}
+                filter_key = "chapter__"
+                if hasattr(queryset.model, "user"):
+                    filter_key = "user__chapter__"
+                    extra = {"user__name__icontains": search_chapter}
                 if "-" in search_chapter:
                     search_chapter = search_chapter.replace("-", "")
-                    queryset = queryset.filter(Q(chapter__name__iexact=search_chapter))
+                    filter_key = filter_key + "name__iexact"
                 else:
-                    queryset = queryset.filter(
-                        Q(chapter__name__icontains=search_chapter)
-                    )
+                    filter_key = filter_key + "name__icontains"
+                queryset = queryset.filter(
+                    Q(**{filter_key: search_chapter}) | Q(**extra)
+                )
             if search_status:
                 processes = []
                 for process in queryset:
-                    summary = "complete"
+                    title = "complete"
                     active_tasks = process.active_tasks()
                     if active_tasks:
-                        summary = active_tasks.first().summary().lower()
-                    if search_status in summary:
+                        flow_task = active_tasks.first().flow_task
+                        if flow_task:
+                            title = flow_task.task_title.lower()
+                        else:
+                            title = "n/a"
+                    if search_status in title:
                         processes.append(process.pk)
                 queryset = queryset.model.objects.filter(pk__in=processes)
         return queryset
@@ -2091,9 +2128,10 @@ class FilterProcessListView(ProcessListView, FlowListMixin):
         if process.finished is None:
             task = process.active_tasks().first()
             if task:
-                summary = task.summary()
-                if not summary:
-                    summary = task.flow_task
+                flow_task = task.flow_task
+                summary = "n/a"
+                if flow_task:
+                    summary = flow_task.task_title
                 task_url = frontend_url(
                     self.request, self.get_task_url(task), back_link="here"
                 )
@@ -2121,6 +2159,7 @@ class FilterProcessListView(ProcessListView, FlowListMixin):
 
 
 class FilterProcessInvoiceListView(FilterProcessListView):
+    template_name = "forms/initiationprocess/process_list.html"
     list_display = [
         "current_task",
         "chapter",
