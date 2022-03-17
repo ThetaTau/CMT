@@ -39,6 +39,11 @@
     <link href="{% static 'css/project.css' %}" rel="stylesheet">
       {{ forms.gear|crispy }}
     <h4 id="picture">Add pictures:</h4>
+  <p>
+    You do not have to add pictures, this is optional. Leave blank if no pictures.<br>
+    However, if you do add a picture, for each picture,
+    you must include name of person who took the photo as well as a brief description.
+  </p>
     {{ forms.picture.media }}
   <link href="{% static 'css/project.css' %}" rel="stylesheet">
       {% csrf_token %}
@@ -83,17 +88,12 @@
         {% endfor %}
         </tbody>
       </table>
-      <div class="control-group">
-        <div class="controls">
-          <button class="btn btn-primary" name='action' value='article' type="submit">Submit</button>
-        </div>
-      </div>
     <div class="control-group">
       <div class="controls">
         <input type="button" class='btn btn-secondary'
                onclick='location.href="{% url 'events:list' %}";'
                value="Cancel" />
-        <button type="submit" class="btn btn-primary" value="Save">Save</button>
+        <button type="submit" class="btn btn-primary" value="Submit">Submit</button>
       </div>
     </div>
   </form>
