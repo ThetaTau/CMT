@@ -503,7 +503,14 @@ class PasswordResetFormNotActive(PasswordResetForm):
         Generate a one-use only link for resetting password and send it to the
         user.
         """
-        email = self.cleaned_data["email"]
+        email = self.cleaned_data.get("email", None)
+        if email is None:
+            messages.add_message(
+                self.request,
+                messages.ERROR,
+                f"Please provide email",
+            )
+            return
         for user in self.get_users(email):
             if not domain_override:
                 current_site = get_current_site(request)
