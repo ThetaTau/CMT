@@ -1,8 +1,11 @@
+from django.conf import settings
 from django.urls import reverse
+from django.utils.safestring import mark_safe
 from django.views.generic import CreateView
 from users.models import User
 from .models import DepledgeSurvey
 from .forms import DepledgeSurveyForm
+from .notifications import DepledgeSurveyFollowUpEmail
 
 
 class DepledgeSurveyCreateView(CreateView):
@@ -20,6 +23,17 @@ class DepledgeSurveyCreateView(CreateView):
         user = User.objects.get(user_id=user_id)
         self.object.user = user
         self.object.save()
+        if self.object.contact:
+            link = reverse(
+                "admin:surveys_depledgesurvey_change",
+                kwargs={"object_id": self.object.id},
+            )
+            message = mark_safe(
+                f"A depledge from {user.chapter.full_name} has asked "
+                f"for a follow up to their survey. <br>"
+                f'<a href="{settings.CURRENT_URL}{link}">See link here.</a>'
+            )
+            DepledgeSurveyFollowUpEmail(user.id, message).send()
         return super().form_valid(form)
 
     def get_context_data(self, **kwargs):
