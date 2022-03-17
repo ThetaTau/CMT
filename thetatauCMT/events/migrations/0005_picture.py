@@ -9,22 +9,42 @@ import events.models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('events', '0004_auto_20210911_1635'),
+        ("events", "0004_auto_20210911_1635"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='Picture',
+            name="Picture",
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('created', models.DateTimeField(default=django.utils.timezone.now)),
-                ('modified', models.DateTimeField(auto_now=True)),
-                ('description', models.TextField()),
-                ('image', models.ImageField(upload_to=events.models.get_event_picture_upload_path)),
-                ('event', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='pictures', to='events.Event')),
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("created", models.DateTimeField(default=django.utils.timezone.now)),
+                ("modified", models.DateTimeField(auto_now=True)),
+                ("description", models.TextField()),
+                (
+                    "image",
+                    models.ImageField(
+                        upload_to=events.models.get_event_picture_upload_path
+                    ),
+                ),
+                (
+                    "event",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="pictures",
+                        to="events.Event",
+                    ),
+                ),
             ],
             options={
-                'abstract': False,
+                "abstract": False,
             },
         ),
     ]
