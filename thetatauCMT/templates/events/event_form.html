@@ -1,5 +1,8 @@
 {% extends "base.html" %}
 {% load crispy_forms_tags %}
+{% load static %}
+{% load crispy_forms_field %}
+{% load render_table from django_tables2 %}
 
 {% block title %}Update Event: {{ event.name }}{% endblock %}
 
@@ -8,9 +11,27 @@
   <form class="form-horizontal" method="post" action="{% url 'events:update' event.id %}">
     {% csrf_token %}
     {{ form|crispy }}
+    <h2>Pictures</h2>
+    <link href="{% static 'css/project.css' %}" rel="stylesheet">
+    {{ forms.gear|crispy }}
+  {% for picture in object.pictures.all %}
+      {% if picture.image %}
+            <li>
+              <a href="{{ picture.image.url }}" target="_blank">
+                <img src="{{ picture.image.url }}" width="150" height="150"/>
+              </a>
+              <ul>
+                <li>{{ picture.description }}</li>
+              </ul>
+            </li><br>
+            {% endif %}
+          {% endfor %}
     <div class="control-group">
       <div class="controls">
-        <button type="submit" class="btn">Update</button>
+        <input type="button" class='btn btn-secondary'
+               onclick='location.href="{% url 'events:list' %}";'
+               value="Cancel" />
+        <button type="submit" class="btn btn-primary" value="Save">Save</button>
       </div>
     </div>
   </form>

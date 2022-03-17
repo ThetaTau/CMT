@@ -1,6 +1,8 @@
 from django.db import models
 from django.utils import timezone
 from django.utils.text import slugify
+from django.conf import settings
+import os
 from core.models import (
     TimeStampedModel,
     semester_encompass_start_end_date,
@@ -9,6 +11,12 @@ from core.models import (
 )
 from scores.models import ScoreType
 from chapters.models import Chapter
+
+
+def get_event_upload_event(instance, filename):
+    return os.path.join(
+        "event-pictures", instance.type.slug, f"{instance.chapter.slug}_{filename}"
+    )
 
 
 class Event(TimeStampedModel):
@@ -145,3 +153,23 @@ class Event(TimeStampedModel):
                 score["Bro"] + score["Ops"] + score["Ser"] + score["Pro"], 2
             )
         return grouped_events.values()
+
+
+def get_event_picture_upload_path(
+    instance, filename
+):  # instance refers to object road to data base
+    return os.path.join(
+        "event-pictures",
+        f"{instance.event.chapter.slug}",  # name of chapter
+        f"{filename}",  # name of file submitted
+    )
+
+
+class Picture(TimeStampedModel):
+    description = models.TextField()
+    image = models.ImageField(upload_to=get_event_picture_upload_path)
+    event = models.ForeignKey(
+        Event,
+        on_delete=models.CASCADE,
+        related_name="pictures",
+    )
