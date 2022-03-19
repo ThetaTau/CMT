@@ -110,7 +110,16 @@ class PrematureAlumnusFlow(Flow):
 
     start = flow.Start(
         PrematureAlumnusCreateView, task_title=_("Request Premature Alumnus")
-    ).Next(this.pending_status)
+    ).Next(this.check_auto_approve)
+
+    check_auto_approve = (
+        flow.If(
+            cond=lambda act: not act.process.user.chapter.extra_approval,
+            task_title=_("Check if can auto approve"),
+        )
+        .Then(this.auto_approve)
+        .Else(this.pending_status)
+    )
 
     pending_status = flow.Handler(
         this.set_status_email,
@@ -133,6 +142,11 @@ class PrematureAlumnusFlow(Flow):
         .Assign(lambda act: User.objects.get(username="Jim.Gaffney@thetatau.org"))
         .Next(this.check_approve)
     )
+
+    auto_approve = flow.Handler(
+        this.auto_approve_func,
+        task_title=_("Auto approval checks."),
+    ).Next(this.check_approve)
 
     check_approve = (
         flow.If(
@@ -208,11 +222,37 @@ class PrematureAlumnusFlow(Flow):
         created = activation.task.created
         user.set_current_status(status="alumni", created=created, start=created)
 
+    def auto_approve_func(self, activation):
+        process = activation.process
+        checks = [
+            (process.good_standing, process.verbose_good_standing),
+            (process.financial, process.verbose_financial),
+            (process.semesters, process.verbose_semesters),
+            (process.lifestyle, process.verbose_lifestyle),
+            (process.consideration, process.verbose_consideration),
+            (process.vote, process.verbose_vote),
+        ]
+        denial_reason = ""
+        deny = False
+        for check, reason in checks:
+            if not check:
+                deny = True
+                denial_reason += reason + "; "
+        if deny:
+            process.approved_exec = False
+            process.exec_comments = (
+                "The following reasons were not True: " + denial_reason
+            )
+        else:
+            process.approved_exec = True
+        process.save()
+
     def send_approval_complete(self, activation):
         if activation.process.approved_exec:
             state = "Approved"
         else:
             state = "Rejected"
+        user = activation.process.user
         EmailProcessUpdate(
             activation,
             "Executive Director Review",
@@ -223,7 +263,10 @@ class PrematureAlumnusFlow(Flow):
                 "approved_exec",
                 "exec_comments",
             ],
-            extra_emails=[activation.process.created_by.email],
+            extra_emails=[
+                activation.process.created_by.email,
+                user.current_chapter.region.email,
+            ],
         ).send()
 
 

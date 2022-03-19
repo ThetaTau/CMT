@@ -255,6 +255,10 @@ class Chapter(models.Model):
     )
     active = models.BooleanField(default=True)
     candidate_chapter = models.BooleanField(default=False)
+    extra_approval = models.BooleanField(
+        default=False,
+        help_text="Does this chapter require extra approval of automated tasks",
+    )
     school = models.CharField(max_length=50, blank=True, unique=True)
     latitude = models.DecimalField(
         max_digits=22, decimal_places=16, blank=True, null=True
