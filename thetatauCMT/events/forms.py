@@ -15,24 +15,35 @@ class EventListFormHelper(FormHelper):
     form_show_errors = True
     help_text_inline = False
     html5_required = True
-    layout = Layout(
-        Fieldset(
-            '<i class="fas fa-search"></i> Filter Events',
-            Row(
-                InlineField("name"),
-                InlineField("date"),
-                InlineField("type"),
-                FormActions(
-                    StrictButton(
-                        '<i class="fa fa-search"></i> Filter',
-                        type="submit",
-                        css_class="btn-primary",
+
+    def __init__(self, form=None, natoff=False):
+        extra = []
+        if natoff:
+            extra = [
+                InlineField("region"),
+                InlineField("chapter"),
+                InlineField("pictures"),
+            ]
+        self.layout = Layout(
+            Fieldset(
+                '<i class="fas fa-search"></i> Filter Events',
+                Row(
+                    InlineField("name"),
+                    InlineField("date"),
+                    InlineField("type"),
+                    *extra,
+                    FormActions(
+                        StrictButton(
+                            '<i class="fa fa-search"></i> Filter',
+                            type="submit",
+                            css_class="btn-primary",
+                        ),
+                        Submit("cancel", "Clear", css_class="btn-primary"),
                     ),
-                    Submit("cancel", "Clear", css_class="btn-primary"),
                 ),
             ),
-        ),
-    )
+        )
+        super().__init__(form=form)
 
 
 class PictureForm(forms.ModelForm):

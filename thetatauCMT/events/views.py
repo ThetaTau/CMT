@@ -196,3 +196,17 @@ class EventListView(LoginRequiredMixin, PagedFilteredTableView):
     filter_class = EventListFilter
     formhelper_class = EventListFormHelper
     filter_chapter = True
+
+
+class EventListAllView(EventListView, NatOfficerRequiredMixin):
+    filter_chapter = False
+    template_name = "events/event_list_all.html"
+
+    def get_table_kwargs(self):
+        return {"natoff": True}
+
+    def get_filter_kwargs(self):
+        return {"natoff": True}
+
+    def get_filter_helper_kwargs(self):
+        return {"natoff": True}

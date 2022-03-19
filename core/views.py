@@ -93,6 +93,12 @@ class PagedFilteredTableView(SingleTableView):
     filter_chapter = False
     filter = None
 
+    def get_filter_kwargs(self):
+        return {}
+
+    def get_filter_helper_kwargs(self):
+        return {}
+
     def get_queryset(self, **kwargs):
         other_qs = kwargs.get("other_qs", None)
         if other_qs is None:
@@ -105,9 +111,13 @@ class PagedFilteredTableView(SingleTableView):
             request_get = QueryDict()
         if self.filter_chapter:
             qs = qs.filter(chapter=self.request.user.current_chapter)
-        self.filter = self.filter_class(request_get, queryset=qs)
+        self.filter = self.filter_class(
+            request_get, queryset=qs, **self.get_filter_kwargs()
+        )
         self.filter.request = self.request
-        self.filter.form.helper = self.formhelper_class()
+        self.filter.form.helper = self.formhelper_class(
+            **self.get_filter_helper_kwargs()
+        )
         if kwargs.get("clean_date", False):
             self.filter.form.full_clean()
             self.filter.form.cleaned_data.pop("date")

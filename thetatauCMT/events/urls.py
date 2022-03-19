@@ -5,6 +5,7 @@ from . import views
 app_name = "events"
 urlpatterns = [
     url(regex=r"^$", view=views.EventListView.as_view(), name="list"),
+    url(regex=r"^all/$", view=views.EventListAllView.as_view(), name="list_all"),
     url(regex=r"^add/$", view=views.EventCreateView.as_view(), name="add"),
     url(regex=r"^copy/(?P<pk>\d+)/$", view=views.EventCopyView.as_view(), name="copy"),
     url(regex=r"^redirect/$", view=views.EventRedirectView.as_view(), name="redirect"),
