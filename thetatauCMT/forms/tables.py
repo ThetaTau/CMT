@@ -104,18 +104,21 @@ class PledgeProgramTable(tables.Table):
     status = tables.Column(verbose_name="Program Status")
     approval = tables.Column()
     chapter_name = tables.Column(verbose_name="Chapter")
-    term = tables.LinkColumn("forms:pledge_program_detail", args=[A("pk")])
+    pk = tables.LinkColumn(
+        "forms:pledge_program_detail", verbose_name="Link", args=[A("pk")]
+    )
 
     class Meta:
         model = PledgeProgram
         order_by = "chapter"
         attrs = {"class": "table table-striped table-bordered"}
         fields = [
-            "region",
             "chapter_name",
+            "region",
             "school",
             "year",
             "term",
+            "pk",
             "manual",
             "approval",
             "remote",
