@@ -7,6 +7,13 @@
 {% block content %}
   <script type="text/javascript" src="{% static 'admin/js/vendor/jquery/jquery.js' %}"></script>
   <h1>Gear Article Form</h1>
+  <p>A Gear article should be a 250-500 word article with pictures (and captions)
+    about an event, major change, or area of growth in your chapter.
+    It includes all of the fields below.<br>
+    <b>A Gear article is <u>NOT</u> an update on how many pledges / brothers your
+      chapter has or on chapter officer changes, and it should not be confused with a newsletter.</b>
+    Newsletters are of interest to your chapter and chapter alumni.
+    Gear articles are of interest to the national fraternity and alumni from other chapters.</p>
   <form class="article" enctype="multipart/form-data" action="" method="POST">
     {% csrf_token %}
       {{ forms.gear.media }}
