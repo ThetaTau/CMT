@@ -682,61 +682,61 @@ class Pledge(TimeStampedModel):
     )
     explain_crime = models.TextField(_("If yes, please explain."), blank=True)
     verbose_loyalty = _(
-        """The purpose of Theta Tau shall be to develop and maintain a high standard of professional interest among
-        its members and to unite them in a strong bond of fraternal fellowship. The members are pledged to help one
-        another professionally and personally in a practical way, as students and as alumni, advising as to
-        opportunities for service and advancement, warning against unethical practices and persons. Do you believe
-        that such a fraternity is entitled to your continued support and loyalty?"""
+        "The purpose of Theta Tau shall be to develop and maintain a high standard of professional interest among "
+        "its members and to unite them in a strong bond of fraternal fellowship. The members are pledged to help one "
+        "another professionally and personally in a practical way, as students and as alumni, advising as to "
+        "opportunities for service and advancement, warning against unethical practices and persons. Do you believe "
+        "that such a fraternity is entitled to your continued support and loyalty?"
     )
     loyalty = models.BooleanField(verbose_loyalty, choices=BOOL_CHOICES, default=False)
     verbose_not_honor = _(
-        """Theta Tau is a fraternity, not an honor society. It aims to elect no one to any class of membership solely
-        in recognition of his scholastic or professional achievements. Do you subscribe to this doctrine?"""
+        "Theta Tau is a fraternity, not an honor society. It aims to elect no one to any class of membership solely "
+        "in recognition of his scholastic or professional achievements. Do you subscribe to this doctrine?"
     )
     not_honor = models.BooleanField(
         verbose_not_honor, choices=BOOL_CHOICES, default=False
     )
     verbose_accountable = _(
-        """Do you understand, if you become a member of Theta Tau, that the other members will have the right to hold
-        you accountable for your conduct? Do you further understand that the Fraternity has Risk Management policies
-        (hazing, alcohol, etc) with which you are expected to comply and to which you should expect others to comply?"""
+        "Do you understand, if you become a member of Theta Tau, that the other members will have the right to hold "
+        "you accountable for your conduct? Do you further understand that the Fraternity has Risk Management policies "
+        "(hazing, alcohol, etc) with which you are expected to comply and to which you should expect others to comply?"
     )
     accountable = models.BooleanField(
         verbose_accountable, choices=BOOL_CHOICES, default=False
     )
     verbose_life = _(
-        """When you assume the oaths or obligations required during initiation, will you agree that they are binding
-        on the member for life?"""
+        "When you assume the oaths or obligations required during initiation, will you agree that they are binding "
+        "on the member for life?"
     )
     life = models.BooleanField(verbose_life, choices=BOOL_CHOICES, default=False)
     verbose_unlawful = _(
-        """Do you promise that you will not permit the use of a Theta Tau headquarters or meeting place for unlawful
-        purposes?"""
+        "Do you promise that you will not permit the use of a Theta Tau headquarters or meeting place for unlawful "
+        "purposes?"
     )
     unlawful = models.BooleanField(
         verbose_unlawful, choices=BOOL_CHOICES, default=False
     )
     verbose_unlawful_org = _(
-        """This Fraternity requires of its initiates that they shall not be members of any sect or organization which
-        teaches or practices activities in violation of the laws of the state or the nation. Do you subscribe to this
-        requirement?"""
+        "This Fraternity requires of its initiates that they shall not be members of any sect or organization which "
+        "teaches or practices activities in violation of the laws of the state or the nation. Do you subscribe to this "
+        "requirement?"
     )
     unlawful_org = models.BooleanField(
         verbose_unlawful_org, choices=BOOL_CHOICES, default=False
     )
     verbose_brotherhood = _(
-        """The strength of the Fraternity depends largely on the character of its members and the close and loyal
-        friendship uniting them. Do you realize you have no right to join if you do not act on this belief?"""
+        "The strength of the Fraternity depends largely on the character of its members and the close and loyal "
+        "friendship uniting them. Do you realize you have no right to join if you do not act on this belief?"
     )
     brotherhood = models.BooleanField(
         verbose_brotherhood, choices=BOOL_CHOICES, default=False
     )
     verbose_engineering = _(
-        """Theta Tau is an engineering fraternity whose student membership is limited to those regularly enrolled in
-        a course leading to a degree in an approved engineering curriculum. Members of other fraternities that
-        restrict their membership to any, or several engineering curricula are generally not eligible to Theta Tau,
-        nor may our members join such fraternities. Engineering honor societies such as Tau Beta Pi, Eta Kappa Nu,
-        etc., are not included in this classification. Do you fully understand and subscribe to that policy?"""
+        "Theta Tau is an engineering fraternity whose student membership is limited to those regularly enrolled in "
+        "a course leading to a degree in an approved engineering curriculum. Members of other fraternities that "
+        "restrict their membership to any, or several engineering curricula are generally not eligible to Theta Tau, "
+        "nor may our members join such fraternities. Engineering honor societies such as Tau Beta Pi, Eta Kappa Nu, "
+        "etc., are not included in this classification. Do you fully understand and subscribe to that policy?"
     )
     engineering = models.BooleanField(
         verbose_engineering, choices=BOOL_CHOICES, default=False
@@ -748,37 +748,37 @@ class Pledge(TimeStampedModel):
         verbose_engineering_grad, choices=BOOL_CHOICES, default=False
     )
     verbose_payment = _(
-        """The Fraternity has a right to demand from you prompt payment of bills. Do you understand, and are you
-        ready to accept, the financial obligations of becoming a member?"""
+        "The Fraternity has a right to demand from you prompt payment of bills. Do you understand, and are you "
+        "ready to accept, the financial obligations of becoming a member?"
     )
     payment = models.BooleanField(verbose_payment, choices=BOOL_CHOICES, default=False)
     verbose_attendance = _(
-        """The Fraternity has a right to demand from you regular attendance at meetings and faithful performance of
-        duties entrusted to you. Are you ready to accept such obligations?"""
+        "The Fraternity has a right to demand from you regular attendance at meetings and faithful performance of "
+        "duties entrusted to you. Are you ready to accept such obligations?"
     )
     attendance = models.BooleanField(
         verbose_attendance, choices=BOOL_CHOICES, default=False
     )
     verbose_harmless = _(
-        """Do you agree hereby to fully and completely release, discharge, and hold harmless the Chapter,
-        House Corporation, Theta Tau (the national Fraternity), and their respective members, officers, agents,
-        and any other entity whose liability is derivative by or through said released parties from all past,
-        present and future claims, causes of action and liabilities of any nature whatsoever, regardless of the cause
-        of the damage or loss, and including, but not limited to, claims and losses covered by insurance, claims and
-        damages for property, for personal injury, for premises liability, for torts of any nature, and claims for
-        compensatory damages, consequential damages or punitive/exemplary damages? Your affirmative answer binds you,
-        under covenant, not to sue any of the previously named entities."""
+        "Do you agree hereby to fully and completely release, discharge, and hold harmless the Chapter, "
+        "House Corporation, Theta Tau (the national Fraternity), and their respective members, officers, agents, "
+        "and any other entity whose liability is derivative by or through said released parties from all past, "
+        "present and future claims, causes of action and liabilities of any nature whatsoever, regardless of the cause "
+        "of the damage or loss, and including, but not limited to, claims and losses covered by insurance, claims and "
+        "damages for property, for personal injury, for premises liability, for torts of any nature, and claims for "
+        "compensatory damages, consequential damages or punitive/exemplary damages? Your affirmative answer binds you, "
+        "under covenant, not to sue any of the previously named entities."
     )
     harmless = models.BooleanField(
         verbose_harmless, choices=BOOL_CHOICES, default=False
     )
     verbose_alumni = _(
-        """As an alumnus, you should join with other alumni in the formation and support of alumni clubs or
-        associations. Furthermore, on October 15th of each year, celebrations are held throughout the country to
-        recall the founding of our Fraternity and to honor the Founders. Members of Theta Tau are encouraged to send
-        some form of greeting to their chapters on or about October 15th. If several members are located in the same
-        vicinity they could gather for an informal meeting. Will you endeavor to do these things, as circumstances
-        permit, after you are initiated into Theta Tau?"""
+        "As an alumnus, you should join with other alumni in the formation and support of alumni clubs or "
+        "associations. Furthermore, on October 15th of each year, celebrations are held throughout the country to "
+        "recall the founding of our Fraternity and to honor the Founders. Members of Theta Tau are encouraged to send "
+        "some form of greeting to their chapters on or about October 15th. If several members are located in the same "
+        "vicinity they could gather for an informal meeting. Will you endeavor to do these things, as circumstances "
+        "permit, after you are initiated into Theta Tau?"
     )
     alumni = models.BooleanField(verbose_alumni, choices=BOOL_CHOICES, default=False)
     verbose_honest = _(
@@ -837,12 +837,13 @@ class PrematureAlumnus(Process):
     )
     semesters = models.BooleanField(verbose_semesters, default=False)
     verbose_lifestyle = _(
-        """Member has had a significant lifestyle change preventing adequately & responsibly fulfilling duties &
-        obligations."""
+        "Member has had a significant lifestyle change preventing adequately "
+        "& responsibly fulfilling duties & obligations."
     )
     lifestyle = models.BooleanField(verbose_lifestyle, default=False)
     verbose_consideration = _(
-        """I understand that this status change request is submitted to the Executive Director for consideration."""
+        "I understand that this status change request is submitted "
+        "to the Executive Director for consideration."
     )
     consideration = models.BooleanField(verbose_consideration, default=False)
     verbose_prealumn_type = _("""Type of Premature (“Early”) Alumnus Status""")
