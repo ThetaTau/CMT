@@ -1348,6 +1348,25 @@ class PrematureAlumnusForm(forms.ModelForm):
             "vote",
         ]
 
+    def clean(self):
+        cleaned_data = super().clean()
+        user = cleaned_data.get("user")
+        semesters = cleaned_data.get("semesters", False) == "True"
+        initiation_date_min = timezone.now().date() - timezone.timedelta(days=30 * 6)
+        # If initiation doesn't exist, then likely initiated plenty of time
+        initiation_date = timezone.now().date() - timezone.timedelta(days=30 * 7)
+        if hasattr(user, "initiation"):
+            initiation_date = user.initiation.date
+        if not semesters or initiation_date >= initiation_date_min:
+            # initiation date > means that the date is newer then the minimum
+            raise forms.ValidationError(
+                f"{user} must have completed 6 months of initiation. "
+                f"Reported initiation date is {initiation_date} "
+                f"which is less than {initiation_date_min}. "
+                f"Please reach out to the central office if you believe there is an error in this date."
+            )
+        return self.cleaned_data
+
 
 class ConventionForm(forms.ModelForm):
     delegate = forms.ModelChoiceField(
