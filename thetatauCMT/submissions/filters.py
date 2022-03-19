@@ -46,3 +46,8 @@ class GearArticleListFilter(django_filters.FilterSet):
         else:
             queryset = queryset.filter(chapter__region__slug=value)
         return queryset
+
+    def filter_chapter(self, queryset, field_name, value):
+        if value:
+            queryset = queryset.filter(submission__chapter__slug=value)
+        return queryset
