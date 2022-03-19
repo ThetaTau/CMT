@@ -3,7 +3,7 @@ import django_filters
 from .models import User, UserRoleChange
 from core.models import TODAY_END
 from regions.models import Region
-from chapters.models import ChapterCurricula
+from chapters.models import ChapterCurricula, Chapter
 
 
 class UserListFilter(django_filters.FilterSet):
@@ -66,6 +66,11 @@ class UserRoleListFilter(django_filters.FilterSet):
         queryset=ChapterCurricula.objects.none(),
         method="filter_major",
     )
+    chapter = django_filters.ChoiceFilter(
+        label="Chapter",
+        choices=Chapter.chapter_choices(),
+        method="filter_chapter",
+    )
 
     class Meta:
         model = User
@@ -79,8 +84,9 @@ class UserRoleListFilter(django_filters.FilterSet):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.filters["major"].queryset = ChapterCurricula.objects.values(
-            "major"
+        self.filters["major"].queryset = ChapterCurricula.objects.values_list(
+            "major",
+            flat=True,
         ).distinct()
 
     def filter_current_status(self, queryset, field_name, value):
@@ -111,6 +117,11 @@ class UserRoleListFilter(django_filters.FilterSet):
 class AdvisorListFilter(django_filters.FilterSet):
     region = django_filters.ChoiceFilter(
         choices=Region.region_choices(), method="filter_region"
+    )
+    chapter = django_filters.ChoiceFilter(
+        label="Chapter",
+        choices=Chapter.chapter_choices(),
+        method="filter_chapter",
     )
 
     class Meta:

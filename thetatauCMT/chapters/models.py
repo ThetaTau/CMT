@@ -315,7 +315,8 @@ class Chapter(models.Model):
         chapters = []
         try:
             chapters = [
-                (chapter.slug, chapter.name.title()) for chapter in cls.objects.all()
+                (chapter.slug, chapter.name.title())
+                for chapter in cls.objects.exclude(active=False)
             ]
         except ProgrammingError:
             # Likely the database hasn't been setup yet?

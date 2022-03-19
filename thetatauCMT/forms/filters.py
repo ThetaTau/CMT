@@ -2,21 +2,32 @@
 import django_filters
 from core.filters import DateRangeFilter
 from .models import Audit, PledgeProgram
+from chapters.models import Chapter
 from regions.models import Region
 
 
 class AuditListFilter(django_filters.FilterSet):
     modified = DateRangeFilter()
+    chapter = django_filters.ChoiceFilter(
+        label="Chapter",
+        choices=Chapter.chapter_choices(),
+        method="filter_chapter",
+    )
 
     class Meta:
         model = Audit
         fields = [
             "modified",
-            "user__chapter",
+            "chapter",
             "user__chapter__region",
             "debit_card",
         ]
         order_by = ["user__chapter"]
+
+    def filter_chapter(self, queryset, field_name, value):
+        if value:
+            queryset = queryset.filter(user__chapter__slug=value)
+        return queryset
 
 
 class CompleteListFilter(django_filters.FilterSet):

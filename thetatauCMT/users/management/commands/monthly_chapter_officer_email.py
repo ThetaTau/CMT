@@ -37,7 +37,7 @@ class Command(BaseCommand):
             elif chapters_only is not None:
                 chapters = Chapter.objects.filter(slug__in=chapters_only)
             else:
-                chapters = Chapter.objects.all()
+                chapters = Chapter.objects.exclude(active=False)
             for chapter in chapters:
                 if not chapter.active:
                     continue

@@ -35,13 +35,13 @@ def run(*args):
     ) as export_file:
         writer = csv.DictWriter(export_file, fieldnames=fields)
         writer.writeheader()
-        chapters = Chapter.objects.exclude(active=False)
+        active_chapters = Chapter.objects.exclude(active=False)
         for year in range(int(year_start), int(year_end)):
             for term in ["sp", "fa"]:
                 print("Processing:", year, term)
                 month = {"sp": 3, "fa": 10}[term]
                 date = datetime.date(year, month, 1)
-                scores_terms = ScoreChapter.type_score_biennium(date, chapters)
+                scores_terms = ScoreChapter.type_score_biennium(date, active_chapters)
                 for scores_term in scores_terms:
                     writer.writerow(
                         {

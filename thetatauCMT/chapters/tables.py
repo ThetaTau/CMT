@@ -18,6 +18,7 @@ class ChapterTable(tables.Table):
         model = Chapter
         fields = (
             "name",
+            "active",
             "region",
             "school",
             "address",

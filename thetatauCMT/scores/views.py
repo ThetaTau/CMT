@@ -103,6 +103,7 @@ class ChapterScoreListView(LoginRequiredMixin, PagedFilteredTableView):
             term = request_get.get("term", "fa")
             term = "fa" if not term else term
         qs = super().get_queryset(request_get=request_get)
+        qs = qs.exclude(active=False)
         month = {"sp": 3, "fa": 10}[term]
         date = datetime(int(year), month, 1)
         data = ScoreChapter.type_score_biennium(date=date, chapters=qs)

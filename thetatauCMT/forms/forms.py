@@ -778,7 +778,7 @@ class AuditListFormHelper(FormHelper):
         Fieldset(
             '<i class="fas fa-search"></i> Filter Audits',
             Row(
-                Field("user__chapter"),
+                Field("chapter"),
                 Field("user__chapter__region"),
                 InlineField("modified"),
                 Field("debit_card"),
@@ -1035,7 +1035,7 @@ class PledgeDemographicsForm(forms.ModelForm):
 
 class PledgeUserBase(forms.ModelForm):
     school_name = SchoolModelChoiceField(
-        queryset=Chapter.objects.all().order_by("school")
+        queryset=Chapter.objects.exclude(active=False).order_by("school")
     )
     birth_date = forms.DateField(
         label="Birth Date",

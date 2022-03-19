@@ -128,7 +128,7 @@ class Event(TimeStampedModel):
             semester_start, semester_end = semester_encompass_start_end_date(date)
             cls.objects.filter(date__gte=semester_start, date__lte=semester_end)
         if chapters is None:
-            chapters = Chapter.objects.all()
+            chapters = Chapter.objects.exclude(active=False)
         events = (
             query.filter(chapter__in=chapters)
             .values("chapter", "type__section")

@@ -286,7 +286,7 @@ class ScoreChapter(YearTermModel):
             term = ScoreChapter.get_term(date)
             query = cls.objects.filter(year=date.year, term=term)
         if chapters is None:
-            chapters = Chapter.objects.all()
+            chapters = Chapter.objects.exclude(active=False)
         scores = (
             query.filter(chapter__in=chapters)
             .values("chapter", "type__section")

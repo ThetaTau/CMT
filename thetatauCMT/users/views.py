@@ -310,8 +310,9 @@ class ExportActiveMixin:
             status__end__gte=TODAY_END,
         )
         with zipfile.ZipFile(zip_io, "w") as zf:
-            total = Chapter.objects.all().count()
-            for count, chapter in enumerate(Chapter.objects.all()):
+            active_chapters = Chapter.objects.exclude(active=False)
+            total = active_chapters.count()
+            for count, chapter in enumerate(active_chapters):
                 print(f"Export {chapter} {count+1}/{total}")
                 members = annotate_role_status(
                     qs.filter(

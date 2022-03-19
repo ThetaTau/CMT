@@ -922,16 +922,17 @@ class ChapterReportListView(
             form_chapters = all_forms.values_list("chapter__id", flat=True)
             region_slug = self.filter.form.cleaned_data["region"]
             region = Region.objects.filter(slug=region_slug).first()
+            active_chapters = Chapter.objects.exclude(active=False)
             if region:
-                missing_chapters = Chapter.objects.exclude(id__in=form_chapters).filter(
+                missing_chapters = active_chapters.exclude(id__in=form_chapters).filter(
                     region__in=[region]
                 )
             elif region_slug == "candidate_chapter":
-                missing_chapters = Chapter.objects.exclude(id__in=form_chapters).filter(
+                missing_chapters = active_chapters.exclude(id__in=form_chapters).filter(
                     candidate_chapter=True
                 )
             else:
-                missing_chapters = Chapter.objects.exclude(id__in=form_chapters)
+                missing_chapters = active_chapters.exclude(id__in=form_chapters)
             missing_data = [
                 {
                     "chapter": chapter.name,
@@ -1131,15 +1132,16 @@ class RiskManagementListView(
             request_get = None
         self.filter = self.filter_class(request_get)
         self.all_complete_status = 0
-        self.chapters_list = Chapter.objects.all()
+        self.chapters_list = Chapter.objects.exclude(active=False)
         if self.filter.is_bound and self.filter.is_valid():
             qs = RiskManagement.risk_forms_year(self.filter.cleaned_data["year"])
             region_slug = self.filter.cleaned_data["region"]
             region = Region.objects.filter(slug=region_slug).first()
+            active_chapters = Chapter.objects.exclude(active=False)
             if region:
-                self.chapters_list = Chapter.objects.filter(region__in=[region])
+                self.chapters_list = active_chapters.filter(region__in=[region])
             elif region_slug == "candidate_chapter":
-                self.chapters_list = Chapter.objects.filter(candidate_chapter=True)
+                self.chapters_list = active_chapters.filter(candidate_chapter=True)
             qs = qs.filter(user__chapter__in=self.chapters_list)
             self.all_complete_status = int(
                 self.filter.cleaned_data["all_complete_status"]
@@ -1288,16 +1290,17 @@ class PledgeProgramListView(
             form_chapters = all_forms.values_list("chapter__id", flat=True)
             region_slug = self.filter.form.cleaned_data["region"]
             region = Region.objects.filter(slug=region_slug).first()
+            active_chapters = Chapter.objects.exclude(active=False)
             if region:
-                missing_chapters = Chapter.objects.exclude(id__in=form_chapters).filter(
+                missing_chapters = active_chapters.exclude(id__in=form_chapters).filter(
                     region__in=[region]
                 )
             elif region_slug == "candidate_chapter":
-                missing_chapters = Chapter.objects.exclude(id__in=form_chapters).filter(
+                missing_chapters = active_chapters.exclude(id__in=form_chapters).filter(
                     candidate_chapter=True
                 )
             else:
-                missing_chapters = Chapter.objects.exclude(id__in=form_chapters)
+                missing_chapters = active_chapters.exclude(id__in=form_chapters)
             missing_data = [
                 {
                     "chapter_name": chapter.name,
@@ -1990,16 +1993,17 @@ class ConventionListView(
             form_chapters = all_forms.values_list("chapter__id", flat=True)
             region_slug = self.filter.form.cleaned_data["region"]
             region = Region.objects.filter(slug=region_slug).first()
+            active_chapters = Chapter.objects.exclude(active=False)
             if region:
-                missing_chapters = Chapter.objects.exclude(id__in=form_chapters).filter(
+                missing_chapters = active_chapters.exclude(id__in=form_chapters).filter(
                     region__in=[region]
                 )
             elif region_slug == "candidate_chapter":
-                missing_chapters = Chapter.objects.exclude(id__in=form_chapters).filter(
+                missing_chapters = active_chapters.exclude(id__in=form_chapters).filter(
                     candidate_chapter=True
                 )
             else:
-                missing_chapters = Chapter.objects.exclude(id__in=form_chapters)
+                missing_chapters = active_chapters.exclude(id__in=form_chapters)
             missing_data = [
                 {
                     "chapter": chapter.name,
@@ -2444,16 +2448,17 @@ class OSMListView(LoginRequiredMixin, NatOfficerRequiredMixin, PagedFilteredTabl
             form_chapters = all_forms.values_list("chapter__id", flat=True)
             region_slug = self.filter.form.cleaned_data["region"]
             region = Region.objects.filter(slug=region_slug).first()
+            active_chapters = Chapter.objects.exclude(active=False)
             if region:
-                missing_chapters = Chapter.objects.exclude(id__in=form_chapters).filter(
+                missing_chapters = active_chapters.exclude(id__in=form_chapters).filter(
                     region__in=[region]
                 )
             elif region_slug == "candidate_chapter":
-                missing_chapters = Chapter.objects.exclude(id__in=form_chapters).filter(
+                missing_chapters = active_chapters.exclude(id__in=form_chapters).filter(
                     candidate_chapter=True
                 )
             else:
-                missing_chapters = Chapter.objects.exclude(id__in=form_chapters)
+                missing_chapters = active_chapters.exclude(id__in=form_chapters)
             missing_data = [
                 {
                     "chapter": chapter.name,

@@ -157,10 +157,16 @@ class UserLookupForm(forms.Form):
 
 class UserAlterForm(forms.ModelForm):
     role = forms.ChoiceField(choices=UserAlter.ROLES, required=False)
+    chapter = forms.ChoiceField(choices=Chapter.chapter_choices(), required=True)
 
     class Meta:
         model = UserAlter
         fields = ["chapter", "role"]
+
+    def clean_chapter(self):
+        data = self.cleaned_data["chapter"]
+        chapter = Chapter.objects.filter(slug=data).first()
+        return chapter
 
 
 class UserForm(forms.ModelForm):

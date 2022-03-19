@@ -76,14 +76,15 @@ class RegionOfficerView(LoginRequiredMixin, NatOfficerRequiredMixin, DetailView)
             )
             request_get.setlist("region", [self.object])
         self.filter = self.filter_class(request_get, request=self.request)
-        chapters = Chapter.objects.all()
+        chapters = Chapter.objects.exclude(active=False)
         if self.filter.is_bound and self.filter.is_valid():
             region_slug = self.filter.form.cleaned_data["region"]
             region = Region.objects.filter(slug=region_slug).first()
+            active_chapters = Chapter.objects.exclude(active=False)
             if region:
-                chapters = Chapter.objects.filter(region__in=[region])
+                chapters = active_chapters.filter(region__in=[region])
             elif region_slug == "candidate_chapter":
-                chapters = Chapter.objects.filter(candidate_chapter=True)
+                chapters = active_chapters.filter(candidate_chapter=True)
         all_chapter_officers = User.objects.none()
         for chapter in chapters:
             chapter_officers, _ = chapter.get_current_officers(combine=False)
@@ -164,14 +165,15 @@ class RegionAdvisorView(LoginRequiredMixin, NatOfficerRequiredMixin, DetailView)
             request_get = QueryDict(mutable=True)
             request_get.setlist("region", [self.object])
         self.filter = self.filter_class(request_get)
-        chapters = Chapter.objects.all()
+        chapters = Chapter.objects.exclude(active=False)
         if self.filter.is_bound and self.filter.is_valid():
             region_slug = self.filter.form.cleaned_data["region"]
             region = Region.objects.filter(slug=region_slug).first()
+            active_chapters = Chapter.objects.exclude(active=False)
             if region:
-                chapters = Chapter.objects.filter(region__in=[region])
+                chapters = active_chapters.filter(region__in=[region])
             elif region_slug == "candidate_chapter":
-                chapters = Chapter.objects.filter(candidate_chapter=True)
+                chapters = active_chapters.filter(candidate_chapter=True)
         all_chapter_advisors = User.objects.none()
         for chapter in chapters:
             all_chapter_advisors = chapter.advisors | all_chapter_advisors
