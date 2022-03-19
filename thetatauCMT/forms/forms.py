@@ -1649,3 +1649,15 @@ class ReturnStudentForm(forms.ModelForm):
             "debt",
             "vote",
         ]
+
+    def clean_user(self):
+        user = self.cleaned_data["user"]
+        prealumn = user.prealumn_form.all()
+        if prealumn:
+            raise forms.ValidationError(
+                f"{user} has a prealumn form filed. "
+                f"They must email the central office "
+                f"to resume student member status."
+            )
+        else:
+            return user
