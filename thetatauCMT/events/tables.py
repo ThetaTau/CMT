@@ -61,9 +61,10 @@ class EventTable(tables.Table):
         pictures = value.all()
         if pictures:
             for picture in pictures:
-                value = (
-                    f'<a title="{picture.description}" href="{picture.image.url}" target="_blank">'
-                    f'<img src="{picture.image.url}" width="150" height="150"/></a>'
-                )
-                out += value
+                if picture.image.name:
+                    value = (
+                        f'<a title="{picture.description}" href="{picture.image.url}" target="_blank">'
+                        f'<img src="{picture.image.url}" width="150" height="150"/></a>'
+                    )
+                    out += value
         return mark_safe(out)

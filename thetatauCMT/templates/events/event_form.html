@@ -15,7 +15,7 @@
     <link href="{% static 'css/project.css' %}" rel="stylesheet">
     {{ forms.gear|crispy }}
   {% for picture in object.pictures.all %}
-      {% if picture.image %}
+      {% if picture.image.name %}
             <li>
               <a href="{{ picture.image.url }}" target="_blank">
                 <img src="{{ picture.image.url }}" width="150" height="150"/>
