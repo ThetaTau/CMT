@@ -597,13 +597,13 @@ class UserRoleChange(StartEndModel, TimeStampedModel):
                 try:
                     off_group.user_set.add(self.user)
                 except IntegrityError as e:
-                    if "unique constraint" in e.message:
+                    if "unique constraint" in str(e):
                         pass
             if current_role.role in NAT_OFFICERS:
                 try:
                     nat_group.user_set.add(self.user)
                 except IntegrityError as e:
-                    if "unique constraint" in e.message:
+                    if "unique constraint" in str(e):
                         pass
         else:
             self.user.groups.remove(off_group)
