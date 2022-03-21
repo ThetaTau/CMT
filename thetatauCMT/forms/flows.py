@@ -241,7 +241,10 @@ class PrematureAlumnusFlow(Flow):
         if deny:
             process.approved_exec = False
             process.exec_comments = (
-                "The following reasons were not True: " + denial_reason
+                "The PPM stipulates that certain criteria must be met before "
+                "the Executive Director may approve a premature alumnus request."
+                " Your submission indicated that the following "
+                "criteria were not met: " + denial_reason
             )
         else:
             process.approved_exec = True
