@@ -1,5 +1,5 @@
 from dj_anonymizer.register_models import register_skip
 
-from events.models import Event
+from events.models import Event, Picture
 
-register_skip([Event])
+register_skip([Event, Picture])
