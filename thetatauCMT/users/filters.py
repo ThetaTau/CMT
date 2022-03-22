@@ -113,6 +113,11 @@ class UserRoleListFilter(django_filters.FilterSet):
             queryset = queryset.filter(major__major=value.major)
         return queryset
 
+    def filter_chapter(self, queryset, field_name, value):
+        if value:
+            queryset = queryset.filter(chapter__slug=value)
+        return queryset
+
 
 class AdvisorListFilter(django_filters.FilterSet):
     region = django_filters.ChoiceFilter(
