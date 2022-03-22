@@ -678,7 +678,7 @@ class Chapter(models.Model):
                 officers_to_update.append(position)
                 if past:
                     members_to_notify.append(past)
-        if officers_to_update:
+        if members_to_notify:
             # Start with all chapter emails and generic emails
             emails = [email for email in self.get_generic_chapter_emails() if email]
             emails.extend([user.email for user in members_to_notify if user])
