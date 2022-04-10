@@ -87,3 +87,5 @@ class EventForm(forms.ModelForm):
             "miles",
             "raised",
         ]
+
+    # a clean method does not work b/c the chapter_id is not set in the form

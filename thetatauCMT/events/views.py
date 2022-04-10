@@ -1,4 +1,7 @@
 from django.urls import reverse
+from django.db import transaction
+from django.db.utils import IntegrityError
+from django.contrib import messages
 from django.views.generic import DetailView, UpdateView, RedirectView, CreateView
 from core.views import (
     PagedFilteredTableView,
@@ -69,7 +72,16 @@ class EventCreateView(
         picture_forms = forms["picture"]
         chapter = self.request.user.current_chapter
         event_form.instance.chapter = chapter
-        event_form.save()
+        try:
+            with transaction.atomic():
+                event_form.save()
+        except IntegrityError:
+            message = "Name and date together must be unique. You can have the same name on different date."
+            messages.add_message(self.request, messages.ERROR, message)
+            event_form.add_error("name", message)
+            event_form.add_error("date", message)
+            forms["event"] = event_form
+            return self.render_to_response(self.get_context_data(forms=forms))
         for picture_form in picture_forms:
             picture_form.instance.event = event_form.instance
             picture_form.save()
