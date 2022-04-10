@@ -1390,7 +1390,7 @@ class AuditFormView(LoginRequiredMixin, OfficerRequiredMixin, UpdateView):
                 except Audit.DoesNotExist:
                     return Audit.objects.last()
                 audit_chapter = audit.user.chapter
-                if audit_chapter == self.request.user.chapter:
+                if audit_chapter == self.request.user.current_chapter:
                     return audit
                 else:
                     messages.add_message(
