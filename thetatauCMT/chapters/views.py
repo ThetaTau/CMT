@@ -11,6 +11,7 @@ from core.views import (
     LoginRequiredMixin,
     PagedFilteredTableView,
 )
+from core.models import CHAPTER_OFFICER
 from core.forms import MultiFormsView
 from .models import Chapter
 from .forms import ChapterForm, ChapterFormHelper
@@ -22,6 +23,7 @@ from users.forms import ExternalUserForm
 from tasks.models import Task
 from submissions.models import Submission
 from forms.notifications import EmailAdvisorWelcome
+from forms.models import Audit
 from notes.tables import ChapterNoteTable
 
 
@@ -106,9 +108,10 @@ class ChapterDetailView(LoginRequiredMixin, MultiFormsView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        audit_tasks = Task.objects.filter(name="Audit")
+        # Can not use Task model as no guarantee that Task was completed
+        # Use audit instead and get the officers
         chapter = self.request.user.current_chapter
-        audit_items = [
+        row_names = [
             "user",
             "modified",
             "dues_member",
@@ -126,25 +129,32 @@ class ChapterDetailView(LoginRequiredMixin, MultiFormsView):
             "debit_card",
             "debit_card_access",
         ]
-        audit_data = [{"item": item} for item in audit_items]
-        for task in audit_tasks:
-            complete = task.completed_last(chapter=chapter)
-            if type(complete) is Submission:
-                complete = None
-            if complete:
-                [
-                    item.update(
-                        {task.owner.replace(" ", "_"): getattr(complete, item["item"])}
-                    )
-                    for item in audit_data
-                ]
-            else:
-                [
-                    item.update({task.owner.replace(" ", "_"): "Incomplete"})
-                    for item in audit_data
-                ]
-        [
-            item.update({"item": item["item"].replace("_", " ").title()})
+        audits = (
+            Audit.objects.filter(user__chapter=chapter)
+            .order_by("-modified")
+            .values(*row_names)
+        )
+        audit_items = []
+        audit_data = {}
+        for audit in audits:
+            user = User.objects.get(id=audit["user"])
+            role = user.get_officer_role_on_date(audit["modified"]).role
+            if (role not in audit_data) and (role in CHAPTER_OFFICER):
+                audit["user"] = user
+                audit_data[role] = audit
+            if len(audit_data) == len(CHAPTER_OFFICER):
+                break
+        for name in row_names:
+            audit_item = {
+                "item": Audit._meta.get_field(name).verbose_name.title(),
+            }
+            for officer in CHAPTER_OFFICER:
+                audit = audit_data.get(officer, None)
+                value = "Incomplete"
+                if audit is not None:
+                    value = audit.get(name, "Incomplete")
+                audit_item.update({officer.replace(" ", "_"): value})
+            audit_items.append(audit_item)
             # {
             #     'item': 'Debit Card Access',
             #     'corresponding_secretary': 'Incomplete',
@@ -153,9 +163,7 @@ class ChapterDetailView(LoginRequiredMixin, MultiFormsView):
             #     'vice_regent': ['regent', 'treasurer'],
             #     'regent': ['regent', 'treasurer']
             # }
-            for item in audit_data
-        ]
-        audit_table = AuditTable(data=audit_data)
+        audit_table = AuditTable(data=audit_items)
         RequestConfig(self.request).configure(audit_table)
         context["audit_table"] = audit_table
         chapter = self.get_object()

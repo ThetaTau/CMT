@@ -74,6 +74,7 @@ class AuditTable(tables.Table):
     class Meta:
         model = Audit
         attrs = {"class": "table table-striped table-bordered"}
+        order_by = "-modified"
         fields = [
             "user.chapter",
             "user.chapter.region",

@@ -316,6 +316,13 @@ class User(AbstractUser):
             return self._role
         return self.roles.filter(end__gte=TODAY_END).first()
 
+    def get_roles_on_date(self, date):
+        return self.roles.filter(end__gte=date, start__lte=date)
+
+    def get_officer_role_on_date(self, date):
+        roles = self.get_roles_on_date(date)
+        return roles.filter(role__in=CHAPTER_OFFICER).first()
+
     def get_current_roles(self):
         role_objs = self.roles.filter(end__gte=TODAY_END)
         current_roles = set()

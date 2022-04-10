@@ -92,11 +92,15 @@ class Task(models.Model):
         return dates
 
     def completed_last(self, chapter):
-        completed = TaskChapter.objects.filter(
-            id__in=self.dates.filter(chapters__chapter=chapter).values_list(
-                "chapters", flat=True
+        completed = (
+            TaskChapter.objects.filter(
+                id__in=self.dates.filter(chapters__chapter=chapter).values_list(
+                    "chapters", flat=True
+                )
             )
-        ).last()
+            .order_by("date")
+            .last()
+        )
         if completed:
             return completed.submission_object
 
