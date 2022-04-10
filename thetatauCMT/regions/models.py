@@ -14,7 +14,7 @@ class Region(models.Model):
     facebook = models.URLField()
     directors = models.ManyToManyField(
         settings.AUTH_USER_MODEL,
-        related_name="region",
+        related_name="regional_director",
         null=True,
         default=None,
         blank=True,
