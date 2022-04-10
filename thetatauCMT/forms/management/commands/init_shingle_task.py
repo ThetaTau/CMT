@@ -21,7 +21,7 @@ class Command(BaseCommand):
         override = options.get("override", False)
         chapter_only = options.get("chapter", None)
         today = datetime.date.today().day
-        if today == 1 or override:
+        if (today in [1, 15]) or override:
             query = dict(
                 process__flow_class=InitiationProcessFlow,
                 flow_task_type="FUNC",
