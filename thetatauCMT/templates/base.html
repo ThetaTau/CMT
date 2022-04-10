@@ -170,6 +170,9 @@
                 <li class="dropdown"><a class="nav-link dropdown-toggle" href="#">{% trans "NatOff" %}</a>
                   <ul class="dropdown-menu">
                     <li class="dropdown-item">
+                      <a class="nav-link" href="{% url 'regions:detail' "national" %}">{% trans "Dashboard" %}</a>
+                    </li>
+                    <li class="dropdown-item">
                       <a class="nav-link" href="{% url 'users:search' %}">{% trans "Member Search" %}</a>
                     </li>
                     <li class="dropdown-item">
@@ -258,7 +261,7 @@
       </nav>
     {% if request.is_nat_officer %}
       <nav class="navbar navbar-fixed-top navbar-light navbar-inverse bg-light">
-      <a class="navbar-brand" href="{% url 'regions:detail' request.user.current_chapter.region.slug %}">{{ request.user.current_chapter.region.name }} Region</a>
+      <a class="navbar-brand" href="{% url 'regions:detail' request.user.current_chapter.region.slug %}">{{ request.user.current_chapter.region.name }} Dashboard</a>
       <a class="nav-item nav-link" href="{% url 'regions:officers' request.user.current_chapter.region.slug  %}">Officers</a>
       <a class="nav-item nav-link" href="{% url 'events:list_all' %}?region={{ request.user.current_chapter.region.slug }}">Events</a>
       <a class="nav-item nav-link" href="{% url 'regions:tasks' request.user.current_chapter.region.slug %}">Tasks</a>

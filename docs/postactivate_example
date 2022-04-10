@@ -22,5 +22,6 @@ export HCAPTCHA_SITEKEY=''
 export HCAPTCHA_SECRET=''
 export QUICKBOOKS_CLIENT=''
 export QUICKBOOKS_SECRET=''
+export METABASE_SECRET_KEY=''
 
 cd ~/thetatauCMT

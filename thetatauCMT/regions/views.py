@@ -1,6 +1,9 @@
+import jwt
 import csv
+import time
 import datetime
 from collections import defaultdict
+from django.conf import settings
 from django.http import HttpResponse
 from django.contrib import messages
 from django.urls import reverse
@@ -217,6 +220,29 @@ class RegionDetailView(LoginRequiredMixin, NatOfficerRequiredMixin, DetailView):
     model = Region
     slug_field = "slug"
     slug_url_kwarg = "slug"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        params = {"region": self.object.name}
+        if self.object.slug == "national":
+            params = {}
+        payload = {
+            "resource": {"dashboard": 2},
+            "params": params,
+            "exp": round(time.time()) + (60 * 10),  # 10 min expiration
+        }
+        secret = settings.METABASE_SECRET_KEY
+        iframeUrl = "about:blank"
+        if secret:
+            token = jwt.encode(payload, secret, algorithm="HS256")
+            iframeUrl = (
+                "https://thetatau.metabaseapp.com"
+                + "/embed/dashboard/"
+                + token
+                + "#bordered=true&titled=true"
+            )
+        context["iframeUrl"] = iframeUrl
+        return context
 
 
 class RegionTaskView(LoginRequiredMixin, NatOfficerRequiredMixin, DetailView):

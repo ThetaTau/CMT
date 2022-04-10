@@ -27,6 +27,7 @@ os.environ["HCAPTCHA_SITEKEY"] = ""
 os.environ["HCAPTCHA_SECRET"] = ""
 os.environ["QUICKBOOKS_CLIENT"] = ""
 os.environ["QUICKBOOKS_SECRET"] = ""
+os.environ["METABASE_SECRET_KEY"] = ""
 
 
 from django.core.wsgi import get_wsgi_application  # noqa: E402

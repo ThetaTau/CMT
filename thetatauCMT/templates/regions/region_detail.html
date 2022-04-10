@@ -3,22 +3,23 @@
 {% load bootstrap4 %}
 {% load crispy_forms_tags %}
 {% load static i18n %}
-{% block title %}Region: {{ object.name }}{% endblock %}
+{% block title %}Dashboard: {{ object.name }}{% endblock %}
+{% block css %}
+  {{ block.super }}
+  <style>
+  .container {
+    max-width: 100%;
+  }
+  </style>
+{% endblock %}
 
 {% block content %}
-<div class="container">
-  <div class="row">
-    <div class="col-sm-12">
-      <h2>{{ object.name }}</h2>
-      {% if object.name %}
-        <p>{{ object.name }}</p>
-        <p>{{ object.email }}</p>
-        <p>{{ object.website }}</p>
-        <p>{{ object.facebook }}</p>
-        <p>{{ object.slug }}</p>
-      {% endif %}
-    </div>
-  </div>
-</div>
+  <iframe
+    src="{{ iframeUrl }}"
+    frameborder="0"
+    width="100%"
+    height="1200"
+    allowtransparency
+  ></iframe>
 {% endblock content %}
 
