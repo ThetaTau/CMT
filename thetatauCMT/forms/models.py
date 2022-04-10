@@ -1065,7 +1065,8 @@ class InitiationProcess(Process):
         attachment._FilePath = str(attachment_path.absolute())
         attachment.ContentType = "text/csv"
         attachment.save(qb=client)
-        attachment_path.unlink()  # Delete the file when we are done
+        if attachment_path.exists():
+            attachment_path.unlink()  # Delete the file when we are done
         return invoice_obj.DocNumber
 
     def generate_badge_shingle_order(self, response=None, csv_type=None):
@@ -1278,7 +1279,8 @@ class PledgeProcess(Process):
         attachment._FilePath = str(attachment_path.absolute())
         attachment.ContentType = "text/csv"
         attachment.save(qb=client)
-        attachment_path.unlink()  # Delete the file when we are done
+        if attachment_path.exists():
+            attachment_path.unlink()  # Delete the file when we are done
         return invoice_obj.DocNumber
 
     def generate_invoice_attachment(self, response=None, file_obj=False):

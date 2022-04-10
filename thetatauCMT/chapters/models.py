@@ -801,7 +801,8 @@ class Chapter(models.Model):
         attachment._FilePath = str(attachment_path.absolute())
         attachment.ContentType = "text/csv"
         attachment.save(qb=client)
-        attachment_path.unlink()  # Delete the file when we are done
+        if attachment_path.exists():
+            attachment_path.unlink()  # Delete the file when we are done
         return invoice_obj.DocNumber
 
     def reminder_dues(self):
