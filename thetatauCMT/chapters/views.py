@@ -138,7 +138,9 @@ class ChapterDetailView(LoginRequiredMixin, MultiFormsView):
         audit_data = {}
         for audit in audits:
             user = User.objects.get(id=audit["user"])
-            role = user.get_officer_role_on_date(audit["modified"]).role
+            role = user.get_officer_role_on_date(audit["modified"])
+            if role is not None:
+                role = role.role
             if (role not in audit_data) and (role in CHAPTER_OFFICER):
                 audit["user"] = user
                 audit_data[role] = audit
