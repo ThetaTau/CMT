@@ -18,7 +18,8 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
   git \
   # Pillow dependencies
   zlib1g-dev \
-  libjpeg-dev
+  libjpeg-dev \
+  libpangocairo-1.0-0
 
 # Requirements are installed here to ensure they will be cached.
 COPY ./requirements .

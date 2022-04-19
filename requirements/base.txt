@@ -24,11 +24,12 @@ python-gnupg==0.4.7  # https://pythonhosted.org/python-gnupg/
 # python anywhere does not work with latest version
 python-magic==0.4.24 # https://github.com/ahupp/python-magic
 python-magic-bin==0.4.14; platform_system == "Windows"
-git+git://github.com/VenturaFranklin/api-wrappers-python.git#egg=moosend_api_wrapper
+git+https://github.com/VenturaFranklin/api-wrappers-python.git
 python-quickbooks==0.9.0  # https://github.com/ej2/python-quickbooks
 intuit-oauth==1.2.4  # https://github.com/intuit/oauth-pythonclient
 pygeocoder==1.2.5
 haversine==2.5.1
+weasyprint==53.4
 
 # Django
 # ------------------------------------------------------------------------------
@@ -71,6 +72,7 @@ django-termsandconditions==2.0.8  # https://github.com/cyface/django-termsandcon
 django-email-bandit==2.0  # https://github.com/caktus/django-email-bandit
 django-middleware-global-request==0.2.0  # https://github.com/appstore-zencore/django-middleware-global-request
 django-anymail[mailjet]==8.4  # https://github.com/anymail/django-anymail
+django-weasyprint==2.1.0
 
 # Django REST Framework
 djangorestframework==3.12.4  # https://github.com/encode/django-rest-framework
