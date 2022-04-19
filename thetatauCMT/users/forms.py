@@ -111,7 +111,7 @@ class UserRoleListFormHelper(FormHelper):
                         Submit("cancel", "Clear", css_class="btn-primary"),
                     )
                 ),
-                Column(InlineField("role")),
+                Column(InlineField("role", style="width:250px")),
             ),
         ),
     )
