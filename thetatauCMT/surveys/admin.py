@@ -1,6 +1,7 @@
 from django.contrib import admin
 from core.admin import user_chapter
-from .models import DepledgeSurvey
+from survey.admin import Survey as Survey_orig, SurveyAdmin, Response, ResponseAdmin
+from .models import DepledgeSurvey, Survey
 
 
 class DepledgeSurveyAdmin(admin.ModelAdmin):
@@ -26,3 +27,9 @@ class DepledgeSurveyAdmin(admin.ModelAdmin):
 
 
 admin.site.register(DepledgeSurvey, DepledgeSurveyAdmin)
+
+admin.site.unregister(Survey_orig)
+admin.site.register(Survey, SurveyAdmin)
+
+admin.site.unregister(Response)
+admin.site.register(Response, ResponseAdmin)

@@ -108,6 +108,8 @@ THIRD_PARTY_APPS = [
     "allauth_2fa",
     "hcaptcha",
     "termsandconditions",
+    "bootstrapform",
+    "survey",
 ]
 
 LOCAL_APPS = [
@@ -463,3 +465,6 @@ TERMS_EXCLUDE_URL_LIST = {
     "/forms/pledgeprogram/",
     "/forms/report/",
 }
+
+CSV_DIRECTORY = Path("csv")  # Define the directory where csv are exported
+TEX_DIRECTORY = Path("tex")  # Define the directory where tex files and pdf are exported
