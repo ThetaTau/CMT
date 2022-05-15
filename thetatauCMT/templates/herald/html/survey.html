@@ -1,0 +1,16 @@
+{% extends "herald/html/base_email.html" %}
+{% block title %}{{ subject }}{% endblock %}
+{% block content %}
+<h1 class="null" style="margin: 0;padding: 0;display: block;font-family: Helvetica;font-size: 40px;font-style: normal;font-weight: bold;line-height: 125%;letter-spacing: -1px;text-align: left;color: #606060 !important;">
+  {{ subject }}
+</h1>
+Dear {{ user }},
+<p>{{ message }}</p>
+  <h3><a href="{{ survey_link }}">Survey Link</a>
+  <br>
+    Or copy and paste the following in your browser:<br>
+    {{ survey_link }}
+  </h3>
+  <br>
+  {% include "herald/html/rm_contact.html" %}
+{% endblock content %}
