@@ -73,6 +73,9 @@ class DepledgeSurvey(TimeStampedModel):
 
 class Survey(Survey):
     slug = models.SlugField(unique=True)
+    anonymous = models.BooleanField(
+        help_text="Can the survey be submitted anonymously?", default=False
+    )
 
     def save(self):
         self.slug = slugify(self.name)

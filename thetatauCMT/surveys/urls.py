@@ -16,4 +16,14 @@ urlpatterns = [
         view=views.SurveyDetail.as_view(),
         name="survey-detail-step",
     ),
+    path(
+        r"<slug:slug>/<str:user_id>",
+        view=views.SurveyDetail.as_view(),
+        name="survey-detail-member",
+    ),
+    path(
+        r"<slug:slug>/<int:step>/<str:user_id>",
+        view=views.SurveyDetail.as_view(),
+        name="survey-detail-step-member",
+    ),
 ]

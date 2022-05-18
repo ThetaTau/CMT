@@ -35,6 +35,10 @@ class DepledgeSurveyForm(forms.ModelForm):
 
 
 class ResponseForm(ResponseForm):
+    def __init__(self, *args, **kwargs):
+        self.user_id = kwargs.pop("user_id")
+        super().__init__(*args, **kwargs)
+
     def has_next_step(self):
         if not self.survey.is_all_in_one_page():
             if self.step is not None and self.step < self.steps_count - 1:
@@ -43,11 +47,19 @@ class ResponseForm(ResponseForm):
 
     def next_step_url(self):
         if self.step is not None and self.has_next_step():
-            context = {"slug": self.survey.slug, "step": self.step + 1}
-            return reverse("surveys:survey-detail-step", kwargs=context)
+            context = {
+                "slug": self.survey.slug,
+                "step": self.step + 1,
+                "user_id": self.user_id,
+            }
+            return reverse("surveys:survey-detail-step-member", kwargs=context)
 
     def current_step_url(self):
         return reverse(
-            "surveys:survey-detail-step",
-            kwargs={"slug": self.survey.slug, "step": self.step},
+            "surveys:survey-detail-step-member",
+            kwargs={
+                "slug": self.survey.slug,
+                "step": self.step,
+                "user_id": self.user_id,
+            },
         )

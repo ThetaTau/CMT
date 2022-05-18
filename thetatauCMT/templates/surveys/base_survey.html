@@ -25,9 +25,9 @@
   <div class="survey-description"> {{ survey.description|safe }} </div>
   <div id="accordion" role="tablist">
     {% if step and step != 0 %}
-      <form action="{% url 'surveys:survey-detail-step' slug=survey.slug step=step %}" method="post">
+      <form action="{% url 'surveys:survey-detail-step-member' slug=survey.slug step=step user_id=user_id %}" method="post">
     {% else %}
-      <form action="{% url 'surveys:survey-detail' slug=survey.slug %}" method="post">
+      <form action="{% url 'surveys:survey-detail-member' slug=survey.slug user_id=user_id %}" method="post">
     {% endif %}
     {% csrf_token %}
   {% if survey.display_method != 1 %}
