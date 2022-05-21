@@ -684,8 +684,9 @@ class StatusChangeView(LoginRequiredMixin, OfficerRequiredMixin, FormView):
                 user,
                 "Graduation",
                 survey_link,
-                "Congratulations on your graduation!  "
-                "We'd like to get your thoughts on your Theta Tau experience "
+                "An officer from your chapter has reported your upcoming graduation. "
+                "Congratulations on your graduation! "
+                "We would like to get your thoughts on your Theta Tau experience "
                 "so that we can make the Fraternity better for everybody.",
             ).send()
         messages.add_message(
