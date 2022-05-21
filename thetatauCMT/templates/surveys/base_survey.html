@@ -81,14 +81,17 @@
     </form>
   </div>
   <script type="text/javascript">
-    $("#submit-id-submit").click(function (event) {
+    $("#submit").click(function (event) {
       document.getElementById("submit").value = "Submitting...";
-      setTimeout(function () {
-        document.getElementById("submit").setAttribute("disabled", true);
-      }, 0);
+      $('.collapse').each(function () {
+        $(this).show();
+      })
     })
 
     $(document).ready(function () {
+      $('.help-inline > strong:contains("required")').each(function () {
+        $(this).closest('.collapse').show();
+      })
       {# https://stackoverflow.com/a/35992958/3166424 #}
       $('.collapse').on('show.bs.collapse', function (e) {
         var $card = $(this).closest('.card');
@@ -100,19 +103,6 @@
         $('html,body').animate({
           scrollTop: $card.offset().top - additionalOffset
         }, 500);
-      });
-      $('form').validate({
-        invalidHandler: function (event, validator) {
-          if (validator.numberOfInvalids() > 0) {
-            validator.showErrors();
-            // Open accordion tab with errors
-            var index = $(".has-error")
-              .closest(".ui-accordion-content")
-              .index(".ui-accordion-content");
-            $(".accordion").accordion("option", "active", index);
-          }
-        },
-        ignore: [],
       });
     });
   </script>
