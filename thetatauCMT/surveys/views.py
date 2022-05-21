@@ -96,7 +96,7 @@ class SurveyDetail(CreateView):
     def get_user(self, request, kwargs):
         user_id_encoded = kwargs.get("user_id", None)
         self.user = request.user
-        if user_id_encoded is not None and user_id_encoded != "anonymous":
+        if user_id_encoded is not None and user_id_encoded not in ("anonymous", "None"):
             try:
                 user_id_decoded = base64.b64decode(user_id_encoded).decode("utf-8")
                 self.user = User.objects.get(user_id=user_id_decoded)
@@ -258,7 +258,7 @@ class SurveyDetail(CreateView):
         new_location = redirect(
             "surveys:survey-detail-member", slug=self.object.slug, user_id=self.user_id
         )
-        if self.object.editable_answers:
+        if self.object.editable_answers and not self.user.is_anonymous:
             message += "<br>The survey is editable after submission, so you can always come back and change them."
         if self.object.redirect_url:
             new_location = redirect(self.object.redirect_url)
