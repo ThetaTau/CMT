@@ -191,7 +191,7 @@ class SurveyDetail(CreateView):
             user_id = base64.b64encode(self.user.user_id.encode("utf-8")).decode(
                 "utf-8"
             )
-        percent = 100
+        percent = 0
         if self.step:
             percent = int(round(100 * ((1 + self.step) / form.steps_count), 0))
         context.update(
