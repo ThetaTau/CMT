@@ -21,8 +21,12 @@
 {% endblock %}
 
 {% block content %}
-  <h1> {{ survey.name }} </h1>
-  <div class="survey-description"> {{ survey.description|safe }} </div>
+  <div class="jumbotron">
+    <div class="container">
+      <h1> {{ survey.name }} </h1>
+      <p><div class="survey-description"> {{ survey.description|safe }} </div></p>
+    </div>
+  </div>
   <div id="accordion" role="tablist">
     {% if step and step != 0 %}
       <form action="{% url 'surveys:survey-detail-step-member' slug=survey.slug step=step user_id=user_id %}" method="post">
@@ -63,6 +67,13 @@
   {% endif %}
     <br>
     {% if survey.editable_answers or response_form.response is None %}
+      <div class="progress">
+        <div class="progress-bar" role="progressbar" style="width: {{ percent }}%;" aria-valuenow="{{ step }}"
+             aria-valuemin="0"
+             aria-valuemax="{{ form.steps_count }}">{{ step|add:1 }} / {{ form.steps_count }}
+        </div>
+      </div>
+      <br>
       {% if response_form.has_next_step %}
         <input
           class="btn btn-default btn-lg btn-primary"
@@ -80,6 +91,7 @@
     {% endif %}
     </form>
   </div>
+
   <script type="text/javascript">
     $("#submit").click(function (event) {
       document.getElementById("submit").value = "Submitting...";

@@ -160,7 +160,7 @@ class SurveyDetail(CreateView):
         ):
             # If the survey does allow anonymous and the found user is anonymous
             message = f"You are filling out this survey anonymously."
-        if message is not None:
+        if message is not None and request.method == "GET":
             messages.warning(request, message)
         if location is not None:
             return location
@@ -199,6 +199,7 @@ class SurveyDetail(CreateView):
                 "step": self.step,
                 "asset_context": asset_context,
                 "user_id": user_id,
+                "percent": int(round(100 * ((1 + self.step) / form.steps_count), 0)),
             }
         )
         return context
