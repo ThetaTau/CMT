@@ -668,8 +668,10 @@ class StatusChangeView(LoginRequiredMixin, OfficerRequiredMixin, FormView):
         Task.mark_complete(
             name="Member Updates", chapter=self.request.user.current_chapter
         )
+        slug = Config.get_value("GraduationSurvey")
         for user in graduates_list:
-            slug = Config.get_value("GraduationSurvey")
+            if not slug:
+                continue
             if "http" in slug:
                 survey_link = slug
             else:
