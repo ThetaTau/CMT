@@ -1,0 +1,121 @@
+{% extends 'base.html' %}
+{% load i18n %}
+{% load survey_extras %}
+{% load static %}
+
+{% block title %} {{ survey.name }} {% endblock title %}
+
+{% block javascript %}
+  {{ block.super }}
+  {{ response_form.media }}
+  {% if asset_context.flatpickr %}
+    <script type="text/javascript" src="{% static 'survey/js/flatpickr.min.js' %}"></script>
+  {% endif %}
+{% endblock %}
+
+{% block css %}
+  {{ block.super }}
+  {% if asset_context.flatpickr %}
+    <link href="{% static 'survey/css/flatpickr.min.css' %}" rel="stylesheet" type="text/css"/>
+  {% endif %}
+{% endblock %}
+
+{% block content %}
+  <div class="jumbotron">
+    <div class="container">
+      <h1> {{ survey.name }} </h1>
+      <p><div class="survey-description"> {{ survey.description|safe }} </div></p>
+    </div>
+  </div>
+  <div id="accordion" role="tablist">
+    {% if step and step != 0 %}
+      <form action="{% url 'surveys:survey-detail-step-member' slug=survey.slug step=step user_id=user_id %}" method="post">
+    {% else %}
+      <form action="{% url 'surveys:survey-detail-member' slug=survey.slug user_id=user_id %}" method="post">
+    {% endif %}
+    {% csrf_token %}
+  {% if survey.display_method != 1 %}
+    {% for category in categories %}
+      <div class="card mb-2">
+        <div class="card-header" role="tab">
+          <h5 class="mb-0">
+            <a data-toggle="collapse" href="#{{ category.slugify }}" aria-expanded="false"
+                              aria-controls="{{ category.slugify }}" class="">{{ category }}</a>
+          </h5>
+          <p> {{ category.description }} </p>
+        </div>
+        <div id="{{ category.slugify }}" class="collapse {% if forloop.counter0 == 0 %}show{% endif %}" role="tabpanel" aria-labelledby="{{ category.slugify }}"
+             data-parent="#accordion" style="">
+        <div class="card-body">
+          {% include "surveys/question.html" %}
+        </div>
+        </div>
+      </div>
+    {% empty %}
+      <div class="card mb-2">
+        <div class="card-body">
+          {% include "surveys/question.html" %}
+        </div>
+      </div>
+    {% endfor %}
+  {% else %}
+    <div class="card mb-2">
+      <div class="card-body">
+        {% include "surveys/question.html" %}
+      </div>
+    </div>
+  {% endif %}
+    <br>
+    {% if survey.editable_answers or response_form.response is None %}
+      <div class="progress">
+        <div class="progress-bar" role="progressbar" style="width: {{ percent }}%;" aria-valuenow="{{ step }}"
+             aria-valuemin="0"
+             aria-valuemax="{{ form.steps_count }}">{{ step|add:1 }} / {{ form.steps_count }}
+        </div>
+      </div>
+      <br>
+      {% if response_form.has_next_step %}
+        <input
+          class="btn btn-default btn-lg btn-primary"
+          type="submit"
+          value="{% trans "Next!" %}"
+        >
+      {% else %}
+        <input
+          class="btn btn-default btn-lg btn-primary"
+          type="submit"
+          value="{% trans "I'm done!" %}"
+          id="submit"
+        >
+      {% endif %}
+    {% endif %}
+    </form>
+  </div>
+
+  <script type="text/javascript">
+    $("#submit").click(function (event) {
+      document.getElementById("submit").value = "Submitting...";
+      $('.collapse').each(function () {
+        $(this).show();
+      })
+    })
+
+    $(document).ready(function () {
+      $('.help-inline > strong:contains("required")').each(function () {
+        $(this).closest('.collapse').show();
+      })
+      {# https://stackoverflow.com/a/35992958/3166424 #}
+      $('.collapse').on('show.bs.collapse', function (e) {
+        var $card = $(this).closest('.card');
+        var $open = $($(this).data('parent')).find('.collapse.show');
+        var additionalOffset = 0;
+        if ($card.prevAll().filter($open.closest('.card')).length !== 0) {
+          additionalOffset = $open.height();
+        }
+        $('html,body').animate({
+          scrollTop: $card.offset().top - additionalOffset
+        }, 500);
+      });
+    });
+  </script>
+{% endblock %}

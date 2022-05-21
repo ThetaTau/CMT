@@ -1,4 +1,6 @@
 from django import forms
+from django.urls import reverse
+from survey.forms import ResponseForm
 from .models import DepledgeSurvey
 
 
@@ -30,3 +32,34 @@ class DepledgeSurveyForm(forms.ModelForm):
                 "decided_other",
                 forms.ValidationError("Please provide other depledging decided"),
             )
+
+
+class ResponseForm(ResponseForm):
+    def __init__(self, *args, **kwargs):
+        self.user_id = kwargs.pop("user_id")
+        super().__init__(*args, **kwargs)
+
+    def has_next_step(self):
+        if not self.survey.is_all_in_one_page():
+            if self.step is not None and self.step < self.steps_count - 1:
+                return True
+        return False
+
+    def next_step_url(self):
+        if self.step is not None and self.has_next_step():
+            context = {
+                "slug": self.survey.slug,
+                "step": self.step + 1,
+                "user_id": self.user_id,
+            }
+            return reverse("surveys:survey-detail-step-member", kwargs=context)
+
+    def current_step_url(self):
+        return reverse(
+            "surveys:survey-detail-step-member",
+            kwargs={
+                "slug": self.survey.slug,
+                "step": self.step,
+                "user_id": self.user_id,
+            },
+        )

@@ -72,7 +72,8 @@ django-termsandconditions==2.0.8  # https://github.com/cyface/django-termsandcon
 django-email-bandit==2.0  # https://github.com/caktus/django-email-bandit
 django-middleware-global-request==0.2.0  # https://github.com/appstore-zencore/django-middleware-global-request
 django-anymail[mailjet]==8.4  # https://github.com/anymail/django-anymail
-django-weasyprint==2.1.0
+django-weasyprint==2.1.0  # https://github.com/fdemmer/django-weasyprint
+django-survey-and-report==1.4.0  # https://github.com/Pierre-Sassoulas/django-survey/
 
 # Django REST Framework
 djangorestframework==3.12.4  # https://github.com/encode/django-rest-framework

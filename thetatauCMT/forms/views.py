@@ -8,6 +8,7 @@ from copy import deepcopy
 from pathlib import Path
 from django.db import IntegrityError, transaction
 from django.db.models import Q, F, Value, CharField
+from django.conf import settings
 from django.contrib.postgres.aggregates import StringAgg
 from django.forms import models as model_forms
 from django.http import HttpRequest
@@ -45,7 +46,7 @@ from core.views import (
     NatOfficerRequiredMixin,
     group_required,
 )
-from surveys.notifications import DepledgeSurveyEmail
+from surveys.notifications import DepledgeSurveyEmail, SurveyEmail
 from users.tables import RollBookTable
 from .forms import (
     InitiationFormSet,
@@ -86,13 +87,13 @@ from .forms import (
 from tasks.models import TaskChapter, Task
 from scores.models import ScoreType
 from submissions.models import Submission
-from users.models import User
 from core.models import (
     CHAPTER_OFFICER,
     COL_OFFICER_ALIGN,
     SEMESTER,
 )
-from users.models import UserRoleChange
+from configs.models import Config
+from users.models import User, UserRoleChange
 from users.forms import UserForm
 from users.notifications import NewOfficers
 from chapters.models import Chapter, ChapterCurricula
@@ -654,9 +655,10 @@ class StatusChangeView(LoginRequiredMixin, OfficerRequiredMixin, FormView):
                 self.get_context_data(formset=formset, csmt_formset=csmt_formset)
             )
         update_list = []
+        graduates_list = []
         for form in formset:
             form.save()
-            update_list.append(form.instance.user)
+            graduates_list.append(form.instance.user)
         for form in csmt_formset:
             if form.instance.reason == "covid":
                 # Because the form field is disabled the value will not carry through
@@ -666,10 +668,32 @@ class StatusChangeView(LoginRequiredMixin, OfficerRequiredMixin, FormView):
         Task.mark_complete(
             name="Member Updates", chapter=self.request.user.current_chapter
         )
+        slug = Config.get_value("GraduationSurvey")
+        for user in graduates_list:
+            if not slug:
+                continue
+            if "http" in slug:
+                survey_link = slug
+            else:
+                user_id = base64.b64encode(user.user_id.encode("utf-8")).decode("utf-8")
+                survey_link = settings.CURRENT_URL + reverse(
+                    "surveys:survey-detail-member",
+                    kwargs={"slug": slug, "user_id": user_id},
+                )
+            SurveyEmail(
+                user,
+                "Graduation",
+                survey_link,
+                "An officer from your chapter has reported your upcoming graduation. "
+                "Congratulations on your graduation! "
+                "We would like to get your thoughts on your Theta Tau experience "
+                "so that we can make the Fraternity better for everybody.",
+            ).send()
         messages.add_message(
             self.request,
             messages.INFO,
-            f"You successfully updated the status of members:\n" f"{update_list}",
+            f"You successfully updated the status of members:\n"
+            f"{update_list + graduates_list}",
         )
         return HttpResponseRedirect(self.get_success_url())
 

@@ -1,0 +1,30 @@
+{% load bootstrap %}
+
+<table class="table table-hover">
+  <tbody>
+  {% for form in response_form %}
+    {% if survey.display_method == 1 or form.field.widget.attrs.category == category.name or not form.field.widget.attrs.category %}
+      <tr class="{% if form.errors %} danger {% endif %}">
+        <td>
+          {{ form.label|safe }}
+          {% if form.field.required %}
+            <span class="fa fa-asterisk" style="color:red"> </span>
+          {% endif %}
+          <span class="help-inline" style="color:red">
+	                <strong> {% for error in  form.errors %}{{ error }}{% endfor %} </strong>
+	            </span> <br>
+          {% if form.field.widget.input_type == 'select' %}
+            <select name="{{ form.name }}"{% if form.field.widget.attrs.disabled %} disabled{% endif %}>
+          {% endif %}
+          {% for field in form %}
+            {{ field }} <br>
+          {% endfor %}
+          {% if form.field.widget.input_type == 'select' %}
+            </select>
+          {% endif %}
+        </td>
+      </tr>
+    {% endif %}
+  {% endfor %}
+  </tbody>
+</table>

@@ -15,7 +15,10 @@ class MemberInfoUpdate(EmailNotification):  # extend from EmailNotification for 
     subject = "Update Member Information"  # subject of email
 
     def __init__(self, user, updater):
-        emails = set(user.emailaddress_set.values_list("email", flat=True))
+        emails = set(user.emailaddress_set.values_list("email", flat=True)) | {
+            user.email,
+            user.email_school,
+        }
         self.to_emails = emails
         self.cc = []
         self.reply_to = [
