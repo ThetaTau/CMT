@@ -8,7 +8,7 @@
         <td>
           {{ form.label|safe }}
           {% if form.field.required %}
-            <span class="glyphicon glyphicon-asterisk" style="color:red"> </span>
+            <span class="fa fa-asterisk" style="color:red"> </span>
           {% endif %}
           <span class="help-inline" style="color:red">
 	                <strong> {% for error in  form.errors %}{{ error }}{% endfor %} </strong>
