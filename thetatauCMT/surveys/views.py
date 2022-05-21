@@ -79,24 +79,6 @@ class SurveyDetail(CreateView):
     user = None
     user_id = None
 
-    def get_object(self, queryset=None):
-        survey = super().get_object()
-        if not survey.is_published:
-            raise Http404
-        if survey.expire_date < date.today():
-            messages.warning(
-                self.request,
-                f"Survey is not published anymore. It was published until: '{survey.expire_date}'.",
-            )
-            return redirect(reverse("home"))
-        if survey.publish_date > date.today():
-            messages.warning(
-                self.request,
-                f"Survey is not yet published. It is due: '{survey.publish_date}'.",
-            )
-            raise Http404
-        return survey
-
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
         kwargs.update(
@@ -139,28 +121,49 @@ class SurveyDetail(CreateView):
         self.step = kwargs.get("step", 0)
         self.get_user(request, kwargs)
         self.object = self.get_object()
-        if self.object.need_logged_user and not request.user.is_authenticated:
-            return redirect(
+        message = None
+        location = None
+        if not self.object.is_published:
+            message = f"Survey is not available to complete."
+            location = redirect(reverse("home"))
+        elif self.object.publish_date > date.today():
+            message = (
+                f"Survey is not yet published. It is due: '{self.object.publish_date}'."
+            )
+            location = redirect(reverse("home"))
+        elif self.object.expire_date < date.today():
+            message = f"Survey is not published anymore. It was published until: '{self.object.expire_date}'."
+            location = redirect(reverse("home"))
+        elif self.object.need_logged_user and not request.user.is_authenticated:
+            message = f"You must log in to access the survey"
+            location = redirect(
                 f"{settings.CURRENT_URL}/accounts/login?next={request.path}"
             )
-        if not self.object.anonymous and self.user.is_anonymous:
+        elif not self.object.anonymous and self.user.is_anonymous:
             # If the survey does not allow anonymous and the found user is anonymous
-            messages.warning(
-                request,
+            message = (
                 f"Make sure you have your unique link to fill out the survey, "
-                f"or log in to fill out the survey.",
+                f"or log in to fill out the survey."
             )
-            return redirect(
+            location = redirect(
                 f"{settings.CURRENT_URL}/accounts/login?next={request.path}"
             )
-        if self.object.need_logged_user and self.user != request.user:
+        elif self.object.need_logged_user and self.user != request.user:
             # If the survey needs logged user and the current user is not the found user
             #   above already checked logged in
-            messages.warning(
-                request,
-                f"You can not submit the survey for others",
-            )
-            return redirect("surveys:survey-detail", slug=self.object.slug)
+            message = f"You can not submit the survey for others"
+            location = redirect("surveys:survey-detail", slug=self.object.slug)
+        elif (
+            self.object.anonymous
+            and self.user.is_anonymous
+            and self.user == request.user
+        ):
+            # If the survey does allow anonymous and the found user is anonymous
+            message = f"You are filling out this survey anonymously."
+        if message is not None:
+            messages.warning(request, message)
+        if location is not None:
+            return location
         return super().dispatch(request, *args, **kwargs)
 
     def get(self, request, *args, **kwargs):
