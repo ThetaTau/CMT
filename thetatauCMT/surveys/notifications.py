@@ -12,7 +12,10 @@ class DepledgeSurveyEmail(
     subject = "Theta Tau PNM Exit Survey"  # subject of email
 
     def __init__(self, user):
-        emails = set(user.emailaddress_set.values_list("email", flat=True))
+        emails = set(user.emailaddress_set.values_list("email", flat=True)) | {
+            user.email,
+            user.email_school,
+        }
         self.to_emails = emails
         self.cc = []
         self.reply_to = [
@@ -73,7 +76,10 @@ class SurveyEmail(EmailNotification):  # extend from EmailNotification for email
     subject = "Theta Tau Survey"  # subject of email
 
     def __init__(self, user, survey_name, survey_link, message):
-        emails = set(user.emailaddress_set.values_list("email", flat=True))
+        emails = set(user.emailaddress_set.values_list("email", flat=True)) | {
+            user.email,
+            user.email_school,
+        }
         self.subject = f"Theta Tau {survey_name} Survey"
         self.to_emails = emails
         self.cc = []

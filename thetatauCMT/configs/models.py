@@ -15,6 +15,10 @@ class Config(TimeStampedModel):
             "-modified",
         ]
 
-    def clean_value(self):
-        # RichTextField value has HTML tags, when not needed strip
-        return strip_tags(self.value)
+    @classmethod
+    def get_value(cls, key, clean=True):
+        value = cls.objects.filter(key=key).order_by("created").last().value
+        if clean:
+            # RichTextField value has HTML tags, when not needed strip
+            value = strip_tags(value)
+        return value
