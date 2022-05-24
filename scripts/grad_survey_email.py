@@ -1,9 +1,8 @@
 import base64
-from datetime import timedelta
+from datetime import datetime
 from django.conf import settings
 from django.urls import reverse
 from forms.models import StatusChange
-from core.models import TODAY
 from configs.models import Config
 from surveys.notifications import SurveyEmail
 
@@ -13,7 +12,7 @@ def run():
     python manage.py runscript grad_survey_email
     """
     grads = StatusChange.objects.filter(
-        reason__in=["graduate"], date_start__gt=TODAY - timedelta(30 * 6)
+        reason__in=["graduate"], date_start__gt=datetime(2022, 3, 1)
     )
     total = grads.count()
     slug = Config.get_value("GraduationSurvey")
