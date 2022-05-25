@@ -12,7 +12,7 @@ from chapters.tables import ChapterStatusTable
 class MemberInfoUpdate(EmailNotification):  # extend from EmailNotification for emails
     render_types = ["html"]
     template_name = "member_info_update"  # name of template, without extension
-    subject = "Update Member Information"  # subject of email
+    subject = "[CMT] RMP & Update Member Information"  # subject of email
 
     def __init__(self, user, updater):
         emails = set(user.emailaddress_set.values_list("email", flat=True)) | {

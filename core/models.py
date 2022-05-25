@@ -437,7 +437,7 @@ def annotate_role_status(queryset, combine=True, date=TODAY_END):
                     & models.Q(risk_form__date__lte=end),
                     models.Value("True"),
                 ),
-                default=models.Value(""),
+                default=models.Value("False"),
                 output_field=models.CharField(),
             )
         )

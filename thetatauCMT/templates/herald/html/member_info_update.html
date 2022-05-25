@@ -1,14 +1,17 @@
 {% extends "herald/html/base_email.html" %}
-{% block title %}Update Member Information{% endblock %}
+{% block title %}RMP & Update Member Information{% endblock %}
 {% block content %}
 <h1 class="null" style="margin: 0;padding: 0;display: block;font-family: Helvetica;font-size: 40px;font-style: normal;font-weight: bold;line-height: 125%;letter-spacing: -1px;text-align: left;color: #606060 !important;">
-  Update Member Information</h1>
+  RMP & Update Member Information</h1>
+  <br>
 Dear Theta Tau Member,
 <p>
-Your chapter officer, {{ updater }}, has requested that you update your member information.
-  You can update your information by going to
-  <a href="{{ host }}{% url "users:detail" %}">"My Profile"</a> in the Chapter Management Tool (CMT).
-There you will be able to verify and change your contact information, GPA, service hours, and external organizations.
+Your chapter officer, {{ updater }}, has requested that you update your member information<br>
+  and/or submit the Risk Management Policies and Agreements of Theta Tau for this term.<br>
+  You can submit this form and update your information by going to
+  <a href="{{ host }}{% url "users:detail" %}">"My Profile"</a> in the Chapter Management Tool (CMT).<br>
+  Once you log in you will be prompted to complete the Risk Management Policies form and then at the "My Profile" link
+ you will be able to verify and change your contact information, GPA, service hours, and external organizations.
 </p>
   {% if not password %}
     <div style="background-color: #D3D3D3">

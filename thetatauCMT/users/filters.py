@@ -21,7 +21,7 @@ class UserListFilter(django_filters.FilterSet):
         label="RMP Status",
         choices=[
             ("True", "Complete"),
-            ("", "Incomplete"),
+            ("False", "Incomplete"),
         ],
     )
     major = django_filters.ModelChoiceFilter(
