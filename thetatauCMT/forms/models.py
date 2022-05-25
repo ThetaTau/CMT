@@ -4,7 +4,6 @@ import os
 import csv
 from enum import Enum
 from pathlib import Path
-from collections import Counter
 from address.models import AddressField
 from email.mime.base import MIMEBase
 from django.db import models, transaction
@@ -28,6 +27,7 @@ from core.models import (
     CHAPTER_ROLES_CHOICES,
     CHAPTER_OFFICER_CHOICES,
     academic_encompass_start_end_date,
+    semester_encompass_start_end_date,
     EnumClass,
 )
 from chapters.models import Chapter
@@ -546,47 +546,24 @@ class RiskManagement(YearTermModel):
     typed_name = models.CharField(max_length=255)
 
     @staticmethod
-    def risk_forms_chapter_year(chapter, year):
-        chapter_officers = chapter.get_current_officers_council()
-        start, end = academic_encompass_start_end_date(year)
+    def risk_forms_chapter_semester(chapter, date):
+        actives = chapter.active_actives()
+        start, end = semester_encompass_start_end_date(date)
         return RiskManagement.objects.filter(
-            user__in=chapter_officers, date__gte=start, date__lte=end
+            user__in=actives, date__gte=start, date__lte=end
         )
 
     @staticmethod
-    def risk_forms_year(year):
-        if str(year) == str(datetime.datetime.now().year):
-            return RiskManagement.risk_forms_current_year()
-        else:
-            return RiskManagement.risk_forms_previous_year(year)
-
-    @staticmethod
-    def risk_forms_current_year():
+    def risk_forms_semester(date):
         """
-        Current year, all those officers who are currently in list of officers
-        :return:
+        given a date determine RMP submissions in that time
         """
-        off_group, _ = Group.objects.get_or_create(name="officer")
-        chapter_officers = off_group.user_set.all()
-        start, end = academic_encompass_start_end_date()
-        return RiskManagement.objects.filter(
-            user__in=chapter_officers, date__gte=start, date__lte=end
-        )
-
-    @staticmethod
-    def risk_forms_previous_year(year):
-        """
-        Previous officers are those who had role at time of submission
-        :param year:
-        :return:
-        """
-        off_group, _ = Group.objects.get_or_create(name="officer")
-        start, end = academic_encompass_start_end_date(year)
+        start, end = semester_encompass_start_end_date(date)
         return RiskManagement.objects.filter(date__gte=start, date__lte=end)
 
     @staticmethod
-    def user_signed_this_year(user):
-        start, end = academic_encompass_start_end_date()
+    def user_signed_this_semester(user):
+        start, end = semester_encompass_start_end_date()
         signed_before = user.risk_form.filter(date__gte=start, date__lte=end)
         return signed_before
 

@@ -4,7 +4,7 @@ from django.utils import timezone
 from address.widgets import AddressWidget
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Layout, Fieldset, Row, Column, Submit
-from crispy_forms.bootstrap import FormActions, InlineField, StrictButton
+from crispy_forms.bootstrap import FormActions, InlineField, StrictButton, Field
 from tempus_dominus.widgets import DatePicker
 from allauth.account.forms import LoginForm
 from captcha.fields import ReCaptchaField
@@ -45,6 +45,7 @@ class UserListFormHelper(FormHelper):
             '<i class="fas fa-search"></i> Filter Members',
             Row(
                 InlineField("name__icontains"),
+                Field("rmp_complete"),
                 InlineField("major"),
                 InlineField("graduation_year__icontains"),
                 FormActions(

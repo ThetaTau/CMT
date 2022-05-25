@@ -190,24 +190,29 @@ CHAPTER_ROLES_CHOICES = sorted(
 )
 
 
-def semester_encompass_start_end_date(given_date=None):
+def semester_encompass_start_end_date(given_date=None, term=None, year=None):
     """
     Determine the start and end date of the semester including given date
     :return: date
     """
     if given_date is None:
-        given_date = datetime.datetime.now()
-    semester = SEMESTER[given_date.month]
+        if not year:
+            year = current_year()
+        if not term:
+            term = current_term()
+        month = {"fa": 10, "sp": 3}[term]
+        given_date = datetime.datetime(year, month, 1)
+    term = SEMESTER[given_date.month]
     start_month = 1
     end_month = 7
-    _year = given_date.year
-    if semester == "fa":
+    year = given_date.year
+    if term == "fa":
         # start in July and end in January 1
         start_month, end_month = end_month, start_month
-        _year += 1
+        year += 1
     return (
         datetime.datetime(given_date.year, start_month, 1),
-        datetime.datetime(_year, end_month, 1),
+        datetime.datetime(year, end_month, 1),
     )
 
 
@@ -398,6 +403,7 @@ def combine_annotations(user_queryset):
 
 
 def annotate_role_status(queryset, combine=True, date=TODAY_END):
+    start, end = semester_encompass_start_end_date(date)
     qs = (
         queryset.annotate(
             role=models.Case(
@@ -422,6 +428,17 @@ def annotate_role_status(queryset, combine=True, date=TODAY_END):
                     & models.Q(status__end__gte=TODAY_END),
                     models.F("status__status"),
                 )
+            )
+        )
+        .annotate(
+            rmp_complete=models.Case(
+                models.When(
+                    models.Q(risk_form__date__gte=start)
+                    & models.Q(risk_form__date__lte=end),
+                    models.Value("True"),
+                ),
+                default=models.Value(""),
+                output_field=models.CharField(),
             )
         )
     )

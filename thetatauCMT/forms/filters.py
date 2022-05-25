@@ -1,6 +1,7 @@
 # filters.py
 import django_filters
 from core.filters import DateRangeFilter
+from django.forms.widgets import NumberInput
 from .models import Audit, PledgeProgram
 from chapters.models import Chapter
 from regions.models import Region
@@ -66,4 +67,27 @@ class PledgeProgramListFilter(CompleteListFilter):
     class Meta:
         fields = ["region", "year", "term", "manual", "complete"]
         model = PledgeProgram  # This is needed to automatically make year/term
+        order_by = ["chapter"]
+
+
+class RiskListFilter(django_filters.FilterSet):
+    year = django_filters.NumberFilter(
+        min_value=1990,
+        max_value=2050,
+        max_digits=4,
+        decimal_places=0,
+        widget=NumberInput(attrs={"placeholder": "Year"}),
+        label="",
+    )
+    term = django_filters.ChoiceFilter(
+        label="Term",
+        choices=(("fa", "Fall"), ("sp", "Spring")),
+    )
+    region = django_filters.ChoiceFilter(
+        label="Region", choices=Region.region_choices()
+    )
+
+    class Meta:
+        fields = ["region", "term", "year"]
+        model = Chapter  # This is needed to automatically make year/term
         order_by = ["chapter"]

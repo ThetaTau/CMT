@@ -17,6 +17,13 @@ class UserListFilter(django_filters.FilterSet):
         ],
         method="filter_current_status",
     )
+    rmp_complete = django_filters.ChoiceFilter(
+        label="RMP Status",
+        choices=[
+            ("True", "Complete"),
+            ("", "Incomplete"),
+        ],
+    )
     major = django_filters.ModelChoiceFilter(
         queryset=ChapterCurricula.objects.none(),
         method="filter_major",

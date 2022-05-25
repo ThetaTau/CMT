@@ -7,7 +7,7 @@ from io import BytesIO
 from copy import deepcopy
 from pathlib import Path
 from django.db import IntegrityError, transaction
-from django.db.models import Q, F, Value, CharField
+from django.db.models import Q, F, Value, CharField, Count, When, Case
 from django.conf import settings
 from django.contrib.postgres.aggregates import StringAgg
 from django.forms import models as model_forms
@@ -37,7 +37,12 @@ from viewflow.frontend.views import ProcessListView
 from viewflow.flow.views.mixins import FlowListMixin
 from material.frontend import frontend_url
 from core.forms import MultiFormsView
-from core.models import semester_encompass_start_end_date
+from core.models import (
+    semester_encompass_start_end_date,
+    TODAY_END,
+    current_term,
+    current_year,
+)
 from core.views import (
     OfficerRequiredMixin,
     LoginRequiredMixin,
@@ -72,7 +77,7 @@ from .forms import (
     ChapterReport,
     PrematureAlumnusForm,
     AuditListFormHelper,
-    RiskListFilter,
+    RiskListFormHelper,
     PledgeProgramFormHelper,
     ChapterReportForm,
     CompleteFormHelper,
@@ -84,7 +89,7 @@ from .forms import (
     ResignationForm,
     ReturnStudentForm,
 )
-from tasks.models import TaskChapter, Task
+from tasks.models import Task
 from scores.models import ScoreType
 from submissions.models import Submission
 from core.models import (
@@ -137,7 +142,12 @@ from .models import (
     ReturnStudent,
     PledgeProgramProcess,
 )
-from .filters import AuditListFilter, PledgeProgramListFilter, CompleteListFilter
+from .filters import (
+    AuditListFilter,
+    PledgeProgramListFilter,
+    CompleteListFilter,
+    RiskListFilter,
+)
 from .notifications import (
     EmailRMPSigned,
     EmailPledgeOther,
@@ -1029,7 +1039,7 @@ class RiskManagementFormView(LoginRequiredMixin, FormView):
     template_name = "forms/rmp.html"
 
     def get(self, request, *args, **kwargs):
-        if RiskManagement.user_signed_this_year(self.request.user):
+        if RiskManagement.user_signed_this_semester(self.request.user):
             messages.add_message(
                 self.request,
                 messages.INFO,
@@ -1141,11 +1151,12 @@ class RollBookPDFDownload(RollBookPDFView):
 class RiskManagementListView(
     LoginRequiredMixin, NatOfficerRequiredMixin, PagedFilteredTableView
 ):
-    model = RiskManagement
+    model = User
     context_object_name = "risk"
     template_name = "forms/rmp_list.html"
     table_class = RiskFormTable
     filter_class = RiskListFilter
+    formhelper_class = RiskListFormHelper
 
     def get_queryset(self, **kwargs):
         cancel = self.request.GET.get("cancel", False)
@@ -1155,81 +1166,68 @@ class RiskManagementListView(
         if not request_get:
             request_get = None
         self.filter = self.filter_class(request_get)
-        self.all_complete_status = 0
+        self.filter.form.helper = self.formhelper_class()
         self.chapters_list = Chapter.objects.exclude(active=False)
+        region = None
+        region_slug = None
+        dates = semester_encompass_start_end_date(TODAY_END)
         if self.filter.is_bound and self.filter.is_valid():
-            qs = RiskManagement.risk_forms_year(self.filter.cleaned_data["year"])
-            region_slug = self.filter.cleaned_data["region"]
+            year = self.filter.form.cleaned_data.get("year", current_year())
+            term = self.filter.form.cleaned_data.get("term", current_term())
+            dates = semester_encompass_start_end_date(term=term, year=year)
+            region_slug = self.filter.form.cleaned_data.get("region", "national")
             region = Region.objects.filter(slug=region_slug).first()
-            active_chapters = Chapter.objects.exclude(active=False)
-            if region:
-                self.chapters_list = active_chapters.filter(region__in=[region])
-            elif region_slug == "candidate_chapter":
-                self.chapters_list = active_chapters.filter(candidate_chapter=True)
-            qs = qs.filter(user__chapter__in=self.chapters_list)
-            self.all_complete_status = int(
-                self.filter.cleaned_data["all_complete_status"]
+        active_chapters = Chapter.objects.exclude(active=False)
+        if region_slug == "national":
+            self.chapters_list = active_chapters
+        elif region:
+            self.chapters_list = active_chapters.filter(region__in=[region])
+        elif region_slug == "candidate_chapter":
+            self.chapters_list = active_chapters.filter(candidate_chapter=True)
+        start, end = dates
+        qs = User.objects.filter(
+            status__status__in=["active", "activepend"],
+            status__start__lte=end,
+            status__end__gte=start,
+        ).filter(chapter__in=self.chapters_list)
+        qs = (
+            qs.annotate(
+                rmp_complete=Case(
+                    When(
+                        Q(risk_form__date__gte=start) & Q(risk_form__date__lte=end),
+                        Value("True"),
+                    ),
+                    default=Value("False"),
+                    output_field=CharField(),
+                )
             )
-        else:
-            qs = RiskManagement.risk_forms_year("2019")
+            .values("chapter", "rmp_complete")
+            .annotate(count=Count("rmp_complete"))
+        ).order_by("chapter")
         return qs
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         all_forms = self.object_list
-        roles = [
-            "regent",
-            "vice_regent",
-            "corresponding_secretary",
-            "treasurer",
-            "scribe",
-        ]
-        start_dic = {role: "" for role in roles}
-        start_dic.update({f"{role}_pk": 0 for role in roles})
-        chapter_risk_form_data = {
-            chapter.name: {
-                "chapter": chapter.name,
-                "region": chapter.region.name,
-                "all_complete": False,
-                **start_dic,
-            }
-            for chapter in self.chapters_list
-        }
-        risk_form_values = all_forms.values(
-            "pk", "user__chapter__name", "role", "submission"
+        risk_data = all_forms.values(
+            "chapter__name", "chapter__region__name", "rmp_complete", "count"
         )
-        # {
-        #     'chapter': 'Chi',
-        #     'all_complete': True,
-        #     'corresponding_secretary': 'Complete',
-        #     'treasurer': 'Complete',
-        #     'scribe': 'Complete',
-        #     'vice_regent': 'Complete',
-        #     'regent': 'Complete',
-        # }
-        for risk_form in risk_form_values:
-            chapter_risk_form_data[risk_form["user__chapter__name"]][
-                risk_form["role"]
-            ] = "Complete"
-            chapter_risk_form_data[risk_form["user__chapter__name"]][
-                risk_form["role"] + "_pk"
-            ] = risk_form["pk"]
-        risk_data = []
-        for chapter in chapter_risk_form_data:
-            test = list(chapter_risk_form_data[chapter].values())
-            if test.count("Complete") == 5:
-                chapter_risk_form_data[chapter]["all_complete"] = True
-                if self.all_complete_status == 1:
-                    # We want only complete so keep this
-                    risk_data.append(chapter_risk_form_data[chapter])
-            else:
-                if self.all_complete_status == 2:
-                    # We want only incomplete so keep this
-                    risk_data.append(chapter_risk_form_data[chapter])
-            if self.all_complete_status == 0:
-                # We want to keep everything
-                risk_data.append(chapter_risk_form_data[chapter])
-        risk_table = RiskFormTable(data=risk_data)
+        data = {}
+        count_types = {
+            "True": "complete",
+            "False": "incomplete",
+        }
+        for risk in risk_data:
+            count_type = count_types[risk["rmp_complete"]]
+            if risk["chapter__name"] not in data:
+                data[risk["chapter__name"]] = {
+                    "chapter": risk["chapter__name"],
+                    "region": risk["chapter__region__name"],
+                    "complete": 0,
+                    "incomplete": 0,
+                }
+            data[risk["chapter__name"]][count_type] = risk["count"]
+        risk_table = RiskFormTable(data=data.values())
         RequestConfig(self.request, paginate={"per_page": 100}).configure(risk_table)
         context["table"] = risk_table
         return context

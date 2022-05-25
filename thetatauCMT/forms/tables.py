@@ -160,47 +160,17 @@ class ChapterReportTable(tables.Table):
         ]
 
 
-def get_value_from_a(value):
-    """
-    <a href="/tasks/detail/15/">True</a>    --> True
-    <a href="/tasks/detail/0/">0</a>        --> N/A
-    <a href="/tasks/detail/0/"></a>         --> False
-    :param value:
-    :return:
-    """
-    if "—" in value:
-        return False
-    elif "Complete" in value:
-        return True
-    return ""
-
-
 class RiskFormTable(tables.Table):
     chapter = tables.Column(
         attrs={"td": {"align": "left", "style": "font-weight:bold"}}
     )
-    all_complete = tables.BooleanColumn()
     region = tables.Column()
-    corresponding_secretary = tables.LinkColumn(
-        "forms:rmp_complete", kwargs={"pk": A("corresponding_secretary_pk")}
-    )
-    treasurer = tables.LinkColumn(
-        "forms:rmp_complete", kwargs={"pk": A("treasurer_pk")}
-    )
-    scribe = tables.LinkColumn("forms:rmp_complete", kwargs={"pk": A("scribe_pk")})
-    vice_regent = tables.LinkColumn(
-        "forms:rmp_complete", kwargs={"pk": A("vice_regent_pk")}
-    )
-    regent = tables.LinkColumn("forms:rmp_complete", kwargs={"pk": A("regent_pk")})
+    complete = tables.Column()
+    incomplete = tables.Column()
 
     class Meta:
         attrs = {
             "class": "table table-striped table-bordered",
-            "td": {
-                "align": "center",
-                "complete": lambda value: get_value_from_a(value),
-            },
-            "th": {"class": "text-center"},
         }
         # orderable = False
 

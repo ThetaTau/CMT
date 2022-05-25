@@ -32,6 +32,7 @@ from chapters.forms import ChapterForm
 from chapters.models import Chapter, ChapterCurricula
 from core.address import fix_address
 from core.forms import DuplicateAddressField
+from core.filters import DateRangeFilter
 from core.models import CHAPTER_ROLES_CHOICES, NAT_OFFICERS_CHOICES
 from regions.models import Region
 from users.models import User, UserRoleChange, UserDemographic
@@ -872,8 +873,8 @@ class RiskListFormHelper(FormHelper):
             '<i class="fas fa-search"></i> Filter Risk Forms',
             Row(
                 Field("region", label="Region"),
+                Field("term"),
                 Field("year"),
-                Field("all_complete_status", label="Status All Complete"),
                 FormActions(
                     StrictButton(
                         '<i class="fa fa-search"></i> Filter',
@@ -885,15 +886,6 @@ class RiskListFormHelper(FormHelper):
             ),
         ),
     )
-
-
-class RiskListFilter(forms.Form):
-    helper = RiskListFormHelper
-    year = forms.ChoiceField(choices=[(2019, "2019"), (2018, "2018")])
-    all_complete_status = forms.ChoiceField(
-        choices=[(0, "All"), (1, "Complete"), (2, "Incomplete")]
-    )
-    region = forms.ChoiceField(required=False, choices=Region.region_choices())
 
 
 class SchoolModelChoiceField(forms.ModelChoiceField):

@@ -4,12 +4,15 @@ from .models import User
 
 
 class UserTable(tables.Table):
+    rmp_complete = tables.Column(verbose_name="RMP Complete")
+
     class Meta:
         model = User
         fields = (
             "name",
             "badge_number",
             "email",
+            "rmp_complete",
             "major",
             "graduation_year",
             "phone_number",
