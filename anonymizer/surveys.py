@@ -4,7 +4,7 @@ from faker import Factory
 
 from surveys.models import DepledgeSurvey, Survey
 from survey.models import Category, Response, Answer, Question
-from surveys.models import Survey as Survey_base
+from survey.models import Survey as Survey_base
 
 register_skip([Category, Survey, Survey_base, Question, Response])
 
