@@ -1158,6 +1158,19 @@ class RiskManagementListView(
     filter_class = RiskListFilter
     formhelper_class = RiskListFormHelper
 
+    def get(self, request, *args, **kwargs):
+        response = super().get(request, *args, **kwargs)
+        if request.GET.get("csv", "False").lower() == "download csv":
+            response = HttpResponse(content_type="text/csv")
+            context = self.get_context_data()
+            time_name = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename = f"ThetaTauRMPstatus_{time_name}.csv"
+            response["Content-Disposition"] = f'attachment; filename="{filename}"'
+            writer = csv.writer(response)
+            for row in context["table"].as_values():
+                writer.writerow(row)
+        return response
+
     def get_queryset(self, **kwargs):
         cancel = self.request.GET.get("cancel", False)
         request_get = self.request.GET.copy()

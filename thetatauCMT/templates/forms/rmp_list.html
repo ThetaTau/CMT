@@ -21,6 +21,12 @@
                         <form method="get" class="form-inline form-search pull-right">
                           {% crispy filter.form filter.form.helper %}
                         </form>
+                      <form method="get" class="form-inline form-search pull-right">
+                        {% csrf_token %}
+                        <input type='hidden'>
+                        <input type='submit' class="btn btn-primary" name="csv" value="Download CSV"
+                               style="float: right;">
+                      </form>
                     </th>
                 </tr>
 
