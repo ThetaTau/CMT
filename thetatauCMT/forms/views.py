@@ -511,7 +511,7 @@ class StatusChangeSelectView(LoginRequiredMixin, OfficerRequiredMixin, FormSetVi
     def get_formset(self):
         actives = self.request.user.current_chapter.actives()
         formset = super().get_formset()
-        formset.form.base_fields["user"].queryset = actives
+        formset.form.base_fields["user"].queryset = actives.order_by("name")
         return formset
 
     def get_context_data(self, **kwargs):
@@ -520,7 +520,7 @@ class StatusChangeSelectView(LoginRequiredMixin, OfficerRequiredMixin, FormSetVi
         if formset is None:
             formset = self.construct_formset()
         actives = self.request.user.current_chapter.actives()
-        formset.form.base_fields["user"].queryset = actives
+        formset.form.base_fields["user"].queryset = actives.order_by("name")
         context["formset"] = formset
         helper = StatusChangeSelectFormHelper()
         context["helper"] = helper
