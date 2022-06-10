@@ -464,6 +464,22 @@ class CSMTForm(forms.ModelForm):
             return user
         return ""
 
+    def clean(self):
+        super().clean()
+        date_end = self.cleaned_data.get("date_end", "")
+        date_start = self.cleaned_data.get("date_start", "")
+        if date_end and date_start:
+            if date_end < date_start:
+                self.add_error(
+                    "date_end",
+                    forms.ValidationError(
+                        "End date must be greater than the start date."
+                    ),
+                )
+                raise forms.ValidationError(
+                    "End date must be greater than the start date."
+                )
+
 
 CSMTFormSet = forms.formset_factory(CSMTForm, extra=0)
 
