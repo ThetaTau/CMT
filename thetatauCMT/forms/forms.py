@@ -1037,6 +1037,9 @@ class PledgeUserBase(forms.ModelForm):
         ),
     )
     address = DuplicateAddressField(widget=AddressWidget)
+    email = forms.EmailField(
+        label="Email Address", help_text="Non school email, does NOT end in .edu"
+    )
 
     class Meta:
         model = User
@@ -1082,6 +1085,14 @@ class PledgeUserBase(forms.ModelForm):
         if address is None:
             raise forms.ValidationError("Invalid Address")
         return address
+
+    def clean_email(self):
+        email = self.cleaned_data.get("email")
+        if email.endswith(".edu"):
+            raise forms.ValidationError(
+                "No .edu email addresses allowed for personal email"
+            )
+        return email
 
 
 class PledgeUser(PledgeUserBase):
@@ -1248,7 +1259,6 @@ class PledgeFormFull(CrispyCompatableMultiModelForm):
                     "demographics-sexual_write",
                     "demographics-racial",
                     "demographics-racial_write",
-                    "demographics-specific_ethnicity",
                     "demographics-ability",
                     "demographics-ability_write",
                     "demographics-first_gen",
