@@ -330,7 +330,7 @@ class Chapter(models.Model):
             status__status__in=["active", "activepend", "alumnipend"],
             status__start__lte=date,
             status__end__gte=date,
-        )
+        ).distinct()
 
     def notes_filtered(self, current_user):
         notes = self.notes.all()
@@ -373,7 +373,7 @@ class Chapter(models.Model):
             ],
             status__start__lte=TODAY_END,
             status__end__gte=TODAY_END,
-        )
+        ).distinct()
         return all_advisors
 
     @property
@@ -414,7 +414,7 @@ class Chapter(models.Model):
             status__status__in=["active", "activepend"],
             status__start__lte=TODAY_END,
             status__end__gte=TODAY_END,
-        )
+        ).distinct()
 
     def alumni(self):
         # Do not annotate, need the queryset not a list
@@ -424,7 +424,7 @@ class Chapter(models.Model):
             ],
             status__start__lte=TODAY_END,
             status__end__gte=TODAY_END,
-        )
+        ).distinct()
 
     def actives(self):
         # Do not annotate, need the queryset not a list
@@ -432,7 +432,7 @@ class Chapter(models.Model):
             status__status__in=["active", "activepend", "alumnipend"],
             status__start__lte=TODAY_END,
             status__end__gte=TODAY_END,
-        )
+        ).distinct()
 
     def pledges(self):
         # Do not annotate, need the queryset not a list
@@ -440,7 +440,7 @@ class Chapter(models.Model):
             status__status="pnm",
             status__start__lte=TODAY_END,
             status__end__gte=TODAY_END,
-        )
+        ).distinct()
 
     def pledges_semester(self, given_date):
         """
@@ -466,12 +466,12 @@ class Chapter(models.Model):
             given_date=given_date
         )
         dates = dict(status__start__lte=semester_end, status__start__gte=semester_start)
-        return self.members.filter(status__status="alumni", **dates)
+        return self.members.filter(status__status="alumni", **dates).distinct()
 
     def depledges(self):
         return self.members.exclude(
             depledge__isnull=True,
-        )
+        ).distinct()
 
     def gpas(self):
         return self.current_members().filter(gpas__year__gte=BIENNIUM_START)
