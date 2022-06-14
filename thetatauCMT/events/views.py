@@ -83,8 +83,9 @@ class EventCreateView(
             forms["event"] = event_form
             return self.render_to_response(self.get_context_data(forms=forms))
         for picture_form in picture_forms:
-            picture_form.instance.event = event_form.instance
-            picture_form.save()
+            if picture_form.is_valid() and picture_form.instance.image.name != "":
+                picture_form.instance.event = event_form.instance
+                picture_form.save()
         return HttpResponseRedirect(self.get_success_url())
 
     def create_picture_form(self, **kwargs):
