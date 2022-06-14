@@ -221,12 +221,11 @@ def isinradius(zip, distance):
     if not distance:
         distance = 1
     try:
-        address = (
-            Locality.objects.filter(postal_code=zip)
-            .first()
-            .addresses.exclude(longitude=0)
-            .first()
-        )
+        locality = Locality.objects.filter(postal_code=zip).first()
+        if locality:
+            address = locality.addresses.exclude(longitude=0).first()
+        else:
+            raise Locality.DoesNotExist
     except Locality.DoesNotExist:
         return []
 
