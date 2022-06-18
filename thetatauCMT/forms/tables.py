@@ -6,7 +6,8 @@ from .models import (
     StatusChange,
     Audit,
     PledgeProgram,
-    ChapterReport,
+    Convention,
+    ChapterEducation,
     OSM,
     CollectionReferral,
     PledgeProgramProcess,
@@ -146,18 +147,46 @@ class PledgeProgramTable(tables.Table):
             return PledgeProgramProcess.APPROVAL.get_value(value)
 
 
-class ChapterReportTable(tables.Table):
+class ChapterEducationListTable(tables.Table):
+    chapter_name = tables.Column()
+    region = tables.Column()
+    alcohol_drugs = tables.Column(verbose_name="Alcohol and Drug Awareness")
+    harassment = tables.Column(verbose_name="Anti-Harassment")
+    mental = tables.Column(verbose_name="Mental Health Recognition")
+
     class Meta:
-        model = ChapterReport
-        order_by = "chapter"
+        model = ChapterEducation
+        order_by = "chapter_name"
         attrs = {"class": "table table-striped table-bordered"}
         fields = [
-            "chapter",
+            "chapter_name",
             "region",
-            "year",
-            "term",
+            "alcohol_drugs",
+            "harassment",
+            "mental",
+        ]
+
+    def render_report(self, value, record):
+        return value
+
+
+class ChapterEducationTable(tables.Table):
+    category = tables.Column()
+    program_date = tables.DateColumn()
+
+    class Meta:
+        model = ChapterEducation
+        order_by = "program_date"
+        attrs = {"class": "table table-striped table-bordered"}
+        fields = [
+            "program_date",
+            "category",
+            "approved",
             "report",
         ]
+
+    def render_report(self, value, record):
+        return value
 
 
 class RiskFormTable(tables.Table):
@@ -251,7 +280,7 @@ class SignTable(tables.Table):
 
 class ConventionListTable(tables.Table):
     class Meta:
-        model = ChapterReport
+        model = Convention
         order_by = "chapter"
         attrs = {"class": "table table-striped table-bordered"}
         fields = [

@@ -32,9 +32,7 @@ from chapters.forms import ChapterForm
 from chapters.models import Chapter, ChapterCurricula
 from core.address import fix_address
 from core.forms import DuplicateAddressField
-from core.filters import DateRangeFilter
 from core.models import CHAPTER_ROLES_CHOICES, NAT_OFFICERS_CHOICES
-from regions.models import Region
 from users.models import User, UserRoleChange, UserDemographic
 from .models import (
     Initiation,
@@ -44,7 +42,7 @@ from .models import (
     PledgeProgram,
     Audit,
     Pledge,
-    ChapterReport,
+    ChapterEducation,
     PrematureAlumnus,
     Convention,
     OSM,
@@ -594,23 +592,36 @@ class RoleChangeSelectFormHelper(FormHelper):
     )
 
 
-class ChapterReportForm(forms.ModelForm):
+class ChapterEducationForm(forms.ModelForm):
     report = forms.FileField(
+        label="Program File",
         required=True,
         help_text="Only PDF format accepted",
         validators=[FileTypeValidator(allowed_types=["application/pdf"])],
     )
 
     class Meta:
-        model = ChapterReport
+        model = ChapterEducation
         fields = [
+            "program_date",
+            "category",
             "report",
+            "title",
+            "first_name",
+            "last_name",
+            "email",
+            "phone_number",
         ]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for field in self.fields:
+            self.fields[field].required = True
 
 
 class ChapterInfoReportForm(MultiModelForm):
     form_classes = {
-        "report": ChapterReportForm,
+        "report": ChapterEducationForm,
         "info": ChapterForm,
     }
 

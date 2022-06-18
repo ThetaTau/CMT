@@ -8,106 +8,44 @@
 <div class="container">
   <div class="row">
     <div class="col-sm-12">
-    <h1>Theta Tau Chapter Report</h1>
+    <h1>Chapter Education Program</h1>
     <h3>Instructions</h3>
-    <ol>
+      Chapter Officers (or Risk Management Chair) will organize chapter participation at least once per year in each
+      of the following areas. The chapter’s university office of student affairs (or other similar department) likely
+      has information and/or facilitators for each of these areas:
+    <ul>
       <li>
-        Each chapter officer should read and become sufficiently knowledgeable
-        about <a data-toggle="modal" href="" data-target="#myModal">the Risk Management Policies and Agreements (RMP)</a>
-        to be able to answer questions from the rest of the chapter.
+        Alcohol and drug awareness program to educate its members on the responsibilities and consequences of
+        alcohol consumption and drug use;
       </li>
       <li>
-        Each chapter officer should sign <a data-toggle="modal" href="" data-target="#myModal">the Risk Management Policies and Agreements</a>.
+        Anti-harassment program to assist members in recognizing, preventing, and reporting discrimination,
+        sexual harassment, and hazing;
       </li>
       <li>
-        Each member of the chapter should sign the report <a
-              href="https://drive.google.com/file/d/1TU2_c4VrzOBpbxi0EIX4U7-C6Qw7yWAV/view?usp=sharing" ,
-              target="_blank"> available here.</a>
+        Mental health recognition program (such as suicide or depression) to help members in the recognition of
+        warning signs, identification of referral resources, and skills to respond to members at-risk.
       </li>
-      <li>
-        During the chapter meeting immediately after you pledge in your new
-        members for the semester, a period of time should be devoted to covering
-        the materials in the RMP.</br>Specifically:</br>
-        <ul>
-          <li>
-            Marshall should review the Risk Management Policy and expectations with the members;
-          </li>
-          <li>
-            Treasurer should review the chapter’s finances, specifically
-            including all fees and expenses associated with membership in the chapter and;
-          </li>
-          <li>
-            Vice Regent should give an overview of the new member education program,
-            as well as explaining the definition of hazing, explaining the national
-            resources available to combat hazing and explain any campus-based resources for the same purpose.
-          </li>
-        </ul>
-      </li>
-      <li>
-        The designated chapter officer should scan each section individually
-        (preferably on a scanner and not with a scanner app on your phone) and
-        upload the form below.
-      </li>
-    </ol>
+    </ul>
+    <h3>Submissions This Academic Year</h3>
+      {% if incomplete_categories %}
+    <table>
+      <tr>
+        <th>Program Category Needing Submission</th>
+        <td>{{ incomplete_categories }}</td>
+      </tr>
+    </table>
+      {% endif %}
+    {% render_table table %}
+    <br>
     <form class="chapter_report" enctype="multipart/form-data" method="POST">
       {% csrf_token %}
-      <fieldset
-        {% if not request.is_officer or request.user.current_chapter != object %}
-          disabled
-        {% endif %}
-      >
-        {{ report.media }}
-        <div>{{ report.management_form|crispy }}</div>
-        <h3>Report Upload</h3>
-        <p>This is the document that each member signs acknowledging the Risk Management Policies of Theta Tau.
-          Officers are required to also electronically sign the RMP form above, all members sign the paper form.</p>
-      {% if previous_report %}
-        Report already submitted for the semester.<br>
-        {% if previous_report.report.url %}
-          <a href="{{ previous_report.report.url }}" target=”_blank”> {{ previous_report.report }}</a>
-        {% endif %}
-        {% else %}
-        <p>The report to be submitted is <a
-                href="https://drive.google.com/file/d/1TU2_c4VrzOBpbxi0EIX4U7-C6Qw7yWAV/view?usp=sharing" ,
-                target="_blank"> available here.</a></p>
-        {{ report.report|as_crispy_field }}
+        {{ form.media }}
+        <div>{{ form|crispy }}</div>
         <button class="btn btn-primary" name='action' value='chapter_report' type="submit">Submit Chapter Report
         </button>
-      {% endif %}
-      </fieldset>
     </form>
     </div>
   </div>
 </div>
 {% endblock content %}
-{% block modal %}
-  <div class="modal hide fade" tabindex="-1" id="myModal" role="dialog" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-      <div class="modal-content">
-        <form id="audits-create" class="form" method="post">
-          {% csrf_token %}
-          <div class="modal-content">
-            <div class="modal-header">
-              <h4 class="modal-title">Risk Management Policies and Agreements</h4>
-              <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                <span aria-hidden="true">×</span>
-                <span class="sr-only">Close</span>
-              </button>
-            </div>
-            <div class="modal-body">
-              {% include "forms/rmp_details.html" %}
-            </div>
-            <div class="modal-footer">
-              <button type="button" id='cancel-modal' class="btn btn-secondary" data-dismiss="modal">Close</button>
-            </div>
-          </div><!-- /.modal-content -->
-        </form>
-      </div>
-      <div id="modal-data" url="" action="" run_id=""></div>
-    </div>
-  </div>
-{% endblock modal %}
-{% block javascript %}
-{{ block.super }}
-<script src="{% static 'js/dynamic_formset.js' %}"></script>
-{% endblock %}

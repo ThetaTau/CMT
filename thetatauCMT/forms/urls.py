@@ -13,11 +13,15 @@ urlpatterns = [
         view=views.AuditFormView.as_view(),
         name="audit_complete",
     ),
-    url(regex=r"^report/$", view=views.ChapterInfoReportView.as_view(), name="report"),
     url(
-        regex=r"^report-list/$",
-        view=views.ChapterReportListView.as_view(),
-        name="report_list",
+        regex=r"^education/$",
+        view=views.ChapterEducationCreateView.as_view(),
+        name="education",
+    ),
+    url(
+        regex=r"^education-list/$",
+        view=views.ChapterEducationListView.as_view(),
+        name="education_list",
     ),
     url(
         regex=r"^convention-list/$",

@@ -74,14 +74,13 @@ from .forms import (
     PledgeProgramForm,
     AuditForm,
     PledgeFormFull,
-    ChapterReport,
     PrematureAlumnusForm,
     AuditListFormHelper,
     RiskListFormHelper,
     PledgeProgramFormHelper,
-    ChapterReportForm,
     CompleteFormHelper,
     ConventionForm,
+    ChapterEducationForm,
     OSMForm,
     DisciplinaryForm1,
     DisciplinaryForm2,
@@ -112,7 +111,8 @@ from .tables import (
     AuditTable,
     RiskFormTable,
     PledgeProgramTable,
-    ChapterReportTable,
+    ChapterEducationTable,
+    ChapterEducationListTable,
     PrematureAlumnusStatusTable,
     SignTable,
     ConventionListTable,
@@ -131,6 +131,7 @@ from .models import (
     RiskManagement,
     PledgeProgram,
     Audit,
+    ChapterEducation,
     PrematureAlumnus,
     InitiationProcess,
     Convention,
@@ -908,17 +909,17 @@ class RoleChangeNationalView(
         return HttpResponseRedirect(reverse("forms:natoff"))
 
 
-class ChapterReportListView(
+class ChapterEducationListView(
     LoginRequiredMixin, NatOfficerRequiredMixin, PagedFilteredTableView
 ):
-    model = ChapterReport
-    context_object_name = "chapter_report_list"
-    table_class = ChapterReportTable
+    model = ChapterEducation
+    context_object_name = "chapter_education_list"
+    table_class = ChapterEducationListTable
     filter_class = CompleteListFilter
     formhelper_class = CompleteFormHelper
 
     def get_queryset(self, **kwargs):
-        qs = ChapterReport.objects.all()
+        qs = ChapterEducation.objects.all()
         cancel = self.request.GET.get("cancel", False)
         request_get = self.request.GET.copy()
         if cancel:
@@ -926,13 +927,10 @@ class ChapterReportListView(
         if not request_get:
             # Create a mutable QueryDict object, default is immutable
             request_get = QueryDict(mutable=True)
-            request_get.setlist("year", [""])
-            request_get.setlist("term", [""])
+            request_get.setlist("date", [""])
         if not cancel:
-            if request_get.get("year", "") == "":
-                request_get["year"] = datetime.datetime.now().year
-            if request_get.get("term", "") == "":
-                request_get["term"] = SEMESTER[datetime.datetime.now().month]
+            if request_get.get("date", "") == "":
+                request_get["date"] = datetime.datetime.now().date()
         self.filter = self.filter_class(request_get, queryset=qs)
         self.filter.request = self.request
         self.filter.form.helper = self.formhelper_class()
@@ -940,60 +938,33 @@ class ChapterReportListView(
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        all_forms = self.object_list.exclude(report__in=[""])
+        active_chapters = Chapter.objects.exclude(active=False)
+        alcohol_drugs = self.object_list.filter(category="alcohol_drugs")
+        harassment = self.object_list.filter(category="harassment")
+        mental = self.object_list.filter(category="mental")
         data = [
             {
-                "chapter": form.chapter.name,
-                "region": form.chapter.region.name,
-                "year": form.year,
-                "term": ChapterReport.TERMS.get_value(form.term),
-                "report": form.report,
+                "chapter_name": chapter.name,
+                "region": chapter.region.name,
+                "alcohol_drugs": alcohol_drugs.filter(chapter=chapter),
+                "harassment": harassment.filter(chapter=chapter),
+                "mental": mental.filter(chapter=chapter),
             }
-            for form in all_forms
+            for chapter in active_chapters
         ]
-        complete = self.filter.form.cleaned_data["complete"]
-        if complete in ["0", ""]:
-            form_chapters = all_forms.values_list("chapter__id", flat=True)
-            region_slug = self.filter.form.cleaned_data["region"]
-            region = Region.objects.filter(slug=region_slug).first()
-            active_chapters = Chapter.objects.exclude(active=False)
-            if region:
-                missing_chapters = active_chapters.exclude(id__in=form_chapters).filter(
-                    region__in=[region]
-                )
-            elif region_slug == "candidate_chapter":
-                missing_chapters = active_chapters.exclude(id__in=form_chapters).filter(
-                    candidate_chapter=True
-                )
-            else:
-                missing_chapters = active_chapters.exclude(id__in=form_chapters)
-            missing_data = [
-                {
-                    "chapter": chapter.name,
-                    "region": chapter.region.name,
-                    "report": None,
-                    "term": None,
-                    "year": None,
-                }
-                for chapter in missing_chapters
-            ]
-            if complete == "0":  # Incomplete
-                data = missing_data
-            else:  # All
-                data.extend(missing_data)
-        table = ChapterReportTable(data=data)
-        RequestConfig(self.request, paginate={"per_page": 100}).configure(table)
+        table = ChapterEducationTable(data=data)
+        RequestConfig(self.request, paginate={"per_page": 300}).configure(table)
         context["table"] = table
         return context
 
 
-class ChapterInfoReportView(LoginRequiredMixin, CreateView):
+class ChapterEducationCreateView(LoginRequiredMixin, CreateView):
     template_name = "forms/chapter_report.html"
-    form_class = ChapterReportForm
-    model = ChapterReport
+    form_class = ChapterEducationForm
+    model = ChapterEducation
 
     def get_success_url(self, form_name=None):
-        return reverse("forms:report")
+        return reverse("forms:education")
 
     def form_valid(self, form):
         report = form
@@ -1003,7 +974,7 @@ class ChapterInfoReportView(LoginRequiredMixin, CreateView):
         report.instance.chapter = chapter
         obj = report.save()
         Task.mark_complete(
-            name="Chapter Report",
+            name="Chapter Education",
             chapter=chapter,
             user=user,
             obj=obj,
@@ -1011,27 +982,25 @@ class ChapterInfoReportView(LoginRequiredMixin, CreateView):
         messages.add_message(
             self.request,
             messages.INFO,
-            "You successfully submitted the Chapter RMP and Agreements of Theta Tau!\n",
+            "You successfully submitted the Chapter Education Program\n",
         )
         return HttpResponseRedirect(self.get_success_url())
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        previous_report_rmp = ChapterReport.signed_this_semester(
+        previous_programs = ChapterEducation.submitted_this_year(
             self.request.user.current_chapter,
-            report=True,
         )
-        context.update(
-            {
-                "object": self.get_object(),
-                "previous_report": previous_report_rmp,
-            }
-        )
-        context["report"] = context.pop("form")
+        categories = [program.category for program in previous_programs]
+        incomplete_categories = [
+            category.value[1]
+            for category in ChapterEducation.CATEGORIES
+            if category.value[0] not in categories
+        ]
+        table = ChapterEducationTable(data=previous_programs)
+        context["table"] = table
+        context["incomplete_categories"] = ", ".join(incomplete_categories)
         return context
-
-    def get_object(self):
-        return self.request.user.current_chapter
 
 
 class RiskManagementFormView(LoginRequiredMixin, FormView):
@@ -2017,7 +1986,7 @@ class ConventionListView(
                 "chapter": form.chapter.name,
                 "region": form.chapter.region.name,
                 "year": form.year,
-                "term": ChapterReport.TERMS.get_value(form.term),
+                "term": Convention.TERMS.get_value(form.term),
                 "delegate": form.delegate,
                 "alternate": form.alternate,
             }
@@ -2473,7 +2442,7 @@ class OSMListView(LoginRequiredMixin, NatOfficerRequiredMixin, PagedFilteredTabl
                 "chapter": form.chapter.name,
                 "region": form.chapter.region.name,
                 "year": form.year,
-                "term": ChapterReport.TERMS.get_value(form.term),
+                "term": OSM.TERMS.get_value(form.term),
                 "nominate": form.nominate,
             }
             for form in all_forms

@@ -9,7 +9,7 @@ from django.db import models, transaction
 from django.db.utils import IntegrityError
 from django.contrib.auth.models import Group
 from django.contrib import messages
-from django.core.validators import MaxValueValidator
+from django.core.validators import MaxValueValidator, RegexValidator
 from django.conf import settings
 from django.utils import timezone
 from djmoney.models.fields import MoneyField
@@ -467,7 +467,7 @@ def get_chapter_report_upload_path(instance, filename):
     return os.path.join(
         "submissions",
         "chapter_report",
-        f"{instance.chapter.slug}_{instance.year}_{instance.term}_{filename}",
+        f"{instance.chapter.slug}_{instance.year}_{instance.term}_{instance.category}_{filename}",
     )
 
 
@@ -490,6 +490,78 @@ class ChapterReport(YearTermModel, TimeStampedModel):
             program = program.exclude(report__in=[""])
         program = program.last()
         return program
+
+
+class ChapterEducation(Process, TimeStampedModel):
+    class CATEGORIES(EnumClass):
+        alcohol_drugs = ("alcohol_drugs", "Alcohol and Drug Awareness")
+        harassment = ("harassment", "Anti-Harassment")
+        mental = ("mental", "Mental Health Recognition")
+
+    class APPROVAL(EnumClass):
+        approved = ("approved", "Approved")
+        revisions = ("revisions", "Revisions needed")
+        denied = ("denied", "Denied")
+        not_reviewed = ("not_reviewed", "Not Reviewed")
+
+    chapter = models.ForeignKey(
+        Chapter, on_delete=models.CASCADE, related_name="education"
+    )
+    report = models.FileField(upload_to=get_chapter_report_upload_path)
+    program_date = models.DateField(default=timezone.now)
+    category = models.CharField(
+        "Program category",
+        max_length=20,
+        choices=[x.value for x in CATEGORIES],
+    )
+    first_name = models.CharField(
+        _("facilitator first name"), max_length=30, blank=True
+    )
+    last_name = models.CharField(_("facilitator last name"), max_length=150, blank=True)
+    email = models.EmailField(_("facilitator email address"), blank=True)
+    title = models.CharField(
+        _("facilitator title"),
+        blank=True,
+        max_length=5,
+        choices=[
+            ("mr", "Mr."),
+            ("miss", "Miss"),
+            ("ms", "Ms"),
+            ("mrs", "Mrs"),
+            ("mx", "Mx"),
+            ("none", ""),
+        ],
+    )
+    phone_regex = RegexValidator(
+        regex=r"^\+?1?\d{9,15}$",
+        message="Phone number must be entered in the format: '+999999999'. Up to 15 digits allowed.",
+    )
+    phone_number = models.CharField(
+        _("facilitator phone number"),
+        validators=[phone_regex],
+        max_length=17,
+        blank=True,
+        help_text="Format: 9999999999 no spaces, dashes, etc.",
+    )
+    approval = models.CharField(
+        verbose_name="Pledge program approval status",
+        max_length=20,
+        choices=[x.value for x in APPROVAL],
+        default="not_reviewed",
+    )
+    approval_comments = models.TextField(
+        _("If rejecting, please explain why."), blank=True
+    )
+
+    @classmethod
+    def submitted_this_year(cls, chapter):
+        start, end = academic_encompass_start_end_date()
+        programs = cls.objects.filter(
+            chapter=chapter,
+            created__gt=start,
+            created__lt=end,
+        )
+        return programs
 
 
 class RiskManagement(YearTermModel):

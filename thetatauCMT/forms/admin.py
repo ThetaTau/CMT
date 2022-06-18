@@ -11,6 +11,7 @@ from .models import (
     Audit,
     Pledge,
     ChapterReport,
+    ChapterEducation,
     Convention,
     OSM,
     DisciplinaryProcess,
@@ -57,6 +58,22 @@ class ChapterReportAdmin(admin.ModelAdmin):
 
 
 admin.site.register(ChapterReport, ChapterReportAdmin)
+
+
+class ChapterEducationAdmin(admin.ModelAdmin):
+    list_display = ("chapter", "program_date", "category", "approval")
+    list_filter = [
+        "chapter",
+        "program_date",
+        "category",
+        "approval",
+    ]
+    ordering = [
+        "-program_date",
+    ]
+
+
+admin.site.register(ChapterEducation, ChapterEducationAdmin)
 
 
 class PledgeProgramAdmin(ImportExportActionModelAdmin):
