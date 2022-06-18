@@ -44,13 +44,6 @@ class RMPSignMiddleware(MiddlewareMixin):
                     "Your chapter must submit the New Member Education Program this semester. "
                     "Please go to Forms --> New Member Education Program",
                 )
-            if not ChapterReport.signed_this_semester(request.user.current_chapter):
-                messages.add_message(
-                    request,
-                    messages.ERROR,
-                    "Your chapter must submit the Chapter Report this semester. "
-                    "Please go to Forms -> Chapter Report",
-                )
         return response
 
 
