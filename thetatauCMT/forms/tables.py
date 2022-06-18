@@ -1,3 +1,4 @@
+from django.utils.safestring import mark_safe
 import django_tables2 as tables
 from django_tables2.utils import A
 from .models import (
@@ -150,9 +151,9 @@ class PledgeProgramTable(tables.Table):
 class ChapterEducationListTable(tables.Table):
     chapter_name = tables.Column()
     region = tables.Column()
-    alcohol_drugs = tables.Column(verbose_name="Alcohol and Drug Awareness")
-    harassment = tables.Column(verbose_name="Anti-Harassment")
-    mental = tables.Column(verbose_name="Mental Health Recognition")
+    alcohol_drugs = tables.FileColumn(verbose_name="Alcohol and Drug Awareness")
+    harassment = tables.FileColumn(verbose_name="Anti-Harassment")
+    mental = tables.FileColumn(verbose_name="Mental Health Recognition")
 
     class Meta:
         model = ChapterEducation
@@ -166,12 +167,42 @@ class ChapterEducationListTable(tables.Table):
             "mental",
         ]
 
-    def render_report(self, value, record):
+    def render_alcohol_drugs(self, value, column, record, bound_column):
+        if value:
+            value = "<br>".join(
+                [
+                    f"{approval}: {bound_column.link(column.render(record, program), value=program, record=record)}"
+                    for approval, program in value
+                ]
+            )
+            if "Approved" in value:
+                column.attrs = {"td": {"bgcolor": "#40B0A6"}}
+            elif "Revisions" in value or "Denied" in value:
+                column.attrs = {"td": {"bgcolor": "#E1BE6A"}}
+            else:
+                column.attrs = {"td": {}}
+        else:
+            value = ""
+        return mark_safe(value)
+
+    def render_harassment(self, value):
+        if value:
+            value = value[0]
+        else:
+            value = ""
+        return value
+
+    def render_mental(self, value):
+        if value:
+            value = value[0]
+        else:
+            value = ""
         return value
 
 
 class ChapterEducationTable(tables.Table):
     category = tables.Column()
+    approval_comments = tables.Column(verbose_name="Review Comments")
     program_date = tables.DateColumn()
 
     class Meta:
@@ -181,12 +212,13 @@ class ChapterEducationTable(tables.Table):
         fields = [
             "program_date",
             "category",
-            "approved",
+            "approval",
+            "approval_comments",
             "report",
         ]
 
-    def render_report(self, value, record):
-        return value
+    # def render_approval(self, value):
+    #     return ChapterEducation.APPROVAL.get_value(value)
 
 
 class RiskFormTable(tables.Table):

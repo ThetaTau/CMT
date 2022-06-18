@@ -467,7 +467,7 @@ def get_chapter_report_upload_path(instance, filename):
     return os.path.join(
         "submissions",
         "chapter_report",
-        f"{instance.chapter.slug}_{instance.year}_{instance.term}_{instance.category}_{filename}",
+        f"{instance.chapter.slug}_{instance.year}_{instance.term}_{filename}",
     )
 
 
@@ -492,6 +492,14 @@ class ChapterReport(YearTermModel, TimeStampedModel):
         return program
 
 
+def get_chapter_education_upload_path(instance, filename):
+    return os.path.join(
+        "submissions",
+        "chapter_education",
+        f"{instance.chapter.slug}_{instance.program_date}_{instance.category}_{filename}",
+    )
+
+
 class ChapterEducation(Process, TimeStampedModel):
     class CATEGORIES(EnumClass):
         alcohol_drugs = ("alcohol_drugs", "Alcohol and Drug Awareness")
@@ -507,7 +515,7 @@ class ChapterEducation(Process, TimeStampedModel):
     chapter = models.ForeignKey(
         Chapter, on_delete=models.CASCADE, related_name="education"
     )
-    report = models.FileField(upload_to=get_chapter_report_upload_path)
+    report = models.FileField(upload_to=get_chapter_education_upload_path)
     program_date = models.DateField(default=timezone.now)
     category = models.CharField(
         "Program category",
@@ -544,7 +552,7 @@ class ChapterEducation(Process, TimeStampedModel):
         help_text="Format: 9999999999 no spaces, dashes, etc.",
     )
     approval = models.CharField(
-        verbose_name="Pledge program approval status",
+        verbose_name="Program approval status",
         max_length=20,
         choices=[x.value for x in APPROVAL],
         default="not_reviewed",

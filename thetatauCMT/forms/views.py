@@ -81,6 +81,7 @@ from .forms import (
     CompleteFormHelper,
     ConventionForm,
     ChapterEducationForm,
+    ChapterEducationListFormHelper,
     OSMForm,
     DisciplinaryForm1,
     DisciplinaryForm2,
@@ -148,6 +149,7 @@ from .filters import (
     PledgeProgramListFilter,
     CompleteListFilter,
     RiskListFilter,
+    EducationListFilter,
 )
 from .notifications import (
     EmailRMPSigned,
@@ -915,8 +917,8 @@ class ChapterEducationListView(
     model = ChapterEducation
     context_object_name = "chapter_education_list"
     table_class = ChapterEducationListTable
-    filter_class = CompleteListFilter
-    formhelper_class = CompleteFormHelper
+    filter_class = EducationListFilter
+    formhelper_class = ChapterEducationListFormHelper
 
     def get_queryset(self, **kwargs):
         qs = ChapterEducation.objects.all()
@@ -946,13 +948,22 @@ class ChapterEducationListView(
             {
                 "chapter_name": chapter.name,
                 "region": chapter.region.name,
-                "alcohol_drugs": alcohol_drugs.filter(chapter=chapter),
-                "harassment": harassment.filter(chapter=chapter),
-                "mental": mental.filter(chapter=chapter),
+                "alcohol_drugs": [
+                    (program.get_approval_display(), program.report)
+                    for program in alcohol_drugs.filter(chapter=chapter)
+                ],
+                "harassment": [
+                    (program.get_approval_display(), program.report)
+                    for program in harassment.filter(chapter=chapter)
+                ],
+                "mental": [
+                    (program.get_approval_display(), program.report)
+                    for program in mental.filter(chapter=chapter)
+                ],
             }
             for chapter in active_chapters
         ]
-        table = ChapterEducationTable(data=data)
+        table = ChapterEducationListTable(data=data)
         RequestConfig(self.request, paginate={"per_page": 300}).configure(table)
         context["table"] = table
         return context

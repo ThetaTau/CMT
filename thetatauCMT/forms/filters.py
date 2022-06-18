@@ -2,7 +2,7 @@
 import django_filters
 from core.filters import DateRangeFilter
 from django.forms.widgets import NumberInput
-from .models import Audit, PledgeProgram
+from .models import Audit, PledgeProgram, ChapterEducation
 from chapters.models import Chapter
 from regions.models import Region
 
@@ -91,3 +91,24 @@ class RiskListFilter(django_filters.FilterSet):
         fields = ["region", "term", "year"]
         model = Chapter  # This is needed to automatically make year/term
         order_by = ["chapter"]
+
+
+class EducationListFilter(django_filters.FilterSet):
+    region = django_filters.ChoiceFilter(
+        label="Region", choices=Region.region_choices(), method="filter_region"
+    )
+    program_date = DateRangeFilter()
+
+    class Meta:
+        model = ChapterEducation  # This is needed to automatically make year/term
+        fields = ["region", "program_date"]
+        order_by = ["chapter"]
+
+    def filter_region(self, queryset, field_name, value):
+        if value == "national":
+            return queryset
+        elif value == "candidate_chapter":
+            queryset = queryset.filter(chapter__candidate_chapter=True)
+        else:
+            queryset = queryset.filter(chapter__region__slug=value)
+        return queryset
