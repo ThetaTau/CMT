@@ -2,7 +2,6 @@ import datetime
 import io
 import os
 import csv
-from enum import Enum
 from pathlib import Path
 from address.models import AddressField
 from email.mime.base import MIMEBase
@@ -14,7 +13,6 @@ from django.core.validators import MaxValueValidator
 from django.conf import settings
 from django.utils import timezone
 from djmoney.models.fields import MoneyField
-from core.models import TimeStampedModel, YearTermModel, no_future
 from django.utils.translation import gettext_lazy as _
 from multiselectfield import MultiSelectField
 from viewflow.models import Process
@@ -28,6 +26,10 @@ from core.models import (
     CHAPTER_OFFICER_CHOICES,
     academic_encompass_start_end_date,
     semester_encompass_start_end_date,
+    EnumClass,
+    TimeStampedModel,
+    YearTermModel,
+    no_future,
     EnumClass,
 )
 from chapters.models import Chapter
@@ -90,20 +92,13 @@ class PledgeProgram(YearTermModel, TimeStampedModel):
             "term",
         )
 
-    class MANUALS(Enum):
+    class MANUALS(EnumClass):
         basic = ("basic", "Basic")
         nontrad = ("nontrad", "Non-traditional")
         standard = ("standard", "Standard")
         other = ("other", "Other")
 
-        @classmethod
-        def get_value(cls, member):
-            value = ""
-            if hasattr(cls, member):
-                value = cls[member].value[1]
-            return value
-
-    class STATUS(Enum):
+    class STATUS(EnumClass):
         none = ("none", "")
         initiated = (
             "initiated",
@@ -118,10 +113,6 @@ class PledgeProgram(YearTermModel, TimeStampedModel):
             "We completed new member education but we still need to vote and initiate our pledges.",
         )
         not_complete = ("not_complete", "We did not complete new member education.")
-
-        @classmethod
-        def get_value(cls, member):
-            return cls[member].value[1]
 
     chapter = models.ForeignKey(
         Chapter, on_delete=models.CASCADE, related_name="pledge_programs"
@@ -379,7 +370,7 @@ class Depledge(TimeStampedModel):
 
 
 class StatusChange(TimeStampedModel):
-    class REASONS(Enum):
+    class REASONS(EnumClass):
         graduate = ("graduate", "Member is graduating")  # Graduated from school
         coop = ("coop", "Member is going on CoOp or Study abroad")  # Co-Op/Internship
         covid = (
@@ -400,11 +391,7 @@ class StatusChange(TimeStampedModel):
         )  # Transferring to another school
         resignedCC = ("resignedCC", "Member is resigning from candidate chapter")
 
-        @classmethod
-        def get_value(cls, member):
-            return cls[member].value[1]
-
-    class DEGREES(Enum):
+    class DEGREES(EnumClass):
         BS = ("bs", "Bachelor of Science")
         MS = ("ms", "Master of Science")
         MBA = ("mba", "Master of Business Administration")
@@ -412,10 +399,6 @@ class StatusChange(TimeStampedModel):
         BA = ("ba", "Bachelor of Arts")
         MA = ("ma", "Master of Arts")
         ME = ("me", "Master of Engineering")
-
-        @classmethod
-        def get_value(cls, member):
-            return cls[member].value[1]
 
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -777,7 +760,7 @@ def get_premature_alumn_upload_path(instance, filename):
 
 
 class PrematureAlumnus(Process):
-    class TYPES(Enum):
+    class TYPES(EnumClass):
         less4 = (
             "less4",
             "Undergraduate Student (initiated into Theta Tau less than four years ago.)",
@@ -790,10 +773,6 @@ class PrematureAlumnus(Process):
             "grad",
             "Student in Graduate school at the school where initiated as an undergraduate.",
         )
-
-        @classmethod
-        def get_value(cls, member):
-            return cls[member].value[1]
 
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -847,7 +826,7 @@ def get_badge_order_upload_path(instance, filename):
 
 
 class InitiationProcess(Process):
-    class CEREMONIES(Enum):
+    class CEREMONIES(EnumClass):
         normal = (
             "normal",
             "Normal in-person ceremony",
@@ -860,10 +839,6 @@ class InitiationProcess(Process):
             "remote",
             "Remote extraordinary initiation ceremony",
         )
-
-        @classmethod
-        def get_value(cls, member):
-            return cls[member].value[1]
 
     initiations = models.ManyToManyField(Initiation, related_name="process", blank=True)
     invoice = models.PositiveIntegerField("Invoice Number", default=999999999)
