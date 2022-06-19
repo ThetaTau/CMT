@@ -42,6 +42,7 @@
       {% csrf_token %}
         {{ form.media }}
         <div>{{ form|crispy }}</div>
+      {{ activation.management_form }}
         <button class="btn btn-primary" name='action' value='chapter_report' type="submit">Submit Chapter Report
         </button>
     </form>

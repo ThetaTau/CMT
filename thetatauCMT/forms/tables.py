@@ -148,6 +148,26 @@ class PledgeProgramTable(tables.Table):
             return PledgeProgramProcess.APPROVAL.get_value(value)
 
 
+def render_education_category(value, column, record, bound_column):
+    column.attrs = {"td": {}}
+    if value:
+        value = "<br>".join(
+            [
+                f"{approval}: {bound_column.link(column.render(record, program), value=program, record=record)}"
+                for approval, program in value
+            ]
+        )
+        if "Approved" in value:
+            column.attrs = {"td": {"bgcolor": "#40B0A6"}}
+        elif (
+            "Revisions" in value or "Denied" in value
+        ) and "Not Reviewed" not in value:
+            column.attrs = {"td": {"bgcolor": "#E1BE6A"}}
+    else:
+        value = ""
+    return mark_safe(value)
+
+
 class ChapterEducationListTable(tables.Table):
     chapter_name = tables.Column()
     region = tables.Column()
@@ -168,36 +188,13 @@ class ChapterEducationListTable(tables.Table):
         ]
 
     def render_alcohol_drugs(self, value, column, record, bound_column):
-        if value:
-            value = "<br>".join(
-                [
-                    f"{approval}: {bound_column.link(column.render(record, program), value=program, record=record)}"
-                    for approval, program in value
-                ]
-            )
-            if "Approved" in value:
-                column.attrs = {"td": {"bgcolor": "#40B0A6"}}
-            elif "Revisions" in value or "Denied" in value:
-                column.attrs = {"td": {"bgcolor": "#E1BE6A"}}
-            else:
-                column.attrs = {"td": {}}
-        else:
-            value = ""
-        return mark_safe(value)
+        return render_education_category(value, column, record, bound_column)
 
-    def render_harassment(self, value):
-        if value:
-            value = value[0]
-        else:
-            value = ""
-        return value
+    def render_harassment(self, value, column, record, bound_column):
+        return render_education_category(value, column, record, bound_column)
 
-    def render_mental(self, value):
-        if value:
-            value = value[0]
-        else:
-            value = ""
-        return value
+    def render_mental(self, value, column, record, bound_column):
+        return render_education_category(value, column, record, bound_column)
 
 
 class ChapterEducationTable(tables.Table):
@@ -207,7 +204,7 @@ class ChapterEducationTable(tables.Table):
 
     class Meta:
         model = ChapterEducation
-        order_by = "program_date"
+        order_by = "-program_date"
         attrs = {"class": "table table-striped table-bordered"}
         fields = [
             "program_date",

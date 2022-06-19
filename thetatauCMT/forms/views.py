@@ -42,6 +42,7 @@ from core.models import (
     TODAY_END,
     current_term,
     current_year,
+    current_year_term_slug,
 )
 from core.views import (
     OfficerRequiredMixin,
@@ -929,10 +930,10 @@ class ChapterEducationListView(
         if not request_get:
             # Create a mutable QueryDict object, default is immutable
             request_get = QueryDict(mutable=True)
-            request_get.setlist("date", [""])
+            request_get.setlist("program_date", [""])
         if not cancel:
-            if request_get.get("date", "") == "":
-                request_get["date"] = datetime.datetime.now().date()
+            if request_get.get("program_date", "") == "":
+                request_get["program_date"] = current_year_term_slug()
         self.filter = self.filter_class(request_get, queryset=qs)
         self.filter.request = self.request
         self.filter.form.helper = self.formhelper_class()
@@ -940,7 +941,7 @@ class ChapterEducationListView(
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        active_chapters = Chapter.objects.exclude(active=False)
+        active_chapters, dates = active_chapters_filter(self.filter)
         alcohol_drugs = self.object_list.filter(category="alcohol_drugs")
         harassment = self.object_list.filter(category="harassment")
         mental = self.object_list.filter(category="mental")
@@ -969,13 +970,44 @@ class ChapterEducationListView(
         return context
 
 
-class ChapterEducationCreateView(LoginRequiredMixin, CreateView):
+class ChapterEducationCreateView(
+    LoginRequiredMixin, OfficerRequiredMixin, CreateProcessView
+):
     template_name = "forms/chapter_report.html"
     form_class = ChapterEducationForm
     model = ChapterEducation
 
     def get_success_url(self, form_name=None):
-        return reverse("forms:education")
+        return reverse("viewflow:forms:chaptereducation:start")
+
+    def activation_done(self, *args, **kwargs):
+        self.activation.done()
+        EmailProcessUpdate(
+            self.activation,
+            complete_step="Chapter Education Program Submitted",
+            next_step="Central Office Review",
+            state="Pending Central Office Review",
+            message=(
+                "Your chapter has submitted a Chapter Education Program."
+                " Once the Central Office reviewed the program, "
+            ),
+            fields=[
+                "program_date",
+                "category",
+                "first_name",
+                "last_name",
+                "email",
+                "phone_number",
+            ],
+            attachments=["report"],
+            email_officers=True,
+            extra_emails={
+                self.request.user.current_chapter.region.email,
+                "central.office@thetatau.org",
+            },
+            direct_user=self.request.user,
+        ).send()
+        self.success("You successfully submitted the Chapter Education Program")
 
     def form_valid(self, form):
         report = form
@@ -983,30 +1015,22 @@ class ChapterEducationCreateView(LoginRequiredMixin, CreateView):
         user = self.request.user
         report.instance.user = user
         report.instance.chapter = chapter
-        obj = report.save()
-        Task.mark_complete(
-            name="Chapter Education",
-            chapter=chapter,
-            user=user,
-            obj=obj,
-        )
-        messages.add_message(
-            self.request,
-            messages.INFO,
-            "You successfully submitted the Chapter Education Program\n",
-        )
-        return HttpResponseRedirect(self.get_success_url())
+        return super().form_valid(form)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         previous_programs = ChapterEducation.submitted_this_year(
             self.request.user.current_chapter,
         )
-        categories = [program.category for program in previous_programs]
+        complete_categories = [
+            program.category
+            for program in previous_programs
+            if program.approval not in ["denied", "revisions"]
+        ]
         incomplete_categories = [
             category.value[1]
             for category in ChapterEducation.CATEGORIES
-            if category.value[0] not in categories
+            if category.value[0] not in complete_categories
         ]
         table = ChapterEducationTable(data=previous_programs)
         context["table"] = table
@@ -1128,6 +1152,27 @@ class RollBookPDFDownload(RollBookPDFView):
         return f"RollBookPage_{self.object.chapter.slug}_{self.object.user_id}.pdf"
 
 
+def active_chapters_filter(filter_obj):
+    chapters_list = Chapter.objects.exclude(active=False)
+    region = None
+    region_slug = None
+    dates = semester_encompass_start_end_date(TODAY_END)
+    if filter_obj.is_bound and filter_obj.is_valid():
+        year = filter_obj.form.cleaned_data.get("year", current_year())
+        term = filter_obj.form.cleaned_data.get("term", current_term())
+        dates = semester_encompass_start_end_date(term=term, year=year)
+        region_slug = filter_obj.form.cleaned_data.get("region", "national")
+        region = Region.objects.filter(slug=region_slug).first()
+    active_chapters = Chapter.objects.exclude(active=False)
+    if region_slug == "national":
+        chapters_list = active_chapters
+    elif region:
+        chapters_list = active_chapters.filter(region__in=[region])
+    elif region_slug == "candidate_chapter":
+        chapters_list = active_chapters.filter(candidate_chapter=True)
+    return chapters_list, dates
+
+
 class RiskManagementListView(
     LoginRequiredMixin, NatOfficerRequiredMixin, PagedFilteredTableView
 ):
@@ -1160,23 +1205,7 @@ class RiskManagementListView(
             request_get = None
         self.filter = self.filter_class(request_get)
         self.filter.form.helper = self.formhelper_class()
-        self.chapters_list = Chapter.objects.exclude(active=False)
-        region = None
-        region_slug = None
-        dates = semester_encompass_start_end_date(TODAY_END)
-        if self.filter.is_bound and self.filter.is_valid():
-            year = self.filter.form.cleaned_data.get("year", current_year())
-            term = self.filter.form.cleaned_data.get("term", current_term())
-            dates = semester_encompass_start_end_date(term=term, year=year)
-            region_slug = self.filter.form.cleaned_data.get("region", "national")
-            region = Region.objects.filter(slug=region_slug).first()
-        active_chapters = Chapter.objects.exclude(active=False)
-        if region_slug == "national":
-            self.chapters_list = active_chapters
-        elif region:
-            self.chapters_list = active_chapters.filter(region__in=[region])
-        elif region_slug == "candidate_chapter":
-            self.chapters_list = active_chapters.filter(candidate_chapter=True)
+        self.chapters_list, dates = active_chapters_filter(self.filter)
         start, end = dates
         qs = User.objects.filter(
             status__status__in=["active", "activepend"],

@@ -23,10 +23,12 @@ from .models import (
     ResignationProcess,
     ReturnStudent,
     PledgeProgramProcess,
+    ChapterEducation,
 )
 from .views import (
     PrematureAlumnusCreateView,
     ConventionCreateView,
+    ChapterEducationCreateView,
     ConventionSignView,
     FilterableFlowViewSet,
     FilterableInvoiceFlowViewSet,
@@ -1479,6 +1481,105 @@ class PledgeProgramProcessFlow(Flow):
                 "approved the pledge program for you chapter."
             ),
             fields=["approval", "approval_comments"],
+            attachments=[],
+            email_officers=True,
+            extra_emails={
+                model_obj.chapter.region.email,
+            },
+            direct_user=activation.process.created_by,
+        ).send()
+
+
+@register_factory(viewset_class=FilterableFlowViewSet)
+class ChapterEducationFlow(Flow):
+    """
+    Chapter officer can submit chapter education program
+    Send to RD/central office
+    Approve/deny/revise
+    Approve done
+    deny/revise sent to chapter to fix
+    """
+
+    process_class = ChapterEducation
+    process_title = _("Chapter Education Program Review Process")
+    process_description = _("This process is for chapter education programs.")
+
+    start = flow.Start(
+        ChapterEducationCreateView,
+        task_title=_("Submit Chapter Education Program Form"),
+    ).Next(this.review)
+
+    review = (
+        NoAssignView(
+            AutoAssignUpdateProcessView,
+            fields=["approval", "approval_comments"],
+            task_title=_("Central Office Review"),
+            task_description=_("Review of Chapter Education Program by Central Office"),
+            task_result_summary=_("Program was: {{ process.get_approval_display  }}"),
+        )
+        .Permission("auth.central_office")
+        .Next(this.check_approve)
+    )
+
+    check_approve = (
+        flow.Switch()
+        .Case(this.reject_fix, cond=lambda act: act.process.approval == "denied")
+        .Case(this.reject_fix, cond=lambda act: act.process.approval == "revisions")
+        .Case(this.approve, cond=lambda act: act.process.approval == "approved")
+        .Default(this.end)
+    )
+
+    reject_fix = flow.Handler(
+        this.reject_fix_func,
+        task_title=_("Reject Fix Chapter Education Program"),
+    ).Next(this.end_reject)
+
+    approve = flow.Handler(
+        this.approve_func,
+        task_title=_("Approve Chapter Education Program"),
+    ).Next(this.end)
+
+    end_reject = flow.End(
+        task_title=_("Rejected Chapter Education Program"),
+    )
+
+    end = flow.End(
+        task_title=_("Complete Chapter Education Program"),
+    )
+
+    def reject_fix_func(self, activation):
+        model_obj = activation.process
+        EmailProcessUpdate(
+            activation,
+            complete_step="Chapter Education Program Reviewed",
+            next_step="Chapter Resubmit",
+            state="Chapter Education Program Rejected",
+            message=(
+                "This is a notification that the Central Office has "
+                "rejected the chapter education program submitted for you chapter."
+                "Please review the notes and resubmit ASAP."
+            ),
+            fields=["program_date", "category", "approval", "approval_comments"],
+            attachments=[],
+            email_officers=True,
+            extra_emails={
+                model_obj.chapter.region.email,
+            },
+            direct_user=activation.process.created_by,
+        ).send()
+
+    def approve_func(self, activation):
+        model_obj = activation.process
+        EmailProcessUpdate(
+            activation,
+            complete_step="Chapter Education Program Reviewed",
+            next_step="Complete",
+            state="Chapter Education Program Approved",
+            message=(
+                "This is a notification that the Central Office has "
+                "approved the chapter education program submitted for you chapter."
+            ),
+            fields=["program_date", "category", "approval", "approval_comments"],
             attachments=[],
             email_officers=True,
             extra_emails={
