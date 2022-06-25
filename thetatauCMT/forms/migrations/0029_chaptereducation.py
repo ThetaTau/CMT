@@ -112,7 +112,7 @@ class Migration(migrations.Migration):
                         ],
                         default="not_reviewed",
                         max_length=20,
-                        verbose_name="Pledge program approval status",
+                        verbose_name="Program approval status",
                     ),
                 ),
                 (
