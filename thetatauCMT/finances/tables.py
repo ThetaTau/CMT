@@ -3,7 +3,9 @@ from .models import Invoice
 
 
 class InvoiceTable(tables.Table):
-    link = tables.TemplateColumn('<a href="{{record.link}}">Invoice Link</a>')
+    link = tables.TemplateColumn(
+        '{%if record.link %}<a href="{{record.link}}" target="_blank">Invoice Link</a>{% endif %}'
+    )
     description = tables.TemplateColumn("{{ value|safe }}")
 
     class Meta:
@@ -13,6 +15,7 @@ class InvoiceTable(tables.Table):
             "description",
             "total",
         )
+        order_by = "-due_date"
         attrs = {"class": "table table-striped table-bordered"}
         empty_text = "There are no invoices matching the search criteria..."
 

@@ -8,7 +8,7 @@ from chapters.models import Chapter
 
 class Invoice(TimeStampedModel):
     due_date = models.DateField(default=timezone.now)
-    central_id = models.PositiveIntegerField(null=True, blank=True)
+    central_id = models.CharField(max_length=50, null=True, blank=True)
     description = RichTextUploadingField()
     total = MoneyField(max_digits=19, decimal_places=4, default_currency="USD")
     chapter = models.ForeignKey(

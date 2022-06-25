@@ -50,6 +50,9 @@ class Command(BaseCommand):
             except Chapter.DoesNotExist:
                 print(f"    Chapter matching {chapter_name} does not exist")
                 continue
+            if not chapter.active:
+                print("    Chapter not active")
+                continue
             balance = customer.Balance
             print("    New balance: ", balance)
             if live:
@@ -104,10 +107,14 @@ class Command(BaseCommand):
             if not balance > 0:
                 continue
             invoices = QBInvoice.query(
-                select=f"select * from Invoice where balance > '0' AND CustomerRef = '{customer.Id}'",
+                select=f"select * from Invoice where "
+                # f"balance > '0' AND "
+                f"CustomerRef = '{customer.Id}' ORDER BY DueDate DESC",
                 qb=client,
             )
-            for invoice_res in invoices:
+            total = len(invoices)
+            for count, invoice_res in enumerate(invoices):
+                print(f"    Invoice {count+1}/{total}")
                 invoice = QBInvoice.get(invoice_res.Id, qb=client)
                 Invoice(
                     link=invoice.InvoiceLink,
