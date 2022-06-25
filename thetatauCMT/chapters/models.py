@@ -6,6 +6,7 @@ from pathlib import Path
 from enum import Enum
 from datetime import timedelta
 from django.contrib import messages
+from django.utils.timezone import make_aware
 from django.db import models
 from django.db.models.functions import Concat
 from django.core.validators import RegexValidator
@@ -361,6 +362,21 @@ class Chapter(models.Model):
         )
         return self.initiations.filter(date__lte=semester_end, date__gte=semester_start)
 
+    def pledges_with_no_init_last_x_months(self, months=6):
+        # If there are pledges that have not been initiated in X months
+        #   not initiations filed in last X months as 1 person could have been init in a class of X
+        return self.pledges(date=TODAY_END - timedelta(30 * months)).filter(
+            initiation__isnull=True
+        )
+
+    def pledges_last_x_months(self, months=8):
+        from forms.models import Pledge
+
+        return Pledge.objects.filter(
+            user__chapter=self,
+            created__gte=make_aware(TODAY_END - timedelta(30 * months)),
+        )
+
     def current_members(self):
         return self.actives() | self.pledges()
 
@@ -434,12 +450,12 @@ class Chapter(models.Model):
             status__end__gte=TODAY_END,
         ).distinct()
 
-    def pledges(self):
+    def pledges(self, date=TODAY_END):
         # Do not annotate, need the queryset not a list
         return self.members.filter(
             status__status="pnm",
-            status__start__lte=TODAY_END,
-            status__end__gte=TODAY_END,
+            status__start__lte=date,
+            status__end__gte=date,
         ).distinct()
 
     def pledges_semester(self, given_date):
