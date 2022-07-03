@@ -235,8 +235,8 @@ class InitDeplSelectView(LoginRequiredMixin, OfficerRequiredMixin, FormSetView):
                 pledge_created = last_pledge.created
             pledge_data.append(
                 {
-                    "pledge": pledge_created,
-                    "submitted": process.created,
+                    "last_pledge": pledge_created,
+                    "first_pledge": process.created,
                     "status": status,
                     "pledge_names": pledges,
                 }

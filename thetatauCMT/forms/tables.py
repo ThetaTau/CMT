@@ -28,8 +28,8 @@ class BadgeTable(tables.Table):
 
 
 class PledgeFormTable(tables.Table):
-    pledge = tables.DateColumn(verbose_name="Pledge Date")
-    submitted = tables.DateColumn()
+    first_pledge = tables.DateColumn(verbose_name="First Pledge Date")
+    last_pledge = tables.DateColumn(verbose_name="Last Pledge Date")
     status = tables.Column()
     pledge_names = tables.Column()
 
