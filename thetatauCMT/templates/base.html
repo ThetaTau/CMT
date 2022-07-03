@@ -189,30 +189,9 @@
                     <li class="dropdown-item">
                       <a class="nav-link" href="{% url 'regions:advisors' 'national' %}">{% trans "All Advisors" %}</a>
                     </li>
-                    <li class="dropdown"><a class="dropdown-item dropdown-toggle" href="#">Chapter Forms</a>
-                      <ul class="dropdown-menu">
-                        <li class="dropdown-item">
-                          <a class="nav-link" href="{% url 'forms:education_list' %}">{% trans "Education Programs" %}</a>
-                        </li>
-                        <li class="dropdown-item">
-                          <a class="nav-link" href="{% url 'forms:audit_list' %}">{% trans "All Audits" %}</a>
-                        </li>
-                        <li class="dropdown-item">
-                          <a class="nav-link" href="{% url 'forms:pledge_program_list' %}">{% trans "All Pledge Programs" %}</a>
-                        </li>
-                        <li class="dropdown-item">
-                          <a class="nav-link" href="{% url 'forms:rmp_list' %}">{% trans "All RMP" %}</a>
-                        </li>
-                        <li class="dropdown-item">
-                          <a class="nav-link" href="{% url 'forms:convention_list' %}">{% trans "All Convention Forms" %}</a>
-                        </li>
-                        <li class="dropdown-item">
-                          <a class="nav-link" href="{% url 'forms:osm_list' %}">{% trans "All OSM Forms" %}</a>
-                        </li>
-                        <li class="dropdown-item">
-                          <a class="nav-link" href="{% url 'submissions:gearlist' %}">{% trans "All Gear Submissions" %}</a>
-                        </li>
-                      </ul>
+                    <li class="dropdown-item">
+                      <a class="nav-link" href="{% url 'forms:landing' %}">{% trans "All Forms" %}</a>
+                    </li>
                   <li class="dropdown"><a class="dropdown-item dropdown-toggle" href="#">Chapter Info</a>
                     <ul class="dropdown-menu">
                       <li class="dropdown-item">

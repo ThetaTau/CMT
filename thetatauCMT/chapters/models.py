@@ -544,6 +544,13 @@ class Chapter(models.Model):
         corsec = officers.filter(role="corresponding secretary").first()
         return [regent, scribe, vice, treasurer, corsec]
 
+    def council_emails(self):
+        officers = self.get_current_officers_council_specific()
+        emails = set([officer.email for officer in officers if officer]) | set(
+            self.get_generic_chapter_emails()
+        )
+        return emails
+
     def get_generic_chapter_emails(self):
         return [
             self.email_regent,

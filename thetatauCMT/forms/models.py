@@ -1956,3 +1956,19 @@ class ReturnStudent(Process):
         """The status change for the member was approved by a four-fifths favorable vote of the chapter."""
     )
     vote = models.BooleanField(verbose_vote, default=False)
+
+
+def get_chapter_bylaws_upload_path(instance, filename):
+    return os.path.join(
+        "submissions",
+        "bylaws",
+        f"{instance.chapter.slug}_{instance.created.strftime('%Y%m%d')}_{filename}",
+    )
+
+
+class Bylaws(TimeStampedModel):
+    chapter = models.ForeignKey(
+        Chapter, on_delete=models.CASCADE, related_name="bylaws"
+    )
+    bylaws = models.FileField(upload_to=get_chapter_bylaws_upload_path)
+    changes = models.TextField(_("Summary of Changes"))

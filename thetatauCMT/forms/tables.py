@@ -3,6 +3,7 @@ import django_tables2 as tables
 from django_tables2.utils import A
 from .models import (
     Badge,
+    Bylaws,
     Depledge,
     StatusChange,
     Audit,
@@ -369,3 +370,38 @@ class ResignationListTable(tables.Table):
         attrs = {
             "class": "table table-striped table-bordered",
         }
+
+
+class BylawsListTable(tables.Table):
+    class Meta:
+        model = Bylaws
+        order_by = "-created"
+        sequence = (
+            "...",
+            "created",
+            "bylaws",
+            "changes",
+        )
+        fields = (
+            "created",
+            "bylaws",
+            "changes",
+        )
+        attrs = {"class": "table table-striped table-bordered"}
+
+    def __init__(
+        self,
+        chapter=False,
+        *args,
+        **kwargs,
+    ):
+        extra_columns = []
+        if chapter:
+            extra_columns.extend(
+                [
+                    ("chapter", tables.Column("Chapter")),
+                    ("chapter.region", tables.Column("Region")),
+                ]
+            )
+        kwargs["extra_columns"] = extra_columns
+        super().__init__(*args, **kwargs)

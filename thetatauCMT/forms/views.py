@@ -44,6 +44,7 @@ from core.models import (
     current_year,
     current_year_term_slug,
 )
+from core.notifications import GenericEmail
 from core.views import (
     OfficerRequiredMixin,
     LoginRequiredMixin,
@@ -56,6 +57,8 @@ from surveys.notifications import DepledgeSurveyEmail, SurveyEmail
 from users.tables import RollBookTable
 from .forms import (
     InitiationFormSet,
+    BylawsForm,
+    BylawsListFormHelper,
     InitiationForm,
     InitiationFormHelper,
     InitDeplSelectForm,
@@ -106,6 +109,7 @@ from chapters.models import Chapter, ChapterCurricula
 from regions.models import Region
 from .tables import (
     BadgeTable,
+    BylawsListTable,
     InitiationTable,
     DepledgeTable,
     StatusChangeTable,
@@ -128,6 +132,7 @@ from .tables import (
 )
 from .models import (
     Badge,
+    Bylaws,
     Depledge,
     StatusChange,
     RiskManagement,
@@ -147,6 +152,7 @@ from .models import (
 )
 from .filters import (
     AuditListFilter,
+    BylawsListFilter,
     PledgeProgramListFilter,
     CompleteListFilter,
     RiskListFilter,
@@ -3010,4 +3016,97 @@ class PledgeProgramProcessCreateView(
                 submitted = "approved"
         context["submitted"] = submitted
         context["table"] = PledgeProgramStatusTable(data=data)
+        return context
+
+
+class BylawsListView(
+    LoginRequiredMixin, NatOfficerRequiredMixin, PagedFilteredTableView
+):
+    model = Bylaws
+    context_object_name = "bylaws_list"
+    table_class = BylawsListTable
+    filter_class = BylawsListFilter
+    formhelper_class = BylawsListFormHelper
+
+    def get_queryset(self, **kwargs):
+        qs = Bylaws.objects.all()
+        cancel = self.request.GET.get("cancel", False)
+        request_get = self.request.GET.copy()
+        if cancel:
+            request_get = QueryDict(mutable=True)
+        if not request_get:
+            # Create a mutable QueryDict object, default is immutable
+            request_get = QueryDict(mutable=True)
+        self.filter = self.filter_class(request_get, queryset=qs)
+        self.filter.request = self.request
+        self.filter.form.helper = self.formhelper_class()
+        return self.filter.qs
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        active_chapters, dates = active_chapters_filter(self.filter)
+        # Filter for the last submitted for each chapter
+        # https://stackoverflow.com/questions/2074514/django-query-that-get-most-recent-objects-from-different-categories
+        bylaws = (
+            Bylaws.objects.order_by("chapter__id", "-created")
+            .distinct("chapter__id")
+            .filter(chapter__id__in=active_chapters.values_list("id", flat=True))
+        )
+        bylaws_chapters = bylaws.values_list("chapter__id", flat=True)
+
+        class Missing:
+            name = ""
+
+        missing_data = [
+            {
+                "created": "",
+                "bylaws": Missing,
+                "changes": "",
+                "chapter": chapter.name,
+                "chapter.region": chapter.region.name,
+            }
+            for chapter in active_chapters.exclude(id__in=bylaws_chapters)
+        ]
+        data = list(bylaws) + missing_data
+        table = BylawsListTable(data=data, chapter=True, order_by="chapter")
+        context["table"] = table
+        return context
+
+
+class BylawsCreateView(
+    LoginRequiredMixin,
+    OfficerRequiredMixin,
+    CreateView,
+):
+    form_class = BylawsForm
+    model = Bylaws
+
+    def get_success_url(self):
+        chapter = self.object.chapter
+        GenericEmail(
+            emails=chapter.council_emails(),
+            cc={"central.office@thetatau.org", chapter.region.email},
+            addressee=f"{chapter.full_name} Officers",
+            subject=f"{chapter.full_name} Bylaws Update",
+            message=f"Updated bylaws were submitted. <br>With the following changes:<br>{self.object.changes} <br><br>Please see attached document.",
+            attachments=[self.object.bylaws],
+        ).send()
+        messages.add_message(
+            self.request,
+            messages.INFO,
+            f"You successfully submitted updated chapter bylaws. "
+            f"An email was sent to the Executive Director and Regional Directors",
+        )
+        return reverse("forms:bylaws")
+
+    def form_valid(self, form):
+        chapter = self.request.user.current_chapter
+        form.instance.chapter = chapter
+        return super().form_valid(form)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        data = Bylaws.objects.filter(chapter=self.request.user.current_chapter)
+        table = BylawsListTable(data=data)
+        context["table"] = table
         return context

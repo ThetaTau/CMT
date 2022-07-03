@@ -36,6 +36,7 @@ from core.models import CHAPTER_ROLES_CHOICES, NAT_OFFICERS_CHOICES
 from users.models import User, UserRoleChange, UserDemographic
 from .models import (
     Initiation,
+    Bylaws,
     Depledge,
     StatusChange,
     RiskManagement,
@@ -621,6 +622,34 @@ class ChapterEducationListFormHelper(FormHelper):
     )
 
 
+class BylawsListFormHelper(FormHelper):
+    form_method = "GET"
+    form_id = "bylaws-list-form"
+    form_class = "form-inline"
+    field_template = "bootstrap3/layout/inline_field.html"
+    field_class = "col-xs-3"
+    label_class = "col-xs-3"
+    form_show_errors = True
+    help_text_inline = False
+    html5_required = True
+    layout = Layout(
+        Fieldset(
+            '<i class="fas fa-search"></i> Filter Bylaws',
+            Row(
+                Field("region", label="Region"),
+                FormActions(
+                    StrictButton(
+                        '<i class="fa fa-search"></i> Filter',
+                        type="submit",
+                        css_class="btn-primary",
+                    ),
+                    Submit("cancel", "Clear", css_class="btn-primary"),
+                ),
+            ),
+        ),
+    )
+
+
 class ChapterEducationForm(forms.ModelForm):
     report = forms.FileField(
         label="Program File",
@@ -646,6 +675,22 @@ class ChapterEducationForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         for field in self.fields:
             self.fields[field].required = True
+
+
+class BylawsForm(forms.ModelForm):
+    bylaws = forms.FileField(
+        label="Bylaws File",
+        required=True,
+        help_text="Only PDF format accepted",
+        validators=[FileTypeValidator(allowed_types=["application/pdf"])],
+    )
+
+    class Meta:
+        model = Bylaws
+        fields = [
+            "bylaws",
+            "changes",
+        ]
 
 
 class ChapterInfoReportForm(MultiModelForm):

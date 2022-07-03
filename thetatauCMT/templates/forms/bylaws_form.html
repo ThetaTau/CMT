@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% load static %}
+{% load crispy_forms_tags %}
+{% load render_table from django_tables2 %}
+{% block title %}Chapter Bylaws Form{% endblock %}
+
+{% block content %}
+<div class="container">
+  <div class="row">
+    <div class="col-sm-12">
+    <h1>Chapter Bylaws Form</h1>
+    <h3>Instructions</h3>
+      <p>From the <a href="https://thetatau.org/policies" target="_blank">
+      Theta Tau Policies and Procedures Manual</a>:
+      Each chapter must have local bylaws that do not conflict with
+      the Theta Tau Constitution.
+      These bylaws should be on file with the Executive Director.
+      Any time a chapter changes its bylaws, the new bylaws should be
+      forwarded to the Executive Director, copying the Regional Director, with a
+        summary of the changes.</p>
+      <p>This form is the method of submission.</p>
+    <h3>Previous Submissions</h3>
+    {% render_table table %}
+    <br>
+      <hr>
+    <h2>Submit Updated Bylaws</h2>
+    <form class="chapter_report" enctype="multipart/form-data" method="POST">
+      {% csrf_token %}
+        {{ form.media }}
+        <div>{{ form|crispy }}</div>
+        <button class="btn btn-primary" name='action' value='bylaws' type="submit">Submit Bylaws
+        </button>
+    </form>
+    </div>
+  </div>
+</div>
+{% endblock content %}

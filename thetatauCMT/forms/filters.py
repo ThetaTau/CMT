@@ -2,7 +2,7 @@
 import django_filters
 from core.filters import DateRangeFilter
 from django.forms.widgets import NumberInput
-from .models import Audit, PledgeProgram, ChapterEducation
+from .models import Audit, Bylaws, PledgeProgram, ChapterEducation
 from chapters.models import Chapter
 from regions.models import Region
 
@@ -102,6 +102,26 @@ class EducationListFilter(django_filters.FilterSet):
     class Meta:
         model = ChapterEducation  # This is needed to automatically make year/term
         fields = ["region", "program_date"]
+        order_by = ["chapter"]
+
+    def filter_region(self, queryset, field_name, value):
+        if value == "national":
+            return queryset
+        elif value == "candidate_chapter":
+            queryset = queryset.filter(chapter__candidate_chapter=True)
+        else:
+            queryset = queryset.filter(chapter__region__slug=value)
+        return queryset
+
+
+class BylawsListFilter(django_filters.FilterSet):
+    region = django_filters.ChoiceFilter(
+        label="Region", choices=Region.region_choices(), method="filter_region"
+    )
+
+    class Meta:
+        model = Bylaws  # This is needed to automatically make year/term
+        fields = ["region"]
         order_by = ["chapter"]
 
     def filter_region(self, queryset, field_name, value):
