@@ -64,7 +64,6 @@ class GearArticle(TimeStampedModel):
     authors = models.ManyToManyField(
         settings.AUTH_USER_MODEL,
         related_name="gear_articles",
-        null=True,
     )
     submission = models.ForeignKey(
         Submission,

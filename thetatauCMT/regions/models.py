@@ -15,7 +15,6 @@ class Region(models.Model):
     directors = models.ManyToManyField(
         settings.AUTH_USER_MODEL,
         related_name="regional_director",
-        null=True,
         default=None,
         blank=True,
     )
