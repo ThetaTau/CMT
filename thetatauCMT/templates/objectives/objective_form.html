@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% load static %}
+{% load crispy_forms_tags %}
+
+{% block title %}Create New Goal{% endblock %}
+{% block content %}
+  <h1>Create New Goal</h1>
+  <p>
+<table class="table table-hover table-bordered table-striped">
+  <tr>
+    <th>Specific</th>
+    <td>What do you want to accomplish? Why is this goal important? Who is responsible and who would be involved? Does it require any resources? Where will it take place?</td>
+  </tr>
+  <tr>
+    <th>Measurable</th>
+    <td>How much? How many? How will you know when it's accomplished? Is there a qualitative or quantitative metric that can be used?</td>
+  </tr>
+  <tr>
+    <th>Achievable</th>
+    <td>How realistic is the goal, taking into account external factors (finances for example)? Can it be accomplished?</td>
+  </tr>
+  <tr>
+    <th>Relevant</th>
+    <td>Is this goal worthwhile? Is this the right time? Is this in line with your other goals or needs? Is it
+      applicable?</td>
+  </tr>
+  <tr>
+    <th>Timely</th>
+    <td>When do you want it to be accomplished by? Where should you be on this goal in six months? In a year?</td>
+  </tr>
+</table>
+  </p>
+  <form class="form-horizontal" method="post">
+    {% csrf_token %}
+    {{ form.media }}
+    {{ form|crispy }}
+    <link href="{% static 'css/project.css' %}" rel="stylesheet">
+    <button type="submit" class="btn btn-primary" value="Save">Save</button>
+  </form>
+{% endblock %}

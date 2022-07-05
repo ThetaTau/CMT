@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% load static %}
+{% load crispy_forms_tags %}
+{% load crispy_forms_utils %}
+{% load crispy_forms_field %}
+{% block title %}Goal: {{ object.title }}{% endblock %}
+
+{% block content %}
+<div class="container">
+
+  <div class="row">
+    <div class="col-sm-12">
+
+      <h2>{{ object.title }}</h2>
+      <form class="user" method="POST">
+        {% csrf_token %}
+        {{ forms.objective.management_form|crispy }}
+        {{ forms.objective.media }}
+        <link href="{% static 'css/project.css' %}" rel="stylesheet">
+        {{ forms.objective|crispy }}
+        {% if object.owner == request.user %}
+          <button class="btn btn-primary" name='action' value='objective' type="submit">Update Goal</button>
+        {% endif %}
+      </form>
+      <h4 id="actions">Add Actions to complete goal:</h4>
+      {{ forms.actions.media }}
+      <script type="text/javascript"
+              src="https://cdnjs.cloudflare.com/ajax/libs/tempusdominus-bootstrap-4/5.0.0-alpha14/js/tempusdominus-bootstrap-4.min.js"></script>
+      <link rel="stylesheet"
+            href="https://cdnjs.cloudflare.com/ajax/libs/tempusdominus-bootstrap-4/5.0.0-alpha14/css/tempusdominus-bootstrap-4.min.css"/>
+      <form action="" method="post">
+        {% csrf_token %}
+        <div>{{ forms.actions.management_form|crispy }}</div>
+        <table{% if form_id %} id="{{ form_id }}_table"{% endif %} class="table table-striped table-sm">
+          <thead></thead>
+          <tbody>
+          {% for form in forms.actions %}
+            <tr class="row_form">
+              <div class="input-group">
+              <td>
+                <table>
+                  <thead>
+                  {% if forms.actions.readonly and not forms.actions.queryset.exists %}
+                  {% else %}
+                    <tr>
+                      {% for field in forms.actions.forms.0 %}
+                        {% if field.label and not field.is_hidden and field.label != "Delete" and field.label != "Description" %}
+                          <th for="{{ field.auto_id }}"
+                              class="col-form-label {% if field.field.required %}requiredField{% endif %}">
+                            {{ field.label|safe }}{% if field.field.required %}
+                              <span class="asteriskField">*</span>{% endif %}
+                          </th>
+                        {% endif %}
+                      {% endfor %}
+                      <th>Add / <br>Remove</th>
+                    </tr>
+                  {% endif %}
+                  </thead>
+                  <tbody>
+                    <tr>
+                      {% for field in form %}
+                        {% if field.label == "Delete" %}
+                          <td class="hidden" style="display: none;">
+                            {{ field }}
+                          </td>
+                        {% elif field.label == "Description" %}
+                        {% else %}
+                          {% include 'bootstrap4/field.html' with tag="td" form_show_labels=False form_show_errors=True %}
+                        {% endif %}
+                      {% endfor %}
+                      <td>
+                        <div class="input-group-append">
+                          <button class="btn btn-success add-row_form">+</button>
+                        </div>
+                      </td>
+                    </tr>
+                    <tr>
+                    {% for field in form %}
+                      {% if field.label == "Description" %}
+                        {% include 'bootstrap4/field.html' with tag='td colspan="4"' form_show_labels=False form_show_errors=True %}
+                      {% endif %}
+                    {% endfor %}
+                  </tr>
+                  </tbody>
+                </table>
+              </td>
+              </div>
+            </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+        <button class="btn btn-primary" name='action' value='actions' type="submit">Update Actions</button>
+      </form>
+    </div>
+  </div>
+
+</div>
+{% endblock content %}
+{% block javascript %}
+{{ block.super }}
+  <script src="{% static 'js/dynamic_formset.js' %}"></script>
+{% endblock %}

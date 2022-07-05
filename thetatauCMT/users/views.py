@@ -638,7 +638,7 @@ class UserAutocomplete(autocomplete.Select2QuerySetView):
                 qs = qs.filter(chapter=chapter)
         if self.q:
             qs = qs.filter(name__icontains=self.q)
-        return qs
+        return qs.order_by("name")
 
 
 class UserAlterView(LoginRequiredMixin, NatOfficerRequiredMixin, FormView):

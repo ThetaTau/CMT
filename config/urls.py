@@ -95,6 +95,7 @@ urlpatterns = [
     url(r"^chapters/", include("chapters.urls", namespace="chapters")),
     url(r"^events/", include("events.urls", namespace="events")),
     url(r"^notes/", include("notes.urls", namespace="notes")),
+    url(r"^goals/", include("objectives.urls", namespace="objectives")),
     url(r"^finances/", include("finances.urls", namespace="finances")),
     url(r"^scores/", include("scores.urls", namespace="scores")),
     url(r"^submissions/", include("submissions.urls", namespace="submissions")),
