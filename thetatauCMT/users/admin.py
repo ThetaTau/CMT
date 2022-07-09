@@ -43,6 +43,7 @@ from core.admin import (
     AddressAdmin,
 )
 from notes.admin import UserNoteInline, UserNote
+from trainings.admin import AssignTrainingMixin, TrainingInline
 
 
 admin.site.register(Permission)
@@ -340,8 +341,8 @@ class UserAlterInline(admin.StackedInline):
 
 
 @admin.register(User)
-class MyUserAdmin(ImportMixin, AuthUserAdmin, ExportActiveMixin):
-    actions = ["export_chapter_actives"]
+class MyUserAdmin(ImportMixin, AuthUserAdmin, ExportActiveMixin, AssignTrainingMixin):
+    actions = ["export_chapter_actives", "assign_training"]
     raw_id_fields = ["address"]
     readonly_fields = ("deceased_changed",)
     inlines = [
@@ -358,6 +359,7 @@ class MyUserAdmin(ImportMixin, AuthUserAdmin, ExportActiveMixin):
         OSMInline,
         DisciplinaryProcessInline,
         CollectionReferralInline,
+        TrainingInline,
     ]
     form = MyUserChangeForm
     add_form = MyUserCreationForm

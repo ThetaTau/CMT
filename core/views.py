@@ -91,6 +91,7 @@ class PagedFilteredTableView(SingleTableView):
     formhelper_class = None
     context_filter_name = "filter"
     filter_chapter = False
+    filter_user_chapter = False
     filter = None
 
     def get_filter_kwargs(self):
@@ -111,6 +112,8 @@ class PagedFilteredTableView(SingleTableView):
             request_get = QueryDict()
         if self.filter_chapter:
             qs = qs.filter(chapter=self.request.user.current_chapter)
+        elif self.filter_user_chapter:
+            qs = qs.filter(user__chapter=self.request.user.current_chapter)
         self.filter = self.filter_class(
             request_get, queryset=qs, **self.get_filter_kwargs()
         )

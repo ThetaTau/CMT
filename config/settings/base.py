@@ -126,6 +126,8 @@ LOCAL_APPS = [
     "thetatauCMT.surveys.apps.SurveysConfig",
     "thetatauCMT.announcements.apps.AnnouncementsConfig",
     "thetatauCMT.notes.apps.NotesConfig",
+    "thetatauCMT.objectives.apps.ObjectivesConfig",
+    "thetatauCMT.trainings.apps.TrainingsConfig",
     "thetatauCMT.configs.apps.ConfigsConfig",
 ]
 # https://docs.djangoproject.com/en/dev/ref/settings/#installed-apps
@@ -469,3 +471,6 @@ TERMS_EXCLUDE_URL_LIST = {
 
 CSV_DIRECTORY = Path("csv")  # Define the directory where csv are exported
 TEX_DIRECTORY = Path("tex")  # Define the directory where tex files and pdf are exported
+
+LMS_ID = env("LMS_ID", default=None)
+LMS_SECRET = env("LMS_SECRET", default=None)
