@@ -1,6 +1,7 @@
 import json
 import datetime
 import requests
+from time import sleep
 from django.conf import settings
 from django.contrib import messages
 from django.db import models
@@ -174,10 +175,23 @@ class Training(TimeStampedModel):
         params = dict(since=since, scroll_size=100)
         if scroll_id is not None:
             params["scroll_id"] = scroll_id
+        print(f"Training progress update params {params}")
         response = requests.get(url, headers=authenticate_header, params=params)
         if response.status_code == 204:
-            print(f"There were no updated trainings {response.reason}")
+            print(f"There were no updated trainings, message: {response.reason}")
             return
+        elif response.status_code == 429:
+            # 200 requests per rolling 60 seconds
+            sleep(120)
+            print("Delaying for rate limit training progress update")
+            Training.get_progress_all_users(
+                since=since, scroll_id=scroll_id, override=override
+            )
+            return
+        elif response.status_code != 200:
+            print(
+                f"There was an error with training progress update, message: {response.reason}"
+            )
         response_json = response.json()
         next = response_json["next"]
         data = response_json["data"]
@@ -234,6 +248,7 @@ class Training(TimeStampedModel):
                 obj, created = Training.objects.update_or_create(
                     user=user, course_id=course_id, defaults=values
                 )
+                print(f"Training {obj} created {created} with values {values}")
         scroll_id = next["scroll_id"]
         if not scroll_id:
             """{
@@ -251,6 +266,15 @@ class Training(TimeStampedModel):
 
     @staticmethod
     def add_user(user, request=None):
+        trainings = user.trainings.all()
+        if trainings:
+            # If there are any trainings then we know user already in system
+            message = f"{user} skipped, already in system"
+            if request:
+                messages.add_message(request, messages.WARNING, message)
+            else:
+                print(message)
+            return
         authenticate_header = Training.authenticate_header()
         url = "https://api.fifoundry.net/v1/admin/registration_sets"
         chapter_label = LABEL_IDS.get(user.chapter.name, None)
@@ -277,10 +301,16 @@ class Training(TimeStampedModel):
         }
         response = requests.post(url, headers=authenticate_header, json=payload)
         if response.status_code == 201:
-            message = f"User {user} successfully added to training system"
+            message = f"{user} successfully added to training system"
             level = messages.INFO
+        elif response.status_code == 429:
+            # 200 requests per rolling 60 seconds
+            sleep(120)
+            print("Delaying for rate limit add training user")
+            Training.add_user(user, request=request)
+            return
         else:
-            message = f"User {user} NOT added to training system, likely a duplicate. {response.reason}"
+            message = f"{user} NOT added to training system, likely a duplicate. {response.reason}"
             level = messages.ERROR
         if request is None:
             print(message)
