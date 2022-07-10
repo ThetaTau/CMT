@@ -107,6 +107,7 @@ from users.forms import UserForm
 from users.notifications import NewOfficers
 from chapters.models import Chapter, ChapterCurricula
 from regions.models import Region
+from trainings.models import Training
 from .tables import (
     BadgeTable,
     BylawsListTable,
@@ -810,6 +811,11 @@ class RoleChangeView(LoginRequiredMixin, OfficerRequiredMixin, ModelFormSetView)
                     form.save()
                     update_list.append(form.instance.user)
                     role_name = form.instance.role
+                    if role_name in [
+                        "pledge/new member educator",
+                        "risk management chair",
+                    ]:
+                        Training.add_user(form.instance.user, request=self.request)
                     if role_name in COL_OFFICER_ALIGN:
                         role_name = COL_OFFICER_ALIGN[role_name]
                     if role_name in CHAPTER_OFFICER:
@@ -1604,6 +1610,7 @@ class PledgeFormView(CreateView):
             )
             active_process = activation.process
         active_process.pledges.add(self.object)
+        Training.add_user(user, request=self.request)
         messages.add_message(
             self.request,
             messages.INFO,
