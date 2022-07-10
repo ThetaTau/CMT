@@ -2,6 +2,9 @@ from django.core.management import BaseCommand
 from django.utils import timezone
 from quickbooks.objects.customer import Customer
 from quickbooks.objects.invoice import Invoice as QBInvoice
+from viewflow.models import Task
+from viewflow.activation import STATUS
+from forms.flows import InitiationProcessFlow, PledgeProcessFlow
 from core.finances import get_quickbooks_client
 from chapters.models import Chapter
 from finances.models import Invoice
@@ -20,6 +23,25 @@ class Command(BaseCommand):
         live = options.get("live", False)
         print(f"This is LIVE: ", live)
         Invoice.objects.all().delete()
+        query = dict(
+            process__flow_class=InitiationProcessFlow,
+            status=STATUS.NEW,
+            flow_task="forms/flows.InitiationProcessFlow.invoice_payment",
+        )
+        init_function_tasks = Task.objects.filter(**query)
+        query = dict(
+            process__flow_class=PledgeProcessFlow,
+            status=STATUS.NEW,
+            flow_task="forms/flows.PledgeProcessFlow.invoice_payment",
+        )
+        pledge_function_tasks = Task.objects.filter(**query)
+        function_tasks = init_function_tasks | pledge_function_tasks
+        outstanding_invoice_tasks = {
+            str(task.flow_process.invoice): task
+            for task in function_tasks
+            if task.flow_process.invoice != "999999999"
+        }
+        print(f"Found {len(outstanding_invoice_tasks)} outstanding_invoice_tasks")
         client = get_quickbooks_client()
         customers = Customer.all(qb=client, max_results=1000)
         for customer in customers:
@@ -116,10 +138,12 @@ class Command(BaseCommand):
             for count, invoice_res in enumerate(invoices):
                 print(f"    Invoice {count+1}/{total}")
                 invoice = QBInvoice.get(invoice_res.Id, qb=client)
+                invoice_number = invoice.DocNumber
+                invoice_balance = invoice.Balance
                 Invoice(
                     link=invoice.InvoiceLink,
                     due_date=invoice.DueDate,
-                    central_id=invoice.DocNumber,
+                    central_id=invoice_number,
                     description="<br>".join(
                         [
                             f"{line.Description}; Line Amount: {line.Amount} <br>"
@@ -127,9 +151,17 @@ class Command(BaseCommand):
                             if line.DetailType == "SalesItemLineDetail"
                         ]
                     ),
-                    total=invoice.Balance,
+                    total=invoice_balance,
                     chapter=chapter,
                 ).save()
+                print(f"        {invoice_number=} {invoice_balance=}")
+                if invoice_number in outstanding_invoice_tasks:
+                    if invoice_balance == 0:
+                        print(f"        Invoice {invoice_number} has been paid!")
+                        function_task = outstanding_invoice_tasks[invoice_number]
+                        activation = function_task.activate()
+                        activation.prepare()
+                        activation.done()
 
 
 """
