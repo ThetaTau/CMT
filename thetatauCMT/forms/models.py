@@ -3,6 +3,7 @@ import io
 import os
 import csv
 from pathlib import Path
+import address
 from address.models import AddressField
 from email.mime.base import MIMEBase
 from django.db import models, transaction
@@ -1168,9 +1169,13 @@ class InitiationProcess(Process):
             badge = ""
             if initiation.badge:
                 badge = initiation.badge.code
+            try:
+                chapter_address = self.chapter.address
+            except address.models.Address.DoesNotExist:
+                chapter_address = "NOT SET, UPDATE ASAP"
             row_badge = {
                 "Chapter Name": chapter,
-                "Chapter Address": self.chapter.address,
+                "Chapter Address": chapter_address,
                 "Chapter Contact": self.chapter.address_contact,
                 "Chapter Phone": self.chapter.address_phone_number,
                 "Chapter Description": chapter_abr,
