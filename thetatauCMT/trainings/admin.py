@@ -5,7 +5,7 @@ from .models import Training
 class AssignTrainingMixin:
     def assign_training(self, request, queryset):
         for user in queryset:
-            Training.add_user(user)
+            Training.add_user(user, request=request)
 
     assign_training.short_description = "Assign Member Training"
 
@@ -13,8 +13,15 @@ class AssignTrainingMixin:
 class TrainingInline(admin.TabularInline):
     model = Training
     raw_id_fields = ["user"]
-    fields = ["user", "course_title", "completed", "completed_time"]
-    show_change_link = False
+    readonly_fields = [
+        "user",
+        "course_title",
+        "completed",
+        "completed_time",
+        "max_quiz_score",
+    ]
+    fields = ["user", "course_title", "completed", "completed_time", "max_quiz_score"]
+    show_change_link = True
     can_delete = False
     ordering = ["-completed_time"]
     extra = 0

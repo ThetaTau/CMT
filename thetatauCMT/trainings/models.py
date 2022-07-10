@@ -2,9 +2,107 @@ import json
 import datetime
 import requests
 from django.conf import settings
+from django.contrib import messages
 from django.db import models
+from django.http import Http404
 from core.models import TimeStampedModel
 from users.models import User
+
+LABEL_IDS = {
+    "Zeta Gamma": "269850",
+    "Zeta Epsilon": "269849",
+    "Zeta Delta": "269848",
+    "Zeta": "269847",
+    "Xi Gamma": "269846",
+    "Xi Epsilon": "269845",
+    "Xi Delta": "269844",
+    "Xi Beta": "269843",
+    "Xi": "269842",
+    "UW Candidate Chapter": "269841",
+    "Upsilon Gamma": "269840",
+    "Upsilon Epsilon": "269839",
+    "Upsilon Delta": "269838",
+    "Upsilon Beta": "269837",
+    "Upsilon": "269836",
+    "UNLV Candidate Chapter": "269835",
+    "Theta Gamma": "269834",
+    "Theta Epsilon": "269833",
+    "Theta Delta": "269832",
+    "TEST": "269831",
+    "Tau Gamma": "269830",
+    "Tau Epsilon": "269829",
+    "Tau Delta": "269828",
+    "Tau Beta": "269827",
+    "SLO Candidate Chapter": "269826",
+    "SJSU Candidate Chapter": "269825",
+    "Sigma Gamma": "269824",
+    "Sigma Epsilon": "269823",
+    "Sigma Delta": "269822",
+    "Sigma": "269821",
+    "Rho Gamma": "269820",
+    "Rho Epsilon": "269819",
+    "Rho Delta": "269818",
+    "Rho Beta": "269817",
+    "Rho": "269816",
+    "Psi Gamma": "269815",
+    "Psi Epsilon": "269814",
+    "Psi Delta": "269813",
+    "Psi Beta": "269812",
+    "Pi Gamma": "269811",
+    "Pi Epsilon": "269810",
+    "Pi Delta": "269809",
+    "Pi": "269808",
+    "Phi Gamma": "269807",
+    "Phi Epsilon": "269806",
+    "Phi Delta": "269805",
+    "Phi": "269804",
+    "Omicron Epsilon": "269803",
+    "Omicron Delta": "269802",
+    "Omicron Beta": "269801",
+    "Omicron": "269800",
+    "Omega Gamma": "269799",
+    "Omega Delta": "269798",
+    "Omega Beta": "269797",
+    "Omega": "269796",
+    "Nu Gamma": "269795",
+    "Nu Epsilon": "269794",
+    "Nu Delta": "269793",
+    "Mu Gamma": "269792",
+    "Mu Epsilon": "269791",
+    "Mu Delta": "269790",
+    "Mu": "269789",
+    "Lambda Gamma": "269788",
+    "Lambda Epsilon": "269787",
+    "Lambda Delta": "269786",
+    "Kappa Gamma": "269785",
+    "Kappa Epsilon": "269784",
+    "Kappa Delta": "269783",
+    "Kappa Beta": "269782",
+    "Kappa": "269781",
+    "JMU Candidate Chapter": "269780",
+    "IUPUI Candidate Chapter": "269779",
+    "Iota Gamma": "269778",
+    "Iota Epsilon": "269777",
+    "Iota Delta": "269776",
+    "Gamma Beta": "269775",
+    "Eta Gamma": "269774",
+    "Eta Delta": "269773",
+    "Eta": "269772",
+    "Epsilon Delta": "269771",
+    "Epsilon Beta": "269770",
+    "Epsilon": "269769",
+    "Delta Gamma": "269768",
+    "Delta": "269767",
+    "Chi Gamma": "269766",
+    "Chi Epsilon": "269765",
+    "Chi Beta": "269764",
+    "Chi": "269763",
+    "Beta": "269762",
+    "Alpha": "269761",
+    "alumni": "269853",
+    "pnm": "269852",
+    "active": "269851",
+}
 
 
 class Training(TimeStampedModel):
@@ -49,7 +147,9 @@ class Training(TimeStampedModel):
                     json.dump(response_json, file_obj)
             else:
                 # There was an error
-                raise ValueError(f"LMS Auth error: {response.reason}")
+                raise Http404(
+                    f"Training System authentication error: {response.reason}"
+                )
         authenticate_header = {
             "Accept": "application/json",
             "Content-Type": "application/json",
@@ -58,11 +158,11 @@ class Training(TimeStampedModel):
         return authenticate_header
 
     @staticmethod
-    def get_progress_all_users(since=None, scroll_id=None):
+    def get_progress_all_users(since=None, scroll_id=None, override=False):
         authenticate_header = Training.authenticate_header()
         lms_since_file = settings.ROOT_DIR / "secrets" / "LMS_SINCE"
-        if since is None:
-            if lms_since_file.exists():
+        if since is None or override:
+            if lms_since_file.exists() and not override:
                 with open(lms_since_file) as file_obj:
                     response_json = json.load(file_obj)
                 since = response_json["since"]
@@ -96,8 +196,12 @@ class Training(TimeStampedModel):
             "employee_id": "341325",
             }"""
             user_email = user_info["user"]["email"]
-            user = User.objects.get(email=user_email)
-            for progress in data["progress"]:
+            try:
+                user = User.objects.get(email=user_email)
+            except User.DoesNotExist:
+                print(f"User with email {user_email} does not exist")
+                continue
+            for progress in user_info["progress"]:
                 """example progress object
                 {
                     "id": "b5e90d5e-49eb-4cd3-b6b3-4d338ab01362",
@@ -146,9 +250,12 @@ class Training(TimeStampedModel):
             Training.get_progress_all_users(since=next["since"], scroll_id=scroll_id)
 
     @staticmethod
-    def add_user(user):
+    def add_user(user, request=None):
         authenticate_header = Training.authenticate_header()
         url = "https://api.fifoundry.net/v1/admin/registration_sets"
+        chapter_label = LABEL_IDS.get(user.chapter.name, None)
+        status_label = LABEL_IDS.get(user.current_status, None)
+        labels = [label for label in [chapter_label, status_label] if label]
         payload = {
             "data": {
                 "type": "registration_sets",
@@ -161,7 +268,7 @@ class Training(TimeStampedModel):
                             else user.first_name,
                             "last_name": user.last_name,
                             "email": user.email,
-                            # "location_id": "1712",
+                            "category_labels": labels,
                         },
                         {"rule_set": "he_learner", "role": "undergrad"},
                     ]
@@ -170,4 +277,12 @@ class Training(TimeStampedModel):
         }
         response = requests.post(url, headers=authenticate_header, json=payload)
         if response.status_code == 201:
-            print(f"User {user} successfully added to LMS system")
+            message = f"User {user} successfully added to training system"
+            level = messages.INFO
+        else:
+            message = f"User {user} NOT added to training system, likely a duplicate. {response.reason}"
+            level = messages.ERROR
+        if request is None:
+            print(message)
+        else:
+            messages.add_message(request, level, message)
