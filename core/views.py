@@ -255,15 +255,16 @@ class AssignOfficerFormMixin(object):
         for officer in officers:
             # Should be in order [regent, scribe, vice, treasurer, corsec]
             if officer and officer not in users:
-                if not form.instance.officer1:
+                if not hasattr(form.instance, "officer1"):
                     form.instance.officer1 = officer
                 else:
                     form.instance.officer2 = officer
-        if not form.instance.officer1:
+                    break
+        if not hasattr(form.instance, "officer1"):
             form.instance.officer1 = User.objects.get(
                 username="Jim.Gaffney@thetatau.org"
             )
-        if not form.instance.officer2:
+        if not hasattr(form.instance, "officer2"):
             form.instance.officer2 = User.objects.get(
                 username="Jim.Gaffney@thetatau.org"
             )
