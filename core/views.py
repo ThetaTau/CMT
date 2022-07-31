@@ -23,6 +23,7 @@ from viewflow.frontend.views import (
     DataTableMixin,
     generic,
 )
+from users.models import User
 
 
 # https://django-allauth.readthedocs.io/en/latest/advanced.html#admin
@@ -226,3 +227,43 @@ class HomeView(LoginRequiredMixin, TemplateView):
         )
         context["announcements"] = announcements
         return context
+
+
+class AssignOfficerFormMixin(object):
+    def check_officers(self, officers):
+        if not all(officers):
+            missing = [
+                [
+                    "regent",
+                    "scribe",
+                    "vice regent",
+                    "treasurer",
+                    "corresponding secretary",
+                ][ind]
+                for ind, miss in enumerate(officers)
+                if not miss
+            ]
+            messages.add_message(
+                self.request,
+                messages.ERROR,
+                f"You must update the officers list! Missing officers: {missing}",
+            )
+            return False
+        return True
+
+    def assign_officers_form(self, users, form, officers):
+        for officer in officers:
+            # Should be in order [regent, scribe, vice, treasurer, corsec]
+            if officer and officer not in users:
+                if not form.instance.officer1:
+                    form.instance.officer1 = officer
+                else:
+                    form.instance.officer2 = officer
+        if not form.instance.officer1:
+            form.instance.officer1 = User.objects.get(
+                username="Jim.Gaffney@thetatau.org"
+            )
+        if not form.instance.officer2:
+            form.instance.officer2 = User.objects.get(
+                username="Jim.Gaffney@thetatau.org"
+            )

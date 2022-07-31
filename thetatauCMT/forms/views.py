@@ -52,6 +52,7 @@ from core.views import (
     PagedFilteredTableView,
     NatOfficerRequiredMixin,
     group_required,
+    AssignOfficerFormMixin,
 )
 from surveys.notifications import DepledgeSurveyEmail, SurveyEmail
 from users.tables import RollBookTable
@@ -1774,7 +1775,9 @@ def get_sign_status(user, type_sign="creds", initial=False):
     return data, submitted, users
 
 
-class ConventionCreateView(LoginRequiredMixin, CreateProcessView):
+class ConventionCreateView(
+    LoginRequiredMixin, CreateProcessView, AssignOfficerFormMixin
+):
     template_name = "forms/convention_form.html"
     model = Convention
     form_class = ConventionForm
@@ -1783,23 +1786,7 @@ class ConventionCreateView(LoginRequiredMixin, CreateProcessView):
 
     def get(self, request, *args, **kwargs):
         officers = request.user.current_chapter.get_current_officers_council_specific()
-        if not all(officers):
-            missing = [
-                [
-                    "regent",
-                    "scribe",
-                    "vice regent",
-                    "treasurer",
-                    "corresponding secretary",
-                ][ind]
-                for ind, miss in enumerate(officers)
-                if not miss
-            ]
-            messages.add_message(
-                self.request,
-                messages.ERROR,
-                f"You must update the officers list! Missing officers: {missing}",
-            )
+        if not self.check_officers(officers):
             return redirect(reverse("forms:officer"))
         self.data, self.submitted, self.signers = get_sign_status(self.request.user)
         if self.submitted and self.request.user in self.signers:
@@ -1826,31 +1813,8 @@ class ConventionCreateView(LoginRequiredMixin, CreateProcessView):
         chapter = self.request.user.current_chapter
         form.instance.chapter = chapter
         del_alt = [form.instance.delegate, form.instance.alternate]
-        (
-            regent,
-            scribe,
-            vice,
-            treasurer,
-            corsec,
-        ) = chapter.get_current_officers_council_specific()
-        officer1 = officer2 = False
-        if regent not in del_alt:
-            form.instance.officer1 = regent
-            officer1 = True
-        if scribe not in del_alt:
-            form.instance.officer2 = scribe
-            officer2 = True
-        if not officer1:
-            if vice not in del_alt:
-                form.instance.officer1 = vice
-                del_alt.append(vice)
-            else:
-                form.instance.officer1 = treasurer
-        if not officer2:
-            if vice not in del_alt:
-                form.instance.officer2 = vice
-            else:
-                form.instance.officer2 = treasurer
+        officers = chapter.get_current_officers_council_specific()
+        self.assign_officers_form(del_alt, form, officers)
         Task.mark_complete(
             name="Credentials",
             chapter=chapter,
@@ -2267,7 +2231,7 @@ def pledge_process_sync(request, process_pk, invoice_number):
     return JsonResponse({"invoice_number": new_invoice_number})
 
 
-class OSMCreateView(LoginRequiredMixin, CreateProcessView):
+class OSMCreateView(LoginRequiredMixin, CreateProcessView, AssignOfficerFormMixin):
     template_name = "forms/osm_form.html"
     model = OSM
     form_class = OSMForm
@@ -2276,23 +2240,7 @@ class OSMCreateView(LoginRequiredMixin, CreateProcessView):
 
     def get(self, request, *args, **kwargs):
         officers = request.user.current_chapter.get_current_officers_council_specific()
-        if not all(officers):
-            missing = [
-                [
-                    "regent",
-                    "scribe",
-                    "vice regent",
-                    "treasurer",
-                    "corresponding secretary",
-                ][ind]
-                for ind, miss in enumerate(officers)
-                if not miss
-            ]
-            messages.add_message(
-                self.request,
-                messages.ERROR,
-                f"You must update the officers list! Missing officers: {missing}",
-            )
+        if not self.check_officers(officers):
             return redirect(reverse("forms:officer"))
         self.data, self.submitted, self.signers = get_sign_status(
             self.request.user, type_sign="osm"
@@ -2321,31 +2269,8 @@ class OSMCreateView(LoginRequiredMixin, CreateProcessView):
         chapter = self.request.user.current_chapter
         form.instance.chapter = chapter
         nominate = [form.instance.nominate, self.request.user]
-        (
-            regent,
-            scribe,
-            vice,
-            treasurer,
-            corsec,
-        ) = chapter.get_current_officers_council_specific()
-        officer1 = officer2 = False
-        if regent not in nominate:
-            form.instance.officer1 = regent
-            officer1 = True
-        if scribe not in nominate:
-            form.instance.officer2 = vice
-            officer2 = True
-        if not officer1:
-            if scribe not in nominate:
-                form.instance.officer1 = scribe
-                nominate.append(scribe)
-            else:
-                form.instance.officer1 = treasurer
-        if not officer2:
-            if scribe not in nominate:
-                form.instance.officer2 = scribe
-            else:
-                form.instance.officer2 = treasurer
+        officers = chapter.get_current_officers_council_specific()
+        self.assign_officers_form(nominate, form, officers)
         Task.mark_complete(
             name="Outstanding Student Member",
             chapter=chapter,
@@ -2754,7 +2679,9 @@ class CollectionReferralFormView(
         return context
 
 
-class ResignationCreateView(LoginRequiredMixin, CreateProcessView):
+class ResignationCreateView(
+    LoginRequiredMixin, CreateProcessView, AssignOfficerFormMixin
+):
     template_name = "forms/resignation_form.html"
     model = ResignationProcess
     form_class = ResignationForm
@@ -2773,30 +2700,8 @@ class ResignationCreateView(LoginRequiredMixin, CreateProcessView):
         form.instance.user = user
         form.instance.chapter = user.current_chapter
         chapter = user.current_chapter
-        (
-            regent,
-            scribe,
-            vice,
-            treasurer,
-            corsec,
-        ) = chapter.get_current_officers_council_specific()
-        officer1 = officer2 = False
-        if regent and regent != user:
-            form.instance.officer1 = regent
-            officer1 = True
-        if scribe and scribe != user:
-            form.instance.officer2 = scribe
-            officer2 = True
-        if not officer1:
-            if vice and vice != user:
-                form.instance.officer1 = vice
-            else:
-                form.instance.officer1 = treasurer
-        if not officer2:
-            if vice and vice != user:
-                form.instance.officer2 = vice
-            else:
-                form.instance.officer2 = treasurer
+        officers = chapter.get_current_officers_council_specific()
+        self.assign_officers_form([user], form, officers)
         return super().form_valid(form)
 
     def get_context_data(self, *args, **kwargs):
