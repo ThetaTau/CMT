@@ -1,5 +1,4 @@
 import re
-import pyodbc
 import pandas as pd
 from datetime import datetime, timedelta
 from django.db.models import Q
@@ -12,13 +11,10 @@ def run(*args):
     """
     :param args:
     :return: None
-    python manage.py runscript deceased_import --script-args "database_backups/Deceased for CMT 012221.accdb"
+    python manage.py runscript deceased_import --script-args "database_backups/deceased_export.csv"
     """
     path = args[0]
-    conn_str = r"DRIVER={Microsoft Access Driver (*.mdb, *.accdb)};" f"DBQ={path};"
-    conn = pyodbc.connect(conn_str)
-    # Table name Deceased_Export_092420
-    df = pd.read_sql("select * from Deceased_Export_092420", conn)
+    df = pd.read_csv(path, keep_default_na=False)
     # ConstID                                 A###
     # Chapter Name                           Alpha
     # Chapter Abbrev                             A
@@ -47,7 +43,7 @@ def run(*args):
         chapter = Chapter.objects.get(Q(name__iexact=chapter_name))
         user_id = member["ConstID"]
         badge_number = re.findall(r"\d+", user_id)[0]
-        user_id_combined = member["Chapter Abbrev"] + member["Roll Number"]
+        user_id_combined = member["Chapter Abbrev"] + str(member["Roll Number"])
         if user_id != user_id_combined:
             # Sometimes the roll number is wrong
             # Sometimes the ConstID does not match the rest
