@@ -9,7 +9,12 @@
 {% if table.page %}
   <div class="table-container">
 {% endif %}
-
+  <h1>All Chapter Invoices</h1>
+<p>All of your chapter's invoices are listed below, both paid and unpaid.
+<br>
+  Paid invoices that were issued after 2021 should have a link to the paid invoices.
+  Older paid invoices will not include a link below.
+  If you need a copy of an older invoice, please contact the Central Office.</p>
 {% block table %}
     <div class="table-responsive">
         <table class="table table-hover table-bordered table-striped"{% if table.attrs %} {{ table.attrs.as_html }}{% endif %}>
