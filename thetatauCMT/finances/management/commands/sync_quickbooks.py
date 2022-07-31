@@ -126,8 +126,6 @@ class Command(BaseCommand):
                     customer.save(qb=client)
             else:
                 print("    No new emails")
-            if not balance > 0:
-                continue
             invoices = QBInvoice.query(
                 select=f"select * from Invoice where "
                 # f"balance > '0' AND "
