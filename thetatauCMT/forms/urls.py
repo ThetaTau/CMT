@@ -16,11 +16,6 @@ urlpatterns = [
         name="audit_complete",
     ),
     url(
-        regex=r"^education/$",
-        view=views.ChapterEducationCreateView.as_view(),
-        name="education",
-    ),
-    url(
         regex=r"^education-list/$",
         view=views.ChapterEducationListView.as_view(),
         name="education_list",
