@@ -2,6 +2,7 @@ import re
 import datetime
 from datetime import timedelta, time
 from enum import Enum
+from django.db import IntegrityError, transaction
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils import timezone
@@ -330,7 +331,14 @@ class YearTermModel(models.Model):
     def save(self, *args, **kwargs):
         if self.term is None or self.term == "":
             self.term = SEMESTER[datetime.datetime.now().month]
-        super().save(*args, **kwargs)
+        try:
+            with transaction.atomic():
+                super().save(*args, **kwargs)
+        except IntegrityError as e:
+            if "unique constraint" in str(e):
+                pass
+            else:
+                raise e
 
     def get_date(self):
         month = {"fa": 8, "sp": 2}[self.term]
