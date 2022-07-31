@@ -35,7 +35,7 @@ class UserTable(tables.Table):
         *args,
         **kwargs
     ):
-        extra_columns = []
+        extra_columns = kwargs.get("extra_columns", [])
         if admin:
             self.base_columns["name"] = tables.LinkColumn(
                 "admin:users_user_change", kwargs={"object_id": A("id")}
