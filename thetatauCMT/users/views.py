@@ -506,11 +506,12 @@ class PasswordResetFormNotActive(PasswordResetForm):
         """
         email = self.cleaned_data.get("email", None)
         if email is None:
-            messages.add_message(
-                self.request,
-                messages.ERROR,
-                f"Please provide email",
-            )
+            if request:
+                messages.add_message(
+                    request,
+                    messages.ERROR,
+                    f"Please provide email",
+                )
             return
         for user in self.get_users(email):
             if not domain_override:
