@@ -23,5 +23,7 @@ export HCAPTCHA_SECRET=''
 export QUICKBOOKS_CLIENT=''
 export QUICKBOOKS_SECRET=''
 export METABASE_SECRET_KEY=''
+export LMS_ID=''
+export LMS_SECRET=''
 
 cd ~/thetatauCMT
