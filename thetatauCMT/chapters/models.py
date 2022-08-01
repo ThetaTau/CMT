@@ -366,7 +366,7 @@ class Chapter(models.Model):
         # If there are pledges that have not been initiated in X months
         #   not initiations filed in last X months as 1 person could have been init in a class of X
         return self.pledges(date=TODAY_END - timedelta(30 * months)).filter(
-            initiation__isnull=True
+            initiation__isnull=True, depledge__isnull=True
         )
 
     def pledges_last_x_months(self, months=8):
