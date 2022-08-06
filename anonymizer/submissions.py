@@ -1,5 +1,5 @@
 from dj_anonymizer.register_models import AnonymBase, register_anonym
-from dj_anonymizer import anonym_field
+from dj_anonymizer import fields
 from faker import Factory
 
 from submissions.models import Submission, Picture, GearArticle
@@ -8,25 +8,25 @@ fake = Factory.create()
 
 
 class SubmissionAnonym(AnonymBase):
-    file = anonym_field.function(fake.file_path)
-    name = anonym_field.function(fake.sentence)
-    slug = anonym_field.function(fake.slug)
+    file = fields.function(fake.file_path)
+    name = fields.function(fake.sentence)
+    slug = fields.function(fake.slug)
 
     class Meta:
         exclude_fields = ["created", "modified", "task", "date", "score"]
 
 
 class PictureAnonym(AnonymBase):
-    image = anonym_field.function(fake.file_path)
-    description = anonym_field.function(fake.sentence)
+    image = fields.function(fake.file_path)
+    description = fields.function(fake.sentence)
 
     class Meta:
         exclude_fields = ["created", "modified", "submission"]
 
 
 class GearArticleAnonym(AnonymBase):
-    article = anonym_field.function(fake.paragraph)
-    notes = anonym_field.function(fake.sentence)
+    article = fields.function(fake.paragraph)
+    notes = fields.function(fake.sentence)
 
     class Meta:
         exclude_fields = [

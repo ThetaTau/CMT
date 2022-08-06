@@ -4,7 +4,7 @@ from dj_anonymizer.register_models import (
     register_anonym,
     register_clean,
 )
-from dj_anonymizer import anonym_field
+from dj_anonymizer import fields
 from faker import Factory
 
 from users.models import (
@@ -30,34 +30,39 @@ register_skip(
     ]
 )
 
-register_clean([UserRoleChange, UserOrgParticipate])
+register_clean(
+    [
+        (UserRoleChange, AnonymBase),
+        (UserOrgParticipate, AnonymBase),
+    ]
+)
 
 
 class UserAnonym(AnonymBase):
-    password = anonym_field.password("test")
-    user_id = anonym_field.string("FAKE{seq}")
-    email_school = anonym_field.string("{seq}_email_school@thetatau.org")
-    email = anonym_field.string("{seq}@thetatau.org")
-    username = anonym_field.string("{seq}@thetatau.org")
-    middle_name = anonym_field.function(fake.first_name)
-    preferred_name = anonym_field.function(fake.first_name)
-    first_name = anonym_field.function(fake.first_name)
-    last_name = anonym_field.function(fake.last_name)
-    maiden_name = anonym_field.function(fake.last_name)
-    nickname = anonym_field.function(fake.first_name)
-    suffix = anonym_field.function(fake.suffix)
-    emergency_nickname = anonym_field.function(fake.first_name)
-    birth_date = anonym_field.function(fake.date_object)
-    graduation_year = anonym_field.function(fake.year)
-    name = anonym_field.function(fake.name)
-    badge_number = anonym_field.function(fake.pyint)
-    emergency_phone_number = anonym_field.function(fake.msisdn)
-    emergency_first_name = anonym_field.function(fake.first_name)
-    emergency_middle_name = anonym_field.function(fake.first_name)
-    phone_number = anonym_field.function(fake.msisdn)
-    emergency_last_name = anonym_field.function(fake.last_name)
-    employer = anonym_field.function(fake.company)
-    employer_position = anonym_field.function(fake.job)
+    password = fields.password("test")
+    user_id = fields.string("FAKE{seq}")
+    email_school = fields.string("{seq}_email_school@thetatau.org")
+    email = fields.string("{seq}@thetatau.org")
+    username = fields.string("{seq}@thetatau.org")
+    middle_name = fields.function(fake.first_name)
+    preferred_name = fields.function(fake.first_name)
+    first_name = fields.function(fake.first_name)
+    last_name = fields.function(fake.last_name)
+    maiden_name = fields.function(fake.last_name)
+    nickname = fields.function(fake.first_name)
+    suffix = fields.function(fake.suffix)
+    emergency_nickname = fields.function(fake.first_name)
+    birth_date = fields.function(fake.date_object)
+    graduation_year = fields.function(fake.year)
+    name = fields.function(fake.name)
+    badge_number = fields.function(fake.pyint)
+    emergency_phone_number = fields.function(fake.msisdn)
+    emergency_first_name = fields.function(fake.first_name)
+    emergency_middle_name = fields.function(fake.first_name)
+    phone_number = fields.function(fake.msisdn)
+    emergency_last_name = fields.function(fake.last_name)
+    employer = fields.function(fake.company)
+    employer_position = fields.function(fake.job)
 
     class Meta:
         queryset = User.objects.exclude(is_superuser=True)

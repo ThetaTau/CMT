@@ -1,5 +1,5 @@
 from dj_anonymizer.register_models import AnonymBase, register_anonym, register_skip
-from dj_anonymizer import anonym_field
+from dj_anonymizer import fields
 from faker import Factory
 
 from surveys.models import DepledgeSurvey, Survey
@@ -12,18 +12,18 @@ fake = Factory.create()
 
 
 class DepledgeSurveyAnonym(AnonymBase):
-    reason_other = anonym_field.function(fake.sentence)
-    decided_other = anonym_field.function(fake.sentence)
-    enjoyed = anonym_field.function(fake.paragraph)
-    improve = anonym_field.function(fake.paragraph)
-    extra_notes = anonym_field.function(fake.paragraph)
+    reason_other = fields.function(fake.sentence)
+    decided_other = fields.function(fake.sentence)
+    enjoyed = fields.function(fake.paragraph)
+    improve = fields.function(fake.paragraph)
+    extra_notes = fields.function(fake.paragraph)
 
     class Meta:
         exclude_fields = ["user", "created", "modified", "reason", "decided", "contact"]
 
 
 class AnswerAnonym(AnonymBase):
-    body = anonym_field.function(fake.sentence)
+    body = fields.function(fake.sentence)
 
     class Meta:
         exclude_fields = ["response", "question", "created", "updated"]

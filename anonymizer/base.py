@@ -1,5 +1,5 @@
 from dj_anonymizer.register_models import register_skip, AnonymBase, register_anonym
-from dj_anonymizer import anonym_field
+from dj_anonymizer import fields
 
 from django.contrib.sites.models import Site
 from django.contrib.admin.models import LogEntry
@@ -11,7 +11,7 @@ register_skip([Site, Permission, Group, Session, ContentType])
 
 
 class LogEntryAnonym(AnonymBase):
-    object_repr = anonym_field.string("Object Name")
+    object_repr = fields.string("Object Name")
 
     class Meta:
         exclude_fields = [

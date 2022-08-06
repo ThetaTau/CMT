@@ -4,7 +4,7 @@ from dj_anonymizer.register_models import (
     register_anonym,
     register_clean,
 )
-from dj_anonymizer import anonym_field
+from dj_anonymizer import fields
 from faker import Factory
 
 from forms.models import (
@@ -29,11 +29,17 @@ from forms.models import (
     RiskManagement,
     StatusChange,
     PledgeProgramProcess,
+    ChapterEducation,
+    Bylaws,
 )
 
 fake = Factory.create()
 
-register_clean([DisciplinaryAttachment])
+register_clean(
+    [
+        (DisciplinaryAttachment, AnonymBase),
+    ]
+)
 
 register_skip(
     [
@@ -48,13 +54,14 @@ register_skip(
         PledgeProgram,
         ReturnStudent,
         PledgeProgramProcess,
+        Bylaws,
     ]
 )
 
 
 class StatusChangeAnonym(AnonymBase):
-    email_work = anonym_field.string("{seq}@work.com")
-    employer = anonym_field.function(fake.company)
+    email_work = fields.string("{seq}@work.com")
+    employer = fields.function(fake.company)
 
     class Meta:
         exclude_fields = [
@@ -69,8 +76,8 @@ class StatusChangeAnonym(AnonymBase):
 
 
 class PrematureAlumnusAnonym(AnonymBase):
-    form = anonym_field.function(fake.file_path)
-    exec_comments = anonym_field.function(fake.sentence)
+    form = fields.function(fake.file_path)
+    exec_comments = fields.function(fake.sentence)
 
     class Meta:
         exclude_fields = [
@@ -93,10 +100,10 @@ class PrematureAlumnusAnonym(AnonymBase):
 
 
 class ConventionAnonym(AnonymBase):
-    signature_del = anonym_field.function(fake.name)
-    signature_alt = anonym_field.function(fake.name)
-    signature_o1 = anonym_field.function(fake.name)
-    signature_o2 = anonym_field.function(fake.name)
+    signature_del = fields.function(fake.name)
+    signature_alt = fields.function(fake.name)
+    signature_o1 = fields.function(fake.name)
+    signature_o2 = fields.function(fake.name)
 
     class Meta:
         exclude_fields = [
@@ -118,14 +125,14 @@ class ConventionAnonym(AnonymBase):
 
 
 class CollectionReferralAnonym(AnonymBase):
-    ledger_sheet = anonym_field.function(fake.file_path)
+    ledger_sheet = fields.function(fake.file_path)
 
     class Meta:
         exclude_fields = ["balance_due_currency", "balance_due", "modified", "created"]
 
 
 class RiskManagementAnonym(AnonymBase):
-    typed_name = anonym_field.function(fake.name)
+    typed_name = fields.function(fake.name)
 
     class Meta:
         exclude_fields = [
@@ -159,11 +166,11 @@ class RiskManagementAnonym(AnonymBase):
 
 
 class ResignationProcessAnonym(AnonymBase):
-    letter = anonym_field.function(fake.file_path)
-    signature = anonym_field.function(fake.name)
-    signature_o1 = anonym_field.function(fake.name)
-    signature_o2 = anonym_field.function(fake.name)
-    exec_comments = anonym_field.function(fake.sentence)
+    letter = fields.function(fake.file_path)
+    signature = fields.function(fake.name)
+    signature_o1 = fields.function(fake.name)
+    signature_o2 = fields.function(fake.name)
+    exec_comments = fields.function(fake.sentence)
 
     class Meta:
         exclude_fields = [
@@ -191,33 +198,33 @@ class ResignationProcessAnonym(AnonymBase):
 
 
 class InitiationAnonym(AnonymBase):
-    date_graduation = anonym_field.function(fake.date_object)
-    roll = anonym_field.function(fake.pyint)
+    date_graduation = fields.function(fake.date_object)
+    roll = fields.function(fake.pyint)
 
     class Meta:
         exclude_fields = ["modified", "created", "gpa", "test_a", "date", "test_b"]
 
 
 class DisciplinaryAttachmentAnonym(AnonymBase):
-    file = anonym_field.function(fake.file_path)
+    file = fields.function(fake.file_path)
 
     class Meta:
         pass
 
 
 class DisciplinaryProcessAnonym(AnonymBase):
-    minutes = anonym_field.function(fake.file_path)
-    punishment_other = anonym_field.function(fake.sentence)
-    charges = anonym_field.function(fake.paragraph)
-    why_take = anonym_field.function(fake.sentence)
-    ec_notes = anonym_field.function(fake.sentence)
-    final_letter = anonym_field.function(fake.file_path)
-    ed_notes = anonym_field.function(fake.sentence)
-    charging_letter = anonym_field.function(fake.file_path)
-    advisor_name = anonym_field.function(fake.name)
-    outcome_letter = anonym_field.function(fake.file_path)
-    faculty_name = anonym_field.function(fake.name)
-    results_letter = anonym_field.function(fake.file_path)
+    minutes = fields.function(fake.file_path)
+    punishment_other = fields.function(fake.sentence)
+    charges = fields.function(fake.paragraph)
+    why_take = fields.function(fake.sentence)
+    ec_notes = fields.function(fake.sentence)
+    final_letter = fields.function(fake.file_path)
+    ed_notes = fields.function(fake.sentence)
+    charging_letter = fields.function(fake.file_path)
+    advisor_name = fields.function(fake.name)
+    outcome_letter = fields.function(fake.file_path)
+    faculty_name = fields.function(fake.name)
+    results_letter = fields.function(fake.file_path)
 
     class Meta:
         exclude_fields = [
@@ -253,18 +260,18 @@ class DisciplinaryProcessAnonym(AnonymBase):
 
 
 class PledgeAnonym(AnonymBase):
-    signature = anonym_field.function(fake.name)
-    parent_name = anonym_field.function(fake.name)
-    explain_crime = anonym_field.function(fake.sentence)
-    relative_members = anonym_field.function(fake.name)
-    explain_expelled_org = anonym_field.function(fake.sentence)
-    other_tech = anonym_field.function(fake.sentence)
-    explain_expelled_college = anonym_field.function(fake.sentence)
-    birth_place = anonym_field.function(fake.city)
-    other_frat = anonym_field.function(fake.sentence)
-    other_greeks = anonym_field.function(fake.sentence)
-    other_degrees = anonym_field.function(fake.sentence)
-    other_college = anonym_field.function(fake.sentence)
+    signature = fields.function(fake.name)
+    parent_name = fields.function(fake.name)
+    explain_crime = fields.function(fake.sentence)
+    relative_members = fields.function(fake.name)
+    explain_expelled_org = fields.function(fake.sentence)
+    other_tech = fields.function(fake.sentence)
+    explain_expelled_college = fields.function(fake.sentence)
+    birth_place = fields.function(fake.city)
+    other_frat = fields.function(fake.sentence)
+    other_greeks = fields.function(fake.sentence)
+    other_degrees = fields.function(fake.sentence)
+    other_college = fields.function(fake.sentence)
 
     class Meta:
         exclude_fields = [
@@ -289,12 +296,12 @@ class PledgeAnonym(AnonymBase):
 
 
 class DepledgeAnonym(AnonymBase):
-    reason_other = anonym_field.function(fake.sentence)
-    meeting_not = anonym_field.function(fake.sentence)
-    informed = anonym_field.function(fake.sentence)
-    concerns = anonym_field.function(fake.sentence)
-    returned_other = anonym_field.function(fake.sentence)
-    extra_notes = anonym_field.function(fake.sentence)
+    reason_other = fields.function(fake.sentence)
+    meeting_not = fields.function(fake.sentence)
+    informed = fields.function(fake.sentence)
+    concerns = fields.function(fake.sentence)
+    returned_other = fields.function(fake.sentence)
+    extra_notes = fields.function(fake.sentence)
 
     class Meta:
         exclude_fields = [
@@ -306,6 +313,32 @@ class DepledgeAnonym(AnonymBase):
             "meeting_date",
             "meeting_attend",
             "returned_items",
+        ]
+
+
+class ChapterEducationAnonym(AnonymBase):
+    first_name = fields.function(fake.first_name)
+    last_name = fields.function(fake.last_name)
+    email = fields.string("{seq}@test.com")
+    phone_number = fields.function(fake.msisdn)
+
+    class Meta:
+        exclude_fields = [
+            "chapter",
+            "report",
+            "program_date",
+            "category",
+            "title",
+            "approval",
+            "approval_comments",
+            "flow_class",
+            "finished",
+            "modified",
+            "created",
+            "data",
+            "status",
+            "artifact_object_id",
+            "id",
         ]
 
 
@@ -321,5 +354,6 @@ register_anonym(
         (Convention, ConventionAnonym),
         (PrematureAlumnus, PrematureAlumnusAnonym),
         (StatusChange, StatusChangeAnonym),
+        (ChapterEducation, ChapterEducationAnonym),
     ]
 )
