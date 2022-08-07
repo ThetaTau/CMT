@@ -11,7 +11,7 @@ from core.views import (
     LoginRequiredMixin,
     NatOfficerRequiredMixin,
 )
-from core.models import NAT_OFFICERS, COUNCIL
+from core.models import NAT_OFFICERS, CHAPTER_OFFICER
 from users.models import UserRoleChange
 from chapters.models import Chapter
 from .models import Ballot, BallotComplete
@@ -91,9 +91,8 @@ class BallotDetailView(
         )
         nat_offs = UserRoleChange.get_current_natoff().exclude(user__in=users)
         incomplete_chapter = []
-        if self.object.voters == "council":
-            nat_offs = nat_offs.filter(role__in=COUNCIL)
-        elif self.object.voters == "convention" and region != "national":
+        nat_offs = nat_offs.filter(role__in=self.object.voters)
+        if "all_chapters" in self.object.voters and region != "national":
             # Candidate Chapters can not vote
             chapters = Chapter.objects.filter(candidate_chapter=False).exclude(
                 name__in=chapters
@@ -239,6 +238,11 @@ class BallotCompleteCreateView(LoginRequiredMixin, OfficerRequiredMixin, CreateV
         context = super().get_context_data(**kwargs)
         ballot_slug = self.kwargs.get("slug")
         ballot = Ballot.objects.get(slug=ballot_slug)
+        current_roles = self.request.user.get_current_roles()
+        roles_allowed = ballot.voters
+        if "all_chapters" in ballot.voters:
+            roles_allowed += CHAPTER_OFFICER
+        valid_roles = list(set(current_roles) & set(roles_allowed))
         completed = ballot.get_completed(self.request.user)
         complete = False
         if completed:
@@ -249,6 +253,10 @@ class BallotCompleteCreateView(LoginRequiredMixin, OfficerRequiredMixin, CreateV
             context["current_vote"] = completed
         context["ballot"] = ballot
         context["complete"] = complete
+        voters = ", ".join(val[1] for val in Ballot.VOTERS if val[0] in ballot.voters)
+        voters = voters.replace("All Chapters", "Chapter Officers")
+        context["voters"] = voters
+        context["valid_roles"] = True if valid_roles else False
         return context
 
     def form_valid(self, form):
@@ -257,18 +265,21 @@ class BallotCompleteCreateView(LoginRequiredMixin, OfficerRequiredMixin, CreateV
         user = self.request.user
         form.instance.user = user
         form.instance.ballot = ballot
-        role_level, current_roles = user.get_user_role_level()
-        access = Ballot.VOTERS.get_access(role_level)
-        if ballot.voters not in access:
+        current_roles = user.get_current_roles()
+        roles_allowed = ballot.voters
+        if "all_chapters" in ballot.voters:
+            roles_allowed += CHAPTER_OFFICER
+        valid_roles = list(set(current_roles) & set(roles_allowed))
+        if not valid_roles:
             messages.add_message(
                 self.request,
                 messages.ERROR,
-                f"This ballot is for {ballot.voters}. "
-                f"Your current roles/level are: {current_roles}/{role_level}",
+                f"This ballot is for {roles_allowed}. "
+                f"Your current roles are: {current_roles}",
             )
             return super().form_invalid(form)
-        if current_roles:
-            current_role = current_roles.pop()
+        else:
+            current_role = valid_roles[0]
         form.instance.role = current_role
         messages.add_message(
             self.request,

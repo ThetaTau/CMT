@@ -5,8 +5,9 @@
 
 {% block content %}
   <h1>Create New Ballot</h1>
-  <form class="form-horizontal" method="post">
+  <form class="form-horizontal" enctype="multipart/form-data" method="post">
     {% csrf_token %}
+    {{ form.media }}
     {% for field in form %}
       {{ field|as_crispy_field }}
       {% if field.name == "type" %}
@@ -43,21 +44,4 @@
       </div>
     </div>
   </form>
-{#  This was used to determine the type of pledge program#}
-{#        <? if (desc_id == "Pledge"){ ?>#}
-{#        <br>Program type: #}
-{#        <select name="program" id="program" form="submissions">#}
-{#          <option value="unmodified">Unmodified</option>#}
-{#          <option value="modified">Modified</option>#}
-{#        </select><? } ?>#}
-<script >
-$(function () {
-  $('.group').hide();
-  $('#id_type').change(function () {
-  var value = $('#id_type').find(":selected")[0].value;
-  $('.group').hide();
-  $('#'+value).show();
-  })
-});
-</script>
 {% endblock %}

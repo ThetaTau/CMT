@@ -1,11 +1,16 @@
 import os
 from enum import Enum
 from datetime import datetime, timedelta
+from multiselectfield import MultiSelectField
 from django.conf import settings
 from django.db import models
-from django.urls import reverse
 from django.utils.text import slugify
-from core.models import TimeStampedModel, ALL_OFFICERS_CHOICES
+from core.models import (
+    TimeStampedModel,
+    ALL_OFFICERS_CHOICES,
+    NAT_OFFICERS_CHOICES,
+    CHAPTER_OFFICER,
+)
 from users.models import UserRoleChange
 from tasks.models import Task, TaskDate, TaskChapter
 
@@ -17,6 +22,13 @@ def get_ballot_attachment_upload_path(instance, filename):
 def return_date_time():
     now = datetime.today()
     return now + timedelta(days=30)
+
+
+class MultiSelectField(MultiSelectField):
+    # Not Django 2.0+ ready yet, https://github.com/goinnn/django-multiselectfield/issues/74
+    def value_to_string(self, obj):
+        value = self.value_from_object(obj)
+        return self.get_prep_value(value)
 
 
 class Ballot(TimeStampedModel):
@@ -33,23 +45,7 @@ class Ballot(TimeStampedModel):
         def get_value(cls, member):
             return cls[member.lower()].value[1]
 
-    class VOTERS(Enum):
-        convention = ("convention", "Theta Tau Convention")
-        council = ("council", "Theta Tau Executive Council")
-        nat_off = ("nat_off", "Theta Tau National Officers")
-
-        @classmethod
-        def get_value(cls, member):
-            return cls[member.lower()].value[1]
-
-        @classmethod
-        def get_access(cls, level):
-            return {
-                "": [],
-                "convention": ["convention"],
-                "nat_off": ["convention", "nat_off"],
-                "council": ["convention", "nat_off", "council"],
-            }[level]
+    VOTERS = [("all_chapters", "All Chapters")] + NAT_OFFICERS_CHOICES
 
     sender = models.CharField("From", max_length=50, default="Grand Scribe")
     slug = models.SlugField(unique=False)
@@ -61,19 +57,17 @@ class Ballot(TimeStampedModel):
     )
     description = models.TextField()
     due_date = models.DateField(default=return_date_time)
-    voters = models.CharField(
-        max_length=50, default="convention", choices=[x.value for x in VOTERS]
+    voters = MultiSelectField(
+        "Who is allowed to vote on this ballot?",
+        choices=VOTERS,
     )
 
     def __str__(self):
         return f"{self.name}"
 
-    def get_absolute_url(self):
-        return reverse("users:detail")
-
     def save(self):
         self.slug = slugify(self.name)
-        if self.voters == "convention" and not self.pk:
+        if "all_chapters" in self.voters and not self.pk:
             new_task = Task(
                 name=self.name,
                 owner="regent",
@@ -124,35 +118,31 @@ class Ballot(TimeStampedModel):
     @classmethod
     def user_ballots(cls, user):
         voted = BallotComplete.objects.filter(ballot=models.OuterRef("pk"), user=user)
-        role_level, _ = user.get_user_role_level()
-        filter_list = cls.VOTERS.get_access(role_level)
-        if role_level == "convention":
-            natoffs = UserRoleChange.get_current_natoff().values_list(
-                "user__pk", flat=True
-            )
-            voted = BallotComplete.objects.filter(
-                ~models.Q(user__in=natoffs),  # Natoff vote should not count for chapter
-                ballot=models.OuterRef("pk"),
-                user__chapter=user.chapter,
-            )
-        ballot_query = (
+        completed = BallotComplete.objects.filter(user=user).values_list(
+            "ballot__pk", flat=True
+        )
+        roles = list(user.get_current_roles())
+        chapter_officer = list(set(roles) & set(CHAPTER_OFFICER))
+        if chapter_officer:
+            roles.append("all_chapters")
+        condition = models.Q(voters__contains=roles[0])
+        for role in roles[1:]:
+            condition |= models.Q(voters__contains=role)
+        ballot_query_current = (
             cls.objects.values("name", "type", "due_date", "voters", "slug", "pk")
-            .filter(voters__in=filter_list)
+            .filter(condition)
             .annotate(motion=models.Subquery(voted.values("motion")))
         )
-        return ballot_query
+        ballot_query_past = (
+            cls.objects.values("name", "type", "due_date", "voters", "slug", "pk")
+            .filter(pk__in=completed)
+            .exclude(pk__in=ballot_query_current.values_list("pk", flat=True))
+            .annotate(motion=models.Subquery(voted.values("motion")))
+        )
+        return ballot_query_current | ballot_query_past
 
     def get_completed(self, user):
-        role_level, _ = user.get_user_role_level()
-        if role_level == "convention":
-            natoffs = UserRoleChange.get_current_natoff().values_list(
-                "user__pk", flat=True
-            )
-            query = self.completed.filter(
-                ~models.Q(user__in=natoffs), user__chapter=user.chapter
-            )
-        else:
-            query = self.completed.filter(user=user)
+        query = self.completed.filter(user=user)
         return query.first()
 
 
@@ -183,7 +173,7 @@ class BallotComplete(TimeStampedModel):
 
     def save(self):
         natoffs = UserRoleChange.get_current_natoff().values_list("user__pk", flat=True)
-        if self.ballot.voters == "convention" and self.user.pk not in natoffs:
+        if "all_chapters" in self.ballot.voters and self.user.pk not in natoffs:
             task = Task.objects.filter(
                 name=self.ballot.name,
             ).first()

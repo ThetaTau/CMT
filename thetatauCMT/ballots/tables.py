@@ -22,7 +22,7 @@ class BallotTable(tables.Table):
         empty_text = "There are no ballots matching the search criteria..."
 
     def render_voters(self, value):
-        return Ballot.VOTERS.get_value(value)
+        return ", ".join(val[1] for val in Ballot.VOTERS if val[0] in value)
 
     def render_type(self, value):
         return Ballot.TYPES.get_value(value)

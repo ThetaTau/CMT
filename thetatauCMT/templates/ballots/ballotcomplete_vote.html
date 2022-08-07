@@ -23,10 +23,10 @@
             <td colspan="3">{{ ballot.description }}</td>
         </tr>
         <tr>
-            <th>Attachement:</th>
+            <th>Attachment:</th>
             <td colspan="3">
-                {% if object.attachment %}
-                <a href="{{ object.attachment.url }}">{{ object.attachment }}</a></td>
+                {% if ballot.attachment %}
+                <a href="{{ ballot.attachment.url }}">{{ ballot.attachment }}</a></td>
                 {% else %}
                   No attachment provided.
                 {% endif %}
@@ -39,7 +39,7 @@
               <h3>{{ current_vote.get_motion_display }}</h3>
               {{ current_vote.user }}<br>{{ current_vote.role | title }}<br>
               {{ current_vote.created }}
-          {% else %}
+          {% elif valid_roles %}
         <form class="form-horizontal" method="post">
           {% csrf_token %}
           {{ form|crispy }}
@@ -49,6 +49,8 @@
             </div>
           </div>
         </form>
+          {% else %}
+            <h3>Only {{ voters }} can vote on this ballot.</h3>
           {% endif %}
       </td>
     </tr>
