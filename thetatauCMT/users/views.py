@@ -29,12 +29,7 @@ from core.views import (
     group_required,
 )
 from core.forms import MultiFormsView
-from core.models import (
-    TODAY_END,
-    annotate_role_status,
-    combine_annotations,
-    BIENNIUM_YEARS,
-)
+from core.models import BIENNIUM_YEARS, annotate_rmp_status
 from dal import autocomplete
 from .models import (
     User,
@@ -287,7 +282,6 @@ class UserSearchView(
             if not queryset:
                 queryset = User.objects
             queryset = queryset.filter(pk__in=user_pks)
-        queryset = annotate_role_status(queryset)
         return queryset
 
     def get_table_kwargs(self):
@@ -305,25 +299,15 @@ class ExportActiveMixin:
         zip_filename = f"ThetaTauActiveExport_{time_name}.zip"
         zip_io = BytesIO()
         qs = self.model._default_manager.filter(
-            status__status__in=["active", "activepend", "alumnipend", "away"],
-            status__start__lte=TODAY_END,
-            status__end__gte=TODAY_END,
+            current_status__in=["active", "activepend", "alumnipend", "away"],
         )
         with zipfile.ZipFile(zip_io, "w") as zf:
             active_chapters = Chapter.objects.exclude(active=False)
             total = active_chapters.count()
             for count, chapter in enumerate(active_chapters):
                 print(f"Export {chapter} {count+1}/{total}")
-                members = annotate_role_status(
-                    qs.filter(
-                        chapter=chapter,
-                    ),
-                    combine=True,
-                )
-                table = UserTable(
-                    data=members,
-                    chapter=True,
-                )
+                members = qs.filter(chapter=chapter)
+                table = UserTable(data=members, chapter=True)
                 writer_file = StringIO()
                 writer = csv.writer(writer_file)
                 writer.writerows(table.as_values())
@@ -408,34 +392,19 @@ class UserListView(LoginRequiredMixin, PagedFilteredTableView):
             if isinstance(ordering, str):
                 ordering = (ordering,)
                 qs = qs.order_by(*ordering)
-        members = annotate_role_status(
-            qs.filter(
-                chapter=self.request.user.current_chapter,
-                status__status__in=["active", "activepend", "alumnipend"],
-                status__start__lte=TODAY_END,
-                status__end__gte=TODAY_END,
-            ),
-            combine=False,
+        members = qs.filter(
+            chapter=self.request.user.current_chapter,
+            current_status__in=["active", "activepend", "alumnipend"],
         )
-        pledges = annotate_role_status(
-            qs.filter(
-                chapter=self.request.user.current_chapter,
-                status__status="pnm",
-                status__start__lte=TODAY_END,
-                status__end__gte=TODAY_END,
-            ),
-            combine=False,
+        pledges = qs.filter(
+            chapter=self.request.user.current_chapter,
+            current_status="pnm",
         )
         alumni = User.objects.none()
         if self.request.user.chapter_officer():
-            alumni = annotate_role_status(
-                qs.filter(
-                    chapter=self.request.user.current_chapter,
-                    status__status__in=["alumni"],
-                    status__start__lte=TODAY_END,
-                    status__end__gte=TODAY_END,
-                ),
-                combine=False,
+            alumni = qs.filter(
+                chapter=self.request.user.current_chapter,
+                current_status="alumni",
             )
         qs = members | pledges | alumni
         cancel = self.request.GET.get("cancel", False)
@@ -468,7 +437,7 @@ class UserListView(LoginRequiredMixin, PagedFilteredTableView):
                 )
         self.filter = self.filter_class(request_get, queryset=qs, request=self.request)
         self.filter.form.helper = self.formhelper_class()
-        qs = combine_annotations(self.filter.qs)
+        qs = annotate_rmp_status(self.filter.qs)
         return qs
 
     def get_context_data(self, **kwargs):
@@ -478,7 +447,7 @@ class UserListView(LoginRequiredMixin, PagedFilteredTableView):
             natoff = True
         admin = self.request.user.is_superuser
         table = UserTable(data=self.object_list, natoff=natoff, admin=admin)
-        table.exclude = ("role", "role_end")
+        table.exclude = ("current_roles",)
         RequestConfig(self.request, paginate={"per_page": 30}).configure(table)
         context["table"] = table
         return context
@@ -692,17 +661,16 @@ class UserGPAFormSetView(LoginRequiredMixin, OfficerRequiredMixin, FormSetView):
     def get_initial(self):
         # return whatever you'd normally use as the initial data for your formset.
         users_with_gpas = self.request.user.current_chapter.gpas()
-        all_members = self.request.user.current_chapter.current_members()
         cancel = self.request.GET.get("cancel", False)
         request_get = self.request.GET.copy()
         if cancel:
             request_get = QueryDict()
         self.filter = UserListFilter(
             request_get,
-            queryset=annotate_role_status(all_members, combine=False),
+            queryset=self.request.user.current_chapter.current_members(),
             request=self.request,
         )
-        all_members = combine_annotations(self.filter.qs)
+        all_members = self.filter.qs
         initials = []
         for user in all_members:
             init_dict = {"user": user.name}
@@ -757,17 +725,16 @@ class UserServiceFormSetView(LoginRequiredMixin, OfficerRequiredMixin, FormSetVi
     def get_initial(self):
         # return whatever you'd normally use as the initial data for your formset.
         users_with_service = self.request.user.current_chapter.service_hours()
-        all_members = self.request.user.current_chapter.current_members()
         cancel = self.request.GET.get("cancel", False)
         request_get = self.request.GET.copy()
         if cancel:
             request_get = QueryDict()
         self.filter = UserListFilter(
             request_get,
-            queryset=annotate_role_status(all_members, combine=False),
+            queryset=self.request.user.current_chapter.current_members(),
             request=self.request,
         )
-        all_members = combine_annotations(self.filter.qs)
+        all_members = self.filter.qs
         initials = []
         for user in all_members:
             init_dict = {"user": user.name}

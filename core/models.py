@@ -3,6 +3,7 @@ import datetime
 from datetime import timedelta, time
 from enum import Enum
 from django.db import IntegrityError, transaction
+from django.contrib.postgres.aggregates import StringAgg, ArrayAgg
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils import timezone
@@ -376,80 +377,47 @@ class YearTermModel(models.Model):
         )
 
 
-def combine_annotations(user_queryset):
-    uniques = {user.pk: user for user in user_queryset.order_by("pk").distinct("pk")}
-    duplicates = (
-        user_queryset.values(
-            "pk",
+def annotate_rmp_status(queryset, date=TODAY_END):
+    from forms.models import RiskManagement
+
+    start, end = semester_encompass_start_end_date(date)
+    qs = queryset.annotate(
+        rmp_complete=models.Exists(
+            RiskManagement.objects.filter(
+                user=models.OuterRef("pk"), date__gte=start, date__lte=end
+            ),
         )
-        .annotate(models.Count("id"))
-        .order_by()
-        .filter(id__count__gt=1)
     )
-    # convert uniques to list and then update
-    for duplicate in duplicates:
-        pk = duplicate["pk"]
-        duplicate_objs = user_queryset.filter(pk=pk)
-        for duplicate_obj in duplicate_objs:
-            dup_role = str(duplicate_obj.role)
-            roles = str(uniques[pk].role)
-            if dup_role != "None":
-                if roles != "None":
-                    if dup_role not in roles:
-                        uniques[pk].role = ", ".join([dup_role, roles])
-                else:
-                    uniques[pk].role = dup_role
-            dup_status = str(duplicate_obj.current_status)
-            status = str(uniques[pk].current_status)
-            if dup_status != "None":
-                if status != "None":
-                    if dup_status not in status:
-                        uniques[pk].current_status = ", ".join([dup_status, status])
-                else:
-                    uniques[pk].current_status = dup_status
-    return list(uniques.values())
+    return qs
 
 
-def annotate_role_status(queryset, combine=True, date=TODAY_END):
+def annotate_role_status(queryset, date=TODAY_END):
+    from forms.models import RiskManagement
+
     start, end = semester_encompass_start_end_date(date)
     qs = (
         queryset.annotate(
-            role=models.Case(
-                models.When(
-                    models.Q(roles__start__lte=date) & models.Q(roles__end__gte=date),
-                    models.F("roles__role"),
+            roles_all=models.FilteredRelation(
+                "roles",
+                condition=models.Q(roles__start__lte=date)
+                & models.Q(roles__end__gte=date),
+            )
+        )
+        .annotate(old_roles=StringAgg("roles_all__role", ", "))
+        .annotate(
+            status_all=models.FilteredRelation(
+                "status",
+                condition=models.Q(status__start__lte=date)
+                & models.Q(status__end__gte=date),
+            )
+        )
+        .annotate(old_status=StringAgg("status_all__status", ", "))
+        .annotate(
+            rmp_complete=models.Exists(
+                RiskManagement.objects.filter(
+                    user=models.OuterRef("pk"), date__gte=start, date__lte=end
                 ),
-            )
-        )
-        .annotate(
-            role_end=models.Case(
-                models.When(
-                    models.Q(roles__start__lte=date) & models.Q(roles__end__gte=date),
-                    models.F("roles__end"),
-                )
-            )
-        )
-        .annotate(
-            current_status=models.Case(
-                models.When(
-                    models.Q(status__start__lte=TODAY_END)
-                    & models.Q(status__end__gte=TODAY_END),
-                    models.F("status__status"),
-                )
-            )
-        )
-        .annotate(
-            rmp_complete=models.Case(
-                models.When(
-                    models.Q(risk_form__date__gte=start)
-                    & models.Q(risk_form__date__lte=end),
-                    models.Value("True"),
-                ),
-                default=models.Value("False"),
-                output_field=models.CharField(),
             )
         )
     )
-    if combine:
-        qs = combine_annotations(qs)
     return qs

@@ -1,5 +1,5 @@
 import csv
-from users.models import User
+from users.models import User, UserRoleChange
 
 fields = [
     "Chapter",
@@ -25,7 +25,11 @@ def run():
             if roles:
                 print(f"Found officer {user}")
                 first_role = roles.pop()
-                role = user.get_current_roles().first()
+                role = (
+                    UserRoleChange.get_current_roles(user)
+                    .filter(role=first_role)
+                    .first()
+                )
                 writer.writerow(
                     {
                         "Chapter": user.chapter.name,

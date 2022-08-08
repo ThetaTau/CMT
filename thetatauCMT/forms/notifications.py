@@ -296,9 +296,7 @@ class EmailPledgeOfficer(EmailNotification):
     subject = "Theta Tau Prospective New Member Submission"
 
     def __init__(self, pledge_form):
-        officers = pledge_form.user.chapter.get_current_officers_council(combine=False)[
-            0
-        ]
+        officers = pledge_form.user.chapter.get_current_officers_council()[0]
         scribe = officers.filter(role="scribe").first()
         vice = officers.filter(role="vice regent").first()
         generics = pledge_form.user.chapter.get_generic_chapter_emails()

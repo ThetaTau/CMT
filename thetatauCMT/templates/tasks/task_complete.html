@@ -69,13 +69,24 @@
       {% else %}
         <tr>
           <th></th>
-          <td>This task is already complete or is too far in advance to complete.</td>
+          <td>
+            {% if task.render_task_link %}
+              Most forms you can always complete by clicking the form link here: {{ task.render_task_link }}<br>
+              Remember this task is just a reminder to remind you to fill out the form.<br>
+            {% endif %}
+            This task is already complete or is too far in advance to complete.</td>
         </tr>
         {% endif %}
     {% else %}
       <tr>
       <th></th>
-      <td>This task is already complete or is too far in advance to complete.</td>
+        <td>
+          {% if task.render_task_link %}
+            Most forms you can always complete by clicking the form link here: {{ task.render_task_link }}<br>
+            Remember this task is just a reminder to remind you to fill out the form.<br>
+          {% endif %}
+          This task is already complete or is too far in advance to complete.
+        </td>
       </tr>
     {% endif %}
   </table>

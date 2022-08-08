@@ -63,8 +63,8 @@ class UserRoleListFilter(django_filters.FilterSet):
         ],
         method="filter_current_status",
     )
-    role = django_filters.MultipleChoiceFilter(
-        choices=UserRoleChange.ROLES, method="filter_role"
+    current_roles = django_filters.MultipleChoiceFilter(
+        choices=UserRoleChange.ROLES, method="filter_current_roles"
     )
     region = django_filters.ChoiceFilter(
         choices=Region.region_choices(), method="filter_region"
@@ -96,14 +96,9 @@ class UserRoleListFilter(django_filters.FilterSet):
             flat=True,
         ).distinct()
 
-    def filter_current_status(self, queryset, field_name, value):
+    def filter_current_roles(self, queryset, field_name, value):
         if value:
-            queryset = queryset.filter(current_status=value)
-        return queryset
-
-    def filter_role(self, queryset, field_name, value):
-        if value:
-            queryset = queryset.filter(roles__role__in=value, roles__end__gte=TODAY_END)
+            queryset = queryset.filter(current_roles__overlap=value)
         return queryset
 
     def filter_region(self, queryset, field_name, value):

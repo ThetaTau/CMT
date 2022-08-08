@@ -344,7 +344,11 @@ class UserAlterInline(admin.StackedInline):
 class MyUserAdmin(ImportMixin, AuthUserAdmin, ExportActiveMixin, AssignTrainingMixin):
     actions = ["export_chapter_actives", "assign_training"]
     raw_id_fields = ["address"]
-    readonly_fields = ("deceased_changed",)
+    readonly_fields = (
+        "deceased_changed",
+        "current_roles",
+        "current_status",
+    )
     inlines = [
         UserNoteInline,
         UserAlterInline,
@@ -391,6 +395,8 @@ class MyUserAdmin(ImportMixin, AuthUserAdmin, ExportActiveMixin, AssignTrainingM
                     "first_name",
                     "middle_name",
                     "last_name",
+                    "current_status",
+                    "current_roles",
                     "address",
                     "deceased",
                     "deceased_date",

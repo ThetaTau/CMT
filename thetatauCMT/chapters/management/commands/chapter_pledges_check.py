@@ -73,7 +73,7 @@ class Command(BaseCommand):
             subject += " Reminder"
             if message:
                 print(f"    Sending message to: {chapter}\n")
-                officer_list, _ = chapter.get_current_officers_council(False)
+                officer_list, _ = chapter.get_current_officers_council()
                 # set list of emails to send to
                 emails = set([officer.email for officer in officer_list]) | set(
                     chapter.get_generic_chapter_emails()
