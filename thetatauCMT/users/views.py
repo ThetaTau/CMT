@@ -385,7 +385,7 @@ class UserListView(LoginRequiredMixin, PagedFilteredTableView):
                 )
         return super().get(request, *args, **kwargs)
 
-    def get_queryset(self):
+    def get_queryset(self, **kwargs):
         qs = self.model._default_manager.all()
         ordering = self.get_ordering()
         if ordering:
@@ -435,10 +435,10 @@ class UserListView(LoginRequiredMixin, PagedFilteredTableView):
                         "alumnipend",
                     ],
                 )
+        qs = annotate_rmp_status(qs)
         self.filter = self.filter_class(request_get, queryset=qs, request=self.request)
         self.filter.form.helper = self.formhelper_class()
-        qs = annotate_rmp_status(self.filter.qs)
-        return qs
+        return self.filter.qs
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -669,6 +669,7 @@ class UserGPAFormSetView(LoginRequiredMixin, OfficerRequiredMixin, FormSetView):
             request_get,
             queryset=self.request.user.current_chapter.current_members(),
             request=self.request,
+            rmp_remove=True,
         )
         all_members = self.filter.qs
         initials = []
@@ -733,6 +734,7 @@ class UserServiceFormSetView(LoginRequiredMixin, OfficerRequiredMixin, FormSetVi
             request_get,
             queryset=self.request.user.current_chapter.current_members(),
             request=self.request,
+            rmp_remove=True,
         )
         all_members = self.filter.qs
         initials = []
