@@ -436,8 +436,10 @@ class MyUserAdmin(ImportMixin, AuthUserAdmin, ExportActiveMixin, AssignTrainingM
         "user_id",
         "badge_number",
         "chapter",
+        "current_status",
+        "current_roles",
     )
-    list_filter = ("is_superuser", "last_login", "groups", "chapter")
+    list_filter = ("is_superuser", "last_login", "groups", "current_status", "chapter")
     search_fields = ("user_id", "badge_number") + AuthUserAdmin.search_fields
     resource_class = UserResource
 
