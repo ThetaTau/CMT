@@ -154,6 +154,11 @@ LOGGING = {
             "handlers": ["console", "mail_admins"],
             "propagate": True,
         },
+        "survey": {
+            "handlers": ["console"],
+            "level": "ERROR",
+            "propagate": False,
+        },
     },
 }
 
