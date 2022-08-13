@@ -544,6 +544,10 @@ class UserStatusChange(StartEndModel, TimeStampedModel):
         return self.status
 
     def save(self, *args, **kwargs):
+        if hasattr(self.start, "date"):
+            self.start = self.start.date()
+        if hasattr(self.end, "date"):
+            self.end = self.end.date()
         if self.start < TODAY < self.end:
             self.user.current_status = self.status
             self.user.save(update_fields=["current_status"])
@@ -564,6 +568,10 @@ class UserRoleChange(StartEndModel, TimeStampedModel):
         off_group, _ = Group.objects.get_or_create(name="officer")
         nat_group, _ = Group.objects.get_or_create(name="natoff")
         super().save(*args, **kwargs)
+        if hasattr(self.start, "date"):
+            self.start = self.start.date()
+        if hasattr(self.end, "date"):
+            self.end = self.end.date()
         if self.start < TOMORROW < self.end:
             current_roles = self.user.current_roles if self.user.current_roles else []
             if self.role not in current_roles:
