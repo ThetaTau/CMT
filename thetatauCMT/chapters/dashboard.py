@@ -417,6 +417,7 @@ def load_chapter_data(clicks, **kwargs):
 def update_text(data, years, **kwargs):
     statuss = ["Actives", "Inactives", "Pledges", "Depledges", "Alumni"]
     df = pd.DataFrame.from_dict(data)
+    df = df.fillna(0)
     if years is None or "year" not in df:
         raise PreventUpdate
     outs = []
@@ -455,6 +456,7 @@ def update_text(data, years, **kwargs):
 )
 def members_graph(data, years, status, year_info, **kwargs):
     df = pd.DataFrame.from_dict(data)
+    df = df.fillna(0)
     if year_info is None or "Year Term" not in df:
         raise PreventUpdate
     start_indx = df.index[df["Year Term"] == year_info[str(years[0])]["label"]]
@@ -480,6 +482,7 @@ def members_graph(data, years, status, year_info, **kwargs):
 )
 def majors_graph(data, yearterm, **kwargs):
     df = pd.DataFrame.from_dict(data)
+    df = df.fillna(0)
     try:
         majors = df[df["Year Term"] == yearterm]["majors"].iloc[0]
     except (IndexError, KeyError):
@@ -513,6 +516,7 @@ def majors_graph(data, yearterm, **kwargs):
 )
 def gpa_graph(data, years, year_info, **kwargs):
     df = pd.DataFrame.from_dict(data)
+    df = df.fillna(0)
     if year_info is None or "Year Term" not in df:
         raise PreventUpdate
     start_indx = df.index[df["Year Term"] == year_info[str(years[0])]["label"]]

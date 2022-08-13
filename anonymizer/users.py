@@ -63,6 +63,7 @@ class UserAnonym(AnonymBase):
     emergency_last_name = fields.function(fake.last_name)
     employer = fields.function(fake.company)
     employer_position = fields.function(fake.job)
+    current_roles = []
 
     class Meta:
         queryset = User.objects.exclude(is_superuser=True)
@@ -83,6 +84,7 @@ class UserAnonym(AnonymBase):
             "is_active",
             "no_contact",
             "charter",
+            "current_status",
         ]
 
 

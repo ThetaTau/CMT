@@ -74,7 +74,7 @@ if env("USE_DOCKER", default="no") == "yes":
 # ------------------------------------------------------------------------------
 
 ACCOUNT_EMAIL_VERIFICATION = "none"
-SILENCED_SYSTEM_CHECKS = ["captcha.recaptcha_test_key_error"]
+SILENCED_SYSTEM_CHECKS = ["captcha.recaptcha_test_key_error", "urls.W005"]
 
 # dj_anonymizer DO NOT ADD TO PRODUCTION
 # ------------------------------------------------------------------------------
