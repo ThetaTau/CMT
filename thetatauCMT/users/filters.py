@@ -96,6 +96,11 @@ class UserRoleListFilter(django_filters.FilterSet):
             flat=True,
         ).distinct()
 
+    def filter_current_status(self, queryset, field_name, value):
+        if value:
+            queryset = queryset.filter(current_status=value)
+        return queryset
+
     def filter_current_roles(self, queryset, field_name, value):
         if value:
             queryset = queryset.filter(current_roles__overlap=value)
