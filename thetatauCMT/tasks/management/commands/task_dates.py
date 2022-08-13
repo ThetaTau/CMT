@@ -1,4 +1,5 @@
 from django.core.management import BaseCommand
+from django.db import IntegrityError
 from csv import DictReader
 from datetime import datetime
 from tasks.models import Task, TaskDate
@@ -23,8 +24,11 @@ class Command(BaseCommand):
                 if date.month < 7:
                     year = year + 1
                 date = date.replace(year=year)
-                print(task_obj, row["school_type"], date)
-                task_date_obj = TaskDate(
-                    task=task_obj, school_type=row["school_type"], date=date
-                )
-                task_date_obj.save()
+                print("    ", task_obj, row["school_type"], date)
+                try:
+                    task_date_obj = TaskDate(
+                        task=task_obj, school_type=row["school_type"], date=date
+                    )
+                    task_date_obj.save()
+                except IntegrityError:
+                    print(f"    Task {task_obj} date already exists {date}")
