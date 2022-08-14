@@ -1,3 +1,5 @@
 {
-    "python.linting.pylintEnabled": true
+  "python.linting.pylintEnabled": true,
+  "python.linting.enabled": true,
+  "python.defaultInterpreterPath": "C:\\workspace\\.virtualenvs\\cmt39\\Scripts\\python.exe"
 }
