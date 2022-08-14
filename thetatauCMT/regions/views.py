@@ -13,7 +13,6 @@ from django.views.generic import DetailView, ListView, RedirectView
 import django_tables2 as tables
 from django_tables2.utils import A
 from core.views import NatOfficerRequiredMixin, RequestConfig, LoginRequiredMixin
-from core.models import combine_annotations, annotate_role_status
 from .models import Region
 from tasks.models import TaskDate
 from chapters.models import Chapter
@@ -68,7 +67,7 @@ class RegionOfficerView(LoginRequiredMixin, NatOfficerRequiredMixin, DetailView)
             # Create a mutable QueryDict object, default is immutable
             request_get = QueryDict(mutable=True)
             request_get.setlist(
-                "role",
+                "current_roles",
                 [
                     "corresponding secretary",
                     "regent",
@@ -90,9 +89,8 @@ class RegionOfficerView(LoginRequiredMixin, NatOfficerRequiredMixin, DetailView)
                 chapters = active_chapters.filter(candidate_chapter=True)
         all_chapter_officers = User.objects.none()
         for chapter in chapters:
-            chapter_officers, _ = chapter.get_current_officers(combine=False)
+            chapter_officers, _ = chapter.get_current_officers()
             all_chapter_officers = chapter_officers | all_chapter_officers
-        all_chapter_officers = annotate_role_status(all_chapter_officers, combine=False)
         self.filter = self.filter_class(
             request_get, queryset=all_chapter_officers, request=self.request
         )
@@ -103,7 +101,7 @@ class RegionOfficerView(LoginRequiredMixin, NatOfficerRequiredMixin, DetailView)
         self.filter.form.fields["chapter"].queryset = chapters
         admin = self.request.user.is_superuser
         table = UserTable(
-            data=combine_annotations(self.filter.qs),
+            data=self.filter.qs,
             natoff=True,
             admin=admin,
             extra_columns=[
@@ -185,11 +183,10 @@ class RegionAdvisorView(LoginRequiredMixin, NatOfficerRequiredMixin, DetailView)
         email_list = ", ".join(
             [x[0] for x in self.filter.qs.values_list("email").distinct()]
         )
-        all_chapter_advisors = combine_annotations(self.filter.qs)
         self.filter.form.fields["chapter"].queryset = chapters
         admin = self.request.user.is_superuser
         table = UserTable(
-            data=all_chapter_advisors,
+            data=self.filter.qs,
             natoff=True,
             admin=admin,
             extra_columns=[
@@ -205,8 +202,7 @@ class RegionAdvisorView(LoginRequiredMixin, NatOfficerRequiredMixin, DetailView)
             "badge_number",
             "major",
             "graduation_year",
-            "current_status",
-            "role_end",
+            "rmp_complete",
         )
         RequestConfig(self.request, paginate={"per_page": 50}).configure(table)
         context["table"] = table

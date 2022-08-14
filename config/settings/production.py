@@ -154,6 +154,11 @@ LOGGING = {
             "handlers": ["console", "mail_admins"],
             "propagate": True,
         },
+        "survey": {
+            "handlers": ["console"],
+            "level": "ERROR",
+            "propagate": False,
+        },
     },
 }
 
@@ -164,3 +169,5 @@ RECAPTCHA_PRIVATE_KEY = env("RECAPTCHA_PRIVATE_KEY")
 
 HCAPTCHA_SITEKEY = env("HCAPTCHA_SITEKEY")
 HCAPTCHA_SECRET = env("HCAPTCHA_SECRET")
+
+SILENCED_SYSTEM_CHECKS = ["urls.W005"]

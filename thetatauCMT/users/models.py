@@ -1,7 +1,7 @@
 import datetime
 from django.contrib.auth.models import AbstractUser, Group
+from django.contrib.postgres.fields import ArrayField
 from django.db import models, IntegrityError
-from django.db.models.query import QuerySet
 from django.contrib.auth.models import UserManager
 from django.urls import reverse
 from django.conf import settings
@@ -15,6 +15,7 @@ from core.models import (
     YearTermModel,
     forever,
     TODAY,
+    TOMORROW,
     TODAY_END,
     CHAPTER_OFFICER,
     ALL_ROLES_CHOICES,
@@ -73,8 +74,6 @@ class User(AbstractUser):
 
     class ReportBuilder:
         extra = (
-            "current_status",
-            "role",
             "is_officer",
             "is_advisor",
         )
@@ -200,6 +199,9 @@ class User(AbstractUser):
     )
     no_contact = models.BooleanField(default=False)
     charter = models.BooleanField(default=False, help_text="Charter member")
+    ##### DENORMALIZED FIELDS #####
+    current_status = models.CharField(max_length=10)
+    current_roles = ArrayField(models.CharField(max_length=50), blank=True, null=True)
 
     def save(self, *args, **kwargs):
         if not self.id:
@@ -240,14 +242,6 @@ class User(AbstractUser):
             return self.badge_number
         return self.user_id
 
-    @property
-    def current_status(self):
-        return str(self.get_current_status())
-
-    @current_status.setter
-    def current_status(self, val):
-        self._current_status = val
-
     @classmethod
     def next_pledge_number(cls):
         pledge_numbers = list(
@@ -259,14 +253,6 @@ class User(AbstractUser):
             pledge_numbers.append(1_999_999)
         pledge_number = max(pledge_numbers) + 1
         return pledge_number
-
-    def get_current_status(self):
-        if hasattr(self, "_current_status") and self._current_status is not None:
-            return self._current_status
-        return self.status.filter(start__lte=TODAY_END, end__gte=TODAY_END).first()
-
-    def get_current_status_all(self):
-        return self.status.filter(start__lte=TODAY_END, end__gte=TODAY_END).all()
 
     def set_current_status(
         self, status, created=None, start=None, end=None, current=True
@@ -283,7 +269,9 @@ class User(AbstractUser):
             end = forever()
             if current:
                 # If the current current status is being set.
-                current_status = self.get_current_status_all()
+                current_status = self.status.filter(
+                    start__lte=TODAY_END, end__gte=TODAY_END
+                ).all()
                 for old_status in current_status:
                     old_status.end = start - datetime.timedelta(days=1)
                     old_status.save()
@@ -301,21 +289,6 @@ class User(AbstractUser):
             end=end,
         ).save()
 
-    @property
-    def role(self):
-        return self.get_current_role()
-
-    @role.setter
-    def role(self, val):
-        self._role = val
-
-    def get_current_role(self):
-        if hasattr(self, "_role") and self._role is not None:
-            if isinstance(self._role, QuerySet):
-                self._role = self._role.first()
-            return self._role
-        return self.roles.filter(end__gte=TODAY_END).first()
-
     def get_roles_on_date(self, date):
         return self.roles.filter(end__gte=date, start__lte=date)
 
@@ -323,23 +296,23 @@ class User(AbstractUser):
         roles = self.get_roles_on_date(date)
         return roles.filter(role__in=CHAPTER_OFFICER).first()
 
-    def get_current_roles(self):
-        role_objs = self.roles.filter(end__gte=TODAY_END)
-        current_roles = set()
-        if role_objs is not None:
-            for role_obj in role_objs:
-                role_name = role_obj.role.lower()
-                if role_name in COL_OFFICER_ALIGN:
-                    role_name = COL_OFFICER_ALIGN[role_name]
-                current_roles.add(role_name)
-        return current_roles
+    def get_user_role_level(self):
+        current_roles = self.get_current_roles()
+        if COUNCIL & current_roles:
+            return "council", COUNCIL & current_roles
+        elif set(NAT_OFFICERS) & current_roles:
+            return "nat_off", set(NAT_OFFICERS) & current_roles
+        elif self.chapter_officer():
+            return "convention", self.chapter_officer()
+        else:
+            return "", current_roles
 
     def chapter_officer(self, altered=True):
         """
         An member can have multiple roles need to see if any are officer
         :return: Bool if officer, set of officer roles
         """
-        current_roles = self.get_current_roles()
+        current_roles = set(self.current_roles) if self.current_roles else set()
         # officer = not current_roles.isdisjoint(CHAPTER_OFFICER)
         officer_roles = CHAPTER_OFFICER & current_roles
         if self.is_national_officer_group:
@@ -362,13 +335,13 @@ class User(AbstractUser):
         return self.is_national_officer_group or self.is_chapter_officer_group
 
     def is_national_officer(self):
-        current_roles = self.get_current_roles()
-        officer_roles = set(NAT_OFFICERS) & current_roles
+        current_roles = set(self.current_roles) if self.current_roles else set()
+        officer_roles = set(NAT_OFFICERS) & set(current_roles)
         return officer_roles
 
     def is_council_officer(self):
-        current_roles = self.get_current_roles()
-        officer_roles = COUNCIL & current_roles
+        current_roles = set(self.current_roles) if self.current_roles else set()
+        officer_roles = COUNCIL & set(current_roles)
         return officer_roles
 
     @property
@@ -377,7 +350,7 @@ class User(AbstractUser):
 
     @property
     def is_advisor(self):
-        return self.get_current_status_all().filter(status="advisor").first()
+        return self.current_status == "advisor"
 
 
 class UserDemographic(models.Model):
@@ -570,6 +543,16 @@ class UserStatusChange(StartEndModel, TimeStampedModel):
     def __str__(self):
         return self.status
 
+    def save(self, *args, **kwargs):
+        if hasattr(self.start, "date"):
+            self.start = self.start.date()
+        if hasattr(self.end, "date"):
+            self.end = self.end.date()
+        if self.start < TODAY < self.end:
+            self.user.current_status = self.status
+            self.user.save(update_fields=["current_status"])
+        super().save(*args, **kwargs)
+
 
 class UserRoleChange(StartEndModel, TimeStampedModel):
     ROLES = ALL_ROLES_CHOICES
@@ -585,17 +568,31 @@ class UserRoleChange(StartEndModel, TimeStampedModel):
         off_group, _ = Group.objects.get_or_create(name="officer")
         nat_group, _ = Group.objects.get_or_create(name="natoff")
         super().save(*args, **kwargs)
+        if hasattr(self.start, "date"):
+            self.start = self.start.date()
+        if hasattr(self.end, "date"):
+            self.end = self.end.date()
+        if self.start < TOMORROW < self.end:
+            current_roles = self.user.current_roles if self.user.current_roles else []
+            if self.role not in current_roles:
+                current_roles.append(self.role)
+                self.user.current_roles = current_roles
+                self.user.save(update_fields=["current_roles"])
+        elif self.end < TODAY:
+            if self.role in self.user.current_roles:
+                self.user.current_roles.remove(self.role)
+                self.user.save(update_fields=["current_roles"])
         self.clean_group_role()
         # Need to check current role, b/c user could have multiple
-        current_role = self.user.get_current_role()
-        if current_role:
+        current_officer = self.user.is_officer
+        if current_officer:
             if self.user not in off_group.user_set.all():
                 try:
                     off_group.user_set.add(self.user)
                 except IntegrityError as e:
                     if "unique constraint" in str(e):
                         pass
-            if current_role.role in NAT_OFFICERS:
+            if self.user.is_national_officer():
                 try:
                     nat_group.user_set.add(self.user)
                 except IntegrityError as e:

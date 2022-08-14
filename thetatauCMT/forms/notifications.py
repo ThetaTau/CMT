@@ -296,11 +296,13 @@ class EmailPledgeOfficer(EmailNotification):
     subject = "Theta Tau Prospective New Member Submission"
 
     def __init__(self, pledge_form):
-        officers = pledge_form.user.chapter.get_current_officers_council(combine=False)[
-            0
-        ]
-        scribe = officers.filter(role="scribe").first()
-        vice = officers.filter(role="vice regent").first()
+        (
+            _,
+            scribe,
+            vice,
+            _,
+            _,
+        ) = pledge_form.user.chapter.get_current_officers_council_specific()
         generics = pledge_form.user.chapter.get_generic_chapter_emails()
         emails = set()
         if scribe:
@@ -384,10 +386,7 @@ class EmailProcessUpdate(EmailNotification):
                     message = "THIS CHAPTER HAS NO OFFICERS, PLEASE REACH OUT TO THE CHAPTER ASAP TO FIX THIS!"
                     emails.append(chapter.region.email)
                     user = User.objects.get(username="Jim.Gaffney@thetatau.org")
-            emails = set([officer.email for officer in officers if officer]) | set(
-                chapter.get_generic_chapter_emails()
-            )
-            emails = {email for email in emails if email}
+            emails = chapter.council_emails()
             if user and user.email in emails:
                 emails.remove(user.email)
         if extra_emails:

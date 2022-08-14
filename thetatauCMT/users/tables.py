@@ -17,8 +17,7 @@ class UserTable(tables.Table):
             "graduation_year",
             "phone_number",
             "current_status",
-            "role",
-            "role_end",
+            "current_roles",
         )
         attrs = {"class": "table table-striped table-bordered"}
         empty_text = (
@@ -72,6 +71,11 @@ class UserTable(tables.Table):
     def render_initiation(self, value):
         if value:
             value = value.date
+        return value
+
+    def render_current_roles(self, value):
+        if value:
+            value = ", ".join(value)
         return value
 
     def render_address(self, value):

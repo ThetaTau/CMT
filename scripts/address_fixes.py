@@ -12,9 +12,7 @@ def run(*args):
     if not args:
         args = ["active", "activepend", "alumnipend", "pnm"]
     users = User.objects.filter(
-        status__status__in=args,
-        status__start__lte=TODAY_END,
-        status__end__gte=TODAY_END,
+        current_status__in=args,
     )
     total = users.count()
     for count, user in enumerate(users):

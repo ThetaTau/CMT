@@ -7,7 +7,7 @@ from io import BytesIO
 from copy import deepcopy
 from pathlib import Path
 from django.db import IntegrityError, transaction
-from django.db.models import Q, F, Value, CharField, Count, When, Case
+from django.db.models import Q, F, Value, CharField, Count, Exists, OuterRef
 from django.conf import settings
 from django.contrib.postgres.aggregates import StringAgg
 from django.forms import models as model_forms
@@ -1066,14 +1066,14 @@ class RiskManagementFormView(LoginRequiredMixin, FormView):
         return super().get(request, *args, **kwargs)
 
     def form_valid(self, form):
-        current_role = self.request.user.get_current_role()
+        current_role = self.request.user.current_roles
         if not current_role:
-            current_role = self.request.user.get_current_status()
-            current_role = current_role.status
+            # We will use the status as the role
+            current_role = self.request.user.current_status.replace(" ", "_")
         else:
-            current_role = current_role.role
+            current_role = ", ".join([role.replace(" ", "_") for role in current_role])
         form.instance.user = self.request.user
-        form.instance.role = current_role.replace(" ", "_")
+        form.instance.role = current_role
         form.save()
         view = RiskManagementDetailView.as_view()
         new_request = self.request
@@ -1095,7 +1095,7 @@ class RiskManagementFormView(LoginRequiredMixin, FormView):
         Task.mark_complete(
             name="Risk Management Form",
             chapter=self.request.user.current_chapter,
-            current_roles=[current_role],
+            current_roles=self.request.user.current_roles,
             user=self.request.user,
             obj=obj,
         )
@@ -1227,13 +1227,10 @@ class RiskManagementListView(
         ).filter(chapter__in=self.chapters_list)
         qs = (
             qs.annotate(
-                rmp_complete=Case(
-                    When(
-                        Q(risk_form__date__gte=start) & Q(risk_form__date__lte=end),
-                        Value("True"),
+                rmp_complete=Exists(
+                    RiskManagement.objects.filter(
+                        user=OuterRef("pk"), date__gte=start, date__lte=end
                     ),
-                    default=Value("False"),
-                    output_field=CharField(),
                 )
             )
             .values("chapter", "rmp_complete")

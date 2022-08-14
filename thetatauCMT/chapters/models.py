@@ -23,6 +23,7 @@ from core.models import (
     TODAY_END,
     annotate_role_status,
     CHAPTER_OFFICER,
+    CHAPTER_ROLES,
     semester_encompass_start_end_date,
     BIENNIUM_START,
     BIENNIUM_START_DATE,
@@ -384,11 +385,9 @@ class Chapter(models.Model):
     def advisors_external(self):
         # Do not annotate, need the queryset not a list
         all_advisors = self.members.filter(
-            status__status__in=[
+            current_status__in=[
                 "advisor",
             ],
-            status__start__lte=TODAY_END,
-            status__end__gte=TODAY_END,
         ).distinct()
         return all_advisors
 
@@ -396,21 +395,15 @@ class Chapter(models.Model):
     def advisors(self):
         # Do not annotate, need the queryset not a list
         all_advisors = self.members.filter(
-            status__status__in=[
-                "advisor",
-            ],
-            status__start__lte=TODAY_END,
-            status__end__gte=TODAY_END,
+            current_status="advisor",
         ) | self.members.filter(
-            roles__role__in=ADVISOR_ROLES,
-            roles__start__lte=TODAY_END,
-            roles__end__gte=TODAY_END,
+            current_roles__overlap=list(ADVISOR_ROLES),
         )
         all_advisors = all_advisors.annotate(
             role=models.Case(
                 models.When(
-                    models.Q(roles__role__in=ADVISOR_ROLES),
-                    Concat(models.Value("Alumni "), "roles__role"),
+                    models.Q(current_roles__overlap=list(ADVISOR_ROLES)),
+                    Concat(models.Value("Alumni "), "current_roles"),
                 ),
                 default=models.Value("Faculty Advisor"),
                 output_field=models.CharField(),
@@ -427,27 +420,19 @@ class Chapter(models.Model):
         :return:
         """
         return self.members.filter(
-            status__status__in=["active", "activepend"],
-            status__start__lte=TODAY_END,
-            status__end__gte=TODAY_END,
+            current_status__in=["active", "activepend"],
         ).distinct()
 
     def alumni(self):
         # Do not annotate, need the queryset not a list
         return self.members.filter(
-            status__status__in=[
-                "alumni",
-            ],
-            status__start__lte=TODAY_END,
-            status__end__gte=TODAY_END,
+            current_status="alumni",
         ).distinct()
 
     def actives(self):
         # Do not annotate, need the queryset not a list
         return self.members.filter(
-            status__status__in=["active", "activepend", "alumnipend"],
-            status__start__lte=TODAY_END,
-            status__end__gte=TODAY_END,
+            current_status__in=["active", "activepend", "alumnipend"],
         ).distinct()
 
     def pledges(self, date=TODAY_END):
@@ -498,28 +483,25 @@ class Chapter(models.Model):
     def service_hours(self):
         return self.current_members().filter(service_hours__year__gte=BIENNIUM_START)
 
-    def get_current_officers(self, combine=True):
-        officers = self.members.filter(
-            roles__start__lte=TODAY_END, roles__end__gte=TODAY_END
-        )
+    def get_current_officers(self):
+        officers = self.members.filter(current_roles__overlap=CHAPTER_ROLES)
         previous = False
         date = TODAY_END
         if officers.count() < 2:
             # If there are not enough previous officers
             # get officers from last 8 months
             previous_officers = self.members.filter(
-                roles__end__gte=TODAY_END - timedelta(30 * 8)
+                roles__role__in=CHAPTER_ROLES,
+                roles__end__gte=TODAY_END - timedelta(30 * 8),
             )
             officers = previous_officers | officers
             previous = True
             date = TODAY_END - timedelta(30 * 8)
-        return annotate_role_status(officers, combine=combine, date=date), previous
+        return annotate_role_status(officers, date=date), previous
 
-    def get_current_officers_council(self, combine=True):
+    def get_current_officers_council(self):
         officers = self.members.filter(
-            roles__role__in=CHAPTER_OFFICER,
-            roles__start__lte=TODAY_END,
-            roles__end__gte=TODAY_END,
+            current_roles__overlap=list(CHAPTER_OFFICER),
         )
         previous = False
         date = TODAY_END
@@ -533,23 +515,32 @@ class Chapter(models.Model):
             officers = previous_officers | officers
             previous = True
             date = TODAY_END - timedelta(30 * 8)
-        return annotate_role_status(officers, combine=combine, date=date), previous
+        return annotate_role_status(officers, date=date), previous
 
     def get_current_officers_council_specific(self):
-        officers = self.get_current_officers_council(combine=False)[0]
-        regent = officers.filter(role="regent").first()
-        scribe = officers.filter(role="scribe").first()
-        vice = officers.filter(role="vice regent").first()
-        treasurer = officers.filter(role="treasurer").first()
-        corsec = officers.filter(role="corresponding secretary").first()
-        return [regent, scribe, vice, treasurer, corsec]
+        officers, previous = self.get_current_officers_council()
+        roles = []
+        role_list = [
+            "regent",
+            "scribe",
+            "vice regent",
+            "treasurer",
+            "corresponding secretary",
+        ]
+        for role in role_list:
+            query = models.Q(current_roles__contains=[role])
+            if previous:
+                query |= models.Q(old_roles__contains=role)
+            user = officers.filter(query).first()
+            roles.append(user)
+        return roles  # [regent, scribe, vice, treasurer, corsec]
 
     def council_emails(self):
         officers = self.get_current_officers_council_specific()
         emails = set([officer.email for officer in officers if officer]) | set(
             self.get_generic_chapter_emails()
         )
-        return emails
+        return {email for email in emails if email}
 
     def get_generic_chapter_emails(self):
         return [
@@ -845,8 +836,7 @@ class Chapter(models.Model):
             dues_file = io.StringIO()
             dues_mail = MIMEBase("application", "csv")
             dues_mail.add_header("Content-Disposition", "attachment", filename=filename)
-        members = annotate_role_status(self.active_actives(), combine=True)
-        table = UserTable(data=members)
+        table = UserTable(data=self.active_actives())
         writer = csv.writer(dues_file)
         writer.writerows(table.as_values())
         if response is None and not file_obj:

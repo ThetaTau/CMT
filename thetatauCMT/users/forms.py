@@ -102,6 +102,7 @@ class UserRoleListFormHelper(FormHelper):
                 Column(InlineField("graduation_year__icontains")),
                 Column(InlineField("region")),
                 Column(InlineField("chapter")),
+                Column(InlineField("current_roles", style="width:250px")),
                 Column(
                     FormActions(
                         StrictButton(
@@ -112,7 +113,6 @@ class UserRoleListFormHelper(FormHelper):
                         Submit("cancel", "Clear", css_class="btn-primary"),
                     )
                 ),
-                Column(InlineField("role", style="width:250px")),
             ),
         ),
     )
