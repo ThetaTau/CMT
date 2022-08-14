@@ -296,17 +296,6 @@ class User(AbstractUser):
         roles = self.get_roles_on_date(date)
         return roles.filter(role__in=CHAPTER_OFFICER).first()
 
-    def get_user_role_level(self):
-        current_roles = self.get_current_roles()
-        if COUNCIL & current_roles:
-            return "council", COUNCIL & current_roles
-        elif set(NAT_OFFICERS) & current_roles:
-            return "nat_off", set(NAT_OFFICERS) & current_roles
-        elif self.chapter_officer():
-            return "convention", self.chapter_officer()
-        else:
-            return "", current_roles
-
     def chapter_officer(self, altered=True):
         """
         An member can have multiple roles need to see if any are officer

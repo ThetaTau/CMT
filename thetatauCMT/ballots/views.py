@@ -238,7 +238,7 @@ class BallotCompleteCreateView(LoginRequiredMixin, OfficerRequiredMixin, CreateV
         context = super().get_context_data(**kwargs)
         ballot_slug = self.kwargs.get("slug")
         ballot = Ballot.objects.get(slug=ballot_slug)
-        current_roles = self.request.user.get_current_roles()
+        current_roles = self.request.user.current_roles
         roles_allowed = ballot.voters
         if "all_chapters" in ballot.voters:
             roles_allowed += CHAPTER_OFFICER
@@ -265,7 +265,7 @@ class BallotCompleteCreateView(LoginRequiredMixin, OfficerRequiredMixin, CreateV
         user = self.request.user
         form.instance.user = user
         form.instance.ballot = ballot
-        current_roles = user.get_current_roles()
+        current_roles = user.current_roles
         roles_allowed = ballot.voters
         if "all_chapters" in ballot.voters:
             roles_allowed += CHAPTER_OFFICER

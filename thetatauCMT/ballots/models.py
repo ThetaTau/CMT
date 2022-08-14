@@ -58,8 +58,7 @@ class Ballot(TimeStampedModel):
     description = models.TextField()
     due_date = models.DateField(default=return_date_time)
     voters = MultiSelectField(
-        "Who is allowed to vote on this ballot?",
-        choices=VOTERS,
+        "Who is allowed to vote on this ballot?", choices=VOTERS, max_length=500
     )
 
     def __str__(self):
@@ -121,7 +120,7 @@ class Ballot(TimeStampedModel):
         completed = BallotComplete.objects.filter(user=user).values_list(
             "ballot__pk", flat=True
         )
-        roles = list(user.get_current_roles())
+        roles = user.current_roles
         chapter_officer = list(set(roles) & set(CHAPTER_OFFICER))
         if chapter_officer:
             roles.append("all_chapters")
