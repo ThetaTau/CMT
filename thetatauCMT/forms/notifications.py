@@ -382,10 +382,7 @@ class EmailProcessUpdate(EmailNotification):
                     message = "THIS CHAPTER HAS NO OFFICERS, PLEASE REACH OUT TO THE CHAPTER ASAP TO FIX THIS!"
                     emails.append(chapter.region.email)
                     user = User.objects.get(username="Jim.Gaffney@thetatau.org")
-            emails = set([officer.email for officer in officers if officer]) | set(
-                chapter.get_generic_chapter_emails()
-            )
-            emails = {email for email in emails if email}
+            emails = chapter.council_emails()
             if user and user.email in emails:
                 emails.remove(user.email)
         if extra_emails:
