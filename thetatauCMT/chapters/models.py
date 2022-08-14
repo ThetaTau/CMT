@@ -518,20 +518,29 @@ class Chapter(models.Model):
         return annotate_role_status(officers, date=date), previous
 
     def get_current_officers_council_specific(self):
-        officers = self.get_current_officers_council()[0]
-        regent = officers.filter(role="regent").first()
-        scribe = officers.filter(role="scribe").first()
-        vice = officers.filter(role="vice regent").first()
-        treasurer = officers.filter(role="treasurer").first()
-        corsec = officers.filter(role="corresponding secretary").first()
-        return [regent, scribe, vice, treasurer, corsec]
+        officers, previous = self.get_current_officers_council()
+        roles = []
+        role_list = [
+            "regent",
+            "scribe",
+            "vice regent",
+            "treasurer",
+            "corresponding secretary",
+        ]
+        for role in role_list:
+            query = models.Q(current_roles__contains=[role])
+            if previous:
+                query |= models.Q(old_roles__contains=role)
+            user = officers.filter(query).first()
+            roles.append(user)
+        return roles  # [regent, scribe, vice, treasurer, corsec]
 
     def council_emails(self):
         officers = self.get_current_officers_council_specific()
         emails = set([officer.email for officer in officers if officer]) | set(
             self.get_generic_chapter_emails()
         )
-        return emails
+        return {email for email in emails if email}
 
     def get_generic_chapter_emails(self):
         return [
