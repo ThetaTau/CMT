@@ -2,6 +2,7 @@ from django.contrib import admin
 from import_export.admin import ImportExportActionModelAdmin
 from .models import (
     Badge,
+    Bylaws,
     Guard,
     Initiation,
     Depledge,
@@ -491,6 +492,23 @@ class ReturnStudentAdmin(ImportExportActionModelAdmin):
 
 
 admin.site.register(ReturnStudent, ReturnStudentAdmin)
+
+
+class BylawsAdmin(ImportExportActionModelAdmin):
+    list_display = (
+        "chapter",
+        "created",
+    )
+    list_filter = [
+        "created",
+        "chapter",
+    ]
+    ordering = [
+        "-created",
+    ]
+
+
+admin.site.register(Bylaws, BylawsAdmin)
 
 
 class PledgeProgramProcessAdmin(admin.ModelAdmin):
