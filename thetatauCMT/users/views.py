@@ -669,7 +669,6 @@ class UserGPAFormSetView(LoginRequiredMixin, OfficerRequiredMixin, FormSetView):
             request_get,
             queryset=self.request.user.current_chapter.current_members(),
             request=self.request,
-            rmp_remove=True,
         )
         all_members = self.filter.qs
         initials = []
@@ -734,7 +733,6 @@ class UserServiceFormSetView(LoginRequiredMixin, OfficerRequiredMixin, FormSetVi
             request_get,
             queryset=self.request.user.current_chapter.current_members(),
             request=self.request,
-            rmp_remove=True,
         )
         all_members = self.filter.qs
         initials = []
