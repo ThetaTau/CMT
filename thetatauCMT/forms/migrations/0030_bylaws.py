@@ -10,7 +10,7 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ("chapters", "0011_chapter_extra_approval"),
-        ("forms", "0029_chaptereducation"),
+        ("forms", "0029_hseducation"),
     ]
 
     operations = [

@@ -497,7 +497,7 @@ def get_chapter_education_upload_path(instance, filename):
     )
 
 
-class ChapterEducation(Process, TimeStampedModel):
+class HSEducation(Process, TimeStampedModel):
     class CATEGORIES(EnumClass):
         alcohol_drugs = ("alcohol_drugs", "Alcohol and Drug Awareness")
         harassment = ("harassment", "Anti-Harassment")

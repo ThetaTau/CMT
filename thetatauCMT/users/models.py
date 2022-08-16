@@ -561,7 +561,7 @@ class UserRoleChange(StartEndModel, TimeStampedModel):
             self.start = self.start.date()
         if hasattr(self.end, "date"):
             self.end = self.end.date()
-        if self.start < TOMORROW < self.end:
+        if self.start <= TOMORROW < self.end:
             current_roles = self.user.current_roles if self.user.current_roles else []
             if self.role not in current_roles:
                 current_roles.append(self.role)

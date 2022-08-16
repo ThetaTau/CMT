@@ -17,7 +17,7 @@ urlpatterns = [
     ),
     url(
         regex=r"^education-list/$",
-        view=views.ChapterEducationListView.as_view(),
+        view=views.HSEducationListView.as_view(),
         name="education_list",
     ),
     url(

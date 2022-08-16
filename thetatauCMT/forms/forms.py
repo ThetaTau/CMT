@@ -43,7 +43,7 @@ from .models import (
     PledgeProgram,
     Audit,
     Pledge,
-    ChapterEducation,
+    HSEducation,
     PrematureAlumnus,
     Convention,
     OSM,
@@ -593,7 +593,7 @@ class RoleChangeSelectFormHelper(FormHelper):
     )
 
 
-class ChapterEducationListFormHelper(FormHelper):
+class HSEducationListFormHelper(FormHelper):
     form_method = "GET"
     form_id = "education-list-form"
     form_class = "form-inline"
@@ -605,7 +605,7 @@ class ChapterEducationListFormHelper(FormHelper):
     html5_required = True
     layout = Layout(
         Fieldset(
-            '<i class="fas fa-search"></i> Filter Education Programs',
+            '<i class="fas fa-search"></i> Filter H&S Education Programs',
             Row(
                 Field("region", label="Region"),
                 Field("program_date"),
@@ -650,7 +650,7 @@ class BylawsListFormHelper(FormHelper):
     )
 
 
-class ChapterEducationForm(forms.ModelForm):
+class HSEducationForm(forms.ModelForm):
     report = forms.FileField(
         label="Program File",
         required=True,
@@ -659,7 +659,7 @@ class ChapterEducationForm(forms.ModelForm):
     )
 
     class Meta:
-        model = ChapterEducation
+        model = HSEducation
         fields = [
             "program_date",
             "category",
@@ -695,7 +695,7 @@ class BylawsForm(forms.ModelForm):
 
 class ChapterInfoReportForm(MultiModelForm):
     form_classes = {
-        "report": ChapterEducationForm,
+        "report": HSEducationForm,
         "info": ChapterForm,
     }
 

@@ -23,12 +23,12 @@ from .models import (
     ResignationProcess,
     ReturnStudent,
     PledgeProgramProcess,
-    ChapterEducation,
+    HSEducation,
 )
 from .views import (
     PrematureAlumnusCreateView,
     ConventionCreateView,
-    ChapterEducationCreateView,
+    HSEducationCreateView,
     ConventionSignView,
     FilterableFlowViewSet,
     FilterableInvoiceFlowViewSet,
@@ -1491,22 +1491,22 @@ class PledgeProgramProcessFlow(Flow):
 
 
 @register_factory(viewset_class=FilterableFlowViewSet)
-class ChapterEducationFlow(Flow):
+class HSEducationFlow(Flow):
     """
-    Chapter officer can submit chapter education program
+    Chapter officer can submit H&S Education program
     Send to RD/central office
     Approve/deny/revise
     Approve done
     deny/revise sent to chapter to fix
     """
 
-    process_class = ChapterEducation
-    process_title = _("Chapter Education Program Review Process")
-    process_description = _("This process is for chapter education programs.")
+    process_class = HSEducation
+    process_title = _("H&S Education Program Review Process")
+    process_description = _("This process is for H&S Education Programs programs.")
 
     start = flow.Start(
-        ChapterEducationCreateView,
-        task_title=_("Submit Chapter Education Program Form"),
+        HSEducationCreateView,
+        task_title=_("Submit H&S Education Program Form"),
     ).Next(this.review)
 
     review = (
@@ -1514,7 +1514,7 @@ class ChapterEducationFlow(Flow):
             AutoAssignUpdateProcessView,
             fields=["approval", "approval_comments"],
             task_title=_("Central Office Review"),
-            task_description=_("Review of Chapter Education Program by Central Office"),
+            task_description=_("Review of H&S Education Program by Central Office"),
             task_result_summary=_("Program was: {{ process.get_approval_display  }}"),
         )
         .Permission("auth.central_office")
@@ -1531,32 +1531,32 @@ class ChapterEducationFlow(Flow):
 
     reject_fix = flow.Handler(
         this.reject_fix_func,
-        task_title=_("Reject Fix Chapter Education Program"),
+        task_title=_("Reject Fix H&S Education Program"),
     ).Next(this.end_reject)
 
     approve = flow.Handler(
         this.approve_func,
-        task_title=_("Approve Chapter Education Program"),
+        task_title=_("Approve H&S Education Program"),
     ).Next(this.end)
 
     end_reject = flow.End(
-        task_title=_("Rejected Chapter Education Program"),
+        task_title=_("Rejected H&S Education Program"),
     )
 
     end = flow.End(
-        task_title=_("Complete Chapter Education Program"),
+        task_title=_("Complete H&S Education Program"),
     )
 
     def reject_fix_func(self, activation):
         model_obj = activation.process
         EmailProcessUpdate(
             activation,
-            complete_step="Chapter Education Program Reviewed",
+            complete_step="H&S Education Program Reviewed",
             next_step="Chapter Resubmit",
-            state="Chapter Education Program Rejected",
+            state="H&S Education Program Rejected",
             message=(
                 "This is a notification that the Central Office has "
-                "rejected the chapter education program submitted for you chapter."
+                "rejected the H&S education program submitted for you chapter."
                 "Please review the notes and resubmit ASAP."
             ),
             fields=["program_date", "category", "approval", "approval_comments"],
@@ -1572,12 +1572,12 @@ class ChapterEducationFlow(Flow):
         model_obj = activation.process
         EmailProcessUpdate(
             activation,
-            complete_step="Chapter Education Program Reviewed",
+            complete_step="H&S Education Program Reviewed",
             next_step="Complete",
-            state="Chapter Education Program Approved",
+            state="H&S Education Program Approved",
             message=(
                 "This is a notification that the Central Office has "
-                "approved the chapter education program submitted for you chapter."
+                "approved the H&S education program submitted for you chapter."
             ),
             fields=["program_date", "category", "approval", "approval_comments"],
             attachments=[],

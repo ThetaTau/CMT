@@ -9,7 +9,7 @@ from .models import (
     Audit,
     PledgeProgram,
     Convention,
-    ChapterEducation,
+    HSEducation,
     OSM,
     CollectionReferral,
     PledgeProgramProcess,
@@ -169,7 +169,7 @@ def render_education_category(value, column, record, bound_column):
     return mark_safe(value)
 
 
-class ChapterEducationListTable(tables.Table):
+class HSEducationListTable(tables.Table):
     chapter_name = tables.Column()
     region = tables.Column()
     alcohol_drugs = tables.FileColumn(verbose_name="Alcohol and Drug Awareness")
@@ -177,7 +177,7 @@ class ChapterEducationListTable(tables.Table):
     mental = tables.FileColumn(verbose_name="Mental Health Recognition")
 
     class Meta:
-        model = ChapterEducation
+        model = HSEducation
         order_by = "chapter_name"
         attrs = {"class": "table table-striped table-bordered"}
         fields = [
@@ -198,13 +198,13 @@ class ChapterEducationListTable(tables.Table):
         return render_education_category(value, column, record, bound_column)
 
 
-class ChapterEducationTable(tables.Table):
+class HSEducationTable(tables.Table):
     category = tables.Column()
     approval_comments = tables.Column(verbose_name="Review Comments")
     program_date = tables.DateColumn()
 
     class Meta:
-        model = ChapterEducation
+        model = HSEducation
         order_by = "-program_date"
         attrs = {"class": "table table-striped table-bordered"}
         fields = [
@@ -216,7 +216,7 @@ class ChapterEducationTable(tables.Table):
         ]
 
     # def render_approval(self, value):
-    #     return ChapterEducation.APPROVAL.get_value(value)
+    #     return HSEducation.APPROVAL.get_value(value)
 
 
 class RiskFormTable(tables.Table):

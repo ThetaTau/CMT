@@ -85,8 +85,8 @@ from .forms import (
     PledgeProgramFormHelper,
     CompleteFormHelper,
     ConventionForm,
-    ChapterEducationForm,
-    ChapterEducationListFormHelper,
+    HSEducationForm,
+    HSEducationListFormHelper,
     OSMForm,
     DisciplinaryForm1,
     DisciplinaryForm2,
@@ -119,8 +119,8 @@ from .tables import (
     AuditTable,
     RiskFormTable,
     PledgeProgramTable,
-    ChapterEducationTable,
-    ChapterEducationListTable,
+    HSEducationTable,
+    HSEducationListTable,
     PrematureAlumnusStatusTable,
     SignTable,
     ConventionListTable,
@@ -140,7 +140,7 @@ from .models import (
     RiskManagement,
     PledgeProgram,
     Audit,
-    ChapterEducation,
+    HSEducation,
     PrematureAlumnus,
     InitiationProcess,
     Convention,
@@ -925,17 +925,17 @@ class RoleChangeNationalView(
         return HttpResponseRedirect(reverse("forms:natoff"))
 
 
-class ChapterEducationListView(
+class HSEducationListView(
     LoginRequiredMixin, NatOfficerRequiredMixin, PagedFilteredTableView
 ):
-    model = ChapterEducation
+    model = HSEducation
     context_object_name = "chapter_education_list"
-    table_class = ChapterEducationListTable
+    table_class = HSEducationListTable
     filter_class = EducationListFilter
-    formhelper_class = ChapterEducationListFormHelper
+    formhelper_class = HSEducationListFormHelper
 
     def get_queryset(self, **kwargs):
-        qs = ChapterEducation.objects.all()
+        qs = HSEducation.objects.all()
         cancel = self.request.GET.get("cancel", False)
         request_get = self.request.GET.copy()
         if cancel:
@@ -977,31 +977,31 @@ class ChapterEducationListView(
             }
             for chapter in active_chapters
         ]
-        table = ChapterEducationListTable(data=data)
+        table = HSEducationListTable(data=data)
         RequestConfig(self.request, paginate={"per_page": 300}).configure(table)
         context["table"] = table
         return context
 
 
-class ChapterEducationCreateView(
+class HSEducationCreateView(
     LoginRequiredMixin, OfficerRequiredMixin, CreateProcessView
 ):
     template_name = "forms/chapter_report.html"
-    form_class = ChapterEducationForm
-    model = ChapterEducation
+    form_class = HSEducationForm
+    model = HSEducation
 
     def get_success_url(self, form_name=None):
-        return reverse("viewflow:forms:chaptereducation:start")
+        return reverse("viewflow:forms:hseducation:start")
 
     def activation_done(self, *args, **kwargs):
         self.activation.done()
         EmailProcessUpdate(
             self.activation,
-            complete_step="Chapter Education Program Submitted",
+            complete_step="H&S Education Program Submitted",
             next_step="Central Office Review",
             state="Pending Central Office Review",
             message=(
-                "Your chapter has submitted a Chapter Education Program."
+                "Your chapter has submitted a H&S Education Program."
                 " Once the Central Office reviewed the program, "
             ),
             fields=[
@@ -1020,7 +1020,7 @@ class ChapterEducationCreateView(
             },
             direct_user=self.request.user,
         ).send()
-        self.success("You successfully submitted the Chapter Education Program")
+        self.success("You successfully submitted the H&S Education Program")
 
     def form_valid(self, form):
         report = form
@@ -1032,7 +1032,7 @@ class ChapterEducationCreateView(
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        previous_programs = ChapterEducation.submitted_this_year(
+        previous_programs = HSEducation.submitted_this_year(
             self.request.user.current_chapter,
         )
         complete_categories = [
@@ -1042,10 +1042,10 @@ class ChapterEducationCreateView(
         ]
         incomplete_categories = [
             category.value[1]
-            for category in ChapterEducation.CATEGORIES
+            for category in HSEducation.CATEGORIES
             if category.value[0] not in complete_categories
         ]
-        table = ChapterEducationTable(data=previous_programs)
+        table = HSEducationTable(data=previous_programs)
         context["table"] = table
         context["incomplete_categories"] = ", ".join(incomplete_categories)
         return context

@@ -12,7 +12,7 @@ from .models import (
     Audit,
     Pledge,
     ChapterReport,
-    ChapterEducation,
+    HSEducation,
     Convention,
     OSM,
     DisciplinaryProcess,
@@ -61,7 +61,7 @@ class ChapterReportAdmin(admin.ModelAdmin):
 admin.site.register(ChapterReport, ChapterReportAdmin)
 
 
-class ChapterEducationAdmin(admin.ModelAdmin):
+class HSEducationAdmin(admin.ModelAdmin):
     list_display = ("chapter", "program_date", "category", "approval")
     list_filter = [
         "chapter",
@@ -74,7 +74,7 @@ class ChapterEducationAdmin(admin.ModelAdmin):
     ]
 
 
-admin.site.register(ChapterEducation, ChapterEducationAdmin)
+admin.site.register(HSEducation, HSEducationAdmin)
 
 
 class PledgeProgramAdmin(ImportExportActionModelAdmin):

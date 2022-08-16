@@ -1,61 +1,66 @@
-{% extends "base.html" %}
-{% load static %}
+{% extends "base.html" %} {% load static %}
 {% load crispy_forms_tags %}
 {% load render_table from django_tables2 %}
-{% block title %}Chapter Education Program{% endblock %}
-
+{% block title %}H&S Education Program{%endblock %}
 {% block content %}
 <div class="container">
   <div class="row">
     <div class="col-sm-12">
-    <h1>Chapter Education Program</h1>
-    <h3>Instructions</h3>
-      Chapter Officers (or Risk Management Chair) will organize chapter participation at least once per year in each
-      of the following areas. The chapter’s university office of student affairs (or other similar department) likely
-      has information and/or facilitators for each of these areas:
-    <ul>
-      <li>
-        Alcohol and drug awareness program to educate its members on the responsibilities and consequences of
-        alcohol consumption and drug use;
-      </li>
-      <li>
-        Anti-harassment program to assist members in recognizing, preventing, and reporting discrimination,
-        sexual harassment, and hazing;
-      </li>
-      <li>
-        Mental health recognition program (such as suicide or depression) to help members in the recognition of
-        warning signs, identification of referral resources, and skills to respond to members at-risk.
-      </li>
-    </ul>
-    <p>These programs must be conducted by a qualified professional
-      (eg. a campus police officer, a healthcare professional,
-      a substance abuse counselor, etc) and that professional must provide a letter,
-      on their letterhead, stipulating the training they provided.
-      They must also indicate the date and location of the training and the
-      number of student members in attendance.
-
-      That form should be uploaded below.
-      The Central Office will verify that the letter is acceptable and mark your
-      programming requirement as completed.</p>
-    <h3>Submissions This Academic Year</h3>
+      <h1>H&S Education Program</h1>
+      <h3>Instructions</h3>
+      Chapter Officers (or Risk Management Chair) will organize chapter
+      participation at least once per year in each of the following areas. The
+      chapter’s university office of student affairs (or other similar
+      department) likely has information and/or facilitators for each of these
+      areas:
+      <ul>
+        <li>
+          Alcohol and drug awareness program to educate its members on the
+          responsibilities and consequences of alcohol consumption and drug use;
+        </li>
+        <li>
+          Anti-harassment program to assist members in recognizing, preventing,
+          and reporting discrimination, sexual harassment, and hazing;
+        </li>
+        <li>
+          Mental health recognition program (such as suicide or depression) to
+          help members in the recognition of warning signs, identification of
+          referral resources, and skills to respond to members at-risk.
+        </li>
+      </ul>
+      <p>
+        These programs must be conducted by a qualified professional (eg. a
+        campus police officer, a healthcare professional, a substance abuse
+        counselor, etc) and that professional must provide a letter, on their
+        letterhead, stipulating the training they provided. They must also
+        indicate the date and location of the training and the number of student
+        members in attendance. That form should be uploaded below. The Central
+        Office will verify that the letter is acceptable and mark your
+        programming requirement as completed.
+      </p>
+      <h3>Submissions This Academic Year</h3>
       {% if incomplete_categories %}
-    <table>
-      <tr>
-        <th>Program Category Needing Submission</th>
-        <td>{{ incomplete_categories }}</td>
-      </tr>
-    </table>
-      {% endif %}
-    {% render_table table %}
-    <br>
-    <form class="chapter_report" enctype="multipart/form-data" method="POST">
-      {% csrf_token %}
-        {{ form.media }}
+      <table>
+        <tr>
+          <th>Program Category Needing Submission</th>
+          <td>{{ incomplete_categories }}</td>
+        </tr>
+      </table>
+      {% endif %} {% render_table table %}
+      <br />
+      <form class="chapter_report" enctype="multipart/form-data" method="POST">
+        {% csrf_token %} {{ form.media }}
         <div>{{ form|crispy }}</div>
-      {{ activation.management_form }}
-        <button class="btn btn-primary" name='action' value='chapter_report' type="submit">Submit Chapter Report
+        {{ activation.management_form }}
+        <button
+          class="btn btn-primary"
+          name="action"
+          value="chapter_report"
+          type="submit"
+        >
+          Submit Chapter Report
         </button>
-    </form>
+      </form>
     </div>
   </div>
 </div>

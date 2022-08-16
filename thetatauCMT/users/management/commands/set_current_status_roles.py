@@ -64,15 +64,34 @@ class Command(BaseCommand):
             roles = set()
             if current_roles:
                 roles = set(current_roles)
-            new_roles = set_roles.union(roles)
-            if new_roles != set_roles:
+            if roles != set_roles:
                 print(
-                    f"User {user} {count+1}/{total} updated previous roles {set_roles} new roles {new_roles}"
+                    f"User {user} {count+1}/{total} updated previous roles {set_roles} new roles {roles}"
                 )
-                user.current_roles = list(new_roles)
+                user.current_roles = list(roles)
                 roles_update = True
             if roles_update or status_update:
                 update_users.append(user)
         print(f"Updating {len(update_users)}: {update_users}")
         if update_users:
             User.objects.bulk_update(update_users, ["current_status", "current_roles"])
+        current_officer = self.user.is_officer
+        if current_officer:
+            if self.user not in off_group.user_set.all():
+                try:
+                    off_group.user_set.add(self.user)
+                except IntegrityError as e:
+                    if "unique constraint" in str(e):
+                        pass
+            if self.user.is_national_officer():
+                try:
+                    nat_group.user_set.add(self.user)
+                except IntegrityError as e:
+                    if "unique constraint" in str(e):
+                        pass
+        else:
+            self.user.groups.remove(off_group)
+            self.user.groups.remove(nat_group)
+            off_group.user_set.remove(self.user)
+            nat_group.user_set.remove(self.user)
+            self.user.save()

@@ -1,132 +1,243 @@
-{% extends "account/base.html" %}
-
-{% load i18n %}
-{% load crispy_forms_tags %}
-
-{% block head_title %}{% trans "Theta Tau Forms" %}{% endblock %}
-{% block content %}
-  <table class="table table-hover table-bordered table-striped">
+{% extends "account/base.html" %} {% load i18n %} {% load crispy_forms_tags %}
+{% block head_title %}{% trans "Theta Tau Forms" %}{% endblock %} {% block content %}
+<table class="table table-hover table-bordered table-striped">
   <thead>
     <tr>
       <th>Form Name</th>
       {% if request.is_nat_officer %}
-        <th>All Chapters</th>{% endif %}
+      <th>All Chapters</th>
+      {% endif %}
       <th>Form Description</th>
     </tr>
   </thead>
   <tbody>
     <tr>
       <td><a href="{% url 'forms:audit' %}">{% trans "Audit" %}</a></td>
-      {% if request.is_nat_officer %}<td><a href="{% url 'forms:audit_list' %}">{% trans "All Audits" %}</a></td>{% endif %}
+      {% if request.is_nat_officer %}
+      <td>
+        <a href="{% url 'forms:audit_list' %}">{% trans "All Audits" %}</a>
+      </td>
+      {% endif %}
       <td>To submit an audit of the chapter finances.</td>
     </tr>
     <tr>
       <td><a href="{% url 'ballots:votelist' %}">{% trans "Ballots" %}</a></td>
       {% if request.is_nat_officer %}
-        <td></td>{% endif %}
+      <td></td>
+      {% endif %}
       <td>To submit electronic ballots for the chapter.</td>
     </tr>
     <tr>
       <td><a href="{% url 'forms:bylaws' %}">{% trans "Bylaws" %}</a></td>
       {% if request.is_nat_officer %}
-        <td><a href="{% url 'forms:bylaws_list' %}">{% trans "All Bylaws" %}</a></td>{% endif %}
+      <td>
+        <a href="{% url 'forms:bylaws_list' %}">{% trans "All Bylaws" %}</a>
+      </td>
+      {% endif %}
       <td>To submit the bylaws for the chapter.</td>
     </tr>
     <tr>
-      <td><a href="{% url 'viewflow:forms:chaptereducation:start' %}">{% trans "Chapter Education Program" %}</a></td>
+      <td>
+        <a href="{% url 'viewflow:forms:hseducation:start' %}"
+          >{% trans "H&S Education Program" %}</a
+        >
+      </td>
       {% if request.is_nat_officer %}
-        <td><a href="{% url 'forms:education_list' %}">{% trans "Education Programs" %}</a></td>{% endif %}
-      <td>Chapter Officers (or Risk Management Chair) will organize chapter participation at
-        least once per year in each of the following: alcohol and drug awareness program, anti-harassment program, and
-        mental health recognition program.</td>
+      <td>
+        <a href="{% url 'forms:education_list' %}"
+          >{% trans "H&S Education Programs" %}</a
+        >
+      </td>
+      {% endif %}
+      <td>
+        Chapter Officers (or Risk Management Chair) will organize chapter
+        participation at least once per year in each of the following: alcohol
+        and drug awareness program, anti-harassment program, and mental health
+        recognition program.
+      </td>
     </tr>
     <tr>
-      <td><a href="{% url 'forms:collection' %}">{% trans "Collection Referral" %}</a></td>
+      <td>
+        <a href="{% url 'forms:collection' %}"
+          >{% trans "Collection Referral" %}</a
+        >
+      </td>
       {% if request.is_nat_officer %}
-        <td></td>{% endif %}
+      <td></td>
+      {% endif %}
       <td>To recommend a member for collections for unpaid dues.</td>
     </tr>
     <tr>
-      <td><a href="{% url 'conventionform' %}">{% trans "Convention Form" %}</a></td>
+      <td>
+        <a href="{% url 'conventionform' %}">{% trans "Convention Form" %}</a>
+      </td>
       {% if request.is_nat_officer %}
-        <td><a href="{% url 'forms:convention_list' %}">{% trans "All Convention Forms" %}</a></td>{% endif %}
-      <td>In convention years, the form that sets the delegate and alternate for the chapter to attend convention.</td>
+      <td>
+        <a href="{% url 'forms:convention_list' %}"
+          >{% trans "All Convention Forms" %}</a
+        >
+      </td>
+      {% endif %}
+      <td>
+        In convention years, the form that sets the delegate and alternate for
+        the chapter to attend convention.
+      </td>
     </tr>
     <tr>
-      <td><a href="{% url 'viewflow:forms:disciplinaryprocess:start' %}">{% trans "Disciplinary Process" %}</a></td>
+      <td>
+        <a href="{% url 'viewflow:forms:disciplinaryprocess:start' %}"
+          >{% trans "Disciplinary Process" %}</a
+        >
+      </td>
       {% if request.is_nat_officer %}
-        <td></td>{% endif %}
-      <td>To begin the process to suspend or expel a member from the Fraternity.</td>
+      <td></td>
+      {% endif %}
+      <td>
+        To begin the process to suspend or expel a member from the Fraternity.
+      </td>
     </tr>
     <tr>
-      <td><a href="{% url 'viewflow:forms:disciplinaryprocess:start' %}">{% trans "Disciplinary Process" %}</a></td>
+      <td>
+        <a href="{% url 'viewflow:forms:disciplinaryprocess:start' %}"
+          >{% trans "Disciplinary Process" %}</a
+        >
+      </td>
       {% if request.is_nat_officer %}
-        <td></td>{% endif %}
-      <td>To begin the process to suspend or expel a member from the Fraternity.</td>
+      <td></td>
+      {% endif %}
+      <td>
+        To begin the process to suspend or expel a member from the Fraternity.
+      </td>
     </tr>
     <tr>
       <td><a href="{% url 'gear' %}">{% trans "Gear Articles" %}</a></td>
       {% if request.is_nat_officer %}
-        <td><a href="{% url 'submissions:gearlist' %}">{% trans "All Gear Articles" %}</a></td>{% endif %}
-      <td>A Gear article should be a 250-500 word article with pictures (and captions) about an event, major change, or
-        area of growth in your chapter.</td>
+      <td>
+        <a href="{% url 'submissions:gearlist' %}"
+          >{% trans "All Gear Articles" %}</a
+        >
+      </td>
+      {% endif %}
+      <td>
+        A Gear article should be a 250-500 word article with pictures (and
+        captions) about an event, major change, or area of growth in your
+        chapter.
+      </td>
     </tr>
     <tr>
-      <td><a href="{% url 'forms:init_selection' %}">{% trans "Initiate, Depledge, Roll Book Pages" %}</a></td>
+      <td>
+        <a href="{% url 'forms:init_selection' %}"
+          >{% trans "Initiate, Depledge, Roll Book Pages" %}</a
+        >
+      </td>
       {% if request.is_nat_officer %}
-        <td></td>{% endif %}
-      <td>To initiate or depledge potential new members; Generate roll book pages.</td>
+      <td></td>
+      {% endif %}
+      <td>
+        To initiate or depledge potential new members; Generate roll book pages.
+      </td>
     </tr>
     <tr>
-      <td><a href="{% url 'forms:pledge_program' %}">{% trans "New Member Education Program" %}</a></td>
+      <td>
+        <a href="{% url 'forms:pledge_program' %}"
+          >{% trans "New Member Education Program" %}</a
+        >
+      </td>
       {% if request.is_nat_officer %}
-        <td><a href="{% url 'forms:pledge_program_list' %}">{% trans "All Pledge Programs" %}</a></td>{% endif %}
+      <td>
+        <a href="{% url 'forms:pledge_program_list' %}"
+          >{% trans "All Pledge Programs" %}</a
+        >
+      </td>
+      {% endif %}
       <td>Report on the new member education program.</td>
     </tr>
     <tr>
-      <td><a href="{% url 'forms:officer' %}">{% trans "Officer Election Report" %}</a></td>
+      <td>
+        <a href="{% url 'forms:officer' %}"
+          >{% trans "Officer Election Report" %}</a
+        >
+      </td>
       {% if request.is_nat_officer %}
-        <td></td>{% endif %}
+      <td></td>
+      {% endif %}
       <td>To submit the officers of the chapter.</td>
     </tr>
     <tr>
-      <td><a href="{% url 'osmform' %}">{% trans "Outstanding Student Member (OSM)" %}</a></td>
+      <td>
+        <a href="{% url 'osmform' %}"
+          >{% trans "Outstanding Student Member (OSM)" %}</a
+        >
+      </td>
       {% if request.is_nat_officer %}
-        <td><a href="{% url 'forms:osm_list' %}">{% trans "All OSM Forms" %}</a></td>{% endif %}
+      <td>
+        <a href="{% url 'forms:osm_list' %}">{% trans "All OSM Forms" %}</a>
+      </td>
+      {% endif %}
       <td>To elect the outstanding student member of the chapter.</td>
     </tr>
     <tr>
-      <td><a href="{% url 'viewflow:forms:prematurealumnus:start' %}">{% trans "Premature Alumnus" %}</a></td>
+      <td>
+        <a href="{% url 'viewflow:forms:prematurealumnus:start' %}"
+          >{% trans "Premature Alumnus" %}</a
+        >
+      </td>
       {% if request.is_nat_officer %}
-        <td></td>{% endif %}
+      <td></td>
+      {% endif %}
       <td>For members prematurely becoming alumni.</td>
     </tr>
     <tr>
-      <td><a href="{% url 'forms:resign_list' %}">{% trans "Resignations" %}</a></td>
+      <td>
+        <a href="{% url 'forms:resign_list' %}">{% trans "Resignations" %}</a>
+      </td>
       {% if request.is_nat_officer %}
-        <td></td>{% endif %}
-      <td>List of members who have requested resignation from the chapter. Only a member can resign their membership</td>
+      <td></td>
+      {% endif %}
+      <td>
+        List of members who have requested resignation from the chapter. Only a
+        member can resign their membership
+      </td>
     </tr>
     <tr>
-      <td><a href="{% url 'viewflow:forms:returnstudent:start' %}">{% trans "Return Student" %}</a></td>
+      <td>
+        <a href="{% url 'viewflow:forms:returnstudent:start' %}"
+          >{% trans "Return Student" %}</a
+        >
+      </td>
       {% if request.is_nat_officer %}
-        <td></td>{% endif %}
-      <td>For returning an existing member of your chapter to student member status.</td>
+      <td></td>
+      {% endif %}
+      <td>
+        For returning an existing member of your chapter to student member
+        status.
+      </td>
     </tr>
     <tr>
-      <td><a href="{% url 'forms:rmp' %}">{% trans "Risk Management Policies" %}</a></td>
+      <td>
+        <a href="{% url 'forms:rmp' %}"
+          >{% trans "Risk Management Policies" %}</a
+        >
+      </td>
       {% if request.is_nat_officer %}
-        <td><a href="{% url 'forms:rmp_list' %}">{% trans "All RMP" %}</a></td>{% endif %}
+      <td><a href="{% url 'forms:rmp_list' %}">{% trans "All RMP" %}</a></td>
+      {% endif %}
       <td>The risk management policies electronic form.</td>
     </tr>
     <tr>
-      <td><a href="{% url 'forms:status_selection' %}">{% trans "Status Change" %}</a></td>
+      <td>
+        <a href="{% url 'forms:status_selection' %}"
+          >{% trans "Status Change" %}</a
+        >
+      </td>
       {% if request.is_nat_officer %}
-        <td></td>{% endif %}
-      <td>To update the status of a member. Graduation, Coop, study abroad,
+      <td></td>
+      {% endif %}
+      <td>
+        To update the status of a member. Graduation, Coop, study abroad,
         deployment, withdrawing from school, or transferring schools.
       </td>
     </tr>
   </tbody>
-  </table>
+</table>
 {% endblock %}

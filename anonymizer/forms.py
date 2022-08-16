@@ -29,7 +29,7 @@ from forms.models import (
     RiskManagement,
     StatusChange,
     PledgeProgramProcess,
-    ChapterEducation,
+    HSEducation,
     Bylaws,
 )
 
@@ -316,7 +316,7 @@ class DepledgeAnonym(AnonymBase):
         ]
 
 
-class ChapterEducationAnonym(AnonymBase):
+class HSEducationAnonym(AnonymBase):
     first_name = fields.function(fake.first_name)
     last_name = fields.function(fake.last_name)
     email = fields.string("{seq}@test.com")
@@ -354,6 +354,6 @@ register_anonym(
         (Convention, ConventionAnonym),
         (PrematureAlumnus, PrematureAlumnusAnonym),
         (StatusChange, StatusChangeAnonym),
-        (ChapterEducation, ChapterEducationAnonym),
+        (HSEducation, HSEducationAnonym),
     ]
 )
