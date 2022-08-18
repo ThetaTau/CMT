@@ -89,7 +89,7 @@ class ObjectiveForm(forms.ModelForm):
         ]
 
     def __init__(self, *args, **kwargs):
-        owner = kwargs.get("owner", False)
+        owner = kwargs.get("owner", True)
         if "owner" in kwargs:
             kwargs.pop("owner")
         super().__init__(*args, **kwargs)
