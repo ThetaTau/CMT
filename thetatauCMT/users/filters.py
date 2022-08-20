@@ -6,7 +6,7 @@ from regions.models import Region
 from chapters.models import ChapterCurricula, Chapter
 
 
-class UserListFilter(django_filters.FilterSet):
+class UserListFilterBase(django_filters.FilterSet):
     current_status = django_filters.MultipleChoiceFilter(
         choices=[
             ("active", "active"),
@@ -16,13 +16,6 @@ class UserListFilter(django_filters.FilterSet):
             ("alumnipend", "alumnipend"),
         ],
         method="filter_current_status",
-    )
-    rmp_complete = django_filters.ChoiceFilter(
-        label="RMP Status",
-        choices=[
-            ("True", "Complete"),
-            ("False", "Incomplete"),
-        ],
     )
     major = django_filters.ModelChoiceFilter(
         queryset=ChapterCurricula.objects.none(),
@@ -53,6 +46,16 @@ class UserListFilter(django_filters.FilterSet):
         if value:
             queryset = queryset.filter(major=value)
         return queryset
+
+
+class UserListFilter(UserListFilterBase):
+    rmp_complete = django_filters.ChoiceFilter(
+        label="RMP Status",
+        choices=[
+            ("True", "Complete"),
+            ("False", "Incomplete"),
+        ],
+    )
 
 
 class UserRoleListFilter(django_filters.FilterSet):

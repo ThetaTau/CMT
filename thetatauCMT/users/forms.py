@@ -40,46 +40,54 @@ class UserListFormHelper(FormHelper):
     form_show_errors = True
     help_text_inline = False
     html5_required = True
-    layout = Layout(
-        Fieldset(
-            '<i class="fas fa-search"></i> Filter Members',
-            Row(
-                InlineField("name__icontains"),
+
+    def __init__(self, form=None, rmp_complete=False):
+        extra = []
+        if rmp_complete:
+            extra = [
                 Field("rmp_complete"),
-                InlineField("major"),
-                InlineField("graduation_year__icontains"),
-                FormActions(
-                    StrictButton(
-                        '<i class="fa fa-search"></i> Filter',
-                        type="submit",
-                        css_class="btn-primary",
-                    ),
-                    Submit("cancel", "Clear", css_class="btn-primary"),
-                    StrictButton(
-                        '<i class="fa fa-download"></i> Download CSV',
-                        type="submit",
-                        value="Download CSV",
-                        name="csv",
-                        id="download-csv",
-                        css_class="btn-secondary",
-                        style="display: none;",
-                    ),
-                    StrictButton(
-                        '<i class="fa fa-envelope-square"></i> Email ALL',
-                        type="submit",
-                        value="Email ALL",
-                        name="email",
-                        css_class="btn-danger",
-                        id="email-all",
-                        style="display: none;",
+            ]
+        self.layout = Layout(
+            Fieldset(
+                '<i class="fas fa-search"></i> Filter Members',
+                Row(
+                    InlineField("name__icontains"),
+                    *extra,
+                    InlineField("major"),
+                    InlineField("graduation_year__icontains"),
+                    FormActions(
+                        StrictButton(
+                            '<i class="fa fa-search"></i> Filter',
+                            type="submit",
+                            css_class="btn-primary",
+                        ),
+                        Submit("cancel", "Clear", css_class="btn-primary"),
+                        StrictButton(
+                            '<i class="fa fa-download"></i> Download CSV',
+                            type="submit",
+                            value="Download CSV",
+                            name="csv",
+                            id="download-csv",
+                            css_class="btn-secondary",
+                            style="display: none;",
+                        ),
+                        StrictButton(
+                            '<i class="fa fa-envelope-square"></i> Email ALL',
+                            type="submit",
+                            value="Email ALL",
+                            name="email",
+                            css_class="btn-danger",
+                            id="email-all",
+                            style="display: none;",
+                        ),
                     ),
                 ),
+                Row(
+                    InlineField("current_status"),
+                ),
             ),
-            Row(
-                InlineField("current_status"),
-            ),
-        ),
-    )
+        )
+        super().__init__(form=form)
 
 
 class UserRoleListFormHelper(FormHelper):

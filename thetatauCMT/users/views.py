@@ -40,7 +40,7 @@ from .models import (
     UserDemographic,
 )
 from .tables import UserTable
-from .filters import UserListFilter
+from .filters import UserListFilter, UserListFilterBase
 from .forms import (
     CaptchaLoginForm,
     UserListFormHelper,
@@ -437,7 +437,7 @@ class UserListView(LoginRequiredMixin, PagedFilteredTableView):
                 )
         qs = annotate_rmp_status(qs)
         self.filter = self.filter_class(request_get, queryset=qs, request=self.request)
-        self.filter.form.helper = self.formhelper_class()
+        self.filter.form.helper = self.formhelper_class(rmp_complete=True)
         return self.filter.qs
 
     def get_context_data(self, **kwargs):
@@ -665,7 +665,7 @@ class UserGPAFormSetView(LoginRequiredMixin, OfficerRequiredMixin, FormSetView):
         request_get = self.request.GET.copy()
         if cancel:
             request_get = QueryDict()
-        self.filter = UserListFilter(
+        self.filter = UserListFilterBase(
             request_get,
             queryset=self.request.user.current_chapter.current_members(),
             request=self.request,
@@ -729,7 +729,7 @@ class UserServiceFormSetView(LoginRequiredMixin, OfficerRequiredMixin, FormSetVi
         request_get = self.request.GET.copy()
         if cancel:
             request_get = QueryDict()
-        self.filter = UserListFilter(
+        self.filter = UserListFilterBase(
             request_get,
             queryset=self.request.user.current_chapter.current_members(),
             request=self.request,
