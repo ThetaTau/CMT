@@ -50,7 +50,7 @@ class InitiationTable(tables.Table):
 
 
 class DepledgeTable(tables.Table):
-    user = tables.Column(accessor="user.name")
+    user = tables.Column(accessor="user__name")
     date = tables.DateColumn(verbose_name="Depledge Date")
     created = tables.DateColumn(verbose_name="Submitted")
 
@@ -61,7 +61,7 @@ class DepledgeTable(tables.Table):
 
 
 class StatusChangeTable(tables.Table):
-    user = tables.Column(accessor="user.name")
+    user = tables.Column(accessor="user__name")
     date_start = tables.DateColumn(verbose_name="Change Date")
     created = tables.DateColumn(verbose_name="Form Submitted")
 
@@ -79,8 +79,8 @@ class AuditTable(tables.Table):
         attrs = {"class": "table table-striped table-bordered"}
         order_by = "-modified"
         fields = [
-            "user.chapter",
-            "user.chapter.region",
+            "user__chapter",
+            "user__chapter__region",
             "modified",
             "dues_member",
             "dues_pledge",
@@ -338,7 +338,7 @@ class OSMListTable(tables.Table):
 
 
 class CollectionReferralTable(tables.Table):
-    user = tables.Column(verbose_name="Indebted Member", accessor="user.name")
+    user = tables.Column(verbose_name="Indebted Member", accessor="user__name")
     created = tables.DateColumn(verbose_name="Submitted")
 
     class Meta:

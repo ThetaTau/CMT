@@ -5,11 +5,11 @@ from .models import TaskDate
 
 class TaskTable(tables.Table):
     task_name = tables.LinkColumn(
-        "tasks:complete", accessor="task.name", args=[A("pk")]
+        "tasks:complete", accessor="task__name", args=[A("pk")]
     )
     form = tables.URLColumn(
         verbose_name="Form to Submit",
-        accessor="task.resource",
+        accessor="task__resource",
     )
     date = tables.DateColumn(verbose_name="Due Date")
 
@@ -19,8 +19,8 @@ class TaskTable(tables.Table):
             "task_name",
             "form",
             "date",
-            "task.owner",
-            "task.description",
+            "task__owner",
+            "task__description",
         )
         attrs = {"class": "table table-striped table-bordered"}
         empty_text = "There are no tasks matching the search criteria..."
