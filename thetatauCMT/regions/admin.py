@@ -11,7 +11,7 @@ class ChapterInline(admin.TabularInline):
     ordering = ["name"]
     show_change_link = True
 
-    def has_add_permission(self, _):
+    def has_add_permission(self, _, obj=None):
         return False
 
 

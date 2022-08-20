@@ -138,7 +138,7 @@ class MemberInline(admin.TabularInline):
     ordering = ["name"]
     show_change_link = True
 
-    def has_add_permission(self, _):
+    def has_add_permission(self, _, obj=None):
         return False
 
 
@@ -484,7 +484,7 @@ class LogEntryAdmin(admin.ModelAdmin):
         "action_flag",
     ]
 
-    def has_add_permission(self, request):
+    def has_add_permission(self, request, obj=None):
         return False
 
     def has_change_permission(self, request, obj=None):

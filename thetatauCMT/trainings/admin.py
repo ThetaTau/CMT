@@ -26,7 +26,7 @@ class TrainingInline(admin.TabularInline):
     ordering = ["-completed_time"]
     extra = 0
 
-    def has_add_permission(self, _):
+    def has_add_permission(self, _, obj=None):
         return False
 
 
