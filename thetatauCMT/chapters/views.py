@@ -192,7 +192,6 @@ class ChapterDetailView(LoginRequiredMixin, MultiFormsView):
         email_list = ", ".join([x.email for x in chapter_officers])
         email_list += f", {chapter.region.email}"
         context["email_list"] = email_list
-        context["previous_officers"] = previous
         return context
 
     def get_form_kwargs(self, form_name, bind_form=False):
