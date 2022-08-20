@@ -177,7 +177,7 @@ class ChapterDetailView(LoginRequiredMixin, MultiFormsView):
                 "object": chapter,
             }
         )
-        chapter_officers, previous = chapter.get_current_officers()
+        chapter_officers = chapter.get_current_officers()
         natoff = False
         if self.request.user.is_national_officer():
             natoff = True

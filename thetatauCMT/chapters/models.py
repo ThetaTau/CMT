@@ -484,20 +484,7 @@ class Chapter(models.Model):
         return self.current_members().filter(service_hours__year__gte=BIENNIUM_START)
 
     def get_current_officers(self):
-        officers = self.members.filter(current_roles__overlap=CHAPTER_ROLES)
-        previous = False
-        date = TODAY_END
-        if officers.count() < 2:
-            # If there are not enough previous officers
-            # get officers from last 8 months
-            previous_officers = self.members.filter(
-                roles__role__in=CHAPTER_ROLES,
-                roles__end__gte=TODAY_END - timedelta(30 * 8),
-            )
-            officers = previous_officers | officers
-            previous = True
-            date = TODAY_END - timedelta(30 * 8)
-        return annotate_role_status(officers, date=date), previous
+        return self.members.filter(current_roles__overlap=CHAPTER_ROLES)
 
     def get_current_officers_council(self):
         officers = self.members.filter(

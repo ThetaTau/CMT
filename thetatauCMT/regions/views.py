@@ -89,7 +89,7 @@ class RegionOfficerView(LoginRequiredMixin, NatOfficerRequiredMixin, DetailView)
                 chapters = active_chapters.filter(candidate_chapter=True)
         all_chapter_officers = User.objects.none()
         for chapter in chapters:
-            chapter_officers, _ = chapter.get_current_officers()
+            chapter_officers = chapter.get_current_officers()
             all_chapter_officers = chapter_officers | all_chapter_officers
         self.filter = self.filter_class(
             request_get, queryset=all_chapter_officers, request=self.request
