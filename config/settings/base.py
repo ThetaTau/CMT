@@ -481,3 +481,5 @@ TEX_DIRECTORY = Path("tex")  # Define the directory where tex files and pdf are 
 
 LMS_ID = env("LMS_ID", default=None)
 LMS_SECRET = env("LMS_SECRET", default=None)
+
+DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"

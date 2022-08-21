@@ -13,7 +13,7 @@ from django.core.validators import RegexValidator
 from django.db.utils import ProgrammingError
 from address.models import AddressField
 from email.mime.base import MIMEBase
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from django.utils.text import slugify
 from quickbooks.objects.customer import Customer
 from quickbooks.objects.attachable import Attachable, AttachableRef

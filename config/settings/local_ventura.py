@@ -5,7 +5,7 @@ DEFAULT_FILE_STORAGE = "django.core.files.storage.FileSystemStorage"
 
 DATABASES = {
     "default": env.db(
-        "DATABASE_URL", default="postgres://postgres:test@localhost:5433/thetatauCMT"
+        "DATABASE_URL", default="postgres://thetatau:test@localhost:5433/thetatauCMT"
     ),
 }
 DATABASES["default"]["ATOMIC_REQUESTS"] = True

@@ -320,6 +320,7 @@ class Depledge(TimeStampedModel):
         + CHAPTER_OFFICER_CHOICES,
         null=True,
         blank=True,
+        max_length=500,
     )
     meeting_not = models.CharField(
         "Why was there no meeting with the depledged PNM?",
@@ -341,7 +342,7 @@ class Depledge(TimeStampedModel):
     )
     returned_items = MultiSelectField(
         "Have the following items been returned?",
-        max_length=10,
+        max_length=100,
         choices=[x.value for x in ITEMS],
         null=True,
         blank=True,
@@ -657,6 +658,7 @@ class Audit(YearTermModel, TimeStampedModel):
     debit_card_access = MultiSelectField(
         "Which members have access to the chapter debit card? Select all that apply.",
         choices=[("None", "None")] + CHAPTER_ROLES_CHOICES,
+        max_length=5000,
     )
     agreement = models.BooleanField()
 
@@ -1650,7 +1652,7 @@ class DisciplinaryProcess(Process, TimeStampedModel):
         default=timezone.now,
         validators=[no_future],
     )
-    notify_method = MultiSelectField(choices=[x.value for x in METHODS])
+    notify_method = MultiSelectField(choices=[x.value for x in METHODS], max_length=500)
     trial_date = models.DateField(
         "Trial scheduled for date",
         default=timezone.now,

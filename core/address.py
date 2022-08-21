@@ -7,7 +7,6 @@ from address.models import (
     State,
     Locality,
     Country,
-    unicode,
     Address,
 )
 from pygeocoder import Geocoder, GeocoderError
@@ -171,7 +170,7 @@ def update_address(value, address_obj):
     address_obj.longitude = longitude
     # If "formatted" is empty try to construct it from other values.
     if not address_obj.formatted:
-        address_obj.formatted = unicode(address_obj)
+        address_obj.formatted = str(address_obj)
 
     # Need to save.
     address_obj.save()

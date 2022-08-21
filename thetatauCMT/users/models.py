@@ -5,7 +5,7 @@ from django.db import models, IntegrityError
 from django.contrib.auth.models import UserManager
 from django.urls import reverse
 from django.conf import settings
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from django.core.validators import MinValueValidator, MaxValueValidator, RegexValidator
 from model_utils.fields import MonitorField
 from address.models import AddressField
@@ -406,6 +406,7 @@ class UserDemographic(models.Model):
         default="no_answer",
         blank=True,
         null=True,
+        max_length=500,
     )
     gender_write = models.CharField(
         _("Gender identity write-in"), max_length=30, blank=True, null=True
@@ -416,6 +417,7 @@ class UserDemographic(models.Model):
         default="no_answer",
         blank=True,
         null=True,
+        max_length=500,
     )
     sexual_write = models.CharField(
         _("Sexual identity write-in"), max_length=30, blank=True, null=True
@@ -428,6 +430,7 @@ class UserDemographic(models.Model):
         default="no_answer",
         blank=True,
         null=True,
+        max_length=500,
     )
     racial_write = models.CharField(
         _("Racial and ethnic identity write-in"), max_length=30, blank=True, null=True
@@ -455,6 +458,7 @@ class UserDemographic(models.Model):
         default="no_answer",
         blank=True,
         null=True,
+        max_length=500,
     )
     ability_write = models.CharField(
         _("Disability or impairment write-in"), max_length=30, blank=True, null=True
