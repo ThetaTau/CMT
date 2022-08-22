@@ -44,8 +44,8 @@ urlpatterns = [
         TemplateView.as_view(template_name="pages/electronic_terms.html"),
         name="electronic_terms",
     ),
-    url(
-        r"^reset_password/confirm/(?P<uidb64>[0-9A-Za-z_\-]+)/(?P<token>[0-9A-Za-z]{1,13}-[0-9A-Za-z]{1,20})/$",
+    path(
+        "reset/<uidb64>/<token>/",
         PasswordResetConfirmView.as_view(
             template_name="account/password_reset_confirm.html",
         ),
