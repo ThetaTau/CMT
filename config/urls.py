@@ -80,6 +80,7 @@ urlpatterns = [
     url(r"^report_builder/", include("report_builder.urls")),
     url(r"", include((modules.urls))),
     url(r"^ckeditor/", include("ckeditor_uploader.urls")),
+    path("email-signals/", include("email_signals.urls")),
     url(r"^terms/", include("termsandconditions.urls")),
     url(
         r"^privacy/",

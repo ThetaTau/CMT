@@ -129,6 +129,8 @@ LOCAL_APPS = [
     "thetatauCMT.objectives.apps.ObjectivesConfig",
     "thetatauCMT.trainings.apps.TrainingsConfig",
     "thetatauCMT.configs.apps.ConfigsConfig",
+    # Added after any apps which contain models for which to create signals
+    "email_signals",
 ]
 # https://docs.djangoproject.com/en/dev/ref/settings/#installed-apps
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -483,3 +485,4 @@ LMS_ID = env("LMS_ID", default=None)
 LMS_SECRET = env("LMS_SECRET", default=None)
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+EMAIL_SIGNAL_DEFAULT_SENDER = DEFAULT_FROM_EMAIL
