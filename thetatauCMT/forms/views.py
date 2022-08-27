@@ -1246,8 +1246,8 @@ class RiskManagementListView(
         )
         data = {}
         count_types = {
-            "True": "complete",
-            "False": "incomplete",
+            True: "complete",
+            False: "incomplete",
         }
         for risk in risk_data:
             count_type = count_types[risk["rmp_complete"]]
