@@ -34,11 +34,6 @@ class Invoice(TimeStampedModel):
             "chapter__name",
             "chapter__region__name",
             "chapter__candidate_chapter",
-            "chapter__region__slug",
         ).annotate(
-            chapter=models.F("chapter__name"),
-            candidate_chapter=models.F("chapter__candidate_chapter"),
-            region=models.F("chapter__region__name"),
-            region_slug=models.F("chapter__region__slug"),
             balance=models.Sum("total"),
         )

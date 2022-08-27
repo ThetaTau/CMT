@@ -31,7 +31,7 @@ class ChapterBalanceListFilter(django_filters.FilterSet):
         if value == "national":
             return queryset
         elif value == "candidate_chapter":
-            queryset = queryset.filter(candidate_chapter=True)
+            queryset = queryset.filter(chapter__candidate_chapter=True)
         else:
-            queryset = queryset.filter(region_slug=value)
+            queryset = queryset.filter(chapter__region__slug=value)
         return queryset

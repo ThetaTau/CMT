@@ -21,6 +21,9 @@ class InvoiceTable(tables.Table):
 
 
 class ChapterBalanceTable(tables.Table):
+    region = tables.Column(verbose_name="Region", accessor="chapter__region__name")
+    chapter = tables.Column(verbose_name="Chapter", accessor="chapter__name")
+
     class Meta:
         model = Invoice
         fields = (
