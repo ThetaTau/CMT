@@ -115,7 +115,7 @@ class Training(TimeStampedModel):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="trainings")
     progress_id = models.CharField(max_length=100)
     course_id = models.CharField(max_length=100)
-    course_title = models.CharField(max_length=50)
+    course_title = models.CharField(max_length=500)
     completed = models.BooleanField(default=False)
     completed_time = models.DateTimeField(blank=True, null=True)
     max_quiz_score = models.FloatField()
