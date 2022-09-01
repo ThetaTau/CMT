@@ -1,5 +1,7 @@
 import datetime
 from django.core.management import BaseCommand
+from django.contrib.auth.models import Group
+from django.db import IntegrityError
 from users.models import User
 from core.models import TODAY_END
 
@@ -75,23 +77,26 @@ class Command(BaseCommand):
         print(f"Updating {len(update_users)}: {update_users}")
         if update_users:
             User.objects.bulk_update(update_users, ["current_status", "current_roles"])
-        current_officer = self.user.is_officer
-        if current_officer:
-            if self.user not in off_group.user_set.all():
-                try:
-                    off_group.user_set.add(self.user)
-                except IntegrityError as e:
-                    if "unique constraint" in str(e):
-                        pass
-            if self.user.is_national_officer():
-                try:
-                    nat_group.user_set.add(self.user)
-                except IntegrityError as e:
-                    if "unique constraint" in str(e):
-                        pass
-        else:
-            self.user.groups.remove(off_group)
-            self.user.groups.remove(nat_group)
-            off_group.user_set.remove(self.user)
-            nat_group.user_set.remove(self.user)
-            self.user.save()
+        off_group, _ = Group.objects.get_or_create(name="officer")
+        nat_group, _ = Group.objects.get_or_create(name="natoff")
+        for user in update_users:
+            current_officer = user.is_officer
+            if current_officer:
+                if user not in off_group.user_set.all():
+                    try:
+                        off_group.user_set.add(user)
+                    except IntegrityError as e:
+                        if "unique constraint" in str(e):
+                            pass
+                if user.is_national_officer():
+                    try:
+                        nat_group.user_set.add(user)
+                    except IntegrityError as e:
+                        if "unique constraint" in str(e):
+                            pass
+            else:
+                user.groups.remove(off_group)
+                user.groups.remove(nat_group)
+                off_group.user_set.remove(user)
+                nat_group.user_set.remove(user)
+                user.save()
