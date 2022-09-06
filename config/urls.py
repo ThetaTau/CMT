@@ -130,11 +130,15 @@ urlpatterns = [
     ),
     url(
         r"^report/$",
-        RedirectView.as_view(pattern_name="forms:education", permanent=True),
+        RedirectView.as_view(
+            pattern_name="viewflow:forms:hseducation:start", permanent=False
+        ),
     ),
     url(
         r"^education/$",
-        RedirectView.as_view(pattern_name="forms:education", permanent=True),
+        RedirectView.as_view(
+            pattern_name="viewflow:forms:hseducation:start", permanent=True
+        ),
     ),
     url(
         r"^conventionform/$",
