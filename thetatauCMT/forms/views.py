@@ -1240,9 +1240,8 @@ class RiskManagementListView(
         ).order_by("chapter")
         return qs
 
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        all_forms = self.object_list
+    def get_table_data(self):
+        all_forms = self.get_queryset()
         risk_data = all_forms.values(
             "chapter__name", "chapter__region__name", "rmp_complete", "count"
         )
@@ -1261,7 +1260,11 @@ class RiskManagementListView(
                     "incomplete": 0,
                 }
             data[risk["chapter__name"]][count_type] = risk["count"]
-        risk_table = RiskFormTable(data=data.values())
+        return data.values()
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        risk_table = context["table"]
         RequestConfig(self.request, paginate={"per_page": 100}).configure(risk_table)
         context["table"] = risk_table
         return context
