@@ -1586,7 +1586,7 @@ class PledgeFormView(CreateView):
         bill_view = view(new_request, pk=self.object.user.chapter.id)
         bill_file = bill_view.content
         EmailPledgeConfirmation(self.object, bill_file).send()
-        EmailPledgeWelcome(self.object).send()
+        # EmailPledgeWelcome(self.object).send()
         EmailPledgeOfficer(self.object).send()
         try:
             EmailAddress.objects.add_email(self.request, user, user.email_school, True)
