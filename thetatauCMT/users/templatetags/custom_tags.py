@@ -24,12 +24,9 @@ def user_alter_form(context):
 
 @register.filter
 def get_fields(obj):
-    return [
-        (field.verbose_name.title(), field.value_to_string(obj))
-        for field in obj._meta.get_fields()
-        if hasattr(field, "verbose_name")
-        and field.verbose_name
-        not in [
+    fields = []
+    for field in obj._meta.get_fields():
+        if hasattr(field, "verbose_name") and field.verbose_name not in [
             "ID",
             "Flow",
             "artifact content type",
@@ -40,5 +37,9 @@ def get_fields(obj):
             "staff status",
             "user permissions",
             "groups",
-        ]
-    ]
+        ]:
+            try:
+                fields.append((field.verbose_name.title(), field.value_to_string(obj)))
+            except TypeError:
+                continue
+    return fields
