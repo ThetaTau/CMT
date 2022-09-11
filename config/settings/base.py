@@ -78,7 +78,6 @@ THIRD_PARTY_APPS = [
     "allauth.account",
     "allauth.socialaccount",
     "allauth.socialaccount.providers.google",
-    "allauth.socialaccount.providers.linkedin_oauth2",
     "rest_framework",
     "address",
     "django_tables2",
@@ -388,7 +387,6 @@ else:
 
 SOCIALACCOUNT_QUERY_EMAIL = True
 # https://console.developers.google.com/apis/credentials?project=chaptermanagementtool&authuser=2
-# https://www.linkedin.com/developer/apps/5538166/auth
 # https://developers.facebook.com/apps/1896435477053569/dashboard/
 
 SOCIALACCOUNT_PROVIDERS = {
@@ -400,20 +398,6 @@ SOCIALACCOUNT_PROVIDERS = {
         "AUTH_PARAMS": {
             "access_type": "online",
         },
-    },
-    "linkedin": {
-        "SCOPE": [
-            "r_basicprofile",
-            "r_emailaddress",
-        ],
-        "PROFILE_FIELDS": [
-            "id",
-            "first-name",
-            "last-name",
-            "email-address",
-            "picture-url",
-            "public-profile-url",
-        ],
     },
 }
 

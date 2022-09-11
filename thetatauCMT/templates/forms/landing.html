@@ -97,19 +97,6 @@
       </td>
     </tr>
     <tr>
-      <td>
-        <a href="{% url 'viewflow:forms:disciplinaryprocess:start' %}"
-          >{% trans "Disciplinary Process" %}</a
-        >
-      </td>
-      {% if request.is_nat_officer %}
-      <td></td>
-      {% endif %}
-      <td>
-        To begin the process to suspend or expel a member from the Fraternity.
-      </td>
-    </tr>
-    <tr>
       <td><a href="{% url 'gear' %}">{% trans "Gear Articles" %}</a></td>
       {% if request.is_nat_officer %}
       <td>

@@ -161,7 +161,12 @@ class AdvisorListFormHelper(FormHelper):
 class UserLookupForm(forms.Form):
     university = forms.ChoiceField(choices=Chapter.schools())
     badge_number = forms.IntegerField()
-    captcha = ReCaptchaField(label="", widget=ReCaptchaV3)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if not settings.DEBUG:
+            captcha = ReCaptchaField(label="", widget=ReCaptchaV3)
+            self.fields.update({"captcha": captcha})
 
 
 class UserAlterForm(forms.ModelForm):

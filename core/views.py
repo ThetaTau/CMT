@@ -1,6 +1,9 @@
+from urllib.parse import urlparse, urlunparse
 from django.contrib.auth.decorators import user_passes_test
 from django.contrib import admin
+from django.conf import settings
 from django.contrib.auth.decorators import login_required
+from django.shortcuts import resolve_url
 from django.http.request import QueryDict
 from django.urls import reverse
 from django_tables2 import SingleTableView
@@ -46,10 +49,19 @@ class NatOfficerRequiredMixin(GroupRequiredMixin):
     group_required = "natoff"
 
     def get_login_url(self):
-        messages.add_message(
-            self.request, messages.ERROR, "Only National officers can edit this."
-        )
-        return self.get_success_url()
+        if self.request.user.is_authenticated:
+            messages.add_message(
+                self.request, messages.ERROR, "Only National officers can edit this."
+            )
+            url = self.get_success_url()
+        else:
+            resolved_url = resolve_url(settings.LOGIN_URL)
+            login_url_parts = list(urlparse(resolved_url))
+            querystring = QueryDict(login_url_parts[4], mutable=True)
+            querystring["next"] = self.get_success_url()
+            login_url_parts[4] = querystring.urlencode(safe="/")
+            url = urlunparse(login_url_parts)
+        return url
 
     def get_success_url(self):
         return reverse("home")
@@ -76,12 +88,21 @@ class OfficerRequiredMixin(GroupRequiredMixin):
     redirect_field_name = ""
 
     def get_login_url(self):
-        messages.add_message(
-            self.request,
-            messages.ERROR,
-            f"Only officers can {self.officer_edit_type} {self.officer_edit}",
-        )
-        return self.get_success_url()
+        if self.request.user.is_authenticated:
+            messages.add_message(
+                self.request,
+                messages.ERROR,
+                f"Only officers can {self.officer_edit_type} {self.officer_edit}",
+            )
+            url = self.get_success_url()
+        else:
+            resolved_url = resolve_url(settings.LOGIN_URL)
+            login_url_parts = list(urlparse(resolved_url))
+            querystring = QueryDict(login_url_parts[4], mutable=True)
+            querystring["next"] = self.get_success_url()
+            login_url_parts[4] = querystring.urlencode(safe="/")
+            url = urlunparse(login_url_parts)
+        return url
 
     def get_success_url(self):
         return reverse("home")

@@ -267,7 +267,7 @@ class InitDeplSelectView(LoginRequiredMixin, OfficerRequiredMixin, FormSetView):
         return super().formset_valid(formset)
 
     def get_success_url(self):
-        return reverse("forms:initiation")
+        return reverse("forms:init_selection")
 
 
 @group_required("officer")
@@ -441,7 +441,7 @@ class InitiationView(LoginRequiredMixin, OfficerRequiredMixin, FormView):
         return HttpResponseRedirect(self.get_success_url())
 
     def get_success_url(self):
-        return reverse("home")
+        return reverse("forms:init_selection")
 
 
 class StatusChangeSelectView(LoginRequiredMixin, OfficerRequiredMixin, FormSetView):
@@ -564,7 +564,7 @@ class StatusChangeSelectView(LoginRequiredMixin, OfficerRequiredMixin, FormSetVi
         return super().formset_valid(formset)
 
     def get_success_url(self):
-        return reverse("forms:status")
+        return reverse("forms:status_selection")
 
 
 class StatusChangeView(LoginRequiredMixin, OfficerRequiredMixin, FormView):
@@ -720,7 +720,7 @@ class StatusChangeView(LoginRequiredMixin, OfficerRequiredMixin, FormView):
         return HttpResponseRedirect(self.get_success_url())
 
     def get_success_url(self):
-        return reverse("home")
+        return reverse("forms:status_selection")
 
 
 def remove_extra_form(formset, **kwargs):
@@ -833,10 +833,11 @@ class RoleChangeView(LoginRequiredMixin, OfficerRequiredMixin, ModelFormSetView)
                     messages.INFO,
                     f"You successfully updated the officers:\n" f"{update_list}",
                 )
-        return HttpResponseRedirect(reverse("forms:officer"))
+        return HttpResponseRedirect(self.get_success_url())
 
     def get_success_url(self):
-        return reverse("home")  # If this is the same view, login redirect loops
+        # If this is the same view, login redirect loops
+        return reverse("forms:officer")
 
 
 class RoleChangeNationalView(
@@ -854,7 +855,7 @@ class RoleChangeNationalView(
         return formset
 
     def get_success_url(self):
-        return self.request.get_full_path()
+        return reverse("forms:natoff")
 
     def post(self, request, *args, **kwargs):
         """
@@ -922,7 +923,7 @@ class RoleChangeNationalView(
                     messages.INFO,
                     f"You successfully updated the officers:\n" f"{update_list}",
                 )
-        return HttpResponseRedirect(reverse("forms:natoff"))
+        return HttpResponseRedirect(self.get_success_url())
 
 
 class HSEducationListView(
@@ -1108,6 +1109,7 @@ class RiskManagementFormView(LoginRequiredMixin, FormView):
         return super().form_valid(form)
 
     def get_success_url(self):
+        # We want this as home because everyone fills this one out
         return reverse("home")
 
 
@@ -1238,16 +1240,15 @@ class RiskManagementListView(
         ).order_by("chapter")
         return qs
 
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        all_forms = self.object_list
+    def get_table_data(self):
+        all_forms = self.get_queryset()
         risk_data = all_forms.values(
             "chapter__name", "chapter__region__name", "rmp_complete", "count"
         )
         data = {}
         count_types = {
-            "True": "complete",
-            "False": "incomplete",
+            True: "complete",
+            False: "incomplete",
         }
         for risk in risk_data:
             count_type = count_types[risk["rmp_complete"]]
@@ -1259,7 +1260,11 @@ class RiskManagementListView(
                     "incomplete": 0,
                 }
             data[risk["chapter__name"]][count_type] = risk["count"]
-        risk_table = RiskFormTable(data=data.values())
+        return data.values()
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        risk_table = context["table"]
         RequestConfig(self.request, paginate={"per_page": 100}).configure(risk_table)
         context["table"] = risk_table
         return context
@@ -1493,7 +1498,7 @@ class AuditFormView(LoginRequiredMixin, OfficerRequiredMixin, UpdateView):
         return super().form_valid(form)
 
     def get_success_url(self):
-        return reverse("home")
+        return reverse("forms:audit")
 
 
 class AuditListView(
@@ -1581,7 +1586,7 @@ class PledgeFormView(CreateView):
         bill_view = view(new_request, pk=self.object.user.chapter.id)
         bill_file = bill_view.content
         EmailPledgeConfirmation(self.object, bill_file).send()
-        EmailPledgeWelcome(self.object).send()
+        # EmailPledgeWelcome(self.object).send()
         EmailPledgeOfficer(self.object).send()
         try:
             EmailAddress.objects.add_email(self.request, user, user.email_school, True)
@@ -2991,21 +2996,22 @@ class BylawsCreateView(
     model = Bylaws
 
     def get_success_url(self):
-        chapter = self.object.chapter
-        GenericEmail(
-            emails=chapter.council_emails(),
-            cc={"central.office@thetatau.org", chapter.region.email},
-            addressee=f"{chapter.full_name} Officers",
-            subject=f"{chapter.full_name} Bylaws Update",
-            message=f"Updated bylaws were submitted. <br>With the following changes:<br>{self.object.changes} <br><br>Please see attached document.",
-            attachments=[self.object.bylaws],
-        ).send()
-        messages.add_message(
-            self.request,
-            messages.INFO,
-            f"You successfully submitted updated chapter bylaws. "
-            f"An email was sent to the Executive Director and Regional Directors",
-        )
+        if hasattr(self, "object"):
+            chapter = self.object.chapter
+            GenericEmail(
+                emails=chapter.council_emails(),
+                cc={"central.office@thetatau.org", chapter.region.email},
+                addressee=f"{chapter.full_name} Officers",
+                subject=f"{chapter.full_name} Bylaws Update",
+                message=f"Updated bylaws were submitted. <br>With the following changes:<br>{self.object.changes} <br><br>Please see attached document.",
+                attachments=[self.object.bylaws],
+            ).send()
+            messages.add_message(
+                self.request,
+                messages.INFO,
+                f"You successfully submitted updated chapter bylaws. "
+                f"An email was sent to the Executive Director and Regional Directors",
+            )
         return reverse("forms:bylaws")
 
     def form_valid(self, form):

@@ -33,12 +33,6 @@ def django_db_setup(django_db_setup, django_db_blocker):
             client_id="1234567890",
             secret="0987654321",
         )
-        current_site.socialapp_set.create(
-            provider="linkedin",
-            name="linkedin",
-            client_id="1234567890",
-            secret="0987654321",
-        )
 
 
 @pytest.fixture

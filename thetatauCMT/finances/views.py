@@ -30,9 +30,9 @@ class ChapterBalancesListView(LoginRequiredMixin, PagedFilteredTableView):
     table_class = ChapterBalanceTable
     filter_class = ChapterBalanceListFilter
     formhelper_class = ChapterBalanceListFormHelper
-    table_pagination = {"per_page": 30}
+    table_pagination = {"per_page": 100}
 
     def get_queryset(self, **kwargs):
         qs = Invoice.open_balances_all().order_by("chapter")
         qs = super().get_queryset(other_qs=qs)
-        return qs
+        return qs.filter(chapter__active=True)
