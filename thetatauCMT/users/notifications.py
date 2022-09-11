@@ -22,7 +22,7 @@ class MemberInfoUpdate(EmailNotification):  # extend from EmailNotification for 
         self.to_emails = emails
         self.cc = []
         self.reply_to = [
-            "cmt@thetatau.org",
+            updater.email,
         ]
         password = True
         if not user.has_usable_password() or not user.password:
@@ -164,7 +164,7 @@ class NewOfficers(EmailNotification):  # extend from EmailNotification for email
             [officer.email for officer in new_officers]
         )  # set list of emails to send to
         self.reply_to = [
-            "cmt@thetatau.org",
+            "central.office@thetatau.org",
         ]
         chapter = new_officers[0].current_chapter
         self.context = {
@@ -204,7 +204,7 @@ class OfficerUpdateReminder(
         self.to_emails = emails
         self.cc = [chapter.region.email]
         self.reply_to = [
-            "cmt@thetatau.org",
+            "central.office@thetatau.org",
         ]
         if not chapter.candidate_chapter:
             chapter_name = chapter.name + " Chapter"

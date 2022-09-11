@@ -19,7 +19,7 @@ class DepledgeSurveyEmail(
         self.to_emails = emails
         self.cc = []
         self.reply_to = [
-            "cmt@thetatau.org",
+            "central.office@thetatau.org",
         ]
         self.context = {
             "user": user,
@@ -84,7 +84,7 @@ class SurveyEmail(EmailNotification):  # extend from EmailNotification for email
         self.to_emails = emails
         self.cc = []
         self.reply_to = [
-            "cmt@thetatau.org",
+            "central.office@thetatau.org",
         ]
         self.context = {
             "user": user,

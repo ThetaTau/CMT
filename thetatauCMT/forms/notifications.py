@@ -17,7 +17,7 @@ class EmailRMPSigned(EmailNotification):  # extend from EmailNotification for em
         self.to_emails = set([user.email])  # set list of emails to send to
         self.cc = ["cmt@thetatau.org"]
         self.reply_to = [
-            "cmt@thetatau.org",
+            "central.office@thetatau.org",
         ]
         self.context = {
             "user": user,
@@ -56,9 +56,9 @@ class EmailRMPReport(EmailNotification):  # extend from EmailNotification for em
 
     def __init__(self, user, file):
         self.to_emails = set(["risk@thetatau.org"])  # set list of emails to send to
-        self.cc = ["cmt@thetatau.org", user.email, "central.office@thetatau.org"]
+        self.cc = [user.email, "central.office@thetatau.org"]
         self.reply_to = [
-            "cmt@thetatau.org",
+            "central.office@thetatau.org",
         ]
         file_name = file.name
         chapter = user.current_chapter
@@ -133,9 +133,9 @@ class EmailPledgeOther(EmailNotification):  # extend from EmailNotification for 
 
     def __init__(self, user, file):
         self.to_emails = set(["risk@thetatau.org"])  # set list of emails to send to
-        self.cc = ["cmt@thetatau.org"]
+        self.cc = ["central.office@thetatau.org"]
         self.reply_to = [
-            "cmt@thetatau.org",
+            user.email,
         ]
         file_name = file.name
         self.context = {
@@ -172,7 +172,7 @@ class EmailPledgeConfirmation(
     def __init__(self, pledge_form, bill_file):
         self.to_emails = {pledge_form.user.email_school, pledge_form.user.email}
         self.reply_to = [
-            "cmt@thetatau.org",
+            "central.office@thetatau.org",
         ]
         pledge_dict = model_to_dict(pledge_form)
         model_dict = model_to_dict(pledge_form.user)
@@ -318,7 +318,7 @@ class EmailPledgeOfficer(EmailNotification):
             pledge_form.user.email_school,
         ]
         self.reply_to = [
-            "cmt@thetatau.org",
+            "central.office@thetatau.org",
         ]
         self.context = {
             "pledge": pledge_form.user.first_name + " " + pledge_form.user.last_name,
@@ -399,7 +399,7 @@ class EmailProcessUpdate(EmailNotification):
         self.to_emails = {user.email}  # set list of emails to send to
         self.cc = list(set({"central.office@thetatau.org"} | emails))
         self.reply_to = [
-            "cmt@thetatau.org",
+            "central.office@thetatau.org",
         ]
         self.subject = f"[CMT] {process_title} {state} for {obj}"
         info = {}
@@ -502,7 +502,7 @@ class EmailConventionUpdate(EmailNotification):
         process_title = activation.flow_class.process_title
         self.to_emails = set([user.email])  # set list of emails to send to
         self.reply_to = [
-            "cmt@thetatau.org",
+            "central.office@thetatau.org",
         ]
         self.subject = f"[CMT] {process_title}"
         self.context = {
@@ -538,7 +538,7 @@ class EmailOSMUpdate(EmailNotification):
         process_title = activation.flow_class.process_title
         self.to_emails = {user.email}
         self.reply_to = [
-            "cmt@thetatau.org",
+            "central.office@thetatau.org",
         ]
         self.subject = f"[CMT] {process_title}"
         self.context = {
