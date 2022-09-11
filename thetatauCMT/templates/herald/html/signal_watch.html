@@ -3,6 +3,8 @@
 {% block title %}Updated{% endblock %}
 {% block content %}
 <br>
+  <p>This is a notification for a watch placed on a chapter or user.</p>
+  <p>User: {{ instance.user }}<br>Chapter: {{ instance.chapter }} {{ instance.user.chapter }}</p>
   <p>This message is to inform you that {{ instance }} updated.</p>
   <ul>
     {% for key, value in instance|get_fields %}

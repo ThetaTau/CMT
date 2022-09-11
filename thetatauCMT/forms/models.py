@@ -145,6 +145,9 @@ class PledgeProgram(YearTermModel, TimeStampedModel, EmailSignalMixin):
         upload_to=get_pledge_program_upload_path, null=True, blank=True
     )
 
+    def __str__(self):
+        return f"Pledge Program for {self.chapter}"
+
     @classmethod
     def signed_this_year(cls, chapter):
         """
@@ -199,6 +202,9 @@ class PledgeProgramProcess(Process, EmailSignalMixin):
         null=True,
         related_name="process",
     )
+
+    def __str__(self):
+        return f"Pledge Program Process for {self.chapter}"
 
 
 class Initiation(TimeStampedModel, EmailSignalMixin):
@@ -477,6 +483,9 @@ class ChapterReport(YearTermModel, TimeStampedModel, EmailSignalMixin):
     chapter = models.ForeignKey(Chapter, on_delete=models.CASCADE, related_name="info")
     report = models.FileField(upload_to=get_chapter_report_upload_path)
 
+    def __str__(self):
+        return f"Chapter Report for {self.chapter}"
+
     @classmethod
     def signed_this_semester(cls, chapter, report=True):
         program = cls.objects.filter(
@@ -559,6 +568,9 @@ class HSEducation(Process, TimeStampedModel, EmailSignalMixin):
     approval_comments = models.TextField(
         _("If rejecting, please explain why."), blank=True
     )
+
+    def __str__(self):
+        return f"H&S Education {self.category} for {self.chapter}"
 
     @classmethod
     def submitted_this_year(cls, chapter):
@@ -662,6 +674,9 @@ class Audit(YearTermModel, TimeStampedModel, EmailSignalMixin):
         max_length=5000,
     )
     agreement = models.BooleanField()
+
+    def __str__(self):
+        return f"Audit for {self.user.chapter} by {self.user}"
 
 
 class Pledge(TimeStampedModel, EmailSignalMixin):
@@ -830,6 +845,9 @@ class Pledge(TimeStampedModel, EmailSignalMixin):
     )
     bill = models.BooleanField(verbose_bill, choices=BOOL_CHOICES, default=False)
 
+    def __str__(self):
+        return f"Pledge Form {self.user}"
+
 
 def get_premature_alumn_upload_path(instance, filename):
     return os.path.join(
@@ -896,6 +914,9 @@ class PrematureAlumnus(Process, EmailSignalMixin):
     )
     vote = models.BooleanField(verbose_vote, default=False)
 
+    def __str__(self):
+        return f"Premature Alumnus for {self.user}"
+
 
 def get_badge_order_upload_path(instance, filename):
     return os.path.join(
@@ -938,6 +959,9 @@ class InitiationProcess(Process, EmailSignalMixin):
     badge_order = models.FileField(
         blank=True, null=True, upload_to=get_badge_order_upload_path
     )
+
+    def __str__(self):
+        return f"Initiation Process for {self.chapter}"
 
     def get_fees(self, chapter, initiation):
         init_fee = 75
@@ -1271,6 +1295,9 @@ class PledgeProcess(Process, EmailSignalMixin):
         Chapter, on_delete=models.CASCADE, related_name="pledge_process"
     )
 
+    def __str__(self):
+        return f"Pledge Process for {self.chapter}"
+
     def sync_invoice(self, request, invoice_number):
         """
         This will sync with quickbooks
@@ -1543,6 +1570,9 @@ class OSM(Process, YearTermModel, EmailSignalMixin):
         "Officer Approved", choices=BOOL_CHOICES, default=False
     )
 
+    def __str__(self):
+        return f"Outstanding Student Member {self.nominate} for {self.chapter}"
+
 
 def get_discipline_upload_path(instance, filename):
     if hasattr(instance, "attachment"):
@@ -1762,6 +1792,9 @@ class DisciplinaryProcess(Process, TimeStampedModel, EmailSignalMixin):
         upload_to=get_discipline_upload_path, blank=True, null=True
     )
 
+    def __str__(self):
+        return f"Disciplinary Process for {self.user} from {self.chapter}"
+
     def forms_pdf(self):
         from forms.forms import DisciplinaryForm1, DisciplinaryForm2
 
@@ -1824,6 +1857,9 @@ class CollectionReferral(TimeStampedModel, EmailSignalMixin):
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     balance_due = MoneyField(max_digits=19, decimal_places=4, default_currency="USD")
     ledger_sheet = models.FileField(upload_to=get_discipline_upload_path)
+
+    def __str__(self):
+        return f"Collection referral for {self.user}"
 
 
 def get_resign_upload_path(instance, filename):
@@ -1933,6 +1969,9 @@ class ResignationProcess(Process, EmailSignalMixin):
     approved_exec = models.BooleanField("Executive Director Approved", default=False)
     exec_comments = models.TextField(_("If rejecting, please explain why."), blank=True)
 
+    def __str__(self):
+        return f"Resignation {self.user}"
+
 
 class ReturnStudent(Process, EmailSignalMixin):
     user = models.ForeignKey(
@@ -1961,6 +2000,9 @@ class ReturnStudent(Process, EmailSignalMixin):
     )
     vote = models.BooleanField(verbose_vote, default=False)
 
+    def __str__(self):
+        return f"Return Student {self.user}"
+
 
 def get_chapter_bylaws_upload_path(instance, filename):
     return os.path.join(
@@ -1976,3 +2018,6 @@ class Bylaws(TimeStampedModel, EmailSignalMixin):
     )
     bylaws = models.FileField(upload_to=get_chapter_bylaws_upload_path)
     changes = models.TextField(_("Summary of Changes"))
+
+    def __str__(self):
+        return f"Bylaws for {self.chapter}"
