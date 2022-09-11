@@ -44,6 +44,7 @@ from core.admin import (
 )
 from notes.admin import UserNoteInline, UserNote
 from trainings.admin import AssignTrainingMixin, TrainingInline
+from core.signals import SignalWatchMixin
 
 admin.site.register(Permission)
 admin.site.unregister(Report)
@@ -340,8 +341,16 @@ class UserAlterInline(admin.StackedInline):
 
 
 @admin.register(User)
-class MyUserAdmin(ImportMixin, AuthUserAdmin, ExportActiveMixin, AssignTrainingMixin):
-    actions = ["export_chapter_actives", "assign_training"]
+class MyUserAdmin(
+    ImportMixin, AuthUserAdmin, ExportActiveMixin, AssignTrainingMixin, SignalWatchMixin
+):
+    object_type = "user"
+    actions = [
+        "export_chapter_actives",
+        "assign_training",
+        "watch_notification_add",
+        "watch_notification_remove",
+    ]
     raw_id_fields = ["address"]
     readonly_fields = (
         "deceased_changed",

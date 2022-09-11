@@ -1,0 +1,13 @@
+{% extends "herald/html/base_email.html"%}
+{% load custom_tags %}
+{% block title %}Updated{% endblock %}
+{% block content %}
+<br>
+  <p>This message is to inform you that {{ instance }} updated.</p>
+  <ul>
+    {% for key, value in instance|get_fields %}
+      <li>{{ key }}: {{ value }}</li>
+    {% endfor %}
+  </ul>
+<p>In H&T,<br>Chapter Management Tool</p>
+{% endblock content %}

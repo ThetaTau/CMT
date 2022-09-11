@@ -20,3 +20,25 @@ def user_alter_form(context):
                 }
             )
     return None
+
+
+@register.filter
+def get_fields(obj):
+    return [
+        (field.verbose_name.title(), field.value_to_string(obj))
+        for field in obj._meta.get_fields()
+        if hasattr(field, "verbose_name")
+        and field.verbose_name
+        not in [
+            "ID",
+            "Flow",
+            "artifact content type",
+            "artifact object id",
+            "process ptr",
+            "password",
+            "superuser status",
+            "staff status",
+            "user permissions",
+            "groups",
+        ]
+    ]

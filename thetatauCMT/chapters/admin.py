@@ -1,4 +1,5 @@
 from django.contrib import admin
+from core.signals import SignalWatchMixin
 from chapters.models import Chapter, ChapterCurricula
 from notes.admin import ChapterNoteInline, ChapterNote
 from .views import DuesSyncMixin
@@ -11,8 +12,14 @@ class ChapterCurriculaInline(admin.TabularInline):
     show_change_link = True
 
 
-class ChapterAdmin(admin.ModelAdmin, DuesSyncMixin):
-    actions = ["sync_dues", "reminder_dues"]
+class ChapterAdmin(admin.ModelAdmin, DuesSyncMixin, SignalWatchMixin):
+    object_type = "chapter"
+    actions = [
+        "sync_dues",
+        "reminder_dues",
+        "watch_notification_add",
+        "watch_notification_remove",
+    ]
     list_per_page = 200
     inlines = [ChapterNoteInline, ChapterCurriculaInline]
     list_filter = [

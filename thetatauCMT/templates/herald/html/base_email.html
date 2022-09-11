@@ -1,4 +1,5 @@
 {% load static i18n %}
+{% load define_host %}
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
@@ -565,8 +566,8 @@
                             <tr>
                               <td class="mcnImageContent" valign="top"
                                   style="padding-right: 0px;padding-left: 0px;padding-top: 0;padding-bottom: 0;text-align: center;mso-table-lspace: 0pt;mso-table-rspace: 0pt;-ms-text-size-adjust: 100%;-webkit-text-size-adjust: 100%;background-image: url('
-                                          {{ host }}{% static 'images/header-bg.jpg' %}'); background-size: 600px 150px;">
-                                <img align="center" alt="" src="{{ host }}{% static 'images/header.png' %}" width="250"
+                                    {% host %}{% static 'images/header-bg.jpg' %}'); background-size: 600px 150px;">
+                                <img align="center" alt="" src="{% host %}{% static 'images/header.png' %}" width="250"
                                      style="max-width: 250px;padding-bottom: 0;display: inline !important;vertical-align: bottom;border: 0;outline: none;text-decoration: none;-ms-interpolation-mode: bicubic;"
                                      class="mcnImage">
                               </td>
@@ -699,7 +700,7 @@
                                                     style="padding-right: 10px;padding-bottom: 5px;mso-table-lspace: 0pt;mso-table-rspace: 0pt;-ms-text-size-adjust: 100%;-webkit-text-size-adjust: 100%;">
                                                   <a href="https://www.facebook.com/thetatau/" target="_blank"
                                                      style="word-wrap: break-word;-ms-text-size-adjust: 100%;-webkit-text-size-adjust: 100%;">
-                                                    <img src="{{ host }}{% static 'images/facebook.jpg' %}"
+                                                    <img src="{% host %}{% static 'images/facebook.jpg' %}"
                                                          alt="Facebook" class="mcnFollowBlockIcon" width="48"
                                                          style="width: 48px;max-width: 48px;display: block;border: 0;outline: none;text-decoration: none;-ms-interpolation-mode: bicubic;"></a>
                                                 </td>
@@ -722,7 +723,7 @@
                                                     style="padding-right: 10px;padding-bottom: 5px;mso-table-lspace: 0pt;mso-table-rspace: 0pt;-ms-text-size-adjust: 100%;-webkit-text-size-adjust: 100%;">
                                                   <a href="http://www.thetatau.org/" target="_blank"
                                                      style="word-wrap: break-word;-ms-text-size-adjust: 100%;-webkit-text-size-adjust: 100%;">
-                                                    <img src="{{ host }}{% static 'images/established.png' %}"
+                                                    <img src="{% host %}{% static 'images/established.png' %}"
                                                          alt="Website" class="mcnFollowBlockIcon" width="48"
                                                          style="width: 48px;max-width: 48px;display: block;border: 0;outline: none;text-decoration: none;-ms-interpolation-mode: bicubic;"></a>
                                                 </td>
@@ -746,7 +747,7 @@
                                                     style="padding-right: 0;padding-bottom: 5px;mso-table-lspace: 0pt;mso-table-rspace: 0pt;-ms-text-size-adjust: 100%;-webkit-text-size-adjust: 100%;">
                                                   <a href="mailto:central.office@thetatau.org" target="_blank"
                                                      style="word-wrap: break-word;-ms-text-size-adjust: 100%;-webkit-text-size-adjust: 100%;">
-                                                    <img src="{{ host }}{% static 'images/email.jpg' %}" alt="Email"
+                                                    <img src="{% host %}{% static 'images/email.jpg' %}" alt="Email"
                                                          class="mcnFollowBlockIcon" width="48"
                                                          style="width: 48px;max-width: 48px;display: block;border: 0;outline: none;text-decoration: none;-ms-interpolation-mode: bicubic;"></a>
                                                 </td>
