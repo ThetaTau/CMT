@@ -267,7 +267,8 @@ class InitDeplSelectView(LoginRequiredMixin, OfficerRequiredMixin, FormSetView):
         return super().formset_valid(formset)
 
     def get_success_url(self):
-        return reverse("forms:init_selection")
+        # This needs to redirect to the next step in the process
+        return reverse("forms:initiation")
 
 
 @group_required("officer")
@@ -564,7 +565,8 @@ class StatusChangeSelectView(LoginRequiredMixin, OfficerRequiredMixin, FormSetVi
         return super().formset_valid(formset)
 
     def get_success_url(self):
-        return reverse("forms:status_selection")
+        # This needs to redirect to the next step
+        return reverse("forms:status")
 
 
 class StatusChangeView(LoginRequiredMixin, OfficerRequiredMixin, FormView):
