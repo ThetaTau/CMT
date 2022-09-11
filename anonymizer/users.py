@@ -5,6 +5,7 @@ from dj_anonymizer.register_models import (
     register_clean,
 )
 from dj_anonymizer import fields
+from email_signals.models import Signal, SignalConstraint
 from faker import Factory
 
 from users.models import (
@@ -27,6 +28,8 @@ register_skip(
         UserSemesterServiceHours,
         UserDemographic,
         UserSemesterGPA,
+        Signal,
+        SignalConstraint,
     ]
 )
 
