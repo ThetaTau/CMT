@@ -42,12 +42,9 @@ from core.admin import (
     SentNotification,
     AddressAdmin,
 )
-from core.signals import SignalAdminFix, SignalAdmin, Signal
 from notes.admin import UserNoteInline, UserNote
 from trainings.admin import AssignTrainingMixin, TrainingInline
 
-admin.site.unregister(Signal)
-admin.site.register(Signal, SignalAdminFix)
 admin.site.register(Permission)
 admin.site.unregister(Report)
 admin.site.register(Report, ReportAdminSync)

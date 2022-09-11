@@ -8,6 +8,7 @@ from django.utils.html import mark_safe
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
 from django.utils.text import slugify
+from email_signals.models import EmailSignalMixin
 from core.models import ALL_ROLES_CHOICES, TODAY_END, academic_encompass_start_end_date
 from chapters.models import Chapter
 from scores.models import ScoreType
@@ -228,7 +229,7 @@ class TaskDate(models.Model):
         return tasks
 
 
-class TaskChapter(models.Model):
+class TaskChapter(models.Model, EmailSignalMixin):
     class Meta:
         unique_together = ("task", "date", "chapter")
         """Dates increase as time advances, so 1293861600 (Jan. 1st 2011) is greater than 946706400 (Jan 1st. 2000).

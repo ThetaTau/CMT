@@ -10,7 +10,7 @@ from django.core.validators import MinValueValidator, MaxValueValidator, RegexVa
 from model_utils.fields import MonitorField
 from address.models import AddressField
 from multiselectfield import MultiSelectField
-from core.signals import EmailSignalDefaultMixin
+from email_signals.models import EmailSignalMixin
 from core.models import (
     StartEndModel,
     YearTermModel,
@@ -48,7 +48,7 @@ class CustomUserManager(UserManager):
         super().create_superuser(email=email, password=password, **extra_fields)
 
 
-class User(AbstractUser, EmailSignalDefaultMixin):
+class User(AbstractUser, EmailSignalMixin):
     class EMERGENCY_RELATIONSHIP(EnumClass):
         parent = ("parent", "Parent")
         guardian = ("guardian", "Guardian")
@@ -510,7 +510,7 @@ class UserSemesterGPA(YearTermModel):
     gpa = models.FloatField()
 
 
-class UserStatusChange(StartEndModel, TimeStampedModel, EmailSignalDefaultMixin):
+class UserStatusChange(StartEndModel, TimeStampedModel, EmailSignalMixin):
     STATUS = [
         ("active", "active"),
         ("activepend", "active pending"),
@@ -548,7 +548,7 @@ class UserStatusChange(StartEndModel, TimeStampedModel, EmailSignalDefaultMixin)
         super().save(*args, **kwargs)
 
 
-class UserRoleChange(StartEndModel, TimeStampedModel, EmailSignalDefaultMixin):
+class UserRoleChange(StartEndModel, TimeStampedModel, EmailSignalMixin):
     ROLES = ALL_ROLES_CHOICES
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="roles"

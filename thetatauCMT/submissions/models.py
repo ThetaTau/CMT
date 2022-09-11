@@ -5,7 +5,7 @@ from django.contrib.contenttypes.fields import GenericRelation
 from django.utils import timezone
 from django.utils.text import slugify
 from ckeditor.fields import RichTextField
-
+from email_signals.models import EmailSignalMixin
 from core.models import TimeStampedModel
 from scores.models import ScoreType
 from chapters.models import Chapter
@@ -18,7 +18,7 @@ def get_upload_path(instance, filename):
     )
 
 
-class Submission(TimeStampedModel):
+class Submission(TimeStampedModel, EmailSignalMixin):
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,

@@ -1,7 +1,7 @@
 from django.db import models
 from django.utils import timezone
 from django.utils.text import slugify
-from django.conf import settings
+from email_signals.models import EmailSignalMixin
 import os
 from core.models import (
     TimeStampedModel,
@@ -19,7 +19,7 @@ def get_event_upload_event(instance, filename):
     )
 
 
-class Event(TimeStampedModel):
+class Event(TimeStampedModel, EmailSignalMixin):
     class Meta:
         unique_together = ("name", "date", "chapter")
 

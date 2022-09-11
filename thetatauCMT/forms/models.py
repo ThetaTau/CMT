@@ -15,6 +15,7 @@ from django.conf import settings
 from django.utils import timezone
 from djmoney.models.fields import MoneyField
 from django.utils.translation import gettext_lazy as _
+from email_signals.models import EmailSignalMixin
 from multiselectfield import MultiSelectField
 from viewflow.models import Process
 from easy_pdf.rendering import render_to_pdf
@@ -83,7 +84,7 @@ def get_pledge_program_upload_path(instance, filename):
     )
 
 
-class PledgeProgram(YearTermModel, TimeStampedModel):
+class PledgeProgram(YearTermModel, TimeStampedModel, EmailSignalMixin):
     BOOL_CHOICES = ((True, "Yes"), (False, "No"))
 
     class Meta:
@@ -172,7 +173,7 @@ class PledgeProgram(YearTermModel, TimeStampedModel):
         return program
 
 
-class PledgeProgramProcess(Process):
+class PledgeProgramProcess(Process, EmailSignalMixin):
     class APPROVAL(EnumClass):
         approved = ("approved", "Approved")
         revisions = ("revisions", "Revisions needed")
@@ -200,7 +201,7 @@ class PledgeProgramProcess(Process):
     )
 
 
-class Initiation(TimeStampedModel):
+class Initiation(TimeStampedModel, EmailSignalMixin):
     user = models.OneToOneField(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="initiation"
     )
@@ -257,7 +258,7 @@ class Initiation(TimeStampedModel):
         return result
 
 
-class Depledge(TimeStampedModel):
+class Depledge(TimeStampedModel, EmailSignalMixin):
     class REASONS(EnumClass):
         volunteer = ("volunteer", "Voluntarily decided not to continue")
         time = ("time", "Unable/unwilling to meet time commitment")
@@ -469,7 +470,7 @@ def get_chapter_report_upload_path(instance, filename):
     )
 
 
-class ChapterReport(YearTermModel, TimeStampedModel):
+class ChapterReport(YearTermModel, TimeStampedModel, EmailSignalMixin):
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="chapter_form"
     )
@@ -498,7 +499,7 @@ def get_chapter_education_upload_path(instance, filename):
     )
 
 
-class HSEducation(Process, TimeStampedModel):
+class HSEducation(Process, TimeStampedModel, EmailSignalMixin):
     class CATEGORIES(EnumClass):
         alcohol_drugs = ("alcohol_drugs", "Alcohol and Drug Awareness")
         harassment = ("harassment", "Anti-Harassment")
@@ -629,7 +630,7 @@ class RiskManagement(YearTermModel):
         return signed_before
 
 
-class Audit(YearTermModel, TimeStampedModel):
+class Audit(YearTermModel, TimeStampedModel, EmailSignalMixin):
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="audit_form"
     )
@@ -663,7 +664,7 @@ class Audit(YearTermModel, TimeStampedModel):
     agreement = models.BooleanField()
 
 
-class Pledge(TimeStampedModel):
+class Pledge(TimeStampedModel, EmailSignalMixin):
     BOOL_CHOICES = ((True, "Yes"), (False, "No"))
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -838,7 +839,7 @@ def get_premature_alumn_upload_path(instance, filename):
     )
 
 
-class PrematureAlumnus(Process):
+class PrematureAlumnus(Process, EmailSignalMixin):
     class TYPES(EnumClass):
         less4 = (
             "less4",
@@ -904,7 +905,7 @@ def get_badge_order_upload_path(instance, filename):
     )
 
 
-class InitiationProcess(Process):
+class InitiationProcess(Process, EmailSignalMixin):
     class CEREMONIES(EnumClass):
         normal = (
             "normal",
@@ -1263,7 +1264,7 @@ class Convention(Process, YearTermModel):
     )
 
 
-class PledgeProcess(Process):
+class PledgeProcess(Process, EmailSignalMixin):
     pledges = models.ManyToManyField(Pledge, related_name="process", blank=True)
     invoice = models.PositiveIntegerField("Invoice Number", default=999999999)
     chapter = models.ForeignKey(
@@ -1508,7 +1509,7 @@ class PledgeProcess(Process):
         return out
 
 
-class OSM(Process, YearTermModel):
+class OSM(Process, YearTermModel, EmailSignalMixin):
     BOOL_CHOICES = ((True, "Approve"), (False, "Deny"))
     meeting_date = models.DateField(default=timezone.now, validators=[no_future])
     nominate = models.ForeignKey(
@@ -1558,7 +1559,7 @@ def get_discipline_upload_path(instance, filename):
     )
 
 
-class DisciplinaryProcess(Process, TimeStampedModel):
+class DisciplinaryProcess(Process, TimeStampedModel, EmailSignalMixin):
     """
     Restart:
     https://stackoverflow.com/questions/61136760/allowing-users-to-select-which-flow-to-roll-back-to-django-viewflow
@@ -1813,7 +1814,7 @@ class DisciplinaryAttachment(models.Model):
     )
 
 
-class CollectionReferral(TimeStampedModel):
+class CollectionReferral(TimeStampedModel, EmailSignalMixin):
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         verbose_name="Indebted Member",
@@ -1833,7 +1834,7 @@ def get_resign_upload_path(instance, filename):
     )
 
 
-class ResignationProcess(Process):
+class ResignationProcess(Process, EmailSignalMixin):
     BOOL_CHOICES = ((True, "Yes"), (False, "No"))
     user = models.OneToOneField(
         settings.AUTH_USER_MODEL,
@@ -1933,7 +1934,7 @@ class ResignationProcess(Process):
     exec_comments = models.TextField(_("If rejecting, please explain why."), blank=True)
 
 
-class ReturnStudent(Process):
+class ReturnStudent(Process, EmailSignalMixin):
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -1969,7 +1970,7 @@ def get_chapter_bylaws_upload_path(instance, filename):
     )
 
 
-class Bylaws(TimeStampedModel):
+class Bylaws(TimeStampedModel, EmailSignalMixin):
     chapter = models.ForeignKey(
         Chapter, on_delete=models.CASCADE, related_name="bylaws"
     )

@@ -19,7 +19,7 @@ from quickbooks.objects.customer import Customer
 from quickbooks.objects.attachable import Attachable, AttachableRef
 from herald.models import SentNotification
 from core.finances import get_quickbooks_client, invoice_search, create_line
-from core.signals import EmailSignalDefaultMixin
+from email_signals.models import EmailSignalMixin
 from core.models import (
     TODAY_END,
     annotate_role_status,
@@ -135,7 +135,7 @@ GREEK_ABR = {
 }
 
 
-class Chapter(models.Model, EmailSignalDefaultMixin):
+class Chapter(models.Model, EmailSignalMixin):
     class Meta:
         ordering = [
             "name",
