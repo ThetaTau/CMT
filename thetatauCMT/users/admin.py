@@ -1,6 +1,9 @@
+import datetime
 from django import forms
 from django.contrib import admin
 from django.contrib.admin.models import LogEntry, DELETION
+from django.shortcuts import render
+from django.http import HttpResponseRedirect
 from django.utils.html import escape
 from django.urls import reverse
 from django.utils.safestring import mark_safe
@@ -11,6 +14,7 @@ from django.contrib.auth.forms import UserChangeForm
 from import_export.admin import ImportExportActionModelAdmin, ImportMixin
 from report_builder.admin import Report
 from address.admin import Address
+from .forms import UserAdminStatusForm
 from .models import (
     User,
     UserRoleChange,
@@ -45,6 +49,7 @@ from core.admin import (
 from notes.admin import UserNoteInline, UserNote
 from trainings.admin import AssignTrainingMixin, TrainingInline
 from core.signals import SignalWatchMixin
+from core.models import forever
 
 admin.site.register(Permission)
 admin.site.unregister(Report)
@@ -350,6 +355,7 @@ class MyUserAdmin(
         "assign_training",
         "watch_notification_add",
         "watch_notification_remove",
+        "update_status",
     ]
     raw_id_fields = ["address"]
     readonly_fields = (
@@ -405,6 +411,8 @@ class MyUserAdmin(
                     "last_name",
                     "current_status",
                     "current_roles",
+                    "charter",
+                    "no_contact",
                     "address",
                     "deceased",
                     "deceased_date",
@@ -474,6 +482,33 @@ class MyUserAdmin(
                 instance.modified_by = user
                 instance.save()
         formset.save()
+
+    def update_status(self, request, queryset):
+        if "apply" in request.POST:
+            new_status = request.POST.get("status")
+            start = request.POST.get("start")
+            start = datetime.datetime.strptime(start, "%m/%d/%Y").date()
+            end = request.POST.get("end")
+            end = datetime.datetime.strptime(end, "%m/%d/%Y").date()
+            for user in queryset:
+                current_status = user.current_status
+                user.set_current_status(new_status, start=start, end=end)
+                if end < forever().date():
+                    user.set_current_status(current_status, start=end, current=False)
+            self.message_user(
+                request, f"Set status to {new_status} {start=} {end=} for {queryset}"
+            )
+            return HttpResponseRedirect(request.get_full_path())
+        form = UserAdminStatusForm(
+            initial={"_selected_action": queryset.values_list("id", flat=True)}
+        )
+        return render(
+            request,
+            "admin/update_status.html",
+            context={"form": form},
+        )
+
+    update_status.short_description = "Update Status"
 
 
 @admin.register(LogEntry)

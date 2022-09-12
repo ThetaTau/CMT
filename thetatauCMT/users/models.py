@@ -262,14 +262,15 @@ class User(AbstractUser, EmailSignalMixin):
             start = TODAY
         if created is None:
             created = TODAY
+        if end is None:
+            end = forever()
         if type(end) is datetime.datetime:
             end = end.date()
         if type(start) is datetime.datetime:
             start = start.date()
-        if end is None or (end > TODAY > start):
-            end = forever()
+        if end > TODAY >= start:
             if current:
-                # If the current current status is being set.
+                # If the current status is being set.
                 current_status = self.status.filter(
                     start__lte=TODAY_END, end__gte=TODAY_END
                 ).all()
@@ -542,7 +543,7 @@ class UserStatusChange(StartEndModel, TimeStampedModel, EmailSignalMixin):
             self.start = self.start.date()
         if hasattr(self.end, "date"):
             self.end = self.end.date()
-        if self.start < TODAY < self.end:
+        if self.start <= TODAY < self.end:
             self.user.current_status = self.status
             self.user.save(update_fields=["current_status"])
         super().save(*args, **kwargs)

@@ -10,7 +10,7 @@ from allauth.account.forms import LoginForm
 from captcha.fields import ReCaptchaField
 from captcha.widgets import ReCaptchaV3
 from core.address import fix_address
-from core.models import BIENNIUM_YEARS
+from core.models import BIENNIUM_YEARS, forever
 from core.forms import DuplicateAddressField
 from chapters.models import Chapter
 from .models import (
@@ -19,6 +19,7 @@ from .models import (
     UserSemesterGPA,
     UserSemesterServiceHours,
     UserOrgParticipate,
+    UserStatusChange,
 )
 
 
@@ -349,3 +350,24 @@ class ExternalUserForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         for key in self.fields:
             self.fields[key].required = True
+
+
+class UserAdminStatusForm(forms.Form):
+    _selected_action = forms.CharField(widget=forms.MultipleHiddenInput)
+    status = forms.ChoiceField(label="New Status", choices=UserStatusChange.STATUS)
+    start = forms.DateField(
+        initial=timezone.now(),
+        label="Start Date",
+        widget=DatePicker(
+            options={"format": "M/DD/YYYY"},
+            attrs={"autocomplete": "off"},
+        ),
+    )
+    end = forms.DateField(
+        initial=forever(),
+        label="End Date",
+        widget=DatePicker(
+            options={"format": "M/DD/YYYY"},
+            attrs={"autocomplete": "off"},
+        ),
+    )
