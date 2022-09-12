@@ -49,6 +49,7 @@ from core.admin import (
 from notes.admin import UserNoteInline, UserNote
 from trainings.admin import AssignTrainingMixin, TrainingInline
 from core.signals import SignalWatchMixin
+from core.models import forever
 
 admin.site.register(Permission)
 admin.site.unregister(Report)
@@ -490,7 +491,10 @@ class MyUserAdmin(
             end = request.POST.get("end")
             end = datetime.datetime.strptime(end, "%m/%d/%Y").date()
             for user in queryset:
+                current_status = user.current_status
                 user.set_current_status(new_status, start=start, end=end)
+                if end < forever().date():
+                    user.set_current_status(current_status, start=end, current=False)
             self.message_user(
                 request, f"Set status to {new_status} {start=} {end=} for {queryset}"
             )
