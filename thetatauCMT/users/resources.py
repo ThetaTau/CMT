@@ -44,6 +44,8 @@ class UserResource(resources.ModelResource):
             "password",
             "id",
             "modified",
+            "current_status",
+            "current_roles",
         )
 
     def init_instance(self, row=None):

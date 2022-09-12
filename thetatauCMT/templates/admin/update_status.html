@@ -1,0 +1,17 @@
+{% extends "admin/base_site.html" %}
+{% load crispy_forms_tags %}
+{% block content %}
+  <script src="https://code.jquery.com/jquery-3.3.1.min.js"
+          integrity="sha384-tsQFqpEReu7ZLhBV2VZlAu7zcOV+rXbYlF2cqB8txI/8aZajjp4Bqd+V6D5IgvKT"
+          crossorigin="anonymous"></script>
+  {{ form.media }}
+  <form action="" method="post">
+    {% csrf_token %}
+    <p>
+      What status, start, and end to set for all?
+    </p>
+    {{ form | crispy }}
+    <input type="hidden" name="action" value="update_status"/>
+    <input type="submit" name="apply" value="Update Status"/>
+  </form>
+{% endblock %}

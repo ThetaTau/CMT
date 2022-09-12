@@ -542,7 +542,7 @@ class UserStatusChange(StartEndModel, TimeStampedModel, EmailSignalMixin):
             self.start = self.start.date()
         if hasattr(self.end, "date"):
             self.end = self.end.date()
-        if self.start < TODAY < self.end:
+        if self.start <= TODAY < self.end:
             self.user.current_status = self.status
             self.user.save(update_fields=["current_status"])
         super().save(*args, **kwargs)
