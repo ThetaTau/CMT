@@ -203,6 +203,7 @@ class User(AbstractUser, EmailSignalMixin):
     ##### DENORMALIZED FIELDS #####
     current_status = models.CharField(max_length=10)
     current_roles = ArrayField(models.CharField(max_length=50), blank=True, null=True)
+    officer = models.BooleanField(default=False)
 
     def save(self, *args, **kwargs):
         if not self.id:
@@ -581,6 +582,8 @@ class UserRoleChange(StartEndModel, TimeStampedModel, EmailSignalMixin):
         # Need to check current role, b/c user could have multiple
         current_officer = self.user.is_officer
         if current_officer:
+            self.user.officer = True
+            self.user.save(update_fields=["officer"])
             if self.user not in off_group.user_set.all():
                 try:
                     off_group.user_set.add(self.user)
@@ -594,6 +597,7 @@ class UserRoleChange(StartEndModel, TimeStampedModel, EmailSignalMixin):
                     if "unique constraint" in str(e):
                         pass
         else:
+            self.user.officer = False
             self.user.groups.remove(off_group)
             self.user.groups.remove(nat_group)
             off_group.user_set.remove(self.user)

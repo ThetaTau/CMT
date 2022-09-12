@@ -88,6 +88,7 @@ class UserAnonym(AnonymBase):
             "charter",
             "current_status",
             "current_roles",
+            "officer",
         ]
 
 

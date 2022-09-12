@@ -82,6 +82,8 @@ class Command(BaseCommand):
         for user in update_users:
             current_officer = user.is_officer
             if current_officer:
+                user.officer = True
+                user.save(update_fields=["officer"])
                 if user not in off_group.user_set.all():
                     try:
                         off_group.user_set.add(user)
@@ -95,6 +97,7 @@ class Command(BaseCommand):
                         if "unique constraint" in str(e):
                             pass
             else:
+                user.officer = False
                 user.groups.remove(off_group)
                 user.groups.remove(nat_group)
                 off_group.user_set.remove(user)

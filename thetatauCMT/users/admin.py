@@ -362,6 +362,7 @@ class MyUserAdmin(
         "deceased_changed",
         "current_roles",
         "current_status",
+        "officer",
     )
     inlines = [
         UserNoteInline,
@@ -411,6 +412,7 @@ class MyUserAdmin(
                     "last_name",
                     "current_status",
                     "current_roles",
+                    "officer",
                     "charter",
                     "no_contact",
                     "address",
@@ -454,8 +456,16 @@ class MyUserAdmin(
         "chapter",
         "current_status",
         "current_roles",
+        "officer",
     )
-    list_filter = ("is_superuser", "last_login", "groups", "current_status", "chapter")
+    list_filter = (
+        "is_superuser",
+        "last_login",
+        "groups",
+        "current_status",
+        "officer",
+        "chapter",
+    )
     search_fields = ("user_id", "badge_number") + AuthUserAdmin.search_fields
     resource_class = UserResource
 
