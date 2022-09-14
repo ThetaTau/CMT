@@ -1076,7 +1076,7 @@ class RiskManagementFormView(LoginRequiredMixin, FormView):
         else:
             current_role = ", ".join([role.replace(" ", "_") for role in current_role])
         form.instance.user = self.request.user
-        form.instance.role = current_role
+        form.instance.role = current_role[:250]
         form.save()
         view = RiskManagementDetailView.as_view()
         new_request = self.request

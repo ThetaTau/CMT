@@ -587,7 +587,7 @@ class RiskManagement(YearTermModel):
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="risk_form"
     )
-    role = models.CharField(max_length=50)
+    role = models.CharField(max_length=254)
     submission = models.ForeignKey(
         Submission,
         on_delete=models.CASCADE,
