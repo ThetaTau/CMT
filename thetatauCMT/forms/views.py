@@ -963,7 +963,7 @@ class HSEducationListView(
         mental = self.object_list.filter(category="mental")
         data = [
             {
-                "chapter_name": chapter.name,
+                "chapter__name": chapter.name,
                 "region": chapter.region.name,
                 "alcohol_drugs": [
                     (program.get_approval_display(), program.report)

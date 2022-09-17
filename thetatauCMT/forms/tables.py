@@ -170,7 +170,6 @@ def render_education_category(value, column, record, bound_column):
 
 
 class HSEducationListTable(tables.Table):
-    chapter_name = tables.Column()
     region = tables.Column()
     alcohol_drugs = tables.FileColumn(verbose_name="Alcohol and Drug Awareness")
     harassment = tables.FileColumn(verbose_name="Anti-Harassment")
@@ -181,7 +180,7 @@ class HSEducationListTable(tables.Table):
         order_by = "chapter_name"
         attrs = {"class": "table table-striped table-bordered"}
         fields = [
-            "chapter_name",
+            "chapter__name",
             "region",
             "alcohol_drugs",
             "harassment",
