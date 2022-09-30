@@ -36,18 +36,18 @@ class GearArticleListFilter(django_filters.FilterSet):
     class Meta:
         fields = ["region", "chapter", "reviewed", "date"]
         model = GearArticle
-        order_by = ["chapter"]
+        order_by = ["-date"]
 
     def filter_region(self, queryset, field_name, value):
         if value == "national":
             return queryset
         elif value == "candidate_chapter":
-            queryset = queryset.filter(chapter__candidate_chapter=True)
+            queryset = queryset.filter(candidate_chapter=True)
         else:
-            queryset = queryset.filter(chapter__region__slug=value)
+            queryset = queryset.filter(region_slug=value)
         return queryset
 
     def filter_chapter(self, queryset, field_name, value):
         if value:
-            queryset = queryset.filter(submission__chapter__slug=value)
+            queryset = queryset.filter(chapter_slug=value)
         return queryset

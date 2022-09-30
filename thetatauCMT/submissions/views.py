@@ -256,19 +256,7 @@ class GearArticleListView(
         return self.render_to_response(context)
 
     def get_queryset(self, **kwargs):
-        qs = GearArticle.objects.all()
-        cancel = self.request.GET.get("cancel", False)
-        request_get = self.request.GET.copy()
-        if cancel or not request_get:
-            request_get = QueryDict(mutable=True)
-        self.filter = self.filter_class(request_get, queryset=qs)
-        self.filter.request = self.request
-        self.filter.form.helper = self.formhelper_class()
-        return self.filter.qs
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        all_gears = self.object_list.prefetch_related("submission", "pictures")
+        all_gears = GearArticle.objects.all().prefetch_related("submission", "pictures")
         all_gears = all_gears.values(
             "reviewed",
             "notes",
@@ -277,21 +265,36 @@ class GearArticleListView(
             date=F("submission__date"),
             title=F("submission__name"),
             chapter=F("submission__chapter__name"),
+            chapter_slug=F("submission__chapter__slug"),
+            candidate_chapter=F("submission__chapter__candidate_chapter"),
+            region=F("submission__chapter__region__name"),
+            region_slug=F("submission__chapter__region__slug"),
         )
-        form_chapters = all_gears.values_list("submission__chapter__id", flat=True)
+        cancel = self.request.GET.get("cancel", False)
+        request_get = self.request.GET.copy()
+        if cancel or not request_get:
+            request_get = QueryDict(mutable=True)
+        self.filter = self.filter_class(request_get, queryset=all_gears)
+        self.filter.request = self.request
+        self.filter.form.helper = self.formhelper_class()
+        return self.filter.qs
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        all_gears = self.object_list
+        form_chapters = all_gears.values_list("chapter_slug", flat=True)
         region_slug = self.filter.form.cleaned_data["region"]
         region = Region.objects.filter(slug=region_slug).first()
         if region:
-            missing_chapters = Chapter.objects.exclude(id__in=form_chapters).filter(
+            missing_chapters = Chapter.objects.exclude(slug__in=form_chapters).filter(
                 region__in=[region]
             )
         elif region_slug == "candidate_chapter":
-            missing_chapters = Chapter.objects.exclude(id__in=form_chapters).filter(
+            missing_chapters = Chapter.objects.exclude(slug__in=form_chapters).filter(
                 candidate_chapter=True
             )
         else:
-            missing_chapters = Chapter.objects.exclude(id__in=form_chapters)
-        chapter_names = all_gears.values_list("chapter", flat=True)
+            missing_chapters = Chapter.objects.exclude(slug__in=form_chapters)
         chapter_officer_emails = {
             chapter: [
                 user.email
@@ -299,7 +302,7 @@ class GearArticleListView(
                     name=chapter
                 ).get_current_officers_council()[0]
             ]
-            for chapter in chapter_names
+            for chapter in missing_chapters
         }
         table = GearArticleTable(data=all_gears)
         RequestConfig(self.request, paginate={"per_page": 100}).configure(table)

@@ -28,12 +28,13 @@ class GearArticleTable(tables.Table):
 
     class Meta:
         model = GearArticle
-        order_by = "chapter"
+        order_by = "-date"
         attrs = {"class": "table table-striped table-bordered"}
         fields = [
             "title",
             "reviewed",
             "chapter",
+            "region",
             "date",
             "notes",
             "pictures_count",
