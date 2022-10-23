@@ -6,6 +6,7 @@ from django.conf import settings
 from django.contrib import messages
 from django.db import models
 from django.http import Http404
+from django.db.models import Q
 from core.models import TimeStampedModel
 from users.models import User
 
@@ -159,7 +160,9 @@ class Training(TimeStampedModel):
         return authenticate_header
 
     @staticmethod
-    def get_progress_all_users(since=None, scroll_id=None, override=False):
+    def get_progress_all_users(
+        since=None, scroll_id=None, override=False, days=7, missing=None
+    ):
         authenticate_header = Training.authenticate_header()
         lms_since_file = settings.ROOT_DIR / "secrets" / "LMS_SINCE"
         if since is None or override:
@@ -168,7 +171,8 @@ class Training(TimeStampedModel):
                     response_json = json.load(file_obj)
                 since = response_json["since"]
             else:
-                since = datetime.datetime.now() - datetime.timedelta(days=7)
+                print(f"Syncing {days=}")
+                since = datetime.datetime.now() - datetime.timedelta(days=days)
                 since = since.isoformat()
         url = "https://api.fifoundry.net/v1/progress/user_assignments"
 
@@ -185,7 +189,7 @@ class Training(TimeStampedModel):
             sleep(120)
             print("Delaying for rate limit training progress update")
             Training.get_progress_all_users(
-                since=since, scroll_id=scroll_id, override=override
+                since=since, scroll_id=scroll_id, missing=missing
             )
             return
         elif response.status_code != 200:
@@ -195,6 +199,8 @@ class Training(TimeStampedModel):
         response_json = response.json()
         next = response_json["next"]
         data = response_json["data"]
+        if missing is None:
+            missing = []
         for user_info in data:
             """{
             "id": "dc335f10-1d5f-4b20-bfc0-94fc6336b0a7",
@@ -210,10 +216,14 @@ class Training(TimeStampedModel):
             "employee_id": "341325",
             }"""
             user_email = user_info["user"]["email"]
-            try:
-                user = User.objects.get(email=user_email)
-            except User.DoesNotExist:
-                print(f"User with email {user_email} does not exist")
+            student_id = user_info["user"]["student_id"]
+            query = Q(email=user_email) | Q(username=user_email)
+            if student_id:
+                query |= Q(user_id=student_id)
+            user = User.objects.filter(query).first()
+            if not user:
+                print(f"User with email {user_email} or {student_id} does not exist")
+                missing.append(user_email)
                 continue
             for progress in user_info["progress"]:
                 """example progress object
@@ -261,8 +271,11 @@ class Training(TimeStampedModel):
             }"""
             with open(lms_since_file, "w") as file_obj:
                 json.dump(next, file_obj)
+            print(f"Sync complete, missing {missing}")
         else:
-            Training.get_progress_all_users(since=next["since"], scroll_id=scroll_id)
+            Training.get_progress_all_users(
+                since=next["since"], scroll_id=scroll_id, missing=missing
+            )
 
     @staticmethod
     def add_user(user, request=None):
@@ -291,6 +304,7 @@ class Training(TimeStampedModel):
                             if user.preferred_name
                             else user.first_name,
                             "last_name": user.last_name,
+                            "student_id": user.user_id,
                             "email": user.email,
                             "category_labels": labels,
                         },
