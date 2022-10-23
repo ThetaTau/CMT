@@ -36,7 +36,11 @@ class Submission(TimeStampedModel, EmailSignalMixin):
     chapter = models.ForeignKey(
         Chapter, related_name="submissions", on_delete=models.CASCADE
     )
-    task = GenericRelation(TaskChapter)
+    task = GenericRelation(
+        TaskChapter,
+        content_type_field="submission_type",
+        object_id_field="submission_id",
+    )
 
     def __str__(self):
         return f"{self.name}"  # from {self.chapter} on {self.date}"
