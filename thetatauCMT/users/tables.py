@@ -31,6 +31,7 @@ class UserTable(tables.Table):
         natoff=False,
         admin=False,
         extra_info=False,
+        rmp=False,
         *args,
         **kwargs
     ):
@@ -50,6 +51,10 @@ class UserTable(tables.Table):
             )
         else:
             self.base_columns["name"] = tables.Column()
+        if not rmp:
+            self.base_columns["rmp_complete"].visible = False
+        else:
+            self.base_columns["rmp_complete"].visible = True
         if extra_info:
             extra_columns.extend(
                 [
