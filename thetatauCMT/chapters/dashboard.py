@@ -46,8 +46,8 @@ else:
 
 COLORS = {
     "Actives": "#ff9f43",
-    "Inactives": "#a29bfe",
-    "Pledges": "#57606f",
+    "Aways": "#a29bfe",
+    "PNMs": "#57606f",
     "Depledges": "#d63031",
     "Alumni": "#2e86de",
     "Fall": "#AC2414",
@@ -173,12 +173,12 @@ app.layout = html.Div(
                     id="status-dropdown",
                     options=[
                         {"label": "Actives", "value": "Actives"},
-                        {"label": "Inactives", "value": "Inactives"},
-                        {"label": "Pledges", "value": "Pledges"},
+                        {"label": "Aways", "value": "Aways"},
+                        {"label": "PNMs", "value": "PNMs"},
                         {"label": "Depledges", "value": "Depledges"},
                         {"label": "Alumni", "value": "Alumni"},
                     ],
-                    value=["Actives", "Inactives"],
+                    value=["Actives", "Aways"],
                     multi=True,
                 ),
             ],
@@ -214,13 +214,13 @@ app.layout = html.Div(
                 ),
                 html.Div(
                     children=[
-                        html.Div(id="inactives-num"),
+                        html.Div(id="awayss-num"),
                         html.H6(
-                            "Inactives",
-                            style=dict(color=COLORS["Inactives"], textAlign="center"),
+                            "Aways",
+                            style=dict(color=COLORS["Aways"], textAlign="center"),
                         ),
                         html.H6(
-                            "[ away ]",
+                            "[ coop + military + study abroad ]",
                             style=dict(fontSize=14, color="grey", textAlign="center"),
                         ),
                     ],
@@ -228,13 +228,13 @@ app.layout = html.Div(
                 ),
                 html.Div(
                     children=[
-                        html.Div(id="pledges-num"),
+                        html.Div(id="pnms-num"),
                         html.H6(
-                            "Pledges",
-                            style=dict(color=COLORS["Pledges"], textAlign="center"),
+                            "PNMs",
+                            style=dict(color=COLORS["PNMs"], textAlign="center"),
                         ),
                         html.H6(
-                            "[ pledge ]",
+                            "[ pnm ]",
                             style=dict(fontSize=14, color="grey", textAlign="center"),
                         ),
                     ],
@@ -376,8 +376,8 @@ def load_chapter_data(clicks, **kwargs):
             }
     align_status = {
         "Actives": ["active", "activepend", "alumnipend"],
-        "Inactives": ["away"],
-        "Pledges": ["pnm"],
+        "Aways": ["away"],
+        "PNMs": ["pnm"],
         "Depledges": ["depledge"],
         "Alumni": ["alumni"],
     }
@@ -407,15 +407,15 @@ def load_chapter_data(clicks, **kwargs):
     [
         Output("years-text", "children"),
         Output("actives-num", "children"),
-        Output("inactives-num", "children"),
-        Output("pledges-num", "children"),
+        Output("aways-num", "children"),
+        Output("pnms-num", "children"),
         Output("depledges-num", "children"),
         Output("alumni-num", "children"),
     ],
     [Input("chapter-data", "data"), Input("years-slider", "value")],
 )
 def update_text(data, years, **kwargs):
-    statuss = ["Actives", "Inactives", "Pledges", "Depledges", "Alumni"]
+    statuss = ["Actives", "Aways", "PNMs", "Depledges", "Alumni"]
     df = pd.DataFrame.from_dict(data)
     df = df.fillna(0)
     if years is None or "year" not in df:
