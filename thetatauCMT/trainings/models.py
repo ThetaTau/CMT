@@ -217,9 +217,9 @@ class Training(TimeStampedModel):
             }"""
             user_email = user_info["user"]["email"]
             student_id = user_info["user"]["student_id"]
-            query = Q(email=user_email) | Q(username=user_email)
+            query = Q(email__iexact=user_email) | Q(username__iexact=user_email)
             if student_id:
-                query |= Q(user_id=student_id)
+                query |= Q(user_id__iexact=student_id)
             user = User.objects.filter(query).first()
             if not user:
                 print(f"User with email {user_email} or {student_id} does not exist")
