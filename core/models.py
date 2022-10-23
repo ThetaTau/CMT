@@ -135,6 +135,7 @@ NATIONAL_OFFICER = {
     "alumni programs director",
     "national director",
     "national officer",
+    "educational foundation board of director",
 }
 
 
