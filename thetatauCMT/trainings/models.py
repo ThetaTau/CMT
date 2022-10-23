@@ -258,7 +258,7 @@ class Training(TimeStampedModel):
                 obj, created = Training.objects.update_or_create(
                     user=user, course_id=course_id, defaults=values
                 )
-                print(f"Training {obj} created {created} with values {values}")
+                # print(f"Training {obj} created {created} with values {values}")
         scroll_id = next["scroll_id"]
         if not scroll_id:
             """{
