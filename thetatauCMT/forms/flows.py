@@ -1,3 +1,4 @@
+import os
 import datetime
 from django.conf import settings
 from django.core.files.base import ContentFile
@@ -10,7 +11,7 @@ from viewflow.compat import _
 from viewflow.flow import views as flow_views
 from viewflow.templatetags.viewflow import register
 from viewflow.templatetags.viewflow import flowurl as old_flowurl
-from easy_pdf.rendering import render_to_pdf
+from easy_pdf.rendering import render_to_pdf, UnsupportedMediaPathException
 from core.flows import AutoAssignUpdateProcessView, NoAssignView
 from core.notifications import GenericEmail
 from .models import (
@@ -50,6 +51,25 @@ from .notifications import (
     CentralOfficeGenericEmail,
 )
 from users.models import User
+
+
+def link_callback(uri, rel):
+    if settings.STATIC_URL and uri.startswith(settings.STATIC_URL):
+        path = os.path.join(settings.STATIC_ROOT, uri.replace(settings.STATIC_URL, ""))
+    elif settings.MEDIA_URL and uri.startswith(settings.MEDIA_URL):
+        path = os.path.join(settings.MEDIA_ROOT, uri.replace(settings.MEDIA_URL, ""))
+    elif uri.startswith("data:image"):
+        return uri
+    else:
+        path = os.path.join(settings.STATIC_ROOT, uri)
+
+    if not os.path.isfile(path):
+        raise UnsupportedMediaPathException(
+            "media urls must start with {} or {}".format(
+                settings.MEDIA_ROOT, settings.STATIC_ROOT
+            )
+        )
+    return path.replace("\\", "/")
 
 
 @register.tag
@@ -941,6 +961,7 @@ class DisciplinaryProcessFlow(Flow):
             content = render_to_pdf(
                 "forms/disciplinary_outcome_letter.html",
                 context={"object": activation.process, "signature": image_string},
+                link_callback=link_callback,
             )
             # with open("tests/outcome_letter.pdf", "wb") as f:
             #     f.write(content)
@@ -983,6 +1004,7 @@ class DisciplinaryProcessFlow(Flow):
                 content = render_to_pdf(
                     "forms/disciplinary_expel_letter.html",
                     context={"object": activation.process, "signature": image_string},
+                    link_callback=link_callback,
                 )
                 activation.process.final_letter.save(
                     "final_letter.pdf", ContentFile(content), save=True
