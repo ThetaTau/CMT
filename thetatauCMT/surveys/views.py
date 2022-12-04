@@ -1,5 +1,6 @@
 import base64
 from datetime import date
+from django.db import IntegrityError, transaction
 from django.conf import settings
 from django.urls import reverse
 from django.contrib import messages
@@ -26,7 +27,20 @@ class DepledgeSurveyCreateView(CreateView):
         user_id = self.kwargs.get(self.slug_url_kwarg)
         user = User.objects.get(user_id=user_id)
         self.object.user = user
-        self.object.save()
+        try:
+            with transaction.atomic():
+                self.object.save()
+        except IntegrityError:
+            messages.add_message(
+                self.request,
+                messages.ERROR,
+                mark_safe(
+                    f"Survey already submitted for {user}<br>"
+                    f"If you have additional information you would like to provide<br> "
+                    f"please message central.office@thetatau.org"
+                ),
+            )
+            return super().form_invalid(form)
         if self.object.contact:
             link = reverse(
                 "admin:surveys_depledgesurvey_change",

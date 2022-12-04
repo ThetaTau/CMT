@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load i18n %}
 {% load crispy_forms_tags %}
 
 {% block title %}Theta Tau PNM Exit Survey{% endblock %}
@@ -43,14 +44,30 @@
   <p>We are dedicated to the improvement of our organization and processes and value your opinion.
     It would be appreciated if you could take about 5 minutes to complete this 6 question survey on your experience.
     All answers will be kept confidential.</p>
-  <form class="form-horizontal" method="post" action="">
+  <form class="form-horizontal" method="post" action="" id="form">
     {% csrf_token %}
     {{ form|crispy }}
     <div class="control-group">
       <div class="controls">
-        <button type="submit" class="btn btn-primary">Submit</button>
+        <input
+          class="btn btn-default btn-lg btn-primary"
+          type="submit"
+          value="{% trans "I'm done!" %}"
+          id="submit"
+        >
       </div>
     </div>
   </form>
   {% endif %}
+  <script src="https://ajax.aspnetcdn.com/ajax/jquery.validate/1.11.1/jquery.validate.min.js"></script>
+  <script type="text/javascript">
+    $('form').submit(function () {
+      if ($(this).valid()) {
+        document.getElementById("submit").value = "Submitting...";
+        setTimeout(function () {
+          document.getElementById("submit").setAttribute("disabled", true);
+        }, 0);
+      }
+  })
+  </script>
 {% endblock %}
