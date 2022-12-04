@@ -575,7 +575,8 @@ class UserRoleChange(StartEndModel, TimeStampedModel, EmailSignalMixin):
                 self.user.current_roles = current_roles
                 self.user.save(update_fields=["current_roles"])
         elif self.end < TODAY:
-            if self.role in self.user.current_roles:
+            current_roles = self.user.current_roles if self.user.current_roles else []
+            if self.role in current_roles:
                 self.user.current_roles.remove(self.role)
                 self.user.save(update_fields=["current_roles"])
         self.clean_group_role()
