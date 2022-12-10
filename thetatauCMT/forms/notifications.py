@@ -6,6 +6,7 @@ from django.forms.models import model_to_dict
 from core.models import current_term, current_year
 from forms.tables import SignTable
 from users.models import User
+from configs.models import Config
 
 
 @registry.register_decorator()
@@ -255,6 +256,7 @@ class EmailPledgeConfirmation(
 class EmailPledgeWelcome(EmailNotification):  # extend from EmailNotification for emails
     template_name = "pledge_welcome"  # name of template, without extension
     subject = "Theta Tau Welcome Prospective New Member"  # subject of email
+    render_types = ["html"]
 
     def __init__(self, pledge_form):
         user = pledge_form.user
@@ -275,8 +277,10 @@ class EmailPledgeWelcome(EmailNotification):  # extend from EmailNotification fo
         self.reply_to = [
             "central.office@thetatau.org",
         ]
+        welcome = Config.get_value("PledgeWelcome", clean=False)
         self.context = {
             "name": name,
+            "welcome": welcome,
             "no_later_date": f"{no_later_month}, {current_year()}",
             "host": settings.CURRENT_URL,
         }
