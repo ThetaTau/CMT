@@ -336,6 +336,7 @@ admin.site.register(InitiationProcess, InitiationProcessAdmin)
 class PledgeInline(admin.TabularInline):
     model = PledgeProcess.pledges.through
     extra = 1
+    raw_id_fields = ("pledge",)
 
 
 class PledgeProcessAdmin(admin.ModelAdmin):
