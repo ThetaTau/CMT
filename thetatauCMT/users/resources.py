@@ -2,7 +2,7 @@ from django.db.models import Q
 from django.core.exceptions import ValidationError
 from import_export import resources
 from import_export.fields import Field
-from .models import UserRoleChange, User
+from .models import UserRoleChange, User, UserStatusChange
 
 
 class UserRoleChangeResource(resources.ModelResource):
@@ -18,6 +18,23 @@ class UserRoleChangeResource(resources.ModelResource):
             "start",
             "end",
         )
+
+
+class UserStatusChangeResource(resources.ModelResource):
+    class Meta:
+        model = UserStatusChange
+        force_init_instance = True
+        fields = (
+            "user",
+            "user__email",
+            "status",
+            "start",
+            "end",
+        )
+
+    def before_import_row(self, row, row_number=None, **kwargs):
+        user = User.objects.get(email=row["user__email"])
+        row["user"] = user.id
 
 
 class UserResource(resources.ModelResource):

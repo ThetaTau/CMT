@@ -26,7 +26,7 @@ from .models import (
     ChapterCurricula,
     UserDemographic,
 )
-from .resources import UserRoleChangeResource, UserResource
+from .resources import UserRoleChangeResource, UserResource, UserStatusChangeResource
 from .views import ExportActiveMixin
 from forms.models import (
     Depledge,
@@ -60,14 +60,15 @@ admin.site.unregister(Address)
 admin.site.register(Address, AddressAdmin)
 
 
-class UserStatusChangeAdmin(admin.ModelAdmin):
+class UserStatusChangeAdmin(ImportExportActionModelAdmin):
     raw_id_fields = ["user"]
-    list_display = ("user", "status", "created", user_chapter)
-    list_filter = ["status", "created", "user__chapter"]
+    list_display = ("user", "status", "created", user_chapter, "start", "end")
+    list_filter = ["status", "created", "user__chapter", "start", "end"]
     ordering = [
         "-created",
     ]
     search_fields = ["user__name"]
+    resource_class = UserStatusChangeResource
 
 
 admin.site.register(UserStatusChange, UserStatusChangeAdmin)
