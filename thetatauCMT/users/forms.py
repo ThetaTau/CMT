@@ -352,6 +352,11 @@ class ExternalUserForm(forms.ModelForm):
             self.fields[key].required = True
 
 
+class UserAdminBadgeFixForm(forms.Form):
+    _selected_action = forms.CharField(widget=forms.MultipleHiddenInput)
+    badge_file = forms.FileField(widget=forms.FileInput(attrs={"accept": ".csv"}))
+
+
 class UserAdminStatusForm(forms.Form):
     _selected_action = forms.CharField(widget=forms.MultipleHiddenInput)
     status = forms.ChoiceField(label="New Status", choices=UserStatusChange.STATUS)

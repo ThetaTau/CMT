@@ -344,6 +344,80 @@ class User(AbstractUser, EmailSignalMixin):
     def is_advisor(self):
         return self.current_status == "advisor"
 
+    @classmethod
+    def fix_badge_numbers(cls, reader, test=False, sep="<br>"):
+        updated_users = []
+        offset_users = []
+        start = 80_000
+        missing = []
+        updated = []
+        for count, row in enumerate(reader):
+            email = row["email"].strip()
+            if not email:
+                continue
+            try:
+                user = User.objects.get(
+                    models.Q(email__iexact=email) | models.Q(email_school__iexact=email)
+                )
+            except User.DoesNotExist:
+                missing.append(email)
+                continue
+            else:
+                updated.append(email)
+            offset = start + count
+            badge_number = row["correct"]
+            chapter = user.chapter
+            user_id = f"{chapter.greek}{badge_number}"
+            user_id_offset = f"{chapter.greek}{offset}"
+            updated_users.append(
+                {"id": user.id, "badge_number": badge_number, "user_id": user_id}
+            )
+            offset_users.append(
+                {"id": user.id, "badge_number": offset, "user_id": user_id_offset}
+            )
+        if not test:
+            cls.objects.bulk_update(
+                [cls(**kv) for kv in offset_users],
+                [
+                    "badge_number",
+                    "user_id",
+                ],
+            )
+            # After the bulk update, all remaining user_ids should not conflict
+            new_ids = [new["user_id"] for new in updated_users]
+            conflict_users = cls.objects.filter(user_id__in=new_ids)
+            message = ""
+            if missing:
+                message += f"Could not find user emails: {missing}{sep}"
+            if conflict_users:
+                message += f"Conflicting users: {conflict_users.values_list('email', flat=True)}{sep}"
+            start = 90_000
+            conflict_users_update = [
+                {
+                    "id": user.id,
+                    "badge_number": start + count,
+                    "user_id": f"{user.chapter.greek}{start + count}",
+                }
+                for count, user in enumerate(conflict_users)
+            ]
+            cls.objects.bulk_update(
+                [User(**kv) for kv in conflict_users_update],
+                [
+                    "badge_number",
+                    "user_id",
+                ],
+            )
+            cls.objects.bulk_update(
+                [User(**kv) for kv in updated_users],
+                [
+                    "badge_number",
+                    "user_id",
+                ],
+            )
+            if updated:
+                message += f"Updated members: {updated}"
+            return message
+
 
 class UserDemographic(models.Model):
     BOOL_CHOICES = ((None, ""), (True, "Yes"), (False, "No"))

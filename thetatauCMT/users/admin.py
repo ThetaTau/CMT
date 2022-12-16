@@ -1,3 +1,4 @@
+import csv
 import datetime
 from django import forms
 from django.contrib import admin
@@ -14,7 +15,7 @@ from django.contrib.auth.forms import UserChangeForm
 from import_export.admin import ImportExportActionModelAdmin, ImportMixin
 from report_builder.admin import Report
 from address.admin import Address
-from .forms import UserAdminStatusForm
+from .forms import UserAdminStatusForm, UserAdminBadgeFixForm
 from .models import (
     User,
     UserRoleChange,
@@ -357,6 +358,7 @@ class MyUserAdmin(
         "watch_notification_add",
         "watch_notification_remove",
         "update_status",
+        "badge_fix",
     ]
     raw_id_fields = ["address"]
     readonly_fields = (
@@ -493,6 +495,25 @@ class MyUserAdmin(
                 instance.modified_by = user
                 instance.save()
         formset.save()
+
+    def badge_fix(self, request, queryset):
+        if "apply" in request.POST:
+            badge_file = request.FILES.get("badge_file")
+            decoded_file = badge_file.read().decode("utf-8").splitlines()
+            reader = csv.DictReader(decoded_file)
+            message = User.fix_badge_numbers(reader)
+            self.message_user(request, mark_safe(f"Fix Badge process:<br>{message}"))
+            return HttpResponseRedirect(request.get_full_path())
+        form = UserAdminBadgeFixForm(
+            initial={"_selected_action": queryset.values_list("id", flat=True)}
+        )
+        return render(
+            request,
+            "admin/badge_fixes.html",
+            context={"form": form},
+        )
+
+    badge_fix.short_description = "Fix Badge Numbers"
 
     def update_status(self, request, queryset):
         if "apply" in request.POST:
