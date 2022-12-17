@@ -1461,7 +1461,7 @@ class PledgeProgramProcessFlow(Flow):
                 "received the pledge program for you chapter."
             ),
             fields=["manual"],
-            attachments=["other_manual", "schedule"],
+            attachments=["other_manual", "schedule", "test"],
             email_officers=True,
             extra_emails={
                 model_obj.chapter.region.email,

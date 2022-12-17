@@ -144,6 +144,9 @@ class PledgeProgram(YearTermModel, TimeStampedModel, EmailSignalMixin):
     schedule = models.FileField(
         upload_to=get_pledge_program_upload_path, null=True, blank=True
     )
+    test = models.FileField(
+        upload_to=get_pledge_program_upload_path, null=True, blank=True
+    )
 
     def __str__(self):
         return f"Pledge Program for {self.chapter}"

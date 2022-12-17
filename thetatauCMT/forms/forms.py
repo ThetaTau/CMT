@@ -795,7 +795,11 @@ class PledgeProgramForm(forms.ModelForm):
         ),
     )
     schedule = forms.FileField(
-        help_text="Please upload a schedule of the pledge program process.",
+        help_text="Please upload a schedule of the PNM program process.",
+        required=True,
+    )
+    test = forms.FileField(
+        help_text="Please upload the test the PNMs take for your chapter.",
         required=True,
     )
 
@@ -809,6 +813,7 @@ class PledgeProgramForm(forms.ModelForm):
             "manual",
             "other_manual",
             "schedule",
+            "test",
         ]
 
     def clean(self):

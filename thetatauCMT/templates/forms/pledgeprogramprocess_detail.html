@@ -7,7 +7,7 @@
   <div class="row">
     <div class="col-sm-12">
       <h2>Pledge Program: {{ object.program.get_term_display }} {{ object.program.year }}</h2>
-      <table>
+      <table class="table table-hover table-bordered table-striped">
         <tr>
           <th>Chapter</th>
           <td>{{ object.chapter }}</td>
@@ -44,21 +44,30 @@
           <th>Manual</th>
           <td>{{ object.program.get_manual_display }}</td>
         </tr>
+        {% if object.program.other_manual.name %}
         <tr>
           <th>Manual Changes</th>
           <td>
-            {% if object.program.other_manual.name %}
               <a href="{{ object.program.other_manual.url }}" target="_blank">
                 {{ object.program.other_manual.name }}</a>
-            {% endif %}
           </td>
         </tr>
+        {% endif %}
         <tr>
           <th>Schedule</th>
           <td>
             {% if object.program.schedule.name %}
               <a href="{{ object.program.schedule.url }}" target="_blank">
                 {{ object.program.schedule.name }}</a>
+            {% endif %}
+          </td>
+        </tr>
+        <tr>
+          <th>Test</th>
+          <td>
+            {% if object.program.test.name %}
+              <a href="{{ object.program.test.url }}" target="_blank">
+                {{ object.program.test.name }}</a>
             {% endif %}
           </td>
         </tr>
