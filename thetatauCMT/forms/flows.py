@@ -305,7 +305,7 @@ class InitiationProcessFlow(Flow):
     CO goes into CMT and indicates which chapters have been invoiced.
     Invoice is paid by chapter.
     CO goes into CMT and indicates invoice paid.
-        - shingle csv to be emailed to goosecreekpublishing@yahoo.com
+        - shingle csv to be emailed to Goosecreekorders@gmail.com
         - invoice CSV (which would still include the badge info) to be sent to central.office@thetatau.org.
         - email sent to the chapter officers with instructions on how to order their badges directly from Herff.
     """
@@ -486,7 +486,7 @@ class InitiationProcessFlow(Flow):
             date_str = datetime.datetime.today().strftime("%Y%m%d")
             print("Sending shingle orders for", chapters)
             GenericEmail(
-                emails=["goosecreekpublishing@yahoo.com"],
+                emails=["Goosecreekorders@gmail.com"],
                 subject=f"Theta Tau Shingle Order {date_str}",
                 message=f"Shingle order for {', '.join(chapters)},"
                 f" Invoice numbers {', '.join(invoices)} See attached documents.",
