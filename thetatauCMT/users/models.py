@@ -213,10 +213,11 @@ class User(AbstractUser, EmailSignalMixin):
             # Combination of badge number and chapter abbr, eg. X1311
             chapter = kwargs.get("chapter", self.chapter)
             self.user_id = f"{chapter.greek}{self.badge_number}"
+        suffix = f" {self.suffix}" if self.suffix else ""
         if self.name == "":
-            self.name = f"{self.first_name} {self.middle_name} {self.last_name}"
+            self.name = f"{self.first_name} {self.middle_name} {self.last_name}{suffix}"
         if self.preferred_name is not None:
-            self.name = f"{self.preferred_name} {self.last_name}"
+            self.name = f"{self.preferred_name} {self.last_name}{suffix}"
         if self.username == "":
             self.username = self.email
         super(User, self).save(*args, **kwargs)
