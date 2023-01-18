@@ -15,6 +15,8 @@ from core.models import (
     StartEndModel,
     YearTermModel,
     forever,
+    current_year,
+    current_year_plus_10,
     TODAY,
     TOMORROW,
     TODAY_END,
@@ -169,10 +171,10 @@ class User(AbstractUser, EmailSignalMixin):
         null=True,
     )
     graduation_year = models.PositiveIntegerField(
-        default=datetime.datetime.now().year,
+        default=current_year,
         validators=[
             MinValueValidator(1900),
-            MaxValueValidator(datetime.datetime.now().year + 10),
+            MaxValueValidator(current_year_plus_10),
         ],
         help_text="Use the following format: YYYY",
     )

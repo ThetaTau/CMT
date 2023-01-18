@@ -5,6 +5,7 @@ from enum import Enum
 from django.db import IntegrityError, transaction
 from django.contrib.postgres.aggregates import StringAgg, ArrayAgg
 from django.core.exceptions import ValidationError
+from django.core.validators import MinValueValidator, MaxValueValidator
 from django.db import models
 from django.utils import timezone
 
@@ -42,19 +43,24 @@ SEMESTER = {
 }
 
 
-current_year = datetime.datetime.now().year
-if (current_year % 2) == 0:
+def current_year():
+    return datetime.datetime.now().year
+
+
+current_year_value = current_year()
+
+if (current_year_value % 2) == 0:
     # If the current year is even, then first year of biennium is last year
-    BIENNIUM_START = current_year - 1
+    BIENNIUM_START = current_year_value - 1
 else:
     # If the current year is odd, then first year of biennium is
     # this year if current semester is fall otherwise two years ago
     current_month = datetime.datetime.now().month
     semester = SEMESTER[current_month]
     if semester == "sp":
-        BIENNIUM_START = current_year - 2
+        BIENNIUM_START = current_year_value - 2
     else:
-        BIENNIUM_START = current_year
+        BIENNIUM_START = current_year_value
 
 
 BIENNIUM_START_DATE = datetime.date(BIENNIUM_START, 7, 1)
@@ -89,6 +95,10 @@ def current_term():
 
 def current_year():
     return datetime.datetime.now().year
+
+
+def current_year_plus_10():
+    return current_year() + 10
 
 
 def current_year_term_slug():
@@ -320,11 +330,13 @@ class YearTermModel(models.Model):
         def get_value(cls, member):
             return cls[member].value[1]
 
-    YEARS = []
-    for r in range(2016, (datetime.datetime.now().year + 8)):
-        YEARS.append((r, r))
-
-    year = models.IntegerField(choices=YEARS, default=datetime.datetime.now().year)
+    year = models.IntegerField(
+        default=current_year,
+        validators=[
+            MinValueValidator(2016),
+            MaxValueValidator(current_year_plus_10),
+        ],
+    )
     term = models.CharField(max_length=2, choices=[x.value for x in TERMS])
 
     class Meta:
