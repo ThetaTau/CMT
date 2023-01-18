@@ -799,7 +799,7 @@ class PledgeProgramForm(forms.ModelForm):
         required=True,
     )
     test = forms.FileField(
-        help_text="Please upload the test the PNMs take for your chapter.",
+        help_text="Please upload the test the PNMs take for your chapter. Please make sure to include the entire test including any chapter and national components.",
         required=True,
     )
 
