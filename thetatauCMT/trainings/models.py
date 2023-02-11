@@ -185,6 +185,44 @@ class Training(TimeStampedModel):
             )
 
     @staticmethod
+    def get_location_position_ids(status, location):
+        url = "https://thetatau-tx.vectorlmsedu.com/graphql/"
+        authenticate_header = Training.authenticate_header()
+        query_locations = f"""
+                query
+                   {{ Locations  (name: "{location}" )
+                    {{ nodes
+                      {{ locationId
+                        name
+                        code
+                      }}
+                    }}
+                }}
+                """
+        response = requests.post(
+            url, json={"query": query_locations}, headers=authenticate_header
+        )
+        all_locations = response.json()
+        location_id = all_locations["data"]["Locations"]["nodes"][0]["locationId"]
+        query_positions = f"""
+                query
+                   {{ Positions  (code: "{status[0:8]}")
+                    {{ nodes
+                      {{ positionId
+                        name
+                        code
+                      }}
+                    }}
+                }}
+                """
+        response = requests.post(
+            url, json={"query": query_positions}, headers=authenticate_header
+        )
+        all_positions = response.json()
+        position_id = all_positions["data"]["Positions"]["nodes"][0]["positionId"]
+        return location_id, position_id
+
+    @staticmethod
     def add_user(user, request=None):
         authenticate_header = Training.authenticate_header()
         url = "https://thetatau-tx.vectorlmsedu.com/graphql/"
@@ -197,38 +235,9 @@ class Training(TimeStampedModel):
             "alumnipend": "alumni",
         }
         status = status_align.get(status, status)
-        query_locations = f"""
-        query
-           {{ Locations  (name: "{user.chapter.name}" )
-            {{ nodes
-              {{ locationId
-                name
-                code
-              }}
-            }}
-        }}
-        """
-        response = requests.post(
-            url, json={"query": query_locations}, headers=authenticate_header
+        location_id, position_id = Training.get_location_position_ids(
+            status, user.chapter.name
         )
-        all_locations = response.json()
-        location_id = all_locations["data"]["Locations"]["nodes"][0]["locationId"]
-        query_positions = f"""
-        query
-           {{ Positions  (code: "{status[0:8]}")
-            {{ nodes
-              {{ positionId
-                name
-                code
-              }}
-            }}
-        }}
-        """
-        response = requests.post(
-            url, json={"query": query_positions}, headers=authenticate_header
-        )
-        all_positions = response.json()
-        position_id = all_positions["data"]["Positions"]["nodes"][0]["positionId"]
         if not location_id or not position_id:
             response_json_location_add = ""
             if not location_id:
@@ -300,6 +309,25 @@ class Training(TimeStampedModel):
             if "errors" not in response_json:
                 message = f"{user} successfully added to training system"
                 level = messages.INFO
+                person_id = response_json["data"]["addPerson"]["personId"]
+                if person_id and user.is_national_officer():
+                    location_id, position_id = Training.get_location_position_ids(
+                        "natoff", "Theta Tau"
+                    )
+                    query = f"""
+                    mutation  JobMutation {{
+                        Person (personId: "{person_id}") {{
+                            addJob(locationId:"{location_id}", positionId:"{position_id}"){{
+                                jobId
+                            }}
+                      }}
+                    }}
+                    """
+                    response = requests.post(
+                        url, json={"query": query}, headers=authenticate_header
+                    )
+                    json_response = response.json()
+                    print(json_response)
             else:
                 message = f"{user} NOT added to training system, maybe an error. {response_json}"
                 level = messages.ERROR
