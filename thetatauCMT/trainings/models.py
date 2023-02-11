@@ -11,139 +11,6 @@ from django.db.models import Q
 from core.models import TimeStampedModel
 from users.models import User
 
-LOCATION_IDS = {
-    "alpha": "5B13D292-857B-11ED-9ADB-9E75914CA38D",
-    "beta": "5B539C24-857B-11ED-8B20-6170107EB2B6",
-    "chi": "F429FE1C-8282-11ED-95DE-C5B2914CA38D",
-    "chi-beta": "5B8E3136-857B-11ED-98A1-24688EED22F2",
-    "chi-delta": "5BE29CE4-857B-11ED-B6F1-F33DA3AC54A4",
-    "chi-epsilon": "5C200462-857B-11ED-BC3B-8670107EB2B6",
-    "chi-gamma": "5C638B56-857B-11ED-AE16-9E75914CA38D",
-    "delta": "5CB1F37C-857B-11ED-9F4D-FE678EED22F2",
-    "delta-beta": "5D06C3DE-857B-11ED-BE86-A13DA3AC54A4",
-    "delta-gamma": "5D50A922-857B-11ED-BF48-8075914CA38D",
-    "epsilon": "5D90474E-857B-11ED-913F-8670107EB2B6",
-    "epsilon-beta": "5DD1758E-857B-11ED-9E3A-8075914CA38D",
-    "epsilon-delta": "5E171058-857B-11ED-B358-8670107EB2B6",
-    "epsilon-gamma": "5E56D1A2-857B-11ED-ADC3-6170107EB2B6",
-    "eta": "5E976988-857B-11ED-94A2-24688EED22F2",
-    "eta-beta": "5EDCE300-857B-11ED-97B0-9E75914CA38D",
-    "eta-delta": "5F2ACF70-857B-11ED-BCAB-FE678EED22F2",
-    "eta-epsilon": "5F65C2CE-857B-11ED-A4B9-6170107EB2B6",
-    "eta-gamma": "5FA36412-857B-11ED-8F11-8075914CA38D",
-    "gamma": "5FE3FAE0-857B-11ED-B213-A13DA3AC54A4",
-    "gamma-beta": "6024F52C-857B-11ED-A9E0-24688EED22F2",
-    "iota": "60644628-857B-11ED-A35E-F33DA3AC54A4",
-    "iota-beta": "60A1B88C-857B-11ED-94CC-8075914CA38D",
-    "iota-delta": "60E2CFDE-857B-11ED-834A-6170107EB2B6",
-    "iota-epsilon": "61260FE2-857B-11ED-AFDA-8670107EB2B6",
-    "iota-gamma": "61729556-857B-11ED-A7C5-3B688EED22F2",
-    "iupui-candidate-chapter": "61B7DCBA-857B-11ED-B55E-8670107EB2B6",
-    "jmu-candidate-chapter": "61F65CCE-857B-11ED-B60C-FE678EED22F2",
-    "kappa": "62372362-857B-11ED-A942-24688EED22F2",
-    "kappa-beta": "62770C8E-857B-11ED-BA2F-A13DA3AC54A4",
-    "kappa-delta": "62B3FC48-857B-11ED-BA6B-F33DA3AC54A4",
-    "kappa-epsilon": "62EF0680-857B-11ED-B133-9E75914CA38D",
-    "kappa-gamma": "6330DF4C-857B-11ED-A5FC-6170107EB2B6",
-    "lambda": "6374AD1C-857B-11ED-91EE-8670107EB2B6",
-    "lambda-beta": "63B67986-857B-11ED-AA51-3B688EED22F2",
-    "lambda-delta": "63F4F2BA-857B-11ED-8CCC-3B688EED22F2",
-    "lambda-epsilon": "643C15E6-857B-11ED-B05E-24688EED22F2",
-    "lambda-gamma": "648225D6-857B-11ED-96F3-8075914CA38D",
-    "mu": "64D50B34-857B-11ED-A14B-F33DA3AC54A4",
-    "mu-beta": "6514ABFE-857B-11ED-80C4-9E75914CA38D",
-    "mu-delta": "6558A52A-857B-11ED-85BD-6170107EB2B6",
-    "mu-epsilon": "659857F6-857B-11ED-887A-24688EED22F2",
-    "mu-gamma": "65D659B6-857B-11ED-BF62-8670107EB2B6",
-    "nu": "6619543C-857B-11ED-99AF-F33DA3AC54A4",
-    "nu-beta": "665F203E-857B-11ED-939E-3B688EED22F2",
-    "nu-delta": "669FD14C-857B-11ED-B61B-A13DA3AC54A4",
-    "nu-epsilon": "66E1423A-857B-11ED-9FB9-9E75914CA38D",
-    "nu-gamma": "6721FF3C-857B-11ED-9129-3B688EED22F2",
-    "omega": "67653DEC-857B-11ED-ADF4-6170107EB2B6",
-    "omega-beta": "67A7018C-857B-11ED-9056-E23DA3AC54A4",
-    "omega-delta": "67E3C2AC-857B-11ED-B4EC-F33DA3AC54A4",
-    "omega-epsilon": "682AEAF6-857B-11ED-A9E8-E23DA3AC54A4",
-    "omega-gamma": "687A6B6C-857B-11ED-8D99-B675914CA38D",
-    "omicron": "68DF674C-857B-11ED-B8EA-9E75914CA38D",
-    "omicron-beta": "691BF9B4-857B-11ED-A3EB-6170107EB2B6",
-    "omicron-delta": "69594512-857B-11ED-9655-24688EED22F2",
-    "omicron-epsilon": "6996617C-857B-11ED-8CC3-F33DA3AC54A4",
-    "omicron-gamma": "69DF7D4E-857B-11ED-A73F-00688EED22F2",
-    "onu-candidate-chapter": "6A302582-857B-11ED-89F4-6170107EB2B6",
-    "phi": "6A6D4282-857B-11ED-A0BF-24688EED22F2",
-    "phi-beta": "6AAAF762-857B-11ED-BEC4-8670107EB2B6",
-    "phi-delta": "6AE8440A-857B-11ED-88ED-F33DA3AC54A4",
-    "phi-epsilon": "6B2A406C-857B-11ED-80D1-9E75914CA38D",
-    "phi-gamma": "6B6B5304-857B-11ED-A81F-6170107EB2B6",
-    "pi": "6BA76BBE-857B-11ED-9A58-24688EED22F2",
-    "pi-beta": "6BE8B538-857B-11ED-B259-3B688EED22F2",
-    "pi-delta": "6C2835FA-857B-11ED-A9BB-F33DA3AC54A4",
-    "pi-epsilon": "6C9284D2-857B-11ED-A4EF-053EA3AC54A4",
-    "pi-gamma": "6CD1A162-857B-11ED-8091-6170107EB2B6",
-    "psi": "6D1562C6-857B-11ED-B1A1-3B688EED22F2",
-    "psi-beta": "6D52161C-857B-11ED-8922-E23DA3AC54A4",
-    "psi-delta": "6D9B2CF8-857B-11ED-AE79-3B688EED22F2",
-    "psi-epsilon": "6DE418F0-857B-11ED-BA07-F33DA3AC54A4",
-    "psi-gamma": "6E334312-857B-11ED-B944-E23DA3AC54A4",
-    "rho": "6E6CBD4A-857B-11ED-B544-24688EED22F2",
-    "rho-beta": "6EB02652-857B-11ED-BD63-8670107EB2B6",
-    "rho-delta": "6EF33758-857B-11ED-9E04-9570107EB2B6",
-    "rho-epsilon": "6F4F44A8-857B-11ED-8A4E-B675914CA38D",
-    "rho-gamma": "6FADC654-857B-11ED-AAF1-4A70107EB2B6",
-    "row-candidate-chapter": "6FFE16E0-857B-11ED-B75B-3B688EED22F2",
-    "sigma": "7042347E-857B-11ED-861B-A675914CA38D",
-    "sigma-beta": "708BB720-857B-11ED-8B10-B675914CA38D",
-    "sigma-delta": "70D51C08-857B-11ED-B791-9570107EB2B6",
-    "sigma-epsilon": "7116D508-857B-11ED-B1DD-24688EED22F2",
-    "sigma-gamma": "715C0DDA-857B-11ED-8E54-E33DA3AC54A4",
-    "slo-candidate-chapter": "71B3D92A-857B-11ED-86A7-A675914CA38D",
-    "tau": "7205530E-857B-11ED-96B9-9570107EB2B6",
-    "tau-beta": "72463838-857B-11ED-AB8B-24688EED22F2",
-    "tau-delta": "7285A1BC-857B-11ED-BAEA-9570107EB2B6",
-    "tau-epsilon": "72C90C68-857B-11ED-B5FE-E33DA3AC54A4",
-    "tau-gamma": "730FA4B6-857B-11ED-BB5C-4A70107EB2B6",
-    "test": "73699822-857B-11ED-9AC4-3B688EED22F2",
-    "theta": "73AF91BA-857B-11ED-BD1F-4A70107EB2B6",
-    "theta-delta": "742342AE-857B-11ED-9E40-9570107EB2B6",
-    "theta-epsilon": "747AE3F6-857B-11ED-9432-E33DA3AC54A4",
-    "theta-gamma": "74BBAA12-857B-11ED-B456-A675914CA38D",
-    "ua-candidate-chapter": "74F9A394-857B-11ED-BC0D-9570107EB2B6",
-    "unh-candidate-chapter": "753B1B6C-857B-11ED-899B-E23DA3AC54A4",
-    "unlv-candidate-chapter": "757ACDAC-857B-11ED-83EC-24688EED22F2",
-    "upsilon": "75B873FA-857B-11ED-9161-4A70107EB2B6",
-    "upsilon-beta": "761D3394-857B-11ED-A275-3B688EED22F2",
-    "upsilon-delta": "765FC5B0-857B-11ED-A155-E33DA3AC54A4",
-    "upsilon-epsilon": "76A65FDE-857B-11ED-929F-9A70107EB2B6",
-    "upsilon-gamma": "7702799A-857B-11ED-A251-3B688EED22F2",
-    "uw-candidate-chapter": "774AAA44-857B-11ED-BD4C-E23DA3AC54A4",
-    "vic-candidate-chapter": "7794F32E-857B-11ED-92E8-5F75914CA38D",
-    "xi": "77D44A42-857B-11ED-8138-3B688EED22F2",
-    "xi-beta": "7817437E-857B-11ED-A99A-E23DA3AC54A4",
-    "xi-delta": "78752FC0-857B-11ED-AEBA-6C70107EB2B6",
-    "xi-epsilon": "78CBB156-857B-11ED-82B5-E23DA3AC54A4",
-    "xi-gamma": "7912C096-857B-11ED-8827-9570107EB2B6",
-    "zeta": "79686C62-857B-11ED-B008-6C70107EB2B6",
-    "zeta-beta": "79B7102E-857B-11ED-8F4F-9575914CA38D",
-    "zeta-delta": "79F8BCB8-857B-11ED-BD1C-6C70107EB2B6",
-    "zeta-epsilon": "7A601F0C-857B-11ED-852E-3B688EED22F2",
-    "zeta-gamma": "7AA8584E-857B-11ED-84F4-F73DA3AC54A4",
-}
-POSITION_IDS = {
-    "active": "57C2B918-8284-11ED-975A-DBF9A2AC54A4",
-    "alumni": "53D639CE-8284-11ED-86FD-DBF9A2AC54A4",
-    "pnm": "007CFE80-8283-11ED-BCC2-B0268EED22F2",
-    "advisor": "CA85BE16-A9BA-11ED-B398-E8D2660B7155",
-    "depledge": "D18F208A-A9BA-11ED-9119-CABDE499DE68",
-    "expelled": "D86ABDEC-A9BA-11ED-B1FB-02D3660B7155",
-    "nonmember": "E0EF096E-A9BA-11ED-8A02-5B0E9C40A086",
-    "probation": "E79334C0-A9BA-11ED-8EE0-CEBDE499DE68",
-    "resigned": "F0184D24-A9BA-11ED-9084-37E7E1CDF06E",
-    "suspended": "0F3478D6-A9BB-11ED-951B-CCBDE499DE68",
-    "natoff": "A82C9914-A197-11ED-8772-D2A4C53DFFCD",
-    "unknown": "23D0A012-A9BB-11ED-AEB2-22D3660B7155",
-}
-
 
 class Training(TimeStampedModel):
     class Meta:
@@ -319,15 +186,6 @@ class Training(TimeStampedModel):
 
     @staticmethod
     def add_user(user, request=None):
-        # trainings = user.trainings.all()
-        # if trainings:
-        #     # If there are any trainings then we know user already in system
-        #     message = f"{user} skipped, already in system"
-        #     if request:
-        #         messages.add_message(request, messages.WARNING, message)
-        #     else:
-        #         print(message)
-        #     return
         authenticate_header = Training.authenticate_header()
         url = "https://thetatau-tx.vectorlmsedu.com/graphql/"
         status = user.current_status
@@ -339,19 +197,75 @@ class Training(TimeStampedModel):
             "alumnipend": "alumni",
         }
         status = status_align.get(status, status)
-        location_id = LOCATION_IDS.get(user.chapter.slug)
-        position_id = POSITION_IDS.get(status)
+        query_locations = f"""
+        query
+           {{ Locations  (name: "{user.chapter.name}" )
+            {{ nodes
+              {{ locationId
+                name
+                code
+              }}
+            }}
+        }}
+        """
+        response = requests.post(
+            url, json={"query": query_locations}, headers=authenticate_header
+        )
+        all_locations = response.json()
+        location_id = all_locations["data"]["Locations"]["nodes"][0]["locationId"]
+        query_positions = f"""
+        query
+           {{ Positions  (code: "{status[0:8]}")
+            {{ nodes
+              {{ positionId
+                name
+                code
+              }}
+            }}
+        }}
+        """
+        response = requests.post(
+            url, json={"query": query_positions}, headers=authenticate_header
+        )
+        all_positions = response.json()
+        position_id = all_positions["data"]["Positions"]["nodes"][0]["positionId"]
         if not location_id or not position_id:
-            message = f"Sync training is missing:<br>{location_id=} {position_id=} for {user=}"
-            send_mail(
-                "Sync Training Error",
-                message,
-                "cmt@thetatau.org",
-                ["cmt@thetatau.org", "central.office@thetatau.org"],
-                fail_silently=True,
-            )
-            messages.add_message(request, messages.ERROR, message)
-            return
+            response_json_location_add = ""
+            if not location_id:
+                location_add = f"""
+                mutation  change {{
+                    addLocation(
+                        name: "{user.chapter.name}"
+                        code: "{user.chapter.slug}"
+                        parentId: "C90461D8-617A-11ED-ABCA-8399029E49FF"
+                        )  {{
+                        locationId
+                        name
+                    }}
+                }}
+                """
+                authenticate_header = Training.authenticate_header()
+                response = requests.post(
+                    url, json={"query": location_add}, headers=authenticate_header
+                )
+                response_json_location_add = response.json()
+                location_id = response_json_location_add["data"]["addLocation"][
+                    "locationId"
+                ]
+            if not location_id or not position_id:
+                message = (
+                    f"Sync training is missing:<br>{location_id=} {position_id=} for {user=} should be "
+                    f"{user.chapter.slug=} {status=}, Attempted to add location {response_json_location_add=}"
+                )
+                send_mail(
+                    "Sync Training Error",
+                    message,
+                    "cmt@thetatau.org",
+                    ["cmt@thetatau.org", "central.office@thetatau.org"],
+                    fail_silently=True,
+                )
+                messages.add_message(request, messages.ERROR, message)
+                return
         first_name = user.preferred_name if user.preferred_name else user.first_name
         add_user_mutation = f"""
         mutation  add {{
