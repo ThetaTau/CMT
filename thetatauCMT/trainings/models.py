@@ -2,6 +2,7 @@ import json
 import datetime
 import requests
 from time import sleep
+from django.core.mail import send_mail
 from django.conf import settings
 from django.contrib import messages
 from django.db import models
@@ -37,8 +38,8 @@ LOCATION_IDS = {
     "iota-delta": "60E2CFDE-857B-11ED-834A-6170107EB2B6",
     "iota-epsilon": "61260FE2-857B-11ED-AFDA-8670107EB2B6",
     "iota-gamma": "61729556-857B-11ED-A7C5-3B688EED22F2",
-    "iupui-candidate-chap": "61B7DCBA-857B-11ED-B55E-8670107EB2B6",
-    "jmu-candidate-chapte": "61F65CCE-857B-11ED-B60C-FE678EED22F2",
+    "iupui-candidate-chapter": "61B7DCBA-857B-11ED-B55E-8670107EB2B6",
+    "jmu-candidate-chapter": "61F65CCE-857B-11ED-B60C-FE678EED22F2",
     "kappa": "62372362-857B-11ED-A942-24688EED22F2",
     "kappa-beta": "62770C8E-857B-11ED-BA2F-A13DA3AC54A4",
     "kappa-delta": "62B3FC48-857B-11ED-BA6B-F33DA3AC54A4",
@@ -69,7 +70,7 @@ LOCATION_IDS = {
     "omicron-delta": "69594512-857B-11ED-9655-24688EED22F2",
     "omicron-epsilon": "6996617C-857B-11ED-8CC3-F33DA3AC54A4",
     "omicron-gamma": "69DF7D4E-857B-11ED-A73F-00688EED22F2",
-    "onu-candidate-chapte": "6A302582-857B-11ED-89F4-6170107EB2B6",
+    "onu-candidate-chapter": "6A302582-857B-11ED-89F4-6170107EB2B6",
     "phi": "6A6D4282-857B-11ED-A0BF-24688EED22F2",
     "phi-beta": "6AAAF762-857B-11ED-BEC4-8670107EB2B6",
     "phi-delta": "6AE8440A-857B-11ED-88ED-F33DA3AC54A4",
@@ -90,13 +91,13 @@ LOCATION_IDS = {
     "rho-delta": "6EF33758-857B-11ED-9E04-9570107EB2B6",
     "rho-epsilon": "6F4F44A8-857B-11ED-8A4E-B675914CA38D",
     "rho-gamma": "6FADC654-857B-11ED-AAF1-4A70107EB2B6",
-    "row-candidate-chapte": "6FFE16E0-857B-11ED-B75B-3B688EED22F2",
+    "row-candidate-chapter": "6FFE16E0-857B-11ED-B75B-3B688EED22F2",
     "sigma": "7042347E-857B-11ED-861B-A675914CA38D",
     "sigma-beta": "708BB720-857B-11ED-8B10-B675914CA38D",
     "sigma-delta": "70D51C08-857B-11ED-B791-9570107EB2B6",
     "sigma-epsilon": "7116D508-857B-11ED-B1DD-24688EED22F2",
     "sigma-gamma": "715C0DDA-857B-11ED-8E54-E33DA3AC54A4",
-    "slo-candidate-chapte": "71B3D92A-857B-11ED-86A7-A675914CA38D",
+    "slo-candidate-chapter": "71B3D92A-857B-11ED-86A7-A675914CA38D",
     "tau": "7205530E-857B-11ED-96B9-9570107EB2B6",
     "tau-beta": "72463838-857B-11ED-AB8B-24688EED22F2",
     "tau-delta": "7285A1BC-857B-11ED-BAEA-9570107EB2B6",
@@ -108,15 +109,15 @@ LOCATION_IDS = {
     "theta-epsilon": "747AE3F6-857B-11ED-9432-E33DA3AC54A4",
     "theta-gamma": "74BBAA12-857B-11ED-B456-A675914CA38D",
     "ua-candidate-chapter": "74F9A394-857B-11ED-BC0D-9570107EB2B6",
-    "unh-candidate-chapte": "753B1B6C-857B-11ED-899B-E23DA3AC54A4",
-    "unlv-candidate-chapt": "757ACDAC-857B-11ED-83EC-24688EED22F2",
+    "unh-candidate-chapter": "753B1B6C-857B-11ED-899B-E23DA3AC54A4",
+    "unlv-candidate-chapter": "757ACDAC-857B-11ED-83EC-24688EED22F2",
     "upsilon": "75B873FA-857B-11ED-9161-4A70107EB2B6",
     "upsilon-beta": "761D3394-857B-11ED-A275-3B688EED22F2",
     "upsilon-delta": "765FC5B0-857B-11ED-A155-E33DA3AC54A4",
     "upsilon-epsilon": "76A65FDE-857B-11ED-929F-9A70107EB2B6",
     "upsilon-gamma": "7702799A-857B-11ED-A251-3B688EED22F2",
     "uw-candidate-chapter": "774AAA44-857B-11ED-BD4C-E23DA3AC54A4",
-    "vic-candidate-chapte": "7794F32E-857B-11ED-92E8-5F75914CA38D",
+    "vic-candidate-chapter": "7794F32E-857B-11ED-92E8-5F75914CA38D",
     "xi": "77D44A42-857B-11ED-8138-3B688EED22F2",
     "xi-beta": "7817437E-857B-11ED-A99A-E23DA3AC54A4",
     "xi-delta": "78752FC0-857B-11ED-AEBA-6C70107EB2B6",
@@ -132,6 +133,15 @@ POSITION_IDS = {
     "active": "57C2B918-8284-11ED-975A-DBF9A2AC54A4",
     "alumni": "53D639CE-8284-11ED-86FD-DBF9A2AC54A4",
     "pnm": "007CFE80-8283-11ED-BCC2-B0268EED22F2",
+    "advisor": "CA85BE16-A9BA-11ED-B398-E8D2660B7155",
+    "depledge": "D18F208A-A9BA-11ED-9119-CABDE499DE68",
+    "expelled": "D86ABDEC-A9BA-11ED-B1FB-02D3660B7155",
+    "nonmember": "E0EF096E-A9BA-11ED-8A02-5B0E9C40A086",
+    "probation": "E79334C0-A9BA-11ED-8EE0-CEBDE499DE68",
+    "resigned": "F0184D24-A9BA-11ED-9084-37E7E1CDF06E",
+    "suspended": "0F3478D6-A9BB-11ED-951B-CCBDE499DE68",
+    "natoff": "A82C9914-A197-11ED-8772-D2A4C53DFFCD",
+    "unknown": "23D0A012-A9BB-11ED-AEB2-22D3660B7155",
 }
 
 
@@ -320,8 +330,28 @@ class Training(TimeStampedModel):
         #     return
         authenticate_header = Training.authenticate_header()
         url = "https://thetatau-tx.vectorlmsedu.com/graphql/"
-        location_id = LOCATION_IDS.get(user.chapter.slug, None)
-        position_id = POSITION_IDS.get(user.current_status, None)
+        status = user.current_status
+        status_align = {
+            "friend": "nonmember",
+            "resignedCC": "resigned",
+            "away": "active",
+            "activepend": "active",
+            "alumnipend": "alumni",
+        }
+        status = status_align.get(status, status)
+        location_id = LOCATION_IDS.get(user.chapter.slug)
+        position_id = POSITION_IDS.get(status)
+        if not location_id or not position_id:
+            message = f"Sync training is missing:<br>{location_id=} {position_id=} for {user=}"
+            send_mail(
+                "Sync Training Error",
+                message,
+                "cmt@thetatau.org",
+                ["cmt@thetatau.org", "central.office@thetatau.org"],
+                fail_silently=True,
+            )
+            messages.add_message(request, messages.ERROR, message)
+            return
         first_name = user.preferred_name if user.preferred_name else user.first_name
         add_user_mutation = f"""
         mutation  add {{
