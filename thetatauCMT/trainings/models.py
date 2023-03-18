@@ -66,123 +66,115 @@ class Training(TimeStampedModel):
         return authenticate_header
 
     @staticmethod
-    def get_progress_all_users(
-        since=None, scroll_id=None, override=False, days=7, missing=None
-    ):
-        return
+    def get_progress_all_users():
+        url = "https://thetatau-tx.vectorlmsedu.com/graphql/"
         authenticate_header = Training.authenticate_header()
-        lms_since_file = settings.ROOT_DIR / "secrets" / "LMS_SINCE"
-        if since is None or override:
-            if lms_since_file.exists() and not override:
-                with open(lms_since_file) as file_obj:
-                    response_json = json.load(file_obj)
-                since = response_json["since"]
-            else:
-                print(f"Syncing {days=}")
-                since = datetime.datetime.now() - datetime.timedelta(days=days)
-                since = since.isoformat()
-        url = "https://api.fifoundry.net/v1/progress/user_assignments"
-
-        params = dict(since=since, scroll_size=100)
-        if scroll_id is not None:
-            params["scroll_id"] = scroll_id
-        print(f"Training progress update params {params}")
-        response = requests.get(url, headers=authenticate_header, params=params)
-        if response.status_code == 204:
-            print(f"There were no updated trainings, message: {response.reason}")
-            return
-        elif response.status_code == 429:
-            # 200 requests per rolling 60 seconds
-            sleep(120)
-            print("Delaying for rate limit training progress update")
-            Training.get_progress_all_users(
-                since=since, scroll_id=scroll_id, missing=missing
-            )
-            return
-        elif response.status_code != 200:
-            print(
-                f"There was an error with training progress update, message: {response.reason}"
-            )
-        response_json = response.json()
-        next = response_json["next"]
-        data = response_json["data"]
-        if missing is None:
-            missing = []
-        for user_info in data:
-            """{
-            "id": "dc335f10-1d5f-4b20-bfc0-94fc6336b0a7",
-            "email": "somebody@everfi.com",
-            "active": True,
-            "sso_id": "somebody@everfi.com",
-            "deleted": False,
-            "location": {"name": "Felderwin"},
-            "groupings": [],
-            "last_name": "Jones",
-            "first_name": "Geoff",
-            "student_id": "876565",
-            "employee_id": "341325",
-            }"""
-            user_email = user_info["user"]["email"]
-            student_id = user_info["user"]["student_id"]
-            query = Q(email__iexact=user_email) | Q(username__iexact=user_email)
-            if student_id:
-                query |= Q(user_id__iexact=student_id)
-            user = User.objects.filter(query).first()
-            if not user:
-                print(f"User with email {user_email} or {student_id} does not exist")
-                missing.append(user_email)
-                continue
-            for progress in user_info["progress"]:
-                """example progress object
-                {
-                    "id": "b5e90d5e-49eb-4cd3-b6b3-4d338ab01362",
-                    "name": "Diversity: Inclusion in the Modern Workplace (EDU)",
-                    "due_on": "2020-05-10",
-                    "content_id": "4f2cb36a-07bd-4fe9-b406-230da89111d3",
-                    "started_at": None,
-                    "completed_at": None,
-                    "content_status": "not_started",
-                    "last_progress_at": None,
-                    "percent_completed": 0,
-                }"""
-                course_id = progress["content_id"]
-                completed = progress["content_status"] == "completed"
-                completed_at = progress["completed_at"]
-                completed_at = (
-                    datetime.datetime.fromisoformat(completed_at)
-                    if completed_at
-                    else None
+        has_next = True
+        cursor = ""
+        batch_num = -1
+        while has_next:
+            if cursor:
+                cursor = f'after: "{cursor}"'
+            query = f"""
+                query
+                {{ People (first: 100 {cursor})
+                    {{ nodes
+                       {{ username
+                           first
+                           last
+                         externalUniqueId
+                         personId
+                         progress {{
+                            completed
+                            completeTime
+                            courseInfo {{
+                                title
+                                courseInfoId
+                            }}
+                            progressId
+                            maxQuizScore
+                            }}
+                       }}
+                      pageInfo {{
+                           count
+                           totalCount
+                           startCursor
+                           endCursor
+                           hasNextPage
+                           hasPreviousPage
+                       }}
+                    }}
+                }}
+                """
+            try:
+                response = requests.post(
+                    url, json={"query": query}, headers=authenticate_header
                 )
+                json_response = response.json()
+            except:
+                if response.status_code == 429:
+                    print("Delay for 300...")
+                    sleep(300)
+                    authenticate_header = Training.authenticate_header()
+                    continue
+                break
+            users = json_response["data"]["People"]["nodes"]
+            has_next = json_response["data"]["People"]["pageInfo"]["hasNextPage"]
+            cursor = json_response["data"]["People"]["pageInfo"]["endCursor"]
+            total = json_response["data"]["People"]["pageInfo"]["totalCount"]
+            batch_num += 1
+            for count, user_info in enumerate(users):
+                print(
+                    f"Working on {count + 1 + (100 * batch_num)}/{total} batch has more {has_next}"
+                )
+                progresses = user_info["progress"]
+                username = user_info["username"]
+                user_id = user_info["externalUniqueId"]
+                # The Vector system does not keep track of assignments only
+                # completions so assume assigned to our only training
+                completed = False
+                completed_at = None
+                progress_id = ""
+                max_quiz_score = 0
+                if progresses:
+                    for progress in progresses:
+                        course_title = progress["courseInfo"]["title"]
+                        if "(Full Course)" in course_title:
+                            completed = progress["completed"]
+                            completed_at = progress["completeTime"]
+                            progress_id = progress["progressId"]
+                            max_quiz_score = progress["maxQuizScore"]
+                            if not max_quiz_score:
+                                if completed:
+                                    max_quiz_score = 100
+                                else:
+                                    max_quiz_score = 0
+                # We want to maintain backwards connection with old training system,
+                # so we use the same title/id
+                course_title = "CommunityEdu: Fraternity & Sorority Life"
+                course_id = "5d7b72cf-7e22-43a3-a4aa-628d8ee6c1a9"
+                user = User.objects.filter(
+                    Q(username__iexact=username)
+                    | Q(user_id__iexact=user_id)
+                    | Q(email__iexact=username)
+                    | Q(email_school__iexact=username)
+                ).first()
+                if not user:
+                    print(f"USER DOES NOT EXIST {user_info}")
+                    continue
                 values = dict(
                     user=user,
-                    progress_id=progress["id"],
+                    progress_id=progress_id,
                     course_id=course_id,
-                    course_title=progress["name"],
+                    course_title=course_title,
                     completed=completed,
                     completed_time=completed_at,
-                    max_quiz_score=progress["percent_completed"],
+                    max_quiz_score=max_quiz_score,
                 )
+                print(values)
                 obj, created = Training.objects.update_or_create(
                     user=user, course_id=course_id, defaults=values
                 )
-                # print(f"Training {obj} created {created} with values {values}")
-        scroll_id = next["scroll_id"]
-        if not scroll_id:
-            """{
-            "since": "2020-05-22T19:27:42.908191Z",
-            "scroll_id": None,
-            "scroll_size": 1000,
-            "filter": {},
-            "href": "https://api.fifoundry.net/v1/progress/user_assignments?scroll_size=1000&since=2020-05-22T19"
-            "%3A27%3A42.908191Z",
-            }"""
-            with open(lms_since_file, "w") as file_obj:
-                json.dump(next, file_obj)
-            print(f"Sync complete, missing {missing}")
-        else:
-            Training.get_progress_all_users(
-                since=next["since"], scroll_id=scroll_id, missing=missing
-            )
 
     @staticmethod
     def get_location_position_ids(status, location):
