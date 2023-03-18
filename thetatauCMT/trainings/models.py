@@ -68,11 +68,11 @@ class Training(TimeStampedModel):
     @staticmethod
     def get_progress_all_users():
         url = "https://thetatau-tx.vectorlmsedu.com/graphql/"
-        authenticate_header = Training.authenticate_header()
         has_next = True
         cursor = ""
         batch_num = -1
         while has_next:
+            authenticate_header = Training.authenticate_header()
             if cursor:
                 cursor = f'after: "{cursor}"'
             query = f"""
