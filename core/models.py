@@ -160,6 +160,7 @@ ADVISOR_ROLES = {
 COMMITTEE_CHAIR = {
     "board member",
     "committee chair",
+    "diversity, equity, and inclusion chair",
     "employer/ee",
     "events chair",
     "fundraising chair",
