@@ -36,7 +36,7 @@
     <br>If you do not know the <b>email</b> used for your account, look up
   your {{ site.name }} <b>email</b> and then sign in with your email.</p>
 <p>If an account is found, this lookup will send you a password reset email automatically.
-<form class="signup" id="lookup_form" method="post" action="{% url 'users:lookup' %}">
+<form class="signup" id="lookup_form" method="post" action="{% url 'users:search' %}">
   {% csrf_token %}
   {{ lookup_form|crispy }}
   {% if redirect_field_value %}
