@@ -1,0 +1,22 @@
+{% extends "account/base.html" %}
+
+{% load i18n %}
+{% load crispy_forms_tags %}
+
+{% block head_title %}{% trans "Lookup Member" %}{% endblock %}
+
+{% block inner %}
+<h1>{% trans "Lookup Member" %}</h1>
+
+<p>We will attempt to find a member given the info below
+  <br>You only need to fill in what you can, we will attempt to find the closest match
+  <br> Already have an account? Then please <a href="{% url 'account_login' %}">sign in</a>.</p>
+
+<form class="lookup" id="lookup_form" method="post" action="{% url 'users:lookup_search' %}">
+  {% csrf_token %}
+  {{ form|crispy }}
+  <button class="btn btn-primary" type="submit">{% trans "Lookup" %} &raquo;</button>
+</form>
+
+{% endblock %}
+

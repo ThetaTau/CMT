@@ -2,6 +2,7 @@ import csv
 import datetime
 import zipfile
 from io import BytesIO, StringIO
+from django import forms
 from django.contrib.auth.forms import PasswordResetForm
 from django.contrib.auth.tokens import default_token_generator
 from django.contrib.sites.shortcuts import get_current_site
@@ -10,7 +11,7 @@ from django.http.response import HttpResponseRedirect
 from django.http import HttpResponse
 from django.urls import reverse
 from django.forms.models import modelformset_factory
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from django.utils.http import is_safe_url, urlsafe_base64_encode
 from django.utils.encoding import force_bytes
 from django.contrib import messages
@@ -50,6 +51,9 @@ from .forms import (
     UserForm,
     UserServiceForm,
     UserOrgForm,
+    UserLookupSearchForm,
+    UserLookupSelectForm,
+    UserUpdateForm,
 )
 from .notifications import MemberInfoUpdate
 from forms.forms import PledgeDemographicsForm
@@ -541,6 +545,149 @@ class UserLookupLoginView(CaptchaLoginView):
         return context
 
 
+class UserLookupSearchView(FormView):
+    form_class = UserLookupSearchForm
+    template_name = "users/lookup_search.html"
+
+    def form_valid(self, form):
+        chapter = Chapter.objects.get(pk=form.cleaned_data["university"])
+        search = ""
+        for search_term, value in form.cleaned_data.items():
+            if search_term == "university" or not value:
+                continue
+            search = f"{search} {value}"
+        users = watson.filter(User.objects.filter(chapter=chapter), search)
+        total = users.count()
+        chapter_name = chapter.full_name
+        if total > 5:
+            messages.add_message(
+                self.request,
+                messages.ERROR,
+                f"Found {total} members, please provide more details, searched {search} at {chapter_name}",
+            )
+        elif total == 0:
+            messages.add_message(
+                self.request,
+                messages.ERROR,
+                f"Found {total} members, please provide LESS details, searched {search} at {chapter_name}",
+            )
+        else:
+            self.request.session["users"] = list(users.values_list("id", flat=True))
+        return super().form_valid(form)
+
+    def get_success_url(self):
+        return reverse("users:lookup_select")
+
+
+class UserLookupSelectView(FormView):
+    form_class = UserLookupSelectForm
+    template_name = "users/lookup_select.html"
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        users = self.request.session.get("users", None)
+        users = User.objects.filter(id__in=users)
+        self.request.session["user"] = None
+        kwargs["users"] = users
+        return kwargs
+
+    def form_valid(self, form):
+        user = form.cleaned_data["users"]
+        self.request.session["user"] = user.id
+        return super().form_valid(form)
+
+    def get_success_url(self):
+        return reverse("users:update")
+
+
+def hide_email(email):
+    if "@" in email:
+        email_start, email_domain = email.split("@")
+        email_start = email_start[:4]
+        return "".join([email_start, "****@", email_domain])
+    else:
+        # Likely the email is empty
+        return ""
+
+
+class UserLookupUpdateView(FormView):
+    form_class = UserUpdateForm
+    template_name = "users/update.html"
+
+    def form_valid(self, form):
+        updated = dict()
+        user = self.request.session.get("user", None)
+        if user:
+            user = User.objects.get(id=user)
+        skip = ["school_name"]
+        for key, value in form.cleaned_data.items():
+            if value:
+                if user and key not in skip and getattr(user, key) != value:
+                    updated[key] = value
+        if updated:
+            updated["_change_reason"] = "Not Logged In Update Info"
+            if user:
+                for update, value in updated.items():
+                    setattr(user, update, value)
+                user.save()
+            else:
+                # There is no user to update
+                pass
+        return super().form_valid(form)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        user = self.request.session.get("user", None)
+        user_info = dict()
+        if user:
+            user = User.objects.get(id=user)
+            user_info["badge_number"] = user.badge_number
+            user_info["title"] = user.get_title_display()
+            user_info["first_name"] = user.first_name
+            user_info["middle_name"] = user.middle_name
+            user_info["last_name"] = user.last_name
+            user_info["maiden_name"] = user.maiden_name
+            user_info["preferred_name"] = (
+                user.preferred_name if user.preferred_name else ""
+            )
+            user_info["nickname"] = user.nickname
+            user_info["suffix"] = user.suffix
+            user_info["email"] = hide_email(user.email)
+            user_info["email_school"] = hide_email(user.email_school)
+            user_info["address"] = user.address if user.address else "Unknown"
+            user_info["birth_date"] = (
+                user.birth_date.month
+                if user.birth_date != datetime.date(1904, 10, 15)
+                else "Unknown"
+            )
+            user_info["phone_number"] = (
+                f"XXXXXX-{user.phone_number[-4:]}" if user.phone_number else "Unknown"
+            )
+            user_info["graduation_year"] = (
+                user.graduation_year if user.graduation_year else "Unknown"
+            )
+            user_info["degree"] = user.get_degree_display()
+            user_info["major"] = user.major if user.major else "Unknown"
+            user_info["employer"] = user.employer if user.employer else "Unknown"
+            user_info["employer_position"] = (
+                user.employer_position if user.employer_position else "Unknown"
+            )
+            user_info["employer_address"] = (
+                user.employer_address if user.employer_address else "Unknown"
+            )
+            user_info["deceased"] = user.deceased
+            user_info["deceased_date"] = user.deceased_date
+            user_info["no_contact"] = user.no_contact
+            user_info["school_name"] = user.chapter.school
+            context["form"].fields["school_name"].initial = user.chapter
+            context["form"].fields["school_name"].widget = forms.HiddenInput()
+        context["user"] = user_info
+        return context
+
+    def get_success_url(self):
+        return reverse("users:update")
+
+
 class UserLookupView(FormView):
     form_class = UserLookupForm
     template_name = "users/lookup.html"
@@ -559,9 +706,9 @@ class UserLookupView(FormView):
             )
         else:
             orig_email = user.email
-            email = self.hide_email(orig_email)
+            email = hide_email(orig_email)
             orig_email_school = user.email_school
-            email_school = self.hide_email(orig_email_school)
+            email_school = hide_email(orig_email_school)
             messages.add_message(
                 self.request,
                 messages.INFO,
@@ -573,15 +720,6 @@ class UserLookupView(FormView):
             form.is_valid()
             form.save()
         return super().form_valid(form)
-
-    def hide_email(self, email):
-        if "@" in email:
-            email_start, email_domain = email.split("@")
-            email_start = email_start[:4]
-            return "".join([email_start, "****@", email_domain])
-        else:
-            # Likely the email is empty
-            return ""
 
     def get_success_url(self):
         return reverse("login")

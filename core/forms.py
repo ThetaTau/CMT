@@ -2,11 +2,17 @@
 Copied from: https://gist.github.com/jamesbrobb/748c47f46b9bd224b07f
     per: http://stackoverflow.com/questions/15497693/django-can-class-based-views-accept-two-forms-at-a-time/24011448#24011448
 """
+from django import forms
 from django.views.generic.base import ContextMixin, TemplateResponseMixin
 from django.views.generic.edit import ProcessFormView
 from django.http.response import HttpResponseRedirect, HttpResponseForbidden
 from address.forms import AddressField, Address
 from core.address import fix_duplicate_address
+
+
+class SchoolModelChoiceField(forms.ModelChoiceField):
+    def label_from_instance(self, obj):
+        return f"{obj.school}"
 
 
 class MultiFormMixin(ContextMixin):

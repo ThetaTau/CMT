@@ -1526,11 +1526,17 @@ class AuditListView(
 
 def load_majors(request):
     chapter_id = request.GET.get("chapter")
+    other = request.GET.get("other")
     majors = []
     if chapter_id:
-        majors = ChapterCurricula.objects.filter(
-            chapter__pk=chapter_id, approved=True
-        ).order_by("major")
+        majors = list(
+            ChapterCurricula.objects.filter(
+                chapter__pk=chapter_id, approved=True
+            ).order_by("major")
+        )
+        if other:
+            other = ChapterCurricula(pk=-1, major="Other")
+            majors.append(other)
     return render(
         request, "forms/majors_dropdown_list_options.html", {"majors": majors}
     )

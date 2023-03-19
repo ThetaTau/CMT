@@ -11,7 +11,7 @@ from captcha.fields import ReCaptchaField
 from captcha.widgets import ReCaptchaV3
 from core.address import fix_address
 from core.models import BIENNIUM_YEARS, forever
-from core.forms import DuplicateAddressField
+from core.forms import DuplicateAddressField, SchoolModelChoiceField
 from chapters.models import Chapter
 from .models import (
     UserAlter,
@@ -168,6 +168,118 @@ class UserLookupForm(forms.Form):
         if not settings.DEBUG:
             captcha = ReCaptchaField(label="", widget=ReCaptchaV3)
             self.fields.update({"captcha": captcha})
+
+
+class UserUpdateForm(forms.ModelForm):
+    badge_number = forms.IntegerField(
+        help_text="If you do not know your badge number, leave this blank"
+    )
+    school_name = SchoolModelChoiceField(
+        queryset=Chapter.objects.exclude(active=False).order_by("school")
+    )
+    major_other = forms.CharField(label="Other Major")
+    birth_date = forms.DateField(
+        label="Birth Date",
+        widget=DatePicker(
+            options={"format": "M/DD/YYYY"},
+            attrs={"autocomplete": "off"},
+        ),
+    )
+    deceased_date = forms.DateField(
+        label="Deceased Date",
+        widget=DatePicker(
+            options={"format": "M/DD/YYYY"},
+            attrs={"autocomplete": "off"},
+        ),
+    )
+    no_contact = forms.BooleanField(
+        label="No Contact",
+        help_text="Check if you would no longer like to receive mailings or emails from Theta Tau",
+    )
+
+    class Meta:
+        model = User
+        fields = [
+            "school_name",
+            "badge_number",
+            "title",
+            "first_name",
+            "middle_name",
+            "last_name",
+            "maiden_name",
+            "preferred_name",
+            "nickname",
+            "suffix",
+            "email",
+            "email_school",
+            "address",
+            "birth_date",
+            "phone_number",
+            "graduation_year",
+            "degree",
+            "major",
+            "major_other",
+            "employer",
+            "employer_position",
+            "employer_address",
+            "deceased",
+            "deceased_date",
+            "no_contact",
+        ]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if not settings.DEBUG:
+            captcha = ReCaptchaField(label="", widget=ReCaptchaV3)
+            self.fields.update({"captcha": captcha})
+        for key in self.fields:
+            self.fields[key].required = False
+            if key not in ["degree", "major", "school_name"]:
+                self.fields[key].initial = ""
+
+
+class UserDetailChoiceField(forms.ModelChoiceField):
+    def label_from_instance(self, obj):
+        return obj.get_name_with_details()
+
+
+class UserLookupSelectForm(forms.Form):
+    users = UserDetailChoiceField(queryset=User.objects.none())
+
+    def __init__(self, *args, **kwargs):
+        qs = kwargs.pop("users")
+        super().__init__(*args, **kwargs)
+        self.fields["users"].queryset = qs
+        if not settings.DEBUG:
+            captcha = ReCaptchaField(label="", widget=ReCaptchaV3)
+            self.fields.update({"captcha": captcha})
+
+
+class UserLookupSearchForm(forms.ModelForm):
+    university = forms.ChoiceField(
+        choices=Chapter.schools(),
+        help_text="What university did you attend when you pledged Theta Tau",
+    )
+    badge_number = forms.IntegerField(
+        help_text="If you do not know your badge number, leave this blank"
+    )
+
+    class Meta:
+        model = User
+        fields = [
+            "university",
+            "badge_number",
+            "name",
+        ]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if not settings.DEBUG:
+            captcha = ReCaptchaField(label="", widget=ReCaptchaV3)
+            self.fields.update({"captcha": captcha})
+        for key in self.fields:
+            self.fields[key].required = False
+            self.fields[key].initial = ""
 
 
 class UserAlterForm(forms.ModelForm):

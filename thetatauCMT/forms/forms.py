@@ -31,7 +31,7 @@ from upload_validator import FileTypeValidator
 from chapters.forms import ChapterForm
 from chapters.models import Chapter, ChapterCurricula
 from core.address import fix_address
-from core.forms import DuplicateAddressField
+from core.forms import DuplicateAddressField, SchoolModelChoiceField
 from core.models import CHAPTER_ROLES_CHOICES, NAT_OFFICERS_CHOICES
 from users.models import User, UserRoleChange, UserDemographic
 from .models import (
@@ -992,11 +992,6 @@ class RiskListFormHelper(FormHelper):
             ),
         ),
     )
-
-
-class SchoolModelChoiceField(forms.ModelChoiceField):
-    def label_from_instance(self, obj):
-        return f"{obj.school}"
 
 
 class PledgeForm(forms.ModelForm):

@@ -1,0 +1,87 @@
+{% extends "account/base.html" %}
+
+{% load i18n %}
+{% load custom_tags %}
+{% load crispy_forms_tags %}
+{% load crispy_forms_utils %}
+{% load crispy_forms_field %}
+
+{% block head_title %}{% trans "Update Member Info" %}{% endblock %}
+
+{% block inner %}
+<h1>{% trans "Update Member Info" %}</h1>
+
+<p>Please update your info below. Any fields left blank will keep the existing value</p>
+  <a class="btn btn-secondary" href="{% url 'users:lookup_select' %}">« {% trans "Back" %}</a>
+  <a class="btn btn-warning" href="{% url 'users:lookup_search' %}">«« {% trans "Start Over" %}</a>
+<form class="select" id="update" method="post" action="{% url 'users:update' %}">
+  {{ form.media }}
+  {% csrf_token %}
+  {% if not user %}
+    {#  Then only need a basic form nothing else #}
+    {{ form|crispy }}
+{% else %}
+  <div>{{ form.management_form|crispy }}</div>
+    <table class="table table-hover table-bordered table-striped">
+    <thead><tr><td>&nbsp;</td><th>Current Value</th><th>Update Value</th></tr></thead>
+  {% for field in form %}
+    <tr id="td_{{ field.name }}">
+    <th>{{ field.label }}</th>
+    <td>{{ user|lookup:field.name }}</td>
+    {% include 'bootstrap4/field.html' with tag="td" form_show_labels=False %}
+    {% if field.errors %}
+      {% for error in field.errors %}
+        <strong style="color:red">{{ error }}</strong>
+      {% endfor %}
+    {% endif %}
+    </tr>
+  {% endfor %}
+    </table>
+{% endif %}
+  <button class="btn btn-primary" type="submit">{% trans "Update" %}</button>
+  <script src="https://ajax.aspnetcdn.com/ajax/jquery.validate/1.11.1/jquery.validate.min.js"></script>
+  {# Handle issues with jquery validate of dates https://github.com/johnnyreilly/jquery-validation-globalize #}
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/globalize/1.6.0/globalize.min.js"></script>
+  <script
+    src="https://cdn.jsdelivr.net/npm/jquery-validation-globalize@0.1.1/jquery.validate.globalize.min.js"></script>
+</form>
+  <script type="text/javascript">
+    function update_school(chapterId, existing_major = '') {
+      var url = "{% url 'forms:ajax_load_majors' %}";  // get the url of the `load_majors` view
+      $.ajax({                       // initialize an AJAX request
+        url: url,                    // set the url of the request
+        existing_major: existing_major,
+        data: {
+          'chapter': chapterId,       // add the chapter id to the GET parameters
+          'other': true
+        },
+        success: function (data) {   // `data` is the return of the `load_major` view function
+          $("#id_major").html(data);  // replace the contents of the major input with the data that came from the server
+          if (this.existing_major !== '') {
+            $("#id_major").val(this.existing_major);
+          }
+        }
+      });}
+
+$("#id_school_name").change(function () {
+  var chapterId = $(this).val();  // get the selected chapter ID from the HTML input
+  update_school(chapterId);
+});
+$(document).ready(function () {
+  var chapterId = $("#id_school_name").val();
+  var existing_major = $("#id_major").val();
+  if (chapterId !== "") {
+    update_school(chapterId, existing_major);
+  }
+  $('#td_major_other').hide();
+  $('#id_major').on('change', function () {
+    var selected_value = $('#id_major').val();
+    if (selected_value === "-1") {
+      $("#td_major_other").show();
+    } else {
+      $("#td_major_other").hide();
+    }
+  });
+})
+</script>
+{% endblock %}

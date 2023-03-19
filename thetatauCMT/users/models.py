@@ -11,6 +11,7 @@ from model_utils.fields import MonitorField
 from address.models import AddressField
 from multiselectfield import MultiSelectField
 from email_signals.models import EmailSignalMixin
+from simple_history.models import HistoricalRecords
 from core.models import (
     StartEndModel,
     YearTermModel,
@@ -206,6 +207,7 @@ class User(AbstractUser, EmailSignalMixin):
     current_status = models.CharField(max_length=10)
     current_roles = ArrayField(models.CharField(max_length=50), blank=True, null=True)
     officer = models.BooleanField(default=False)
+    history = HistoricalRecords()
 
     def save(self, *args, **kwargs):
         if not self.id:
@@ -224,6 +226,10 @@ class User(AbstractUser, EmailSignalMixin):
 
     def __str__(self):
         return self.name
+
+    def get_name_with_details(self):
+        major = self.major if self.major else ""
+        return f"{self.name} {self.user_id} graduated: {self.graduation_year} {self.degree} {major}"
 
     @property
     def current_chapter(self):

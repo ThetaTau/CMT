@@ -15,6 +15,7 @@ from django.contrib.auth.forms import UserChangeForm
 from import_export.admin import ImportExportActionModelAdmin, ImportMixin
 from report_builder.admin import Report
 from address.admin import Address
+from simple_history.admin import SimpleHistoryAdmin
 from .forms import UserAdminStatusForm, UserAdminBadgeFixForm
 from .models import (
     User,
@@ -349,7 +350,12 @@ class UserAlterInline(admin.StackedInline):
 
 @admin.register(User)
 class MyUserAdmin(
-    ImportMixin, AuthUserAdmin, ExportActiveMixin, AssignTrainingMixin, SignalWatchMixin
+    ImportMixin,
+    AuthUserAdmin,
+    ExportActiveMixin,
+    AssignTrainingMixin,
+    SignalWatchMixin,
+    SimpleHistoryAdmin,
 ):
     object_type = "user"
     actions = [
@@ -476,10 +482,11 @@ class MyUserAdmin(
         if db_field.name == "major":
             try:
                 user_id = request.resolver_match.kwargs.get("object_id")
-                user = User.objects.get(id=user_id)
-                kwargs["queryset"] = ChapterCurricula.objects.filter(
-                    chapter=user.chapter
-                )
+                if user_id:
+                    user = User.objects.get(id=user_id)
+                    kwargs["queryset"] = ChapterCurricula.objects.filter(
+                        chapter=user.chapter
+                    )
             except IndexError:
                 pass
         return super().formfield_for_foreignkey(db_field, request, **kwargs)

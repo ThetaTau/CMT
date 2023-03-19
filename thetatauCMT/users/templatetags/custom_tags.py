@@ -22,6 +22,11 @@ def user_alter_form(context):
     return None
 
 
+@register.filter(name="lookup")
+def lookup(value, arg):
+    return value.get(arg)
+
+
 @register.filter
 def get_fields(obj):
     fields = []
