@@ -553,7 +553,7 @@ class UserLookupSearchView(FormView):
         chapter = Chapter.objects.get(pk=form.cleaned_data["university"])
         search = ""
         for search_term, value in form.cleaned_data.items():
-            if search_term == "university" or not value:
+            if search_term in ["university", "captcha"] or not value:
                 continue
             search = f"{search} {value}"
         users = watson.filter(User.objects.filter(chapter=chapter), search)
