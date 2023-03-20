@@ -565,15 +565,18 @@ class UserLookupSearchView(FormView):
                 messages.ERROR,
                 f"Found {total} members, please provide more details, searched {search} at {chapter_name}",
             )
+            response = super().form_invalid(form)
         elif total == 0:
             messages.add_message(
                 self.request,
                 messages.ERROR,
                 f"Found {total} members, please provide LESS details, searched {search} at {chapter_name}",
             )
+            response = super().form_invalid(form)
         else:
             self.request.session["users"] = list(users.values_list("id", flat=True))
-        return super().form_valid(form)
+            response = super().form_valid(form)
+        return response
 
     def get_success_url(self):
         return reverse("users:lookup_select")
