@@ -622,7 +622,7 @@ class UserLookupUpdateView(FormView):
         user = self.request.session.get("user", None)
         if user:
             user = User.objects.get(id=user)
-        skip = ["school_name"]
+        skip = ["school_name", "captcha"]
         for key, value in form.cleaned_data.items():
             if value:
                 if user and key not in skip and getattr(user, key) != value:
