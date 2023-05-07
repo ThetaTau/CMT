@@ -549,6 +549,11 @@ class UserLookupSearchView(FormView):
     form_class = UserLookupSearchForm
     template_name = "users/lookup_search.html"
 
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        self.request.session["user"] = None
+        return kwargs
+
     def form_valid(self, form):
         chapter = Chapter.objects.get(pk=form.cleaned_data["university"])
         search = ""
@@ -597,6 +602,13 @@ class UserLookupSelectView(FormView):
 
     def form_valid(self, form):
         user = form.cleaned_data["users"]
+        if user.is_officer:
+            messages.add_message(
+                self.request,
+                messages.ERROR,
+                f"Officers must login to update member info. {user} is: {user.current_roles}",
+            )
+            return HttpResponseRedirect(reverse("users:lookup_search"))
         self.request.session["user"] = user.id
         return super().form_valid(form)
 
@@ -617,6 +629,19 @@ def hide_email(email):
 class UserLookupUpdateView(FormView):
     form_class = UserUpdateForm
     template_name = "users/update.html"
+
+    def get(self, request, *args, **kwargs):
+        user = self.request.session.get("user", None)
+        if user:
+            user = User.objects.get(id=user)
+            if user.is_officer:
+                messages.add_message(
+                    self.request,
+                    messages.ERROR,
+                    f"Officers must login to update member info. {user} is: {user.current_roles}",
+                )
+                return HttpResponseRedirect(reverse("users:lookup_search"))
+        return super().get(request, *args, **kwargs)
 
     def form_valid(self, form):
         updated = dict()
@@ -670,7 +695,7 @@ class UserLookupUpdateView(FormView):
                 else "Unknown"
             )
             user_info["phone_number"] = (
-                f"XXXXXX-{user.phone_number[-4:]}" if user.phone_number else "Unknown"
+                f"XXXXXX{user.phone_number[-4:]}" if user.phone_number else "Unknown"
             )
             user_info["graduation_year"] = (
                 user.graduation_year if user.graduation_year else "Unknown"

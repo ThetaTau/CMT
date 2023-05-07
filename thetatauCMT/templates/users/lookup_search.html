@@ -9,8 +9,9 @@
 <h1>{% trans "Lookup Member" %}</h1>
 
 <p>We will attempt to find a member given the info below
-  <br>You only need to fill in what you can, we will attempt to find the closest match
   <br> Already have an account? Then please <a href="{% url 'account_login' %}">sign in</a>.</p>
+
+  <h4><span style="background-color: #FFFF00">Officers, national or chapter, must sign in and update info, you can not use this form.</span></h4>
 
 <form class="lookup" id="lookup_form" method="post" action="{% url 'users:lookup_search' %}">
   {% csrf_token %}
