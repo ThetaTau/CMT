@@ -175,7 +175,8 @@ class UserUpdateForm(forms.ModelForm):
         help_text="If you do not know your badge number, leave this blank"
     )
     school_name = SchoolModelChoiceField(
-        queryset=Chapter.objects.exclude(active=False).order_by("school")
+        queryset=Chapter.objects.exclude(active=False).order_by("school"),
+        help_text="Where did you attend school while pledging?",
     )
     major_other = forms.CharField(label="Other Major")
     birth_date = forms.DateField(
@@ -184,17 +185,6 @@ class UserUpdateForm(forms.ModelForm):
             options={"format": "M/DD/YYYY"},
             attrs={"autocomplete": "off"},
         ),
-    )
-    deceased_date = forms.DateField(
-        label="Deceased Date",
-        widget=DatePicker(
-            options={"format": "M/DD/YYYY"},
-            attrs={"autocomplete": "off"},
-        ),
-    )
-    no_contact = forms.BooleanField(
-        label="No Contact",
-        help_text="Check if you would no longer like to receive mailings or emails from Theta Tau",
     )
 
     class Meta:
@@ -222,9 +212,6 @@ class UserUpdateForm(forms.ModelForm):
             "employer",
             "employer_position",
             "employer_address",
-            "deceased",
-            "deceased_date",
-            "no_contact",
         ]
 
     def __init__(self, *args, **kwargs):
@@ -247,7 +234,9 @@ class UserLookupSelectForm(forms.Form):
     users = UserDetailChoiceField(queryset=User.objects.none())
 
     def __init__(self, *args, **kwargs):
-        qs = kwargs.pop("users")
+        qs = User.objects.none()
+        if "users" in kwargs:
+            qs = kwargs.pop("users")
         super().__init__(*args, **kwargs)
         self.fields["users"].queryset = qs
         if not settings.DEBUG:

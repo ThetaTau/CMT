@@ -10,9 +10,13 @@
 
 {% block inner %}
 <h1>{% trans "Update Member Info" %}</h1>
-
+  {% if user %}
 <p>Please update your info below. Any fields left blank will keep the existing value</p>
   <a class="btn btn-secondary" href="{% url 'users:lookup_select' %}">« {% trans "Back" %}</a>
+  {% else %}
+<p>We will attempt to match the info you provide below to a member and update the member record. <br>
+This will take longer, you will be notified once the update is successful or not.</p>
+  {% endif %}
   <a class="btn btn-warning" href="{% url 'users:lookup_search' %}">«« {% trans "Start Over" %}</a>
 <form class="select" id="update" method="post" action="{% url 'users:update' %}">
   {{ form.media }}

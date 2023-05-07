@@ -589,9 +589,10 @@ class UserLookupSelectView(FormView):
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
         users = self.request.session.get("users", None)
-        users = User.objects.filter(id__in=users)
+        if users:
+            users = User.objects.filter(id__in=users)
+            kwargs["users"] = users
         self.request.session["user"] = None
-        kwargs["users"] = users
         return kwargs
 
     def form_valid(self, form):
@@ -657,7 +658,12 @@ class UserLookupUpdateView(FormView):
             user_info["suffix"] = user.suffix
             user_info["email"] = hide_email(user.email)
             user_info["email_school"] = hide_email(user.email_school)
-            user_info["address"] = user.address if user.address else "Unknown"
+            address = "Unknown"
+            if user.address:
+                if user.address.locality:
+                    zipcode = user.address.locality.postal_code
+                    address = f"XXXXXXXX {zipcode}"
+            user_info["address"] = address if address else "Unknown"
             user_info["birth_date"] = (
                 user.birth_date.month
                 if user.birth_date != datetime.date(1904, 10, 15)
@@ -678,12 +684,20 @@ class UserLookupUpdateView(FormView):
             user_info["employer_address"] = (
                 user.employer_address if user.employer_address else "Unknown"
             )
-            user_info["deceased"] = user.deceased
-            user_info["deceased_date"] = user.deceased_date
-            user_info["no_contact"] = user.no_contact
             user_info["school_name"] = user.chapter.school
             context["form"].fields["school_name"].initial = user.chapter
             context["form"].fields["school_name"].widget = forms.HiddenInput()
+        else:
+            # There is no user automatically added se we need some mandatory fields
+            mandatory = [
+                "school_name",
+                "email",
+                "graduation_year",
+                "first_name",
+                "last_name",
+            ]
+            for field in mandatory:
+                context["form"].fields[field].required = True
         context["user"] = user_info
         return context
 
