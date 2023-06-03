@@ -34,6 +34,11 @@ urlpatterns = [
         view=views.UserLookupUpdateView.as_view(),
         name="update",
     ),
+    url(
+        regex=r"^update-review/(?P<pk>\d+)/$",
+        view=views.UserUpdateDirectReview.as_view(),
+        name="update_review",
+    ),
     url(regex=r"^verify-form/$", view=views.user_verify, name="user_verify"),
     url(
         regex=r"^autocomplete/$",

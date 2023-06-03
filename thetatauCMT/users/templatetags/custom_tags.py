@@ -24,7 +24,11 @@ def user_alter_form(context):
 
 @register.filter(name="lookup")
 def lookup(value, arg):
-    return value.get(arg)
+    if isinstance(value, dict):
+        return_value = value.get(arg)
+    else:
+        return_value = getattr(value, arg)
+    return return_value
 
 
 @register.filter

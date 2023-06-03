@@ -1,6 +1,7 @@
 from django import forms
 from django.conf import settings
 from django.utils import timezone
+from dal import autocomplete, forward
 from address.widgets import AddressWidget
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Layout, Fieldset, Row, Column, Submit
@@ -20,6 +21,7 @@ from .models import (
     UserSemesterServiceHours,
     UserOrgParticipate,
     UserStatusChange,
+    MemberUpdate,
 )
 
 
@@ -223,6 +225,26 @@ class UserUpdateForm(forms.ModelForm):
             self.fields[key].required = False
             if key not in ["degree", "major", "school_name"]:
                 self.fields[key].initial = ""
+
+
+class MemberUpdateForm(forms.ModelForm):
+    user = forms.ModelChoiceField(
+        queryset=User.objects.all(),
+        widget=autocomplete.ModelSelect2(
+            url="users:autocomplete", forward=(forward.Const("false", "chapter"),)
+        ),
+        required=False,
+    )
+    outcome = forms.TypedChoiceField(
+        choices=(outcome.value for outcome in MemberUpdate.OUTCOME),
+        widget=forms.Select(
+            attrs={"style": "display: block"},
+        ),
+    )
+
+    class Meta:
+        model = MemberUpdate
+        fields = ["outcome", "user"]
 
 
 class UserDetailChoiceField(forms.ModelChoiceField):

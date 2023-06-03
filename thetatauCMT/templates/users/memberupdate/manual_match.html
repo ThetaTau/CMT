@@ -1,0 +1,20 @@
+{% extends 'viewflow/flow/task.html' %}
+{% load i18n %}
+{% load crispy_forms_tags %}
+{% block task_form %}
+  <h7>{{ activation.process.chapter }}</h7>
+  {% csrf_token %}
+  {{ form|crispy }}
+  {{ form.media }}
+  {{ activation.management_form }}
+  <br>
+  <button type="button" class="btn btn-danger" id="create-member">Create Member</button>
+<script>
+$(function(){
+  $("#create-member").click(function(event){
+      {#window.open("{% url 'users:create' activation.process.pk %}", '_blank');#}
+  });
+});
+</script>
+{% endblock %}
+

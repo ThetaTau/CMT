@@ -27,6 +27,7 @@ from .models import (
     UserAlter,
     ChapterCurricula,
     UserDemographic,
+    MemberUpdate,
 )
 from .resources import UserRoleChangeResource, UserResource, UserStatusChangeResource
 from .views import ExportActiveMixin
@@ -594,3 +595,28 @@ class LogEntryAdmin(admin.ModelAdmin):
 
     object_link.admin_order_field = "object_repr"
     object_link.short_description = "object"
+
+
+class MemberUpdateAdmin(admin.ModelAdmin):
+    raw_id_fields = ["user"]
+    list_display = (
+        "user",
+        "first_name",
+        "last_name",
+        "chapter",
+        "created",
+        "approved",
+        "outcome",
+    )
+    list_filter = [
+        "outcome",
+        "approved",
+        "chapter",
+    ]
+    ordering = [
+        "-created",
+    ]
+    search_fields = ["user__name", "first_name", "last_name"]
+
+
+admin.site.register(MemberUpdate, MemberUpdateAdmin)

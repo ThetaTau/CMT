@@ -15,10 +15,11 @@ from django.shortcuts import render, redirect
 from django.utils.http import is_safe_url, urlsafe_base64_encode
 from django.utils.encoding import force_bytes
 from django.contrib import messages
-from django.views.generic import RedirectView, FormView, DetailView
+from django.views.generic import RedirectView, FormView, DetailView, UpdateView
 from crispy_forms.layout import Submit
 from allauth.account.views import LoginView
 from extra_views import FormSetView, ModelFormSetView
+import viewflow
 from watson import search as watson
 from core.address import isinradius
 from core.views import (
@@ -39,6 +40,7 @@ from .models import (
     UserSemesterServiceHours,
     UserOrgParticipate,
     UserDemographic,
+    MemberUpdate,
 )
 from .tables import UserTable
 from .filters import UserListFilter, UserListFilterBase
@@ -575,7 +577,7 @@ class UserLookupSearchView(FormView):
             messages.add_message(
                 self.request,
                 messages.ERROR,
-                f"Found {total} members, please provide LESS details, searched {search} at {chapter_name}",
+                f"Found {total} members, maybe provide LESS details, searched {search} at {chapter_name}",
             )
             response = super().form_invalid(form)
         else:
@@ -648,20 +650,32 @@ class UserLookupUpdateView(FormView):
         user = self.request.session.get("user", None)
         if user:
             user = User.objects.get(id=user)
-        skip = ["school_name", "captcha"]
-        for key, value in form.cleaned_data.items():
-            if value:
-                if user and key not in skip and getattr(user, key) != value:
-                    updated[key] = value
+        if user is None:
+            # When no user, all supplied values are updates
+            updated = {
+                key: value
+                for key, value in form.cleaned_data.items()
+                if value and key != "captcha"
+            }
+        else:
+            # When there is an actual user look for only updated values
+            for key, value in form.cleaned_data.items():
+                if value:
+                    skip = ["school_name", "captcha", "major_other"]
+                    if user and key not in skip and getattr(user, key) != value:
+                        updated[key] = value
+            if "major_other" in form.cleaned_data and form.cleaned_data["major_other"]:
+                # Can't get current value, but need to use for update
+                updated["major_other"] = form.cleaned_data["major_other"]
         if updated:
-            updated["_change_reason"] = "Not Logged In Update Info"
-            if user:
-                for update, value in updated.items():
-                    setattr(user, update, value)
-                user.save()
-            else:
-                # There is no user to update
-                pass
+            messages.add_message(
+                self.request,
+                messages.INFO,
+                f"Information update member: {user} submitted: {updated}",
+            )
+            from .flows import MemberUpdateFlow
+
+            MemberUpdateFlow.start.run(user=user, updated=updated)
         return super().form_valid(form)
 
     def get_context_data(self, **kwargs):
@@ -728,6 +742,71 @@ class UserLookupUpdateView(FormView):
 
     def get_success_url(self):
         return reverse("users:update")
+
+
+class UserUpdateDirectReview(UpdateView):
+    model = MemberUpdate
+    template_name = "users/update_review.html"
+    fields = [
+        "approved",
+    ]
+
+    def form_valid(self, form):
+        """If the form is valid, save the associated model."""
+        return HttpResponseRedirect(self.get_success_url())
+
+    def get_context_data(self, **kwargs):
+        context_data = super().get_context_data()
+        from .flows import MemberUpdateFlow
+
+        try:
+            self.object.get_task(MemberUpdateFlow.delay)
+        except viewflow.models.Task.DoesNotExist:
+            complete = True
+        else:
+            complete = False
+        context_data["complete"] = complete
+        user_info = dict()
+        if not complete:
+            user = self.object
+            for field in self.fields:
+                if getattr(user, field):
+                    user_info[field] = getattr(user, field)
+            if "email" in user_info:
+                user_info["email"] = hide_email(user.email)
+            if "email_school" in user_info:
+                user_info["email_school"] = hide_email(user.email_school)
+            if "address" in user_info:
+                address = "XXXXXXXX"
+                if user.address.locality:
+                    zipcode = user.address.locality.postal_code
+                    address = f"XXXXXXXX {zipcode}"
+                user_info["address"] = address if address else "Unknown"
+            if "birth_date" in user_info:
+                user_info["birth_date"] = user.birth_date.month
+            if "phone_number" in user_info:
+                user_info["phone_number"] = f"XXXXXX{user.phone_number[-4:]}"
+        context_data["user_info"] = user_info
+        return context_data
+
+    def get_success_url(self):
+        """Detect the submit button used and act accordingly"""
+        from .flows import MemberUpdateFlow
+
+        if "deny" in self.request.POST:
+            self.object.approved = False
+            state = "denied"
+        else:
+            self.object.approved = True
+            state = "approved"
+        self.object.save()
+        messages.add_message(
+            self.request,
+            messages.INFO,
+            f"Member update was successfully {state}",
+        )
+        MemberUpdateFlow.continue_process(self.object.pk)
+        return reverse("users:update_review", kwargs={"pk": self.object.pk})
 
 
 class UserLookupView(FormView):

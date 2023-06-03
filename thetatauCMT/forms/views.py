@@ -1,4 +1,3 @@
-import re
 import csv
 import base64
 import datetime
@@ -33,9 +32,8 @@ from django_weasyprint import WeasyTemplateResponseMixin
 from viewflow.compat import _
 from viewflow.flow.views import CreateProcessView, UpdateProcessView
 from viewflow.frontend.viewset import FlowViewSet
-from viewflow.frontend.views import ProcessListView
-from viewflow.flow.views.mixins import FlowListMixin
-from material.frontend import frontend_url
+
+from core.flows import FilterProcessListView
 from core.forms import MultiFormsView
 from core.models import (
     semester_encompass_start_end_date,
@@ -2062,137 +2060,6 @@ class ConventionListView(
         return context
 
 
-class FilterProcessListView(ProcessListView, FlowListMixin):
-    template_name = "forms/process_list.html"
-    list_display = [
-        "current_task",
-        "user",
-        "chapter",
-        "created",
-        "finished",
-    ]
-    datatable_config = {"searching": True}
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        task_titles = []
-        for var_name in dir(self.flow_class):
-            var = getattr(self.flow_class, var_name)
-            if hasattr(var, "task_title"):
-                task_title = var.task_title
-                if task_title:
-                    task_titles.append(task_title)
-        context["task_titles"] = task_titles
-        return context
-
-    def chapter(self, process):
-        chapter = "unknown"
-        if hasattr(process, "chapter"):
-            chapter = process.chapter
-        elif hasattr(process, "user"):
-            chapter = process.user.chapter
-        return chapter
-
-    chapter.short_description = "Chapter"
-
-    def user(self, process):
-        user = "N/A"
-        if hasattr(process, "user"):
-            user = process.user
-        elif hasattr(process, "nominate"):
-            user = process.nominate
-        elif hasattr(process, "delegate"):
-            user = f"{process.delegate} and {process.alternate}"
-        return user
-
-    user.short_description = "User"
-
-    def get_object_list(self):
-        """Create prepared queryset for datatables view."""
-        queryset = self.get_queryset()
-        search = self.request.GET.get("datatable-search[value]", False)
-        if search:
-            search_chapter = search
-            search_status = False
-            if "invoice:" in search:
-                matches = re.findall(r"invoice:\s*(\d*)", search)
-                search = re.sub(r"invoice:\s*(\d*)", "", search)
-                search_chapter = search
-                invoice_number = matches[0]
-                queryset = queryset.filter(Q(invoice__contains=invoice_number))
-            if "," in search:
-                search_chapter, search_status = search.split(",", 1)
-                search_chapter = search_chapter.strip()
-                search_status = search_status.strip().lower()
-            if not search_chapter:
-                search_chapter = False
-            if not search_status:
-                search_status = False
-            if search_chapter:
-                # Search for chapter or user
-                extra = {}
-                filter_key = "chapter__"
-                if hasattr(queryset.model, "user"):
-                    filter_key = "user__chapter__"
-                    extra = {"user__name__icontains": search_chapter}
-                if "-" in search_chapter:
-                    search_chapter = search_chapter.replace("-", "")
-                    filter_key = filter_key + "name__iexact"
-                else:
-                    filter_key = filter_key + "name__icontains"
-                queryset = queryset.filter(
-                    Q(**{filter_key: search_chapter}) | Q(**extra)
-                )
-            if search_status:
-                processes = []
-                for process in queryset:
-                    title = "complete"
-                    active_tasks = process.active_tasks()
-                    if active_tasks:
-                        flow_task = active_tasks.first().flow_task
-                        if flow_task:
-                            title = flow_task.task_title.lower()
-                        else:
-                            title = "n/a"
-                    if search_status in title:
-                        processes.append(process.pk)
-                queryset = queryset.model.objects.filter(pk__in=processes)
-        return queryset
-
-    def current_task(self, process):
-        if process.finished is None:
-            task = process.active_tasks().first()
-            if task:
-                flow_task = task.flow_task
-                summary = "n/a"
-                if flow_task:
-                    summary = flow_task.task_title
-                task_url = frontend_url(
-                    self.request, self.get_task_url(task), back_link="here"
-                )
-                return mark_safe('<a href="{}">{}</a>'.format(task_url, summary))
-        process_url = self.get_process_url(process)
-        return mark_safe('<a href="{}">Complete</a>'.format(process_url))
-
-    current_task.short_description = _("Current Task")
-
-    def get_process_url(self, process, url_type="detail"):
-        namespace = self.request.resolver_match.namespace
-        return reverse("{}:{}".format(namespace, url_type), args=[process.pk])
-
-    def get_task_url(self, task, url_type=None):
-        namespace = self.request.resolver_match.namespace
-        if task.flow_task:
-            return task.flow_task.get_task_url(
-                task,
-                url_type=url_type if url_type else "guess",
-                user=self.request.user,
-                namespace=namespace,
-            )
-        else:
-            return ""
-
-
 class FilterProcessInvoiceListView(FilterProcessListView):
     template_name = "forms/initiationprocess/process_list.html"
     list_display = [
@@ -2210,10 +2077,6 @@ class FilterProcessInvoiceListView(FilterProcessListView):
         return invoice
 
     invoice.short_description = "Invoice"
-
-
-class FilterableFlowViewSet(FlowViewSet):
-    process_list_view = [r"^$", FilterProcessListView.as_view(), "index"]
 
 
 class FilterableInvoiceFlowViewSet(FlowViewSet):

@@ -1,0 +1,41 @@
+{% extends "account/base.html" %}
+
+{% load i18n %}
+{% load custom_tags %}
+{% load crispy_forms_tags %}
+{% load crispy_forms_utils %}
+{% load crispy_forms_field %}
+
+{% block head_title %}{% trans "Update Member Info Review" %}{% endblock %}
+
+{% block inner %}
+<h1>{% trans "Update Member Info Review" %}</h1>
+  {% if complete %}
+    <p>This member update is already complete. If you would like to undo the changes
+    you can do so by logging in and clicking
+    <br>
+    If you are unable to login, please reach out to the central office.</p>
+  {% else %}
+<p>Please review the update info below.
+  If you approve of these changes you can click "Approve" now,
+  or wait for the changes to be automatically applied in 7 days.
+  <b>Otherwise, click "Deny" and the changes will not be applied.</b></p>
+<form class="select" id="update" method="post" action="{% url 'users:update_review' object.pk %} ">
+  {{ form.media }}
+  {% csrf_token %}
+  <div>{{ form.management_form|crispy }}</div>
+  <table class="table table-hover table-bordered table-striped">
+  {% for field in user_info %}
+    <tr id="td_{{ field }}">
+      <th>{{ field }}</th>
+      <td>{{ user_info|lookup:field }}</td>
+    </tr>
+  {% endfor %}
+  <tr>
+    <td><input class="btn btn-danger" type="submit" name="deny" value="Deny"/></td>
+    <td><input class="btn btn-primary" type="submit" value="Approve"/></td>
+  </tr>
+  </table>
+</form>
+  {% endif %}
+{% endblock %}

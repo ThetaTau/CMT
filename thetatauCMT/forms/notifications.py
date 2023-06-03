@@ -388,7 +388,7 @@ class EmailProcessUpdate(EmailNotification):
                     # No officers
                     process_title = "NO OFFICERS"
                     message = "THIS CHAPTER HAS NO OFFICERS, PLEASE REACH OUT TO THE CHAPTER ASAP TO FIX THIS!"
-                    emails.append(chapter.region.email)
+                    emails.add(chapter.region.email)
                     user = User.objects.get(username="Jim.Gaffney@thetatau.org")
             emails = chapter.council_emails()
             if user and user.email in emails:
@@ -399,7 +399,7 @@ class EmailProcessUpdate(EmailNotification):
             process_title = "NO OFFICERS"
             message = "THIS CHAPTER HAS NO OFFICERS, PLEASE REACH OUT TO THE CHAPTER ASAP TO FIX THIS!"
             user = User.objects.get(username="Jim.Gaffney@thetatau.org")
-            emails.append(chapter.region.email)
+            emails.add(chapter.region.email)
         self.to_emails = {user.email}  # set list of emails to send to
         self.cc = list(set({"central.office@thetatau.org"} | emails))
         self.reply_to = [
