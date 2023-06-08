@@ -158,6 +158,11 @@ urlpatterns = [
         RedirectView.as_view(pattern_name="submissions:gear", permanent=True),
         name="gear",
     ),
+    url(
+        r"^update/$",
+        RedirectView.as_view(pattern_name="users:lookup_search", permanent=True),
+        name="update_lookup",
+    ),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 if settings.DEBUG:
