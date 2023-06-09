@@ -27,7 +27,7 @@
   <table class="table table-hover table-bordered table-striped">
   {% for field in user_info %}
     <tr id="td_{{ field }}">
-      <th>{{ field }}</th>
+      <th>{{ field|title }}</th>
       <td>{{ user_info|lookup:field }}</td>
     </tr>
   {% endfor %}

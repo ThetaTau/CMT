@@ -143,7 +143,7 @@ class MemberUpdateFlow(Flow):
         :return:
         """
         user = activation.process.user
-        updated = self.get_updated(activation, perform_update=False)
+        updated = MemberUpdateFlow.get_updated(activation.process, perform_update=False)
         host = settings.CURRENT_URL
         link = reverse("users:update_review", kwargs={"pk": activation.process.pk})
         link = host + link
@@ -163,7 +163,7 @@ class MemberUpdateFlow(Flow):
         """
         Deny the update and notify the user
         """
-        updated = self.get_updated(activation, perform_update=False)
+        updated = MemberUpdateFlow.get_updated(activation.process, perform_update=False)
         activation.process.approved = False
         activation.process.save()
 
@@ -200,9 +200,10 @@ class MemberUpdateFlow(Flow):
             extra_emails=extra_emails,
         ).send()
 
-    def get_updated(self, activation, perform_update=True):
+    @classmethod
+    def get_updated(cls, model, perform_update=True):
         updated = dict()
-        user = activation.process.user
+        user = model.user
         fields = [
             "badge_number",
             "title",
@@ -227,7 +228,7 @@ class MemberUpdateFlow(Flow):
             "employer_address",
         ]
         for key in fields:
-            value = getattr(activation.process, key)
+            value = getattr(model, key)
             if value:
                 if user:
                     if getattr(user, key) != value:
@@ -255,7 +256,9 @@ class MemberUpdateFlow(Flow):
         if activation.process.outcome == "created":
             # If the member was created then no need to update info
             perform_update = False
-        updated = self.get_updated(activation, perform_update=perform_update)
+        updated = MemberUpdateFlow.get_updated(
+            activation.process, perform_update=perform_update
+        )
 
         EmailProcessUpdate(
             activation,

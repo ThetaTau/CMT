@@ -768,24 +768,27 @@ class UserUpdateDirectReview(UpdateView):
         context_data["complete"] = complete
         user_info = dict()
         if not complete:
-            user = self.object
-            for field in self.fields:
-                if getattr(user, field):
-                    user_info[field] = getattr(user, field)
+            user_info = MemberUpdateFlow.get_updated(self.object, perform_update=False)
             if "email" in user_info:
-                user_info["email"] = hide_email(user.email)
+                user_info["email"] = hide_email(user_info["email"])
             if "email_school" in user_info:
-                user_info["email_school"] = hide_email(user.email_school)
+                user_info["email_school"] = hide_email(user_info["email_school"])
             if "address" in user_info:
                 address = "XXXXXXXX"
-                if user.address.locality:
-                    zipcode = user.address.locality.postal_code
+                address_obj = user_info["address"]
+                if address_obj.locality:
+                    zipcode = address_obj.locality.postal_code
                     address = f"XXXXXXXX {zipcode}"
                 user_info["address"] = address if address else "Unknown"
             if "birth_date" in user_info:
-                user_info["birth_date"] = user.birth_date.month
+                user_info["birth_date"] = user_info["birth_date"].month
             if "phone_number" in user_info:
-                user_info["phone_number"] = f"XXXXXX{user.phone_number[-4:]}"
+                user_info["phone_number"] = f"XXXXXX{user_info['phone_number'][-4:]}"
+            out_info = dict()
+            for key, value in user_info.items():
+                new_key = key.replace("_", " ").title()
+                out_info[new_key] = value
+            user_info = out_info
         context_data["user_info"] = user_info
         return context_data
 
