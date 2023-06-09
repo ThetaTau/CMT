@@ -15,6 +15,7 @@ from django.contrib.auth.forms import UserChangeForm
 from import_export.admin import ImportExportActionModelAdmin, ImportMixin
 from report_builder.admin import Report
 from address.admin import Address
+from simple_history.admin import SimpleHistoryAdmin
 from .forms import UserAdminStatusForm, UserAdminBadgeFixForm
 from .models import (
     User,
@@ -26,6 +27,7 @@ from .models import (
     UserAlter,
     ChapterCurricula,
     UserDemographic,
+    MemberUpdate,
 )
 from .resources import UserRoleChangeResource, UserResource, UserStatusChangeResource
 from .views import ExportActiveMixin
@@ -349,7 +351,12 @@ class UserAlterInline(admin.StackedInline):
 
 @admin.register(User)
 class MyUserAdmin(
-    ImportMixin, AuthUserAdmin, ExportActiveMixin, AssignTrainingMixin, SignalWatchMixin
+    ImportMixin,
+    AuthUserAdmin,
+    ExportActiveMixin,
+    AssignTrainingMixin,
+    SignalWatchMixin,
+    SimpleHistoryAdmin,
 ):
     object_type = "user"
     actions = [
@@ -476,10 +483,11 @@ class MyUserAdmin(
         if db_field.name == "major":
             try:
                 user_id = request.resolver_match.kwargs.get("object_id")
-                user = User.objects.get(id=user_id)
-                kwargs["queryset"] = ChapterCurricula.objects.filter(
-                    chapter=user.chapter
-                )
+                if user_id:
+                    user = User.objects.get(id=user_id)
+                    kwargs["queryset"] = ChapterCurricula.objects.filter(
+                        chapter=user.chapter
+                    )
             except IndexError:
                 pass
         return super().formfield_for_foreignkey(db_field, request, **kwargs)
@@ -587,3 +595,28 @@ class LogEntryAdmin(admin.ModelAdmin):
 
     object_link.admin_order_field = "object_repr"
     object_link.short_description = "object"
+
+
+class MemberUpdateAdmin(admin.ModelAdmin):
+    raw_id_fields = ["user"]
+    list_display = (
+        "user",
+        "first_name",
+        "last_name",
+        "chapter",
+        "created",
+        "approved",
+        "outcome",
+    )
+    list_filter = [
+        "outcome",
+        "approved",
+        "chapter",
+    ]
+    ordering = [
+        "-created",
+    ]
+    search_fields = ["user__name", "first_name", "last_name"]
+
+
+admin.site.register(MemberUpdate, MemberUpdateAdmin)

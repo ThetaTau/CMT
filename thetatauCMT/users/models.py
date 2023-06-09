@@ -11,6 +11,8 @@ from model_utils.fields import MonitorField
 from address.models import AddressField
 from multiselectfield import MultiSelectField
 from email_signals.models import EmailSignalMixin
+from simple_history.models import HistoricalRecords
+from viewflow.models import Process
 from core.models import (
     StartEndModel,
     YearTermModel,
@@ -206,6 +208,7 @@ class User(AbstractUser, EmailSignalMixin):
     current_status = models.CharField(max_length=10)
     current_roles = ArrayField(models.CharField(max_length=50), blank=True, null=True)
     officer = models.BooleanField(default=False)
+    history = HistoricalRecords()
 
     def save(self, *args, **kwargs):
         if not self.id:
@@ -224,6 +227,10 @@ class User(AbstractUser, EmailSignalMixin):
 
     def __str__(self):
         return self.name
+
+    def get_name_with_details(self):
+        major = self.major if self.major else ""
+        return f"{self.name} {self.user_id} graduated: {self.graduation_year} {self.degree} {major}"
 
     @property
     def current_chapter(self):
@@ -733,3 +740,66 @@ class UserOrgParticipate(StartEndModel):
     org_name = models.CharField(max_length=50)
     type = models.CharField(max_length=3, choices=TYPES)
     officer = models.BooleanField(default=False)
+
+
+class MemberUpdate(Process, EmailSignalMixin):
+    # This will store all the information to update a member.
+    class OUTCOME(EnumClass):
+        matched = ("matched", "A member was found to update information")
+        created = ("created", "A member was created to update information")
+        denied = ("denied", "No member was found or created, update denied")
+
+    # A member may not exist
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="updates",
+        blank=True,
+        null=True,
+    )
+    outcome = models.CharField(
+        max_length=10,
+        choices=[x.value for x in OUTCOME],
+        default="matched",
+        blank=True,
+        null=True,
+    )
+    approved = models.BooleanField(default=True)
+    chapter = models.ForeignKey(
+        Chapter,
+        on_delete=models.CASCADE,
+        blank=True,
+        null=True,
+        related_name="member_updates",
+    )
+    badge_number = models.PositiveIntegerField(blank=True, null=True)
+    title = models.CharField(blank=True, null=True, max_length=500)
+    first_name = models.CharField(blank=True, null=True, max_length=500)
+    middle_name = models.CharField(blank=True, null=True, max_length=500)
+    last_name = models.CharField(blank=True, null=True, max_length=500)
+    maiden_name = models.CharField(blank=True, null=True, max_length=500)
+    preferred_name = models.CharField(blank=True, null=True, max_length=500)
+    nickname = models.CharField(blank=True, null=True, max_length=500)
+    suffix = models.CharField(blank=True, null=True, max_length=500)
+    email = models.CharField(blank=True, null=True, max_length=500)
+    email_school = models.CharField(blank=True, null=True, max_length=500)
+    address = AddressField(
+        on_delete=models.SET_NULL, blank=True, null=True, related_name="update"
+    )
+    birth_date = models.DateField(blank=True, null=True)
+    phone_number = models.CharField(blank=True, null=True, max_length=500)
+    graduation_year = models.PositiveIntegerField(blank=True, null=True)
+    degree = models.CharField(blank=True, null=True, max_length=500)
+    major = models.ForeignKey(
+        ChapterCurricula,
+        on_delete=models.SET_NULL,
+        related_name="member_updates",
+        blank=True,
+        null=True,
+    )
+    major_other = models.CharField(blank=True, null=True, max_length=500)
+    employer = models.CharField(blank=True, null=True, max_length=500)
+    employer_position = models.CharField(blank=True, null=True, max_length=500)
+    employer_address = AddressField(
+        on_delete=models.SET_NULL, blank=True, null=True, related_name="update_employer"
+    )

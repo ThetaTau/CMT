@@ -5,14 +5,19 @@ from django.core.files.base import ContentFile
 from django.http import HttpResponseRedirect
 from django.urls import reverse
 from django.utils.decorators import method_decorator
-from viewflow import flow, frontend
+from viewflow import flow
 from viewflow.base import this, Flow
 from viewflow.compat import _
 from viewflow.flow import views as flow_views
 from viewflow.templatetags.viewflow import register
 from viewflow.templatetags.viewflow import flowurl as old_flowurl
 from easy_pdf.rendering import render_to_pdf, UnsupportedMediaPathException
-from core.flows import AutoAssignUpdateProcessView, NoAssignView
+from core.flows import (
+    AutoAssignUpdateProcessView,
+    NoAssignView,
+    FilterableFlowViewSet,
+    register_factory,
+)
 from core.notifications import GenericEmail
 from .models import (
     PrematureAlumnus,
@@ -31,7 +36,6 @@ from .views import (
     ConventionCreateView,
     HSEducationCreateView,
     ConventionSignView,
-    FilterableFlowViewSet,
     FilterableInvoiceFlowViewSet,
     OSMCreateView,
     OSMVerifyView,
@@ -88,13 +92,6 @@ def flowurl(parser, token):
 
     url.render = new_render
     return url
-
-
-def register_factory(viewset_class):
-    def decorator(function):
-        return frontend.register(function, viewset_class=viewset_class)
-
-    return decorator
 
 
 class ReassignTaskView(flow_views.AssignTaskView):

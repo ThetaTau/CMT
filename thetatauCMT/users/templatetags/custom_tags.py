@@ -22,6 +22,15 @@ def user_alter_form(context):
     return None
 
 
+@register.filter(name="lookup")
+def lookup(value, arg):
+    if isinstance(value, dict):
+        return_value = value.get(arg)
+    else:
+        return_value = getattr(value, arg)
+    return return_value
+
+
 @register.filter
 def get_fields(obj):
     fields = []

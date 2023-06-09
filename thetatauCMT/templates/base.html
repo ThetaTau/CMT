@@ -225,13 +225,15 @@
               </li>
             {% else %}
               <li class="nav-item">
+                <a id="udpate-info" class="nav-link" href="{% url 'update_lookup' %}">{% trans "Update Info" %}</a>
+              </li>
+              <li class="nav-item">
                 {# URL provided by django-allauth/account/urls.py #}
                 <a id="log-in-link" class="nav-link" href="{% url 'account_login' %}">{% trans "Sign In" %}</a>
               </li>
             {% endif %}
           <li class="nav-item">
-            {# URL provided by django-allauth/account/urls.py #}
-            <a id="log-in-link" class="nav-link" href="{% url 'help' %}">{% trans "Help" %}</a>
+            <a id="help" class="nav-link" href="{% url 'help' %}">{% trans "Help" %}</a>
           </li>
           </ul>
         </div>

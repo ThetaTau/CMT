@@ -17,6 +17,8 @@ from users.models import (
     UserSemesterServiceHours,
     UserOrgParticipate,
     UserSemesterGPA,
+    MemberUpdate,
+    HistoricalUser,
 )
 
 fake = Factory.create()
@@ -37,6 +39,7 @@ register_clean(
     [
         (UserRoleChange, AnonymBase),
         (UserOrgParticipate, AnonymBase),
+        (HistoricalUser, AnonymBase),
     ]
 )
 
@@ -92,8 +95,38 @@ class UserAnonym(AnonymBase):
         ]
 
 
-register_anonym(
-    [
-        (User, UserAnonym),
-    ]
-)
+class MemberUpdateAnonym(AnonymBase):
+    badge_number = fields.function(fake.pyint)
+    first_name = fields.function(fake.first_name)
+    middle_name = fields.function(fake.first_name)
+    last_name = fields.function(fake.last_name)
+    maiden_name = fields.function(fake.last_name)
+    preferred_name = fields.function(fake.first_name)
+    nickname = fields.function(fake.first_name)
+    suffix = fields.function(fake.suffix)
+    email = fields.string("{seq}@thetatau.org")
+    email_school = fields.string("{seq}_email_school@thetatau.org")
+    birth_date = fields.function(fake.date_object)
+    phone_number = fields.function(fake.msisdn)
+    graduation_year = fields.function(fake.year)
+    employer = fields.function(fake.company)
+    employer_position = fields.function(fake.job)
+
+    class Meta:
+        exclude_fields = [
+            "degree",
+            "outcome",
+            "approved",
+            "title",
+            "finished",
+            "status",
+            "id",
+            "data",
+            "created",
+            "flow_class",
+            "major_other",
+            "artifact_object_id",
+        ]
+
+
+register_anonym([(User, UserAnonym), (MemberUpdate, MemberUpdateAnonym)])

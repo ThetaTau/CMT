@@ -505,16 +505,19 @@ class Chapter(models.Model, EmailSignalMixin):
             date = TODAY_END - timedelta(30 * 8)
         return annotate_role_status(officers, date=date), previous
 
-    def get_current_officers_council_specific(self):
+    def get_current_officers_council_specific(self, role_specific=None):
         officers, previous = self.get_current_officers_council()
         roles = []
-        role_list = [
-            "regent",
-            "scribe",
-            "vice regent",
-            "treasurer",
-            "corresponding secretary",
-        ]
+        if role_specific is None:
+            role_list = [
+                "regent",
+                "scribe",
+                "vice regent",
+                "treasurer",
+                "corresponding secretary",
+            ]
+        else:
+            role_list = role_specific
         for role in role_list:
             query = models.Q(current_roles__contains=[role])
             if previous:
@@ -528,6 +531,16 @@ class Chapter(models.Model, EmailSignalMixin):
         emails = set([officer.email for officer in officers if officer]) | set(
             self.get_generic_chapter_emails()
         )
+        return {email for email in emails if email}
+
+    def get_email_specific(self, roles):
+        # Get the generic and current cor sec emails
+        currents = self.get_current_officers_council_specific(role_specific=roles)
+        emails = {getattr(self, f"email_{role.replace(' ', '_')}") for role in roles}
+        for current in currents:
+            if current:
+                emails.add(current.email)
+                emails.add(current.email_school)
         return {email for email in emails if email}
 
     def get_generic_chapter_emails(self):

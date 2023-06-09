@@ -1,6 +1,7 @@
 from django import forms
 from django.conf import settings
 from django.utils import timezone
+from dal import autocomplete, forward
 from address.widgets import AddressWidget
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Layout, Fieldset, Row, Column, Submit
@@ -11,8 +12,8 @@ from captcha.fields import ReCaptchaField
 from captcha.widgets import ReCaptchaV3
 from core.address import fix_address
 from core.models import BIENNIUM_YEARS, forever
-from core.forms import DuplicateAddressField
-from chapters.models import Chapter
+from core.forms import DuplicateAddressField, SchoolModelChoiceField
+from chapters.models import Chapter, ChapterCurricula
 from .models import (
     UserAlter,
     User,
@@ -20,6 +21,7 @@ from .models import (
     UserSemesterServiceHours,
     UserOrgParticipate,
     UserStatusChange,
+    MemberUpdate,
 )
 
 
@@ -168,6 +170,132 @@ class UserLookupForm(forms.Form):
         if not settings.DEBUG:
             captcha = ReCaptchaField(label="", widget=ReCaptchaV3)
             self.fields.update({"captcha": captcha})
+
+
+class UserUpdateForm(forms.ModelForm):
+    badge_number = forms.IntegerField(
+        help_text="If you do not know your badge number, leave this blank"
+    )
+    school_name = SchoolModelChoiceField(
+        queryset=Chapter.objects.exclude(active=False).order_by("school"),
+        help_text="Where did you attend school while pledging?",
+    )
+    major = forms.ModelChoiceField(
+        queryset=ChapterCurricula.objects.all(),
+        help_text="This is the list of currently approved majors, "
+        "if your major is not listed please select other and then fill out your major in the box below",
+    )
+    major_other = forms.CharField(label="Other Major")
+    birth_date = forms.DateField(
+        label="Birth Date",
+        widget=DatePicker(
+            options={"format": "M/DD/YYYY"},
+            attrs={"autocomplete": "off"},
+        ),
+    )
+
+    class Meta:
+        model = User
+        fields = [
+            "school_name",
+            "badge_number",
+            "title",
+            "first_name",
+            "middle_name",
+            "last_name",
+            "maiden_name",
+            "preferred_name",
+            "nickname",
+            "suffix",
+            "email",
+            "email_school",
+            "address",
+            "birth_date",
+            "phone_number",
+            "graduation_year",
+            "degree",
+            "major",
+            "major_other",
+            "employer",
+            "employer_position",
+            "employer_address",
+        ]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if not settings.DEBUG:
+            captcha = ReCaptchaField(label="", widget=ReCaptchaV3)
+            self.fields.update({"captcha": captcha})
+        for key in self.fields:
+            self.fields[key].required = False
+            if key not in ["degree", "major", "school_name"]:
+                self.fields[key].initial = ""
+
+
+class MemberUpdateForm(forms.ModelForm):
+    user = forms.ModelChoiceField(
+        queryset=User.objects.all(),
+        widget=autocomplete.ModelSelect2(
+            url="users:autocomplete", forward=(forward.Const("false", "chapter"),)
+        ),
+        required=False,
+    )
+    outcome = forms.TypedChoiceField(
+        choices=(outcome.value for outcome in MemberUpdate.OUTCOME),
+        widget=forms.Select(
+            attrs={"style": "display: block"},
+        ),
+    )
+
+    class Meta:
+        model = MemberUpdate
+        fields = ["outcome", "user"]
+
+
+class UserDetailChoiceField(forms.ModelChoiceField):
+    def label_from_instance(self, obj):
+        return obj.get_name_with_details()
+
+
+class UserLookupSelectForm(forms.Form):
+    users = UserDetailChoiceField(queryset=User.objects.none())
+
+    def __init__(self, *args, **kwargs):
+        qs = User.objects.none()
+        if "users" in kwargs:
+            qs = kwargs.pop("users")
+        super().__init__(*args, **kwargs)
+        self.fields["users"].queryset = qs
+        if not settings.DEBUG:
+            captcha = ReCaptchaField(label="", widget=ReCaptchaV3)
+            self.fields.update({"captcha": captcha})
+
+
+class UserLookupSearchForm(forms.ModelForm):
+    university = forms.ChoiceField(
+        choices=Chapter.schools(),
+        help_text="What university did you attend when you pledged Theta Tau",
+    )
+    badge_number = forms.IntegerField(
+        help_text="If you do not know your badge number, leave this blank"
+    )
+
+    class Meta:
+        model = User
+        fields = [
+            "university",
+            "badge_number",
+            "name",
+        ]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if not settings.DEBUG:
+            captcha = ReCaptchaField(label="", widget=ReCaptchaV3)
+            self.fields.update({"captcha": captcha})
+        for key in self.fields:
+            self.fields[key].required = False
+            self.fields[key].initial = ""
 
 
 class UserAlterForm(forms.ModelForm):

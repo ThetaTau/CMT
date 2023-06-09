@@ -19,7 +19,26 @@ urlpatterns = [
         name="info",
     ),
     url(regex=r"^search/$", view=views.UserSearchView.as_view(), name="search"),
-    url(regex=r"^lookup/$", view=views.UserLookupView.as_view(), name="lookup"),
+    url(
+        regex=r"^lookup-search/$",
+        view=views.UserLookupSearchView.as_view(),
+        name="lookup_search",
+    ),
+    url(
+        regex=r"^lookup-select/$",
+        view=views.UserLookupSelectView.as_view(),
+        name="lookup_select",
+    ),
+    url(
+        regex=r"^update/$",
+        view=views.UserLookupUpdateView.as_view(),
+        name="update",
+    ),
+    url(
+        regex=r"^update-review/(?P<pk>\d+)/$",
+        view=views.UserUpdateDirectReview.as_view(),
+        name="update_review",
+    ),
     url(regex=r"^verify-form/$", view=views.user_verify, name="user_verify"),
     url(
         regex=r"^autocomplete/$",

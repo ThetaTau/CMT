@@ -1,0 +1,25 @@
+{% extends "account/base.html" %}
+
+{% load i18n %}
+{% load crispy_forms_tags %}
+
+{% block head_title %}{% trans "Select Member" %}{% endblock %}
+
+{% block inner %}
+<h1>{% trans "Select Member" %}</h1>
+
+<p>Please select your matching member info from below</p>
+
+<p>If no matching either continue or back to try searching again</p>
+  <a class="btn btn-secondary" href="{% url 'users:lookup_search' %}">« {% trans "Back" %}</a>
+  <a class="btn btn-warning" href="{% url 'users:update' %}">{% trans "Continue without match" %} &raquo;</a>
+
+<form class="select" id="lookup_select" method="post" action="{% url 'users:lookup_select' %}">
+  {% csrf_token %}
+  {{ form|crispy }}
+  <button class="btn btn-primary" type="submit">{% trans "Select" %} &raquo;</button>
+
+</form>
+
+{% endblock %}
+

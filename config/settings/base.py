@@ -109,6 +109,7 @@ THIRD_PARTY_APPS = [
     "termsandconditions",
     "bootstrapform",
     "survey",
+    "simple_history",
 ]
 
 LOCAL_APPS = [
@@ -199,6 +200,7 @@ MIDDLEWARE = [
     "core.middleware.OfficerMiddleware",
     "core.middleware.RMPSignMiddleware",
     "termsandconditions.middleware.TermsAndConditionsRedirectMiddleware",
+    "simple_history.middleware.HistoryRequestMiddleware",
     "core.middleware.RequireSuperuser2FAMiddleware",
     "rollbar.contrib.django.middleware.RollbarNotifierMiddleware",  # Last
 ]
@@ -470,3 +472,6 @@ LMS_SECRET = env("LMS_SECRET", default=None)
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 EMAIL_SIGNAL_DEFAULT_SENDER = DEFAULT_FROM_EMAIL
+
+# https://django-simple-history.readthedocs.io/en/latest/historical_model.html#filefield-as-a-charfield
+SIMPLE_HISTORY_FILEFIELD_TO_CHARFIELD = True

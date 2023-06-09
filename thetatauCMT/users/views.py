@@ -2,6 +2,7 @@ import csv
 import datetime
 import zipfile
 from io import BytesIO, StringIO
+from django import forms
 from django.contrib.auth.forms import PasswordResetForm
 from django.contrib.auth.tokens import default_token_generator
 from django.contrib.sites.shortcuts import get_current_site
@@ -10,14 +11,15 @@ from django.http.response import HttpResponseRedirect
 from django.http import HttpResponse
 from django.urls import reverse
 from django.forms.models import modelformset_factory
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from django.utils.http import is_safe_url, urlsafe_base64_encode
 from django.utils.encoding import force_bytes
 from django.contrib import messages
-from django.views.generic import RedirectView, FormView, DetailView
+from django.views.generic import RedirectView, FormView, DetailView, UpdateView
 from crispy_forms.layout import Submit
 from allauth.account.views import LoginView
 from extra_views import FormSetView, ModelFormSetView
+import viewflow
 from watson import search as watson
 from core.address import isinradius
 from core.views import (
@@ -38,6 +40,7 @@ from .models import (
     UserSemesterServiceHours,
     UserOrgParticipate,
     UserDemographic,
+    MemberUpdate,
 )
 from .tables import UserTable
 from .filters import UserListFilter, UserListFilterBase
@@ -50,6 +53,9 @@ from .forms import (
     UserForm,
     UserServiceForm,
     UserOrgForm,
+    UserLookupSearchForm,
+    UserLookupSelectForm,
+    UserUpdateForm,
 )
 from .notifications import MemberInfoUpdate
 from forms.forms import PledgeDemographicsForm
@@ -541,6 +547,271 @@ class UserLookupLoginView(CaptchaLoginView):
         return context
 
 
+class UserLookupSearchView(FormView):
+    form_class = UserLookupSearchForm
+    template_name = "users/lookup_search.html"
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        self.request.session["user"] = None
+        return kwargs
+
+    def form_valid(self, form):
+        chapter = Chapter.objects.get(pk=form.cleaned_data["university"])
+        search = ""
+        for search_term, value in form.cleaned_data.items():
+            if search_term in ["university", "captcha"] or not value:
+                continue
+            search = f"{search} {value}"
+        users = watson.filter(User.objects.filter(chapter=chapter), search)
+        total = users.count()
+        chapter_name = chapter.full_name
+        if total > 5:
+            messages.add_message(
+                self.request,
+                messages.ERROR,
+                f"Found {total} members, please provide more details, searched {search} at {chapter_name}",
+            )
+            response = super().form_invalid(form)
+        elif total == 0:
+            messages.add_message(
+                self.request,
+                messages.ERROR,
+                f"Found {total} members, maybe provide LESS details, searched {search} at {chapter_name}",
+            )
+            response = super().form_invalid(form)
+        else:
+            self.request.session["users"] = list(users.values_list("id", flat=True))
+            response = super().form_valid(form)
+        return response
+
+    def get_success_url(self):
+        return reverse("users:lookup_select")
+
+
+class UserLookupSelectView(FormView):
+    form_class = UserLookupSelectForm
+    template_name = "users/lookup_select.html"
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        users = self.request.session.get("users", None)
+        if users:
+            users = User.objects.filter(id__in=users)
+            kwargs["users"] = users
+        self.request.session["user"] = None
+        return kwargs
+
+    def form_valid(self, form):
+        user = form.cleaned_data["users"]
+        if user.is_officer:
+            messages.add_message(
+                self.request,
+                messages.ERROR,
+                f"Officers must login to update member info. {user} is: {user.current_roles}",
+            )
+            return HttpResponseRedirect(reverse("users:lookup_search"))
+        self.request.session["user"] = user.id
+        return super().form_valid(form)
+
+    def get_success_url(self):
+        return reverse("users:update")
+
+
+def hide_email(email):
+    if "@" in email:
+        email_start, email_domain = email.split("@")
+        email_start = email_start[:4]
+        return "".join([email_start, "****@", email_domain])
+    else:
+        # Likely the email is empty
+        return ""
+
+
+class UserLookupUpdateView(FormView):
+    form_class = UserUpdateForm
+    template_name = "users/update.html"
+
+    def get(self, request, *args, **kwargs):
+        user = self.request.session.get("user", None)
+        if user:
+            user = User.objects.get(id=user)
+            if user.is_officer:
+                messages.add_message(
+                    self.request,
+                    messages.ERROR,
+                    f"Officers must login to update member info. {user} is: {user.current_roles}",
+                )
+                return HttpResponseRedirect(reverse("users:lookup_search"))
+        return super().get(request, *args, **kwargs)
+
+    def form_valid(self, form):
+        updated = dict()
+        user = self.request.session.get("user", None)
+        if user:
+            user = User.objects.get(id=user)
+        if user is None:
+            # When no user, all supplied values are updates
+            updated = {
+                key: value
+                for key, value in form.cleaned_data.items()
+                if value and key != "captcha"
+            }
+        else:
+            # When there is an actual user look for only updated values
+            for key, value in form.cleaned_data.items():
+                if value:
+                    skip = ["school_name", "captcha", "major_other"]
+                    if user and key not in skip and getattr(user, key) != value:
+                        updated[key] = value
+            if "major_other" in form.cleaned_data and form.cleaned_data["major_other"]:
+                # Can't get current value, but need to use for update
+                updated["major_other"] = form.cleaned_data["major_other"]
+        if updated:
+            messages.add_message(
+                self.request,
+                messages.INFO,
+                f"Information update member: {user} submitted: {updated}",
+            )
+            from .flows import MemberUpdateFlow
+
+            MemberUpdateFlow.start.run(user=user, updated=updated)
+        return super().form_valid(form)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        user = self.request.session.get("user", None)
+        user_info = dict()
+        if user:
+            user = User.objects.get(id=user)
+            user_info["badge_number"] = user.badge_number
+            user_info["title"] = user.get_title_display()
+            user_info["first_name"] = user.first_name
+            user_info["middle_name"] = user.middle_name
+            user_info["last_name"] = user.last_name
+            user_info["maiden_name"] = user.maiden_name
+            user_info["preferred_name"] = (
+                user.preferred_name if user.preferred_name else ""
+            )
+            user_info["nickname"] = user.nickname
+            user_info["suffix"] = user.suffix
+            user_info["email"] = hide_email(user.email)
+            user_info["email_school"] = hide_email(user.email_school)
+            address = "Unknown"
+            if user.address:
+                if user.address.locality:
+                    zipcode = user.address.locality.postal_code
+                    address = f"XXXXXXXX {zipcode}"
+            user_info["address"] = address if address else "Unknown"
+            user_info["birth_date"] = (
+                user.birth_date.month
+                if user.birth_date != datetime.date(1904, 10, 15)
+                else "Unknown"
+            )
+            user_info["phone_number"] = (
+                f"XXXXXX{user.phone_number[-4:]}" if user.phone_number else "Unknown"
+            )
+            user_info["graduation_year"] = (
+                user.graduation_year if user.graduation_year else "Unknown"
+            )
+            user_info["degree"] = user.get_degree_display()
+            user_info["major"] = user.major if user.major else "Unknown"
+            user_info["employer"] = user.employer if user.employer else "Unknown"
+            user_info["employer_position"] = (
+                user.employer_position if user.employer_position else "Unknown"
+            )
+            user_info["employer_address"] = (
+                user.employer_address if user.employer_address else "Unknown"
+            )
+            user_info["school_name"] = user.chapter.school
+            context["form"].fields["school_name"].initial = user.chapter
+            context["form"].fields["school_name"].widget = forms.HiddenInput()
+        else:
+            # There is no user automatically added se we need some mandatory fields
+            mandatory = [
+                "school_name",
+                "email",
+                "graduation_year",
+                "first_name",
+                "last_name",
+            ]
+            for field in mandatory:
+                context["form"].fields[field].required = True
+        context["user"] = user_info
+        return context
+
+    def get_success_url(self):
+        return reverse("users:update")
+
+
+class UserUpdateDirectReview(UpdateView):
+    model = MemberUpdate
+    template_name = "users/update_review.html"
+    fields = [
+        "approved",
+    ]
+
+    def form_valid(self, form):
+        """If the form is valid, save the associated model."""
+        return HttpResponseRedirect(self.get_success_url())
+
+    def get_context_data(self, **kwargs):
+        context_data = super().get_context_data()
+        from .flows import MemberUpdateFlow
+
+        try:
+            self.object.get_task(MemberUpdateFlow.delay)
+        except viewflow.models.Task.DoesNotExist:
+            complete = True
+        else:
+            complete = False
+        context_data["complete"] = complete
+        user_info = dict()
+        if not complete:
+            user_info = MemberUpdateFlow.get_updated(self.object, perform_update=False)
+            if "email" in user_info:
+                user_info["email"] = hide_email(user_info["email"])
+            if "email_school" in user_info:
+                user_info["email_school"] = hide_email(user_info["email_school"])
+            if "address" in user_info:
+                address = "XXXXXXXX"
+                address_obj = user_info["address"]
+                if address_obj.locality:
+                    zipcode = address_obj.locality.postal_code
+                    address = f"XXXXXXXX {zipcode}"
+                user_info["address"] = address if address else "Unknown"
+            if "birth_date" in user_info:
+                user_info["birth_date"] = user_info["birth_date"].month
+            if "phone_number" in user_info:
+                user_info["phone_number"] = f"XXXXXX{user_info['phone_number'][-4:]}"
+            out_info = dict()
+            for key, value in user_info.items():
+                new_key = key.replace("_", " ").title()
+                out_info[new_key] = value
+            user_info = out_info
+        context_data["user_info"] = user_info
+        return context_data
+
+    def get_success_url(self):
+        """Detect the submit button used and act accordingly"""
+        from .flows import MemberUpdateFlow
+
+        if "deny" in self.request.POST:
+            self.object.approved = False
+            state = "denied"
+        else:
+            self.object.approved = True
+            state = "approved"
+        self.object.save()
+        messages.add_message(
+            self.request,
+            messages.INFO,
+            f"Member update was successfully {state}",
+        )
+        MemberUpdateFlow.continue_process(self.object.pk)
+        return reverse("users:update_review", kwargs={"pk": self.object.pk})
+
+
 class UserLookupView(FormView):
     form_class = UserLookupForm
     template_name = "users/lookup.html"
@@ -559,9 +830,9 @@ class UserLookupView(FormView):
             )
         else:
             orig_email = user.email
-            email = self.hide_email(orig_email)
+            email = hide_email(orig_email)
             orig_email_school = user.email_school
-            email_school = self.hide_email(orig_email_school)
+            email_school = hide_email(orig_email_school)
             messages.add_message(
                 self.request,
                 messages.INFO,
@@ -573,15 +844,6 @@ class UserLookupView(FormView):
             form.is_valid()
             form.save()
         return super().form_valid(form)
-
-    def hide_email(self, email):
-        if "@" in email:
-            email_start, email_domain = email.split("@")
-            email_start = email_start[:4]
-            return "".join([email_start, "****@", email_domain])
-        else:
-            # Likely the email is empty
-            return ""
 
     def get_success_url(self):
         return reverse("login")
