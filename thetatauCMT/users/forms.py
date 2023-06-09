@@ -13,7 +13,7 @@ from captcha.widgets import ReCaptchaV3
 from core.address import fix_address
 from core.models import BIENNIUM_YEARS, forever
 from core.forms import DuplicateAddressField, SchoolModelChoiceField
-from chapters.models import Chapter
+from chapters.models import Chapter, ChapterCurricula
 from .models import (
     UserAlter,
     User,
@@ -179,6 +179,11 @@ class UserUpdateForm(forms.ModelForm):
     school_name = SchoolModelChoiceField(
         queryset=Chapter.objects.exclude(active=False).order_by("school"),
         help_text="Where did you attend school while pledging?",
+    )
+    major = forms.ModelChoiceField(
+        queryset=ChapterCurricula.objects.all(),
+        help_text="This is the list of currently approved majors, "
+        "if your major is not listed please select other and then fill out your major in the box below",
     )
     major_other = forms.CharField(label="Other Major")
     birth_date = forms.DateField(
