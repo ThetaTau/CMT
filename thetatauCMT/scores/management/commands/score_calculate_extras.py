@@ -3,6 +3,7 @@
 import datetime
 from django.core.management import BaseCommand
 from django.db.models import Sum
+from core.models import BIENNIUM_YEARS
 from chapters.models import Chapter
 from scores.models import ScoreType, ScoreChapter
 from users.models import (
@@ -35,7 +36,7 @@ class Command(BaseCommand):
         chapters = Chapter.objects.all()
         for chapter in chapters:
             print(chapter)
-            for year in range(2021, 2023):
+            for year in range(BIENNIUM_YEARS[0], BIENNIUM_YEARS[-1] + 1):
                 for semester in ["sp", "fa"]:
                     # print("    ", year, ":", semester)
                     date = datetime.date(year, 11, 15)
@@ -96,6 +97,7 @@ class Command(BaseCommand):
                     service_score = 50 * (total_hours / (current_size * 16))
                     service_score = round(min(50, service_score), 2)
                     score_type = ScoreType.objects.get(slug="service-hours")
+                    # print("        ", score_type, service_score)
                     (obj, created) = ScoreChapter.objects.update_or_create(
                         chapter=chapter,
                         type=score_type,
@@ -105,6 +107,7 @@ class Command(BaseCommand):
                             score=service_score,
                         ),
                     )
+                    # print("            ", obj.score)
                     # GPA
                     # (Chapter GPA Average / 3.5) x 30 /semester
                     total_gpa = UserSemesterGPA.objects.filter(
@@ -114,7 +117,8 @@ class Command(BaseCommand):
                     gpa_score = 30 * ((total_gpa / current_size) / 3.5)
                     gpa_score = round(min(30, gpa_score), 2)
                     score_type = ScoreType.objects.get(slug="gpa")
-                    ScoreChapter.objects.update_or_create(
+                    # print("        ", score_type, gpa_score)
+                    (obj, created) = ScoreChapter.objects.update_or_create(
                         chapter=chapter,
                         type=score_type,
                         year=year,
@@ -123,6 +127,7 @@ class Command(BaseCommand):
                             score=gpa_score,
                         ),
                     )
+                    # print("            ", obj.score)
                     # ORGS
                     # 10 * (% Participating) + (2 per officer)
                     orgs = UserOrgParticipate.objects.filter(
@@ -133,7 +138,8 @@ class Command(BaseCommand):
                     org_score = (10 * (total_orgs / current_size)) + (2 * officer)
                     org_score = round(min(20, org_score), 2)
                     score_type = ScoreType.objects.get(slug="societies")
-                    ScoreChapter.objects.update_or_create(
+                    # print("        ", score_type, org_score)
+                    (obj, created) = ScoreChapter.objects.update_or_create(
                         chapter=chapter,
                         type=score_type,
                         year=year,
@@ -142,6 +148,7 @@ class Command(BaseCommand):
                             score=org_score,
                         ),
                     )
+                    # print("            ", obj.score)
 
                 # Only needs to be done once per year
                 for score_type in ScoreType.objects.filter(type__in=["Evt", "Sub"]):

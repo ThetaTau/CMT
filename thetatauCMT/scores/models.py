@@ -124,6 +124,8 @@ class ScoreType(models.Model):
                     if year in offset:
                         if year == 0 and term == "sp":
                             continue
+                        elif year == 2 and term == "fa":
+                            continue
                         offset = offset[year]
                     else:
                         offset = {"fa": 3, "sp": 2}[term]
