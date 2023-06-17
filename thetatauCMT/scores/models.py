@@ -2,6 +2,7 @@ import datetime
 from enum import Enum
 from django.db import models
 from django.db.models import Sum
+from django.db.models.functions import Round
 from core.models import YearTermModel, BIENNIUM_YEARS
 from chapters.models import Chapter
 
@@ -291,7 +292,7 @@ class ScoreChapter(YearTermModel):
             query.filter(chapter__in=chapters)
             .values("chapter", "type__section")
             .annotate(
-                section_score=models.Sum("score"),
+                section_score=Round(models.Sum("score")),
                 region=models.F("chapter__region__name"),
                 chapter_name=models.F("chapter__name"),
             )

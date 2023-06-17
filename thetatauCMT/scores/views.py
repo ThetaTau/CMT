@@ -95,16 +95,16 @@ class ChapterScoreListView(LoginRequiredMixin, PagedFilteredTableView):
     def get_queryset(self):
         request_get = self.request.GET.copy()
         cancel = self.request.GET.get("cancel", False)
-        term = "fa"
-        year = BIENNIUM_START
+        date = None
         if not cancel:
-            year = request_get.get("year", BIENNIUM_START)
-            year = BIENNIUM_START if not year else year
-            term = request_get.get("term", "fa")
-            term = "fa" if not term else term
+            year = request_get.get("year")
+            if year is not None:
+                term = request_get.get("term", "fa")
+                term = "fa" if not term else term
+                month = {"sp": 3, "fa": 10}[term]
+                date = datetime(int(year), month, 1)
         qs = super().get_queryset(request_get=request_get)
         qs = qs.exclude(active=False)
-        month = {"sp": 3, "fa": 10}[term]
-        date = datetime(int(year), month, 1)
+
         data = ScoreChapter.type_score_biennium(date=date, chapters=qs)
         return data
