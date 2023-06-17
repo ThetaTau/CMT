@@ -115,7 +115,7 @@ class Command(BaseCommand):
                     ).aggregate(Sum("gpa"))["gpa__sum"]
                     total_gpa = total_gpa if total_gpa else 0
                     gpa_score = 30 * ((total_gpa / current_size) / 3.5)
-                    gpa_score = round(min(30, gpa_score), 2)
+                    gpa_score = round(min(20, gpa_score), 2)
                     score_type = ScoreType.objects.get(slug="gpa")
                     # print("        ", score_type, gpa_score)
                     (obj, created) = ScoreChapter.objects.update_or_create(
