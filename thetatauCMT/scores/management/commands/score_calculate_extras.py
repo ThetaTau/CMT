@@ -17,6 +17,10 @@ class Command(BaseCommand):
     # Show this when the user types help
     help = "Calculate scores for extra types"
 
+    def add_arguments(self, parser):
+        parser.add_argument("year_start", nargs=1, type=str)
+        parser.add_argument("year_end", nargs=1, type=str)
+
     # A command must define handle()
     def handle(self, *args, **options):
         """
@@ -33,10 +37,12 @@ class Command(BaseCommand):
 
         If an object is not found, update_or_create() will instantiate and save a new object
         """
+        year_start = options.get("year_start", [BIENNIUM_YEARS[0]])[0]
+        year_end = options.get("year_end", [BIENNIUM_YEARS[-1]])[0]
         chapters = Chapter.objects.all()
         for chapter in chapters:
             print(chapter)
-            for year in range(BIENNIUM_YEARS[0], BIENNIUM_YEARS[-1] + 1):
+            for year in range(year_start, year_end + 1):
                 for semester in ["sp", "fa"]:
                     # print("    ", year, ":", semester)
                     date = datetime.date(year, 11, 15)

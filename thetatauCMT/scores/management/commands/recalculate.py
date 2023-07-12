@@ -12,6 +12,7 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument("score_type", nargs=1, type=str)
+        parser.add_argument("year", nargs=1, type=str)
         parser.add_argument("-chapter", nargs=1, type=str)
 
     # A command must define handle()
@@ -22,6 +23,7 @@ class Command(BaseCommand):
         print(options)
         chapter_only = options.get("chapter", None)
         score_type = options.get("score_type", [None])[0]
+        year = options.get("year", [BIENNIUM_START])[0]
         print(f"Recalculating for score_type {score_type}")
         if score_type is None:
             print("You must supply score_type")
@@ -37,11 +39,11 @@ class Command(BaseCommand):
             print(chapter)
             if score_type.type == "Evt":
                 objects = chapter.events.filter(
-                    date__gte=datetime.date(BIENNIUM_START, 8, 1), type=score_type
+                    date__gte=datetime.date(year, 8, 1), type=score_type
                 )
             elif score_type.type == "Sub":
                 objects = chapter.submissions.filter(
-                    date__gte=datetime.date(BIENNIUM_START, 8, 1), type=score_type
+                    date__gte=datetime.date(year, 8, 1), type=score_type
                 )
             print(f"    Found {objects.count()} to recalculate")
             for obj in objects:
