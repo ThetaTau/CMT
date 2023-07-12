@@ -45,7 +45,7 @@ class Submission(TimeStampedModel, EmailSignalMixin):
     def __str__(self):
         return f"{self.name}"  # from {self.chapter} on {self.date}"
 
-    def save(self, extra_info=None):
+    def save(self, extra_info=None, calculate_score=True, **kwargs):
         self.name = self.name[: 200 - 1]
         self.slug = slugify(self.name)
         cal_score = self.type.calculate_score(self, extra_info=extra_info)
