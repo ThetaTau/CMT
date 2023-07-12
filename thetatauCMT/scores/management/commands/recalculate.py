@@ -23,7 +23,7 @@ class Command(BaseCommand):
         print(options)
         chapter_only = options.get("chapter", None)
         score_type = options.get("score_type", [None])[0]
-        year = options.get("year", [BIENNIUM_START])[0]
+        year = int(options.get("year", [BIENNIUM_START])[0])
         print(f"Recalculating for score_type {score_type}")
         if score_type is None:
             print("You must supply score_type")

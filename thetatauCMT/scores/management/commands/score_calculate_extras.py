@@ -37,8 +37,8 @@ class Command(BaseCommand):
 
         If an object is not found, update_or_create() will instantiate and save a new object
         """
-        year_start = options.get("year_start", [BIENNIUM_YEARS[0]])[0]
-        year_end = options.get("year_end", [BIENNIUM_YEARS[-1]])[0]
+        year_start = int(options.get("year_start", [BIENNIUM_YEARS[0]])[0])
+        year_end = int(options.get("year_end", [BIENNIUM_YEARS[-1]])[0])
         chapters = Chapter.objects.all()
         for chapter in chapters:
             print(chapter)
