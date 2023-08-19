@@ -291,6 +291,12 @@ class Chapter(models.Model, EmailSignalMixin):
         default="none",
         choices=[x.value for x in SURCHARGE],
     )
+    nme_file_id = models.CharField(
+        verbose_name=_("NME File ID"),
+        help_text="The Google Drive file id for the new member education program",
+        default="none",
+        max_length=55,
+    )
 
     def __str__(self):
         return f"{self.name}"  # in {self.region} Region at {self.school}
