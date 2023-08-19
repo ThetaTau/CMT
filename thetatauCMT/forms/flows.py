@@ -1,10 +1,12 @@
 import os
 import datetime
+from io import BytesIO
 from django.conf import settings
 from django.core.files.base import ContentFile
 from django.http import HttpResponseRedirect
 from django.urls import reverse
 from django.utils.decorators import method_decorator
+from pydrive2.drive import GoogleDrive
 from viewflow import flow
 from viewflow.base import this, Flow
 from viewflow.compat import _
@@ -18,6 +20,7 @@ from core.flows import (
     FilterableFlowViewSet,
     register_factory,
 )
+from core.utils import login_with_service_account
 from core.notifications import GenericEmail
 from .models import (
     PrematureAlumnus,
@@ -1448,6 +1451,7 @@ class PledgeProgramProcessFlow(Flow):
             - RDs
         """
         model_obj = activation.process.program
+        chapter = model_obj.chapter
         EmailProcessUpdate(
             model_obj,
             complete_step="Pledge Program Submitted",
@@ -1455,13 +1459,14 @@ class PledgeProgramProcessFlow(Flow):
             state="Pending Central Office Review",
             message=(
                 "This if a notification that the Central Office has "
-                "received the pledge program for you chapter."
+                "received the pledge program for you chapter.<br>"
+                "Here is a link to the program under review: "
+                f"<a href='https://docs.google.com/document/d/{chapter.nme_file_id}/edit' target='_blank'>NME Program</a>"
             ),
             fields=["manual"],
-            attachments=["other_manual", "schedule", "test"],
             email_officers=True,
             extra_emails={
-                model_obj.chapter.region.email,
+                chapter.region.email,
                 "central.office@thetatau.org",
             },
             direct_user=activation.process.created_by,
@@ -1469,6 +1474,7 @@ class PledgeProgramProcessFlow(Flow):
 
     def reject_fix_func(self, activation):
         model_obj = activation.process.program
+        chapter = model_obj.chapter
         EmailProcessUpdate(
             activation,
             complete_step="Pledge Program Reviewed",
@@ -1477,19 +1483,37 @@ class PledgeProgramProcessFlow(Flow):
             message=(
                 "This is a notification that the Central Office has "
                 "rejected the pledge program for you chapter."
-                "Please review the notes and resubmit ASAP."
+                "Please review the notes and resubmit ASAP.<br>"
+                "Here is a link to the program under review: "
+                f"<a href='https://docs.google.com/document/d/{chapter.nme_file_id}/edit' target='_blank'>NME Program</a>"
             ),
             fields=["approval", "approval_comments"],
             attachments=[],
             email_officers=True,
             extra_emails={
-                model_obj.chapter.region.email,
+                chapter.region.email,
             },
             direct_user=activation.process.created_by,
         ).send()
 
     def approve_func(self, activation):
         model_obj = activation.process.program
+        chapter = model_obj.chapter
+        gauth = login_with_service_account()
+        drive = GoogleDrive(gauth)
+        doc_file = drive.CreateFile({"id": chapter.nme_file_id})
+        program_file = doc_file.GetContentIOBuffer(mimetype="application/pdf")
+        with BytesIO() as buffer:
+            for chunk in program_file.GetContentIOBuffer():
+                buffer.write(chunk)
+        content = buffer.getvalue()
+        # Year and term are added when uploaded to the final storage
+        file_name = f"NME-{chapter.name}".upper().replace(" ", "_")
+        model_obj.other_manual.save(
+            file_name + ".pdf",
+            ContentFile(content),
+            save=True,
+        )
         EmailProcessUpdate(
             activation,
             complete_step="Pledge Program Reviewed",
@@ -1498,9 +1522,10 @@ class PledgeProgramProcessFlow(Flow):
             message=(
                 "This is a notification that the Central Office has "
                 "approved the pledge program for you chapter."
+                "Attached is the final approved program."
             ),
             fields=["approval", "approval_comments"],
-            attachments=[],
+            attachments=["other_manual"],
             email_officers=True,
             extra_emails={
                 model_obj.chapter.region.email,
