@@ -425,7 +425,14 @@ class EmailProcessUpdate(EmailNotification):
             files.append(file)
         if attachments:
             for attachment in attachments:
+                model_obj_orig = None
+                if "." in attachment:
+                    sub_obj, attachment = attachment.split(".")
+                    model_obj_orig = model_obj
+                    model_obj = getattr(model_obj, sub_obj)
                 file = getattr(model_obj, attachment)
+                if model_obj_orig is not None:
+                    model_obj = model_obj_orig
                 if file.name:
                     files.append(file)
         file_names = [file.name for file in files]

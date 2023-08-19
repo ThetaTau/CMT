@@ -1397,7 +1397,7 @@ class PledgeProgramProcessFlow(Flow):
     process_description = _("This process is for chapter pledge programs.")
 
     start = flow.Start(
-        PledgeProgramProcessCreateView, task_title=_("Submit Disciplinary Form")
+        PledgeProgramProcessCreateView, task_title=_("Submit Pledge Program For Review")
     ).Next(this.email_all)
 
     email_all = flow.Handler(
@@ -1502,11 +1502,10 @@ class PledgeProgramProcessFlow(Flow):
         gauth = login_with_service_account()
         drive = GoogleDrive(gauth)
         doc_file = drive.CreateFile({"id": chapter.nme_file_id})
-        program_file = doc_file.GetContentIOBuffer(mimetype="application/pdf")
         with BytesIO() as buffer:
-            for chunk in program_file.GetContentIOBuffer():
+            for chunk in doc_file.GetContentIOBuffer(mimetype="application/pdf"):
                 buffer.write(chunk)
-        content = buffer.getvalue()
+            content = buffer.getvalue()
         # Year and term are added when uploaded to the final storage
         file_name = f"NME-{chapter.name}".upper().replace(" ", "_")
         model_obj.other_manual.save(
@@ -1525,7 +1524,7 @@ class PledgeProgramProcessFlow(Flow):
                 "Attached is the final approved program."
             ),
             fields=["approval", "approval_comments"],
-            attachments=["other_manual"],
+            attachments=["program.other_manual"],
             email_officers=True,
             extra_emails={
                 model_obj.chapter.region.email,
