@@ -6,12 +6,17 @@
 {% block head_title %}{% trans "New Member Education Program" %}{% endblock %}
 {% block content %}
   <h2>{% trans "New Member Education Program" %}</h2>
+  <p>The live copy of the new member education program is here:
+    <br><a href="{{ program_link }}">{{ program_link }}</a></p>
   <hr>
   {% if submitted == "review" %}
-    <p>The chapter pledge program is pending approval.</p>
+    <h4>The chapter pledge program is pending approval.</h4>
   {% elif submitted == "approved" %}
-    <p>The chapter pledge program has been approved for this semester.</p>
+    <h4>The chapter pledge program has been approved for this semester.</h4>
   {% else %}
+    <p><span style="background-color: #FFFF00"><b>
+    Please edit the Google Document and when you are ready for the central office to review,
+    submit the below form.</b></span></p>
     <form method="POST" enctype="multipart/form-data">
       {{ form.media }}
       <link href="{% static 'css/project.css' %}" rel="stylesheet">
@@ -21,35 +26,8 @@
       <button class="primaryAction btn btn-primary" type="submit" id="submit-id">{% trans "Submit Form" %}</button>
     </form>
   {% endif %}
+  <hr>
   <h3>Previously submitted Pledge Programs</h3>
   <hr>
     {% render_table table %}
-  <script>
-    $("#submit-id").click(function (event) {
-      var value = $('#id_manual').find(":selected")[0].value;
-      if (value == 'other'){
-        var file_other = $('#id_other_manual').val();
-        if (file_other === ""){
-          alert(
-            "If you are following a different program upload that full program.\nIf you have made any changes to official program, upload ONLY THOSE CHANGES");
-          event.preventDefault();
-        }
-      }
-      document.getElementById("submit-id").value = "Submitting...";
-    })
-    $(function () {
-      var value = $('#id_manual').find(":selected")[0].value;
-      if (value != 'other') {
-        $('#div_id_other_manual').hide();
-      }
-      $('#id_manual').change(function () {
-        var value = $('#id_manual').find(":selected")[0].value;
-        if (value == 'other') {
-          $('#div_id_other_manual').show();
-        } else {
-          $('#div_id_other_manual').hide();$('.group').hide();
-        }
-      })
-    });
-  </script>
 {% endblock %}

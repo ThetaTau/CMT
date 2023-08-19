@@ -13,6 +13,10 @@
           <td>{{ object.chapter }}</td>
         </tr>
         <tr>
+          <th>Program Live Document</th>
+          <td><a href="{{ program_link }}">{{ program_link }}</a></td>
+        </tr>
+        <tr>
           <th>Created</th>
           <td>{{ object.created }}</td>
         </tr>
@@ -44,33 +48,15 @@
           <th>Manual</th>
           <td>{{ object.program.get_manual_display }}</td>
         </tr>
-        {% if object.program.other_manual.name %}
+        {% if object.program.approved == "approved" %}
         <tr>
-          <th>Manual Changes</th>
+          <th>Approved Program</th>
           <td>
               <a href="{{ object.program.other_manual.url }}" target="_blank">
                 {{ object.program.other_manual.name }}</a>
           </td>
         </tr>
         {% endif %}
-        <tr>
-          <th>Schedule</th>
-          <td>
-            {% if object.program.schedule.name %}
-              <a href="{{ object.program.schedule.url }}" target="_blank">
-                {{ object.program.schedule.name }}</a>
-            {% endif %}
-          </td>
-        </tr>
-        <tr>
-          <th>Test</th>
-          <td>
-            {% if object.program.test.name %}
-              <a href="{{ object.program.test.url }}" target="_blank">
-                {{ object.program.test.name }}</a>
-            {% endif %}
-          </td>
-        </tr>
       </table>
     </div>
   </div>

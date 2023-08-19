@@ -2718,6 +2718,16 @@ class ReturnStudentCreateView(
 class PledgeProgramProcessDetailView(LoginRequiredMixin, DetailView):
     model = PledgeProgramProcess
 
+    def get_context_data(self, *args, **kwargs):
+        context = super().get_context_data(**kwargs)
+        chapter = self.request.user.current_chapter
+        context["program_link"] = (
+            f"https://docs.google.com/document/d/{chapter.nme_file_id}/edit"
+            if chapter.nme_file_id != "none"
+            else None
+        )
+        return context
+
 
 class PledgeProgramProcessCreateView(
     LoginRequiredMixin, OfficerRequiredMixin, CreateProcessView
@@ -2743,7 +2753,8 @@ class PledgeProgramProcessCreateView(
         self.success("Pledge Program submitted successfully.")
 
     def form_valid(self, form, *args, **kwargs):
-        form.instance.chapter = self.request.user.current_chapter
+        chapter = self.request.user.current_chapter
+        form.instance.chapter = chapter
         form.instance.year = datetime.datetime.now().year
         current_roles = self.request.user.chapter_officer()
         if not current_roles or current_roles == {""}:
@@ -2756,25 +2767,21 @@ class PledgeProgramProcessCreateView(
             return super().form_invalid(form)
         else:
             program = form.save()
-            chapter = self.request.user.current_chapter
             Task.mark_complete(
                 name="Pledge Program",
                 chapter=chapter,
                 user=self.request.user,
                 obj=program,
             )
-            if program.manual == "other":
-                EmailPledgeOther(self.request.user, program.other_manual.file).send()
             self.activation.process.program = program
             self.activation.process.chapter = chapter
             return super().form_valid(form)
 
     def get_context_data(self, *args, **kwargs):
         context = super().get_context_data(**kwargs)
+        chapter = self.request.user.current_chapter
         data = []
-        processes = PledgeProgramProcess.objects.filter(
-            program__chapter=self.request.user.current_chapter
-        )
+        processes = PledgeProgramProcess.objects.filter(program__chapter=chapter)
         for process in processes:
             if process.finished is None:
                 task = process.active_tasks().first()
@@ -2800,6 +2807,11 @@ class PledgeProgramProcessCreateView(
             elif "approved" in self.object.process.values_list("approval", flat=True):
                 submitted = "approved"
         context["submitted"] = submitted
+        context["program_link"] = (
+            f"https://docs.google.com/document/d/{chapter.nme_file_id}/edit"
+            if chapter.nme_file_id != "none"
+            else None
+        )
         context["table"] = PledgeProgramStatusTable(data=data)
         return context
 
