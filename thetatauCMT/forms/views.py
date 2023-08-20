@@ -41,6 +41,9 @@ from core.models import (
     current_term,
     current_year,
     current_year_term_slug,
+    CHAPTER_OFFICER,
+    COL_OFFICER_ALIGN,
+    SEMESTER,
 )
 from core.notifications import GenericEmail
 from core.views import (
@@ -95,11 +98,6 @@ from .forms import (
 from tasks.models import Task
 from scores.models import ScoreType
 from submissions.models import Submission
-from core.models import (
-    CHAPTER_OFFICER,
-    COL_OFFICER_ALIGN,
-    SEMESTER,
-)
 from configs.models import Config
 from users.models import User, UserRoleChange
 from users.forms import UserForm
@@ -580,7 +578,8 @@ class StatusChangeView(LoginRequiredMixin, OfficerRequiredMixin, FormView):
     resignedCC = []
 
     def initial_info(self, status_change):
-        actives = self.request.user.current_chapter.actives()
+        chapter = self.request.user.current_chapter
+        actives = chapter.actives()
         self.to_graduate = actives.filter(pk__in=status_change["graduate"])
         self.to_coop = actives.filter(pk__in=status_change["coop"])
         self.to_covid = actives.filter(pk__in=status_change["covid"])
@@ -603,6 +602,26 @@ class StatusChangeView(LoginRequiredMixin, OfficerRequiredMixin, FormView):
             return redirect("forms:status_selection")
         else:
             self.initial_info(status_change)
+            chapter = self.request.user.current_chapter
+            officers = chapter.get_current_officers_council()[0]
+            for member in self.to_coop:
+                if member in officers:
+                    role_info = member.roles.filter(
+                        role__in=member.current_roles
+                    ).values("role", "start", "end")
+                    role_message = "<br>".join(
+                        [
+                            f"{role['role'].title()}:  start: {role['start']} end: {role['end']}"
+                            for role in role_info
+                        ]
+                    )
+                    messages.add_message(
+                        self.request,
+                        messages.WARNING,
+                        mark_safe(
+                            f"{member} is a current officer. COOP status must not overlap with officer term.<br>{role_message}"
+                        ),
+                    )
             return super().get(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
@@ -676,6 +695,35 @@ class StatusChangeView(LoginRequiredMixin, OfficerRequiredMixin, FormView):
             return self.render_to_response(
                 self.get_context_data(formset=formset, csmt_formset=csmt_formset)
             )
+        chapter = self.request.user.current_chapter
+        error = False
+        officers = chapter.get_current_officers_council()[0]
+        for form in csmt_formset:
+            if form.instance.reason == "coop":
+                member = form.instance.user
+                if member in officers:
+                    role_info = member.roles.filter(
+                        role__in=member.current_roles + list(CHAPTER_OFFICER),
+                    ).values("role", "start", "end")
+                    for role in role_info:
+                        latest_start = max(form.instance.date_start, role["start"])
+                        earliest_end = min(form.instance.date_end, role["end"])
+                        delta = (earliest_end - latest_start).days + 1
+                        overlap = max(0, delta)
+                        if overlap > 0:
+                            error = True
+                            role_message = f"{role['role'].title()}:  start: {role['start']} end: {role['end']}"
+                            messages.add_message(
+                                self.request,
+                                messages.ERROR,
+                                mark_safe(
+                                    f"{member} is a current officer. COOP status must not overlap with officer term.<br>{role_message}"
+                                ),
+                            )
+        if error:
+            return self.render_to_response(
+                self.get_context_data(formset=formset, csmt_formset=csmt_formset)
+            )
         update_list = []
         graduates_list = []
         for form in formset:
@@ -687,9 +735,7 @@ class StatusChangeView(LoginRequiredMixin, OfficerRequiredMixin, FormView):
                 form.instance.date_end = next_semester
             form.save()
             update_list.append(form.instance.user)
-        Task.mark_complete(
-            name="Member Updates", chapter=self.request.user.current_chapter
-        )
+        Task.mark_complete(name="Member Updates", chapter=chapter)
         slug = Config.get_value("GraduationSurvey")
         for user in graduates_list:
             if not slug:
@@ -766,7 +812,34 @@ class RoleChangeView(LoginRequiredMixin, OfficerRequiredMixin, ModelFormSetView)
                 # We should remove this form
                 formset = remove_extra_form(formset)
         if formset.is_valid():
-            return self.formset_valid(formset)
+            error = False
+            for form in formset:
+                member = form.instance.user
+                role = form.instance.role
+                if role in CHAPTER_OFFICER:
+                    status_info = member.status.filter(
+                        status__in=["away"],
+                    ).values("status", "start", "end")
+                    for status in status_info:
+                        latest_start = max(form.instance.start, status["start"])
+                        earliest_end = min(form.instance.end, status["end"])
+                        delta = (earliest_end - latest_start).days + 1
+                        overlap = max(0, delta)
+                        if overlap > 0:
+                            error = True
+                            role_message = f"Away status start: {status['start']} end: {status['end']}"
+                            messages.add_message(
+                                self.request,
+                                messages.ERROR,
+                                mark_safe(
+                                    f"For member {member}. Away status (eg. COOP status) must not overlap with officer term.<br>{role_message}"
+                                ),
+                            )
+            if error:
+                self.object_list = self.get_queryset()
+                return self.formset_invalid(formset)
+            else:
+                return self.formset_valid(formset)
         else:
             self.object_list = self.get_queryset()
             return self.formset_invalid(formset)
