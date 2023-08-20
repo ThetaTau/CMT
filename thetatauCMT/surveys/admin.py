@@ -1,10 +1,11 @@
 from django.contrib import admin
 from core.admin import user_chapter
+from import_export.admin import ExportActionModelAdmin
 from survey.admin import Survey as Survey_orig, SurveyAdmin, Response, ResponseAdmin
 from .models import DepledgeSurvey, Survey
 
 
-class DepledgeSurveyAdmin(admin.ModelAdmin):
+class DepledgeSurveyAdmin(ExportActionModelAdmin):
     raw_id_fields = ["user"]
     list_display = (
         "user",
