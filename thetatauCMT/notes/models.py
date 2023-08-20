@@ -48,6 +48,9 @@ class Note(TimeStampedModel):
         default=False,
         help_text="If True only EC will be able to read or edit",
     )
+    parent = models.ForeignKey(
+        "self", on_delete=models.CASCADE, related_name="subnotes", blank=True, null=True
+    )
 
     class Meta:
         abstract = True
@@ -71,6 +74,9 @@ class ChapterNote(Note):
         null=True,
     )
 
+    def __str__(self):
+        return f"{self.chapter} {self.title}"
+
 
 class UserNote(Note):
     user = models.ForeignKey(
@@ -90,3 +96,6 @@ class UserNote(Note):
         blank=True,
         null=True,
     )
+
+    def __str__(self):
+        return f"{self.user} {self.title}"
