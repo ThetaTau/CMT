@@ -10,6 +10,7 @@ class EventTable(tables.Table):
 
     class Meta:
         model = Event
+        order_by = "-date"
         fields = (
             "name",
             "date",
