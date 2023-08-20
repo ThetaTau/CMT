@@ -105,7 +105,7 @@ class PledgeProgramTable(tables.Table):
     remote = tables.BooleanColumn(verbose_name="Remote")
     weeks = tables.Column(verbose_name="Weeks in Program")
     weeks_left = tables.Column(verbose_name="Weeks LEFT in Program")
-    status = tables.Column(verbose_name="Program Status")
+    live_link = tables.Column(verbose_name="Live Program")
     approval = tables.Column()
     chapter_name = tables.Column(verbose_name="Chapter")
     pk = tables.LinkColumn(
@@ -122,6 +122,7 @@ class PledgeProgramTable(tables.Table):
             "school",
             "year",
             "term",
+            "live_link",
             "pk",
             "manual",
             "approval",
@@ -135,6 +136,15 @@ class PledgeProgramTable(tables.Table):
 
     def render_status(self, value):
         return PledgeProgram.STATUS.get_value(value)
+
+    def render_live_link(self, value):
+        if value != "none":
+            value = mark_safe(
+                f"<a href='https://docs.google.com/document/d/{value}/edit' target='_blank'>Link</a>"
+            )
+        else:
+            value = None
+        return value
 
     def render_term(self, value):
         return PledgeProgram.TERMS.get_value(value)
