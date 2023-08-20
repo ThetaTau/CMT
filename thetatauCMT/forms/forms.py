@@ -1715,9 +1715,6 @@ class ReturnStudentForm(forms.ModelForm):
     debt = forms.ChoiceField(
         label=ReturnStudent.verbose_debt, choices=CHOICES, initial=""
     )
-    vote = forms.ChoiceField(
-        label=ReturnStudent.verbose_vote, choices=CHOICES, initial=""
-    )
     user = forms.ModelChoiceField(
         label="Member requesting return",
         queryset=User.objects.all(),
@@ -1737,7 +1734,6 @@ class ReturnStudentForm(forms.ModelForm):
             "reason",
             "financial",
             "debt",
-            "vote",
         ]
 
     def clean_user(self):
