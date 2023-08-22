@@ -1,15 +1,15 @@
 import django_tables2 as tables
+from django_tables2.utils import A
 from .models import ChapterNote, UserNote
 
 
 class ChapterNoteTable(tables.Table):
-    note = tables.TemplateColumn("{{ value|safe }}")
+    title = tables.LinkColumn("notes:detail", args=[A("pk")])
 
     class Meta:
         model = ChapterNote
         fields = (
             "title",
-            "note",
             "type",
             "file",
             "modified",

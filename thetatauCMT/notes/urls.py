@@ -1,4 +1,5 @@
 from django.conf.urls import url
+from django.urls import path
 
 from . import views
 
@@ -14,4 +15,5 @@ urlpatterns = [
         view=views.UserNoteCreateView.as_view(),
         name="add_user",
     ),
+    path("detail/<int:pk>/", views.ChapterNoteDetailView.as_view(), name="detail"),
 ]
