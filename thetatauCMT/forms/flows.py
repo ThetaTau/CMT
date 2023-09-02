@@ -21,7 +21,6 @@ from core.flows import (
     register_factory,
 )
 from core.utils import login_with_service_account
-from core.notifications import GenericEmail
 from .models import (
     PrematureAlumnus,
     InitiationProcess,
@@ -362,12 +361,11 @@ class InitiationProcessFlow(Flow):
     invoice_payment_email = flow.Handler(
         this.send_invoice_payment_email,
         task_title=_("Send Initiation Process Complete Emails"),
-    ).Next(this.shingle_order_delay)
+    ).Next(this.shingle_order)
 
-    shingle_order_delay = flow.Function(
-        this.placeholder,
-        task_loader=lambda flow_task, task: task,
-        task_title=_("Wait shingle order"),
+    shingle_order = flow.Handler(
+        this.shingle_order_func,
+        task_title=_("Send shingle order to Google Drive"),
     ).Next(this.complete)
 
     complete = flow.End(
@@ -434,6 +432,7 @@ class InitiationProcessFlow(Flow):
         member_list = activation.process.initiations.values_list(
             "user__name", flat=True
         )
+        return
         for initiation in activation.process.initiations.all():
             if initiation.user.current_status != "active":
                 initiation.user.set_current_status(
@@ -472,26 +471,24 @@ class InitiationProcessFlow(Flow):
         activation.done()
         return activation
 
-    @classmethod
-    def shingle_orders(cls, processes):
-        chapters, invoices, attachments = [], [], []
-        for process in processes:
-            process_init = process.initiationprocess
-            _, shingle_mail = process_init.generate_badge_shingle_order()
-            attachments.append(shingle_mail)
-            chapters.append(process_init.chapter.name)
-            invoices.append(str(process_init.invoice))
-            cls.shingle_order_delay.run(process.get_task(cls.shingle_order_delay))
-        if chapters:
-            date_str = datetime.datetime.today().strftime("%Y%m%d")
-            print("Sending shingle orders for", chapters)
-            GenericEmail(
-                emails=["Goosecreekorders@gmail.com"],
-                subject=f"Theta Tau Shingle Order {date_str}",
-                message=f"Shingle order for {', '.join(chapters)},"
-                f" Invoice numbers {', '.join(invoices)} See attached documents.",
-                attachments=attachments,
-            ).send()
+    def shingle_order_func(self, activation):
+        process = activation.process
+        file_name, shingle_file = process.generate_badge_shingle_order(
+            csv_type="shingle", get_file=True
+        )
+        gauth = login_with_service_account()
+        drive = GoogleDrive(gauth)
+        folder_id = "1KgdpcTWKJQscwbgCGkvpQVzV6yoE8q1k"
+        doc_file = drive.CreateFile(
+            {
+                "title": file_name,
+                "mimeType": "text/csv",
+                "parents": [{"id": folder_id}],
+            }
+        )
+        doc_file.SetContentString(shingle_file.getvalue())
+        # doc_file.content = shingle_file
+        doc_file.Upload()
 
 
 @register_factory(viewset_class=FilterableFlowViewSet)

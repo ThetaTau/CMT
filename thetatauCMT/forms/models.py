@@ -239,8 +239,8 @@ class Initiation(TimeStampedModel, EmailSignalMixin):
 
     # task = GenericRelation(TaskChapter)  We are currently not using this
 
-    def __str__(self):
-        return f"{self.user} initiated on {self.date}"
+    # def __str__(self):
+    #     return f"{self.user} initiated on {self.date}"
 
     def save(self, *args, **kwargs):
         status_update = True
@@ -1128,7 +1128,9 @@ class InitiationProcess(Process, EmailSignalMixin):
             attachment_path.unlink()  # Delete the file when we are done
         return invoice_obj.DocNumber
 
-    def generate_badge_shingle_order(self, response=None, csv_type=None):
+    def generate_badge_shingle_order(
+        self, response=None, csv_type=None, get_file=False
+    ):
         """
         badge example:
         Omega Delta, OmgD, 111, 2022, Doe, 107
@@ -1162,6 +1164,8 @@ class InitiationProcess(Process, EmailSignalMixin):
             "Chapter Phone",
             "Education Class of",
             "Initiation Date",
+            "Email",
+            "School Email",
         ]
         chapter = self.chapter.name
         chapter_abr = self.chapter.greek
@@ -1170,7 +1174,10 @@ class InitiationProcess(Process, EmailSignalMixin):
         shingle_file = io.StringIO()
         badge_mail = MIMEBase("application", "csv")
         badge_filename = f"{chapter}_{init_date}_badge.csv"
-        shingle_filename = f"{chapter}_{init_date}_shingle.csv"
+        # Intuit Invoice # - ChapterID_other stuff.csv
+        shingle_filename = (
+            f"{self.invoice}-{self.chapter.id:03d}_{chapter}_{init_date}_shingle.csv"
+        )
         badge_mail.add_header(
             "Content-Disposition", "attachment", filename=badge_filename
         )
@@ -1221,12 +1228,22 @@ class InitiationProcess(Process, EmailSignalMixin):
                 "Chapter Phone": self.chapter.address_phone_number,
                 "Education Class of": initiation.date_graduation.year,
                 "Initiation Date": initiation.date.strftime("%B %d, %Y"),
+                "Email": initiation.user.email,
+                "School Email": initiation.user.email_school,
             }
             shingle_writer.writerow(row_shingle)
-        if response is None:
+        if response is None and not get_file:
             badge_mail.set_payload(badge_file.getvalue())
             shingle_mail.set_payload(shingle_file.getvalue())
             out = badge_mail, shingle_mail
+        elif get_file:
+            if csv_type == "badge":
+                file_name = badge_filename
+                file_obj = badge_file
+            else:
+                file_name = shingle_filename
+                file_obj = shingle_file
+            out = file_name, file_obj
         return out
 
 
