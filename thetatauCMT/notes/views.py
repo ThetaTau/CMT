@@ -34,7 +34,12 @@ class ChapterNoteDetailView(LoginRequiredMixin, MultiFormsView):
                 messages.INFO,
                 f"You do not have permission to see this note.",
             )
-            return redirect(reverse("objectives:list"))
+            return redirect(
+                reverse(
+                    "chapters:detail",
+                    kwargs={"slug": self.request.user.current_chapter.slug},
+                )
+            )
         return super().get(request, *args, **kwargs)
 
     def post(self, request, *args, **kwargs):
@@ -45,7 +50,7 @@ class ChapterNoteDetailView(LoginRequiredMixin, MultiFormsView):
         messages.add_message(
             self.request,
             messages.INFO,
-            f"Note successfully update:",
+            f"Note successfully updated",
         )
         return reverse("notes:detail", kwargs={"pk": self.object.pk})
 
@@ -67,7 +72,11 @@ class ChapterNoteDetailView(LoginRequiredMixin, MultiFormsView):
     def subnotes_form_valid(self, formset):
         instances = formset.save(commit=False)
         for instance in instances:
-            instance.objective = self.object
+            instance.parent = self.object
+            instance.chapter = self.object.chapter
+            if instance.created_by is None:
+                instance.created_by = self.request.user
+            instance.modified_by = self.request.user
             instance.save()
         formset.save()
         return HttpResponseRedirect(self.get_success_url())
@@ -102,6 +111,7 @@ class ChapterNoteDetailView(LoginRequiredMixin, MultiFormsView):
                 formset_kwargs.update(
                     {
                         "data": self.request.POST.copy(),
+                        "files": self.request.FILES.copy(),
                     }
                 )
         return factory(**formset_kwargs)

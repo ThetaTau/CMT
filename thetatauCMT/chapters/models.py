@@ -342,7 +342,7 @@ class Chapter(models.Model, EmailSignalMixin):
         ).distinct()
 
     def notes_filtered(self, current_user):
-        notes = self.notes.all()
+        notes = self.notes.exclude(parent__isnull=False)
         if not current_user.is_council_officer():
             notes = notes.exclude(restricted=True)
         return notes
