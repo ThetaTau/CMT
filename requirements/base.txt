@@ -10,6 +10,7 @@ celery==5.1.2  # pyup: < 5.0  # https://github.com/celery/celery
 google-api-python-client==2.14.0  # https://github.com/googleapis/google-api-python-client
 gspread==3.7.0  # https://github.com/burnash/gspread
 PyDrive2==1.17.0  # https://github.com/iterative/PyDrive2
+gspread==5.10.0  # https://github.com/burnash/gspread
 reportlab==3.6.11  # https://www.reportlab.com/
 xhtml2pdf==0.2.8  # https://github.com/xhtml2pdf/xhtml2pdf
 google-api-core==1.31.0
