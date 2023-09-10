@@ -1,0 +1,16 @@
+{% extends "admin/base_site.html" %}
+{% load crispy_forms_tags %}
+{% block content %}
+  {{ form.media }}
+  <form action="" method="post">
+    {% csrf_token %}
+    <p>
+      What group should members be added to in training?
+    </p>
+      <p><b>NEW GROUPS keep in mind that the name of new groups will
+        be unique based on the first 8 letters of the name.</b></p>
+    {{ form | crispy }}
+    <input type="hidden" name="action" value="assign_training"/>
+    <input type="submit" name="apply" value="Assign Training"/>
+  </form>
+{% endblock %}

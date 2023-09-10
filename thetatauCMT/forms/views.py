@@ -889,7 +889,11 @@ class RoleChangeView(LoginRequiredMixin, OfficerRequiredMixin, ModelFormSetView)
                         "pledge/new member educator",
                         "risk management chair",
                     ]:
-                        Training.add_user(form.instance.user, request=self.request)
+                        Training.add_user(
+                            form.instance.user,
+                            extra_group=role_name,
+                            request=self.request,
+                        )
                     if role_name in COL_OFFICER_ALIGN:
                         role_name = COL_OFFICER_ALIGN[role_name]
                     if role_name in CHAPTER_OFFICER:

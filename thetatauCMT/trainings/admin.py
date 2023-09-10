@@ -1,11 +1,35 @@
 from django.contrib import admin
+from django.http import HttpResponseRedirect
+from django.shortcuts import render
 from .models import Training
+from .forms import UserAdminTrainingForm
 
 
 class AssignTrainingMixin:
     def assign_training(self, request, queryset):
-        for user in queryset:
-            Training.add_user(user, request=request)
+        extra_groups = Training.get_extra_groups()
+        kwargs = {
+            "extra_groups": extra_groups,
+            "initial": {"_selected_action": queryset.values_list("id", flat=True)},
+        }
+        if request.method in ("POST", "PUT"):
+            kwargs.update(
+                {
+                    "data": request.POST,
+                }
+            )
+        form = UserAdminTrainingForm(**kwargs)
+        if "apply" in request.POST:
+            if form.is_valid() and not form.errors:
+                for user in queryset:
+                    extra_group = form.cleaned_data["extra_group"]
+                    Training.add_user(user, extra_group=extra_group, request=request)
+                return HttpResponseRedirect(request.get_full_path())
+        return render(
+            request,
+            "admin/assign_training.html",
+            context={"form": form},
+        )
 
     assign_training.short_description = "Assign Member Training"
 

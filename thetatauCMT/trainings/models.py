@@ -177,6 +177,51 @@ class Training(TimeStampedModel):
                 )
 
     @staticmethod
+    def get_extra_groups():
+        url = "https://thetatau-tx.vectorlmsedu.com/graphql/"
+        authenticate_header = Training.authenticate_header()
+        has_next = True
+        cursor = ""
+        extra_groups_total = []
+        while has_next:
+            if cursor:
+                cursor = f'after: "{cursor}"'
+            query_positions = f"""
+                query
+                   {{ Positions (first: 100 {cursor})
+                    {{ nodes
+                      {{ positionId
+                        name
+                        code
+                      }}
+                      pageInfo
+                      {{
+                       count
+                       totalCount
+                       startCursor
+                       endCursor
+                       hasNextPage
+                       hasPreviousPage
+                        }}
+                    }}
+                }}
+                """
+            response = requests.post(
+                url, json={"query": query_positions}, headers=authenticate_header
+            )
+            json_response = response.json()
+            extra_groups = [
+                (node["code"], node["name"])
+                for node in json_response["data"]["Positions"]["nodes"]
+                if node["code"]
+            ]
+            extra_groups_total.extend(extra_groups)
+            has_next = json_response["data"]["Positions"]["pageInfo"]["hasNextPage"]
+            cursor = json_response["data"]["Positions"]["pageInfo"]["endCursor"]
+        extra_groups_total = sorted(extra_groups_total, key=lambda x: x[1].lower())
+        return extra_groups_total
+
+    @staticmethod
     def get_location_position_ids(status, location):
         url = "https://thetatau-tx.vectorlmsedu.com/graphql/"
         authenticate_header = Training.authenticate_header()
@@ -196,6 +241,8 @@ class Training(TimeStampedModel):
         )
         all_locations = response.json()
         location_id = all_locations["data"]["Locations"]["nodes"][0]["locationId"]
+        # Frontend will let you add position as long as you want,
+        # but the graphql will only return and match on the first 8 characters
         query_positions = f"""
                 query
                    {{ Positions  (code: "{status[0:8]}")
@@ -211,11 +258,35 @@ class Training(TimeStampedModel):
             url, json={"query": query_positions}, headers=authenticate_header
         )
         all_positions = response.json()
-        position_id = all_positions["data"]["Positions"]["nodes"][0]["positionId"]
+        position_id_nodes = all_positions["data"]["Positions"]["nodes"]
+        if position_id_nodes:
+            position_id = position_id_nodes[0]["positionId"]
+        else:
+            # if no data
+            # {'data': {'Positions': {'nodes': []}}}
+            add_position = f"""
+                mutation  change {{
+                    addPosition(
+                        name: "{status}"
+                        code: "{status}"
+                        )  {{
+                        positionId
+                        name
+                        code
+                    }}
+                }}
+                """
+            response = requests.post(
+                url, json={"query": add_position}, headers=authenticate_header
+            )
+            new_positions = response.json()
+            position_id = new_positions["data"]["addPosition"]["positionId"]
         return location_id, position_id
 
     @staticmethod
-    def add_user(user, request=None):
+    def add_user(user, extra_group=None, request=None):
+        message = ""
+        level = messages.INFO
         authenticate_header = Training.authenticate_header()
         url = "https://thetatau-tx.vectorlmsedu.com/graphql/"
         status = user.current_status
@@ -257,6 +328,7 @@ class Training(TimeStampedModel):
                 message = (
                     f"Sync training is missing:<br>{location_id=} {position_id=} for {user=} should be "
                     f"{user.chapter.slug=} {status=}, Attempted to add location {response_json_location_add=}"
+                    "Please notify the central office."
                 )
                 send_mail(
                     "Sync Training Error",
@@ -298,15 +370,73 @@ class Training(TimeStampedModel):
                'path': ['addPerson']}],
              'data': {'addPerson': None}}
             """
+            person_id = None
             if "errors" not in response_json:
                 message = f"{user} successfully added to training system"
                 level = messages.INFO
                 person_id = response_json["data"]["addPerson"]["personId"]
-                if person_id and user.is_national_officer():
-                    location_id, position_id = Training.get_location_position_ids(
-                        "natoff", "Theta Tau"
-                    )
-                    query = f"""
+            elif (
+                "This username already exists" in response_json["errors"][0]["message"]
+            ):
+                query = f"""
+                query a
+                {{ username: People (username: "{user.username}" )
+                    {{ nodes
+                       {{ username
+                         personId
+                       }}
+                    }}
+                    email: People (username: "{user.email}" )
+                    {{ nodes
+                       {{ username
+                         personId
+                       }}
+                    }}
+                    email_school: People (username: "{user.email_school}" )
+                    {{ nodes
+                       {{ username
+                         personId
+                       }}
+                    }}
+                    externalUniqueId: People (externalUniqueId: "{user.user_id}" )
+                    {{ nodes
+                       {{ username
+                         personId
+                       }}
+                    }}
+                }}
+                """
+                response = requests.post(
+                    url, headers=authenticate_header, json={"query": query}
+                )
+                response_json = response.json()
+                people_nodes = []
+                for node_name in [
+                    "username",
+                    "email",
+                    "email_school",
+                    "externalUniqueId",
+                ]:
+                    nodes = response_json["data"][node_name]["nodes"]
+                    people_nodes.extend(nodes)
+                if people_nodes:
+                    person_id = people_nodes[0]["personId"]
+                    ids = set([people_node["personId"] for people_node in people_nodes])
+                    if len(ids) > 1:
+                        message = f"{user} Had multiple matching accounts. All other accounts, using first {people_nodes}"
+                        level = messages.ERROR
+                else:
+                    message = f"{user} NOT added to training system or updated, maybe an error. {response_json}"
+                    level = messages.ERROR
+            else:
+                message = f"{user} NOT added to training system, maybe an error. {response_json}"
+                level = messages.ERROR
+
+            def add_extra_group(extra_group, location, person_id):
+                location_id, position_id = Training.get_location_position_ids(
+                    extra_group, location
+                )
+                query = f"""
                     mutation  JobMutation {{
                         Person (personId: "{person_id}") {{
                             addJob(locationId:"{location_id}", positionId:"{position_id}"){{
@@ -315,14 +445,20 @@ class Training(TimeStampedModel):
                       }}
                     }}
                     """
-                    response = requests.post(
-                        url, json={"query": query}, headers=authenticate_header
-                    )
-                    json_response = response.json()
-                    print(json_response)
-            else:
-                message = f"{user} NOT added to training system, maybe an error. {response_json}"
-                level = messages.ERROR
+                response = requests.post(
+                    url, json={"query": query}, headers=authenticate_header
+                )
+                json_response = response.json()
+                print(json_response)
+
+            if person_id and user.is_national_officer():
+                add_extra_group("natoff", "Theta Tau", person_id)
+                message += f" Added {user} to extra_group=natoff and location=Theta Tau"
+            if person_id and extra_group:
+                add_extra_group(extra_group, user.chapter.name, person_id)
+                message += (
+                    f" Added {user} to {extra_group=} and location={user.chapter.name}"
+                )
         elif response.status_code == 429:
             # 150 requests per rolling 300 seconds
             sleep(120)
