@@ -13,6 +13,7 @@
       <env name="PGPORT" value="5432" />
       <env name="PGUSER" value="postgres" />
       <env name="PYTHONUNBUFFERED" value="1" />
+      <env name="DJANGO_READ_DOT_ENV_FILE" value="TRUE" />
     </envs>
     <option name="SDK_HOME" value="" />
     <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
