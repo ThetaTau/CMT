@@ -9,7 +9,8 @@ from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
 from django.utils.text import slugify
 from email_signals.models import EmailSignalMixin
-from core.models import ALL_ROLES_CHOICES, TODAY_END, academic_encompass_start_end_date
+from core.models import TODAY_END, academic_encompass_start_end_date
+from users.models import Role
 from chapters.models import Chapter
 from scores.models import ScoreType
 
@@ -26,10 +27,9 @@ class Task(models.Model):
         ("task", "Task"),
         ("bal", "Balance"),
     ]
-    OWNERS = ALL_ROLES_CHOICES
     name = models.CharField(max_length=50)
     slug = models.SlugField(unique=True)
-    owner = models.CharField(max_length=50, choices=OWNERS)
+    owner = models.CharField(max_length=50, choices=Role.roles_in_group_choices())
     type = models.CharField(max_length=4, choices=TYPES)
     days_advance = models.PositiveIntegerField(default=90)
     resource = models.CharField(max_length=100, blank=True)

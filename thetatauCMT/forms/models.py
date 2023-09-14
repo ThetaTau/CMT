@@ -24,8 +24,6 @@ from quickbooks.objects.attachable import Attachable, AttachableRef
 from core.finances import get_quickbooks_client, invoice_search, create_line
 from core.models import (
     forever,
-    CHAPTER_ROLES_CHOICES,
-    CHAPTER_OFFICER_CHOICES,
     academic_encompass_start_end_date,
     semester_encompass_start_end_date,
     EnumClass,
@@ -36,6 +34,7 @@ from core.models import (
 )
 from chapters.models import Chapter
 from submissions.models import Submission
+from users.models import Role
 
 
 class MultiSelectField(MultiSelectField):
@@ -327,7 +326,7 @@ class Depledge(TimeStampedModel, EmailSignalMixin):
             ("marshal", "Marshal"),
             ("other appointee", "Other Appointee"),
         ]
-        + CHAPTER_OFFICER_CHOICES,
+        + Role.officer_choices("chapter"),
         null=True,
         blank=True,
         max_length=500,
@@ -673,7 +672,7 @@ class Audit(YearTermModel, TimeStampedModel, EmailSignalMixin):
     debit_card = models.BooleanField()
     debit_card_access = MultiSelectField(
         "Which members have access to the chapter debit card? Select all that apply.",
-        choices=[("None", "None")] + CHAPTER_ROLES_CHOICES,
+        choices=[("None", "None")] + Role.roles_in_group_choices(["chapter"]),
         max_length=5000,
     )
     agreement = models.BooleanField()

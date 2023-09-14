@@ -32,8 +32,7 @@ from chapters.forms import ChapterForm
 from chapters.models import Chapter, ChapterCurricula
 from core.address import fix_address
 from core.forms import DuplicateAddressField, SchoolModelChoiceField
-from core.models import CHAPTER_ROLES_CHOICES, NAT_OFFICERS_CHOICES
-from users.models import User, UserRoleChange, UserDemographic
+from users.models import User, UserRoleChange, UserDemographic, Role
 from .models import (
     Initiation,
     Bylaws,
@@ -506,7 +505,7 @@ class RoleChangeNationalSelectForm(forms.ModelForm):
         disabled=True,
     )
     role = forms.ChoiceField(
-        choices=[("", "---------")] + NAT_OFFICERS_CHOICES, disabled=True
+        choices=[("", "---------")] + Role.officer_choices("national"), disabled=True
     )
     start = forms.DateField(
         initial=timezone.now().date(),
@@ -547,7 +546,8 @@ class RoleChangeSelectForm(forms.ModelForm):
         disabled=True,
     )
     role = forms.ChoiceField(
-        choices=[("", "---------")] + CHAPTER_ROLES_CHOICES, disabled=True
+        choices=[("", "---------")] + Role.roles_in_group_choices(["chapter"]),
+        disabled=True,
     )
     start = forms.DateField(
         initial=timezone.now().date(),

@@ -11,14 +11,13 @@ from core.views import (
     LoginRequiredMixin,
     PagedFilteredTableView,
 )
-from core.models import CHAPTER_OFFICER
 from core.forms import MultiFormsView
 from .models import Chapter
 from .forms import ChapterForm, ChapterFormHelper
 from .filters import ChapterListFilter
 from .tables import ChapterCurriculaTable, ChapterTable, AuditTable
 from users.tables import UserTable
-from users.models import User
+from users.models import User, Role
 from users.forms import ExternalUserForm
 from tasks.models import Task
 from submissions.models import Submission
@@ -141,16 +140,16 @@ class ChapterDetailView(LoginRequiredMixin, MultiFormsView):
             role = user.get_officer_role_on_date(audit["modified"])
             if role is not None:
                 role = role.role
-            if (role not in audit_data) and (role in CHAPTER_OFFICER):
+            if (role not in audit_data) and (role in Role.officers("chapter")):
                 audit["user"] = user
                 audit_data[role] = audit
-            if len(audit_data) == len(CHAPTER_OFFICER):
+            if len(audit_data) == len(Role.officers("chapter")):
                 break
         for name in row_names:
             audit_item = {
                 "item": Audit._meta.get_field(name).verbose_name.title(),
             }
-            for officer in CHAPTER_OFFICER:
+            for officer in Role.officers("chapter"):
                 audit = audit_data.get(officer, None)
                 value = "Incomplete"
                 if audit is not None:

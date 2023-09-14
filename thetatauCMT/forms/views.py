@@ -41,8 +41,6 @@ from core.models import (
     current_term,
     current_year,
     current_year_term_slug,
-    CHAPTER_OFFICER,
-    COL_OFFICER_ALIGN,
     SEMESTER,
 )
 from core.notifications import GenericEmail
@@ -99,7 +97,7 @@ from tasks.models import Task
 from scores.models import ScoreType
 from submissions.models import Submission
 from configs.models import Config
-from users.models import User, UserRoleChange
+from users.models import User, UserRoleChange, Role
 from users.forms import UserForm
 from users.notifications import NewOfficers
 from chapters.models import Chapter, ChapterCurricula
@@ -703,7 +701,7 @@ class StatusChangeView(LoginRequiredMixin, OfficerRequiredMixin, FormView):
                 member = form.instance.user
                 if member in officers:
                     role_info = member.roles.filter(
-                        role__in=member.current_roles + list(CHAPTER_OFFICER),
+                        role__in=member.current_roles + list(Role.officers("chapter")),
                     ).values("role", "start", "end")
                     for role in role_info:
                         latest_start = max(form.instance.date_start, role["start"])
@@ -816,7 +814,7 @@ class RoleChangeView(LoginRequiredMixin, OfficerRequiredMixin, ModelFormSetView)
             for form in formset:
                 member = form.instance.user
                 role = form.instance.role
-                if role in CHAPTER_OFFICER:
+                if role in Role.officers("chapter"):
                     status_info = member.status.filter(
                         status__in=["away"],
                     ).values("status", "start", "end")
@@ -894,9 +892,7 @@ class RoleChangeView(LoginRequiredMixin, OfficerRequiredMixin, ModelFormSetView)
                             extra_group=role_name,
                             request=self.request,
                         )
-                    if role_name in COL_OFFICER_ALIGN:
-                        role_name = COL_OFFICER_ALIGN[role_name]
-                    if role_name in CHAPTER_OFFICER:
+                    if role_name in Role.officers("chapter"):
                         officer_list.append(form.instance.user)
             Task.mark_complete(
                 name="Officer Election Report",
@@ -1516,7 +1512,7 @@ class AuditFormView(LoginRequiredMixin, OfficerRequiredMixin, UpdateView):
             messages.add_message(
                 self.request,
                 messages.ERROR,
-                f"Only executive officers can submit an audit: {*CHAPTER_OFFICER,}\n"
+                f"Only executive officers can submit an audit: {*Role.officers('chapter'),}\n"
                 f"Your current roles are: {*current_roles,}",
             )
             return None
@@ -1554,7 +1550,7 @@ class AuditFormView(LoginRequiredMixin, OfficerRequiredMixin, UpdateView):
             messages.add_message(
                 self.request,
                 messages.ERROR,
-                f"Only executive officers can submit an audit: {*CHAPTER_OFFICER,}\n"
+                f"Only executive officers can submit an audit: {*Role.officers('chapter'),}\n"
                 f"Your current roles are: {*current_roles,}",
             )
             return super().form_invalid(form)
@@ -2839,7 +2835,7 @@ class PledgeProgramProcessCreateView(
             messages.add_message(
                 self.request,
                 messages.ERROR,
-                f"Only executive officers can sign submit pledge program: {*CHAPTER_OFFICER,}\n"
+                f"Only executive officers can sign submit pledge program: {*Role.officers('chapter'),}\n"
                 f"Your current roles are: {*current_roles,}",
             )
             return super().form_invalid(form)

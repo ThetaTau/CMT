@@ -1,6 +1,5 @@
 import datetime
 import factory
-from core.models import NAT_OFFICERS, CHAPTER_OFFICER, ADVISOR_ROLES
 from ..models import (
     UserAlter,
     UserSemesterServiceHours,
@@ -8,6 +7,7 @@ from ..models import (
     UserStatusChange,
     UserRoleChange,
     UserOrgParticipate,
+    Role,
 )
 from chapters.tests.factories import ChapterFactory, ChapterCurriculaFactory
 
@@ -128,7 +128,7 @@ class UserRoleChangeFactory(factory.django.DjangoModelFactory):
     modified = factory.Faker("date_time_between", start_date="-1y", end_date="+1y")
     user = factory.SubFactory(UserFactory)
     role = factory.Faker(
-        "random_element", elements=[item[0] for item in UserRoleChange.ROLES]
+        "random_element", elements=[item[0] for item in Role.roles_in_group_choices()]
     )
 
     class Meta:
@@ -149,11 +149,11 @@ class UserRoleChangeFactory(factory.django.DjangoModelFactory):
     @factory.post_generation
     def officer(self, create, extracted, **kwargs):
         if extracted == "chapter":
-            elements = CHAPTER_OFFICER
+            elements = Role.officers("chapter")
         elif extracted == "national":
-            elements = NAT_OFFICERS
+            elements = Role.officers("national")
         elif extracted == "advisor":
-            elements = ADVISOR_ROLES
+            elements = Role.roles_in_group(groups=["advisor"])
         else:
             elements = [extracted]
         self.role = factory.Faker("random_element", elements=elements).generate()

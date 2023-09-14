@@ -11,8 +11,7 @@ from core.views import (
     LoginRequiredMixin,
     NatOfficerRequiredMixin,
 )
-from core.models import NAT_OFFICERS, CHAPTER_OFFICER
-from users.models import UserRoleChange
+from users.models import UserRoleChange, Role
 from chapters.models import Chapter
 from .models import Ballot, BallotComplete
 from .tables import BallotTable, BallotUserTable, BallotCompleteTable
@@ -63,12 +62,14 @@ class BallotDetailView(
         all_ballots = self.object_list
         all_ballots = all_ballots.annotate(
             region=models.Case(
-                models.When(role__in=NAT_OFFICERS, then=models.Value("National")),
+                models.When(
+                    role__in=Role.officers("national"), then=models.Value("National")
+                ),
                 default=models.F("user__chapter__region__name"),
                 output_field=models.CharField(),
             ),
             chapter=models.Case(
-                models.When(role__in=NAT_OFFICERS, then=models.Value("")),
+                models.When(role__in=Role.officers("national"), then=models.Value("")),
                 default=models.F("user__chapter__name"),
                 output_field=models.CharField(),
             ),
@@ -77,7 +78,7 @@ class BallotDetailView(
         if region == "national":
             all_ballots = all_ballots.filter(region="National")
         users = all_ballots.values_list("user", flat=True)
-        chapters = all_ballots.exclude(role__in=NAT_OFFICERS).values_list(
+        chapters = all_ballots.exclude(role__in=Role.officers("national")).values_list(
             "chapter", flat=True
         )
         data = list(
@@ -241,7 +242,7 @@ class BallotCompleteCreateView(LoginRequiredMixin, OfficerRequiredMixin, CreateV
         current_roles = self.request.user.current_roles
         roles_allowed = ballot.voters
         if "all_chapters" in ballot.voters:
-            roles_allowed += CHAPTER_OFFICER
+            roles_allowed += Role.officers("chapter")
         valid_roles = list(set(current_roles) & set(roles_allowed))
         completed = ballot.get_completed(self.request.user)
         complete = False
@@ -268,7 +269,7 @@ class BallotCompleteCreateView(LoginRequiredMixin, OfficerRequiredMixin, CreateV
         current_roles = user.current_roles
         roles_allowed = ballot.voters
         if "all_chapters" in ballot.voters:
-            roles_allowed += CHAPTER_OFFICER
+            roles_allowed += Role.officers("chapter")
         valid_roles = list(set(current_roles) & set(roles_allowed))
         if not valid_roles:
             messages.add_message(

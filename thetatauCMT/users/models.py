@@ -22,14 +22,7 @@ from core.models import (
     TODAY,
     TOMORROW,
     TODAY_END,
-    CHAPTER_OFFICER,
-    ALL_ROLES_CHOICES,
     TimeStampedModel,
-    COL_OFFICER_ALIGN,
-    CHAPTER_OFFICER_CHOICES,
-    CHAPTER_ROLES,
-    NAT_OFFICERS,
-    COUNCIL,
     EnumClass,
 )
 from chapters.models import Chapter, ChapterCurricula
@@ -307,7 +300,7 @@ class User(AbstractUser, EmailSignalMixin):
 
     def get_officer_role_on_date(self, date):
         roles = self.get_roles_on_date(date)
-        return roles.filter(role__in=CHAPTER_OFFICER).first()
+        return roles.filter(role__in=Role.officers("chapter")).first()
 
     def chapter_officer(self, altered=True):
         """
@@ -315,8 +308,7 @@ class User(AbstractUser, EmailSignalMixin):
         :return: Bool if officer, set of officer roles
         """
         current_roles = set(self.current_roles) if self.current_roles else set()
-        # officer = not current_roles.isdisjoint(CHAPTER_OFFICER)
-        officer_roles = CHAPTER_OFFICER & current_roles
+        officer_roles = Role.officers("chapter") & current_roles
         if self.is_national_officer_group:
             if altered and self.altered.all():
                 new_role = self.altered.first().role
@@ -338,12 +330,14 @@ class User(AbstractUser, EmailSignalMixin):
 
     def is_national_officer(self):
         current_roles = set(self.current_roles) if self.current_roles else set()
-        officer_roles = set(NAT_OFFICERS) & set(current_roles)
+        officer_roles = set(Role.officers("national")) & set(current_roles)
         return officer_roles
 
     def is_council_officer(self):
         current_roles = set(self.current_roles) if self.current_roles else set()
-        officer_roles = COUNCIL & set(current_roles)
+        officer_roles = Role.roles_in_group(groups=["executive_council"]) & set(
+            current_roles
+        )
         return officer_roles
 
     @property
@@ -566,22 +560,6 @@ class UserDemographic(models.Model):
     )
 
 
-class UserAlter(models.Model):
-    """
-    This is used for altering things for natoffs
-    ie. when a natoff wants to check things for another chapter
-    """
-
-    user = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="altered"
-    )
-    chapter = models.ForeignKey(
-        Chapter, on_delete=models.CASCADE, default=1, related_name="altered_member"
-    )
-    ROLES = CHAPTER_OFFICER_CHOICES + [(None, "------------")]
-    role = models.CharField(max_length=50, choices=ROLES, null=True)
-
-
 class UserSemesterServiceHours(YearTermModel):
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="service_hours"
@@ -641,8 +619,13 @@ class Role(models.Model):
     chapter = models.BooleanField(default=False)
     national = models.BooleanField(default=False)
     alumni = models.BooleanField(default=False)
+    advisor = models.BooleanField(default=False)
+    housing = models.BooleanField(default=False)
     foundation = models.BooleanField(default=False)
     central_office = models.BooleanField(default=False)
+
+    class Meta:
+        ordering = ["name"]
 
     def __str__(self):
         return self.name
@@ -650,13 +633,60 @@ class Role(models.Model):
     def __repr__(self):
         return self.name
 
+    @classmethod
+    def roles_in_group(cls, groups=None, excludes=None):
+        if groups is None:
+            groups = []
+        if excludes is None:
+            excludes = []
+        kwargs = {}
+        for group in groups:
+            kwargs.update({group: True})
+        for exclude in excludes:
+            kwargs.update({exclude: False})
+        return set(cls.objects.filter(**kwargs).values_list("name", flat=True))
+
+    @classmethod
+    def roles_in_group_choices(cls, groups=None):
+        roles = cls.roles_in_group(groups=groups)
+        return [(role, role.title()) for role in roles]
+
+    @classmethod
+    def officers(cls, officer_type="all"):
+        kwargs = {}
+        if officer_type in ["chapter", "national"]:
+            kwargs = {officer_type: True}
+        return set(
+            cls.objects.filter(officer=True, **kwargs).values_list("name", flat=True)
+        )
+
+    @classmethod
+    def officer_choices(cls, officer_type="all"):
+        officers = cls.officers(officer_type=officer_type)
+        return [(role, role.title()) for role in officers]
+
+
+class UserAlter(models.Model):
+    """
+    This is used for altering things for natoffs
+    ie. when a natoff wants to check things for another chapter
+    """
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="altered"
+    )
+    chapter = models.ForeignKey(
+        Chapter, on_delete=models.CASCADE, default=1, related_name="altered_member"
+    )
+    ROLES = Role.officer_choices("chapter") + [(None, "------------")]
+    role = models.CharField(max_length=50, choices=ROLES, null=True)
+
 
 class UserRoleChange(StartEndModel, TimeStampedModel, EmailSignalMixin):
-    ROLES = ALL_ROLES_CHOICES
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="roles"
     )
-    role = models.CharField(max_length=50, choices=ROLES)
+    role = models.CharField(max_length=50, choices=Role.roles_in_group_choices())
     role_link = models.ForeignKey(
         Role, on_delete=models.SET_NULL, related_name="users", blank=True, null=True
     )
@@ -734,7 +764,7 @@ class UserRoleChange(StartEndModel, TimeStampedModel, EmailSignalMixin):
     @classmethod
     def get_current_roles(cls, user):
         return cls.objects.filter(
-            role__in=CHAPTER_ROLES,
+            role__in=Role.roles_in_group(["chapter"]),
             user__chapter=user.current_chapter,
             # start__lte=TODAY_END,
             end__gte=TODAY_END,
@@ -743,7 +773,7 @@ class UserRoleChange(StartEndModel, TimeStampedModel, EmailSignalMixin):
     @classmethod
     def get_current_natoff(cls):
         return cls.objects.filter(
-            role__in=NAT_OFFICERS, start__lte=TODAY_END, end__gte=TODAY_END
+            role__in=Role.officers("national"), start__lte=TODAY_END, end__gte=TODAY_END
         ).order_by("user__last_name")
 
 

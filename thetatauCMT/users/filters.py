@@ -1,9 +1,9 @@
 # filters.py
 import django_filters
 from .models import User, UserRoleChange
-from core.models import TODAY_END
 from regions.models import Region
 from chapters.models import ChapterCurricula, Chapter
+from users.models import Role
 
 
 class UserListFilterBase(django_filters.FilterSet):
@@ -67,7 +67,7 @@ class UserRoleListFilter(django_filters.FilterSet):
         method="filter_current_status",
     )
     current_roles = django_filters.MultipleChoiceFilter(
-        choices=UserRoleChange.ROLES, method="filter_current_roles"
+        choices=Role.roles_in_group_choices(), method="filter_current_roles"
     )
     region = django_filters.ChoiceFilter(
         choices=Region.region_choices(), method="filter_region"

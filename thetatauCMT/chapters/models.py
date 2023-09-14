@@ -23,13 +23,10 @@ from email_signals.models import EmailSignalMixin
 from core.models import (
     TODAY_END,
     annotate_role_status,
-    CHAPTER_OFFICER,
-    CHAPTER_ROLES,
     semester_encompass_start_end_date,
     BIENNIUM_START,
     BIENNIUM_START_DATE,
     BIENNIUM_DATES,
-    ADVISOR_ROLES,
     EnumClass,
 )
 from regions.models import Region
@@ -400,16 +397,22 @@ class Chapter(models.Model, EmailSignalMixin):
 
     @property
     def advisors(self):
+        from users.models import Role
+
         # Do not annotate, need the queryset not a list
         all_advisors = self.members.filter(
             current_status="advisor",
         ) | self.members.filter(
-            current_roles__overlap=list(ADVISOR_ROLES),
+            current_roles__overlap=list(Role.roles_in_group(groups=["advisor"])),
         )
         all_advisors = all_advisors.annotate(
             role=models.Case(
                 models.When(
-                    models.Q(current_roles__overlap=list(ADVISOR_ROLES)),
+                    models.Q(
+                        current_roles__overlap=list(
+                            Role.roles_in_group(groups=["advisor"])
+                        )
+                    ),
                     Concat(models.Value("Alumni "), "current_roles"),
                 ),
                 default=models.Value("Faculty Advisor"),
@@ -491,11 +494,17 @@ class Chapter(models.Model, EmailSignalMixin):
         return self.current_members().filter(service_hours__year__gte=BIENNIUM_START)
 
     def get_current_officers(self):
-        return self.members.filter(current_roles__overlap=CHAPTER_ROLES)
+        from users.models import Role
+
+        return self.members.filter(
+            current_roles__overlap=Role.roles_in_group(["chapter"])
+        )
 
     def get_current_officers_council(self):
+        from users.models import Role
+
         officers = self.members.filter(
-            current_roles__overlap=list(CHAPTER_OFFICER),
+            current_roles__overlap=list(Role.officers("chapter")),
         )
         previous = False
         date = TODAY_END
@@ -503,7 +512,7 @@ class Chapter(models.Model, EmailSignalMixin):
             # If there are not enough previous officers
             # get officers from last 8 months
             previous_officers = self.members.filter(
-                roles__role__in=CHAPTER_OFFICER,
+                roles__role__in=Role.officers("chapter"),
                 roles__end__gte=TODAY_END - timedelta(30 * 8),
             )
             officers = previous_officers | officers
@@ -562,8 +571,10 @@ class Chapter(models.Model, EmailSignalMixin):
     def get_current_and_future(self):
         # list all officers that currently hold an executive board position
         # current and future
+        from users.models import Role
+
         officers = self.members.filter(
-            roles__role__in=CHAPTER_OFFICER,
+            roles__role__in=Role.officers("chapter"),
             roles__end__gte=TODAY_END,
         ).prefetch_related("roles")
         current_and_future_regent = officers.filter(roles__role="regent")
@@ -583,8 +594,10 @@ class Chapter(models.Model, EmailSignalMixin):
 
     def get_previous_officers(self):
         # list the most recent officer that held position
+        from users.models import Role
+
         previous_officers = self.members.filter(
-            roles__role__in=CHAPTER_OFFICER,
+            roles__role__in=Role.officers("chapter"),
             roles__end__gte=TODAY_END
             - timedelta(30 * 8),  # they ended their role in the last 8 months
         ).prefetch_related("roles")

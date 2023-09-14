@@ -5,13 +5,8 @@ from multiselectfield import MultiSelectField
 from django.conf import settings
 from django.db import models
 from django.utils.text import slugify
-from core.models import (
-    TimeStampedModel,
-    ALL_OFFICERS_CHOICES,
-    NAT_OFFICERS_CHOICES,
-    CHAPTER_OFFICER,
-)
-from users.models import UserRoleChange
+from core.models import TimeStampedModel
+from users.models import UserRoleChange, Role
 from tasks.models import Task, TaskDate, TaskChapter
 
 
@@ -45,7 +40,7 @@ class Ballot(TimeStampedModel):
         def get_value(cls, member):
             return cls[member.lower()].value[1]
 
-    VOTERS = [("all_chapters", "All Chapters")] + NAT_OFFICERS_CHOICES
+    VOTERS = [("all_chapters", "All Chapters")] + Role.officer_choices("national")
 
     sender = models.CharField("From", max_length=50, default="Grand Scribe")
     slug = models.SlugField(unique=False)
@@ -121,7 +116,7 @@ class Ballot(TimeStampedModel):
             "ballot__pk", flat=True
         )
         roles = user.current_roles
-        chapter_officer = list(set(roles) & set(CHAPTER_OFFICER))
+        chapter_officer = list(set(roles) & set(Role.officers("chapter")))
         if chapter_officer:
             roles.append("all_chapters")
         condition = models.Q(voters__contains=roles[0])
@@ -159,8 +154,6 @@ class BallotComplete(TimeStampedModel):
         def get_value(cls, member):
             return cls[member.lower()].value[1]
 
-    ROLES = ALL_OFFICERS_CHOICES
-
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="ballots"
     )
@@ -168,7 +161,7 @@ class BallotComplete(TimeStampedModel):
         Ballot, on_delete=models.CASCADE, related_name="completed"
     )
     motion = models.CharField(max_length=20, choices=[x.value for x in MOTION])
-    role = models.CharField(max_length=50, choices=ROLES)
+    role = models.CharField(max_length=50, choices=Role.officer_choices())
 
     def save(self):
         natoffs = UserRoleChange.get_current_natoff().values_list("user__pk", flat=True)

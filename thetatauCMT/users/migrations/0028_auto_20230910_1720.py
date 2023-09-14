@@ -47,8 +47,6 @@ NATIONAL_COMMITTEE = {
 ADVISOR_ROLES = {
     "adviser",
     "faculty adviser",
-    "house corporation president",
-    "house corporation treasurer",
 }
 
 COMMITTEE_CHAIR = {
@@ -75,7 +73,7 @@ COMMITTEE_CHAIR = {
     "website/social media chair",
 }
 
-FOUNDATION_ALUMNI = {
+FOUNDATION_ALUMNI_HOUSING = {
     "president",
     "vice president",
     "secretary",
@@ -106,55 +104,27 @@ def set_roles(apps, schema_editor):
     """
     Role = apps.get_model("users", "Role")
     for role_name in CHAPTER_OFFICER:
-        Role.objects.create(
-            name=role_name,
-            officer=True,
-            chapter=True,
-        )
+        Role.objects.create(name=role_name, officer=True, chapter=True)
     for role_name in COUNCIL:
         Role.objects.create(
-            name=role_name,
-            officer=True,
-            executive_council=True,
-            national=True,
+            name=role_name, officer=True, executive_council=True, national=True
         )
     for role_name in NATIONAL_OFFICER:
-        Role.objects.create(
-            name=role_name,
-            officer=True,
-            national=True,
-        )
+        Role.objects.create(name=role_name, officer=True, national=True)
     for role_name in NATIONAL_COMMITTEE:
-        Role.objects.create(
-            name=role_name,
-            national=True,
-        )
+        Role.objects.create(name=role_name, national=True)
     for role_name in ADVISOR_ROLES:
-        Role.objects.create(
-            name=role_name,
-            chapter=True,
-        )
+        Role.objects.create(name=role_name, chapter=True, advisor=True)
     for role_name in COMMITTEE_CHAIR:
-        Role.objects.create(
-            name=role_name,
-            chapter=True,
-        )
-    for role_name in FOUNDATION_ALUMNI:
-        Role.objects.create(
-            name=role_name,
-            foundation=True,
-        )
-    for role_name in FOUNDATION_ALUMNI:
-        Role.objects.create(
-            name=role_name,
-            alumni=True,
-        )
-
+        Role.objects.create(name=role_name, chapter=True)
+    for role_name in FOUNDATION_ALUMNI_HOUSING:
+        Role.objects.create(name=role_name, foundation=True)
+    for role_name in FOUNDATION_ALUMNI_HOUSING:
+        Role.objects.create(name=role_name, alumni=True)
+    for role_name in FOUNDATION_ALUMNI_HOUSING:
+        Role.objects.create(name=role_name, housing=True)
     for role_name in CENTRAL:
-        Role.objects.create(
-            name=role_name,
-            central_office=True,
-        )
+        Role.objects.create(name=role_name, central_office=True)
 
 
 def unset_roles(apps, schema_editor):
@@ -168,8 +138,14 @@ ROLE_ALIGN = {
     "president": "regent",
     "secretary": "scribe",
     "vice president": "vice regent",
+    "house corporation president": "president",
+    "house corporation treasurer": "treasurer",
 }
-EXTRA_ARGS = {"treasurer": {"chapter": True}}
+EXTRA_ARGS = {
+    "treasurer": {"chapter": True},
+    "house corporation president": {"housing": True},
+    "house corporation treasurer": {"housing": True},
+}
 
 
 def link_roles(apps, schema_editor):
@@ -181,8 +157,8 @@ def link_roles(apps, schema_editor):
     for count, role in enumerate(user_role_changes):
         print(f"{count}/{total}")
         role_name = role.role
-        role_name = ROLE_ALIGN.get(role_name, role_name)
         extra_kwargs = EXTRA_ARGS.get(role_name, {})
+        role_name = ROLE_ALIGN.get(role_name, role_name)
         try:
             role_obj = Role.objects.get(name=role_name, **extra_kwargs)
         except Role.DoesNotExist:
@@ -226,6 +202,8 @@ class Migration(migrations.Migration):
                 ("chapter", models.BooleanField(default=False)),
                 ("national", models.BooleanField(default=False)),
                 ("alumni", models.BooleanField(default=False)),
+                ("advisor", models.BooleanField(default=False)),
+                ("housing", models.BooleanField(default=False)),
                 ("foundation", models.BooleanField(default=False)),
                 ("central_office", models.BooleanField(default=False)),
             ],

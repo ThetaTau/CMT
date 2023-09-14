@@ -2,6 +2,7 @@ import random
 import factory
 from ..models import Ballot, BallotComplete
 from users.tests.factories import UserFactory
+from users.models import Role
 
 
 class BallotFactory(factory.django.DjangoModelFactory):
@@ -37,7 +38,7 @@ class BallotCompleteFactory(factory.django.DjangoModelFactory):
         "random_element", elements=[item.value[0] for item in BallotComplete.MOTION]
     )
     role = factory.Faker(
-        "random_element", elements=[item[0] for item in BallotComplete.ROLES]
+        "random_element", elements=[item[0] for item in Role.officer_choices()]
     )
 
     class Meta:
