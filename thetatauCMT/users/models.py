@@ -634,12 +634,32 @@ class UserStatusChange(StartEndModel, TimeStampedModel, EmailSignalMixin):
         super().save(*args, **kwargs)
 
 
+class Role(models.Model):
+    name = models.CharField(max_length=150)
+    officer = models.BooleanField(default=False)
+    executive_council = models.BooleanField(default=False)
+    chapter = models.BooleanField(default=False)
+    national = models.BooleanField(default=False)
+    alumni = models.BooleanField(default=False)
+    foundation = models.BooleanField(default=False)
+    central_office = models.BooleanField(default=False)
+
+    def __str__(self):
+        return self.name
+
+    def __repr__(self):
+        return self.name
+
+
 class UserRoleChange(StartEndModel, TimeStampedModel, EmailSignalMixin):
     ROLES = ALL_ROLES_CHOICES
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="roles"
     )
     role = models.CharField(max_length=50, choices=ROLES)
+    role_link = models.ForeignKey(
+        Role, on_delete=models.SET_NULL, related_name="users", blank=True, null=True
+    )
 
     def __str__(self):
         return self.role

@@ -19,6 +19,7 @@ from simple_history.admin import SimpleHistoryAdmin
 from .forms import UserAdminStatusForm, UserAdminBadgeFixForm
 from .models import (
     User,
+    Role,
     UserRoleChange,
     UserStatusChange,
     UserOrgParticipate,
@@ -151,9 +152,37 @@ class MemberInline(admin.TabularInline):
         return False
 
 
+class RoleAdmin(admin.ModelAdmin):
+    list_display = (
+        "name",
+        "officer",
+        "executive_council",
+        "chapter",
+        "national",
+        "alumni",
+        "foundation",
+        "central_office",
+    )
+    list_filter = [
+        "officer",
+        "executive_council",
+        "chapter",
+        "national",
+        "alumni",
+        "foundation",
+        "central_office",
+    ]
+    ordering = [
+        "name",
+    ]
+
+
+admin.site.register(Role, RoleAdmin)
+
+
 class UserRoleChangeAdmin(ImportExportActionModelAdmin):
-    list_display = ("user", "role", "start", "end", "created", user_chapter)
-    list_filter = ["start", "end", "role", "created", "user__chapter"]
+    list_display = ("user", "role_link", "start", "end", "created", user_chapter)
+    list_filter = ["start", "end", "role_link", "created", "user__chapter"]
     ordering = [
         "-created",
     ]
@@ -200,7 +229,7 @@ class StatusInline(admin.TabularInline):
 
 class RoleInline(admin.TabularInline):
     model = UserRoleChange
-    fields = ["role", "start", "end"]
+    fields = ["role_link", "start", "end"]
     show_change_link = True
     ordering = ["end"]
     extra = 1
