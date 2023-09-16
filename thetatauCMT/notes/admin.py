@@ -134,7 +134,8 @@ admin.site.register(ChapterNote, ChapterNoteAdmin)
 
 class ChapterNoteInline(admin.TabularInline):
     model = ChapterNote
-    fields = ["title", "type", "note", "restricted", "file"]
+    raw_id_fields = ["parent"]
+    fields = ["title", "type", "note", "restricted", "parent", "file"]
     ordering = ["-created"]
     show_change_link = True
     extra = 1
@@ -142,7 +143,8 @@ class ChapterNoteInline(admin.TabularInline):
 
 class UserNoteInline(admin.TabularInline):
     model = UserNote
-    fields = ["title", "type", "note", "restricted", "file"]
+    raw_id_fields = ["parent"]
+    fields = ["title", "type", "note", "restricted", "parent", "file"]
     ordering = ["-created"]
     show_change_link = True
     extra = 1
