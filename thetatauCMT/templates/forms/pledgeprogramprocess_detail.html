@@ -48,7 +48,7 @@
           <th>Manual</th>
           <td>{{ object.program.get_manual_display }}</td>
         </tr>
-        {% if object.approval == "approved" %}
+        {% if object.approval == "approved" and object.program.other_manual.name%}
         <tr>
           <th>Approved Program</th>
           <td>
