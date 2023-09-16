@@ -785,6 +785,24 @@ class PledgeProgramForm(forms.ModelForm):
             attrs={"autocomplete": "off"},
         ),
     )
+    ### TODO: Remove with nme program update
+    other_manual = forms.FileField(
+        label="Other/Changes",
+        required=False,
+        help_text=(
+            "If you are following a different program upload that full program. "
+            "If you have made any changes to official program, "
+            "upload ONLY THOSE CHANGES"
+        ),
+    )
+    schedule = forms.FileField(
+        help_text="Please upload a schedule of the PNM program process.",
+        required=True,
+    )
+    test = forms.FileField(
+        help_text="Please upload the test the PNMs take for your chapter. Please make sure to include the entire test including any chapter and national components.",
+        required=True,
+    )
 
     class Meta:
         model = PledgeProgram
@@ -794,7 +812,24 @@ class PledgeProgramForm(forms.ModelForm):
             "date_complete",
             "date_initiation",
             "manual",
+            ### TODO: Remove with nme program update
+            "other_manual",
+            "schedule",
+            "test",
         ]
+
+    def clean(self):
+        ### TODO: Remove with nme program update
+        super().clean()
+        other_manual = self.cleaned_data.get("other_manual", "")
+        if self.cleaned_data.get("manual") == "other" and other_manual == "":
+            self.add_error(
+                "other_manual",
+                forms.ValidationError(
+                    "You must submit the other manual your chapter is "
+                    "following if not one of the approved models."
+                ),
+            )
 
 
 class AuditForm(forms.ModelForm):
