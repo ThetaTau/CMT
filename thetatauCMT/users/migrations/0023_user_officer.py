@@ -23,7 +23,6 @@ def set_officer(apps, schema_editor):
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("users", "0022_auto_20220820_1812"),
     ]
