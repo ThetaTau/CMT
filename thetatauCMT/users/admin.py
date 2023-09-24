@@ -141,8 +141,8 @@ admin.site.register(UserSemesterServiceHours, UserSemesterServiceHoursAdmin)
 
 class MemberInline(admin.TabularInline):
     model = User
-    fields = ["name", "user_id"]
-    readonly_fields = ("name", "user_id")
+    fields = ["name", "username"]
+    readonly_fields = ("name", "username")
     can_delete = False
     ordering = ["name"]
     show_change_link = True
@@ -410,7 +410,7 @@ class MyUserAdmin(
         ),
     )
     fieldsets = (
-        ("User Profile", {"fields": ("name", "chapter", "badge_number", "user_id")}),
+        ("User Profile", {"fields": ("name", "chapter", "badge_number")}),
         (None, {"fields": ("username", "password")}),
         (
             _("Personal info"),
@@ -461,7 +461,6 @@ class MyUserAdmin(
         "username",
         "name",
         "last_login",
-        "user_id",
         "badge_number",
         "chapter",
         "current_status",
@@ -476,15 +475,15 @@ class MyUserAdmin(
         "officer",
         "chapter",
     )
-    search_fields = ("user_id", "badge_number") + AuthUserAdmin.search_fields
+    search_fields = ("badge_number",) + AuthUserAdmin.search_fields
     resource_class = UserResource
 
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
         if db_field.name == "major":
             try:
-                user_id = request.resolver_match.kwargs.get("object_id")
-                if user_id:
-                    user = User.objects.get(id=user_id)
+                user_pk = request.resolver_match.kwargs.get("object_id")
+                if user_pk:
+                    user = User.objects.get(id=user_pk)
                     kwargs["queryset"] = ChapterCurricula.objects.filter(
                         chapter=user.chapter
                     )

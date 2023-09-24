@@ -15,17 +15,17 @@ from .notifications import DepledgeSurveyFollowUpEmail
 
 class DepledgeSurveyCreateView(CreateView):
     model = DepledgeSurvey
-    slug_url_kwarg = "user_id"
-    slug_field = "user__user_id"
+    slug_url_kwarg = "user_pk"
+    slug_field = "user__id"
     form_class = DepledgeSurveyForm
 
     def get_success_url(self):
-        return reverse("surveys:depledge", kwargs={"user_id": self.kwargs["user_id"]})
+        return reverse("surveys:depledge", kwargs={"user_pk": self.kwargs["user_pk"]})
 
     def form_valid(self, form):
         self.object = form.save(commit=False)
-        user_id = self.kwargs.get(self.slug_url_kwarg)
-        user = User.objects.get(user_id=user_id)
+        user_pk = self.kwargs.get(self.slug_url_kwarg)
+        user = User.objects.get(id=user_pk)
         self.object.user = user
         try:
             with transaction.atomic():
@@ -56,13 +56,13 @@ class DepledgeSurveyCreateView(CreateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        user_id = self.kwargs.get(self.slug_url_kwarg)
+        user_pk = self.kwargs.get(self.slug_url_kwarg)
         context["user"] = None
         context["depledge"] = None
-        context["user_id"] = user_id
+        context["user_pk"] = user_pk
         try:
             # Verify that user exists
-            user = User.objects.get(user_id=user_id)
+            user = User.objects.get(id=user_pk)
             context["user"] = user
         except User.DoesNotExist:
             pass
@@ -75,7 +75,7 @@ class DepledgeSurveyCreateView(CreateView):
                 pass
             else:
                 try:
-                    context["object"] = queryset.get(user__user_id=user_id)
+                    context["object"] = queryset.get(user__id=user_pk)
                 except queryset.model.DoesNotExist:
                     pass
         return context
@@ -91,7 +91,7 @@ class SurveyDetail(CreateView):
     data = None
     step = None
     user = None
-    user_id = None
+    user_pk = None
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
@@ -100,7 +100,7 @@ class SurveyDetail(CreateView):
                 "instance": None,
                 "survey": self.object,
                 "user": self.user,
-                "user_id": self.user_id,
+                "user_pk": self.user_pk,
             }
         )
         if self.step is not None:
@@ -108,12 +108,12 @@ class SurveyDetail(CreateView):
         return kwargs
 
     def get_user(self, request, kwargs):
-        user_id_encoded = kwargs.get("user_id", None)
+        user_pk_encoded = kwargs.get("user_pk", None)
         self.user = request.user
-        if user_id_encoded is not None and user_id_encoded not in ("anonymous", "None"):
+        if user_pk_encoded is not None and user_pk_encoded not in ("anonymous", "None"):
             try:
-                user_id_decoded = base64.b64decode(user_id_encoded).decode("utf-8")
-                self.user = User.objects.get(user_id=user_id_decoded)
+                user_pk_decoded = base64.b64decode(user_pk_encoded).decode("utf-8")
+                self.user = User.objects.get(id=user_pk_decoded)
             except Exception as e:
                 messages.error(
                     request,
@@ -121,7 +121,7 @@ class SurveyDetail(CreateView):
                     f"Make sure you have the correct survey link",
                 )
             else:
-                self.user_id = user_id_encoded
+                self.user_pk = user_pk_encoded
                 if request.method == "GET":
                     messages.info(
                         request,
@@ -200,11 +200,9 @@ class SurveyDetail(CreateView):
                 ]
             )
         }
-        user_id = "anonymous"
+        user_pk = "anonymous"
         if not self.user.is_anonymous:
-            user_id = base64.b64encode(self.user.user_id.encode("utf-8")).decode(
-                "utf-8"
-            )
+            user_pk = base64.b64encode(self.user.id.encode("utf-8")).decode("utf-8")
         step = self.step
         if self.step is None:
             step = 0
@@ -216,7 +214,7 @@ class SurveyDetail(CreateView):
                 "categories": categories,
                 "step": self.step,
                 "asset_context": asset_context,
-                "user_id": user_id,
+                "user_pk": user_pk,
                 "percent": percent,
             }
         )
@@ -275,7 +273,7 @@ class SurveyDetail(CreateView):
             return redirect(next_)
         message = "Thanks! Your answers have been saved"
         new_location = redirect(
-            "surveys:survey-detail-member", slug=self.object.slug, user_id=self.user_id
+            "surveys:survey-detail-member", slug=self.object.slug, user_pk=self.user_pk
         )
         if self.object.editable_answers and not self.user.is_anonymous:
             message += "<br>The survey is editable after submission, so you can always come back and change them."

@@ -11,10 +11,10 @@ Dear {{ user }},
   and processes and value your opinion.
   It would be appreciated if you could take about 5 minutes to complete this 6
   question survey on your experience. All answers will be kept confidential.</p>
-  <h3><a href="{{ host }}{% url "surveys:depledge" user.user_id %}">Survey Link</a>
+  <h3><a href="{{ host }}{% url "surveys:depledge" user.id %}">Survey Link</a>
   <br>
     Or copy and paste the following in your browser:<br>
-    {{ host }}{% url "surveys:depledge" user.user_id %}
+    {{ host }}{% url "surveys:depledge" user.id %}
   </h3>
   <p>
     Questions can be directed to Jennifer Kreiman,

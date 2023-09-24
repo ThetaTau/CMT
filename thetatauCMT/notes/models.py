@@ -17,8 +17,8 @@ def get_upload_path(instance, filename):
         file_path = os.path.join(
             "notes",
             f"{chapter.slug}",
-            f"{instance.user.user_id}",
-            f"{chapter.slug}_{instance.user.user_id}_{filename}",
+            f"{instance.user.id}",
+            f"{chapter.slug}_{instance.user.id}_{filename}",
         )
     else:
         file_path = os.path.join(

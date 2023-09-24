@@ -173,12 +173,12 @@ class UserNoteCreateView(
     ]
 
     def get_success_url(self):
-        return reverse("users:info", kwargs={"user_id": self.kwargs["user_id"]})
+        return reverse("users:info", kwargs={"user_pk": self.kwargs["user_pk"]})
 
     def form_valid(self, form):
         """If the form is valid, redirect to the supplied URL."""
         user = self.request.user
-        form_user = User.objects.get(user_id=self.kwargs["user_id"])
+        form_user = User.objects.get(id=self.kwargs["user_pk"])
         instance = form.save(commit=False)
         instance.user = form_user
         instance.created_by = user

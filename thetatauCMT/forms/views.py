@@ -294,9 +294,7 @@ def download_all_rollbook(request):
             view = RollBookPDFDownload.as_view()
             roll_view = view(new_request, pk=user.pk)
             roll_file = roll_view.rendered_content
-            zf.writestr(
-                f"RollBookPage_{user.chapter.slug}_{user.user_id}.pdf", roll_file
-            )
+            zf.writestr(f"RollBookPage_{user.chapter.slug}_{user.id}.pdf", roll_file)
     response = HttpResponse(
         zip_io.getvalue(), content_type="application/x-zip-compressed"
     )
@@ -743,10 +741,10 @@ class StatusChangeView(LoginRequiredMixin, OfficerRequiredMixin, FormView):
             if "http" in slug:
                 survey_link = slug
             else:
-                user_id = base64.b64encode(user.user_id.encode("utf-8")).decode("utf-8")
+                user_pk = base64.b64encode(user.id.encode("utf-8")).decode("utf-8")
                 survey_link = settings.CURRENT_URL + reverse(
                     "surveys:survey-detail-member",
-                    kwargs={"slug": slug, "user_id": user_id},
+                    kwargs={"slug": slug, "user_pk": user_pk},
                 )
             SurveyEmail(
                 user,
@@ -1241,7 +1239,7 @@ class RollBookPDFView(
 
 class RollBookPDFDownload(RollBookPDFView):
     def get_pdf_filename(self):
-        return f"RollBookPage_{self.object.chapter.slug}_{self.object.user_id}.pdf"
+        return f"RollBookPage_{self.object.chapter.slug}_{self.object.id}.pdf"
 
 
 def active_chapters_filter(filter_obj):
@@ -2534,7 +2532,7 @@ class DisciplinaryPDFTest(
 @csrf_exempt
 def disciplinary_process_files(request, process_pk):
     process = DisciplinaryProcess.objects.get(pk=process_pk)
-    zip_filename = f"{process.chapter.slug}_{process.user.user_id}.zip"
+    zip_filename = f"{process.chapter.slug}_{process.user.id}.zip"
     zip_io = BytesIO()
     files = process.get_all_files()
     forms = process.forms_pdf()
@@ -2542,7 +2540,7 @@ def disciplinary_process_files(request, process_pk):
         for file in files:
             zf.writestr(Path(file.name).name, file.read())
         zf.writestr(
-            f"{process.chapter.slug}_{process.user.user_id}_disciplinary_forms.pdf",
+            f"{process.chapter.slug}_{process.user.id}_disciplinary_forms.pdf",
             forms,
         )
     response = HttpResponse(
@@ -2591,7 +2589,7 @@ class CollectionReferralFormView(
                 "balance_due",
                 "created",
                 {"Member Chapter": user.chapter},
-                {"Member Roll Number": user.clean_user_id},
+                {"Member Badge Number": user.badge_number},
                 {"Member Email": user.email},
                 {"Member Phone": user.phone_number},
                 {"Member Address": user.address},
@@ -2613,8 +2611,8 @@ class CollectionReferralFormView(
     def get_user_kwargs(self):
         kwargs = {"verify": True}
         if self.request.method == "POST":
-            user_id = self.request.POST.get("user")
-            user = User.objects.get(pk=user_id)
+            user_pk = self.request.POST.get("user")
+            user = User.objects.get(pk=user_pk)
             kwargs.update({"instance": user})
         return kwargs
 

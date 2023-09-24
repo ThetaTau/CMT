@@ -129,7 +129,7 @@ class Training(TimeStampedModel):
                 )
                 progresses = user_info["progress"]
                 username = user_info["username"]
-                user_id = user_info["externalUniqueId"]
+                user_pk = user_info["externalUniqueId"]
                 # The Vector system does not keep track of assignments only
                 # completions so assume assigned to our only training
                 completed = False
@@ -155,7 +155,7 @@ class Training(TimeStampedModel):
                 course_id = "5d7b72cf-7e22-43a3-a4aa-628d8ee6c1a9"
                 user = User.objects.filter(
                     Q(username__iexact=username)
-                    | Q(user_id__iexact=user_id)
+                    | Q(id__iexact=user_pk)
                     | Q(email__iexact=username)
                     | Q(email_school__iexact=username)
                 ).first()
@@ -343,7 +343,7 @@ class Training(TimeStampedModel):
         add_user_mutation = f"""
         mutation  add {{
             addPerson(
-                externalUniqueId: "{user.user_id}"
+                externalUniqueId: "{user.id}"
                 first: "{first_name}"
                 last: "{user.last_name}"
                 username: "{user.email}"
@@ -398,7 +398,7 @@ class Training(TimeStampedModel):
                          personId
                        }}
                     }}
-                    externalUniqueId: People (externalUniqueId: "{user.user_id}" )
+                    externalUniqueId: People (externalUniqueId: "{user.id}" )
                     {{ nodes
                        {{ username
                          personId

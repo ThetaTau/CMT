@@ -36,7 +36,7 @@ class DepledgeSurveyForm(forms.ModelForm):
 
 class ResponseForm(ResponseForm):
     def __init__(self, *args, **kwargs):
-        self.user_id = kwargs.pop("user_id")
+        self.user_pk = kwargs.pop("user_pk")
         super().__init__(*args, **kwargs)
 
     def has_next_step(self):
@@ -50,7 +50,7 @@ class ResponseForm(ResponseForm):
             context = {
                 "slug": self.survey.slug,
                 "step": self.step + 1,
-                "user_id": self.user_id,
+                "user_pk": self.user_pk,
             }
             return reverse("surveys:survey-detail-step-member", kwargs=context)
 
@@ -60,6 +60,6 @@ class ResponseForm(ResponseForm):
             kwargs={
                 "slug": self.survey.slug,
                 "step": self.step,
-                "user_id": self.user_id,
+                "user_pk": self.user_pk,
             },
         )

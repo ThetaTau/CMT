@@ -42,9 +42,9 @@ class UserResource(resources.ModelResource):
         model = User
         skip_unchanged = True
         report_skipped = False
-        import_id_fields = ("user_id", "email")
+        import_id_fields = ("id", "email")
         exclude = (
-            "user_id",
+            "id",
             "address_changed",
             "chapter",
             "deceased_changed",
@@ -66,12 +66,17 @@ class UserResource(resources.ModelResource):
         )
 
     def init_instance(self, row=None):
-        raise ValidationError(f"There is no user with id {row['user_id']}")
+        message = "There is no user with:"
+        if "id" in row:
+            message = f"{message} id={row['id']}"
+        if "email" in row:
+            message = f"{message} email={row['email']}"
+        raise ValidationError(message)
 
     def get_instance(self, instance_loader, row):
         queries = []
-        if "user_id" in row:
-            queries.append(Q(user_id__iexact=row["user_id"]))
+        if "id" in row:
+            queries.append(Q(id__iexact=row["id"]))
         if "email" in row:
             queries.append(Q(email_school__iexact=row["email"]))
             queries.append(Q(email__iexact=row["email"]))
@@ -90,7 +95,7 @@ class UserResource(resources.ModelResource):
             return instance
 
     def before_import_row(self, row, row_number=None, **kwargs):
-        if "user_id" in row:
-            row["user_id"] = row["user_id"].strip()
+        if "id" in row:
+            row["id"] = row["id"].strip()
         if "email" in row:
             row["email"] = row["email"].strip()
