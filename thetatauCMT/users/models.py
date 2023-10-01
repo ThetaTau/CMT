@@ -335,6 +335,38 @@ class User(AbstractUser, EmailSignalMixin):
     def is_advisor(self):
         return self.current_status == "advisor"
 
+    @classmethod
+    def fix_badge_numbers(cls, reader, test=False, sep="<br>"):
+        updated_users = []
+        missing = []
+        updated = []
+        for count, row in enumerate(reader):
+            id = row["id"].strip()
+            if not id:
+                continue
+            try:
+                user = User.objects.get(id=id)
+            except User.DoesNotExist:
+                missing.append(id)
+                continue
+            else:
+                updated.append(user)
+            badge_number = row["correct"]
+            updated_users.append({"id": user.id, "badge_number": badge_number})
+        if not test:
+            message = ""
+            if missing:
+                message += f"Could not find users: {missing}{sep}"
+            cls.objects.bulk_update(
+                [User(**kv) for kv in updated_users],
+                [
+                    "badge_number",
+                ],
+            )
+            if updated:
+                message += f"Updated members: {updated}"
+            return message
+
 
 class UserDemographic(models.Model):
     BOOL_CHOICES = ((None, ""), (True, "Yes"), (False, "No"))

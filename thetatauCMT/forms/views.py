@@ -741,7 +741,7 @@ class StatusChangeView(LoginRequiredMixin, OfficerRequiredMixin, FormView):
             if "http" in slug:
                 survey_link = slug
             else:
-                user_pk = base64.b64encode(user.id.encode("utf-8")).decode("utf-8")
+                user_pk = base64.b64encode(str(user.id).encode("utf-8")).decode("utf-8")
                 survey_link = settings.CURRENT_URL + reverse(
                     "surveys:survey-detail-member",
                     kwargs={"slug": slug, "user_pk": user_pk},

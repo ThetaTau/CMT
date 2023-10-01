@@ -15,17 +15,17 @@ from .notifications import DepledgeSurveyFollowUpEmail
 
 class DepledgeSurveyCreateView(CreateView):
     model = DepledgeSurvey
-    slug_url_kwarg = "user_pk"
-    slug_field = "user__id"
+    slug_url_kwarg = "username"
+    slug_field = "user__username"
     form_class = DepledgeSurveyForm
 
     def get_success_url(self):
-        return reverse("surveys:depledge", kwargs={"user_pk": self.kwargs["user_pk"]})
+        return reverse("surveys:depledge", kwargs={"username": self.kwargs["username"]})
 
     def form_valid(self, form):
         self.object = form.save(commit=False)
-        user_pk = self.kwargs.get(self.slug_url_kwarg)
-        user = User.objects.get(id=user_pk)
+        username = self.kwargs.get(self.slug_url_kwarg)
+        user = User.objects.get(username=username)
         self.object.user = user
         try:
             with transaction.atomic():
@@ -56,13 +56,13 @@ class DepledgeSurveyCreateView(CreateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        user_pk = self.kwargs.get(self.slug_url_kwarg)
+        username = self.kwargs.get(self.slug_url_kwarg)
         context["user"] = None
         context["depledge"] = None
-        context["user_pk"] = user_pk
+        context["username"] = username
         try:
             # Verify that user exists
-            user = User.objects.get(id=user_pk)
+            user = User.objects.get(username=username)
             context["user"] = user
         except User.DoesNotExist:
             pass
@@ -75,7 +75,7 @@ class DepledgeSurveyCreateView(CreateView):
                 pass
             else:
                 try:
-                    context["object"] = queryset.get(user__id=user_pk)
+                    context["object"] = queryset.get(user__username=username)
                 except queryset.model.DoesNotExist:
                     pass
         return context
@@ -202,7 +202,9 @@ class SurveyDetail(CreateView):
         }
         user_pk = "anonymous"
         if not self.user.is_anonymous:
-            user_pk = base64.b64encode(self.user.id.encode("utf-8")).decode("utf-8")
+            user_pk = base64.b64encode(str(self.user.id).encode("utf-8")).decode(
+                "utf-8"
+            )
         step = self.step
         if self.step is None:
             step = 0
