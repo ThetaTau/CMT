@@ -9,7 +9,7 @@
     <div class="col-sm-12">
       <h3 id="audit">User Notes:</h3>
       <p>Notes about the user available to National Officers.
-        <a href="{% url 'notes:add_user' object.user_id %}">Add notes here.</a></p>
+        <a href="{% url 'notes:add_user' object.username %}">Add notes here.</a></p>
       {% render_table note_table %}
     </div>
   </div>

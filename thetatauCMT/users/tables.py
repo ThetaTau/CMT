@@ -47,7 +47,7 @@ class UserTable(tables.Table):
             )
         elif natoff:
             self.base_columns["name"] = tables.LinkColumn(
-                "users:info", kwargs={"user_id": A("user_id")}
+                "users:info", kwargs={"username": A("username")}
             )
         else:
             self.base_columns["name"] = tables.Column()

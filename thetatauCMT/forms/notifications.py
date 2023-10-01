@@ -182,7 +182,7 @@ class EmailPledgeConfirmation(
             "user",
             "password",
             "badge_number",
-            "user_id",
+            "id",
             "last_login",
             "is_staff",
             "is_active",

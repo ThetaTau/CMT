@@ -1123,7 +1123,7 @@ class DisciplinaryProcessFlow(Flow):
             attachments=[
                 ContentFile(
                     forms,
-                    name=f"{activation.process.chapter.slug}_{activation.process.user.user_id}_disciplinary_forms.pdf",
+                    name=f"{activation.process.chapter.slug}_{activation.process.user.id}_disciplinary_forms.pdf",
                 )
             ],
         ).send()

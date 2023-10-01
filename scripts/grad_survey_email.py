@@ -24,10 +24,10 @@ def run():
         if "http" in slug:
             survey_link = slug
         else:
-            user_id = base64.b64encode(user.user_id.encode("utf-8")).decode("utf-8")
+            user_pk = base64.b64encode(str(user.id).encode("utf-8")).decode("utf-8")
             survey_link = settings.CURRENT_URL + reverse(
                 "surveys:survey-detail-member",
-                kwargs={"slug": slug, "user_id": user_id},
+                kwargs={"slug": slug, "user_pk": user_pk},
             )
         SurveyEmail(
             user,

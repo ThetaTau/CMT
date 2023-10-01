@@ -6,7 +6,7 @@ from . import views
 app_name = "surveys"
 urlpatterns = [
     path(
-        "depledge/<str:user_id>",
+        "depledge/<str:username>",
         view=views.DepledgeSurveyCreateView.as_view(),
         name="depledge",
     ),
@@ -17,12 +17,12 @@ urlpatterns = [
         name="survey-detail-step",
     ),
     path(
-        r"<slug:slug>/<str:user_id>",
+        r"<slug:slug>/<str:user_pk>",
         view=views.SurveyDetail.as_view(),
         name="survey-detail-member",
     ),
     path(
-        r"<slug:slug>/<int:step>/<str:user_id>",
+        r"<slug:slug>/<int:step>/<str:user_pk>",
         view=views.SurveyDetail.as_view(),
         name="survey-detail-step-member",
     ),

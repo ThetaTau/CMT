@@ -11,7 +11,7 @@ urlpatterns = [
         name="add",
     ),
     url(
-        regex=r"^add_user/(?P<user_id>[\w.@+-]+)/$",
+        regex=r"^add_user/(?P<username>[\w.@+-]+)$",
         view=views.UserNoteCreateView.as_view(),
         name="add_user",
     ),

@@ -73,15 +73,15 @@ class UserRedirectView(LoginRequiredMixin, RedirectView):
 
 @group_required(["officer", "natoff"])
 def user_verify(request):
-    user_id = request.GET.get("user_pk")
-    user = User.objects.get(pk=user_id)
+    user_pk = request.GET.get("user_pk")
+    user = User.objects.get(pk=user_pk)
     form = UserForm(instance=user, verify=True)
     return render(request, "users/user_verify_form.html", {"form": form})
 
 
 class UserDetailView(LoginRequiredMixin, NatOfficerRequiredMixin, DetailView):
-    slug_field = "user_id"
-    slug_url_kwarg = "user_id"
+    slug_field = "username"
+    slug_url_kwarg = "username"
     template_name = "users/user_info.html"
     model = User
 
@@ -810,43 +810,6 @@ class UserUpdateDirectReview(UpdateView):
         )
         MemberUpdateFlow.continue_process(self.object.pk)
         return reverse("users:update_review", kwargs={"pk": self.object.pk})
-
-
-class UserLookupView(FormView):
-    form_class = UserLookupForm
-    template_name = "users/lookup.html"
-
-    def form_valid(self, form):
-        chapter = Chapter.objects.get(pk=form.cleaned_data["university"])
-        badge_number = form.cleaned_data["badge_number"]
-        try:
-            user = User.objects.get(user_id=f"{chapter.greek}{badge_number}")
-        except User.DoesNotExist:
-            chapter_name = chapter.name
-            messages.add_message(
-                self.request,
-                messages.ERROR,
-                f"No user/email associated with chapter: {chapter_name} and badge number: {badge_number}",
-            )
-        else:
-            orig_email = user.email
-            email = hide_email(orig_email)
-            orig_email_school = user.email_school
-            email_school = hide_email(orig_email_school)
-            messages.add_message(
-                self.request,
-                messages.INFO,
-                f"Email for account is: {email} or {email_school}",
-            )
-            form = PasswordResetFormNotActive({"email": orig_email})
-            # This does not work because not active user
-            # form = PasswordResetForm({'email': orig_email})
-            form.is_valid()
-            form.save()
-        return super().form_valid(form)
-
-    def get_success_url(self):
-        return reverse("login")
 
 
 class UserAutocomplete(autocomplete.Select2QuerySetView):

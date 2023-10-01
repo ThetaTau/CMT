@@ -125,11 +125,6 @@ class User(AbstractUser, EmailSignalMixin):
     degree = models.CharField(
         max_length=4, choices=[x.value for x in DEGREES], default="bs"
     )
-    user_id = models.CharField(
-        max_length=20,
-        unique=True,
-        help_text="Combination of badge number and chapter abbr, eg. X1311",
-    )
     major = models.ForeignKey(
         ChapterCurricula,
         on_delete=models.SET_NULL,
@@ -211,11 +206,6 @@ class User(AbstractUser, EmailSignalMixin):
     history = HistoricalRecords()
 
     def save(self, *args, **kwargs):
-        if not self.id:
-            # Newly created object, so set user_id
-            # Combination of badge number and chapter abbr, eg. X1311
-            chapter = kwargs.get("chapter", self.chapter)
-            self.user_id = f"{chapter.greek}{self.badge_number}"
         suffix = f" {self.suffix}" if self.suffix else ""
         if self.name == "":
             self.name = f"{self.first_name} {self.middle_name} {self.last_name}{suffix}"
@@ -230,7 +220,7 @@ class User(AbstractUser, EmailSignalMixin):
 
     def get_name_with_details(self):
         major = self.major if self.major else ""
-        return f"{self.name} {self.user_id} graduated: {self.graduation_year} {self.degree} {major}"
+        return f"{self.name} graduated: {self.graduation_year} {self.degree} {major}"
 
     @property
     def current_chapter(self):
@@ -244,15 +234,6 @@ class User(AbstractUser, EmailSignalMixin):
 
     def get_absolute_url(self):
         return reverse("users:detail")
-
-    @property
-    def clean_user_id(self):
-        """
-        Pledges should not have greek letter in user_id only badge_number
-        """
-        if self.current_status == "pnm":
-            return self.badge_number
-        return self.user_id
 
     @classmethod
     def next_pledge_number(cls):
@@ -357,71 +338,29 @@ class User(AbstractUser, EmailSignalMixin):
     @classmethod
     def fix_badge_numbers(cls, reader, test=False, sep="<br>"):
         updated_users = []
-        offset_users = []
-        start = 80_000
         missing = []
         updated = []
         for count, row in enumerate(reader):
-            email = row["email"].strip()
-            if not email:
+            id = row["id"].strip()
+            if not id:
                 continue
             try:
-                user = User.objects.get(
-                    models.Q(email__iexact=email) | models.Q(email_school__iexact=email)
-                )
+                user = User.objects.get(id=id)
             except User.DoesNotExist:
-                missing.append(email)
+                missing.append(id)
                 continue
             else:
-                updated.append(email)
-            offset = start + count
+                updated.append(user)
             badge_number = row["correct"]
-            chapter = user.chapter
-            user_id = f"{chapter.greek}{badge_number}"
-            user_id_offset = f"{chapter.greek}{offset}"
-            updated_users.append(
-                {"id": user.id, "badge_number": badge_number, "user_id": user_id}
-            )
-            offset_users.append(
-                {"id": user.id, "badge_number": offset, "user_id": user_id_offset}
-            )
+            updated_users.append({"id": user.id, "badge_number": badge_number})
         if not test:
-            cls.objects.bulk_update(
-                [cls(**kv) for kv in offset_users],
-                [
-                    "badge_number",
-                    "user_id",
-                ],
-            )
-            # After the bulk update, all remaining user_ids should not conflict
-            new_ids = [new["user_id"] for new in updated_users]
-            conflict_users = cls.objects.filter(user_id__in=new_ids)
             message = ""
             if missing:
-                message += f"Could not find user emails: {missing}{sep}"
-            if conflict_users:
-                message += f"Conflicting users: {conflict_users.values_list('email', flat=True)}{sep}"
-            start = 90_000
-            conflict_users_update = [
-                {
-                    "id": user.id,
-                    "badge_number": start + count,
-                    "user_id": f"{user.chapter.greek}{start + count}",
-                }
-                for count, user in enumerate(conflict_users)
-            ]
-            cls.objects.bulk_update(
-                [User(**kv) for kv in conflict_users_update],
-                [
-                    "badge_number",
-                    "user_id",
-                ],
-            )
+                message += f"Could not find users: {missing}{sep}"
             cls.objects.bulk_update(
                 [User(**kv) for kv in updated_users],
                 [
                     "badge_number",
-                    "user_id",
                 ],
             )
             if updated:

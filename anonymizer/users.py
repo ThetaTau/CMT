@@ -46,7 +46,6 @@ register_clean(
 
 class UserAnonym(AnonymBase):
     password = fields.password("test")
-    user_id = fields.string("FAKE{seq}")
     email_school = fields.string("{seq}_email_school@thetatau.org")
     email = fields.string("{seq}@thetatau.org")
     username = fields.string("{seq}@thetatau.org")

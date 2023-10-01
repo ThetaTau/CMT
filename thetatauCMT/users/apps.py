@@ -21,7 +21,8 @@ class UsersConfig(AppConfig):
             fields=[
                 "name",
                 "badge_number",
-                "user_id",
+                "id",
+                "username",
                 "first_name",
                 "last_name",
                 "preferred_name",

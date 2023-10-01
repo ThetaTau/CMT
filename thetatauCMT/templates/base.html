@@ -59,7 +59,7 @@
       {api_host: 'https://app.posthog.com',
         loaded: function(posthog){
           posthog.identify(
-            "{{ user.user_id }}",
+            "{{ user.id }}",
             {officer: {{ request.is_officer|yesno:"true,false" }}, natoff: {{ request.is_nat_officer|yesno:"true,false" }}, role: "{{ user.role }}"},
             {email: "{{ user.email }}", chapter: "{{ user.chapter }}", admin: {{ user.is_superuser|yesno:"true,false" }}});
         }});

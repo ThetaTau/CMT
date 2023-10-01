@@ -14,7 +14,7 @@ urlpatterns = [
     url(regex=r"^redirect/$", view=views.UserRedirectView.as_view(), name="redirect"),
     url(regex=r"^myinfo/$", view=views.UserDetailUpdateView.as_view(), name="detail"),
     url(
-        regex=r"^memberinfo/(?P<user_id>[\w.@+-]+)$",
+        regex=r"^memberinfo/(?P<username>[\w.@+-]+)$",
         view=views.UserDetailView.as_view(),
         name="info",
     ),

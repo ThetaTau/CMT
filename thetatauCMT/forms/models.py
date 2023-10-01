@@ -248,15 +248,12 @@ class Initiation(TimeStampedModel, EmailSignalMixin):
             status_update = kwargs.pop("status_update")
         super().save(*args, **kwargs)
         # Need to adjust old status pnm, save new status active
-        new_user_id = f"{self.user.chapter.greek}{self.roll}"
-        if self.user.user_id != new_user_id:
-            self.user.badge_number = self.roll
-            self.user.user_id = new_user_id
-            try:
-                with transaction.atomic():
-                    self.user.save()
-            except IntegrityError as e:
-                print("User ALREADY EXISTS", str(e))
+        self.user.badge_number = self.roll
+        try:
+            with transaction.atomic():
+                self.user.save()
+        except IntegrityError as e:
+            print("User ALREADY EXISTS", str(e))
         if status_update:
             self.user.set_current_status(
                 status="activepend", start=self.date, created=self.created
@@ -856,7 +853,7 @@ def get_premature_alumn_upload_path(instance, filename):
     return os.path.join(
         "submissions",
         "prealumn",
-        f"{instance.user.chapter.slug}_{instance.user.user_id}_{filename}",
+        f"{instance.user.chapter.slug}_{instance.user.id}_{filename}",
     )
 
 
@@ -1604,8 +1601,8 @@ def get_discipline_upload_path(instance, filename):
     return os.path.join(
         "discipline",
         f"{chapter.slug}",
-        f"{instance.user.user_id}",
-        f"{chapter.slug}_{instance.user.user_id}_{filename}",
+        f"{instance.user.id}",
+        f"{chapter.slug}_{instance.user.id}_{filename}",
     )
 
 
@@ -1886,7 +1883,7 @@ def get_resign_upload_path(instance, filename):
     return os.path.join(
         "submissions",
         "resign",
-        f"{instance.user.chapter.slug}_{instance.user.user_id}_{filename}",
+        f"{instance.user.chapter.slug}_{instance.user.id}_{filename}",
     )
 
 
