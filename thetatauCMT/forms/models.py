@@ -36,6 +36,7 @@ from core.models import (
 )
 from chapters.models import Chapter
 from submissions.models import Submission
+from configs.models import Config
 
 
 class MultiSelectField(MultiSelectField):
@@ -964,17 +965,17 @@ class InitiationProcess(Process, EmailSignalMixin):
         return f"Initiation Process for {self.chapter}"
 
     def get_fees(self, chapter, initiation):
-        init_fee = 75
+        init_fee = Config.get_value("init_fee_chapter")
         if chapter.candidate_chapter:
-            init_fee = 30
+            init_fee = Config.get_value("init_fee_candidate_chapter")
         late_fee = 0
         init_date = initiation.date
         init_submit = initiation.created.date()
         delta = init_submit - init_date
         if delta.days > 28:
             if not chapter.candidate_chapter:
-                late_fee = 25
-        return init_fee, late_fee
+                late_fee = Config.get_value("init_late_fee")
+        return float(init_fee), float(late_fee)
 
     def generate_blackbaud_update(self, invoice=False, response=None, file_obj=False):
         """
@@ -1935,7 +1936,7 @@ class ResignationProcess(Process, EmailSignalMixin):
         verbose_obligation, choices=BOOL_CHOICES, default=False
     )
     verbose_fee = _(
-        "I have or will submit the $100 Resignation Processing Fee to the chapter."
+        "I have or will submit the Resignation Processing Fee to the chapter."
     )
     fee = models.BooleanField(verbose_fee, choices=BOOL_CHOICES, default=False)
     signature = models.CharField(
@@ -1954,7 +1955,7 @@ class ResignationProcess(Process, EmailSignalMixin):
         verbose_financial, choices=BOOL_CHOICES, default=False
     )
     verbose_fee_paid = _(
-        "Member submitted the $100 Resignation Processing Fee to the chapter."
+        "Member submitted the Resignation Processing Fee to the chapter."
     )
     fee_paid = models.BooleanField(
         verbose_fee_paid, choices=BOOL_CHOICES, default=False

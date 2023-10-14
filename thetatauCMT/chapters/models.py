@@ -33,6 +33,7 @@ from core.models import (
     EnumClass,
 )
 from regions.models import Region
+from configs.models import Config
 from .notifications import DuesReminder
 
 GREEK_ABR = {
@@ -778,22 +779,20 @@ class Chapter(models.Model, EmailSignalMixin):
         count = self.active_actives().count()
         if not self.candidate_chapter:
             # D1; Service; Semiannual Chapter Dues payable @ $80 each # Minimum per chapter is $1600.
+            minimum = Config.get_value("ChapterMinimum")
             line = create_line(
-                count, linenumber_count, name="D1", minimum=1600, client=client
+                count, linenumber_count, name="D1", minimum=minimum, client=client
             )
-            l1_min = 250
+            l1_min = Config.get_value("HealthSafetyMinimum_chapter")
             if self.house:
-                l1_min = 1125
+                l1_min = Config.get_value("HealthSafetyMinimum_house")
         else:
-            # D2; Service; Semiannual Colony Dues
+            # D2; Service; Semiannual Candidate Chapter Dues
             line = create_line(count, linenumber_count, name="D2", client=client)
-            l1_min = 125
+            l1_min = Config.get_value("HealthSafetyMinimum_candidatechapter")
         linenumber_count += 1
         invoice.Line.append(line)
         # L1; Service; Health and Safety Assessment - Semesterly
-        #   minimum for housed chapters ($1125)
-        #   unhoused chapters ($250)
-        #   Colony Minimum is $125
         line = create_line(
             count, linenumber_count, name="L1", minimum=l1_min, client=client
         )

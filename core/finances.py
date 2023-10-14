@@ -49,6 +49,7 @@ def create_line(item_count, linenumber_count, name=None, minimum=None, client=No
     total = item_count * item.UnitPrice
     unit = item.UnitPrice
     if minimum is not None:
+        minimum = float(minimum)
         total = max(minimum, total)
         if total == minimum:
             # API requires that UnitPrice * Qty == Amount Error 6070

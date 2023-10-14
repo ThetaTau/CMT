@@ -1753,6 +1753,7 @@ class PrematureAlumnusCreateView(
                 }
             )
         context["table"] = PrematureAlumnusStatusTable(data=data)
+        context["prealumn_charge"] = Config.get_value("prealumn_charge")
         return context
 
 
