@@ -1,6 +1,6 @@
 import django_tables2 as tables
 from django_tables2.utils import A
-from .models import User
+from .models import User, UserStatusChange
 
 
 class UserTable(tables.Table):
@@ -81,6 +81,11 @@ class UserTable(tables.Table):
     def render_current_roles(self, value):
         if value:
             value = ", ".join(value)
+        return value
+
+    def render_current_status(self, value):
+        if value:
+            value = UserStatusChange.STATUS.get_value(value)
         return value
 
     def render_address(self, value):

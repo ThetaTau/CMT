@@ -105,7 +105,7 @@ class UserStatusChangeFactory(factory.django.DjangoModelFactory):
     modified = factory.Faker("date_time_between", start_date="-1y", end_date="+1y")
     user = factory.SubFactory(UserFactory)
     status = factory.Faker(
-        "random_element", elements=[item[0] for item in UserStatusChange.STATUS]
+        "random_element", elements=[x.value for x in UserStatusChange.STATUS]
     )
 
     class Meta:

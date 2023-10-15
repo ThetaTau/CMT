@@ -247,6 +247,13 @@ class User(AbstractUser, EmailSignalMixin):
         pledge_number = max(pledge_numbers) + 1
         return pledge_number
 
+    def reset_status(self):
+        # Need to find the pervious status before the current one
+        #   set that status as now current
+        statuses = list(UserStatusChange.objects.filter(user=self).order_by("start"))
+        previous_status = statuses[-2]
+        self.set_current_status(previous_status)
+
     def set_current_status(
         self, status, created=None, start=None, end=None, current=True
     ):
@@ -275,6 +282,8 @@ class User(AbstractUser, EmailSignalMixin):
             alumni = UserStatusChange.objects.filter(user=self, status="alumni")
             if not alumni:
                 status = "nonmember"
+        if self.chapter.candidate_chapter:
+            status = {"active": "activeCC", "alumni": "alumniCC"}.get(status, status)
         UserStatusChange(
             user=self,
             created=created,
@@ -536,28 +545,31 @@ class UserSemesterGPA(YearTermModel):
 
 
 class UserStatusChange(StartEndModel, TimeStampedModel, EmailSignalMixin):
-    STATUS = [
-        ("active", "active"),
-        ("activepend", "active pending"),
-        ("advisor", "advisor"),
-        ("alumni", "alumni"),
-        ("alumnipend", "alumni pending"),
-        ("away", "away"),
-        ("deceased", "deceased"),
-        ("depledge", "depledge"),
-        ("expelled", "expelled"),
-        ("friend", "friend"),
-        ("nonmember", "nonmember"),
-        ("probation", "probation"),
-        ("pnm", "prospective"),
-        ("resigned", "resigned"),
-        ("resignedCC", "resignedCC"),
-        ("suspended", "suspended"),
-    ]
+    class STATUS(EnumClass):
+        active = ("active", "Active")
+        activeCC = ("activeCC", "Active")
+        activepend = ("activepend", "Active Pending")
+        advisor = ("advisor", "Advisor")
+        alumni = ("alumni", "Alumni")
+        alumniCC = ("alumniCC", "Alumni")
+        alumnipend = ("alumnipend", "Alumni Pending")
+        away = ("away", "Away")
+        deceased = ("deceased", "Deceased")
+        depledge = ("depledge", "Depledge")
+        expelled = ("expelled", "Expelled")
+        friend = ("friend", "Friend")
+        nonmember = ("nonmember", "Nonmember")
+        pendexpul = ("pendexpul", "Pending Expulsion")
+        probation = ("probation", "Probation")
+        pnm = ("pnm", "Prospective")
+        resigned = ("resigned", "Resigned")
+        resignedCC = ("resignedCC", "Resigned")
+        suspended = ("suspended", "Suspended")
+
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="status"
     )
-    status = models.CharField(max_length=10, choices=STATUS)
+    status = models.CharField(max_length=10, choices=[x.value for x in STATUS])
 
     def __str__(self):
         return self.status

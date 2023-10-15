@@ -432,7 +432,6 @@ class InitiationProcessFlow(Flow):
         member_list = activation.process.initiations.values_list(
             "user__name", flat=True
         )
-        return
         for initiation in activation.process.initiations.all():
             if initiation.user.current_status != "active":
                 initiation.user.set_current_status(
@@ -920,6 +919,8 @@ class DisciplinaryProcessFlow(Flow):
             the RD and the ED and riskchair@thetatau.org and accused
         """
         task_title = activation.flow_task.task_title
+        user = activation.process.user
+        created = activation.task.created
         complete_step, next_step, state, message, fields, attachments = (
             "",
             "",
@@ -949,6 +950,9 @@ class DisciplinaryProcessFlow(Flow):
                     "proceedings. If you have questions, please email or call "
                     "the Central Office at central.office@thetatau.org // "
                     "512-472-1904."
+                )
+                user.set_current_status(
+                    status="pendexpul", created=created, start=created
                 )
             fields = DisciplinaryForm1._meta.fields[:]
             fields.remove("charging_letter")
@@ -1007,6 +1011,10 @@ class DisciplinaryProcessFlow(Flow):
                     "final_letter.pdf", ContentFile(content), save=True
                 )
                 attachments = ["final_letter"]
+                user.set_current_status(status="expelled")
+            else:
+                # EC did NOT approve the expulsion
+                user.reset_status()
             complete_step = "Executive Council Review"
             next_step = "Disciplinary Process Complete"
             state = "Complete"
@@ -1127,6 +1135,8 @@ class DisciplinaryProcessFlow(Flow):
                 )
             ],
         ).send()
+        user = activation.process.user
+        user.reset_status()
 
     @classmethod
     def start_email_regent(cls, pk):
@@ -1235,6 +1245,9 @@ class ResignationFlow(Flow):
                 attachments=["letter"],
                 direct_user=user,
             ).send()
+        user = activation.process.user
+        created = activation.task.created
+        user.set_current_status(status="pendexpul", created=created, start=created)
 
     def email_complete_func(self, activation):
         """
@@ -1253,6 +1266,9 @@ class ResignationFlow(Flow):
             email_officers=True,
             attachments=["letter"],
         ).send()
+        if not activation.process.approved_exec:
+            user = activation.process.user
+            user.reset_status()
 
     def set_resign_status(self, activation):
         user = activation.process.user

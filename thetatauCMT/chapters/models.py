@@ -337,7 +337,13 @@ class Chapter(models.Model, EmailSignalMixin):
     def get_actives_for_date(self, date):
         # Do not annotate, need the queryset not a list
         return self.members.filter(
-            status__status__in=["active", "activepend", "alumnipend"],
+            status__status__in=[
+                "active",
+                "activepend",
+                "alumnipend",
+                "pendexpul",
+                "activeCC",
+            ],
             status__start__lte=date,
             status__end__gte=date,
         ).distinct()
@@ -428,19 +434,25 @@ class Chapter(models.Model, EmailSignalMixin):
         :return:
         """
         return self.members.filter(
-            current_status__in=["active", "activepend"],
+            current_status__in=["active", "activepend", "pendexpul" "activeCC"],
         ).distinct()
 
     def alumni(self):
         # Do not annotate, need the queryset not a list
         return self.members.filter(
-            current_status="alumni",
+            current_status__in=["alumni", "alumniCC"],
         ).distinct()
 
     def actives(self):
         # Do not annotate, need the queryset not a list
         return self.members.filter(
-            current_status__in=["active", "activepend", "alumnipend"],
+            current_status__in=[
+                "active",
+                "activepend",
+                "alumnipend",
+                "pendexpul",
+                "activeCC",
+            ],
         ).distinct()
 
     def pledges(self, date=TODAY_END):

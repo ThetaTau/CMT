@@ -305,7 +305,13 @@ class ExportActiveMixin:
         zip_filename = f"ThetaTauActiveExport_{time_name}.zip"
         zip_io = BytesIO()
         qs = self.model._default_manager.filter(
-            current_status__in=["active", "activepend", "alumnipend", "away"],
+            current_status__in=[
+                "active",
+                "activepend",
+                "alumnipend",
+                "away",
+                "activeCC",
+            ],
         )
         with zipfile.ZipFile(zip_io, "w") as zf:
             active_chapters = Chapter.objects.exclude(active=False)
@@ -400,7 +406,7 @@ class UserListView(LoginRequiredMixin, PagedFilteredTableView):
                 qs = qs.order_by(*ordering)
         members = qs.filter(
             chapter=self.request.user.current_chapter,
-            current_status__in=["active", "activepend", "alumnipend"],
+            current_status__in=["active", "activepend", "alumnipend", "activeCC"],
         )
         pledges = qs.filter(
             chapter=self.request.user.current_chapter,
@@ -410,7 +416,7 @@ class UserListView(LoginRequiredMixin, PagedFilteredTableView):
         if self.request.user.chapter_officer():
             alumni = qs.filter(
                 chapter=self.request.user.current_chapter,
-                current_status="alumni",
+                current_status__in=["alumni", "alumniCC"],
             )
         qs = members | pledges | alumni
         cancel = self.request.GET.get("cancel", False)

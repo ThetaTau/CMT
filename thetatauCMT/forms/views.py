@@ -1298,7 +1298,7 @@ class RiskManagementListView(
         self.chapters_list, dates = active_chapters_filter(self.filter)
         start, end = dates
         qs = User.objects.filter(
-            status__status__in=["active", "activepend"],
+            status__status__in=["active", "activepend", "activeCC"],
             status__start__lte=end,
             status__end__gte=start,
         ).filter(chapter__in=self.chapters_list)

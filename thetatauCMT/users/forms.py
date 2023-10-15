@@ -487,7 +487,9 @@ class UserAdminBadgeFixForm(forms.Form):
 
 class UserAdminStatusForm(forms.Form):
     _selected_action = forms.CharField(widget=forms.MultipleHiddenInput)
-    status = forms.ChoiceField(label="New Status", choices=UserStatusChange.STATUS)
+    status = forms.ChoiceField(
+        label="New Status", choices=[x.value for x in UserStatusChange.STATUS]
+    )
     start = forms.DateField(
         initial=timezone.now(),
         label="Start Date",

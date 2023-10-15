@@ -39,6 +39,10 @@ class UserListFilterBase(django_filters.FilterSet):
 
     def filter_current_status(self, queryset, field_name, value):
         if value:
+            if "active" in value:
+                value.append("activeCC")
+            if "alumni" in value:
+                value.append("alumniCC")
             queryset = queryset.filter(current_status__in=value)
         return queryset
 
@@ -101,7 +105,11 @@ class UserRoleListFilter(django_filters.FilterSet):
 
     def filter_current_status(self, queryset, field_name, value):
         if value:
-            queryset = queryset.filter(current_status=value)
+            if value == "active":
+                values = ["active", "activeCC"]
+            else:
+                values = ["pnm"]
+            queryset = queryset.filter(current_status__in=values)
         return queryset
 
     def filter_current_roles(self, queryset, field_name, value):

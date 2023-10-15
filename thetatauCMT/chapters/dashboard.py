@@ -355,7 +355,12 @@ def load_chapter_data(clicks, **kwargs):
                     chapter=chapter,
                     status__start__lte=end,
                     status__end__gte=start,
-                    status__status__in=["active", "activepend", "alumnipend"],
+                    status__status__in=[
+                        "active",
+                        "activepend",
+                        "alumnipend",
+                        "activeCC",
+                    ],
                 )
                 .order_by()
                 .annotate(count=Count("major"))

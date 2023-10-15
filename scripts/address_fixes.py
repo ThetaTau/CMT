@@ -10,7 +10,7 @@ def run(*args):
     # addresses = Address.objects.filter(locality__isnull=True).all()
     # Not all addresses are needed only care about addresses connected to user
     if not args:
-        args = ["active", "activepend", "alumnipend", "pnm"]
+        args = ["active", "activepend", "alumnipend", "pnm", "activeCC"]
     users = User.objects.filter(
         current_status__in=args,
     )
