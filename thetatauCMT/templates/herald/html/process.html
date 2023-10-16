@@ -26,6 +26,7 @@ Dear {{ user }},
     <th>&nbsp;</th>
     <td>&nbsp;</td>
   </tr>
+{% if info %}
   <tr style="background-color: #D3D3D3">
     <th colspan="2"><hr><h3>Process Details</h3></th>
   </tr>
@@ -36,6 +37,7 @@ Dear {{ user }},
     </tr>
   {% endfor %}
 </table>
+{% endif %}
 <p>Please review the {% if file_names %}document(s) and {% endif %}above information and reach out with any questions/concerns.</p>
 <p>In H&T,<br>Chapter Management Tool</p>
 {% endblock content %}

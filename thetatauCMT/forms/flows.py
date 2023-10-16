@@ -1,6 +1,5 @@
 import os
 import datetime
-from io import BytesIO
 from django.conf import settings
 from django.core.files.base import ContentFile
 from django.http import HttpResponseRedirect

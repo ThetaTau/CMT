@@ -1,4 +1,6 @@
 import re
+import pytz
+import datetime
 from django.db.models import Q
 from django.utils.safestring import mark_safe
 from django.urls import reverse
@@ -223,3 +225,18 @@ class FilterProcessListView(ProcessListView, FlowListMixin):
 
 class FilterableFlowViewSet(FlowViewSet):
     process_list_view = [r"^$", FilterProcessListView.as_view(), "index"]
+
+
+def cancel_process(process):
+    active_tasks = process.task_set.exclude(status__in=[STATUS.DONE, STATUS.CANCELED])
+    for task in active_tasks:
+        print(
+            f"Cancelling process task: {task.flow_task.name} for process: {process.flow_class.process_title}"
+        )
+        activation = task.activate()
+        if hasattr(activation, "unassign"):
+            activation.unassign()
+        activation.cancel()
+    process.status = STATUS.CANCELED
+    process.finished = datetime.datetime.utcnow().replace(tzinfo=pytz.utc)
+    process.save()
