@@ -9,11 +9,11 @@ from chapters.models import ChapterCurricula, Chapter
 class UserListFilterBase(django_filters.FilterSet):
     current_status = django_filters.MultipleChoiceFilter(
         choices=[
-            ("active", "active"),
-            ("pnm", "prospective"),
-            ("alumni", "alumni"),
-            ("activepend", "activepend"),
-            ("alumnipend", "alumnipend"),
+            ("active", "Active"),
+            ("pnm", "Prospective"),
+            ("away", "Away"),
+            ("activepend", "Active Pending"),
+            ("alumnipend", "Alumni Pending"),
         ],
         method="filter_current_status",
     )
@@ -36,13 +36,34 @@ class UserListFilterBase(django_filters.FilterSet):
         self.filters["major"].queryset = ChapterCurricula.objects.filter(
             chapter=self.request.user.current_chapter
         )
+        if self.request.user.chapter_officer():
+            self.filters["current_status"].field.choices.choices.extend(
+                [
+                    ("alumni", "Alumni"),
+                    ("suspended", "Suspended"),
+                    ("other", "Other Status"),
+                ]
+            )
 
     def filter_current_status(self, queryset, field_name, value):
         if value:
             if "active" in value:
                 value.append("activeCC")
             if "alumni" in value:
-                value.append("alumniCC")
+                value.extend(["alumniCC", "deceased"])
+            if "suspended" in value:
+                value.extend(["pendexpul", "probation"])
+            if "other" in value:
+                value.extend(
+                    [
+                        "advisor",
+                        "expelled",
+                        "friend",
+                        "nonmember",
+                        "resigned",
+                        "resignedCC",
+                    ]
+                )
             queryset = queryset.filter(current_status__in=value)
         return queryset
 

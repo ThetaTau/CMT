@@ -398,27 +398,25 @@ class UserListView(LoginRequiredMixin, PagedFilteredTableView):
         return super().get(request, *args, **kwargs)
 
     def get_queryset(self, **kwargs):
-        qs = self.model._default_manager.all()
+        qs = self.model._default_manager.filter(
+            chapter=self.request.user.current_chapter
+        )
         ordering = self.get_ordering()
         if ordering:
             if isinstance(ordering, str):
                 ordering = (ordering,)
                 qs = qs.order_by(*ordering)
-        members = qs.filter(
-            chapter=self.request.user.current_chapter,
-            current_status__in=["active", "activepend", "alumnipend", "activeCC"],
-        )
-        pledges = qs.filter(
-            chapter=self.request.user.current_chapter,
-            current_status="pnm",
-        )
-        alumni = User.objects.none()
-        if self.request.user.chapter_officer():
-            alumni = qs.filter(
-                chapter=self.request.user.current_chapter,
-                current_status__in=["alumni", "alumniCC"],
+        if not self.request.user.chapter_officer():
+            qs = qs.filter(
+                current_status__in=[
+                    "active",
+                    "activepend",
+                    "alumnipend",
+                    "activeCC",
+                    "away",
+                    "pnm",
+                ],
             )
-        qs = members | pledges | alumni
         cancel = self.request.GET.get("cancel", False)
         request_get = self.request.GET.copy()
         if cancel:
