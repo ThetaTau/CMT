@@ -2444,13 +2444,19 @@ class DisciplinaryCreateView(
             link = False
             if process.finished is None:
                 task = process.active_tasks().first()
-                status = task.flow_task.task_title
-                approved = "Pending"
-                if "Submit Form 2" in status and task.owner == self.request.user:
-                    link = reverse(
-                        "viewflow:forms:disciplinaryprocess:submit_form2",
-                        kwargs={"process_pk": process.pk, "task_pk": task.pk},
-                    )
+                if task is None:
+                    # tasks may have all been cancelled and the process was not completed
+                    task = process.task_set.first()
+                    status = task.status
+                    approved = False
+                else:
+                    status = task.flow_task.task_title
+                    approved = "Pending"
+                    if "Submit Form 2" in status and task.owner == self.request.user:
+                        link = reverse(
+                            "viewflow:forms:disciplinaryprocess:submit_form2",
+                            kwargs={"process_pk": process.pk, "task_pk": task.pk},
+                        )
             else:
                 status = process.task_set.first().flow_task.task_title
                 approved = process.ec_approval
