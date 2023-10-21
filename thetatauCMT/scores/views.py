@@ -98,7 +98,7 @@ class ChapterScoreListView(LoginRequiredMixin, PagedFilteredTableView):
         date = None
         if not cancel:
             year = request_get.get("year")
-            if year is not None:
+            if year:
                 term = request_get.get("term", "fa")
                 term = "fa" if not term else term
                 month = {"sp": 3, "fa": 10}[term]
