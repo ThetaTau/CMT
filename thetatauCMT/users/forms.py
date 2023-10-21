@@ -204,6 +204,7 @@ class UserUpdateForm(forms.ModelForm):
             "middle_name",
             "last_name",
             "maiden_name",
+            "preferred_pronouns",
             "preferred_name",
             "nickname",
             "suffix",
@@ -318,6 +319,7 @@ class UserForm(forms.ModelForm):
     class Meta:
         model = User
         fields = [
+            "preferred_pronouns",
             "preferred_name",
             "major",
             "graduation_year",

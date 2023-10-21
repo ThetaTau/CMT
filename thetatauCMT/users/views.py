@@ -694,6 +694,9 @@ class UserLookupUpdateView(FormView):
             user_info["middle_name"] = user.middle_name
             user_info["last_name"] = user.last_name
             user_info["maiden_name"] = user.maiden_name
+            user_info["preferred_pronouns"] = (
+                user.preferred_pronouns if user.preferred_pronouns else ""
+            )
             user_info["preferred_name"] = (
                 user.preferred_name if user.preferred_name else ""
             )

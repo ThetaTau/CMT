@@ -211,6 +211,7 @@ class MemberUpdateFlow(Flow):
             "middle_name",
             "last_name",
             "maiden_name",
+            "preferred_pronouns",
             "preferred_name",
             "nickname",
             "suffix",

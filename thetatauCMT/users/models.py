@@ -90,12 +90,19 @@ class User(AbstractUser, EmailSignalMixin):
     middle_name = models.CharField(_("Full Middle Name"), max_length=30, blank=True)
     maiden_name = models.CharField(_("Maiden Name"), max_length=150, blank=True)
     suffix = models.CharField(_("Suffix (such as Jr., III)"), max_length=10, blank=True)
+    preferred_pronouns = models.CharField(
+        _("Preferred Pronouns"),
+        max_length=255,
+        blank=True,
+        null=True,
+        help_text="Pronouns are the part of speech used to refer to someone in the third person. We want to know how to respectfully refer to you.",
+    )
     preferred_name = models.CharField(
         _("Preferred Name"),
         max_length=255,
         blank=True,
         null=True,
-        help_text="Prefered First Name - eg my first name is Kevin but I go by my middle name Henry.",
+        help_text="Preferred First Name - eg my first name is Kevin but I go by my middle name Henry.",
     )
     nickname = models.CharField(
         max_length=30,
@@ -729,6 +736,7 @@ class MemberUpdate(Process, EmailSignalMixin):
     middle_name = models.CharField(blank=True, null=True, max_length=500)
     last_name = models.CharField(blank=True, null=True, max_length=500)
     maiden_name = models.CharField(blank=True, null=True, max_length=500)
+    preferred_pronouns = models.CharField(blank=True, null=True, max_length=500)
     preferred_name = models.CharField(blank=True, null=True, max_length=500)
     nickname = models.CharField(blank=True, null=True, max_length=500)
     suffix = models.CharField(blank=True, null=True, max_length=500)

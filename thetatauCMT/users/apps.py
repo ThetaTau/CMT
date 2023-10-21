@@ -25,6 +25,7 @@ class UsersConfig(AppConfig):
                 "username",
                 "first_name",
                 "last_name",
+                "preferred_pronouns",
                 "preferred_name",
                 "nickname",
                 "maiden_name",

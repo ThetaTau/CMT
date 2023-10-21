@@ -9,6 +9,7 @@ class UserTable(tables.Table):
     class Meta:
         model = User
         fields = (
+            "preferred_pronouns",
             "name",
             "badge_number",
             "email",
