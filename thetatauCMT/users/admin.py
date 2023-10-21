@@ -97,7 +97,7 @@ class UserDemographicAdmin(admin.ModelAdmin):
         "first_gen",
         "english",
     ]
-    search_fields = ["user__chapter"]
+    search_fields = ["user__chapter__name"]
 
 
 admin.site.register(UserDemographic, UserDemographicAdmin)

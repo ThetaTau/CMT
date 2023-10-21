@@ -317,7 +317,7 @@ class InitiationProcessAdmin(admin.ModelAdmin):
         "-created",
     ]
     search_fields = [
-        "chapter",
+        "chapter__name",
     ]
     exclude = [
         "flow_class",
@@ -354,7 +354,7 @@ class PledgeProcessAdmin(admin.ModelAdmin):
         "-created",
     ]
     search_fields = [
-        "chapter",
+        "chapter__name",
         "invoice",
     ]
     exclude = [
@@ -390,8 +390,8 @@ class ResignationProcessAdmin(admin.ModelAdmin):
         "-created",
     ]
     search_fields = [
-        "user",
-        "chapter",
+        "user__name",
+        "chapter__name",
     ]
     exclude = [
         "flow_class",
