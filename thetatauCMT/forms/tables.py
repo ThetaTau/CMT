@@ -302,13 +302,14 @@ class PledgeProgramStatusTable(tables.Table):
 
 
 class SignTable(tables.Table):
-    member = tables.Column()
+    member = tables.Column(order_by=("user"))
     owner = tables.Column(verbose_name="Task Owner")
     role = tables.Column()
     status = tables.Column()
     approved = tables.Column()
     link = tables.TemplateColumn(
-        '{% if record.link %}<a href="{{ record.link }}">Sign Link</a>{% endif %}'
+        '{% if record.link %}<a href="{{ record.link }}">Sign Link</a>{% endif %}',
+        orderable=False,
     )
 
     class Meta:
@@ -362,18 +363,6 @@ class ResignationStatusTable(tables.Table):
     started = tables.Column()
     finished = tables.Column()
     status = tables.Column()
-
-    class Meta:
-        attrs = {
-            "class": "table table-striped table-bordered",
-        }
-
-
-class ResignationListTable(tables.Table):
-    member = tables.Column()
-    finished = tables.Column()
-    status = tables.Column()
-    link = tables.TemplateColumn('<a href="{{ record.link }}">Sign Link</a>')
 
     class Meta:
         attrs = {

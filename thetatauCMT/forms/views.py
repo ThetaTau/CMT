@@ -124,7 +124,6 @@ from .tables import (
     DisciplinaryStatusTable,
     CollectionReferralTable,
     ResignationStatusTable,
-    ResignationListTable,
     ReturnStudentStatusTable,
     PledgeProgramStatusTable,
 )
@@ -2742,18 +2741,15 @@ class ResignationListView(
 ):
     model = ResignationProcess
     context_object_name = "resign_list"
-    table_class = ResignationListTable
+    table_class = SignTable
 
     def get_queryset(self, **kwargs):
         qs = self.model.objects.filter(user__chapter=self.request.user.current_chapter)
         return qs
 
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
+    def get_table_data(self):
         data, submitted, users = get_sign_status(self.request.user, type_sign="resign")
-        table = SignTable(data=data)
-        context["table"] = table
-        return context
+        return data
 
 
 class ReturnStudentCreateView(
