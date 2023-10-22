@@ -577,11 +577,11 @@ class CentralOfficeGenericEmail(EmailNotification):
     render_types = ["html"]
     template_name = "central_office"
 
-    def __init__(self, message, attachments=None):
+    def __init__(self, message, subject="[CMT] Record Message", attachments=None):
         self.to_emails = ["central.office@thetatau.org"]
         self.cc = ["cmt@thetatau.org"]
         self.reply_to = ["cmt@thetatau.org"]
-        self.subject = "[CMT] Record Message"
+        self.subject = subject
         file_names = []
         if attachments:
             for file in attachments:
@@ -589,6 +589,8 @@ class CentralOfficeGenericEmail(EmailNotification):
                     file_names.append(file.name)
                 elif hasattr(file, "get_filename"):
                     file_names.append(file.get_filename())
+        else:
+            attachments = []
         self.context = {
             "file_names": file_names,
             "host": settings.CURRENT_URL,

@@ -6,7 +6,7 @@ from viewflow.models import Task
 from viewflow.activation import STATUS
 from core.flows import cancel_process
 from forms.forms import DisciplinaryForm1
-from forms.notifications import EmailProcessUpdate
+from forms.notifications import EmailProcessUpdate, CentralOfficeGenericEmail
 
 
 class Command(BaseCommand):
@@ -37,6 +37,7 @@ class Command(BaseCommand):
             status=STATUS.ASSIGNED, flow_task_type="HUMAN"
         )
         print(f"Assigned Tasks found {function_tasks.count()}")
+        cancelled = []
         for function_task in function_tasks.all():
             process = function_task.flow_process
             owner = function_task.owner
@@ -45,7 +46,7 @@ class Command(BaseCommand):
             if chapter_only:
                 if chapter.name.lower() != chapter_only:
                     continue
-            date_5mo = (date - datetime.timedelta(days=30 * 5)).date()
+            date_2mo = (date - datetime.timedelta(days=30 * 2)).date()
             date_30 = (date - datetime.timedelta(days=30)).date()
             date_14 = (date - datetime.timedelta(days=14)).date()
             date_7 = (date - datetime.timedelta(days=7)).date()
@@ -108,7 +109,8 @@ class Command(BaseCommand):
                     # not a notify function
                     continue
             elif process.flow_class.process_title == "Convention Process":
-                if created <= date_5mo:
+                if created <= date_2mo:
+                    cancelled.append(process)
                     cancel_process(process)
                     continue
                 elif created <= date_30:
@@ -150,8 +152,10 @@ class Command(BaseCommand):
                     "at central.office@thetatau.org // 512-472-1904."
                 )
             elif process.flow_class.process_title == "OSM Process":
-                if created <= date_5mo:
+                if created <= date_2mo:
+                    cancelled.append(process)
                     cancel_process(process)
+                    continue
                 elif created <= date_30:
                     process_title = f"URGENT {process.flow_class.process_title}"
                     days = 30
@@ -248,4 +252,15 @@ class Command(BaseCommand):
                 email_officers=email_officers,
                 attachments=attachments,
                 extra_emails=extra_emails,
+            ).send()
+        if cancelled:
+            message = (
+                "The following processes were cancelled after over "
+                "60 days of no update:<ul>"
+            )
+            for process in cancelled:
+                message += f"<li>{process}</li>"
+            message += "</ul>"
+            CentralOfficeGenericEmail(
+                message, subject="[CMT] Cancelled Processes"
             ).send()

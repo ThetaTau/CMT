@@ -1,10 +1,9 @@
 {% extends "herald/html/base_email.html" %}
 {% block title %}Theta Tau Process Update{% endblock %}
 {% block content %}
-<h2 class="null" style="margin: 0;padding: 0;display: block;font-family: Helvetica;font-size: 30px;font-style: normal;font-weight: bold;line-height: 125%;letter-spacing: -1px;text-align: left;color: #606060 !important;">{{ process_title }} {{ state }}</h2>
 <br>
 Dear Central Office,
-<p>{{ message }}</p>
+<p>{{ message|safe }}</p>
 {% if file_names %}
   {% for file_name in file_names %}
     <p><strong>Attached is a copy of "{{ file_name }}".</strong></p>

@@ -1305,6 +1305,9 @@ class Convention(Process, YearTermModel):
         "Officer Approved", choices=BOOL_CHOICES, default=False
     )
 
+    def __str__(self):
+        return f"Convention Process for {self.chapter}"
+
 
 class PledgeProcess(Process, EmailSignalMixin):
     pledges = models.ManyToManyField(Pledge, related_name="process", blank=True)
@@ -1988,7 +1991,7 @@ class ResignationProcess(Process, EmailSignalMixin):
     exec_comments = models.TextField(_("If rejecting, please explain why."), blank=True)
 
     def __str__(self):
-        return f"Resignation {self.user}"
+        return f"Resignation {self.user} from {self.chapter}"
 
 
 class ReturnStudent(Process, EmailSignalMixin):
