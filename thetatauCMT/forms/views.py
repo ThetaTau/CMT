@@ -1787,7 +1787,6 @@ def get_sign_status_discipline(user, name=False, complete=True):
         owner = "N/A"
         if process.finished is None:
             task = process.active_tasks().first()
-            owner = task.owner
             if task is None and complete:
                 # tasks may have all been cancelled and the process was not completed
                 task = process.task_set.first()
@@ -1795,6 +1794,7 @@ def get_sign_status_discipline(user, name=False, complete=True):
                 approved = False
             else:
                 status = task.flow_task.task_title
+                owner = task.owner
                 approved = "Pending"
                 if "Submit Form 2" in status and task.owner == user:
                     link = reverse(
