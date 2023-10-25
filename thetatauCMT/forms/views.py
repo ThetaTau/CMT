@@ -1787,8 +1787,10 @@ def get_sign_status_discipline(user, name=False, complete=True):
         owner = "N/A"
         if process.finished is None:
             task = process.active_tasks().first()
-            if task is None and complete:
+            if task is None:
                 # tasks may have all been cancelled and the process was not completed
+                if not complete:
+                    continue
                 task = process.task_set.first()
                 status = task.status
                 approved = False
