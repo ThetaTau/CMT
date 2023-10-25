@@ -317,6 +317,25 @@ class SignTable(tables.Table):
             "class": "table table-striped table-bordered",
         }
 
+    def __init__(self, extra=False, *args, **kwargs):
+        extra_columns = kwargs.get("extra_columns", [])
+        if extra:
+            extra_columns.extend(
+                [
+                    ("process_name", tables.Column()),
+                ]
+            )
+            kwargs["sequence"] = [
+                "process_name",
+                "member",
+                "owner",
+                "role",
+                "link",
+            ]
+            kwargs["exclude"] = ["approved"]
+        kwargs["extra_columns"] = extra_columns
+        super().__init__(*args, **kwargs)
+
 
 class ConventionListTable(tables.Table):
     class Meta:

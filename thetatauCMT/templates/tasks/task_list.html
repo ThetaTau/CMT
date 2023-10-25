@@ -1,10 +1,15 @@
 {% extends "base.html" %}
-{% load querystring from django_tables2 %}
+{% load querystring render_table from django_tables2 %}
 {% load bootstrap4 %}
 {% load crispy_forms_tags %}
 {% load static i18n %}
 {% block title %}Tasks{% endblock %}
 {% block content %}
+<h1>Chapter Process Reminders</h1>
+<p>Below are a list of process that chapter officers need to complete.</p>
+<p>Only the assigned member will have a visible link to complete the process.</p>
+  {% render_table task_table %}
+
 {% if table.page %}
   <div class="table-container">
 {% endif %}

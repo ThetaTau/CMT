@@ -1779,7 +1779,57 @@ def badge_shingle_init_sync(request, process_pk, invoice_number):
     return JsonResponse({"invoice_number": new_invoice_number})
 
 
-def get_sign_status(user, type_sign="creds", initial=False):
+def get_sign_status_discipline(user, name=False, complete=True):
+    data = []
+    processes = DisciplinaryProcess.objects.filter(chapter=user.current_chapter)
+    for process in processes:
+        link = False
+        owner = "N/A"
+        if process.finished is None:
+            task = process.active_tasks().first()
+            owner = task.owner
+            if task is None and complete:
+                # tasks may have all been cancelled and the process was not completed
+                task = process.task_set.first()
+                status = task.status
+                approved = False
+            else:
+                status = task.flow_task.task_title
+                approved = "Pending"
+                if "Submit Form 2" in status and task.owner == user:
+                    link = reverse(
+                        "viewflow:forms:disciplinaryprocess:submit_form2",
+                        kwargs={"process_pk": process.pk, "task_pk": task.pk},
+                    )
+        elif complete:
+            status = process.task_set.first().flow_task.task_title
+            approved = process.ec_approval
+        else:
+            continue
+        if name:
+            obj = {
+                "process_name": "Disciplinary Process",
+                "member": process.user,
+                "owner": owner,
+                "role": "Confirmation",
+                "status": status,
+                "approved": approved,
+                "link": link,
+            }
+        else:
+            obj = {
+                "status": status,
+                "user": process.user,
+                "created": process.created,
+                "trial_date": process.trial_date,
+                "approved": approved,
+                "link": link,
+            }
+        data.append(obj)
+    return data
+
+
+def get_sign_status(user, type_sign="creds", initial=False, name=False, complete=True):
     data = []
     extra_filter = {}
     member_field_names = ["user"]
@@ -1846,16 +1896,19 @@ def get_sign_status(user, type_sign="creds", initial=False):
             if user.current_chapter.candidate_chapter:
                 if signature in ["delegate", "alternate"]:
                     signature = "representative"
-            data.append(
-                {
-                    "member": member,
-                    "owner": signer,
-                    "role": signature,
-                    "status": status,
-                    "approved": approved,
-                    "link": link,
-                }
-            )
+            if status == "Complete" and not complete:
+                continue
+            obj = {
+                "member": member,
+                "owner": signer,
+                "role": signature,
+                "status": status,
+                "approved": approved,
+                "link": link,
+            }
+            if name:
+                obj["process_name"] = process.flow_class.process_title
+            data.append(obj)
     return data, submitted, users
 
 
@@ -2435,41 +2488,7 @@ class DisciplinaryCreateView(
 
     def get_context_data(self, *args, **kwargs):
         context = super().get_context_data(**kwargs)
-        data = []
-        processes = DisciplinaryProcess.objects.filter(
-            chapter=self.request.user.current_chapter
-        )
-        for process in processes:
-            link = False
-            if process.finished is None:
-                task = process.active_tasks().first()
-                if task is None:
-                    # tasks may have all been cancelled and the process was not completed
-                    task = process.task_set.first()
-                    status = task.status
-                    approved = False
-                else:
-                    status = task.flow_task.task_title
-                    approved = "Pending"
-                    if "Submit Form 2" in status and task.owner == self.request.user:
-                        link = reverse(
-                            "viewflow:forms:disciplinaryprocess:submit_form2",
-                            kwargs={"process_pk": process.pk, "task_pk": task.pk},
-                        )
-            else:
-                status = process.task_set.first().flow_task.task_title
-                approved = process.ec_approval
-
-            data.append(
-                {
-                    "status": status,
-                    "user": process.user,
-                    "created": process.created,
-                    "trial_date": process.trial_date,
-                    "approved": approved,
-                    "link": link,
-                }
-            )
+        data = get_sign_status_discipline(self.request.user)
         context["table"] = DisciplinaryStatusTable(data=data)
         return context
 

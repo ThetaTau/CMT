@@ -4,7 +4,6 @@ from django.shortcuts import redirect, reverse
 from django.db import models, transaction
 from django.db.utils import IntegrityError
 from django.http.request import QueryDict
-from django.utils.text import slugify
 from django.views.generic import DetailView, CreateView
 from core.models import current_year_term_slug
 from core.views import (
@@ -13,6 +12,8 @@ from core.views import (
     OfficerRequiredMixin,
     LoginRequiredMixin,
 )
+from forms.tables import SignTable
+from forms.views import get_sign_status, get_sign_status_discipline
 from .models import TaskChapter, TaskDate
 from .tables import TaskTable
 from .filters import TaskListFilter
@@ -135,4 +136,23 @@ class TaskListView(LoginRequiredMixin, PagedFilteredTableView):
         table.request = self.request
         RequestConfig(self.request, paginate={"per_page": 40}).configure(table)
         context["table"] = table
+        discipline_tasks = get_sign_status_discipline(
+            self.request.user, name=True, complete=False
+        )
+        convention_tasks = get_sign_status(
+            self.request.user, type_sign="creds", name=True, complete=False
+        )
+        resign_tasks = get_sign_status(
+            self.request.user, type_sign="resign", name=True, complete=False
+        )
+        osm_tasks = get_sign_status(
+            self.request.user, type_sign="osm", name=True, complete=False
+        )
+        all_process_tasks = (
+            convention_tasks[0] + resign_tasks[0] + osm_tasks[0] + discipline_tasks
+        )
+        task_table = SignTable(data=all_process_tasks, extra=True)
+        task_table.request = self.request
+        RequestConfig(self.request, paginate={"per_page": 40}).configure(task_table)
+        context["task_table"] = task_table
         return context
