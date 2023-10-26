@@ -110,10 +110,11 @@ ADMIN_URL = env("DJANGO_ADMIN_URL")
 # https://anymail.readthedocs.io/en/stable/installation/#installing-anymail
 INSTALLED_APPS += ["anymail"]  # noqa F405
 if DJANGO_EMAIL_LIVE:
-    EMAIL_BACKEND = "anymail.backends.mailjet.EmailBackend"
+    EMAIL_BACKEND = "anymail.backends.sendgrid.EmailBackend"
 ANYMAIL = {
     "MAILJET_API_KEY": env("MAILJET_API_KEY"),
     "MAILJET_SECRET_KEY": env("MAILJET_SECRET_KEY"),
+    "SENDGRID_API_KEY": env("SENDGRID_API_KEY"),
 }
 
 
