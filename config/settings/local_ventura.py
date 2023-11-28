@@ -19,10 +19,9 @@ DBBACKUP_CONNECTORS = {
 }
 
 if False:
-    EMAIL_BACKEND = "anymail.backends.sendgrid.EmailBackend"
+    EMAIL_BACKEND = "anymail.backends.mailjet.EmailBackend"
     ANYMAIL = {
         "MAILJET_API_KEY": env("MAILJET_API_KEY"),
         "MAILJET_SECRET_KEY": env("MAILJET_SECRET_KEY"),
-        "SENDGRID_API_KEY": env("SENDGRID_API_KEY"),
     }
     INSTALLED_APPS += ["anymail"]
