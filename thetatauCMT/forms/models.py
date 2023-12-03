@@ -1164,6 +1164,9 @@ class InitiationProcess(Process, EmailSignalMixin):
             "Initiation Date",
             "Email",
             "School Email",
+            "Badge Number",
+            "Chapter Abbreviation",
+            "Badge Style",
         ]
         chapter = self.chapter.name
         chapter_abr = self.chapter.greek
@@ -1228,6 +1231,9 @@ class InitiationProcess(Process, EmailSignalMixin):
                 "Initiation Date": initiation.date.strftime("%B %d, %Y"),
                 "Email": initiation.user.email,
                 "School Email": initiation.user.email_school,
+                "Badge Number": initiation.roll,
+                "Chapter Abbreviation": chapter_abr,
+                "Badge Style": badge,
             }
             shingle_writer.writerow(row_shingle)
         if response is None and not get_file:
