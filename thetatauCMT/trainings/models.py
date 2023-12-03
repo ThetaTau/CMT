@@ -172,9 +172,19 @@ class Training(TimeStampedModel):
                     max_quiz_score=max_quiz_score,
                 )
                 print(values)
-                obj, created = Training.objects.update_or_create(
-                    user=user, course_id=course_id, defaults=values
-                )
+                try:
+                    obj, created = Training.objects.update_or_create(
+                        user=user, course_id=course_id, defaults=values
+                    )
+                except Training.MultipleObjectsReturned:
+                    trainings = Training.objects.filter(
+                        user=user, course_id=course_id
+                    ).order_by("-created")
+                    for training in trainings[1:]:
+                        training.delete()
+                    obj, created = Training.objects.update_or_create(
+                        user=user, course_id=course_id, defaults=values
+                    )
 
     @staticmethod
     def get_extra_groups():
