@@ -349,7 +349,7 @@ class InitiationView(LoginRequiredMixin, OfficerRequiredMixin, FormView):
             if formset is None:
                 formset = InitiationFormSet(prefix="initiates")
             formset.initial = [
-                {"user": user.name, "roll": self.next_badge + num}
+                {"user": user, "roll": self.next_badge + num}
                 for num, user in enumerate(self.to_initiate)
             ]
             chapter = self.request.user.current_chapter
@@ -384,7 +384,7 @@ class InitiationView(LoginRequiredMixin, OfficerRequiredMixin, FormView):
         self.initial_info(initiate)
         formset = InitiationFormSet(request.POST, request.FILES, prefix="initiates")
         formset.initial = [
-            {"user": user.name, "roll": self.next_badge + num}
+            {"user": user.pk, "roll": self.next_badge + num}
             for num, user in enumerate(self.to_initiate)
         ]
         depledge_formset = DepledgeFormSet(

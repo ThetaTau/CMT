@@ -122,13 +122,6 @@ class InitiationForm(forms.ModelForm):
             "badge",
         ]
 
-    def clean_user(self):
-        data = self.cleaned_data["user"]
-        user = User.objects.filter(name=data, chapter__name=self.data["chapter"]).last()
-        if user:
-            return user.pk
-        return ""
-
     def clean_roll(self):
         data = self.cleaned_data["roll"]
         chapter = Chapter.objects.get(name=self.data["chapter"])
