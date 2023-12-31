@@ -6,17 +6,17 @@
 {% block head_title %}{% trans "New Member Education Program" %}{% endblock %}
 {% block content %}
   <h2>{% trans "New Member Education Program" %}</h2>
-{#  <p>The live copy of the new member education program is here:#}
-{#    <br><a href="{{ program_link }}" target="_blank">{{ program_link }}</a></p>#}
+  <p>The live copy of the new member education program is here:
+    <br><a href="{{ program_link }}" target="_blank">{{ program_link }}</a></p>
   <hr>
   {% if submitted == "review" %}
     <h4>The chapter pledge program is pending approval.</h4>
   {% elif submitted == "approved" %}
     <h4>The chapter pledge program has been approved for this semester.</h4>
   {% else %}
-{#    <p><span style="background-color: #FFFF00"><b>#}
-{#    Please edit the Google Document and when you are ready for the central office to review,#}
-{#    submit the below form.</b></span></p>#}
+    <p><span style="background-color: #FFFF00"><b>
+    Please edit the Google Document and when you are ready for the central office to review,
+    submit the below form.</b></span></p>
     <form method="POST" enctype="multipart/form-data">
       {{ form.media }}
       <link href="{% static 'css/project.css' %}" rel="stylesheet">

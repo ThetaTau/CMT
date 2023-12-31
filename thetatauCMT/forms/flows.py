@@ -1472,8 +1472,8 @@ class PledgeProgramProcessFlow(Flow):
             message=(
                 "This if a notification that the Central Office has "
                 "received the pledge program for you chapter.<br>"
-                # "Here is a link to the program under review: "
-                # f"<a href='https://docs.google.com/document/d/{chapter.nme_file_id}/edit' target='_blank'>NME Program</a>"
+                "Here is a link to the program under review: "
+                f"<a href='https://docs.google.com/document/d/{chapter.nme_file_id}/edit' target='_blank'>NME Program</a>"
             ),
             fields=["manual"],
             email_officers=True,
@@ -1495,10 +1495,9 @@ class PledgeProgramProcessFlow(Flow):
             message=(
                 "This is a notification that the Central Office has "
                 "rejected the pledge program for you chapter."
-                ### TODO: Remove with nme program update
-                # "Please review the notes and resubmit ASAP.<br>"
-                # "Here is a link to the program under review: "
-                # f"<a href='https://docs.google.com/document/d/{chapter.nme_file_id}/edit' target='_blank'>NME Program</a>"
+                "Please review the notes and resubmit ASAP.<br>"
+                "Here is a link to the program under review: "
+                f"<a href='https://docs.google.com/document/d/{chapter.nme_file_id}/edit' target='_blank'>NME Program</a>"
             ),
             fields=["approval", "approval_comments"],
             attachments=[],
@@ -1512,21 +1511,20 @@ class PledgeProgramProcessFlow(Flow):
     def approve_func(self, activation):
         model_obj = activation.process.program
         chapter = model_obj.chapter
-        ### TODO: Remove with nme program update
-        # gauth = login_with_service_account()
-        # drive = GoogleDrive(gauth)
-        # doc_file = drive.CreateFile({"id": chapter.nme_file_id})
-        # with BytesIO() as buffer:
-        #     for chunk in doc_file.GetContentIOBuffer(mimetype="application/pdf"):
-        #         buffer.write(chunk)
-        #     content = buffer.getvalue()
-        # # Year and term are added when uploaded to the final storage
-        # file_name = f"NME-{chapter.name}".upper().replace(" ", "_")
-        # model_obj.other_manual.save(
-        #     file_name + ".pdf",
-        #     ContentFile(content),
-        #     save=True,
-        # )
+        gauth = login_with_service_account()
+        drive = GoogleDrive(gauth)
+        doc_file = drive.CreateFile({"id": chapter.nme_file_id})
+        with BytesIO() as buffer:
+            for chunk in doc_file.GetContentIOBuffer(mimetype="application/pdf"):
+                buffer.write(chunk)
+            content = buffer.getvalue()
+        # Year and term are added when uploaded to the final storage
+        file_name = f"NME-{chapter.name}".upper().replace(" ", "_")
+        model_obj.other_manual.save(
+            file_name + ".pdf",
+            ContentFile(content),
+            save=True,
+        )
         EmailProcessUpdate(
             activation,
             complete_step="Pledge Program Reviewed",
@@ -1535,11 +1533,10 @@ class PledgeProgramProcessFlow(Flow):
             message=(
                 "This is a notification that the Central Office has "
                 "approved the pledge program for you chapter."
-                # "Attached is the final approved program."
+                "Attached is the final approved program."
             ),
             fields=["approval", "approval_comments"],
-            ### TODO: Remove with nme program update
-            # attachments=["program.other_manual"],
+            attachments=["program.other_manual"],
             email_officers=True,
             extra_emails={
                 model_obj.chapter.region.email,

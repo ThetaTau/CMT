@@ -2873,9 +2873,6 @@ class PledgeProgramProcessCreateView(
                 user=self.request.user,
                 obj=program,
             )
-            ### TODO: Remove with nme program update
-            if program.manual == "other":
-                EmailPledgeOther(self.request.user, program.other_manual.file).send()
             self.activation.process.program = program
             self.activation.process.chapter = chapter
             return super().form_valid(form)

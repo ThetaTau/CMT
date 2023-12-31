@@ -57,24 +57,6 @@
           </td>
         </tr>
         {% endif %}
-        <tr>
-          <th>Schedule</th>
-          <td>
-            {% if object.program.schedule.name %}
-              <a href="{{ object.program.schedule.url }}" target="_blank">
-                {{ object.program.schedule.name }}</a>
-            {% endif %}
-          </td>
-        </tr>
-        <tr>
-          <th>Test</th>
-          <td>
-            {% if object.program.test.name %}
-              <a href="{{ object.program.stest.url }}" target="_blank">
-                {{ object.program.test.name }}</a>
-            {% endif %}
-          </td>
-        </tr>
       </table>
     </div>
   </div>
