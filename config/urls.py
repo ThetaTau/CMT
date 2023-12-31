@@ -142,6 +142,12 @@ urlpatterns = [
         ),
     ),
     url(
+        r"^nme-program/$",
+        RedirectView.as_view(
+            pattern_name="viewflow:forms:pledgeprogramprocess:start", permanent=True
+        ),
+    ),
+    url(
         r"^conventionform/$",
         RedirectView.as_view(
             pattern_name="viewflow:forms:convention:start", permanent=True

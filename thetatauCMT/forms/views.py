@@ -2868,7 +2868,7 @@ class PledgeProgramProcessCreateView(
         else:
             program = form.save()
             Task.mark_complete(
-                name="Pledge Program",
+                name="New Member Education Program",
                 chapter=chapter,
                 user=self.request.user,
                 obj=program,

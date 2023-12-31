@@ -1,11 +1,14 @@
 from django.shortcuts import redirect
 from django.contrib import messages
 from django.conf import settings
+from django.urls import reverse
+from django.utils.safestring import mark_safe
 from django.utils.deprecation import MiddlewareMixin
 from allauth_2fa.middleware import BaseRequire2FAMiddleware
 
 from forms.models import RiskManagement, PledgeProgram
 from core.utils import check_officer, check_nat_officer
+from core.models import current_term, current_month
 
 
 class RequireSuperuser2FAMiddleware(BaseRequire2FAMiddleware):
@@ -37,12 +40,22 @@ class RMPSignMiddleware(MiddlewareMixin):
             )
             return redirect("rmp")
         if request.user.chapter_officer(altered=False):
-            if not PledgeProgram.signed_this_semester(request.user.current_chapter):
+            should_submit = (current_term() == "sp" and current_month() >= 2) or (
+                current_term() == "fa" and current_month() >= 9
+            )
+            if should_submit and not PledgeProgram.signed_this_semester(
+                request.user.current_chapter
+            ):
+                host = settings.CURRENT_URL
+                link = reverse("viewflow:forms:pledgeprogramprocess:start")
+                link = host + link
                 messages.add_message(
                     request,
                     messages.ERROR,
-                    "Your chapter must submit the New Member Education Program this semester. "
-                    "Please go to Forms --> New Member Education Program",
+                    mark_safe(
+                        "Your chapter must submit the New Member Education Program this semester.<br>"
+                        f"Please go to Forms --> New Member Education Program or click this <a href={link}>link</a>."
+                    ),
                 )
         return response
 

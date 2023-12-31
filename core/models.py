@@ -47,6 +47,10 @@ def current_year():
     return datetime.datetime.now().year
 
 
+def current_month():
+    return datetime.datetime.now().month
+
+
 current_year_value = current_year()
 
 if (current_year_value % 2) == 0:
@@ -55,8 +59,7 @@ if (current_year_value % 2) == 0:
 else:
     # If the current year is odd, then first year of biennium is
     # this year if current semester is fall otherwise two years ago
-    current_month = datetime.datetime.now().month
-    semester = SEMESTER[current_month]
+    semester = SEMESTER[current_month()]
     if semester == "sp":
         BIENNIUM_START = current_year_value - 2
     else:
