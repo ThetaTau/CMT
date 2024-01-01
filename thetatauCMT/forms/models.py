@@ -3,6 +3,7 @@ import io
 import os
 import csv
 from pathlib import Path
+from collections import Counter
 import address
 from address.models import AddressField
 from email.mime.base import MIMEBase
@@ -999,6 +1000,7 @@ class InitiationProcess(Process, EmailSignalMixin):
             "Initiation Fee",
             "Late Fee",
             "Badge Style",
+            "Badge Cost",
             "Sum for member",
         ]
         update_remove = ["Date Submitted", "Sum for member"]
@@ -1022,12 +1024,14 @@ class InitiationProcess(Process, EmailSignalMixin):
         for initiation in self.initiations.all():
             badge = initiation.badge
             badge_code = ""
+            badge_cost = 0
             if badge:
                 badge_code = badge.code
+                badge_cost = float(badge.cost)
             chapter = initiation.user.chapter
             init_fee, late_fee = self.get_fees(chapter, initiation)
             init_submit = initiation.created.date()
-            total = init_fee + late_fee
+            total = badge_cost + init_fee + late_fee
             row = {
                 "Date Submitted": init_submit,
                 "Initiation Date": init_date,
@@ -1043,6 +1047,7 @@ class InitiationProcess(Process, EmailSignalMixin):
                 "Initiation Fee": init_fee,
                 "Late Fee": late_fee,
                 "Badge Style": badge_code,
+                "Badge Cost": badge_cost,
                 "Sum for member": total,
             }
             if not invoice:
@@ -1102,6 +1107,15 @@ class InitiationProcess(Process, EmailSignalMixin):
                 late_fee_count, linenumber_count, name="I1B", client=client
             )
             invoice.Line.append(line)
+        badge_count = Counter(self.initiations.values_list("badge__code", flat=True))
+        for badge_guard_code, count in badge_count.items():
+            if badge_guard_code == "None":
+                continue
+            line = create_line(
+                count, linenumber_count, name=badge_guard_code, client=client
+            )
+            invoice.Line.append(line)
+            linenumber_count += 1
         memo = "Initiated: " + ", ".join(
             self.initiations.values_list("user__name", flat=True)
         )

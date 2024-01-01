@@ -443,11 +443,7 @@ class InitiationProcessFlow(Flow):
             "Initiation Invoice Paid",
             "Badge/Shingle Order by CHAPTER",
             "Payment Received",
-            "Your chapter has paid an initiation invoice."
-            + " The chapter should now follow instructions here:<br>"
-            '<a href="https://drive.google.com/file/d/198mk-7e-Nef_oIN_WB8t2NijM8wo5UKM/view">'
-            "https://drive.google.com/file/d/198mk-7e-Nef_oIN_WB8t2NijM8wo5UKM/view</a>"
-            " for ordering badges and guards.",
+            "Your chapter has paid an initiation invoice.",
             [
                 {
                     "members": member_list,
