@@ -16,7 +16,12 @@ from import_export.admin import ImportExportActionModelAdmin, ImportMixin
 from report_builder.admin import Report
 from address.admin import Address
 from simple_history.admin import SimpleHistoryAdmin
-from .forms import UserAdminStatusForm, UserAdminBadgeFixForm
+from .forms import (
+    UserAdminStatusForm,
+    UserAdminBadgeFixForm,
+    UserStatusForm,
+    status_options,
+)
 from .models import (
     User,
     UserRoleChange,
@@ -63,13 +68,44 @@ admin.site.unregister(Address)
 admin.site.register(Address, AddressAdmin)
 
 
+def status(obj):
+    status = obj.get_status_display()
+    if "CC" in obj.status:
+        status += " CC"
+    return status
+
+
+class StatusListFilter(admin.SimpleListFilter):
+    # Human-readable title which will be displayed in the
+    # right admin sidebar just above the filter options.
+    title = _("Status")
+
+    # Parameter for the filter that will be used in the URL query.
+    parameter_name = "status"
+
+    def lookups(self, request, model_admin):
+        """
+        Returns a list of tuples. The first element in each
+        tuple is the coded value for the option that will
+        appear in the URL query. The second element is the
+        human-readable name for the option that will appear
+        in the right sidebar.
+        """
+        return status_options()
+
+    def queryset(self, request, queryset):
+        return queryset.filter(**self.used_parameters)
+
+
 class UserStatusChangeAdmin(ImportExportActionModelAdmin):
     raw_id_fields = ["user"]
-    list_display = ("user", "status", "created", user_chapter, "start", "end")
-    list_filter = ["status", "created", "user__chapter", "start", "end"]
+    list_display = ("user", status, "created", user_chapter, "start", "end")
+    list_filter = [StatusListFilter, "created", "user__chapter", "start", "end"]
     ordering = [
         "-created",
     ]
+    form = UserStatusForm
+    readonly_fields = ("created", "user")
     search_fields = ["user__name"]
     resource_class = UserStatusChangeResource
 
@@ -192,10 +228,10 @@ class MyUserCreationForm(forms.ModelForm):
 
 class StatusInline(admin.TabularInline):
     model = UserStatusChange
-    fields = ["status", "start", "end"]
     show_change_link = True
     ordering = ["end"]
-    extra = 1
+    extra = 0
+    form = UserStatusForm
 
 
 class RoleInline(admin.TabularInline):

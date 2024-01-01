@@ -487,11 +487,27 @@ class UserAdminBadgeFixForm(forms.Form):
     badge_file = forms.FileField(widget=forms.FileInput(attrs={"accept": ".csv"}))
 
 
+def status_options():
+    statuses = []
+    for status_option in UserStatusChange.STATUS:
+        status, status_display = status_option.value
+        if "CC" in status:
+            status_display = status_display + " CC"
+        statuses.append((status, status_display))
+    return statuses
+
+
+class UserStatusForm(forms.ModelForm):
+    status = forms.ChoiceField(label="Status", choices=status_options())
+
+    class Meta:
+        fields = ["status", "start", "end"]
+        model = UserStatusChange
+
+
 class UserAdminStatusForm(forms.Form):
     _selected_action = forms.CharField(widget=forms.MultipleHiddenInput)
-    status = forms.ChoiceField(
-        label="New Status", choices=[x.value for x in UserStatusChange.STATUS]
-    )
+    status = forms.ChoiceField(label="New Status", choices=status_options())
     start = forms.DateField(
         initial=timezone.now(),
         label="Start Date",
