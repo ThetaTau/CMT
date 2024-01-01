@@ -2,6 +2,7 @@ import datetime
 from django.core.management import BaseCommand
 from django.core.mail import send_mail
 from users.notifications import OfficerMonthly, RDMonthly
+from core.notifications import GenericEmail
 from chapters.models import Chapter
 from regions.models import Region
 
@@ -27,6 +28,7 @@ class Command(BaseCommand):
         :return:
         """
         today = datetime.date.today().day
+        month = datetime.date.today().month
         override = options.get("override", False)
         chapters_only = options.get("chapter", None)
         rdonly = options.get("rdonly", False)
@@ -44,6 +46,26 @@ class Command(BaseCommand):
                 print(f"Sending message to: {chapter}")
                 result = OfficerMonthly(chapter).send()
                 change_messages.append(f"{result}: {chapter}")
+                if month in [10, 12, 2, 4, 1]:
+                    actives = chapter.actives().count()
+                    if actives <= 30:
+                        print(f"    Chapter has under 30 members: {actives} actives")
+                        GenericEmail(
+                            emails={
+                                "council@thetatau.org",
+                                "executive.director@thetatau.org",
+                            },
+                            subject=f"[CMT] Low Chapter Roster {chapter}",
+                            message=f"ATTENTION: {chapter.full_name} at {chapter.school} has "
+                            f"{actives} active members on their roster.",
+                            cc={
+                                "nom@thetatau.org",
+                                chapter.region.email,
+                                "central.office@thetatau.org",
+                                "dcs@thetatau.org",
+                            },
+                            addressee="Dear National Officers",
+                        ).send()
             if chapters_only is None or rdonly:
                 change_messages.append("<br>REGIONS<br>")
                 for region in Region.objects.all():
