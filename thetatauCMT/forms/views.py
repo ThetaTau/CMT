@@ -2780,12 +2780,13 @@ class ReturnStudentCreateView(
     model = ReturnStudent
     form_class = ReturnStudentForm
 
+    def get_success_url(self):
+        return reverse("viewflow:forms:returnstudent:start")
+
     def activation_done(self, *args, **kwargs):
         """Finish task activation."""
         self.activation.done()
-        self.success(
-            "Return Student form submitted successfully to Executive Director for review"
-        )
+        self.success("Return Student form submitted successfully")
 
     def get_context_data(self, *args, **kwargs):
         context = super().get_context_data(**kwargs)
