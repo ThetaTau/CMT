@@ -23,6 +23,7 @@
     {% render_table table %}
     <br>
       <hr>
+      {% if request.is_officer %}
     <h2>Submit Updated Bylaws</h2>
     <form class="chapter_report" enctype="multipart/form-data" method="POST">
       {% csrf_token %}
@@ -31,6 +32,9 @@
         <button class="btn btn-primary" name='action' value='bylaws' type="submit">Submit Bylaws
         </button>
     </form>
+      {% else %}
+        <h3>Only officers can submit this form.</h3>
+      {% endif %}
     </div>
   </div>
 </div>

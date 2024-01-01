@@ -7,8 +7,11 @@
 
 {% block title %}Member Status Change Report Selection{{ object.name }}{% endblock %}
 {% block content %}
-  {{ form.media }}
+  <h1>Member Status Change Report</h1>
+  <hr>
 {% specialspaceless %}
+  {% if request.is_officer %}
+    {{ form.media }}
   <h1>Please select members to update status:</h1>
   <p>This form is not to be used for members Resigning or Early Alumnus. <br>
     See Policy and Procedures Manual for details on these status:
@@ -76,6 +79,10 @@
     {{ input.flat_attrs|safe }}
     />
   </form>
+  {% else %}
+    <h3>Only officers can submit this form.</h3>
+  {% endif %}
+  <hr>
 <h2>Previously submitted status forms:</h2>
   All forms below have been submitted to the central office but may not have yet been processed.<br>
   In member list, status will change alumnipending to alumni after processing (and removed from active list.)

@@ -47,7 +47,8 @@
         </tr>
       </table>
       {% endif %} {% render_table table %}
-      <br />
+      <hr>
+      {% if request.is_officer %}
       <form class="chapter_report" enctype="multipart/form-data" method="POST">
         {% csrf_token %} {{ form.media }}
         <div>{{ form|crispy }}</div>
@@ -61,6 +62,9 @@
           Submit Chapter Report
         </button>
       </form>
+      {% else %}
+        <h3>Only officers can submit this form.</h3>
+      {% endif %}
     </div>
   </div>
 </div>

@@ -169,7 +169,7 @@ class FormLanding(LoginRequiredMixin, TemplateView):
     template_name = "forms/landing.html"
 
 
-class InitDeplSelectView(LoginRequiredMixin, OfficerRequiredMixin, FormSetView):
+class InitDeplSelectView(LoginRequiredMixin, FormSetView):
     form_class = InitDeplSelectForm
     template_name = "forms/init-depl-select.html"
     factory_kwargs = {"extra": 0}
@@ -438,7 +438,7 @@ class InitiationView(LoginRequiredMixin, OfficerRequiredMixin, FormView):
         return reverse("forms:init_selection")
 
 
-class StatusChangeSelectView(LoginRequiredMixin, OfficerRequiredMixin, FormSetView):
+class StatusChangeSelectView(LoginRequiredMixin, FormSetView):
     form_class = StatusChangeSelectForm
     template_name = "forms/status-select.html"
     factory_kwargs = {"extra": 1}
@@ -780,7 +780,7 @@ def remove_extra_form(formset, **kwargs):
     return formset
 
 
-class RoleChangeView(LoginRequiredMixin, OfficerRequiredMixin, ModelFormSetView):
+class RoleChangeView(LoginRequiredMixin, ModelFormSetView):
     form_class = RoleChangeSelectForm
     template_name = "forms/officer.html"
     factory_kwargs = {"extra": 1, "can_delete": True}
@@ -1058,9 +1058,7 @@ class HSEducationListView(
         return context
 
 
-class HSEducationCreateView(
-    LoginRequiredMixin, OfficerRequiredMixin, CreateProcessView
-):
+class HSEducationCreateView(LoginRequiredMixin, CreateProcessView):
     template_name = "forms/chapter_report.html"
     form_class = HSEducationForm
     model = HSEducation
@@ -1495,6 +1493,8 @@ class AuditFormView(LoginRequiredMixin, OfficerRequiredMixin, UpdateView):
     form_class = AuditForm
     template_name = "forms/audit.html"
     model = Audit
+    officer_edit = "audits"
+    officer_edit_type = "submit"
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -1573,7 +1573,10 @@ class AuditFormView(LoginRequiredMixin, OfficerRequiredMixin, UpdateView):
         return super().form_valid(form)
 
     def get_success_url(self):
-        return reverse("forms:audit")
+        return (
+            reverse("chapters:detail", kwargs={"slug": self.request.user.chapter.slug})
+            + "#audit"
+        )
 
 
 class AuditListView(
@@ -1707,9 +1710,7 @@ class PledgeFormView(CreateView):
         return reverse("forms:pledgeform")
 
 
-class PrematureAlumnusCreateView(
-    LoginRequiredMixin, OfficerRequiredMixin, CreateProcessView
-):
+class PrematureAlumnusCreateView(LoginRequiredMixin, CreateProcessView):
     template_name = "forms/prematurealumnus_form.html"
     model = PrematureAlumnus
     form_class = PrematureAlumnusForm
@@ -2474,9 +2475,14 @@ class DisciplinaryCreateView(
     template_name = "forms/disciplinary_form.html"
     model = DisciplinaryProcess
     form_class = DisciplinaryForm1
+    officer_edit = "disciplinary forms"
+    officer_edit_type = "submit or view"
 
     def get_success_url(self):
-        return reverse("viewflow:forms:disciplinaryprocess:start")
+        url = reverse("forms:landing")
+        if self.request.user.is_officer_group:
+            url = reverse("viewflow:forms:disciplinaryprocess:start")
+        return url
 
     def activation_done(self, *args, **kwargs):
         """Finish task activation."""
@@ -2499,9 +2505,14 @@ class DisciplinaryForm2View(LoginRequiredMixin, UpdateProcessView, ModelFormMixi
     template_name = "forms/disciplinary_form2.html"
     model = DisciplinaryProcess
     form_class = DisciplinaryForm2
+    officer_edit = "disciplinary referrals"
+    officer_edit_type = "submit or view"
 
     def get_success_url(self):
-        return reverse("viewflow:forms:disciplinaryprocess:start")
+        url = reverse("forms:landing")
+        if self.request.user.is_officer_group:
+            url = reverse("viewflow:forms:disciplinaryprocess:start")
+        return url
 
     def activation_done(self, *args, **kwargs):
         """Finish task activation."""
@@ -2581,6 +2592,8 @@ def disciplinary_process_files(request, process_pk):
 class CollectionReferralFormView(
     LoginRequiredMixin, OfficerRequiredMixin, MultiFormsView
 ):
+    officer_edit = "collection referrals"
+    officer_edit_type = "submit or view"
     template_name = "forms/collection.html"
     form_classes = {
         "collection": CollectionReferralForm,
@@ -2589,7 +2602,10 @@ class CollectionReferralFormView(
     grouped_forms = {"collection_referral": ["user", "collection"]}
 
     def get_success_url(self):
-        return reverse("forms:collection")
+        url = reverse("forms:landing")
+        if self.request.user.is_officer_group:
+            url = reverse("forms:collection")
+        return url
 
     def collection_form_valid(self, form, *args, **kwargs):
         if form.has_changed():
@@ -2723,7 +2739,10 @@ class ResignationSignView(LoginRequiredMixin, UpdateProcessView):
     }
 
     def get_success_url(self):
-        return reverse("forms:resign_list")
+        url = reverse("forms:landing")
+        if self.request.user.is_officer_group:
+            url = reverse("forms:resign_list")
+        return url
 
     def activation_done(self, *args, **kwargs):
         """Finish task activation."""
@@ -2763,6 +2782,8 @@ class ResignationListView(
     model = ResignationProcess
     context_object_name = "resign_list"
     table_class = SignTable
+    officer_edit = "resignations list"
+    officer_edit_type = "view"
 
     def get_queryset(self, **kwargs):
         qs = self.model.objects.filter(user__chapter=self.request.user.current_chapter)
@@ -2773,9 +2794,7 @@ class ResignationListView(
         return data
 
 
-class ReturnStudentCreateView(
-    LoginRequiredMixin, OfficerRequiredMixin, CreateProcessView
-):
+class ReturnStudentCreateView(LoginRequiredMixin, CreateProcessView):
     template_name = "forms/returnstudent_form.html"
     model = ReturnStudent
     form_class = ReturnStudentForm
@@ -2830,9 +2849,7 @@ class PledgeProgramProcessDetailView(LoginRequiredMixin, DetailView):
         return context
 
 
-class PledgeProgramProcessCreateView(
-    LoginRequiredMixin, OfficerRequiredMixin, CreateProcessView
-):
+class PledgeProgramProcessCreateView(LoginRequiredMixin, CreateProcessView):
     template_name = "forms/pledge_program_process.html"
     model = PledgeProgramProcess
     form_class = PledgeProgramForm
@@ -2973,7 +2990,6 @@ class BylawsListView(
 
 class BylawsCreateView(
     LoginRequiredMixin,
-    OfficerRequiredMixin,
     CreateView,
 ):
     form_class = BylawsForm

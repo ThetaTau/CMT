@@ -8,6 +8,8 @@
 {% block head_title %}{% trans "Premature Alumnus Request Form" %}{% endblock %}
 {% block content %}
   <h1>Premature Alumnus Request Form</h1>
+  <hr>
+  {% if request.is_officer %}
   Complete the form below to submit a premature alumnus request.<br>
   <h3><i>You must include the completed form:</i><br>
   <a href="https://drive.google.com/file/d/15JqPP-Oqny-NAKFlNSPf0jD2FDG6qd5s/view?usp=sharing">
@@ -22,8 +24,11 @@
     {{ activation.management_form }}
     <button class="primaryAction btn btn-primary" type="submit">{% trans "Submit Request" %}</button>
   </form>
-  <br>
-  <h3>Previously submitted Premature Alumnus Request Forms</h3>
+  {% else %}
+    <h3>Only officers can submit this form.</h3>
+  {% endif %}
+  <hr>
+  <h2>Previously submitted Premature Alumnus Request Forms</h2>
   <hr>
     {% render_table table %}
 {% endblock %}

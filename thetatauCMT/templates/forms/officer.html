@@ -51,7 +51,11 @@
                         {% elif field.label == "Start Date" or field.label == "End Date"%}
                           <td>
                           <div style="position: relative">
-                            {% crispy_field field %}
+                            {% if request.is_officer %}
+                              {% crispy_field field %}
+                            {% else %}
+                              {% crispy_field field disabled %}
+                            {% endif %}
                             {% if field.errors %}
                               {% for error in field.errors %}
                                 <strong style="color:red">{{ error }}</strong>
@@ -64,15 +68,18 @@
                         {% endif %}
                       {% endfor %}
                   <td>
+                    {% if request.is_officer %}
                   <div class="input-group-append">
                       <button class="btn btn-success add-row_form">+</button>
                   </div>
+                    {% endif %}
                   </td>
                   </div>
                   </tr>
             {% endfor %}
         </tbody>
     </table>
+    {% if request.is_officer %}
     <input type="{{ input.input_type }}"
     name="{% if input.name|wordcount > 1 %}{{ input.name|slugify }}{% else %}{{ input.name }}{% endif %}"
     value="{{ input.value }}"
@@ -82,6 +89,9 @@
     {% endif %}
     {{ input.flat_attrs|safe }}
     />
+    {% else %}
+      <h3>Only officers can submit this form.</h3>
+    {% endif %}
   </form>
 {% endspecialspaceless %}
 {% endblock content %}

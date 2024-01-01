@@ -165,11 +165,9 @@
               <li class="nav-item">
                 <a class="nav-link" href="{% url 'chapters:list' %}">{% trans "Chapters" %}</a>
               </li>
-              {% if request.is_officer %}
               <li class="nav-item">
                 <a class="nav-link" href="{% url 'forms:landing' %}">{% trans "Forms" %}</a>
               </li>
-                {% endif %}
               {% if request.is_nat_officer %}
                 <li class="dropdown"><a class="nav-link dropdown-toggle" href="#">{% trans "NatOff" %}</a>
                   <ul class="dropdown-menu">

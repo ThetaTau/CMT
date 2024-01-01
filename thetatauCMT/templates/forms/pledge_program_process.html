@@ -5,7 +5,7 @@
 {% load render_table from django_tables2 %}
 {% block head_title %}{% trans "New Member Education Program" %}{% endblock %}
 {% block content %}
-  <h2>{% trans "New Member Education Program" %}</h2>
+  <h1>{% trans "New Member Education Program" %}</h1>
   <p>The live copy of the new member education program is here:
     <br><a href="{{ program_link }}" target="_blank">{{ program_link }}</a></p>
   <hr>
@@ -13,7 +13,7 @@
     <h4>The chapter new member education program is pending approval.</h4>
   {% elif submitted == "approved" %}
     <h4>The chapter new member education program has been approved for this semester.</h4>
-  {% else %}
+  {% elif request.is_officer %}
     <p><span style="background-color: #FFFF00"><b>
     Please edit the Google Document and when you are ready for the central office to review,
     submit the below form.</b></span></p>
@@ -25,9 +25,11 @@
       {{ activation.management_form }}
       <button class="primaryAction btn btn-primary" type="submit" id="submit-id">{% trans "Submit Form" %}</button>
     </form>
+  {% else %}
+    <h3>Only officers can submit this form.</h3>
   {% endif %}
   <hr>
-  <h3>Previously submitted New Member Education Programs</h3>
+  <h2>Previously submitted New Member Education Programs</h2>
   <hr>
     {% render_table table %}
 {% endblock %}

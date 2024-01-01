@@ -24,7 +24,10 @@
   }
 </script>
 {% specialspaceless %}
+  <h1>Potential New Member Status Report</h1>
+  <hr>
   {% if formset.initial_forms %}
+    {% if request.is_officer %}
     <h1>Please select new members to be initiated:</h1>
     <p>If you will not initiate nor depledge a potential new member listed below at this time, select "Defer".
       This allows you to initiate or depledge them at a later date.</p>
@@ -44,6 +47,9 @@
       {% crispy formset helper %}
     </form>
     <p>If there is a potential new member listed above that you are certain is not and has never been a pledge, please email cmt@thetatau.org.</p>
+    {% else %}
+      <h3>Only officers can submit this form.</h3>
+    {% endif %}
   {% else %}
     <h1>No Potential New Members</h1>
     <p>Your chapter currently has no potential new members.<br>
@@ -51,6 +57,7 @@
       <a href="{% url 'forms:pledgeform' %}" target="_blank">Pledge Form</a> ASAP!<br>
       </p>
   {% endif %}
+  <hr>
 <h2>Previously submitted forms:</h2>
   All forms below have been submitted to the central office but may not have yet been processed.
 <ul class="nav nav-tabs" id="myTab" role="tablist">
