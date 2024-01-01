@@ -10,9 +10,9 @@
     <br><a href="{{ program_link }}" target="_blank">{{ program_link }}</a></p>
   <hr>
   {% if submitted == "review" %}
-    <h4>The chapter pledge program is pending approval.</h4>
+    <h4>The chapter new member education program is pending approval.</h4>
   {% elif submitted == "approved" %}
-    <h4>The chapter pledge program has been approved for this semester.</h4>
+    <h4>The chapter new member education program has been approved for this semester.</h4>
   {% else %}
     <p><span style="background-color: #FFFF00"><b>
     Please edit the Google Document and when you are ready for the central office to review,
@@ -27,7 +27,7 @@
     </form>
   {% endif %}
   <hr>
-  <h3>Previously submitted Pledge Programs</h3>
+  <h3>Previously submitted New Member Education Programs</h3>
   <hr>
     {% render_table table %}
 {% endblock %}
