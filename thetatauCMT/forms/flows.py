@@ -441,7 +441,7 @@ class InitiationProcessFlow(Flow):
         EmailProcessUpdate(
             activation,
             "Initiation Invoice Paid",
-            "Badge/Shingle Order by CHAPTER",
+            "Badge/Shingle Order",
             "Payment Received",
             "Your chapter has paid an initiation invoice.",
             [
@@ -946,9 +946,6 @@ class DisciplinaryProcessFlow(Flow):
                     "the Central Office at central.office@thetatau.org // "
                     "512-472-1904."
                 )
-                user.set_current_status(
-                    status="pendexpul", created=created, start=created
-                )
             fields = DisciplinaryForm1._meta.fields[:]
             fields.remove("charging_letter")
             attachments = ["charging_letter"]
@@ -992,6 +989,7 @@ class DisciplinaryProcessFlow(Flow):
             today = datetime.datetime.today()
             activation.process.send_ec_date = today + datetime.timedelta(days=45)
             activation.process.save()
+            user.set_current_status(status="pendexpul", created=created, start=created)
         elif "Email Final Result" in task_title:
             attachments = []
             if activation.process.ec_approval:
