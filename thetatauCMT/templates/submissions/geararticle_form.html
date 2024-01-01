@@ -11,6 +11,8 @@
     <div class="col-sm-12">
 
       <h2>Title: {{ object.submission.name | title }}</h2>
+      <h4>Created By: {{ object.created_by }} {{ object.created }}</h4>
+      <h4>Last Modified By: {{ object.modified_by }} {{ object.modified }}</h4>
     <table>
       <tr>
         <th>

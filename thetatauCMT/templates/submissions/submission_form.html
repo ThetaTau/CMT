@@ -5,6 +5,8 @@
 
 {% block content %}
   <h1>Update Submission: {{ submission.name }}</h1>
+  <h4>Created By: {{ submission.created_by }} {{ submission.created }}</h4>
+  <h4>Last Modified By: {{ submission.modified_by }} {{ submission.modified }}</h4>
     {% if locked %}
     <div class="jumbotron">
         <div class="container">

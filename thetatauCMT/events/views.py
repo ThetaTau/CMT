@@ -6,10 +6,8 @@ from django.views.generic import DetailView, UpdateView, RedirectView, CreateVie
 from core.views import (
     PagedFilteredTableView,
     TypeFieldFilteredChapterAdd,
-    OfficerRequiredMixin,
     LoginRequiredMixin,
     NatOfficerRequiredMixin,
-    RequestConfig,
 )
 from scores.models import ScoreType
 from core.forms import MultiFormsView
@@ -30,7 +28,6 @@ class EventDetailView(LoginRequiredMixin, DetailView):
 
 class EventCreateView(
     LoginRequiredMixin,
-    OfficerRequiredMixin,
     CreateView,
     MultiFormsView,
 ):
@@ -170,7 +167,6 @@ class EventRedirectView(LoginRequiredMixin, RedirectView):
 
 class EventUpdateView(
     LoginRequiredMixin,
-    OfficerRequiredMixin,
     TypeFieldFilteredChapterAdd,
     UpdateView,
 ):

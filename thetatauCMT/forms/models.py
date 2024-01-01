@@ -10,6 +10,7 @@ from email.mime.base import MIMEBase
 from django.db import models, transaction
 from django.db.utils import IntegrityError
 from django.contrib.auth.models import Group
+from django_userforeignkey.models.fields import UserForeignKey
 from django.contrib import messages
 from django.core.validators import MaxValueValidator, RegexValidator
 from django.conf import settings
@@ -416,6 +417,11 @@ class StatusChange(TimeStampedModel):
         on_delete=models.CASCADE,
         related_name="status_changes",
     )
+    created_by = UserForeignKey(
+        auto_user_add=True,
+        verbose_name="The user that created this object",
+        related_name="statuschange_created",
+    )
     reason = models.CharField(max_length=10, choices=[x.value for x in REASONS])
 
     degree = models.CharField(max_length=4, choices=[x.value for x in DEGREES])
@@ -522,6 +528,11 @@ class HSEducation(Process, TimeStampedModel, EmailSignalMixin):
         denied = ("denied", "Denied")
         not_reviewed = ("not_reviewed", "Not Reviewed")
 
+    created_by = UserForeignKey(
+        auto_user_add=True,
+        verbose_name="The user that created this object",
+        related_name="hseducation_created",
+    )
     chapter = models.ForeignKey(
         Chapter, on_delete=models.CASCADE, related_name="education"
     )

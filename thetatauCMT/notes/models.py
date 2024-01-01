@@ -2,6 +2,7 @@ import os
 from django.db import models
 from django.conf import settings
 from django.utils.translation import gettext_lazy as _
+from django_userforeignkey.models.fields import UserForeignKey
 from ckeditor_uploader.fields import RichTextUploadingField
 
 from core.models import TimeStampedModel, EnumClass
@@ -37,6 +38,17 @@ class Note(TimeStampedModel):
         accolade = ("accolade", "Accolade")
         note = ("note", "Note")
 
+    created_by = UserForeignKey(
+        auto_user_add=True,
+        verbose_name="The user that created this object",
+        related_name="notes_created",
+    )
+    modified_by = UserForeignKey(
+        auto_user_add=True,
+        auto_user=True,
+        verbose_name="The user that created this object",
+        related_name="notes_modified",
+    )
     title = models.CharField(_("Title"), max_length=255)
     note = RichTextUploadingField()
     file = models.FileField(upload_to=get_upload_path, blank=True, null=True)

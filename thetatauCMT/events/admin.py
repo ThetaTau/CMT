@@ -10,6 +10,10 @@ class EventAdmin(admin.ModelAdmin):
     ordering = [
         "date",
     ]
+    readonly_fields = (
+        "created_by",
+        "modified_by",
+    )
 
 
 admin.site.register(Event, EventAdmin)

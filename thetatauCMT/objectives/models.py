@@ -1,5 +1,6 @@
 from django.db import models
 from ckeditor_uploader.fields import RichTextUploadingField
+from django_userforeignkey.models.fields import UserForeignKey
 from core.models import TimeStampedModel
 from chapters.models import Chapter
 from users.models import User
@@ -11,6 +12,17 @@ class Objective(TimeStampedModel):
             "-date",
         ]
 
+    created_by = UserForeignKey(
+        auto_user_add=True,
+        verbose_name="The user that created this object",
+        related_name="objectives_created",
+    )
+    modified_by = UserForeignKey(
+        auto_user_add=True,
+        auto_user=True,
+        verbose_name="The user that created this object",
+        related_name="objectives_modified",
+    )
     owner = models.ForeignKey(
         User, on_delete=models.CASCADE, related_name="objectives_owned"
     )
@@ -41,6 +53,17 @@ class Objective(TimeStampedModel):
 
 
 class Action(TimeStampedModel):
+    created_by = UserForeignKey(
+        auto_user_add=True,
+        verbose_name="The user that created this object",
+        related_name="actions_created",
+    )
+    modified_by = UserForeignKey(
+        auto_user_add=True,
+        auto_user=True,
+        verbose_name="The user that created this object",
+        related_name="actions_modified",
+    )
     objective = models.ForeignKey(
         Objective, on_delete=models.CASCADE, related_name="actions"
     )

@@ -6,6 +6,7 @@ from django.shortcuts import reverse
 from django.utils import timezone
 from django.utils.html import mark_safe
 from django.contrib.contenttypes.fields import GenericForeignKey
+from django_userforeignkey.models.fields import UserForeignKey
 from django.contrib.contenttypes.models import ContentType
 from django.utils.text import slugify
 from email_signals.models import EmailSignalMixin
@@ -236,6 +237,17 @@ class TaskChapter(models.Model, EmailSignalMixin):
         Thus, a descending ordering puts the most recent dates first."""
         ordering = ["chapter", "-date"]
 
+    created_by = UserForeignKey(
+        auto_user_add=True,
+        verbose_name="The user that created this object",
+        related_name="tasks_created",
+    )
+    modified_by = UserForeignKey(
+        auto_user_add=True,
+        auto_user=True,
+        verbose_name="The user that created this object",
+        related_name="tasks_modified",
+    )
     task = models.ForeignKey(
         TaskDate, on_delete=models.CASCADE, related_name="chapters"
     )

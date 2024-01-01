@@ -72,6 +72,7 @@ class HSEducationAdmin(admin.ModelAdmin):
     ordering = [
         "-program_date",
     ]
+    readonly_fields = ("created_by",)
 
 
 admin.site.register(HSEducation, HSEducationAdmin)
@@ -184,6 +185,7 @@ class StatusChangeAdmin(ImportExportActionModelAdmin):
         "-created",
     ]
     search_fields = ["user__username", "user__name"]
+    readonly_fields = ("created_by",)
     resource_class = StatusChangeResource
 
 

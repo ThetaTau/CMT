@@ -945,7 +945,7 @@ class UserGPAFormSetView(LoginRequiredMixin, OfficerRequiredMixin, FormSetView):
         return super().formset_valid(formset)
 
 
-class UserServiceFormSetView(LoginRequiredMixin, OfficerRequiredMixin, FormSetView):
+class UserServiceFormSetView(LoginRequiredMixin, FormSetView):
     template_name = "users/service_formset.html"
     form_class = UserServiceForm
     factory_kwargs = {"extra": 0}
@@ -1009,7 +1009,7 @@ class UserServiceFormSetView(LoginRequiredMixin, OfficerRequiredMixin, FormSetVi
         return super().formset_valid(formset)
 
 
-class UserOrgsFormSetView(LoginRequiredMixin, OfficerRequiredMixin, ModelFormSetView):
+class UserOrgsFormSetView(LoginRequiredMixin, ModelFormSetView):
     template_name = "users/orgs_formset.html"
     model = UserOrgParticipate
     form_class = UserOrgForm

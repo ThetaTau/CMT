@@ -7,7 +7,6 @@ from django.views.generic import RedirectView
 from django.utils.safestring import mark_safe
 from core.views import (
     RequestConfig,
-    OfficerRequiredMixin,
     LoginRequiredMixin,
     PagedFilteredTableView,
 )
@@ -218,7 +217,7 @@ class ChapterRedirectView(LoginRequiredMixin, RedirectView):
         )
 
 
-class ChapterListView(LoginRequiredMixin, OfficerRequiredMixin, PagedFilteredTableView):
+class ChapterListView(LoginRequiredMixin, PagedFilteredTableView):
     model = Chapter
     context_object_name = "chapter"
     ordering = ["name"]

@@ -12,7 +12,6 @@ from core.notifications import GenericEmail
 from core.views import (
     PagedFilteredTableView,
     TypeFieldFilteredChapterAdd,
-    OfficerRequiredMixin,
     LoginRequiredMixin,
     NatOfficerRequiredMixin,
     RequestConfig,
@@ -41,7 +40,6 @@ class SubmissionDetailView(LoginRequiredMixin, DetailView):
 
 class SubmissionCreateView(
     LoginRequiredMixin,
-    OfficerRequiredMixin,
     TypeFieldFilteredChapterAdd,
     CreateView,
 ):
@@ -82,9 +80,7 @@ class SubmissionRedirectView(LoginRequiredMixin, RedirectView):
         return reverse("submissions:list")
 
 
-class SubmissionUpdateView(
-    LoginRequiredMixin, OfficerRequiredMixin, TypeFieldFilteredChapterAdd, UpdateView
-):
+class SubmissionUpdateView(LoginRequiredMixin, TypeFieldFilteredChapterAdd, UpdateView):
     fields = [
         "name",
         "date",
@@ -146,8 +142,13 @@ class SubmissionListView(LoginRequiredMixin, PagedFilteredTableView):
     formhelper_class = SubmissionListFormHelper
     filter_chapter = True
 
+    def get_queryset(self, **kwargs):
+        qs = super().get_queryset(**kwargs)
+        qs = qs.exclude(type__slug="rmp")
+        return qs
 
-class GearArticleFormView(LoginRequiredMixin, OfficerRequiredMixin, MultiFormsView):
+
+class GearArticleFormView(LoginRequiredMixin, MultiFormsView):
     template_name = "submissions/gear.html"
     form_classes = {
         "gear": GearArticleForm,

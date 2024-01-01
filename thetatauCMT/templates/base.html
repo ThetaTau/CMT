@@ -118,13 +118,13 @@
                     <li class="dropdown-item">
                       <a class="nav-link" href="{% url 'users:gpas' %}">{% trans "GPAs" %}</a>
                     </li>
+                    {% endif %}
                     <li class="dropdown-item">
                       <a class="nav-link" href="{% url 'users:service' %}">{% trans "Service Hours" %}</a>
                     </li>
                     <li class="dropdown-item">
                       <a class="nav-link" href="{% url 'users:orgs' %}">{% trans "External Orgs" %}</a>
                     </li>
-                    {% endif %}
                   </ul>
                 </li>
               <li class="nav-item">
@@ -138,14 +138,12 @@
                   <li class="dropdown-item">
                     <a class="nav-link" href="{% url 'submissions:list' %}">List</a>
                   </li>
-                  {% if request.is_officer %}
                     <li class="dropdown-item">
                       <a class="nav-link" href="{% url 'submissions:add' %}">Add Submission</a>
                     </li>
                     <li class="dropdown-item">
                       <a class="nav-link" href="{% url 'gear' %}">Gear Article</a>
                     </li>
-                  {% endif %}
                 </ul>
               </li>
               <li class="nav-item">
@@ -164,10 +162,10 @@
           </ul>
           <ul class="nav navbar-nav justify-content-end">
             {% if request.user.is_authenticated %}
-              {% if request.is_officer %}
               <li class="nav-item">
                 <a class="nav-link" href="{% url 'chapters:list' %}">{% trans "Chapters" %}</a>
               </li>
+              {% if request.is_officer %}
               <li class="nav-item">
                 <a class="nav-link" href="{% url 'forms:landing' %}">{% trans "Forms" %}</a>
               </li>

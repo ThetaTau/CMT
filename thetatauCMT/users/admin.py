@@ -105,7 +105,12 @@ class UserStatusChangeAdmin(ImportExportActionModelAdmin):
         "-created",
     ]
     form = UserStatusForm
-    readonly_fields = ("created", "user")
+    readonly_fields = (
+        "created",
+        "user",
+        "created_by",
+        "modified_by",
+    )
     search_fields = ["user__name"]
     resource_class = UserStatusChangeResource
 
@@ -146,6 +151,10 @@ class UserOrgParticipateAdmin(admin.ModelAdmin):
     ordering = [
         "-start",
     ]
+    readonly_fields = (
+        "created_by",
+        "modified_by",
+    )
 
 
 admin.site.register(UserOrgParticipate, UserOrgParticipateAdmin)
@@ -158,6 +167,10 @@ class UserSemesterGPAAdmin(admin.ModelAdmin):
     ordering = [
         "-year",
     ]
+    readonly_fields = (
+        "created_by",
+        "modified_by",
+    )
 
 
 admin.site.register(UserSemesterGPA, UserSemesterGPAAdmin)
@@ -170,6 +183,10 @@ class UserSemesterServiceHoursAdmin(admin.ModelAdmin):
     ordering = [
         "-year",
     ]
+    readonly_fields = (
+        "created_by",
+        "modified_by",
+    )
 
 
 admin.site.register(UserSemesterServiceHours, UserSemesterServiceHoursAdmin)
@@ -232,6 +249,7 @@ class StatusInline(admin.TabularInline):
     ordering = ["end"]
     extra = 0
     form = UserStatusForm
+    fk_name = "user"
 
 
 class RoleInline(admin.TabularInline):
@@ -240,6 +258,7 @@ class RoleInline(admin.TabularInline):
     show_change_link = True
     ordering = ["end"]
     extra = 1
+    fk_name = "user"
 
 
 class DepledgeInline(admin.TabularInline):
@@ -256,6 +275,7 @@ class StatusChangeInline(admin.TabularInline):
     show_change_link = True
     ordering = ["date_end"]
     extra = 0
+    fk_name = "user"
 
 
 class InitiationInline(admin.TabularInline):

@@ -1,6 +1,7 @@
 import datetime
 from django.contrib.auth.models import AbstractUser, Group
 from django.contrib.postgres.fields import ArrayField
+from django_userforeignkey.models.fields import UserForeignKey
 from django.db import models, IntegrityError
 from django.contrib.auth.models import UserManager
 from django.urls import reverse
@@ -538,6 +539,17 @@ class UserAlter(models.Model):
 
 
 class UserSemesterServiceHours(YearTermModel):
+    created_by = UserForeignKey(
+        auto_user_add=True,
+        verbose_name="The user that created this object",
+        related_name="service_hours_created",
+    )
+    modified_by = UserForeignKey(
+        auto_user_add=True,
+        auto_user=True,
+        verbose_name="The user that created this object",
+        related_name="service_hours_modified",
+    )
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="service_hours"
     )
@@ -545,6 +557,17 @@ class UserSemesterServiceHours(YearTermModel):
 
 
 class UserSemesterGPA(YearTermModel):
+    created_by = UserForeignKey(
+        auto_user_add=True,
+        verbose_name="The user that created this object",
+        related_name="gpa_created",
+    )
+    modified_by = UserForeignKey(
+        auto_user_add=True,
+        auto_user=True,
+        verbose_name="The user that created this object",
+        related_name="gpa_modified",
+    )
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="gpas"
     )
@@ -577,6 +600,17 @@ class UserStatusChange(StartEndModel, TimeStampedModel, EmailSignalMixin):
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="status"
     )
     status = models.CharField(max_length=10, choices=[x.value for x in STATUS])
+    created_by = UserForeignKey(
+        auto_user_add=True,
+        verbose_name="The user that created this object",
+        related_name="status_change_created",
+    )
+    modified_by = UserForeignKey(
+        auto_user_add=True,
+        auto_user=True,
+        verbose_name="The user that created this object",
+        related_name="status_change_modified",
+    )
 
     def __str__(self):
         return self.status
@@ -598,6 +632,17 @@ class UserRoleChange(StartEndModel, TimeStampedModel, EmailSignalMixin):
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="roles"
     )
     role = models.CharField(max_length=50, choices=ROLES)
+    created_by = UserForeignKey(
+        auto_user_add=True,
+        verbose_name="The user that created this object",
+        related_name="role_change_created",
+    )
+    modified_by = UserForeignKey(
+        auto_user_add=True,
+        auto_user=True,
+        verbose_name="The user that created this object",
+        related_name="role_change_modified",
+    )
 
     def __str__(self):
         return self.role
@@ -694,6 +739,17 @@ class UserOrgParticipate(StartEndModel):
     ]
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="orgs"
+    )
+    created_by = UserForeignKey(
+        auto_user_add=True,
+        verbose_name="The user that created this object",
+        related_name="org_created",
+    )
+    modified_by = UserForeignKey(
+        auto_user_add=True,
+        auto_user=True,
+        verbose_name="The user that created this object",
+        related_name="org_modified",
     )
     org_name = models.CharField(max_length=50)
     type = models.CharField(max_length=3, choices=TYPES)

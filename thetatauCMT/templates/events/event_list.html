@@ -17,7 +17,6 @@
             {% block table.thead %}
             <thead>
                 <tr>
-                  {% if request.is_officer %}
                     <th>
                       <a href="{% url "events:add" %}" class="btn btn-small btn-primary dark">
 {#                        <span class="hidden-phone">#}
@@ -26,7 +25,6 @@
 {#                        </span>#}
                       </a>
                     </th>
-                  {% endif %}
                     <th colspan="11">
                         <form method="get" class="form-inline form-search pull-right">
 {#                          {% csrf_token %}#}

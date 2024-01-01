@@ -8,6 +8,8 @@
 
 {% block content %}
   <h1>Update Event: {{ event.name }}</h1>
+  <h4>Created By: {{ event.created_by }} {{ event.created }}</h4>
+  <h4>Last Modified By: {{ event.modified_by }} {{ event.modified }}</h4>
   <form class="form-horizontal" method="post" action="{% url 'events:update' event.id %}">
     {% csrf_token %}
     {{ form|crispy }}

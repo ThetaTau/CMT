@@ -9,6 +9,10 @@ class SubmissionAdmin(admin.ModelAdmin):
     ordering = [
         "-date",
     ]
+    readonly_fields = (
+        "created_by",
+        "modified_by",
+    )
 
 
 admin.site.register(Submission, SubmissionAdmin)
@@ -42,6 +46,10 @@ class GearArticleAdmin(admin.ModelAdmin):
     ordering = [
         "-submission__date",
     ]
+    readonly_fields = (
+        "created_by",
+        "modified_by",
+    )
 
 
 admin.site.register(GearArticle, GearArticleAdmin)

@@ -11,6 +11,8 @@
 
       <h2>{{ object.name }}</h2>
       {% if object.name %}
+        <h4>Created By: {{ object.created_by }} {{ object.created }}</h4>
+        <h4>Last Modified By: {{ object.modified_by }} {{ object.modified }}</h4>
         <p>{{ object.name }}</p>
         <p>{{ object.date }}</p>
         <p>{{ object.type }}</p>

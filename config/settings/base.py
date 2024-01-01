@@ -110,6 +110,7 @@ THIRD_PARTY_APPS = [
     "bootstrapform",
     "survey",
     "simple_history",
+    "django_userforeignkey",
 ]
 
 LOCAL_APPS = [
@@ -201,6 +202,7 @@ MIDDLEWARE = [
     "core.middleware.RMPSignMiddleware",
     "termsandconditions.middleware.TermsAndConditionsRedirectMiddleware",
     "simple_history.middleware.HistoryRequestMiddleware",
+    "django_userforeignkey.middleware.UserForeignKeyMiddleware",
     "core.middleware.RequireSuperuser2FAMiddleware",
     "rollbar.contrib.django.middleware.RollbarNotifierMiddleware",  # Last
 ]

@@ -9,7 +9,6 @@ from django.http.response import HttpResponseRedirect
 from core.forms import MultiFormsView
 from core.views import (
     LoginRequiredMixin,
-    NatOfficerRequiredMixin,
     PagedFilteredTableView,
 )
 from .filters import ObjectiveListFilter

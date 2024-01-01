@@ -1,6 +1,7 @@
 from django.db import models
 from django.utils import timezone
 from django.utils.text import slugify
+from django_userforeignkey.models.fields import UserForeignKey
 from email_signals.models import EmailSignalMixin
 import os
 from core.models import (
@@ -23,6 +24,17 @@ class Event(TimeStampedModel, EmailSignalMixin):
     class Meta:
         unique_together = ("name", "date", "chapter")
 
+    created_by = UserForeignKey(
+        auto_user_add=True,
+        verbose_name="The user that created this object",
+        related_name="events_created",
+    )
+    modified_by = UserForeignKey(
+        auto_user_add=True,
+        auto_user=True,
+        verbose_name="The user that created this object",
+        related_name="events_modified",
+    )
     name = models.CharField("Event Name", max_length=50)
     date = models.DateField("Event Date", default=timezone.now)
     slug = models.SlugField(unique=False)

@@ -81,7 +81,7 @@
           to know who your advisor or Fraternity & Student Life staffer is so that we may direct our questions to them.</p>
     <h5>This form is only for <b>EXTERNAL</b> advisors.</h5>
       Alumni advisors should be submitted with an <a href="{% url 'forms:officer' %}"> officer election report.</a>
-    <form class="facutly" method="POST">
+    <form class="faculty" method="POST">
       {% csrf_token %}
     <fieldset
         {% if not request.is_officer%}
