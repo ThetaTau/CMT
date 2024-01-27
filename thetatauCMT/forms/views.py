@@ -2480,7 +2480,7 @@ class DisciplinaryCreateView(
 
     def get_success_url(self):
         url = reverse("forms:landing")
-        if self.request.user.is_officer_group:
+        if self.request.user.is_authenticated and self.request.user.is_officer_group:
             url = reverse("viewflow:forms:disciplinaryprocess:start")
         return url
 
@@ -2510,7 +2510,7 @@ class DisciplinaryForm2View(LoginRequiredMixin, UpdateProcessView, ModelFormMixi
 
     def get_success_url(self):
         url = reverse("forms:landing")
-        if self.request.user.is_officer_group:
+        if self.request.user.is_authenticated and self.request.user.is_officer_group:
             url = reverse("viewflow:forms:disciplinaryprocess:start")
         return url
 
@@ -2603,7 +2603,7 @@ class CollectionReferralFormView(
 
     def get_success_url(self):
         url = reverse("forms:landing")
-        if self.request.user.is_officer_group:
+        if self.request.user.is_authenticated and self.request.user.is_officer_group:
             url = reverse("forms:collection")
         return url
 
@@ -2740,7 +2740,7 @@ class ResignationSignView(LoginRequiredMixin, UpdateProcessView):
 
     def get_success_url(self):
         url = reverse("forms:landing")
-        if self.request.user.is_officer_group:
+        if self.request.user.is_authenticated and self.request.user.is_officer_group:
             url = reverse("forms:resign_list")
         return url
 
