@@ -1576,10 +1576,15 @@ class AuditFormView(LoginRequiredMixin, OfficerRequiredMixin, UpdateView):
         return super().form_valid(form)
 
     def get_success_url(self):
-        return (
-            reverse("chapters:detail", kwargs={"slug": self.request.user.chapter.slug})
-            + "#audit"
-        )
+        if self.request.user.is_authenticated:
+            return (
+                reverse(
+                    "chapters:detail", kwargs={"slug": self.request.user.chapter.slug}
+                )
+                + "#audit"
+            )
+        else:
+            return reverse("home")
 
 
 class AuditListView(
