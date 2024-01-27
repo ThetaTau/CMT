@@ -811,7 +811,10 @@ class RoleChangeView(LoginRequiredMixin, ModelFormSetView):
         if formset.is_valid():
             error = False
             for form in formset:
-                member = form.instance.user
+                try:
+                    member = form.instance.user
+                except UserRoleChange.user.DoesNotExist:
+                    continue
                 role = form.instance.role
                 if role in CHAPTER_OFFICER:
                     status_info = member.status.filter(
