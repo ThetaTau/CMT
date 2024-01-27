@@ -256,11 +256,11 @@ class User(AbstractUser, EmailSignalMixin):
         return pledge_number
 
     def reset_status(self):
-        # Need to find the pervious status before the current one
+        # Need to find the previous status before the current one
         #   set that status as now current
         statuses = list(UserStatusChange.objects.filter(user=self).order_by("start"))
         previous_status = statuses[-2]
-        self.set_current_status(previous_status)
+        self.set_current_status(previous_status.status)
 
     def set_current_status(
         self, status, created=None, start=None, end=None, current=True
@@ -275,6 +275,8 @@ class User(AbstractUser, EmailSignalMixin):
             end = end.date()
         if type(start) is datetime.datetime:
             start = start.date()
+        if isinstance(status, UserStatusChange):
+            status = status.status
         if end > TODAY >= start:
             if current:
                 # If the current status is being set.
