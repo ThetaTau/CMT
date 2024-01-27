@@ -46,7 +46,7 @@ class RegionOfficerView(LoginRequiredMixin, NatOfficerRequiredMixin, DetailView)
             if emails != "":
                 writer.writerow(context["table"].columns.names())
                 for row in context["table"].as_values():
-                    if row[2] and row[2] in emails:
+                    if row[3] and row[3] in emails:
                         writer.writerow(row)
                 return response
             else:
