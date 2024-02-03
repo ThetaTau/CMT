@@ -42,6 +42,9 @@ class UserResource(resources.ModelResource):
         model = User
         skip_unchanged = True
         report_skipped = False
+        batch_size = 50
+        use_bulk = True
+        chunk_size = 50
         import_id_fields = ("id", "email")
         exclude = (
             "id",
@@ -75,9 +78,9 @@ class UserResource(resources.ModelResource):
 
     def get_instance(self, instance_loader, row):
         queries = []
-        if "id" in row:
+        if "id" in row and row["id"]:
             queries.append(Q(id__iexact=row["id"]))
-        if "email" in row:
+        if "email" in row and row["email"]:
             queries.append(Q(email_school__iexact=row["email"]))
             queries.append(Q(email__iexact=row["email"]))
         # Take one Q object from the list
