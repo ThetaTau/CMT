@@ -44,6 +44,7 @@ class UserTable(tables.Table):
             extra_columns.extend(
                 [
                     ("full_address", tables.Column(accessor="address")),
+                    ("id", tables.Column()),
                 ]
             )
         elif natoff:

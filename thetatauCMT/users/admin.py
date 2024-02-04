@@ -429,6 +429,7 @@ class MyUserAdmin(
         "current_roles",
         "current_status",
         "officer",
+        "id",
     )
     inlines = [
         UserNoteInline,
@@ -467,7 +468,7 @@ class MyUserAdmin(
         ),
     )
     fieldsets = (
-        ("User Profile", {"fields": ("name", "chapter", "badge_number")}),
+        ("User Profile", {"fields": ("name", "id", "chapter", "badge_number")}),
         (None, {"fields": ("username", "password")}),
         (
             _("Personal info"),
@@ -517,6 +518,7 @@ class MyUserAdmin(
     )
     list_display = (
         "username",
+        "id",
         "name",
         "last_login",
         "badge_number",
@@ -533,7 +535,7 @@ class MyUserAdmin(
         "officer",
         "chapter",
     )
-    search_fields = ("badge_number",) + AuthUserAdmin.search_fields
+    search_fields = ("badge_number", "id") + AuthUserAdmin.search_fields
     resource_class = UserResource
 
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
