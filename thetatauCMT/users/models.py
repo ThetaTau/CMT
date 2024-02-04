@@ -240,6 +240,10 @@ class User(AbstractUser, EmailSignalMixin):
                 chapter = self.altered.first().chapter
         return chapter
 
+    @property
+    def emails(self):
+        return {self.email, self.email_school}
+
     def get_absolute_url(self):
         return reverse("users:detail")
 

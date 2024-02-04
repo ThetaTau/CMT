@@ -1,10 +1,13 @@
 from herald import registry
 from herald.base import EmailNotification
 from django.conf import settings
+from django.http import HttpRequest
+from django.utils.safestring import mark_safe
 from django.core.files.base import ContentFile
 from django.forms.models import model_to_dict
 from core.models import current_term, current_year
-from forms.tables import SignTable
+from forms.tables import SignTable, BadgeTable
+from forms.models import Badge
 from users.models import User
 from configs.models import Config
 
@@ -291,6 +294,40 @@ class EmailPledgeWelcome(EmailNotification):  # extend from EmailNotification fo
 
         test_pledge_form = Pledge.objects.order_by("?")[0]
         return [test_pledge_form]
+
+
+@registry.register_decorator()
+class BadgePNMNotify(EmailNotification):  # extend from EmailNotification for emails
+    render_types = ["html"]
+    template_name = "badge_pnm_notify"  # name of template, without extension
+    subject = "Theta Tau Badge Explainer"  # subject of email
+
+    def __init__(self, user):  # optionally customize the initialization
+        emails = {email for email in user.emails if email}
+        self.to_emails = emails
+        emails = user.chapter.get_email_specific(["vice regent", "treasurer"])
+        self.cc = list(emails)
+        self.reply_to = [
+            "central.office@thetatau.org",
+        ]
+        message = Config.get_value("badge_pnm_notify", clean=False)
+        badges = BadgeTable(
+            Badge.objects.exclude(name__icontains="candidate").order_by("cost")
+        )
+        request = HttpRequest()
+        badge_table = badges.as_html(request)
+        message = message.replace("{{ badge_table }}", badge_table)
+        self.context = {
+            "message": mark_safe(message),
+            "host": settings.CURRENT_URL,
+        }
+
+    @staticmethod
+    def get_demo_args():  # define a static method to return list of args needed to initialize class for testing
+        from forms.models import Pledge
+
+        test_pledge = Pledge.objects.order_by("?")[0]
+        return [test_pledge]
 
 
 @registry.register_decorator()

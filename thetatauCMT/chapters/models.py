@@ -552,8 +552,16 @@ class Chapter(models.Model, EmailSignalMixin):
         )
         return {email for email in emails if email}
 
-    def get_email_specific(self, roles):
+    def get_email_specific(self, roles=None):
         # Get the generic and current cor sec emails
+        if roles is None:
+            roles = [
+                "regent",
+                "scribe",
+                "vice regent",
+                "treasurer",
+                "corresponding secretary",
+            ]
         currents = self.get_current_officers_council_specific(role_specific=roles)
         emails = {getattr(self, f"email_{role.replace(' ', '_')}") for role in roles}
         for current in currents:
