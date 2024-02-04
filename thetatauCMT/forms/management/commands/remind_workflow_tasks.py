@@ -6,6 +6,7 @@ from viewflow.models import Task
 from viewflow.activation import STATUS
 from core.flows import cancel_process
 from forms.forms import DisciplinaryForm1
+from users.models import User
 from forms.notifications import EmailProcessUpdate, CentralOfficeGenericEmail
 
 
@@ -237,6 +238,9 @@ class Command(BaseCommand):
                 )
             else:
                 print(f"{process.flow_class.process_title} Type not accounted for")
+            excluded = [User.objects.get(username="Jim.Gaffney@thetatau.org")]
+            if owner in excluded:
+                continue
             print(
                 f"Send update for: {days} {process} for {owner} at {chapter} created {created} {function_task.status}"
             )
