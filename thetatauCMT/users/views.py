@@ -561,15 +561,23 @@ class UserLookupSearchView(FormView):
         return kwargs
 
     def form_valid(self, form):
-        chapter = Chapter.objects.get(pk=form.cleaned_data["university"])
+        school_id = form.cleaned_data["university"]
+        chapter = None
+        if school_id != "-1":
+            chapter = Chapter.objects.get(pk=school_id)
         search = ""
         for search_term, value in form.cleaned_data.items():
             if search_term in ["university", "captcha"] or not value:
                 continue
             search = f"{search} {value}"
-        users = watson.filter(User.objects.filter(chapter=chapter), search)
+        if chapter:
+            users_chapter = User.objects.filter(chapter=chapter)
+            chapter_name = chapter.full_name
+        else:
+            users_chapter = User.objects.all()
+            chapter_name = "Unknown"
+        users = watson.filter(users_chapter, search)
         total = users.count()
-        chapter_name = chapter.full_name
         if total > 5:
             messages.add_message(
                 self.request,

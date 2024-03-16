@@ -755,7 +755,7 @@ class Chapter(models.Model, EmailSignalMixin):
     @classmethod
     def schools(cls):
         try:
-            return [
+            return [(-1, "Unknown")] + [
                 (school["pk"], school["school"])
                 for school in cls.objects.values("school", "pk").order_by("school")
             ]

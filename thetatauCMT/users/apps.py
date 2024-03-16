@@ -16,6 +16,7 @@ class UsersConfig(AppConfig):
         except ImportError:
             pass
         model = self.get_model("User")
+        # When this is updated need to run: python manage.py buildwatson
         watson.register(
             model,
             fields=[

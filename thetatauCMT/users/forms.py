@@ -277,15 +277,18 @@ class UserLookupSearchForm(forms.ModelForm):
         choices=Chapter.schools(),
         help_text="What university did you attend when you pledged Theta Tau",
     )
-    badge_number = forms.IntegerField(
-        help_text="If you do not know your badge number, leave this blank"
+    id = forms.IntegerField(
+        label="Unique ID",
+        help_text="This is a unique number sent to you to use "
+        "to update your info. If you do not know your unique number, "
+        "leave this blank",
     )
 
     class Meta:
         model = User
         fields = [
             "university",
-            "badge_number",
+            "id",
             "name",
         ]
 
