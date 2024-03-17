@@ -1,4 +1,5 @@
 import os
+import base64
 import datetime
 from io import BytesIO
 from django.conf import settings
@@ -57,6 +58,8 @@ from .notifications import (
     CentralOfficeGenericEmail,
 )
 from users.models import User
+from configs.models import Config
+from surveys.notifications import SurveyEmail
 
 
 def link_callback(uri, rel):
@@ -242,6 +245,23 @@ class PrematureAlumnusFlow(Flow):
         user = activation.process.user
         created = activation.task.created
         user.set_current_status(status="alumni", created=created, start=created)
+        slug = Config.get_value("PreAlumnSurvey")
+        if "http" in slug:
+            survey_link = slug
+        else:
+            user_pk = base64.b64encode(str(user.id).encode("utf-8")).decode("utf-8")
+            survey_link = settings.CURRENT_URL + reverse(
+                "surveys:survey-detail-member",
+                kwargs={"slug": slug, "user_pk": user_pk},
+            )
+        SurveyEmail(
+            user,
+            "Premature Alumni",
+            survey_link,
+            "An officer from your chapter has reported your transition to alumni. "
+            "We would like to get your thoughts on your Theta Tau experience "
+            "so that we can make the Fraternity better for everybody.",
+        ).send()
 
     def auto_approve_func(self, activation):
         process = activation.process

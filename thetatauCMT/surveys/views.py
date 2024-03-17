@@ -10,7 +10,7 @@ from django.views.generic import CreateView
 from users.models import User
 from .models import DepledgeSurvey, Survey
 from .forms import DepledgeSurveyForm, ResponseForm
-from .notifications import DepledgeSurveyFollowUpEmail
+from .notifications import SurveyFollowUpEmail
 
 
 class DepledgeSurveyCreateView(CreateView):
@@ -51,7 +51,7 @@ class DepledgeSurveyCreateView(CreateView):
                 f"for a follow up to their survey. <br>"
                 f'<a href="{settings.CURRENT_URL}{link}">See link here.</a>'
             )
-            DepledgeSurveyFollowUpEmail(user.id, message).send()
+            SurveyFollowUpEmail(user.id, message).send()
         return super().form_valid(form)
 
     def get_context_data(self, **kwargs):
@@ -241,8 +241,10 @@ class SurveyDetail(CreateView):
             self.request.session.modified = True
         next_url = form.next_step_url()
         response = None
+        complete = False
         if self.object.is_all_in_one_page():
             response = form.save()
+            complete = True
         else:
             # when it's the last step
             if not form.has_next_step():
@@ -252,6 +254,7 @@ class SurveyDetail(CreateView):
                 save_form = self.get_form_class()(**kwargs)
                 if save_form.is_valid():
                     response = save_form.save()
+                    complete = True
                 else:
                     messages.error(
                         self.request,
@@ -282,4 +285,18 @@ class SurveyDetail(CreateView):
         if self.object.redirect_url:
             new_location = redirect(self.object.redirect_url)
         messages.info(self.request, mark_safe(message))
+        if complete:
+            answer = response.answers.filter(
+                question__text__icontains="to contact you"
+            ).first()
+            if answer and answer.body == "yes":
+                link = new_location.url
+                if "http" not in link:
+                    link = f"{settings.CURRENT_URL}{link}"
+                message = mark_safe(
+                    f"A member from {self.user.chapter.full_name} has asked "
+                    f"for a follow up to their {self.object.name} survey. <br>"
+                    f'<a href="{link}">See link here.</a>'
+                )
+                SurveyFollowUpEmail(self.user.id, message).send()
         return new_location

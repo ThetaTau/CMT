@@ -2,6 +2,8 @@ from herald import registry
 from herald.base import EmailNotification
 from django.conf import settings
 
+from configs.models import Config
+
 
 @registry.register_decorator()
 class DepledgeSurveyEmail(
@@ -37,14 +39,14 @@ class DepledgeSurveyEmail(
 
 
 @registry.register_decorator()
-class DepledgeSurveyFollowUpEmail(EmailNotification):
+class SurveyFollowUpEmail(EmailNotification):
     render_types = ["html"]
-    template_name = "depledge_followup"
+    template_name = "followup"
 
     def __init__(self, id, message):
-        self.to_emails = ["Jennifer.Kreiman@thetatau.org"]
-        self.reply_to = ["Jim.Gaffney@thetatau.org"]
-        self.subject = f"[CMT] Depledge Follow Up: {id}"
+        self.to_emails = ["dcs@thetatau.org"]
+        self.reply_to = ["dcs@thetatau.org"]
+        self.subject = f"[CMT] Survey Follow Up: {id}"
         self.context = {
             "host": settings.CURRENT_URL,
             "message": message,
