@@ -9,6 +9,7 @@ class UserTable(tables.Table):
     class Meta:
         model = User
         fields = (
+            "chapter",
             "preferred_pronouns",
             "name",
             "badge_number",
@@ -67,7 +68,6 @@ class UserTable(tables.Table):
         if chapter:
             extra_columns.extend(
                 [
-                    ("chapter", tables.Column("Chapter")),
                     ("chapter.region", tables.Column("Region")),
                     ("chapter.school", tables.Column("School")),
                 ]
