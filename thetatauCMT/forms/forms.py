@@ -35,6 +35,7 @@ from core.forms import DuplicateAddressField, SchoolModelChoiceField
 from core.models import CHAPTER_ROLES_CHOICES, NAT_OFFICERS_CHOICES
 from users.models import User, UserRoleChange, UserDemographic
 from .models import (
+    AlumniExclusion,
     Initiation,
     Bylaws,
     Depledge,
@@ -1742,3 +1743,59 @@ class ReturnStudentForm(forms.ModelForm):
             )
         else:
             return user
+
+
+class AlumniExclusionForm(forms.ModelForm):
+    user = forms.ModelChoiceField(
+        label="Alumni to Exclude",
+        queryset=User.objects.all(),
+        widget=autocomplete.ModelSelect2(
+            url="users:autocomplete",
+            forward=(
+                forward.Const("true", "chapter"),
+                forward.Const("true", "alumni"),
+            ),
+        ),
+    )
+    minutes = forms.FileField(
+        label="Chapter Meeting Minutes",
+        required=True,
+        help_text="Only PDF format accepted",
+        validators=[FileTypeValidator(allowed_types=["application/pdf"])],
+    )
+    date_start = forms.DateField(
+        label="Start date of exclusion",
+        widget=DatePicker(
+            options={"format": "M/DD/YYYY"},
+            attrs={"autocomplete": "off"},
+        ),
+    )
+    date_end = forms.DateField(
+        label="End date of exclusion",
+        widget=DatePicker(
+            options={"format": "M/DD/YYYY"},
+            attrs={"autocomplete": "off"},
+        ),
+    )
+
+    class Meta:
+        model = AlumniExclusion
+        fields = [
+            "user",
+            "date_vote",
+            "voting_result",
+            "date_start",
+            "date_end",
+            "reason",
+            "minutes",
+        ]
+
+    def clean(self):
+        super().clean()
+        date_start = self.cleaned_data.get("date_start")
+        date_end = self.cleaned_data.get("date_end")
+        if (date_end - date_start).days > (4 * 30):
+            self.add_error(
+                "date_end",
+                forms.ValidationError("Must be less than 4 months from start date"),
+            )

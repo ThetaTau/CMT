@@ -13,6 +13,7 @@ from .models import (
     OSM,
     CollectionReferral,
     PledgeProgramProcess,
+    AlumniExclusion,
 )
 
 
@@ -373,6 +374,15 @@ class CollectionReferralTable(tables.Table):
     class Meta:
         model = CollectionReferral
         fields = ("user", "created")
+        attrs = {"class": "table table-striped table-bordered"}
+
+
+class AlumniExclusionTable(tables.Table):
+    user = tables.Column(verbose_name="Excluded Alumni", accessor="user__name")
+
+    class Meta:
+        model = AlumniExclusion
+        fields = ("user", "date_start", "date_end")
         attrs = {"class": "table table-striped table-bordered"}
 
 

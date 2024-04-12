@@ -29,7 +29,6 @@ from crispy_forms.layout import Submit
 from extra_views import FormSetView, ModelFormSetView
 from easy_pdf.views import PDFTemplateResponseMixin
 from django_weasyprint import WeasyTemplateResponseMixin
-from viewflow.compat import _
 from viewflow.flow.views import CreateProcessView, UpdateProcessView
 from viewflow.frontend.viewset import FlowViewSet
 
@@ -94,6 +93,7 @@ from .forms import (
     CollectionReferralForm,
     ResignationForm,
     ReturnStudentForm,
+    AlumniExclusionForm,
 )
 from tasks.models import Task
 from scores.models import ScoreType
@@ -123,6 +123,7 @@ from .tables import (
     OSMListTable,
     DisciplinaryStatusTable,
     CollectionReferralTable,
+    AlumniExclusionTable,
     ResignationStatusTable,
     ReturnStudentStatusTable,
     PledgeProgramStatusTable,
@@ -146,6 +147,7 @@ from .models import (
     ResignationProcess,
     ReturnStudent,
     PledgeProgramProcess,
+    AlumniExclusion,
 )
 from .filters import (
     AuditListFilter,
@@ -3031,5 +3033,46 @@ class BylawsCreateView(
         context = super().get_context_data(**kwargs)
         data = Bylaws.objects.filter(chapter=self.request.user.current_chapter)
         table = BylawsListTable(data=data)
+        context["table"] = table
+        return context
+
+
+class AlumniExclusionCreateView(
+    LoginRequiredMixin,
+    CreateView,
+):
+    form_class = AlumniExclusionForm
+    model = AlumniExclusion
+
+    def get_success_url(self):
+        # TODO: set the emails up
+        if hasattr(self, "object"):
+            chapter = self.object.chapter
+            GenericEmail(
+                emails=chapter.council_emails(),
+                cc={"central.office@thetatau.org", chapter.region.email},
+                addressee=f"{chapter.full_name} Officers",
+                subject=f"{chapter.full_name} Bylaws Update",
+                message=f"Updated bylaws were submitted. <br>With the following changes:<br>{self.object.changes} <br><br>Please see attached document.",
+                attachments=[self.object.bylaws],
+            ).send()
+            messages.add_message(
+                self.request,
+                messages.INFO,
+                f"You successfully submitted updated chapter bylaws. "
+                f"An email was sent to the Executive Director and Regional Directors",
+            )
+        return reverse("forms:bylaws")
+
+    def form_valid(self, form):
+        chapter = self.request.user.current_chapter
+        form.instance.chapter = chapter
+        form.instance.created_by = self.request.user
+        return super().form_valid(form)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        data = AlumniExclusion.objects.filter(chapter=self.request.user.current_chapter)
+        table = AlumniExclusionTable(data=data)
         context["table"] = table
         return context
