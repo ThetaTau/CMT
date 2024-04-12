@@ -18,8 +18,7 @@ class Command(BaseCommand):
     help = "Calculate scores for extra types"
 
     def add_arguments(self, parser):
-        parser.add_argument("year_start", nargs=1, type=str)
-        parser.add_argument("year_end", nargs=1, type=str)
+        parser.add_argument("years", nargs="*", type=str)
 
     # A command must define handle()
     def handle(self, *args, **options):
@@ -37,8 +36,18 @@ class Command(BaseCommand):
 
         If an object is not found, update_or_create() will instantiate and save a new object
         """
-        year_start = int(options.get("year_start", [BIENNIUM_YEARS[0]])[0])
-        year_end = int(options.get("year_end", [BIENNIUM_YEARS[-1]])[0])
+        years = options.get("years")
+        if not years:
+            year_start = BIENNIUM_YEARS[0]
+            year_end = BIENNIUM_YEARS[-1]
+        elif len(years) == 1:
+            year_end = BIENNIUM_YEARS[-1]
+            year_start = int(years[0])
+        else:
+            year_start, year_end = years
+            year_start = int(year_start)
+            year_end = int(year_end)
+        print(f"Found years {year_start}-{year_end}")
         chapters = Chapter.objects.all()
         for chapter in chapters:
             print(chapter)
