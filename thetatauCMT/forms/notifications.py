@@ -198,6 +198,8 @@ class EmailPledgeConfirmation(
             "no_contact",
             "deceased",
             "deceased_changed",
+            "unsubscribe_paper_gear",
+            "unsubscribe_email",
             "deceased_date",
             "address_changed",
             "employer_changed",

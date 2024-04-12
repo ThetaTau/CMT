@@ -12,11 +12,13 @@
 <h1>{% trans "Update Member Info" %}</h1>
   {% if user %}
 <p>Please update your info below. Any fields left blank will keep the existing value</p>
-    <p>This update will be automatically applied in 7 days unless you approve
+    <p><span style="background-color: #FFFF00">This update will be automatically applied in <b><u>7 days</u></b></span> unless you approve
       the update through the email that will be sent to your email address currently on file.
       If you need the update to be applied sooner,
       and you do not have access to your original email,
       please reach out to the central office after submitting your update.</p>
+    <p style="background-color: #ff0000"><STRONG><I>THE ABOVE MESSAGE MEANS THAT THE UPDATE YOU MAKE NOW WILL NOT BE DONE IMMEDIATELY.
+      <br>IT WILL LOOK LIKE YOUR CHANGE DID NOT TAKE EFFECT, NO NEED TO RESUBMIT THE FORM.</I></STRONG></p>
   <a class="btn btn-secondary" href="{% url 'users:lookup_select' %}">« {% trans "Back" %}</a>
   {% else %}
 <p>We will attempt to match the info you provide below to a member and update the member record. <br>

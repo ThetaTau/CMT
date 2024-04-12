@@ -487,6 +487,8 @@ class MyUserAdmin(
                     "deceased",
                     "deceased_date",
                     "deceased_changed",
+                    "unsubscribe_paper_gear",
+                    "unsubscribe_email",
                     "suffix",
                     "nickname",
                     "preferred_pronouns",

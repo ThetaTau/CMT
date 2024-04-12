@@ -220,6 +220,8 @@ class UserUpdateForm(forms.ModelForm):
             "employer",
             "employer_position",
             "employer_address",
+            "unsubscribe_paper_gear",
+            "unsubscribe_email",
         ]
 
     def __init__(self, *args, **kwargs):

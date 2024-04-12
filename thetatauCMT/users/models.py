@@ -205,6 +205,14 @@ class User(AbstractUser, EmailSignalMixin):
         blank=True,
         null=True,
     )
+    unsubscribe_paper_gear = models.BooleanField(
+        default=False,
+        help_text="Select if you no longer wish to receive paper copies of the GEAR",
+    )
+    unsubscribe_email = models.BooleanField(
+        default=False,
+        help_text="Select if you no longer wish to receive email from Theta Tau",
+    )
     no_contact = models.BooleanField(default=False)
     charter = models.BooleanField(default=False, help_text="Charter member")
     ##### DENORMALIZED FIELDS #####
@@ -824,3 +832,5 @@ class MemberUpdate(Process, EmailSignalMixin):
     employer_address = AddressField(
         on_delete=models.SET_NULL, blank=True, null=True, related_name="update_employer"
     )
+    unsubscribe_paper_gear = models.BooleanField(blank=True, null=True)
+    unsubscribe_email = models.BooleanField(blank=True, null=True)

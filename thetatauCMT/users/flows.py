@@ -1,13 +1,11 @@
 from django.conf import settings
 from django.utils.decorators import method_decorator
-from django.forms.models import model_to_dict
 from django.urls import reverse
 from viewflow import flow
 from viewflow.base import this, Flow
+from viewflow.flow import views as flow_views
 from viewflow.compat import _
 from core.flows import (
-    AutoAssignUpdateProcessView,
-    NoAssignView,
     FilterableFlowViewSet,
     register_factory,
 )
@@ -18,10 +16,17 @@ from forms.notifications import (
     EmailProcessUpdate,
 )
 from .forms import MemberUpdateForm
+from configs.models import Config
+from users.models import User
 
 
-class AutoAssignUpdateProcessViewUser(AutoAssignUpdateProcessView):
+class UpdateProcessViewUser(flow_views.UpdateProcessView):
     form_class = MemberUpdateForm
+
+
+def get_user_manual_match():
+    user_manual_match = Config.get_value("user_manual_match")
+    return User.objects.get(username=user_manual_match)
 
 
 @register_factory(viewset_class=FilterableFlowViewSet)
@@ -70,13 +75,13 @@ class MemberUpdateFlow(Flow):
     ).Next(this.check_approval)
 
     manual_match = (
-        NoAssignView(
-            AutoAssignUpdateProcessViewUser,
+        flow.View(
+            UpdateProcessViewUser,
             task_title=_("Manual Member Update Match"),
             task_description=_("Manual Member Update Match"),
             task_result_summary=_("Outcome manual match: {{ process.outcome }}"),
         )
-        .Permission("auth.central_office")
+        .Assign(lambda act: get_user_manual_match())
         .Next(this.check_manual_outcome)
     )
 
@@ -227,6 +232,8 @@ class MemberUpdateFlow(Flow):
             "employer",
             "employer_position",
             "employer_address",
+            "unsubscribe_paper_gear",
+            "unsubscribe_email",
         ]
         for key in fields:
             value = getattr(model, key)
@@ -261,19 +268,22 @@ class MemberUpdateFlow(Flow):
             activation.process, perform_update=perform_update
         )
 
-        EmailProcessUpdate(
-            activation,
-            "Approval Complete",
-            "Complete",
-            "Complete",
-            f"{user} has submitted an update to personal information in the CMT."
-            + " Please review the changes below. These changes have now been made, "
-            "if you did not make these changes please notify the central office immediately at central.office@thetatau.org . ",
-            list(updated.keys()),
-            extra_emails=user.chapter.get_email_specific(
-                roles=["corresponding secretary"]
-            ),
-        ).send()
+        if user:
+            EmailProcessUpdate(
+                activation,
+                "Approval Complete",
+                "Complete",
+                "Complete",
+                f"{user} has submitted an update to personal information in the CMT."
+                + " Please review the changes below. These changes have now been made, "
+                "if you did not make these changes please notify the central office immediately at central.office@thetatau.org . ",
+                list(updated.keys()),
+                extra_emails=user.chapter.get_email_specific(
+                    roles=["corresponding secretary"]
+                ),
+            ).send()
+        else:
+            print(f"Could not find user for {activation.process}")
 
     @classmethod
     def continue_process(cls, pk):
