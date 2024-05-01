@@ -587,10 +587,12 @@ class EmailOSMUpdate(EmailNotification):
             "central.office@thetatau.org",
         ]
         self.subject = f"[CMT] {process_title}"
+        link = Config.get_value("osm_form")
         self.context = {
             "user": user,
             "message": message,
             "officer": officer,
+            "link": link,
             "nominate": nominate,
             "process_title": "Outstanding Student Member Process",
             "host": settings.CURRENT_URL,
