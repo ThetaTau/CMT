@@ -162,6 +162,7 @@ class MemberUpdateFlow(Flow):
             + f"<a href='{link}'>Approve or deny changes here. ({link})</a><br>"
             + "<b>Otherwise these changes will go into affect in 7 days.</b>",
             list(updated.keys()),
+            direct_user=user,
         ).send()
 
     def deny_notify_func(self, activation):
@@ -281,6 +282,7 @@ class MemberUpdateFlow(Flow):
                 extra_emails=user.chapter.get_email_specific(
                     roles=["corresponding secretary"]
                 ),
+                direct_user=user,
             ).send()
         else:
             print(f"Could not find user for {activation.process}")
