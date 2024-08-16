@@ -83,6 +83,8 @@ class UserAnonym(AnonymBase):
             "title",
             "is_superuser",
             "deceased",
+            "unsubscribe_paper_gear",
+            "unsubscribe_email",
             "modified",
             "date_joined",
             "employer_changed",

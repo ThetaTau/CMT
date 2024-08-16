@@ -739,6 +739,8 @@ class UserLookupUpdateView(FormView):
                 user.employer_address if user.employer_address else "Unknown"
             )
             user_info["school_name"] = user.chapter.school
+            user_info["unsubscribe_paper_gear"] = user.unsubscribe_paper_gear
+            user_info["unsubscribe_email"] = user.unsubscribe_email
             context["form"].fields["school_name"].initial = user.chapter
             context["form"].fields["school_name"].widget = forms.HiddenInput()
         else:
