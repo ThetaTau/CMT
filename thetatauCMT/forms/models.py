@@ -124,6 +124,10 @@ class PledgeProgram(YearTermModel, TimeStampedModel, EmailSignalMixin):
     )
     verbose_remote = "Have you or will you conduct your new member education remotely?"
     remote = models.BooleanField(verbose_remote, choices=BOOL_CHOICES, default=False)
+    verbose_dues = "How much are your chapter's PNM dues, including the pledge fee but NOT including the initiation fee or badge cost?"
+    dues = models.PositiveIntegerField(verbose_dues, default=0)
+    verbose_start = "When did you/do you anticipate starting new member education?"
+    date_start = models.DateField(verbose_start, default=timezone.now)
     verbose_complete = "When did you/do you anticipate completing new member education?"
     date_complete = models.DateField(verbose_complete, default=timezone.now)
     verbose_initiation = "When did you/do you plan to initiate your pledges?"

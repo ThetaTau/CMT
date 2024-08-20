@@ -763,6 +763,13 @@ class RiskManagementForm(forms.ModelForm):
 
 
 class PledgeProgramForm(forms.ModelForm):
+    date_start = forms.DateField(
+        label="When did you/do you anticipate starting new member education?",
+        widget=DatePicker(
+            options={"format": "M/DD/YYYY"},
+            attrs={"autocomplete": "off"},
+        ),
+    )
     date_complete = forms.DateField(
         label="When do you anticipate completing new member education?",
         widget=DatePicker(
@@ -782,10 +789,11 @@ class PledgeProgramForm(forms.ModelForm):
     class Meta:
         model = PledgeProgram
         fields = [
-            "remote",
             "weeks",
+            "date_start",
             "date_complete",
             "date_initiation",
+            "dues",
             "manual",
         ]
 

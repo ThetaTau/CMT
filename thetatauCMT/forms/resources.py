@@ -54,6 +54,7 @@ class PledgeProgramResource(resources.ModelResource):
         fields = (
             "modified",
             "remote",
+            "date_start",
             "date_complete",
             "date_initiation",
             "weeks",
@@ -62,6 +63,7 @@ class PledgeProgramResource(resources.ModelResource):
             "manual",
             "year",
             "term",
+            "dues",
         )
 
 
