@@ -99,6 +99,7 @@ class UserResource(resources.ModelResource):
 
     def before_import_row(self, row, row_number=None, **kwargs):
         if "id" in row:
-            row["id"] = row["id"].strip()
+            if isinstance(row["id"], str):
+                row["id"] = row["id"].strip()
         if "email" in row:
             row["email"] = row["email"].strip()
