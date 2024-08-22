@@ -707,7 +707,12 @@ class Pledge(TimeStampedModel, EmailSignalMixin):
     signature = models.CharField(
         max_length=255, help_text="Please sign using your proper/legal name"
     )
-    parent_name = models.CharField(_("Parent / Guardian Name"), max_length=60)
+    parent_name = models.CharField(
+        _("Parent / Guardian Name"), blank=True, null=True, max_length=60
+    )
+    parent_email = models.EmailField(
+        _("Parent / Guardian Email"), blank=True, null=True
+    )
     birth_place = models.CharField(
         _("Place of Birth"),
         max_length=50,
@@ -1543,6 +1548,7 @@ class PledgeProcess(Process, EmailSignalMixin):
                 "Suffix (such as Jr., III)": pledge.user.suffix,
                 "Nickname": pledge.user.nickname,
                 "Parent / Guardian Name": pledge.parent_name,
+                "Parent / Guardian Email": pledge.parent_email,
                 "School E-mail": pledge.user.email_school,
                 "Personal Email": pledge.user.email,
                 "Mobile Number:": pledge.user.phone_number,
