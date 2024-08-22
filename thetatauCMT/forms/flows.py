@@ -56,6 +56,7 @@ from .notifications import (
     EmailConventionUpdate,
     EmailOSMUpdate,
     CentralOfficeGenericEmail,
+    EmailScribeExpulsion,
 )
 from users.models import User
 from configs.models import Config
@@ -934,6 +935,7 @@ class DisciplinaryProcessFlow(Flow):
         A copy of forms should be sent to all chapter officers, central.office,
             the RD and the ED and riskchair@thetatau.org and accused
         """
+        expelled = False
         task_title = activation.flow_task.task_title
         user = activation.process.user
         created = activation.task.created
@@ -1026,6 +1028,7 @@ class DisciplinaryProcessFlow(Flow):
                 )
                 attachments = ["final_letter"]
                 user.set_current_status(status="expelled")
+                expelled = True
             else:
                 # EC did NOT approve the expulsion
                 user.reset_status()
@@ -1053,6 +1056,11 @@ class DisciplinaryProcessFlow(Flow):
                 "riskchair@thetatau.org",
             },
         ).send()
+        if expelled:
+            EmailScribeExpulsion(
+                user,
+                activation.process.send_ec_date,
+            ).send()
 
     def email_regent_func(self, activation):
         """
