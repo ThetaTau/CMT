@@ -6,7 +6,7 @@ from io import BytesIO
 from copy import deepcopy
 from pathlib import Path
 from django.db import IntegrityError, transaction
-from django.db.models import Q, F, Value, CharField, Count, Exists, OuterRef
+from django.db.models import Q, F, Value, CharField, Count, Exists, OuterRef, Subquery
 from django.conf import settings
 from django.contrib.postgres.aggregates import StringAgg
 from django.forms import models as model_forms
@@ -32,7 +32,7 @@ from django_weasyprint import WeasyTemplateResponseMixin
 from viewflow.flow.views import CreateProcessView, UpdateProcessView
 from viewflow.frontend.viewset import FlowViewSet
 
-from core.flows import FilterProcessListView
+from core.flows import FilterProcessListView, AutoAssignUpdateProcessView
 from core.forms import MultiFormsView
 from core.models import (
     semester_encompass_start_end_date,
@@ -94,6 +94,7 @@ from .forms import (
     ResignationForm,
     ReturnStudentForm,
     AlumniExclusionForm,
+    AlumniExclusionReviewForm,
 )
 from tasks.models import Task
 from scores.models import ScoreType
@@ -2247,6 +2248,97 @@ def pledge_process_sync(request, process_pk, invoice_number):
     return JsonResponse({"invoice_number": new_invoice_number})
 
 
+class AlumniExclusionCreateView(
+    LoginRequiredMixin, CreateProcessView, AssignOfficerFormMixin
+):
+    template_name = "forms/alumniexclusion_form.html"
+    model = AlumniExclusion
+    form_class = AlumniExclusionForm
+    submitted = False
+    data = {}
+
+    def get(self, request, *args, **kwargs):
+        officers = request.user.current_chapter.get_current_officers_council_specific()
+        if not self.check_officers(officers):
+            return redirect(reverse("forms:officer"))
+        self.data, self.submitted, self.signers = get_sign_status(
+            self.request.user, type_sign="osm"
+        )
+        if self.submitted and self.request.user in self.signers:
+            for sign in self.data:
+                link = sign["link"]
+                if (
+                    self.request.user == sign["owner"]
+                    and link != "#"
+                    and not isinstance(link, bool)
+                ):
+                    return redirect(link)
+        return super().get(request, *args, **kwargs)
+
+    def get_success_url(self):
+        """Continue on task or redirect back to task list."""
+        return reverse("alumniexclusion")
+
+    def activation_done(self, *args, **kwargs):
+        """Finish task activation."""
+        self.activation.done()
+        self.success("Alumni Exclusion form submitted successfully.")
+
+    def form_valid(self, form, *args, **kwargs):
+        chapter = self.request.user.current_chapter
+        form.instance.chapter = chapter
+        form.instance.created_by = self.request.user
+        return super().form_valid(form)
+
+    def get_context_data(self, *args, **kwargs):
+        context = super().get_context_data(**kwargs)
+        task = self.object.task_set.filter(
+            process_id=OuterRef("id"),
+        )
+        data = AlumniExclusion.objects.filter(
+            chapter=self.request.user.current_chapter
+        ).annotate(task_pk=Subquery(task.values("pk")[:1]))
+        table = AlumniExclusionTable(data=data)
+        context["table"] = table
+        return context
+
+
+class AlumniExclusionReview(
+    LoginRequiredMixin, AutoAssignUpdateProcessView, ModelFormMixin
+):
+    template_name = "forms/alumniexclusionreview.html"
+    model = AlumniExclusion
+    form_class = AlumniExclusionReviewForm
+    fields = None
+
+    def get_success_url(self):
+        return reverse("alumniexclusion")
+
+    def activation_done(self, *args, **kwargs):
+        """Finish task activation."""
+        self.activation.done()
+        self.success("Alumni Exclusion updated successfully.")
+
+    @property
+    def fields(self):
+        return None
+
+    @fields.setter
+    def fields(self, val):
+        # On instantiate of UpdateProcessView tries to get fields and set empty
+        # Ignore that
+        pass
+
+    def form_valid(self, form, *args, **kwargs):
+        form.instance.regional_director = self.request.user
+        return super().form_valid(form)
+
+    def get_context_data(self, *args, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["regional_director"] = True
+        return context
+
+
 class OSMCreateView(LoginRequiredMixin, CreateProcessView, AssignOfficerFormMixin):
     template_name = "forms/osm_form.html"
     model = OSM
@@ -3034,46 +3126,5 @@ class BylawsCreateView(
         context = super().get_context_data(**kwargs)
         data = Bylaws.objects.filter(chapter=self.request.user.current_chapter)
         table = BylawsListTable(data=data)
-        context["table"] = table
-        return context
-
-
-class AlumniExclusionCreateView(
-    LoginRequiredMixin,
-    CreateView,
-):
-    form_class = AlumniExclusionForm
-    model = AlumniExclusion
-
-    def get_success_url(self):
-        # TODO: set the emails up
-        if hasattr(self, "object"):
-            chapter = self.object.chapter
-            GenericEmail(
-                emails=chapter.council_emails(),
-                cc={"central.office@thetatau.org", chapter.region.email},
-                addressee=f"{chapter.full_name} Officers",
-                subject=f"{chapter.full_name} Bylaws Update",
-                message=f"Updated bylaws were submitted. <br>With the following changes:<br>{self.object.changes} <br><br>Please see attached document.",
-                attachments=[self.object.bylaws],
-            ).send()
-            messages.add_message(
-                self.request,
-                messages.INFO,
-                f"You successfully submitted updated chapter bylaws. "
-                f"An email was sent to the Executive Director and Regional Directors",
-            )
-        return reverse("forms:bylaws")
-
-    def form_valid(self, form):
-        chapter = self.request.user.current_chapter
-        form.instance.chapter = chapter
-        form.instance.created_by = self.request.user
-        return super().form_valid(form)
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        data = AlumniExclusion.objects.filter(chapter=self.request.user.current_chapter)
-        table = AlumniExclusionTable(data=data)
         context["table"] = table
         return context

@@ -1785,6 +1785,13 @@ class AlumniExclusionForm(forms.ModelForm):
         help_text="Only PDF format accepted",
         validators=[FileTypeValidator(allowed_types=["application/pdf"])],
     )
+    meeting_date = forms.DateField(
+        label="Meeting Date of Vote",
+        widget=DatePicker(
+            options={"format": "M/DD/YYYY"},
+            attrs={"autocomplete": "off"},
+        ),
+    )
     date_start = forms.DateField(
         label="Start date of exclusion",
         widget=DatePicker(
@@ -1794,6 +1801,7 @@ class AlumniExclusionForm(forms.ModelForm):
     )
     date_end = forms.DateField(
         label="End date of exclusion",
+        help_text="End date of exclusion must be less than 4 months from start date",
         widget=DatePicker(
             options={"format": "M/DD/YYYY"},
             attrs={"autocomplete": "off"},
@@ -1804,7 +1812,7 @@ class AlumniExclusionForm(forms.ModelForm):
         model = AlumniExclusion
         fields = [
             "user",
-            "date_vote",
+            "meeting_date",
             "voting_result",
             "date_start",
             "date_end",
@@ -1819,5 +1827,38 @@ class AlumniExclusionForm(forms.ModelForm):
         if (date_end - date_start).days > (4 * 30):
             self.add_error(
                 "date_end",
-                forms.ValidationError("Must be less than 4 months from start date"),
+                forms.ValidationError(
+                    "End date of exclusion must be less than 4 months from start date"
+                ),
+            )
+
+
+class AlumniExclusionReviewForm(forms.ModelForm):
+    regional_director_veto = forms.ChoiceField(
+        choices=AlumniExclusion.BOOL_CHOICES,
+        label="Region Director Review",
+        required=True,
+    )
+    veto_reason = forms.CharField(
+        widget=forms.Textarea,
+        label="Justification for veto",
+        help_text="Reason is required if vetoing",
+        required=False,
+    )
+
+    class Meta:
+        model = AlumniExclusion
+        fields = [
+            "regional_director_veto",
+            "veto_reason",
+        ]
+
+    def clean(self):
+        super().clean()
+        veto_reason = self.cleaned_data.get("veto_reason")
+        regional_director_veto = self.cleaned_data.get("regional_director_veto")
+        if regional_director_veto and not veto_reason:
+            self.add_error(
+                "veto_reason",
+                forms.ValidationError("Reason is required if vetoing"),
             )

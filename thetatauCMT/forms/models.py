@@ -2094,8 +2094,8 @@ def get_chapter_exclusions_upload_path(instance, filename):
     )
 
 
-class AlumniExclusion(TimeStampedModel, EmailSignalMixin):
-    BOOL_CHOICES = ((True, "Yes"), (False, "No"))
+class AlumniExclusion(Process, TimeStampedModel, EmailSignalMixin):
+    BOOL_CHOICES = ((True, "Approved"), (False, "Vetoed"), (None, "Not Reviewed"))
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         verbose_name="Excluded Alumni",
@@ -2106,14 +2106,26 @@ class AlumniExclusion(TimeStampedModel, EmailSignalMixin):
         Chapter, on_delete=models.CASCADE, related_name="exclusions"
     )
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    date_vote = models.DateTimeField(verbose_name="Date of Vote", default=timezone.now)
+    meeting_date = models.DateField(verbose_name="Date of Vote", default=timezone.now)
     date_start = models.DateField("Start Date", default=timezone.now)
     date_end = models.DateField("End Date", help_text="Must be less than 4 months")
     voting_result = models.FloatField(verbose_name="Percentage Voting in Favor")
     reason = models.TextField(_("Reason for Exclusion"))
     minutes = models.FileField(upload_to=get_chapter_exclusions_upload_path)
-    regional_director_veto = models.BooleanField(choices=BOOL_CHOICES, default=False)
-    veto_reason = models.TextField(_("Reason for RD Exclusion Veto"))
+    regional_director_veto = models.BooleanField(
+        choices=BOOL_CHOICES, null=True, blank=True, default=None
+    )
+    regional_director = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="alumni_exclusion",
+        verbose_name="Officer Signature",
+        null=True,
+        blank=True,
+    )
+    veto_reason = models.TextField(
+        _("Reason for RD Exclusion Veto"), null=True, blank=True
+    )
 
     def __str__(self):
         return f"Exclusion of {self.user}"

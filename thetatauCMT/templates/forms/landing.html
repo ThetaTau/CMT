@@ -12,6 +12,16 @@
   </thead>
   <tbody>
     <tr>
+      <td><a href="{% url 'alumniexclusion' %}">{% trans "Alumni Exclusion" %}</a></td>
+      {% if request.is_nat_officer %}
+      <td>
+        <a href="{% url 'forms:audit_list' %}">{% trans "All Audits" %}</a>
+      </td>
+      {% endif %}
+      <td>To submit an alumni exclusion form to 
+        exclude alumni from participation in chapter meetings, events, or grounds.</td>
+    </tr>
+    <tr>
       <td><a href="{% url 'forms:audit' %}">{% trans "Audit" %}</a></td>
       {% if request.is_nat_officer %}
       <td>

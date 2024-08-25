@@ -380,11 +380,23 @@ class CollectionReferralTable(tables.Table):
 
 class AlumniExclusionTable(tables.Table):
     user = tables.Column(verbose_name="Excluded Alumni", accessor="user__name")
+    regional_director_veto = tables.Column(verbose_name="Regional Director Review")
 
     class Meta:
         model = AlumniExclusion
-        fields = ("user", "date_start", "date_end")
+        fields = ("user", "date_start", "date_end", "regional_director_veto")
         attrs = {"class": "table table-striped table-bordered"}
+
+    def __init__(self, *args, **kwargs):
+        if True:
+            self.base_columns["user"] = tables.LinkColumn(
+                "viewflow:forms:alumniexclusion:review",
+                kwargs={"process_pk": A("pk"), "task_pk": A("task_pk")},
+            )
+        super().__init__(*args, **kwargs)
+
+    def render_regional_director_veto(self, value):
+        return value
 
 
 class ResignationStatusTable(tables.Table):

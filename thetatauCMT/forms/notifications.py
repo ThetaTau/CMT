@@ -642,6 +642,45 @@ class EmailOSMUpdate(EmailNotification):
 
 
 @registry.register_decorator()
+class EmailAlumniExclusionUpdate(EmailNotification):
+    render_types = ["html"]
+    template_name = "alumni_exclusion"
+
+    def __init__(self, activation, review=False):
+        process_title = activation.flow_class.process_title
+        user = activation.process.user
+        chapter = activation.process.chapter
+        state = "Complete"
+        addressee = user
+        if review:
+            state = "RD Review"
+            addressee = f"{chapter.region.name} Regional Directors"
+
+        self.to_emails = {chapter.region.email}
+        self.reply_to = [
+            "central.office@thetatau.org",
+        ]
+        self.subject = f"[CMT] {process_title}"
+        self.context = {
+            "user": user,
+            "addressee": addressee,
+            "state": state,
+            "review": review,
+            "process_title": process_title,
+            "host": settings.CURRENT_URL,
+        }
+
+    @staticmethod
+    def get_demo_args():
+        from forms.models import AlumniExclusion
+
+        test = AlumniExclusion.objects.order_by("?")[0]
+        test.process = test
+        # return [test, False]
+        return [test, True]
+
+
+@registry.register_decorator()
 class CentralOfficeGenericEmail(EmailNotification):
     render_types = ["html"]
     template_name = "central_office"
