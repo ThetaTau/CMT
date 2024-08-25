@@ -7,7 +7,6 @@ import forms.models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("viewflow", "0008_jsonfield_and_artifact"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),

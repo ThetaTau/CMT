@@ -7,7 +7,6 @@ import forms.models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("forms", "0024_merge_20220106_1115"),
     ]

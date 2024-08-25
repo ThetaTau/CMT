@@ -9,7 +9,6 @@ import submissions.models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
         ("submissions", "0002_submission_user"),

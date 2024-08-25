@@ -5,7 +5,6 @@ import forms.models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("forms", "0019_initiationprocess_scheduled_date"),
     ]

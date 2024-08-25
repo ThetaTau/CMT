@@ -7,7 +7,6 @@ import events.models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("events", "0004_auto_20210911_1635"),
     ]

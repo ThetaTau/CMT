@@ -9,7 +9,6 @@ import forms.models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("chapters", "0003_auto_20200517_1027"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),

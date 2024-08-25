@@ -30,5 +30,8 @@ def run():
                 set_away = True
         if not set_away:
             UserStatusChange(
-                user=user, status="away", start=away.date_start, end=away.date_end,
+                user=user,
+                status="away",
+                start=away.date_start,
+                end=away.date_end,
             ).save()

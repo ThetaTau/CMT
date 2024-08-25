@@ -8,7 +8,6 @@ import forms.models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("viewflow", "0008_jsonfield_and_artifact"),
         ("chapters", "0011_chapter_extra_approval"),
