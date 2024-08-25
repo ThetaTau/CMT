@@ -27,7 +27,7 @@ if __name__ == "__main__":
     app.expanded_callback = app.callback
     os.chdir("../")
     print(os.getcwd())
-    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings.local_ventura")
+    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings.local")
     print("Django %s" % django.get_version())
     if Path(sys.path[0]) == Path(__file__).parent:
         # Something is adding the __file__ to sys path and causing issues
