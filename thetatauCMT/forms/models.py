@@ -124,6 +124,10 @@ class PledgeProgram(YearTermModel, TimeStampedModel, EmailSignalMixin):
     )
     verbose_remote = "Have you or will you conduct your new member education remotely?"
     remote = models.BooleanField(verbose_remote, choices=BOOL_CHOICES, default=False)
+    verbose_dues = "How much are your chapter's PNM dues, including the pledge fee but NOT including the initiation fee or badge cost?"
+    dues = models.PositiveIntegerField(verbose_dues, default=0)
+    verbose_start = "When did you/do you anticipate starting new member education?"
+    date_start = models.DateField(verbose_start, default=timezone.now)
     verbose_complete = "When did you/do you anticipate completing new member education?"
     date_complete = models.DateField(verbose_complete, default=timezone.now)
     verbose_initiation = "When did you/do you plan to initiate your pledges?"
@@ -703,7 +707,12 @@ class Pledge(TimeStampedModel, EmailSignalMixin):
     signature = models.CharField(
         max_length=255, help_text="Please sign using your proper/legal name"
     )
-    parent_name = models.CharField(_("Parent / Guardian Name"), max_length=60)
+    parent_name = models.CharField(
+        _("Parent / Guardian Name"), blank=True, null=True, max_length=60
+    )
+    parent_email = models.EmailField(
+        _("Parent / Guardian Email"), blank=True, null=True
+    )
     birth_place = models.CharField(
         _("Place of Birth"),
         max_length=50,
@@ -1539,6 +1548,7 @@ class PledgeProcess(Process, EmailSignalMixin):
                 "Suffix (such as Jr., III)": pledge.user.suffix,
                 "Nickname": pledge.user.nickname,
                 "Parent / Guardian Name": pledge.parent_name,
+                "Parent / Guardian Email": pledge.parent_email,
                 "School E-mail": pledge.user.email_school,
                 "Personal Email": pledge.user.email,
                 "Mobile Number:": pledge.user.phone_number,

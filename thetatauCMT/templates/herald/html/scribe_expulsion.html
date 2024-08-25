@@ -1,0 +1,27 @@
+{% extends "herald/html/base_email.html" %}
+{% block title %}Roll Book Update{% endblock %}
+{% block content %}
+<h2 class="null" style="margin: 0;padding: 0;display: block;font-family: Helvetica;font-size: 30px;font-style: normal;font-weight: bold;line-height: 125%;letter-spacing: -1px;text-align: left;color: #606060 !important;">Roll Book Update</h2>
+<br>
+Dear Chapter Scribe,
+<p>The Executive Council voted on {{ date }}
+  to expel {{ user }}, badge number: {{ badge_number }} from the Fraternity.
+  The National Fraternity’s records have been updated, but as Scribe,
+  it is your responsibility to update your chapter’s roll book to indicate this former member’s
+  expulsion.</p>
+<p>To update your roll book, please follow guidance from the Policies & Procedures Manual (PPM)
+  Section 2.6.1.3 and 7.2.5.
+  Specifically, use a permanent pen (that does not bleed through to the record on the back
+  of the page) to place a single strikethrough on the expelled member’s roll book page
+  and annotate the expulsion date from above.
+  In the page margin, record the reason(s) for the expulsion.</p>
+<p>Once completed, initial and date the annotated remarks and include your chapter name
+  and your roll number so the future members of the chapter can identify who authorized
+  and made the comments.  Roll book pages shall not be destroyed nor damaged such that
+  any information is illegible.</p>
+<p><b>Please respond to central.office@thetatau.org when this action has been completed.</b></p>
+<p>If you have questions, please reach out to the Central Office.</p>
+<p>Fraternally,</p>
+<p>Jim Gaffney<br>
+Executive Director</p>
+{% endblock content %}

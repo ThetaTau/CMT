@@ -536,6 +536,38 @@ class EmailProcessUpdate(EmailNotification):
 
 
 @registry.register_decorator()
+class EmailScribeExpulsion(EmailNotification):
+    render_types = ["html"]
+    template_name = "scribe_expulsion"
+
+    def __init__(self, user, date):
+        chapter = user.current_chapter
+        emails = chapter.get_email_specific(["scribe", "regent"])
+        self.to_emails = set(emails)  # set list of emails to send to
+        self.reply_to = [
+            "central.office@thetatau.org",
+        ]
+        self.subject = f"[CMT] Roll Book Update"
+        self.context = {
+            "user": user,
+            "badge_number": user.badge_number,
+            "date": date,
+            "host": settings.CURRENT_URL,
+        }
+
+    @staticmethod
+    def get_demo_args():  # define a static method to return list of args needed to initialize class for testing
+        from forms.models import DisciplinaryProcess
+
+        test = DisciplinaryProcess.objects.order_by("?")[0]
+
+        return [
+            test.user,
+            test.send_ec_date,
+        ]
+
+
+@registry.register_decorator()
 class EmailConventionUpdate(EmailNotification):
     render_types = ["html"]
     template_name = "convention"

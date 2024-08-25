@@ -6,7 +6,6 @@ import forms.models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("chapters", "0010_chapter_address_contact"),
         ("viewflow", "0008_jsonfield_and_artifact"),

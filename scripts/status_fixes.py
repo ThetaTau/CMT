@@ -68,7 +68,8 @@ def run(*args):
                     start = user.initiation.date
                     print("        need active from init", start)
                     user.set_current_status(
-                        "active", start=start,
+                        "active",
+                        start=start,
                     )
                 else:
                     print("        not initiated yet or depledged")
@@ -77,7 +78,9 @@ def run(*args):
             start = active.start
             print("        need pledge ", start)
             user.set_current_status(
-                "pnm", start=start - timedelta(365 * 0.5), end=start,
+                "pnm",
+                start=start - timedelta(365 * 0.5),
+                end=start,
             )
         if not alumni and active:
             graduate = user.status_changes.filter(reason="graduate").first()
@@ -85,7 +88,8 @@ def run(*args):
                 start = graduate.date_start
                 print("        need alumni ", start)
                 user.set_current_status(
-                    "alumni", start=start,
+                    "alumni",
+                    start=start,
                 )
             else:
                 print("        not graduated")

@@ -8,7 +8,6 @@ whitenoise==5.3.0  # https://github.com/evansd/whitenoise
 redis==3.5.3  # https://github.com/antirez/redis
 celery==5.1.2  # pyup: < 5.0  # https://github.com/celery/celery
 google-api-python-client==2.14.0  # https://github.com/googleapis/google-api-python-client
-gspread==3.7.0  # https://github.com/burnash/gspread
 PyDrive2==1.17.0  # https://github.com/iterative/PyDrive2
 gspread==5.10.0  # https://github.com/burnash/gspread
 reportlab==3.6.11  # https://www.reportlab.com/
@@ -31,6 +30,8 @@ intuit-oauth==1.2.4  # https://github.com/intuit/oauth-pythonclient
 pygeocoder==1.2.5
 haversine==2.6.0
 weasyprint==53.4
+openpyxl==3.0.10  # report_builder needs save_virtual_workbook which was deprecated
+numpy==1.21.1
 
 # Django
 # ------------------------------------------------------------------------------
@@ -67,7 +68,8 @@ django-ckeditor==6.5.0 # https://github.com/django-ckeditor/django-ckeditor
 django-recaptcha==2.0.6 # https://github.com/praekelt/django-recaptcha
 django-report-builder==6.4.2 # https://gitlab.com/burke-software/django-report-builder
 django-upload-validator==1.1.6 # https://github.com/mckinseyacademy/django-upload-validator
-django-allauth-2fa==0.10.0  # https://github.com/percipient/django-allauth-2fa
+# django-allauth-2fa==0.10.0  # https://github.com/percipient/django-allauth-2fa
+git+https://github.com/valohai/django-allauth-2fa.git@6bd3101916f2fca6f2ff414b3b1181bbd44d1b99
 django-hCaptcha==0.2.0  # https://pypi.org/project/django-hCaptcha/
 django-termsandconditions==2.0.10  # https://github.com/cyface/django-termsandconditions
 django-email-bandit==2.0  # https://github.com/caktus/django-email-bandit
@@ -87,7 +89,6 @@ coreapi==2.3.3  # https://github.com/core-api/python-client
 dash==1.21.0
 dash-renderer==1.9.1
 dash-html-components==1.1.4
-pandas==1.1.5; python_version < '3.7'
 pandas==1.4.3; python_version >= '3.7'
 plotly==5.10.0
 django-plotly-dash==1.6.4

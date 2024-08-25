@@ -101,9 +101,10 @@ class AuditTable(tables.Table):
 
 
 class PledgeProgramTable(tables.Table):
+    date_start = tables.DateColumn(verbose_name="Start Date")
     date_complete = tables.DateColumn(verbose_name="Complete Date")
     date_initiation = tables.DateColumn(verbose_name="Initiation Date")
-    remote = tables.BooleanColumn(verbose_name="Remote")
+    dues = tables.Column(verbose_name="PNM Dues")
     weeks = tables.Column(verbose_name="Weeks in Program")
     weeks_left = tables.Column(verbose_name="Weeks LEFT in Program")
     live_link = tables.Column(verbose_name="Live Program")
@@ -127,12 +128,12 @@ class PledgeProgramTable(tables.Table):
             "pk",
             "manual",
             "approval",
-            "remote",
+            "date_start",
             "date_complete",
             "date_initiation",
+            "dues",
             "weeks",
             "weeks_left",
-            "status",
         ]
 
     def render_status(self, value):

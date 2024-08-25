@@ -5,7 +5,6 @@ import forms.models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("forms", "0025_auto_20220116_1810"),
     ]

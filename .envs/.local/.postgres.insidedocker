@@ -1,0 +1,7 @@
+# PostgreSQL
+# ------------------------------------------------------------------------------
+POSTGRES_HOST=postgres
+POSTGRES_PORT=5432
+POSTGRES_DB=thetataucmt
+POSTGRES_USER=jUdiAKmfiIkVqPLMjlubngygopGbsxMV
+POSTGRES_PASSWORD=03I7BaTjBFyGPExO6zTW4kllYgLPbyooX7EPFnreG4uzcmf47RjUoZ6a4XVJUxhh

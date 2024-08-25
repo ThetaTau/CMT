@@ -4,8 +4,9 @@
     <option name="enabledOnSave" value="true" />
     <option name="executionMode" value="BINARY" />
     <option name="pathToExecutable" value="C:\Users\venturf2\.local\bin\black.exe" />
+    <option name="sdkName" value="Remote Python 3.9.17 Docker Compose (django)" />
   </component>
-  <component name="ProjectRootManager" version="2" project-jdk-name="Python 3.9 (cmt39)" project-jdk-type="Python SDK" />
+  <component name="ProjectRootManager" version="2" project-jdk-name="Remote Python 3.9.17 Docker Compose (django)" project-jdk-type="Python SDK" />
   <component name="PyCharmProfessionalAdvertiser">
     <option name="shown" value="true" />
   </component>

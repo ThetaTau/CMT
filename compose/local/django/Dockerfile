@@ -19,7 +19,12 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
   # Pillow dependencies
   zlib1g-dev \
   libjpeg-dev \
-  libpangocairo-1.0-0
+  libpangocairo-1.0-0 \
+  # Weasyprint dependencies
+  libpango-1.0-0 \
+  libpangoft2-1.0-0 \
+  gir1.2-harfbuzz-0.0
+#  libharfbuzz-subset0
 
 # Requirements are installed here to ensure they will be cached.
 COPY ./requirements .
@@ -49,6 +54,10 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
   gettext \
   # python-magic dependenies
   libmagic-dev \
+  # Weasyprint dependencies
+  libpango-1.0-0 \
+  libpangoft2-1.0-0 \
+  gir1.2-harfbuzz-0.0 \
   # cleaning up unused files
   && apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false \
   && rm -rf /var/lib/apt/lists/*

@@ -5,7 +5,6 @@ import forms.models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("forms", "0011_riskmanagement_fines"),
     ]
