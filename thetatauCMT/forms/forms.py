@@ -1857,7 +1857,12 @@ class AlumniExclusionReviewForm(forms.ModelForm):
         super().clean()
         veto_reason = self.cleaned_data.get("veto_reason")
         regional_director_veto = self.cleaned_data.get("regional_director_veto")
-        if regional_director_veto and not veto_reason:
+        if regional_director_veto is None:
+            self.add_error(
+                "regional_director_veto",
+                forms.ValidationError("You must approve or veto the exclusion"),
+            )
+        if not regional_director_veto and not veto_reason:
             self.add_error(
                 "veto_reason",
                 forms.ValidationError("Reason is required if vetoing"),

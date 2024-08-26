@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% load static %}
+{% load crispy_forms_tags %}
+{% load render_table from django_tables2 %}
+{% block title %}Alumni Exclusion Form{% endblock %}
+
+{% block content %}
+<div class="container">
+  <div class="row">
+    <div class="col-sm-12">
+    <h1>Alumni Exclusion Form</h1>
+    <h3>Instructions</h3>
+      <p>From the <a href="https://thetatau.org/policies" target="_blank">
+      Theta Tau Policies and Procedures Manual</a>:
+      Pursuant to Section 7 of the PPM, chapters may exclude any alumni from participation in chapter
+        meetings, events, or grounds for a duration of up to four months.</p>
+      <p>Chapters are required to fill out this form to notify their Regional Director and the Central Office.</p>
+      <p>Regional Directors may veto a Chapter's decision per the PPM.</p>
+        <p>Notifying the Central Office is for record keeping purposes only.
+        Upon submitting this form, after the regional director review, the member in question will be notified, so we urge you to do so before submitting this form.</p>
+    <p><strong>In the case that an exclusion is needed before chapter meeting, the chapter’s executive officers
+may also approve a similar exclusion by three-fifths majority vote for a duration of up to two
+      weeks or through the next chapter meeting, whichever comes first.</strong></p>
+      <hr>
+      {% if request.is_officer %}
+    <h2>Submit Alumni Exclusion</h2>
+    <form method="POST" enctype="multipart/form-data">
+        {{ form.media }}
+        <link href="{% static 'css/project.css' %}" rel="stylesheet">
+        {% csrf_token %}
+        {% if form.meeting_date.errors %}
+          {% for error in form.meeting_date.errors %}
+            <strong style="color:red">{{ error }}</strong>
+          {% endfor %}
+        {% endif %}
+        {% if form.date_start.errors %}
+          {% for error in form.date_start.errors %}
+            <strong style="color:red">{{ error }}</strong>
+          {% endfor %}
+        {% endif %}
+        {% if form.date_end.errors %}
+          {% for error in form.date_end.errors %}
+            <strong style="color:red">{{ error }}</strong>
+          {% endfor %}
+        {% endif %}
+        {{ form|crispy }}
+        {{ activation.management_form }}
+        <button class="primaryAction btn btn-primary" type="submit">Submit Form</button>
+      </form>
+      {% else %}
+        <h3>Only officers can submit this form.</h3>
+      {% endif %}
+    <hr>
+    <h3>Previous Submissions</h3>
+    {% render_table table %}
+    </div>
+  </div>
+</div>
+{% endblock content %}

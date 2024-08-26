@@ -6,7 +6,19 @@ from io import BytesIO
 from copy import deepcopy
 from pathlib import Path
 from django.db import IntegrityError, transaction
-from django.db.models import Q, F, Value, CharField, Count, Exists, OuterRef, Subquery
+from django.db.models import (
+    Q,
+    F,
+    Value,
+    CharField,
+    Count,
+    Exists,
+    OuterRef,
+    Subquery,
+    Case,
+    When,
+    SmallIntegerField,
+)
 from django.conf import settings
 from django.contrib.postgres.aggregates import StringAgg
 from django.forms import models as model_forms
@@ -31,6 +43,7 @@ from easy_pdf.views import PDFTemplateResponseMixin
 from django_weasyprint import WeasyTemplateResponseMixin
 from viewflow.flow.views import CreateProcessView, UpdateProcessView
 from viewflow.frontend.viewset import FlowViewSet
+from viewflow.models import Task as FlowTask
 
 from core.flows import FilterProcessListView, AutoAssignUpdateProcessView
 from core.forms import MultiFormsView
@@ -2292,14 +2305,37 @@ class AlumniExclusionCreateView(
 
     def get_context_data(self, *args, **kwargs):
         context = super().get_context_data(**kwargs)
-        task = self.object.task_set.filter(
+        task = FlowTask.objects.filter(
+            # ~Q(status="DONE"),  # This could be used to exclude tasks
             process_id=OuterRef("id"),
+            flow_task__icontains="AlumniExclusionFlow.review",
         )
-        data = AlumniExclusion.objects.filter(
-            chapter=self.request.user.current_chapter
-        ).annotate(task_pk=Subquery(task.values("pk")[:1]))
+        data = (
+            AlumniExclusion.objects.filter(chapter=self.request.user.current_chapter)
+            .annotate(task_pk=Subquery(task.values("pk")[:1]))
+            .annotate(
+                task_pk=Case(
+                    When(task_pk=None, then=Value(0)),
+                    default=F("task_pk"),
+                    output_field=SmallIntegerField(),
+                )
+            )
+        )
         table = AlumniExclusionTable(data=data)
         context["table"] = table
+        return context
+
+
+class AlumniExclusionDetailView(
+    LoginRequiredMixin, NatOfficerRequiredMixin, DetailView
+):
+    model = AlumniExclusion
+    template_name = "forms/alumniexclusionreview.html"
+
+    def get_context_data(self, *args, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["regional_director"] = True
+        context["form"] = None
         return context
 
 
@@ -2310,6 +2346,20 @@ class AlumniExclusionReview(
     model = AlumniExclusion
     form_class = AlumniExclusionReviewForm
     fields = None
+
+    def dispatch(self, request, **kwargs):
+        """Lock the process, initialize `self.activation`, check permission and execute."""
+        result = super().dispatch(request, **kwargs)
+        object = self.get_object()
+        status = None
+        if object:
+            status = object.status
+        if status == "DONE":
+            list(messages.get_messages(request))
+            result = HttpResponseRedirect(
+                reverse("forms:alumniexclusion_detail", kwargs={"pk": object.pk})
+            )
+        return result
 
     def get_success_url(self):
         return reverse("alumniexclusion")

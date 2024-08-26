@@ -2128,4 +2128,7 @@ class AlumniExclusion(Process, TimeStampedModel, EmailSignalMixin):
     )
 
     def __str__(self):
-        return f"Exclusion of {self.user}"
+        value = f"Exclusion {self.pk}"
+        if self.user:
+            value = f"Exclusion of {self.user}"
+        return value
