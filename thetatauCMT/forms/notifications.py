@@ -2,6 +2,7 @@ from herald import registry
 from herald.base import EmailNotification
 from django.conf import settings
 from django.http import HttpRequest
+from django.urls import reverse
 from django.utils.safestring import mark_safe
 from django.core.files.base import ContentFile
 from django.forms.models import model_to_dict
@@ -650,19 +651,42 @@ class EmailAlumniExclusionUpdate(EmailNotification):
         process_title = activation.flow_class.process_title
         user = activation.process.user
         chapter = activation.process.chapter
-        state = "Complete"
-        addressee = user
-        if review:
-            state = "RD Review"
-            addressee = f"{chapter.region.name} Regional Directors"
-
-        self.to_emails = {chapter.region.email}
+        state = "RD Review"
+        addressee = f"{chapter.region.name} Regional Directors"
+        link = (
+            reverse("forms:alumniexclusion_list")
+            + f"?region={chapter.region.slug}&regional_director_veto=None"
+        )
+        to = {chapter.region.email}
+        cc = {
+            "risk@thetatau.org",
+            "central.office@thetatau.org",
+            activation.process.created_by.email,
+        }
+        reviewed = "To Review"
+        if not review:
+            addressee = user
+            cc = {
+                chapter.region.email,
+                "risk@thetatau.org",
+                "central.office@thetatau.org",
+                activation.process.created_by.email,
+            }
+            state = "Complete"
+            to = user.emails
+            if not to:
+                to = {chapter.region.email}
+            reviewed = activation.process.get_regional_director_veto_display()
+        self.cc = list(cc)
+        self.to_emails = list(to)
         self.reply_to = [
             "central.office@thetatau.org",
         ]
         self.subject = f"[CMT] {process_title}"
         self.context = {
             "user": user,
+            "link": link,
+            "reviewed": reviewed,
             "addressee": addressee,
             "state": state,
             "review": review,

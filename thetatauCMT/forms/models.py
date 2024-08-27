@@ -2100,10 +2100,10 @@ class AlumniExclusion(Process, TimeStampedModel, EmailSignalMixin):
         settings.AUTH_USER_MODEL,
         verbose_name="Excluded Alumni",
         on_delete=models.CASCADE,
-        related_name="excluded_alumni",
+        related_name="alumni_exclusions",
     )
     chapter = models.ForeignKey(
-        Chapter, on_delete=models.CASCADE, related_name="exclusions"
+        Chapter, on_delete=models.CASCADE, related_name="alumni_exclusions"
     )
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     meeting_date = models.DateField(verbose_name="Date of Vote", default=timezone.now)
@@ -2118,8 +2118,8 @@ class AlumniExclusion(Process, TimeStampedModel, EmailSignalMixin):
     regional_director = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
-        related_name="alumni_exclusion",
-        verbose_name="Officer Signature",
+        related_name="alumni_exclusions_reviews",
+        verbose_name="Regional Director Review",
         null=True,
         blank=True,
     )

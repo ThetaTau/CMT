@@ -6,9 +6,12 @@
 Dear {{ addressee }},
   <p>At a regular meeting {{ user }} was voted to be excluded from participation in chapter meetings, events, or grounds, in accord with the Laws and Customs of Theta Tau.</p>
 {% if review %}
-<p>Please sign in to the CMT and verify or veto this exclusion: <a href="{{ host }}{% url 'alumniexclusion' %}">Alumni Exclusion Form</a> </p>
+<p>Please sign in to the CMT and verify or veto this exclusion: 
+  <a href="{{ host }}{{ link }}">
+    Alumni Exclusion Form</a> </p>
 {% else %}
-
-  <p>This decision can be appealed by contacting the Health & Safety Committee, through the Executive Director.</p>
+  <p><strong>This exclusion was reviewed by the chapter's regional directors and {{ reviewed }}.</strong></p>
+  <p>This decision can be appealed by the alumni if approved or the chapter if vetoed by contacting the 
+    Health & Safety Committee, through the Executive Director.</p>
 {% endif %}
 {% endblock content %}

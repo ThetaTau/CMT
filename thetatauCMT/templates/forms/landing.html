@@ -15,7 +15,7 @@
       <td><a href="{% url 'alumniexclusion' %}">{% trans "Alumni Exclusion" %}</a></td>
       {% if request.is_nat_officer %}
       <td>
-        <a href="{% url 'forms:audit_list' %}">{% trans "All Audits" %}</a>
+        <a href="{% url 'forms:alumniexclusion_list' %}">{% trans "All Alumni Exclusion" %}</a>
       </td>
       {% endif %}
       <td>To submit an alumni exclusion form to 

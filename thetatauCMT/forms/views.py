@@ -108,6 +108,7 @@ from .forms import (
     ReturnStudentForm,
     AlumniExclusionForm,
     AlumniExclusionReviewForm,
+    AlumniExclusionFormHelper,
 )
 from tasks.models import Task
 from scores.models import ScoreType
@@ -170,6 +171,7 @@ from .filters import (
     CompleteListFilter,
     RiskListFilter,
     EducationListFilter,
+    AlumniExclusionListFilter,
 )
 from .notifications import (
     EmailRMPSigned,
@@ -2259,6 +2261,51 @@ def pledge_process_sync(request, process_pk, invoice_number):
     process = PledgeProcess.objects.get(pk=process_pk)
     new_invoice_number = process.sync_invoice(request, invoice_number)
     return JsonResponse({"invoice_number": new_invoice_number})
+
+
+class AlumniExclusionListView(
+    LoginRequiredMixin, NatOfficerRequiredMixin, PagedFilteredTableView
+):
+    model = AlumniExclusion
+    table_class = AlumniExclusionTable
+    filter_class = AlumniExclusionListFilter
+    formhelper_class = AlumniExclusionFormHelper
+
+    def get_queryset(self, **kwargs):
+        qs = AlumniExclusion.objects.all()
+        cancel = self.request.GET.get("cancel", False)
+        request_get = self.request.GET.copy()
+        if cancel:
+            request_get = QueryDict(mutable=True)
+        if request_get:
+            regional_director_veto = request_get.get("regional_director_veto", None)
+            if regional_director_veto == "None":
+                qs = qs.filter(regional_director_veto=None)
+                request_get["regional_director_veto"] = ""
+        self.filter = self.filter_class(request_get, queryset=qs)
+        self.filter.request = self.request
+        self.filter.form.helper = self.formhelper_class()
+        return self.filter.qs
+
+    def get_table_data(self):
+        task = FlowTask.objects.filter(
+            # ~Q(status="DONE"),  # This could be used to exclude tasks
+            process_id=OuterRef("id"),
+            flow_task__icontains="AlumniExclusionFlow.review",
+        )
+        qs = self.get_queryset()
+        data = qs.annotate(task_pk=Subquery(task.values("pk")[:1])).annotate(
+            task_pk=Case(
+                When(task_pk=None, then=Value(0)),
+                default=F("task_pk"),
+                output_field=SmallIntegerField(),
+            )
+        )
+        return data
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        return context
 
 
 class AlumniExclusionCreateView(

@@ -903,6 +903,37 @@ class PledgeProgramFormHelper(FormHelper):
     )
 
 
+class AlumniExclusionFormHelper(FormHelper):
+    form_method = "GET"
+    form_id = "alumniexclusion-search-form"
+    form_class = "form-inline"
+    field_template = "bootstrap3/layout/inline_field.html"
+    field_class = "col-xs-3"
+    label_class = "col-xs-3"
+    form_show_errors = True
+    help_text_inline = False
+    html5_required = True
+    layout = Layout(
+        Fieldset(
+            "",
+            Row(
+                Field("user"),
+                Field("chapter"),
+                Field("region"),
+                Field("regional_director_veto"),
+                FormActions(
+                    StrictButton(
+                        '<i class="fa fa-search"></i> Filter',
+                        type="submit",
+                        css_class="btn-primary",
+                    ),
+                    Submit("cancel", "Clear", css_class="btn-primary"),
+                ),
+            ),
+        ),
+    )
+
+
 class CompleteFormHelper(FormHelper):
     form_method = "GET"
     form_id = "pledge_program-search-form"
@@ -1862,7 +1893,9 @@ class AlumniExclusionReviewForm(forms.ModelForm):
                 "regional_director_veto",
                 forms.ValidationError("You must approve or veto the exclusion"),
             )
-        if not regional_director_veto and not veto_reason:
+        if (
+            not regional_director_veto or regional_director_veto == "False"
+        ) and not veto_reason:
             self.add_error(
                 "veto_reason",
                 forms.ValidationError("Reason is required if vetoing"),
