@@ -82,7 +82,7 @@ class AlumniExclusionListFilter(django_filters.FilterSet):
     )
     regional_director_veto = django_filters.ChoiceFilter(
         label="RD Review",
-        choices=((True, "Reviewed"), (False, "Vetoed"), ("None", "Not Reviewed")),
+        choices=((True, "Approved"), (False, "Vetoed"), ("None", "Not Reviewed")),
     )
 
     class Meta:

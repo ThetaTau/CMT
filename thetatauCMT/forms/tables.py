@@ -408,6 +408,10 @@ class AlumniExclusionTable(tables.Table):
                 ("regional_director", tables.Column("RD Reviewer")),
             ]
             del kwargs["natoff"]
+        else:
+            self.base_columns["user"] = tables.Column(
+                verbose_name="Excluded Alumni", accessor="user__name"
+            )
         kwargs["extra_columns"] = extra_columns
         super().__init__(*args, **kwargs)
 
