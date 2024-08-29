@@ -68,7 +68,7 @@ impacted the sustainability of the Chapter.</li>
         </tr>
       </table>
     <hr>
-{% if form %}
+{% if regional_director and form %}
   <form method="POST" enctype="multipart/form-data" class="form">
     {{ form.media }}
     <link href="{% static 'css/project.css' %}" rel="stylesheet">
@@ -80,9 +80,9 @@ impacted the sustainability of the Chapter.</li>
   </form>
   {% else %}
   {% if object.regional_director_veto == None %}
-  <p>The chapter's regional director can review this and approve or veto.</p>
+  <h3>The chapter's regional director can review this and approve or veto. Any of: {{ rds }}</h3>
     {% else %}
-    <p>This has already been reviewed, see results above.</p>
+    <h37>This has already been reviewed, see results above.</h37>
     {% endif %}
   {% endif %}
 {% endblock %}

@@ -2287,6 +2287,11 @@ class AlumniExclusionListView(
         self.filter.form.helper = self.formhelper_class()
         return self.filter.qs
 
+    def get_table_kwargs(self):
+        kwargs = super().get_table_kwargs()
+        kwargs["natoff"] = True
+        return kwargs
+
     def get_table_data(self):
         task = FlowTask.objects.filter(
             # ~Q(status="DONE"),  # This could be used to exclude tasks
@@ -2387,7 +2392,10 @@ class AlumniExclusionDetailView(
 
 
 class AlumniExclusionReview(
-    LoginRequiredMixin, AutoAssignUpdateProcessView, ModelFormMixin
+    LoginRequiredMixin,
+    NatOfficerRequiredMixin,
+    AutoAssignUpdateProcessView,
+    ModelFormMixin,
 ):
     template_name = "forms/alumniexclusionreview.html"
     model = AlumniExclusion
@@ -2432,7 +2440,10 @@ class AlumniExclusionReview(
 
     def get_context_data(self, *args, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["regional_director"] = True
+        rds = self.object.chapter.region.directors.all()
+        if self.request.user in rds or self.request.user.is_staff:
+            context["regional_director"] = True
+        context["rds"] = ", ".join(rds.values_list("name", flat=True))
         return context
 
 
