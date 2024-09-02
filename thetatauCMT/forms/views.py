@@ -813,7 +813,7 @@ class RoleChangeView(LoginRequiredMixin, ModelFormSetView):
             for form in formset:
                 try:
                     member = form.instance.user
-                except UserRoleChange.user.DoesNotExist:
+                except User.DoesNotExist:
                     continue
                 role = form.instance.role
                 if role in CHAPTER_OFFICER:
