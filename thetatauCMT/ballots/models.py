@@ -121,6 +121,7 @@ class Ballot(TimeStampedModel):
             "ballot__pk", flat=True
         )
         roles = user.current_roles
+        roles = roles if roles is not None else []
         chapter_officer = list(set(roles) & set(CHAPTER_OFFICER))
         if chapter_officer:
             roles.append("all_chapters")
