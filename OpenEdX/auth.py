@@ -37,11 +37,9 @@ class CMTOAuth2(BaseOAuth2PKCE):
         """Fetch user data from Bitbucket Data Center REST API"""
         # At this point, we don't know the current user's username
         headers = {"Authorization": f"Bearer {access_token}"}
-        response = self.request(
+        response = self.get_json(
             url=f"{BASE_API}/o/userinfo",
             method="GET",
             headers=headers,
-            json_response=True,
         )
-        print("THIS IS RESPONSE FOR AUTH", response)
         return response
