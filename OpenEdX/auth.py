@@ -41,5 +41,7 @@ class CMTOAuth2(BaseOAuth2PKCE):
             url=f"{BASE_API}/o/userinfo",
             method="GET",
             headers=headers,
+            json_response=True,
         )
-        return response["data"]
+        print("THIS IS RESPONSE FOR AUTH", response)
+        return response
