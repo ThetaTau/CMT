@@ -9,15 +9,23 @@ class CMTOAuth2(BaseOAuth2PKCE):
     ACCESS_TOKEN_URL = "https://cmt.thetatau.org/o/token/"
     ACCESS_TOKEN_METHOD = "POST"
     SCOPE_SEPARATOR = ","
-    EXTRA_DATA = [("id", "id"), ("expires", "expires")]
-    PKCE_DEFAULT_CODE_CHALLENGE_METHOD = "s256"  # can be "plain" or "s256"
+    EXTRA_DATA = [
+        ("email", "email"),
+        ("username", "username"),
+        ("name", "name"),
+        ("first_name", "first_name"),
+        ("last_name", "last_name"),
+    ]
+    PKCE_DEFAULT_CODE_CHALLENGE_METHOD = "plain"
     PKCE_DEFAULT_CODE_VERIFIER_LENGTH = 48  # must be b/w 43-127 chars
     DEFAULT_USE_PKCE = True
 
     def get_user_details(self, response):
         """Return user details from CMT account"""
         return {
-            "username": response.get("login"),
-            "email": response.get("email") or "",
-            "first_name": response.get("name"),
+            "username": response.get("username"),
+            "email": response.get("email"),
+            "first_name": response.get("first_name"),
+            "last_name": response.get("last_name"),
+            "name": response.get("name"),
         }
