@@ -1,13 +1,16 @@
 from social_core.backends.oauth import BaseOAuth2PKCE
 
+BASE_API = "https://c0a4-172-110-170-18.ngrok-free.app"
+
 
 class CMTOAuth2(BaseOAuth2PKCE):
     """CMT OAuth authentication backend"""
 
     name = "cmt"
-    AUTHORIZATION_URL = "https://cmt.thetatau.org/o/authorize/"
-    ACCESS_TOKEN_URL = "https://cmt.thetatau.org/o/token/"
+    AUTHORIZATION_URL = f"{BASE_API}/o/authorize/"
+    ACCESS_TOKEN_URL = f"{BASE_API}/o/token/"
     ACCESS_TOKEN_METHOD = "POST"
+    DEFAULT_SCOPE = ["openid"]
     SCOPE_SEPARATOR = ","
     EXTRA_DATA = [
         ("email", "email"),
@@ -29,3 +32,14 @@ class CMTOAuth2(BaseOAuth2PKCE):
             "last_name": response.get("last_name"),
             "name": response.get("name"),
         }
+
+    def user_data(self, access_token, *args, **kwargs) -> dict:
+        """Fetch user data from Bitbucket Data Center REST API"""
+        # At this point, we don't know the current user's username
+        headers = {"Authorization": f"Bearer {access_token}"}
+        response = self.request(
+            url=f"{BASE_API}/o/userinfo",
+            method="GET",
+            headers=headers,
+        )
+        return response["data"]
