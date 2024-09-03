@@ -1,7 +1,7 @@
-from social_core.backends.oauth import BaseOAuth2
+from social_core.backends.oauth import BaseOAuth2PKCE
 
 
-class CMTOAuth2(BaseOAuth2):
+class CMTOAuth2(BaseOAuth2PKCE):
     """CMT OAuth authentication backend"""
 
     name = "cmt"
