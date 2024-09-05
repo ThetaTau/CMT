@@ -15,6 +15,7 @@ ALLOWED_HOSTS = [
     "localhost",
     "0.0.0.0",
     "127.0.0.1",
+    # ".ngrok-free.app", # DO NOT USE THIS ON WORK PROHIBITED
 ]
 CURRENT_URL = "http://localhost:8000"
 # CACHES

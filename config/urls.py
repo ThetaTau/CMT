@@ -8,6 +8,7 @@ from django.contrib.auth.views import (
     PasswordResetView,
     PasswordResetDoneView,
 )
+from oauth2_provider import urls as oauth2_urls
 from allauth.account.views import LogoutView
 from django.contrib import admin
 from django.urls import path, include
@@ -24,6 +25,7 @@ def home_redirect(request):
 
 urlpatterns = [
     path("django_plotly_dash/", include("django_plotly_dash.urls")),
+    path("o/", include(oauth2_urls)),
     url(r"^$", HomeView.as_view(template_name="pages/home.html"), name="home"),
     url(r"^", include("allauth_2fa.urls")),
     url(

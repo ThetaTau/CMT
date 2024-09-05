@@ -1,6 +1,6 @@
 from social_core.backends.oauth import BaseOAuth2PKCE
 
-BASE_API = "https://c0a4-172-110-170-18.ngrok-free.app"
+BASE_API = "https://cmt.thetatau.org"
 
 
 class CMTOAuth2(BaseOAuth2PKCE):
