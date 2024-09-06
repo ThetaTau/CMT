@@ -30,7 +30,10 @@ class CMTOAuth2(BaseOAuth2PKCE):
             "email": response.get("email"),
             "first_name": response.get("first_name"),
             "last_name": response.get("last_name"),
-            "name": response.get("name"),
+            "fullname": response.get("name"),
+            "terms_of_service": "true",
+            "honor_code": "true",
+            "country": "US",
         }
 
     def user_data(self, access_token, *args, **kwargs) -> dict:
