@@ -26,6 +26,8 @@ class CMTOAuth2(BaseOAuth2PKCE):
     def get_user_details(self, response):
         """Return user details from CMT account"""
         return {
+            "id": response.get("sub"),
+            "uid": response.get("sub"),
             "username": response.get("username"),
             "email": response.get("email"),
             "first_name": response.get("first_name"),
