@@ -15,7 +15,7 @@ class CMTOAuth2(BaseOAuth2PKCE):
     ID_KEY = "sub"
     EXTRA_DATA = [
         ("email", "email"),
-        ("username", "username"),
+        ("username", "name"),
         ("name", "name"),
         ("first_name", "first_name"),
         ("last_name", "last_name"),
@@ -33,7 +33,7 @@ class CMTOAuth2(BaseOAuth2PKCE):
             "id": response.get("sub"),
             "user_id": response.get("sub"),
             "uid": response.get("sub"),
-            "username": response.get("username"),
+            "username": response.get("name"),
             "email": response.get("email"),
             "first_name": response.get("first_name"),
             "last_name": response.get("last_name"),
