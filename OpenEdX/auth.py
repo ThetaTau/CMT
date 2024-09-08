@@ -12,6 +12,7 @@ class CMTOAuth2(BaseOAuth2PKCE):
     ACCESS_TOKEN_METHOD = "POST"
     DEFAULT_SCOPE = ["openid"]
     SCOPE_SEPARATOR = ","
+    ID_KEY = "sub"
     EXTRA_DATA = [
         ("email", "email"),
         ("username", "username"),
