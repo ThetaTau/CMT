@@ -18,6 +18,8 @@ class CMTOAuth2(BaseOAuth2PKCE):
         ("name", "name"),
         ("first_name", "first_name"),
         ("last_name", "last_name"),
+        ("uid", "sub"),
+        ("user_id", "user_id"),
     ]
     PKCE_DEFAULT_CODE_CHALLENGE_METHOD = "plain"
     PKCE_DEFAULT_CODE_VERIFIER_LENGTH = 48  # must be b/w 43-127 chars
@@ -26,7 +28,9 @@ class CMTOAuth2(BaseOAuth2PKCE):
     def get_user_details(self, response):
         """Return user details from CMT account"""
         return {
+            "sub": response.get("sub"),
             "id": response.get("sub"),
+            "user_id": response.get("sub"),
             "uid": response.get("sub"),
             "username": response.get("username"),
             "email": response.get("email"),
