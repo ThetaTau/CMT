@@ -489,6 +489,9 @@ TEX_DIRECTORY = Path("tex")  # Define the directory where tex files and pdf are 
 LMS_ID = env("LMS_ID", default=None)
 LMS_SECRET = env("LMS_SECRET", default=None)
 
+ED_ID = env("ED_ID", default=None)
+ED_SECRET = env("ED_SECRET", default=None)
+
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 EMAIL_SIGNAL_DEFAULT_SENDER = DEFAULT_FROM_EMAIL
 

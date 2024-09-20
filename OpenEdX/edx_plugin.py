@@ -33,6 +33,10 @@ hooks.Filters.ENV_PATCHES.add_items(
     [
         ("openedx-cms-common-settings", "FEATURES['SHOW_REGISTRATION_LINKS'] = False"),
         ("openedx-lms-common-settings", "FEATURES['SHOW_REGISTRATION_LINKS'] = False"),
+        (
+            "openedx-lms-common-settings",
+            "FEATURES['ENABLE_BULK_ENROLLMENT_VIEW'] = True",
+        ),
         ("cms-env", "EMAIL_BACKEND: anymail.backends.mailjet.EmailBackend"),
         ("lms-env", "EMAIL_BACKEND: anymail.backends.mailjet.EmailBackend"),
         ("cms-env", "MAILJET_API_KEY: "),
@@ -40,6 +44,7 @@ hooks.Filters.ENV_PATCHES.add_items(
         ("cms-env", "MAILJET_SECRET_KEY: "),
         ("lms-env", "MAILJET_SECRET_KEY: "),
         ("common-env-features", "SHOW_REGISTRATION_LINKS: false"),
+        ("common-env-features", "ENABLE_BULK_ENROLLMENT_VIEW: true"),
         ("openedx-auth", "SHOW_REGISTRATION_LINKS: false"),
         ("openedx-cms-common-settings", "SHOW_REGISTRATION_LINKS = False"),
         ("openedx-lms-common-settings", "SHOW_REGISTRATION_LINKS = False"),
