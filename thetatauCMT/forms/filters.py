@@ -1,7 +1,5 @@
 # filters.py
 import django_filters
-from flake8.main.vcs import choices
-from material.frontend.templatetags.material_frontend import verbose_name
 
 from core.filters import DateRangeFilter
 from django.forms.widgets import NumberInput
