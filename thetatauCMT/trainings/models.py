@@ -515,7 +515,7 @@ class Training(TimeStampedModel):
         )
         person_id = None
         if response.status_code != 200:
-            message = f"{user} NOT deactivated from training system, ERROR getting ID maybe an error. {response_json}"
+            message = f"{user} NOT deactivated from training system, ERROR getting ID maybe an error. {response.reason} {find_id_query}"
             level = messages.ERROR
             if request is None:
                 print(message)
