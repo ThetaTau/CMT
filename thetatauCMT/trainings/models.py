@@ -588,13 +588,12 @@ class Training(TimeStampedModel):
                 Training.deactivate_user(user, request=request)
                 return
             else:
-                message = f"{user} NOT deactivated from training system, maybe an error. {response_json}"
+                message = f"{user} NOT deactivated from training system, maybe an error. {response.reason}"
                 level = messages.ERROR
         if request is None:
             print(message)
         else:
             messages.add_message(request, level, message)
-        return response_json
 
     @staticmethod
     def add_user_ed(user, request):
