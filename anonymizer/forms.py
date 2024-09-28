@@ -9,6 +9,7 @@ from faker import Factory
 
 from forms.models import (
     Audit,
+    AlumniExclusion,
     Badge,
     ChapterReport,
     CollectionReferral,
@@ -212,6 +213,31 @@ class DisciplinaryAttachmentAnonym(AnonymBase):
         pass
 
 
+class AlumniExclusionAnonym(AnonymBase):
+    reason = fields.function(fake.paragraph)
+    minutes = fields.function(fake.file_path)
+    veto_reason = fields.function(fake.paragraph)
+
+    class Meta:
+        exclude_fields = [
+            "chapter",
+            "regional_director",
+            "regional_director_veto",
+            "voting_result",
+            "date_start",
+            "date_end",
+            "meeting_date",
+            "data",
+            "created",
+            "flow_class",
+            "artifact_object_id",
+            "status",
+            "modified",
+            "id",
+            "finished",
+        ]
+
+
 class DisciplinaryProcessAnonym(AnonymBase):
     minutes = fields.function(fake.file_path)
     punishment_other = fields.function(fake.sentence)
@@ -262,6 +288,7 @@ class DisciplinaryProcessAnonym(AnonymBase):
 class PledgeAnonym(AnonymBase):
     signature = fields.function(fake.name)
     parent_name = fields.function(fake.name)
+    parent_email = fields.string("{seq}@parentemail.com")
     explain_crime = fields.function(fake.sentence)
     relative_members = fields.function(fake.name)
     explain_expelled_org = fields.function(fake.sentence)
@@ -345,6 +372,7 @@ class HSEducationAnonym(AnonymBase):
 register_anonym(
     [
         (DisciplinaryProcess, DisciplinaryProcessAnonym),
+        (AlumniExclusion, AlumniExclusionAnonym),
         (Depledge, DepledgeAnonym),
         (Pledge, PledgeAnonym),
         (Initiation, InitiationAnonym),

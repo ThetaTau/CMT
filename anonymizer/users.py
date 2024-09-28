@@ -129,6 +129,8 @@ class MemberUpdateAnonym(AnonymBase):
             "flow_class",
             "major_other",
             "artifact_object_id",
+            "unsubscribe_email",
+            "unsubscribe_paper_gear",
         ]
 
 

@@ -83,6 +83,7 @@ django-simple-history==3.3.0  # https://django-simple-history.readthedocs.io/en/
 django-userforeignkey==0.5.0  # https://github.com/beachmachine/django-userforeignkey
 django-oauth-toolkit==2.4.0
 django-cors-headers==4.4.0
+django-appconf==1.0.6  # https://django-appconf.readthedocs.io/en/latest/
 
 # Django REST Framework
 djangorestframework==3.13.1  # https://github.com/encode/django-rest-framework
