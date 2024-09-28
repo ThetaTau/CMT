@@ -234,6 +234,12 @@ class User(AbstractUser, EmailSignalMixin):
     def __str__(self):
         return self.name
 
+    def set_no_contact(self):
+        self.unsubscribe_email = True
+        self.unsubscribe_paper_gear = True
+        self.no_contact = True
+        self.save()
+
     def get_name_with_details(self):
         major = self.major if self.major else ""
         return f"{self.name} graduated: {self.graduation_year} {self.degree} {major}"

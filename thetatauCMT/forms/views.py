@@ -443,6 +443,9 @@ class InitiationView(LoginRequiredMixin, OfficerRequiredMixin, FormView):
             )
             for depledge in depledge_list:
                 DepledgeSurveyEmail(depledge).send()
+                depledge.set_no_contact()
+                Training.deactivate_user(depledge, request=request)
+
         from .flows import InitiationProcessFlow
 
         ceremony = request.POST.get("initiates-__prefix__-ceremony", "normal")

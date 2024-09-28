@@ -78,7 +78,7 @@ class Training(TimeStampedModel):
                 cursor = f'after: "{cursor}"'
             query = f"""
                 query
-                {{ People (first: 100 {cursor})
+                {{ People (first: 100 {cursor} active: "1")
                     {{ nodes
                        {{ username
                            first
@@ -481,6 +481,115 @@ class Training(TimeStampedModel):
                 f"{user} NOT added to training system, maybe an error. {response_json}"
             )
             level = messages.ERROR
+        if request is None:
+            print(message)
+        else:
+            messages.add_message(request, level, message)
+        return response_json
+
+    @staticmethod
+    def get_person_id(user, id_type="id", request=None):
+        message = ""
+        level = messages.ERROR
+        url = "https://thetatau-tx.vectorlmsedu.com/graphql/"
+        authenticate_header = Training.authenticate_header()
+        if id_type == "id":
+            query_str = f'externalUniqueId: "{user.id}"'
+        else:
+            query_str = f'username: "{user.username}"'
+        find_id_query = f"""
+        query {{ People ({query_str})
+             {{ nodes
+                {{
+                  first
+                  last
+                  personId
+                  username
+                  externalUniqueId
+               }}
+            }}
+         }}"""
+        #
+        response = requests.post(
+            url, json={"query": find_id_query}, headers=authenticate_header
+        )
+        response_json = response.json()
+        person_id = None
+        if response.status_code != 200:
+            message = f"{user} NOT deactivated from training system, ERROR getting ID maybe an error. {response_json}"
+            level = messages.ERROR
+            if request is None:
+                print(message)
+            else:
+                messages.add_message(request, level, message)
+        else:
+            if "errors" not in response_json:
+                # {'data': {'People': {'nodes': []}}}
+                nodes = response_json["data"]["People"]["nodes"]
+                if nodes:
+                    person_id = nodes[0]["personId"]
+                elif id_type == "id":
+                    print(
+                        f"    No id found for type {id_type} for {user} {response_json}"
+                    )
+                    person_id, message, level = Training.get_person_id(
+                        user, id_type="username", request=request
+                    )
+                else:
+                    print(
+                        f"    No id found for type {id_type} for {user} {response_json}"
+                    )
+            else:
+                message = f"{user} NOT deactivated from training system, ERROR getting ID maybe an error. {response_json}"
+                level = messages.ERROR
+        return person_id, message, level
+
+    @staticmethod
+    def deactivate_user(user, request=None):
+        response_json = None
+        url = "https://thetatau-tx.vectorlmsedu.com/graphql/"
+        authenticate_header = Training.authenticate_header()
+        # https://thetatau-tx.vectorlmsedu.com/login
+        person_id, message, level = Training.get_person_id(user, request=request)
+        if person_id:
+            deactivate_user_mutation = f"""
+            mutation  DeactivatepersonMutation {{
+                Person(personId: "{person_id}") {{
+                deactivate  {{
+                    username
+                    personId
+                    externalUniqueId
+                }}
+              }}
+            }}
+            """
+            response = requests.post(
+                url,
+                headers=authenticate_header,
+                json={"query": deactivate_user_mutation},
+            )
+            response_json = response.json()
+            if response.status_code == 200:
+                """
+                {'data': {'Person': {'deactivate': {'personId': '0C235BDE-7314-11EF-8C2B-FB441EDB9904',
+                    'externalUniqueId': '93697',
+                    'username': 'jim.gaffney@thetatau.org'}}}}
+                """
+                if "errors" not in response_json:
+                    message = f"{user} successfully deactivated from training system"
+                    level = messages.INFO
+                else:
+                    message = f"{user} NOT deactivated from training system, maybe an error. {response_json}"
+                    level = messages.ERROR
+            elif response.status_code == 429:
+                # 150 requests per rolling 300 seconds
+                sleep(120)
+                print("Delaying for rate limit deactivate training user")
+                Training.deactivate_user(user, request=request)
+                return
+            else:
+                message = f"{user} NOT deactivated from training system, maybe an error. {response_json}"
+                level = messages.ERROR
         if request is None:
             print(message)
         else:

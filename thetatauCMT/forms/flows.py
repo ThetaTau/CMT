@@ -22,6 +22,7 @@ from core.flows import (
     register_factory,
 )
 from core.utils import login_with_service_account
+from trainings.models import Training
 from .models import (
     AlumniExclusion,
     PrematureAlumnus,
@@ -1089,6 +1090,8 @@ class DisciplinaryProcessFlow(Flow):
                 )
                 attachments = ["final_letter"]
                 user.set_current_status(status="expelled")
+                user.set_no_contact()
+                Training.deactivate_user(user)
                 expelled = True
             else:
                 # EC did NOT approve the expulsion
