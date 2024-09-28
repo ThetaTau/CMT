@@ -49,6 +49,16 @@ urlpatterns = [
         view=views.PledgeProgramProcessDetailView.as_view(),
         name="pledge_program_detail",
     ),
+    path(
+        "alumniexclusion-detail/<int:pk>/",
+        view=views.AlumniExclusionDetailView.as_view(),
+        name="alumniexclusion_detail",
+    ),
+    path(
+        "alumniexclusion-list/",
+        view=views.AlumniExclusionListView.as_view(),
+        name="alumniexclusion_list",
+    ),
     url(regex=r"^initiation/$", view=views.InitiationView.as_view(), name="initiation"),
     url(
         regex=r"^initiation-selection/$",

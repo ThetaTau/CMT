@@ -160,6 +160,13 @@ urlpatterns = [
         name="osmform",
     ),
     url(
+        r"^alumniexclusionform/$",
+        RedirectView.as_view(
+            pattern_name="viewflow:forms:alumniexclusion:start", permanent=True
+        ),
+        name="alumniexclusion",
+    ),
+    url(
         r"^gear/$",
         RedirectView.as_view(pattern_name="submissions:gear", permanent=True),
         name="gear",

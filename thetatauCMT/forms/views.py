@@ -6,7 +6,19 @@ from io import BytesIO
 from copy import deepcopy
 from pathlib import Path
 from django.db import IntegrityError, transaction
-from django.db.models import Q, F, Value, CharField, Count, Exists, OuterRef
+from django.db.models import (
+    Q,
+    F,
+    Value,
+    CharField,
+    Count,
+    Exists,
+    OuterRef,
+    Subquery,
+    Case,
+    When,
+    SmallIntegerField,
+)
 from django.conf import settings
 from django.contrib.postgres.aggregates import StringAgg
 from django.forms import models as model_forms
@@ -29,11 +41,11 @@ from crispy_forms.layout import Submit
 from extra_views import FormSetView, ModelFormSetView
 from easy_pdf.views import PDFTemplateResponseMixin
 from django_weasyprint import WeasyTemplateResponseMixin
-from viewflow.compat import _
 from viewflow.flow.views import CreateProcessView, UpdateProcessView
 from viewflow.frontend.viewset import FlowViewSet
+from viewflow.models import Task as FlowTask
 
-from core.flows import FilterProcessListView
+from core.flows import FilterProcessListView, AutoAssignUpdateProcessView
 from core.forms import MultiFormsView
 from core.models import (
     semester_encompass_start_end_date,
@@ -94,6 +106,9 @@ from .forms import (
     CollectionReferralForm,
     ResignationForm,
     ReturnStudentForm,
+    AlumniExclusionForm,
+    AlumniExclusionReviewForm,
+    AlumniExclusionFormHelper,
 )
 from tasks.models import Task
 from scores.models import ScoreType
@@ -123,6 +138,7 @@ from .tables import (
     OSMListTable,
     DisciplinaryStatusTable,
     CollectionReferralTable,
+    AlumniExclusionTable,
     ResignationStatusTable,
     ReturnStudentStatusTable,
     PledgeProgramStatusTable,
@@ -146,6 +162,7 @@ from .models import (
     ResignationProcess,
     ReturnStudent,
     PledgeProgramProcess,
+    AlumniExclusion,
 )
 from .filters import (
     AuditListFilter,
@@ -154,6 +171,7 @@ from .filters import (
     CompleteListFilter,
     RiskListFilter,
     EducationListFilter,
+    AlumniExclusionListFilter,
 )
 from .notifications import (
     EmailRMPSigned,
@@ -2243,6 +2261,190 @@ def pledge_process_sync(request, process_pk, invoice_number):
     process = PledgeProcess.objects.get(pk=process_pk)
     new_invoice_number = process.sync_invoice(request, invoice_number)
     return JsonResponse({"invoice_number": new_invoice_number})
+
+
+class AlumniExclusionListView(
+    LoginRequiredMixin, NatOfficerRequiredMixin, PagedFilteredTableView
+):
+    model = AlumniExclusion
+    table_class = AlumniExclusionTable
+    filter_class = AlumniExclusionListFilter
+    formhelper_class = AlumniExclusionFormHelper
+
+    def get_queryset(self, **kwargs):
+        qs = AlumniExclusion.objects.all()
+        cancel = self.request.GET.get("cancel", False)
+        request_get = self.request.GET.copy()
+        if cancel:
+            request_get = QueryDict(mutable=True)
+        if request_get:
+            regional_director_veto = request_get.get("regional_director_veto", None)
+            if regional_director_veto == "None":
+                qs = qs.filter(regional_director_veto=None)
+                request_get["regional_director_veto"] = ""
+        self.filter = self.filter_class(request_get, queryset=qs)
+        self.filter.request = self.request
+        self.filter.form.helper = self.formhelper_class()
+        return self.filter.qs
+
+    def get_table_kwargs(self):
+        kwargs = super().get_table_kwargs()
+        kwargs["natoff"] = True
+        return kwargs
+
+    def get_table_data(self):
+        task = FlowTask.objects.filter(
+            # ~Q(status="DONE"),  # This could be used to exclude tasks
+            process_id=OuterRef("id"),
+            flow_task__icontains="AlumniExclusionFlow.review",
+        )
+        qs = self.get_queryset()
+        data = qs.annotate(task_pk=Subquery(task.values("pk")[:1])).annotate(
+            task_pk=Case(
+                When(task_pk=None, then=Value(0)),
+                default=F("task_pk"),
+                output_field=SmallIntegerField(),
+            )
+        )
+        return data
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        return context
+
+
+class AlumniExclusionCreateView(
+    LoginRequiredMixin, CreateProcessView, AssignOfficerFormMixin
+):
+    template_name = "forms/alumniexclusion_form.html"
+    model = AlumniExclusion
+    form_class = AlumniExclusionForm
+    submitted = False
+    data = {}
+
+    def get(self, request, *args, **kwargs):
+        officers = request.user.current_chapter.get_current_officers_council_specific()
+        if not self.check_officers(officers):
+            return redirect(reverse("forms:officer"))
+        self.data, self.submitted, self.signers = get_sign_status(
+            self.request.user, type_sign="osm"
+        )
+        if self.submitted and self.request.user in self.signers:
+            for sign in self.data:
+                link = sign["link"]
+                if (
+                    self.request.user == sign["owner"]
+                    and link != "#"
+                    and not isinstance(link, bool)
+                ):
+                    return redirect(link)
+        return super().get(request, *args, **kwargs)
+
+    def get_success_url(self):
+        """Continue on task or redirect back to task list."""
+        return reverse("alumniexclusion")
+
+    def activation_done(self, *args, **kwargs):
+        """Finish task activation."""
+        self.activation.done()
+        self.success("Alumni Exclusion form submitted successfully.")
+
+    def form_valid(self, form, *args, **kwargs):
+        chapter = self.request.user.current_chapter
+        form.instance.chapter = chapter
+        form.instance.created_by = self.request.user
+        return super().form_valid(form)
+
+    def get_context_data(self, *args, **kwargs):
+        context = super().get_context_data(**kwargs)
+        task = FlowTask.objects.filter(
+            # ~Q(status="DONE"),  # This could be used to exclude tasks
+            process_id=OuterRef("id"),
+            flow_task__icontains="AlumniExclusionFlow.review",
+        )
+        data = (
+            AlumniExclusion.objects.filter(chapter=self.request.user.current_chapter)
+            .annotate(task_pk=Subquery(task.values("pk")[:1]))
+            .annotate(
+                task_pk=Case(
+                    When(task_pk=None, then=Value(0)),
+                    default=F("task_pk"),
+                    output_field=SmallIntegerField(),
+                )
+            )
+        )
+        table = AlumniExclusionTable(data=data)
+        context["table"] = table
+        return context
+
+
+class AlumniExclusionDetailView(
+    LoginRequiredMixin, NatOfficerRequiredMixin, DetailView
+):
+    model = AlumniExclusion
+    template_name = "forms/alumniexclusionreview.html"
+
+    def get_context_data(self, *args, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["regional_director"] = True
+        context["form"] = None
+        return context
+
+
+class AlumniExclusionReview(
+    LoginRequiredMixin,
+    NatOfficerRequiredMixin,
+    AutoAssignUpdateProcessView,
+    ModelFormMixin,
+):
+    template_name = "forms/alumniexclusionreview.html"
+    model = AlumniExclusion
+    form_class = AlumniExclusionReviewForm
+    fields = None
+
+    def dispatch(self, request, **kwargs):
+        """Lock the process, initialize `self.activation`, check permission and execute."""
+        result = super().dispatch(request, **kwargs)
+        object = self.get_object()
+        status = None
+        if object:
+            status = object.status
+        if status == "DONE":
+            list(messages.get_messages(request))
+            result = HttpResponseRedirect(
+                reverse("forms:alumniexclusion_detail", kwargs={"pk": object.pk})
+            )
+        return result
+
+    def get_success_url(self):
+        return reverse("alumniexclusion")
+
+    def activation_done(self, *args, **kwargs):
+        """Finish task activation."""
+        self.activation.done()
+        self.success("Alumni Exclusion updated successfully.")
+
+    @property
+    def fields(self):
+        return None
+
+    @fields.setter
+    def fields(self, val):
+        # On instantiate of UpdateProcessView tries to get fields and set empty
+        # Ignore that
+        pass
+
+    def form_valid(self, form, *args, **kwargs):
+        form.instance.regional_director = self.request.user
+        return super().form_valid(form)
+
+    def get_context_data(self, *args, **kwargs):
+        context = super().get_context_data(**kwargs)
+        rds = self.object.chapter.region.directors.all()
+        if self.request.user in rds or self.request.user.is_staff:
+            context["regional_director"] = True
+        context["rds"] = ", ".join(rds.values_list("name", flat=True))
+        return context
 
 
 class OSMCreateView(LoginRequiredMixin, CreateProcessView, AssignOfficerFormMixin):

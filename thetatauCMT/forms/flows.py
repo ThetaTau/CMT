@@ -23,6 +23,7 @@ from core.flows import (
 )
 from core.utils import login_with_service_account
 from .models import (
+    AlumniExclusion,
     PrematureAlumnus,
     InitiationProcess,
     Convention,
@@ -35,6 +36,7 @@ from .models import (
     HSEducation,
 )
 from .views import (
+    AlumniExclusionCreateView,
     PrematureAlumnusCreateView,
     ConventionCreateView,
     HSEducationCreateView,
@@ -49,6 +51,7 @@ from .views import (
     ResignationSignView,
     ReturnStudentCreateView,
     PledgeProgramProcessCreateView,
+    AlumniExclusionReview,
 )
 from .forms import DisciplinaryForm1, DisciplinaryForm2, UserSelectForm
 from .notifications import (
@@ -57,6 +60,7 @@ from .notifications import (
     EmailOSMUpdate,
     CentralOfficeGenericEmail,
     EmailScribeExpulsion,
+    EmailAlumniExclusionUpdate,
 )
 from users.models import User
 from configs.models import Config
@@ -749,6 +753,63 @@ class OSMFlow(Flow):
             activation,
             user,
             "Outstanding Student Member Nomination",
+        ).send()
+
+
+@register_factory(viewset_class=FilterableFlowViewSet)
+class AlumniExclusionFlow(Flow):
+    """
+    Chapter officer fills out form to exclude alumni from chapter events
+
+    Form should then be sent to alumni;  risk.chair@, central.office@,
+        add as a note on member being excluded's account.
+        RD is assigned to approve/veto the exclusion
+    """
+
+    process_class = AlumniExclusion
+    process_title = _("Alumni Exclusion Process")
+    process_description = _("This process is for exclusion alumni.")
+
+    start = flow.Start(
+        AlumniExclusionCreateView, task_title=_("Submit Alumni Exclusion Form")
+    ).Next(this.email_rd)
+
+    email_rd = flow.Handler(
+        this.email_rds_func,
+        task_title=_("Email RDs"),
+    ).Next(this.review)
+
+    review = NoAssignView(
+        AlumniExclusionReview,
+        fields=["regional_director_veto", "veto_reason"],
+        task_title=_("RD Review"),
+        task_description=_("Review of Alumni Exclusion by RDs"),
+        task_result_summary=_(
+            "Exclusion was: {{ process.get_regional_director_veto_display  }}"
+        ),
+    ).Next(this.email_result)
+
+    email_result = flow.Handler(
+        this.email_result_func,
+        task_title=_("Email Alumni Exclusion Result"),
+    ).Next(this.end)
+
+    end = flow.End()
+
+    def email_rds_func(self, activation):
+        """
+        Send emails to the rds
+        :param activation:
+        :return:
+        """
+        EmailAlumniExclusionUpdate(
+            activation,
+            review=True,
+        ).send()
+
+    def email_result_func(self, activation):
+        EmailAlumniExclusionUpdate(
+            activation,
         ).send()
 
 

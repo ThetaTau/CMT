@@ -35,6 +35,7 @@ from core.forms import DuplicateAddressField, SchoolModelChoiceField
 from core.models import CHAPTER_ROLES_CHOICES, NAT_OFFICERS_CHOICES
 from users.models import User, UserRoleChange, UserDemographic
 from .models import (
+    AlumniExclusion,
     Initiation,
     Bylaws,
     Depledge,
@@ -889,6 +890,37 @@ class PledgeProgramFormHelper(FormHelper):
                 Field("complete"),
                 Field("year"),
                 Field("term"),
+                FormActions(
+                    StrictButton(
+                        '<i class="fa fa-search"></i> Filter',
+                        type="submit",
+                        css_class="btn-primary",
+                    ),
+                    Submit("cancel", "Clear", css_class="btn-primary"),
+                ),
+            ),
+        ),
+    )
+
+
+class AlumniExclusionFormHelper(FormHelper):
+    form_method = "GET"
+    form_id = "alumniexclusion-search-form"
+    form_class = "form-inline"
+    field_template = "bootstrap3/layout/inline_field.html"
+    field_class = "col-xs-3"
+    label_class = "col-xs-3"
+    form_show_errors = True
+    help_text_inline = False
+    html5_required = True
+    layout = Layout(
+        Fieldset(
+            "",
+            Row(
+                Field("user"),
+                Field("chapter"),
+                Field("region"),
+                Field("regional_director_veto"),
                 FormActions(
                     StrictButton(
                         '<i class="fa fa-search"></i> Filter',
@@ -1764,3 +1796,107 @@ class ReturnStudentForm(forms.ModelForm):
             )
         else:
             return user
+
+
+class AlumniExclusionForm(forms.ModelForm):
+    user = forms.ModelChoiceField(
+        label="Alumni to Exclude",
+        queryset=User.objects.all(),
+        widget=autocomplete.ModelSelect2(
+            url="users:autocomplete",
+            forward=(
+                forward.Const("true", "chapter"),
+                forward.Const("true", "alumni"),
+            ),
+        ),
+    )
+    minutes = forms.FileField(
+        label="Chapter Meeting Minutes",
+        required=True,
+        help_text="Only PDF format accepted",
+        validators=[FileTypeValidator(allowed_types=["application/pdf"])],
+    )
+    meeting_date = forms.DateField(
+        label="Meeting Date of Vote",
+        widget=DatePicker(
+            options={"format": "M/DD/YYYY"},
+            attrs={"autocomplete": "off"},
+        ),
+    )
+    date_start = forms.DateField(
+        label="Start date of exclusion",
+        widget=DatePicker(
+            options={"format": "M/DD/YYYY"},
+            attrs={"autocomplete": "off"},
+        ),
+    )
+    date_end = forms.DateField(
+        label="End date of exclusion",
+        help_text="End date of exclusion must be less than 4 months from start date",
+        widget=DatePicker(
+            options={"format": "M/DD/YYYY"},
+            attrs={"autocomplete": "off"},
+        ),
+    )
+
+    class Meta:
+        model = AlumniExclusion
+        fields = [
+            "user",
+            "meeting_date",
+            "voting_result",
+            "date_start",
+            "date_end",
+            "reason",
+            "minutes",
+        ]
+
+    def clean(self):
+        super().clean()
+        date_start = self.cleaned_data.get("date_start")
+        date_end = self.cleaned_data.get("date_end")
+        if (date_end - date_start).days > (4 * 30):
+            self.add_error(
+                "date_end",
+                forms.ValidationError(
+                    "End date of exclusion must be less than 4 months from start date"
+                ),
+            )
+
+
+class AlumniExclusionReviewForm(forms.ModelForm):
+    regional_director_veto = forms.ChoiceField(
+        choices=AlumniExclusion.BOOL_CHOICES,
+        label="Region Director Review",
+        required=True,
+    )
+    veto_reason = forms.CharField(
+        widget=forms.Textarea,
+        label="Justification for veto",
+        help_text="Reason is required if vetoing",
+        required=False,
+    )
+
+    class Meta:
+        model = AlumniExclusion
+        fields = [
+            "regional_director_veto",
+            "veto_reason",
+        ]
+
+    def clean(self):
+        super().clean()
+        veto_reason = self.cleaned_data.get("veto_reason")
+        regional_director_veto = self.cleaned_data.get("regional_director_veto")
+        if regional_director_veto is None:
+            self.add_error(
+                "regional_director_veto",
+                forms.ValidationError("You must approve or veto the exclusion"),
+            )
+        if (
+            not regional_director_veto or regional_director_veto == "False"
+        ) and not veto_reason:
+            self.add_error(
+                "veto_reason",
+                forms.ValidationError("Reason is required if vetoing"),
+            )

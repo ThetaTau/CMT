@@ -46,6 +46,7 @@ from forms.models import (
     PrematureAlumnus,
     ResignationProcess,
     ReturnStudent,
+    AlumniExclusion,
 )
 from core.admin import (
     user_chapter,
@@ -330,6 +331,27 @@ class DisciplinaryProcessInline(admin.TabularInline):
         return False
 
 
+class AlumniExclusionInline(admin.TabularInline):
+    model = AlumniExclusion
+    fk_name = "user"
+    readonly_fields = ("created", "regional_director")
+    fields = [
+        "reason",
+        "date_start",
+        "date_end",
+        "voting_result",
+        "minutes",
+        "regional_director_veto",
+        "regional_director",
+        "veto_reason",
+    ]
+    show_change_link = True
+    extra = 0
+
+    def has_add_permission(self, request, obj=None):
+        return False
+
+
 class OSMInline(admin.TabularInline):
     model = OSM
     fk_name = "nominate"
@@ -444,6 +466,7 @@ class MyUserAdmin(
         ResignationProcessInline,
         OSMInline,
         DisciplinaryProcessInline,
+        AlumniExclusionInline,
         CollectionReferralInline,
         TrainingInline,
     ]

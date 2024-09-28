@@ -13,6 +13,7 @@ from .models import (
     OSM,
     CollectionReferral,
     PledgeProgramProcess,
+    AlumniExclusion,
 )
 
 
@@ -375,6 +376,47 @@ class CollectionReferralTable(tables.Table):
         model = CollectionReferral
         fields = ("user", "created")
         attrs = {"class": "table table-striped table-bordered"}
+
+
+class AlumniExclusionTable(tables.Table):
+    user = tables.Column(verbose_name="Excluded Alumni", accessor="user__name")
+    regional_director_veto = tables.Column(verbose_name="Regional Director Review")
+    veto_reason = tables.Column(verbose_name="RD Reasoning")
+
+    class Meta:
+        model = AlumniExclusion
+        fields = (
+            "user",
+            "date_start",
+            "date_end",
+            "regional_director_veto",
+            "veto_reason",
+        )
+        attrs = {"class": "table table-striped table-bordered"}
+
+    def __init__(self, *args, **kwargs):
+        extra_columns = []
+        natoff = kwargs.get("natoff", False)
+        if natoff:
+            self.base_columns["user"] = tables.LinkColumn(
+                "viewflow:forms:alumniexclusion:review",
+                kwargs={"process_pk": A("pk"), "task_pk": A("task_pk")},
+            )
+            extra_columns = [
+                ("chapter", tables.Column("Chapter")),
+                ("chapter.region", tables.Column("Region")),
+                ("regional_director", tables.Column("RD Reviewer")),
+            ]
+            del kwargs["natoff"]
+        else:
+            self.base_columns["user"] = tables.Column(
+                verbose_name="Excluded Alumni", accessor="user__name"
+            )
+        kwargs["extra_columns"] = extra_columns
+        super().__init__(*args, **kwargs)
+
+    def render_regional_director_veto(self, value):
+        return value
 
 
 class ResignationStatusTable(tables.Table):

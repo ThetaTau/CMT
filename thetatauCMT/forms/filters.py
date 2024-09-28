@@ -1,8 +1,11 @@
 # filters.py
 import django_filters
+from flake8.main.vcs import choices
+from material.frontend.templatetags.material_frontend import verbose_name
+
 from core.filters import DateRangeFilter
 from django.forms.widgets import NumberInput
-from .models import Audit, Bylaws, PledgeProgram, HSEducation
+from .models import Audit, Bylaws, PledgeProgram, HSEducation, AlumniExclusion
 from chapters.models import Chapter
 from regions.models import Region
 
@@ -68,6 +71,42 @@ class PledgeProgramListFilter(CompleteListFilter):
         fields = ["region", "year", "term", "manual", "complete"]
         model = PledgeProgram  # This is needed to automatically make year/term
         order_by = ["chapter"]
+
+
+class AlumniExclusionListFilter(django_filters.FilterSet):
+    user = django_filters.CharFilter(
+        label="Excluded Alumni", field_name="user__name", lookup_expr="icontains"
+    )
+    region = django_filters.ChoiceFilter(
+        label="Region", choices=Region.region_choices(), method="filter_region"
+    )
+    regional_director_veto = django_filters.ChoiceFilter(
+        label="RD Review",
+        choices=((True, "Approved"), (False, "Vetoed"), ("None", "Not Reviewed")),
+    )
+
+    class Meta:
+        fields = [
+            "user",
+            "region",
+            "chapter",
+            "regional_director_veto",
+        ]
+        model = AlumniExclusion
+        order_by = ["chapter"]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.form.initial["regional_director_veto"] = None
+
+    def filter_region(self, queryset, field_name, value):
+        if value == "national":
+            return queryset
+        elif value == "candidate_chapter":
+            queryset = queryset.filter(chapter__candidate_chapter=True)
+        else:
+            queryset = queryset.filter(chapter__region__slug=value)
+        return queryset
 
 
 class RiskListFilter(django_filters.FilterSet):

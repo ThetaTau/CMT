@@ -2083,3 +2083,52 @@ class Bylaws(TimeStampedModel, EmailSignalMixin):
 
     def __str__(self):
         return f"Bylaws for {self.chapter}"
+
+
+def get_chapter_exclusions_upload_path(instance, filename):
+    return os.path.join(
+        "discipline",
+        f"{instance.chapter.slug}",
+        f"{instance.user.id}",
+        f"exclusion_{instance.created.strftime('%Y%m%d')}_{filename}",
+    )
+
+
+class AlumniExclusion(Process, TimeStampedModel, EmailSignalMixin):
+    BOOL_CHOICES = ((True, "Approved"), (False, "Vetoed"), (None, "Not Reviewed"))
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        verbose_name="Excluded Alumni",
+        on_delete=models.CASCADE,
+        related_name="alumni_exclusions",
+    )
+    chapter = models.ForeignKey(
+        Chapter, on_delete=models.CASCADE, related_name="alumni_exclusions"
+    )
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    meeting_date = models.DateField(verbose_name="Date of Vote", default=timezone.now)
+    date_start = models.DateField("Start Date", default=timezone.now)
+    date_end = models.DateField("End Date", help_text="Must be less than 4 months")
+    voting_result = models.FloatField(verbose_name="Percentage Voting in Favor")
+    reason = models.TextField(_("Reason for Exclusion"))
+    minutes = models.FileField(upload_to=get_chapter_exclusions_upload_path)
+    regional_director_veto = models.BooleanField(
+        choices=BOOL_CHOICES, null=True, blank=True, default=None
+    )
+    regional_director = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="alumni_exclusions_reviews",
+        verbose_name="Regional Director Review",
+        null=True,
+        blank=True,
+    )
+    veto_reason = models.TextField(
+        _("Reason for RD Exclusion Veto"), null=True, blank=True
+    )
+
+    def __str__(self):
+        value = f"Exclusion {self.pk}"
+        if self.user:
+            value = f"Exclusion of {self.user}"
+        return value

@@ -2,6 +2,7 @@ from herald import registry
 from herald.base import EmailNotification
 from django.conf import settings
 from django.http import HttpRequest
+from django.urls import reverse
 from django.utils.safestring import mark_safe
 from django.core.files.base import ContentFile
 from django.forms.models import model_to_dict
@@ -639,6 +640,68 @@ class EmailOSMUpdate(EmailNotification):
         # return [test, test.officer1,
         #         "Outstanding Student Member Form Submission", test.nominate]
         return [test, test.nominate, "Outstanding Student Member Nomination"]
+
+
+@registry.register_decorator()
+class EmailAlumniExclusionUpdate(EmailNotification):
+    render_types = ["html"]
+    template_name = "alumni_exclusion"
+
+    def __init__(self, activation, review=False):
+        process_title = activation.flow_class.process_title
+        user = activation.process.user
+        chapter = activation.process.chapter
+        state = "RD Review"
+        addressee = f"{chapter.region.name} Regional Directors"
+        link = (
+            reverse("forms:alumniexclusion_list")
+            + f"?region={chapter.region.slug}&regional_director_veto=None"
+        )
+        to = {chapter.region.email}
+        cc = {
+            "risk@thetatau.org",
+            "central.office@thetatau.org",
+            activation.process.created_by.email,
+        }
+        reviewed = "To Review"
+        if not review:
+            addressee = user
+            cc = {
+                chapter.region.email,
+                "risk@thetatau.org",
+                "central.office@thetatau.org",
+                activation.process.created_by.email,
+            }
+            state = "Complete"
+            to = user.emails
+            if not to:
+                to = {chapter.region.email}
+            reviewed = activation.process.get_regional_director_veto_display()
+        self.cc = list(cc)
+        self.to_emails = list(to)
+        self.reply_to = [
+            "central.office@thetatau.org",
+        ]
+        self.subject = f"[CMT] {process_title}"
+        self.context = {
+            "user": user,
+            "link": link,
+            "reviewed": reviewed,
+            "addressee": addressee,
+            "state": state,
+            "review": review,
+            "process_title": process_title,
+            "host": settings.CURRENT_URL,
+        }
+
+    @staticmethod
+    def get_demo_args():
+        from forms.models import AlumniExclusion
+
+        test = AlumniExclusion.objects.order_by("?")[0]
+        test.process = test
+        # return [test, False]
+        return [test, True]
 
 
 @registry.register_decorator()

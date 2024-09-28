@@ -1,0 +1,88 @@
+{% extends "account/base.html" %}
+{% load i18n %}
+{% load static %}
+{% load crispy_forms_tags %}
+{% load render_table from django_tables2 %}
+
+{% block head_title %}{% trans "Alumni Exclusion Review" %}{% endblock %}
+{% block content %}
+  <h1>Alumni Exclusion</h1>
+  <p>At a regular meeting {{ object.user }} was voted to be excluded from participation in chapter meetings, events,
+    or grounds, in accord with the Laws and Customs of Theta Tau.</p>
+  <p>Please review the below information and then approve or veto the exclusion.</p>
+    <p>A veto may only be granted by the Regional Director on the following grounds:</p>
+    <ol>
+    <li>
+      The process used by the chapter contained procedural errors that affected the results of
+the vote.
+    </li>
+    <li>The result of the vote negatively impacted the health and safety of members, and/or
+impacted the sustainability of the Chapter.</li>
+    <li>The Chapter’s decision was capricious or arbitrary.</li>
+    </ol>
+  <table class="table table-hover table-bordered table-striped">
+        <tr>
+          <th>Alumni Exclusion</th>
+          <td>{{ object.user }}</td>
+        </tr>
+        <tr>
+          <th>Created By</th>
+          <td>{{ object.created_by }}</td>
+        </tr>
+        <tr>
+          <th>Meeting Date</th>
+          <td>{{ object.meeting_date }}</td>
+        </tr>
+        <tr>
+          <th>Date Start</th>
+          <td>{{ object.date_start }}</td>
+        </tr>
+        <tr>
+          <th>Date End</th>
+          <td>{{ object.date_end }}</td>
+        </tr>
+        <tr>
+          <th>Percentage Voting in Favor</th>
+          <td>{{ object.voting_result }}</td>
+        </tr>
+        <tr>
+          <th>Reason for Exclusion</th>
+          <td>{{ object.reason }}</td>
+        </tr>
+        <tr>
+          <th>Meeting Minutes</th>
+          <td><a href="{{ object.minutes.url }}" target="_blank">
+                {{ object.minutes.name }}</a></td>
+        </tr>
+        <tr>
+          <th>Regional Director Reviewing</th>
+          <td>{{ object.regional_director }}</td>
+        </tr>
+        <tr>
+          <th>Regional Director Review Result</th>
+          <td>{{ object.get_regional_director_veto_display }}</td>
+        </tr>
+        <tr>
+          <th>If Veto, Reasoning</th>
+          <td>{{ object.veto_reason }}</td>
+        </tr>
+      </table>
+    <hr>
+{% if regional_director and form %}
+  <form method="POST" enctype="multipart/form-data" class="form">
+    {{ form.media }}
+    <link href="{% static 'css/project.css' %}" rel="stylesheet">
+    {% csrf_token %}
+      <h5>Please verify:</h5>
+    {{ form|crispy }}
+    {{ activation.management_form }}
+    <button class="primaryAction btn btn-primary" name='action' value='form' type="submit">{% trans "Submit Form" %}</button>
+  </form>
+  {% else %}
+  {% if object.regional_director_veto == None %}
+  <h3>The chapter's regional director can review this and approve or veto. Any of: {{ rds }}</h3>
+    {% else %}
+    <h37>This has already been reviewed, see results above.</h37>
+    {% endif %}
+  {% endif %}
+{% endblock %}
