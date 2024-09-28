@@ -30,6 +30,8 @@ os.environ["QUICKBOOKS_SECRET"] = ""
 os.environ["METABASE_SECRET_KEY"] = ""
 os.environ["LMS_ID"] = ""
 os.environ["LMS_SECRET"] = ""
+os.environ["ED_ID"] = ""
+os.environ["ED_SECRET"] = ""
 
 
 from django.core.wsgi import get_wsgi_application  # noqa: E402
