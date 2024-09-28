@@ -1240,7 +1240,7 @@ class InitiationProcess(Process, EmailSignalMixin):
             try:
                 chapter_address = self.chapter.address
             except address.models.Address.DoesNotExist:
-                chapter_address = "NOT SET, UPDATE ASAP"
+                chapter_address = "Chapter Officer"
             row_badge = {
                 "Chapter Name": chapter,
                 "Chapter Address": chapter_address,
