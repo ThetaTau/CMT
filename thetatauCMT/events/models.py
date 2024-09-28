@@ -48,7 +48,7 @@ class Event(TimeStampedModel, EmailSignalMixin):
     #                                related_name="events")
     members = models.PositiveIntegerField(default=0)
     alumni = models.PositiveIntegerField(default=0)
-    pledges = models.PositiveIntegerField(default=0)
+    pledges = models.PositiveIntegerField(default=0, verbose_name="PNMs")
     # Number of non members
     guests = models.PositiveIntegerField(default=0)
     duration = models.PositiveIntegerField(default=0)
