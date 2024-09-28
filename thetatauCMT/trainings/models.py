@@ -1,6 +1,7 @@
 import json
 import datetime
 import requests
+import base64
 from time import sleep
 from django.core.mail import send_mail
 from django.conf import settings
@@ -485,3 +486,52 @@ class Training(TimeStampedModel):
         else:
             messages.add_message(request, level, message)
         return response_json
+
+    @staticmethod
+    def add_user_ed(user, request):
+        client_id = settings.ED_ID
+        client_secret = settings.ED_SECRET
+        credential = f"{client_id}:{client_secret}"
+        encoded_credential = base64.b64encode(credential.encode("utf-8")).decode(
+            "utf-8"
+        )
+        headers = {
+            "Authorization": f"Basic {encoded_credential}",
+            "Cache-Control": "no-cache",
+        }
+        data = {"grant_type": "client_credentials", "token_type": "jwt"}
+
+        token_request = requests.post(
+            "https://ed.thetatau.org/oauth2/access_token", headers=headers, data=data
+        )
+        access_token = token_request.json()["access_token"]
+        headers = {"Authorization": f"JWT {access_token}"}
+
+        # response = requests.get(
+        #     "https://ed.thetatau.org/api/courses/v1/courses",
+        #     headers=headers,
+        # )
+
+        data = {
+            "auto_enroll": True,
+            "email_students": False,
+            "action": "enroll",
+            "courses": "course-v1:ThetaTau+TT101+intro",
+            "identifiers": user.email,
+        }
+
+        response = requests.post(
+            "https://ed.thetatau.org/api/bulk_enroll/v1/bulk_enroll",
+            headers=headers,
+            data=data,
+        )
+        level = messages.INFO
+        message = f"{user} successfully added to training system"
+        if response.status_code != 200:
+            level = messages.ERROR
+            response_json = response.json()
+            message = (
+                f"{user} NOT added to training system, maybe an error. {response_json}"
+            )
+
+        messages.add_message(request, level, message)

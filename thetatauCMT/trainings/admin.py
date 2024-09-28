@@ -7,7 +7,12 @@ from .forms import UserAdminTrainingForm
 
 class AssignTrainingMixin:
     def assign_training(self, request, queryset):
-        extra_groups = Training.get_extra_groups()
+        try:
+            extra_groups = Training.get_extra_groups()
+        except:
+            extra_groups = [
+                ("NONE", "NONE"),
+            ]
         kwargs = {
             "extra_groups": extra_groups,
             "initial": {"_selected_action": queryset.values_list("id", flat=True)},
@@ -21,9 +26,15 @@ class AssignTrainingMixin:
         form = UserAdminTrainingForm(**kwargs)
         if "apply" in request.POST:
             if form.is_valid() and not form.errors:
+                extra_group = form.cleaned_data["extra_group"]
+                training_system = form.cleaned_data["training_system"]
                 for user in queryset:
-                    extra_group = form.cleaned_data["extra_group"]
-                    Training.add_user(user, extra_group=extra_group, request=request)
+                    if training_system == "Vector":
+                        Training.add_user(
+                            user, extra_group=extra_group, request=request
+                        )
+                    elif training_system == "ED.thetatau":
+                        Training.add_user_ed(user, request=request)
                 return HttpResponseRedirect(request.get_full_path())
         return render(
             request,

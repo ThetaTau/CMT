@@ -1013,6 +1013,8 @@ class RoleChangeNationalView(
                     form.save()
                     update_list.append(form.instance.user)
             if update_list:
+                for user in update_list:
+                    Training.add_user_ed(user, self.request)
                 messages.add_message(
                     self.request,
                     messages.INFO,

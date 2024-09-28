@@ -70,6 +70,8 @@ DJANGO_APPS = [
     "dal",
     "dal_select2",
     "viewflow.frontend",
+    "oauth2_provider",
+    "corsheaders",
     "django.contrib.admin",
 ]
 THIRD_PARTY_APPS = [
@@ -146,6 +148,7 @@ MIGRATION_MODULES = {"sites": "thetatauCMT.contrib.sites.migrations"}
 # https://docs.djangoproject.com/en/dev/ref/settings/#authentication-backends
 AUTHENTICATION_BACKENDS = [
     "django.contrib.auth.backends.ModelBackend",
+    "oauth2_provider.backends.OAuth2Backend",
     "allauth.account.auth_backends.AuthenticationBackend",
 ]
 # https://docs.djangoproject.com/en/dev/ref/settings/#auth-user-model
@@ -194,6 +197,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django_otp.middleware.OTPMiddleware",
     "allauth_2fa.middleware.AllauthTwoFactorMiddleware",
+    "oauth2_provider.middleware.OAuth2TokenMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.common.BrokenLinkEmailsMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
@@ -203,8 +207,14 @@ MIDDLEWARE = [
     "termsandconditions.middleware.TermsAndConditionsRedirectMiddleware",
     "simple_history.middleware.HistoryRequestMiddleware",
     "django_userforeignkey.middleware.UserForeignKeyMiddleware",
+    "corsheaders.middleware.CorsMiddleware",
     "core.middleware.RequireSuperuser2FAMiddleware",
     "rollbar.contrib.django.middleware.RollbarNotifierMiddleware",  # Last
+]
+
+CORS_ALLOWED_ORIGIN_REGEXES = [
+    r"^https://\w+\.thetatau\.org$",  # Should allow ed.thetatau.org
+    r"^https://\w+\.\w+\.thetatau\.org$",  # Should allow studio.ed.thetatau.org
 ]
 
 # STATIC
@@ -350,6 +360,13 @@ ACCOUNT_ADAPTER = "users.adapters.AccountAdapter"
 # https://django-allauth.readthedocs.io/en/latest/configuration.html
 SOCIALACCOUNT_ADAPTER = "users.adapters.SocialAccountAdapter"
 
+OAUTH2_PROVIDER = {
+    "OIDC_ENABLED": True,
+    "OAUTH2_VALIDATOR_CLASS": "core.auth.CustomOAuth2Validator",
+    "SCOPES": {
+        "openid": "OpenID Connect scope",
+    },
+}
 
 # Your stuff...
 # ------------------------------------------------------------------------------
@@ -471,6 +488,9 @@ TEX_DIRECTORY = Path("tex")  # Define the directory where tex files and pdf are 
 
 LMS_ID = env("LMS_ID", default=None)
 LMS_SECRET = env("LMS_SECRET", default=None)
+
+ED_ID = env("ED_ID", default=None)
+ED_SECRET = env("ED_SECRET", default=None)
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 EMAIL_SIGNAL_DEFAULT_SENDER = DEFAULT_FROM_EMAIL

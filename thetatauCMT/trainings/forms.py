@@ -55,6 +55,10 @@ class TrainingListFormHelper(FormHelper):
 
 class UserAdminTrainingForm(forms.Form):
     _selected_action = forms.CharField(widget=forms.MultipleHiddenInput)
+    training_system = forms.ChoiceField(
+        label="Which Training System",
+        choices=[("Vector", "Vector"), ("ED.thetatau", "ED.thetatau")],
+    )
     extra_group = forms.ChoiceField(label="Extra Group")
     new_group = forms.CharField(label="New Group Not Above", required=False)
 
