@@ -513,7 +513,6 @@ class Training(TimeStampedModel):
         response = requests.post(
             url, json={"query": find_id_query}, headers=authenticate_header
         )
-        response_json = response.json()
         person_id = None
         if response.status_code != 200:
             message = f"{user} NOT deactivated from training system, ERROR getting ID maybe an error. {response_json}"
@@ -523,6 +522,7 @@ class Training(TimeStampedModel):
             else:
                 messages.add_message(request, level, message)
         else:
+            response_json = response.json()
             if "errors" not in response_json:
                 # {'data': {'People': {'nodes': []}}}
                 nodes = response_json["data"]["People"]["nodes"]
@@ -568,8 +568,8 @@ class Training(TimeStampedModel):
                 headers=authenticate_header,
                 json={"query": deactivate_user_mutation},
             )
-            response_json = response.json()
             if response.status_code == 200:
+                response_json = response.json()
                 """
                 {'data': {'Person': {'deactivate': {'personId': '0C235BDE-7314-11EF-8C2B-FB441EDB9904',
                     'externalUniqueId': '93697',
