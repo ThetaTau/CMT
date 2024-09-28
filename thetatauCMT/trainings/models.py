@@ -514,8 +514,13 @@ class Training(TimeStampedModel):
             url, json={"query": find_id_query}, headers=authenticate_header
         )
         person_id = None
-        if response.status_code != 200:
-            message = f"{user} NOT deactivated from training system, ERROR getting ID maybe an error. {response.reason} {find_id_query}"
+        if response.status_code == 429:
+            # 150 requests per rolling 300 seconds
+            print("Delaying for rate limit deactivate training user")
+            sleep(120)
+            return Training.get_person_id(user, id_type=id_type, request=request)
+        elif response.status_code != 200:
+            message = f"    {user} NOT deactivated from training system, ERROR getting ID maybe an error. {response.reason} {find_id_query}"
             level = messages.ERROR
             if request is None:
                 print(message)
@@ -540,7 +545,7 @@ class Training(TimeStampedModel):
                         f"    No id found for type {id_type} for {user} {response_json}"
                     )
             else:
-                message = f"{user} NOT deactivated from training system, ERROR getting ID maybe an error. {response_json}"
+                message = f"    {user} NOT deactivated from training system, ERROR getting ID maybe an error. {response_json}"
                 level = messages.ERROR
         return person_id, message, level
 
@@ -550,6 +555,7 @@ class Training(TimeStampedModel):
         url = "https://thetatau-tx.vectorlmsedu.com/graphql/"
         authenticate_header = Training.authenticate_header()
         # https://thetatau-tx.vectorlmsedu.com/login
+        print(f"Deactivating user {user}")
         person_id, message, level = Training.get_person_id(user, request=request)
         if person_id:
             deactivate_user_mutation = f"""
@@ -576,10 +582,12 @@ class Training(TimeStampedModel):
                     'username': 'jim.gaffney@thetatau.org'}}}}
                 """
                 if "errors" not in response_json:
-                    message = f"{user} successfully deactivated from training system"
+                    message = (
+                        f"    {user} successfully deactivated from training system"
+                    )
                     level = messages.INFO
                 else:
-                    message = f"{user} NOT deactivated from training system, maybe an error. {response_json}"
+                    message = f"    {user} NOT deactivated from training system, maybe an error. {response_json}"
                     level = messages.ERROR
             elif response.status_code == 429:
                 # 150 requests per rolling 300 seconds
@@ -588,10 +596,10 @@ class Training(TimeStampedModel):
                 Training.deactivate_user(user, request=request)
                 return
             else:
-                message = f"{user} NOT deactivated from training system, maybe an error. {response.reason}"
+                message = f"    {user} NOT deactivated from training system, maybe an error. {response.reason}"
                 level = messages.ERROR
         if request is None:
-            print(message)
+            print(f"    {message}")
         else:
             messages.add_message(request, level, message)
 
