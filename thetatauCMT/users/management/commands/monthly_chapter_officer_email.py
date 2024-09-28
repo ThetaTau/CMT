@@ -46,7 +46,8 @@ class Command(BaseCommand):
                 print(f"Sending message to: {chapter}")
                 result = OfficerMonthly(chapter).send()
                 change_messages.append(f"{result}: {chapter}")
-                if month in [10, 12, 2, 4, 1]:
+                if month in [1, 2, 3, 4, 10, 11, 12]:
+                    # Avoiding the summer months
                     actives = chapter.actives().count()
                     if actives <= 30:
                         print(f"    Chapter has under 30 members: {actives} actives")
