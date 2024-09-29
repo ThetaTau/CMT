@@ -1,8 +1,11 @@
 from django.contrib import admin
 from django.utils.safestring import mark_safe
 from django.urls import reverse
+from import_export.admin import ImportMixin
+
 
 from .models import UserNote, ChapterNote
+from .resources import UserNoteResource, ChapterNoteResource
 
 
 class ChapterSubNoteInline(admin.TabularInline):
@@ -25,7 +28,7 @@ class UserSubNoteInline(admin.TabularInline):
     fk_name = "parent"
 
 
-class UserNoteAdmin(admin.ModelAdmin):
+class UserNoteAdmin(ImportMixin, admin.ModelAdmin):
     inlines = [UserSubNoteInline]
     raw_id_fields = ["user", "parent"]
     readonly_fields = ("created_by", "modified_by", "created", "modified")
@@ -43,6 +46,7 @@ class UserNoteAdmin(admin.ModelAdmin):
     ordering = [
         "-created",
     ]
+    resource_class = UserNoteResource
 
     def parent_link(self, obj):
         parent = None
@@ -72,11 +76,16 @@ class UserNoteAdmin(admin.ModelAdmin):
             instance.save()
         formset.save_m2m()
 
+    def get_import_resource_kwargs(self, request, *args, **kwargs):
+        kwargs = super().get_resource_kwargs(request, *args, **kwargs)
+        kwargs.update({"created_by": request.user})
+        return kwargs
+
 
 admin.site.register(UserNote, UserNoteAdmin)
 
 
-class ChapterNoteAdmin(admin.ModelAdmin):
+class ChapterNoteAdmin(ImportMixin, admin.ModelAdmin):
     inlines = [ChapterSubNoteInline]
     raw_id_fields = ["parent"]
     readonly_fields = (
@@ -99,6 +108,7 @@ class ChapterNoteAdmin(admin.ModelAdmin):
     ordering = [
         "-created",
     ]
+    resource_class = ChapterNoteResource
 
     def parent_link(self, obj):
         parent = None
@@ -127,6 +137,11 @@ class ChapterNoteAdmin(admin.ModelAdmin):
             instance.modified_by = request.user
             instance.save()
         formset.save_m2m()
+
+    def get_import_resource_kwargs(self, request, *args, **kwargs):
+        kwargs = super().get_resource_kwargs(request, *args, **kwargs)
+        kwargs.update({"created_by": request.user})
+        return kwargs
 
 
 admin.site.register(ChapterNote, ChapterNoteAdmin)
