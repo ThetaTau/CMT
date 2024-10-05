@@ -2905,6 +2905,10 @@ class ResignationCreateView(
 
     def form_valid(self, form, *args, **kwargs):
         user = self.request.user
+        exists = ResignationProcess.objects.filter(user=user).first()
+        if exists:
+            form.add_error(None, f"Resignation already exists for user {user}")
+            return self.render_to_response(self.get_context_data(form=form))
         form.instance.user = user
         form.instance.chapter = user.current_chapter
         chapter = user.current_chapter
@@ -2914,11 +2918,8 @@ class ResignationCreateView(
 
     def get_context_data(self, *args, **kwargs):
         context = super().get_context_data(**kwargs)
-        try:
-            submitted = self.request.user.resignation
-        except ResignationProcess.DoesNotExist:
-            submitted = False
-        else:
+        submitted = ResignationProcess.objects.filter(user=self.request.user).first()
+        if submitted:
             data = []
             for task in submitted.task_set.all():
                 if task.flow_task.task_title:
