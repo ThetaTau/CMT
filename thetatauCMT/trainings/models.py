@@ -370,8 +370,8 @@ class Training(TimeStampedModel):
         response = requests.post(
             url, headers=authenticate_header, json={"query": add_user_mutation}
         )
-        response_json = response.json()
         if response.status_code == 200:
+            response_json = response.json()
             """
             {'data': {'addPerson': {'personId': 'C3F57814-96CF-11ED-98EA-B8B2786A17CA',
                 'username': 'Jim.Gaffney@thetatau.org'}}}
@@ -440,7 +440,9 @@ class Training(TimeStampedModel):
                     message = f"{user} NOT added to training system or updated, maybe an error. {response_json}"
                     level = messages.ERROR
             else:
-                message = f"{user} NOT added to training system, maybe an error. {response_json}"
+                message = (
+                    f"{user} NOT added to training system, maybe an error. {response}"
+                )
                 level = messages.ERROR
 
             def add_extra_group(extra_group, location, person_id):
@@ -477,15 +479,13 @@ class Training(TimeStampedModel):
             Training.add_user(user, request=request)
             return
         else:
-            message = (
-                f"{user} NOT added to training system, maybe an error. {response_json}"
-            )
+            message = f"{user} NOT added to training system, maybe an error. {response}"
             level = messages.ERROR
         if request is None:
             print(message)
         else:
             messages.add_message(request, level, message)
-        return response_json
+        return response
 
     @staticmethod
     def get_person_id(user, id_type="id", request=None):
