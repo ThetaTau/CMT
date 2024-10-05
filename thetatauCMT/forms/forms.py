@@ -256,7 +256,9 @@ class DepledgeForm(forms.ModelForm):
         user = User.objects.filter(name=data, chapter__name=self.data["chapter"]).last()
         if user:
             return user.pk
-        return ""
+        else:
+            self.add_error("user", f"Could not find user with ID {data}")
+            raise forms.ValidationError(f"Could not find user with ID {data}")
 
 
 DepledgeFormSet = forms.formset_factory(DepledgeForm, extra=0)
@@ -356,7 +358,9 @@ class GraduateForm(forms.ModelForm):
         user = User.objects.filter(name=data, chapter__name=self.data["chapter"]).last()
         if user:
             return user
-        return ""
+        else:
+            self.add_error("user", f"Could not find user with ID {data}")
+            raise forms.ValidationError(f"Could not find user with ID {data}")
 
 
 GraduateFormSet = forms.formset_factory(GraduateForm, extra=0)
@@ -455,7 +459,9 @@ class CSMTForm(forms.ModelForm):
         user = User.objects.filter(name=data, chapter__name=self.data["chapter"]).last()
         if user:
             return user
-        return ""
+        else:
+            self.add_error("user", f"Could not find user with ID {data}")
+            raise forms.ValidationError(f"Could not find user with ID {data}")
 
     def clean(self):
         super().clean()
