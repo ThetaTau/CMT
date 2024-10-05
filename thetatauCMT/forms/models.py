@@ -1114,9 +1114,8 @@ class InitiationProcess(Process, EmailSignalMixin):
         fee_count = 0
         for initiation in self.initiations.all():
             _, late_fee = self.get_fees(self.chapter, initiation)
-            if not late_fee:
-                fee_count += 1
-            else:
+            fee_count += 1
+            if late_fee:
                 late_fee_count += 1
         if fee_count:
             line = create_line(fee_count, linenumber_count, name="I1A", client=client)
@@ -1124,7 +1123,7 @@ class InitiationProcess(Process, EmailSignalMixin):
             linenumber_count += 1
         if late_fee_count:
             line = create_line(
-                late_fee_count, linenumber_count, name="I1B", client=client
+                late_fee_count, linenumber_count, name="I1C", client=client
             )
             invoice.Line.append(line)
         badge_count = Counter(self.initiations.values_list("badge__code", flat=True))
