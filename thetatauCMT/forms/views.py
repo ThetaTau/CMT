@@ -1053,6 +1053,10 @@ class HSEducationListView(
         self.filter.form.helper = self.formhelper_class()
         return self.filter.qs
 
+    def get_table(self, **kwargs):
+        # We do this b/c we create the table ourselves
+        return None
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         active_chapters, dates = active_chapters_filter(self.filter)
@@ -1128,6 +1132,10 @@ class HSEducationCreateView(LoginRequiredMixin, CreateProcessView):
         report.instance.user = user
         report.instance.chapter = chapter
         return super().form_valid(form)
+
+    def get_table(self, **kwargs):
+        # We do this b/c we create the table ourselves
+        return None
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -1420,6 +1428,10 @@ class PledgeProgramListView(
         self.filter.request = self.request
         self.filter.form.helper = self.formhelper_class()
         return self.filter.qs
+
+    def get_table(self, **kwargs):
+        # We do this b/c we create the table ourselves
+        return None
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -2167,6 +2179,10 @@ class ConventionListView(
         self.filter.form.helper = self.formhelper_class()
         return self.filter.qs
 
+    def get_table(self, **kwargs):
+        # We do this b/c we create the table ourselves
+        return None
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         all_forms = self.object_list
@@ -2359,6 +2375,10 @@ class AlumniExclusionCreateView(
         form.instance.chapter = chapter
         form.instance.created_by = self.request.user
         return super().form_valid(form)
+
+    def get_table(self, **kwargs):
+        # We do this b/c we create the table ourselves
+        return None
 
     def get_context_data(self, *args, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -2632,6 +2652,10 @@ class OSMListView(LoginRequiredMixin, NatOfficerRequiredMixin, PagedFilteredTabl
         self.filter.request = self.request
         self.filter.form.helper = self.formhelper_class()
         return self.filter.qs
+
+    def get_table(self, **kwargs):
+        # We do this b/c we create the table ourselves
+        return None
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -3174,6 +3198,10 @@ class BylawsListView(
         self.filter.form.helper = self.formhelper_class()
         return self.filter.qs
 
+    def get_table(self, **kwargs):
+        # We do this b/c we create the table ourselves
+        return None
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         active_chapters, dates = active_chapters_filter(self.filter)
@@ -3235,6 +3263,10 @@ class BylawsCreateView(
         chapter = self.request.user.current_chapter
         form.instance.chapter = chapter
         return super().form_valid(form)
+
+    def get_table(self, **kwargs):
+        # We do this b/c we create the table ourselves
+        return None
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
