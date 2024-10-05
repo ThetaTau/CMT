@@ -23,8 +23,8 @@ $(function(){
   $("#sync-invoice").click(function (event) {
     $("#sync-invoice").html("Syncing...");
     let value = $('#id_invoice').val();
-    let url = "{% url 'forms:pledge_sync' activation.process.pk "111" %}";
-    url = url.replace('111', value);
+    let url = "{% url 'forms:pledge_sync' activation.process.pk "999999" %}";
+    url = url.replace('999999', value);
     $.ajax({
       type: "POST",
       url: url,
