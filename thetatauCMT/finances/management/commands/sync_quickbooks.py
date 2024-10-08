@@ -135,7 +135,11 @@ class Command(BaseCommand):
             total = len(invoices)
             for count, invoice_res in enumerate(invoices):
                 print(f"    Invoice {count+1}/{total}")
-                invoice = QBInvoice.get(invoice_res.Id, qb=client)
+                try:
+                    invoice = QBInvoice.get(invoice_res.Id, qb=client)
+                except Exception as e:
+                    print(f"    Error getting invoice {e}")
+                    continue
                 invoice_number = invoice.DocNumber
                 invoice_balance = invoice.Balance
                 Invoice(
