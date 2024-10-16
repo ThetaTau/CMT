@@ -74,6 +74,9 @@ class Command(BaseCommand):
                         value = value.strftime("%Y%m%d")
                     elif chapter_name == "id":
                         value = f"{value:03d}"
+                    elif chapter_name == "address_contact":
+                        if value == "Not Set":
+                            value = "Chapter Officer"
                 row.append(value)
             rows.append(row)
         first_letter = worksheet.find(header[-1]).address.split("1")[0]
