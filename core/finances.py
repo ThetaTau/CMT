@@ -44,7 +44,14 @@ def create_line(item_count, linenumber_count, name=None, minimum=None, client=No
         client = get_quickbooks_client()
     line = SalesItemLine()
     line.LineNum = linenumber_count
-    item = Item.filter(name=name, qb=client)[0]
+    items = Item.filter(name=name, qb=client)
+    # For some reason QB is returning a phantom item that has no value or description
+    #   I can not find these items in the UI to delete, so need to filter out
+    items_filtered = [obj for obj in items if obj.Description]
+    if items_filtered:
+        item = items_filtered[0]
+    else:
+        raise ValueError(f"Could not find item for {name} found {items}")
     line.Description = item.Description
     total = item_count * item.UnitPrice
     unit = item.UnitPrice
