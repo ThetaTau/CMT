@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+{% load static %}
+{% load custom_tags %}
+
+{% block title %}Job: {{ object.title }}{% endblock %}
+{% block css %}
+    {{ block.super }}
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+        .card {
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .badge {
+            font-size: 14px;
+            padding: 8px 12px;
+        }
+        .contact-info {
+            font-weight: bold;
+            color: #007bff;
+        }
+    </style>
+{% endblock %}
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <h2 class="text-center text-primary">{{ job.title }}</h2>
+                <h5 class="text-center text-secondary">{{ job.company }}</h5>
+              <h5 class="text-center text-secondary"><a href="{{ job.url }}" target="_blank">Link to Job Post</a></h5>
+              {% if job.sponsored %}<h9 class="text-center text-muted"><i>Sponsored</i></h9>{% endif %}
+              <hr>
+            {% if job.contact %}
+              <div class="mb-3">
+              <strong>Available Contact:</strong> {{ job.created_by }}
+            {% endif %}</div>
+            <div class="mb-3">
+                {% if job.other_contact %}
+                  <strong>Other Contact:</strong> {{ job.other_contact }}
+                {% endif %}
+              </div>
+              <div class="mb-3">
+                    <strong>Description:</strong>
+                    <p>{{ job.description|safe }}</p>
+                </div>
+
+                <div class="mb-3">
+                    <strong>Education Qualification:</strong>
+                    {{ job.education_qualification }}
+                </div>
+
+                <div class="mb-3">
+                    <strong>Experience:</strong>
+                    {{ job.experience }}
+                </div>
+                {% if job.majors_specific %}
+                  <div class="mb-3">
+                    <strong>Majors:</strong>
+                        {% for major in job.majors.all %}
+                            <span>{{ major.name }}</span>
+                        {% endfor %}
+                </div>
+            {% endif %}
+
+                <div class="mb-3">
+                    <strong>Job Type:</strong>
+                    <span>{{ job.job_type }}</span>
+                </div>
+                <div class="mb-3">
+                    <strong>Location Type:</strong>
+                    <span>{{ job.location_type }}</span>
+                </div>
+
+                <div class="mb-3">
+                    <strong>Locations:</strong>
+                        {% for location in job.location.all %}
+                            <span>{{ location.name }}</span>
+                        {% endfor %}
+                    <p>{{ job.country }}</p>
+                </div>
+
+                <div class="mb-3">
+                    <strong>Keywords:</strong>
+                    <p>
+                        {% for keyword in job.keywords.all %}
+                            <span>{{ keyword }},</span>
+                        {% endfor %}
+                    </p>
+                </div>
+                  {% if job.attachment %}
+                    <div class="mb-3">
+                    Attachment: <a href="{{ job.attachment.url }}">{{ job.attachment }}</a></td>
+                    </div>
+                  {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock content %}
+

@@ -1,0 +1,28 @@
+<!-- FOR CREATING A NEW EVENT -->
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+{% load static %}
+{% load crispy_forms_field %}
+{% block title %}Create New Job Link{% endblock %}
+{% block content %}
+  <h1>Create New Job Link</h1>
+  <p>
+Thank you for contributing to our brotherhood and professional development by
+    sharing job opportunities! This platform is not designed to be a job search site,
+    but rather a way for active members, alumni, and other alumni to connect
+    with potential career opportunities.
+
+If you or your company have a job opening that could benefit a fellow brother, please share the essential details here. Keep it concise—include key information like the job title, company, location, and a brief description—but make sure to link directly to the official job application page.
+
+By sharing opportunities, we strengthen our network and support each other’s professional growth. Whether you’re looking for a job or hiring, let’s continue building a community of success!
+
+  </p><p><strong>To Post a Job Link: </strong><i>Fill out the form below with the necessary details and provide the official application link.</i></p>
+
+<p><h5>Together, we can help each other take the next step in our careers!</h5></p>
+  <form class="form-horizontal" enctype="multipart/form-data" method="post" novalidate>
+    {% csrf_token %}
+    {{ form.media }}
+    {{ form|crispy }}
+    <button type="submit" class="btn btn-primary" value="Save">Submit</button>
+  </form>
+{% endblock %}

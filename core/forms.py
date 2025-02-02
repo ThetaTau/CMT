@@ -6,6 +6,8 @@ from django import forms
 from django.views.generic.base import ContextMixin, TemplateResponseMixin
 from django.views.generic.edit import ProcessFormView
 from django.http.response import HttpResponseRedirect, HttpResponseForbidden
+from dal_select2.fields import Select2ListCreateChoiceField
+from dal_select2.widgets import Select2Multiple, Select2WidgetMixin, WidgetMixin
 from address.forms import AddressField, Address
 from core.address import fix_duplicate_address
 
@@ -182,3 +184,30 @@ class DuplicateAddressField(AddressField):
                 except:
                     return None
         return value
+
+
+class Select2ListCreateMultipleChoiceField(
+    Select2ListCreateChoiceField, Select2Multiple
+):
+    def to_python(self, value):
+        if not value:
+            return []
+        elif not isinstance(value, list):
+            return [value]
+        return value
+
+    def validate(self, value):
+        # for create :
+        super(forms.ChoiceField, self).validate(value)
+        # otherwise you could use :
+        # for v in value:
+        #     super().validate(v)
+
+    def bound_data(self, data, initial):
+        if self.disabled:
+            return initial
+        return data
+
+
+class ListSelect2Multiple(WidgetMixin, Select2WidgetMixin, forms.SelectMultiple):
+    """Select widget for regular choices and Select2."""

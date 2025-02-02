@@ -118,6 +118,7 @@ THIRD_PARTY_APPS = [
 LOCAL_APPS = [
     "thetatauCMT.users.apps.UsersConfig",
     "thetatauCMT.chapters.apps.ChaptersConfig",
+    "thetatauCMT.jobs.apps.JobsConfig",
     "thetatauCMT.events.apps.EventsConfig",
     "thetatauCMT.regions.apps.RegionsConfig",
     "thetatauCMT.scores.apps.ScoresConfig",
