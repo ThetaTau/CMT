@@ -1184,7 +1184,7 @@ class RiskManagementFormView(LoginRequiredMixin, FormView):
         form.save()
         view = RiskManagementDetailView.as_view()
         new_request = self.request
-        new_request.path = f"/forms/rmp-complete/{form.instance.id}"
+        new_request.path = f"/app/staticfiles/forms/rmp-complete/{form.instance.id}"
         new_request.method = "GET"
         risk_file = view(new_request, pk=form.instance.id)
         file_name = f"Risk Management Form {self.request.user}"

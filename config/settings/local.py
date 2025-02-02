@@ -31,7 +31,7 @@ CACHES = {
 DATABASES = {
     "default": env.db(
         "DATABASE_URL",
-        default="postgres://thetatau:test@host.docker.internal:5433/thetatauCMT",
+        default="postgres://thetatau:test@postgres:5432/thetatauCMT",
     ),
 }
 DATABASES["default"]["ATOMIC_REQUESTS"] = True

@@ -31,14 +31,14 @@ class RMPSignMiddleware(MiddlewareMixin):
         # pages to not redirect on (no recursion please!)
         if path in settings.TERMS_EXCLUDE_URL_LIST:
             return response
-        if not RiskManagement.user_signed_this_semester(request.user):
-            messages.add_message(
-                request,
-                messages.ERROR,
-                "You must sign the Risk Management Policies and Agreements "
-                "of Theta Tau this semester.",
-            )
-            return redirect("rmp")
+        # if not RiskManagement.user_signed_this_semester(request.user):
+        #     messages.add_message(
+        #         request,
+        #         messages.ERROR,
+        #         "You must sign the Risk Management Policies and Agreements "
+        #         "of Theta Tau this semester.",
+        #     )
+        #     return redirect("rmp")
         if request.user.chapter_officer(altered=False):
             should_submit = (current_term() == "sp" and current_month() >= 2) or (
                 current_term() == "fa" and current_month() >= 9
