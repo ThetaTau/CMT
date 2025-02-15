@@ -1,0 +1,7 @@
+Setup Instructions:
+1. Get Docker
+2. Start docker daemon
+3. Run docker compose local (make sure you change all Postgres host and port references to "postgres" and "5432", respectively)
+4. Run database migrations `python manage.py migrate`
+5. Create a superuser `python manage.py createsuperuser`
+6. Collect static files `python manage.py collectstatic`
