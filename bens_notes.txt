@@ -5,3 +5,5 @@ Setup Instructions:
 4. Run database migrations `python manage.py migrate`
 5. Create a superuser `python manage.py createsuperuser`
 6. Collect static files `python manage.py collectstatic`
+7. Run command from DONT_FORGET_MIGRATION.txt (populates submission score types)
+    * I think it's supposed to be loaddata though?
