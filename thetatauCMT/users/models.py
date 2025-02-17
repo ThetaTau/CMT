@@ -183,6 +183,20 @@ class User(AbstractUser, EmailSignalMixin):
         ],
         help_text="Use the following format: YYYY",
     )
+    class_year = models.CharField(
+        _("Class Year"),
+        blank=True,
+        max_length=50,
+        choices=[
+            ("freshman", "Freshman"),
+            ("sophomore", "Sophomore"),
+            ("junior", "Junior"),
+            ("senior", "Senior"),
+            ("senior_plus", "Senior +"),
+            ("graduate_student", "Graduate Student"),
+            ("none", "")
+        ],
+    )
     phone_number = models.CharField(
         validators=[phone_regex],
         max_length=17,
