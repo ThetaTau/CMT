@@ -1741,7 +1741,7 @@ class PledgeFormView(CreateView):
             )
             active_process = activation.process
         active_process.pledges.add(self.object)
-        Training.add_user(user, request=self.request)
+        # Training.add_user(user, request=self.request)
         messages.add_message(
             self.request,
             messages.INFO,
