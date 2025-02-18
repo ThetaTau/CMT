@@ -17,7 +17,6 @@ class UserTable(tables.Table):
             "rmp_complete",
             "major",
             "graduation_year",
-            "class_year",
             "phone_number",
             "current_status",
             "current_roles",
