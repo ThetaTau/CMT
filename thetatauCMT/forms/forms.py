@@ -1166,6 +1166,7 @@ class PledgeUserBase(forms.ModelForm):
             "email_school",
             "major",
             "graduation_year",
+            "class_year",
             "phone_number",
         ]
 
@@ -1333,6 +1334,7 @@ class PledgeFormFull(CrispyCompatableMultiModelForm):
                         ),
                     ),
                     "user-graduation_year",
+                    "user-class_year",
                     "pledge-other_degrees",
                     "pledge-relative_members",
                     "pledge-other_greeks",

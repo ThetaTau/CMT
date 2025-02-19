@@ -60,6 +60,7 @@ class UserAnonym(AnonymBase):
     emergency_nickname = fields.function(fake.first_name)
     birth_date = fields.function(fake.date_object)
     graduation_year = fields.function(fake.year)
+    class_year = fields.string("sophomore")
     name = fields.function(fake.name)
     badge_number = fields.function(fake.pyint)
     emergency_phone_number = fields.function(fake.msisdn)
