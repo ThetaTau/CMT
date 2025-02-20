@@ -31,17 +31,22 @@ in the root static directory. You cannot get through the Risk Management Policie
 
     docker-compose -f docker-compose.local.yml run --rm django python manage.py collectstatic
 
-Next, load the score types and tasks into your local database. This is how you can use the standard tasks in the `Tasks`
+Next, load the score types tasks, and badges into your local database. This is how you can use the standard tasks in the `Tasks`
 section on the CMT (before this, you have none). Score types are used for `Submissions`. You cannot create a submission
-without loading the existing score types, *including the Risk Management Policies*!
+without loading the existing score types, *including the Risk Management Policies*! Badges contain the cost and details
+of our different badges (I just have a test badge for now)
 
 Add score types:
 
-    python manage.py loaddata scores.scoretype --indent 4 --output thetatauCMT\scores\fixtures\scoretypes.json --verbosity 3
+    python manage.py loaddata scores.scoretype thetatauCMT/scores/fixtures/scoretypes.json --verbosity 
 
 Add tasks:
 
-    python manage.py loaddata tasks.task tasks.taskdate --indent 4 --output thetatauCMT\tasks\fixtures\tasks.json --verbosity 3
+    python manage.py loaddata tasks.task tasks.taskdate thetatauCMT/tasks/fixtures/tasks.json --verbosity 3
+
+Add badges:
+
+    python manage.py loaddata forms.badge thetatauCMT/forms/fixtures/badges.json --verbosity 3
 
 Finally, to run the application run:
 
