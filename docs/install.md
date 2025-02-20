@@ -9,26 +9,26 @@ See notes on using docker for this project as a part of the cookiecutter django 
 
 Build the docker image
 
-    docker-compose -f local.yml build
+    docker-compose -f docker-compose.local.yml build
 
 Run the image for the first time
 
-    docker-compose -f local.yml up
+    docker-compose -f docker-compose.local.yml up
 
 Kill the image with ctrl+c
 
 Then you will need to create a super user, generally locally I use
 user test and email test@gmail.com and a password easy to remember
 
-    docker-compose -f local.yml run --rm django python manage.py createsuperuser
+    docker-compose -f docker-compose.local.yml run --rm django python manage.py createsuperuser
 
 Finally, to run the application run:
 
-    docker-compose -f local.yml up
+    docker-compose -f docker-compose.local.yml up
 
 If you want to run a jupyter notebook, you can run:
 
-    docker-compose -f local.yml run --rm -p 8888:8888 django python manage.py shell_plus --notebook
+    docker-compose -f docker-compose.local.yml run --rm -p 8888:8888 django python manage.py shell_plus --notebook
 
 Then navigate to localhost:8000/admin, log in with your superuser go to:
 http://localhost:8000/admin/socialaccount/socialapp/ click on "Add Social Application"
