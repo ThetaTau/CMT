@@ -22,6 +22,11 @@ user test and email test@gmail.com and a password easy to remember
 
     docker-compose -f docker-compose.local.yml run --rm django python manage.py createsuperuser
 
+You will also need to generate static files. Various parts of the CMT require static files, and those files need to be
+in the root static directory. You cannot get through the Risk Management Policies form with any user without this step!
+
+    docker-compose -f docker-compose.local.yml run --rm django python manage.py collectstatic
+
 Finally, to run the application run:
 
     docker-compose -f docker-compose.local.yml up
