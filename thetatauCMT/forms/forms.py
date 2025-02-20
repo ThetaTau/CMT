@@ -1188,12 +1188,12 @@ class PledgeUserBase(forms.ModelForm):
 
     def clean_address(self):
         address = self.cleaned_data["address"]
-        # if address.raw == "None" or address.raw == "":
-        #     raise forms.ValidationError("Address should not be None or blank")
-        # if not address.locality:
-        #     address = fix_address(address)
-        # if address is None:
-        #     raise forms.ValidationError("Invalid Address")
+        if address.raw == "None" or address.raw == "":
+            raise forms.ValidationError("Address should not be None or blank")
+        if not address.locality:
+            address = fix_address(address)
+        if address is None:
+            raise forms.ValidationError("Invalid Address")
         return address
 
     def clean_email(self):
