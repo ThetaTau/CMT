@@ -1,0 +1,12 @@
+[
+{
+    "model": "forms.badge",
+    "pk": 1,
+    "fields": {
+        "name": "Test Badge",
+        "code": "1",
+        "description": "BAZINGA! We're testing-a tha thinga!",
+        "cost": "1.00"
+    }
+}
+]
