@@ -17,6 +17,10 @@ Run the image for the first time
 
 Kill the image with ctrl+c
 
+Run all database migrations:
+
+    docker-compose -f docker-compose.local.yml run --rm django python manage.py migrate
+
 Then you will need to create a super user, generally locally I use
 user test and email test@gmail.com and a password easy to remember
 
