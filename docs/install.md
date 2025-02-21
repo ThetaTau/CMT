@@ -31,30 +31,44 @@ in the root static directory. You cannot get through the Risk Management Policie
 
     docker-compose -f docker-compose.local.yml run --rm django python manage.py collectstatic
 
-Next, load the score types tasks, badges, and groups into your local database. This is how you can use the standard tasks in the `Tasks`
-section on the CMT (before this, you have none). Score types are used for `Submissions`. You cannot create a submission
-without loading the existing score types, *including the Risk Management Policies*! Badges contain the cost and details
-of our different badges (I just have a test badge for now)
+Next, load pre-existing data into your local database (see below)
 
-Add score types:
+Add score types (categories for various submissions - you cannot get through the RMP form without this!):
 
     python manage.py loaddata scores.scoretype thetatauCMT/scores/fixtures/scoretypes.json --verbosity 
 
-Add tasks:
+Add tasks (general PPM tasks):
 
     python manage.py loaddata tasks.task tasks.taskdate thetatauCMT/tasks/fixtures/tasks.json --verbosity 3
 
-Add badges:
+Add badge types:
 
     python manage.py loaddata forms.badge thetatauCMT/forms/fixtures/badges.json --verbosity 3
 
-Add groups:
+Add groups (officer, natoff):
 
     python manage.py loaddata --natural-foreign auth.group thetatauCMT/users/fixtures/groups.json --verbosity 3
 
 Finally, to run the application run:
 
     docker-compose -f docker-compose.local.yml up
+
+
+In order to perform all operations smoothly, you should promote your superuser to a national officer position.
+To do this, navigate to the users page in the admin page (http://localhost:8000/admin/users/user).
+
+Click on the username of your superuser.
+
+Navigate to "Groups" (under "Permissions"). You should see the "officer" and "natoff" groups. Click on one of them and
+then the right arrow button to move it from "Available Groups" to "Chosen Groups". Do this for the other group as well
+so that they are both in "Chosen Groups". Scroll to the bottom of the page and press "Save".
+
+Now navigate to the national officer election report page (http://localhost:8000/forms/national-officer/).
+
+Set the superuser to a national officer title (e.g. Grand Regent). Make sure the start date is in the past and the
+end date is far in the future, and press "Submit".
+
+You are now all set up!
 
 If you want to run a jupyter notebook, you can run:
 
