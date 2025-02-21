@@ -31,23 +31,9 @@ in the root static directory. You cannot get through the Risk Management Policie
 
     docker-compose -f docker-compose.local.yml run --rm django python manage.py collectstatic
 
-Next, load pre-existing data into your local database (see below)
+Next, load pre-existing data into your local database
 
-Add score types (categories for various submissions - you cannot get through the RMP form without this!):
-
-    python manage.py loaddata scores.scoretype thetatauCMT/scores/fixtures/scoretypes.json --verbosity 
-
-Add tasks (general PPM tasks):
-
-    python manage.py loaddata tasks.task tasks.taskdate thetatauCMT/tasks/fixtures/tasks.json --verbosity 3
-
-Add badge types:
-
-    python manage.py loaddata forms.badge thetatauCMT/forms/fixtures/badges.json --verbosity 3
-
-Add groups (officer, natoff):
-
-    python manage.py loaddata --natural-foreign auth.group thetatauCMT/users/fixtures/groups.json --verbosity 3
+    docker-compose -f docker-compose.local.yml run --rm django python manage.py dbseed
 
 Finally, to run the application run:
 
