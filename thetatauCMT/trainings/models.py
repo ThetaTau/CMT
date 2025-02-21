@@ -312,7 +312,6 @@ class Training(TimeStampedModel):
         location_id, position_id = Training.get_location_position_ids(
             status, user.chapter.name
         )
-
         if not location_id or not position_id:
             response_json_location_add = ""
             if not location_id:
