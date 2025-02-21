@@ -1,3 +1,5 @@
+import json
+from os import path
 from .base import *  # noqa
 from .base import env
 
@@ -132,3 +134,13 @@ IPYTHON_KERNEL_DISPLAY_NAME = "Django Shell-Plus"
 
 DEFAULT_FILE_STORAGE = "django.core.files.storage.FileSystemStorage"
 # GOOGLE_DRIVE_STORAGE_JSON_KEY_FILE = r"E:\workspace\CMT\thetatauCMT\secrets\ChapterManagementTool-b239bceff1a7.json"
+
+def inject_fake_lms_api_key():
+    FAKE_LMS_API_KEY = {"expires_in": 999999999, "created_at": 999999999, "token_type": "test", "access_token": "test"}
+    LMS_API_KEY_PATH = ROOT_DIR / "secrets" / "LMS_API_KEY"
+
+    if not path.isfile(LMS_API_KEY_PATH):
+        with open(LMS_API_KEY_PATH, "w+") as api_key_file:
+            json.dump(FAKE_LMS_API_KEY, api_key_file)
+
+inject_fake_lms_api_key()

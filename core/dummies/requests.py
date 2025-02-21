@@ -6,13 +6,6 @@ class ResponseJson(dict):
         return super().__getitem__(key)
 
 class StubOkResponse(Response):
-    DEFAULT_JSON_CONTENTS = {
-        "expires_in": 999999999,
-        "created_at": 999999999,
-        "token_type": "test",
-        "access_token": "test"
-    }
-
     def __init__(self):
         self.status_code = self.status_code()
 
@@ -20,7 +13,7 @@ class StubOkResponse(Response):
         return 200
     
     def json(self):
-        return ResponseJson(StubOkResponse.DEFAULT_JSON_CONTENTS)
+        return ResponseJson()
 
 def get(*args, **kwargs):
     log("get", args, kwargs)
