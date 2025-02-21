@@ -1,6 +1,6 @@
 import json
 import datetime
-import requests
+import core.requests as requests
 import base64
 from time import sleep
 from django.core.mail import send_mail
@@ -312,6 +312,7 @@ class Training(TimeStampedModel):
         location_id, position_id = Training.get_location_position_ids(
             status, user.chapter.name
         )
+
         if not location_id or not position_id:
             response_json_location_add = ""
             if not location_id:
