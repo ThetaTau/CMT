@@ -9,6 +9,7 @@ class Command(BaseCommand):
         "scores.scoretype": { "app": "scores", "file": "scoretypes" },
         "tasks.task tasks.taskdate": { "app": "tasks", "file": "tasks" },
         "forms.badge": { "app": "forms", "file": "badges" },
+        "chapters.chapter chapters.chaptercurricula": { "app": "chapters", "file": "chapters" },
         "auth.group": { "app": "users", "file": "groups", "natural": True }
     }
 

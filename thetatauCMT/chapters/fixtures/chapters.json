@@ -1,0 +1,48 @@
+[
+{
+    "model": "chapters.chapter",
+    "pk": 1,
+    "fields": {
+        "name": "Test Chapter",
+        "modified": "2025-02-17T21:50:50.275Z",
+        "region": 1,
+        "slug": "test-chapter",
+        "email": "",
+        "email_regent": "",
+        "house": false,
+        "email_vice_regent": "",
+        "email_treasurer": "",
+        "email_scribe": "",
+        "email_corresponding_secretary": "",
+        "website": "",
+        "facebook": "",
+        "address_contact": "Terrence Est",
+        "address_phone_number": "8888888888",
+        "address": null,
+        "balance": "0.00",
+        "balance_date": "2025-02-14",
+        "tax": null,
+        "greek": "",
+        "active": true,
+        "candidate_chapter": false,
+        "extra_approval": false,
+        "school": "University of Testing",
+        "latitude": "19.0000000000000000",
+        "longitude": "4.0000000000000000",
+        "school_type": "semester",
+        "council": "none",
+        "recognition": "not_rec",
+        "health_safety_surcharge": "none",
+        "nme_file_id": "none"
+    }
+},
+{
+    "model": "chapters.chaptercurricula",
+    "pk": 1,
+    "fields": {
+        "chapter": 1,
+        "approved": true,
+        "major": "Test Engineering"
+    }
+}
+]
