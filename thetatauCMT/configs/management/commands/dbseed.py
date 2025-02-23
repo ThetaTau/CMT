@@ -25,8 +25,9 @@ class Command(BaseCommand):
         return f"thetatauCMT/{model["app"]}/fixtures/{model["file"]}.json"
     
     def _load_data(self, *args):
-        self._manage_cmd("loaddata", args + ["--verbosity", "3"])
+        all_args = ("loaddata",) + args + ("--verbosity", "3")
+        self._manage_cmd(*all_args)
 
     def _manage_cmd(self, *args):
-        args_list = ' '.join([ str(arg) for arg in args ])
+        args_list = ' '.join([ str(arg) for arg in args if arg ])
         system(f"python manage.py {args_list}")
