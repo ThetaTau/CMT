@@ -21,7 +21,7 @@ class Command(BaseCommand):
         natural_key = "--natural-foreign" if "natural" in model.keys() else ""
         self._load_data(natural_key, model_name, self._data_load_path(model))
 
-    def _data_load_path(model):
+    def _data_load_path(self, model):
         return f"thetatauCMT/{model["app"]}/fixtures/{model["file"]}.json"
     
     def _load_data(self, *args):
