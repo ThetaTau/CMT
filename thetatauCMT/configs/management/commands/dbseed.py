@@ -5,24 +5,22 @@ from os import system
 class Command(BaseCommand):
     help = "Seed the database with essential items"
 
-    SEED_MODELS = {
-        "scores.scoretype": { "app": "scores", "file": "scoretypes" },
-        "tasks.task tasks.taskdate": { "app": "tasks", "file": "tasks" },
-        "forms.badge": { "app": "forms", "file": "badges" },
-        "chapters.chapter chapters.chaptercurricula": { "app": "chapters", "file": "chapters" },
-        "auth.group": { "app": "users", "file": "groups", "natural": True }
-    }
+    SEED_MODELS = [
+        { "app": "scores",      "file": "scoretypes"                },
+        { "app": "tasks",       "file": "tasks"                     },
+        { "app": "forms",       "file": "badges"                    },
+        { "app": "chapters",    "file": "chapters"                  },
+        { "app": "users",       "file": "groups"                    }
+    ]
 
     def handle(self, *args, **kwargs):
-        for name in Command.SEED_MODELS:
-            self._seed_data(name, Command.SEED_MODELS[name])
+        for model in Command.SEED_MODELS: self._seed_data(model)
     
-    def _seed_data(self, model_name, model):
-        natural_key = "--natural-foreign" if "natural" in model.keys() else ""
-        self._load_data(natural_key, model_name, self._data_load_path(model))
+    def _seed_data(self, model):
+        self._load_data(self._data_load_path(model))
 
     def _data_load_path(self, model):
-        return f"thetatauCMT/{model["app"]}/fixtures/{model["file"]}.json"
+        return f"thetatauCMT/{model['app']}/fixtures/{model['file']}.json"
     
     def _load_data(self, *args):
         all_args = ("loaddata",) + args + ("--verbosity", "3")
