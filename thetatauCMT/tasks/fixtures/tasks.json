@@ -392,6 +392,62 @@
     }
 },
 {
+    "model": "tasks.task",
+    "pk": 53,
+    "fields": {
+        "name": "Annual Report Final Review",
+        "slug": "annual-report-final-review",
+        "owner": "scribe",
+        "type": "form",
+        "days_advance": 30,
+        "resource": "forms:audit",
+        "description": "These submissions are for your Regional Director(s) to review to confirm a balanced program and overAll health of your chapter.",
+        "submission_type": 21
+    }
+},
+{
+    "model": "tasks.task",
+    "pk": 54,
+    "fields": {
+        "name": "Chapter Education Programs",
+        "slug": "chapter-education-programs",
+        "owner": "regent",
+        "type": "form",
+        "days_advance": 30,
+        "resource": "forms:audit",
+        "description": "Chapter education programs",
+        "submission_type": 21
+    }
+},
+{
+    "model": "tasks.task",
+    "pk": 55,
+    "fields": {
+        "name": "Premature Alumnus",
+        "slug": "premature-alumnus",
+        "owner": "scribe",
+        "type": "form",
+        "days_advance": 30,
+        "resource": "forms:audit",
+        "description": "Submit Updates to update the status of members for premature alumnus",
+        "submission_type": 21
+    }
+},
+{
+    "model": "tasks.task",
+    "pk": 56,
+    "fields": {
+        "name": "TightRope",
+        "slug": "tightrope",
+        "owner": "regent",
+        "type": "form",
+        "days_advance": 30,
+        "resource": "forms:audit",
+        "description": "Ye olde tightrope program",
+        "submission_type": 21
+    }
+},
+{
     "model": "tasks.taskdate",
     "pk": 62,
     "fields": {
