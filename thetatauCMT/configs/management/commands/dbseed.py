@@ -15,6 +15,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **kwargs):
         for model in Command.SEED_MODELS: self._seed_data(model)
+        self._manage_cmd("task_dates")
     
     def _seed_data(self, model):
         self._load_data(self._data_load_path(model))
