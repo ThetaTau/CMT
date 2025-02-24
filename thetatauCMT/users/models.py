@@ -51,10 +51,12 @@ class CustomUserManager(UserManager):
             chapter = Chapter.objects.first()
         extra_fields.setdefault("chapter", chapter)
         superuser = super().create_superuser(email=email, password=password, **extra_fields)
+        self._give_superuser_natoff_roles(superuser)
+
+    def _give_superuser_natoff_roles(self, superuser):
         superuser.current_roles = ["grand regent"]
         superuser.officer = True
         superuser.save(update_fields=["current_roles", "officer"])
-
         off_group, _ = Group.objects.get_or_create(name="officer")
         nat_group, _ = Group.objects.get_or_create(name="natoff")
         off_group.user_set.add(superuser)
