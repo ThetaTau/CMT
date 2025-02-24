@@ -17,28 +17,13 @@ Run the image for the first time
 
 Kill the image with ctrl+c
 
-Run all database migrations:
+Run the database reset command. This will perform migrations, generate static files, create a superuser with natoff privileges, and preload the database with essential items. When this command is run, enter 'yes' whenever prompted, and enter any username/email/password for the superuser.
 
-    docker-compose -f docker-compose.local.yml run --rm django python manage.py migrate
-
-Then you will need to create a super user, generally locally I use
-user test and email test@gmail.com and a password easy to remember
-
-    docker-compose -f docker-compose.local.yml run --rm django python manage.py createsuperuser
-
-You will also need to generate static files. Various parts of the CMT require static files, and those files need to be
-in the root static directory. You cannot get through the Risk Management Policies form with any user without this step!
-
-    docker-compose -f docker-compose.local.yml run --rm django python manage.py collectstatic
-
-Next, load pre-existing data into your local database
-
-    docker-compose -f docker-compose.local.yml run --rm django python manage.py dbseed
+    docker-compose -f docker-compose.local.yml run --rm django python manage.py dbreset
 
 Finally, to run the application run:
 
     docker-compose -f docker-compose.local.yml up
-
 
 In order to perform all operations smoothly, you should promote your superuser to a national officer position.
 To do this, navigate to the users page in the admin page (http://localhost:8000/admin/users/user).
