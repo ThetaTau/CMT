@@ -1,8 +1,14 @@
 from requests.models import Response
 
-class ResponseJson(dict):
+class JsonThatReturnsItselfOnKeyWithNoValue(dict):
     def __getitem__(self, key):
-        if key not in self: return self
+        if self._has_no_value_for(key): return self
+        return self._value_from_key(key)
+    
+    def _has_no_value_for(self, key):
+        return key not in self
+    
+    def _value_from_key(self, key):
         return super().__getitem__(key)
 
 class StubOkResponse(Response):
@@ -13,7 +19,7 @@ class StubOkResponse(Response):
         return 200
     
     def json(self):
-        return ResponseJson()
+        return JsonThatReturnsItselfOnKeyWithNoValue()
 
 def get(*args, **kwargs):
     log("get", args, kwargs)
