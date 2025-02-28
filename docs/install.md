@@ -17,7 +17,7 @@ Run the image for the first time
 
 Kill the image with ctrl+c
 
-Run the database reset command. This will perform migrations, generate static files, create a superuser with natoff privileges, and preload the database with essential items. When this command is run, enter 'yes' whenever prompted, and enter any username/email/password for the superuser.
+Run the database reset command. This will perform migrations, generate static files, create a superuser with natoff privileges, and preload the database with essential items. When this command is run, enter 'yes' whenever prompted. Then you will be promted to create a superuser, generally locally I use user test and email test@gmail.com and a password easy to remember.
 
     docker-compose -f docker-compose.local.yml run --rm django python manage.py dbreset
 
