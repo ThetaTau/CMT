@@ -377,7 +377,7 @@ class InitiationProcessFlow(Flow):
         NoAssignView(
             AutoAssignUpdateProcessView,
             task_title=_("Invoice Payment"),
-            task_description=_("The chapter has paid initiation invoice."),
+            task_description=_("The chapter has to pay initiation invoice."),
             task_result_summary=_("Invoice paid by chapter"),
         )
         .Permission("auth.central_office")
