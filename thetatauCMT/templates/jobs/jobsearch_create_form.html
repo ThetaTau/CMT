@@ -9,7 +9,6 @@
   <form class="form-horizontal" enctype="multipart/form-data" method="post" novalidate>
     {% csrf_token %}
     {{ form.media }}
-    {{ form|crispy }}
-    <button type="submit" class="btn btn-primary" value="Save">Search</button>
+    {% crispy form %}
   </form>
 {% endblock %}

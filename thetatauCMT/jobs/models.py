@@ -216,52 +216,151 @@ class JobSearch(TimeStampedModel):
             "Get a weekly email digests of new matching jobs.",
         )
 
+    class FILTER(EnumClass):
+        include = ("include", "Must match")
+        optional = ("optional", "Optionally match")
+        exclude = ("exclude", "Does not match")
+
     search_title = models.CharField(_("Search Name"), max_length=255)
-    search_description = models.TextField(
+    search_description = models.CharField(
         _("Search Description"),
         max_length=255,
         help_text="Provide a short description to help you remember this search",
     )
     CONTACT_CHOICES = (
+        (None, "Any"),
         (True, "Yes"),
         (False, "No"),
     )
     contact = models.BooleanField(
         verbose_name="Contact",
-        default=True,
+        default=None,
+        null=True,
+        blank=True,
         choices=CONTACT_CHOICES,
         help_text="Is there a contact for the job?",
     )
-    company = models.CharField(_("Company Name Contains"), max_length=255)
-    description = models.CharField(help_text="Description contains", max_length=255)
+    contact_filter = models.CharField(
+        max_length=20,
+        choices=[x.value for x in FILTER],
+        default="include",
+    )
+    company = models.CharField(
+        _("Company Name Contains"),
+        help_text="Contains search, leave blank to not search on this field",
+        max_length=255,
+        null=True,
+        blank=True,
+    )
+    company_filter = models.CharField(
+        max_length=20,
+        choices=[x.value for x in FILTER],
+        default="include",
+    )
+    description = models.CharField(
+        _("Description Contains"),
+        help_text="Contains search, leave blank to not search on this field",
+        max_length=255,
+        null=True,
+        blank=True,
+    )
+    description_filter = models.CharField(
+        max_length=20,
+        choices=[x.value for x in FILTER],
+        default="include",
+    )
     education_qualification = MultiSelectField(
         max_length=255,
-        choices=[x.value for x in Job.EDUCATION_QUALIFICATION],
+        choices=[
+            (None, "Any"),
+        ]
+        + [x.value for x in Job.EDUCATION_QUALIFICATION],
         help_text="What education is needed for this job?",
+        null=True,
+        blank=True,
+        default=None,
+    )
+    education_filter = models.CharField(
+        max_length=20,
+        choices=[x.value for x in FILTER],
+        default="include",
     )
     experience = MultiSelectField(
         max_length=255,
-        choices=[x.value for x in Job.JOB_EXPERIENCE],
+        choices=[
+            (None, "Any"),
+        ]
+        + [x.value for x in Job.JOB_EXPERIENCE],
         help_text="What experience is needed for this job?",
+        null=True,
+        blank=True,
+        default=None,
+    )
+    experience_filter = models.CharField(
+        max_length=20,
+        choices=[x.value for x in FILTER],
+        default="include",
     )
     job_type = MultiSelectField(
         max_length=255,
-        choices=[x.value for x in Job.JOB_TYPE],
+        choices=[
+            (None, "Any"),
+        ]
+        + [x.value for x in Job.JOB_TYPE],
+        null=True,
+        blank=True,
+        default=None,
+    )
+    job_type_filter = models.CharField(
+        max_length=20,
+        choices=[x.value for x in FILTER],
+        default="include",
     )
     location_type = MultiSelectField(
-        max_length=255, choices=[x.value for x in Job.LOCATION]
+        max_length=255,
+        choices=[
+            (None, "Any"),
+        ]
+        + [x.value for x in Job.LOCATION],
+        null=True,
+        blank=True,
+        default=None,
+    )
+    location_type_filter = models.CharField(
+        max_length=20,
+        choices=[x.value for x in FILTER],
+        default="include",
     )
     SPONSORED_CHOICES = (
+        (None, "Any"),
         (True, "Yes"),
         (False, "No"),
     )
     sponsored = models.BooleanField(
         _("Sponsored"),
         choices=SPONSORED_CHOICES,
-        default=False,
+        default=None,
         help_text="Is the job posting sponsored by a company?",
+        null=True,
+        blank=True,
     )
-    title = models.CharField(_("Title"), max_length=255)
+    sponsored_filter = models.CharField(
+        max_length=20,
+        choices=[x.value for x in FILTER],
+        default="include",
+    )
+    title = models.CharField(
+        _("Title Contains"),
+        help_text="Contains search, leave blank to not search on this field",
+        max_length=255,
+        null=True,
+        blank=True,
+    )
+    title_filter = models.CharField(
+        max_length=20,
+        choices=[x.value for x in FILTER],
+        default="include",
+    )
     created_by = UserForeignKey(
         auto_user_add=True,
         verbose_name="The user that created this object",
@@ -274,6 +373,11 @@ class JobSearch(TimeStampedModel):
         blank=True,
         help_text="Keywords to help job searchers find this job",
     )
+    keywords_filter = models.CharField(
+        max_length=20,
+        choices=[x.value for x in FILTER],
+        default="include",
+    )
     majors = models.ManyToManyField(
         Major,
         related_name="job_searches",
@@ -281,31 +385,38 @@ class JobSearch(TimeStampedModel):
         blank=True,
         help_text="Majors to search for",
     )
+    majors_filter = models.CharField(
+        max_length=20,
+        choices=[x.value for x in FILTER],
+        default="include",
+    )
     location = models.ManyToManyField(
         Locality,
         related_name="job_searches",
         help_text="What is the location of jobs",
+        blank=True,
+        default=None,
+    )
+    location_filter = models.CharField(
+        max_length=20,
+        choices=[x.value for x in FILTER],
+        default="include",
     )
     country = models.ForeignKey(
-        Country, null=True, related_name="job_searches", on_delete=models.CASCADE
+        Country,
+        null=True,
+        related_name="job_searches",
+        on_delete=models.CASCADE,
+        blank=True,
+        default=None,
     )
-
-    ATTACHMENT_CHOICES = (
-        (True, "Yes"),
-        (False, "No"),
-    )
-    attachment = models.BooleanField(
-        _("Attachment Available"),
-        choices=ATTACHMENT_CHOICES,
-        default=False,
-        help_text="Is there an attachment for this job",
-    )
-    ATTACHMENT_CHOICES = (
-        (True, "Yes"),
-        (False, "No"),
+    country_filter = models.CharField(
+        max_length=20,
+        choices=[x.value for x in FILTER],
+        default="include",
     )
     notification = models.CharField(
-        verbose_name="Do you want to be notified of matchin new jobs?",
+        verbose_name="Do you want to be notified of matching new jobs?",
         max_length=20,
         choices=[x.value for x in NOTIFICATION],
         default="none",

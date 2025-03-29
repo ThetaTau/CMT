@@ -116,13 +116,97 @@ class JobForm(forms.ModelForm):
         ]
 
 
-class JobSearchForm(JobForm):
+class JobSearchFormHelper(FormHelper):
+    form_method = "GET"
+    form_id = "job-search-form"
+    # form_class = "form-inline"
+    # field_template = "bootstrap3/layout/inline_field.html"
+    field_class = "col-xs-3"
+    label_class = "col-xs-3"
+    form_show_errors = True
+    help_text_inline = False
+    html5_required = True
+    layout = Layout(
+        Fieldset(
+            "",
+            Column(
+                Field("search_title"),
+                Field("search_description"),
+                Field("notification"),
+                Row(
+                    Field("title_filter"),
+                    Field("title"),
+                ),
+                Row(
+                    Field("description_filter"),
+                    Field("description"),
+                ),
+                Row(
+                    Field("company_filter"),
+                    Field("company"),
+                ),
+                Row(
+                    Field("contact_filter"),
+                    Field("contact"),
+                ),
+                Row(
+                    Field("education_filter"),
+                    Field("education_qualification"),
+                ),
+                Row(
+                    Field("experience_filter"),
+                    Field("experience"),
+                ),
+                Row(
+                    Field("job_type_filter"),
+                    Field("job_type"),
+                ),
+                Row(
+                    Field("majors_filter"),
+                    Field("majors"),
+                ),
+                Row(
+                    Field("location_type_filter"),
+                    Field("location_type"),
+                ),
+                Row(
+                    Field("location_filter"),
+                    Field("zip_code"),
+                ),
+                Row(
+                    Field("country_filter"),
+                    Field("country"),
+                ),
+                Row(
+                    Field("keywords_filter"),
+                    Field("keywords"),
+                ),
+                FormActions(
+                    Submit("cancel", "Cancel", css_class="btn-danger"),
+                    StrictButton(
+                        '<i class="fa fa-save"></i> Save',
+                        type="save",
+                        css_class="btn-warning",
+                    ),
+                    StrictButton(
+                        '<i class="fa fa-search"></i> Save & Search',
+                        type="submit",
+                        css_class="btn-primary",
+                    ),
+                ),
+            ),
+        ),
+    )
+
+
+class JobSearchForm(forms.ModelForm):
     zip_code = Select2ListCreateMultipleChoiceField(
         label="Zip Code OR City Name",
         widget=ListSelect2Multiple(
             url="zipcode-autocomplete",
         ),
         help_text="What is the location of the main office even if the job is remote.",
+        required=False,
     )
     keywords = Select2ListCreateMultipleChoiceField(
         label="Keywords",
@@ -131,9 +215,6 @@ class JobSearchForm(JobForm):
             url="jobs:keyword-autocomplete-ro",
         ),
         required=False,
-    )
-    description = forms.CharField(
-        label="Description Contains",
     )
     majors = Select2ListCreateMultipleChoiceField(
         label="Majors",
@@ -148,18 +229,37 @@ class JobSearchForm(JobForm):
         model = JobSearch
         fields = [
             "search_title",
-            "company",
-            "contact",
-            "education_qualification",
-            "experience",
-            "job_type",
-            "majors",
-            "location_type",
-            "zip_code",
-            "country",
+            "search_description",
+            "notification",
+            "title_filter",
+            "title",
+            "description_filter",
             "description",
+            "company_filter",
+            "company",
+            "contact_filter",
+            "contact",
+            "education_filter",
+            "education_qualification",
+            "experience_filter",
+            "experience",
+            "job_type_filter",
+            "job_type",
+            "majors_filter",
+            "majors",
+            "location_type_filter",
+            "location_type",
+            "location_filter",
+            "zip_code",
+            "country_filter",
+            "country",
+            "keywords_filter",
             "keywords",
         ]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.helper = JobSearchFormHelper()
 
 
 class JobSearchListFormHelper(FormHelper):

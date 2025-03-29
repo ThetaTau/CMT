@@ -35,5 +35,10 @@ urlpatterns = [
         view=views.JobUpdateView.as_view(),
         name="update",
     ),
+    url(
+        regex=r"^update-search/(?P<pk>\d+)/$",
+        view=views.JobSearchUpdateView.as_view(),
+        name="update_search",
+    ),
     path("<int:pk>/<slug:slug>/", view=views.JobDetailView.as_view(), name="detail"),
 ]

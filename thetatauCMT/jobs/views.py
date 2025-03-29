@@ -18,7 +18,13 @@ from core.views import (
 from .models import Job, Keyword, Major, JobSearch
 from .tables import JobTable, JobSearchTable
 from .filters import JobListFilter, JobSearchListFilter
-from .forms import JobListFormHelper, JobForm, JobSearchForm, JobSearchListFormHelper
+from .forms import (
+    JobListFormHelper,
+    JobForm,
+    JobSearchForm,
+    JobSearchFormHelper,
+    JobSearchListFormHelper,
+)
 
 
 class JobDetailView(LoginRequiredMixin, DetailView):
@@ -79,6 +85,15 @@ class JobRedirectView(LoginRequiredMixin, RedirectView):
 
     def get_redirect_url(self):
         return reverse("jobs:list")
+
+
+class JobSearchUpdateView(LoginRequiredMixin, UpdateView):
+    model = JobSearch
+    form_class = JobSearchForm
+    template_name = "jobs/jobsearch_create_form.html"
+
+    def get_success_url(self):
+        return reverse("jobs:search")
 
 
 class JobUpdateView(
