@@ -46,7 +46,7 @@ class TaskTable(tables.Table):
     def render_complete_link(self, value):
         if value != 0:
             url = reverse('tasks:detail', args=[value])
-            value = mark_safe(f'<a href="{url}" target="_blank">Complete Link</a>')
+            value = mark_safe(f'<a href="{url}" target="_blank">Completed Task Information</a>')
         else:
             value = "N/A"
         return value
