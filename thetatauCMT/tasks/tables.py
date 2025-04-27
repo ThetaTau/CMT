@@ -1,3 +1,5 @@
+from django.utils.safestring import mark_safe
+from django.urls import reverse
 import django_tables2 as tables
 from django_tables2.utils import A
 from .models import TaskDate
@@ -30,15 +32,7 @@ class TaskTable(tables.Table):
         if complete:
             extra_columns.extend(
                 [
-                    (
-                        "complete_result",
-                        tables.LinkColumn(
-                            "tasks:detail",
-                            args=[A("complete_link")],
-                            verbose_name="Complete",
-                            empty_values=(),
-                        ),
-                    ),
+                    ("complete_link", tables.Column())
                 ]
             )
         kwargs["extra_columns"] = extra_columns
@@ -47,4 +41,12 @@ class TaskTable(tables.Table):
     def render_form(self, record):
         task = record.task
         value = task.render_task_link
+        return value
+    
+    def render_complete_link(self, value):
+        if value != 0:
+            url = reverse('tasks:detail', args=[value])
+            value = mark_safe(f'<a href="{url}" target="_blank">Complete Link</a>')
+        else:
+            value = "N/A"
         return value

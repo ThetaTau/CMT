@@ -119,18 +119,12 @@ class TaskListView(LoginRequiredMixin, PagedFilteredTableView):
                 ),
                 default=models.Value(0),
             )
-        ).annotate(
-            complete_result=models.Case(
-                models.When(models.Q(chapters__chapter=chapter), models.Value("True")),
-                default=models.Value(""),
-                output_field=models.CharField(),
-            )
         )
         # Annotate is duplicating things
         qs = qs.distinct()
         # Distinct sees incomplete/complete as different, so need to combine
-        complete = qs.filter(complete_result=True)
-        incomplete = qs.filter(~models.Q(pk__in=complete), complete_result="")
+        complete = qs.exclude(complete_link=0)
+        incomplete = qs.filter(complete_link=0)
         all_tasks = complete | incomplete
         table = TaskTable(data=all_tasks)
         table.request = self.request
