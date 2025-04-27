@@ -2,34 +2,18 @@
 import datetime
 from django.core.management import BaseCommand
 
-# from django.utils import timezone
-# from core.models import TODAY_END
-# from users.models import User, UserRoleChange, UserStatusChange
+from django.utils import timezone
+from core.models import TODAY_END, forever
+from django.db import models
+from users.models import User
 
 
 class Command(BaseCommand):
     # Show this when the user types help
-    help = "Clear duplicate status for members"
+    help = "Clear duplicate or missing status for members"
 
-    # A command must define handle()
     def handle(self, *args, **options):
-        return
-        from users.models import User, UserStatusChange
-        from django.db import models
-        from core.models import TODAY_END, forever
-
-        # users = User.objects.filter(
-        #            status__status='active',
-        #            status__end__lte=TODAY_END)\
-        #                .annotate(models.Count('status'))\
-        #                .order_by()\
-        #                .filter(status__count=1)
-        # User.objects.filter(
-        #            status__start__lte=TODAY_END,
-        #            status__end__lte=TODAY_END)\
-        #                .annotate(models.Count('status'))\
-        #                .order_by()\
-        #                .filter(status__count=1)
+        future = TODAY_END + timezone.timedelta(days=5 * 365)
         # Only have one status, and it is not current, need to fix
         users = (
             User.objects.all()
@@ -43,71 +27,46 @@ class Command(BaseCommand):
             user_status.end = forever()
             user_status.save()
 
-        # Those with no status, need to create active/pnm/alumni status
-        # Fix by hand
-        # users = User.objects.all()\
-        #                .annotate(models.Count('status'))\
-        #                .order_by()\
-        #                .filter(status__count=0)
-        # Edward Monteverde users.UserStatusChange.None      Alumni
-        # Tina Demaio users.UserStatusChange.None            Depledge
-        # Kirsten Eichelberger users.UserStatusChange.None   Alumni
-        # Tyler Daly users.UserStatusChange.None             Alumni
-
         # Users with no current status
         users = User.objects.exclude(
             status__start__lte=TODAY_END, status__end__gte=TODAY_END
         )
-        alumnis = users.filter(status__status="alumni")
-        for alumni in alumnis:
-            user_status = alumni.status.get()
-            user_status.start = datetime.datetime.now() - datetime.timedelta(days=1)
-            user_status.save()
-        actives = users.filter(status__status="active")
-        for user in actives:
-            user_status = user.status.get(status="active")
-            user_status.end = forever()
-            user_status.save()
-        users = User.objects.exclude(
-            status__start__lte=TODAY_END, status__end__gte=TODAY_END
-        )
-        # Somehow missed these, need to alumnize
-        alumnis = users.filter(status__status="activepend")
-        for alumni in alumnis:
-            UserStatusChange(
-                user=alumni,
-                status="alumni",
-                start=datetime.datetime.now() - datetime.timedelta(days=1),
-                end=forever(),
-            ).save()
-        users = User.objects.exclude(
-            status__start__lte=TODAY_END, status__end__gte=TODAY_END
-        )
-        # !!! CHECK NOT BACKWARDS!!!
-        # The final group should be test group
-        for user in users:
-            UserStatusChange(
-                user=user,
-                status="active",
-                start=datetime.datetime.now() - datetime.timedelta(days=1),
-                end=forever(),
-            ).save()
-            # This cleared duplicate status, different status name, same times & same status name
-            dup_status = (
-                User.objects.filter(
-                    status__start__lte=TODAY_END, status__end__gte=TODAY_END
-                )
-                .annotate(models.Count("id"))
-                .order_by()
-                .filter(id__count__gt=1)
+        print(f"{users} with no current status")
+
+        # Users with duplicate current statuss
+        dup_status = (
+            User.objects.filter(
+                status__start__lte=TODAY_END,
+                status__end__gte=future,  # Use future to avoid the suspend/away status that will end sooner
             )
+            .annotate(models.Count("id"))
+            .order_by()
+            .filter(id__count__gt=1)
+        )
         total = len(dup_status)
+        print(f"{total} duplicate status")
         for count, user in enumerate(dup_status):
+            current_status = None
+            other_statuss = []
             current_statuss = user.status.filter(
                 start__lte=TODAY_END, end__gte=TODAY_END
             ).values_list("status", flat=True)
             print(f"{count + 1}/{total} {user} Current duplicates: {current_statuss}")
-            status_check = ["alumni", "alumnipend", "away", "depledge", "active"]
+            status_check = [
+                "deceased",
+                "expelled",
+                "resigned",
+                "alumni",
+                "alumniCC",
+                "alumnipend",
+                "suspended",
+                "depledge",
+                "active",
+                "away",  # Comes after active b/c generally away should end sooner than active
+                "activepend",
+                "activeCC",
+            ]
+
             for status in status_check:
                 if status in current_statuss:
                     current_status = list(
@@ -117,6 +76,7 @@ class Command(BaseCommand):
                             end__gte=TODAY_END,
                         )
                     )
+                    print(f"    This is the current status {current_status}")
                     other_statuss = list(
                         user.status.filter(
                             ~models.Q(status=status),
@@ -124,17 +84,21 @@ class Command(BaseCommand):
                             end__gte=TODAY_END,
                         )
                     )
+                    print(f"    This is the other status {other_statuss}")
                     if len(current_status) > 1:
-                        print(f"    Current status same status! {current_status}")
-                        # main_status = current_status[0]
+                        # If there are multiple of the same current status delete the others
+                        print(f"        Current status same status! {current_status}")
                         remaining_statuss = current_status[1:]
+                        print(f"        Remaining status {remaining_statuss}")
                         for remaining_status in remaining_statuss:
+                            print("        Deleting extras")
                             remaining_status.delete()
-                    else:
-                        current_status = current_status[0]
-            for other_status in other_statuss:
-                if other_status.status == "Candidate Chapter":
-                    other_status.delete()
-                    continue
-                other_status.end = current_status.start - datetime.timedelta(days=1)
-                other_status.save()
+                    current_status = current_status[0]
+                    break
+            if current_status:
+                current_status.end = forever()
+                current_status.save()
+                for other_status in other_statuss:
+                    print(f"        Setting other status to end {current_status.start}")
+                    other_status.end = current_status.start - datetime.timedelta(days=1)
+                    other_status.save()
