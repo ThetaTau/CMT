@@ -3,16 +3,9 @@ from django.urls import reverse
 from django.utils.safestring import mark_safe
 
 def get_value_from_a(value):
-    """
-    <a href="/tasks/detail/15/">True</a>    --> True
-    <a href="/tasks/detail/0/">0</a>        --> N/A
-    <a href="/tasks/detail/0/"></a>         --> False
-    :param value:
-    :return:
-    """
-    if value == "": return False
-    elif "a href=" in value: return True
-    else: return ""
+    if value == "": return False         # Task is incomplete
+    elif "a href=" in value: return True # Task is complete
+    else: return ""                      # Value is not a task
 
 class RegionChapterTaskTable(tables.Table):
     task_name = tables.Column("task_name")
