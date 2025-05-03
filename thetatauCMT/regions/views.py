@@ -278,7 +278,6 @@ class RegionTaskView(LoginRequiredMixin, NatOfficerRequiredMixin, DetailView):
             chapter_name = chapter.name.replace(" ", "_")
             column_name = f"{chapter_name}_column"
             column_link = f"{chapter_name}_complete_link"
-            column_result = f"{chapter_name}_complete_result"
             qs = (
                 qs.annotate(
                     **{
@@ -303,27 +302,13 @@ class RegionTaskView(LoginRequiredMixin, NatOfficerRequiredMixin, DetailView):
                         )
                     }
                 )
-                .annotate(
-                    **{
-                        column_result: models.Case(
-                            models.When(
-                                models.Q(chapters__chapter=chapter),
-                                models.Value("True"),
-                            ),
-                            default=models.Value(""),
-                            output_field=models.CharField(),
-                        )
-                    }
-                )
             )
             qs = qs.distinct()
             # Distinct sees incomplete/complete as different, so need to combine
-            complete = qs.filter(**{column_result: True})
-            incomplete = qs.filter(~models.Q(pk__in=complete), **{column_result: ""})
+            complete = qs.exclude(**{column_link: 0})
+            incomplete = qs.filter(**{column_link: 0})
             all_tasks = complete | incomplete
-            chapter_task_dict = all_tasks.values(
-                "pk", column_name, column_link, column_result
-            )
+            chapter_task_dict = all_tasks.values("pk", column_name, column_link)
             [
                 all_chapters_tasks[chapter_task["id"]].update(chapter_task)
                 for chapter_task in chapter_task_dict.values()
@@ -335,17 +320,6 @@ class RegionTaskView(LoginRequiredMixin, NatOfficerRequiredMixin, DetailView):
                     TaskLinkColumn(
                         verbose_name=chapter_name.replace("_", " ")
                     )
-                )
-            )
-            extra_columns.append(
-                (
-                    column_result,
-                    tables.LinkColumn(
-                        "tasks:detail",
-                        verbose_name=chapter_name.replace("_", " "),
-                        args=[A(column_link)],
-                        empty_values=(),
-                    ),
                 )
             )
         all_chapters_tasks = all_chapters_tasks.values()
