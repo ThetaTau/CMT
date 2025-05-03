@@ -16,7 +16,7 @@ from core.views import NatOfficerRequiredMixin, RequestConfig, LoginRequiredMixi
 from .models import Region
 from tasks.models import TaskDate
 from chapters.models import Chapter
-from .tables import RegionChapterTaskTable
+from .tables import RegionChapterTaskTable, TaskLinkColumn
 from .filters import RegionChapterTaskFilter
 from .forms import RegionChapterTaskFormHelper
 from users.tables import UserTable
@@ -329,6 +329,14 @@ class RegionTaskView(LoginRequiredMixin, NatOfficerRequiredMixin, DetailView):
                 for chapter_task in chapter_task_dict.values()
                 if chapter_task["id"] in all_chapters_tasks
             ]
+            extra_columns.append(
+                (
+                    column_link,
+                    TaskLinkColumn(
+                        verbose_name=chapter_name.replace("_", " ")
+                    )
+                )
+            )
             extra_columns.append(
                 (
                     column_result,

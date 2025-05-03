@@ -1,5 +1,6 @@
 import django_tables2 as tables
-
+from django.urls import reverse
+from django.utils.safestring import mark_safe
 
 def get_value_from_a(value):
     """
@@ -9,14 +10,9 @@ def get_value_from_a(value):
     :param value:
     :return:
     """
-    if '<a href="/tasks/detail/0/">0' in value:
-        return "N/A"
-    elif '<a href="/tasks/detail/0/"></a>' in value:
-        return False
-    elif "True" in value:
-        return True
-    return ""
-
+    if value == "": return False
+    elif "a href=" in value: return True
+    else: return ""
 
 class RegionChapterTaskTable(tables.Table):
     task_name = tables.Column("task_name")
@@ -29,3 +25,16 @@ class RegionChapterTaskTable(tables.Table):
             "class": "table table-striped table-hover",
             "td": {"complete": lambda value: get_value_from_a(value)},
         }
+
+class TaskLinkColumn(tables.Column):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    def render(self, value):
+        if value != 0:
+            url = reverse('tasks:detail', args=[value])
+            value = mark_safe(f'<a href="{url}" target="_blank">Completed Task Information</a>')
+        else:
+            value = ""
+
+        return value
