@@ -32,7 +32,11 @@ class TaskTable(tables.Table):
         if complete:
             extra_columns.extend(
                 [
-                    ("complete_link", tables.Column())
+                    (
+                        "complete_link", tables.Column(
+                            verbose_name="Complete Link"
+                        )
+                    )
                 ]
             )
         kwargs["extra_columns"] = extra_columns
@@ -48,5 +52,5 @@ class TaskTable(tables.Table):
             url = reverse('tasks:detail', args=[value])
             value = mark_safe(f'<a href="{url}" target="_blank">Completed Task Information</a>')
         else:
-            value = "N/A"
+            value = mark_safe("<i>None</i>")
         return value
