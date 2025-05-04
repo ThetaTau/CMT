@@ -3,9 +3,10 @@ from django.urls import reverse
 from django.utils.safestring import mark_safe
 
 def get_value_from_a(value):
-    if value == "": return False         # Task is incomplete
-    elif "a href=" in value: return True # Task is complete
-    else: return ""                      # Value is not a task
+    if value == "": return False                            # Task is incomplete
+    elif value == "N/A": return "N/A"                       # Task is N/A
+    elif "Completed Task Information" in value: return True # Task is complete
+    else: return ""                                         # Value is not a task
 
 class RegionChapterTaskTable(tables.Table):
     task_name = tables.Column("task_name")
@@ -24,10 +25,9 @@ class TaskLinkColumn(tables.Column):
         super().__init__(*args, **kwargs)
 
     def render(self, value):
-        if value != 0:
-            url = reverse('tasks:detail', args=[value])
-            value = mark_safe(f'<a href="{url}" target="_blank">Completed Task Information</a>')
-        else:
-            value = ""
+        if value is None: return "N/A"
+        if value == 0: return ""
 
-        return value
+        url = reverse('tasks:detail', args=[value])
+
+        return mark_safe(f'<a href="{url}" target="_blank">Completed Task Information</a>')

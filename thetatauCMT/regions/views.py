@@ -259,7 +259,7 @@ class RegionTaskView(LoginRequiredMixin, NatOfficerRequiredMixin, DetailView):
         self.filter = self.filter_class(request_get, queryset=qs)
         self.filter.form.helper = self.formhelper_class()
         all_chapters_tasks = {
-            task.pk: defaultdict(lambda: 0) for task in self.filter.qs
+            task.pk: defaultdict(lambda: None) for task in self.filter.qs
         }
         [
             all_chapters_tasks[task.id].update(
@@ -276,22 +276,8 @@ class RegionTaskView(LoginRequiredMixin, NatOfficerRequiredMixin, DetailView):
         for chapter in self.object.chapters.all():
             qs = TaskDate.dates_for_chapter(chapter)
             chapter_name = chapter.name.replace(" ", "_")
-            column_name = f"{chapter_name}_column"
             column_link = f"{chapter_name}_complete_link"
-            qs = (
-                qs.annotate(
-                    **{
-                        column_name: models.Case(
-                            models.When(
-                                models.Q(chapters__chapter=chapter),
-                                models.Value(chapter.name),
-                            ),
-                            default=models.Value(chapter.name),
-                            output_field=models.CharField(),
-                        )
-                    }
-                )
-                .annotate(
+            qs = qs.annotate(
                     **{
                         column_link: models.Case(
                             models.When(
@@ -302,13 +288,12 @@ class RegionTaskView(LoginRequiredMixin, NatOfficerRequiredMixin, DetailView):
                         )
                     }
                 )
-            )
             qs = qs.distinct()
             # Distinct sees incomplete/complete as different, so need to combine
             complete = qs.exclude(**{column_link: 0})
             incomplete = qs.filter(**{column_link: 0})
             all_tasks = complete | incomplete
-            chapter_task_dict = all_tasks.values("pk", column_name, column_link)
+            chapter_task_dict = all_tasks.values("pk", column_link)
             [
                 all_chapters_tasks[chapter_task["id"]].update(chapter_task)
                 for chapter_task in chapter_task_dict.values()
@@ -318,7 +303,8 @@ class RegionTaskView(LoginRequiredMixin, NatOfficerRequiredMixin, DetailView):
                 (
                     column_link,
                     TaskLinkColumn(
-                        verbose_name=chapter_name.replace("_", " ")
+                        verbose_name=chapter_name.replace("_", " "),
+                        empty_values=()
                     )
                 )
             )
