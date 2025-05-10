@@ -12,7 +12,7 @@ class TaskListFilter(django_filters.FilterSet):
         choices=(
             ("1", "Complete"),
             ("0", "Incomplete"),
-            ("", "All"),
+            ("A", "All"),
         ),
     )
     date = DateRangeFilter(field_name="date")
@@ -28,7 +28,7 @@ class TaskListFilter(django_filters.FilterSet):
         order_by = ["date"]
 
     def filter_complete(self, queryset, field_name, value):
-        if value:
+        if value and value != "A":
             chapter = self.request.user.current_chapter
             queryset = queryset.annotate(
                 complete_result=models.Case(
