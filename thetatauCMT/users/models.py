@@ -321,15 +321,14 @@ class User(AbstractUser, EmailSignalMixin):
             start = start.date()
         if isinstance(status, UserStatusChange):
             status = status.status
-        if end > TODAY >= start:
-            if current:
-                # If the current status is being set.
-                current_status = self.status.filter(
-                    start__lte=TODAY_END, end__gte=TODAY_END
-                ).all()
-                for old_status in current_status:
-                    old_status.end = start - datetime.timedelta(days=1)
-                    old_status.save()
+        if current:
+            # If the current status is being set, previous status should end at the start
+            current_status = self.status.filter(
+                start__lte=TODAY_END, end__gte=TODAY_END
+            ).all()
+            for old_status in current_status:
+                old_status.end = start - datetime.timedelta(days=1)
+                old_status.save()
         if status is None:
             # if alumni, set back alumni, else nonmember
             status = "alumni"
