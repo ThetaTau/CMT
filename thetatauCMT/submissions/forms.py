@@ -59,7 +59,7 @@ class GearArticleForm(forms.ModelForm):
         help_text="You can optionally attach your article or supporting documents",
     )
     authors = forms.ModelMultipleChoiceField(
-        queryset=User.objects.all(),
+        queryset=User.objects.none(),
         widget=autocomplete.ModelSelect2Multiple(
             url="users:autocomplete", forward=(forward.Const("true", "chapter"),)
         ),

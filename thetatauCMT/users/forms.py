@@ -237,7 +237,7 @@ class UserUpdateForm(forms.ModelForm):
 
 class MemberUpdateForm(forms.ModelForm):
     user = forms.ModelChoiceField(
-        queryset=User.objects.all(),
+        queryset=User.objects.all(),  # Used for updating processes so all
         widget=autocomplete.ModelSelect2(
             url="users:autocomplete", forward=(forward.Const("false", "chapter"),)
         ),
