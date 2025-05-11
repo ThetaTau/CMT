@@ -4,20 +4,45 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('users', '0033_auto_20240411_1742'),
+        ("users", "0033_auto_20240411_1742"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='historicaluser',
-            name='class_year',
-            field=models.CharField(blank=True, choices=[('freshman', 'Freshman'), ('sophomore', 'Sophomore'), ('junior', 'Junior'), ('senior', 'Senior'), ('senior_plus', 'Senior +'), ('graduate_student', 'Graduate Student'), ('none', '')], max_length=50, verbose_name='Class Year'),
+            model_name="historicaluser",
+            name="class_year",
+            field=models.CharField(
+                blank=True,
+                choices=[
+                    ("freshman", "Freshman"),
+                    ("sophomore", "Sophomore"),
+                    ("junior", "Junior"),
+                    ("senior", "Senior"),
+                    ("senior_plus", "Senior +"),
+                    ("graduate_student", "Graduate Student"),
+                    ("none", ""),
+                ],
+                max_length=50,
+                verbose_name="Class Year",
+            ),
         ),
         migrations.AddField(
-            model_name='user',
-            name='class_year',
-            field=models.CharField(blank=True, choices=[('freshman', 'Freshman'), ('sophomore', 'Sophomore'), ('junior', 'Junior'), ('senior', 'Senior'), ('senior_plus', 'Senior +'), ('graduate_student', 'Graduate Student'), ('none', '')], max_length=50, verbose_name='Class Year'),
+            model_name="user",
+            name="class_year",
+            field=models.CharField(
+                blank=True,
+                choices=[
+                    ("freshman", "Freshman"),
+                    ("sophomore", "Sophomore"),
+                    ("junior", "Junior"),
+                    ("senior", "Senior"),
+                    ("senior_plus", "Senior +"),
+                    ("graduate_student", "Graduate Student"),
+                    ("none", ""),
+                ],
+                max_length=50,
+                verbose_name="Class Year",
+            ),
         ),
     ]
