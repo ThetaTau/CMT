@@ -1,4 +1,7 @@
 from django.contrib import admin
+from django.urls import reverse
+from django.conf import settings
+from django.utils.safestring import mark_safe
 from import_export.admin import ImportExportActionModelAdmin
 from .models import (
     Badge,
@@ -151,6 +154,7 @@ admin.site.register(Audit, AuditAdmin)
 
 class InitiationAdmin(ImportExportActionModelAdmin):
     raw_id_fields = ["user"]
+    readonly_fields = ["process_link"]
     list_display = ("user", "date", "created", "chapter")
     list_filter = ["date", "created", "chapter"]
     ordering = [
@@ -158,6 +162,20 @@ class InitiationAdmin(ImportExportActionModelAdmin):
     ]
     search_fields = ["user__username", "user__name"]
     resource_class = InitiationResource
+
+    def process_link(self, initiation):
+        process = initiation.process.first()
+        if process:
+            host = settings.CURRENT_URL
+            link = reverse(
+                "viewflow:forms:initiationprocess:detail",
+                kwargs={
+                    "process_pk": process.pk,
+                },
+            )
+            return mark_safe(
+                f"<a href='{host}{link}' target='_blank'>Initiation Process Details<a/>"
+            )
 
 
 admin.site.register(Initiation, InitiationAdmin)
@@ -303,6 +321,12 @@ class DisciplinaryProcessAdmin(admin.ModelAdmin):
 admin.site.register(DisciplinaryProcess, DisciplinaryProcessAdmin)
 
 
+class InitiationInline(admin.TabularInline):
+    model = InitiationProcess.initiations.through
+    raw_id_fields = ["initiation"]
+    extra = 1
+
+
 class InitiationProcessAdmin(admin.ModelAdmin):
     list_display = (
         "chapter",
@@ -330,6 +354,7 @@ class InitiationProcessAdmin(admin.ModelAdmin):
         "data",
         "initiations",
     ]
+    inlines = [InitiationInline]
 
 
 admin.site.register(InitiationProcess, InitiationProcessAdmin)

@@ -1,6 +1,6 @@
 import json
 import datetime
-import requests
+import core.requests as requests
 import base64
 from time import sleep
 from django.core.mail import send_mail

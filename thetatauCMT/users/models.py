@@ -50,7 +50,19 @@ class CustomUserManager(UserManager):
             Chapter(name="Test Chapter", region=region).save()
             chapter = Chapter.objects.first()
         extra_fields.setdefault("chapter", chapter)
-        super().create_superuser(email=email, password=password, **extra_fields)
+        superuser = super().create_superuser(
+            email=email, password=password, **extra_fields
+        )
+        self._give_superuser_natoff_roles(superuser)
+
+    def _give_superuser_natoff_roles(self, superuser):
+        superuser.current_roles = ["grand regent"]
+        superuser.officer = True
+        superuser.save(update_fields=["current_roles", "officer"])
+        off_group, _ = Group.objects.get_or_create(name="officer")
+        nat_group, _ = Group.objects.get_or_create(name="natoff")
+        off_group.user_set.add(superuser)
+        nat_group.user_set.add(superuser)
 
 
 class User(AbstractUser, EmailSignalMixin):
@@ -182,6 +194,20 @@ class User(AbstractUser, EmailSignalMixin):
             MaxValueValidator(current_year_plus_10),
         ],
         help_text="Use the following format: YYYY",
+    )
+    class_year = models.CharField(
+        _("Class Year"),
+        blank=True,
+        max_length=50,
+        choices=[
+            ("freshman", "Freshman"),
+            ("sophomore", "Sophomore"),
+            ("junior", "Junior"),
+            ("senior", "Senior"),
+            ("senior_plus", "Senior +"),
+            ("graduate_student", "Graduate Student"),
+            ("none", ""),
+        ],
     )
     phone_number = models.CharField(
         validators=[phone_regex],

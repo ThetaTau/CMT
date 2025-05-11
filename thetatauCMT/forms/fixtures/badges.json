@@ -1,0 +1,22 @@
+[
+{
+    "model": "forms.badge",
+    "pk": 1,
+    "fields": {
+        "name": "Test Cheap Badge",
+        "code": "1",
+        "description": "BAZINGA! We're testing-a tha thinga!",
+        "cost": "1.00"
+    }
+},
+{
+    "model": "forms.badge",
+    "pk": 2,
+    "fields": {
+        "name": "Test Expensive Badge",
+        "code": "2",
+        "description": "Testy tester's testing test",
+        "cost": "99999.99"
+    }
+}
+]

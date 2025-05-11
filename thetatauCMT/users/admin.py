@@ -524,6 +524,7 @@ class MyUserAdmin(
                     "employer",
                     "employer_position",
                     "graduation_year",
+                    "class_year",
                 )
             },
         ),
