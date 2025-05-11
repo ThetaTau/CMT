@@ -16,7 +16,7 @@ from core.views import NatOfficerRequiredMixin, RequestConfig, LoginRequiredMixi
 from .models import Region
 from tasks.models import TaskDate
 from chapters.models import Chapter
-from .tables import RegionChapterTaskTable
+from .tables import RegionChapterTaskTable, TaskLinkColumn
 from .filters import RegionChapterTaskFilter
 from .forms import RegionChapterTaskFormHelper
 from users.tables import UserTable
@@ -259,7 +259,7 @@ class RegionTaskView(LoginRequiredMixin, NatOfficerRequiredMixin, DetailView):
         self.filter = self.filter_class(request_get, queryset=qs)
         self.filter.form.helper = self.formhelper_class()
         all_chapters_tasks = {
-            task.pk: defaultdict(lambda: 0) for task in self.filter.qs
+            task.pk: defaultdict(lambda: None) for task in self.filter.qs
         }
         [
             all_chapters_tasks[task.id].update(
@@ -276,23 +276,8 @@ class RegionTaskView(LoginRequiredMixin, NatOfficerRequiredMixin, DetailView):
         for chapter in self.object.chapters.all():
             qs = TaskDate.dates_for_chapter(chapter)
             chapter_name = chapter.name.replace(" ", "_")
-            column_name = f"{chapter_name}_column"
             column_link = f"{chapter_name}_complete_link"
-            column_result = f"{chapter_name}_complete_result"
-            qs = (
-                qs.annotate(
-                    **{
-                        column_name: models.Case(
-                            models.When(
-                                models.Q(chapters__chapter=chapter),
-                                models.Value(chapter.name),
-                            ),
-                            default=models.Value(chapter.name),
-                            output_field=models.CharField(),
-                        )
-                    }
-                )
-                .annotate(
+            qs = qs.annotate(
                     **{
                         column_link: models.Case(
                             models.When(
@@ -303,27 +288,12 @@ class RegionTaskView(LoginRequiredMixin, NatOfficerRequiredMixin, DetailView):
                         )
                     }
                 )
-                .annotate(
-                    **{
-                        column_result: models.Case(
-                            models.When(
-                                models.Q(chapters__chapter=chapter),
-                                models.Value("True"),
-                            ),
-                            default=models.Value(""),
-                            output_field=models.CharField(),
-                        )
-                    }
-                )
-            )
             qs = qs.distinct()
             # Distinct sees incomplete/complete as different, so need to combine
-            complete = qs.filter(**{column_result: True})
-            incomplete = qs.filter(~models.Q(pk__in=complete), **{column_result: ""})
+            complete = qs.exclude(**{column_link: 0})
+            incomplete = qs.filter(**{column_link: 0})
             all_tasks = complete | incomplete
-            chapter_task_dict = all_tasks.values(
-                "pk", column_name, column_link, column_result
-            )
+            chapter_task_dict = all_tasks.values("pk", column_link)
             [
                 all_chapters_tasks[chapter_task["id"]].update(chapter_task)
                 for chapter_task in chapter_task_dict.values()
@@ -331,13 +301,11 @@ class RegionTaskView(LoginRequiredMixin, NatOfficerRequiredMixin, DetailView):
             ]
             extra_columns.append(
                 (
-                    column_result,
-                    tables.LinkColumn(
-                        "tasks:detail",
+                    column_link,
+                    TaskLinkColumn(
                         verbose_name=chapter_name.replace("_", " "),
-                        args=[A(column_link)],
-                        empty_values=(),
-                    ),
+                        empty_values=()
+                    )
                 )
             )
         all_chapters_tasks = all_chapters_tasks.values()
