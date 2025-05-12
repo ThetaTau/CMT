@@ -62,7 +62,7 @@ class SetNoValidateField(forms.CharField):
 
 class UserSelectForm(forms.Form):
     user = forms.ModelChoiceField(
-        queryset=User.objects.all(),  # This is used for flows so need all members
+        queryset=User.objects.all(),
         widget=autocomplete.ModelSelect2(
             url="users:autocomplete", forward=(forward.Const("false", "chapter"),)
         ),
@@ -499,7 +499,7 @@ class CSMTFormHelper(FormHelper):
 
 class RoleChangeNationalSelectForm(forms.ModelForm):
     user = forms.ModelChoiceField(
-        queryset=User.objects.all(),  # all allowed for national officer form
+        queryset=User.objects.all(),
         widget=autocomplete.ModelSelect2(
             url="users:autocomplete", forward=(forward.Const("false", "chapter"),)
         ),
@@ -540,7 +540,7 @@ class RoleChangeNationalSelectForm(forms.ModelForm):
 
 class RoleChangeSelectForm(forms.ModelForm):
     user = forms.ModelChoiceField(
-        queryset=User.objects.none(),
+        queryset=User.objects.all(),
         widget=autocomplete.ModelSelect2(
             url="users:autocomplete", forward=(forward.Const("true", "chapter"),)
         ),
@@ -1448,7 +1448,7 @@ class PrematureAlumnusForm(forms.ModelForm):
     )
     user = forms.ModelChoiceField(
         label="Member requesting prealumn status",
-        queryset=User.objects.none(),
+        queryset=User.objects.all(),
         widget=autocomplete.ModelSelect2(
             url="users:autocomplete",
             forward=(
@@ -1498,7 +1498,7 @@ class PrematureAlumnusForm(forms.ModelForm):
 
 class ConventionForm(forms.ModelForm):
     delegate = forms.ModelChoiceField(
-        queryset=User.objects.none(),
+        queryset=User.objects.all(),
         widget=autocomplete.ModelSelect2(
             url="users:autocomplete",
             forward=(
@@ -1508,7 +1508,7 @@ class ConventionForm(forms.ModelForm):
         ),
     )
     alternate = forms.ModelChoiceField(
-        queryset=User.objects.none(),
+        queryset=User.objects.all(),
         widget=autocomplete.ModelSelect2(
             url="users:autocomplete",
             forward=(
@@ -1536,7 +1536,7 @@ class ConventionForm(forms.ModelForm):
 
 class OSMForm(forms.ModelForm):
     nominate = forms.ModelChoiceField(
-        queryset=User.objects.none(),
+        queryset=User.objects.all(),
         widget=autocomplete.ModelSelect2(
             url="users:autocomplete",
             forward=(forward.Const("true", "chapter"),),
@@ -1562,7 +1562,7 @@ class OSMForm(forms.ModelForm):
 class DisciplinaryForm1(forms.ModelForm):
     user = forms.ModelChoiceField(
         label="Name of Accused",
-        queryset=User.objects.none(),
+        queryset=User.objects.all(),
         widget=autocomplete.ModelSelect2(
             url="users:autocomplete",
             forward=(
@@ -1718,7 +1718,7 @@ class DisciplinaryForm2(forms.ModelForm):
 class CollectionReferralForm(forms.ModelForm):
     user = forms.ModelChoiceField(
         label="Indebted Member",
-        queryset=User.objects.none(),
+        queryset=User.objects.all(),
         widget=autocomplete.ModelSelect2(
             url="users:autocomplete",
             forward=(
@@ -1774,7 +1774,7 @@ class ReturnStudentForm(forms.ModelForm):
     )
     user = forms.ModelChoiceField(
         label="Member requesting return",
-        queryset=User.objects.none(),
+        queryset=User.objects.all(),
         widget=autocomplete.ModelSelect2(
             url="users:autocomplete",
             forward=(
@@ -1809,7 +1809,7 @@ class ReturnStudentForm(forms.ModelForm):
 class AlumniExclusionForm(forms.ModelForm):
     user = forms.ModelChoiceField(
         label="Alumni to Exclude",
-        queryset=User.objects.none(),
+        queryset=User.objects.all(),
         widget=autocomplete.ModelSelect2(
             url="users:autocomplete",
             forward=(

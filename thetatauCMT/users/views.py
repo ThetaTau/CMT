@@ -574,7 +574,7 @@ class UserLookupSearchView(FormView):
             users_chapter = User.objects.filter(chapter=chapter)
             chapter_name = chapter.full_name
         else:
-            users_chapter = User.objects.all()  # Natoff search of users
+            users_chapter = User.objects.all()
             chapter_name = "Unknown"
         users = watson.filter(users_chapter, search)
         total = users.count()
@@ -830,7 +830,6 @@ class UserUpdateDirectReview(UpdateView):
 
 
 class UserAutocomplete(autocomplete.Select2QuerySetView):
-    # users:autocomplete This is the view
     def get_queryset(self):
         if (
             not self.request.user.is_authenticated

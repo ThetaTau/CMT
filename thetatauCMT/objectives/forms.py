@@ -61,7 +61,7 @@ class ObjectiveListFormHelper(FormHelper):
 
 class ObjectiveForm(forms.ModelForm):
     owner = forms.ModelChoiceField(
-        queryset=User.objects.none(),
+        queryset=User.objects.all(),
         widget=autocomplete.ModelSelect2(
             url="users:autocomplete",
             forward=(
@@ -100,7 +100,7 @@ class ObjectiveForm(forms.ModelForm):
 
 class ActionForm(forms.ModelForm):
     owner = forms.ModelChoiceField(
-        queryset=User.objects.none(),
+        queryset=User.objects.all(),
         widget=autocomplete.ModelSelect2(
             url="users:autocomplete",
             forward=(
