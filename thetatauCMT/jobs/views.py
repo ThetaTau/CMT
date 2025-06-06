@@ -139,6 +139,20 @@ class JobListView(LoginRequiredMixin, PagedFilteredTableView):
     filter_class = JobListFilter
     formhelper_class = JobListFormHelper
     filter_chapter = False
+    search_object = None
+    pk_url_kwarg = "pk"
+
+    def get(self, request, *args, **kwargs):
+        pk = self.kwargs.get(self.pk_url_kwarg)
+        if pk is not None:
+            self.search_object = JobSearch.objects.get(pk=pk)
+        return super().get(request, *args, **kwargs)
+
+    def get_queryset(self, **kwargs):
+        queryset = super().get_queryset(**kwargs)
+        if self.search_object is not None:
+            queryset = self.search_object.search(queryset)
+        return queryset
 
 
 class KeywordAutocomplete(autocomplete.Select2QuerySetView):

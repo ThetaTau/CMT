@@ -29,12 +29,12 @@ class JobTable(tables.Table):
 
 class JobSearchTable(tables.Table):
     search = tables.LinkColumn(
-        "jobs:update_search",
+        "jobs:search_filter",
         args=[A("pk")],
         text=mark_safe('<i class="fa fa-search"></i>'),
         attrs={"td": {"style": "width:1%;"}},
     )
-    search_title = tables.LinkColumn("jobs:update", args=[A("pk")])
+    search_title = tables.LinkColumn("jobs:update_search", args=[A("pk")])
 
     class Meta:
         model = JobSearch

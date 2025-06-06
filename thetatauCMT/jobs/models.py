@@ -3,6 +3,7 @@ from django.db import models
 from django.template.defaultfilters import slugify
 from django.utils import timezone
 from django_userforeignkey.models.fields import UserForeignKey
+from django.db.models.manager import BaseManager
 from django.utils.translation import gettext_lazy as _
 from multiselectfield import MultiSelectField
 from ckeditor_uploader.fields import RichTextUploadingField
@@ -428,3 +429,40 @@ class JobSearch(TimeStampedModel):
 
     def __unicode__(self):
         return "Job Search: %s" % self.title
+
+    def search(self, queryset):
+        ands = models.Q()
+        ors = models.Q()
+        nots = models.Q()
+        for search_obj in [
+            ("title_filter", "title", "__icontains"),
+            ("description_filter", "description", "__icontains"),
+            ("company_filter", "company", "__icontains"),
+            ("contact_filter", "contact", ""),
+            ("education_filter", "education_qualification", "__contains"),
+            ("experience_filter", "experience", "__contains"),
+            ("job_type_filter", "job_type", "__contains"),
+            ("majors_filter", "majors", "__pk__contains"),
+            ("location_type_filter", "location_type", "__contains"),
+            ("location_filter", "location", "__pk__contains"),
+            ("country_filter", "country", ""),
+            ("keywords_filter", "keywords", "__pk__contains"),
+        ]:
+            operator_name, filter_name, filter_type = search_obj
+            filter_val = getattr(self, filter_name)
+            operator_val = getattr(self, operator_name)
+            if filter_val and isinstance(filter_val, BaseManager):
+                filter_val = list(filter_val.values_list("pk", flat=True))
+            if filter_val:
+                # query_new = models.Q(**{f"{filter_name}{filter_type}": filter_val})
+                if not isinstance(filter_val, list):
+                    filter_val = [filter_val]
+                for filter_val in filter_val:
+                    if operator_val == self.FILTER.include.name:
+                        ands &= models.Q(**{f"{filter_name}{filter_type}": filter_val})
+                    elif operator_val == self.FILTER.optional.name:
+                        ors |= models.Q(**{f"{filter_name}{filter_type}": filter_val})
+                    elif operator_val == self.FILTER.exclude.name:
+                        nots &= ~models.Q(**{f"{filter_name}{filter_type}": filter_val})
+        query = ands & ors & nots
+        return queryset.filter(query)

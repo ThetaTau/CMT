@@ -8,6 +8,11 @@ urlpatterns = [
     url(regex=r"^$", view=views.JobListView.as_view(), name="list"),
     url(regex=r"^search/$", view=views.JobSearchListView.as_view(), name="search"),
     url(
+        regex=r"^search/(?P<pk>\d+)/$",
+        view=views.JobListView.as_view(),
+        name="search_filter",
+    ),
+    url(
         r"^keyword-autocomplete/$",
         views.KeywordAutocomplete.as_view(create_field="name"),
         name="keyword-autocomplete",
