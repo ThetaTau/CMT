@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+{% load querystring from django_tables2 %}
+{% load bootstrap4 %}
+{% load crispy_forms_tags %}
+{% load static i18n %}
+{% block title %}Jobs{% endblock %}
+
+{% block content %}
+{#  {% render_table table %}#}
+{% if table.page %}
+  <div class="table-container">
+{% endif %}
+
+{% block table %}
+    <div class="table-responsive">
+        <table class="table table-hover table-bordered table-striped"{% if table.attrs %} {{ table.attrs.as_html }}{% endif %}>
+            {% block table.thead %}
+            <thead>
+                <tr>
+                    <th colspan="3">
+                      <a href="{% url "jobs:add" %}" class="btn btn-medium btn-primary dark">
+                          <i class="fa fa-briefcase"></i>
+                          Add Job
+                      </a>
+                      <a href="{% url "jobs:search" %}" class="btn btn-medium btn-primary dark">
+                          <i class="fas fa-search"></i>
+                          Search Jobs
+                      </a>
+                    </th>
+                    <th colspan="6">
+                      {% if search_object is not None %}
+                        <table>
+                        <tr>
+                          <th colspan="2">Job list is filtered by the search:<br>
+                            <a href="{% url "jobs:update_search" search_object.pk %}">
+                              {{ search_object.search_title }}</a>
+                            {{ search_object.search_description }}
+                          </th>
+                          <th>
+                            <button type="button" class="btn btn-warning" onclick="location.href='{% url 'jobs:list' %}';">Clear Search</button>
+                        </th></tr>
+                          <tr><th>Must Match</th><th>May Match</th><th>Must Not Match</th></tr>
+                        <tr>
+                          <td>
+                            <ul>
+                              {% for and_filter in search_description_ands %}
+                                <li>{{ and_filter }}</li>
+                              {% endfor %}
+                            </ul>
+                          </td>
+                        <td>
+                          <ul>
+                            {% for or_filter in search_description_ors %}
+                              <li>{{ or_filter }}</li>
+                            {% endfor %}
+                          </ul>
+                        </td>
+                        <td>
+                          <ul>
+                            {% for not_filter in search_description_nots %}
+                              <li>{{ not_filter }}</li>
+                            {% endfor %}
+                          </ul>
+                        </td>
+                        </table>
+                      {% endif %}
+                    </th>
+                </tr>
+
+              <tr>
+                {% for column in table.columns %}
+                    {% if column.orderable %}
+                    <th {{ column.attrs.th.as_html }}>
+                      <a href="{% querystring table.prefixed_order_by_field=column.order_by_alias.next %}">
+                        {{ column.header }}
+                      </a></th>
+                    {% else %}
+                    <th {{ column.attrs.th.as_html }}>{{ column.header }}</th>
+                    {% endif %}
+                {% endfor %}
+              </tr>
+            </thead>
+            {% endblock table.thead %}
+            {% block table.tbody %}
+            <tbody>
+                {% for row in table.page.object_list|default:table.rows %} {# support pagination #}
+                  {% block table.tbody.row %}
+                  <tr class="{% cycle "odd" "even" %}">
+                      {% for column, cell in row.items %}
+                          <td {{ column.attrs.td.as_html }}>
+                          {% if column.name == "name" %}
+                            <a href="{% url "jobs:copy" row.record.id %}" class="btn btn-link btn-xs btn">
+                            <span title="Copy Job">
+                                <i class="far fa-copy" ></i>
+                              </span>
+                      </a>
+                          {% endif %}
+                            {{ cell }}
+                          </td>
+                      {% endfor %}
+                  </tr>
+                  {% endblock table.tbody.row %}
+                {% empty %}
+                  {% if table.empty_text %}
+                  {% block table.tbody.empty_text %}
+                  <tr><td colspan="{{ table.columns|length }}">
+                    {{ table.empty_text }}
+                  </td></tr>
+                  {% endblock table.tbody.empty_text %}
+                  {% endif %}
+                {% endfor %}
+            </tbody>
+            {% endblock table.tbody %}
+            {% block table.tfoot %}
+            <tfoot></tfoot>
+            {% endblock table.tfoot %}
+        </table>
+    </div>
+{% endblock table %}
+
+{% if table.page %}
+    {% block pagination %}
+        {% bootstrap_pagination table.page url=request.get_full_path %}
+    {% endblock pagination %}
+  </div>
+{% endif %}
+{% endblock content %}

@@ -15,6 +15,7 @@ from django.urls import path, include
 from django.views.generic import TemplateView, RedirectView
 from material.frontend.urls import modules
 from core.views import HomeView
+from core.address import ZipCodeAutocomplete
 from users.views import UserLookupLoginView
 from django.views import defaults as default_views
 
@@ -26,6 +27,11 @@ def home_redirect(request):
 urlpatterns = [
     path("django_plotly_dash/", include("django_plotly_dash.urls")),
     path("o/", include(oauth2_urls)),
+    url(
+        r"^zipcode-autocomplete/$",
+        ZipCodeAutocomplete.as_view(),
+        name="zipcode-autocomplete",
+    ),
     url(r"^$", HomeView.as_view(template_name="pages/home.html"), name="home"),
     url(r"^", include("allauth_2fa.urls")),
     url(
@@ -97,6 +103,7 @@ urlpatterns = [
     url(r"^regions/", include("regions.urls", namespace="regions")),
     url(r"^chapters/", include("chapters.urls", namespace="chapters")),
     url(r"^events/", include("events.urls", namespace="events")),
+    url(r"^jobs/", include("jobs.urls", namespace="jobs")),
     url(r"^notes/", include("notes.urls", namespace="notes")),
     url(r"^goals/", include("objectives.urls", namespace="objectives")),
     url(r"^trainings/", include("trainings.urls", namespace="trainings")),
