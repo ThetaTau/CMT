@@ -196,7 +196,12 @@ class JobSearchFormHelper(FormHelper):
                     Field("keywords"),
                 ),
                 FormActions(
-                    Submit("cancel", "Cancel", css_class="btn-danger"),
+                    StrictButton(
+                        '<i class="fa fa-times"></i> Cancel',
+                        type="button",
+                        css_class="btn-danger",
+                        onclick="window.history.back();",
+                    ),
                     StrictButton(
                         '<i class="fa fa-save"></i> Save',
                         type="save",

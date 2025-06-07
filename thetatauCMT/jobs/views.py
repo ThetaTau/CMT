@@ -128,6 +128,9 @@ class JobListView(LoginRequiredMixin, PagedFilteredTableView):
     filter_chapter = False
     search_object = None
     pk_url_kwarg = "pk"
+    search_description_ands = None
+    search_description_ors = None
+    search_description_nots = None
 
     def get(self, request, *args, **kwargs):
         pk = self.kwargs.get(self.pk_url_kwarg)
@@ -138,11 +141,30 @@ class JobListView(LoginRequiredMixin, PagedFilteredTableView):
     def get_queryset(self, **kwargs):
         queryset = super().get_queryset(**kwargs)
         if self.search_object is not None:
-            queryset = self.search_object.search(queryset)
+            (
+                queryset,
+                search_description_ands,
+                search_description_ors,
+                search_description_nots,
+            ) = self.search_object.search(queryset)
+            self.search_description_ands = search_description_ands
+            self.search_description_ors = search_description_ors
+            self.search_description_nots = search_description_nots
         return queryset
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["search_description_ands"] = self.search_description_ands
+        context["search_description_ors"] = self.search_description_ors
+        context["search_description_nots"] = self.search_description_nots
+        context["search_object"] = self.search_object
+        return context
 
 
 class KeywordAutocomplete(autocomplete.Select2QuerySetView):
+    def create_object(self, text):
+        return super().create_object(text.lower())
+
     def get_queryset(self):
         qs = Keyword.objects.none()
         if self.request.user.is_authenticated:
@@ -153,6 +175,9 @@ class KeywordAutocomplete(autocomplete.Select2QuerySetView):
 
 
 class MajorAutocomplete(autocomplete.Select2QuerySetView):
+    def create_object(self, text):
+        return super().create_object(text.lower())
+
     def get_queryset(self):
         qs = Major.objects.none()
         if self.request.user.is_authenticated:

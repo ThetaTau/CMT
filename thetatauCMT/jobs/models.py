@@ -44,15 +44,15 @@ class Job(TimeStampedModel):
         part_time = ("part_time", "Part Time")
         contractor = ("contractor", "Contractor")
 
-    class JOB_EXPERIENCE(EnumClass):
+    class EXPERIENCE(EnumClass):
         in_school = ("in_school", "In School")
         new_grad = ("new_grad", "New Grad")
-        less_than_one = ("less_than_one", "1 < years")
+        less_than_one = ("less_than_one", "years < 1")
         less_than_five = ("less_than_five", "1 < years < 5")
         less_than_ten = ("less_than_ten", "5 < years < 10")
         less_than_fifteen = ("less_than_fifteen", "10 < years < 15")
         less_than_twenty = ("less_than_twenty", "15 < years < 20")
-        twenty_plus = ("twenty_plus", "20 < years")
+        twenty_plus = ("twenty_plus", "20+ years")
 
     class EDUCATION_QUALIFICATION(EnumClass):
         highschool = ("highschool", "High School")
@@ -60,7 +60,7 @@ class Job(TimeStampedModel):
         masters = ("masters", "Masters")
         phd = ("phd", "PhD")
 
-    class LOCATION(EnumClass):
+    class LOCATION_TYPE(EnumClass):
         on_site = ("on_site", "On Site")
         hybrid = ("hybrid", "Hybrid")
         flexible = ("flexible", "Flexible")
@@ -102,7 +102,7 @@ class Job(TimeStampedModel):
     )
     experience = MultiSelectField(
         max_length=255,
-        choices=[x.value for x in JOB_EXPERIENCE],
+        choices=[x.value for x in EXPERIENCE],
         help_text="What experience is needed for this job?",
     )
     job_type = MultiSelectField(
@@ -110,7 +110,7 @@ class Job(TimeStampedModel):
         choices=[x.value for x in JOB_TYPE],
     )
     location_type = MultiSelectField(
-        max_length=255, choices=[x.value for x in LOCATION]
+        max_length=255, choices=[x.value for x in LOCATION_TYPE]
     )
     publish_end = models.DateField(
         default=timezone.now,
@@ -291,7 +291,7 @@ class JobSearch(TimeStampedModel):
         choices=[
             (None, "Any"),
         ]
-        + [x.value for x in Job.JOB_EXPERIENCE],
+        + [x.value for x in Job.EXPERIENCE],
         help_text="What experience is needed for this job?",
         null=True,
         blank=True,
@@ -322,7 +322,7 @@ class JobSearch(TimeStampedModel):
         choices=[
             (None, "Any"),
         ]
-        + [x.value for x in Job.LOCATION],
+        + [x.value for x in Job.LOCATION_TYPE],
         null=True,
         blank=True,
         default=None,
@@ -434,6 +434,9 @@ class JobSearch(TimeStampedModel):
         ands = models.Q()
         ors = models.Q()
         nots = models.Q()
+        search_description_ands = []
+        search_description_ors = []
+        search_description_nots = []
         for search_obj in [
             ("title_filter", "title", "__icontains"),
             ("description_filter", "description", "__icontains"),
@@ -442,27 +445,48 @@ class JobSearch(TimeStampedModel):
             ("education_filter", "education_qualification", "__contains"),
             ("experience_filter", "experience", "__contains"),
             ("job_type_filter", "job_type", "__contains"),
-            ("majors_filter", "majors", "__pk__contains"),
+            ("majors_filter", "majors", "__pk__in"),
             ("location_type_filter", "location_type", "__contains"),
-            ("location_filter", "location", "__pk__contains"),
+            ("location_filter", "location", "__pk__in"),
             ("country_filter", "country", ""),
-            ("keywords_filter", "keywords", "__pk__contains"),
+            ("keywords_filter", "keywords", "__pk__in"),
         ]:
             operator_name, filter_name, filter_type = search_obj
-            filter_val = getattr(self, filter_name)
+            filter_vals = getattr(self, filter_name)
             operator_val = getattr(self, operator_name)
-            if filter_val and isinstance(filter_val, BaseManager):
-                filter_val = list(filter_val.values_list("pk", flat=True))
-            if filter_val:
+            text = self._meta.get_field(filter_name).verbose_name.title()
+            if filter_vals and isinstance(filter_vals, BaseManager):
+                filter_val_texts = list(filter_vals.values_list("name", flat=True))
+                filter_val_texts = [", ".join(filter_val_texts)]
+                filter_vals = list(filter_vals.values_list("pk", flat=True))
+                filter_vals = [filter_vals]
+            elif filter_vals and isinstance(filter_vals, list):
+                filter_val_texts = [
+                    getattr(Job, filter_name.upper()).get_value(filter_val)
+                    for filter_val in filter_vals
+                ]
+            if filter_vals:
                 # query_new = models.Q(**{f"{filter_name}{filter_type}": filter_val})
-                if not isinstance(filter_val, list):
-                    filter_val = [filter_val]
-                for filter_val in filter_val:
+                if not isinstance(filter_vals, list):
+                    filter_val_texts = [filter_vals]
+                    filter_vals = [filter_vals]
+                for ind, filter_val in enumerate(filter_vals):
+                    filter_val_text = filter_val_texts[ind]
+                    # if filter_type.endswith("in"):
+                    #     filter_val = [filter_val]
                     if operator_val == self.FILTER.include.name:
+                        search_description_ands.append(f"{text}: {filter_val_text}")
                         ands &= models.Q(**{f"{filter_name}{filter_type}": filter_val})
                     elif operator_val == self.FILTER.optional.name:
+                        search_description_ors.append(f"{text}: {filter_val_text}")
                         ors |= models.Q(**{f"{filter_name}{filter_type}": filter_val})
                     elif operator_val == self.FILTER.exclude.name:
+                        search_description_nots.append(f"{text}: {filter_val_text}")
                         nots &= ~models.Q(**{f"{filter_name}{filter_type}": filter_val})
         query = ands & ors & nots
-        return queryset.filter(query).distinct()
+        return (
+            queryset.filter(query).distinct(),
+            search_description_ands,
+            search_description_ors,
+            search_description_nots,
+        )

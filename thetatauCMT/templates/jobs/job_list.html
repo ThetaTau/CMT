@@ -17,7 +17,7 @@
             {% block table.thead %}
             <thead>
                 <tr>
-                    <th colspan="4">
+                    <th colspan="3">
                       <a href="{% url "jobs:add" %}" class="btn btn-medium btn-primary dark">
                           <i class="fa fa-briefcase"></i>
                           Add Job
@@ -26,6 +26,44 @@
                           <i class="fas fa-search"></i>
                           Search Jobs
                       </a>
+                    </th>
+                    <th colspan="6">
+                      {% if search_object is not None %}
+                        <table>
+                        <tr>
+                          <th colspan="2">Job list is filtered by the search:<br>
+                            <a href="{% url "jobs:update_search" search_object.pk %}">
+                              {{ search_object.search_title }}</a>
+                            {{ search_object.search_description }}
+                          </th>
+                          <th>
+                            <button type="button" class="btn btn-warning" onclick="location.href='{% url 'jobs:list' %}';">Clear Search</button>
+                        </th></tr>
+                          <tr><th>Must Match</th><th>May Match</th><th>Must Not Match</th></tr>
+                        <tr>
+                          <td>
+                            <ul>
+                              {% for and_filter in search_description_ands %}
+                                <li>{{ and_filter }}</li>
+                              {% endfor %}
+                            </ul>
+                          </td>
+                        <td>
+                          <ul>
+                            {% for or_filter in search_description_ors %}
+                              <li>{{ or_filter }}</li>
+                            {% endfor %}
+                          </ul>
+                        </td>
+                        <td>
+                          <ul>
+                            {% for not_filter in search_description_nots %}
+                              <li>{{ not_filter }}</li>
+                            {% endfor %}
+                          </ul>
+                        </td>
+                        </table>
+                      {% endif %}
                     </th>
                 </tr>
 
