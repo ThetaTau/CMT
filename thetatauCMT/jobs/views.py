@@ -37,9 +37,6 @@ class JobCreateView(
 ):
     model = Job
     template_name = "jobs/job_create_form.html"
-    officer_edit = "jobs"
-    officer_edit_type = "create"
-    score_type = "Evt"
     form_class = JobForm
 
     def get_success_url(self):
@@ -100,24 +97,14 @@ class JobUpdateView(
     LoginRequiredMixin,
     UpdateView,
 ):
-    officer_edit = "jobs"
-    officer_edit_type = "edit"
-    fields = [
-        "title",
-        "company",
-        "education_qualification",
-        "experience",
-        "job_type",
-        "sponsored",
-        "title",
-        "keywords",
-        "location",
-        "country",
-    ]
+    form_class = JobForm
     model = Job
 
     def get_success_url(self):
         return reverse("jobs:list")
+
+    def post(self, request, *args, **kwargs):
+        return super().post(request, *args, **kwargs)
 
 
 class JobSearchListView(LoginRequiredMixin, PagedFilteredTableView):

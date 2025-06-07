@@ -97,9 +97,28 @@
                     Attachment: <a href="{{ job.attachment.url }}">{{ job.attachment }}</a></td>
                     </div>
                   {% endif %}
+                {% if job.attachment %}
+                    <div class="mb-3">
+                    Attachment: <a href="{{ job.attachment.url }}">{{ job.attachment }}</a></td>
+                    </div>
+                {% endif %}
+                <div class="mb-3">
+                    <button type="button" class="btn btn-secondary"
+                    onclick="window.history.back();"
+                    style="display: none;"
+                    id="backButton">Back</button><br>
+                    <button type="button" class="btn btn-secondary" onclick="location.href='{% url 'jobs:list' %}';">Jobs list</button><br>
+                    {% if request.user == job.created_by %}
+                      Only you can edit this job. <br><a class="btn btn-primary" href="{% url 'jobs:update' job.pk %}" role="button">Edit Job</a>
+                    {% endif %}
+                </div>
             </div>
         </div>
     </div>
 </div>
 {% endblock content %}
+{% block javascript %}
+{{ block.super }}
+<script>document.getElementById('backButton').style.display = window.history.length > 1 ? 'inline-block' : 'none';</script>
+{% endblock javascript %}
 

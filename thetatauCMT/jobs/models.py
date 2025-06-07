@@ -465,4 +465,4 @@ class JobSearch(TimeStampedModel):
                     elif operator_val == self.FILTER.exclude.name:
                         nots &= ~models.Q(**{f"{filter_name}{filter_type}": filter_val})
         query = ands & ors & nots
-        return queryset.filter(query)
+        return queryset.filter(query).distinct()

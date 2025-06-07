@@ -5,8 +5,12 @@ from crispy_forms.bootstrap import FormActions, InlineField, StrictButton, Field
 from django import forms
 from tempus_dominus.widgets import DatePicker
 from dal import autocomplete
-from .models import Job, JobSearch
-from core.forms import Select2ListCreateMultipleChoiceField, ListSelect2Multiple
+from .models import Job, JobSearch, Keyword, Major
+from core.forms import (
+    Select2ListCreateMultipleChoiceField,
+    ListSelect2Multiple,
+    set_multiple_choices_initial,
+)
 
 
 class JobListFormHelper(FormHelper):
@@ -34,7 +38,7 @@ class JobListFormHelper(FormHelper):
                     Field("job_type"),
                     Field("majors_specific"),
                     Field("location_type"),
-                    # Field("zip_code"),
+                    # Field("location"),
                     Field("country"),
                     Field("sponsored"),
                     Field("description"),
@@ -55,8 +59,9 @@ class JobListFormHelper(FormHelper):
 
 
 class JobForm(forms.ModelForm):
-    zip_code = Select2ListCreateMultipleChoiceField(
+    location = Select2ListCreateMultipleChoiceField(
         label="Zip Code OR City Name",
+        queryset=Locality.objects.all(),
         widget=ListSelect2Multiple(
             url="zipcode-autocomplete",
         ),
@@ -64,6 +69,7 @@ class JobForm(forms.ModelForm):
     )
     keywords = Select2ListCreateMultipleChoiceField(
         label="Keywords",
+        queryset=Keyword.objects.all(),
         help_text="Keywords to help job searchers find this job",
         widget=ListSelect2Multiple(
             url="jobs:keyword-autocomplete",
@@ -72,6 +78,7 @@ class JobForm(forms.ModelForm):
     )
     majors = Select2ListCreateMultipleChoiceField(
         label="Majors",
+        queryset=Major.objects.all(),
         help_text="If the job posting is for specific majors only, what are those majors?",
         widget=ListSelect2Multiple(
             url="jobs:major-autocomplete",
@@ -106,7 +113,7 @@ class JobForm(forms.ModelForm):
             "majors_specific",
             "majors",
             "location_type",
-            "zip_code",
+            "location",
             "country",
             "publish_start",
             "publish_end",
@@ -114,6 +121,13 @@ class JobForm(forms.ModelForm):
             "keywords",
             "attachment",
         ]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance.id:
+            set_multiple_choices_initial(self, "keywords")
+            set_multiple_choices_initial(self, "majors")
+            set_multiple_choices_initial(self, "location")
 
 
 class JobSearchFormHelper(FormHelper):
@@ -171,7 +185,7 @@ class JobSearchFormHelper(FormHelper):
                 ),
                 Row(
                     Field("location_filter"),
-                    Field("zip_code"),
+                    Field("location"),
                 ),
                 Row(
                     Field("country_filter"),
@@ -188,11 +202,6 @@ class JobSearchFormHelper(FormHelper):
                         type="save",
                         css_class="btn-warning",
                     ),
-                    StrictButton(
-                        '<i class="fa fa-search"></i> Save & Search',
-                        type="submit",
-                        css_class="btn-primary",
-                    ),
                 ),
             ),
         ),
@@ -200,8 +209,9 @@ class JobSearchFormHelper(FormHelper):
 
 
 class JobSearchForm(forms.ModelForm):
-    zip_code = Select2ListCreateMultipleChoiceField(
+    location = Select2ListCreateMultipleChoiceField(
         label="Zip Code OR City Name",
+        queryset=Locality.objects.all(),
         widget=ListSelect2Multiple(
             url="zipcode-autocomplete",
         ),
@@ -210,14 +220,16 @@ class JobSearchForm(forms.ModelForm):
     )
     keywords = Select2ListCreateMultipleChoiceField(
         label="Keywords",
+        queryset=Keyword.objects.all(),
         help_text="Keywords to help job searchers find this job",
         widget=ListSelect2Multiple(
-            url="jobs:keyword-autocomplete-ro",
+            url="jobs:keyword-autocomplete",
         ),
         required=False,
     )
     majors = Select2ListCreateMultipleChoiceField(
         label="Majors",
+        queryset=Major.objects.all(),
         help_text="If the job posting is for specific majors only, what are those majors?",
         widget=ListSelect2Multiple(
             url="jobs:major-autocomplete",
@@ -250,7 +262,7 @@ class JobSearchForm(forms.ModelForm):
             "location_type_filter",
             "location_type",
             "location_filter",
-            "zip_code",
+            "location",
             "country_filter",
             "country",
             "keywords_filter",
@@ -260,6 +272,10 @@ class JobSearchForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.helper = JobSearchFormHelper()
+        if self.instance.id:
+            set_multiple_choices_initial(self, "keywords")
+            set_multiple_choices_initial(self, "majors")
+            set_multiple_choices_initial(self, "location")
 
 
 class JobSearchListFormHelper(FormHelper):

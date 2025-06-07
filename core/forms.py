@@ -2,6 +2,8 @@
 Copied from: https://gist.github.com/jamesbrobb/748c47f46b9bd224b07f
     per: http://stackoverflow.com/questions/15497693/django-can-class-based-views-accept-two-forms-at-a-time/24011448#24011448
 """
+import re
+from address.models import Locality
 from django import forms
 from django.views.generic.base import ContextMixin, TemplateResponseMixin
 from django.views.generic.edit import ProcessFormView
@@ -189,12 +191,31 @@ class DuplicateAddressField(AddressField):
 class Select2ListCreateMultipleChoiceField(
     Select2ListCreateChoiceField, Select2Multiple
 ):
+    queryset = None
+
+    def __init__(self, *args, **kwargs):
+        self.queryset = kwargs.pop("queryset")
+        super().__init__(*args, **kwargs)
+
     def to_python(self, value):
         if not value:
             return []
         elif not isinstance(value, list):
             return [value]
-        return value
+        new_values = []
+        for val in value:
+            try:
+                val = int(val)
+            except ValueError:
+                if self.queryset.model == Locality:
+                    val = re.search(r"\b\d{5}\b", val).group(0)
+                    true_value = self.queryset.filter(postal_code=val).first()
+                else:
+                    true_value = self.queryset.get(name=val)
+                new_values.append(true_value)
+            else:
+                new_values.append(val)
+        return new_values
 
     def validate(self, value):
         # for create :
@@ -211,3 +232,11 @@ class Select2ListCreateMultipleChoiceField(
 
 class ListSelect2Multiple(WidgetMixin, Select2WidgetMixin, forms.SelectMultiple):
     """Select widget for regular choices and Select2."""
+
+
+def set_multiple_choices_initial(obj, field_name):
+    field = obj.fields[field_name]
+    values = getattr(obj.instance, field_name).all()
+    if values:
+        field.initial = [str(value) for value in values]
+        field.choices = [(str(value), str(value)) for value in values.order_by("name")]

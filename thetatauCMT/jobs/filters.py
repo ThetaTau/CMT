@@ -37,7 +37,7 @@ class JobListFilter(django_filters.FilterSet):
             "majors_specific",
             "majors",
             "location_type",
-            # "zip_code",
+            # "location",
             "country",
             "sponsored",
             "description",

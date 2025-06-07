@@ -10,6 +10,7 @@
     {% csrf_token %}
     {{ form.media }}
     {{ form|crispy }}
-    <button type="submit" class="btn btn-primary" value="Save">Submits</button>
+    <button type="button" class="btn btn-secondary" onclick="window.history.back();">Cancel</button>
+    <button type="submit" class="btn btn-primary" value="Save">Update</button>
   </form>
 {% endblock %}
