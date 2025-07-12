@@ -200,6 +200,18 @@ class Job(TimeStampedModel):
             counter += 1
         return super().save(*args, **kwargs)
 
+    @classmethod
+    def get_live_jobs(cls, request=None):
+        user_objs = cls.objects.none()
+        if request is not None:
+            user_objs = cls.objects.filter(created_by=request.user)
+        return (
+            cls.objects.filter(
+                publish_start__lte=timezone.now(), publish_end__gte=timezone.now()
+            )
+            | user_objs
+        ).distinct()
+
 
 class JobSearch(TimeStampedModel):
     class NOTIFICATION(EnumClass):

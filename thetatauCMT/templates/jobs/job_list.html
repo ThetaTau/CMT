@@ -24,7 +24,7 @@
                       </a>
                       <a href="{% url "jobs:search" %}" class="btn btn-medium btn-primary dark">
                           <i class="fas fa-search"></i>
-                          Search Jobs
+                          Advanced Job Search
                       </a>
                     </th>
                     <th colspan="6">
@@ -66,7 +66,13 @@
                       {% endif %}
                     </th>
                 </tr>
-
+              <tr>
+                <th colspan="11">
+                  <form method="get" class="form-inline form-search pull-right">
+                    {% crispy filter.form filter.form.helper %}
+                  </form>
+                </th>
+              </tr>
               <tr>
                 {% for column in table.columns %}
                     {% if column.orderable %}

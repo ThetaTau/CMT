@@ -139,6 +139,7 @@ class JobListView(LoginRequiredMixin, PagedFilteredTableView):
         return super().get(request, *args, **kwargs)
 
     def get_queryset(self, **kwargs):
+        self.queryset = self.model.get_live_jobs(request=self.request)
         queryset = super().get_queryset(**kwargs)
         if self.search_object is not None:
             (

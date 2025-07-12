@@ -4,7 +4,9 @@ from crispy_forms.layout import Layout, Fieldset, Row, Submit, Column
 from crispy_forms.bootstrap import FormActions, InlineField, StrictButton, Field
 from django import forms
 from tempus_dominus.widgets import DatePicker
-from dal import autocomplete
+from address.models import (
+    Country,
+)
 from .models import Job, JobSearch, Keyword, Major
 from core.forms import (
     Select2ListCreateMultipleChoiceField,
@@ -16,8 +18,8 @@ from core.forms import (
 class JobListFormHelper(FormHelper):
     form_method = "GET"
     form_id = "job-search-form"
-    # form_class = "form-inline"
-    # field_template = "bootstrap3/layout/inline_field.html"
+    form_class = "form-inline"
+    field_template = "bootstrap3/layout/inline_field.html"
     field_class = "col-xs-3"
     label_class = "col-xs-3"
     form_show_errors = True
@@ -28,25 +30,18 @@ class JobListFormHelper(FormHelper):
         extra = []
         self.layout = Layout(
             Fieldset(
-                '<i class="fas fa-search"></i> Search For Jobs',
-                Column(
-                    Field("title"),
-                    Field("company"),
-                    Field("contact"),
-                    Field("education_qualification"),
-                    Field("experience"),
-                    Field("job_type"),
-                    Field("majors_specific"),
-                    Field("location_type"),
-                    # Field("location"),
-                    Field("country"),
-                    Field("sponsored"),
-                    Field("description"),
-                    Field("keywords"),
+                '<i class="fas fa-search"></i> Filter Jobs',
+                Row(
+                    InlineField("text_search"),
+                    InlineField("education_qualification"),
+                    InlineField("experience"),
+                    InlineField("job_type"),
+                    InlineField("contact"),
+                    InlineField("location_type"),
                     *extra,
                     FormActions(
                         StrictButton(
-                            '<i class="fa fa-search"></i> Search',
+                            '<i class="fa fa-search"></i> Filter',
                             type="submit",
                             css_class="btn-primary",
                         ),
@@ -86,18 +81,25 @@ class JobForm(forms.ModelForm):
         required=False,
     )
     publish_start = forms.DateField(
-        label="Publish Start",
+        label="Job Post Date",
+        help_text="When should this job be published and visible to members?",
         widget=DatePicker(
             options={"format": "M/DD/YYYY"},
             attrs={"autocomplete": "off"},
         ),
     )
     publish_end = forms.DateField(
-        label="Publish End",
+        label="Job Post Removal Date",
+        help_text="When should this job be removed and no longer visible to members?",
         widget=DatePicker(
             options={"format": "M/DD/YYYY"},
             attrs={"autocomplete": "off"},
         ),
+    )
+    country = forms.ModelChoiceField(
+        queryset=Country.objects.all(),
+        initial=Country.objects.get(name="United States"),
+        help_text="What country is this job posting for?",
     )
 
     class Meta:

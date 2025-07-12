@@ -92,11 +92,6 @@
                         {% endfor %}
                     </p>
                 </div>
-                  {% if job.attachment %}
-                    <div class="mb-3">
-                    Attachment: <a href="{{ job.attachment.url }}">{{ job.attachment }}</a></td>
-                    </div>
-                  {% endif %}
                 {% if job.attachment %}
                     <div class="mb-3">
                     Attachment: <a href="{{ job.attachment.url }}">{{ job.attachment }}</a></td>
