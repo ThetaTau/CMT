@@ -5,6 +5,8 @@ import io
 import environ
 import requests
 from django.core.management import BaseCommand
+from django.db.models import CharField, F, Func, Q, Value
+from django.db.models.functions import Cast, Coalesce
 from users.models import User
 
 
@@ -24,8 +26,6 @@ class Command(BaseCommand):
         if today != "Tuesday" and not override:
             print(f"Not today {today}")
             return
-        users = User.objects.all()
-        total = users.count()
         guardian_fields = [
             "STUDENT_NUMBER",
             "FIRST_NAME",
@@ -138,30 +138,39 @@ class Command(BaseCommand):
             "CONTACT3_COUNTRY",
             "TERM",
         ]
-
+        users = User.objects.all()
+        total = users.count()
         print("Number of users", total)
-        students = []
-        user: User
-        for i, user in enumerate(users):
-            student_data = {
-                "STUDENT_NUMBER": user.id,  # Student ID number
-                "FIRST_NAME": user.first_name,
-                "LAST_NAME": user.last_name,
-                "CAMPUS_EMAIL": user.email_school,
-                "PERSONAL_EMAIL": user.email,
-                "PREFERRED_NAME": user.preferred_name,
-                "STUDENT_STATUS": user.current_status,  # active alumni, etc
-                "MOBILE_PHONE": user.phone_number,
-                "CLASS_STATUS": user.class_year,  # Year in school at pledging
-                "CLASS_YEAR": user.graduation_year,  # YEAR of graduation
-                "GENDER": user.preferred_pronouns,  # pronouns
-                "ADMIT_TERM": user.class_year,  # Initiation date use Fall 2023, etc
-                "TEAM_SPORT1": user.chapter.name,  # chapter
-                "TEAM_SPORT2": user.chapter.school,  # University
-                "TEAM_SPORT3": ",".join(user.current_roles),  # role
-            }
-            students.append(student_data)
-
+        students = users.values(
+            STUDENT_NUMBER=Coalesce(Cast("id", CharField()), Value("")),
+            FIRST_NAME=Coalesce(F("first_name"), Value("")),
+            LAST_NAME=Coalesce(F("last_name"), Value("")),
+            CAMPUS_EMAIL=Coalesce(F("email_school"), Value("")),
+            PERSONAL_EMAIL=Coalesce(F("email"), Value("")),
+            PREFERRED_NAME=Coalesce(F("preferred_name"), Value("")),
+            STUDENT_STATUS=Coalesce(F("current_status"), Value("")),
+            MOBILE_PHONE=Coalesce(Cast("phone_number", CharField()), Value("")),
+            CLASS_STATUS=Coalesce(F("class_year"), Value("")),
+            CLASS_YEAR=Coalesce(Cast("graduation_year", CharField()), Value("")),
+            GENDER=Coalesce(F("preferred_pronouns"), Value("")),
+            ADMIT_TERM=Coalesce(Cast("initiation__date", CharField()), Value("")),
+            TEAM_SPORT1=Coalesce(F("chapter__name"), Value("")),
+            TEAM_SPORT2=Coalesce(F("chapter__school"), Value("")),
+            TEAM_SPORT3=Coalesce(
+                Func(
+                    F("current_roles"),
+                    Value(", "),
+                    function="array_to_string",
+                    output_field=CharField(),  # tell Django it comes back as text
+                ),
+                Value(""),
+            ),
+        ).exclude(
+            Q(STUDENT_NUMBER="")
+            | Q(FIRST_NAME="")
+            | Q(LAST_NAME="")
+            | Q(CAMPUS_EMAIL="")
+        )
         file_name = f"students-{datetime.date.today().strftime('%Y-%m-%d')}.csv"
         # Write CSV to a binary buffer instead of a file
         csv_buffer = io.StringIO()
@@ -178,6 +187,7 @@ class Command(BaseCommand):
         debug = options.get("debug", False)
         if debug:
             # Save binary CSV to file (optional, for debugging)
+            print("Debug mode: saving CSV to file")
             with open(f"exports/{file_name}", "wb") as f:
                 f.write(csv_bytes)
             return
