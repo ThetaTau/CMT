@@ -1,4 +1,5 @@
 from django.contrib import admin
+
 from .models import Job, JobSearch
 
 
@@ -9,6 +10,7 @@ class JobAdmin(admin.ModelAdmin):
         "publish_start",
         "publish_end",
         "created",
+        "created_by",
     )
     list_filter = [
         "priority",
@@ -21,6 +23,7 @@ class JobAdmin(admin.ModelAdmin):
         "-created",
     ]
     raw_id_fields = ("location", "country")
+    readonly_fields = ("created_by",)
 
 
 class JobSearchAdmin(admin.ModelAdmin):

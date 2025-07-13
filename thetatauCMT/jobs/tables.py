@@ -1,7 +1,6 @@
 import django_tables2 as tables
-from django_tables2.utils import A
-from django.urls import reverse
 from django.utils.safestring import mark_safe
+from django_tables2.utils import A
 
 from .models import Job, JobSearch
 
@@ -21,7 +20,7 @@ class JobTable(tables.Table):
             "contact",
             "keywords",
             "location",
-            "country",
+            "location_type",
         )
         attrs = {"class": "table table-striped table-bordered"}
         empty_text = "There are no jobs matching the search criteria..."

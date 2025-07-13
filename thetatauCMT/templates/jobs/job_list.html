@@ -17,28 +17,36 @@
             {% block table.thead %}
             <thead>
                 <tr>
-                    <th colspan="3">
+                    <th colspan="2" style="vertical-align: middle; text-align: center;">
                       <a href="{% url "jobs:add" %}" class="btn btn-medium btn-primary dark">
-                          <i class="fa fa-briefcase"></i>
-                          Add Job
-                      </a>
-                      <a href="{% url "jobs:search" %}" class="btn btn-medium btn-primary dark">
-                          <i class="fas fa-search"></i>
-                          Search Jobs
+                        <i class="fa fa-briefcase"></i>
+                        Add Job
                       </a>
                     </th>
-                    <th colspan="6">
-                      {% if search_object is not None %}
+                    <th colspan="7">
+                      <a href="{% url "jobs:search" %}" class="btn btn-medium btn-secondary dark">
+                          <i class="fas fa-magnifying-glass-plus"></i>
+                          Advanced Job Searches
+                      </a>
+                      <a href="{% url "jobs:search_filter" 0 %}" class="btn btn-medium btn-warning dark">
+                          <i class="fas fa-search"></i>
+                          My Jobs
+                      </a>
+                      <a href="{% url "jobs:list" %}" class="btn btn-medium btn-danger dark">
+                          <i class="fas fa-eraser"></i>
+                          Clear Advanced Search
+                      </a>
+                      {% if search_object == "user" %}
+                      <p><br>The job list is filtered to show all of the jobs you have created past and present.</p>
+                      {% elif search_object is not None %}
                         <table>
                         <tr>
-                          <th colspan="2">Job list is filtered by the search:<br>
+                          <th colspan="3">Job list is filtered by the search:<br>
                             <a href="{% url "jobs:update_search" search_object.pk %}">
                               {{ search_object.search_title }}</a>
                             {{ search_object.search_description }}
                           </th>
-                          <th>
-                            <button type="button" class="btn btn-warning" onclick="location.href='{% url 'jobs:list' %}';">Clear Search</button>
-                        </th></tr>
+                      </tr>
                           <tr><th>Must Match</th><th>May Match</th><th>Must Not Match</th></tr>
                         <tr>
                           <td>
@@ -66,7 +74,13 @@
                       {% endif %}
                     </th>
                 </tr>
-
+              <tr>
+                <th colspan="11">
+                  <form method="get" class="form-inline form-search pull-right">
+                    {% crispy filter.form filter.form.helper %}
+                  </form>
+                </th>
+              </tr>
               <tr>
                 {% for column in table.columns %}
                     {% if column.orderable %}

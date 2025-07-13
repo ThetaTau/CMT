@@ -1,49 +1,71 @@
 # filters.py
+from functools import reduce
+from operator import or_
+
 import django_filters
-from core.forms import ListSelect2Multiple
+from django.db.models import Q
+from watson import search as watson
+
 from .models import Job, JobSearch
 
 
-class JobListFilter(django_filters.FilterSet):
-    keywords = django_filters.CharFilter(
-        lookup_expr="icontains",
-        widget=ListSelect2Multiple(
-            url="jobs:keyword-autocomplete-ro",
-        ),
+def get_filter_expression(name, value):
+    return reduce(
+        or_,
+        (Q(**{f"{name}__icontains": v}) for v in value),
+        Q(),
     )
+
+
+class JobListFilter(django_filters.FilterSet):
+    text_search = django_filters.CharFilter(
+        method="text_search_filter", label="Free Text Search"
+    )
+
     contact = django_filters.ChoiceFilter(
         label="Contact Available",
         choices=(
-            (True, "True"),
-            (False, "False"),
+            (True, "Contact Available"),
+            (False, "No Contact Available"),
         ),
     )
-    majors_specific = django_filters.ChoiceFilter(
-        choices=(
-            (True, "True"),
-            (False, "False"),
+    education_qualification = django_filters.MultipleChoiceFilter(
+        choices=sorted(
+            [x.value for x in Job.EDUCATION_QUALIFICATION], key=lambda x: x[1]
         ),
+        method="filter_expression",
+    )
+    experience = django_filters.MultipleChoiceFilter(
+        choices=sorted([x.value for x in Job.EXPERIENCE], key=lambda x: x[1]),
+        method="filter_expression",
+    )
+    job_type = django_filters.MultipleChoiceFilter(
+        choices=sorted([x.value for x in Job.JOB_TYPE], key=lambda x: x[1]),
+        method="filter_expression",
+    )
+    location_type = django_filters.MultipleChoiceFilter(
+        choices=sorted([x.value for x in Job.LOCATION_TYPE], key=lambda x: x[1]),
+        method="filter_expression",
     )
 
     class Meta:
         model = Job
         fields = [
-            "title",
-            "company",
+            "text_search",
             "contact",
             "education_qualification",
             "experience",
             "job_type",
-            "majors_specific",
-            "majors",
             "location_type",
-            # "location",
-            "country",
-            "sponsored",
-            "description",
-            "keywords",
         ]
         order_by = ["priority", "-publish_start"]
+
+    def text_search_filter(self, queryset, name, value):
+        """Performs a full text search on the Job model"""
+        return watson.filter(queryset, value, ranking=True)
+
+    def filter_expression(self, queryset, name, value):
+        return queryset.filter(get_filter_expression(name, value))
 
 
 class JobSearchListFilter(django_filters.FilterSet):
