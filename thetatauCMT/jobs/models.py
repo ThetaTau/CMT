@@ -1,17 +1,16 @@
 import os
+
+from address.models import Country, Locality
+from ckeditor_uploader.fields import RichTextUploadingField
 from django.db import models
+from django.db.models.manager import BaseManager
 from django.template.defaultfilters import slugify
 from django.utils import timezone
-from django_userforeignkey.models.fields import UserForeignKey
-from django.db.models.manager import BaseManager
 from django.utils.translation import gettext_lazy as _
+from django_userforeignkey.models.fields import UserForeignKey
 from multiselectfield import MultiSelectField
-from ckeditor_uploader.fields import RichTextUploadingField
-from core.models import TimeStampedModel, EnumClass
-from address.models import (
-    Locality,
-    Country,
-)
+
+from core.models import EnumClass, TimeStampedModel
 
 
 class Keyword(models.Model):
@@ -202,14 +201,10 @@ class Job(TimeStampedModel):
 
     @classmethod
     def get_live_jobs(cls, request=None):
-        user_objs = cls.objects.none()
-        if request is not None:
-            user_objs = cls.objects.filter(created_by=request.user)
         return (
             cls.objects.filter(
                 publish_start__lte=timezone.now(), publish_end__gte=timezone.now()
             )
-            | user_objs
         ).distinct()
 
 
@@ -486,6 +481,8 @@ class JobSearch(TimeStampedModel):
                     filter_val_text = filter_val_texts[ind]
                     # if filter_type.endswith("in"):
                     #     filter_val = [filter_val]
+                    if not filter_val_text:
+                        continue
                     if operator_val == self.FILTER.include.name:
                         search_description_ands.append(f"{text}: {filter_val_text}")
                         ands &= models.Q(**{f"{filter_name}{filter_type}": filter_val})

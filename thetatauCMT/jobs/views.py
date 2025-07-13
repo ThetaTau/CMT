@@ -1,34 +1,32 @@
-from django.urls import reverse
-from django.views.generic import (
-    DetailView,
-    UpdateView,
-    RedirectView,
-    CreateView,
-    FormView,
-)
-from django.db.models import Q
-from django.http.request import QueryDict
 from dal import autocomplete
-from core.views import (
-    PagedFilteredTableView,
-    TypeFieldFilteredChapterAdd,
-    LoginRequiredMixin,
-    NatOfficerRequiredMixin,
-)
-from .models import Job, Keyword, Major, JobSearch
-from .tables import JobTable, JobSearchTable
+from django.contrib import messages
+from django.db.models import Q
+from django.shortcuts import redirect
+from django.urls import reverse
+from django.utils import timezone
+from django.views.generic import CreateView, DetailView, RedirectView, UpdateView
+
+from core.views import LoginRequiredMixin, PagedFilteredTableView
+
 from .filters import JobListFilter, JobSearchListFilter
-from .forms import (
-    JobListFormHelper,
-    JobForm,
-    JobSearchForm,
-    JobSearchFormHelper,
-    JobSearchListFormHelper,
-)
+from .forms import JobForm, JobListFormHelper, JobSearchForm, JobSearchListFormHelper
+from .models import Job, JobSearch, Keyword, Major
+from .tables import JobSearchTable, JobTable
 
 
 class JobDetailView(LoginRequiredMixin, DetailView):
     model = Job
+
+    def dispatch(self, request, *args, **kwargs):
+        obj = self.get_object()
+        now = timezone.now().date()
+        if (
+            (obj.publish_start and now < obj.publish_start)
+            or (obj.publish_end and now > obj.publish_end)
+        ) and obj.created_by != request.user:
+            messages.error(request, f"The job {obj.title} is not currently available.")
+            return redirect("jobs:list")
+        return super().dispatch(request, *args, **kwargs)
 
 
 class JobCreateView(
@@ -54,7 +52,7 @@ class JobSearchCreateView(
     form_class = JobSearchForm
 
     def get_success_url(self):
-        return reverse("jobs:list")
+        return reverse("jobs:search")
 
 
 class JobCopyView(JobCreateView):
@@ -103,6 +101,13 @@ class JobUpdateView(
     def get_success_url(self):
         return reverse("jobs:list")
 
+    def dispatch(self, request, *args, **kwargs):
+        obj = self.get_object()
+        if obj.created_by != request.user:
+            messages.error(request, "You are not allowed to edit the job.")
+            return redirect("jobs:detail", pk=obj.pk, slug=obj.slug)
+        return super().dispatch(request, *args, **kwargs)
+
     def post(self, request, *args, **kwargs):
         return super().post(request, *args, **kwargs)
 
@@ -135,13 +140,19 @@ class JobListView(LoginRequiredMixin, PagedFilteredTableView):
     def get(self, request, *args, **kwargs):
         pk = self.kwargs.get(self.pk_url_kwarg)
         if pk is not None:
-            self.search_object = JobSearch.objects.get(pk=pk)
+            if pk == "0":
+                self.search_object = "user"
+            else:
+                self.search_object = JobSearch.objects.get(pk=pk)
         return super().get(request, *args, **kwargs)
 
     def get_queryset(self, **kwargs):
         self.queryset = self.model.get_live_jobs(request=self.request)
         queryset = super().get_queryset(**kwargs)
-        if self.search_object is not None:
+        if self.search_object == "user":
+            queryset = self.model.objects.filter(created_by=self.request.user)
+            queryset = super().get_queryset(other_qs=queryset, **kwargs)
+        elif self.search_object is not None:
             (
                 queryset,
                 search_description_ands,

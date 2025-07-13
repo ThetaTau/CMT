@@ -1,18 +1,17 @@
-from address.models import Locality
+from address.models import Country, Locality
+from crispy_forms.bootstrap import Field, FormActions, InlineField, StrictButton
 from crispy_forms.helper import FormHelper
-from crispy_forms.layout import Layout, Fieldset, Row, Submit, Column
-from crispy_forms.bootstrap import FormActions, InlineField, StrictButton, Field
+from crispy_forms.layout import Column, Fieldset, Layout, Row, Submit
 from django import forms
 from tempus_dominus.widgets import DatePicker
-from address.models import (
-    Country,
-)
-from .models import Job, JobSearch, Keyword, Major
+
 from core.forms import (
-    Select2ListCreateMultipleChoiceField,
     ListSelect2Multiple,
+    Select2ListCreateMultipleChoiceField,
     set_multiple_choices_initial,
 )
+
+from .models import Job, JobSearch, Keyword, Major
 
 
 class JobListFormHelper(FormHelper):
@@ -30,7 +29,7 @@ class JobListFormHelper(FormHelper):
         extra = []
         self.layout = Layout(
             Fieldset(
-                '<i class="fas fa-search"></i> Filter Jobs',
+                '<i class="fas fa-search"></i> Quick Filter Jobs',
                 Row(
                     InlineField("text_search"),
                     InlineField("education_qualification"),
@@ -41,11 +40,11 @@ class JobListFormHelper(FormHelper):
                     *extra,
                     FormActions(
                         StrictButton(
-                            '<i class="fa fa-search"></i> Filter',
+                            '<i class="fa fa-filter"></i> Filter',
                             type="submit",
                             css_class="btn-primary",
                         ),
-                        Submit("cancel", "Clear", css_class="btn-primary"),
+                        Submit("cancel", "Clear Quick Filter", css_class="btn-primary"),
                     ),
                 ),
             ),
@@ -300,7 +299,7 @@ class JobSearchListFormHelper(FormHelper):
         extra = []
         self.layout = Layout(
             Fieldset(
-                '<i class="fas fa-search"></i> Filter Job Searches',
+                '<i class="fas fa-search"></i> Quick Filter Job Searches',
                 Column(
                     Field("search_title"),
                     *extra,
