@@ -5,31 +5,20 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Attach: Django",
-            "type": "python",
-            "request": "attach",
-            "pathMappings": [
-              {
-                "localRoot": "${workspaceFolder}",
-                "remoteRoot": "/app"
-              }
-            ],
-            "port": 3000,
+          "name": "Attach: Django",
+          "type": "debugpy",
+          "request": "attach",
+          "django": true,
+          "connect": {
             "host": "localhost",
-        },
-        {
-            "name": "Python: Django",
-            "type": "python",
-            "request": "launch",
-            "program": "${workspaceFolder}/manage.py",
-            "args": [
-                "runserver"
-            ],
-            "env": {
-              "DJANGO_DEBUG": "TRUE",
-              "DJANGO_EMAIL_LIVE": "False"
-            },
-            "django": true
+            "port": 5678
+          },
+          "pathMappings": [
+            {
+              "localRoot": "${workspaceFolder}",
+              "remoteRoot": "/app"
+            }
+          ]
         }
     ]
 }
