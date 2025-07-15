@@ -4,6 +4,7 @@ import io
 
 import environ
 import requests
+from django.conf import settings
 from django.core.management import BaseCommand
 from django.db.models import CharField, F, Func, Q, Value
 from django.db.models.functions import Cast, Coalesce
@@ -196,6 +197,7 @@ class Command(BaseCommand):
         api = f"{url}/api/auth/login/admin"
 
         env = environ.Env()
+        env.read_env(str(settings.ROOT_DIR / ".env"))
         email = env("GUARDIAN_EMAIL")
         password = env("GUARDIAN_PASSWORD")
 
@@ -207,7 +209,7 @@ class Command(BaseCommand):
 
         if response.status_code == 200:
             response_data = response.json()
-            print(f"Login successful {response_data}")
+            print(f"Login successful {response_data}\n\n")
         else:
             print(f"Login failed: {response.status_code}")
             print(response.text)
@@ -216,10 +218,8 @@ class Command(BaseCommand):
         upload_url = f"{url}/api/file/upload"
         headers = {
             "Authorization": f"Bearer {access_token}",
-            "Accept": "application/json",
-            "Content-Type": "application/json",
         }
-        files = {"file": (file_name, csv_buffer, "text/csv")}
+        files = [("file", (file_name, csv_bytes, "text/csv"))]
         data = {
             "key": "data_import",
         }
@@ -229,10 +229,10 @@ class Command(BaseCommand):
 
         if upload_response.status_code == 200:
             upload_result = upload_response.json()
-            print(f"File upload successful {upload_result}")
+            print(f"File upload successful {upload_result}\n\n")
         else:
             print(f"File upload failed: {upload_response.status_code}")
-            print(upload_response.text)
+            print(upload_response.text, upload_response.reason)
             return
 
         data_import_url = f"{url}/api/data-import"
