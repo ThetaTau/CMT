@@ -31,6 +31,11 @@ def lookup(value, arg):
     return return_value
 
 
+@register.filter(name="split")
+def split(value, key):
+    return value.split(key)
+
+
 @register.filter
 def get_fields(obj):
     fields = []
