@@ -23,7 +23,7 @@ services:
     ports:
       - "8000:8000" # webserver
       - "8888:8888" # ipython notebook
-      - "3000:3000" # Debugger
+      - "5678:5678" # Debugger
     command: /start
 
   postgres:

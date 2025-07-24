@@ -278,16 +278,16 @@ class RegionTaskView(LoginRequiredMixin, NatOfficerRequiredMixin, DetailView):
             chapter_name = chapter.name.replace(" ", "_")
             column_link = f"{chapter_name}_complete_link"
             qs = qs.annotate(
-                    **{
-                        column_link: models.Case(
-                            models.When(
-                                models.Q(chapters__chapter=chapter),
-                                models.F("chapters__pk"),
-                            ),
-                            default=models.Value(0),
-                        )
-                    }
-                )
+                **{
+                    column_link: models.Case(
+                        models.When(
+                            models.Q(chapters__chapter=chapter),
+                            models.F("chapters__pk"),
+                        ),
+                        default=models.Value(0),
+                    )
+                }
+            )
             qs = qs.distinct()
             # Distinct sees incomplete/complete as different, so need to combine
             complete = qs.exclude(**{column_link: 0})
@@ -303,9 +303,8 @@ class RegionTaskView(LoginRequiredMixin, NatOfficerRequiredMixin, DetailView):
                 (
                     column_link,
                     TaskLinkColumn(
-                        verbose_name=chapter_name.replace("_", " "),
-                        empty_values=()
-                    )
+                        verbose_name=chapter_name.replace("_", " "), empty_values=()
+                    ),
                 )
             )
         all_chapters_tasks = all_chapters_tasks.values()

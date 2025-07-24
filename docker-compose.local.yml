@@ -1,13 +1,14 @@
 volumes:
   thetataucmt_local_postgres_data: {}
   thetataucmt_local_postgres_data_backups: {}
-  
 
 services:
   django:
     build:
       context: .
       dockerfile: ./compose/local/django/Dockerfile
+      args:
+        - DEBUGPY_ON=${DEBUGPY_ON:-0}
     image: thetataucmt_local_django
     container_name: thetataucmt_local_django
     depends_on:
@@ -19,7 +20,9 @@ services:
       - ./.envs/.local/.django
       - ./.envs/.local/.postgres
     ports:
-      - '8000:8000'
+      - "8000:8000" # webserver
+      - "8888:8888" # ipython notebook
+      - "5678:5678" # Debugger
     command: /start
 
   postgres:

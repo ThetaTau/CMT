@@ -1,0 +1,18 @@
+<!-- FOR CREATING A NEW EVENT -->
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+{% load static %}
+{% load crispy_forms_field %}
+{% block title %}Job Search{% endblock %}
+{% block content %}
+  {% if object %}
+    <h1>Update Job Search</h1>
+  {% else %}
+    <h1>Create New Job Search</h1>
+  {% endif %}
+  <form class="form-horizontal" enctype="multipart/form-data" method="post" novalidate>
+    {% csrf_token %}
+    {{ form.media }}
+    {% crispy form %}
+  </form>
+{% endblock %}

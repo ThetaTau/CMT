@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+{% load static %}
+{% load crispy_forms_field %}
+{% block title %}Update Job: {{ job.name }}{% endblock %}
+{% block content %}
+  <h1>Update Job: {{ job.name }}</h1>
+  <h4>Created By: {{ job.created_by }} {{ job.created }}</h4>
+  <form class="form-horizontal" enctype="multipart/form-data" method="post" novalidate>
+    {% csrf_token %}
+    {{ form.media }}
+    {{ form|crispy }}
+    <button type="button" class="btn btn-secondary" onclick="window.history.back();">Cancel</button>
+    <button type="submit" class="btn btn-primary" value="Save">Update</button>
+  </form>
+{% endblock %}

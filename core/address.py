@@ -2,6 +2,7 @@ import math
 from haversine import haversine
 from django.conf import settings
 from django.db.models import Q
+from dal import autocomplete
 from address.models import (
     InconsistentDictError,
     State,
@@ -256,3 +257,15 @@ def isinradius(zip, distance):
         if haversine(point, (z.latitude, z.longitude)) <= float(distance):
             zips_in_radius.append(z)
     return zips_in_radius
+
+
+class ZipCodeAutocomplete(autocomplete.Select2QuerySetView):
+    def get_queryset(self):
+        qs = Locality.objects.none()
+        if self.request.user.is_authenticated:
+            if self.q:
+                qs = Locality.objects.all()
+                qs = qs.filter(
+                    Q(name__icontains=self.q) | Q(postal_code__icontains=self.q)
+                )
+        return qs.order_by("postal_code")

@@ -50,7 +50,9 @@ class CustomUserManager(UserManager):
             Chapter(name="Test Chapter", region=region).save()
             chapter = Chapter.objects.first()
         extra_fields.setdefault("chapter", chapter)
-        superuser = super().create_superuser(email=email, password=password, **extra_fields)
+        superuser = super().create_superuser(
+            email=email, password=password, **extra_fields
+        )
         self._give_superuser_natoff_roles(superuser)
 
     def _give_superuser_natoff_roles(self, superuser):
@@ -61,6 +63,7 @@ class CustomUserManager(UserManager):
         nat_group, _ = Group.objects.get_or_create(name="natoff")
         off_group.user_set.add(superuser)
         nat_group.user_set.add(superuser)
+
 
 class User(AbstractUser, EmailSignalMixin):
     class EMERGENCY_RELATIONSHIP(EnumClass):
@@ -203,7 +206,7 @@ class User(AbstractUser, EmailSignalMixin):
             ("senior", "Senior"),
             ("senior_plus", "Senior +"),
             ("graduate_student", "Graduate Student"),
-            ("none", "")
+            ("none", ""),
         ],
     )
     phone_number = models.CharField(
@@ -318,15 +321,14 @@ class User(AbstractUser, EmailSignalMixin):
             start = start.date()
         if isinstance(status, UserStatusChange):
             status = status.status
-        if end > TODAY >= start:
-            if current:
-                # If the current status is being set.
-                current_status = self.status.filter(
-                    start__lte=TODAY_END, end__gte=TODAY_END
-                ).all()
-                for old_status in current_status:
-                    old_status.end = start - datetime.timedelta(days=1)
-                    old_status.save()
+        if current:
+            # If the current status is being set, previous status should end at the start
+            current_status = self.status.filter(
+                start__lte=TODAY_END, end__gte=TODAY_END
+            ).all()
+            for old_status in current_status:
+                old_status.end = start - datetime.timedelta(days=1)
+                old_status.save()
         if status is None:
             # if alumni, set back alumni, else nonmember
             status = "alumni"

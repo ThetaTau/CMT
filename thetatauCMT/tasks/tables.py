@@ -31,13 +31,7 @@ class TaskTable(tables.Table):
         extra_columns = []
         if complete:
             extra_columns.extend(
-                [
-                    (
-                        "complete_link", tables.Column(
-                            verbose_name="Complete Link"
-                        )
-                    )
-                ]
+                [("complete_link", tables.Column(verbose_name="Complete Link"))]
             )
         kwargs["extra_columns"] = extra_columns
         super().__init__(*args, **kwargs)
@@ -46,11 +40,13 @@ class TaskTable(tables.Table):
         task = record.task
         value = task.render_task_link
         return value
-    
+
     def render_complete_link(self, value):
         if value != 0:
-            url = reverse('tasks:detail', args=[value])
-            value = mark_safe(f'<a href="{url}" target="_blank">Completed Task Information</a>')
+            url = reverse("tasks:detail", args=[value])
+            value = mark_safe(
+                f'<a href="{url}" target="_blank">Completed Task Information</a>'
+            )
         else:
             value = mark_safe("<i>None</i>")
         return value
