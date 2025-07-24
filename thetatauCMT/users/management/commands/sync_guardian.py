@@ -11,7 +11,7 @@ from django.db.models.functions import Cast, Coalesce
 from users.models import User
 
 
-# python manage.py sync_guardian -override -debug
+# python manage.py sync_guardian -override -debug -full
 class Command(BaseCommand):
     # Show this when the user types help
     help = "Sync member data with Guardian Conduct System"
@@ -19,6 +19,7 @@ class Command(BaseCommand):
     def add_arguments(self, parser):
         parser.add_argument("-override", action="store_true")
         parser.add_argument("-debug", action="store_true")
+        parser.add_argument("-full", action="store_true")
 
     # A command must define handle()
     def handle(self, *args, **options):
@@ -138,8 +139,30 @@ class Command(BaseCommand):
             "CONTACT3_ZIP",
             "CONTACT3_COUNTRY",
             "TERM",
+            "PREFERRED_PRONOUNS",
+            "CHAPTER_NAME",
+            "CHAPTER_SCHOOL",
+            "CURRENT_ROLES",
+            "USER_NAME",
         ]
-        users = User.objects.all()
+        full = options.get("full", False)
+        if full:
+            users = User.objects.all()
+        else:
+            # we only need PNMs and actives moving forward
+            users = User.objects.filter(
+                current_status__in=[
+                    "active",
+                    "activepend",
+                    "alumnipend",
+                    "pendexpul",
+                    "probation",
+                    "suspended",
+                    "activeCC",
+                    "away",
+                    "pnm",
+                ],
+            )
         total = users.count()
         print("Number of users", total)
         students = users.values(
@@ -153,11 +176,12 @@ class Command(BaseCommand):
             MOBILE_PHONE=Coalesce(Cast("phone_number", CharField()), Value("")),
             CLASS_STATUS=Coalesce(F("class_year"), Value("")),
             CLASS_YEAR=Coalesce(Cast("graduation_year", CharField()), Value("")),
-            GENDER=Coalesce(F("preferred_pronouns"), Value("")),
+            PREFERRED_PRONOUNS=Coalesce(F("preferred_pronouns"), Value("")),
             ADMIT_TERM=Coalesce(Cast("initiation__date", CharField()), Value("")),
-            TEAM_SPORT1=Coalesce(F("chapter__name"), Value("")),
-            TEAM_SPORT2=Coalesce(F("chapter__school"), Value("")),
-            TEAM_SPORT3=Coalesce(
+            CHAPTER_NAME=Coalesce(F("chapter__name"), Value("")),
+            CHAPTER_SCHOOL=Coalesce(F("chapter__school"), Value("")),
+            USER_NAME=Coalesce(F("username"), Value("")),
+            CURRENT_ROLES=Coalesce(
                 Func(
                     F("current_roles"),
                     Value(", "),
