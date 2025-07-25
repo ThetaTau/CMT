@@ -95,11 +95,11 @@ class JobForm(forms.ModelForm):
             attrs={"autocomplete": "off"},
         ),
     )
-    country = forms.ModelChoiceField(
-        queryset=Country.objects.all(),
-        initial=Country.objects.get(name="United States"),
-        help_text="What country is this job posting for?",
-    )
+    # country = forms.ModelChoiceField(
+    #     queryset=Country.objects.all(),
+    #     initial=Country.objects.get(name="United States"),
+    #     help_text="What country is this job posting for?",
+    # )
 
     class Meta:
         model = Job
