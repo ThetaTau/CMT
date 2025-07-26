@@ -12,7 +12,7 @@ from django.http import HttpResponse
 from django.urls import reverse
 from django.forms.models import modelformset_factory
 from django.shortcuts import render, redirect
-from django.utils.http import is_safe_url, urlsafe_base64_encode
+from django.utils.http import url_has_allowed_host_and_scheme, urlsafe_base64_encode
 from django.utils.encoding import force_bytes
 from django.contrib import messages
 from django.views.generic import RedirectView, FormView, DetailView, UpdateView
@@ -860,7 +860,7 @@ class UserAlterView(LoginRequiredMixin, NatOfficerRequiredMixin, FormView):
 
     def get_success_url(self):
         redirect_to = self.request.POST.get("next", "")
-        url_is_safe = is_safe_url(redirect_to, allowed_hosts=None)
+        url_is_safe = url_has_allowed_host_and_scheme(redirect_to, allowed_hosts=None)
         if self.request.user.is_anonymous:
             return reverse("home")
         if redirect_to and url_is_safe and "chapters" not in redirect_to:

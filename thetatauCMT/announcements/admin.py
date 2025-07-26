@@ -2,6 +2,7 @@ from django.contrib import admin
 from .models import Announcement
 
 
+@admin.register(Announcement)
 class AnnouncementAdmin(admin.ModelAdmin):
     fields = ["title", "priority", "publish_start", "publish_end", "content"]
     list_display = (
@@ -21,6 +22,3 @@ class AnnouncementAdmin(admin.ModelAdmin):
     ordering = [
         "-created",
     ]
-
-
-admin.site.register(Announcement, AnnouncementAdmin)

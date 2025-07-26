@@ -1,4 +1,4 @@
-from django.conf.urls import url
+from django.urls import path
 from django.urls import path
 
 from . import views
@@ -12,18 +12,18 @@ urlpatterns = [
         view=views.JobListView.as_view(),
         name="search_filter",
     ),
-    url(
-        r"^keyword-autocomplete/$",
+    path(
+        "keyword-autocomplete/",
         views.KeywordAutocomplete.as_view(create_field="name"),
         name="keyword-autocomplete",
     ),
-    url(
-        r"^keyword-autocomplete-ro/$",
+    path(
+        "keyword-autocomplete-ro/",
         views.KeywordAutocomplete.as_view(),
         name="keyword-autocomplete-ro",
     ),
-    url(
-        r"^major-autocomplete/$",
+    path(
+        "major-autocomplete/",
         views.MajorAutocomplete.as_view(create_field="name"),
         name="major-autocomplete",
     ),

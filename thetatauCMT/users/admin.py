@@ -98,6 +98,7 @@ class StatusListFilter(admin.SimpleListFilter):
         return queryset.filter(**self.used_parameters)
 
 
+@admin.register(UserStatusChange)
 class UserStatusChangeAdmin(ImportExportActionModelAdmin):
     raw_id_fields = ["user"]
     list_display = ("user", status, "created", user_chapter, "start", "end")
@@ -116,9 +117,7 @@ class UserStatusChangeAdmin(ImportExportActionModelAdmin):
     resource_class = UserStatusChangeResource
 
 
-admin.site.register(UserStatusChange, UserStatusChangeAdmin)
-
-
+@admin.register(UserDemographic)
 class UserDemographicAdmin(admin.ModelAdmin):
     exclude = ("user",)
     list_display = (
@@ -142,9 +141,7 @@ class UserDemographicAdmin(admin.ModelAdmin):
     search_fields = ["user__chapter__name"]
 
 
-admin.site.register(UserDemographic, UserDemographicAdmin)
-
-
+@admin.register(UserOrgParticipate)
 class UserOrgParticipateAdmin(admin.ModelAdmin):
     raw_id_fields = ["user"]
     list_display = ("user", "org_name", "type", "officer", "start", "end")
@@ -158,9 +155,7 @@ class UserOrgParticipateAdmin(admin.ModelAdmin):
     )
 
 
-admin.site.register(UserOrgParticipate, UserOrgParticipateAdmin)
-
-
+@admin.register(UserSemesterGPA)
 class UserSemesterGPAAdmin(admin.ModelAdmin):
     raw_id_fields = ["user"]
     list_display = ("user", "gpa", "year", "term")
@@ -174,9 +169,7 @@ class UserSemesterGPAAdmin(admin.ModelAdmin):
     )
 
 
-admin.site.register(UserSemesterGPA, UserSemesterGPAAdmin)
-
-
+@admin.register(UserSemesterServiceHours)
 class UserSemesterServiceHoursAdmin(admin.ModelAdmin):
     raw_id_fields = ["user"]
     list_display = ("user", "service_hours", "year", "term")
@@ -188,9 +181,6 @@ class UserSemesterServiceHoursAdmin(admin.ModelAdmin):
         "created_by",
         "modified_by",
     )
-
-
-admin.site.register(UserSemesterServiceHours, UserSemesterServiceHoursAdmin)
 
 
 class MemberInline(admin.TabularInline):
@@ -205,6 +195,7 @@ class MemberInline(admin.TabularInline):
         return False
 
 
+@admin.register(UserRoleChange)
 class UserRoleChangeAdmin(ImportExportActionModelAdmin):
     list_display = ("user", "role", "start", "end", "created", user_chapter)
     list_filter = ["start", "end", "role", "created", "user__chapter"]
@@ -213,9 +204,6 @@ class UserRoleChangeAdmin(ImportExportActionModelAdmin):
     ]
     raw_id_fields = ["user"]
     resource_class = UserRoleChangeResource
-
-
-admin.site.register(UserRoleChange, UserRoleChangeAdmin)
 
 
 class MyUserChangeForm(UserChangeForm):
@@ -589,6 +577,7 @@ class MyUserAdmin(
                 instance.save()
         formset.save()
 
+    @admin.action(description="Fix Badge Numbers")
     def badge_fix(self, request, queryset):
         if "apply" in request.POST:
             badge_file = request.FILES.get("badge_file")
@@ -606,8 +595,7 @@ class MyUserAdmin(
             context={"form": form},
         )
 
-    badge_fix.short_description = "Fix Badge Numbers"
-
+    @admin.action(description="Update Status")
     def update_status(self, request, queryset):
         if "apply" in request.POST:
             new_status = request.POST.get("status")
@@ -632,8 +620,6 @@ class MyUserAdmin(
             "admin/update_status.html",
             context={"form": form},
         )
-
-    update_status.short_description = "Update Status"
 
 
 @admin.register(LogEntry)
@@ -664,6 +650,10 @@ class LogEntryAdmin(admin.ModelAdmin):
     def has_view_permission(self, request, obj=None):
         return request.user.is_superuser
 
+    @admin.display(
+        description="object",
+        ordering="object_repr",
+    )
     def object_link(self, obj):
         if obj.action_flag == DELETION:
             link = escape(obj.object_repr)
@@ -678,10 +668,8 @@ class LogEntryAdmin(admin.ModelAdmin):
             )
         return mark_safe(link)
 
-    object_link.admin_order_field = "object_repr"
-    object_link.short_description = "object"
 
-
+@admin.register(MemberUpdate)
 class MemberUpdateAdmin(admin.ModelAdmin):
     raw_id_fields = ["user"]
     list_display = (
@@ -702,6 +690,3 @@ class MemberUpdateAdmin(admin.ModelAdmin):
         "-created",
     ]
     search_fields = ["user__name", "first_name", "last_name"]
-
-
-admin.site.register(MemberUpdate, MemberUpdateAdmin)

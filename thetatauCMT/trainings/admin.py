@@ -6,6 +6,7 @@ from .forms import UserAdminTrainingForm
 
 
 class AssignTrainingMixin:
+    @admin.action(description="Assign Member Training")
     def assign_training(self, request, queryset):
         try:
             extra_groups = Training.get_extra_groups()
@@ -42,8 +43,6 @@ class AssignTrainingMixin:
             context={"form": form},
         )
 
-    assign_training.short_description = "Assign Member Training"
-
 
 class TrainingInline(admin.TabularInline):
     model = Training
@@ -65,6 +64,7 @@ class TrainingInline(admin.TabularInline):
         return False
 
 
+@admin.register(Training)
 class TrainingAdmin(admin.ModelAdmin):
     raw_id_fields = ["user"]
     list_display = ("user", "course_title", "completed", "completed_time")
@@ -72,6 +72,3 @@ class TrainingAdmin(admin.ModelAdmin):
     ordering = [
         "-completed_time",
     ]
-
-
-admin.site.register(Training, TrainingAdmin)

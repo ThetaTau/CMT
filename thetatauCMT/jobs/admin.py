@@ -3,6 +3,7 @@ from django.contrib import admin
 from .models import Job, JobSearch
 
 
+@admin.register(Job)
 class JobAdmin(admin.ModelAdmin):
     list_display = (
         "title",
@@ -26,6 +27,7 @@ class JobAdmin(admin.ModelAdmin):
     readonly_fields = ("created_by",)
 
 
+@admin.register(JobSearch)
 class JobSearchAdmin(admin.ModelAdmin):
     list_display = (
         "search_title",
@@ -42,7 +44,3 @@ class JobSearchAdmin(admin.ModelAdmin):
         "-created",
     ]
     raw_id_fields = ("location", "country")
-
-
-admin.site.register(JobSearch, JobSearchAdmin)
-admin.site.register(Job, JobAdmin)

@@ -4,6 +4,7 @@ from .models import Event
 # Register your models here.
 
 
+@admin.register(Event)
 class EventAdmin(admin.ModelAdmin):
     list_display = ("name", "date", "chapter", "type", "description")
     list_filter = ["chapter", "type"]
@@ -14,6 +15,3 @@ class EventAdmin(admin.ModelAdmin):
         "created_by",
         "modified_by",
     )
-
-
-admin.site.register(Event, EventAdmin)

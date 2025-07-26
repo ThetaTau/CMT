@@ -10,6 +10,7 @@ class TaskChapterInline(admin.TabularInline):
     extra = 1
 
 
+@admin.register(TaskDate)
 class TaskDateAdmin(admin.ModelAdmin):
     inlines = [TaskChapterInline]
     list_display = ("task", "date", "school_type")
@@ -17,9 +18,6 @@ class TaskDateAdmin(admin.ModelAdmin):
     ordering = [
         "date",
     ]
-
-
-admin.site.register(TaskDate, TaskDateAdmin)
 
 
 class TaskDateInline(admin.TabularInline):
@@ -30,6 +28,7 @@ class TaskDateInline(admin.TabularInline):
     extra = 1
 
 
+@admin.register(Task)
 class TaskAdmin(admin.ModelAdmin):
     inlines = [TaskDateInline]
     list_display = (
@@ -46,6 +45,7 @@ class TaskAdmin(admin.ModelAdmin):
     ]
 
 
+@admin.register(TaskChapter)
 class TaskChapterAdmin(admin.ModelAdmin):
     list_display = ("task", "chapter", "date", "submission_type")
     list_filter = ["chapter", "date"]
@@ -56,7 +56,3 @@ class TaskChapterAdmin(admin.ModelAdmin):
         "created_by",
         "modified_by",
     )
-
-
-admin.site.register(Task, TaskAdmin)
-admin.site.register(TaskChapter, TaskChapterAdmin)

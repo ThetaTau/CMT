@@ -23,6 +23,7 @@ def user(obj):
 class ReportAdminSync(ReportAdmin):
     ReportAdmin.list_display += ("sync_mail",)
 
+    @admin.display(description="Email Sync")
     def sync_mail(self, model_object):
         return mark_safe(
             f'<a href="{reverse("users:sync_email_provider", kwargs={"report_id": model_object.id})}"'
@@ -30,9 +31,6 @@ class ReportAdminSync(ReportAdmin):
             '<img style="width: 26px; margin: -6px" src="'
             f'{getattr(settings, "STATIC_URL", "/static/")}report_builder/img/reorder.svg"/></a>'
         )
-
-    sync_mail.short_description = "Email Sync"
-    sync_mail.allow_tags = True
 
 
 class SentNotificationAdminUpdate(SentNotificationAdmin):

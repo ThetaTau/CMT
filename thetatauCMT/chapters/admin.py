@@ -12,6 +12,7 @@ class ChapterCurriculaInline(admin.TabularInline):
     show_change_link = True
 
 
+@admin.register(Chapter)
 class ChapterAdmin(admin.ModelAdmin, DuesSyncMixin, SignalWatchMixin):
     object_type = "chapter"
     actions = [
@@ -43,6 +44,3 @@ class ChapterAdmin(admin.ModelAdmin, DuesSyncMixin, SignalWatchMixin):
                 instance.modified_by = user
                 instance.save()
         formset.save()
-
-
-admin.site.register(Chapter, ChapterAdmin)

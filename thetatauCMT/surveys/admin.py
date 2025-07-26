@@ -18,6 +18,7 @@ from .models import DepledgeSurvey, Survey
 EXCEL_COMPATIBLE_CSV = False
 
 
+@admin.register(DepledgeSurvey)
 class DepledgeSurveyAdmin(ExportActionModelAdmin):
     raw_id_fields = ["user"]
     list_display = (
@@ -85,6 +86,7 @@ class Survey2CsvUpdated(Survey2Csv):
         return response
 
 
+@admin.register(Survey)
 class SurveyAdminUpdated(SurveyAdmin):
     actions = [
         make_published,
@@ -93,10 +95,7 @@ class SurveyAdminUpdated(SurveyAdmin):
     ]
 
 
-admin.site.register(DepledgeSurvey, DepledgeSurveyAdmin)
-
 admin.site.unregister(Survey_orig)
-admin.site.register(Survey, SurveyAdminUpdated)
 
 admin.site.unregister(Response)
 admin.site.register(Response, ResponseAdmin)

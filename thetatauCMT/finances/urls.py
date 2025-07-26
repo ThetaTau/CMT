@@ -1,13 +1,13 @@
-from django.conf.urls import url
+from django.urls import path
 
 from . import views
 
 app_name = "finances"
 urlpatterns = [
-    url(regex=r"^$", view=views.InvoiceListView.as_view(), name="list"),
-    url(
-        regex=r"^chapters/$",
-        view=views.ChapterBalancesListView.as_view(),
+    path("", views.InvoiceListView.as_view(), name="list"),
+    path(
+        "chapters/",
+        views.ChapterBalancesListView.as_view(),
         name="chapters",
     ),
 ]

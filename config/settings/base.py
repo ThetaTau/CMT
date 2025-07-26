@@ -1,6 +1,7 @@
 """
 Base settings to build other settings files upon.
 """
+
 from pathlib import Path
 from google.oauth2 import service_account
 import environ
@@ -34,7 +35,6 @@ SITE_ID = 1
 # https://docs.djangoproject.com/en/dev/ref/settings/#use-i18n
 USE_I18N = True
 # https://docs.djangoproject.com/en/dev/ref/settings/#use-l10n
-USE_L10N = True
 # https://docs.djangoproject.com/en/dev/ref/settings/#use-tz
 USE_TZ = True
 # https://docs.djangoproject.com/en/dev/ref/settings/#locale-paths
@@ -102,7 +102,7 @@ THIRD_PARTY_APPS = [
     "watson",
     "ckeditor",
     "ckeditor_uploader",
-    "captcha",
+    "django_recaptcha",
     "report_builder",
     "django_otp",
     "django_otp.plugins.otp_static",
@@ -199,6 +199,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django_otp.middleware.OTPMiddleware",
     "allauth_2fa.middleware.AllauthTwoFactorMiddleware",
+    "allauth.account.middleware.AccountMiddleware",
     "oauth2_provider.middleware.OAuth2TokenMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.common.BrokenLinkEmailsMiddleware",
@@ -390,6 +391,8 @@ if GOOGLE_API_KEY == "TESTING":
             GOOGLE_API_KEY = key_file.read()
     except FileNotFoundError:
         warnings.warn("GOOGLE_API_KEY is not set in environment or secrets folder!")
+
+FILE_STORAGE_TO_USE = "django.core.files.storage.FileSystemStorage"
 try:
     GOOGLE_APPLICATION_CREDENTIALS = env(
         "GOOGLE_APPLICATION_CREDENTIALS",
@@ -404,7 +407,7 @@ except FileNotFoundError:
     )
 else:
     # GoogleCloudStorage LINK https://console.cloud.google.com/storage/browser/theta-tau?authuser=3&folder=true&organizationId=true&project=chaptermanagementtool
-    DEFAULT_FILE_STORAGE = "storages.backends.gcloud.GoogleCloudStorage"
+    FILE_STORAGE_TO_USE = "storages.backends.gcloud.GoogleCloudStorage"
     GS_BUCKET_NAME = "theta-tau"
     GS_DEFAULT_ACL = "publicRead"
 

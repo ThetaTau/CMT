@@ -35,7 +35,7 @@ CACHES = {
 DATABASES = {
     "default": env.db(
         "DATABASE_URL",
-        default="postgres://thetatau:test@postgres:5432/thetatauCMT",
+        default="postgres://thetatau:test@host.docker.internal:5433/thetatauCMT",
     ),
 }
 DATABASES["default"]["ATOMIC_REQUESTS"] = True
@@ -132,7 +132,14 @@ IPYTHON_ARGUMENTS = [
 
 IPYTHON_KERNEL_DISPLAY_NAME = "Django Shell-Plus"
 
-DEFAULT_FILE_STORAGE = "django.core.files.storage.FileSystemStorage"
+STORAGES = {
+    "default": {
+        "BACKEND": FILE_STORAGE_TO_USE,
+    },
+    "staticfiles": {
+        "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+    },
+}
 # GOOGLE_DRIVE_STORAGE_JSON_KEY_FILE = r"E:\workspace\CMT\thetatauCMT\secrets\ChapterManagementTool-b239bceff1a7.json"
 
 

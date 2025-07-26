@@ -1,4 +1,4 @@
 -r production.txt
 
-dj_anonymizer==0.5.1
-Faker==8.11.0  # https://faker.readthedocs.io/
+dj_anonymizer==0.6.1
+Faker==37.4.2  # https://faker.readthedocs.io/

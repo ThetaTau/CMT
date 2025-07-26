@@ -8,8 +8,8 @@ from crispy_forms.layout import Layout, Fieldset, Row, Column, Submit
 from crispy_forms.bootstrap import FormActions, InlineField, StrictButton, Field
 from tempus_dominus.widgets import DatePicker
 from allauth.account.forms import LoginForm
-from captcha.fields import ReCaptchaField
-from captcha.widgets import ReCaptchaV3
+from django_recaptcha.fields import ReCaptchaField
+from django_recaptcha.widgets import ReCaptchaV3
 from core.address import fix_address
 from core.models import BIENNIUM_YEARS, forever
 from core.forms import DuplicateAddressField, SchoolModelChoiceField
