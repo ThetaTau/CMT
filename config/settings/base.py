@@ -111,8 +111,8 @@ THIRD_PARTY_APPS = [
     "allauth_2fa",
     "hcaptcha",
     "termsandconditions",
-    "bootstrapform",
-    "survey",
+    "bootstrapform",  # used by django-survey-and-report
+    "survey",  # This is django-survey-and-report
     "simple_history",
     "django_userforeignkey",
 ]

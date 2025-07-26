@@ -17,6 +17,8 @@ class UserRoleChangeResource(resources.ModelResource):
             "role",
             "start",
             "end",
+            "chapter",
+            "school",
         )
 
 

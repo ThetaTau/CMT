@@ -23,6 +23,8 @@ class InitiationResource(resources.ModelResource):
             "date_graduation",
             "date",
             "roll",
+            "chapter",
+            "school",
         )
 
 
@@ -37,6 +39,8 @@ class DepledgeResource(resources.ModelResource):
             "created",
             "reason",
             "date",
+            "chapter",
+            "school",
         )
 
 
@@ -64,6 +68,8 @@ class PledgeProgramResource(resources.ModelResource):
             "year",
             "term",
             "dues",
+            "chapter",
+            "school",
         )
 
 
@@ -84,6 +90,8 @@ class StatusChangeResource(resources.ModelResource):
             "miles",
             "email_work",
             "new_school",
+            "chapter",
+            "school",
         )
 
 
@@ -99,6 +107,8 @@ class PrematureAlumnusResource(resources.ModelResource):
             "approved_exec",
             "exec_comments",
             "prealumn_type",
+            "chapter",
+            "school",
         )
 
 
@@ -113,6 +123,8 @@ class CollectionReferralResource(resources.ModelResource):
             "created",
             "created_by__name",
             "balance_due",
+            "chapter",
+            "school",
         )
 
 
@@ -127,4 +139,6 @@ class ReturnStudentResource(resources.ModelResource):
             "created",
             "approved_exec",
             "exec_comments",
+            "chapter",
+            "school",
         )
