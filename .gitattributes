@@ -1,3 +1,6 @@
+# Specific file to force LF line endings
+.devcontainer/bashrc.override.sh text eol=lf
+
 # Python files
 *.py linguist-language=Python
 *.pyx linguist-language=Python
