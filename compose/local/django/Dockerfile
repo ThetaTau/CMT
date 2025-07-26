@@ -51,6 +51,8 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
   # psycopg2 dependencies
   libpq-dev \
   git \
+  # SSH client for development
+  openssh-client \
   # Translations dependencies
   gettext \
   # python-magic dependenies

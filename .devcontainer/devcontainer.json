@@ -1,96 +1,109 @@
 // For format details, see https://aka.ms/devcontainer.json. For config options, see the
 // README at: https://github.com/devcontainers/templates/tree/main/src/docker-existing-docker-compose
 {
-	"name": "Existing Docker Compose (Extend)",
+  "name": "Existing Docker Compose (Extend)",
 
-	// Update the 'dockerComposeFile' list if you have more compose files or use different names.
-	// The .devcontainer/docker-compose.yml file contains any overrides you need/want to make.
-	"dockerComposeFile": [
-		"../docker-compose.local.yml"
-	],
+  // Update the 'dockerComposeFile' list if you have more compose files or use different names.
+  // The .devcontainer/docker-compose.yml file contains any overrides you need/want to make.
+  "dockerComposeFile": ["../docker-compose.local.yml"],
 
-	"init": true,
-	"overrideCommand": false,
+  "init": true,
+  "overrideCommand": false,
 
-	// The 'service' property is the name of the service for the container that VS Code should
-	// use. Update this value and .devcontainer/docker-compose.yml to the real service name.
-	"service": "django",
+  // The 'service' property is the name of the service for the container that VS Code should
+  // use. Update this value and .devcontainer/docker-compose.yml to the real service name.
+  "service": "django",
 
-	// The optional 'workspaceFolder' property is the path VS Code should open by default when
-	// connected. This is typically a file mount in .devcontainer/docker-compose.yml
-	"workspaceFolder": "/app",
+  // The optional 'workspaceFolder' property is the path VS Code should open by default when
+  // connected. This is typically a file mount in .devcontainer/docker-compose.yml
+  "workspaceFolder": "/app",
+  "mounts": [
+    {
+      "source": "${workspaceFolder}/.devcontainer/bash_history",
+      "target": "/root/.bash_history",
+      "type": "bind"
+    },
+    {
+      "source": "${workspaceFolder}/.devcontainer/tmp",
+      "target": "/tmp",
+      "type": "bind"
+    },
+    {
+      "source": "~/.ssh",
+      "target": "/root/.ssh",
+      "type": "bind"
+    }
+  ],
 
-	"customizations": {
-		"vscode": {
-		"settings": {
-			"extensions.verifySignature": false,
-			"editor.formatOnSave": true,
-			"python.testing.pytestArgs": [
-				"/app"
-			],
-			"python.testing.cwd": "/app",
-			"python.testing.unittestEnabled": false,
-			"python.testing.pytestEnabled": true,
-			"[python]": {
-			"analysis.autoImportCompletions": true,
-			"analysis.typeCheckingMode": "basic",
-			"defaultInterpreterPath": "/usr/local/bin/python",
-			"editor.codeActionsOnSave": {
-				"source.organizeImports": "always"
-			},
-			"formatting.blackPath": "/usr/local/bin/black",
-			"formatting.provider": "black",
-			"languageServer": "Pylance",
-			"linting.enabled": true,
-			"linting.flake8Enabled": true,
-			"linting.flake8Path": "/usr/local/bin/flake8",
-			"linting.mypyEnabled": true,
-			"linting.mypyPath": "/usr/local/bin/mypy",
-			"linting.pycodestylePath": "/usr/local/bin/pycodestyle",
-			"linting.pylintEnabled": true,
-			"linting.pylintPath": "/usr/local/bin/pylint"
-			}
-		},
-		"extensions": [
-			"davidanson.vscode-markdownlint",
-			"mrmlnc.vscode-duplicate",
-			"visualstudioexptteam.vscodeintellicode",
-			"visualstudioexptteam.intellicode-api-usage-examples",
-			"ms-python.python",
-			"ms-python.vscode-pylance",
-			"ms-python.isort",
-			"ms-python.black-formatter",
-			"batisteo.vscode-django",
-			"gruntfuggly.todo-tree",
-			"ckolkman.vscode-postgres",
-			"mhutchie.git-graph",
-			"mdebi.fstring-converter",
-			"ms-toolsai.jupyter",
-			"humao.rest-client",
-			"usernamehw.errorlens",
-			"eamodio.gitlens"
-		]
-		}
-	}
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "extensions.verifySignature": false,
+        "editor.formatOnSave": true,
+        "python.testing.pytestArgs": ["/app"],
+        "python.testing.cwd": "/app",
+        "python.testing.unittestEnabled": false,
+        "python.testing.pytestEnabled": true,
+        "[python]": {
+          "analysis.autoImportCompletions": true,
+          "analysis.typeCheckingMode": "basic",
+          "defaultInterpreterPath": "/usr/local/bin/python",
+          "editor.codeActionsOnSave": {
+            "source.organizeImports": "always"
+          },
+          "formatting.blackPath": "/usr/local/bin/black",
+          "formatting.provider": "black",
+          "languageServer": "Pylance",
+          "linting.enabled": true,
+          "linting.flake8Enabled": true,
+          "linting.flake8Path": "/usr/local/bin/flake8",
+          "linting.mypyEnabled": true,
+          "linting.mypyPath": "/usr/local/bin/mypy",
+          "linting.pycodestylePath": "/usr/local/bin/pycodestyle",
+          "linting.pylintEnabled": true,
+          "linting.pylintPath": "/usr/local/bin/pylint"
+        }
+      },
+      "extensions": [
+        "davidanson.vscode-markdownlint",
+        "mrmlnc.vscode-duplicate",
+        "visualstudioexptteam.vscodeintellicode",
+        "visualstudioexptteam.intellicode-api-usage-examples",
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "ms-python.isort",
+        "ms-python.black-formatter",
+        "batisteo.vscode-django",
+        "gruntfuggly.todo-tree",
+        "ckolkman.vscode-postgres",
+        "mhutchie.git-graph",
+        "mdebi.fstring-converter",
+        "ms-toolsai.jupyter",
+        "humao.rest-client",
+        "usernamehw.errorlens",
+        "eamodio.gitlens"
+      ]
+    }
+  },
 
-	// Features to add to the dev container. More info: https://containers.dev/features.
-	// "features": {},
+  // Features to add to the dev container. More info: https://containers.dev/features.
+  // "features": {},
 
-	// Use 'forwardPorts' to make a list of ports inside the container available locally.
-	// "forwardPorts": [],
+  // Use 'forwardPorts' to make a list of ports inside the container available locally.
+  // "forwardPorts": [],
 
-	// Uncomment the next line if you want start specific services in your Docker Compose config.
-	// "runServices": [],
+  // Uncomment the next line if you want start specific services in your Docker Compose config.
+  // "runServices": [],
 
-	// Uncomment the next line if you want to keep your containers running after VS Code shuts down.
-	// "shutdownAction": "none",
+  // Uncomment the next line if you want to keep your containers running after VS Code shuts down.
+  // "shutdownAction": "none",
 
-	// Uncomment the next line to run commands after the container is created.
-	// "postCreateCommand": "cat /etc/os-release",
+  // Uncomment the next line to run commands after the container is created.
+  "postCreateCommand": "chmod 700 /root/.ssh && chmod 600 /root/.ssh/* 2>/dev/null || true && cat .devcontainer/bashrc.override.sh >> ~/.bashrc"
 
-	// Configure tool-specific properties.
-	// "customizations": {},
+  // Configure tool-specific properties.
+  // "customizations": {},
 
-	// Uncomment to connect as an existing user other than the container default. More info: https://aka.ms/dev-containers-non-root.
-	// "remoteUser": "devcontainer"
+  // Uncomment to connect as an existing user other than the container default. More info: https://aka.ms/dev-containers-non-root.
+  // "remoteUser": "devcontainer"
 }
