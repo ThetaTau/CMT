@@ -1,6 +1,6 @@
-from django.core.management.base import BaseCommand
-
 from os import system
+
+from django.core.management.base import BaseCommand
 
 
 class Command(BaseCommand):
@@ -12,6 +12,7 @@ class Command(BaseCommand):
         {"app": "forms", "file": "badges"},
         {"app": "chapters", "file": "chapters"},
         {"app": "users", "file": "groups"},
+        {"app": "jobs", "file": "country"},
     ]
 
     def handle(self, *args, **kwargs):

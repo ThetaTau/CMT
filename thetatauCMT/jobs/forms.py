@@ -95,11 +95,10 @@ class JobForm(forms.ModelForm):
             attrs={"autocomplete": "off"},
         ),
     )
-    # country = forms.ModelChoiceField(
-    #     queryset=Country.objects.all(),
-    #     initial=Country.objects.get(name="United States"),
-    #     help_text="What country is this job posting for?",
-    # )
+    country = forms.ModelChoiceField(
+        queryset=Country.objects.all(),
+        help_text="What country is this job posting for?",
+    )
 
     class Meta:
         model = Job
@@ -125,6 +124,7 @@ class JobForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.fields["country"].initial = Country.objects.get(name="United States")
         if self.instance.id:
             set_multiple_choices_initial(self, "keywords")
             set_multiple_choices_initial(self, "majors")

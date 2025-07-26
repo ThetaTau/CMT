@@ -7,8 +7,6 @@ services:
     build:
       context: .
       dockerfile: ./compose/local/django/Dockerfile
-      args:
-        - DEBUGPY_ON=${DEBUGPY_ON:-0}
     image: thetataucmt_local_django
     container_name: thetataucmt_local_django
     depends_on:

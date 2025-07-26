@@ -4,10 +4,22 @@ set -o errexit
 set -o pipefail
 set -o nounset
 
+# Load environment variables from .env file if it exists
+if [ -f .env ]; then
+    echo "Loading environment variables from .env file..."
+    set -o allexport
+    source .env
+    set +o allexport
+else
+    echo "No .env file found. Using existing environment variables."
+fi
 
 #python manage.py migrate
 if [ $DEBUGPY_ON == 0 ]; then
+    echo "Running in normal mode..."
     exec python manage.py runserver_plus 0.0.0.0:8000
 else
+    echo "Running in debug mode..."
+    pip install --no-cache-dir debugpy -t /tmp
     python /tmp/debugpy --wait-for-client --listen 0.0.0.0:5678 manage.py runserver 0.0.0.0:8000
 fi
