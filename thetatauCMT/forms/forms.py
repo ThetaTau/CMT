@@ -1,57 +1,59 @@
 from address.forms import AddressWidget
 from betterforms.multiform import MultiModelForm
+from chapters.forms import ChapterForm
+from chapters.models import Chapter, ChapterCurricula
 from crispy_forms.bootstrap import (
-    FormActions,
-    Field,
-    InlineField,
-    StrictButton,
     Accordion,
     AccordionGroup,
+    Field,
+    FormActions,
+    InlineField,
+    StrictButton,
 )
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import (
-    Layout,
-    Fieldset,
-    Row,
-    Submit,
+    HTML,
     ButtonHolder,
     Column,
-    HTML,
+    Fieldset,
+    Layout,
+    Row,
+    Submit,
 )
 from dal import autocomplete, forward
-from djmoney.forms.fields import MoneyField
 from django import forms
 from django.conf import settings
 from django.utils import timezone
-from tempus_dominus.widgets import DatePicker
 from django_recaptcha.fields import ReCaptchaField
 from django_recaptcha.widgets import ReCaptchaV3
+from djmoney.forms.fields import MoneyField
 from hcaptcha.fields import hCaptchaField
+from tempus_dominus.widgets import DatePicker
 from upload_validator import FileTypeValidator
-from chapters.forms import ChapterForm
-from chapters.models import Chapter, ChapterCurricula
+from users.models import User, UserDemographic, UserRoleChange
+
 from core.address import fix_address
 from core.forms import DuplicateAddressField, SchoolModelChoiceField
 from core.models import CHAPTER_ROLES_CHOICES, NAT_OFFICERS_CHOICES
-from users.models import User, UserRoleChange, UserDemographic
+
 from .models import (
-    AlumniExclusion,
-    Initiation,
-    Bylaws,
-    Depledge,
-    StatusChange,
-    RiskManagement,
-    PledgeProgram,
-    Audit,
-    Pledge,
-    HSEducation,
-    PrematureAlumnus,
-    Convention,
     OSM,
-    DisciplinaryProcess,
+    AlumniExclusion,
+    Audit,
+    Bylaws,
     CollectionReferral,
+    Convention,
+    Depledge,
+    DisciplinaryProcess,
+    HSEducation,
+    Initiation,
+    Pledge,
+    PledgeProgram,
+    PrematureAlumnus,
     ResignationProcess,
     ReturnStudent,
+    RiskManagement,
+    StatusChange,
 )
 
 
@@ -82,7 +84,7 @@ class InitDeplSelectForm(forms.Form):
 
 
 class InitDeplSelectFormHelper(FormHelper):
-    template = "bootstrap4/table_inline_formset.html"
+    template = "bootstrap5/table_inline_formset.html"
     form_show_errors = True
     help_text_inline = False
     error_text_inline = True
@@ -139,7 +141,7 @@ InitiationFormSet = forms.formset_factory(InitiationForm, extra=0)
 
 
 class InitiationFormHelper(FormHelper):
-    template = "bootstrap4/table_inline_formset.html"
+    template = "bootstrap5/table_inline_formset.html"
     form_tag = False
     layout = Layout(
         "user",
@@ -319,7 +321,7 @@ class StatusChangeSelectForm(forms.Form):
 
 
 class StatusChangeSelectFormHelper(FormHelper):
-    template = "bootstrap4/table_inline_formset.html"
+    template = "bootstrap5/table_inline_formset.html"
     form_show_errors = True
     help_text_inline = False
     error_text_inline = True
@@ -367,7 +369,7 @@ GraduateFormSet = forms.formset_factory(GraduateForm, extra=0)
 
 
 class GraduateFormHelper(FormHelper):
-    template = "bootstrap4/table_inline_formset.html"
+    template = "bootstrap5/table_inline_formset.html"
     form_tag = False
     layout = Layout(
         "user",
@@ -484,7 +486,7 @@ CSMTFormSet = forms.formset_factory(CSMTForm, extra=0)
 
 
 class CSMTFormHelper(FormHelper):
-    template = "bootstrap4/table_inline_formset.html"
+    template = "bootstrap5/table_inline_formset.html"
     form_tag = False
     layout = Layout(
         "user",
@@ -580,7 +582,7 @@ class RoleChangeSelectForm(forms.ModelForm):
 
 
 class RoleChangeSelectFormHelper(FormHelper):
-    template = "bootstrap4/table_inline_formset.html"
+    template = "bootstrap5/table_inline_formset.html"
     form_show_errors = True
     help_text_inline = False
     error_text_inline = True
@@ -1245,12 +1247,10 @@ class PledgeFormFull(CrispyCompatableMultiModelForm):
         if "user-school_name" in self.forms["user"].data:
             try:
                 chapter_id = int(self.data.get("user-school_name"))
-                self.forms["user"].fields[
-                    "major"
-                ].queryset = ChapterCurricula.objects.filter(
-                    chapter__pk=chapter_id
-                ).order_by(
-                    "major"
+                self.forms["user"].fields["major"].queryset = (
+                    ChapterCurricula.objects.filter(chapter__pk=chapter_id).order_by(
+                        "major"
+                    )
                 )
             except (ValueError, TypeError):
                 pass  # invalid input from the client; ignore and fallback to empty City queryset

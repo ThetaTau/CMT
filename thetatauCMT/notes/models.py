@@ -3,7 +3,7 @@ from django.db import models
 from django.conf import settings
 from django.utils.translation import gettext_lazy as _
 from django_userforeignkey.models.fields import UserForeignKey
-from ckeditor_uploader.fields import RichTextUploadingField
+from django_ckeditor_5.fields import CKEditor5Field
 
 from core.models import TimeStampedModel, EnumClass
 from chapters.models import Chapter
@@ -50,7 +50,7 @@ class Note(TimeStampedModel):
         related_name="notes_modified",
     )
     title = models.CharField(_("Title"), max_length=255)
-    note = RichTextUploadingField()
+    note = CKEditor5Field()
     file = models.FileField(upload_to=get_upload_path, blank=True, null=True)
     type = models.CharField(
         max_length=20, default="note", choices=[x.value for x in TYPES]

@@ -1,7 +1,7 @@
 from django.db import models
 from django.utils import timezone
 from djmoney.models.fields import MoneyField
-from ckeditor_uploader.fields import RichTextUploadingField
+from django_ckeditor_5.fields import CKEditor5Field
 from core.models import TimeStampedModel
 from chapters.models import Chapter
 
@@ -9,7 +9,7 @@ from chapters.models import Chapter
 class Invoice(TimeStampedModel):
     due_date = models.DateField(default=timezone.now)
     central_id = models.CharField(max_length=50, null=True, blank=True)
-    description = RichTextUploadingField()
+    description = CKEditor5Field()
     total = MoneyField(max_digits=19, decimal_places=4, default_currency="USD")
     chapter = models.ForeignKey(
         Chapter, on_delete=models.CASCADE, default=1, related_name="invoices"

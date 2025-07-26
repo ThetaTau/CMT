@@ -1,23 +1,23 @@
-from django.conf import settings
-from django.urls import path, re_path
-from django.conf.urls.static import static
-from django.shortcuts import redirect
-from django.contrib.auth.views import (
-    PasswordResetConfirmView,
-    PasswordResetCompleteView,
-    PasswordResetView,
-    PasswordResetDoneView,
-)
-from oauth2_provider import urls as oauth2_urls
 from allauth.account.views import LogoutView
+from django.conf import settings
+from django.conf.urls.static import static
 from django.contrib import admin
-from django.urls import path, include
-from django.views.generic import TemplateView, RedirectView
-from material.frontend.urls import modules
-from core.views import HomeView
-from core.address import ZipCodeAutocomplete
-from users.views import UserLookupLoginView
+from django.contrib.auth.views import (
+    PasswordResetCompleteView,
+    PasswordResetConfirmView,
+    PasswordResetDoneView,
+    PasswordResetView,
+)
+from django.shortcuts import redirect
+from django.urls import include, path, re_path
 from django.views import defaults as default_views
+from django.views.generic import RedirectView, TemplateView
+from material.frontend.urls import modules
+from oauth2_provider import urls as oauth2_urls
+from users.views import UserLookupLoginView
+
+from core.address import ZipCodeAutocomplete
+from core.views import HomeView
 
 
 def home_redirect(request):
@@ -87,9 +87,13 @@ urlpatterns = [
     path("accounts/", include("allauth.urls")),
     # Your stuff: custom urls includes go here
     path("", RedirectView.as_view(url="/workflow/", permanent=False)),
-    path("report_builder/", include("report_builder.urls")),
+    # path(
+    #     "report_builder/",
+    #     include("report_builder.urls"),
+    #     name="report_builder",
+    # ),
     path("", include((modules.urls))),
-    path("ckeditor/", include("ckeditor_uploader.urls")),
+    path("ckeditor/", include("django_ckeditor_5.urls")),
     path("email-signals/", include("email_signals.urls")),
     path("terms/", include("termsandconditions.urls")),
     path(
@@ -143,6 +147,7 @@ urlpatterns = [
         RedirectView.as_view(
             pattern_name="viewflow:forms:hseducation:start", permanent=False
         ),
+        name="report_redirect",
     ),
     path(
         "education/",

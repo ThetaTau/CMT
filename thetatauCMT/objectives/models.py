@@ -1,9 +1,10 @@
-from django.db import models
-from ckeditor_uploader.fields import RichTextUploadingField
-from django_userforeignkey.models.fields import UserForeignKey
-from core.models import TimeStampedModel
 from chapters.models import Chapter
+from django.db import models
+from django_ckeditor_5.fields import CKEditor5Field
+from django_userforeignkey.models.fields import UserForeignKey
 from users.models import User
+
+from core.models import TimeStampedModel
 
 
 class Objective(TimeStampedModel):
@@ -39,7 +40,7 @@ class Objective(TimeStampedModel):
     title = models.CharField(max_length=50)
     date = models.DateField()
     complete = models.BooleanField(default=False)
-    description = RichTextUploadingField()
+    description = CKEditor5Field()
     restricted_ec = models.BooleanField(
         verbose_name="Restrict read/write to Executive Council",
         default=False,
@@ -70,4 +71,4 @@ class Action(TimeStampedModel):
     owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name="actions")
     date = models.DateField()
     complete = models.BooleanField(default=False)
-    description = RichTextUploadingField()
+    description = CKEditor5Field()

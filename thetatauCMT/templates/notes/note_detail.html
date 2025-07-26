@@ -58,7 +58,7 @@
                           </td>
                         {% elif field.label == "Note" %}
                         {% else %}
-                          {% include 'bootstrap4/field.html' with tag="td" form_show_labels=False form_show_errors=True %}
+                          {% include 'bootstrap5/field.html' with tag="td" form_show_labels=False form_show_errors=True %}
                         {% endif %}
                       {% endfor %}
                       <td>
@@ -70,7 +70,7 @@
                     <tr>
                     {% for field in form %}
                       {% if field.label == "Note" %}
-                        {% include 'bootstrap4/field.html' with tag='td colspan="4"' form_show_labels=False form_show_errors=True %}
+                        {% include 'bootstrap5/field.html' with tag='td colspan="4"' form_show_labels=False form_show_errors=True %}
                       {% endif %}
                     {% endfor %}
                   </tr>

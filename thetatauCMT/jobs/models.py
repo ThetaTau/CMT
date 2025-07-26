@@ -1,7 +1,7 @@
 import os
 
 from address.models import Country, Locality
-from ckeditor_uploader.fields import RichTextUploadingField
+from django_ckeditor_5.fields import CKEditor5Field
 from django.db import models
 from django.db.models.manager import BaseManager
 from django.template.defaultfilters import slugify
@@ -90,7 +90,7 @@ class Job(TimeStampedModel):
         help_text="Is there another contact email or phone number for this job listing?",
     )
     company = models.CharField(_("Company Name"), max_length=255)
-    description = RichTextUploadingField(
+    description = CKEditor5Field(
         help_text="No need to copy the entire job post, please share most relevant details "
         "or anything else to help job searchers"
     )

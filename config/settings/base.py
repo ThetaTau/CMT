@@ -2,11 +2,12 @@
 Base settings to build other settings files upon.
 """
 
-from pathlib import Path
-from google.oauth2 import service_account
-import environ
 import warnings
+from pathlib import Path
+
+import environ
 import rollbar
+from google.oauth2 import service_account
 
 ROOT_DIR = Path(__file__).resolve(strict=True).parent.parent.parent
 # thetataucmt/
@@ -77,6 +78,7 @@ DJANGO_APPS = [
 ]
 THIRD_PARTY_APPS = [
     "crispy_forms",
+    "crispy_bootstrap5",
     "allauth",
     "allauth.account",
     "allauth.socialaccount",
@@ -85,7 +87,7 @@ THIRD_PARTY_APPS = [
     "address",
     "django_tables2",
     "django_filters",
-    "bootstrap4",
+    "django_bootstrap5",
     "django_extensions",  # https://github.com/pydanny/cookiecutter-django/issues/417
     "herald",
     "multiselectfield",
@@ -100,8 +102,7 @@ THIRD_PARTY_APPS = [
     "import_export",
     "dbbackup",
     "watson",
-    "ckeditor",
-    "ckeditor_uploader",
+    "django_ckeditor_5",
     "django_recaptcha",
     "report_builder",
     "django_otp",
@@ -273,10 +274,11 @@ TEMPLATES = [
     }
 ]
 # http://django-crispy-forms.readthedocs.io/en/latest/install.html#template-packs
-CRISPY_TEMPLATE_PACK = "bootstrap4"
+CRISPY_TEMPLATE_PACK = "bootstrap5"
+CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap5"
 
 # https://django-tables2.readthedocs.io/en/latest/pages/custom-rendering.html#available-templates
-DJANGO_TABLES2_TEMPLATE = "django_tables2/bootstrap4.html"
+DJANGO_TABLES2_TEMPLATE = "django_tables2/bootstrap5.html"
 
 # FIXTURES
 # ------------------------------------------------------------------------------
@@ -353,9 +355,9 @@ LOGGING = {
 # ------------------------------------------------------------------------------
 ACCOUNT_ALLOW_REGISTRATION = env.bool("DJANGO_ACCOUNT_ALLOW_REGISTRATION", False)
 # https://django-allauth.readthedocs.io/en/latest/configuration.html
-ACCOUNT_AUTHENTICATION_METHOD = "email"
+ACCOUNT_LOGIN_METHODS = {"email"}
 # https://django-allauth.readthedocs.io/en/latest/configuration.html
-ACCOUNT_EMAIL_REQUIRED = True
+ACCOUNT_SIGNUP_FIELDS = ["email*", "username*", "password1*", "password2*"]
 # https://django-allauth.readthedocs.io/en/latest/configuration.html
 ACCOUNT_EMAIL_VERIFICATION = "mandatory"
 # https://django-allauth.readthedocs.io/en/latest/configuration.html

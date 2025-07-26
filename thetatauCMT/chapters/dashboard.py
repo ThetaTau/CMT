@@ -1,27 +1,25 @@
-import dash
 import datetime
 import textwrap
+
+import dash
 import pandas as pd
-from django.db.models import Count, Avg
-import plotly.graph_objects as go
 import plotly.express as px
-import dash_core_components as dcc
-import dash_html_components as html
+import plotly.graph_objects as go
+from dash import dcc, html
 from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
 from django.conf import settings
+from django.db.models import Avg, Count
+from users.models import User, UserSemesterGPA, UserStatusChange
+
 from core.models import semester_encompass_start_end_date
-from users.models import (
-    User,
-    UserStatusChange,
-    UserSemesterGPA,
-)
 
 if __name__ == "__main__":
     import os
     import sys
-    import django
     from pathlib import Path
+
+    import django
 
     app = dash.Dash(__name__)
     app.expanded_callback = app.callback

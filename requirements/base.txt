@@ -47,10 +47,11 @@ django-environ==0.12.0  # https://github.com/joke2k/django-environ
 django-model-utils==5.0.0  # https://github.com/jazzband/django-model-utils
 django-allauth==65.10.0  # https://github.com/pennersr/django-allauth
 django-crispy-forms==2.4  # https://github.com/django-crispy-forms/django-crispy-forms
+crispy-bootstrap5==2025.6 # https://github.com/django-crispy-forms/crispy-bootstrap5
 django-redis==6.0.0  # https://github.com/niwinz/django-redis
 django-extensions==4.1  # https://github.com/django-extensions/django-extensions
 django-address==0.2.8  # https://github.com/furious-luke/django-address
-django-bootstrap4==25.1  # https://github.com/zostera/django-bootstrap4
+django-bootstrap5==25.1  # https://github.com/zostera/django-bootstrap5
 django-braces==1.17.0  # https://github.com/brack3t/django-braces/
 django-extra-views==0.16.0  # https://github.com/AndrewIngram/django-extra-views
 django-filter==25.1  # https://django-filter.readthedocs.io/
@@ -71,7 +72,8 @@ django-import-export==4.3.9  # https://django-import-export.readthedocs.io
 git+https://github.com/django-dbbackup/django-dbbackup.git@9d1909c30a3271c8c9c8450add30d6e0b996e145
   # https://django-dbbackup.readthedocs.io/
 django-watson==1.6.3 # https://github.com/etianen/django-watson
-django-ckeditor==6.7.3 # https://github.com/django-ckeditor/django-ckeditor
+# django-ckeditor==6.7.3 # https://github.com/django-ckeditor/django-ckeditor
+django-ckeditor-5==0.2.18 #https://github.com/hvlads/django-ckeditor-5
 django-recaptcha==4.1.0 # https://github.com/praekelt/django-recaptcha
 # django-report-builder==6.4.2 # https://gitlab.com/burke-software/django-report-builder
 # No longer supported, but added in urls fix in this commit

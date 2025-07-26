@@ -1,5 +1,6 @@
 import json
 from os import path
+
 from .base import *  # noqa
 from .base import env
 
@@ -103,7 +104,7 @@ if env("USE_DOCKER", default="no") == "yes":
 # ------------------------------------------------------------------------------
 
 ACCOUNT_EMAIL_VERIFICATION = "none"
-SILENCED_SYSTEM_CHECKS = ["captcha.recaptcha_test_key_error", "urls.W005"]
+SILENCED_SYSTEM_CHECKS = ["django_recaptcha.recaptcha_test_key_error", "urls.W005"]
 
 # dj_anonymizer DO NOT ADD TO PRODUCTION
 # ------------------------------------------------------------------------------

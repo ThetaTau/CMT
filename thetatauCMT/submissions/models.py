@@ -1,16 +1,18 @@
 import os
+
+from chapters.models import Chapter
 from django.conf import settings
-from django.db import models, transaction
 from django.contrib.contenttypes.fields import GenericRelation
-from django_userforeignkey.models.fields import UserForeignKey
+from django.db import models, transaction
 from django.utils import timezone
 from django.utils.text import slugify
-from ckeditor.fields import RichTextField
+from django_ckeditor_5.fields import CKEditor5Field
+from django_userforeignkey.models.fields import UserForeignKey
 from email_signals.models import EmailSignalMixin
-from core.models import TimeStampedModel
 from scores.models import ScoreType
-from chapters.models import Chapter
 from tasks.models import TaskChapter
+
+from core.models import TimeStampedModel
 
 
 def get_upload_path(instance, filename):
@@ -97,7 +99,7 @@ class GearArticle(TimeStampedModel):
         on_delete=models.CASCADE,
         related_name="gear",
     )
-    article = RichTextField()
+    article = CKEditor5Field()
     reviewed = models.BooleanField(
         default=False,
         blank=True,
