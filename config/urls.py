@@ -87,11 +87,11 @@ urlpatterns = [
     path("accounts/", include("allauth.urls")),
     # Your stuff: custom urls includes go here
     path("", RedirectView.as_view(url="/workflow/", permanent=False)),
-    # path(
-    #     "report_builder/",
-    #     include("report_builder.urls"),
-    #     name="report_builder",
-    # ),
+    path(
+        "report_builder/",
+        include("configs.urls"),
+        name="report_builder",
+    ),
     path("", include((modules.urls))),
     path("ckeditor/", include("django_ckeditor_5.urls")),
     path("email-signals/", include("email_signals.urls")),
