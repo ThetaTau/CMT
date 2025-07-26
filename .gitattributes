@@ -1,1 +1,51 @@
-* text=auto
+# Python files
+*.py linguist-language=Python
+*.pyx linguist-language=Python
+*.pyi linguist-language=Python
+*.pyw linguist-language=Python
+
+# Django specific files
+*.py text diff=python
+manage.py linguist-language=Python
+wsgi.py linguist-language=Python
+
+# Django templates
+*.html linguist-language=HTML
+*.htm linguist-language=HTML
+
+# Configuration files
+*.yml linguist-language=YAML
+*.yaml linguist-language=YAML
+*.json linguist-language=JSON
+*.toml linguist-language=TOML
+*.cfg linguist-language=INI
+*.ini linguist-language=INI
+
+# Documentation
+*.md linguist-documentation
+*.rst linguist-documentation
+docs/ linguist-documentation
+
+# Directories to ignore for language statistics
+scratchpad/ linguist-vendored
+database_backups/ linguist-vendored
+staticfiles/ linguist-vendored
+exports/ linguist-vendored
+secrets/ linguist-vendored
+utility/ linguist-vendored
+scripts/ linguist-vendored
+tex/ linguist-vendored
+email_tests/ linguist-vendored
+OpenEdX/ linguist-vendored
+__pycache__/ linguist-vendored
+*.pyc linguist-generated
+node_modules/ linguist-vendored
+.devcontainer/ linguist-vendored
+
+# Generated files
+migrations/ linguist-generated
+locale/ linguist-generated
+
+# Build and dependency files
+requirements/ linguist-vendored
+compose/ linguist-vendored
