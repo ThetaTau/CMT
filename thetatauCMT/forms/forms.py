@@ -599,7 +599,7 @@ class HSEducationListFormHelper(FormHelper):
     form_method = "GET"
     form_id = "education-list-form"
     form_class = "form-inline"
-    field_template = "bootstrap3/layout/inline_field.html"
+    field_template = "bootstrap5/layout/inline_field.html"
     field_class = "col-xs-3"
     label_class = "col-xs-3"
     form_show_errors = True
@@ -628,7 +628,7 @@ class BylawsListFormHelper(FormHelper):
     form_method = "GET"
     form_id = "bylaws-list-form"
     form_class = "form-inline"
-    field_template = "bootstrap3/layout/inline_field.html"
+    field_template = "bootstrap5/layout/inline_field.html"
     field_class = "col-xs-3"
     label_class = "col-xs-3"
     form_show_errors = True
@@ -853,7 +853,7 @@ class AuditListFormHelper(FormHelper):
     form_method = "GET"
     form_id = "audit-search-form"
     form_class = "form-inline"
-    field_template = "bootstrap3/layout/inline_field.html"
+    field_template = "bootstrap5/layout/inline_field.html"
     field_class = "col-xs-3"
     label_class = "col-xs-3"
     form_show_errors = True
@@ -884,7 +884,7 @@ class PledgeProgramFormHelper(FormHelper):
     form_method = "GET"
     form_id = "pledge_program-search-form"
     form_class = "form-inline"
-    field_template = "bootstrap3/layout/inline_field.html"
+    field_template = "bootstrap5/layout/inline_field.html"
     field_class = "col-xs-3"
     label_class = "col-xs-3"
     form_show_errors = True
@@ -915,7 +915,7 @@ class AlumniExclusionFormHelper(FormHelper):
     form_method = "GET"
     form_id = "alumniexclusion-search-form"
     form_class = "form-inline"
-    field_template = "bootstrap3/layout/inline_field.html"
+    field_template = "bootstrap5/layout/inline_field.html"
     field_class = "col-xs-3"
     label_class = "col-xs-3"
     form_show_errors = True
@@ -946,7 +946,7 @@ class CompleteFormHelper(FormHelper):
     form_method = "GET"
     form_id = "pledge_program-search-form"
     form_class = "form-inline"
-    field_template = "bootstrap3/layout/inline_field.html"
+    field_template = "bootstrap5/layout/inline_field.html"
     field_class = "col-xs-3"
     label_class = "col-xs-3"
     form_show_errors = True
@@ -977,7 +977,7 @@ class RiskListFormHelper(FormHelper):
     form_method = "GET"
     form_id = "risk-search-form"
     form_class = "form-inline"
-    field_template = "bootstrap3/layout/inline_field.html"
+    field_template = "bootstrap5/layout/inline_field.html"
     field_class = "col-xs-3"
     label_class = "col-xs-3"
     form_show_errors = True

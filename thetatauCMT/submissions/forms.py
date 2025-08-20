@@ -1,17 +1,18 @@
-from django import forms
+from crispy_forms.bootstrap import Field, FormActions, InlineField, StrictButton
 from crispy_forms.helper import FormHelper
-from crispy_forms.layout import Layout, Fieldset, Row, Submit
-from crispy_forms.bootstrap import FormActions, InlineField, StrictButton, Field
+from crispy_forms.layout import Fieldset, Layout, Row, Submit
 from dal import autocomplete, forward
-from .models import Picture, GearArticle
+from django import forms
 from users.models import User
+
+from .models import GearArticle, Picture
 
 
 class SubmissionListFormHelper(FormHelper):
     form_method = "GET"
     form_id = "submission-search-form"
     form_class = "form-inline"
-    field_template = "bootstrap3/layout/inline_field.html"
+    field_template = "bootstrap5/layout/inline_field.html"
     field_class = "col-xs-3"
     label_class = "col-xs-3"
     form_show_errors = True
@@ -79,7 +80,7 @@ class GearArticleListFormHelper(FormHelper):
     form_method = "GET"
     form_id = "gear-article-search-form"
     form_class = "form-inline"
-    field_template = "bootstrap3/layout/inline_field.html"
+    field_template = "bootstrap5/layout/inline_field.html"
     field_class = "col-xs-3"
     label_class = "col-xs-3"
     form_show_errors = True

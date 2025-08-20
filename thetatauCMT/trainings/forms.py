@@ -1,23 +1,14 @@
-from django import forms
+from crispy_forms.bootstrap import FormActions, InlineField, StrictButton
 from crispy_forms.helper import FormHelper
-from crispy_forms.layout import (
-    Layout,
-    Fieldset,
-    Row,
-    Submit,
-)
-from crispy_forms.bootstrap import (
-    FormActions,
-    InlineField,
-    StrictButton,
-)
+from crispy_forms.layout import Fieldset, Layout, Row, Submit
+from django import forms
 
 
 class TrainingListFormHelper(FormHelper):
     form_method = "GET"
     form_id = "training-search-form"
     form_class = "form-inline"
-    field_template = "bootstrap3/layout/inline_field.html"
+    field_template = "bootstrap5/layout/inline_field.html"
     field_class = "col-xs-3"
     label_class = "col-xs-3"
     form_show_errors = True

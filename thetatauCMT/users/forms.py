@@ -1,27 +1,29 @@
+from address.widgets import AddressWidget
+from allauth.account.forms import LoginForm
+from chapters.models import Chapter, ChapterCurricula
+from crispy_forms.bootstrap import Field, FormActions, InlineField, StrictButton
+from crispy_forms.helper import FormHelper
+from crispy_forms.layout import Column, Fieldset, Layout, Row, Submit
+from dal import autocomplete, forward
 from django import forms
 from django.conf import settings
 from django.utils import timezone
-from dal import autocomplete, forward
-from address.widgets import AddressWidget
-from crispy_forms.helper import FormHelper
-from crispy_forms.layout import Layout, Fieldset, Row, Column, Submit
-from crispy_forms.bootstrap import FormActions, InlineField, StrictButton, Field
-from tempus_dominus.widgets import DatePicker
-from allauth.account.forms import LoginForm
 from django_recaptcha.fields import ReCaptchaField
 from django_recaptcha.widgets import ReCaptchaV3
+from tempus_dominus.widgets import DatePicker
+
 from core.address import fix_address
-from core.models import BIENNIUM_YEARS, forever
 from core.forms import DuplicateAddressField, SchoolModelChoiceField
-from chapters.models import Chapter, ChapterCurricula
+from core.models import BIENNIUM_YEARS, forever
+
 from .models import (
-    UserAlter,
+    MemberUpdate,
     User,
+    UserAlter,
+    UserOrgParticipate,
     UserSemesterGPA,
     UserSemesterServiceHours,
-    UserOrgParticipate,
     UserStatusChange,
-    MemberUpdate,
 )
 
 
@@ -37,7 +39,7 @@ class UserListFormHelper(FormHelper):
     form_method = "GET"
     form_id = "user-search-form"
     form_class = "form-inline"
-    field_template = "bootstrap3/layout/inline_field.html"
+    field_template = "bootstrap5/layout/inline_field.html"
     field_class = "col-xs-3"
     label_class = "col-xs-3"
     form_show_errors = True
@@ -97,7 +99,7 @@ class UserRoleListFormHelper(FormHelper):
     form_method = "GET"
     form_id = "user-search-form"
     form_class = "form-inline"
-    field_template = "bootstrap3/layout/inline_field.html"
+    field_template = "bootstrap5/layout/inline_field.html"
     field_class = "col-xs-3"
     label_class = "col-xs-3"
     form_show_errors = True
@@ -133,7 +135,7 @@ class AdvisorListFormHelper(FormHelper):
     form_method = "GET"
     form_id = "user-search-form"
     form_class = "form-inline"
-    field_template = "bootstrap3/layout/inline_field.html"
+    field_template = "bootstrap5/layout/inline_field.html"
     field_class = "col-xs-3"
     label_class = "col-xs-3"
     form_show_errors = True

@@ -1,11 +1,13 @@
-from django import forms
 from address.forms import AddressWidget
-from crispy_forms.helper import FormHelper
-from crispy_forms.layout import Layout, Fieldset, Row, Submit
 from crispy_forms.bootstrap import FormActions, InlineField, StrictButton
-from .models import Chapter
+from crispy_forms.helper import FormHelper
+from crispy_forms.layout import Fieldset, Layout, Row, Submit
+from django import forms
+
 from core.address import fix_address
 from core.forms import DuplicateAddressField
+
+from .models import Chapter
 
 
 class ChapterForm(forms.ModelForm):
@@ -51,7 +53,7 @@ class ChapterFormHelper(FormHelper):
     form_method = "GET"
     form_id = "chapter-search-form"
     form_class = "form-inline"
-    field_template = "bootstrap3/layout/inline_field.html"
+    field_template = "bootstrap5/layout/inline_field.html"
     field_class = "col-xs-3"
     label_class = "col-xs-3"
     form_show_errors = True
