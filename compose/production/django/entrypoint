@@ -34,7 +34,7 @@ sys.exit(0)
 END
 }
 until postgres_ready; do
-  >&2 echo 'Waiting for PostgreSQL to become available...'
+  >&2 echo "Waiting for PostgreSQL to become available at ${POSTGRES_HOST}:${POSTGRES_PORT}..."
   sleep 1
 done
 >&2 echo 'PostgreSQL is available'

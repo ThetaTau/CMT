@@ -27,5 +27,7 @@ export LMS_ID=''
 export LMS_SECRET=''
 export ED_ID=''
 export ED_SECRET=''
+export GUARDIAN_EMAIL=''
+export GUARDIAN_PASSWORD=''
 
 cd ~/thetatauCMT

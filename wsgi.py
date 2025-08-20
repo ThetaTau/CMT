@@ -32,6 +32,8 @@ os.environ["LMS_ID"] = ""
 os.environ["LMS_SECRET"] = ""
 os.environ["ED_ID"] = ""
 os.environ["ED_SECRET"] = ""
+os.environ["GUARDIAN_EMAIL"] = ""
+os.environ["GUARDIAN_PASSWORD"] = ""
 
 
 from django.core.wsgi import get_wsgi_application  # noqa: E402
