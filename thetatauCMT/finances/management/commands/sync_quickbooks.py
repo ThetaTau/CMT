@@ -120,10 +120,13 @@ class Command(BaseCommand):
                     else:
                         break
                 email_str = email_str[:-1]
-                if (
-                    customer.PrimaryEmailAddr is None
-                    or customer.PrimaryEmailAddr.Address != email_str
-                ):
+                if customer.PrimaryEmailAddr is None:
+                    print("    No current email")
+                    print("    New Email: ", email_str)
+                    if live:
+                        customer.PrimaryEmailAddr.Address = email_str
+                        customer.save(qb=client)
+                elif customer.PrimaryEmailAddr.Address != email_str:
                     print("    Current Email: ", customer.PrimaryEmailAddr.Address)
                     print("    New Email: ", email_str)
                     if live:
