@@ -235,6 +235,12 @@
         deployment, withdrawing from school, or transferring schools.
       </td>
     </tr>
-  </tbody>
+    <tr>
+      <td><a href="{% url 'forms:pledgeform' %}">{% trans "Prospective New Member / Pledge Form" %}</a></td>
+      {% if request.is_nat_officer %}
+      <td></td>
+      {% endif %}
+      <td>Complete the form below to begin the membership process. This form should only be completed by the person wishing to pledge a chapter of Theta Tau.</td>
+    </tr>
 </table>
 {% endblock %}
