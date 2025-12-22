@@ -451,8 +451,7 @@ class InitiationProcessFlow(Flow):
         ).send()
         return activation
 
-    def send_invoice_func(self, activation):
-        ...
+    def send_invoice_func(self, activation): ...
 
     def send_invoice_payment_email(self, activation):
         member_list = activation.process.initiations.values_list(
@@ -662,8 +661,7 @@ class PledgeProcessFlow(Flow):
             activation.process.save()
         return activation
 
-    def send_invoice_func(self, activation):
-        ...
+    def send_invoice_func(self, activation): ...
 
     def send_invoice_payment_email(self, activation):
         member_list = activation.process.pledges.values_list("user__name", flat=True)

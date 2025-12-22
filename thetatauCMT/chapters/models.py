@@ -298,6 +298,9 @@ class Chapter(models.Model, EmailSignalMixin):
         default="none",
         max_length=55,
     )
+    founding_date = models.DateField(blank=True, null=True)
+    recharter_date = models.DateField(blank=True, null=True)
+    misc_data = models.JSONField(default=dict, blank=True)
 
     def __str__(self):
         return f"{self.name}"  # in {self.region} Region at {self.school}
@@ -544,6 +547,13 @@ class Chapter(models.Model, EmailSignalMixin):
             user = officers.filter(query).first()
             roles.append(user)
         return roles  # [regent, scribe, vice, treasurer, corsec]
+
+    def get_misc_data(self, key, default=None):
+        return self.misc_data.get(key, default)
+
+    def set_misc_data(self, key, value):
+        self.misc_data[key] = value
+        self.save()
 
     def council_emails(self):
         officers = self.get_current_officers_council_specific()

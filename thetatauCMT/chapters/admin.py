@@ -22,6 +22,7 @@ class ChapterAdmin(admin.ModelAdmin, DuesSyncMixin, SignalWatchMixin):
     ]
     list_per_page = 200
     inlines = [ChapterNoteInline, ChapterCurriculaInline]
+    list_display = ["name", "school", "region", "active", "founding_date"]
     list_filter = [
         "region",
         "active",

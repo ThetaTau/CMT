@@ -2,6 +2,7 @@ import datetime
 import io
 import os
 import csv
+import json
 from pathlib import Path
 from collections import Counter
 import address
@@ -20,7 +21,8 @@ from django.utils.translation import gettext_lazy as _
 from email_signals.models import EmailSignalMixin
 from multiselectfield import MultiSelectField
 from viewflow.models import Process
-from easy_pdf.rendering import render_to_pdf
+
+# from easy_pdf.rendering import render_to_pdf
 from quickbooks.objects.customer import Customer
 from quickbooks.objects.attachable import Attachable, AttachableRef
 from core.finances import get_quickbooks_client, invoice_search, create_line
@@ -1160,7 +1162,11 @@ class InitiationProcess(Process, EmailSignalMixin):
         return invoice_obj.DocNumber
 
     def generate_badge_shingle_order(
-        self, response=None, csv_type=None, get_file=False
+        self,
+        response=None,
+        csv_type=None,
+        get_file=False,
+        file_type="csv",
     ):
         """
         badge example:
@@ -1206,16 +1212,14 @@ class InitiationProcess(Process, EmailSignalMixin):
         init_date = self.initiations.first().date.strftime("%Y%m%d")
         badge_file = io.StringIO()
         shingle_file = io.StringIO()
-        badge_mail = MIMEBase("application", "csv")
-        badge_filename = f"{chapter}_{init_date}_badge.csv"
+        badge_mail = MIMEBase("application", file_type)
+        badge_filename = f"{chapter}_{init_date}_badge.{file_type}"
         # Intuit Invoice # - ChapterID_other stuff.csv
-        shingle_filename = (
-            f"{self.invoice}-{self.chapter.id:03d}_{chapter}_{init_date}_shingle.csv"
-        )
+        shingle_filename = f"{self.invoice}-{self.chapter.id:03d}_{chapter}_{init_date}_shingle.{file_type}"
         badge_mail.add_header(
             "Content-Disposition", "attachment", filename=badge_filename
         )
-        shingle_mail = MIMEBase("application", "csv")
+        shingle_mail = MIMEBase("application", file_type)
         shingle_mail.add_header(
             "Content-Disposition", "attachment", filename=shingle_filename
         )
@@ -1228,10 +1232,13 @@ class InitiationProcess(Process, EmailSignalMixin):
                 filename = shingle_filename
             response["Content-Disposition"] = f'attachment; filename="{filename}"'
             out = None
-        badge_writer = csv.DictWriter(badge_file, fieldnames=badge_header)
-        shingle_writer = csv.DictWriter(shingle_file, fieldnames=shingle_header)
-        badge_writer.writeheader()
-        shingle_writer.writeheader()
+        if file_type == "csv":
+            badge_writer = csv.DictWriter(badge_file, fieldnames=badge_header)
+            shingle_writer = csv.DictWriter(shingle_file, fieldnames=shingle_header)
+            badge_writer.writeheader()
+            shingle_writer.writeheader()
+        badge_rows = []
+        shingle_rows = []
         for initiation in self.initiations.all():
             badge = ""
             if initiation.badge:
@@ -1242,7 +1249,7 @@ class InitiationProcess(Process, EmailSignalMixin):
                 chapter_address = "Chapter Officer"
             row_badge = {
                 "Chapter Name": chapter,
-                "Chapter Address": chapter_address,
+                "Chapter Address": str(chapter_address),
                 "Chapter Contact": self.chapter.address_contact,
                 "Chapter Phone": self.chapter.address_phone_number,
                 "Chapter Description": chapter_abr,
@@ -1251,13 +1258,12 @@ class InitiationProcess(Process, EmailSignalMixin):
                 "Last Name": initiation.user.last_name,
                 "Badge Style": badge,
             }
-            badge_writer.writerow(row_badge)
             row_shingle = {
                 "First Name": initiation.user.first_name,
                 "Middle Name": "",
                 "Last Name": initiation.user.last_name,
                 "Chapter Name": chapter,
-                "Chapter Address": self.chapter.address,
+                "Chapter Address": str(self.chapter.address),
                 "Chapter Contact": self.chapter.address_contact,
                 "Chapter Phone": self.chapter.address_phone_number,
                 "Education Class of": initiation.date_graduation.year,
@@ -1268,7 +1274,14 @@ class InitiationProcess(Process, EmailSignalMixin):
                 "Chapter Abbreviation": chapter_abr,
                 "Badge Style": badge,
             }
-            shingle_writer.writerow(row_shingle)
+            if file_type == "csv":
+                badge_writer.writerow(row_badge)
+                shingle_writer.writerow(row_shingle)
+            badge_rows.append(row_badge)
+            shingle_rows.append(row_shingle)
+        if file_type == "json":
+            json.dump(badge_rows, badge_file)
+            json.dump(shingle_rows, shingle_file)
         if response is None and not get_file:
             badge_mail.set_payload(badge_file.getvalue())
             shingle_mail.set_payload(shingle_file.getvalue())
