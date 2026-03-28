@@ -33,7 +33,7 @@ from upload_validator import FileTypeValidator
 from users.models import User, UserDemographic, UserRoleChange
 
 from core.address import fix_address
-from core.forms import DuplicateAddressField, SchoolModelChoiceField
+from core.forms import DuplicateAddressField, SchoolModelChoiceField, DatePicker
 from core.models import CHAPTER_ROLES_CHOICES, NAT_OFFICERS_CHOICES
 
 from .models import (
@@ -54,6 +54,7 @@ from .models import (
     ReturnStudent,
     RiskManagement,
     StatusChange,
+    RitualProficiency,
 )
 
 
@@ -1908,3 +1909,41 @@ class AlumniExclusionReviewForm(forms.ModelForm):
                 "veto_reason",
                 forms.ValidationError("Reason is required if vetoing"),
             )
+
+
+class RitualProficiencyForm(forms.ModelForm):
+    user = forms.ModelChoiceField(
+        label="Member Being Tested",
+        queryset=User.objects.all(),
+        widget=autocomplete.ModelSelect2(
+            url="users:autocomplete",
+            forward=(forward.Const("false", "chapter"),),
+        ),
+    )
+    memorization = forms.ChoiceField(
+        label="Memorization",
+        choices=RitualProficiency.PASS_FAIL_CHOICES,
+        widget=forms.RadioSelect,
+    )
+    directions = forms.ChoiceField(
+        label="Directions",
+        choices=RitualProficiency.PASS_FAIL_CHOICES,
+        widget=forms.RadioSelect,
+    )
+    performance = forms.ChoiceField(
+        label="Performance",
+        choices=RitualProficiency.PASS_FAIL_CHOICES,
+        widget=forms.RadioSelect,
+    )
+    date = forms.DateField(
+        label="Test Date",
+        initial=timezone.now,
+        widget=DatePicker(
+            options={"format": "M/DD/YYYY"},
+            attrs={"autocomplete": "off"},
+        ),
+    )
+
+    class Meta:
+        model = RitualProficiency
+        fields = ["user", "level", "date", "memorization", "directions", "performance", "notes"]

@@ -70,6 +70,16 @@ urlpatterns = [
         name="init_csv",
     ),
     path(
+        "initiation-csv/<int:process_pk>/<str:csv_type>/<str:response_type>/",
+        view=views.badge_shingle_init_csv,
+        name="init_csv",
+    ),
+    path(
+        "post-shingle/<int:process_pk>/",
+        view=views.badge_shingle_post,
+        name="shingle_post",
+    ),
+    path(
         "initiation-sync/<int:process_pk>/<int:invoice_number>/",
         view=views.badge_shingle_init_sync,
         name="init_sync",
@@ -172,5 +182,15 @@ urlpatterns = [
         "resignation-list/",
         view=views.ResignationListView.as_view(),
         name="resign_list",
+    ),
+    path(
+        "ritual/",
+        view=views.RitualProficiencyCreateView.as_view(),
+        name="ritual_proficiency",
+    ),
+    path(
+        "ritual/user-table/",
+        view=views.RitualProficiencyUserTableView.as_view(),
+        name="ritual_proficiency_user_table",
     ),
 ]

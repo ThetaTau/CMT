@@ -21,6 +21,7 @@ from herald.models import SentNotification
 from core.finances import get_quickbooks_client, invoice_search, create_line
 from email_signals.models import EmailSignalMixin
 from core.models import (
+    CHAPTER_OFFICER_REQUIRED,
     TODAY_END,
     annotate_role_status,
     CHAPTER_OFFICER,
@@ -223,6 +224,26 @@ class Chapter(models.Model, EmailSignalMixin):
         blank=True,
         help_text="You must include the full URL including https:// or http://",
     )
+    instagram = models.URLField(
+        blank=True,
+        help_text="You must include the full URL including https:// or http://",
+    )
+    tiktok = models.URLField(
+        blank=True,
+        help_text="You must include the full URL including https:// or http://",
+    )
+    linkedin = models.URLField(
+        blank=True,
+        help_text="You must include the full URL including https:// or http://",
+    )
+    youtube = models.URLField(
+        blank=True,
+        help_text="You must include the full URL including https:// or http://",
+    )
+    twitter = models.URLField(
+        blank=True,
+        help_text="You must include the full URL including https:// or http://",
+    )
     address_contact = models.CharField(
         max_length=100,
         help_text="Name of person to contact at address for deliveries",
@@ -243,6 +264,12 @@ class Chapter(models.Model, EmailSignalMixin):
         on_delete=models.SET_NULL,
         blank=True,
         null=True,
+    )
+    address_line_2 = models.CharField(
+        max_length=100,
+        blank=True,
+        verbose_name=_("Mailing Address Line 2"),
+        help_text="Sometimes the address is not sufficient and you need a second line for the address. This is not a separate address, just an additional line for the main address. For example, you may need to include a building name or a specific person to receive the mail.",
     )
     balance = models.DecimalField(
         default=0, decimal_places=2, max_digits=7, help_text="Balance chapter owes."
@@ -298,6 +325,9 @@ class Chapter(models.Model, EmailSignalMixin):
         default="none",
         max_length=55,
     )
+    founding_date = models.DateField(blank=True, null=True)
+    recharter_date = models.DateField(blank=True, null=True)
+    misc_data = models.JSONField(default=dict, blank=True)
 
     def __str__(self):
         return f"{self.name}"  # in {self.region} Region at {self.school}
@@ -545,6 +575,13 @@ class Chapter(models.Model, EmailSignalMixin):
             roles.append(user)
         return roles  # [regent, scribe, vice, treasurer, corsec]
 
+    def get_misc_data(self, key, default=None):
+        return self.misc_data.get(key, default)
+
+    def set_misc_data(self, key, value):
+        self.misc_data[key] = value
+        self.save()
+
     def council_emails(self):
         officers = self.get_current_officers_council_specific()
         emails = set([officer.email for officer in officers if officer]) | set(
@@ -584,104 +621,46 @@ class Chapter(models.Model, EmailSignalMixin):
         # list all officers that currently hold an executive board position
         # current and future
         officers = self.members.filter(
-            roles__role__in=CHAPTER_OFFICER,
+            roles__role__in=CHAPTER_OFFICER_REQUIRED,
             roles__end__gte=TODAY_END,
         ).prefetch_related("roles")
-        current_and_future_regent = officers.filter(roles__role="regent")
-        current_and_future_scribe = officers.filter(roles__role="scribe")
-        current_and_future_vice = officers.filter(roles__role="vice regent")
-        current_and_future_treasurer = officers.filter(roles__role="treasurer")
-        current_and_future_corsec = officers.filter(
-            roles__role="corresponding secretary"
-        )
-        return (
-            current_and_future_regent,
-            current_and_future_corsec,
-            current_and_future_scribe,
-            current_and_future_treasurer,
-            current_and_future_vice,
-        )
+        current_and_future = {}
+        for role in CHAPTER_OFFICER_REQUIRED:
+            current_and_future[role] = officers.filter(roles__role=role)
+        return current_and_future
 
     def get_previous_officers(self):
         # list the most recent officer that held position
+
         previous_officers = self.members.filter(
-            roles__role__in=CHAPTER_OFFICER,
+            roles__role__in=CHAPTER_OFFICER_REQUIRED,
             roles__end__gte=TODAY_END
             - timedelta(30 * 8),  # they ended their role in the last 8 months
         ).prefetch_related("roles")
-        past_regent = (
-            previous_officers.filter(roles__role="regent")
-            .order_by("roles__end")
-            .first()
-        )
-        past_scribe = (
-            previous_officers.filter(roles__role="scribe")
-            .order_by("roles__end")
-            .first()
-        )
-        past_vice = (
-            previous_officers.filter(roles__role="vice regent")
-            .order_by("roles__end")
-            .first()
-        )
-        past_treasurer = (
-            previous_officers.filter(roles__role="treasurer")
-            .order_by("roles__end")
-            .first()
-        )
-        past_corsec = (
-            previous_officers.filter(roles__role="corresponding secretary")
-            .order_by("roles__end")
-            .first()
-        )
-
-        return past_regent, past_corsec, past_scribe, past_treasurer, past_vice
+        previous = {}
+        for role in CHAPTER_OFFICER_REQUIRED:
+            past = (
+                previous_officers.filter(roles__role=role)
+                .order_by("roles__end")
+                .first()
+            )
+            previous[role] = past
+        return previous
 
     def get_about_expired_coucil(self):
         officers_to_update, members_to_notify, emails = [], [], []
         # officer_to_update is a list of all officers that need to be updated on the CMT
         # members_to_notify is a list of members that currently hold and/or held within the last eight months
         # the officer position that needs to be updated
-        (
-            past_regent,
-            past_corsec,
-            past_scribe,
-            past_treasurer,
-            past_vice,
-        ) = self.get_previous_officers()
+        previous = self.get_previous_officers()
         # gathers past officers by position
-        (
-            current_and_future_regent,
-            current_and_future_corsec,
-            current_and_future_scribe,
-            current_and_future_treasurer,
-            current_and_future_vice,
-        ) = self.get_current_and_future()
+        current_and_future = self.get_current_and_future()
         # gathers current and future officers by position
 
         # dictionary that contains all the chapter officer positions as a key with values of type tuple
-        current_past = {
-            "regent": (
-                current_and_future_regent,
-                past_regent,
-            ),
-            "vice regent": (
-                current_and_future_vice,
-                past_vice,
-            ),
-            "corresponding secretary": (
-                current_and_future_corsec,
-                past_corsec,
-            ),
-            "scribe": (
-                current_and_future_scribe,
-                past_scribe,
-            ),
-            "treasurer": (
-                current_and_future_treasurer,
-                past_treasurer,
-            ),
-        }
+        current_past = {}
+        for role in CHAPTER_OFFICER_REQUIRED:
+            current_past[role] = (current_and_future.get(role), previous.get(role))
 
         # position is the key of the dictionary that contains chapter officer positions while
         # info is the value that contains the tuple

@@ -3,10 +3,10 @@
 {% load crispy_forms_tags %}
 {% load crispy_forms_field %}
 {% load render_table from django_tables2 %}
-{% block title %}Gear Article{% endblock %}
+{% block title %}The Gear Article{% endblock %}
 {% block content %}
   <script type="text/javascript" src="{% static 'admin/js/vendor/jquery/jquery.js' %}"></script>
-  <h1>Gear Article Form</h1>
+  <h1>The Gear Article Form</h1>
   <p>A Gear article should be a 250-500 word article with pictures (and captions)
     about an event, major change, or area of growth in your chapter.
     It includes all of the fields below.<br>
@@ -14,6 +14,26 @@
       chapter has or on chapter officer changes, and it should not be confused with a newsletter.</b>
     Newsletters are of interest to your chapter and chapter alumni.
     Gear articles are of interest to the national fraternity and alumni from other chapters.</p>
+
+    <div class="card mb-3">
+      <div class="card-body">
+        <h5 class="card-title">Contributor AI Policy</h5>
+        <p class="card-text">With the rise of AI-assisted writing, we want to kindly remind contributors that
+          The Gear has a single editor who generously volunteers their time to review every submission.
+          We deeply appreciate that dedication and to honor it, please take care to submit only
+          your most polished work. Quality over quantity makes a real difference and helps
+          ensure great articles make it into The Gear in a timely manner.</p>
+        <ul>
+          <li>You may use AI to brainstorm, outline, or edit.</li>
+          <li>You are responsible for everything submitted under your name.</li>
+          <li>Verify all facts, quotes, and sources.</li>
+          <li>Do not submit fabricated citations or copied content.</li>
+          <li>Add your own expertise, examples, and point of view.</li>
+          <li>Remove generic or repetitive AI-style writing before submitting.</li>
+          <li>Be prepared to explain how AI was used if asked.</li>
+        </ul>
+      </div>
+    </div>
   <form class="article" enctype="multipart/form-data" action="" method="POST">
     {% csrf_token %}
       {{ forms.gear.media }}

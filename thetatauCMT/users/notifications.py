@@ -3,6 +3,7 @@ from herald.base import EmailNotification
 from tasks.models import TaskDate
 from django.conf import settings
 from django.shortcuts import reverse
+from django.template import Context, Template
 from users.models import User
 from chapters.models import Chapter
 from chapters.tables import ChapterStatusTable
@@ -226,3 +227,34 @@ class OfficerUpdateReminder(
             emails,
             officers_to_update,
         ]
+
+
+@registry.register_decorator()
+class MemberEmail(EmailNotification):
+    render_types = ["html"]
+    template_name = "member_email"
+
+    def __init__(self, user, title, email_content, context):
+        emails = set(user.emailaddress_set.values_list("email", flat=True)) | {
+            user.email,
+            user.email_school,
+        }
+        self.subject = title
+        rendered_content = Template(email_content).render(Context(context))
+        self.to_emails = emails
+        self.cc = []
+        self.reply_to = []
+        self.context = {
+            "user": user,
+            "host": settings.CURRENT_URL,
+            "title": title,
+            "email_content": rendered_content,
+            }
+
+    @staticmethod
+    def get_demo_args():  # define a static method to return list of args needed to initialize class for testing
+        user = User.objects.order_by("?")[0]
+        title = "Demo Title"
+        email_content = f"Hello {{ user.get_full_name }} Demo email content"
+        context = {"user": user}
+        return [user, title, email_content, context]

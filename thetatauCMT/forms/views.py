@@ -46,6 +46,7 @@ from viewflow.frontend.viewset import FlowViewSet
 from viewflow.models import Task as FlowTask
 
 from core.flows import FilterProcessListView, AutoAssignUpdateProcessView
+from forms.notifications import CentralOfficeGenericEmail
 from core.forms import MultiFormsView
 from core.models import (
     semester_encompass_start_end_date,
@@ -109,6 +110,7 @@ from .forms import (
     AlumniExclusionForm,
     AlumniExclusionReviewForm,
     AlumniExclusionFormHelper,
+    RitualProficiencyForm,
 )
 from tasks.models import Task
 from scores.models import ScoreType
@@ -142,6 +144,7 @@ from .tables import (
     ResignationStatusTable,
     ReturnStudentStatusTable,
     PledgeProgramStatusTable,
+    RitualProficiencyTable,
 )
 from .models import (
     Badge,
@@ -163,6 +166,7 @@ from .models import (
     ReturnStudent,
     PledgeProgramProcess,
     AlumniExclusion,
+    RitualProficiency,
 )
 from .filters import (
     AuditListFilter,
@@ -839,7 +843,7 @@ class RoleChangeView(LoginRequiredMixin, ModelFormSetView):
                 role = form.instance.role
                 if role in CHAPTER_OFFICER:
                     status_info = member.status.filter(
-                        status__in=["away"],
+                        status__in=["away", "alumni"],
                     ).values("status", "start", "end")
                     for status in status_info:
                         latest_start = max(form.instance.start, status["start"])
@@ -848,12 +852,12 @@ class RoleChangeView(LoginRequiredMixin, ModelFormSetView):
                         overlap = max(0, delta)
                         if overlap > 0:
                             error = True
-                            role_message = f"Away status start: {status['start']} end: {status['end']}"
+                            role_message = f"Status {status['status']} start: {status['start']} end: {status['end']}"
                             messages.add_message(
                                 self.request,
                                 messages.ERROR,
                                 mark_safe(
-                                    f"For member {member}. Away status (eg. COOP status) must not overlap with officer term.<br>{role_message}"
+                                    f"For member {member}. {status['status'].capitalize()} status (eg. COOP or alumni status) must not overlap with officer term.<br>{role_message}"
                                 ),
                             )
             if error:
@@ -1741,7 +1745,13 @@ class PledgeFormView(CreateView):
             )
             active_process = activation.process
         active_process.pledges.add(self.object)
-        Training.add_user(user, request=self.request)
+        try:
+            Training.add_user(user, request=self.request)
+        except Exception as e:
+            message = f"Error adding training {user=} {user.chapter=} {e}"
+            CentralOfficeGenericEmail(
+                message, subject="[CMT] Training Error"
+            ).send()
         messages.add_message(
             self.request,
             messages.INFO,
@@ -1803,17 +1813,25 @@ class PrematureAlumnusCreateView(LoginRequiredMixin, CreateProcessView):
 
 @group_required("natoff")
 @csrf_exempt
-def badge_shingle_init_csv(request, csv_type, process_pk):
+def badge_shingle_init_csv(request, csv_type, process_pk, response_type="csv"):
     process = InitiationProcess.objects.get(pk=process_pk)
-    response = HttpResponse(content_type="text/csv")
+    content_type = "application/json" if response_type == "json" else "text/csv"
+    response = HttpResponse(content_type=content_type)
     if csv_type in ["badge", "shingle"]:
-        process.generate_badge_shingle_order(response, csv_type)
+        process.generate_badge_shingle_order(response, csv_type, file_type=response_type)
     elif csv_type == "invoice":
         process.generate_blackbaud_update(invoice=True, response=response)
     else:
         process.generate_blackbaud_update(response=response)
     response["Cache-Control"] = "no-cache"
     return response
+
+@group_required("natoff")
+@csrf_exempt
+def badge_shingle_post(request, process_pk):
+    process = InitiationProcess.objects.get(pk=process_pk)
+    process.post_shingle_to_webhook(request)
+    return HttpResponseRedirect(request.META.get("HTTP_REFERER", "/"))
 
 
 @group_required("natoff")
@@ -3274,3 +3292,38 @@ class BylawsCreateView(
         table = BylawsListTable(data=data)
         context["table"] = table
         return context
+
+
+class RitualProficiencyCreateView(
+    LoginRequiredMixin, NatOfficerRequiredMixin, CreateView
+):
+    model = RitualProficiency
+    form_class = RitualProficiencyForm
+    template_name = "forms/ritual_proficiency_form.html"
+
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        messages.add_message(
+            self.request,
+            messages.INFO,
+            f"Ritual Proficiency record saved for {form.instance.user}.",
+        )
+        return response
+
+    def get_success_url(self):
+        return reverse("forms:ritual_proficiency")
+
+
+class RitualProficiencyUserTableView(
+    LoginRequiredMixin, NatOfficerRequiredMixin, TemplateView
+):
+    template_name = "forms/ritual_proficiency_table_partial.html"
+
+    def get(self, request, *args, **kwargs):
+        user_id = request.GET.get("user_id", "")
+        if user_id:
+            qs = RitualProficiency.objects.filter(user_id=user_id).order_by("-date")
+        else:
+            qs = RitualProficiency.objects.none()
+        table = RitualProficiencyTable(data=qs)
+        return render(request, self.template_name, {"table": table})

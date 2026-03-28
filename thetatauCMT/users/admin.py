@@ -15,6 +15,7 @@ from django.contrib.auth.forms import UserChangeForm
 from import_export.admin import ImportExportActionModelAdmin, ImportMixin
 from report_builder.admin import Report
 from address.admin import Address
+from watson.admin import SearchAdmin
 from simple_history.admin import SimpleHistoryAdmin
 from .forms import (
     UserAdminStatusForm,
@@ -47,6 +48,7 @@ from forms.models import (
     ResignationProcess,
     ReturnStudent,
     AlumniExclusion,
+    RitualProficiency,
 )
 from core.admin import (
     user_chapter,
@@ -99,7 +101,7 @@ class StatusListFilter(admin.SimpleListFilter):
 
 
 @admin.register(UserStatusChange)
-class UserStatusChangeAdmin(ImportExportActionModelAdmin):
+class UserStatusChangeAdmin(ImportExportActionModelAdmin, SearchAdmin):
     raw_id_fields = ["user"]
     list_display = ("user", status, "created", user_chapter, "start", "end")
     list_filter = [StatusListFilter, "created", "user__chapter", "start", "end"]
@@ -113,7 +115,10 @@ class UserStatusChangeAdmin(ImportExportActionModelAdmin):
         "created_by",
         "modified_by",
     )
-    search_fields = ["user__name"]
+    search_fields = [
+        "user__name",
+        "user__preferred_name",
+    ]
     resource_class = UserStatusChangeResource
 
 
@@ -415,6 +420,18 @@ class UserAlterInline(admin.StackedInline):
         return False
 
 
+class RitualProficiencyInline(admin.TabularInline):
+    model = RitualProficiency
+    fk_name = "user"
+    readonly_fields = ("recorded_by", "created")
+    fields = ["level", "date", "memorization", "directions", "performance", "notes", "recorded_by"]
+    show_change_link = True
+    extra = 0
+
+    def has_add_permission(self, request, obj=None):
+        return True
+
+
 @admin.register(User)
 class MyUserAdmin(
     ImportMixin,
@@ -423,6 +440,7 @@ class MyUserAdmin(
     AssignTrainingMixin,
     SignalWatchMixin,
     SimpleHistoryAdmin,
+    SearchAdmin,
 ):
     object_type = "user"
     actions = [
@@ -456,6 +474,7 @@ class MyUserAdmin(
         DisciplinaryProcessInline,
         AlumniExclusionInline,
         CollectionReferralInline,
+        RitualProficiencyInline,
         TrainingInline,
     ]
     form = MyUserChangeForm
@@ -549,7 +568,13 @@ class MyUserAdmin(
         "officer",
         "chapter",
     )
-    search_fields = ("badge_number", "id") + AuthUserAdmin.search_fields
+    search_fields = (
+        "badge_number",
+        "id",
+        "preferred_name",
+        "nickname",
+        "email_school",
+    ) + AuthUserAdmin.search_fields
     resource_class = UserResource
 
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
@@ -670,7 +695,7 @@ class LogEntryAdmin(admin.ModelAdmin):
 
 
 @admin.register(MemberUpdate)
-class MemberUpdateAdmin(admin.ModelAdmin):
+class MemberUpdateAdmin(SearchAdmin, admin.ModelAdmin):
     raw_id_fields = ["user"]
     list_display = (
         "user",
@@ -689,4 +714,9 @@ class MemberUpdateAdmin(admin.ModelAdmin):
     ordering = [
         "-created",
     ]
-    search_fields = ["user__name", "first_name", "last_name"]
+    search_fields = [
+        "user__name",
+        "first_name",
+        "last_name",
+        "user__preferred_name",
+    ]

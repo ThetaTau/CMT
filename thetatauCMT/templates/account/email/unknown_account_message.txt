@@ -1,0 +1,10 @@
+{% extends "account/email/base_message.txt" %}
+{% load i18n %}
+
+{% block content %}{% autoescape off %}Someone (possibly you) requested a password reset for the account associated with this email address ({{ email }}).
+
+However, no account was found for this email address.
+
+If you have an account, please try a different email address. If you believe this is an error, please contact support at central.office@thetatau.org
+
+If you did not request a password reset, you can safely ignore this email.{% endautoescape %}{% endblock %}

@@ -3,12 +3,11 @@ from crispy_forms.bootstrap import Field, FormActions, InlineField, StrictButton
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Column, Fieldset, Layout, Row, Submit
 from django import forms
-from tempus_dominus.widgets import DatePicker
 
 from core.forms import (
     ListSelect2Multiple,
     Select2ListCreateMultipleChoiceField,
-    set_multiple_choices_initial,
+    set_multiple_choices_initial, DatePicker,
 )
 
 from .models import Job, JobSearch, Keyword, Major

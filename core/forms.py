@@ -12,7 +12,23 @@ from dal_select2.fields import Select2ListCreateChoiceField
 from dal_select2.widgets import Select2Multiple, Select2WidgetMixin, WidgetMixin
 from address.forms import AddressField, Address
 from core.address import fix_duplicate_address
+from tempus_dominus.widgets import DatePicker as _DatePicker
 
+
+class DatePicker(_DatePicker):
+    """Override moment_option to avoid moment.js treating ISO date strings as UTC.
+
+    Moment.js 2.x parses bare ISO date strings (e.g. "1995-03-27") as UTC
+    midnight.  In timezones behind UTC the picker then displays the previous
+    day, which the user submits and saves.  Appending T12:00:00 keeps the
+    value well within the same calendar day for any UTC offset.
+    """
+
+    def moment_option(self, value):
+        opts = super().moment_option(value)
+        if "date" in opts and "T" not in opts["date"]:
+            opts["date"] = opts["date"] + "T12:00:00"
+        return opts
 
 class SchoolModelChoiceField(forms.ModelChoiceField):
     def label_from_instance(self, obj):

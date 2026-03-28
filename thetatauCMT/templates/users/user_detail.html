@@ -53,8 +53,9 @@
 <!-- End Action buttons -->
 {% endif %}
 <form class="user" method="POST">
+  <script type="text/javascript" src="{% static 'admin/js/vendor/jquery/jquery.js' %}"></script>
     {% csrf_token %}
-    {{ forms.user.management_form|crispy }}
+    <div>{{ forms.user.management_form|crispy }}</div>
     {{ forms.user.media }}
     {{ forms.user|crispy }}
     <button class="btn btn-primary" name='action' value='user' type="submit">Update Member Information</button>
@@ -132,7 +133,7 @@
         </tr>
     </table>
   <h4 id="member_orgs">Update Member External Organizations:</h4>
-{{ forms.orgs.media }}
+  {% comment %} Can not have the media here as it conflicts with tempus in another media {% endcomment %}
   <form action="" method="post">
     {% csrf_token %}
     <div>{{ forms.orgs.management_form|crispy }}</div>

@@ -2,6 +2,7 @@ import datetime
 import io
 import os
 import csv
+import json
 from pathlib import Path
 from collections import Counter
 import address
@@ -19,8 +20,10 @@ from djmoney.models.fields import MoneyField
 from django.utils.translation import gettext_lazy as _
 from email_signals.models import EmailSignalMixin
 from multiselectfield import MultiSelectField
+import requests
 from viewflow.models import Process
-from easy_pdf.rendering import render_to_pdf
+
+# from easy_pdf.rendering import render_to_pdf
 from quickbooks.objects.customer import Customer
 from quickbooks.objects.attachable import Attachable, AttachableRef
 from core.finances import get_quickbooks_client, invoice_search, create_line
@@ -1160,7 +1163,11 @@ class InitiationProcess(Process, EmailSignalMixin):
         return invoice_obj.DocNumber
 
     def generate_badge_shingle_order(
-        self, response=None, csv_type=None, get_file=False
+        self,
+        response=None,
+        csv_type=None,
+        get_file=False,
+        file_type="csv",
     ):
         """
         badge example:
@@ -1206,16 +1213,14 @@ class InitiationProcess(Process, EmailSignalMixin):
         init_date = self.initiations.first().date.strftime("%Y%m%d")
         badge_file = io.StringIO()
         shingle_file = io.StringIO()
-        badge_mail = MIMEBase("application", "csv")
-        badge_filename = f"{chapter}_{init_date}_badge.csv"
+        badge_mail = MIMEBase("application", file_type)
+        badge_filename = f"{chapter}_{init_date}_badge.{file_type}"
         # Intuit Invoice # - ChapterID_other stuff.csv
-        shingle_filename = (
-            f"{self.invoice}-{self.chapter.id:03d}_{chapter}_{init_date}_shingle.csv"
-        )
+        shingle_filename = f"{self.invoice}-{self.chapter.id:03d}_{chapter}_{init_date}_shingle.{file_type}"
         badge_mail.add_header(
             "Content-Disposition", "attachment", filename=badge_filename
         )
-        shingle_mail = MIMEBase("application", "csv")
+        shingle_mail = MIMEBase("application", file_type)
         shingle_mail.add_header(
             "Content-Disposition", "attachment", filename=shingle_filename
         )
@@ -1228,10 +1233,13 @@ class InitiationProcess(Process, EmailSignalMixin):
                 filename = shingle_filename
             response["Content-Disposition"] = f'attachment; filename="{filename}"'
             out = None
-        badge_writer = csv.DictWriter(badge_file, fieldnames=badge_header)
-        shingle_writer = csv.DictWriter(shingle_file, fieldnames=shingle_header)
-        badge_writer.writeheader()
-        shingle_writer.writeheader()
+        if file_type == "csv":
+            badge_writer = csv.DictWriter(badge_file, fieldnames=badge_header)
+            shingle_writer = csv.DictWriter(shingle_file, fieldnames=shingle_header)
+            badge_writer.writeheader()
+            shingle_writer.writeheader()
+        badge_rows = []
+        shingle_rows = []
         for initiation in self.initiations.all():
             badge = ""
             if initiation.badge:
@@ -1242,7 +1250,7 @@ class InitiationProcess(Process, EmailSignalMixin):
                 chapter_address = "Chapter Officer"
             row_badge = {
                 "Chapter Name": chapter,
-                "Chapter Address": chapter_address,
+                "Chapter Address": str(chapter_address),
                 "Chapter Contact": self.chapter.address_contact,
                 "Chapter Phone": self.chapter.address_phone_number,
                 "Chapter Description": chapter_abr,
@@ -1251,13 +1259,12 @@ class InitiationProcess(Process, EmailSignalMixin):
                 "Last Name": initiation.user.last_name,
                 "Badge Style": badge,
             }
-            badge_writer.writerow(row_badge)
             row_shingle = {
                 "First Name": initiation.user.first_name,
                 "Middle Name": "",
                 "Last Name": initiation.user.last_name,
                 "Chapter Name": chapter,
-                "Chapter Address": self.chapter.address,
+                "Chapter Address": str(self.chapter.address),
                 "Chapter Contact": self.chapter.address_contact,
                 "Chapter Phone": self.chapter.address_phone_number,
                 "Education Class of": initiation.date_graduation.year,
@@ -1268,7 +1275,14 @@ class InitiationProcess(Process, EmailSignalMixin):
                 "Chapter Abbreviation": chapter_abr,
                 "Badge Style": badge,
             }
-            shingle_writer.writerow(row_shingle)
+            if file_type == "csv":
+                badge_writer.writerow(row_badge)
+                shingle_writer.writerow(row_shingle)
+            badge_rows.append(row_badge)
+            shingle_rows.append(row_shingle)
+        if file_type == "json":
+            json.dump(badge_rows, badge_file)
+            json.dump(shingle_rows, shingle_file)
         if response is None and not get_file:
             badge_mail.set_payload(badge_file.getvalue())
             shingle_mail.set_payload(shingle_file.getvalue())
@@ -1282,6 +1296,40 @@ class InitiationProcess(Process, EmailSignalMixin):
                 file_obj = shingle_file
             out = file_name, file_obj
         return out
+
+    def post_shingle_to_webhook(self, request=None):
+        file_name, shingle_file = self.generate_badge_shingle_order(
+                csv_type="shingle",
+                get_file=True,
+                file_type="json",
+            )
+        # Post shingle data to Zapier webhook
+        webhook_url = Config.get_value("RegaliaShingleWebhookURL")
+        shingle_data = shingle_file.getvalue()
+        data = {
+            "filename": file_name,
+            "data": shingle_data,
+        }
+        response = requests.post(
+            webhook_url,
+            json=data,
+            headers={"Content-Type": "application/json"},
+        )
+        if response.ok:
+            message_text = f"Shingle data successfully sent to webhook. {file_name=}"
+            message_level = messages.SUCCESS
+        else:
+            message_text = f"Failed to send shingle data (status {response.status_code}): {response.text}"
+            message_level = messages.ERROR
+        if request is not None:
+            messages.add_message(
+                request,
+                message_level,
+                message_text,
+            )
+        else:
+            print(message_text)
+
 
 
 class Convention(Process, YearTermModel):
@@ -2131,3 +2179,54 @@ class AlumniExclusion(Process, TimeStampedModel, EmailSignalMixin):
         if self.user:
             value = f"Exclusion of {self.user}"
         return value
+
+
+class RitualProficiency(TimeStampedModel):
+    PASS_FAIL_CHOICES = (("pass", "Pass"), ("fail", "Fail"))
+
+    class LEVELS(EnumClass):
+        level1 = ("level1", "Level 1")
+        level2 = ("level2", "Level 2")
+        level3 = ("level3", "Level 3")
+        level4 = ("level4", "Level 4")
+        level5 = ("level5", "Level 5")
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        verbose_name="Member Being Tested",
+        on_delete=models.CASCADE,
+        related_name="ritual_proficiency",
+    )
+    recorded_by = UserForeignKey(
+        auto_user_add=True,
+        verbose_name="Recorded by",
+        related_name="ritual_proficiency_recorded",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+    )
+    level = models.CharField(
+        "Ritual Level",
+        max_length=10,
+        choices=[x.value for x in LEVELS],
+    )
+    date = models.DateField("Test Date", default=timezone.now)
+    memorization = models.CharField(
+        "Memorization",
+        max_length=4,
+        choices=PASS_FAIL_CHOICES,
+    )
+    directions = models.CharField(
+        "Directions",
+        max_length=4,
+        choices=PASS_FAIL_CHOICES,
+    )
+    performance = models.CharField(
+        "Performance",
+        max_length=4,
+        choices=PASS_FAIL_CHOICES,
+    )
+    notes = models.TextField("Notes", blank=True)
+
+    def __str__(self):
+        return f"Ritual Proficiency {self.get_level_display()} for {self.user} on {self.date}"

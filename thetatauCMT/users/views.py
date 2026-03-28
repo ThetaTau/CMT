@@ -836,6 +836,7 @@ class UserAutocomplete(autocomplete.Select2QuerySetView):
             or not self.request.user.is_officer_group
         ):
             return User.objects.none()
+        # users:autocomplete comes here
         chapter = self.forwarded.get("chapter", "true")
         actives = self.forwarded.get("actives", "false")
         alumni = self.forwarded.get("alumni", "false")

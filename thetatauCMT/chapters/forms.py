@@ -19,7 +19,13 @@ class ChapterForm(forms.ModelForm):
             "email",
             "website",
             "facebook",
+            "instagram",
+            "tiktok",
+            "linkedin",
+            "youtube",
+            "twitter",
             "address",
+            "address_line_2",
             "address_contact",
             "address_phone_number",
             "council",
@@ -34,8 +40,14 @@ class ChapterForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        optional_fields = {
+            "email", "website", "facebook", "instagram", "tiktok",
+            "linkedin", "youtube", "twitter", "address_line_2",
+            "email_regent", "email_vice_regent", "email_scribe",
+            "email_treasurer", "email_corresponding_secretary",
+        }
         for key in self.fields:
-            if "email" not in key:
+            if key not in optional_fields:
                 self.fields[key].required = True
 
     def clean_address(self):

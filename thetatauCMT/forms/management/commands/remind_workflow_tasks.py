@@ -74,9 +74,11 @@ class Command(BaseCommand):
                         extra = "<i>This email will continue to be sent daily until the form is submitted or someone contacts the central office with an update.</i>"
                     elif process.trial_date == date_7:
                         process_title = f"REMINDER {process.flow_class.process_title}"
+                        extra_emails = {chapter.region.email}
                         days = 7
                     elif process.trial_date == date_14:
                         process_title = f"REMINDER {process.flow_class.process_title}"
+                        extra_emails = {chapter.region.email}
                         days = 14
                         email_officers = True
                     else:
@@ -124,9 +126,11 @@ class Command(BaseCommand):
                     process_title = f"REMINDER {process.flow_class.process_title}"
                     days = 14
                     email_officers = True
+                    extra_emails = {chapter.region.email}
                 elif created == date_7:
                     process_title = f"REMINDER {process.flow_class.process_title}"
                     days = 7
+                    extra_emails = {chapter.region.email}
                 else:
                     # not in time ranges
                     continue

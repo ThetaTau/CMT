@@ -10,10 +10,9 @@ from django.conf import settings
 from django.utils import timezone
 from django_recaptcha.fields import ReCaptchaField
 from django_recaptcha.widgets import ReCaptchaV3
-from tempus_dominus.widgets import DatePicker
 
 from core.address import fix_address
-from core.forms import DuplicateAddressField, SchoolModelChoiceField
+from core.forms import DuplicateAddressField, SchoolModelChoiceField, DatePicker
 from core.models import BIENNIUM_YEARS, forever
 
 from .models import (
@@ -322,6 +321,13 @@ class UserAlterForm(forms.ModelForm):
 
 class UserForm(forms.ModelForm):
     address = DuplicateAddressField(widget=AddressWidget)
+    birth_date = forms.DateField(
+        label="Birth Date",
+        widget=DatePicker(
+            options={"format": "M/DD/YYYY"},
+            attrs={"autocomplete": "off"},
+        ),
+    )
 
     class Meta:
         model = User
@@ -333,6 +339,7 @@ class UserForm(forms.ModelForm):
             "phone_number",
             "address",
             "email",
+            "birth_date",
         ]
 
     def __init__(self, *args, **kwargs):

@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% load static %}
+{% load crispy_forms_tags %}
+{% block title %}Ritual Proficiency{% endblock %}
+
+{% block content %}
+<div class="container">
+  <div class="row">
+    <div class="col-sm-12">
+      <h1>Ritual Proficiency</h1>
+      <p>Record when a member tests for a level of ritual proficiency.
+         Select the member, the ritual level being tested, and mark pass or fail
+         for each of the three criteria.</p>
+
+      <h3>Previous Records for Selected Member</h3>
+      <div id="ritual-proficiency-table">
+        <p class="text-muted">Select a member above to view their ritual proficiency records.</p>
+      </div>
+
+      <hr>
+      <form method="POST" enctype="multipart/form-data">
+        {% csrf_token %}
+        {{ form.media }}
+        <link href="{% static 'css/project.css' %}" rel="stylesheet">
+        <div>{{ form|crispy }}</div>
+        <button class="btn btn-primary" type="submit">Submit</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+{% block javascript %}
+{{ block.super }}
+<script>
+$(document).ready(function () {
+  var tableUrl = "{% url 'forms:ritual_proficiency_user_table' %}";
+  var tableContainer = document.getElementById('ritual-proficiency-table');
+
+  function updateTable(userId) {
+    if (!userId) {
+      tableContainer.innerHTML = '<p class="text-muted">Select a member above to view their ritual proficiency records.</p>';
+      return;
+    }
+    fetch(tableUrl + '?user_id=' + encodeURIComponent(userId), {
+      headers: {'X-Requested-With': 'XMLHttpRequest'}
+    })
+    .then(function(response) { return response.text(); })
+    .then(function(html) { tableContainer.innerHTML = html; });
+  }
+
+  // Select2/DAL triggers change via jQuery — must use $.on, not addEventListener
+  $('#id_user').on('change', function () {
+    updateTable($(this).val());
+  });
+
+  // Load immediately if a user is already selected (e.g. form re-rendered after error)
+  var initialUserId = $('#id_user').val();
+  if (initialUserId) {
+    updateTable(initialUserId);
+  }
+});
+</script>
+{% endblock javascript %}
+{% endblock content %}

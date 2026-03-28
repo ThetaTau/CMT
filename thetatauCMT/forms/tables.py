@@ -14,6 +14,7 @@ from .models import (
     CollectionReferral,
     PledgeProgramProcess,
     AlumniExclusion,
+    RitualProficiency,
 )
 
 
@@ -465,3 +466,18 @@ class BylawsListTable(tables.Table):
             )
         kwargs["extra_columns"] = extra_columns
         super().__init__(*args, **kwargs)
+
+
+class RitualProficiencyTable(tables.Table):
+    recorded_by = tables.Column(accessor="recorded_by__name", verbose_name="Recorded By")
+    level = tables.Column(verbose_name="Ritual Level")
+    memorization = tables.Column()
+    directions = tables.Column()
+    performance = tables.Column()
+
+    class Meta:
+        model = RitualProficiency
+        fields = ("recorded_by", "level", "date", "memorization", "directions", "performance", "notes")
+        order_by = "-date"
+        attrs = {"class": "table table-striped table-bordered"}
+        empty_text = "There are no ritual proficiency records for the selected member..."

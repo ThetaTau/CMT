@@ -121,6 +121,11 @@ CHAPTER_OFFICER = {
     "vice regent",
 }
 
+CHAPTER_OFFICER_REQUIRED = CHAPTER_OFFICER | {
+    "pledge/new member educator",
+    "risk management chair",
+}
+
 COL_OFFICER_ALIGN = {
     "president": "regent",
     "secretary": "scribe",
