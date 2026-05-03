@@ -7,8 +7,8 @@ Notes:
 import datetime
 from django.core.management import BaseCommand
 from herald.models import SentNotification
-from forms.notifications import BadgePNMNotify
-from chapters.models import Chapter
+from thetatauCMT.forms.notifications import BadgePNMNotify
+from thetatauCMT.chapters.models import Chapter
 
 
 class Command(BaseCommand):

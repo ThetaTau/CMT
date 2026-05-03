@@ -46,7 +46,7 @@ from viewflow.frontend.viewset import FlowViewSet
 from viewflow.models import Task as FlowTask
 
 from core.flows import FilterProcessListView, AutoAssignUpdateProcessView
-from forms.notifications import CentralOfficeGenericEmail
+from thetatauCMT.forms.notifications import CentralOfficeGenericEmail
 from core.forms import MultiFormsView
 from core.models import (
     semester_encompass_start_end_date,
@@ -68,8 +68,8 @@ from core.views import (
     group_required,
     AssignOfficerFormMixin,
 )
-from surveys.notifications import DepledgeSurveyEmail, SurveyEmail
-from users.tables import RollBookTable
+from thetatauCMT.surveys.notifications import DepledgeSurveyEmail, SurveyEmail
+from thetatauCMT.users.tables import RollBookTable
 from .forms import (
     InitiationFormSet,
     BylawsForm,
@@ -112,16 +112,16 @@ from .forms import (
     AlumniExclusionFormHelper,
     RitualProficiencyForm,
 )
-from tasks.models import Task
-from scores.models import ScoreType
-from submissions.models import Submission
-from configs.models import Config
-from users.models import User, UserRoleChange
-from users.forms import UserForm
-from users.notifications import NewOfficers
-from chapters.models import Chapter, ChapterCurricula
-from regions.models import Region
-from trainings.models import Training
+from thetatauCMT.tasks.models import Task
+from thetatauCMT.scores.models import ScoreType
+from thetatauCMT.submissions.models import Submission
+from thetatauCMT.configs.models import Config
+from thetatauCMT.users.models import User, UserRoleChange
+from thetatauCMT.users.forms import UserForm
+from thetatauCMT.users.notifications import NewOfficers
+from thetatauCMT.chapters.models import Chapter, ChapterCurricula
+from thetatauCMT.regions.models import Region
+from thetatauCMT.trainings.models import Training
 from .tables import (
     BadgeTable,
     BylawsListTable,

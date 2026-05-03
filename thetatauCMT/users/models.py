@@ -33,7 +33,7 @@ from core.models import (
     COUNCIL,
     EnumClass,
 )
-from chapters.models import Chapter, ChapterCurricula
+from thetatauCMT.chapters.models import Chapter, ChapterCurricula
 
 
 class CustomUserManager(UserManager):
@@ -41,7 +41,7 @@ class CustomUserManager(UserManager):
         chapter = Chapter.objects.first()
         if chapter is None:
             # this would happen on first install; make a default test region/chapter
-            from regions.models import Region
+            from thetatauCMT.regions.models import Region
 
             region = Region.objects.first()
             if region is None:

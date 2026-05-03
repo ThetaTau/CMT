@@ -1,9 +1,9 @@
 import csv
 import datetime
-from scores.models import ScoreChapter
-from chapters.models import Chapter
-from events.models import Event
-from submissions.models import Submission
+from thetatauCMT.scores.models import ScoreChapter
+from thetatauCMT.chapters.models import Chapter
+from thetatauCMT.events.models import Event
+from thetatauCMT.submissions.models import Submission
 
 fields = [
     "Chapter name",

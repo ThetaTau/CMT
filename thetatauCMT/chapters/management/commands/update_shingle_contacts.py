@@ -8,7 +8,7 @@ from django.conf import settings
 from django.core.management import BaseCommand
 import gspread
 
-from chapters.models import Chapter
+from thetatauCMT.chapters.models import Chapter
 
 
 # python manage.py update_shingle_contacts

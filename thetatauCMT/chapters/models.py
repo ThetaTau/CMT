@@ -33,8 +33,8 @@ from core.models import (
     ADVISOR_ROLES,
     EnumClass,
 )
-from regions.models import Region
-from configs.models import Config
+from thetatauCMT.regions.models import Region
+from thetatauCMT.configs.models import Config
 from .notifications import DuesReminder
 
 GREEK_ABR = {
@@ -415,7 +415,7 @@ class Chapter(models.Model, EmailSignalMixin):
         )
 
     def pledges_last_x_months(self, months=8):
-        from forms.models import Pledge
+        from thetatauCMT.forms.models import Pledge
 
         return Pledge.objects.filter(
             user__chapter=self,
@@ -829,7 +829,7 @@ class Chapter(models.Model, EmailSignalMixin):
         return DuesReminder(self, attachment).send()
 
     def generate_dues_attachment(self, response=None, file_obj=False):
-        from users.tables import UserTable
+        from thetatauCMT.users.tables import UserTable
 
         time_name = datetime.datetime.now().strftime("%Y%m%d")
         filename = f"{self}_{time_name}_dues.csv"

@@ -9,7 +9,7 @@ from core.views import (
     LoginRequiredMixin,
     NatOfficerRequiredMixin,
 )
-from scores.models import ScoreType
+from thetatauCMT.scores.models import ScoreType
 from core.forms import MultiFormsView
 from .models import Event, Picture
 from .tables import EventTable

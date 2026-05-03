@@ -1,5 +1,5 @@
-# from users.models import User
-from chapters.models import Chapter
+# from thetatauCMT.users.models import User
+from thetatauCMT.chapters.models import Chapter
 from csv import DictReader
 
 file_path = "secrets/20180725_all_all.CSV"

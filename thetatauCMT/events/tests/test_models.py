@@ -3,9 +3,9 @@ import pytest
 import factory
 from faker import Faker
 from django.utils.text import slugify
-from events.tests.factories import EventFactory
-from events.models import Event
-from scores.models import ScoreType
+from thetatauCMT.events.tests.factories import EventFactory
+from thetatauCMT.events.models import Event
+from thetatauCMT.scores.models import ScoreType
 
 fake = Faker()
 

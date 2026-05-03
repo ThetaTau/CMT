@@ -1,4 +1,4 @@
-from users.models import User
+from thetatauCMT.users.models import User
 from core.address import fix_address
 from core.models import TODAY_END
 

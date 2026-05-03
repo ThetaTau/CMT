@@ -1,8 +1,8 @@
-from chapters.models import Chapter
+from thetatauCMT.chapters.models import Chapter
 from django.db import models
 from django_ckeditor_5.fields import CKEditor5Field
 from django_userforeignkey.models.fields import UserForeignKey
-from users.models import User
+from thetatauCMT.users.models import User
 
 from core.models import TimeStampedModel
 

@@ -1,10 +1,10 @@
 import datetime
 from django.core.management import BaseCommand
 from django.core.mail import send_mail
-from users.notifications import OfficerMonthly, RDMonthly
+from thetatauCMT.users.notifications import OfficerMonthly, RDMonthly
 from core.notifications import GenericEmail
-from chapters.models import Chapter
-from regions.models import Region
+from thetatauCMT.chapters.models import Chapter
+from thetatauCMT.regions.models import Region
 
 
 # python manage.py monthly_chapter_officer_email

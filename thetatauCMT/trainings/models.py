@@ -10,7 +10,7 @@ from django.db import models
 from django.http import Http404
 from django.db.models import Q
 from core.models import TimeStampedModel
-from users.models import User
+from thetatauCMT.users.models import User
 
 
 class Training(TimeStampedModel):

@@ -58,10 +58,10 @@ from .forms import (
     UserUpdateForm,
 )
 from .notifications import MemberInfoUpdate
-from forms.forms import PledgeDemographicsForm
-from chapters.models import Chapter
-from submissions.tables import SubmissionTable
-from notes.tables import UserNoteTable
+from thetatauCMT.forms.forms import PledgeDemographicsForm
+from thetatauCMT.chapters.models import Chapter
+from thetatauCMT.submissions.tables import SubmissionTable
+from thetatauCMT.notes.tables import UserNoteTable
 
 
 class UserRedirectView(LoginRequiredMixin, RedirectView):

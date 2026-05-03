@@ -7,7 +7,7 @@ if TYPE_CHECKING:
 
 
 class JobsConfig(AppConfig):
-    name = "jobs"
+    name = "thetatauCMT.jobs"
     verbose_name = "Jobs"
 
     def ready(self):

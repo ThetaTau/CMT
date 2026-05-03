@@ -10,7 +10,7 @@ from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
 from django.conf import settings
 from django.db.models import Avg, Count
-from users.models import User, UserSemesterGPA, UserStatusChange
+from thetatauCMT.users.models import User, UserSemesterGPA, UserStatusChange
 
 from core.models import semester_encompass_start_end_date
 

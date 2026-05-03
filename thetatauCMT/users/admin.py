@@ -37,7 +37,7 @@ from .models import (
 )
 from .resources import UserRoleChangeResource, UserResource, UserStatusChangeResource
 from .views import ExportActiveMixin
-from forms.models import (
+from thetatauCMT.forms.models import (
     Depledge,
     Initiation,
     StatusChange,
@@ -57,8 +57,8 @@ from core.admin import (
     SentNotification,
     AddressAdmin,
 )
-from notes.admin import UserNoteInline, UserNote
-from trainings.admin import AssignTrainingMixin, TrainingInline
+from thetatauCMT.notes.admin import UserNoteInline, UserNote
+from thetatauCMT.trainings.admin import AssignTrainingMixin, TrainingInline
 from core.signals import SignalWatchMixin
 from core.models import forever
 

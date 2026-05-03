@@ -3,7 +3,7 @@ from watson import search as watson
 
 
 class UsersConfig(AppConfig):
-    name = "users"
+    name = "thetatauCMT.users"
     verbose_name = "Users"
 
     def ready(self):

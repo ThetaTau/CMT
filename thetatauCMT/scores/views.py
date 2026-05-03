@@ -4,9 +4,9 @@ from django.views.generic import DetailView, RedirectView
 from core.views import PagedFilteredTableView, RequestConfig, LoginRequiredMixin
 from .models import ScoreType, ScoreChapter
 from .tables import ScoreTable, ChapterScoreTable
-from events.tables import EventTable
-from chapters.models import Chapter
-from submissions.tables import SubmissionTable
+from thetatauCMT.events.tables import EventTable
+from thetatauCMT.chapters.models import Chapter
+from thetatauCMT.submissions.tables import SubmissionTable
 from core.models import BIENNIUM_START
 from .filters import ScoreListFilter, ChapterScoreListFilter
 from .forms import ScoreListFormHelper, ChapterScoreListFormHelper

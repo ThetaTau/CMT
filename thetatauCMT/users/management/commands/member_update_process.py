@@ -2,7 +2,7 @@ import datetime
 from django.core.management import BaseCommand
 from viewflow.models import Task
 from viewflow.activation import STATUS
-from users.flows import MemberUpdateFlow
+from thetatauCMT.users.flows import MemberUpdateFlow
 
 
 # python manage.py member_update_process

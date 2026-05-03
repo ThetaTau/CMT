@@ -8,7 +8,7 @@ from dj_anonymizer import fields
 from email_signals.models import Signal, SignalConstraint
 from faker import Factory
 
-from users.models import (
+from thetatauCMT.users.models import (
     User,
     UserDemographic,
     UserAlter,

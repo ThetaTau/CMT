@@ -1,12 +1,12 @@
 from herald import registry
 from herald.base import EmailNotification
-from tasks.models import TaskDate
+from thetatauCMT.tasks.models import TaskDate
 from django.conf import settings
 from django.shortcuts import reverse
 from django.template import Context, Template
-from users.models import User
-from chapters.models import Chapter
-from chapters.tables import ChapterStatusTable
+from thetatauCMT.users.models import User
+from thetatauCMT.chapters.models import Chapter
+from thetatauCMT.chapters.tables import ChapterStatusTable
 
 
 @registry.register_decorator()
@@ -178,7 +178,7 @@ class NewOfficers(EmailNotification):  # extend from EmailNotification for email
 
     @staticmethod
     def get_demo_args():  # define a static method to return list of args needed to initialize class for testing
-        from users.models import User
+        from thetatauCMT.users.models import User
 
         return [
             [

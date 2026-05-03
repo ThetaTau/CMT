@@ -4,9 +4,9 @@ import datetime
 from django.core.management import BaseCommand
 from django.db.models import Sum
 from core.models import BIENNIUM_YEARS
-from chapters.models import Chapter
-from scores.models import ScoreType, ScoreChapter
-from users.models import (
+from thetatauCMT.chapters.models import Chapter
+from thetatauCMT.scores.models import ScoreType, ScoreChapter
+from thetatauCMT.users.models import (
     UserSemesterGPA,
     UserSemesterServiceHours,
     UserOrgParticipate,

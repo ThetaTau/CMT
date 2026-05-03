@@ -10,8 +10,8 @@ from core.models import (
     BIENNIUM_START_DATE,
     BIENNIUM_END_DATE,
 )
-from scores.models import ScoreType
-from chapters.models import Chapter
+from thetatauCMT.scores.models import ScoreType
+from thetatauCMT.chapters.models import Chapter
 
 
 def get_event_upload_event(instance, filename):

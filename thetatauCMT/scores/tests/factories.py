@@ -1,6 +1,6 @@
 import factory
 from ..models import ScoreType, ScoreChapter
-from chapters.tests.factories import ChapterFactory
+from thetatauCMT.chapters.tests.factories import ChapterFactory
 
 
 # class ScoreTypeFactory(factory.django.DjangoModelFactory):

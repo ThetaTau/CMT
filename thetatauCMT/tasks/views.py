@@ -12,8 +12,8 @@ from core.views import (
     OfficerRequiredMixin,
     LoginRequiredMixin,
 )
-from forms.tables import SignTable
-from forms.views import get_sign_status, get_sign_status_discipline
+from thetatauCMT.forms.tables import SignTable
+from thetatauCMT.forms.views import get_sign_status, get_sign_status_discipline
 from .models import TaskChapter, TaskDate
 from .tables import TaskTable
 from .filters import TaskListFilter

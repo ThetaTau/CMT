@@ -1,7 +1,7 @@
 from import_export import resources
 from .models import ChapterNote, UserNote
-from users.models import User
-from chapters.models import Chapter
+from thetatauCMT.users.models import User
+from thetatauCMT.chapters.models import Chapter
 
 
 class ChapterNoteResource(resources.ModelResource):

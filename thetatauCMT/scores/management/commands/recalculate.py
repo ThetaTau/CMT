@@ -1,8 +1,8 @@
 import datetime
 from django.core.management import BaseCommand
 
-from chapters.models import Chapter
-from scores.models import ScoreType
+from thetatauCMT.chapters.models import Chapter
+from thetatauCMT.scores.models import ScoreType
 from core.models import BIENNIUM_START
 
 

@@ -1,8 +1,8 @@
 import pytest
 from pytest_django.asserts import assertQuerysetEqual
-from chapters.tests.factories import ChapterFactory, ChapterCurriculaFactory
-from chapters.models import Chapter, ChapterCurricula
-from users.models import UserStatusChange
+from thetatauCMT.chapters.tests.factories import ChapterFactory, ChapterCurriculaFactory
+from thetatauCMT.chapters.models import Chapter, ChapterCurricula
+from thetatauCMT.users.models import UserStatusChange
 
 
 @pytest.mark.django_db

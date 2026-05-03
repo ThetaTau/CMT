@@ -2,7 +2,7 @@
 import django_filters
 from django.forms.widgets import NumberInput
 from .models import ScoreType
-from chapters.filters import ChapterListFilter
+from thetatauCMT.chapters.filters import ChapterListFilter
 
 
 class ScoreListFilter(django_filters.FilterSet):

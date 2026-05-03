@@ -2,7 +2,7 @@ from django.core.management import BaseCommand
 from django.db import IntegrityError
 from csv import DictReader
 from datetime import datetime
-from tasks.models import Task, TaskDate
+from thetatauCMT.tasks.models import Task, TaskDate
 
 file_path = r"thetatauCMT/tasks/management/commands/date_data.csv"
 

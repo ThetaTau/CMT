@@ -9,7 +9,7 @@ from django.core.management import BaseCommand
 from herald.models import SentNotification
 from core.models import TODAY_END
 from core.notifications import GenericEmail
-from chapters.models import Chapter
+from thetatauCMT.chapters.models import Chapter
 
 
 class Command(BaseCommand):

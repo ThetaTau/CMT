@@ -2,8 +2,8 @@
 import django_filters
 from .models import User, UserRoleChange
 from core.models import TODAY_END
-from regions.models import Region
-from chapters.models import ChapterCurricula, Chapter
+from thetatauCMT.regions.models import Region
+from thetatauCMT.chapters.models import ChapterCurricula, Chapter
 
 
 class UserListFilterBase(django_filters.FilterSet):

@@ -6,7 +6,7 @@ from django.utils.safestring import mark_safe
 from django.utils.deprecation import MiddlewareMixin
 from allauth_2fa.middleware import BaseRequire2FAMiddleware
 
-from forms.models import RiskManagement, PledgeProgram
+from thetatauCMT.forms.models import RiskManagement, PledgeProgram
 from core.utils import check_officer, check_nat_officer
 from core.models import current_term, current_month
 

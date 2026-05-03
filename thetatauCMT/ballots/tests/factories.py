@@ -1,7 +1,7 @@
 import random
 import factory
 from ..models import Ballot, BallotComplete
-from users.tests.factories import UserFactory
+from thetatauCMT.users.tests.factories import UserFactory
 
 
 class BallotFactory(factory.django.DjangoModelFactory):

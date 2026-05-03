@@ -14,10 +14,10 @@ from django.utils import timezone
 from django.db import transaction
 from django.db.utils import IntegrityError
 from django.contrib import messages
-from scores.models import ScoreType
-from tasks.models import TaskChapter, TaskDate
-from tasks.tables import TaskTable
-from announcements.models import Announcement
+from thetatauCMT.scores.models import ScoreType
+from thetatauCMT.tasks.models import TaskChapter, TaskDate
+from thetatauCMT.tasks.tables import TaskTable
+from thetatauCMT.announcements.models import Announcement
 from braces.views import GroupRequiredMixin, LoginRequiredMixin
 from viewflow.frontend.views import (
     AllTaskListView,
@@ -26,7 +26,7 @@ from viewflow.frontend.views import (
     DataTableMixin,
     generic,
 )
-from users.models import User
+from thetatauCMT.users.models import User
 
 
 # https://django-allauth.readthedocs.io/en/latest/advanced.html#admin

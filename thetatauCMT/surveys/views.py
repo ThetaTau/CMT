@@ -7,7 +7,7 @@ from django.contrib import messages
 from django.shortcuts import redirect, Http404
 from django.utils.safestring import mark_safe
 from django.views.generic import CreateView
-from users.models import User
+from thetatauCMT.users.models import User
 from .models import DepledgeSurvey, Survey
 from .forms import DepledgeSurveyForm, ResponseForm
 from .notifications import SurveyFollowUpEmail

@@ -17,10 +17,10 @@ from core.views import (
     RequestConfig,
 )
 from core.forms import MultiFormsView
-from chapters.models import Chapter
-from regions.models import Region
-from scores.models import ScoreType
-from tasks.models import Task
+from thetatauCMT.chapters.models import Chapter
+from thetatauCMT.regions.models import Region
+from thetatauCMT.scores.models import ScoreType
+from thetatauCMT.tasks.models import Task
 from .models import Submission, Picture, GearArticle
 from .tables import SubmissionTable, GearArticleTable
 from .filters import SubmissionListFilter, GearArticleListFilter

@@ -2,7 +2,7 @@ import datetime
 from django.core.management import BaseCommand
 from viewflow.models import Task
 from viewflow.activation import STATUS
-from forms.flows import DisciplinaryProcessFlow
+from thetatauCMT.forms.flows import DisciplinaryProcessFlow
 
 
 class Command(BaseCommand):

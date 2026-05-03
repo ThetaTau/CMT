@@ -16,14 +16,14 @@ from .models import Chapter
 from .forms import ChapterForm, ChapterFormHelper
 from .filters import ChapterListFilter
 from .tables import ChapterCurriculaTable, ChapterTable, AuditTable
-from users.tables import UserTable
-from users.models import User
-from users.forms import ExternalUserForm
-from tasks.models import Task
-from submissions.models import Submission
-from forms.notifications import EmailAdvisorWelcome
-from forms.models import Audit
-from notes.tables import ChapterNoteTable
+from thetatauCMT.users.tables import UserTable
+from thetatauCMT.users.models import User
+from thetatauCMT.users.forms import ExternalUserForm
+from thetatauCMT.tasks.models import Task
+from thetatauCMT.submissions.models import Submission
+from thetatauCMT.forms.notifications import EmailAdvisorWelcome
+from thetatauCMT.forms.models import Audit
+from thetatauCMT.notes.tables import ChapterNoteTable
 
 
 class ChapterDetailView(LoginRequiredMixin, MultiFormsView):

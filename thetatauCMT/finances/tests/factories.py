@@ -1,6 +1,6 @@
 import factory
 from ..models import Transaction
-from chapters.tests.factories import ChapterFactory
+from thetatauCMT.chapters.tests.factories import ChapterFactory
 
 
 class TransactionFactory(factory.django.DjangoModelFactory):

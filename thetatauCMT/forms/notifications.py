@@ -7,10 +7,10 @@ from django.utils.safestring import mark_safe
 from django.core.files.base import ContentFile
 from django.forms.models import model_to_dict
 from core.models import current_term, current_year
-from forms.tables import SignTable, BadgeTable
-from forms.models import Badge
-from users.models import User
-from configs.models import Config
+from thetatauCMT.forms.tables import SignTable, BadgeTable
+from thetatauCMT.forms.models import Badge
+from thetatauCMT.users.models import User
+from thetatauCMT.configs.models import Config
 
 
 @registry.register_decorator()
@@ -36,9 +36,9 @@ class EmailRMPSigned(EmailNotification):  # extend from EmailNotification for em
 
     @staticmethod
     def get_demo_args():  # define a static method to return list of args needed to initialize class for testing
-        from users.models import User
-        from forms.views import RiskManagementDetailView
-        from forms.models import RiskManagement
+        from thetatauCMT.users.models import User
+        from thetatauCMT.forms.views import RiskManagementDetailView
+        from thetatauCMT.forms.models import RiskManagement
         from django.http import HttpRequest
 
         form = RiskManagement.objects.order_by("?")[0]
@@ -85,7 +85,7 @@ class EmailRMPReport(EmailNotification):  # extend from EmailNotification for em
 
     @staticmethod
     def get_demo_args():  # define a static method to return list of args needed to initialize class for testing
-        from users.models import User
+        from thetatauCMT.users.models import User
 
         test_user = User.objects.order_by("?")[0]
         from django.core.files import File
@@ -125,7 +125,7 @@ class EmailAdvisorWelcome(
 
     @staticmethod
     def get_demo_args():  # define a static method to return list of args needed to initialize class for testing
-        from users.models import User
+        from thetatauCMT.users.models import User
 
         test_user = User.objects.order_by("?")[0]
         return [test_user]
@@ -155,7 +155,7 @@ class EmailPledgeOther(EmailNotification):  # extend from EmailNotification for 
 
     @staticmethod
     def get_demo_args():  # define a static method to return list of args needed to initialize class for testing
-        from users.models import User
+        from thetatauCMT.users.models import User
 
         test_user = User.objects.order_by("?")[0]
         from django.core.files import File
@@ -245,8 +245,8 @@ class EmailPledgeConfirmation(
 
     @staticmethod
     def get_demo_args():  # define a static method to return list of args needed to initialize class for testing
-        from forms.models import Pledge
-        from forms.views import BillOfRightsPDFView
+        from thetatauCMT.forms.models import Pledge
+        from thetatauCMT.forms.views import BillOfRightsPDFView
         from django.http import HttpRequest
 
         test_pledge_form = Pledge.objects.order_by("?")[0]
@@ -293,7 +293,7 @@ class EmailPledgeWelcome(EmailNotification):  # extend from EmailNotification fo
 
     @staticmethod
     def get_demo_args():  # define a static method to return list of args needed to initialize class for testing
-        from forms.models import Pledge
+        from thetatauCMT.forms.models import Pledge
 
         test_pledge_form = Pledge.objects.order_by("?")[0]
         return [test_pledge_form]
@@ -327,7 +327,7 @@ class BadgePNMNotify(EmailNotification):  # extend from EmailNotification for em
 
     @staticmethod
     def get_demo_args():  # define a static method to return list of args needed to initialize class for testing
-        from forms.models import Pledge
+        from thetatauCMT.forms.models import Pledge
 
         test_pledge = Pledge.objects.order_by("?")[0]
         return [test_pledge]
@@ -371,7 +371,7 @@ class EmailPledgeOfficer(EmailNotification):
 
     @staticmethod
     def get_demo_args():  # define a static method to return list of args needed to initialize class for testing
-        from forms.models import Pledge
+        from thetatauCMT.forms.models import Pledge
 
         test_pledge_form = Pledge.objects.order_by("?")[0]
         return [test_pledge_form]
@@ -498,7 +498,7 @@ class EmailProcessUpdate(EmailNotification):
 
     @staticmethod
     def get_demo_args():  # define a static method to return list of args needed to initialize class for testing
-        from forms.models import InitiationProcess
+        from thetatauCMT.forms.models import InitiationProcess
 
         # test = PrematureAlumnus.objects.order_by('?')[0]
         test = InitiationProcess.objects.order_by("?")[0]
@@ -558,7 +558,7 @@ class EmailScribeExpulsion(EmailNotification):
 
     @staticmethod
     def get_demo_args():  # define a static method to return list of args needed to initialize class for testing
-        from forms.models import DisciplinaryProcess
+        from thetatauCMT.forms.models import DisciplinaryProcess
 
         test = DisciplinaryProcess.objects.order_by("?")[0]
 
@@ -574,7 +574,7 @@ class EmailConventionUpdate(EmailNotification):
     template_name = "convention"
 
     def __init__(self, activation, user, message):
-        from forms.views import get_sign_status
+        from thetatauCMT.forms.views import get_sign_status
 
         data, _, _ = get_sign_status(user, initial=True)
         table = SignTable(data=data)
@@ -594,7 +594,7 @@ class EmailConventionUpdate(EmailNotification):
 
     @staticmethod
     def get_demo_args():  # define a static method to return list of args needed to initialize class for testing
-        from forms.models import Convention
+        from thetatauCMT.forms.models import Convention
 
         test = Convention.objects.order_by("?")[0]
         test.process = test
@@ -633,7 +633,7 @@ class EmailOSMUpdate(EmailNotification):
 
     @staticmethod
     def get_demo_args():
-        from forms.models import OSM
+        from thetatauCMT.forms.models import OSM
 
         test = OSM.objects.order_by("?")[0]
         test.process = test
@@ -696,7 +696,7 @@ class EmailAlumniExclusionUpdate(EmailNotification):
 
     @staticmethod
     def get_demo_args():
-        from forms.models import AlumniExclusion
+        from thetatauCMT.forms.models import AlumniExclusion
 
         test = AlumniExclusion.objects.order_by("?")[0]
         test.process = test
@@ -741,7 +741,7 @@ class CentralOfficeGenericEmail(EmailNotification):
 
     @staticmethod
     def get_demo_args():
-        from forms.flows import render_to_pdf
+        from thetatauCMT.forms.flows import render_to_pdf
 
         info = {"Test": "This is a test"}
         forms = render_to_pdf(

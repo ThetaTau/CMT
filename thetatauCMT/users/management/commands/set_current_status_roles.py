@@ -2,7 +2,7 @@ import datetime
 from django.core.management import BaseCommand
 from django.contrib.auth.models import Group
 from django.db import IntegrityError
-from users.models import User
+from thetatauCMT.users.models import User
 from core.models import TODAY_END
 
 

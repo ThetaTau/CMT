@@ -1,7 +1,7 @@
 import random
 import factory
-from chapters.models import Chapter, ChapterCurricula, GREEK_ABR
-from regions.tests.factories import RegionFactory
+from thetatauCMT.chapters.models import Chapter, ChapterCurricula, GREEK_ABR
+from thetatauCMT.regions.tests.factories import RegionFactory
 
 
 GREEK_ABR_NAME = {v: k for k, v in GREEK_ABR.items()}

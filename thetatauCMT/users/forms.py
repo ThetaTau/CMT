@@ -1,6 +1,6 @@
 from address.widgets import AddressWidget
 from allauth.account.forms import LoginForm
-from chapters.models import Chapter, ChapterCurricula
+from thetatauCMT.chapters.models import Chapter, ChapterCurricula
 from crispy_forms.bootstrap import Field, FormActions, InlineField, StrictButton
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Column, Fieldset, Layout, Row, Submit

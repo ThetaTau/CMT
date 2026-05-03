@@ -14,7 +14,7 @@ from django.views import defaults as default_views
 from django.views.generic import RedirectView, TemplateView
 from material.frontend.urls import modules
 from oauth2_provider import urls as oauth2_urls
-from users.views import UserLookupLoginView
+from thetatauCMT.users.views import UserLookupLoginView
 
 from core.address import ZipCodeAutocomplete
 from core.views import HomeView

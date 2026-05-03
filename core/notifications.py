@@ -65,7 +65,7 @@ class GenericEmail(EmailNotification):
 
     @staticmethod
     def get_demo_args():
-        from forms.flows import render_to_pdf
+        from thetatauCMT.forms.flows import render_to_pdf
 
         info = {"Test": "This is a test"}
         forms = render_to_pdf(

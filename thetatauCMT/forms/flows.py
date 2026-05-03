@@ -22,7 +22,7 @@ from core.flows import (
     register_factory,
 )
 from core.utils import login_with_service_account
-from trainings.models import Training
+from thetatauCMT.trainings.models import Training
 from .models import (
     AlumniExclusion,
     PrematureAlumnus,
@@ -63,9 +63,9 @@ from .notifications import (
     EmailScribeExpulsion,
     EmailAlumniExclusionUpdate,
 )
-from users.models import User
-from configs.models import Config
-from surveys.notifications import SurveyEmail
+from thetatauCMT.users.models import User
+from thetatauCMT.configs.models import Config
+from thetatauCMT.surveys.notifications import SurveyEmail
 
 
 def link_callback(uri, rel):

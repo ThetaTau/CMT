@@ -12,12 +12,12 @@ from core.flows import (
 from .models import (
     MemberUpdate,
 )
-from forms.notifications import (
+from thetatauCMT.forms.notifications import (
     EmailProcessUpdate,
 )
 from .forms import MemberUpdateForm
-from configs.models import Config
-from users.models import User
+from thetatauCMT.configs.models import Config
+from thetatauCMT.users.models import User
 
 
 class UpdateProcessViewUser(flow_views.UpdateProcessView):

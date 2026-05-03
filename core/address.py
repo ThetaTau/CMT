@@ -11,9 +11,9 @@ from address.models import (
     Address,
 )
 from pygeocoder import Geocoder, GeocoderError
-from users.models import User
-from chapters.models import Chapter
-from forms.models import DisciplinaryProcess
+from thetatauCMT.users.models import User
+from thetatauCMT.chapters.models import Chapter
+from thetatauCMT.forms.models import DisciplinaryProcess
 
 
 def xstr(s):

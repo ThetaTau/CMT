@@ -3,8 +3,8 @@ import warnings
 from datetime import datetime
 from django.db import transaction
 from django.db.utils import IntegrityError
-from forms.models import Pledge
-from chapters.models import Chapter
+from thetatauCMT.forms.models import Pledge
+from thetatauCMT.chapters.models import Chapter
 
 
 def run(*args):

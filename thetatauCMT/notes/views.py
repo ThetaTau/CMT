@@ -10,8 +10,8 @@ from core.views import (
     LoginRequiredMixin,
     NatOfficerRequiredMixin,
 )
-from chapters.models import Chapter
-from users.models import User
+from thetatauCMT.chapters.models import Chapter
+from thetatauCMT.users.models import User
 from .models import ChapterNote, UserNote
 from .forms import ChapterNoteForm
 

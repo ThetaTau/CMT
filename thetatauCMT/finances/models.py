@@ -3,7 +3,7 @@ from django.utils import timezone
 from djmoney.models.fields import MoneyField
 from django_ckeditor_5.fields import CKEditor5Field
 from core.models import TimeStampedModel
-from chapters.models import Chapter
+from thetatauCMT.chapters.models import Chapter
 
 
 class Invoice(TimeStampedModel):

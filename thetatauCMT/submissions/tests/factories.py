@@ -1,7 +1,7 @@
 import factory
-from scores.models import ScoreType
-from chapters.tests.factories import ChapterFactory
-from users.tests.factories import UserFactory
+from thetatauCMT.scores.models import ScoreType
+from thetatauCMT.chapters.tests.factories import ChapterFactory
+from thetatauCMT.users.tests.factories import UserFactory
 from ..models import Submission
 
 

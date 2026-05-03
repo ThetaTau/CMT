@@ -6,7 +6,7 @@ from django_userforeignkey.models.fields import UserForeignKey
 from django_ckeditor_5.fields import CKEditor5Field
 
 from core.models import TimeStampedModel, EnumClass
-from chapters.models import Chapter
+from thetatauCMT.chapters.models import Chapter
 
 
 def get_upload_path(instance, filename):

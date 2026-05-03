@@ -9,7 +9,7 @@ from ..models import (
     UserRoleChange,
     UserOrgParticipate,
 )
-from chapters.tests.factories import ChapterFactory, ChapterCurriculaFactory
+from thetatauCMT.chapters.tests.factories import ChapterFactory, ChapterCurriculaFactory
 
 
 class UserFactory(factory.django.DjangoModelFactory):

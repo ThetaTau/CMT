@@ -1,6 +1,6 @@
 import datetime
-from forms.models import StatusChange
-from users.models import UserStatusChange
+from thetatauCMT.forms.models import StatusChange
+from thetatauCMT.users.models import UserStatusChange
 from core.models import TODAY
 
 

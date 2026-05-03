@@ -39,9 +39,9 @@ from core.models import (
     no_future,
     EnumClass,
 )
-from chapters.models import Chapter
-from submissions.models import Submission
-from configs.models import Config
+from thetatauCMT.chapters.models import Chapter
+from thetatauCMT.submissions.models import Submission
+from thetatauCMT.configs.models import Config
 
 
 class MultiSelectField(MultiSelectField):
@@ -1905,7 +1905,7 @@ class DisciplinaryProcess(Process, TimeStampedModel, EmailSignalMixin):
         return f"Disciplinary Process for {self.user} from {self.chapter}"
 
     def forms_pdf(self):
-        from forms.forms import DisciplinaryForm1, DisciplinaryForm2
+        from thetatauCMT.forms.forms import DisciplinaryForm1, DisciplinaryForm2
 
         all_fields = (
             DisciplinaryForm1._meta.fields[:] + DisciplinaryForm2._meta.fields[:]

@@ -7,7 +7,7 @@ from dj_anonymizer.register_models import (
 from dj_anonymizer import fields
 from faker import Factory
 
-from forms.models import (
+from thetatauCMT.forms.models import (
     Audit,
     AlumniExclusion,
     Badge,

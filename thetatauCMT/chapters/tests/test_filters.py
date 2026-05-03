@@ -1,14 +1,14 @@
 import pytest
 from pytest_django.asserts import assertQuerysetEqual
-from chapters.models import Chapter
-from regions.models import Region
+from thetatauCMT.chapters.models import Chapter
+from thetatauCMT.regions.models import Region
 
 
 @pytest.mark.django_db
 def test_chapter_list_filter(chapter_factory):
     chapters = chapter_factory.create_batch(10)
     candidate_chapters = chapter_factory.create_batch(10, candidate_chapter=True)
-    from chapters.filters import ChapterListFilter
+    from thetatauCMT.chapters.filters import ChapterListFilter
 
     all_chapters = chapters + candidate_chapters
     chapter_pks = {chapter.pk for chapter in all_chapters}

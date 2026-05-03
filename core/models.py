@@ -400,7 +400,7 @@ class YearTermModel(models.Model):
 
 
 def annotate_rmp_status(queryset, date=TODAY_END):
-    from forms.models import RiskManagement
+    from thetatauCMT.forms.models import RiskManagement
 
     start, end = semester_encompass_start_end_date(date)
     qs = queryset.annotate(
@@ -414,7 +414,7 @@ def annotate_rmp_status(queryset, date=TODAY_END):
 
 
 def annotate_role_status(queryset, date=TODAY_END):
-    from forms.models import RiskManagement
+    from thetatauCMT.forms.models import RiskManagement
 
     start, end = semester_encompass_start_end_date(date)
     qs = (

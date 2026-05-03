@@ -5,9 +5,9 @@ from django.core.management import BaseCommand
 from viewflow.models import Task
 from viewflow.activation import STATUS
 from core.flows import cancel_process
-from forms.forms import DisciplinaryForm1
-from users.models import User
-from forms.notifications import EmailProcessUpdate, CentralOfficeGenericEmail
+from thetatauCMT.forms.forms import DisciplinaryForm1
+from thetatauCMT.users.models import User
+from thetatauCMT.forms.notifications import EmailProcessUpdate, CentralOfficeGenericEmail
 
 
 class Command(BaseCommand):

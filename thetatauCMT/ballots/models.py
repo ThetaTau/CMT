@@ -11,8 +11,8 @@ from core.models import (
     NAT_OFFICERS_CHOICES,
     CHAPTER_OFFICER,
 )
-from users.models import UserRoleChange
-from tasks.models import Task, TaskDate, TaskChapter
+from thetatauCMT.users.models import UserRoleChange
+from thetatauCMT.tasks.models import Task, TaskDate, TaskChapter
 
 
 def get_ballot_attachment_upload_path(instance, filename):

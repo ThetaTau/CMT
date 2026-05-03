@@ -1,7 +1,7 @@
 from django.core.management import BaseCommand
 from csv import DictReader
 from django.contrib.auth.models import Group
-from users.models import User
+from thetatauCMT.users.models import User
 
 file_path = r"secrets/natoff.csv"
 
@@ -68,7 +68,7 @@ class Command(BaseCommand):
 
 """
 from django.contrib.auth.models import Group
-from users.models import User
+from thetatauCMT.users.models import User
 off_group, created = Group.objects.get_or_create(name='officer')
 for user in User.objects.all():
     if user.chapter_officer():

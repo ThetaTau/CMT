@@ -5,7 +5,7 @@ from django.core.management import BaseCommand
 from django.utils import timezone
 from core.models import TODAY_END, forever
 from django.db import models
-from users.models import User
+from thetatauCMT.users.models import User
 
 
 class Command(BaseCommand):

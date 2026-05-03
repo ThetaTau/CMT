@@ -2,15 +2,15 @@ import pytest
 from pytest_factoryboy import register
 from django.core.management import call_command
 from django.contrib.sites.models import Site
-from ballots.tests.factories import BallotFactory, BallotCompleteFactory
-from chapters.tests.factories import ChapterFactory, ChapterCurriculaFactory
-from events.tests.factories import EventFactory
-from finances.tests.factories import TransactionFactory
-from regions.tests.factories import RegionFactory
-from scores.tests.factories import ScoreChapterFactory
-from submissions.tests.factories import SubmissionFactory
-from tasks.tests.factories import TaskChapterFactory
-from users.tests.factories import (
+from thetatauCMT.ballots.tests.factories import BallotFactory, BallotCompleteFactory
+from thetatauCMT.chapters.tests.factories import ChapterFactory, ChapterCurriculaFactory
+from thetatauCMT.events.tests.factories import EventFactory
+from thetatauCMT.finances.tests.factories import TransactionFactory
+from thetatauCMT.regions.tests.factories import RegionFactory
+from thetatauCMT.scores.tests.factories import ScoreChapterFactory
+from thetatauCMT.submissions.tests.factories import SubmissionFactory
+from thetatauCMT.tasks.tests.factories import TaskChapterFactory
+from thetatauCMT.users.tests.factories import (
     UserFactory,
     UserAlterFactory,
     UserOrgParticipateFactory,

@@ -2,7 +2,7 @@ from dj_anonymizer.register_models import AnonymBase, register_anonym, register_
 from dj_anonymizer import fields
 from faker import Factory
 
-from surveys.models import DepledgeSurvey, Survey
+from thetatauCMT.surveys.models import DepledgeSurvey, Survey
 from survey.models import Category, Response, Answer, Question
 from survey.models import Survey as Survey_base
 

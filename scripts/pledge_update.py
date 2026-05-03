@@ -3,9 +3,9 @@ import datetime
 from django.forms.models import model_to_dict
 from django.db.models import Q
 from address.models import Address
-from forms.models import Pledge, PledgeProcess
-from chapters.models import Chapter, ChapterCurricula
-from users.models import User
+from thetatauCMT.forms.models import Pledge, PledgeProcess
+from thetatauCMT.chapters.models import Chapter, ChapterCurricula
+from thetatauCMT.users.models import User
 
 
 def run(*args):

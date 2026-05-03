@@ -1,4 +1,4 @@
-from forms.models import StatusChange
+from thetatauCMT.forms.models import StatusChange
 from django.db.models import Q
 
 

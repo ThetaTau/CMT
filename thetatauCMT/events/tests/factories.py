@@ -1,6 +1,6 @@
 import factory
-from scores.models import ScoreType
-from chapters.tests.factories import ChapterFactory
+from thetatauCMT.scores.models import ScoreType
+from thetatauCMT.chapters.tests.factories import ChapterFactory
 from ..models import Event
 
 

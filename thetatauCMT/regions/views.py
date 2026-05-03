@@ -14,15 +14,15 @@ import django_tables2 as tables
 from django_tables2.utils import A
 from core.views import NatOfficerRequiredMixin, RequestConfig, LoginRequiredMixin
 from .models import Region
-from tasks.models import TaskDate
-from chapters.models import Chapter
+from thetatauCMT.tasks.models import TaskDate
+from thetatauCMT.chapters.models import Chapter
 from .tables import RegionChapterTaskTable, TaskLinkColumn
 from .filters import RegionChapterTaskFilter
 from .forms import RegionChapterTaskFormHelper
-from users.tables import UserTable
-from users.models import User
-from users.filters import UserRoleListFilter, AdvisorListFilter
-from users.forms import UserRoleListFormHelper, AdvisorListFormHelper
+from thetatauCMT.users.tables import UserTable
+from thetatauCMT.users.models import User
+from thetatauCMT.users.filters import UserRoleListFilter, AdvisorListFilter
+from thetatauCMT.users.forms import UserRoleListFormHelper, AdvisorListFormHelper
 
 
 class RegionOfficerView(LoginRequiredMixin, NatOfficerRequiredMixin, DetailView):

@@ -8,7 +8,7 @@ from django.conf import settings
 from django.core.management import BaseCommand
 from django.db.models import CharField, F, Func, Q, Value
 from django.db.models.functions import Cast, Coalesce
-from users.models import User
+from thetatauCMT.users.models import User
 
 
 # python manage.py sync_guardian -override -debug -full

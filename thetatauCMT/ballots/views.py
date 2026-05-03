@@ -12,8 +12,8 @@ from core.views import (
     NatOfficerRequiredMixin,
 )
 from core.models import NAT_OFFICERS, CHAPTER_OFFICER
-from users.models import UserRoleChange
-from chapters.models import Chapter
+from thetatauCMT.users.models import UserRoleChange
+from thetatauCMT.chapters.models import Chapter
 from .models import Ballot, BallotComplete
 from .tables import BallotTable, BallotUserTable, BallotCompleteTable
 from .filters import BallotFilter, BallotUserFilter, BallotCompleteFilter

@@ -4,11 +4,11 @@ from quickbooks.objects.customer import Customer, EmailAddress
 from quickbooks.objects.invoice import Invoice as QBInvoice
 from viewflow.models import Task
 from viewflow.activation import STATUS
-from forms.flows import InitiationProcessFlow, PledgeProcessFlow
+from thetatauCMT.forms.flows import InitiationProcessFlow, PledgeProcessFlow
 from core.finances import get_quickbooks_client
-from chapters.models import Chapter
-from finances.models import Invoice
-from forms.notifications import CentralOfficeGenericEmail
+from thetatauCMT.chapters.models import Chapter
+from thetatauCMT.finances.models import Invoice
+from thetatauCMT.forms.notifications import CentralOfficeGenericEmail
 
 
 # python manage.py sync_quickbooks

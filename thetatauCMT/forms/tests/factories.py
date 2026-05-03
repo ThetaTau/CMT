@@ -23,9 +23,9 @@ from ..flows import (
     PledgeProcessFlow,
     OSMFlow,
 )
-from chapters.tests.factories import ChapterFactory
-from users.tests.factories import UserFactory
-from submissions.tests.factories import SubmissionFactory
+from thetatauCMT.chapters.tests.factories import ChapterFactory
+from thetatauCMT.users.tests.factories import UserFactory
+from thetatauCMT.submissions.tests.factories import SubmissionFactory
 
 
 class BadgeFactory(factory.django.DjangoModelFactory):

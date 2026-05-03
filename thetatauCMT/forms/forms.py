@@ -1,7 +1,7 @@
 from address.forms import AddressWidget
 from betterforms.multiform import MultiModelForm
-from chapters.forms import ChapterForm
-from chapters.models import Chapter, ChapterCurricula
+from thetatauCMT.chapters.forms import ChapterForm
+from thetatauCMT.chapters.models import Chapter, ChapterCurricula
 from crispy_forms.bootstrap import (
     Accordion,
     AccordionGroup,
@@ -30,7 +30,7 @@ from djmoney.forms.fields import MoneyField
 from hcaptcha.fields import hCaptchaField
 from tempus_dominus.widgets import DatePicker
 from upload_validator import FileTypeValidator
-from users.models import User, UserDemographic, UserRoleChange
+from thetatauCMT.users.models import User, UserDemographic, UserRoleChange
 
 from core.address import fix_address
 from core.forms import DuplicateAddressField, SchoolModelChoiceField, DatePicker

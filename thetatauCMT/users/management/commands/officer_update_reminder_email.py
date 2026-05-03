@@ -7,8 +7,8 @@ Notes:
 import datetime
 from django.core.management import BaseCommand
 from django.core.mail import send_mail
-from users.notifications import OfficerUpdateReminder
-from chapters.models import Chapter
+from thetatauCMT.users.notifications import OfficerUpdateReminder
+from thetatauCMT.chapters.models import Chapter
 
 
 class Command(BaseCommand):

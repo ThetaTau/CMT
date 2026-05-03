@@ -2,7 +2,7 @@
 import django_filters
 from core.filters import DateRangeFilter
 from .models import Ballot, BallotComplete
-from regions.models import Region
+from thetatauCMT.regions.models import Region
 
 
 class BallotFilter(django_filters.FilterSet):

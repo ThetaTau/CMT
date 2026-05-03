@@ -4,8 +4,8 @@ import django_filters
 from core.filters import DateRangeFilter
 from django.forms.widgets import NumberInput
 from .models import Audit, Bylaws, PledgeProgram, HSEducation, AlumniExclusion
-from chapters.models import Chapter
-from regions.models import Region
+from thetatauCMT.chapters.models import Chapter
+from thetatauCMT.regions.models import Region
 
 
 class AuditListFilter(django_filters.FilterSet):

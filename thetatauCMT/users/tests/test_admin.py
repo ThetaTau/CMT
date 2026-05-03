@@ -1,6 +1,6 @@
 from test_plus.test import TestCase
 
-from users.admin import MyUserCreationForm
+from thetatauCMT.users.admin import MyUserCreationForm
 
 
 class TestMyUserCreationForm(TestCase):

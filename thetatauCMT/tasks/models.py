@@ -11,8 +11,8 @@ from django.contrib.contenttypes.models import ContentType
 from django.utils.text import slugify
 from email_signals.models import EmailSignalMixin
 from core.models import ALL_ROLES_CHOICES, TODAY_END, academic_encompass_start_end_date
-from chapters.models import Chapter
-from scores.models import ScoreType
+from thetatauCMT.chapters.models import Chapter
+from thetatauCMT.scores.models import ScoreType
 
 
 class Task(models.Model):
@@ -119,7 +119,7 @@ class Task(models.Model):
             return
         task_obj = TaskChapter(task=next_date, chapter=chapter, date=timezone.now())
         if obj:
-            from submissions.models import Submission
+            from thetatauCMT.submissions.models import Submission
 
             extra_info = None
             create_submission = True

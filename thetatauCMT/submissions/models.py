@@ -1,6 +1,6 @@
 import os
 
-from chapters.models import Chapter
+from thetatauCMT.chapters.models import Chapter
 from django.conf import settings
 from django.contrib.contenttypes.fields import GenericRelation
 from django.db import models, transaction
@@ -9,8 +9,8 @@ from django.utils.text import slugify
 from django_ckeditor_5.fields import CKEditor5Field
 from django_userforeignkey.models.fields import UserForeignKey
 from email_signals.models import EmailSignalMixin
-from scores.models import ScoreType
-from tasks.models import TaskChapter
+from thetatauCMT.scores.models import ScoreType
+from thetatauCMT.tasks.models import TaskChapter
 
 from core.models import TimeStampedModel
 
