@@ -5,7 +5,7 @@ from django.conf import settings
 from django.db import migrations, models
 import django.db.models.deletion
 import django.utils.timezone
-import notes.models
+import thetatauCMT.notes.models
 
 
 class Migration(migrations.Migration):
@@ -36,7 +36,7 @@ class Migration(migrations.Migration):
                 (
                     "file",
                     models.FileField(
-                        blank=True, null=True, upload_to=notes.models.get_upload_path
+                        blank=True, null=True, upload_to=thetatauCMT.notes.models.get_upload_path
                     ),
                 ),
                 (
@@ -111,7 +111,7 @@ class Migration(migrations.Migration):
                 (
                     "file",
                     models.FileField(
-                        blank=True, null=True, upload_to=notes.models.get_upload_path
+                        blank=True, null=True, upload_to=thetatauCMT.notes.models.get_upload_path
                     ),
                 ),
                 (

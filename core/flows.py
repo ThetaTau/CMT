@@ -1,5 +1,4 @@
 import re
-import pytz
 import datetime
 from django.db.models import Q
 from django.utils.safestring import mark_safe
@@ -238,5 +237,5 @@ def cancel_process(process):
             activation.unassign()
         activation.cancel()
     process.status = STATUS.CANCELED
-    process.finished = datetime.datetime.utcnow().replace(tzinfo=pytz.utc)
+    process.finished = datetime.datetime.now(datetime.timezone.utc)
     process.save()

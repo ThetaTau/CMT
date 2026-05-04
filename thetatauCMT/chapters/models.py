@@ -680,7 +680,7 @@ class Chapter(models.Model, EmailSignalMixin):
                     )
                     current = current_and_future.first()
                     already_notified = SentNotification.objects.filter(
-                        notification_class="users.notifications.OfficerUpdateReminder",
+                        notification_class="thetatauCMT.users.notifications.OfficerUpdateReminder",
                         recipients__icontains=current.email,
                         date_sent__gte=TODAY_END - timedelta(7),
                     )

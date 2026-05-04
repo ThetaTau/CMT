@@ -3,7 +3,7 @@
 from django.conf import settings
 from django.db import migrations, models
 import django.db.models.deletion
-import forms.models
+import thetatauCMT.forms.models
 
 
 class Migration(migrations.Migration):
@@ -32,7 +32,7 @@ class Migration(migrations.Migration):
                 (
                     "letter",
                     models.FileField(
-                        upload_to=forms.models.get_resign_upload_path,
+                        upload_to=thetatauCMT.forms.models.get_resign_upload_path,
                         verbose_name="Resignation Letter",
                     ),
                 ),

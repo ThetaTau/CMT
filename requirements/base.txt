@@ -1,7 +1,6 @@
-setuptools  # pkg_resources is part of setuptools, no longer bundled by default
+setuptools<81  # pkg_resources removed from setuptools 81+; required at runtime by django-betterforms
 urllib3==2.5.0
 requests==2.32.4
-pytz==2025.2  # https://github.com/stub42/pytz
 python-slugify==8.0.4  # https://github.com/un33k/python-slugify
 Pillow==11.3.0  # https://github.com/python-pillow/Pillow
 argon2-cffi==25.1.0  # https://github.com/hynek/argon2_cffi
@@ -33,7 +32,7 @@ git+https://github.com/cobuso/pygeocoder.git@cb0acc44d57d20f8df207850aa84b79134e
 haversine==2.9.0
 weasyprint==66.0
 openpyxl==3.0.10  # django-report-builder needs save_virtual_workbook which was deprecated
-numpy==2.3.1
+numpy==2.4.4
 jwcrypto==1.5.6
 
 # Django
@@ -102,8 +101,7 @@ coreapi==2.3.3  # https://github.com/core-api/python-client
 
 # Django Plotly Dash
 dash==3.1.1
-dash-renderer==1.9.1
-dash-html-components==2.0.0
+# dash-renderer and dash-html-components were merged into dash in Dash 2.0; removed
 pandas==2.3.1
 plotly==6.2.0
 django-plotly-dash==2.5.0

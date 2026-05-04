@@ -33,7 +33,7 @@ to go back in time:
     python manage.py shell
 
 ```python
-from users.models import User
+from thetatauCMT.users.models import User
 
 me = User.objects.get(username='venturafranklin@gmail.com')
 me.is_superuser = True
@@ -138,3 +138,7 @@ with open(filename, 'rb') as inputfile:
 ### To anonymize the data
 
 `python manage.py anonymize_db --check_only`
+
+# Connect to production DB
+
+`ssh -L {localport}:{databaseURL CASE MATTERS}:{DB PORT} {USERNAME CASE MATTERS}@ssh.pythonanywhere.com`

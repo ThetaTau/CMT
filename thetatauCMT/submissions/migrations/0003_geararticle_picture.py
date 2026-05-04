@@ -5,7 +5,7 @@ from django.conf import settings
 from django.db import migrations, models
 import django.db.models.deletion
 import django.utils.timezone
-import submissions.models
+import thetatauCMT.submissions.models
 
 
 class Migration(migrations.Migration):
@@ -71,7 +71,7 @@ class Migration(migrations.Migration):
                 (
                     "image",
                     models.ImageField(
-                        upload_to=submissions.models.get_picture_upload_path
+                        upload_to=thetatauCMT.submissions.models.get_picture_upload_path
                     ),
                 ),
                 (

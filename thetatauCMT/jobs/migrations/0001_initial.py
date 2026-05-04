@@ -6,7 +6,7 @@ from django.db import migrations, models
 import django.db.models.deletion
 import django.utils.timezone
 import django_userforeignkey.models.fields
-import jobs.models
+import thetatauCMT.jobs.models
 import multiselectfield.db.fields
 
 
@@ -621,7 +621,7 @@ class Migration(migrations.Migration):
                     models.FileField(
                         blank=True,
                         null=True,
-                        upload_to=jobs.models.get_job_attachment_upload_path,
+                        upload_to=thetatauCMT.jobs.models.get_job_attachment_upload_path,
                     ),
                 ),
                 (

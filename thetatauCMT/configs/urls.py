@@ -71,7 +71,7 @@ urlpatterns = [
         name="report_check_status",
     ),
     re_path(
-        "^report/(?P<pk>\d+)/$",
+        r"^report/(?P<pk>\d+)/$",
         views.ReportSPAView.as_view(),
         name="report_update_view",
     ),

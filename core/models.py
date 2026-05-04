@@ -308,7 +308,7 @@ def validate_year(value):
     """
 
     # Matches any 4-digit number:
-    year_re = re.compile("^\d{4}$")  # noqa: W605
+    year_re = re.compile(r"^\d{4}$")  # noqa: W605
 
     # If year does not match our regex:
     if not year_re.match(str(value)):

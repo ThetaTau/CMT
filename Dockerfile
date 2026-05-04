@@ -23,19 +23,29 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
   # Weasyprint dependencies
   libpango-1.0-0 \
   libpangoft2-1.0-0 \
-  gir1.2-harfbuzz-0.0
+  gir1.2-harfbuzz-0.0 \
+  # pycairo (via xhtml2pdf->svglib->rlpycairo) build dependencies
+  pkg-config \
+  libcairo2-dev
 #  libharfbuzz-subset0
 
 # Requirements are installed here to ensure they will be cached.
 COPY ./requirements .
 
 # Create Python Dependency and Sub-Dependency Wheels.
-# setuptools is built first explicitly: pip wheel skips bootstrapping packages
-# like setuptools when processing requirements, but pkg_resources (part of
-# setuptools) is required at import time by django-betterforms and others.
-RUN pip wheel --wheel-dir /usr/src/app/wheels setuptools \
+# Build-backend packages are pre-built first so pip can find them when it
+# creates isolated build environments for git-pinned packages:
+#   - setuptools: provides pkg_resources (runtime req of django-betterforms)
+#   - wheel:      build backend used by django-allauth-2fa (git dep)
+#   - poetry-core: build backend used by django-report-builder (git dep)
+# --find-links is passed to the main wheel run so pip propagates it into
+# those isolated environments.
+RUN pip wheel --wheel-dir /usr/src/app/wheels setuptools wheel poetry-core \
   && pip wheel --wheel-dir /usr/src/app/wheels \
-  -r ${BUILD_ENVIRONMENT}.txt
+    --retries 5 \
+    --timeout 60 \
+    --find-links=/usr/src/app/wheels \
+    -r ${BUILD_ENVIRONMENT}.txt
 
 
 # Python 'run' stage
@@ -73,9 +83,13 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
 # copy python dependency wheels from python-build-stage
 COPY --from=python-build-stage /usr/src/app/wheels  /wheels/
 
+# copy requirements so pip can resolve by name (more reliable than glob for
+# bootstrap packages like setuptools that pip wheel may skip)
+COPY ./requirements /requirements/
+
 # use wheels to install python dependencies
-RUN pip install --no-cache-dir --no-index --find-links=/wheels/ /wheels/* \
-  && rm -rf /wheels/
+RUN pip install --no-cache-dir --no-index --find-links=/wheels/ -r /requirements/${BUILD_ENVIRONMENT}.txt \
+  && rm -rf /wheels/ /requirements/
 
 
 COPY ./compose/production/django/entrypoint /entrypoint

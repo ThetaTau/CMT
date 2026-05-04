@@ -3,7 +3,7 @@
 from django.db import migrations, models
 import django.db.models.deletion
 import django.utils.timezone
-import events.models
+import thetatauCMT.events.models
 
 
 class Migration(migrations.Migration):
@@ -30,7 +30,7 @@ class Migration(migrations.Migration):
                 (
                     "image",
                     models.ImageField(
-                        upload_to=events.models.get_event_picture_upload_path
+                        upload_to=thetatauCMT.events.models.get_event_picture_upload_path
                     ),
                 ),
                 (

@@ -12,7 +12,7 @@ class UsersConfig(AppConfig):
         Users signal registration
         """
         try:
-            import users.signals  # noqa F401
+            import thetatauCMT.users.signals  # noqa F401
         except ImportError:
             pass
         model = self.get_model("User")
