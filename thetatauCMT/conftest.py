@@ -2,10 +2,11 @@ import pytest
 from pytest_factoryboy import register
 from django.core.management import call_command
 from django.contrib.sites.models import Site
+from django.utils import timezone
 from thetatauCMT.ballots.tests.factories import BallotFactory, BallotCompleteFactory
 from thetatauCMT.chapters.tests.factories import ChapterFactory, ChapterCurriculaFactory
 from thetatauCMT.events.tests.factories import EventFactory
-from thetatauCMT.finances.tests.factories import TransactionFactory
+from thetatauCMT.finances.tests.factories import InvoiceFactory
 from thetatauCMT.regions.tests.factories import RegionFactory
 from thetatauCMT.scores.tests.factories import ScoreChapterFactory
 from thetatauCMT.submissions.tests.factories import SubmissionFactory
@@ -43,10 +44,40 @@ def test_password():
 @pytest.fixture
 def auto_login_user(db, client, user_factory, test_password):
     def make_auto_login(user=None, make_officer=False):
+        from thetatauCMT.forms.models import RiskManagement
+
         if user is None:
             user = user_factory.create(
                 password=test_password, make_officer=make_officer
             )
+        # Create RMP record so RMPSignMiddleware does not redirect the user
+        RiskManagement.objects.get_or_create(
+            user=user,
+            defaults=dict(
+                role="regent",
+                submission=None,
+                date=timezone.now().date(),
+                alcohol=False,
+                hosting=False,
+                monitoring=False,
+                member=False,
+                officer=False,
+                abusive=False,
+                hazing=False,
+                substances=False,
+                high_risk=False,
+                transportation=False,
+                property_management=False,
+                guns=False,
+                trademark=False,
+                social=False,
+                indemnification=False,
+                agreement=False,
+                electronic_agreement=False,
+                terms_agreement=False,
+                typed_name="test user",
+            ),
+        )
         client.login(username=user.username, password=test_password)
         return client, user
 
@@ -75,7 +106,7 @@ register(ChapterCurriculaFactory)
 register(EventFactory)
 register(BallotFactory)
 register(BallotCompleteFactory)
-register(TransactionFactory)
+register(InvoiceFactory)
 register(ScoreChapterFactory)
 register(SubmissionFactory)
 register(TaskChapterFactory)

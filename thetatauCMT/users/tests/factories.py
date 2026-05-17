@@ -1,5 +1,7 @@
 import datetime
 import factory
+from faker import Faker as FakerLib
+_faker = FakerLib()
 from core.models import NAT_OFFICERS, CHAPTER_OFFICER, ADVISOR_ROLES
 from ..models import (
     UserAlter,
@@ -39,7 +41,7 @@ class UserFactory(factory.django.DjangoModelFactory):
 
     class Meta:
         model = "users.User"
-        django_get_or_create = ("username", "id")
+        django_get_or_create = ("username",)
 
     @factory.post_generation
     def make_officer(self, create, extracted, **kwargs):
@@ -70,7 +72,7 @@ class UserAlterFactory(factory.django.DjangoModelFactory):
 
 class UserSemesterServiceHoursFactory(factory.django.DjangoModelFactory):
     year = factory.Faker(
-        "random_element", elements=[item[0] for item in UserSemesterServiceHours.YEARS]
+        "random_int", min=2016, max=2030
     )
     term = factory.Faker(
         "random_element",
@@ -85,7 +87,7 @@ class UserSemesterServiceHoursFactory(factory.django.DjangoModelFactory):
 
 class UserSemesterGPAFactory(factory.django.DjangoModelFactory):
     year = factory.Faker(
-        "random_element", elements=[item[0] for item in UserSemesterGPA.YEARS]
+        "random_int", min=2016, max=2030
     )
     term = factory.Faker(
         "random_element",
@@ -105,7 +107,7 @@ class UserStatusChangeFactory(factory.django.DjangoModelFactory):
     modified = factory.Faker("date_time_between", start_date="-1y", end_date="+1y")
     user = factory.SubFactory(UserFactory)
     status = factory.Faker(
-        "random_element", elements=[x.value for x in UserStatusChange.STATUS]
+        "random_element", elements=[x.value[0] for x in UserStatusChange.STATUS]
     )
 
     class Meta:
@@ -114,10 +116,9 @@ class UserStatusChangeFactory(factory.django.DjangoModelFactory):
     @factory.post_generation
     def current(self, create, extracted, **kwargs):
         if extracted:
-            self.start = factory.Faker("date_between", start_date="-4y").generate()
-            self.end = factory.Faker(
-                "date_between", start_date="+1d", end_date="+4y"
-            ).generate()
+            self.start = _faker.date_between(start_date="-4y")
+            self.end = _faker.date_between(start_date="+1d", end_date="+4y")
+            self.save()
 
 
 class UserRoleChangeFactory(factory.django.DjangoModelFactory):
@@ -136,17 +137,16 @@ class UserRoleChangeFactory(factory.django.DjangoModelFactory):
     @factory.post_generation
     def current(self, create, extracted, **kwargs):
         if extracted:
-            self.start = factory.Faker("date_between", start_date="-4y").generate()
-            self.end = factory.Faker(
-                "date_between", start_date="+1d", end_date="+4y"
-            ).generate()
+            self.start = _faker.date_between(start_date="-4y")
+            self.end = _faker.date_between(start_date="+1d", end_date="+4y")
         else:
-            self.end = factory.Faker(
-                "date_between", start_date="-239d", end_date="-1d"
-            ).generate()
+            self.end = _faker.date_between(start_date="-239d", end_date="-1d")
+        self.save()
 
     @factory.post_generation
     def officer(self, create, extracted, **kwargs):
+        if not extracted:
+            return
         if extracted == "chapter":
             elements = CHAPTER_OFFICER
         elif extracted == "national":
@@ -155,7 +155,16 @@ class UserRoleChangeFactory(factory.django.DjangoModelFactory):
             elements = ADVISOR_ROLES
         else:
             elements = [extracted]
-        self.role = factory.Faker("random_element", elements=elements).generate()
+        old_role = self.role
+        self.role = _faker.random_element(elements=elements)
+        self.save()
+        # Clean up stale initial random role that the pre-save signal may have
+        # written to user.current_roles before the intended role was set.
+        if old_role != self.role:
+            self.user.refresh_from_db()
+            if self.user.current_roles and old_role in self.user.current_roles:
+                self.user.current_roles.remove(old_role)
+                self.user.save(update_fields=["current_roles"])
 
 
 class UserOrgParticipateFactory(factory.django.DjangoModelFactory):

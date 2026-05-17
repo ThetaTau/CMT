@@ -100,7 +100,7 @@ class StatusChangeFactory(factory.django.DjangoModelFactory):
     modified = factory.Faker("date_time_between", start_date="-1y", end_date="+1y")
     user = factory.SubFactory(UserFactory)
     reason = factory.Faker(
-        "random_element", elements=[item.value[0] for item in Depledge.REASONS]
+        "random_element", elements=[item.value[0] for item in StatusChange.REASONS]
     )
     degree = factory.Faker(
         "random_element", elements=[item.value[0] for item in StatusChange.DEGREES]
@@ -111,9 +111,7 @@ class StatusChangeFactory(factory.django.DjangoModelFactory):
     miles = factory.Faker("random_int", max=5000)
     email_work = factory.Faker("email")
 
-    @factory.post_generation
-    def new_school(self, create, extracted, **kwargs):
-        return factory.SubFactory(ChapterFactory)
+    new_school = factory.SubFactory(ChapterFactory)
 
     class Meta:
         model = StatusChange
@@ -122,9 +120,7 @@ class StatusChangeFactory(factory.django.DjangoModelFactory):
 class ChapterReportFactory(factory.django.DjangoModelFactory):
     created = factory.Faker("date_time_between", start_date="-1y", end_date="+1y")
     modified = factory.Faker("date_time_between", start_date="-1y", end_date="+1y")
-    year = factory.Faker(
-        "random_element", elements=[item[0] for item in ChapterReport.YEARS]
-    )
+    year = factory.Faker("random_int", min=2016, max=2030)
     term = factory.Faker(
         "random_element", elements=[item.value[0] for item in ChapterReport.TERMS]
     )
@@ -137,9 +133,7 @@ class ChapterReportFactory(factory.django.DjangoModelFactory):
 
 
 class RiskManagementFactory(factory.django.DjangoModelFactory):
-    year = factory.Faker(
-        "random_element", elements=[item[0] for item in RiskManagement.YEARS]
-    )
+    year = factory.Faker("random_int", min=2016, max=2030)
     term = factory.Faker(
         "random_element", elements=[item.value[0] for item in RiskManagement.TERMS]
     )
@@ -177,9 +171,7 @@ class RiskManagementFactory(factory.django.DjangoModelFactory):
 class AuditFactory(factory.django.DjangoModelFactory):
     created = factory.Faker("date_time_between", start_date="-1y", end_date="+1y")
     modified = factory.Faker("date_time_between", start_date="-1y", end_date="+1y")
-    year = factory.Faker(
-        "random_element", elements=[item[0] for item in ChapterReport.YEARS]
-    )
+    year = factory.Faker("random_int", min=2016, max=2030)
     term = factory.Faker(
         "random_element", elements=[item.value[0] for item in ChapterReport.TERMS]
     )
@@ -289,10 +281,10 @@ class ConventionFactory(factory.django.DjangoModelFactory):
     chapter = factory.SubFactory(ChapterFactory)
     officer1 = factory.SubFactory(UserFactory)
     officer2 = factory.SubFactory(UserFactory)
-    signature_del = factory.LazyAttribute(lambda o: f"{o.name} Signature")
-    signature_alt = factory.LazyAttribute(lambda o: f"{o.name} Signature")
-    signature_o1 = factory.LazyAttribute(lambda o: f"{o.name} Signature")
-    signature_o2 = factory.LazyAttribute(lambda o: f"{o.name} Signature")
+    signature_del = factory.Faker("name")
+    signature_alt = factory.Faker("name")
+    signature_o1 = factory.Faker("name")
+    signature_o2 = factory.Faker("name")
     approved_o1 = factory.Faker("boolean")
     approved_o2 = factory.Faker("boolean")
 

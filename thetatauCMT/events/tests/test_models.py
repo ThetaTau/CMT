@@ -61,7 +61,7 @@ def test_calculate_meeting_attendance(
         20,
         status="active",
         user__chapter=chapter,
-        start=factory.Faker("date_between", start_date="-1y", end_date="today"),
+        start=factory.Faker("date_between", start_date="-1y", end_date="-16d"),
         end=factory.Faker("date_between", start_date="today", end_date="+1y"),
     )
     event_factory.create_batch(
@@ -75,8 +75,8 @@ def test_calculate_meeting_attendance(
     date = fake.date_between(start_date="-15d", end_date="-5d")
     actual_score = Event.calculate_meeting_attendance(chapter, date)
     # 10 events at 25% attendance each eval "15*MEETINGS"
-    # Total score is 3.75 and individual event is 3.75/10=0.38
-    assert actual_score == 0.39
+    # avg_attendance = 0.25, score = 15*0.25 = 3.75, event_score = round(3.75/10, 2) = 0.38
+    assert actual_score == 0.38
 
 
 @pytest.mark.django_db

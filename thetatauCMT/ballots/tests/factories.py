@@ -16,7 +16,7 @@ class BallotFactory(factory.django.DjangoModelFactory):
     description = factory.Faker("paragraph", nb_sentences=5)
     due_date = factory.Faker("date_between", start_date="-4y", end_date="+4y")
     voters = factory.Faker(
-        "random_element", elements=[item.value[0] for item in Ballot.VOTERS]
+        "random_element", elements=[item[0] for item in Ballot.VOTERS]
     )
 
     @factory.post_generation

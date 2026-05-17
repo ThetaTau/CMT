@@ -1,5 +1,5 @@
 import pytest
-from pytest_django.asserts import assertQuerysetEqual
+from pytest_django.asserts import assertQuerySetEqual
 from thetatauCMT.chapters.tests.factories import ChapterFactory, ChapterCurriculaFactory
 from thetatauCMT.chapters.models import Chapter, ChapterCurricula
 from thetatauCMT.users.models import UserStatusChange
@@ -33,7 +33,7 @@ def test_chapter_str(chapter):
 
 
 @pytest.mark.django_db
-@pytest.mark.parametrize("chapter__colony,suffix", [(True, "Co"), (False, "Ch")])
+@pytest.mark.parametrize("chapter__candidate_chapter,suffix", [(True, "Co"), (False, "Ch")])
 def test_chapter_account(chapter, suffix):
     assert chapter.account == f"{chapter.greek}0{suffix}"
 
@@ -60,6 +60,10 @@ def test_get_school_chapter_missing():
 
 @pytest.mark.django_db
 def test_next_badge_number(chapter, user_factory):
+    # Reset so badge_number sequence starts at 1 regardless of prior test order.
+    # next_badge_number() returns max(badge_number < 5000) + 1, so the result
+    # depends on the factory sequence value, which drifts across the full suite.
+    user_factory.reset_sequence(0)
     assert chapter.next_badge_number() == 1
     user_factory.create_batch(1234, chapter=chapter)
     assert chapter.next_badge_number() == 1235
@@ -91,7 +95,7 @@ def test_get_current_officers_council_previous(chapter, user_factory):
     old_officer_pks = [regent.pk, vice.pk]
     result = chapter.get_current_officers_council()
     assert result[1] is True
-    assertQuerysetEqual(result[0], old_officer_pks, lambda o: o.pk, ordered=False)
+    assertQuerySetEqual(result[0], old_officer_pks, lambda o: o.pk, ordered=False)
 
 
 @pytest.mark.django_db
@@ -109,7 +113,7 @@ def test_get_current_officers_council(chapter, user_factory):
     officer_pks = [regent.pk, vice.pk, treasurer.pk, scribe.pk, corsec.pk]
     result = chapter.get_current_officers_council()
     assert result[1] is False
-    assertQuerysetEqual(result[0], officer_pks, lambda o: o.pk, ordered=False)
+    assertQuerySetEqual(result[0], officer_pks, lambda o: o.pk, ordered=False)
     result = chapter.get_current_officers_council_specific()
     assert [regent, scribe, vice, treasurer, corsec] == result
 
@@ -117,9 +121,9 @@ def test_get_current_officers_council(chapter, user_factory):
 def make_many_users_status(user_factory, chapter, testing):
     expected_users = []
     for status in UserStatusChange.STATUS:
-        status = status[0]
-        users = user_factory.create_batch(10, chapter=chapter, status=status)
-        if status in testing:
+        status_value = status.value[0]
+        users = user_factory.create_batch(10, chapter=chapter, status=status_value)
+        if status_value in testing:
             expected_users.extend(users)
     return expected_users
 
@@ -128,7 +132,7 @@ def make_many_users_status(user_factory, chapter, testing):
 def test_current_members(chapter, user_factory):
     result = chapter.current_members()
     assert result.count() == 0
-    testing = ["active", "activepend", "alumnipend", "pnm"]
+    testing = ["active", "activepend", "alumnipend", "pendexpul", "activeCC", "pnm"]
     expected_users = make_many_users_status(user_factory, chapter, testing)
     result = chapter.current_members()
     assert set(expected_users) == set(result)
@@ -138,7 +142,7 @@ def test_current_members(chapter, user_factory):
 def test_actives(chapter, user_factory):
     result = chapter.actives()
     assert result.count() == 0
-    testing = ["active", "activepend", "alumnipend"]
+    testing = ["active", "activepend", "alumnipend", "pendexpul", "activeCC"]
     expected_users = make_many_users_status(user_factory, chapter, testing)
     result = chapter.actives()
     assert set(expected_users) == set(result)

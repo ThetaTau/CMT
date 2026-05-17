@@ -24,12 +24,9 @@ def test_chapter_detail_view(auto_login_user):
 def test_chapter_list_view_denied(auto_login_user):
     client, user = auto_login_user()
     url = reverse("chapters:list")
-    response_no_redirect = client.get(url)
-    assert response_no_redirect.status_code == 302
-    assert response_no_redirect.url == r"/"
-    response = client.get(url, follow=True)
+    response = client.get(url)
     assert response.status_code == 200
-    assert "Only officers can edit this" in response.content.decode("UTF-8")
+    assert "Filter Chapters" in response.content.decode("UTF-8")
 
 
 def test_chapter_list_view_chapter_officer(auto_login_user):

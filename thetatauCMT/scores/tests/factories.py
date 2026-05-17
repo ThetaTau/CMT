@@ -41,9 +41,7 @@ class ScoreChapterFactory(factory.django.DjangoModelFactory):
             "pyfloat", min_value=0, max_value=o.type.term_points
         ).generate({})
     )
-    year = factory.Faker(
-        "random_element", elements=[item[0] for item in ScoreChapter.YEARS]
-    )
+    year = factory.Faker("random_int", min=2016, max=2030)
     term = factory.Faker(
         "random_element", elements=[item.value[0] for item in ScoreChapter.TERMS]
     )

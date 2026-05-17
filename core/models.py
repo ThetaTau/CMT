@@ -54,11 +54,10 @@ def current_month():
 current_year_value = current_year()
 
 if (current_year_value % 2) == 0:
-    # If the current year is even, then first year of biennium is last year
+    # Even year: biennium started last odd year
     BIENNIUM_START = current_year_value - 1
 else:
-    # If the current year is odd, then first year of biennium is
-    # this year if current semester is fall otherwise two years ago
+    # Odd year: convention year; biennium started this year (fall) or 2 years ago (spring)
     semester = SEMESTER[current_month()]
     if semester == "sp":
         BIENNIUM_START = current_year_value - 2

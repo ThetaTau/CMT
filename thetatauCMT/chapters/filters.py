@@ -5,7 +5,7 @@ from .models import Chapter, Region
 
 class ChapterListFilter(django_filters.FilterSet):
     region = django_filters.ChoiceFilter(
-        label="Region", choices=Region.region_choices(), method="filter_region"
+        label="Region", choices=Region.region_choices, method="filter_region"
     )
 
     class Meta:

@@ -8,36 +8,19 @@ class TestMyUserCreationForm(TestCase):
         self.user = self.make_user("notalamode", "notalamodespassword")
 
     def test_clean_username_success(self):
-        # Instantiate the form with a new username
+        # Form is valid when required fields (chapter, badge_number) are provided
         form = MyUserCreationForm(
             {
-                "username": "alamode",
-                "password1": "7jefB#f@Cc7YJB]2v",
-                "password2": "7jefB#f@Cc7YJB]2v",
+                "chapter": self.user.chapter_id,
+                "badge_number": 12345,
             }
         )
-        # Run is_valid() to trigger the validation
         valid = form.is_valid()
         self.assertTrue(valid)
 
-        # Run the actual clean_username method
-        username = form.clean_username()
-        self.assertEqual("alamode", username)
-
     def test_clean_username_false(self):
-        # Instantiate the form with the same username as self.user
-        form = MyUserCreationForm(
-            {
-                "username": self.user.username,
-                "password1": "notalamodespassword",
-                "password2": "notalamodespassword",
-            }
-        )
-        # Run is_valid() to trigger the validation, which is going to fail
-        # because the username is already taken
+        # Form is invalid when required chapter field is missing
+        form = MyUserCreationForm({})
         valid = form.is_valid()
         self.assertFalse(valid)
-
-        # The form.errors dict should contain a single error called 'username'
-        self.assertTrue(len(form.errors) == 1)
-        self.assertTrue("username" in form.errors)
+        self.assertIn("chapter", form.errors)

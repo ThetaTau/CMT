@@ -9,6 +9,7 @@ from .base import env
 # ------------------------------------------------------------------------------
 # https://docs.djangoproject.com/en/dev/ref/settings/#debug
 DEBUG = False
+CURRENT_URL = "http://testserver"
 # https://docs.djangoproject.com/en/dev/ref/settings/#secret-key
 SECRET_KEY = env(
     "DJANGO_SECRET_KEY",
@@ -19,7 +20,7 @@ TEST_RUNNER = "django.test.runner.DiscoverRunner"
 
 DATABASES = {
     "default": env.db(
-        "DATABASE_URL_TEST", default="postgres://postgres:test@localhost:5432/testCMT"
+        "DATABASE_URL_TEST", default="postgres://thetatau:test@postgres:5432/testcmt"
     ),
 }
 DATABASES["default"]["ATOMIC_REQUESTS"] = True
@@ -63,6 +64,27 @@ EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
 EMAIL_HOST = "localhost"
 # https://docs.djangoproject.com/en/dev/ref/settings/#email-port
 EMAIL_PORT = 1025
+
+# SYSTEM CHECKS
+# ------------------------------------------------------------------------------
+# Silence checks that are expected/irrelevant in the test environment.
+# django_recaptcha uses test keys intentionally; urls.W005 (non-unique
+# namespaces) is a known structural quirk, not a regression.
+SILENCED_SYSTEM_CHECKS = ["django_recaptcha.recaptcha_test_key_error", "urls.W005"]
+
+# DEPRECATION WARNINGS
+# ------------------------------------------------------------------------------
+# Treat Django's own DeprecationWarning as errors so regressions from the
+# 3.2→4.2 upgrade (and future 4.2→5.x prep) surface immediately in pytest.
+# RemovedInDjango50Warning (subclass of DeprecationWarning) is caught here;
+# RemovedInDjango51Warning (subclass of PendingDeprecationWarning) is not.
+#
+# Known future-work warning still present in app code (out of scope for 4.2):
+#   django.contrib.postgres.aggregates.StringAgg() without default= argument
+#   → will change behaviour in Django 5.0.  Fix: add default="" to each call
+#   in core/models.py and thetatauCMT/forms/views.py before the 5.x upgrade.
+import warnings
+warnings.filterwarnings("error", category=DeprecationWarning, module="django")
 
 # Your stuff...
 # ------------------------------------------------------------------------------

@@ -37,7 +37,7 @@ from thetatauCMT.chapters.models import Chapter, ChapterCurricula
 
 
 class CustomUserManager(UserManager):
-    def create_superuser(self, email, password, **extra_fields):
+    def _get_or_create_default_chapter(self):
         chapter = Chapter.objects.first()
         if chapter is None:
             # this would happen on first install; make a default test region/chapter
@@ -49,7 +49,14 @@ class CustomUserManager(UserManager):
                 region = Region.objects.first()
             Chapter(name="Test Chapter", region=region).save()
             chapter = Chapter.objects.first()
-        extra_fields.setdefault("chapter", chapter)
+        return chapter
+
+    def create_user(self, username, email=None, password=None, **extra_fields):
+        extra_fields.setdefault("chapter", self._get_or_create_default_chapter())
+        return super().create_user(username, email, password, **extra_fields)
+
+    def create_superuser(self, email, password, **extra_fields):
+        extra_fields.setdefault("chapter", self._get_or_create_default_chapter())
         superuser = super().create_superuser(
             email=email, password=password, **extra_fields
         )

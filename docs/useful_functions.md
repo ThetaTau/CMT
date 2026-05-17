@@ -114,7 +114,7 @@ WHERE pg_stat_activity.datname = 'testcmt';
 
 DROP DATABASE testcmt;
 
-CREATE DATABASE testcmt OWNER testthetatau;
+CREATE DATABASE testCMT OWNER thetatau;
 
 -- after to verify restore worked
 \c testcmt

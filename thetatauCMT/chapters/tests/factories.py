@@ -15,8 +15,7 @@ class ChapterFactory(factory.django.DjangoModelFactory):
     facebook = factory.Faker("uri")
     address = factory.Faker("address")
     balance = factory.Faker("pydecimal", left_digits=5, right_digits=2)
-    balance_date = factory.Faker("date_between", start_date="-4y", end_date="+4y")
-    tax = factory.Faker("random_int")
+    tax = factory.Sequence(lambda n: n + 1)
     greek = factory.LazyAttribute(lambda o: GREEK_ABR_NAME[o.name.lower()])
     active = True
     candidate_chapter = False
@@ -26,6 +25,8 @@ class ChapterFactory(factory.django.DjangoModelFactory):
     school_type = factory.Faker(
         "random_element", elements=[item[0] for item in Chapter.TYPES]
     )
+    address_contact = factory.Faker("name")
+    address_phone_number = factory.Faker("numerify", text="##########")
     council = factory.Faker("text", max_nb_chars=55)
     recognition = factory.Faker(
         "random_element", elements=[item.value[0] for item in Chapter.RECOGNITION]

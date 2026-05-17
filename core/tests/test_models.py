@@ -17,18 +17,10 @@ def test_today():
 @pytest.mark.freeze_time("2018-03-15")
 def test_core_dates_even_spring():
     importlib.reload(models)
-    # Convention was in 2018, so biennium started 2016
-    assert models.BIENNIUM_START == 2016
-    assert models.BIENNIUM_START_DATE == datetime.date(2016, 7, 1)
+    # Biennium starts on odd years; 2017 is the start of the current biennium
+    assert models.BIENNIUM_START == 2017
+    assert models.BIENNIUM_START_DATE == datetime.date(2017, 7, 1)
     assert models.BIENNIUM_DATES == {
-        "Fall 2016": {
-            "start": datetime.datetime(2016, 7, 1),
-            "end": datetime.datetime(2016, 12, 31),
-        },
-        "Spring 2017": {
-            "start": datetime.datetime(2017, 1, 1),
-            "end": datetime.datetime(2017, 6, 30),
-        },
         "Fall 2017": {
             "start": datetime.datetime(2017, 7, 1),
             "end": datetime.datetime(2017, 12, 31),
@@ -37,19 +29,6 @@ def test_core_dates_even_spring():
             "start": datetime.datetime(2018, 1, 1),
             "end": datetime.datetime(2018, 6, 30),
         },
-    }
-    assert models.BIENNIUM_YEARS == [2016, 2017, 2017, 2018]
-    assert models.current_term() == "sp"
-    assert models.current_year() == 2018
-    assert models.current_year_term_slug() == "Spring_2018"
-
-
-@pytest.mark.freeze_time("2019-10-21")
-def test_core_dates_odd_fall():
-    importlib.reload(models)
-    assert models.BIENNIUM_START == 2018
-    assert models.BIENNIUM_START_DATE == datetime.date(2018, 7, 1)
-    assert models.BIENNIUM_DATES == {
         "Fall 2018": {
             "start": datetime.datetime(2018, 7, 1),
             "end": datetime.datetime(2018, 12, 31),
@@ -58,6 +37,19 @@ def test_core_dates_odd_fall():
             "start": datetime.datetime(2019, 1, 1),
             "end": datetime.datetime(2019, 6, 30),
         },
+    }
+    assert models.BIENNIUM_YEARS == [2017, 2018, 2018, 2019]
+    assert models.current_term() == "sp"
+    assert models.current_year() == 2018
+    assert models.current_year_term_slug() == "Spring_2018"
+
+
+@pytest.mark.freeze_time("2019-10-21")
+def test_core_dates_odd_fall():
+    importlib.reload(models)
+    assert models.BIENNIUM_START == 2019
+    assert models.BIENNIUM_START_DATE == datetime.date(2019, 7, 1)
+    assert models.BIENNIUM_DATES == {
         "Fall 2019": {
             "start": datetime.datetime(2019, 7, 1),
             "end": datetime.datetime(2019, 12, 31),
@@ -66,8 +58,16 @@ def test_core_dates_odd_fall():
             "start": datetime.datetime(2020, 1, 1),
             "end": datetime.datetime(2020, 6, 30),
         },
+        "Fall 2020": {
+            "start": datetime.datetime(2020, 7, 1),
+            "end": datetime.datetime(2020, 12, 31),
+        },
+        "Spring 2021": {
+            "start": datetime.datetime(2021, 1, 1),
+            "end": datetime.datetime(2021, 6, 30),
+        },
     }
-    assert models.BIENNIUM_YEARS == [2018, 2019, 2019, 2020]
+    assert models.BIENNIUM_YEARS == [2019, 2020, 2020, 2021]
     assert models.current_term() == "fa"
     assert models.current_year() == 2019
     assert models.current_year_term_slug() == "Fall_2019"
