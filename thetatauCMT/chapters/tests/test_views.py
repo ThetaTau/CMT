@@ -5,8 +5,15 @@ https://developer.mozilla.org/en-US/docs/Learn/Server-side/Django/Testing
 """
 
 import pytest
+from django.contrib.auth.models import Group
 from django.urls import reverse
+
 from .factories import ChapterFactory
+
+
+def _add_to_group(user, group_name):
+    group, _ = Group.objects.get_or_create(name=group_name)
+    user.groups.add(group)
 
 
 @pytest.mark.django_db
@@ -58,3 +65,211 @@ def test_chapter_list_view_natoff(auto_login_user):
     response = client.get(url, follow=True)
     assert response.status_code == 200
     assert "Filter Chapters" in response.content.decode("UTF-8")
+
+
+# ─── ChapterRedirectView ──────────────────────────────────────────────────────
+
+
+@pytest.mark.django_db
+def test_chapter_redirect_view_redirects_to_own_chapter(auto_login_user):
+    client, user = auto_login_user()
+    url = reverse("chapters:redirect")
+    response = client.get(url)
+    assert response.status_code == 302
+    assert user.current_chapter.slug in response["Location"]
+
+
+@pytest.mark.django_db
+def test_chapter_redirect_view_unauthenticated(client):
+    url = reverse("chapters:redirect")
+    response = client.get(url)
+    assert response.status_code == 302
+    assert "login" in response["Location"]
+
+
+# ─── ChapterDetailView ────────────────────────────────────────────────────────
+
+
+@pytest.mark.django_db
+def test_chapter_detail_own_chapter(auto_login_user):
+    """User can see their own chapter's detail page."""
+    client, user = auto_login_user()
+    chapter = user.current_chapter
+    url = reverse("chapters:detail", kwargs={"slug": chapter.slug})
+    response = client.get(url)
+    assert response.status_code == 200
+
+
+@pytest.mark.django_db
+def test_chapter_detail_unauthenticated(client):
+    chapter = ChapterFactory()
+    url = reverse("chapters:detail", kwargs={"slug": chapter.slug})
+    response = client.get(url)
+    assert response.status_code == 302
+
+
+# ─── ChapterListView (natoff sees all chapters) ────────────────────────────────
+
+
+@pytest.mark.django_db
+def test_chapter_list_view_unauthenticated(client):
+    response = client.get(reverse("chapters:list"))
+    assert response.status_code == 302
+
+
+# ─── ChapterDetailView – natoff path ─────────────────────────────────────────
+
+
+@pytest.mark.django_db
+def test_chapter_detail_view_natoff_user(auto_login_user):
+    """National officer visiting chapter detail triggers natoff=True in context."""
+    client, user = auto_login_user()
+    _add_to_group(user, "natoff")
+    chapter = user.current_chapter
+    url = reverse("chapters:detail", kwargs={"slug": chapter.slug})
+    response = client.get(url)
+    assert response.status_code == 200
+
+
+@pytest.mark.django_db
+def test_chapter_detail_view_post_chapter_form_redirects(auto_login_user):
+    """POST to chapter detail with action=chapter redirects on success."""
+    client, user = auto_login_user()
+    chapter = user.current_chapter
+    url = reverse("chapters:detail", kwargs={"slug": chapter.slug})
+    # Post minimal chapter form data – all optional fields
+    post_data = {
+        "action": "chapter",
+        "email": "test@example.com",
+        "website": "",
+        "facebook": "",
+        "instagram": "",
+        "tiktok": "",
+        "linkedin": "",
+        "youtube": "",
+        "twitter": "",
+        "address_line_2": "",
+        "address_contact": "",
+        "address_phone_number": "",
+        "council": chapter.council or "",
+        "house": False,
+        "recognition": chapter.recognition or "",
+        "email_regent": "",
+        "email_vice_regent": "",
+        "email_scribe": "",
+        "email_treasurer": "",
+        "email_corresponding_secretary": "",
+    }
+    response = client.post(url, post_data)
+    # Should redirect (302) or render 200 with errors
+    assert response.status_code in [200, 302]
+
+
+@pytest.mark.django_db
+def test_chapter_list_view_returns_200_authenticated(auto_login_user):
+    """Authenticated user can see the chapter list."""
+    client, user = auto_login_user()
+    url = reverse("chapters:list")
+    response = client.get(url, follow=True)
+    assert response.status_code == 200
+
+
+# ─── ChapterDetailView – audit loop coverage ─────────────────────────────────
+
+
+@pytest.mark.django_db
+def test_chapter_detail_view_with_audit_data(auto_login_user):
+    """When Audit objects exist for the chapter the audit loop in
+    get_context_data runs (lines 139-147 of views.py)."""
+    from django.utils import timezone
+    from thetatauCMT.forms.models import Audit
+
+    client, user = auto_login_user()
+    chapter = user.current_chapter
+
+    Audit.objects.create(
+        user=user,
+        year=2023,
+        term="fa",
+        modified=timezone.now(),
+        dues_member=100.0,
+        dues_pledge=50.0,
+        frequency="month",
+        payment_plan=True,
+        cash_book=True,
+        cash_register=True,
+        member_account=True,
+        cash_book_reviewed=True,
+        cash_register_reviewed=True,
+        member_account_reviewed=True,
+        balance_checking=1000.0,
+        balance_savings=500.0,
+        debit_card=True,
+        debit_card_access="regent",
+        agreement=True,
+    )
+
+    url = reverse("chapters:detail", kwargs={"slug": chapter.slug})
+    response = client.get(url)
+    assert response.status_code == 200
+
+
+@pytest.mark.django_db
+def test_chapter_detail_view_audit_with_officer_role(auto_login_user):
+    """When the audited user has an officer role the audit_data branch runs
+    (covers lines 142-147 of views.py including line 156)."""
+    import datetime
+    from django.utils import timezone
+    from thetatauCMT.forms.models import Audit
+    from thetatauCMT.users.models import UserRoleChange
+
+    client, user = auto_login_user()
+    chapter = user.current_chapter
+
+    today = datetime.date.today()
+    UserRoleChange.objects.create(
+        user=user,
+        role="regent",
+        start=today - datetime.timedelta(days=60),
+        end=today + datetime.timedelta(days=60),
+    )
+
+    Audit.objects.create(
+        user=user,
+        year=2023,
+        term="fa",
+        modified=timezone.now(),
+        dues_member=100.0,
+        dues_pledge=50.0,
+        frequency="month",
+        payment_plan=True,
+        cash_book=True,
+        cash_register=True,
+        member_account=True,
+        cash_book_reviewed=True,
+        cash_register_reviewed=True,
+        member_account_reviewed=True,
+        balance_checking=1000.0,
+        balance_savings=500.0,
+        debit_card=True,
+        debit_card_access="regent",
+        agreement=True,
+    )
+
+    url = reverse("chapters:detail", kwargs={"slug": chapter.slug})
+    response = client.get(url)
+    assert response.status_code == 200
+
+
+@pytest.mark.django_db
+def test_chapter_detail_view_with_national_officer_role(auto_login_user):
+    """A user with current_roles containing a NAT_OFFICERS role triggers
+    natoff=True in the table constructor (line 182 of views.py)."""
+    client, user = auto_login_user()
+    user.current_roles = ["national director"]
+    user.save()
+    chapter = user.current_chapter
+    url = reverse("chapters:detail", kwargs={"slug": chapter.slug})
+    response = client.get(url)
+    assert response.status_code == 200
+

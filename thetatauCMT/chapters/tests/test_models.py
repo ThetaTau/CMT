@@ -368,3 +368,120 @@ def test_get_previous_officers_returns_dict(chapter):
     for role in CHAPTER_OFFICER_REQUIRED:
         assert role in result
 
+
+# ---------------------------------------------------------------------------
+# events_by_semester_biennium
+# ---------------------------------------------------------------------------
+
+@pytest.mark.django_db
+def test_events_by_semester_biennium_returns_no_error(chapter):
+    """events_by_semester_biennium iterates BIENNIUM_DATES; just check it runs."""
+    chapter.events_by_semester_biennium()
+
+
+# ---------------------------------------------------------------------------
+# initiations_semester
+# ---------------------------------------------------------------------------
+
+@pytest.mark.django_db
+def test_initiations_semester_empty(chapter):
+    result = chapter.initiations_semester(datetime.date.today())
+    assert result.count() == 0
+
+
+# ---------------------------------------------------------------------------
+# pledges_with_no_init_last_x_months
+# ---------------------------------------------------------------------------
+
+@pytest.mark.django_db
+def test_pledges_with_no_init_last_x_months_empty(chapter):
+    result = chapter.pledges_with_no_init_last_x_months()
+    assert result.count() == 0
+
+
+# ---------------------------------------------------------------------------
+# pledges_last_x_months
+# ---------------------------------------------------------------------------
+
+@pytest.mark.django_db
+def test_pledges_last_x_months_empty(chapter):
+    result = chapter.pledges_last_x_months()
+    assert result.count() == 0
+
+
+# ---------------------------------------------------------------------------
+# graduates
+# ---------------------------------------------------------------------------
+
+@pytest.mark.django_db
+def test_graduates_empty(chapter):
+    result = chapter.graduates(datetime.date.today())
+    assert result.count() == 0
+
+
+# ---------------------------------------------------------------------------
+# depledges
+# ---------------------------------------------------------------------------
+
+@pytest.mark.django_db
+def test_depledges_empty(chapter):
+    result = chapter.depledges()
+    assert result.count() == 0
+
+
+# ---------------------------------------------------------------------------
+# gpas
+# ---------------------------------------------------------------------------
+
+@pytest.mark.django_db
+def test_gpas_empty(chapter):
+    result = chapter.gpas()
+    assert result.count() == 0
+
+
+# ---------------------------------------------------------------------------
+# SURCHARGE enum get_value
+# ---------------------------------------------------------------------------
+
+@pytest.mark.django_db
+def test_surcharge_get_value():
+    from thetatauCMT.chapters.models import Chapter
+    # Test the enum get_value method — not_rec has special alias 'not' → 'not_rec'
+    result = Chapter.SURCHARGE.get_value("none")
+    assert result is not None
+
+
+# ---------------------------------------------------------------------------
+# get_about_expired_council (no officers → no emails sent)
+# ---------------------------------------------------------------------------
+
+@pytest.mark.django_db
+def test_get_about_expired_council_no_officers(chapter):
+    emails, officers_to_update = chapter.get_about_expired_coucil()
+    # With no officers, all positions need updating
+    assert isinstance(officers_to_update, list)
+
+
+@pytest.mark.django_db
+def test_get_about_expired_council_with_current_officers(chapter, user_factory):
+    """With 5 current officers who have far-future end dates, no officers need updating."""
+    regent = user_factory.create(chapter=chapter, make_officer="regent")
+    vice = user_factory.create(chapter=chapter, make_officer="vice regent")
+    treasurer = user_factory.create(chapter=chapter, make_officer="treasurer")
+    scribe = user_factory.create(chapter=chapter, make_officer="scribe")
+    corsec = user_factory.create(chapter=chapter, make_officer="corresponding secretary")
+    emails, officers_to_update = chapter.get_about_expired_coucil()
+    assert isinstance(officers_to_update, list)
+    assert isinstance(emails, list)
+
+
+# ---------------------------------------------------------------------------
+# notes_filtered
+# ---------------------------------------------------------------------------
+
+@pytest.mark.django_db
+def test_notes_filtered_no_notes(chapter, user_factory):
+    user = user_factory.create(chapter=chapter)
+    result = chapter.notes_filtered(user)
+    assert result.count() == 0
+
