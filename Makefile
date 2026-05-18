@@ -1,8 +1,9 @@
-.PHONY: help build up down restart logs shell test clean migrate makemigrations collectstatic setup-host
+.PHONY: help build build-up up down restart logs shell test clean migrate makemigrations collectstatic setup-host
 
 help:
 	@echo "Available commands:"
 	@echo "  make build          - Build podman containers"
+	@echo "  make build-up       - Build and start podman containers"
 	@echo "  make up             - Start podman containers"
 	@echo "  make down           - Stop podman containers"
 	@echo "  make restart        - Restart podman containers"
@@ -18,6 +19,8 @@ help:
 build:
 	podman-compose -f docker-compose.local.yml build
 
+build-up:
+	podman-compose -f docker-compose.local.yml up -d --build
 up:
 	podman-compose -f docker-compose.local.yml up -d
 
@@ -39,7 +42,16 @@ shellpg:
 	podman exec -it thetataucmt_local_postgres bash
 
 test:
-	podman exec -it thetataucmt_local_django python manage.py test
+	podman exec -it thetataucmt_local_django pytest
+
+test-fresh:
+	podman exec -it thetataucmt_local_django pytest --create-db
+
+test-fast:
+	podman exec -it thetataucmt_local_django pytest -x --no-header -q
+
+test-path:
+	podman exec -it thetataucmt_local_django pytest $(path)
 
 migrate:
 	podman exec -it thetataucmt_local_django python manage.py migrate
