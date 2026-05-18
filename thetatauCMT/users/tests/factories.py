@@ -29,7 +29,9 @@ class UserFactory(factory.django.DjangoModelFactory):
     birth_date = factory.Faker("date_of_birth", minimum_age=18, maximum_age=70)
     modified = factory.Faker("date_time_between", start_date="-1y", end_date="+1y")
     badge_number = factory.Sequence(lambda n: n + 1)
-    major = factory.SubFactory(ChapterCurriculaFactory)
+    major = factory.LazyAttribute(
+        lambda o: ChapterCurriculaFactory(chapter=o.chapter)
+    )
     employer = factory.Faker("sentence", nb_words=3)
     employer_position = factory.Faker("sentence", nb_words=3)
     graduation_year = factory.Faker(

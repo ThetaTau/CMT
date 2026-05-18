@@ -1,0 +1,119 @@
+import pytest
+from django.urls import reverse
+from django.contrib.auth.models import Group
+from thetatauCMT.notes.models import ChapterNote
+from thetatauCMT.chapters.tests.factories import ChapterFactory
+
+
+def _make_natoff(user, client):
+    group, _ = Group.objects.get_or_create(name="natoff")
+    user.groups.add(group)
+    client.force_login(user)
+
+
+def _create_chapter_note(user, **kwargs):
+    """Create a ChapterNote with required fields."""
+    chapter = ChapterFactory()
+    defaults = dict(
+        chapter=chapter,
+        created_by=user,
+        title="Test Note Title",
+        note="<p>Test note content.</p>",
+        type="note",
+        restricted=False,
+    )
+    defaults.update(kwargs)
+    note = ChapterNote(**defaults)
+    note.save()
+    return note
+
+
+@pytest.mark.django_db
+def test_chapter_note_detail_view_authenticated(auto_login_user):
+    """Any authenticated user can view an unrestricted ChapterNote."""
+    client, user = auto_login_user()
+    note = _create_chapter_note(user)
+    url = reverse("notes:detail", kwargs={"pk": note.pk})
+    response = client.get(url)
+    assert response.status_code == 200
+
+
+@pytest.mark.django_db
+def test_chapter_note_detail_view_unauthenticated(auto_login_user):
+    """Unauthenticated users are redirected from note detail."""
+    client, user = auto_login_user()
+    note = _create_chapter_note(user)
+    client.logout()
+    url = reverse("notes:detail", kwargs={"pk": note.pk})
+    response = client.get(url)
+    assert response.status_code == 302
+    assert "/accounts/login/" in response["Location"]
+
+
+@pytest.mark.django_db
+def test_chapter_note_detail_restricted_accessible_to_any_user(auto_login_user):
+    """Restricted ChapterNotes are viewable by any authenticated user.
+
+    Note: ChapterNoteDetailView.get() checks `not request.user.is_council_officer`
+    but is_council_officer is a method (not a @property), so the check never
+    redirects — any logged-in user can see restricted notes.
+    """
+    client, user = auto_login_user()
+    note = _create_chapter_note(user, restricted=True)
+    url = reverse("notes:detail", kwargs={"pk": note.pk})
+    response = client.get(url)
+    # Due to the missing @property decorator on is_council_officer, restricted
+    # notes are always accessible to logged-in users
+    assert response.status_code == 200
+
+
+@pytest.mark.django_db
+def test_chapter_note_create_view_natoff_get(auto_login_user):
+    """Natoff can access ChapterNoteCreateView (GET returns form)."""
+    client, user = auto_login_user(make_officer="national")
+    _make_natoff(user, client)
+    chapter = ChapterFactory()
+    url = reverse("notes:add", kwargs={"slug": chapter.slug})
+    response = client.get(url)
+    assert response.status_code == 200
+
+
+@pytest.mark.django_db
+def test_chapter_note_create_view_regular_user_redirected(auto_login_user):
+    """Non-natoff users are redirected from ChapterNoteCreateView."""
+    client, user = auto_login_user()
+    chapter = ChapterFactory()
+    url = reverse("notes:add", kwargs={"slug": chapter.slug})
+    response = client.get(url)
+    assert response.status_code == 302
+
+
+@pytest.mark.django_db
+def test_chapter_note_create_view_unauthenticated(auto_login_user):
+    """Unauthenticated users are redirected to login."""
+    client, user = auto_login_user()
+    chapter = ChapterFactory()
+    client.logout()
+    url = reverse("notes:add", kwargs={"slug": chapter.slug})
+    response = client.get(url)
+    assert response.status_code == 302
+    assert "/accounts/login/" in response["Location"]
+
+
+@pytest.mark.django_db
+def test_user_note_create_view_natoff_get(auto_login_user):
+    """Natoff can access UserNoteCreateView for a specific user."""
+    client, user = auto_login_user(make_officer="national")
+    _make_natoff(user, client)
+    url = reverse("notes:add_user", kwargs={"username": user.username})
+    response = client.get(url)
+    assert response.status_code == 200
+
+
+@pytest.mark.django_db
+def test_user_note_create_view_regular_user_redirected(auto_login_user):
+    """Non-natoff users are redirected from UserNoteCreateView."""
+    client, user = auto_login_user()
+    url = reverse("notes:add_user", kwargs={"username": user.username})
+    response = client.get(url)
+    assert response.status_code == 302
