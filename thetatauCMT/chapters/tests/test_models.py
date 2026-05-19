@@ -485,3 +485,57 @@ def test_notes_filtered_no_notes(chapter, user_factory):
     result = chapter.notes_filtered(user)
     assert result.count() == 0
 
+
+# ---------------------------------------------------------------------------
+# RECOGNITION.get_value — "not" alias branch (5.3)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.django_db
+def test_recognition_get_value_not_alias(chapter):
+    """RECOGNITION.get_value('not') should map to 'not_rec' and return the display value."""
+    result = Chapter.RECOGNITION.get_value("not")
+    assert result == "Not Recognized by University"
+
+
+# ---------------------------------------------------------------------------
+# graduates() — returns members with alumni status in current semester (5.3)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.django_db
+def test_graduates_returns_members_with_alumni_status(chapter, user_factory):
+    """graduates(today) returns users who became alumni this semester."""
+    import datetime
+    from core.models import semester_encompass_start_end_date
+    today = datetime.date.today()
+    semester_start, semester_end = semester_encompass_start_end_date(given_date=today)
+    # Create a member with alumni status that started in the current semester
+    member = user_factory.create(chapter=chapter)
+    UserStatusChange.objects.create(
+        user=member,
+        status="alumni",
+        start=semester_start + datetime.timedelta(days=1),
+        end=semester_end,
+    )
+    result = chapter.graduates(given_date=today)
+    assert member in result
+
+
+# ---------------------------------------------------------------------------
+# get_email_specific — adds officer email when officer exists (5.3)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.django_db
+def test_get_email_specific_includes_current_officer_email(chapter, user_factory):
+    """When there's a current regent with an email, get_email_specific includes it."""
+    regent = user_factory.create(
+        chapter=chapter,
+        make_officer="regent",
+        email="regent_test@example.com",
+    )
+    emails = chapter.get_email_specific(roles=["regent"])
+    # Should include the officer's email
+    assert regent.email in emails
+

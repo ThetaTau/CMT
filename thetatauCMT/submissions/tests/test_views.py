@@ -92,3 +92,55 @@ def test_gear_article_list_view_regular_user_redirected(auto_login_user):
     url = reverse("submissions:gearlist")
     response = client.get(url)
     assert response.status_code == 302
+
+
+# ---------------------------------------------------------------------------
+# SubmissionUpdateView — GET with plain file (no redirect) (5.7)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.django_db
+def test_submission_update_view_get_officer(auto_login_user):
+    """Officers can GET the submission update form for a plain-file submission."""
+    from thetatauCMT.submissions.models import Submission
+    from thetatauCMT.scores.models import ScoreType
+    client, user = auto_login_user(make_officer="chapter")
+    _make_officer(user, client)
+    score_type = ScoreType.objects.filter(type="Sub").first()
+    if score_type is None:
+        pytest.skip("No Sub ScoreType in fixture")
+    import datetime
+    submission = Submission.objects.create(
+        name="Test Submission",
+        date=datetime.date.today(),
+        type=score_type,
+        chapter=user.chapter,
+    )
+    url = reverse("submissions:update", kwargs={"pk": submission.pk})
+    response = client.get(url)
+    assert response.status_code == 200
+
+
+@pytest.mark.django_db
+def test_submission_update_view_get_forms_file_redirects(auto_login_user):
+    """GET to update view for a submission with 'forms:' file redirects to that view."""
+    from thetatauCMT.submissions.models import Submission
+    from thetatauCMT.scores.models import ScoreType
+    client, user = auto_login_user(make_officer="chapter")
+    _make_officer(user, client)
+    score_type = ScoreType.objects.filter(type="Sub").first()
+    if score_type is None:
+        pytest.skip("No Sub ScoreType in fixture")
+    import datetime
+    # Use a forms: URL that resolves without args (forms:rmp)
+    submission = Submission.objects.create(
+        name="Test RMP Submission",
+        date=datetime.date.today(),
+        type=score_type,
+        chapter=user.chapter,
+        file="forms:rmp",
+    )
+    url = reverse("submissions:update", kwargs={"pk": submission.pk})
+    response = client.get(url, follow=False)
+    # Accessing a "forms:" submission should redirect to that form URL
+    assert response.status_code == 302

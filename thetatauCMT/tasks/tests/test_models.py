@@ -348,3 +348,116 @@ def test_mark_complete_with_obj_non_audit(chapter):
     assert tc is not None
 
 
+# ---------------------------------------------------------------------------
+# Task.mark_complete — named task branches (Audit, Pledge Program, OSM)
+# lines 128-153 in models.py
+# ---------------------------------------------------------------------------
+
+def _make_score_type(slug, name=None):
+    """Create or get a ScoreType with the given slug for use in tests."""
+    from thetatauCMT.scores.models import ScoreType
+
+    score_type, _ = ScoreType.objects.get_or_create(
+        slug=slug,
+        defaults={
+            "name": name or slug.replace("-", " ").title(),
+            "description": f"{slug} score",
+            "section": "bro",
+            "points": 10,
+            "term_points": 5,
+            "formula": "",
+            "type": "Sub",
+            "base_points": 0.0,
+            "attendance_multiplier": 0.0,
+            "member_add": 0.0,
+            "stem_add": 0.0,
+            "alumni_add": 0.0,
+            "guest_add": 0.0,
+            "special": "",
+        },
+    )
+    return score_type
+
+
+@pytest.mark.django_db
+def test_mark_complete_audit_branch_creates_task_chapter(chapter):
+    """mark_complete('Audit', ...) takes the Audit branch and creates a TaskChapter."""
+    _make_score_type("audit", name="Audit")
+
+    # Use the existing fixture "Audit" task for regent (owner filter)
+    # and attach a TaskDate that matches the chapter's school_type
+    task = Task.objects.filter(name="Audit", owner="regent").first()
+    assert task is not None, "Fixture must have an 'Audit' task for regent"
+    due_date = datetime.date.today() + datetime.timedelta(days=5)
+    task_date = TaskDate.objects.create(
+        task=task, school_type=chapter.school_type, date=due_date
+    )
+
+    Task.mark_complete("Audit", chapter, current_roles=["regent"], user=None, obj=chapter)
+
+    tc = TaskChapter.objects.filter(task=task_date, chapter=chapter).last()
+    assert tc is not None
+    # Verify the submission object is a Submission pointing to the audit form
+    from thetatauCMT.submissions.models import Submission
+    assert tc.submission_object is not None
+    assert f"forms:audit_complete {chapter.pk}" in tc.submission_object.file.name
+
+
+@pytest.mark.django_db
+def test_mark_complete_pledge_program_branch_creates_task_chapter(chapter):
+    """mark_complete('Pledge Program', ...) takes the Pledge Program branch."""
+    from unittest.mock import MagicMock
+
+    _make_score_type("pledge-program", name="Pledge Program")
+
+    # Use (or create) a "Pledge Program" task
+    task, _ = Task.objects.get_or_create(
+        name="Pledge Program",
+        owner="regent",
+        defaults={"type": "task", "resource": "", "description": "Pledge Program task"},
+    )
+    due_date = datetime.date.today() + datetime.timedelta(days=5)
+    task_date = TaskDate.objects.create(
+        task=task, school_type=chapter.school_type, date=due_date
+    )
+
+    # obj needs a .manual attribute (simulates a PledgeProcess)
+    mock_obj = MagicMock()
+    mock_obj.pk = 9002
+    mock_obj.manual = "not_other"
+
+    Task.mark_complete("Pledge Program", chapter, current_roles=["regent"], user=None, obj=mock_obj)
+
+    tc = TaskChapter.objects.filter(task=task_date, chapter=chapter).last()
+    assert tc is not None
+    from thetatauCMT.submissions.models import Submission
+    assert tc.submission_object is not None
+    assert tc.submission_object.file.name == "forms:pledge_program"
+
+
+@pytest.mark.django_db
+def test_mark_complete_osm_branch_creates_task_chapter(chapter):
+    """mark_complete('Outstanding Student Member', ...) takes the OSM branch."""
+    _make_score_type("osm", name="Outstanding Student Member")
+
+    task, _ = Task.objects.get_or_create(
+        name="Outstanding Student Member",
+        owner="regent",
+        defaults={"type": "task", "resource": "", "description": "OSM task"},
+    )
+    due_date = datetime.date.today() + datetime.timedelta(days=5)
+    task_date = TaskDate.objects.create(
+        task=task, school_type=chapter.school_type, date=due_date
+    )
+
+    Task.mark_complete(
+        "Outstanding Student Member", chapter, current_roles=["regent"], user=None, obj=chapter
+    )
+
+    tc = TaskChapter.objects.filter(task=task_date, chapter=chapter).last()
+    assert tc is not None
+    from thetatauCMT.submissions.models import Submission
+    assert tc.submission_object is not None
+    assert tc.submission_object.file.name == "osmform"
+
+

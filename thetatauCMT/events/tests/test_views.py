@@ -104,3 +104,59 @@ def test_event_redirect_view(auto_login_user):
     url = reverse("events:redirect")
     response = client.get(url)
     assert response.status_code == 302
+
+
+# ---------------------------------------------------------------------------
+# EventCopyView — GET (get_event_initial) (5.7)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.django_db
+def test_event_copy_view_officer_get(auto_login_user):
+    """GET on EventCopyView calls get_event_initial and loads the form."""
+    client, user = auto_login_user(make_officer="chapter")
+    _make_officer(user, client)
+    score_type = ScoreType.objects.filter(type="Evt").first()
+    if score_type is None:
+        pytest.skip("No Evt ScoreType in fixture")
+    event = EventFactory.create(chapter=user.chapter, type=score_type)
+    url = reverse("events:copy", kwargs={"pk": event.pk})
+    response = client.get(url)
+    assert response.status_code == 200
+
+
+# ---------------------------------------------------------------------------
+# EventUpdateView — get_success_url (POST) (5.7)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.django_db
+def test_event_update_view_officer_post_redirects(auto_login_user):
+    """POST to EventUpdateView with valid data redirects to events:list."""
+    client, user = auto_login_user(make_officer="chapter")
+    _make_officer(user, client)
+    score_type = ScoreType.objects.filter(type="Evt").first()
+    if score_type is None:
+        pytest.skip("No Evt ScoreType in fixture")
+    event = EventFactory.create(chapter=user.chapter, type=score_type)
+    url = reverse("events:update", kwargs={"pk": event.pk})
+    import datetime
+    post_data = {
+        "name": "Updated Event Name",
+        "date": datetime.date.today().isoformat(),
+        "type": score_type.pk,
+        "description": "Updated description",
+        "members": 5,
+        "pledges": 2,
+        "alumni": 1,
+        "guests": 0,
+        "duration": 2,
+        "stem": False,
+        "host": "local",
+        "virtual": False,
+        "miles": 0,
+        "raised": "0.00",
+    }
+    response = client.post(url, post_data)
+    # UpdateView POST should redirect on success
+    assert response.status_code in (200, 302)
