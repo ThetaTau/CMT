@@ -1,17 +1,20 @@
 import datetime
+
 import factory
 from faker import Faker as FakerLib
+
 _faker = FakerLib()
-from core.models import NAT_OFFICERS, CHAPTER_OFFICER, ADVISOR_ROLES
+from core.models import ADVISOR_ROLES, CHAPTER_OFFICER, NAT_OFFICERS
+from thetatauCMT.chapters.tests.factories import ChapterCurriculaFactory, ChapterFactory
+
 from ..models import (
     UserAlter,
-    UserSemesterServiceHours,
-    UserSemesterGPA,
-    UserStatusChange,
-    UserRoleChange,
     UserOrgParticipate,
+    UserRoleChange,
+    UserSemesterGPA,
+    UserSemesterServiceHours,
+    UserStatusChange,
 )
-from thetatauCMT.chapters.tests.factories import ChapterFactory, ChapterCurriculaFactory
 
 
 class UserFactory(factory.django.DjangoModelFactory):
@@ -27,11 +30,14 @@ class UserFactory(factory.django.DjangoModelFactory):
     nickname = factory.Faker("name")
     email_school = factory.Faker("email")
     birth_date = factory.Faker("date_of_birth", minimum_age=18, maximum_age=70)
-    modified = factory.Faker("date_time_between", start_date="-1y", end_date="+1y", tzinfo=datetime.timezone.utc)
-    badge_number = factory.Sequence(lambda n: n + 1)
-    major = factory.LazyAttribute(
-        lambda o: ChapterCurriculaFactory(chapter=o.chapter)
+    modified = factory.Faker(
+        "date_time_between",
+        start_date="-1y",
+        end_date="+1y",
+        tzinfo=datetime.timezone.utc,
     )
+    badge_number = factory.Sequence(lambda n: n + 1)
+    major = factory.LazyAttribute(lambda o: ChapterCurriculaFactory(chapter=o.chapter))
     employer = factory.Faker("sentence", nb_words=3)
     employer_position = factory.Faker("sentence", nb_words=3)
     graduation_year = factory.Faker(
@@ -73,9 +79,7 @@ class UserAlterFactory(factory.django.DjangoModelFactory):
 
 
 class UserSemesterServiceHoursFactory(factory.django.DjangoModelFactory):
-    year = factory.Faker(
-        "random_int", min=2016, max=2030
-    )
+    year = factory.Faker("random_int", min=2016, max=2030)
     term = factory.Faker(
         "random_element",
         elements=[item.value[0] for item in UserSemesterServiceHours.TERMS],
@@ -88,9 +92,7 @@ class UserSemesterServiceHoursFactory(factory.django.DjangoModelFactory):
 
 
 class UserSemesterGPAFactory(factory.django.DjangoModelFactory):
-    year = factory.Faker(
-        "random_int", min=2016, max=2030
-    )
+    year = factory.Faker("random_int", min=2016, max=2030)
     term = factory.Faker(
         "random_element",
         elements=[item.value[0] for item in UserSemesterGPA.TERMS],
@@ -105,8 +107,18 @@ class UserSemesterGPAFactory(factory.django.DjangoModelFactory):
 class UserStatusChangeFactory(factory.django.DjangoModelFactory):
     start = factory.Faker("date_between", start_date="-4y", end_date="+4y")
     end = factory.Faker("date_between", start_date="-4y", end_date="+4y")
-    created = factory.Faker("date_time_between", start_date="-1y", end_date="+1y", tzinfo=datetime.timezone.utc)
-    modified = factory.Faker("date_time_between", start_date="-1y", end_date="+1y", tzinfo=datetime.timezone.utc)
+    created = factory.Faker(
+        "date_time_between",
+        start_date="-1y",
+        end_date="+1y",
+        tzinfo=datetime.timezone.utc,
+    )
+    modified = factory.Faker(
+        "date_time_between",
+        start_date="-1y",
+        end_date="+1y",
+        tzinfo=datetime.timezone.utc,
+    )
     user = factory.SubFactory(UserFactory)
     status = factory.Faker(
         "random_element", elements=[x.value[0] for x in UserStatusChange.STATUS]
@@ -127,8 +139,18 @@ class UserStatusChangeFactory(factory.django.DjangoModelFactory):
 class UserRoleChangeFactory(factory.django.DjangoModelFactory):
     start = factory.Faker("date_between", start_date="-4y", end_date="+4y")
     end = factory.Faker("date_between", start_date="-4y", end_date="+4y")
-    created = factory.Faker("date_time_between", start_date="-1y", end_date="+1y", tzinfo=datetime.timezone.utc)
-    modified = factory.Faker("date_time_between", start_date="-1y", end_date="+1y", tzinfo=datetime.timezone.utc)
+    created = factory.Faker(
+        "date_time_between",
+        start_date="-1y",
+        end_date="+1y",
+        tzinfo=datetime.timezone.utc,
+    )
+    modified = factory.Faker(
+        "date_time_between",
+        start_date="-1y",
+        end_date="+1y",
+        tzinfo=datetime.timezone.utc,
+    )
     user = factory.SubFactory(UserFactory)
     role = factory.Faker(
         "random_element", elements=[item[0] for item in UserRoleChange.ROLES]

@@ -1,6 +1,7 @@
-import core.stubs.requests as stub
 from django.conf import settings
 from requests import *
+
+import core.stubs.requests as stub
 
 
 def is_running_local_env():

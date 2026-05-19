@@ -1,5 +1,6 @@
 from django.contrib import admin
-from .models import ScoreType, ScoreChapter
+
+from .models import ScoreChapter, ScoreType
 
 # Register your models here.
 

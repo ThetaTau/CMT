@@ -3,12 +3,15 @@ Notes:
     To test run command
         docker-compose -f local.yml run --rm django python manage.py officer_update_reminder_email
 """
+
 # Includes
 import datetime
-from django.core.management import BaseCommand
+
 from django.core.mail import send_mail
-from thetatauCMT.users.notifications import OfficerUpdateReminder
+from django.core.management import BaseCommand
+
 from thetatauCMT.chapters.models import Chapter
+from thetatauCMT.users.notifications import OfficerUpdateReminder
 
 
 class Command(BaseCommand):

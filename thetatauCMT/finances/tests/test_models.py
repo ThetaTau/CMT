@@ -1,9 +1,11 @@
-import pytest
 from decimal import Decimal
+
+import pytest
 from djmoney.money import Money
+
+from thetatauCMT.chapters.tests.factories import ChapterFactory
 from thetatauCMT.finances.models import Invoice
 from thetatauCMT.finances.tests.factories import InvoiceFactory
-from thetatauCMT.chapters.tests.factories import ChapterFactory
 
 
 @pytest.mark.django_db

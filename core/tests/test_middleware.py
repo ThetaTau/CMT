@@ -4,6 +4,7 @@ Exercises OfficerMiddleware and RMPSignMiddleware via RequestFactory.
 Canary: if Django 4.2 breaks MiddlewareMixin.__call__, process_request
 injection, or the request-attribute contract, these tests fail immediately.
 """
+
 import pytest
 from django.contrib.auth.models import AnonymousUser, Group
 from django.contrib.messages.storage.cookie import CookieStorage

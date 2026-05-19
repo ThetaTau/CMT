@@ -1,6 +1,6 @@
 from django.urls import path
 
-from . import views, dashboard  # noqa: F401 Used to add dash app
+from . import dashboard, views  # noqa: F401 Used to add dash app
 
 app_name = "chapters"
 urlpatterns = [

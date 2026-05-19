@@ -1,7 +1,7 @@
 from django.utils.timezone import now
 from django_filters import DateRangeFilter
-from .models import BIENNIUM_DATES
 
+from .models import BIENNIUM_DATES
 
 DateRangeFilter.filters["year_last"] = lambda qs, name: qs.filter(
     **{

@@ -4,6 +4,7 @@ This is the primary canary for viewflow 1.11.0 vs Django 4.2 incompatibility.
 If viewflow's metaclass, FlowReferenceField, or FlowTaskReferenceField break
 under 4.2, these tests fail long before Phase 3.2 verification work begins.
 """
+
 import importlib
 
 import pytest
@@ -137,6 +138,7 @@ def test_task_flow_task_reference_roundtrip():
 def test_premature_alumnus_auto_approve_func_all_checks_pass():
     """auto_approve_func sets approved_exec=True when all process checks pass."""
     from unittest.mock import MagicMock, patch
+
     from thetatauCMT.forms.flows import PrematureAlumnusFlow
     from thetatauCMT.forms.tests.factories import PrematureAlumnusFactory
 
@@ -161,6 +163,7 @@ def test_premature_alumnus_auto_approve_func_all_checks_pass():
 def test_premature_alumnus_auto_approve_func_check_fails_sets_rejected():
     """auto_approve_func sets approved_exec=False when any check fails."""
     from unittest.mock import MagicMock
+
     from thetatauCMT.forms.flows import PrematureAlumnusFlow
     from thetatauCMT.forms.tests.factories import PrematureAlumnusFactory
 
@@ -186,7 +189,9 @@ def test_premature_alumnus_auto_approve_func_check_fails_sets_rejected():
 def test_premature_alumnus_pending_undo_func_sets_active_status():
     """pending_undo_func calls set_current_status('active') on the user."""
     from unittest.mock import MagicMock, patch
+
     from django.utils import timezone
+
     from thetatauCMT.forms.flows import PrematureAlumnusFlow
     from thetatauCMT.forms.tests.factories import PrematureAlumnusFactory
 
@@ -208,6 +213,7 @@ def test_premature_alumnus_pending_undo_func_sets_active_status():
 def test_premature_alumnus_send_approval_complete_approved():
     """send_approval_complete sends email with state='Approved' when approved_exec=True."""
     from unittest.mock import MagicMock, patch
+
     from thetatauCMT.forms.flows import PrematureAlumnusFlow
 
     process = MagicMock()
@@ -229,6 +235,7 @@ def test_premature_alumnus_send_approval_complete_approved():
 def test_premature_alumnus_send_approval_complete_rejected():
     """send_approval_complete sends email with state='Rejected' when approved_exec=False."""
     from unittest.mock import MagicMock, patch
+
     from thetatauCMT.forms.flows import PrematureAlumnusFlow
 
     process = MagicMock()
@@ -250,6 +257,7 @@ def test_premature_alumnus_send_approval_complete_rejected():
 def test_convention_flow_email_signers_func_sends_four_emails():
     """ConventionFlow.email_signers_func calls EmailConventionUpdate for each signer."""
     from unittest.mock import MagicMock, patch
+
     from thetatauCMT.forms.flows import ConventionFlow
     from thetatauCMT.forms.tests.factories import ConventionFactory
     from thetatauCMT.users.tests.factories import UserFactory
@@ -278,6 +286,7 @@ def test_convention_flow_email_signers_func_sends_four_emails():
 def test_osm_flow_handler_sets_status():
     """OSMFlow handler function sends the OSM email for a submitted nomination."""
     from unittest.mock import MagicMock, patch
+
     from thetatauCMT.forms.flows import OSMFlow
     from thetatauCMT.forms.tests.factories import OSMFactory
 
@@ -307,6 +316,7 @@ def test_osm_flow_handler_sets_status():
 def test_initiation_process_flow_send_invoice_func():
     """InitiationProcessFlow.send_invoice_func calls generate_blackbaud_update."""
     from unittest.mock import MagicMock, patch
+
     from thetatauCMT.forms.flows import InitiationProcessFlow
     from thetatauCMT.forms.tests.factories import InitiationProcessFactory
 
@@ -315,9 +325,13 @@ def test_initiation_process_flow_send_invoice_func():
     activation.process = process
 
     flow_instance = InitiationProcessFlow()
-    with patch.object(process, "generate_blackbaud_update", return_value=MagicMock()) as mock_gen, \
-         patch("thetatauCMT.forms.flows.EmailProcessUpdate") as MockEmail, \
-         patch("thetatauCMT.forms.flows.CentralOfficeGenericEmail") as MockCO:
+    with patch.object(
+        process, "generate_blackbaud_update", return_value=MagicMock()
+    ) as mock_gen, patch(
+        "thetatauCMT.forms.flows.EmailProcessUpdate"
+    ) as MockEmail, patch(
+        "thetatauCMT.forms.flows.CentralOfficeGenericEmail"
+    ) as MockCO:
         MockEmail.return_value.send = MagicMock()
         MockCO.return_value.send = MagicMock()
         try:
@@ -383,6 +397,7 @@ def test_disciplinary_process_flow_process_class():
 def test_osm_flow_email_approved_func():
     """OSMFlow.email_approved_func sends EmailOSMUpdate for the nominated user."""
     from unittest.mock import MagicMock, patch
+
     from thetatauCMT.forms.flows import OSMFlow
     from thetatauCMT.forms.tests.factories import OSMFactory
 
@@ -410,6 +425,7 @@ def test_osm_flow_email_approved_func():
 def test_alumni_exclusion_flow_email_region_func():
     """AlumniExclusionFlow.email_rds_func sends EmailAlumniExclusionUpdate."""
     from unittest.mock import MagicMock, patch
+
     from thetatauCMT.forms.flows import AlumniExclusionFlow
 
     activation = MagicMock()
@@ -422,4 +438,3 @@ def test_alumni_exclusion_flow_email_region_func():
     MockEmail.assert_called_once()
     call_kwargs = MockEmail.call_args[1]
     assert call_kwargs.get("review") is True
-

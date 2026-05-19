@@ -5,9 +5,10 @@ from crispy_forms.layout import Column, Fieldset, Layout, Row, Submit
 from django import forms
 
 from core.forms import (
+    DatePicker,
     ListSelect2Multiple,
     Select2ListCreateMultipleChoiceField,
-    set_multiple_choices_initial, DatePicker,
+    set_multiple_choices_initial,
 )
 
 from .models import Job, JobSearch, Keyword, Major

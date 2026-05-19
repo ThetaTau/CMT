@@ -1,6 +1,5 @@
 from address.widgets import AddressWidget
 from allauth.account.forms import LoginForm
-from thetatauCMT.chapters.models import Chapter, ChapterCurricula
 from crispy_forms.bootstrap import Field, FormActions, InlineField, StrictButton
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Column, Fieldset, Layout, Row, Submit
@@ -12,8 +11,9 @@ from django_recaptcha.fields import ReCaptchaField
 from django_recaptcha.widgets import ReCaptchaV3
 
 from core.address import fix_address
-from core.forms import DuplicateAddressField, SchoolModelChoiceField, DatePicker
+from core.forms import DatePicker, DuplicateAddressField, SchoolModelChoiceField
 from core.models import BIENNIUM_YEARS, forever
+from thetatauCMT.chapters.models import Chapter, ChapterCurricula
 
 from .models import (
     MemberUpdate,

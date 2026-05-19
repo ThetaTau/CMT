@@ -1,10 +1,12 @@
 import datetime
-import pytest
+
 import factory
-from faker import Faker
+import pytest
 from django.utils.text import slugify
-from thetatauCMT.events.tests.factories import EventFactory
+from faker import Faker
+
 from thetatauCMT.events.models import Event
+from thetatauCMT.events.tests.factories import EventFactory
 from thetatauCMT.scores.models import ScoreType
 
 fake = Faker()

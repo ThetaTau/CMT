@@ -41,10 +41,20 @@ class ChapterForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         optional_fields = {
-            "email", "website", "facebook", "instagram", "tiktok",
-            "linkedin", "youtube", "twitter", "address_line_2",
-            "email_regent", "email_vice_regent", "email_scribe",
-            "email_treasurer", "email_corresponding_secretary",
+            "email",
+            "website",
+            "facebook",
+            "instagram",
+            "tiktok",
+            "linkedin",
+            "youtube",
+            "twitter",
+            "address_line_2",
+            "email_regent",
+            "email_vice_regent",
+            "email_scribe",
+            "email_treasurer",
+            "email_corresponding_secretary",
         }
         for key in self.fields:
             if key not in optional_fields:

@@ -6,9 +6,10 @@ Cheap canary for settings/model regressions:
 - Unapplied migrations means a migration file was added without being applied
   to the test database (i.e., --reuse-db is stale or a migration is missing).
 """
-import pytest
+
 from io import StringIO
 
+import pytest
 from django.core.management import call_command
 
 
@@ -19,9 +20,9 @@ def test_system_check_passes():
     # Raises SystemCheckError if any ERROR/CRITICAL checks fail; the test
     # simply fails if that exception propagates.
     call_command("check", stdout=out, stderr=StringIO())
-    assert "no issues" in out.getvalue(), (
-        f"System check output did not confirm clean state:\n{out.getvalue()}"
-    )
+    assert (
+        "no issues" in out.getvalue()
+    ), f"System check output did not confirm clean state:\n{out.getvalue()}"
 
 
 @pytest.mark.django_db
@@ -30,6 +31,6 @@ def test_no_unapplied_migrations():
     out = StringIO()
     call_command("migrate", "--plan", "--no-input", stdout=out, stderr=StringIO())
     plan_output = out.getvalue()
-    assert "No planned migration operations" in plan_output, (
-        f"Unapplied migrations detected:\n{plan_output}"
-    )
+    assert (
+        "No planned migration operations" in plan_output
+    ), f"Unapplied migrations detected:\n{plan_output}"

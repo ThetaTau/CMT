@@ -1,19 +1,18 @@
-from django.urls import reverse
-from django.views.generic import CreateView
-from django.shortcuts import redirect
+from django.contrib import messages
+from django.forms.models import modelformset_factory
 from django.http import Http404
 from django.http.response import HttpResponseRedirect
-from django.forms.models import modelformset_factory
-from django.contrib import messages
+from django.shortcuts import redirect
+from django.urls import reverse
+from django.views.generic import CreateView
+
 from core.forms import MultiFormsView
-from core.views import (
-    LoginRequiredMixin,
-    NatOfficerRequiredMixin,
-)
+from core.views import LoginRequiredMixin, NatOfficerRequiredMixin
 from thetatauCMT.chapters.models import Chapter
 from thetatauCMT.users.models import User
-from .models import ChapterNote, UserNote
+
 from .forms import ChapterNoteForm
+from .models import ChapterNote, UserNote
 
 
 class ChapterNoteDetailView(LoginRequiredMixin, MultiFormsView):

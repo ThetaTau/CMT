@@ -7,6 +7,7 @@ record (to pass RMPSignMiddleware), and asserts:
   - HTTP 200
   - Response body is non-empty JSON with a "data" key
 """
+
 import pytest
 from django.contrib.contenttypes.models import ContentType
 from django.urls import reverse
@@ -20,8 +21,8 @@ def staff_user_with_rmp(db):
     is_superuser is intentionally False to avoid RequireSuperuser2FAMiddleware
     redirecting to /setup/ before reaching the report-builder endpoint.
     """
-    from thetatauCMT.users.tests.factories import UserFactory
     from thetatauCMT.forms.models import RiskManagement
+    from thetatauCMT.users.tests.factories import UserFactory
 
     user = UserFactory.create(is_staff=True)
     RiskManagement.objects.get_or_create(
@@ -30,11 +31,24 @@ def staff_user_with_rmp(db):
             role="regent",
             submission=None,
             date=timezone.now().date(),
-            alcohol=False, hosting=False, monitoring=False, member=False,
-            officer=False, abusive=False, hazing=False, substances=False,
-            high_risk=False, transportation=False, property_management=False,
-            guns=False, trademark=False, social=False, indemnification=False,
-            agreement=False, electronic_agreement=False, terms_agreement=False,
+            alcohol=False,
+            hosting=False,
+            monitoring=False,
+            member=False,
+            officer=False,
+            abusive=False,
+            hazing=False,
+            substances=False,
+            high_risk=False,
+            transportation=False,
+            property_management=False,
+            guns=False,
+            trademark=False,
+            social=False,
+            indemnification=False,
+            agreement=False,
+            electronic_agreement=False,
+            terms_agreement=False,
             typed_name="test user",
         ),
     )
@@ -57,7 +71,9 @@ def simple_report(db):
 
 
 @pytest.mark.django_db
-def test_report_builder_generate_returns_200(client, staff_user_with_rmp, simple_report):
+def test_report_builder_generate_returns_200(
+    client, staff_user_with_rmp, simple_report
+):
     """GenerateReport endpoint returns 200 with a JSON body for a staff user."""
     client.force_login(staff_user_with_rmp)
     url = reverse("generate_report", kwargs={"report_id": simple_report.pk})

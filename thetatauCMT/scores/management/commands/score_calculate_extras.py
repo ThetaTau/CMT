@@ -1,16 +1,14 @@
 # [event.save() for event in Event.objects.filter(type__slug="brotherhood")]
 # python manage.py score_calculate_extras
 import datetime
+
 from django.core.management import BaseCommand
 from django.db.models import Sum
+
 from core.models import BIENNIUM_YEARS
 from thetatauCMT.chapters.models import Chapter
-from thetatauCMT.scores.models import ScoreType, ScoreChapter
-from thetatauCMT.users.models import (
-    UserSemesterGPA,
-    UserSemesterServiceHours,
-    UserOrgParticipate,
-)
+from thetatauCMT.scores.models import ScoreChapter, ScoreType
+from thetatauCMT.users.models import UserOrgParticipate, UserSemesterGPA, UserSemesterServiceHours
 
 
 class Command(BaseCommand):
@@ -113,7 +111,7 @@ class Command(BaseCommand):
                     service_score = round(min(50, service_score), 2)
                     score_type = ScoreType.objects.get(slug="service-hours")
                     # print("        ", score_type, service_score)
-                    (obj, created) = ScoreChapter.objects.update_or_create(
+                    obj, created = ScoreChapter.objects.update_or_create(
                         chapter=chapter,
                         type=score_type,
                         year=year,
@@ -133,7 +131,7 @@ class Command(BaseCommand):
                     gpa_score = round(min(20, gpa_score), 2)
                     score_type = ScoreType.objects.get(slug="gpa")
                     # print("        ", score_type, gpa_score)
-                    (obj, created) = ScoreChapter.objects.update_or_create(
+                    obj, created = ScoreChapter.objects.update_or_create(
                         chapter=chapter,
                         type=score_type,
                         year=year,
@@ -154,7 +152,7 @@ class Command(BaseCommand):
                     org_score = round(min(20, org_score), 2)
                     score_type = ScoreType.objects.get(slug="societies")
                     # print("        ", score_type, org_score)
-                    (obj, created) = ScoreChapter.objects.update_or_create(
+                    obj, created = ScoreChapter.objects.update_or_create(
                         chapter=chapter,
                         type=score_type,
                         year=year,

@@ -1,15 +1,17 @@
-import time
 import datetime
+import time
 from itertools import zip_longest
+
+import moosend_api_wrapper
+from bandit.backends.base import HijackBackendMixin
 from django.conf import settings
 from django.contrib import messages
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse
-from bandit.backends.base import HijackBackendMixin
 from django_middleware_global_request.middleware import get_request
-import moosend_api_wrapper
 from moosend_api_wrapper.rest import ApiException
 from report_builder.admin import Report
+
 from .views import group_required
 
 if settings.DJANGO_EMAIL_LIVE:

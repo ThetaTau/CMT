@@ -1,8 +1,10 @@
 import datetime
 import importlib
-from faker import Faker
+
 import pytest
 from django.core.exceptions import ValidationError
+from faker import Faker
+
 from core import models
 
 fake = Faker()

@@ -1,10 +1,12 @@
 import csv
 import warnings
 from datetime import datetime
+
 from django.db import transaction
 from django.db.utils import IntegrityError
-from thetatauCMT.forms.models import Pledge
+
 from thetatauCMT.chapters.models import Chapter
+from thetatauCMT.forms.models import Pledge
 
 
 def run(*args):

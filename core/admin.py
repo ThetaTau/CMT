@@ -1,10 +1,10 @@
+from address.admin import UnidentifiedListFilter
 from django.conf import settings
 from django.contrib import admin
-from django.utils.safestring import mark_safe
 from django.urls import reverse
+from django.utils.safestring import mark_safe
+from herald.admin import SentNotification, SentNotificationAdmin
 from report_builder.admin import ReportAdmin
-from herald.admin import SentNotificationAdmin, SentNotification
-from address.admin import UnidentifiedListFilter
 
 
 def user_chapter(obj):

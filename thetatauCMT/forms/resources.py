@@ -1,14 +1,7 @@
 from import_export import resources
 from import_export.fields import Field
-from .models import (
-    Initiation,
-    Depledge,
-    Pledge,
-    StatusChange,
-    PledgeProgram,
-    PrematureAlumnus,
-    CollectionReferral,
-)
+
+from .models import CollectionReferral, Depledge, Initiation, Pledge, PledgeProgram, PrematureAlumnus, StatusChange
 
 
 class InitiationResource(resources.ModelResource):

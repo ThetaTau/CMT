@@ -1,9 +1,11 @@
 import datetime
 from enum import Enum
+
 from django.db import models
 from django.db.models import Sum
 from django.db.models.functions import Round
-from core.models import YearTermModel, BIENNIUM_YEARS
+
+from core.models import BIENNIUM_YEARS, YearTermModel
 from thetatauCMT.chapters.models import Chapter
 
 

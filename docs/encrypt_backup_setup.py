@@ -3,9 +3,10 @@
 # Install and add to path
 # export GNUPGHOME="D:\workspace\thetatauCMT\secrets"
 import os
+
 import gnupg
 
-gpg = gnupg.GPG(gnupghome=fr"{os.getcwd()}/secrets")
+gpg = gnupg.GPG(gnupghome=rf"{os.getcwd()}/secrets")
 # gpg = gnupg.GPG()
 input_data = gpg.gen_key_input(
     name_email="Frank.Ventura@thetatau.org", name_real="Theta Tau CMT"

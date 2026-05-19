@@ -3,10 +3,13 @@ Notes:
     To test run command
         docker-compose -f local.yml run --rm django python manage.py chapter_pledges_check
 """
+
 import datetime
-from django.utils.timezone import make_aware
+
 from django.core.management import BaseCommand
+from django.utils.timezone import make_aware
 from herald.models import SentNotification
+
 from core.models import TODAY_END
 from core.notifications import GenericEmail
 from thetatauCMT.chapters.models import Chapter

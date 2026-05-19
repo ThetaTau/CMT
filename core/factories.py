@@ -1,5 +1,6 @@
 import factory
 from viewflow.models import Task
+
 from thetatauCMT.users.tests.factories import UserFactory
 
 

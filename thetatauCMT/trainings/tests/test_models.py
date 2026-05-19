@@ -1,4 +1,5 @@
 import pytest
+
 from thetatauCMT.trainings.models import Training
 
 
@@ -53,16 +54,25 @@ def test_training_for_user(auto_login_user):
 def test_training_ordering(auto_login_user):
     """Trainings are ordered by -completed_time by default."""
     from django.utils import timezone
+
     _, user = auto_login_user()
     t1 = Training.objects.create(
-        user=user, progress_id="p1", course_id="c1",
-        course_title="Course A", completed=True,
-        completed_time=timezone.now(), max_quiz_score=90.0,
+        user=user,
+        progress_id="p1",
+        course_id="c1",
+        course_title="Course A",
+        completed=True,
+        completed_time=timezone.now(),
+        max_quiz_score=90.0,
     )
     t2 = Training.objects.create(
-        user=user, progress_id="p2", course_id="c2",
-        course_title="Course B", completed=True,
-        completed_time=timezone.now(), max_quiz_score=85.0,
+        user=user,
+        progress_id="p2",
+        course_id="c2",
+        course_title="Course B",
+        completed=True,
+        completed_time=timezone.now(),
+        max_quiz_score=85.0,
     )
     qs = list(Training.objects.filter(user=user))
     # Most recently completed should come first

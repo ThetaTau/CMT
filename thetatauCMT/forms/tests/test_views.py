@@ -10,10 +10,10 @@ Tests cover:
 
 import pytest
 from django.contrib.auth.models import Group
+from django.http import HttpResponse
 from django.urls import reverse
 
 from thetatauCMT.chapters.tests.factories import ChapterFactory
-
 
 # ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -359,9 +359,7 @@ def test_ritual_proficiency_user_table_view_natoff_returns_200(auto_login_user):
 def test_set_init_date_post_returns_200(auto_login_user):
     client, user = auto_login_user()
     _add_to_group(user, "officer")
-    response = client.post(
-        reverse("forms:set_init_date"), {"init_date": "2025-01-15"}
-    )
+    response = client.post(reverse("forms:set_init_date"), {"init_date": "2025-01-15"})
     assert response.status_code == 200
     assert b"2025-01-15" in response.content
 
@@ -641,6 +639,7 @@ def test_collection_referral_view_officer_returns_200(auto_login_user):
 def test_get_sign_status_creds_no_processes(auto_login_user):
     """get_sign_status with type_sign='creds' returns empty data when no Convention."""
     from thetatauCMT.forms.views import get_sign_status
+
     _, user = auto_login_user()
     data, submitted, users = get_sign_status(user, type_sign="creds", initial=True)
     assert isinstance(data, list)
@@ -651,6 +650,7 @@ def test_get_sign_status_creds_no_processes(auto_login_user):
 def test_get_sign_status_resign_no_processes(auto_login_user):
     """get_sign_status with type_sign='resign' returns empty data when no resignation."""
     from thetatauCMT.forms.views import get_sign_status
+
     _, user = auto_login_user()
     data, submitted, users = get_sign_status(user, type_sign="resign", initial=True)
     assert isinstance(data, list)
@@ -661,6 +661,7 @@ def test_get_sign_status_resign_no_processes(auto_login_user):
 def test_get_sign_status_osm_no_processes(auto_login_user):
     """get_sign_status with type_sign='osm' returns empty data when no OSM."""
     from thetatauCMT.forms.views import get_sign_status
+
     _, user = auto_login_user()
     data, submitted, users = get_sign_status(user, type_sign="osm", initial=True)
     assert isinstance(data, list)
@@ -671,6 +672,7 @@ def test_get_sign_status_osm_no_processes(auto_login_user):
 def test_get_sign_status_discipline_no_processes(auto_login_user):
     """get_sign_status_discipline returns empty when no disciplinary processes."""
     from thetatauCMT.forms.views import get_sign_status_discipline
+
     _, user = auto_login_user()
     data = get_sign_status_discipline(user)
     assert isinstance(data, list)
@@ -832,7 +834,9 @@ def test_active_chapters_filter_bound_candidate_chapter():
     assert len(dates) == 2
 
 
-@pytest.mark.skip(reason="Triggers decimal.Decimal integer-interpretation bug in core/models.py:225")
+@pytest.mark.skip(
+    reason="Triggers decimal.Decimal integer-interpretation bug in core/models.py:225"
+)
 @pytest.mark.django_db
 def test_active_chapters_filter_bound_with_year_term():
     """Bound filter with year and term returns correct date range."""
@@ -1366,9 +1370,9 @@ def test_initiation_view_no_session_redirects(auto_login_user):
 @pytest.mark.django_db
 def test_active_chapters_filter_bound_with_real_region(db):
     """active_chapters_filter with a real region slug covers the elif-region branch."""
-    from thetatauCMT.forms.views import active_chapters_filter
-    from thetatauCMT.forms.filters import RiskListFilter
     from thetatauCMT.chapters.tests.factories import ChapterFactory
+    from thetatauCMT.forms.filters import RiskListFilter
+    from thetatauCMT.forms.views import active_chapters_filter
 
     chapter = ChapterFactory.create()
     region_slug = chapter.region.slug
@@ -1431,8 +1435,8 @@ def test_osm_list_view_with_records(auto_login_user):
 @pytest.mark.django_db
 def test_get_sign_status_creds_with_convention_record(auto_login_user):
     """get_sign_status loop body runs when Convention records exist in chapter."""
-    from thetatauCMT.forms.views import get_sign_status
     from thetatauCMT.forms.tests.factories import ConventionFactory
+    from thetatauCMT.forms.views import get_sign_status
 
     _, user = auto_login_user()
     ConventionFactory.create(chapter=user.current_chapter)
@@ -1444,8 +1448,8 @@ def test_get_sign_status_creds_with_convention_record(auto_login_user):
 @pytest.mark.django_db
 def test_get_sign_status_osm_with_osm_record(auto_login_user):
     """get_sign_status loop body runs when OSM records exist in chapter."""
-    from thetatauCMT.forms.views import get_sign_status
     from thetatauCMT.forms.tests.factories import OSMFactory
+    from thetatauCMT.forms.views import get_sign_status
 
     _, user = auto_login_user()
     OSMFactory.create(chapter=user.current_chapter)
@@ -1787,7 +1791,9 @@ def test_osm_list_complete_0_candidate_chapter(auto_login_user):
     client, user = auto_login_user()
     _add_to_group(user, "natoff")
     url = reverse("forms:osm_list")
-    response = client.get(url, {"complete": "0", "region": "candidate_chapter"}, follow=True)
+    response = client.get(
+        url, {"complete": "0", "region": "candidate_chapter"}, follow=True
+    )
     assert response.status_code == 200
 
 
@@ -1797,7 +1803,9 @@ def test_convention_list_complete_0_candidate_chapter(auto_login_user):
     client, user = auto_login_user()
     _add_to_group(user, "natoff")
     url = reverse("forms:convention_list")
-    response = client.get(url, {"complete": "0", "region": "candidate_chapter"}, follow=True)
+    response = client.get(
+        url, {"complete": "0", "region": "candidate_chapter"}, follow=True
+    )
     assert response.status_code == 200
 
 
@@ -1971,12 +1979,21 @@ def test_hs_education_create_view_get(auto_login_user):
 @pytest.mark.django_db
 def test_rmp_detail_view_get(auto_login_user):
     """RiskManagementDetailView GET covers get_context_data with a real record."""
+    from unittest.mock import patch
+
     from thetatauCMT.forms.tests.factories import RiskManagementFactory
 
     client, user = auto_login_user()
     rmp = RiskManagementFactory.create(user=user)
     url = reverse("forms:rmp_complete", kwargs={"pk": rmp.pk})
-    response = client.get(url, follow=True)
+    # The view renders a PDF via xhtml2pdf which requires static files to be
+    # collected on disk.  In CI that directory doesn't exist, so we mock the
+    # PDF rendering step and return an empty bytes response instead.
+    with patch(
+        "easy_pdf.views.PDFTemplateResponseMixin.render_to_response",
+        return_value=HttpResponse(b"%PDF-1.4 mock", content_type="application/pdf"),
+    ):
+        response = client.get(url, follow=True)
     assert response.status_code == 200
 
 
@@ -2020,8 +2037,8 @@ def test_pledge_program_list_with_many_records(auto_login_user):
 @pytest.mark.django_db
 def test_get_sign_status_creds_complete_false(auto_login_user):
     """get_sign_status with complete=False and a convention covers the complete path."""
-    from thetatauCMT.forms.views import get_sign_status
     from thetatauCMT.forms.tests.factories import ConventionFactory
+    from thetatauCMT.forms.views import get_sign_status
 
     _, user = auto_login_user()
     ConventionFactory.create(chapter=user.current_chapter)
@@ -2109,10 +2126,7 @@ def test_ritual_proficiency_user_table_csv(auto_login_user):
 def test_init_depl_select_view_get_with_processes(auto_login_user):
     """InitDeplSelectView GET with InitiationProcess and PledgeProcess objects
     covers the loop bodies at lines 222-232 and 245-255."""
-    from thetatauCMT.forms.tests.factories import (
-        InitiationProcessFactory,
-        PledgeProcessFactory,
-    )
+    from thetatauCMT.forms.tests.factories import InitiationProcessFactory, PledgeProcessFactory
 
     client, user = auto_login_user()
     _add_to_group(user, "officer")
@@ -2159,7 +2173,9 @@ def test_status_change_select_view_get(auto_login_user):
 # ─── badge_shingle_init_csv (lines 1817-1827) ────────────────────────────────
 
 
-@pytest.mark.skip(reason="generate_blackbaud_update requires fee configuration not available in test DB")
+@pytest.mark.skip(
+    reason="generate_blackbaud_update requires fee configuration not available in test DB"
+)
 @pytest.mark.django_db
 def test_badge_shingle_init_csv_crm(auto_login_user):
     """badge_shingle_init_csv with csv_type='crm' covers lines 1817-1827."""
@@ -2176,7 +2192,9 @@ def test_badge_shingle_init_csv_crm(auto_login_user):
     assert response.status_code == 200
 
 
-@pytest.mark.skip(reason="generate_blackbaud_update requires fee configuration not available in test DB")
+@pytest.mark.skip(
+    reason="generate_blackbaud_update requires fee configuration not available in test DB"
+)
 @pytest.mark.django_db
 def test_badge_shingle_init_csv_invoice(auto_login_user):
     """badge_shingle_init_csv with csv_type='invoice' covers line 1823."""
@@ -2339,10 +2357,11 @@ def test_role_change_view_post_with_valid_form(auto_login_user):
 def test_return_student_create_view_get_with_process(auto_login_user):
     """ReturnStudentCreateView GET with an existing ReturnStudent process
     covers the loop body at lines 3070-3094."""
-    from thetatauCMT.forms.models import ReturnStudent
-    from thetatauCMT.forms.flows import ReturnStudentFlow
-    from thetatauCMT.users.tests.factories import UserFactory
     from django.utils import timezone
+
+    from thetatauCMT.forms.flows import ReturnStudentFlow
+    from thetatauCMT.forms.models import ReturnStudent
+    from thetatauCMT.users.tests.factories import UserFactory
 
     client, user = auto_login_user()
     member = UserFactory.create(chapter=user.chapter)
@@ -2376,8 +2395,8 @@ def test_return_student_create_view_get_with_process(auto_login_user):
 def test_pledge_program_process_detail_view_get(auto_login_user):
     """PledgeProgramProcessDetailView GET with a valid pk covers
     get_context_data at lines 3101-3108."""
-    from thetatauCMT.forms.models import PledgeProgramProcess
     from thetatauCMT.forms.flows import PledgeProgramProcessFlow
+    from thetatauCMT.forms.models import PledgeProgramProcess
 
     client, user = auto_login_user()
     process = PledgeProgramProcess.objects.create(
@@ -2396,8 +2415,8 @@ def test_pledge_program_process_detail_view_get(auto_login_user):
 def test_pledge_program_process_create_view_get_with_processes(auto_login_user):
     """PledgeProgramProcessCreateView GET with existing PledgeProgramProcess objects
     covers the loop body at lines 3158-3193."""
-    from thetatauCMT.forms.models import PledgeProgramProcess
     from thetatauCMT.forms.flows import PledgeProgramProcessFlow
+    from thetatauCMT.forms.models import PledgeProgramProcess
 
     client, user = auto_login_user()
     _add_to_group(user, "officer")
@@ -2450,6 +2469,7 @@ def test_ritual_proficiency_create_view_form_valid(auto_login_user):
     """RitualProficiencyCreateView POST with valid data covers form_valid at
     lines 3305-3311."""
     import datetime
+
     from thetatauCMT.users.tests.factories import UserFactory
 
     client, user = auto_login_user()
@@ -2578,8 +2598,8 @@ def test_convention_create_view_get_with_officers(auto_login_user):
 def test_resignation_create_view_get_with_submitted_process(auto_login_user):
     """ResignationCreateView GET with an existing ResignationProcess for the
     current user covers lines 2962-2979 (submitted branch)."""
-    from thetatauCMT.forms.models import ResignationProcess
     from thetatauCMT.forms.flows import ResignationFlow
+    from thetatauCMT.forms.models import ResignationProcess
     from thetatauCMT.users.tests.factories import UserFactory
 
     client, user = auto_login_user()
@@ -2615,7 +2635,9 @@ def test_pledge_program_list_view_csv_download(auto_login_user):
 # ─── ResignationCreateView GET when no officers (lines 2949-2959 form_valid) ──
 
 
-@pytest.mark.skip(reason="ResignationCreateView POST requires viewflow process task setup")
+@pytest.mark.skip(
+    reason="ResignationCreateView POST requires viewflow process task setup"
+)
 @pytest.mark.django_db
 def test_resignation_create_view_form_valid_no_existing(auto_login_user):
     """ResignationCreateView POST with valid data when no existing resignation
@@ -2643,18 +2665,22 @@ def test_resignation_create_view_form_valid_no_existing(auto_login_user):
 
 
 @pytest.mark.django_db
-@pytest.mark.parametrize("view_name", [
-    "forms:audit_list",
-    "forms:rmp_list",
-    "forms:pledge_program_list",
-    "forms:convention_list",
-    "forms:osm_list",
-    "forms:bylaws_list",
-    "forms:alumniexclusion_list",
-])
+@pytest.mark.parametrize(
+    "view_name",
+    [
+        "forms:audit_list",
+        "forms:rmp_list",
+        "forms:pledge_program_list",
+        "forms:convention_list",
+        "forms:osm_list",
+        "forms:bylaws_list",
+        "forms:alumniexclusion_list",
+    ],
+)
 def test_natoff_view_denies_authenticated_non_natoff_user(auto_login_user, view_name):
     """Authenticated user NOT in natoff group is redirected to home, not login."""
     from django.urls import reverse as _reverse
+
     client, user = auto_login_user()
     # user is NOT in natoff group
     url = _reverse(view_name)
@@ -2685,8 +2711,9 @@ def test_check_officers_returns_false_and_adds_error_message_when_officer_missin
 ):
     """AssignOfficerFormMixin.check_officers returns False and adds an ERROR
     message when any officer slot is None/falsy."""
-    from django.test import RequestFactory
     from django.contrib.messages.storage.fallback import FallbackStorage
+    from django.test import RequestFactory
+
     from core.views import AssignOfficerFormMixin
 
     _, user = auto_login_user()
@@ -2716,8 +2743,9 @@ def test_check_officers_returns_false_and_adds_error_message_when_officer_missin
 @pytest.mark.django_db
 def test_check_officers_returns_true_when_all_officers_present(auto_login_user):
     """AssignOfficerFormMixin.check_officers returns True when all 5 officers set."""
-    from django.test import RequestFactory
     from django.contrib.messages.storage.fallback import FallbackStorage
+    from django.test import RequestFactory
+
     from core.views import AssignOfficerFormMixin
     from thetatauCMT.users.tests.factories import UserFactory
 
@@ -2989,9 +3017,9 @@ def test_audit_form_view_get_nonexistent_pk(auto_login_user):
 def test_audit_form_view_get_wrong_chapter_pk(auto_login_user):
     """AuditFormView GET with an audit belonging to a different chapter
     shows an error message (lines 1569-1577)."""
+    from thetatauCMT.chapters.tests.factories import ChapterFactory
     from thetatauCMT.forms.tests.factories import AuditFactory
     from thetatauCMT.users.tests.factories import UserFactory, UserRoleChangeFactory
-    from thetatauCMT.chapters.tests.factories import ChapterFactory
 
     client, user = auto_login_user()
     _add_to_group(user, "officer")
@@ -3012,9 +3040,10 @@ def test_audit_form_view_get_wrong_chapter_pk(auto_login_user):
 def test_premature_alumnus_create_view_get_with_finished_process(auto_login_user):
     """PrematureAlumnusCreateView GET with a finished PrematureAlumnus covers
     the 'else' branch of the loop body (lines 1799-1800)."""
+    from django.utils import timezone
+
     from thetatauCMT.forms.tests.factories import PrematureAlumnusFactory
     from thetatauCMT.users.tests.factories import UserFactory
-    from django.utils import timezone
 
     client, user = auto_login_user()
     member = UserFactory.create(chapter=user.chapter)
@@ -3045,11 +3074,12 @@ def test_convention_create_view_get_no_officers(auto_login_user):
 def test_alumni_exclusion_detail_view_get(auto_login_user):
     """AlumniExclusionDetailView GET with a valid AlumniExclusion object
     covers get_context_data at lines 2431-2434."""
-    from thetatauCMT.forms.models import AlumniExclusion
-    from thetatauCMT.forms.flows import AlumniExclusionFlow
-    from thetatauCMT.users.tests.factories import UserFactory
-    from django.utils import timezone
     from django.core.files.uploadedfile import SimpleUploadedFile
+    from django.utils import timezone
+
+    from thetatauCMT.forms.flows import AlumniExclusionFlow
+    from thetatauCMT.forms.models import AlumniExclusion
+    from thetatauCMT.users.tests.factories import UserFactory
 
     client, user = auto_login_user()
     _add_to_group(user, "natoff")
@@ -3067,6 +3097,3 @@ def test_alumni_exclusion_detail_view_get(auto_login_user):
     url = reverse("forms:alumniexclusion_detail", kwargs={"pk": ae.pk})
     response = client.get(url, follow=True)
     assert response.status_code == 200
-
-
-

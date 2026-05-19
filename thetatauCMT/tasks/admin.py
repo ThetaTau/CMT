@@ -1,5 +1,6 @@
 from django.contrib import admin
-from .models import Task, TaskDate, TaskChapter
+
+from .models import Task, TaskChapter, TaskDate
 
 
 class TaskChapterInline(admin.TabularInline):

@@ -1,13 +1,26 @@
 import datetime
+
 import factory
-from thetatauCMT.scores.models import ScoreType
+
 from thetatauCMT.chapters.tests.factories import ChapterFactory
+from thetatauCMT.scores.models import ScoreType
+
 from ..models import Event
 
 
 class EventFactory(factory.django.DjangoModelFactory):
-    created = factory.Faker("date_time_between", start_date="-1y", end_date="+1y", tzinfo=datetime.timezone.utc)
-    modified = factory.Faker("date_time_between", start_date="-1y", end_date="+1y", tzinfo=datetime.timezone.utc)
+    created = factory.Faker(
+        "date_time_between",
+        start_date="-1y",
+        end_date="+1y",
+        tzinfo=datetime.timezone.utc,
+    )
+    modified = factory.Faker(
+        "date_time_between",
+        start_date="-1y",
+        end_date="+1y",
+        tzinfo=datetime.timezone.utc,
+    )
     name = factory.Faker("sentence", nb_words=3)
     date = factory.Faker("date_between", start_date="-4y", end_date="+4y")
     type = factory.Iterator(ScoreType.objects.filter(type="Evt"))

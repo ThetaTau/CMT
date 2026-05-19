@@ -1,19 +1,18 @@
-from django.urls import reverse
-from django.http import Http404
-from django.shortcuts import redirect
 from django.contrib import messages
-from django.db.models import Q, Value, CharField, Count, When, Case
+from django.db.models import Case, CharField, Count, Q, Value, When
 from django.forms.models import modelformset_factory
-from django.views.generic import CreateView, DetailView
+from django.http import Http404
 from django.http.response import HttpResponseRedirect
+from django.shortcuts import redirect
+from django.urls import reverse
+from django.views.generic import CreateView, DetailView
+
 from core.forms import MultiFormsView
-from core.views import (
-    LoginRequiredMixin,
-    PagedFilteredTableView,
-)
+from core.views import LoginRequiredMixin, PagedFilteredTableView
+
 from .filters import ObjectiveListFilter
-from .forms import ObjectiveListFormHelper, ObjectiveForm, ActionForm
-from .models import Objective, Action
+from .forms import ActionForm, ObjectiveForm, ObjectiveListFormHelper
+from .models import Action, Objective
 from .tables import ObjectiveTable
 
 

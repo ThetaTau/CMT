@@ -1,6 +1,8 @@
 """Tests for chapters/notifications.py."""
-import pytest
+
 from email.mime.base import MIMEBase
+
+import pytest
 
 from .factories import ChapterFactory
 
@@ -13,9 +15,7 @@ def test_dues_reminder_init_sets_to_emails():
     chapter = ChapterFactory.create()
     # A simple MIME attachment object (what generate_dues_attachment() returns)
     attachment = MIMEBase("application", "csv")
-    attachment.add_header(
-        "Content-Disposition", "attachment", filename="test_dues.csv"
-    )
+    attachment.add_header("Content-Disposition", "attachment", filename="test_dues.csv")
     attachment.set_payload("col1,col2\nval1,val2")
 
     notif = DuesReminder(chapter, attachment)
@@ -87,10 +87,10 @@ def test_dues_reminder_attachment_is_set():
 @pytest.mark.django_db
 def test_dues_reminder_get_demo_args():
     """DuesReminder.get_demo_args returns a list with chapter and attachment."""
-    from thetatauCMT.chapters.notifications import DuesReminder
-
     # Ensure there is at least one chapter in the DB (fixtures load them)
     from thetatauCMT.chapters.models import Chapter
+    from thetatauCMT.chapters.notifications import DuesReminder
+
     if not Chapter.objects.exists():
         pytest.skip("No chapters in DB")
     args = DuesReminder.get_demo_args()

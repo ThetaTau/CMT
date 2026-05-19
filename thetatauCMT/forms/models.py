@@ -1,47 +1,47 @@
+import csv
 import datetime
 import io
-import os
-import csv
 import json
-from pathlib import Path
+import os
 from collections import Counter
-import address
-from address.models import AddressField
 from email.mime.base import MIMEBase
+from pathlib import Path
+
+import address
+import requests
+from address.models import AddressField
+from django.conf import settings
+from django.contrib import messages
+from django.contrib.auth.models import Group
+from django.core.validators import MaxValueValidator, RegexValidator
 from django.db import models, transaction
 from django.db.utils import IntegrityError
-from django.contrib.auth.models import Group
-from django_userforeignkey.models.fields import UserForeignKey
-from django.contrib import messages
-from django.core.validators import MaxValueValidator, RegexValidator
-from django.conf import settings
 from django.utils import timezone
-from djmoney.models.fields import MoneyField
 from django.utils.translation import gettext_lazy as _
+from django_userforeignkey.models.fields import UserForeignKey
+from djmoney.models.fields import MoneyField
 from email_signals.models import EmailSignalMixin
 from multiselectfield import MultiSelectField
-import requests
-from viewflow.models import Process
-
+from quickbooks.objects.attachable import Attachable, AttachableRef
 # from easy_pdf.rendering import render_to_pdf
 from quickbooks.objects.customer import Customer
-from quickbooks.objects.attachable import Attachable, AttachableRef
-from core.finances import get_quickbooks_client, invoice_search, create_line
+from viewflow.models import Process
+
+from core.finances import create_line, get_quickbooks_client, invoice_search
 from core.models import (
-    forever,
-    CHAPTER_ROLES_CHOICES,
     CHAPTER_OFFICER_CHOICES,
-    academic_encompass_start_end_date,
-    semester_encompass_start_end_date,
+    CHAPTER_ROLES_CHOICES,
     EnumClass,
     TimeStampedModel,
     YearTermModel,
+    academic_encompass_start_end_date,
+    forever,
     no_future,
-    EnumClass,
+    semester_encompass_start_end_date,
 )
 from thetatauCMT.chapters.models import Chapter
-from thetatauCMT.submissions.models import Submission
 from thetatauCMT.configs.models import Config
+from thetatauCMT.submissions.models import Submission
 
 
 class MultiSelectField(MultiSelectField):
@@ -1299,10 +1299,10 @@ class InitiationProcess(Process, EmailSignalMixin):
 
     def post_shingle_to_webhook(self, request=None):
         file_name, shingle_file = self.generate_badge_shingle_order(
-                csv_type="shingle",
-                get_file=True,
-                file_type="json",
-            )
+            csv_type="shingle",
+            get_file=True,
+            file_type="json",
+        )
         # Post shingle data to Zapier webhook
         webhook_url = Config.get_value("RegaliaShingleWebhookURL")
         shingle_data = shingle_file.getvalue()
@@ -1329,7 +1329,6 @@ class InitiationProcess(Process, EmailSignalMixin):
             )
         else:
             print(message_text)
-
 
 
 class Convention(Process, YearTermModel):

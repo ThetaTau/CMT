@@ -1,8 +1,8 @@
-from dj_anonymizer.register_models import AnonymBase, register_anonym
 from dj_anonymizer import fields
+from dj_anonymizer.register_models import AnonymBase, register_anonym
 from faker import Factory
 
-from thetatauCMT.submissions.models import Submission, Picture, GearArticle
+from thetatauCMT.submissions.models import GearArticle, Picture, Submission
 
 fake = Factory.create()
 

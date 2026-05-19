@@ -2,9 +2,11 @@
 View tests for the events app.
 Uses the auto_login_user fixture which handles RMPSignMiddleware.
 """
+
 import pytest
 from django.contrib.auth.models import Group
 from django.urls import reverse
+
 from thetatauCMT.events.tests.factories import EventFactory
 from thetatauCMT.scores.models import ScoreType
 
@@ -27,6 +29,7 @@ def _make_officer(user, client):
 # EventListView
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.django_db
 def test_event_list_view_returns_200(auto_login_user):
     client, user = auto_login_user()
@@ -46,6 +49,7 @@ def test_event_list_unauthenticated_redirects(client):
 # EventListAllView
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.django_db
 def test_event_list_all_view_natoff(auto_login_user):
     client, user = auto_login_user(make_officer="national")
@@ -58,6 +62,7 @@ def test_event_list_all_view_natoff(auto_login_user):
 # ---------------------------------------------------------------------------
 # EventCreateView
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.django_db
 def test_event_create_view_returns_200(auto_login_user):
@@ -81,6 +86,7 @@ def test_event_create_view_regular_user(auto_login_user):
 # EventUpdateView
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.django_db
 def test_event_update_view_officer(auto_login_user):
     client, user = auto_login_user(make_officer="chapter")
@@ -97,6 +103,7 @@ def test_event_update_view_officer(auto_login_user):
 # ---------------------------------------------------------------------------
 # EventRedirectView
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.django_db
 def test_event_redirect_view(auto_login_user):
@@ -141,6 +148,7 @@ def test_event_update_view_officer_post_redirects(auto_login_user):
     event = EventFactory.create(chapter=user.chapter, type=score_type)
     url = reverse("events:update", kwargs={"pk": event.pk})
     import datetime
+
     post_data = {
         "name": "Updated Event Name",
         "date": datetime.date.today().isoformat(),

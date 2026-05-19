@@ -1,8 +1,10 @@
 import datetime
+
 import pytest
 from pytest_django.asserts import assertQuerySetEqual
-from thetatauCMT.chapters.tests.factories import ChapterFactory, ChapterCurriculaFactory
-from thetatauCMT.chapters.models import Chapter, ChapterCurricula, CHAPTER_OFFICER_REQUIRED
+
+from thetatauCMT.chapters.models import CHAPTER_OFFICER_REQUIRED, Chapter, ChapterCurricula
+from thetatauCMT.chapters.tests.factories import ChapterCurriculaFactory, ChapterFactory
 from thetatauCMT.users.models import UserStatusChange
 
 
@@ -34,7 +36,9 @@ def test_chapter_str(chapter):
 
 
 @pytest.mark.django_db
-@pytest.mark.parametrize("chapter__candidate_chapter,suffix", [(True, "Co"), (False, "Ch")])
+@pytest.mark.parametrize(
+    "chapter__candidate_chapter,suffix", [(True, "Co"), (False, "Ch")]
+)
 def test_chapter_account(chapter, suffix):
     assert chapter.account == f"{chapter.greek}0{suffix}"
 
@@ -186,7 +190,9 @@ def test_advisors_all(chapter, user_factory):
     result = chapter.advisors
     assert set(expected_users) == set(result)
     curricula = ChapterCurriculaFactory(chapter=chapter)
-    users = user_factory.create_batch(5, chapter=chapter, make_officer="advisor", major=curricula)
+    users = user_factory.create_batch(
+        5, chapter=chapter, make_officer="advisor", major=curricula
+    )
     expected_users.extend(users)
     result = chapter.advisors
     assert set(expected_users) == set(result)
@@ -202,7 +208,9 @@ def test_advisors_external(chapter, user_factory):
     assert set(expected_users) == set(result)
     # External advisors should NOT include members with advisor role
     curricula = ChapterCurriculaFactory(chapter=chapter)
-    user_factory.create_batch(5, chapter=chapter, make_officer="advisor", major=curricula)
+    user_factory.create_batch(
+        5, chapter=chapter, make_officer="advisor", major=curricula
+    )
     result = chapter.advisors_external
     assert set(expected_users) == set(result)
 
@@ -211,11 +219,15 @@ def test_advisors_external(chapter, user_factory):
 # full_name property
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.django_db
-@pytest.mark.parametrize("candidate_chapter,expected_suffix", [
-    (False, "Chapter"),
-    (True, "Candidate Chapter"),
-])
+@pytest.mark.parametrize(
+    "candidate_chapter,expected_suffix",
+    [
+        (False, "Chapter"),
+        (True, "Candidate Chapter"),
+    ],
+)
 def test_chapter_full_name(candidate_chapter, expected_suffix):
     chapter = ChapterFactory(candidate_chapter=candidate_chapter)
     assert chapter.full_name == f"{chapter.name} {expected_suffix}"
@@ -224,6 +236,7 @@ def test_chapter_full_name(candidate_chapter, expected_suffix):
 # ---------------------------------------------------------------------------
 # chapter_choices classmethod
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.django_db
 def test_chapter_choices_excludes_inactive():
@@ -246,6 +259,7 @@ def test_chapter_choices_returns_sorted_list():
 # get_actives_for_date
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.django_db
 def test_get_actives_for_date_empty(chapter):
     result = chapter.get_actives_for_date(datetime.date.today())
@@ -255,6 +269,7 @@ def test_get_actives_for_date_empty(chapter):
 # ---------------------------------------------------------------------------
 # events_last_month / events_semester
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.django_db
 def test_events_last_month_empty(chapter):
@@ -272,6 +287,7 @@ def test_events_semester_empty(chapter):
 # alumni
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.django_db
 def test_alumni(chapter, user_factory):
     result = chapter.alumni()
@@ -285,6 +301,7 @@ def test_alumni(chapter, user_factory):
 # ---------------------------------------------------------------------------
 # get_current_officers
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.django_db
 def test_get_current_officers_empty(chapter):
@@ -302,6 +319,7 @@ def test_get_current_officers_with_officer(chapter, user_factory):
 # ---------------------------------------------------------------------------
 # get_misc_data / set_misc_data
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.django_db
 def test_get_misc_data_default(chapter):
@@ -321,6 +339,7 @@ def test_set_misc_data_and_retrieve(chapter):
 # ---------------------------------------------------------------------------
 # council_emails / get_generic_chapter_emails / get_email_specific
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.django_db
 def test_council_emails_returns_set(chapter):
@@ -352,6 +371,7 @@ def test_get_email_specific_with_roles(chapter):
 # get_current_and_future / get_previous_officers
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.django_db
 def test_get_current_and_future_returns_dict(chapter):
     result = chapter.get_current_and_future()
@@ -373,6 +393,7 @@ def test_get_previous_officers_returns_dict(chapter):
 # events_by_semester_biennium
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.django_db
 def test_events_by_semester_biennium_returns_no_error(chapter):
     """events_by_semester_biennium iterates BIENNIUM_DATES; just check it runs."""
@@ -382,6 +403,7 @@ def test_events_by_semester_biennium_returns_no_error(chapter):
 # ---------------------------------------------------------------------------
 # initiations_semester
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.django_db
 def test_initiations_semester_empty(chapter):
@@ -393,6 +415,7 @@ def test_initiations_semester_empty(chapter):
 # pledges_with_no_init_last_x_months
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.django_db
 def test_pledges_with_no_init_last_x_months_empty(chapter):
     result = chapter.pledges_with_no_init_last_x_months()
@@ -402,6 +425,7 @@ def test_pledges_with_no_init_last_x_months_empty(chapter):
 # ---------------------------------------------------------------------------
 # pledges_last_x_months
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.django_db
 def test_pledges_last_x_months_empty(chapter):
@@ -413,6 +437,7 @@ def test_pledges_last_x_months_empty(chapter):
 # graduates
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.django_db
 def test_graduates_empty(chapter):
     result = chapter.graduates(datetime.date.today())
@@ -422,6 +447,7 @@ def test_graduates_empty(chapter):
 # ---------------------------------------------------------------------------
 # depledges
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.django_db
 def test_depledges_empty(chapter):
@@ -433,6 +459,7 @@ def test_depledges_empty(chapter):
 # gpas
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.django_db
 def test_gpas_empty(chapter):
     result = chapter.gpas()
@@ -443,9 +470,11 @@ def test_gpas_empty(chapter):
 # SURCHARGE enum get_value
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.django_db
 def test_surcharge_get_value():
     from thetatauCMT.chapters.models import Chapter
+
     # Test the enum get_value method — not_rec has special alias 'not' → 'not_rec'
     result = Chapter.SURCHARGE.get_value("none")
     assert result is not None
@@ -454,6 +483,7 @@ def test_surcharge_get_value():
 # ---------------------------------------------------------------------------
 # get_about_expired_council (no officers → no emails sent)
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.django_db
 def test_get_about_expired_council_no_officers(chapter):
@@ -469,7 +499,9 @@ def test_get_about_expired_council_with_current_officers(chapter, user_factory):
     vice = user_factory.create(chapter=chapter, make_officer="vice regent")
     treasurer = user_factory.create(chapter=chapter, make_officer="treasurer")
     scribe = user_factory.create(chapter=chapter, make_officer="scribe")
-    corsec = user_factory.create(chapter=chapter, make_officer="corresponding secretary")
+    corsec = user_factory.create(
+        chapter=chapter, make_officer="corresponding secretary"
+    )
     emails, officers_to_update = chapter.get_about_expired_coucil()
     assert isinstance(officers_to_update, list)
     assert isinstance(emails, list)
@@ -478,6 +510,7 @@ def test_get_about_expired_council_with_current_officers(chapter, user_factory):
 # ---------------------------------------------------------------------------
 # notes_filtered
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.django_db
 def test_notes_filtered_no_notes(chapter, user_factory):
@@ -507,7 +540,9 @@ def test_recognition_get_value_not_alias(chapter):
 def test_graduates_returns_members_with_alumni_status(chapter, user_factory):
     """graduates(today) returns users who became alumni this semester."""
     import datetime
+
     from core.models import semester_encompass_start_end_date
+
     today = datetime.date.today()
     semester_start, semester_end = semester_encompass_start_end_date(given_date=today)
     # Create a member with alumni status that started in the current semester
@@ -538,4 +573,3 @@ def test_get_email_specific_includes_current_officer_email(chapter, user_factory
     emails = chapter.get_email_specific(roles=["regent"])
     # Should include the officer's email
     assert regent.email in emails
-

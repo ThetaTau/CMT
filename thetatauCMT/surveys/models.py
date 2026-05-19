@@ -2,7 +2,8 @@ from django.conf import settings
 from django.db import models
 from django.utils.text import slugify
 from survey.models import Survey
-from core.models import TimeStampedModel, EnumClass
+
+from core.models import EnumClass, TimeStampedModel
 
 
 class DepledgeSurvey(TimeStampedModel):

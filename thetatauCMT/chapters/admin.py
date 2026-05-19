@@ -1,7 +1,9 @@
 from django.contrib import admin
+
 from core.signals import SignalWatchMixin
 from thetatauCMT.chapters.models import Chapter, ChapterCurricula
-from thetatauCMT.notes.admin import ChapterNoteInline, ChapterNote
+from thetatauCMT.notes.admin import ChapterNote, ChapterNoteInline
+
 from .views import DuesSyncMixin
 
 

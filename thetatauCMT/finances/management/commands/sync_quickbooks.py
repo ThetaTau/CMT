@@ -2,12 +2,13 @@ from django.core.management import BaseCommand
 from django.utils import timezone
 from quickbooks.objects.customer import Customer, EmailAddress
 from quickbooks.objects.invoice import Invoice as QBInvoice
-from viewflow.models import Task
 from viewflow.activation import STATUS
-from thetatauCMT.forms.flows import InitiationProcessFlow, PledgeProcessFlow
+from viewflow.models import Task
+
 from core.finances import get_quickbooks_client
 from thetatauCMT.chapters.models import Chapter
 from thetatauCMT.finances.models import Invoice
+from thetatauCMT.forms.flows import InitiationProcessFlow, PledgeProcessFlow
 from thetatauCMT.forms.notifications import CentralOfficeGenericEmail
 
 

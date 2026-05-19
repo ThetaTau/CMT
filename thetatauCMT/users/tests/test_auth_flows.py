@@ -11,12 +11,12 @@ Covers:
 - AccountAdapter.is_open_for_signup
 - SocialAccountAdapter.pre_social_login (four code-paths)
 """
-import pytest
+
 from unittest.mock import MagicMock
 
+import pytest
 from django.test import override_settings
 from django.urls import reverse
-
 
 # ---------------------------------------------------------------------------
 # Login
@@ -58,7 +58,10 @@ def test_login_post_invalid_credentials_shows_error(client):
     assert response.status_code == 200
     content = response.content.decode().lower()
     # allauth 65 renders: "The e-mail address and/or password you specified are not correct."
-    assert any(kw in content for kw in ["incorrect", "invalid", "email address", "are not correct"])
+    assert any(
+        kw in content
+        for kw in ["incorrect", "invalid", "email address", "are not correct"]
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -160,7 +163,9 @@ def test_pre_social_login_no_email_field_is_noop(rf):
     adapter = SocialAccountAdapter(request)
     sociallogin = MagicMock()
     sociallogin.is_existing = False
-    sociallogin.account.extra_data = {"name": "Alice"}  # neither 'email' nor 'emailAddress'
+    sociallogin.account.extra_data = {
+        "name": "Alice"
+    }  # neither 'email' nor 'emailAddress'
 
     adapter.pre_social_login(request, sociallogin)
 
@@ -213,6 +218,7 @@ def test_pre_social_login_unknown_email_is_noop(rf):
 def test_account_adapter_is_subclass_of_otp_adapter():
     """AccountAdapter inherits 2FA helpers from allauth_2fa's OTPAdapter base class."""
     from allauth_2fa.adapter import OTPAdapter
+
     from thetatauCMT.users.adapters import AccountAdapter
 
     assert issubclass(AccountAdapter, OTPAdapter)

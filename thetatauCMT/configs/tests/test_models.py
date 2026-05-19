@@ -1,4 +1,5 @@
 import pytest
+
 from thetatauCMT.configs.models import Config
 
 
@@ -8,6 +9,7 @@ def make_config():
         config = Config(key=key, value=value, description=description)
         config.save()
         return config
+
     return _make
 
 

@@ -1,40 +1,43 @@
-import io
 import csv
-import warnings
 import datetime
-from pathlib import Path
-from enum import Enum
+import io
+import warnings
 from datetime import timedelta
+from email.mime.base import MIMEBase
+from enum import Enum
+from pathlib import Path
+
+from address.models import AddressField
 from django.contrib import messages
-from django.utils.timezone import make_aware
+from django.core.validators import RegexValidator
 from django.db import models
 from django.db.models.functions import Concat
-from django.core.validators import RegexValidator
 from django.db.utils import ProgrammingError
-from address.models import AddressField
-from email.mime.base import MIMEBase
-from django.utils.translation import gettext_lazy as _
 from django.utils.text import slugify
-from quickbooks.objects.customer import Customer
-from quickbooks.objects.attachable import Attachable, AttachableRef
-from herald.models import SentNotification
-from core.finances import get_quickbooks_client, invoice_search, create_line
+from django.utils.timezone import make_aware
+from django.utils.translation import gettext_lazy as _
 from email_signals.models import EmailSignalMixin
+from herald.models import SentNotification
+from quickbooks.objects.attachable import Attachable, AttachableRef
+from quickbooks.objects.customer import Customer
+
+from core.finances import create_line, get_quickbooks_client, invoice_search
 from core.models import (
-    CHAPTER_OFFICER_REQUIRED,
-    TODAY_END,
-    annotate_role_status,
-    CHAPTER_OFFICER,
-    CHAPTER_ROLES,
-    semester_encompass_start_end_date,
+    ADVISOR_ROLES,
+    BIENNIUM_DATES,
     BIENNIUM_START,
     BIENNIUM_START_DATE,
-    BIENNIUM_DATES,
-    ADVISOR_ROLES,
+    CHAPTER_OFFICER,
+    CHAPTER_OFFICER_REQUIRED,
+    CHAPTER_ROLES,
+    TODAY_END,
     EnumClass,
+    annotate_role_status,
+    semester_encompass_start_end_date,
 )
-from thetatauCMT.regions.models import Region
 from thetatauCMT.configs.models import Config
+from thetatauCMT.regions.models import Region
+
 from .notifications import DuesReminder
 
 GREEK_ABR = {

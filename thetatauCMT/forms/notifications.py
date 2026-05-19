@@ -1,16 +1,17 @@
-from herald import registry
-from herald.base import EmailNotification
 from django.conf import settings
+from django.core.files.base import ContentFile
+from django.forms.models import model_to_dict
 from django.http import HttpRequest
 from django.urls import reverse
 from django.utils.safestring import mark_safe
-from django.core.files.base import ContentFile
-from django.forms.models import model_to_dict
+from herald import registry
+from herald.base import EmailNotification
+
 from core.models import current_term, current_year
-from thetatauCMT.forms.tables import SignTable, BadgeTable
-from thetatauCMT.forms.models import Badge
-from thetatauCMT.users.models import User
 from thetatauCMT.configs.models import Config
+from thetatauCMT.forms.models import Badge
+from thetatauCMT.forms.tables import BadgeTable, SignTable
+from thetatauCMT.users.models import User
 
 
 @registry.register_decorator()
@@ -36,10 +37,11 @@ class EmailRMPSigned(EmailNotification):  # extend from EmailNotification for em
 
     @staticmethod
     def get_demo_args():  # define a static method to return list of args needed to initialize class for testing
-        from thetatauCMT.users.models import User
-        from thetatauCMT.forms.views import RiskManagementDetailView
-        from thetatauCMT.forms.models import RiskManagement
         from django.http import HttpRequest
+
+        from thetatauCMT.forms.models import RiskManagement
+        from thetatauCMT.forms.views import RiskManagementDetailView
+        from thetatauCMT.users.models import User
 
         form = RiskManagement.objects.order_by("?")[0]
         view = RiskManagementDetailView.as_view()
@@ -245,9 +247,10 @@ class EmailPledgeConfirmation(
 
     @staticmethod
     def get_demo_args():  # define a static method to return list of args needed to initialize class for testing
+        from django.http import HttpRequest
+
         from thetatauCMT.forms.models import Pledge
         from thetatauCMT.forms.views import BillOfRightsPDFView
-        from django.http import HttpRequest
 
         test_pledge_form = Pledge.objects.order_by("?")[0]
         new_request = HttpRequest()

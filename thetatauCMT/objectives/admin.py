@@ -1,5 +1,6 @@
 from django.contrib import admin
-from .models import Objective, Action
+
+from .models import Action, Objective
 
 
 class ActionInline(admin.TabularInline):

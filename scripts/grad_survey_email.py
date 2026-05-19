@@ -1,9 +1,11 @@
 import base64
 from datetime import datetime
+
 from django.conf import settings
 from django.urls import reverse
-from thetatauCMT.forms.models import StatusChange
+
 from thetatauCMT.configs.models import Config
+from thetatauCMT.forms.models import StatusChange
 from thetatauCMT.surveys.notifications import SurveyEmail
 
 

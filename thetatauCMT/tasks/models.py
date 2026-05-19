@@ -1,15 +1,17 @@
 import datetime
 from datetime import timedelta
+
+from django.contrib.contenttypes.fields import GenericForeignKey
+from django.contrib.contenttypes.models import ContentType
 from django.db import models
 from django.db.models import Q
 from django.shortcuts import reverse
 from django.utils import timezone
 from django.utils.html import mark_safe
-from django.contrib.contenttypes.fields import GenericForeignKey
-from django_userforeignkey.models.fields import UserForeignKey
-from django.contrib.contenttypes.models import ContentType
 from django.utils.text import slugify
+from django_userforeignkey.models.fields import UserForeignKey
 from email_signals.models import EmailSignalMixin
+
 from core.models import ALL_ROLES_CHOICES, TODAY_END, academic_encompass_start_end_date
 from thetatauCMT.chapters.models import Chapter
 from thetatauCMT.scores.models import ScoreType

@@ -8,7 +8,6 @@ HTTP requests.
 import pytest
 from django import forms
 
-
 # ─── DepledgeForm ─────────────────────────────────────────────────────────────
 
 
@@ -303,7 +302,9 @@ def test_audit_form_clean_all_reviewed_present_passes():
 def test_disciplinary_form1_clean_advisor_true_no_name_raises():
     """DisciplinaryForm1.clean raises ValidationError when advisor=True but no name."""
     from unittest.mock import patch
+
     from django import forms as dj_forms
+
     from thetatauCMT.forms.forms import DisciplinaryForm1
 
     mock_data = {
@@ -323,7 +324,9 @@ def test_disciplinary_form1_clean_advisor_true_no_name_raises():
 def test_disciplinary_form1_clean_faculty_true_no_name_raises():
     """DisciplinaryForm1.clean raises ValidationError when faculty=True but no name."""
     from unittest.mock import patch
+
     from django import forms as dj_forms
+
     from thetatauCMT.forms.forms import DisciplinaryForm1
 
     mock_data = {
@@ -343,6 +346,7 @@ def test_disciplinary_form1_clean_faculty_true_no_name_raises():
 def test_disciplinary_form1_clean_both_names_provided_returns_data():
     """DisciplinaryForm1.clean returns cleaned_data when names are provided."""
     from unittest.mock import patch
+
     from thetatauCMT.forms.forms import DisciplinaryForm1
 
     mock_data = {
@@ -366,7 +370,9 @@ def test_disciplinary_form1_clean_both_names_provided_returns_data():
 def test_premature_alumnus_form_clean_semesters_false_raises():
     """PrematureAlumnusForm.clean raises when semesters is 'False'."""
     from unittest.mock import patch
+
     from django import forms as dj_forms
+
     from thetatauCMT.forms.forms import PrematureAlumnusForm
     from thetatauCMT.users.tests.factories import UserFactory
 
@@ -385,11 +391,13 @@ def test_premature_alumnus_form_clean_recent_initiation_raises():
     """PrematureAlumnusForm.clean raises when initiation date is less than 6 months ago."""
     import datetime
     from unittest.mock import patch
+
     from django import forms as dj_forms
     from django.utils import timezone
+
     from thetatauCMT.forms.forms import PrematureAlumnusForm
-    from thetatauCMT.users.tests.factories import UserFactory
     from thetatauCMT.forms.tests.factories import InitiationFactory
+    from thetatauCMT.users.tests.factories import UserFactory
 
     user = UserFactory.create()
     # Create a real Initiation record with a RECENT date (less than 6 months ago)
@@ -410,10 +418,12 @@ def test_premature_alumnus_form_clean_old_enough_initiation_passes():
     """PrematureAlumnusForm.clean passes when semesters=True and initiation is >6 months ago."""
     import datetime
     from unittest.mock import patch
+
     from django.utils import timezone
+
     from thetatauCMT.forms.forms import PrematureAlumnusForm
-    from thetatauCMT.users.tests.factories import UserFactory
     from thetatauCMT.forms.tests.factories import InitiationFactory
+    from thetatauCMT.users.tests.factories import UserFactory
 
     user = UserFactory.create()
     # Create a real Initiation record older than 6 months
@@ -437,9 +447,11 @@ def test_csmt_form_clean_date_end_before_start_is_invalid():
     """CSMTForm.clean raises ValidationError when date_end is before date_start."""
     import datetime
     from unittest.mock import patch
+
     from django import forms as dj_forms
-    from thetatauCMT.forms.forms import CSMTForm
     from django.forms.utils import ErrorDict
+
+    from thetatauCMT.forms.forms import CSMTForm
 
     mock_data = {
         "date_start": datetime.date(2023, 6, 1),
@@ -458,6 +470,7 @@ def test_csmt_form_clean_date_end_before_start_is_invalid():
         }
         # renderer is needed by add_error → ErrorList
         from django.forms.renderers import get_default_renderer
+
         f.renderer = get_default_renderer()
         with pytest.raises(dj_forms.ValidationError, match="End date must be greater"):
             f.clean()
@@ -468,9 +481,11 @@ def test_csmt_form_clean_date_end_after_start_passes():
     """CSMTForm.clean passes when date_end >= date_start."""
     import datetime
     from unittest.mock import patch
-    from thetatauCMT.forms.forms import CSMTForm
-    from django.forms.utils import ErrorDict
+
     from django import forms as dj_forms
+    from django.forms.utils import ErrorDict
+
+    from thetatauCMT.forms.forms import CSMTForm
 
     mock_data = {
         "date_start": datetime.date(2023, 1, 1),
@@ -496,9 +511,10 @@ def test_csmt_form_clean_date_end_after_start_passes():
 @pytest.mark.django_db
 def test_disciplinary_form2_clean_no_take_and_no_why_take_raises():
     """DisciplinaryForm2.clean raises ValidationError when take=False AND why_take empty."""
-    from thetatauCMT.forms.forms import DisciplinaryForm2
-    from django.forms.utils import ErrorDict
     from django.forms.renderers import get_default_renderer
+    from django.forms.utils import ErrorDict
+
+    from thetatauCMT.forms.forms import DisciplinaryForm2
 
     f = DisciplinaryForm2.__new__(DisciplinaryForm2)
     f._errors = ErrorDict()
@@ -510,16 +526,19 @@ def test_disciplinary_form2_clean_no_take_and_no_why_take_raises():
         "minutes": None,
         "results_letter": None,
     }
-    with pytest.raises(forms.ValidationError, match="A reason for not taking place is required"):
+    with pytest.raises(
+        forms.ValidationError, match="A reason for not taking place is required"
+    ):
         f.clean()
 
 
 @pytest.mark.django_db
 def test_disciplinary_form2_clean_take_true_no_minutes_raises():
     """DisciplinaryForm2.clean raises ValidationError when take=True but minutes missing."""
-    from thetatauCMT.forms.forms import DisciplinaryForm2
-    from django.forms.utils import ErrorDict
     from django.forms.renderers import get_default_renderer
+    from django.forms.utils import ErrorDict
+
+    from thetatauCMT.forms.forms import DisciplinaryForm2
 
     f = DisciplinaryForm2.__new__(DisciplinaryForm2)
     f._errors = ErrorDict()
@@ -531,17 +550,21 @@ def test_disciplinary_form2_clean_take_true_no_minutes_raises():
         "minutes": None,
         "results_letter": None,
     }
-    with pytest.raises(forms.ValidationError, match="Both minutes and results letter are required"):
+    with pytest.raises(
+        forms.ValidationError, match="Both minutes and results letter are required"
+    ):
         f.clean()
 
 
 @pytest.mark.django_db
 def test_disciplinary_form2_clean_take_true_all_files_passes():
     """DisciplinaryForm2.clean passes when take=True and both files provided."""
-    from unittest.mock import patch, MagicMock
-    from thetatauCMT.forms.forms import DisciplinaryForm2
-    from django.forms.utils import ErrorDict
+    from unittest.mock import MagicMock, patch
+
     from django.forms.renderers import get_default_renderer
+    from django.forms.utils import ErrorDict
+
+    from thetatauCMT.forms.forms import DisciplinaryForm2
 
     f = DisciplinaryForm2.__new__(DisciplinaryForm2)
     f._errors = ErrorDict()
@@ -566,9 +589,11 @@ def test_disciplinary_form2_clean_take_true_all_files_passes():
 def test_return_student_form_clean_user_with_prealumn_raises():
     """clean_user raises ValidationError when user has a prealumn form."""
     from unittest.mock import MagicMock, PropertyMock
-    from thetatauCMT.forms.forms import ReturnStudentForm
-    from django.forms.utils import ErrorDict
+
     from django.forms.renderers import get_default_renderer
+    from django.forms.utils import ErrorDict
+
+    from thetatauCMT.forms.forms import ReturnStudentForm
 
     mock_user = MagicMock()
     prealumn_qs = MagicMock()
@@ -589,9 +614,11 @@ def test_return_student_form_clean_user_with_prealumn_raises():
 def test_return_student_form_clean_user_without_prealumn_returns_user():
     """clean_user returns user when no prealumn form exists."""
     from unittest.mock import MagicMock
-    from thetatauCMT.forms.forms import ReturnStudentForm
-    from django.forms.utils import ErrorDict
+
     from django.forms.renderers import get_default_renderer
+    from django.forms.utils import ErrorDict
+
+    from thetatauCMT.forms.forms import ReturnStudentForm
 
     mock_user = MagicMock()
     prealumn_qs = MagicMock()
@@ -616,9 +643,11 @@ def test_alumni_exclusion_form_clean_date_range_too_long_adds_error():
     """AlumniExclusionForm.clean adds error when date range exceeds 4 months."""
     import datetime
     from unittest.mock import patch
-    from thetatauCMT.forms.forms import AlumniExclusionForm
-    from django.forms.utils import ErrorDict
+
     from django.forms.renderers import get_default_renderer
+    from django.forms.utils import ErrorDict
+
+    from thetatauCMT.forms.forms import AlumniExclusionForm
 
     start = datetime.date(2025, 1, 1)
     end = datetime.date(2025, 6, 1)  # 151 days – exceeds 120
@@ -642,9 +671,11 @@ def test_alumni_exclusion_form_clean_date_range_valid_passes():
     """AlumniExclusionForm.clean passes when date range is within 4 months."""
     import datetime
     from unittest.mock import patch
-    from thetatauCMT.forms.forms import AlumniExclusionForm
-    from django.forms.utils import ErrorDict
+
     from django.forms.renderers import get_default_renderer
+    from django.forms.utils import ErrorDict
+
+    from thetatauCMT.forms.forms import AlumniExclusionForm
 
     start = datetime.date(2025, 1, 1)
     end = datetime.date(2025, 3, 1)  # 59 days – within 120
@@ -668,9 +699,11 @@ def test_alumni_exclusion_form_clean_date_range_valid_passes():
 def test_alumni_exclusion_review_form_clean_veto_without_reason_adds_error():
     """AlumniExclusionReviewForm.clean adds error when veto selected but no reason."""
     from unittest.mock import patch
-    from thetatauCMT.forms.forms import AlumniExclusionReviewForm
-    from django.forms.utils import ErrorDict
+
     from django.forms.renderers import get_default_renderer
+    from django.forms.utils import ErrorDict
+
+    from thetatauCMT.forms.forms import AlumniExclusionReviewForm
 
     f = AlumniExclusionReviewForm.__new__(AlumniExclusionReviewForm)
     f._errors = ErrorDict()
@@ -689,9 +722,11 @@ def test_alumni_exclusion_review_form_clean_veto_without_reason_adds_error():
 def test_alumni_exclusion_review_form_clean_approve_no_reason_needed():
     """AlumniExclusionReviewForm.clean passes when approving (True) without reason."""
     from unittest.mock import patch
-    from thetatauCMT.forms.forms import AlumniExclusionReviewForm
-    from django.forms.utils import ErrorDict
+
     from django.forms.renderers import get_default_renderer
+    from django.forms.utils import ErrorDict
+
+    from thetatauCMT.forms.forms import AlumniExclusionReviewForm
 
     f = AlumniExclusionReviewForm.__new__(AlumniExclusionReviewForm)
     f._errors = ErrorDict()
@@ -709,9 +744,11 @@ def test_alumni_exclusion_review_form_clean_approve_no_reason_needed():
 def test_alumni_exclusion_review_form_clean_veto_with_reason_passes():
     """AlumniExclusionReviewForm.clean passes when veto includes a reason."""
     from unittest.mock import patch
-    from thetatauCMT.forms.forms import AlumniExclusionReviewForm
-    from django.forms.utils import ErrorDict
+
     from django.forms.renderers import get_default_renderer
+    from django.forms.utils import ErrorDict
+
+    from thetatauCMT.forms.forms import AlumniExclusionReviewForm
 
     f = AlumniExclusionReviewForm.__new__(AlumniExclusionReviewForm)
     f._errors = ErrorDict()

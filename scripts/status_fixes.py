@@ -1,7 +1,8 @@
 from datetime import datetime, timedelta
-from django.db.models import Q, F
-from thetatauCMT.users.models import User
-from thetatauCMT.users.models import UserStatusChange
+
+from django.db.models import F, Q
+
+from thetatauCMT.users.models import User, UserStatusChange
 
 
 def run(*args):

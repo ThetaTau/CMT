@@ -3,6 +3,7 @@
 Canary: if viewflow 1.11.0 is broken under Django 4.2, the imports below
 surface it immediately — before any Phase 3.2 verification work begins.
 """
+
 import pytest
 
 
@@ -22,9 +23,9 @@ def test_core_flows_module_imports():
 def test_viewflow_base_classes_importable():
     """Core viewflow 1.x public API remains importable under Django 4.2."""
     from viewflow import flow
+    from viewflow.activation import STATUS
     from viewflow.base import Flow
     from viewflow.models import Process, Task
-    from viewflow.activation import STATUS
 
     # STATUS values used throughout core/flows.py
     assert STATUS.NEW
@@ -35,8 +36,8 @@ def test_viewflow_base_classes_importable():
 def test_viewflow_frontend_importable():
     """viewflow.frontend imports cleanly (used by FilterableFlowViewSet)."""
     from viewflow import frontend
-    from viewflow.frontend.viewset import FlowViewSet
     from viewflow.frontend.views import ProcessListView
+    from viewflow.frontend.viewset import FlowViewSet
 
     assert FlowViewSet is not None
     assert ProcessListView is not None

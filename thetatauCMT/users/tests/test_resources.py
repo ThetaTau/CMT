@@ -1,7 +1,9 @@
 """Tests for users/resources.py."""
+
+from unittest.mock import MagicMock
+
 import pytest
 from django.core.exceptions import ValidationError
-from unittest.mock import MagicMock
 
 from thetatauCMT.users.tests.factories import UserFactory
 
@@ -61,8 +63,8 @@ def test_user_resource_get_instance_by_email():
 @pytest.mark.django_db
 def test_user_resource_get_instance_not_found():
     """get_instance returns None when user is not found."""
-    from thetatauCMT.users.resources import UserResource
     from thetatauCMT.users.models import User
+    from thetatauCMT.users.resources import UserResource
 
     resource = UserResource()
     mock_loader = MagicMock()
@@ -76,8 +78,8 @@ def test_user_resource_get_instance_not_found():
 @pytest.mark.django_db
 def test_user_resource_get_instance_multiple_found_raises():
     """get_instance raises ValidationError when multiple users match."""
-    from thetatauCMT.users.resources import UserResource
     from thetatauCMT.users.models import User
+    from thetatauCMT.users.resources import UserResource
 
     user1 = UserFactory.create()
     user2 = UserFactory.create()

@@ -1,8 +1,10 @@
 import datetime
+
 import pytest
-from django.urls import reverse
 from django.contrib.auth.models import Group
-from thetatauCMT.tasks.models import Task, TaskDate, TaskChapter
+from django.urls import reverse
+
+from thetatauCMT.tasks.models import Task, TaskChapter, TaskDate
 
 
 def _make_officer(user, client):

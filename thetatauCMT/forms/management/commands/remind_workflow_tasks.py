@@ -1,13 +1,15 @@
 import datetime
+
 from django.conf import settings
-from django.urls import reverse
 from django.core.management import BaseCommand
-from viewflow.models import Task
+from django.urls import reverse
 from viewflow.activation import STATUS
+from viewflow.models import Task
+
 from core.flows import cancel_process
 from thetatauCMT.forms.forms import DisciplinaryForm1
+from thetatauCMT.forms.notifications import CentralOfficeGenericEmail, EmailProcessUpdate
 from thetatauCMT.users.models import User
-from thetatauCMT.forms.notifications import EmailProcessUpdate, CentralOfficeGenericEmail
 
 
 class Command(BaseCommand):

@@ -182,6 +182,7 @@ def test_chapter_detail_view_with_audit_data(auto_login_user):
     """When Audit objects exist for the chapter the audit loop in
     get_context_data runs (lines 139-147 of views.py)."""
     from django.utils import timezone
+
     from thetatauCMT.forms.models import Audit
 
     client, user = auto_login_user()
@@ -219,7 +220,9 @@ def test_chapter_detail_view_audit_with_officer_role(auto_login_user):
     """When the audited user has an officer role the audit_data branch runs
     (covers lines 142-147 of views.py including line 156)."""
     import datetime
+
     from django.utils import timezone
+
     from thetatauCMT.forms.models import Audit
     from thetatauCMT.users.models import UserRoleChange
 
@@ -272,4 +275,3 @@ def test_chapter_detail_view_with_national_officer_role(auto_login_user):
     url = reverse("chapters:detail", kwargs={"slug": chapter.slug})
     response = client.get(url)
     assert response.status_code == 200
-

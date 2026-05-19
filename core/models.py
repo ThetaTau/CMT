@@ -1,12 +1,12 @@
-import re
 import datetime
-from datetime import timedelta, time
+import re
+from datetime import time, timedelta
 from enum import Enum
-from django.db import IntegrityError, transaction
-from django.contrib.postgres.aggregates import StringAgg, ArrayAgg
+
+from django.contrib.postgres.aggregates import ArrayAgg, StringAgg
 from django.core.exceptions import ValidationError
-from django.core.validators import MinValueValidator, MaxValueValidator
-from django.db import models
+from django.core.validators import MaxValueValidator, MinValueValidator
+from django.db import IntegrityError, models, transaction
 from django.utils import timezone
 
 TODAY = datetime.datetime.now().date()

@@ -1,4 +1,5 @@
 from django.urls import path
+
 from core.email import sync_email_provider
 
 from . import views

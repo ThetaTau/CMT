@@ -2,66 +2,69 @@ import csv
 import datetime
 import zipfile
 from io import BytesIO, StringIO
+
+import viewflow
+from allauth.account.views import LoginView
+from crispy_forms.layout import Submit
+from dal import autocomplete
 from django import forms
+from django.contrib import messages
 from django.contrib.auth.forms import PasswordResetForm
 from django.contrib.auth.tokens import default_token_generator
 from django.contrib.sites.shortcuts import get_current_site
+from django.forms.models import modelformset_factory
+from django.http import HttpResponse
 from django.http.request import QueryDict
 from django.http.response import HttpResponseRedirect
-from django.http import HttpResponse
+from django.shortcuts import redirect, render
 from django.urls import reverse
-from django.forms.models import modelformset_factory
-from django.shortcuts import render, redirect
-from django.utils.http import url_has_allowed_host_and_scheme, urlsafe_base64_encode
 from django.utils.encoding import force_bytes
-from django.contrib import messages
-from django.views.generic import RedirectView, FormView, DetailView, UpdateView
-from crispy_forms.layout import Submit
-from allauth.account.views import LoginView
+from django.utils.http import url_has_allowed_host_and_scheme, urlsafe_base64_encode
+from django.views.generic import DetailView, FormView, RedirectView, UpdateView
 from extra_views import FormSetView, ModelFormSetView
-import viewflow
 from watson import search as watson
+
 from core.address import isinradius
-from core.views import (
-    PagedFilteredTableView,
-    RequestConfig,
-    NatOfficerRequiredMixin,
-    OfficerRequiredMixin,
-    LoginRequiredMixin,
-    group_required,
-)
 from core.forms import MultiFormsView
 from core.models import BIENNIUM_YEARS, annotate_rmp_status
-from dal import autocomplete
-from .models import (
-    User,
-    UserAlter,
-    UserSemesterGPA,
-    UserSemesterServiceHours,
-    UserOrgParticipate,
-    UserDemographic,
-    MemberUpdate,
+from core.views import (
+    LoginRequiredMixin,
+    NatOfficerRequiredMixin,
+    OfficerRequiredMixin,
+    PagedFilteredTableView,
+    RequestConfig,
+    group_required,
 )
-from .tables import UserTable
+from thetatauCMT.chapters.models import Chapter
+from thetatauCMT.forms.forms import PledgeDemographicsForm
+from thetatauCMT.notes.tables import UserNoteTable
+from thetatauCMT.submissions.tables import SubmissionTable
+
 from .filters import UserListFilter, UserListFilterBase
 from .forms import (
     CaptchaLoginForm,
+    UserAlterForm,
+    UserForm,
+    UserGPAForm,
     UserListFormHelper,
     UserLookupForm,
-    UserAlterForm,
-    UserGPAForm,
-    UserForm,
-    UserServiceForm,
-    UserOrgForm,
     UserLookupSearchForm,
     UserLookupSelectForm,
+    UserOrgForm,
+    UserServiceForm,
     UserUpdateForm,
 )
+from .models import (
+    MemberUpdate,
+    User,
+    UserAlter,
+    UserDemographic,
+    UserOrgParticipate,
+    UserSemesterGPA,
+    UserSemesterServiceHours,
+)
 from .notifications import MemberInfoUpdate
-from thetatauCMT.forms.forms import PledgeDemographicsForm
-from thetatauCMT.chapters.models import Chapter
-from thetatauCMT.submissions.tables import SubmissionTable
-from thetatauCMT.notes.tables import UserNoteTable
+from .tables import UserTable
 
 
 class UserRedirectView(LoginRequiredMixin, RedirectView):

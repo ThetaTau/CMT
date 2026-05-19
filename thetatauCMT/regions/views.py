@@ -1,28 +1,31 @@
-import jwt
 import csv
-import time
 import datetime
+import time
 from collections import defaultdict
-from django.conf import settings
-from django.http import HttpResponse
-from django.contrib import messages
-from django.urls import reverse
-from django.http.request import QueryDict
-from django.db import models
-from django.views.generic import DetailView, ListView, RedirectView
+
 import django_tables2 as tables
+import jwt
+from django.conf import settings
+from django.contrib import messages
+from django.db import models
+from django.http import HttpResponse
+from django.http.request import QueryDict
+from django.urls import reverse
+from django.views.generic import DetailView, ListView, RedirectView
 from django_tables2.utils import A
-from core.views import NatOfficerRequiredMixin, RequestConfig, LoginRequiredMixin
-from .models import Region
-from thetatauCMT.tasks.models import TaskDate
+
+from core.views import LoginRequiredMixin, NatOfficerRequiredMixin, RequestConfig
 from thetatauCMT.chapters.models import Chapter
-from .tables import RegionChapterTaskTable, TaskLinkColumn
+from thetatauCMT.tasks.models import TaskDate
+from thetatauCMT.users.filters import AdvisorListFilter, UserRoleListFilter
+from thetatauCMT.users.forms import AdvisorListFormHelper, UserRoleListFormHelper
+from thetatauCMT.users.models import User
+from thetatauCMT.users.tables import UserTable
+
 from .filters import RegionChapterTaskFilter
 from .forms import RegionChapterTaskFormHelper
-from thetatauCMT.users.tables import UserTable
-from thetatauCMT.users.models import User
-from thetatauCMT.users.filters import UserRoleListFilter, AdvisorListFilter
-from thetatauCMT.users.forms import UserRoleListFormHelper, AdvisorListFormHelper
+from .models import Region
+from .tables import RegionChapterTaskTable, TaskLinkColumn
 
 
 class RegionOfficerView(LoginRequiredMixin, NatOfficerRequiredMixin, DetailView):

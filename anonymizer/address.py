@@ -1,8 +1,7 @@
-from dj_anonymizer.register_models import AnonymBase, register_anonym, register_skip
+from address.models import Address, Country, Locality, State
 from dj_anonymizer import fields
+from dj_anonymizer.register_models import AnonymBase, register_anonym, register_skip
 from faker import Factory
-
-from address.models import Locality, State, Country, Address
 
 fake = Factory.create()
 register_skip([Locality, State, Country])

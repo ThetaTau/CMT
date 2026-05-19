@@ -1,4 +1,5 @@
 from django.core.management import BaseCommand
+
 from thetatauCMT.trainings.models import Training
 
 

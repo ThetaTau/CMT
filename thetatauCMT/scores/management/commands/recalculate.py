@@ -1,9 +1,10 @@
 import datetime
+
 from django.core.management import BaseCommand
 
+from core.models import BIENNIUM_START
 from thetatauCMT.chapters.models import Chapter
 from thetatauCMT.scores.models import ScoreType
-from core.models import BIENNIUM_START
 
 
 class Command(BaseCommand):

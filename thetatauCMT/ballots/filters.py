@@ -1,8 +1,10 @@
 # filters.py
 import django_filters
+
 from core.filters import DateRangeFilter
-from .models import Ballot, BallotComplete
 from thetatauCMT.regions.models import Region
+
+from .models import Ballot, BallotComplete
 
 
 class BallotFilter(django_filters.FilterSet):

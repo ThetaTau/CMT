@@ -14,10 +14,10 @@ from django.views import defaults as default_views
 from django.views.generic import RedirectView, TemplateView
 from material.frontend.urls import modules
 from oauth2_provider import urls as oauth2_urls
-from thetatauCMT.users.views import UserLookupLoginView
 
 from core.address import ZipCodeAutocomplete
 from core.views import HomeView
+from thetatauCMT.users.views import UserLookupLoginView
 
 
 def home_redirect(request):
@@ -115,7 +115,9 @@ urlpatterns = [
     path("trainings/", include("thetatauCMT.trainings.urls", namespace="trainings")),
     path("finances/", include("thetatauCMT.finances.urls", namespace="finances")),
     path("scores/", include("thetatauCMT.scores.urls", namespace="scores")),
-    path("submissions/", include("thetatauCMT.submissions.urls", namespace="submissions")),
+    path(
+        "submissions/", include("thetatauCMT.submissions.urls", namespace="submissions")
+    ),
     path("surveys/", include("thetatauCMT.surveys.urls", namespace="surveys")),
     path("forms/", include("thetatauCMT.forms.urls", namespace="forms")),
     path("tasks/", include("thetatauCMT.tasks.urls", namespace="tasks")),

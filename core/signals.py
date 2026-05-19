@@ -1,6 +1,6 @@
 from django.contrib.contenttypes.models import ContentType
-from django.shortcuts import render
 from django.http import HttpResponseRedirect
+from django.shortcuts import render
 from email_signals.models import Signal, SignalConstraint
 
 CHAPTER_WATCHES = [

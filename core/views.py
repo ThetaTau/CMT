@@ -1,33 +1,26 @@
 from urllib.parse import urlparse, urlunparse
-from django.contrib.auth.decorators import user_passes_test
-from django.contrib import admin
+
+from braces.views import GroupRequiredMixin, LoginRequiredMixin
 from django.conf import settings
-from django.contrib.auth.decorators import login_required
-from django.shortcuts import resolve_url
-from django.http.request import QueryDict
-from django.urls import reverse
-from django_tables2 import SingleTableView
-from django_tables2.config import RequestConfig  # Imported by others
-from django.views.generic.edit import FormMixin
-from django.views.generic import TemplateView
-from django.utils import timezone
+from django.contrib import admin, messages
+from django.contrib.auth.decorators import login_required, user_passes_test
 from django.db import transaction
 from django.db.utils import IntegrityError
-from django.contrib import messages
+from django.http.request import QueryDict
+from django.shortcuts import resolve_url
+from django.urls import reverse
+from django.utils import timezone
+from django.views.generic import TemplateView
+from django.views.generic.edit import FormMixin
+from django_tables2 import SingleTableView
+from django_tables2.config import RequestConfig  # Imported by others
+from viewflow.frontend.views import AllTaskListView, DataTableMixin, FlowListMixin, TemplateResponseMixin, generic
+
+from thetatauCMT.announcements.models import Announcement
 from thetatauCMT.scores.models import ScoreType
 from thetatauCMT.tasks.models import TaskChapter, TaskDate
 from thetatauCMT.tasks.tables import TaskTable
-from thetatauCMT.announcements.models import Announcement
-from braces.views import GroupRequiredMixin, LoginRequiredMixin
-from viewflow.frontend.views import (
-    AllTaskListView,
-    FlowListMixin,
-    TemplateResponseMixin,
-    DataTableMixin,
-    generic,
-)
 from thetatauCMT.users.models import User
-
 
 # https://django-allauth.readthedocs.io/en/latest/advanced.html#admin
 admin.site.login = login_required(admin.site.login)

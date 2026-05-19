@@ -1,45 +1,46 @@
+from django.conf import settings
 from django.contrib import admin
 from django.urls import reverse
-from django.conf import settings
 from django.utils.safestring import mark_safe
 from import_export.admin import ImportExportActionModelAdmin
-from .models import (
-    Badge,
-    Bylaws,
-    Guard,
-    Initiation,
-    Depledge,
-    StatusChange,
-    RiskManagement,
-    PledgeProgram,
-    Audit,
-    Pledge,
-    ChapterReport,
-    HSEducation,
-    Convention,
-    OSM,
-    DisciplinaryProcess,
-    DisciplinaryAttachment,
-    InitiationProcess,
-    PledgeProcess,
-    PrematureAlumnus,
-    CollectionReferral,
-    ResignationProcess,
-    ReturnStudent,
-    PledgeProgramProcess,
-)
-from .resources import (
-    InitiationResource,
-    DepledgeResource,
-    PledgeResource,
-    StatusChangeResource,
-    PledgeProgramResource,
-    PrematureAlumnusResource,
-    CollectionReferralResource,
-    ReturnStudentResource,
-)
+
 from core.admin import user_chapter
 
+from .models import (
+    OSM,
+    Audit,
+    Badge,
+    Bylaws,
+    ChapterReport,
+    CollectionReferral,
+    Convention,
+    Depledge,
+    DisciplinaryAttachment,
+    DisciplinaryProcess,
+    Guard,
+    HSEducation,
+    Initiation,
+    InitiationProcess,
+    Pledge,
+    PledgeProcess,
+    PledgeProgram,
+    PledgeProgramProcess,
+    PrematureAlumnus,
+    ResignationProcess,
+    ReturnStudent,
+    RiskManagement,
+    StatusChange,
+)
+from .resources import (
+    CollectionReferralResource,
+    DepledgeResource,
+    InitiationResource,
+    PledgeProgramResource,
+    PledgeResource,
+    PrematureAlumnusResource,
+    ReturnStudentResource,
+    StatusChangeResource,
+)
 
 admin.site.register(Badge)
 admin.site.register(Guard)

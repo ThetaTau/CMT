@@ -1,71 +1,69 @@
-import os
 import base64
 import datetime
+import os
 from io import BytesIO
+
 from django.conf import settings
 from django.core.files.base import ContentFile
 from django.http import HttpResponseRedirect
 from django.urls import reverse
 from django.utils.decorators import method_decorator
+from easy_pdf.rendering import UnsupportedMediaPathException, render_to_pdf
 from pydrive2.drive import GoogleDrive
 from viewflow import flow
-from viewflow.base import this, Flow
+from viewflow.base import Flow, this
 from viewflow.compat import _
 from viewflow.flow import views as flow_views
-from viewflow.templatetags.viewflow import register
 from viewflow.templatetags.viewflow import flowurl as old_flowurl
-from easy_pdf.rendering import render_to_pdf, UnsupportedMediaPathException
-from core.flows import (
-    AutoAssignUpdateProcessView,
-    NoAssignView,
-    FilterableFlowViewSet,
-    register_factory,
-)
+from viewflow.templatetags.viewflow import register
+
+from core.flows import AutoAssignUpdateProcessView, FilterableFlowViewSet, NoAssignView, register_factory
 from core.utils import login_with_service_account
+from thetatauCMT.configs.models import Config
+from thetatauCMT.surveys.notifications import SurveyEmail
 from thetatauCMT.trainings.models import Training
+from thetatauCMT.users.models import User
+
+from .forms import DisciplinaryForm1, DisciplinaryForm2, UserSelectForm
 from .models import (
-    AlumniExclusion,
-    PrematureAlumnus,
-    InitiationProcess,
-    Convention,
-    PledgeProcess,
     OSM,
+    AlumniExclusion,
+    Convention,
     DisciplinaryProcess,
+    HSEducation,
+    InitiationProcess,
+    PledgeProcess,
+    PledgeProgramProcess,
+    PrematureAlumnus,
     ResignationProcess,
     ReturnStudent,
-    PledgeProgramProcess,
-    HSEducation,
+)
+from .notifications import (
+    CentralOfficeGenericEmail,
+    EmailAlumniExclusionUpdate,
+    EmailConventionUpdate,
+    EmailOSMUpdate,
+    EmailProcessUpdate,
+    EmailScribeExpulsion,
 )
 from .views import (
     AlumniExclusionCreateView,
-    PrematureAlumnusCreateView,
+    AlumniExclusionReview,
     ConventionCreateView,
-    HSEducationCreateView,
     ConventionSignView,
-    FilterableInvoiceFlowViewSet,
-    OSMCreateView,
-    OSMVerifyView,
     DisciplinaryCreateView,
     DisciplinaryForm2View,
-    get_signature,
+    FilterableInvoiceFlowViewSet,
+    HSEducationCreateView,
+    OSMCreateView,
+    OSMVerifyView,
+    PledgeProgramProcessCreateView,
+    PrematureAlumnusCreateView,
     ResignationCreateView,
     ResignationSignView,
     ReturnStudentCreateView,
-    PledgeProgramProcessCreateView,
-    AlumniExclusionReview,
+    get_signature,
 )
-from .forms import DisciplinaryForm1, DisciplinaryForm2, UserSelectForm
-from .notifications import (
-    EmailProcessUpdate,
-    EmailConventionUpdate,
-    EmailOSMUpdate,
-    CentralOfficeGenericEmail,
-    EmailScribeExpulsion,
-    EmailAlumniExclusionUpdate,
-)
-from thetatauCMT.users.models import User
-from thetatauCMT.configs.models import Config
-from thetatauCMT.surveys.notifications import SurveyEmail
 
 
 def link_callback(uri, rel):

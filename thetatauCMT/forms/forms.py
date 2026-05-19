@@ -1,25 +1,8 @@
 from address.forms import AddressWidget
 from betterforms.multiform import MultiModelForm
-from thetatauCMT.chapters.forms import ChapterForm
-from thetatauCMT.chapters.models import Chapter, ChapterCurricula
-from crispy_forms.bootstrap import (
-    Accordion,
-    AccordionGroup,
-    Field,
-    FormActions,
-    InlineField,
-    StrictButton,
-)
+from crispy_forms.bootstrap import Accordion, AccordionGroup, Field, FormActions, InlineField, StrictButton
 from crispy_forms.helper import FormHelper
-from crispy_forms.layout import (
-    HTML,
-    ButtonHolder,
-    Column,
-    Fieldset,
-    Layout,
-    Row,
-    Submit,
-)
+from crispy_forms.layout import HTML, ButtonHolder, Column, Fieldset, Layout, Row, Submit
 from dal import autocomplete, forward
 from django import forms
 from django.conf import settings
@@ -30,11 +13,13 @@ from djmoney.forms.fields import MoneyField
 from hcaptcha.fields import hCaptchaField
 from tempus_dominus.widgets import DatePicker
 from upload_validator import FileTypeValidator
-from thetatauCMT.users.models import User, UserDemographic, UserRoleChange
 
 from core.address import fix_address
-from core.forms import DuplicateAddressField, SchoolModelChoiceField, DatePicker
+from core.forms import DatePicker, DuplicateAddressField, SchoolModelChoiceField
 from core.models import CHAPTER_ROLES_CHOICES, NAT_OFFICERS_CHOICES
+from thetatauCMT.chapters.forms import ChapterForm
+from thetatauCMT.chapters.models import Chapter, ChapterCurricula
+from thetatauCMT.users.models import User, UserDemographic, UserRoleChange
 
 from .models import (
     OSM,
@@ -53,8 +38,8 @@ from .models import (
     ResignationProcess,
     ReturnStudent,
     RiskManagement,
-    StatusChange,
     RitualProficiency,
+    StatusChange,
 )
 
 
@@ -1946,4 +1931,12 @@ class RitualProficiencyForm(forms.ModelForm):
 
     class Meta:
         model = RitualProficiency
-        fields = ["user", "level", "date", "memorization", "directions", "performance", "notes"]
+        fields = [
+            "user",
+            "level",
+            "date",
+            "memorization",
+            "directions",
+            "performance",
+            "notes",
+        ]

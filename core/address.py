@@ -1,19 +1,15 @@
 import math
-from haversine import haversine
+
+from address.models import Address, Country, InconsistentDictError, Locality, State
+from dal import autocomplete
 from django.conf import settings
 from django.db.models import Q
-from dal import autocomplete
-from address.models import (
-    InconsistentDictError,
-    State,
-    Locality,
-    Country,
-    Address,
-)
+from haversine import haversine
 from pygeocoder import Geocoder, GeocoderError
-from thetatauCMT.users.models import User
+
 from thetatauCMT.chapters.models import Chapter
 from thetatauCMT.forms.models import DisciplinaryProcess
+from thetatauCMT.users.models import User
 
 
 def xstr(s):

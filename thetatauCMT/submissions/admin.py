@@ -1,5 +1,6 @@
 from django.contrib import admin
-from .models import Submission, GearArticle
+
+from .models import GearArticle, Submission
 
 
 @admin.register(Submission)

@@ -1,5 +1,6 @@
 import csv
-from address.models import Locality, State, Country, Address
+
+from address.models import Address, Country, Locality, State
 from django.conf import settings
 
 

@@ -7,9 +7,10 @@ Covers:
 - get_updated classmethod (no changes, changed field, no user, perform_update)
 - Handler functions: email_delay_func, deny_notify_func, update_func
 """
-import pytest
+
 from unittest.mock import MagicMock, patch
 
+import pytest
 
 # ---------------------------------------------------------------------------
 # Smoke: import and process_class

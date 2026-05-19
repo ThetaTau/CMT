@@ -1,15 +1,18 @@
 from datetime import datetime
+
 from django.urls import reverse
 from django.views.generic import DetailView, RedirectView
-from core.views import PagedFilteredTableView, RequestConfig, LoginRequiredMixin
-from .models import ScoreType, ScoreChapter
-from .tables import ScoreTable, ChapterScoreTable
-from thetatauCMT.events.tables import EventTable
-from thetatauCMT.chapters.models import Chapter
-from thetatauCMT.submissions.tables import SubmissionTable
+
 from core.models import BIENNIUM_START
-from .filters import ScoreListFilter, ChapterScoreListFilter
-from .forms import ScoreListFormHelper, ChapterScoreListFormHelper
+from core.views import LoginRequiredMixin, PagedFilteredTableView, RequestConfig
+from thetatauCMT.chapters.models import Chapter
+from thetatauCMT.events.tables import EventTable
+from thetatauCMT.submissions.tables import SubmissionTable
+
+from .filters import ChapterScoreListFilter, ScoreListFilter
+from .forms import ChapterScoreListFormHelper, ScoreListFormHelper
+from .models import ScoreChapter, ScoreType
+from .tables import ChapterScoreTable, ScoreTable
 
 
 class ScoreDetailView(LoginRequiredMixin, DetailView):

@@ -1,18 +1,15 @@
 import os
-from enum import Enum
 from datetime import datetime, timedelta
-from multiselectfield import MultiSelectField
+from enum import Enum
+
 from django.conf import settings
 from django.db import models
 from django.utils.text import slugify
-from core.models import (
-    TimeStampedModel,
-    ALL_OFFICERS_CHOICES,
-    NAT_OFFICERS_CHOICES,
-    CHAPTER_OFFICER,
-)
+from multiselectfield import MultiSelectField
+
+from core.models import ALL_OFFICERS_CHOICES, CHAPTER_OFFICER, NAT_OFFICERS_CHOICES, TimeStampedModel
+from thetatauCMT.tasks.models import Task, TaskChapter, TaskDate
 from thetatauCMT.users.models import UserRoleChange
-from thetatauCMT.tasks.models import Task, TaskDate, TaskChapter
 
 
 def get_ballot_attachment_upload_path(instance, filename):

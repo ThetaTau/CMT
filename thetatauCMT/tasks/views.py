@@ -1,23 +1,21 @@
 import datetime
+
 from django.contrib import messages
-from django.shortcuts import redirect, reverse
 from django.db import models, transaction
 from django.db.utils import IntegrityError
 from django.http.request import QueryDict
-from django.views.generic import DetailView, CreateView
+from django.shortcuts import redirect, reverse
+from django.views.generic import CreateView, DetailView
+
 from core.models import current_year_term_slug
-from core.views import (
-    PagedFilteredTableView,
-    RequestConfig,
-    OfficerRequiredMixin,
-    LoginRequiredMixin,
-)
+from core.views import LoginRequiredMixin, OfficerRequiredMixin, PagedFilteredTableView, RequestConfig
 from thetatauCMT.forms.tables import SignTable
 from thetatauCMT.forms.views import get_sign_status, get_sign_status_discipline
-from .models import TaskChapter, TaskDate
-from .tables import TaskTable
+
 from .filters import TaskListFilter
 from .forms import TaskListFormHelper
+from .models import TaskChapter, TaskDate
+from .tables import TaskTable
 
 
 class TaskCompleteView(LoginRequiredMixin, OfficerRequiredMixin, CreateView):

@@ -1,5 +1,6 @@
 import pytest
 from django.urls import reverse
+
 from thetatauCMT.scores.models import ScoreType
 
 

@@ -1,7 +1,7 @@
-from herald import registry
-from herald.base import EmailNotification
 from django.conf import settings
 from django.core.files.base import ContentFile
+from herald import registry
+from herald.base import EmailNotification
 
 
 @registry.register_decorator()

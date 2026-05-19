@@ -1,15 +1,18 @@
 import base64
 from datetime import date
-from django.db import IntegrityError, transaction
+
 from django.conf import settings
-from django.urls import reverse
 from django.contrib import messages
-from django.shortcuts import redirect, Http404
+from django.db import IntegrityError, transaction
+from django.shortcuts import Http404, redirect
+from django.urls import reverse
 from django.utils.safestring import mark_safe
 from django.views.generic import CreateView
+
 from thetatauCMT.users.models import User
-from .models import DepledgeSurvey, Survey
+
 from .forms import DepledgeSurveyForm, ResponseForm
+from .models import DepledgeSurvey, Survey
 from .notifications import SurveyFollowUpEmail
 
 

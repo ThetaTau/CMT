@@ -1,8 +1,9 @@
 import csv
 import datetime
-from thetatauCMT.scores.models import ScoreChapter
+
 from thetatauCMT.chapters.models import Chapter
 from thetatauCMT.events.models import Event
+from thetatauCMT.scores.models import ScoreChapter
 from thetatauCMT.submissions.models import Submission
 
 fields = [

@@ -1,6 +1,8 @@
 """Tests for forms/templatetags/forms_custom_tags.py"""
-import pytest
+
 from unittest.mock import MagicMock
+
+import pytest
 
 
 @pytest.mark.django_db
@@ -24,7 +26,9 @@ def test_safe_url_file_with_no_url_raises_value_error():
     from thetatauCMT.forms.templatetags.forms_custom_tags import safeURLfile
 
     mock_file = MagicMock()
-    type(mock_file).url = property(lambda self: (_ for _ in ()).throw(ValueError("no file")))
+    type(mock_file).url = property(
+        lambda self: (_ for _ in ()).throw(ValueError("no file"))
+    )
     mock_file.name = "empty.pdf"
 
     result = safeURLfile(mock_file)

@@ -1,35 +1,33 @@
 import csv
 import datetime
+
 from django.conf import settings
 from django.contrib import messages
 from django.db.models import Count, F
-from django.http.response import HttpResponseRedirect, HttpResponse
-from django.http.request import QueryDict
-from django.shortcuts import redirect, reverse
-from django.views.generic import DetailView, UpdateView, RedirectView, CreateView
 from django.forms.models import modelformset_factory
+from django.http.request import QueryDict
+from django.http.response import HttpResponse, HttpResponseRedirect
+from django.shortcuts import redirect, reverse
+from django.views.generic import CreateView, DetailView, RedirectView, UpdateView
+
+from core.forms import MultiFormsView
 from core.notifications import GenericEmail
 from core.views import (
-    PagedFilteredTableView,
-    TypeFieldFilteredChapterAdd,
     LoginRequiredMixin,
     NatOfficerRequiredMixin,
+    PagedFilteredTableView,
     RequestConfig,
+    TypeFieldFilteredChapterAdd,
 )
-from core.forms import MultiFormsView
 from thetatauCMT.chapters.models import Chapter
 from thetatauCMT.regions.models import Region
 from thetatauCMT.scores.models import ScoreType
 from thetatauCMT.tasks.models import Task
-from .models import Submission, Picture, GearArticle
-from .tables import SubmissionTable, GearArticleTable
-from .filters import SubmissionListFilter, GearArticleListFilter
-from .forms import (
-    SubmissionListFormHelper,
-    GearArticleForm,
-    PictureForm,
-    GearArticleListFormHelper,
-)
+
+from .filters import GearArticleListFilter, SubmissionListFilter
+from .forms import GearArticleForm, GearArticleListFormHelper, PictureForm, SubmissionListFormHelper
+from .models import GearArticle, Picture, Submission
+from .tables import GearArticleTable, SubmissionTable
 
 
 class SubmissionDetailView(LoginRequiredMixin, DetailView):

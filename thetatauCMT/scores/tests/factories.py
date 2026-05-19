@@ -1,7 +1,8 @@
 import factory
-from ..models import ScoreType, ScoreChapter
+
 from thetatauCMT.chapters.tests.factories import ChapterFactory
 
+from ..models import ScoreChapter, ScoreType
 
 # class ScoreTypeFactory(factory.django.DjangoModelFactory):
 #     name = factory.Faker("sentence", nb_words=3)

@@ -5,6 +5,7 @@ Canary for Phase 3.3 (django-report-builder) and 3.4 (DRF):
 - Verifies the DRF config endpoint returns valid JSON for an authenticated admin.
 Neither test requires seeded report data — they exercise the stack, not the data.
 """
+
 import pytest
 from django.test import Client
 from django.urls import reverse

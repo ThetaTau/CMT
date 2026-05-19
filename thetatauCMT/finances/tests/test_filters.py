@@ -8,10 +8,12 @@ Covers:
     - "candidate_chapter" → filters candidate chapters
     - any other slug → filters by chapter__region__slug
 """
+
 import pytest
-from thetatauCMT.finances.tests.factories import InvoiceFactory
+
 from thetatauCMT.chapters.tests.factories import ChapterFactory
 from thetatauCMT.finances.models import Invoice
+from thetatauCMT.finances.tests.factories import InvoiceFactory
 
 
 @pytest.mark.django_db

@@ -1,9 +1,11 @@
 import datetime
-from django.core.management import BaseCommand
+
 from django.contrib.auth.models import Group
+from django.core.management import BaseCommand
 from django.db import IntegrityError
-from thetatauCMT.users.models import User
+
 from core.models import TODAY_END
+from thetatauCMT.users.models import User
 
 
 # python manage.py set_current_status_roles

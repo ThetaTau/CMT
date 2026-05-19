@@ -1,13 +1,15 @@
 import datetime
+
 import pytest
 from django.utils import timezone
 from django.utils.text import slugify
-from thetatauCMT.tasks.models import Task, TaskDate, TaskChapter
 
+from thetatauCMT.tasks.models import Task, TaskChapter, TaskDate
 
 # ---------------------------------------------------------------------------
 # Helper: create a Task + TaskDate matching a chapter's school_type
 # ---------------------------------------------------------------------------
+
 
 def _make_task_with_date(school_type="semester", days_offset=0):
     """Create a Task and a matching TaskDate; returns (task, task_date)."""
@@ -27,9 +29,11 @@ def _make_task_with_date(school_type="semester", days_offset=0):
     )
     return task, task_date
 
+
 # ---------------------------------------------------------------------------
 # Task.__str__ and save
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.django_db
 def test_task_str():
@@ -54,6 +58,7 @@ def test_task_save_sets_slug():
 # ---------------------------------------------------------------------------
 # Task.render_task_link
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.django_db
 def test_render_task_link_http_resource():
@@ -105,6 +110,7 @@ def test_render_task_link_url_resource():
 # Task.all_dates_for_task_chapter
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.django_db
 def test_all_dates_for_task_chapter_matches_school_type(chapter):
     """Only dates matching the chapter's school_type (or 'all') are returned."""
@@ -119,8 +125,11 @@ def test_all_dates_for_task_chapter_matches_school_type(chapter):
 # Task.incomplete_dates_for_task_chapter
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.django_db
-def test_incomplete_dates_for_task_chapter_excludes_completed(chapter, task_chapter_factory):
+def test_incomplete_dates_for_task_chapter_excludes_completed(
+    chapter, task_chapter_factory
+):
     """Dates that have already been completed by the chapter are excluded."""
     school_type = chapter.school_type
     task, task_date = _make_task_with_date(school_type=school_type, days_offset=10)
@@ -140,6 +149,7 @@ def test_incomplete_dates_for_task_chapter_excludes_completed(chapter, task_chap
 # TaskDate.__str__
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.django_db
 def test_task_date_str(chapter):
     school_type = chapter.school_type
@@ -151,6 +161,7 @@ def test_task_date_str(chapter):
 # ---------------------------------------------------------------------------
 # TaskDate.complete
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.django_db
 def test_task_date_complete_returns_empty_when_not_done(chapter):
@@ -164,6 +175,7 @@ def test_task_date_complete_returns_empty_when_not_done(chapter):
 # ---------------------------------------------------------------------------
 # TaskDate.incomplete_dates_for_chapter
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.django_db
 def test_incomplete_dates_for_chapter_returns_queryset(chapter):
@@ -187,6 +199,7 @@ def test_dates_for_next_month_returns_queryset():
 # ---------------------------------------------------------------------------
 # Task.completed_last
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.django_db
 def test_task_completed_last_returns_none_when_no_completions(chapter):
@@ -215,6 +228,7 @@ def test_task_completed_last_returns_submission_when_completed(chapter):
 # Task.mark_complete
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.django_db
 def test_mark_complete_unknown_name_returns_none(chapter):
     result = Task.mark_complete("Nonexistent Task Name XYZ", chapter)
@@ -236,6 +250,7 @@ def test_mark_complete_creates_task_chapter(chapter):
 # TaskDate.incomplete_dates_for_chapter_past
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.django_db
 def test_incomplete_dates_for_chapter_past_returns_queryset(chapter):
     result = TaskDate.incomplete_dates_for_chapter_past(chapter)
@@ -246,6 +261,7 @@ def test_incomplete_dates_for_chapter_past_returns_queryset(chapter):
 # TaskDate.dates_for_chapter
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.django_db
 def test_dates_for_chapter_returns_queryset(chapter):
     result = TaskDate.dates_for_chapter(chapter)
@@ -255,6 +271,7 @@ def test_dates_for_chapter_returns_queryset(chapter):
 # ---------------------------------------------------------------------------
 # TaskChapter.check_previous
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.django_db
 def test_task_chapter_check_previous_returns_false_initially(chapter):
@@ -275,6 +292,7 @@ def test_task_chapter_check_previous_returns_true_after_creation(chapter):
 # ---------------------------------------------------------------------------
 # Task.render_task_link — submission_type path (line 55)
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.django_db
 def test_render_task_link_with_submission_type():
@@ -316,6 +334,7 @@ def test_render_task_link_with_submission_type():
 # Task.render_task_link — ballot resource path (line 64)
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.django_db
 def test_render_task_link_ballot_resource():
     """A task with 'ballot' in its resource uses the ballot reverse URL."""
@@ -336,6 +355,7 @@ def test_render_task_link_ballot_resource():
 # Task.mark_complete — with obj parameter (lines 113-154)
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.django_db
 def test_mark_complete_with_obj_non_audit(chapter):
     """mark_complete with obj for a non-audit task sets submission_object on TaskChapter."""
@@ -352,6 +372,7 @@ def test_mark_complete_with_obj_non_audit(chapter):
 # Task.mark_complete — named task branches (Audit, Pledge Program, OSM)
 # lines 128-153 in models.py
 # ---------------------------------------------------------------------------
+
 
 def _make_score_type(slug, name=None):
     """Create or get a ScoreType with the given slug for use in tests."""
@@ -393,12 +414,15 @@ def test_mark_complete_audit_branch_creates_task_chapter(chapter):
         task=task, school_type=chapter.school_type, date=due_date
     )
 
-    Task.mark_complete("Audit", chapter, current_roles=["regent"], user=None, obj=chapter)
+    Task.mark_complete(
+        "Audit", chapter, current_roles=["regent"], user=None, obj=chapter
+    )
 
     tc = TaskChapter.objects.filter(task=task_date, chapter=chapter).last()
     assert tc is not None
     # Verify the submission object is a Submission pointing to the audit form
     from thetatauCMT.submissions.models import Submission
+
     assert tc.submission_object is not None
     assert f"forms:audit_complete {chapter.pk}" in tc.submission_object.file.name
 
@@ -426,11 +450,14 @@ def test_mark_complete_pledge_program_branch_creates_task_chapter(chapter):
     mock_obj.pk = 9002
     mock_obj.manual = "not_other"
 
-    Task.mark_complete("Pledge Program", chapter, current_roles=["regent"], user=None, obj=mock_obj)
+    Task.mark_complete(
+        "Pledge Program", chapter, current_roles=["regent"], user=None, obj=mock_obj
+    )
 
     tc = TaskChapter.objects.filter(task=task_date, chapter=chapter).last()
     assert tc is not None
     from thetatauCMT.submissions.models import Submission
+
     assert tc.submission_object is not None
     assert tc.submission_object.file.name == "forms:pledge_program"
 
@@ -451,13 +478,16 @@ def test_mark_complete_osm_branch_creates_task_chapter(chapter):
     )
 
     Task.mark_complete(
-        "Outstanding Student Member", chapter, current_roles=["regent"], user=None, obj=chapter
+        "Outstanding Student Member",
+        chapter,
+        current_roles=["regent"],
+        user=None,
+        obj=chapter,
     )
 
     tc = TaskChapter.objects.filter(task=task_date, chapter=chapter).last()
     assert tc is not None
     from thetatauCMT.submissions.models import Submission
+
     assert tc.submission_object is not None
     assert tc.submission_object.file.name == "osmform"
-
-

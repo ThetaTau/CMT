@@ -1,10 +1,10 @@
-from dj_anonymizer.register_models import AnonymBase, register_anonym, register_skip
 from dj_anonymizer import fields
+from dj_anonymizer.register_models import AnonymBase, register_anonym, register_skip
 from faker import Factory
+from survey.models import Answer, Category, Question, Response
+from survey.models import Survey as Survey_base
 
 from thetatauCMT.surveys.models import DepledgeSurvey, Survey
-from survey.models import Category, Response, Answer, Question
-from survey.models import Survey as Survey_base
 
 register_skip([Category, Survey, Survey_base, Question, Response])
 

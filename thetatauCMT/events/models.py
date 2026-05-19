@@ -1,17 +1,14 @@
+import os
+
 from django.db import models
 from django.utils import timezone
 from django.utils.text import slugify
 from django_userforeignkey.models.fields import UserForeignKey
 from email_signals.models import EmailSignalMixin
-import os
-from core.models import (
-    TimeStampedModel,
-    semester_encompass_start_end_date,
-    BIENNIUM_START_DATE,
-    BIENNIUM_END_DATE,
-)
-from thetatauCMT.scores.models import ScoreType
+
+from core.models import BIENNIUM_END_DATE, BIENNIUM_START_DATE, TimeStampedModel, semester_encompass_start_end_date
 from thetatauCMT.chapters.models import Chapter
+from thetatauCMT.scores.models import ScoreType
 
 
 def get_event_upload_event(instance, filename):

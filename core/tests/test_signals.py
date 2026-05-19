@@ -4,12 +4,12 @@ core/signals.py provides SignalWatchMixin — an admin-action mixin that
 creates / destroys email_signals Signal records for a chapter or user entity.
 There are no @receiver-style Django signal handlers in the codebase.
 """
+
 import pytest
 from django.test import RequestFactory
 
-from core.signals import CHAPTER_WATCHES, SignalWatchMixin, USER_WATCHES
+from core.signals import CHAPTER_WATCHES, USER_WATCHES, SignalWatchMixin
 from thetatauCMT.chapters.tests.factories import ChapterFactory
-
 
 # ---------------------------------------------------------------------------
 # Concrete test subclasses of SignalWatchMixin

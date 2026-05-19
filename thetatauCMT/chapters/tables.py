@@ -1,6 +1,7 @@
 import django_tables2 as tables
 from django_tables2.utils import A
-from .models import ChapterCurricula, Chapter
+
+from .models import Chapter, ChapterCurricula
 
 
 class ChapterCurriculaTable(tables.Table):

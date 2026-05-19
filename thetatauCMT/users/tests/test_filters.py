@@ -1,4 +1,5 @@
 """Tests for users/filters.py."""
+
 import pytest
 
 from thetatauCMT.chapters.tests.factories import ChapterFactory
@@ -34,9 +35,9 @@ def test_user_role_list_filter_filter_region_candidate_chapter():
 @pytest.mark.django_db
 def test_user_role_list_filter_filter_region_by_slug():
     """filter_region with region slug filters by that region."""
+    from thetatauCMT.regions.models import Region
     from thetatauCMT.users.filters import UserRoleListFilter
     from thetatauCMT.users.models import User
-    from thetatauCMT.regions.models import Region
 
     regions = Region.objects.all()
     if not regions.exists():
@@ -147,9 +148,9 @@ def test_advisor_list_filter_filter_region_candidate_chapter():
 @pytest.mark.django_db
 def test_advisor_list_filter_filter_region_by_slug():
     """AdvisorListFilter filter_region with region slug filters correctly."""
+    from thetatauCMT.regions.models import Region
     from thetatauCMT.users.filters import AdvisorListFilter
     from thetatauCMT.users.models import User
-    from thetatauCMT.regions.models import Region
 
     regions = Region.objects.all()
     if not regions.exists():

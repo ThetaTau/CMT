@@ -1,32 +1,29 @@
 import datetime
+
 import factory
-from ..models import (
-    Badge,
-    Guard,
-    PledgeProgram,
-    Initiation,
-    Depledge,
-    StatusChange,
-    ChapterReport,
-    RiskManagement,
-    Audit,
-    Pledge,
-    PrematureAlumnus,
-    InitiationProcess,
-    Convention,
-    PledgeProcess,
-    OSM,
-)
-from ..flows import (
-    PrematureAlumnusFlow,
-    InitiationProcessFlow,
-    ConventionFlow,
-    PledgeProcessFlow,
-    OSMFlow,
-)
+
 from thetatauCMT.chapters.tests.factories import ChapterFactory
-from thetatauCMT.users.tests.factories import UserFactory
 from thetatauCMT.submissions.tests.factories import SubmissionFactory
+from thetatauCMT.users.tests.factories import UserFactory
+
+from ..flows import ConventionFlow, InitiationProcessFlow, OSMFlow, PledgeProcessFlow, PrematureAlumnusFlow
+from ..models import (
+    OSM,
+    Audit,
+    Badge,
+    ChapterReport,
+    Convention,
+    Depledge,
+    Guard,
+    Initiation,
+    InitiationProcess,
+    Pledge,
+    PledgeProcess,
+    PledgeProgram,
+    PrematureAlumnus,
+    RiskManagement,
+    StatusChange,
+)
 
 
 class BadgeFactory(factory.django.DjangoModelFactory):
@@ -97,8 +94,18 @@ class DepledgeFactory(factory.django.DjangoModelFactory):
 
 
 class StatusChangeFactory(factory.django.DjangoModelFactory):
-    created = factory.Faker("date_time_between", start_date="-1y", end_date="+1y", tzinfo=datetime.timezone.utc)
-    modified = factory.Faker("date_time_between", start_date="-1y", end_date="+1y", tzinfo=datetime.timezone.utc)
+    created = factory.Faker(
+        "date_time_between",
+        start_date="-1y",
+        end_date="+1y",
+        tzinfo=datetime.timezone.utc,
+    )
+    modified = factory.Faker(
+        "date_time_between",
+        start_date="-1y",
+        end_date="+1y",
+        tzinfo=datetime.timezone.utc,
+    )
     user = factory.SubFactory(UserFactory)
     reason = factory.Faker(
         "random_element", elements=[item.value[0] for item in StatusChange.REASONS]
@@ -119,8 +126,18 @@ class StatusChangeFactory(factory.django.DjangoModelFactory):
 
 
 class ChapterReportFactory(factory.django.DjangoModelFactory):
-    created = factory.Faker("date_time_between", start_date="-1y", end_date="+1y", tzinfo=datetime.timezone.utc)
-    modified = factory.Faker("date_time_between", start_date="-1y", end_date="+1y", tzinfo=datetime.timezone.utc)
+    created = factory.Faker(
+        "date_time_between",
+        start_date="-1y",
+        end_date="+1y",
+        tzinfo=datetime.timezone.utc,
+    )
+    modified = factory.Faker(
+        "date_time_between",
+        start_date="-1y",
+        end_date="+1y",
+        tzinfo=datetime.timezone.utc,
+    )
     year = factory.Faker("random_int", min=2016, max=2030)
     term = factory.Faker(
         "random_element", elements=[item.value[0] for item in ChapterReport.TERMS]
@@ -170,8 +187,18 @@ class RiskManagementFactory(factory.django.DjangoModelFactory):
 
 
 class AuditFactory(factory.django.DjangoModelFactory):
-    created = factory.Faker("date_time_between", start_date="-1y", end_date="+1y", tzinfo=datetime.timezone.utc)
-    modified = factory.Faker("date_time_between", start_date="-1y", end_date="+1y", tzinfo=datetime.timezone.utc)
+    created = factory.Faker(
+        "date_time_between",
+        start_date="-1y",
+        end_date="+1y",
+        tzinfo=datetime.timezone.utc,
+    )
+    modified = factory.Faker(
+        "date_time_between",
+        start_date="-1y",
+        end_date="+1y",
+        tzinfo=datetime.timezone.utc,
+    )
     year = factory.Faker("random_int", min=2016, max=2030)
     term = factory.Faker(
         "random_element", elements=[item.value[0] for item in ChapterReport.TERMS]
@@ -201,8 +228,18 @@ class AuditFactory(factory.django.DjangoModelFactory):
 
 
 class PledgeFactory(factory.django.DjangoModelFactory):
-    created = factory.Faker("date_time_between", start_date="-1y", end_date="+1y", tzinfo=datetime.timezone.utc)
-    modified = factory.Faker("date_time_between", start_date="-1y", end_date="+1y", tzinfo=datetime.timezone.utc)
+    created = factory.Faker(
+        "date_time_between",
+        start_date="-1y",
+        end_date="+1y",
+        tzinfo=datetime.timezone.utc,
+    )
+    modified = factory.Faker(
+        "date_time_between",
+        start_date="-1y",
+        end_date="+1y",
+        tzinfo=datetime.timezone.utc,
+    )
     user = factory.SubFactory(UserFactory)
     signature = factory.LazyAttribute(
         lambda o: f"{o.user.first_name}{o.user.last_name}"

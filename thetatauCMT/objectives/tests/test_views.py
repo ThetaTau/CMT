@@ -1,7 +1,8 @@
 import pytest
-from django.urls import reverse
 from django.contrib.auth.models import Group
-from thetatauCMT.objectives.models import Objective, Action
+from django.urls import reverse
+
+from thetatauCMT.objectives.models import Action, Objective
 
 
 def _make_natoff(user, client):
@@ -80,9 +81,7 @@ def test_objective_detail_restricted_ec_redirects_non_superuser(auto_login_user)
     response = client.get(url, follow=True)
     # Should redirect to objectives:list with info message (URL is /goals/)
     assert response.status_code == 200
-    assert any(
-        "/goals" in redir_url for redir_url, _ in response.redirect_chain
-    )
+    assert any("/goals" in redir_url for redir_url, _ in response.redirect_chain)
 
 
 @pytest.mark.django_db

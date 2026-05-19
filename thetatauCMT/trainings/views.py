@@ -1,7 +1,5 @@
-from core.views import (
-    LoginRequiredMixin,
-    PagedFilteredTableView,
-)
+from core.views import LoginRequiredMixin, PagedFilteredTableView
+
 from .filters import TrainingListFilter
 from .forms import TrainingListFormHelper
 from .models import Training

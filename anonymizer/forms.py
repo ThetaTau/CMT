@@ -1,16 +1,13 @@
-from dj_anonymizer.register_models import (
-    register_skip,
-    AnonymBase,
-    register_anonym,
-    register_clean,
-)
 from dj_anonymizer import fields
+from dj_anonymizer.register_models import AnonymBase, register_anonym, register_clean, register_skip
 from faker import Factory
 
 from thetatauCMT.forms.models import (
-    Audit,
+    OSM,
     AlumniExclusion,
+    Audit,
     Badge,
+    Bylaws,
     ChapterReport,
     CollectionReferral,
     Convention,
@@ -18,20 +15,18 @@ from thetatauCMT.forms.models import (
     DisciplinaryAttachment,
     DisciplinaryProcess,
     Guard,
+    HSEducation,
     Initiation,
     InitiationProcess,
-    OSM,
     Pledge,
     PledgeProcess,
     PledgeProgram,
+    PledgeProgramProcess,
     PrematureAlumnus,
     ResignationProcess,
     ReturnStudent,
     RiskManagement,
     StatusChange,
-    PledgeProgramProcess,
-    HSEducation,
-    Bylaws,
 )
 
 fake = Factory.create()

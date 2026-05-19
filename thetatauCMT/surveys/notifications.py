@@ -1,6 +1,6 @@
+from django.conf import settings
 from herald import registry
 from herald.base import EmailNotification
-from django.conf import settings
 
 from thetatauCMT.configs.models import Config
 
@@ -54,9 +54,10 @@ class SurveyFollowUpEmail(EmailNotification):
 
     @staticmethod
     def get_demo_args():
-        from .models import DepledgeSurvey
         from django.urls import reverse
         from django.utils.safestring import mark_safe
+
+        from .models import DepledgeSurvey
 
         survey = DepledgeSurvey.objects.order_by("?")[0]
         user = survey.user
@@ -99,6 +100,7 @@ class SurveyEmail(EmailNotification):  # extend from EmailNotification for email
     @staticmethod
     def get_demo_args():  # define a static method to return list of args needed to initialize class for testing
         from django.urls import reverse
+
         from thetatauCMT.users.models import User
 
         test_user = User.objects.order_by("?")[0]

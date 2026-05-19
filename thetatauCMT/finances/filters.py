@@ -1,8 +1,10 @@
 # filters.py
 import django_filters
+
 from core.filters import DateRangeFilter
-from .models import Invoice
 from thetatauCMT.regions.models import Region
+
+from .models import Invoice
 
 
 class InvoiceListFilter(django_filters.FilterSet):

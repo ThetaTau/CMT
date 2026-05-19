@@ -1,4 +1,5 @@
 """Tests for forms/filters.py."""
+
 import pytest
 
 from thetatauCMT.chapters.tests.factories import ChapterFactory
@@ -20,8 +21,8 @@ def test_audit_list_filter_no_value_returns_all():
 def test_audit_list_filter_by_chapter():
     """filter_chapter method filters by chapter slug when given a value."""
     from thetatauCMT.forms.filters import AuditListFilter
-    from thetatauCMT.forms.tests.factories import AuditFactory
     from thetatauCMT.forms.models import Audit
+    from thetatauCMT.forms.tests.factories import AuditFactory
 
     chapter1 = ChapterFactory.create()
     chapter2 = ChapterFactory.create()

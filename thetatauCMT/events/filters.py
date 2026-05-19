@@ -1,10 +1,12 @@
 # filters.py
 import django_filters
+
 from core.filters import DateRangeFilter
-from .models import Event
 from thetatauCMT.chapters.models import Chapter
 from thetatauCMT.regions.models import Region
 from thetatauCMT.scores.models import ScoreType
+
+from .models import Event
 
 
 class EventListFilter(django_filters.FilterSet):

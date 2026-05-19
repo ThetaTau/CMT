@@ -1,9 +1,11 @@
 # filters.py
 import django_filters
-from .models import User, UserRoleChange
+
 from core.models import TODAY_END
+from thetatauCMT.chapters.models import Chapter, ChapterCurricula
 from thetatauCMT.regions.models import Region
-from thetatauCMT.chapters.models import ChapterCurricula, Chapter
+
+from .models import User, UserRoleChange
 
 
 class UserListFilterBase(django_filters.FilterSet):

@@ -7,9 +7,10 @@ Covers:
 - render_complete_link with a non-zero value (renders link)
 - render_complete_link with value==0 (renders 'None')
 """
-import pytest
+
 from unittest.mock import MagicMock
 
+import pytest
 
 # ---------------------------------------------------------------------------
 # TaskTable instantiation
@@ -41,8 +42,8 @@ def test_task_table_instantiates_with_complete_false():
 @pytest.mark.django_db
 def test_render_form_returns_task_link():
     """render_form returns the task's render_task_link value."""
-    from thetatauCMT.tasks.tables import TaskTable
     from thetatauCMT.tasks.models import Task
+    from thetatauCMT.tasks.tables import TaskTable
 
     # Build a minimal Task
     task = Task(
@@ -72,10 +73,12 @@ def test_render_form_returns_task_link():
 @pytest.mark.django_db
 def test_render_complete_link_with_nonzero_value():
     """render_complete_link with a TaskChapter pk creates a link to tasks:detail."""
-    from thetatauCMT.tasks.tables import TaskTable
-    from thetatauCMT.tasks.models import Task, TaskDate, TaskChapter
-    from django.utils import timezone
     import datetime
+
+    from django.utils import timezone
+
+    from thetatauCMT.tasks.models import Task, TaskChapter, TaskDate
+    from thetatauCMT.tasks.tables import TaskTable
 
     # Create a real TaskChapter so the reverse URL resolves
     task = Task(
@@ -94,7 +97,9 @@ def test_render_complete_link_with_nonzero_value():
     from thetatauCMT.chapters.tests.factories import ChapterFactory
 
     chapter = ChapterFactory()
-    tc = TaskChapter.objects.create(task=task_date, chapter=chapter, date=datetime.date.today())
+    tc = TaskChapter.objects.create(
+        task=task_date, chapter=chapter, date=datetime.date.today()
+    )
 
     table = TaskTable(data=[], complete=True)
     result = table.render_complete_link(tc.pk)

@@ -1,6 +1,8 @@
 from django.contrib import admin
-from .models import Region
+
 from thetatauCMT.chapters.models import Chapter
+
+from .models import Region
 
 
 class ChapterInline(admin.TabularInline):

@@ -1,4 +1,5 @@
 import datetime
+
 import pytest
 from django.urls import reverse
 
@@ -76,6 +77,7 @@ def test_job_create_view_authenticated(auto_login_user):
     default initial value). We create it here before exercising the view.
     """
     from address.models import Country
+
     Country.objects.get_or_create(name="United States")
     client, user = auto_login_user()
     url = reverse("jobs:add")
@@ -134,6 +136,7 @@ def test_job_detail_future_job_redirects_to_list(auto_login_user):
 def test_job_update_view_owner_gets_form(auto_login_user):
     """Owner of a job can access the update form."""
     from address.models import Country
+
     Country.objects.get_or_create(name="United States")
     client, user = auto_login_user()
     job = _make_job(title=f"My Job {datetime.datetime.now().microsecond}")
@@ -165,6 +168,7 @@ def test_job_update_view_non_owner_redirects(auto_login_user):
 def test_job_list_view_with_search_pk(auto_login_user):
     """JobListView with pk of a JobSearch filters using that search."""
     from thetatauCMT.jobs.models import JobSearch
+
     client, user = auto_login_user()
     job_search = JobSearch.objects.create(
         search_title="Test Search",
@@ -185,6 +189,7 @@ def test_job_list_view_with_search_pk(auto_login_user):
 def test_keyword_autocomplete_authenticated(auto_login_user):
     """Authenticated users can query keyword autocomplete."""
     from thetatauCMT.jobs.models import Keyword
+
     Keyword.objects.create(name="python")
     client, user = auto_login_user()
     url = reverse("jobs:keyword-autocomplete")
@@ -204,6 +209,7 @@ def test_keyword_autocomplete_unauthenticated(client):
 def test_major_autocomplete_authenticated(auto_login_user):
     """Authenticated users can query major autocomplete."""
     from thetatauCMT.jobs.models import Major
+
     Major.objects.create(name="Computer Science")
     client, user = auto_login_user()
     url = reverse("jobs:major-autocomplete")
@@ -234,6 +240,7 @@ def test_job_search_create_view_authenticated(auto_login_user):
 def test_job_search_update_view_authenticated(auto_login_user):
     """Authenticated user can access job search update form."""
     from thetatauCMT.jobs.models import JobSearch
+
     client, user = auto_login_user()
     job_search = JobSearch.objects.create(
         search_title="Update Search",
@@ -260,7 +267,9 @@ def test_job_detail_expired_job_redirects_non_creator(auto_login_user):
         publish_start=datetime.date.today() - datetime.timedelta(days=10),
         publish_end=datetime.date.today() - datetime.timedelta(days=1),
     )
-    url = reverse("jobs:detail", kwargs={"pk": expired_job.pk, "slug": expired_job.slug})
+    url = reverse(
+        "jobs:detail", kwargs={"pk": expired_job.pk, "slug": expired_job.slug}
+    )
     response = client.get(url, follow=True)
     # Non-creator accessing expired job is redirected to job list
     assert response.status_code == 200
@@ -288,7 +297,9 @@ def test_job_detail_expired_job_accessible_to_creator(auto_login_user):
         created_by=user,
     )
     expired_job.save()
-    url = reverse("jobs:detail", kwargs={"pk": expired_job.pk, "slug": expired_job.slug})
+    url = reverse(
+        "jobs:detail", kwargs={"pk": expired_job.pk, "slug": expired_job.slug}
+    )
     response = client.get(url)
     # Creator should see the job even if expired
     assert response.status_code == 200
@@ -311,8 +322,12 @@ def test_job_create_view_post_creates_job(auto_login_user):
         "experience": ["new_grad"],
         "job_type": ["full_time"],
         "location_type": ["remote"],
-        "publish_start": (datetime.date.today() - datetime.timedelta(days=1)).isoformat(),
-        "publish_end": (datetime.date.today() + datetime.timedelta(days=30)).isoformat(),
+        "publish_start": (
+            datetime.date.today() - datetime.timedelta(days=1)
+        ).isoformat(),
+        "publish_end": (
+            datetime.date.today() + datetime.timedelta(days=30)
+        ).isoformat(),
         "title": f"Created Job {datetime.datetime.now().microsecond}",
         "url": "https://example.com/apply",
         "priority": 5,

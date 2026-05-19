@@ -1,10 +1,11 @@
 import pytest
-from pytest_factoryboy import register
-from django.core.management import call_command
 from django.contrib.sites.models import Site
+from django.core.management import call_command
 from django.utils import timezone
-from thetatauCMT.ballots.tests.factories import BallotFactory, BallotCompleteFactory
-from thetatauCMT.chapters.tests.factories import ChapterFactory, ChapterCurriculaFactory
+from pytest_factoryboy import register
+
+from thetatauCMT.ballots.tests.factories import BallotCompleteFactory, BallotFactory
+from thetatauCMT.chapters.tests.factories import ChapterCurriculaFactory, ChapterFactory
 from thetatauCMT.events.tests.factories import EventFactory
 from thetatauCMT.finances.tests.factories import InvoiceFactory
 from thetatauCMT.regions.tests.factories import RegionFactory
@@ -12,12 +13,12 @@ from thetatauCMT.scores.tests.factories import ScoreChapterFactory
 from thetatauCMT.submissions.tests.factories import SubmissionFactory
 from thetatauCMT.tasks.tests.factories import TaskChapterFactory
 from thetatauCMT.users.tests.factories import (
-    UserFactory,
     UserAlterFactory,
+    UserFactory,
     UserOrgParticipateFactory,
+    UserRoleChangeFactory,
     UserSemesterGPAFactory,
     UserSemesterServiceHoursFactory,
-    UserRoleChangeFactory,
     UserStatusChangeFactory,
 )
 

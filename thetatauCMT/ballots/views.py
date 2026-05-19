@@ -1,27 +1,25 @@
-from django.db import models
 from django.contrib import messages
+from django.db import models
 from django.http.request import QueryDict
 from django.urls import reverse
-from django.views.generic import DetailView, UpdateView, RedirectView, CreateView
+from django.views.generic import CreateView, DetailView, RedirectView, UpdateView
+
+from core.models import CHAPTER_OFFICER, NAT_OFFICERS
 from core.views import (
+    LoginRequiredMixin,
+    NatOfficerRequiredMixin,
+    OfficerRequiredMixin,
     PagedFilteredTableView,
     RequestConfig,
     TypeFieldFilteredChapterAdd,
-    OfficerRequiredMixin,
-    LoginRequiredMixin,
-    NatOfficerRequiredMixin,
 )
-from core.models import NAT_OFFICERS, CHAPTER_OFFICER
-from thetatauCMT.users.models import UserRoleChange
 from thetatauCMT.chapters.models import Chapter
+from thetatauCMT.users.models import UserRoleChange
+
+from .filters import BallotCompleteFilter, BallotFilter, BallotUserFilter
+from .forms import BallotCompleteListFormHelper, BallotListFormHelper, BallotUserListFormHelper
 from .models import Ballot, BallotComplete
-from .tables import BallotTable, BallotUserTable, BallotCompleteTable
-from .filters import BallotFilter, BallotUserFilter, BallotCompleteFilter
-from .forms import (
-    BallotListFormHelper,
-    BallotUserListFormHelper,
-    BallotCompleteListFormHelper,
-)
+from .tables import BallotCompleteTable, BallotTable, BallotUserTable
 
 
 class BallotDetailView(

@@ -20,7 +20,6 @@ from thetatauCMT.forms.notifications import (
 )
 from thetatauCMT.users.tests.factories import UserFactory
 
-
 # ─── CentralOfficeGenericEmail ────────────────────────────────────────────────
 
 
@@ -263,9 +262,7 @@ def test_email_osm_update_with_nominate():
 
     user = UserFactory.create()
     nominate = UserFactory.create()
-    notif = EmailOSMUpdate(
-        MockActivation(), user, "OSM submitted", nominate=nominate
-    )
+    notif = EmailOSMUpdate(MockActivation(), user, "OSM submitted", nominate=nominate)
     assert notif.context["officer"] is True
     assert notif.context["nominate"] == nominate
 
@@ -276,6 +273,7 @@ def test_email_osm_update_with_nominate():
 @pytest.mark.django_db
 def test_email_pledge_other_to_emails():
     from thetatauCMT.forms.notifications import EmailPledgeOther
+
     user = UserFactory.create()
     mock_file = BytesIO(b"content")
     mock_file.name = "other.pdf"
@@ -287,6 +285,7 @@ def test_email_pledge_other_to_emails():
 @pytest.mark.django_db
 def test_email_pledge_other_reply_to_user():
     from thetatauCMT.forms.notifications import EmailPledgeOther
+
     user = UserFactory.create()
     mock_file = BytesIO(b"content")
     mock_file.name = "other.pdf"
@@ -298,6 +297,7 @@ def test_email_pledge_other_reply_to_user():
 @pytest.mark.django_db
 def test_email_pledge_other_has_attachment():
     from thetatauCMT.forms.notifications import EmailPledgeOther
+
     user = UserFactory.create()
     content = b"pledge other content"
     mock_file = BytesIO(content)
@@ -314,9 +314,14 @@ def test_email_pledge_other_has_attachment():
 @pytest.mark.django_db
 def test_badge_pnm_notify_to_emails_contains_user_email():
     from unittest.mock import patch
+
     from thetatauCMT.forms.notifications import BadgePNMNotify
+
     user = UserFactory.create()
-    with patch("thetatauCMT.forms.notifications.Config.get_value", return_value=f"Hello {{ badge_table }}"):
+    with patch(
+        "thetatauCMT.forms.notifications.Config.get_value",
+        return_value=f"Hello {{ badge_table }}",
+    ):
         notif = BadgePNMNotify(user)
     assert user.email in notif.to_emails
 
@@ -324,9 +329,14 @@ def test_badge_pnm_notify_to_emails_contains_user_email():
 @pytest.mark.django_db
 def test_badge_pnm_notify_context_has_message():
     from unittest.mock import patch
+
     from thetatauCMT.forms.notifications import BadgePNMNotify
+
     user = UserFactory.create()
-    with patch("thetatauCMT.forms.notifications.Config.get_value", return_value=f"Hello {{ badge_table }}"):
+    with patch(
+        "thetatauCMT.forms.notifications.Config.get_value",
+        return_value=f"Hello {{ badge_table }}",
+    ):
         notif = BadgePNMNotify(user)
     assert "message" in notif.context
 
@@ -338,6 +348,7 @@ def test_badge_pnm_notify_context_has_message():
 def test_email_pledge_officer_context_has_pledge_name():
     from thetatauCMT.forms.notifications import EmailPledgeOfficer
     from thetatauCMT.forms.tests.factories import PledgeFactory
+
     pledge = PledgeFactory.create()
     notif = EmailPledgeOfficer(pledge)
     expected_name = pledge.user.first_name + " " + pledge.user.last_name
@@ -348,6 +359,7 @@ def test_email_pledge_officer_context_has_pledge_name():
 def test_email_pledge_officer_cc_contains_school_email():
     from thetatauCMT.forms.notifications import EmailPledgeOfficer
     from thetatauCMT.forms.tests.factories import PledgeFactory
+
     pledge = PledgeFactory.create()
     notif = EmailPledgeOfficer(pledge)
     assert pledge.user.email_school in notif.cc
@@ -359,10 +371,14 @@ def test_email_pledge_officer_cc_contains_school_email():
 @pytest.mark.django_db
 def test_email_pledge_welcome_to_emails_contains_school_email():
     from unittest.mock import patch
+
     from thetatauCMT.forms.notifications import EmailPledgeWelcome
     from thetatauCMT.forms.tests.factories import PledgeFactory
+
     pledge = PledgeFactory.create()
-    with patch("thetatauCMT.forms.notifications.Config.get_value", return_value="Welcome text"):
+    with patch(
+        "thetatauCMT.forms.notifications.Config.get_value", return_value="Welcome text"
+    ):
         notif = EmailPledgeWelcome(pledge)
     assert pledge.user.email_school in notif.to_emails
 
@@ -370,10 +386,14 @@ def test_email_pledge_welcome_to_emails_contains_school_email():
 @pytest.mark.django_db
 def test_email_pledge_welcome_context_has_name():
     from unittest.mock import patch
+
     from thetatauCMT.forms.notifications import EmailPledgeWelcome
     from thetatauCMT.forms.tests.factories import PledgeFactory
+
     pledge = PledgeFactory.create()
-    with patch("thetatauCMT.forms.notifications.Config.get_value", return_value="Welcome text"):
+    with patch(
+        "thetatauCMT.forms.notifications.Config.get_value", return_value="Welcome text"
+    ):
         notif = EmailPledgeWelcome(pledge)
     assert notif.context["name"] == pledge.user.first_name
 
@@ -479,9 +499,7 @@ def test_central_office_generic_email_with_mime_attachment():
     from email.mime.base import MIMEBase
 
     mime_file = MIMEBase("application", "pdf")
-    mime_file.add_header(
-        "Content-Disposition", "attachment", filename="invoice.pdf"
-    )
+    mime_file.add_header("Content-Disposition", "attachment", filename="invoice.pdf")
     mime_file.set_payload(b"fake pdf content")
     notif = CentralOfficeGenericEmail("Test MIME", attachments=[mime_file])
     # MIME attachment has get_content_type but no seek/read → appended directly
@@ -494,9 +512,7 @@ def test_central_office_generic_email_with_get_filename_attachment():
     from email.mime.base import MIMEBase
 
     mime_file = MIMEBase("application", "pdf")
-    mime_file.add_header(
-        "Content-Disposition", "attachment", filename="report.pdf"
-    )
+    mime_file.add_header("Content-Disposition", "attachment", filename="report.pdf")
     mime_file.set_payload(b"content")
     notif = CentralOfficeGenericEmail("Filename test", attachments=[mime_file])
     assert "report.pdf" in notif.context["file_names"]
@@ -603,6 +619,7 @@ def test_email_process_update_with_activation_wrapping():
 def test_email_convention_update_basic():
     """EmailConventionUpdate sets to_emails and context."""
     from unittest.mock import patch
+
     from thetatauCMT.forms.notifications import EmailConventionUpdate
 
     class MockFlowClass:
@@ -686,9 +703,9 @@ def test_email_pledge_other_get_demo_args_returns_user_and_file():
 @pytest.mark.django_db
 def test_email_pledge_welcome_cc_when_emails_differ():
     """When email_school differs from email, the personal email is cc'd."""
+    from thetatauCMT.chapters.tests.factories import ChapterFactory
     from thetatauCMT.forms.notifications import EmailPledgeWelcome
     from thetatauCMT.forms.tests.factories import PledgeFactory
-    from thetatauCMT.chapters.tests.factories import ChapterFactory
 
     chapter = ChapterFactory.create(school_type="semester")
     user = UserFactory.create(
@@ -706,9 +723,9 @@ def test_email_pledge_welcome_cc_when_emails_differ():
 @pytest.mark.django_db
 def test_email_pledge_welcome_no_cc_when_emails_same():
     """When email_school == email, no cc is set."""
+    from thetatauCMT.chapters.tests.factories import ChapterFactory
     from thetatauCMT.forms.notifications import EmailPledgeWelcome
     from thetatauCMT.forms.tests.factories import PledgeFactory
-    from thetatauCMT.chapters.tests.factories import ChapterFactory
 
     chapter = ChapterFactory.create(school_type="semester")
     user = UserFactory.create(
@@ -719,8 +736,10 @@ def test_email_pledge_welcome_no_cc_when_emails_same():
     pledge = PledgeFactory.create(user=user)
 
     notif = EmailPledgeWelcome(pledge)
-    assert not hasattr(notif, "cc") or not notif.cc or "same@example.com" not in (
-        notif.cc or []
+    assert (
+        not hasattr(notif, "cc")
+        or not notif.cc
+        or "same@example.com" not in (notif.cc or [])
     )
 
 
@@ -729,8 +748,9 @@ def test_email_pledge_welcome_no_cc_when_emails_same():
 
 def test_central_office_generic_email_with_get_content_type_attachment():
     """Files with get_content_type method are attached via elif branch."""
-    from thetatauCMT.forms.notifications import CentralOfficeGenericEmail
     from unittest.mock import MagicMock
+
+    from thetatauCMT.forms.notifications import CentralOfficeGenericEmail
 
     mock_file = MagicMock()
     mock_file.get_content_type.return_value = "application/pdf"
@@ -783,7 +803,13 @@ def test_email_pledge_officer_scribe_vice_emails():
     ), patch.object(
         pledge.user.chapter.__class__,
         "get_generic_chapter_emails",
-        return_value=(None, "scribegeneric@example.com", "vicegeneric@example.com", None, None),
+        return_value=(
+            None,
+            "scribegeneric@example.com",
+            "vicegeneric@example.com",
+            None,
+            None,
+        ),
     ):
         from thetatauCMT.forms.notifications import EmailPledgeOfficer
 
@@ -928,7 +954,7 @@ def test_email_process_update_with_attachments_kwarg():
 
 @pytest.mark.django_db
 def test_email_process_update_subject_format():
-    """EmailProcessUpdate subject follows '[CMT] {process_title} {state} for {obj}'."""
+    "" f"EmailProcessUpdate subject follows '[CMT] {process_title} {state} for {obj}'." ""
     from thetatauCMT.forms.notifications import EmailProcessUpdate
     from thetatauCMT.forms.tests.factories import AuditFactory
 
@@ -950,7 +976,8 @@ def test_email_process_update_subject_format():
 @pytest.mark.django_db
 def test_email_process_update_subject_format_with_chapter_obj():
     """EmailProcessUpdate subject contains chapter name when obj is a chapter."""
-    from unittest.mock import patch, PropertyMock
+    from unittest.mock import PropertyMock, patch
+
     from thetatauCMT.forms.notifications import EmailProcessUpdate
     from thetatauCMT.forms.tests.factories import ConventionFactory
 
@@ -991,6 +1018,7 @@ def test_email_process_update_subject_format_with_chapter_obj():
 def test_email_process_update_email_officers_true_includes_council():
     """email_officers=True adds chapter council emails to CC."""
     from unittest.mock import patch
+
     from thetatauCMT.forms.notifications import EmailProcessUpdate
     from thetatauCMT.forms.tests.factories import AuditFactory
 
@@ -1028,6 +1056,7 @@ def test_email_process_update_email_officers_true_includes_council():
 def test_email_pledge_welcome_cc_personal_when_differs_from_school():
     """EmailPledgeWelcome adds personal email to CC when it differs from school email."""
     from unittest.mock import patch
+
     from thetatauCMT.forms.notifications import EmailPledgeWelcome
     from thetatauCMT.forms.tests.factories import PledgeFactory
 
@@ -1037,7 +1066,9 @@ def test_email_pledge_welcome_cc_personal_when_differs_from_school():
     pledge.user.email = "personal@example.com"
     pledge.user.save()
 
-    with patch("thetatauCMT.forms.notifications.Config.get_value", return_value="Welcome"):
+    with patch(
+        "thetatauCMT.forms.notifications.Config.get_value", return_value="Welcome"
+    ):
         notif = EmailPledgeWelcome(pledge)
 
     assert "school@university.edu" in notif.to_emails
@@ -1048,6 +1079,7 @@ def test_email_pledge_welcome_cc_personal_when_differs_from_school():
 def test_email_pledge_welcome_no_cc_when_emails_same():
     """EmailPledgeWelcome does not add CC when school email == personal email."""
     from unittest.mock import patch
+
     from thetatauCMT.forms.notifications import EmailPledgeWelcome
     from thetatauCMT.forms.tests.factories import PledgeFactory
 
@@ -1057,7 +1089,9 @@ def test_email_pledge_welcome_no_cc_when_emails_same():
     pledge.user.email_school = "same@example.com"
     pledge.user.save()
 
-    with patch("thetatauCMT.forms.notifications.Config.get_value", return_value="Welcome"):
+    with patch(
+        "thetatauCMT.forms.notifications.Config.get_value", return_value="Welcome"
+    ):
         notif = EmailPledgeWelcome(pledge)
 
     assert "same@example.com" in notif.to_emails
@@ -1071,9 +1105,10 @@ def test_email_pledge_welcome_no_cc_when_emails_same():
 @pytest.mark.django_db
 def test_email_pledge_officer_to_emails_includes_scribe_and_vice_when_present():
     """EmailPledgeOfficer to_emails contains scribe/vice email when they are officers."""
+    from unittest.mock import patch
+
     from thetatauCMT.forms.notifications import EmailPledgeOfficer
     from thetatauCMT.forms.tests.factories import PledgeFactory
-    from unittest.mock import patch
 
     pledge = PledgeFactory.create()
     scribe = UserFactory.create(chapter=pledge.user.chapter)
@@ -1167,4 +1202,3 @@ def test_email_pledge_confirmation_context_has_form_dict():
     assert "form" in notif.context
     assert isinstance(notif.context["form"], dict)
     assert len(notif.context["form"]) > 0
-

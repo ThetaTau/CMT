@@ -14,11 +14,7 @@ from django.utils import timezone
 
 from core.models import YearTermModel
 from thetatauCMT.chapters.tests.factories import ChapterFactory
-from thetatauCMT.forms.models import (
-    ChapterReport,
-    PledgeProgram,
-    RiskManagement,
-)
+from thetatauCMT.forms.models import ChapterReport, PledgeProgram, RiskManagement
 from thetatauCMT.forms.tests.factories import (
     AuditFactory,
     BadgeFactory,
@@ -28,7 +24,6 @@ from thetatauCMT.forms.tests.factories import (
     PledgeProgramFactory,
 )
 from thetatauCMT.users.tests.factories import UserFactory
-
 
 # ─── Badge ────────────────────────────────────────────────────────────────────
 
@@ -245,6 +240,7 @@ def test_risk_management_user_signed_this_semester_ignores_old_record():
 
 # ─── RiskManagement.risk_forms_chapter_semester / risk_forms_semester ──────────
 
+
 @pytest.mark.django_db
 def test_risk_forms_chapter_semester_returns_queryset():
     chapter = ChapterFactory.create()
@@ -260,9 +256,11 @@ def test_risk_forms_semester_returns_queryset():
 
 # ─── Pledge.__str__ ─────────────────────────────────────────────────────────────
 
+
 @pytest.mark.django_db
 def test_pledge_str():
     from thetatauCMT.forms.tests.factories import PledgeFactory
+
     pledge = PledgeFactory.create()
     result = str(pledge)
     assert "Pledge Form" in result
@@ -271,9 +269,11 @@ def test_pledge_str():
 
 # ─── PrematureAlumnus.__str__ ────────────────────────────────────────────────────
 
+
 @pytest.mark.django_db
 def test_premature_alumnus_str():
     from thetatauCMT.forms.models import PrematureAlumnus
+
     user = UserFactory.create()
     pa = PrematureAlumnus(user=user)
     result = str(pa)
@@ -283,9 +283,11 @@ def test_premature_alumnus_str():
 
 # ─── InitiationProcess.__str__ ─────────────────────────────────────────────────
 
+
 @pytest.mark.django_db
 def test_initiation_process_str():
     from thetatauCMT.forms.models import InitiationProcess
+
     chapter = ChapterFactory.create()
     ip = InitiationProcess(chapter=chapter)
     result = str(ip)
@@ -295,13 +297,15 @@ def test_initiation_process_str():
 
 # ─── InitiationProcess.get_fees ────────────────────────────────────────────────
 
+
 @pytest.mark.django_db
 def test_initiation_process_get_fees_no_late_fee():
     """Returns fee tuple; late_fee is 0 when initiation submitted within 28 days."""
     from unittest.mock import patch
+
+    from thetatauCMT.chapters.tests.factories import ChapterFactory
     from thetatauCMT.forms.models import InitiationProcess
     from thetatauCMT.forms.tests.factories import InitiationFactory
-    from thetatauCMT.chapters.tests.factories import ChapterFactory
 
     chapter = ChapterFactory.create(candidate_chapter=False)
     initiation = InitiationFactory.create()
@@ -317,6 +321,7 @@ def test_initiation_process_get_fees_no_late_fee():
 
 
 # ─── ChapterReport.signed_this_semester no-report filter ─────────────────────
+
 
 @pytest.mark.django_db
 def test_chapter_report_signed_this_semester_no_report_filter():
@@ -334,19 +339,23 @@ def test_chapter_report_signed_this_semester_no_report_filter():
 
 # ─── HSEducation.__str__ and submitted_this_year ─────────────────────────────
 
+
 @pytest.mark.django_db
 def test_hseducation_submitted_this_year_empty(chapter):
     from thetatauCMT.forms.models import HSEducation
+
     result = HSEducation.submitted_this_year(chapter)
     assert result.count() == 0
 
 
 # ─── MultiSelectField.value_to_string ─────────────────────────────────────────
 
+
 @pytest.mark.django_db
 def test_multiselectfield_value_to_string():
     """PledgeProgram.materials is a MultiSelectField; serializing should not raise."""
     from django.core import serializers
+
     program = PledgeProgramFactory.create()
     # Serialize to JSON which calls value_to_string on all fields
     data = serializers.serialize("json", [program])
@@ -355,11 +364,13 @@ def test_multiselectfield_value_to_string():
 
 # ─── Initiation.chapter_initiations ────────────────────────────────────────────
 
+
 @pytest.mark.django_db
 def test_initiation_chapter_initiations():
     """chapter_initiations has a bug (self.objects on instance), test that it exists."""
     from thetatauCMT.forms.models import Initiation
     from thetatauCMT.forms.tests.factories import InitiationFactory
+
     chapter = ChapterFactory.create()
     init = InitiationFactory.create()
     # The method has a bug: self.objects won't work on an instance.
@@ -369,6 +380,7 @@ def test_initiation_chapter_initiations():
 
 
 # ─── Depledge.save triggers set_current_status ───────────────────────────────
+
 
 @pytest.mark.django_db
 def test_depledge_save_sets_user_status():
@@ -412,9 +424,8 @@ def test_pledge_program_process_str():
 @pytest.mark.django_db
 def test_initiation_chapter_initiations_method_call():
     """Actually calling init.chapter_initiations(chapter) covers lines 273-274."""
-    from thetatauCMT.forms.tests.factories import InitiationFactory
-
     from thetatauCMT.forms.models import Initiation
+    from thetatauCMT.forms.tests.factories import InitiationFactory
 
     init = InitiationFactory.create()
     # Method uses self.objects which requires calling with the class as self
@@ -908,7 +919,9 @@ def test_disciplinary_process_forms_pdf():
     user = UserFactory.create()
     dp = DisciplinaryProcess(user=user, chapter=user.chapter, notify_method="email")
     dp.save()
-    with patch("thetatauCMT.forms.models.render_to_pdf", return_value=b"PDF", create=True):
+    with patch(
+        "thetatauCMT.forms.models.render_to_pdf", return_value=b"PDF", create=True
+    ):
         result = dp.forms_pdf()
     assert result == b"PDF"
 
@@ -978,6 +991,7 @@ def test_generate_blackbaud_update_default_excludes_invoice_columns():
     """generate_blackbaud_update(invoice=False) CSV does not contain
     'Date Submitted' or 'Sum for member' header columns."""
     from unittest.mock import patch
+
     from thetatauCMT.forms.tests.factories import InitiationProcessFactory
 
     ip = InitiationProcessFactory.create()
@@ -998,6 +1012,7 @@ def test_generate_blackbaud_update_invoice_mode_includes_invoice_columns():
     """generate_blackbaud_update(invoice=True) CSV contains 'Date Submitted'
     and 'Sum for member' header columns."""
     from unittest.mock import patch
+
     from thetatauCMT.forms.tests.factories import InitiationProcessFactory
 
     ip = InitiationProcessFactory.create()
@@ -1014,7 +1029,9 @@ def test_generate_blackbaud_update_response_mode_sets_content_disposition():
     """generate_blackbaud_update(response=HttpResponse()) writes CSV to the
     response and sets Content-Disposition: attachment."""
     from unittest.mock import patch
+
     from django.http import HttpResponse
+
     from thetatauCMT.forms.tests.factories import InitiationProcessFactory
 
     ip = InitiationProcessFactory.create()
@@ -1025,4 +1042,3 @@ def test_generate_blackbaud_update_response_mode_sets_content_disposition():
     assert result is None
     assert "attachment" in response.get("Content-Disposition", "")
     assert "initiation.csv" in response.get("Content-Disposition", "")
-

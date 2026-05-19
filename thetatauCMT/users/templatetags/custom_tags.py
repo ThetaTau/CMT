@@ -1,4 +1,5 @@
 from django import template
+
 from ..forms import UserAlterForm
 
 register = template.Library()

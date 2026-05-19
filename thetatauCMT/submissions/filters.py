@@ -1,10 +1,12 @@
 # filters.py
 import django_filters
+
 from core.filters import DateRangeFilter
-from .models import Submission, GearArticle
 from thetatauCMT.chapters.models import Chapter
 from thetatauCMT.regions.models import Region
 from thetatauCMT.scores.models import ScoreType
+
+from .models import GearArticle, Submission
 
 
 class SubmissionListFilter(django_filters.FilterSet):

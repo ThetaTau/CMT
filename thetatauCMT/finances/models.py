@@ -1,7 +1,8 @@
 from django.db import models
 from django.utils import timezone
-from djmoney.models.fields import MoneyField
 from django_ckeditor_5.fields import CKEditor5Field
+from djmoney.models.fields import MoneyField
+
 from core.models import TimeStampedModel
 from thetatauCMT.chapters.models import Chapter
 

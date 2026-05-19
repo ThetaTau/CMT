@@ -2,17 +2,20 @@
 Copied from: https://gist.github.com/jamesbrobb/748c47f46b9bd224b07f
     per: http://stackoverflow.com/questions/15497693/django-can-class-based-views-accept-two-forms-at-a-time/24011448#24011448
 """
+
 import re
+
+from address.forms import Address, AddressField
 from address.models import Locality
-from django import forms
-from django.views.generic.base import ContextMixin, TemplateResponseMixin
-from django.views.generic.edit import ProcessFormView
-from django.http.response import HttpResponseRedirect, HttpResponseForbidden
 from dal_select2.fields import Select2ListCreateChoiceField
 from dal_select2.widgets import Select2Multiple, Select2WidgetMixin, WidgetMixin
-from address.forms import AddressField, Address
-from core.address import fix_duplicate_address
+from django import forms
+from django.http.response import HttpResponseForbidden, HttpResponseRedirect
+from django.views.generic.base import ContextMixin, TemplateResponseMixin
+from django.views.generic.edit import ProcessFormView
 from tempus_dominus.widgets import DatePicker as _DatePicker
+
+from core.address import fix_duplicate_address
 
 
 class DatePicker(_DatePicker):
@@ -29,6 +32,7 @@ class DatePicker(_DatePicker):
         if "date" in opts and "T" not in opts["date"]:
             opts["date"] = opts["date"] + "T12:00:00"
         return opts
+
 
 class SchoolModelChoiceField(forms.ModelChoiceField):
     def label_from_instance(self, obj):

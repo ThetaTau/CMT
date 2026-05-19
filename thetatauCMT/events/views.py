@@ -1,23 +1,21 @@
-from django.urls import reverse
+import logging
+
+from django.contrib import messages
 from django.db import transaction
 from django.db.utils import IntegrityError
-from django.contrib import messages
-from django.views.generic import DetailView, UpdateView, RedirectView, CreateView
-from core.views import (
-    PagedFilteredTableView,
-    TypeFieldFilteredChapterAdd,
-    LoginRequiredMixin,
-    NatOfficerRequiredMixin,
-)
-from thetatauCMT.scores.models import ScoreType
+from django.forms.models import modelformset_factory
+from django.http.response import HttpResponseRedirect
+from django.urls import reverse
+from django.views.generic import CreateView, DetailView, RedirectView, UpdateView
+
 from core.forms import MultiFormsView
+from core.views import LoginRequiredMixin, NatOfficerRequiredMixin, PagedFilteredTableView, TypeFieldFilteredChapterAdd
+from thetatauCMT.scores.models import ScoreType
+
+from .filters import EventListFilter
+from .forms import EventForm, EventListFormHelper, PictureForm
 from .models import Event, Picture
 from .tables import EventTable
-from .filters import EventListFilter
-from .forms import EventListFormHelper, EventForm, PictureForm
-from django.http.response import HttpResponseRedirect
-from django.forms.models import modelformset_factory
-import logging
 
 
 class EventDetailView(LoginRequiredMixin, DetailView):

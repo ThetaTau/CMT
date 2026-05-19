@@ -1,10 +1,12 @@
 import csv
 import datetime
-from django.forms.models import model_to_dict
-from django.db.models import Q
+
 from address.models import Address
-from thetatauCMT.forms.models import Pledge, PledgeProcess
+from django.db.models import Q
+from django.forms.models import model_to_dict
+
 from thetatauCMT.chapters.models import Chapter, ChapterCurricula
+from thetatauCMT.forms.models import Pledge, PledgeProcess
 from thetatauCMT.users.models import User
 
 

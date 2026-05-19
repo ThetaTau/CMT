@@ -1,6 +1,7 @@
+from typing import TYPE_CHECKING
+
 from django.apps import AppConfig
 from watson import search as watson
-from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from .models import Job

@@ -3,6 +3,7 @@ from django.template.defaultfilters import slugify
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from django_ckeditor_5.fields import CKEditor5Field
+
 from core.models import TimeStampedModel
 
 

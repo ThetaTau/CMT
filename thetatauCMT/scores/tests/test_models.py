@@ -1,13 +1,15 @@
 import datetime
-import pytest
-from thetatauCMT.scores.models import ScoreType, ScoreChapter
-from thetatauCMT.events.tests.factories import EventFactory
-from thetatauCMT.submissions.tests.factories import SubmissionFactory
 
+import pytest
+
+from thetatauCMT.events.tests.factories import EventFactory
+from thetatauCMT.scores.models import ScoreChapter, ScoreType
+from thetatauCMT.submissions.tests.factories import SubmissionFactory
 
 # ---------------------------------------------------------------------------
 # ScoreType enum helpers
 # ---------------------------------------------------------------------------
+
 
 def test_section_get_value():
     assert ScoreType.SECTION.get_value("bro") == "Brotherhood"
@@ -26,6 +28,7 @@ def test_types_get_value():
 # ScoreType.__str__
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.django_db
 def test_score_type_str():
     st = ScoreType.objects.first()
@@ -35,6 +38,7 @@ def test_score_type_str():
 # ---------------------------------------------------------------------------
 # ScoreType.chapter_events
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.django_db
 def test_chapter_events_no_date(chapter, event_factory):
@@ -55,9 +59,7 @@ def test_chapter_events_with_date(chapter, event_factory):
     event_recent = event_factory.create(
         chapter=chapter, type=score_type, date=recent_date
     )
-    event_old = event_factory.create(
-        chapter=chapter, type=score_type, date=old_date
-    )
+    event_old = event_factory.create(chapter=chapter, type=score_type, date=old_date)
     result = score_type.chapter_events(chapter, date=recent_date)
     result_pks = set(result.values_list("pk", flat=True))
     assert event_recent.pk in result_pks
@@ -67,6 +69,7 @@ def test_chapter_events_with_date(chapter, event_factory):
 # ---------------------------------------------------------------------------
 # ScoreType.chapter_score
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.django_db
 def test_chapter_score_evt_no_events(chapter):
@@ -122,8 +125,11 @@ def test_chapter_score_spe_returns_zero(chapter):
 # ScoreType.calculate_score
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.django_db
-def test_calculate_score_base_points_only(chapter, event_factory, user_status_change_factory):
+def test_calculate_score_base_points_only(
+    chapter, event_factory, user_status_change_factory
+):
     """ScoreType with only base_points uses that amount."""
     score_type = ScoreType.objects.filter(
         type="Evt", base_points__gt=0, special=""
@@ -167,6 +173,7 @@ def test_calculate_score_member_add(chapter, event_factory, user_status_change_f
 # ScoreType.calculate_special — formula substitution
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.django_db
 def test_calculate_special_guests_formula(chapter, event_factory):
     """GUESTS placeholder in formula is replaced with event.guests."""
@@ -193,6 +200,7 @@ def test_calculate_special_calculated_elsewhere(chapter, event_factory):
 # ---------------------------------------------------------------------------
 # ScoreChapter
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.django_db
 def test_score_chapter_create_directly(chapter):

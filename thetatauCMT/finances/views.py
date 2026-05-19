@@ -1,8 +1,9 @@
-from core.views import PagedFilteredTableView, LoginRequiredMixin
+from core.views import LoginRequiredMixin, PagedFilteredTableView
+
+from .filters import ChapterBalanceListFilter, InvoiceListFilter
+from .forms import ChapterBalanceListFormHelper, InvoiceListFormHelper
 from .models import Invoice
-from .tables import InvoiceTable, ChapterBalanceTable
-from .filters import InvoiceListFilter, ChapterBalanceListFilter
-from .forms import InvoiceListFormHelper, ChapterBalanceListFormHelper
+from .tables import ChapterBalanceTable, InvoiceTable
 
 
 class InvoiceListView(LoginRequiredMixin, PagedFilteredTableView):

@@ -12,8 +12,8 @@
 
 import os
 import sys
-import django
 
+import django
 
 sys.path.insert(0, os.path.abspath("/app"))
 os.environ.setdefault("DATABASE_URL", "")

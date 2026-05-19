@@ -4,17 +4,12 @@ Unit tests for thetatauCMT/users/notifications.py.
 Tests cover __init__ initialization of each notification class.
 No emails are actually sent — we only assert that attributes are set correctly.
 """
+
 import pytest
 
 from thetatauCMT.chapters.tests.factories import ChapterFactory
-from thetatauCMT.users.notifications import (
-    MemberEmail,
-    MemberInfoUpdate,
-    NewOfficers,
-    OfficerUpdateReminder,
-)
+from thetatauCMT.users.notifications import MemberEmail, MemberInfoUpdate, NewOfficers, OfficerUpdateReminder
 from thetatauCMT.users.tests.factories import UserFactory
-
 
 # ─── MemberInfoUpdate ─────────────────────────────────────────────────────────
 
@@ -146,6 +141,7 @@ def test_member_email_renders_template_content():
 @pytest.mark.django_db
 def test_officer_monthly_init_sets_subject():
     from thetatauCMT.users.notifications import OfficerMonthly
+
     chapter = ChapterFactory.create(candidate_chapter=False)
     notif = OfficerMonthly(chapter)
     assert chapter.name + " Chapter" in notif.subject
@@ -154,6 +150,7 @@ def test_officer_monthly_init_sets_subject():
 @pytest.mark.django_db
 def test_officer_monthly_context_has_chapter():
     from thetatauCMT.users.notifications import OfficerMonthly
+
     chapter = ChapterFactory.create(candidate_chapter=False)
     notif = OfficerMonthly(chapter)
     assert "chapter" in notif.context
@@ -162,6 +159,7 @@ def test_officer_monthly_context_has_chapter():
 @pytest.mark.django_db
 def test_officer_monthly_candidate_chapter_no_suffix():
     from thetatauCMT.users.notifications import OfficerMonthly
+
     chapter = ChapterFactory.create(candidate_chapter=True)
     notif = OfficerMonthly(chapter)
     # Candidate chapters have no " Chapter" suffix in the name
@@ -171,6 +169,7 @@ def test_officer_monthly_candidate_chapter_no_suffix():
 @pytest.mark.django_db
 def test_officer_monthly_context_has_tasks():
     from thetatauCMT.users.notifications import OfficerMonthly
+
     chapter = ChapterFactory.create()
     notif = OfficerMonthly(chapter)
     assert "tasks_upcoming" in notif.context
@@ -183,6 +182,7 @@ def test_officer_monthly_context_has_tasks():
 @pytest.mark.django_db
 def test_rd_monthly_init_sets_to_emails_from_region():
     from thetatauCMT.users.notifications import RDMonthly
+
     chapter = ChapterFactory.create(active=True)
     region = chapter.region
     notif = RDMonthly(region)
@@ -192,6 +192,7 @@ def test_rd_monthly_init_sets_to_emails_from_region():
 @pytest.mark.django_db
 def test_rd_monthly_context_has_table_and_region():
     from thetatauCMT.users.notifications import RDMonthly
+
     chapter = ChapterFactory.create(active=True)
     region = chapter.region
     notif = RDMonthly(region)
@@ -203,6 +204,7 @@ def test_rd_monthly_context_has_table_and_region():
 def test_rd_monthly_candidate_chapter_string():
     """RDMonthly('candidate_chapter') uses hardcoded email and CC chapter email."""
     from thetatauCMT.users.notifications import RDMonthly
+
     notif = RDMonthly("candidate_chapter")
     assert "ccd@thetatau.org" in notif.to_emails
 
@@ -211,6 +213,7 @@ def test_rd_monthly_candidate_chapter_string():
 def test_rd_monthly_skips_inactive_chapters():
     """RDMonthly skips inactive chapters when building context data."""
     from thetatauCMT.users.notifications import RDMonthly
+
     # Create one active and one inactive chapter in the same region
     active_chapter = ChapterFactory.create(active=True)
     region = active_chapter.region
@@ -232,4 +235,3 @@ def test_member_info_update_password_false_when_no_usable_password():
     updater = UserFactory.create()
     notif = MemberInfoUpdate(user, updater)
     assert notif.context["password"] is False
-

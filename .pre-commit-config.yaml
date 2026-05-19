@@ -1,31 +1,31 @@
-exclude: 'docs|node_modules|migrations|.git|.tox'
-default_stages: [commit]
+exclude: 'docs|node_modules|migrations|.git|.tox|media'
+default_stages: [pre-commit]
 fail_fast: true
 
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.0.1
+    rev: v4.6.0
     hooks:
       - id: trailing-whitespace
       - id: end-of-file-fixer
       - id: check-yaml
 
   - repo: https://github.com/psf/black
-    rev: 21.6b0
+    rev: 26.5.1
     hooks:
       - id: black
 
-  - repo: https://github.com/timothycrosley/isort
-    rev: 5.9.1
+  - repo: https://github.com/PyCQA/isort
+    rev: 5.13.2
     hooks:
       - id: isort
 
   - repo: https://github.com/PyCQA/flake8
-    rev: 3.9.2
+    rev: 7.3.0
     hooks:
       - id: flake8
         args: ['--config=setup.cfg']
-        additional_dependencies: [flake8-isort]
+        additional_dependencies: [flake8-isort==7.0.0]
 
 
 # sets up .pre-commit-ci.yaml to ensure pre-commit dependencies stay up to date

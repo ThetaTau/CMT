@@ -1,5 +1,6 @@
 import pytest
 from pytest_django.asserts import assertQuerySetEqual
+
 from thetatauCMT.chapters.models import Chapter
 from thetatauCMT.regions.models import Region
 

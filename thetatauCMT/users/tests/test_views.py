@@ -2,9 +2,10 @@
 View tests for the users app.
 Uses the auto_login_user fixture which handles RMPSignMiddleware.
 """
+
 import pytest
-from django.test import override_settings
 from django.contrib.auth.models import Group
+from django.test import override_settings
 from django.urls import reverse
 
 
@@ -26,6 +27,7 @@ def _make_officer(user, client):
 # UserRedirectView
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.django_db
 def test_user_redirect_view(auto_login_user):
     client, user = auto_login_user()
@@ -39,6 +41,7 @@ def test_user_redirect_view(auto_login_user):
 # ---------------------------------------------------------------------------
 # UserDetailUpdateView (myinfo)
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.django_db
 def test_user_detail_view_returns_200(auto_login_user):
@@ -59,6 +62,7 @@ def test_user_detail_view_unauthenticated(client):
 # ---------------------------------------------------------------------------
 # UserListView — national officer only
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.django_db
 def test_user_list_view_natoff_returns_200(auto_login_user):
@@ -82,6 +86,7 @@ def test_user_list_view_chapter_officer_redirected_or_403(auto_login_user):
 # UserDetailView (memberinfo by username)
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.django_db
 def test_user_member_info_view(auto_login_user):
     client, user = auto_login_user(make_officer="national")
@@ -94,6 +99,7 @@ def test_user_member_info_view(auto_login_user):
 # ---------------------------------------------------------------------------
 # UserGPAFormSetView
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.django_db
 def test_user_gpas_view_returns_200(auto_login_user):
@@ -108,6 +114,7 @@ def test_user_gpas_view_returns_200(auto_login_user):
 # UserServiceFormSetView
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.django_db
 def test_user_service_view_returns_200(auto_login_user):
     client, user = auto_login_user()
@@ -119,6 +126,7 @@ def test_user_service_view_returns_200(auto_login_user):
 # ---------------------------------------------------------------------------
 # UserOrgsFormSetView
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.django_db
 def test_user_orgs_view_returns_200(auto_login_user):
@@ -132,6 +140,7 @@ def test_user_orgs_view_returns_200(auto_login_user):
 # UserSearchView
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.django_db
 def test_user_search_view_natoff(auto_login_user):
     client, user = auto_login_user(make_officer="national")
@@ -144,6 +153,7 @@ def test_user_search_view_natoff(auto_login_user):
 # ---------------------------------------------------------------------------
 # User model — set_no_contact
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.django_db
 def test_set_no_contact(auto_login_user, user_factory):
@@ -159,6 +169,7 @@ def test_set_no_contact(auto_login_user, user_factory):
 # User model — get_name_with_details
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.django_db
 def test_get_name_with_details(user_factory):
     user = user_factory.create()
@@ -171,6 +182,7 @@ def test_get_name_with_details(user_factory):
 # User model — current_chapter property
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.django_db
 def test_current_chapter_regular_user(user_factory):
     user = user_factory.create()
@@ -180,6 +192,7 @@ def test_current_chapter_regular_user(user_factory):
 # ---------------------------------------------------------------------------
 # User model — emails property
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.django_db
 def test_user_emails_property(user_factory):
@@ -193,6 +206,7 @@ def test_user_emails_property(user_factory):
 # User model — get_absolute_url
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.django_db
 def test_user_get_absolute_url(user_factory):
     user = user_factory.create()
@@ -203,9 +217,11 @@ def test_user_get_absolute_url(user_factory):
 # User model — next_pledge_number
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.django_db
 def test_next_pledge_number_starts_at_2000000(user_factory):
     from thetatauCMT.users.models import User
+
     next_num = User.next_pledge_number()
     assert next_num >= 2_000_000
 
@@ -213,6 +229,7 @@ def test_next_pledge_number_starts_at_2000000(user_factory):
 # ---------------------------------------------------------------------------
 # user_verify view (officer-only)
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.skip(
     reason=(
@@ -246,6 +263,7 @@ def test_user_verify_view_denied_no_officer(auto_login_user, user_factory):
 # UserDetailView (memberinfo/<username>) — natoff only
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.django_db
 def test_user_detail_view_natoff(auto_login_user, user_factory):
     client, user = auto_login_user()
@@ -269,6 +287,7 @@ def test_user_detail_view_denied_regular_user(auto_login_user, user_factory):
 # UserSearchView — with query
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.django_db
 def test_user_search_view_with_query(auto_login_user):
     client, user = auto_login_user()
@@ -281,6 +300,7 @@ def test_user_search_view_with_query(auto_login_user):
 # ---------------------------------------------------------------------------
 # UserListView — regular officer can access
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.django_db
 def test_user_list_view_returns_200_authenticated(auto_login_user):
@@ -301,6 +321,7 @@ def test_user_list_view_unauthenticated(client):
 # User model — is_national_officer helper
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.django_db
 def test_is_national_officer_false_default(user_factory):
     user = user_factory.create()
@@ -318,6 +339,7 @@ def test_is_national_officer_group_with_natoff(auto_login_user):
 # User model — badge_number auto-assign
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.django_db
 def test_badge_number_assigned_on_create(user_factory):
     user = user_factory.create()
@@ -328,6 +350,7 @@ def test_badge_number_assigned_on_create(user_factory):
 # ---------------------------------------------------------------------------
 # UserListView — CSV download and cancel param
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.django_db
 def test_user_list_view_with_cancel_param(auto_login_user):
@@ -353,6 +376,7 @@ def test_user_list_view_csv_download_as_officer(auto_login_user):
 # UserGPAFormSetView (OfficerRequired)
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.django_db
 def test_user_gpas_view_officer_returns_200(auto_login_user):
     """Officer can access the GPA formset view."""
@@ -376,6 +400,7 @@ def test_user_gpas_view_non_officer_redirects(auto_login_user):
 # UserServiceFormSetView (LoginRequired)
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.django_db
 def test_user_service_view_cancel(auto_login_user):
     """?cancel=1 clears filter and returns 200."""
@@ -388,6 +413,7 @@ def test_user_service_view_cancel(auto_login_user):
 # ---------------------------------------------------------------------------
 # UserLookupSearchView (no auth required)
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.django_db
 def test_user_lookup_search_view_returns_200(client):
@@ -417,6 +443,7 @@ def test_user_lookup_update_view_returns_200(client):
 # UserAlterView (NatOfficerRequired)
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.django_db
 def test_user_alter_view_unauthenticated_redirects(client):
     """Unauthenticated users are redirected from alter chapter view."""
@@ -438,6 +465,7 @@ def test_user_alter_view_natoff_returns_200(auto_login_user):
 # ---------------------------------------------------------------------------
 # UserOrgsFormSetView
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.django_db
 def test_user_orgs_view_cancel(auto_login_user):
@@ -652,8 +680,8 @@ def test_user_member_info_natoff_returns_200(auto_login_user):
 @pytest.mark.django_db
 def test_user_detail_view_with_gpa_records(auto_login_user):
     """GET to users:detail with existing GPA records covers get_gpa_initial."""
-    from thetatauCMT.users.models import UserSemesterGPA
     from core.models import BIENNIUM_YEARS
+    from thetatauCMT.users.models import UserSemesterGPA
 
     client, user = auto_login_user()
     # Create GPA records for two semesters in the biennium
@@ -677,8 +705,8 @@ def test_user_detail_view_with_gpa_records(auto_login_user):
 @pytest.mark.django_db
 def test_user_detail_view_with_service_records(auto_login_user):
     """GET to users:detail with existing service records covers get_service_initial."""
-    from thetatauCMT.users.models import UserSemesterServiceHours
     from core.models import BIENNIUM_YEARS
+    from thetatauCMT.users.models import UserSemesterServiceHours
 
     client, user = auto_login_user()
     UserSemesterServiceHours.objects.create(
@@ -849,8 +877,8 @@ def test_user_list_view_email_all_no_members(auto_login_user):
 @pytest.mark.django_db
 def test_user_list_view_csv_download_chapter_officer(auto_login_user):
     """Chapter officer (is_officer=True via current_roles) can trigger CSV."""
-    from thetatauCMT.users.tests.factories import UserStatusChangeFactory
     from core.models import CHAPTER_OFFICER
+    from thetatauCMT.users.tests.factories import UserStatusChangeFactory
 
     client, user = auto_login_user(make_officer="chapter")
     UserStatusChangeFactory.create(user=user, current=True, status="active")
@@ -868,6 +896,7 @@ def test_user_list_view_csv_download_chapter_officer(auto_login_user):
 def test_user_list_view_email_all_chapter_officer(auto_login_user):
     """Chapter officer can trigger email-all action (covers email branch)."""
     from unittest.mock import patch
+
     from thetatauCMT.users.tests.factories import UserStatusChangeFactory
 
     client, user = auto_login_user(make_officer="chapter")
@@ -891,6 +920,7 @@ def test_user_list_view_email_all_chapter_officer(auto_login_user):
 def test_password_reset_form_not_active_save(auto_login_user):
     """PasswordResetFormNotActive.save() sends reset email to user."""
     from django.test import RequestFactory
+
     from thetatauCMT.users.views import PasswordResetFormNotActive
 
     client, user = auto_login_user()
@@ -908,8 +938,9 @@ def test_password_reset_form_not_active_save(auto_login_user):
 @pytest.mark.django_db
 def test_password_reset_form_not_active_save_no_email(auto_login_user):
     """save() with email=None in cleaned_data triggers early return with message."""
-    from django.test import RequestFactory
     from django.contrib.messages.storage.cookie import CookieStorage
+    from django.test import RequestFactory
+
     from thetatauCMT.users.views import PasswordResetFormNotActive
 
     factory = RequestFactory()
@@ -945,6 +976,7 @@ def test_user_lookup_update_form_valid_no_session_user(client, db):
 def test_user_lookup_update_form_valid_with_session_user_no_change(client, db):
     """POST with session user but unchanged data → updated={} → just redirects."""
     from django.test import override_settings
+
     from thetatauCMT.users.tests.factories import UserFactory
 
     user = UserFactory.create()
@@ -960,8 +992,10 @@ def test_user_lookup_update_form_valid_with_session_user_no_change(client, db):
 @pytest.mark.django_db
 def test_user_lookup_update_form_valid_with_session_user_and_changes(client, db):
     """POST with session user and new first_name starts MemberUpdateFlow."""
-    from django.test import override_settings
     from unittest.mock import patch
+
+    from django.test import override_settings
+
     from thetatauCMT.users.tests.factories import UserFactory
 
     user = UserFactory.create(first_name="OldFirst")
@@ -972,7 +1006,9 @@ def test_user_lookup_update_form_valid_with_session_user_and_changes(client, db)
     with override_settings(DEBUG=True):
         with patch("thetatauCMT.users.flows.MemberUpdateFlow") as mock_flow:
             mock_flow.start.run.return_value = None
-            response = client.post(url, {"first_name": "BrandNewFirst", "major_other": "Applied Physics"})
+            response = client.post(
+                url, {"first_name": "BrandNewFirst", "major_other": "Applied Physics"}
+            )
     assert response.status_code == 302
     mock_flow.start.run.assert_called_once()
 
@@ -1095,7 +1131,7 @@ def test_user_lookup_login_view_get_context(client, db):
 @pytest.mark.django_db
 def test_user_detail_post_user_form_valid_mocked(auto_login_user):
     """POST action=user mocking UserForm to bypass address validation."""
-    from unittest.mock import patch, MagicMock
+    from unittest.mock import MagicMock, patch
 
     client, user = auto_login_user()
     url = reverse("users:detail")
@@ -1120,9 +1156,10 @@ def test_user_detail_post_user_form_valid_mocked(auto_login_user):
 def test_user_detail_post_user_form_valid_patched(auto_login_user):
     """POST action=user with mock form class in form_classes covers user_form_valid."""
     from unittest.mock import patch
-    from thetatauCMT.users.views import UserDetailUpdateView
-    from thetatauCMT.users.forms import UserGPAForm, UserServiceForm
+
     from thetatauCMT.forms.forms import PledgeDemographicsForm
+    from thetatauCMT.users.forms import UserGPAForm, UserServiceForm
+    from thetatauCMT.users.views import UserDetailUpdateView
 
     client, user = auto_login_user()
     url = reverse("users:detail")
@@ -1164,6 +1201,7 @@ def test_user_detail_post_user_form_valid_patched(auto_login_user):
 def test_password_reset_form_not_active_save_domain_override(auto_login_user):
     """save() with domain_override covers the else branch (line 501)."""
     from django.test import RequestFactory
+
     from thetatauCMT.users.views import PasswordResetFormNotActive
 
     client, user = auto_login_user()
@@ -1209,8 +1247,10 @@ def test_user_lookup_update_get_officer_in_session(client, db):
 @pytest.mark.django_db
 def test_user_lookup_update_form_valid_major_other(client, db):
     """POST with major_other value covers the major_other update branch (681)."""
-    from django.test import override_settings
     from unittest.mock import patch
+
+    from django.test import override_settings
+
     from thetatauCMT.users.tests.factories import UserFactory
 
     user = UserFactory.create()
@@ -1240,7 +1280,11 @@ def test_user_autocomplete_actives(auto_login_user):
     url = reverse("users:autocomplete")
     response = client.get(
         url,
-        {"forward": json.dumps({"chapter": "true", "actives": "true", "alumni": "false"})},
+        {
+            "forward": json.dumps(
+                {"chapter": "true", "actives": "true", "alumni": "false"}
+            )
+        },
     )
     assert response.status_code == 200
 
@@ -1255,7 +1299,11 @@ def test_user_autocomplete_alumni(auto_login_user):
     url = reverse("users:autocomplete")
     response = client.get(
         url,
-        {"forward": json.dumps({"chapter": "true", "actives": "false", "alumni": "true"})},
+        {
+            "forward": json.dumps(
+                {"chapter": "true", "actives": "false", "alumni": "true"}
+            )
+        },
     )
     assert response.status_code == 200
 
@@ -1356,6 +1404,7 @@ def test_user_detail_service_form_valid_saves_records_to_db(auto_login_user):
 def test_password_reset_sends_email_to_user_address(auto_login_user, mailoutbox):
     """PasswordResetFormNotActive.save() places an email addressed to user.email."""
     from django.test import RequestFactory
+
     from thetatauCMT.users.views import PasswordResetFormNotActive
 
     client, user = auto_login_user()
@@ -1370,9 +1419,9 @@ def test_password_reset_sends_email_to_user_address(auto_login_user, mailoutbox)
 
     assert len(mailoutbox) >= 1, "Expected at least one email to be sent"
     all_recipients = [addr for msg in mailoutbox for addr in msg.to]
-    assert user.email in all_recipients, (
-        f"{user.email!r} not found in recipients {all_recipients}"
-    )
+    assert (
+        user.email in all_recipients
+    ), f"{user.email!r} not found in recipients {all_recipients}"
 
 
 @pytest.mark.django_db
@@ -1381,6 +1430,7 @@ def test_password_reset_sends_separate_email_to_school_address(
 ):
     """save() sends an additional email to email_school when it differs from email."""
     from django.test import RequestFactory
+
     from thetatauCMT.users.views import PasswordResetFormNotActive
 
     client, user = auto_login_user()
@@ -1397,9 +1447,9 @@ def test_password_reset_sends_separate_email_to_school_address(
     form.save(request=request)
 
     all_recipients = [addr for msg in mailoutbox for addr in msg.to]
-    assert user.email_school in all_recipients, (
-        f"School email {user.email_school!r} not found in {all_recipients}"
-    )
+    assert (
+        user.email_school in all_recipients
+    ), f"School email {user.email_school!r} not found in {all_recipients}"
 
 
 # ---------------------------------------------------------------------------
@@ -1412,7 +1462,8 @@ def test_user_lookup_search_single_result_sets_session_and_redirects(
     auto_login_user,
 ):
     """When watson returns 1 result the view stores user pk in session and redirects."""
-    from unittest.mock import patch, MagicMock
+    from unittest.mock import MagicMock, patch
+
     from thetatauCMT.users.tests.factories import UserFactory
     from thetatauCMT.users.views import UserLookupSearchView
 
@@ -1441,7 +1492,8 @@ def test_user_lookup_search_single_result_sets_session_and_redirects(
 @pytest.mark.django_db
 def test_user_lookup_search_deceased_user_not_filtered_by_view(auto_login_user):
     """View does not exclude deceased users: a deceased user returned by watson is included."""
-    from unittest.mock import patch, MagicMock
+    from unittest.mock import MagicMock, patch
+
     from thetatauCMT.users.tests.factories import UserFactory
     from thetatauCMT.users.views import UserLookupSearchView
 
@@ -1470,7 +1522,8 @@ def test_user_lookup_search_deceased_user_not_filtered_by_view(auto_login_user):
 @pytest.mark.django_db
 def test_user_lookup_search_prospective_user_not_filtered_by_view(auto_login_user):
     """View does not exclude prospective (pnm) users: returned by watson → in session."""
-    from unittest.mock import patch, MagicMock
+    from unittest.mock import MagicMock, patch
+
     from thetatauCMT.users.tests.factories import UserFactory
     from thetatauCMT.users.views import UserLookupSearchView
 

@@ -1,6 +1,6 @@
 import pytest
-from django.urls import reverse
 from django.contrib.auth.models import Group
+from django.urls import reverse
 
 
 def _make_natoff(user, client):
@@ -102,14 +102,16 @@ def test_gear_article_list_view_regular_user_redirected(auto_login_user):
 @pytest.mark.django_db
 def test_submission_update_view_get_officer(auto_login_user):
     """Officers can GET the submission update form for a plain-file submission."""
-    from thetatauCMT.submissions.models import Submission
     from thetatauCMT.scores.models import ScoreType
+    from thetatauCMT.submissions.models import Submission
+
     client, user = auto_login_user(make_officer="chapter")
     _make_officer(user, client)
     score_type = ScoreType.objects.filter(type="Sub").first()
     if score_type is None:
         pytest.skip("No Sub ScoreType in fixture")
     import datetime
+
     submission = Submission.objects.create(
         name="Test Submission",
         date=datetime.date.today(),
@@ -124,14 +126,16 @@ def test_submission_update_view_get_officer(auto_login_user):
 @pytest.mark.django_db
 def test_submission_update_view_get_forms_file_redirects(auto_login_user):
     """GET to update view for a submission with 'forms:' file redirects to that view."""
-    from thetatauCMT.submissions.models import Submission
     from thetatauCMT.scores.models import ScoreType
+    from thetatauCMT.submissions.models import Submission
+
     client, user = auto_login_user(make_officer="chapter")
     _make_officer(user, client)
     score_type = ScoreType.objects.filter(type="Sub").first()
     if score_type is None:
         pytest.skip("No Sub ScoreType in fixture")
     import datetime
+
     # Use a forms: URL that resolves without args (forms:rmp)
     submission = Submission.objects.create(
         name="Test RMP Submission",

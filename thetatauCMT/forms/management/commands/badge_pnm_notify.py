@@ -3,12 +3,15 @@ Notes:
     To test run command
         docker-compose -f local.yml run --rm django python manage.py badge_pnm_notify
 """
+
 # Includes
 import datetime
+
 from django.core.management import BaseCommand
 from herald.models import SentNotification
-from thetatauCMT.forms.notifications import BadgePNMNotify
+
 from thetatauCMT.chapters.models import Chapter
+from thetatauCMT.forms.notifications import BadgePNMNotify
 
 
 class Command(BaseCommand):

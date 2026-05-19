@@ -1,11 +1,10 @@
 from django.contrib import admin
-from django.utils.safestring import mark_safe
 from django.urls import reverse
+from django.utils.safestring import mark_safe
 from import_export.admin import ImportMixin
 
-
-from .models import UserNote, ChapterNote
-from .resources import UserNoteResource, ChapterNoteResource
+from .models import ChapterNote, UserNote
+from .resources import ChapterNoteResource, UserNoteResource
 
 
 class ChapterSubNoteInline(admin.TabularInline):

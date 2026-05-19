@@ -1,7 +1,8 @@
 import datetime
+
+from core.models import TODAY
 from thetatauCMT.forms.models import StatusChange
 from thetatauCMT.users.models import UserStatusChange
-from core.models import TODAY
 
 
 def run():

@@ -1,5 +1,6 @@
 import pytest
 from django.utils.text import slugify
+
 from thetatauCMT.announcements.models import Announcement
 
 
@@ -16,6 +17,7 @@ def _make_announcement(title="Test Announcement", content="<p>Hello</p>"):
 # ---------------------------------------------------------------------------
 # Announcement.save — slug generation
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.django_db
 def test_announcement_save_sets_slug():
@@ -48,6 +50,7 @@ def test_announcement_save_does_not_change_slug_on_update():
 # Announcement ordering
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.django_db
 def test_announcement_ordering_by_priority():
     high = _make_announcement(title="High Priority")
@@ -63,6 +66,7 @@ def test_announcement_ordering_by_priority():
 # ---------------------------------------------------------------------------
 # Announcement.__unicode__
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.django_db
 def test_announcement_unicode():

@@ -1,14 +1,16 @@
 import datetime
+
 import pytest
 from django.utils.text import slugify
-from thetatauCMT.ballots.models import Ballot, BallotComplete
-from thetatauCMT.ballots.tests.factories import BallotFactory, BallotCompleteFactory
-from thetatauCMT.users.tests.factories import UserFactory
 
+from thetatauCMT.ballots.models import Ballot, BallotComplete
+from thetatauCMT.ballots.tests.factories import BallotCompleteFactory, BallotFactory
+from thetatauCMT.users.tests.factories import UserFactory
 
 # ---------------------------------------------------------------------------
 # Ballot.TYPES enum
 # ---------------------------------------------------------------------------
+
 
 def test_ballot_types_get_value():
     assert Ballot.TYPES.get_value("chapter") == "Chapter Petition"
@@ -40,6 +42,7 @@ def _create_ballot(**kwargs):
 # Ballot.__str__ and save
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.django_db
 def test_ballot_str():
     ballot = _create_ballot(name="Test Ballot")
@@ -56,6 +59,7 @@ def test_ballot_save_sets_slug():
 def test_ballot_save_with_all_chapters_creates_task():
     """Saving a ballot with 'all_chapters' in voters creates a Task."""
     from thetatauCMT.tasks.models import Task
+
     initial_task_count = Task.objects.count()
     ballot = Ballot(
         name="All Chapters Vote",
@@ -75,6 +79,7 @@ def test_ballot_save_with_all_chapters_creates_task():
 def test_ballot_save_without_all_chapters_no_task():
     """Saving a ballot without 'all_chapters' does NOT create a Task."""
     from thetatauCMT.tasks.models import Task
+
     initial_task_count = Task.objects.count()
     ballot = Ballot(
         name="Specific Vote",
@@ -91,16 +96,21 @@ def test_ballot_save_without_all_chapters_no_task():
 # Ballot.ayes / nays / abstains
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.django_db
 def test_ballot_ayes_nays_abstains():
-    ballot = _create_ballot(name="Vote Count Test", type="other", description="Testing vote counts")
+    ballot = _create_ballot(
+        name="Vote Count Test", type="other", description="Testing vote counts"
+    )
     user1 = UserFactory.create()
     user2 = UserFactory.create()
     user3 = UserFactory.create()
     user4 = UserFactory.create()
 
     def _bc(user, motion):
-        bc = BallotComplete(ballot=ballot, user=user, motion=motion, role="grand regent")
+        bc = BallotComplete(
+            ballot=ballot, user=user, motion=motion, role="grand regent"
+        )
         bc.save()
         return bc
 
@@ -125,6 +135,7 @@ def test_ballot_ayes_empty():
 # Ballot.counts
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.django_db
 def test_ballot_counts_includes_all_ballots():
     for i in range(3):
@@ -142,9 +153,12 @@ def test_ballot_counts_includes_all_ballots():
 # Ballot.get_completed
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.django_db
 def test_ballot_get_completed_returns_none_when_not_voted():
-    ballot = _create_ballot(name="Incomplete Ballot", type="other", description="testing")
+    ballot = _create_ballot(
+        name="Incomplete Ballot", type="other", description="testing"
+    )
     user = UserFactory.create()
     result = ballot.get_completed(user)
     assert result is None
@@ -152,7 +166,9 @@ def test_ballot_get_completed_returns_none_when_not_voted():
 
 @pytest.mark.django_db
 def test_ballot_get_completed_returns_vote_when_voted():
-    ballot = _create_ballot(name="Completed Ballot", type="other", description="testing")
+    ballot = _create_ballot(
+        name="Completed Ballot", type="other", description="testing"
+    )
     user = UserFactory.create()
     bc = BallotComplete(ballot=ballot, user=user, motion="aye", role="grand regent")
     bc.save()

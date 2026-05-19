@@ -1,6 +1,7 @@
 import django_tables2 as tables
 from django_tables2.utils import A
-from .models import Submission, GearArticle
+
+from .models import GearArticle, Submission
 
 
 class SubmissionTable(tables.Table):

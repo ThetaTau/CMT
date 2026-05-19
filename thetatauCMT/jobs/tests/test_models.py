@@ -1,8 +1,10 @@
 import datetime
+
 import pytest
 from django.utils import timezone
 from django.utils.text import slugify
-from thetatauCMT.jobs.models import Job, Keyword, Major, JobSearch
+
+from thetatauCMT.jobs.models import Job, JobSearch, Keyword, Major
 
 
 def _make_job(**kwargs):
@@ -29,6 +31,7 @@ def _make_job(**kwargs):
 # Keyword and Major __str__
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.django_db
 def test_keyword_str():
     kw = Keyword.objects.create(name="Python")
@@ -44,6 +47,7 @@ def test_major_str():
 # ---------------------------------------------------------------------------
 # Job.save — slug generation
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.django_db
 def test_job_save_sets_slug_from_title():
@@ -73,6 +77,7 @@ def test_job_save_does_not_change_slug_on_update():
 # ---------------------------------------------------------------------------
 # Job.get_live_jobs
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.django_db
 def test_get_live_jobs_includes_active_job():
@@ -110,6 +115,7 @@ def test_get_live_jobs_excludes_future_job():
 # ---------------------------------------------------------------------------
 # Job JOB_TYPE enum helper
 # ---------------------------------------------------------------------------
+
 
 def test_job_type_get_value():
     assert Job.JOB_TYPE.get_value("intern") == "Internship"

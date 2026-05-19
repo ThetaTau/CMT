@@ -1,189 +1,177 @@
-import csv
 import base64
+import csv
 import datetime
 import zipfile
-from io import BytesIO
 from copy import deepcopy
+from io import BytesIO
 from pathlib import Path
-from django.db import IntegrityError, transaction
-from django.db.models import (
-    Q,
-    F,
-    Value,
-    CharField,
-    Count,
-    Exists,
-    OuterRef,
-    Subquery,
-    Case,
-    When,
-    SmallIntegerField,
-)
-from django.conf import settings
-from django.contrib.postgres.aggregates import StringAgg
-from django.forms import models as model_forms
-from django.http import HttpRequest
-from django.utils.safestring import mark_safe
-from django.http.request import QueryDict
-from django.core.files.base import ContentFile
-from django.contrib import messages
-from django.urls import reverse
-from django.utils import timezone
-from django.shortcuts import render
-from django import forms
-from django.views.generic import UpdateView, DetailView, TemplateView
-from django.views.generic.edit import FormView, CreateView, ModelFormMixin
-from django.views.decorators.csrf import csrf_exempt
-from django.shortcuts import redirect
-from django.http import HttpResponseRedirect, HttpResponse, JsonResponse
+
 from allauth.account.models import EmailAddress
 from crispy_forms.layout import Submit
-from extra_views import FormSetView, ModelFormSetView
-from easy_pdf.views import PDFTemplateResponseMixin
+from django import forms
+from django.conf import settings
+from django.contrib import messages
+from django.contrib.postgres.aggregates import StringAgg
+from django.core.files.base import ContentFile
+from django.db import IntegrityError, transaction
+from django.db.models import Case, CharField, Count, Exists, F, OuterRef, Q, SmallIntegerField, Subquery, Value, When
+from django.forms import models as model_forms
+from django.http import HttpRequest, HttpResponse, HttpResponseRedirect, JsonResponse
+from django.http.request import QueryDict
+from django.shortcuts import redirect, render
+from django.urls import reverse
+from django.utils import timezone
+from django.utils.safestring import mark_safe
+from django.views.decorators.csrf import csrf_exempt
+from django.views.generic import DetailView, TemplateView, UpdateView
+from django.views.generic.edit import CreateView, FormView, ModelFormMixin
 from django_weasyprint import WeasyTemplateResponseMixin
+from easy_pdf.views import PDFTemplateResponseMixin
+from extra_views import FormSetView, ModelFormSetView
 from viewflow.flow.views import CreateProcessView, UpdateProcessView
 from viewflow.frontend.viewset import FlowViewSet
 from viewflow.models import Task as FlowTask
 
-from core.flows import FilterProcessListView, AutoAssignUpdateProcessView
-from thetatauCMT.forms.notifications import CentralOfficeGenericEmail
+from core.flows import AutoAssignUpdateProcessView, FilterProcessListView
 from core.forms import MultiFormsView
 from core.models import (
-    semester_encompass_start_end_date,
+    CHAPTER_OFFICER,
+    COL_OFFICER_ALIGN,
+    SEMESTER,
     TODAY_END,
     current_term,
     current_year,
     current_year_term_slug,
-    CHAPTER_OFFICER,
-    COL_OFFICER_ALIGN,
-    SEMESTER,
+    semester_encompass_start_end_date,
 )
 from core.notifications import GenericEmail
 from core.views import (
-    OfficerRequiredMixin,
-    LoginRequiredMixin,
-    RequestConfig,
-    PagedFilteredTableView,
-    NatOfficerRequiredMixin,
-    group_required,
     AssignOfficerFormMixin,
+    LoginRequiredMixin,
+    NatOfficerRequiredMixin,
+    OfficerRequiredMixin,
+    PagedFilteredTableView,
+    RequestConfig,
+    group_required,
 )
-from thetatauCMT.surveys.notifications import DepledgeSurveyEmail, SurveyEmail
-from thetatauCMT.users.tables import RollBookTable
-from .forms import (
-    InitiationFormSet,
-    BylawsForm,
-    BylawsListFormHelper,
-    InitiationForm,
-    InitiationFormHelper,
-    InitDeplSelectForm,
-    InitDeplSelectFormHelper,
-    DepledgeFormSet,
-    DepledgeFormHelper,
-    StatusChangeSelectForm,
-    StatusChangeSelectFormHelper,
-    GraduateForm,
-    GraduateFormSet,
-    CSMTFormSet,
-    GraduateFormHelper,
-    CSMTFormHelper,
-    RoleChangeSelectForm,
-    RiskManagementForm,
-    RoleChangeNationalSelectForm,
-    PledgeProgramForm,
-    AuditForm,
-    PledgeFormFull,
-    PrematureAlumnusForm,
-    AuditListFormHelper,
-    RiskListFormHelper,
-    PledgeProgramFormHelper,
-    CompleteFormHelper,
-    ConventionForm,
-    HSEducationForm,
-    HSEducationListFormHelper,
-    OSMForm,
-    DisciplinaryForm1,
-    DisciplinaryForm2,
-    CollectionReferralForm,
-    ResignationForm,
-    ReturnStudentForm,
-    AlumniExclusionForm,
-    AlumniExclusionReviewForm,
-    AlumniExclusionFormHelper,
-    RitualProficiencyForm,
-)
-from thetatauCMT.tasks.models import Task
+from thetatauCMT.chapters.models import Chapter, ChapterCurricula
+from thetatauCMT.configs.models import Config
+from thetatauCMT.forms.notifications import CentralOfficeGenericEmail
+from thetatauCMT.regions.models import Region
 from thetatauCMT.scores.models import ScoreType
 from thetatauCMT.submissions.models import Submission
-from thetatauCMT.configs.models import Config
-from thetatauCMT.users.models import User, UserRoleChange
-from thetatauCMT.users.forms import UserForm
-from thetatauCMT.users.notifications import NewOfficers
-from thetatauCMT.chapters.models import Chapter, ChapterCurricula
-from thetatauCMT.regions.models import Region
+from thetatauCMT.surveys.notifications import DepledgeSurveyEmail, SurveyEmail
+from thetatauCMT.tasks.models import Task
 from thetatauCMT.trainings.models import Training
-from .tables import (
-    BadgeTable,
-    BylawsListTable,
-    InitiationTable,
-    DepledgeTable,
-    StatusChangeTable,
-    PledgeFormTable,
-    AuditTable,
-    RiskFormTable,
-    PledgeProgramTable,
-    HSEducationTable,
-    HSEducationListTable,
-    PrematureAlumnusStatusTable,
-    SignTable,
-    ConventionListTable,
-    OSMListTable,
-    DisciplinaryStatusTable,
-    CollectionReferralTable,
-    AlumniExclusionTable,
-    ResignationStatusTable,
-    ReturnStudentStatusTable,
-    PledgeProgramStatusTable,
-    RitualProficiencyTable,
-)
-from .models import (
-    Badge,
-    Bylaws,
-    Depledge,
-    StatusChange,
-    RiskManagement,
-    PledgeProgram,
-    Audit,
-    HSEducation,
-    PrematureAlumnus,
-    InitiationProcess,
-    Convention,
-    PledgeProcess,
-    OSM,
-    DisciplinaryProcess,
-    CollectionReferral,
-    ResignationProcess,
-    ReturnStudent,
-    PledgeProgramProcess,
-    AlumniExclusion,
-    RitualProficiency,
-)
+from thetatauCMT.users.forms import UserForm
+from thetatauCMT.users.models import User, UserRoleChange
+from thetatauCMT.users.notifications import NewOfficers
+from thetatauCMT.users.tables import RollBookTable
+
 from .filters import (
+    AlumniExclusionListFilter,
     AuditListFilter,
     BylawsListFilter,
-    PledgeProgramListFilter,
     CompleteListFilter,
-    RiskListFilter,
     EducationListFilter,
-    AlumniExclusionListFilter,
+    PledgeProgramListFilter,
+    RiskListFilter,
+)
+from .forms import (
+    AlumniExclusionForm,
+    AlumniExclusionFormHelper,
+    AlumniExclusionReviewForm,
+    AuditForm,
+    AuditListFormHelper,
+    BylawsForm,
+    BylawsListFormHelper,
+    CollectionReferralForm,
+    CompleteFormHelper,
+    ConventionForm,
+    CSMTFormHelper,
+    CSMTFormSet,
+    DepledgeFormHelper,
+    DepledgeFormSet,
+    DisciplinaryForm1,
+    DisciplinaryForm2,
+    GraduateForm,
+    GraduateFormHelper,
+    GraduateFormSet,
+    HSEducationForm,
+    HSEducationListFormHelper,
+    InitDeplSelectForm,
+    InitDeplSelectFormHelper,
+    InitiationForm,
+    InitiationFormHelper,
+    InitiationFormSet,
+    OSMForm,
+    PledgeFormFull,
+    PledgeProgramForm,
+    PledgeProgramFormHelper,
+    PrematureAlumnusForm,
+    ResignationForm,
+    ReturnStudentForm,
+    RiskListFormHelper,
+    RiskManagementForm,
+    RitualProficiencyForm,
+    RoleChangeNationalSelectForm,
+    RoleChangeSelectForm,
+    StatusChangeSelectForm,
+    StatusChangeSelectFormHelper,
+)
+from .models import (
+    OSM,
+    AlumniExclusion,
+    Audit,
+    Badge,
+    Bylaws,
+    CollectionReferral,
+    Convention,
+    Depledge,
+    DisciplinaryProcess,
+    HSEducation,
+    InitiationProcess,
+    PledgeProcess,
+    PledgeProgram,
+    PledgeProgramProcess,
+    PrematureAlumnus,
+    ResignationProcess,
+    ReturnStudent,
+    RiskManagement,
+    RitualProficiency,
+    StatusChange,
 )
 from .notifications import (
-    EmailRMPSigned,
-    EmailPledgeOther,
     EmailPledgeConfirmation,
-    EmailPledgeWelcome,
     EmailPledgeOfficer,
+    EmailPledgeOther,
+    EmailPledgeWelcome,
     EmailProcessUpdate,
+    EmailRMPSigned,
+)
+from .tables import (
+    AlumniExclusionTable,
+    AuditTable,
+    BadgeTable,
+    BylawsListTable,
+    CollectionReferralTable,
+    ConventionListTable,
+    DepledgeTable,
+    DisciplinaryStatusTable,
+    HSEducationListTable,
+    HSEducationTable,
+    InitiationTable,
+    OSMListTable,
+    PledgeFormTable,
+    PledgeProgramStatusTable,
+    PledgeProgramTable,
+    PrematureAlumnusStatusTable,
+    ResignationStatusTable,
+    ReturnStudentStatusTable,
+    RiskFormTable,
+    RitualProficiencyTable,
+    SignTable,
+    StatusChangeTable,
 )
 
 
@@ -1749,9 +1737,7 @@ class PledgeFormView(CreateView):
             Training.add_user(user, request=self.request)
         except Exception as e:
             message = f"Error adding training {user=} {user.chapter=} {e}"
-            CentralOfficeGenericEmail(
-                message, subject="[CMT] Training Error"
-            ).send()
+            CentralOfficeGenericEmail(message, subject="[CMT] Training Error").send()
         messages.add_message(
             self.request,
             messages.INFO,
@@ -1818,13 +1804,16 @@ def badge_shingle_init_csv(request, csv_type, process_pk, response_type="csv"):
     content_type = "application/json" if response_type == "json" else "text/csv"
     response = HttpResponse(content_type=content_type)
     if csv_type in ["badge", "shingle"]:
-        process.generate_badge_shingle_order(response, csv_type, file_type=response_type)
+        process.generate_badge_shingle_order(
+            response, csv_type, file_type=response_type
+        )
     elif csv_type == "invoice":
         process.generate_blackbaud_update(invoice=True, response=response)
     else:
         process.generate_blackbaud_update(response=response)
     response["Cache-Control"] = "no-cache"
     return response
+
 
 @group_required("natoff")
 @csrf_exempt

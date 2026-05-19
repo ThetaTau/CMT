@@ -1,8 +1,9 @@
 from django.contrib import admin
 from django.http import HttpResponseRedirect
 from django.shortcuts import render
-from .models import Training
+
 from .forms import UserAdminTrainingForm
+from .models import Training
 
 
 class AssignTrainingMixin:

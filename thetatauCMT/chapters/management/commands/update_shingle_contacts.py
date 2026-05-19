@@ -4,9 +4,9 @@ Notes:
         docker-compose -f local.yml run --rm django python manage.py chapter_pledges_check
 """
 
+import gspread
 from django.conf import settings
 from django.core.management import BaseCommand
-import gspread
 
 from thetatauCMT.chapters.models import Chapter
 

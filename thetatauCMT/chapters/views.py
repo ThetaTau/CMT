@@ -1,29 +1,27 @@
-from django.urls import reverse
-from django.shortcuts import get_object_or_404
 from django.contrib import messages
 from django.forms.models import modelformset_factory
 from django.http.response import HttpResponseRedirect
-from django.views.generic import RedirectView
+from django.shortcuts import get_object_or_404
+from django.urls import reverse
 from django.utils.safestring import mark_safe
-from core.views import (
-    RequestConfig,
-    LoginRequiredMixin,
-    PagedFilteredTableView,
-)
-from core.models import CHAPTER_OFFICER
+from django.views.generic import RedirectView
+
 from core.forms import MultiFormsView
-from .models import Chapter
-from .forms import ChapterForm, ChapterFormHelper
-from .filters import ChapterListFilter
-from .tables import ChapterCurriculaTable, ChapterTable, AuditTable
-from thetatauCMT.users.tables import UserTable
-from thetatauCMT.users.models import User
-from thetatauCMT.users.forms import ExternalUserForm
-from thetatauCMT.tasks.models import Task
-from thetatauCMT.submissions.models import Submission
-from thetatauCMT.forms.notifications import EmailAdvisorWelcome
+from core.models import CHAPTER_OFFICER
+from core.views import LoginRequiredMixin, PagedFilteredTableView, RequestConfig
 from thetatauCMT.forms.models import Audit
+from thetatauCMT.forms.notifications import EmailAdvisorWelcome
 from thetatauCMT.notes.tables import ChapterNoteTable
+from thetatauCMT.submissions.models import Submission
+from thetatauCMT.tasks.models import Task
+from thetatauCMT.users.forms import ExternalUserForm
+from thetatauCMT.users.models import User
+from thetatauCMT.users.tables import UserTable
+
+from .filters import ChapterListFilter
+from .forms import ChapterForm, ChapterFormHelper
+from .models import Chapter
+from .tables import AuditTable, ChapterCurriculaTable, ChapterTable
 
 
 class ChapterDetailView(LoginRequiredMixin, MultiFormsView):

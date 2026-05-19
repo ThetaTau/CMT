@@ -1,6 +1,6 @@
 import pytest
-from django.urls import reverse
 from django.contrib.auth.models import Group
+from django.urls import reverse
 
 
 def _make_natoff(user, client):

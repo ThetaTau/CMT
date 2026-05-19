@@ -1,16 +1,17 @@
-import re
 import datetime
+import re
+
 from django.db.models import Q
-from django.utils.safestring import mark_safe
 from django.urls import reverse
+from django.utils.safestring import mark_safe
+from material.frontend import frontend_url
 from viewflow import flow, frontend
+from viewflow.activation import STATUS, Activation, now
 from viewflow.compat import _
 from viewflow.flow import views as flow_views
-from viewflow.activation import now, Activation, STATUS
-from viewflow.frontend.views import ProcessListView
 from viewflow.flow.views.mixins import FlowListMixin
+from viewflow.frontend.views import ProcessListView
 from viewflow.frontend.viewset import FlowViewSet
-from material.frontend import frontend_url
 
 
 class AutoAssignUpdateProcessView(flow_views.UpdateProcessView):

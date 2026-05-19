@@ -1,12 +1,12 @@
 import os
 
 from address.models import Country, Locality
-from django_ckeditor_5.fields import CKEditor5Field
 from django.db import models
 from django.db.models.manager import BaseManager
 from django.template.defaultfilters import slugify
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
+from django_ckeditor_5.fields import CKEditor5Field
 from django_userforeignkey.models.fields import UserForeignKey
 from multiselectfield import MultiSelectField
 

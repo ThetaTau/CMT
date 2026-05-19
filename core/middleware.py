@@ -1,14 +1,14 @@
-from django.shortcuts import redirect
-from django.contrib import messages
-from django.conf import settings
-from django.urls import reverse
-from django.utils.safestring import mark_safe
-from django.utils.deprecation import MiddlewareMixin
 from allauth_2fa.middleware import BaseRequire2FAMiddleware
+from django.conf import settings
+from django.contrib import messages
+from django.shortcuts import redirect
+from django.urls import reverse
+from django.utils.deprecation import MiddlewareMixin
+from django.utils.safestring import mark_safe
 
-from thetatauCMT.forms.models import RiskManagement, PledgeProgram
-from core.utils import check_officer, check_nat_officer
-from core.models import current_term, current_month
+from core.models import current_month, current_term
+from core.utils import check_nat_officer, check_officer
+from thetatauCMT.forms.models import PledgeProgram, RiskManagement
 
 
 class RequireSuperuser2FAMiddleware(BaseRequire2FAMiddleware):

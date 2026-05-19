@@ -1,11 +1,12 @@
 # filters.py
 import django_filters
+from django.forms.widgets import NumberInput
 
 from core.filters import DateRangeFilter
-from django.forms.widgets import NumberInput
-from .models import Audit, Bylaws, PledgeProgram, HSEducation, AlumniExclusion
 from thetatauCMT.chapters.models import Chapter
 from thetatauCMT.regions.models import Region
+
+from .models import AlumniExclusion, Audit, Bylaws, HSEducation, PledgeProgram
 
 
 class AuditListFilter(django_filters.FilterSet):

@@ -1,66 +1,58 @@
 import csv
 import datetime
+
+from address.admin import Address
 from django import forms
 from django.contrib import admin
-from django.contrib.admin.models import LogEntry, DELETION
-from django.shortcuts import render
-from django.http import HttpResponseRedirect
-from django.utils.html import escape
-from django.urls import reverse
-from django.utils.safestring import mark_safe
-from django.contrib.auth.models import Permission
-from django.utils.translation import gettext_lazy as _
+from django.contrib.admin.models import DELETION, LogEntry
 from django.contrib.auth.admin import UserAdmin as AuthUserAdmin
 from django.contrib.auth.forms import UserChangeForm
+from django.contrib.auth.models import Permission
+from django.http import HttpResponseRedirect
+from django.shortcuts import render
+from django.urls import reverse
+from django.utils.html import escape
+from django.utils.safestring import mark_safe
+from django.utils.translation import gettext_lazy as _
 from import_export.admin import ImportExportActionModelAdmin, ImportMixin
 from report_builder.admin import Report
-from address.admin import Address
-from watson.admin import SearchAdmin
 from simple_history.admin import SimpleHistoryAdmin
-from .forms import (
-    UserAdminStatusForm,
-    UserAdminBadgeFixForm,
-    UserStatusForm,
-    status_options,
-)
-from .models import (
-    User,
-    UserRoleChange,
-    UserStatusChange,
-    UserOrgParticipate,
-    UserSemesterGPA,
-    UserSemesterServiceHours,
-    UserAlter,
-    ChapterCurricula,
-    UserDemographic,
-    MemberUpdate,
-)
-from .resources import UserRoleChangeResource, UserResource, UserStatusChangeResource
-from .views import ExportActiveMixin
+from watson.admin import SearchAdmin
+
+from core.admin import AddressAdmin, ReportAdminSync, SentNotification, SentNotificationAdminUpdate, user_chapter
+from core.models import forever
+from core.signals import SignalWatchMixin
 from thetatauCMT.forms.models import (
-    Depledge,
-    Initiation,
-    StatusChange,
-    CollectionReferral,
-    DisciplinaryProcess,
     OSM,
+    AlumniExclusion,
+    CollectionReferral,
+    Depledge,
+    DisciplinaryProcess,
+    Initiation,
     PrematureAlumnus,
     ResignationProcess,
     ReturnStudent,
-    AlumniExclusion,
     RitualProficiency,
+    StatusChange,
 )
-from core.admin import (
-    user_chapter,
-    ReportAdminSync,
-    SentNotificationAdminUpdate,
-    SentNotification,
-    AddressAdmin,
-)
-from thetatauCMT.notes.admin import UserNoteInline, UserNote
+from thetatauCMT.notes.admin import UserNote, UserNoteInline
 from thetatauCMT.trainings.admin import AssignTrainingMixin, TrainingInline
-from core.signals import SignalWatchMixin
-from core.models import forever
+
+from .forms import UserAdminBadgeFixForm, UserAdminStatusForm, UserStatusForm, status_options
+from .models import (
+    ChapterCurricula,
+    MemberUpdate,
+    User,
+    UserAlter,
+    UserDemographic,
+    UserOrgParticipate,
+    UserRoleChange,
+    UserSemesterGPA,
+    UserSemesterServiceHours,
+    UserStatusChange,
+)
+from .resources import UserResource, UserRoleChangeResource, UserStatusChangeResource
+from .views import ExportActiveMixin
 
 admin.site.register(Permission)
 admin.site.unregister(Report)
@@ -424,7 +416,15 @@ class RitualProficiencyInline(admin.TabularInline):
     model = RitualProficiency
     fk_name = "user"
     readonly_fields = ("recorded_by", "created")
-    fields = ["level", "date", "memorization", "directions", "performance", "notes", "recorded_by"]
+    fields = [
+        "level",
+        "date",
+        "memorization",
+        "directions",
+        "performance",
+        "notes",
+        "recorded_by",
+    ]
     show_change_link = True
     extra = 0
 

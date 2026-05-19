@@ -1,6 +1,8 @@
 """Tests for users/templatetags/custom_tags.py"""
-import pytest
+
 from unittest.mock import MagicMock
+
+import pytest
 
 
 def test_lookup_filter_with_dict():
@@ -64,8 +66,9 @@ def test_user_alter_form_no_request():
 @pytest.mark.django_db
 def test_user_alter_form_anonymous_user(rf):
     """user_alter_form returns None for anonymous user."""
-    from thetatauCMT.users.templatetags.custom_tags import user_alter_form
     from django.contrib.auth.models import AnonymousUser
+
+    from thetatauCMT.users.templatetags.custom_tags import user_alter_form
 
     request = rf.get("/")
     request.user = AnonymousUser()

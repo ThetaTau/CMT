@@ -1,23 +1,18 @@
 from django.conf import settings
-from django.utils.decorators import method_decorator
 from django.urls import reverse
+from django.utils.decorators import method_decorator
 from viewflow import flow
-from viewflow.base import this, Flow
-from viewflow.flow import views as flow_views
+from viewflow.base import Flow, this
 from viewflow.compat import _
-from core.flows import (
-    FilterableFlowViewSet,
-    register_factory,
-)
-from .models import (
-    MemberUpdate,
-)
-from thetatauCMT.forms.notifications import (
-    EmailProcessUpdate,
-)
-from .forms import MemberUpdateForm
+from viewflow.flow import views as flow_views
+
+from core.flows import FilterableFlowViewSet, register_factory
 from thetatauCMT.configs.models import Config
+from thetatauCMT.forms.notifications import EmailProcessUpdate
 from thetatauCMT.users.models import User
+
+from .forms import MemberUpdateForm
+from .models import MemberUpdate
 
 
 class UpdateProcessViewUser(flow_views.UpdateProcessView):

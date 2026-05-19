@@ -1,7 +1,9 @@
 import django_filters
+
 from core.filters import DateRangeFilter
-from thetatauCMT.regions.models import Region
 from thetatauCMT.chapters.models import Chapter
+from thetatauCMT.regions.models import Region
+
 from .models import Objective
 
 

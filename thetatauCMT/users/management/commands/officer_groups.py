@@ -1,6 +1,8 @@
-from django.core.management import BaseCommand
 from csv import DictReader
+
 from django.contrib.auth.models import Group
+from django.core.management import BaseCommand
+
 from thetatauCMT.users.models import User
 
 file_path = r"secrets/natoff.csv"

@@ -6,16 +6,17 @@ These integration tests exercise multi-app flows:
 - A national officer accessing chapter data
 - Permission boundary checks across apps
 """
+
 import pytest
-from django.urls import reverse
 from django.contrib.auth.models import Group
+from django.urls import reverse
 from django.utils import timezone
 
 
 def _setup_user(make_officer=False, natoff=False):
     """Create a user with RMP record (bypasses RMPSignMiddleware)."""
-    from thetatauCMT.users.tests.factories import UserFactory
     from thetatauCMT.forms.models import RiskManagement
+    from thetatauCMT.users.tests.factories import UserFactory
 
     user = UserFactory.create(make_officer=make_officer if make_officer else False)
     if natoff:
@@ -30,11 +31,24 @@ def _setup_user(make_officer=False, natoff=False):
             role="regent",
             submission=None,
             date=timezone.now().date(),
-            alcohol=False, hosting=False, monitoring=False, member=False,
-            officer=False, abusive=False, hazing=False, substances=False,
-            high_risk=False, transportation=False, property_management=False,
-            guns=False, trademark=False, social=False, indemnification=False,
-            agreement=False, electronic_agreement=False, terms_agreement=False,
+            alcohol=False,
+            hosting=False,
+            monitoring=False,
+            member=False,
+            officer=False,
+            abusive=False,
+            hazing=False,
+            substances=False,
+            high_risk=False,
+            transportation=False,
+            property_management=False,
+            guns=False,
+            trademark=False,
+            social=False,
+            indemnification=False,
+            agreement=False,
+            electronic_agreement=False,
+            terms_agreement=False,
             typed_name="test user",
         ),
     )
@@ -111,9 +125,9 @@ def test_journey_unauthenticated_user_redirected_to_login(client):
     for url in protected_urls:
         response = client.get(url)
         assert response.status_code == 302, f"Expected redirect for {url}"
-        assert "login" in response["Location"], (
-            f"Expected login redirect for {url}, got {response['Location']}"
-        )
+        assert (
+            "login" in response["Location"]
+        ), f"Expected login redirect for {url}, got {response['Location']}"
 
 
 # ---------------------------------------------------------------------------
@@ -141,4 +155,3 @@ def test_journey_officer_can_access_event_create(client):
     client.force_login(user)
     response = client.get(reverse("events:add"))
     assert response.status_code == 200
-

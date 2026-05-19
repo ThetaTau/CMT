@@ -1,20 +1,21 @@
-from django.utils.safestring import mark_safe
 import django_tables2 as tables
+from django.utils.safestring import mark_safe
 from django_tables2.utils import A
+
 from .models import (
+    OSM,
+    AlumniExclusion,
+    Audit,
     Badge,
     Bylaws,
-    Depledge,
-    StatusChange,
-    Audit,
-    PledgeProgram,
-    Convention,
-    HSEducation,
-    OSM,
     CollectionReferral,
+    Convention,
+    Depledge,
+    HSEducation,
+    PledgeProgram,
     PledgeProgramProcess,
-    AlumniExclusion,
     RitualProficiency,
+    StatusChange,
 )
 
 
@@ -469,7 +470,9 @@ class BylawsListTable(tables.Table):
 
 
 class RitualProficiencyTable(tables.Table):
-    recorded_by = tables.Column(accessor="recorded_by__name", verbose_name="Recorded By")
+    recorded_by = tables.Column(
+        accessor="recorded_by__name", verbose_name="Recorded By"
+    )
     level = tables.Column(verbose_name="Ritual Level")
     memorization = tables.Column()
     directions = tables.Column()
@@ -477,7 +480,17 @@ class RitualProficiencyTable(tables.Table):
 
     class Meta:
         model = RitualProficiency
-        fields = ("recorded_by", "level", "date", "memorization", "directions", "performance", "notes")
+        fields = (
+            "recorded_by",
+            "level",
+            "date",
+            "memorization",
+            "directions",
+            "performance",
+            "notes",
+        )
         order_by = "-date"
         attrs = {"class": "table table-striped table-bordered"}
-        empty_text = "There are no ritual proficiency records for the selected member..."
+        empty_text = (
+            "There are no ritual proficiency records for the selected member..."
+        )

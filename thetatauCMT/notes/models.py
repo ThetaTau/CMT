@@ -1,11 +1,12 @@
 import os
-from django.db import models
-from django.conf import settings
-from django.utils.translation import gettext_lazy as _
-from django_userforeignkey.models.fields import UserForeignKey
-from django_ckeditor_5.fields import CKEditor5Field
 
-from core.models import TimeStampedModel, EnumClass
+from django.conf import settings
+from django.db import models
+from django.utils.translation import gettext_lazy as _
+from django_ckeditor_5.fields import CKEditor5Field
+from django_userforeignkey.models.fields import UserForeignKey
+
+from core.models import EnumClass, TimeStampedModel
 from thetatauCMT.chapters.models import Chapter
 
 

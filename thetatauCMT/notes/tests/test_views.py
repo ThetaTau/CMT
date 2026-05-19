@@ -1,8 +1,9 @@
 import pytest
-from django.urls import reverse
 from django.contrib.auth.models import Group
-from thetatauCMT.notes.models import ChapterNote
+from django.urls import reverse
+
 from thetatauCMT.chapters.tests.factories import ChapterFactory
+from thetatauCMT.notes.models import ChapterNote
 
 
 def _make_natoff(user, client):
@@ -160,4 +161,5 @@ def test_chapter_note_create_view_post_form_valid(auto_login_user):
     assert response.status_code in (200, 302)
     if response.status_code == 302:
         from thetatauCMT.notes.models import ChapterNote
+
         assert ChapterNote.objects.filter(title="New Note Title").exists()

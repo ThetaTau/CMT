@@ -8,9 +8,10 @@ Covers:
 - Happy-path execution of update_text, members_graph, majors_graph, gpa_graph
 - load_chapter_data with a real DB user (integration)
 """
-import pytest
+
 from unittest.mock import MagicMock
 
+import pytest
 
 # ---------------------------------------------------------------------------
 # fetch_stats
@@ -67,6 +68,7 @@ def test_fetch_stats_equal_values_returns_na():
 def test_layout_sets_title():
     """layout() updates the figure's title text."""
     import plotly.express as px
+
     from thetatauCMT.chapters.dashboard import layout
 
     fig = px.line(x=[2018, 2019], y=[10, 12])
@@ -77,6 +79,7 @@ def test_layout_sets_title():
 def test_layout_sets_xaxis_ticks():
     """layout() sets tickvals and ticktext on x-axis."""
     import plotly.express as px
+
     from thetatauCMT.chapters.dashboard import layout
 
     years = [2019, 2020, 2021]
@@ -95,6 +98,7 @@ def test_layout_sets_xaxis_ticks():
 def test_update_text_raises_prevent_update_when_years_is_none():
     """update_text raises PreventUpdate when years is None."""
     from dash.exceptions import PreventUpdate
+
     from thetatauCMT.chapters.dashboard import update_text
 
     with pytest.raises(PreventUpdate):
@@ -104,6 +108,7 @@ def test_update_text_raises_prevent_update_when_years_is_none():
 def test_update_text_raises_prevent_update_when_no_year_column():
     """update_text raises PreventUpdate when 'year' not in DataFrame columns."""
     from dash.exceptions import PreventUpdate
+
     from thetatauCMT.chapters.dashboard import update_text
 
     # Empty dict → empty DataFrame → 'year' not in columns
@@ -156,6 +161,7 @@ def test_update_text_returns_tuple_with_six_elements():
 def test_members_graph_raises_prevent_update_when_year_info_is_none():
     """members_graph raises PreventUpdate when year_info is None."""
     from dash.exceptions import PreventUpdate
+
     from thetatauCMT.chapters.dashboard import members_graph
 
     with pytest.raises(PreventUpdate):
@@ -170,6 +176,7 @@ def test_members_graph_raises_prevent_update_when_year_info_is_none():
 def test_members_graph_raises_prevent_update_when_no_year_term_column():
     """members_graph raises PreventUpdate when 'Year Term' not in DataFrame."""
     from dash.exceptions import PreventUpdate
+
     from thetatauCMT.chapters.dashboard import members_graph
 
     with pytest.raises(PreventUpdate):
@@ -226,6 +233,7 @@ def test_members_graph_returns_figure():
 def test_majors_graph_raises_prevent_update_on_missing_yearterm():
     """majors_graph raises PreventUpdate when yearterm not found in data."""
     from dash.exceptions import PreventUpdate
+
     from thetatauCMT.chapters.dashboard import majors_graph
 
     data = [{"Year Term": "Spring 2019", "majors": {"CS": 5}}]
@@ -236,6 +244,7 @@ def test_majors_graph_raises_prevent_update_on_missing_yearterm():
 def test_majors_graph_raises_prevent_update_on_empty_data():
     """majors_graph raises PreventUpdate when data dict is empty."""
     from dash.exceptions import PreventUpdate
+
     from thetatauCMT.chapters.dashboard import majors_graph
 
     with pytest.raises(PreventUpdate):
@@ -270,6 +279,7 @@ def test_majors_graph_returns_figure():
 def test_gpa_graph_raises_prevent_update_when_year_info_is_none():
     """gpa_graph raises PreventUpdate when year_info is None."""
     from dash.exceptions import PreventUpdate
+
     from thetatauCMT.chapters.dashboard import gpa_graph
 
     with pytest.raises(PreventUpdate):
@@ -279,6 +289,7 @@ def test_gpa_graph_raises_prevent_update_when_year_info_is_none():
 def test_gpa_graph_raises_prevent_update_when_no_year_term_column():
     """gpa_graph raises PreventUpdate when 'Year Term' not in DataFrame."""
     from dash.exceptions import PreventUpdate
+
     from thetatauCMT.chapters.dashboard import gpa_graph
 
     with pytest.raises(PreventUpdate):
@@ -339,6 +350,7 @@ def test_load_chapter_data_anonymous_raises_prevent_update(auto_login_user):
     """load_chapter_data raises PreventUpdate when user is anonymous."""
     from dash.exceptions import PreventUpdate
     from django.contrib.auth.models import AnonymousUser
+
     from thetatauCMT.chapters.dashboard import load_chapter_data
 
     anon = AnonymousUser()

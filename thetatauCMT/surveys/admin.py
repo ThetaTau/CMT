@@ -1,18 +1,14 @@
 import codecs
 
 from django.contrib import admin
-from core.admin import user_chapter
 from django.http import HttpResponse
 from import_export.admin import ExportActionModelAdmin
-from survey.admin import (
-    Survey as Survey_orig,
-    SurveyAdmin,
-    Response,
-    ResponseAdmin,
-    make_published,
-    Survey2Csv,
-    Survey2Tex,
-)
+from survey.admin import Response, ResponseAdmin
+from survey.admin import Survey as Survey_orig
+from survey.admin import Survey2Csv, Survey2Tex, SurveyAdmin, make_published
+
+from core.admin import user_chapter
+
 from .models import DepledgeSurvey, Survey
 
 EXCEL_COMPATIBLE_CSV = False

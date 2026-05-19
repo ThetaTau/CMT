@@ -1,8 +1,9 @@
-from django.db.models import Q
 from django.core.exceptions import ValidationError
+from django.db.models import Q
 from import_export import resources
 from import_export.fields import Field
-from .models import UserRoleChange, User, UserStatusChange
+
+from .models import User, UserRoleChange, UserStatusChange
 
 
 class UserRoleChangeResource(resources.ModelResource):

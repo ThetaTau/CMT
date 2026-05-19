@@ -2,6 +2,7 @@ import django_tables2 as tables
 from django.urls import reverse
 from django.utils.safestring import mark_safe
 from django_tables2.utils import A
+
 from .models import Event
 
 

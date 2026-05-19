@@ -84,6 +84,7 @@ SILENCED_SYSTEM_CHECKS = ["django_recaptcha.recaptcha_test_key_error", "urls.W00
 #   → will change behaviour in Django 5.0.  Fix: add default="" to each call
 #   in core/models.py and thetatauCMT/forms/views.py before the 5.x upgrade.
 import warnings
+
 warnings.filterwarnings("error", category=DeprecationWarning, module="django")
 
 # Your stuff...

@@ -3,6 +3,7 @@ from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Fieldset, Layout, Row, Submit
 from dal import autocomplete, forward
 from django import forms
+
 from thetatauCMT.users.models import User
 
 from .models import GearArticle, Picture

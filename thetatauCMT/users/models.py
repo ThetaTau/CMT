@@ -1,37 +1,38 @@
 import datetime
-from django.contrib.auth.models import AbstractUser, Group
-from django.contrib.postgres.fields import ArrayField
-from django_userforeignkey.models.fields import UserForeignKey
-from django.db import models, IntegrityError
-from django.contrib.auth.models import UserManager
-from django.urls import reverse
-from django.conf import settings
-from django.utils.translation import gettext_lazy as _
-from django.core.validators import MinValueValidator, MaxValueValidator, RegexValidator
-from model_utils.fields import MonitorField
+
 from address.models import AddressField
-from multiselectfield import MultiSelectField
+from django.conf import settings
+from django.contrib.auth.models import AbstractUser, Group, UserManager
+from django.contrib.postgres.fields import ArrayField
+from django.core.validators import MaxValueValidator, MinValueValidator, RegexValidator
+from django.db import IntegrityError, models
+from django.urls import reverse
+from django.utils.translation import gettext_lazy as _
+from django_userforeignkey.models.fields import UserForeignKey
 from email_signals.models import EmailSignalMixin
+from model_utils.fields import MonitorField
+from multiselectfield import MultiSelectField
 from simple_history.models import HistoricalRecords
 from viewflow.models import Process
+
 from core.models import (
-    StartEndModel,
-    YearTermModel,
-    forever,
-    current_year,
-    current_year_plus_10,
-    TODAY,
-    TOMORROW,
-    TODAY_END,
-    CHAPTER_OFFICER,
     ALL_ROLES_CHOICES,
-    TimeStampedModel,
-    COL_OFFICER_ALIGN,
+    CHAPTER_OFFICER,
     CHAPTER_OFFICER_CHOICES,
     CHAPTER_ROLES,
-    NAT_OFFICERS,
+    COL_OFFICER_ALIGN,
     COUNCIL,
+    NAT_OFFICERS,
+    TODAY,
+    TODAY_END,
+    TOMORROW,
     EnumClass,
+    StartEndModel,
+    TimeStampedModel,
+    YearTermModel,
+    current_year,
+    current_year_plus_10,
+    forever,
 )
 from thetatauCMT.chapters.models import Chapter, ChapterCurricula
 
@@ -330,7 +331,9 @@ class User(AbstractUser, EmailSignalMixin):
             status = status.status
         if current:
             # If the current status is being set, previous status should end at the start
-            TODAY_END = datetime.datetime.combine(datetime.datetime.now().date(), datetime.time.max)
+            TODAY_END = datetime.datetime.combine(
+                datetime.datetime.now().date(), datetime.time.max
+            )
             current_status = self.status.filter(
                 start__lte=TODAY_END, end__gte=TODAY_END
             ).all()
