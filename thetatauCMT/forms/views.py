@@ -1457,7 +1457,7 @@ class PledgeProgramListView(
             chapter_name=F("chapter__name"),
             region=F("chapter__region__name"),
             school=F("chapter__school"),
-            approval=StringAgg("process__approval", ", "),
+            approval=StringAgg("process__approval", ", ", default=""),
         )
         complete = self.filter.form.cleaned_data["complete"]
         if complete in ["0", ""]:

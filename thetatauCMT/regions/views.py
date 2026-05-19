@@ -107,10 +107,10 @@ class RegionOfficerView(LoginRequiredMixin, NatOfficerRequiredMixin, DetailView)
             extra_columns=[
                 (
                     "chapter",
-                    tables.LinkColumn("chapters:detail", args=[A("chapter.slug")]),
+                    tables.LinkColumn("chapters:detail", args=[A("chapter__slug")]),
                 ),
-                ("chapter.region", tables.Column("Region")),
-                ("chapter.school", tables.Column("School")),
+                ("chapter__region", tables.Column("Region")),
+                ("chapter__school", tables.Column("School")),
             ],
         )
         RequestConfig(self.request, paginate={"per_page": 50}).configure(table)
@@ -192,10 +192,10 @@ class RegionAdvisorView(LoginRequiredMixin, NatOfficerRequiredMixin, DetailView)
             extra_columns=[
                 (
                     "chapter",
-                    tables.LinkColumn("chapters:detail", args=[A("chapter.slug")]),
+                    tables.LinkColumn("chapters:detail", args=[A("chapter__slug")]),
                 ),
-                ("chapter.region", tables.Column("Region")),
-                ("chapter.school", tables.Column("School")),
+                ("chapter__region", tables.Column("Region")),
+                ("chapter__school", tables.Column("School")),
             ],
         )
         table.exclude = (

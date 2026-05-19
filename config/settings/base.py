@@ -242,6 +242,13 @@ MEDIA_ROOT = str(APPS_DIR / "media")
 # https://docs.djangoproject.com/en/dev/ref/settings/#media-url
 MEDIA_URL = "/media/"
 
+# FORM RENDERER
+# ------------------------------------------------------------------------------
+# Use div.html rendering (Django 5.0 default) to silence the RemovedInDjango50Warning
+# about the deprecated "default.html" form/formset template.
+# https://docs.djangoproject.com/en/4.2/ref/settings/#form-renderer
+FORM_RENDERER = "django.forms.renderers.DjangoDivFormRenderer"
+
 # TEMPLATES
 # ------------------------------------------------------------------------------
 # https://docs.djangoproject.com/en/dev/ref/settings/#templates

@@ -50,7 +50,7 @@ class EventTable(tables.Table):
             extra_columns.extend(
                 [
                     ("chapter", tables.Column("Chapter")),
-                    ("chapter.region", tables.Column("Region")),
+                    ("chapter__region", tables.Column("Region")),
                     ("pictures", tables.Column("Pictures")),
                 ]
             )

@@ -57,7 +57,11 @@ def test_chapter_balance_filter_candidate_chapter():
 
 @pytest.mark.django_db
 def test_chapter_balance_filter_region_slug():
-    """filter_region(slug) filters invoices whose chapter is in that region."""
+    """filter_region(slug) filters invoices whose chapter is in that region.
+
+    Calls filter_region directly because ChoiceFilter validates against choices
+    that were evaluated at import time (before test-created regions exist).
+    """
     from thetatauCMT.finances.filters import ChapterBalanceListFilter
 
     chapter = ChapterFactory()
@@ -65,11 +69,10 @@ def test_chapter_balance_filter_region_slug():
     inv_in_region = InvoiceFactory(chapter=chapter)
     inv_other = InvoiceFactory(chapter=other_chapter)
     qs = Invoice.objects.filter(pk__in=[inv_in_region.pk, inv_other.pk])
-    # Use the chapter's actual region slug
     region_slug = chapter.region.slug
-    f = ChapterBalanceListFilter(data={"region": region_slug}, queryset=qs)
-    result = f.qs
+    # Call filter_region directly to hit the else-branch (line 36) since the
+    # slug may not appear in ChoiceFilter.choices (evaluated at import time).
+    f = ChapterBalanceListFilter(data={}, queryset=qs)
+    result = f.filter_region(qs, "region", region_slug)
     pks = list(result.values_list("pk", flat=True))
     assert inv_in_region.pk in pks
-    # The other chapter may or may not be in the same region; only assert inclusion
-    # of the target invoice

@@ -2814,3 +2814,259 @@ def test_download_all_rollbook_officer_empty_roll_returns_zip(auto_login_user):
     assert "zip" in response.get("Content-Type", "").lower()
 
 
+# ─── DisciplinaryCreateView GET (lines 2756-2759) ─────────────────────────────
+
+
+@pytest.mark.django_db
+def test_disciplinary_create_view_get_officer(auto_login_user):
+    """DisciplinaryCreateView GET with an officer user hits get_context_data
+    (lines 2756-2759) which calls get_sign_status_discipline."""
+    client, user = auto_login_user()
+    _add_to_group(user, "officer")
+    _create_all_chapter_officers(user.chapter)
+    url = reverse("viewflow:forms:disciplinaryprocess:start")
+    response = client.get(url, follow=True)
+    assert response.status_code == 200
+
+
+# ─── AlumniExclusionCreateView GET – no prior submission (lines 2365-2421) ───
+
+
+@pytest.mark.django_db
+def test_alumni_exclusion_create_view_get_no_prior_submission(auto_login_user):
+    """AlumniExclusionCreateView GET with all officers set up and no prior
+    OSM submission hits the main path (lines 2365-2366, 2369-2370, 2384,
+    2388-2421)."""
+    client, user = auto_login_user()
+    _create_all_chapter_officers(user.chapter)
+    url = reverse("viewflow:forms:alumniexclusion:start")
+    response = client.get(url, follow=True)
+    assert response.status_code == 200
+
+
+# ─── ResignationCreateView GET – no prior submission (lines 2941-2968) ────────
+
+
+@pytest.mark.django_db
+def test_resignation_create_view_get_no_prior_submission(auto_login_user):
+    """ResignationCreateView GET with no existing resignation covers the
+    else branch of get_context_data (submitted=None → lines 2967-2968)."""
+    client, user = auto_login_user()
+    _create_all_chapter_officers(user.chapter)
+    url = reverse("viewflow:forms:resignation:start")
+    response = client.get(url, follow=True)
+    assert response.status_code == 200
+
+
+# ─── StatusChangeView GET with session data (lines 626, 629, 647-693) ─────────
+
+
+@pytest.mark.django_db
+def test_status_change_view_get_with_empty_session(auto_login_user):
+    """StatusChangeView GET when 'status-selection' session key is present
+    (but all lists empty) covers initial_info, get_context_data (lines
+    621-647, 649-693)."""
+    client, user = auto_login_user()
+    _add_to_group(user, "officer")
+    session = client.session
+    session["status-selection"] = {
+        "graduate": [],
+        "coop": [],
+        "covid": [],
+        "military": [],
+        "withdraw": [],
+        "transfer": [],
+        "resignedCC": [],
+    }
+    session.save()
+    url = reverse("forms:status")
+    response = client.get(url, follow=True)
+    assert response.status_code == 200
+
+
+# ─── AlumniExclusionCreateView GET – no officers (line 2367) ─────────────────
+
+
+@pytest.mark.django_db
+def test_alumni_exclusion_create_view_get_missing_officers(auto_login_user):
+    """AlumniExclusionCreateView GET when chapter is missing officers
+    triggers the check_officers redirect (line 2367)."""
+    client, user = auto_login_user()
+    # No officers set up → check_officers returns False → redirect
+    url = reverse("viewflow:forms:alumniexclusion:start")
+    response = client.get(url, follow=True)
+    assert response.status_code == 200
+
+
+# ─── OSMCreateView GET with officers (lines 2501-2516, 2542-2550) ─────────────
+
+
+@pytest.mark.django_db
+def test_osm_create_view_get_with_officers(auto_login_user):
+    """OSMCreateView GET with all chapter officers set up covers lines
+    2501-2507, 2516, 2542-2550 (check_officers passes, no prior submission)."""
+    client, user = auto_login_user()
+    _create_all_chapter_officers(user.chapter)
+    url = reverse("viewflow:forms:osm:start")
+    response = client.get(url, follow=True)
+    assert response.status_code == 200
+
+
+# ─── InitiationView GET with non-empty Roll list (lines 355-368) ──────────────
+
+
+@pytest.mark.django_db
+def test_initiation_view_get_with_roll_items(auto_login_user):
+    """InitiationView GET when 'Roll' contains a pledge user PK covers
+    the to_roll branch at lines 355-368 of get_context_data."""
+    from thetatauCMT.users.tests.factories import UserFactory, UserStatusChangeFactory
+
+    client, user = auto_login_user()
+    _add_to_group(user, "officer")
+    pledge = UserFactory.create(chapter=user.chapter)
+    UserStatusChangeFactory.create(user=pledge, status="pnm", current=True)
+    session = client.session
+    session["init-selection"] = {
+        "Initiate": [],
+        "Depledge": [],
+        "Defer": [],
+        "Roll": [pledge.pk],
+    }
+    session.save()
+    url = reverse("forms:initiation")
+    response = client.get(url, follow=True)
+    assert response.status_code == 200
+
+
+# ─── InitiationView GET with candidate_chapter (line 379) ────────────────────
+
+
+@pytest.mark.django_db
+def test_initiation_view_get_candidate_chapter(auto_login_user):
+    """InitiationView GET when chapter is a candidate chapter (line 379)."""
+    from thetatauCMT.chapters.tests.factories import ChapterFactory
+
+    client, user = auto_login_user()
+    _add_to_group(user, "officer")
+    # Make the chapter a candidate chapter
+    user.chapter.candidate_chapter = True
+    user.chapter.save()
+    session = client.session
+    session["init-selection"] = {
+        "Initiate": [],
+        "Depledge": [],
+        "Defer": [],
+        "Roll": [],
+    }
+    session.save()
+    url = reverse("forms:initiation")
+    response = client.get(url, follow=True)
+    assert response.status_code == 200
+
+
+# ─── AuditFormView GET with nonexistent pk (lines 1567-1568) ─────────────────
+
+
+@pytest.mark.django_db
+def test_audit_form_view_get_nonexistent_pk(auto_login_user):
+    """AuditFormView GET with a pk that doesn't exist triggers
+    Audit.DoesNotExist and falls back to Audit.objects.last() (lines
+    1567-1568)."""
+    from thetatauCMT.users.tests.factories import UserRoleChangeFactory
+
+    client, user = auto_login_user()
+    _add_to_group(user, "officer")
+    UserRoleChangeFactory.create(user=user, current=True, role="regent")
+    url = reverse("forms:audit_complete", kwargs={"pk": 999999999})
+    response = client.get(url, follow=True)
+    assert response.status_code == 200
+
+
+# ─── AuditFormView GET with wrong-chapter audit (lines 1569-1577) ────────────
+
+
+@pytest.mark.django_db
+def test_audit_form_view_get_wrong_chapter_pk(auto_login_user):
+    """AuditFormView GET with an audit belonging to a different chapter
+    shows an error message (lines 1569-1577)."""
+    from thetatauCMT.forms.tests.factories import AuditFactory
+    from thetatauCMT.users.tests.factories import UserFactory, UserRoleChangeFactory
+    from thetatauCMT.chapters.tests.factories import ChapterFactory
+
+    client, user = auto_login_user()
+    _add_to_group(user, "officer")
+    UserRoleChangeFactory.create(user=user, current=True, role="regent")
+    # Create an audit for a user in a *different* chapter
+    other_chapter = ChapterFactory.create()
+    other_user = UserFactory.create(chapter=other_chapter)
+    audit = AuditFactory.create(user=other_user)
+    url = reverse("forms:audit_complete", kwargs={"pk": audit.pk})
+    response = client.get(url, follow=True)
+    assert response.status_code == 200
+
+
+# ─── PrematureAlumnus with finished process (lines 1799-1800) ────────────────
+
+
+@pytest.mark.django_db
+def test_premature_alumnus_create_view_get_with_finished_process(auto_login_user):
+    """PrematureAlumnusCreateView GET with a finished PrematureAlumnus covers
+    the 'else' branch of the loop body (lines 1799-1800)."""
+    from thetatauCMT.forms.tests.factories import PrematureAlumnusFactory
+    from thetatauCMT.users.tests.factories import UserFactory
+    from django.utils import timezone
+
+    client, user = auto_login_user()
+    member = UserFactory.create(chapter=user.chapter)
+    PrematureAlumnusFactory.create(user=member, finished=timezone.now())
+    url = reverse("viewflow:forms:prematurealumnus:start")
+    response = client.get(url, follow=True)
+    assert response.status_code == 200
+
+
+# ─── ConventionCreateView no-officers GET (line 1992) ────────────────────────
+
+
+@pytest.mark.django_db
+def test_convention_create_view_get_no_officers(auto_login_user):
+    """ConventionCreateView GET when chapter has no officers covers
+    the check_officers redirect (line 1992)."""
+    client, user = auto_login_user()
+    # No officers set up → check_officers returns False → line 1992 covered
+    url = reverse("viewflow:forms:convention:start")
+    response = client.get(url, follow=True)
+    assert response.status_code == 200
+
+
+# ─── AlumniExclusionDetailView GET (lines 2431-2434) ─────────────────────────
+
+
+@pytest.mark.django_db
+def test_alumni_exclusion_detail_view_get(auto_login_user):
+    """AlumniExclusionDetailView GET with a valid AlumniExclusion object
+    covers get_context_data at lines 2431-2434."""
+    from thetatauCMT.forms.models import AlumniExclusion
+    from thetatauCMT.forms.flows import AlumniExclusionFlow
+    from thetatauCMT.users.tests.factories import UserFactory
+    from django.utils import timezone
+    from django.core.files.uploadedfile import SimpleUploadedFile
+
+    client, user = auto_login_user()
+    _add_to_group(user, "natoff")
+    member = UserFactory.create(chapter=user.chapter)
+    ae = AlumniExclusion.objects.create(
+        chapter=user.chapter,
+        created_by=user,
+        user=member,
+        date_end=timezone.now().date(),
+        voting_result=0.75,
+        reason="Test exclusion",
+        minutes=SimpleUploadedFile("minutes.pdf", b"fake pdf content"),
+        flow_class=AlumniExclusionFlow,
+    )
+    url = reverse("forms:alumniexclusion_detail", kwargs={"pk": ae.pk})
+    response = client.get(url, follow=True)
+    assert response.status_code == 200
+
+
+

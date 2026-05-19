@@ -1,3 +1,4 @@
+import datetime
 import random
 import factory
 from ..models import Ballot, BallotComplete
@@ -5,8 +6,8 @@ from thetatauCMT.users.tests.factories import UserFactory
 
 
 class BallotFactory(factory.django.DjangoModelFactory):
-    created = factory.Faker("date_time_between", start_date="-1y", end_date="+1y")
-    modified = factory.Faker("date_time_between", start_date="-1y", end_date="+1y")
+    created = factory.Faker("date_time_between", start_date="-1y", end_date="+1y", tzinfo=datetime.timezone.utc)
+    modified = factory.Faker("date_time_between", start_date="-1y", end_date="+1y", tzinfo=datetime.timezone.utc)
     sender = factory.Faker("sentence", nb_words=3)
     name = factory.Faker("sentence", nb_words=3)
     type = factory.Faker(
@@ -26,11 +27,12 @@ class BallotFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = Ballot
         django_get_or_create = ("name",)
+        skip_postgeneration_save = True
 
 
 class BallotCompleteFactory(factory.django.DjangoModelFactory):
-    created = factory.Faker("date_time_between", start_date="-1y", end_date="+1y")
-    modified = factory.Faker("date_time_between", start_date="-1y", end_date="+1y")
+    created = factory.Faker("date_time_between", start_date="-1y", end_date="+1y", tzinfo=datetime.timezone.utc)
+    modified = factory.Faker("date_time_between", start_date="-1y", end_date="+1y", tzinfo=datetime.timezone.utc)
     ballot = factory.SubFactory(BallotFactory)
     user = factory.SubFactory(UserFactory)
     motion = factory.Faker(

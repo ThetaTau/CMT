@@ -424,7 +424,7 @@ def annotate_role_status(queryset, date=TODAY_END):
                 & models.Q(roles__end__gte=date),
             )
         )
-        .annotate(old_roles=StringAgg("roles_all__role", ", "))
+        .annotate(old_roles=StringAgg("roles_all__role", ", ", default=""))
         .annotate(
             status_all=models.FilteredRelation(
                 "status",
@@ -432,7 +432,7 @@ def annotate_role_status(queryset, date=TODAY_END):
                 & models.Q(status__end__gte=date),
             )
         )
-        .annotate(old_status=StringAgg("status_all__status", ", "))
+        .annotate(old_status=StringAgg("status_all__status", ", ", default=""))
         .annotate(
             rmp_complete=models.Exists(
                 RiskManagement.objects.filter(

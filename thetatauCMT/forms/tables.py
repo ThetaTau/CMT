@@ -405,7 +405,7 @@ class AlumniExclusionTable(tables.Table):
             )
             extra_columns = [
                 ("chapter", tables.Column("Chapter")),
-                ("chapter.region", tables.Column("Region")),
+                ("chapter__region", tables.Column("Region")),
                 ("regional_director", tables.Column("RD Reviewer")),
             ]
             del kwargs["natoff"]
@@ -461,7 +461,7 @@ class BylawsListTable(tables.Table):
             extra_columns.extend(
                 [
                     ("chapter", tables.Column("Chapter")),
-                    ("chapter.region", tables.Column("Region")),
+                    ("chapter__region", tables.Column("Region")),
                 ]
             )
         kwargs["extra_columns"] = extra_columns

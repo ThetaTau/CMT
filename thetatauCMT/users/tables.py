@@ -68,8 +68,8 @@ class UserTable(tables.Table):
         if chapter:
             extra_columns.extend(
                 [
-                    ("chapter.region", tables.Column("Region")),
-                    ("chapter.school", tables.Column("School")),
+                    ("chapter__region", tables.Column("Region")),
+                    ("chapter__school", tables.Column("School")),
                 ]
             )
         kwargs["extra_columns"] = extra_columns

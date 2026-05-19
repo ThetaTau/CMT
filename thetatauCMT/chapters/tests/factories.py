@@ -39,6 +39,7 @@ class ChapterFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = Chapter
         django_get_or_create = ("name",)
+        skip_postgeneration_save = True
 
 
 class ChapterCurriculaFactory(factory.django.DjangoModelFactory):
