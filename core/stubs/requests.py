@@ -45,6 +45,6 @@ def as_comma_list(args):
 
 
 def as_list(args):
-    if type(args) == dict:
+    if isinstance(args, dict):
         return [f"{name}={args[name]}" for name in args]
     return [str(arg) for arg in args]

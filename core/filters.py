@@ -48,9 +48,7 @@ BIENNIUM_FILTERS = {}
 
 for date_name, date_info in BIENNIUM_DATES.items():
     date_name_slug = date_name.replace(" ", "_")
-    DateRangeFilter.filters[date_name_slug] = filter_qs_dates(
-        date_info["start"].date(), date_info["end"].date()
-    )
+    DateRangeFilter.filters[date_name_slug] = filter_qs_dates(date_info["start"].date(), date_info["end"].date())
     choice = (date_name_slug, date_name)
     DateRangeFilter.choices.append(choice)
     BIENNIUM_FILTERS[choice] = (date_info["start"].date(), date_info["end"].date())

@@ -29,22 +29,16 @@ urlpatterns = [
         views.check_status,
         name="report_check_status",
     ),
-    re_path(
-        r"^report/(?P<pk>\d+)/add_star/$", views.ajax_add_star, name="ajax_add_star"
-    ),
+    re_path(r"^report/(?P<pk>\d+)/add_star/$", views.ajax_add_star, name="ajax_add_star"),
     re_path(
         r"^report/(?P<pk>\d+)/create_copy/$",
         views.create_copy,
         name="report_builder_create_copy",
     ),
-    re_path(
-        r"^export_to_report/$", views.ExportToReport.as_view(), name="export_to_report"
-    ),
+    re_path(r"^export_to_report/$", views.ExportToReport.as_view(), name="export_to_report"),
     re_path(r"^api/", include(router.urls)),
     re_path(r"^api/config/", api_views.ConfigView.as_view()),
-    re_path(
-        r"^api/api-auth/", include("rest_framework.urls", namespace="rest_framework")
-    ),
+    re_path(r"^api/api-auth/", include("rest_framework.urls", namespace="rest_framework")),
     re_path(
         r"^api/related_fields",
         staff_member_required(api_views.RelatedFieldsView.as_view()),

@@ -36,9 +36,7 @@ urlpatterns = [
     path("", include("allauth_2fa.urls")),
     path(
         "favicon.ico",
-        RedirectView.as_view(
-            url=settings.STATIC_URL + "images/favicon.png", permanent=True
-        ),
+        RedirectView.as_view(url=settings.STATIC_URL + "images/favicon.png", permanent=True),
     ),
     # wp-content/* must remain re_path due to wildcard
     re_path(r"^wp-content/*", home_redirect),
@@ -62,9 +60,7 @@ urlpatterns = [
     ),
     path(
         "reset/done/",
-        PasswordResetCompleteView.as_view(
-            template_name="account/password_reset_complete.html"
-        ),
+        PasswordResetCompleteView.as_view(template_name="account/password_reset_complete.html"),
         name="password_reset_complete",
     ),
     path(
@@ -115,9 +111,7 @@ urlpatterns = [
     path("trainings/", include("thetatauCMT.trainings.urls", namespace="trainings")),
     path("finances/", include("thetatauCMT.finances.urls", namespace="finances")),
     path("scores/", include("thetatauCMT.scores.urls", namespace="scores")),
-    path(
-        "submissions/", include("thetatauCMT.submissions.urls", namespace="submissions")
-    ),
+    path("submissions/", include("thetatauCMT.submissions.urls", namespace="submissions")),
     path("surveys/", include("thetatauCMT.surveys.urls", namespace="surveys")),
     path("forms/", include("thetatauCMT.forms.urls", namespace="forms")),
     path("tasks/", include("thetatauCMT.tasks.urls", namespace="tasks")),
@@ -146,28 +140,20 @@ urlpatterns = [
     ),
     path(
         "report/",
-        RedirectView.as_view(
-            pattern_name="viewflow:forms:hseducation:start", permanent=False
-        ),
+        RedirectView.as_view(pattern_name="viewflow:forms:hseducation:start", permanent=False),
         name="report_redirect",
     ),
     path(
         "education/",
-        RedirectView.as_view(
-            pattern_name="viewflow:forms:hseducation:start", permanent=True
-        ),
+        RedirectView.as_view(pattern_name="viewflow:forms:hseducation:start", permanent=True),
     ),
     path(
         "nme-program/",
-        RedirectView.as_view(
-            pattern_name="viewflow:forms:pledgeprogramprocess:start", permanent=True
-        ),
+        RedirectView.as_view(pattern_name="viewflow:forms:pledgeprogramprocess:start", permanent=True),
     ),
     path(
         "conventionform/",
-        RedirectView.as_view(
-            pattern_name="viewflow:forms:convention:start", permanent=True
-        ),
+        RedirectView.as_view(pattern_name="viewflow:forms:convention:start", permanent=True),
         name="conventionform",
     ),
     path(
@@ -177,9 +163,7 @@ urlpatterns = [
     ),
     path(
         "alumniexclusionform/",
-        RedirectView.as_view(
-            pattern_name="viewflow:forms:alumniexclusion:start", permanent=True
-        ),
+        RedirectView.as_view(pattern_name="viewflow:forms:alumniexclusion:start", permanent=True),
         name="alumniexclusion",
     ),
     path(

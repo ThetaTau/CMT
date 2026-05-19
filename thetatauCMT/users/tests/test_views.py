@@ -5,7 +5,6 @@ Uses the auto_login_user fixture which handles RMPSignMiddleware.
 
 import pytest
 from django.contrib.auth.models import Group
-from django.test import override_settings
 from django.urls import reverse
 
 
@@ -877,7 +876,6 @@ def test_user_list_view_email_all_no_members(auto_login_user):
 @pytest.mark.django_db
 def test_user_list_view_csv_download_chapter_officer(auto_login_user):
     """Chapter officer (is_officer=True via current_roles) can trigger CSV."""
-    from core.models import CHAPTER_OFFICER
     from thetatauCMT.users.tests.factories import UserStatusChangeFactory
 
     client, user = auto_login_user(make_officer="chapter")
@@ -1006,9 +1004,7 @@ def test_user_lookup_update_form_valid_with_session_user_and_changes(client, db)
     with override_settings(DEBUG=True):
         with patch("thetatauCMT.users.flows.MemberUpdateFlow") as mock_flow:
             mock_flow.start.run.return_value = None
-            response = client.post(
-                url, {"first_name": "BrandNewFirst", "major_other": "Applied Physics"}
-            )
+            response = client.post(url, {"first_name": "BrandNewFirst", "major_other": "Applied Physics"})
     assert response.status_code == 302
     mock_flow.start.run.assert_called_once()
 
@@ -1064,7 +1060,6 @@ def test_user_alter_view_form_valid(auto_login_user):
 
     client, user = auto_login_user()
     _make_natoff(user, client)
-    chapter = user.chapter
     url = reverse("users:alterchapter")
     chapter_choices = Chapter.chapter_choices()
     if not chapter_choices:
@@ -1280,11 +1275,7 @@ def test_user_autocomplete_actives(auto_login_user):
     url = reverse("users:autocomplete")
     response = client.get(
         url,
-        {
-            "forward": json.dumps(
-                {"chapter": "true", "actives": "true", "alumni": "false"}
-            )
-        },
+        {"forward": json.dumps({"chapter": "true", "actives": "true", "alumni": "false"})},
     )
     assert response.status_code == 200
 
@@ -1299,11 +1290,7 @@ def test_user_autocomplete_alumni(auto_login_user):
     url = reverse("users:autocomplete")
     response = client.get(
         url,
-        {
-            "forward": json.dumps(
-                {"chapter": "true", "actives": "false", "alumni": "true"}
-            )
-        },
+        {"forward": json.dumps({"chapter": "true", "actives": "false", "alumni": "true"})},
     )
     assert response.status_code == 200
 
@@ -1419,15 +1406,11 @@ def test_password_reset_sends_email_to_user_address(auto_login_user, mailoutbox)
 
     assert len(mailoutbox) >= 1, "Expected at least one email to be sent"
     all_recipients = [addr for msg in mailoutbox for addr in msg.to]
-    assert (
-        user.email in all_recipients
-    ), f"{user.email!r} not found in recipients {all_recipients}"
+    assert user.email in all_recipients, f"{user.email!r} not found in recipients {all_recipients}"
 
 
 @pytest.mark.django_db
-def test_password_reset_sends_separate_email_to_school_address(
-    auto_login_user, mailoutbox
-):
+def test_password_reset_sends_separate_email_to_school_address(auto_login_user, mailoutbox):
     """save() sends an additional email to email_school when it differs from email."""
     from django.test import RequestFactory
 
@@ -1447,9 +1430,7 @@ def test_password_reset_sends_separate_email_to_school_address(
     form.save(request=request)
 
     all_recipients = [addr for msg in mailoutbox for addr in msg.to]
-    assert (
-        user.email_school in all_recipients
-    ), f"School email {user.email_school!r} not found in {all_recipients}"
+    assert user.email_school in all_recipients, f"School email {user.email_school!r} not found in {all_recipients}"
 
 
 # ---------------------------------------------------------------------------
@@ -1479,9 +1460,10 @@ def test_user_lookup_search_single_result_sets_session_and_redirects(
     mock_form.is_valid.return_value = True
     mock_form.cleaned_data = {"university": "-1", "name": "", "id": None}
 
-    with patch.object(UserLookupSearchView, "get_form", return_value=mock_form), patch(
-        "thetatauCMT.users.views.watson"
-    ) as mock_watson:
+    with (
+        patch.object(UserLookupSearchView, "get_form", return_value=mock_form),
+        patch("thetatauCMT.users.views.watson") as mock_watson,
+    ):
         mock_watson.filter.return_value = mock_qs
         response = client.post(url, {})
 
@@ -1509,9 +1491,10 @@ def test_user_lookup_search_deceased_user_not_filtered_by_view(auto_login_user):
     mock_form.is_valid.return_value = True
     mock_form.cleaned_data = {"university": "-1", "name": "", "id": None}
 
-    with patch.object(UserLookupSearchView, "get_form", return_value=mock_form), patch(
-        "thetatauCMT.users.views.watson"
-    ) as mock_watson:
+    with (
+        patch.object(UserLookupSearchView, "get_form", return_value=mock_form),
+        patch("thetatauCMT.users.views.watson") as mock_watson,
+    ):
         mock_watson.filter.return_value = mock_qs
         response = client.post(url, {})
 
@@ -1539,9 +1522,10 @@ def test_user_lookup_search_prospective_user_not_filtered_by_view(auto_login_use
     mock_form.is_valid.return_value = True
     mock_form.cleaned_data = {"university": "-1", "name": "", "id": None}
 
-    with patch.object(UserLookupSearchView, "get_form", return_value=mock_form), patch(
-        "thetatauCMT.users.views.watson"
-    ) as mock_watson:
+    with (
+        patch.object(UserLookupSearchView, "get_form", return_value=mock_form),
+        patch("thetatauCMT.users.views.watson") as mock_watson,
+    ):
         mock_watson.filter.return_value = mock_qs
         response = client.post(url, {})
 

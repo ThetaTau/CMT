@@ -40,9 +40,7 @@ class Command(BaseCommand):
                     nat_group.user_set.add(user)
                     continue
                 try:
-                    user = User.objects.get(
-                        first_name=row["First Name"], last_name=row["Last Name"]
-                    )
+                    user = User.objects.get(first_name=row["First Name"], last_name=row["Last Name"])
                 except User.DoesNotExist:
                     user = None
                 if user is not None:

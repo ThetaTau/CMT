@@ -19,9 +19,7 @@ class InvoiceListFilter(django_filters.FilterSet):
 
 
 class ChapterBalanceListFilter(django_filters.FilterSet):
-    region = django_filters.ChoiceFilter(
-        label="Region", choices=Region.region_choices(), method="filter_region"
-    )
+    region = django_filters.ChoiceFilter(label="Region", choices=Region.region_choices(), method="filter_region")
 
     class Meta:
         model = Invoice

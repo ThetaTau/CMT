@@ -39,9 +39,7 @@ class BadgeFactory(factory.django.DjangoModelFactory):
 class GuardFactory(factory.django.DjangoModelFactory):
     name = factory.Faker("sentence", nb_words=3)
     code = factory.Faker("pystr")
-    letters = factory.Faker(
-        "random_element", elements=[item[0] for item in Guard.NUM_LETTERS]
-    )
+    letters = factory.Faker("random_element", elements=[item[0] for item in Guard.NUM_LETTERS])
     description = factory.Faker("paragraph", nb_sentences=5)
     cost = factory.Faker("pyfloat", min_value=0, max_value=500)
 
@@ -56,12 +54,8 @@ class PledgeProgramFactory(factory.django.DjangoModelFactory):
     date_initiation = factory.Faker("date_between", start_date="-4y", end_date="+4y")
     weeks = factory.Faker("random_int", max=30)
     weeks_left = factory.Faker("random_int", max=30)
-    status = factory.Faker(
-        "random_element", elements=[item.value[0] for item in PledgeProgram.STATUS]
-    )
-    manual = factory.Faker(
-        "random_element", elements=[item.value[0] for item in PledgeProgram.MANUALS]
-    )
+    status = factory.Faker("random_element", elements=[item.value[0] for item in PledgeProgram.STATUS])
+    manual = factory.Faker("random_element", elements=[item.value[0] for item in PledgeProgram.MANUALS])
 
     class Meta:
         model = PledgeProgram
@@ -84,9 +78,7 @@ class InitiationFactory(factory.django.DjangoModelFactory):
 
 class DepledgeFactory(factory.django.DjangoModelFactory):
     user = factory.SubFactory(UserFactory)
-    reason = factory.Faker(
-        "random_element", elements=[item.value[0] for item in Depledge.REASONS]
-    )
+    reason = factory.Faker("random_element", elements=[item.value[0] for item in Depledge.REASONS])
     date = factory.Faker("date_between", start_date="-4y", end_date="+4y")
 
     class Meta:
@@ -107,12 +99,8 @@ class StatusChangeFactory(factory.django.DjangoModelFactory):
         tzinfo=datetime.timezone.utc,
     )
     user = factory.SubFactory(UserFactory)
-    reason = factory.Faker(
-        "random_element", elements=[item.value[0] for item in StatusChange.REASONS]
-    )
-    degree = factory.Faker(
-        "random_element", elements=[item.value[0] for item in StatusChange.DEGREES]
-    )
+    reason = factory.Faker("random_element", elements=[item.value[0] for item in StatusChange.REASONS])
+    degree = factory.Faker("random_element", elements=[item.value[0] for item in StatusChange.DEGREES])
     date_start = factory.Faker("date_between", start_date="-4y", end_date="+4y")
     date_end = factory.Faker("date_between", start_date="-4y", end_date="+4y")
     employer = factory.Faker("sentence", nb_words=3)
@@ -139,9 +127,7 @@ class ChapterReportFactory(factory.django.DjangoModelFactory):
         tzinfo=datetime.timezone.utc,
     )
     year = factory.Faker("random_int", min=2016, max=2030)
-    term = factory.Faker(
-        "random_element", elements=[item.value[0] for item in ChapterReport.TERMS]
-    )
+    term = factory.Faker("random_element", elements=[item.value[0] for item in ChapterReport.TERMS])
     user = factory.SubFactory(UserFactory)
     chapter = factory.SubFactory(ChapterFactory)
     report = factory.django.FileField(filename="test.pdf")
@@ -152,9 +138,7 @@ class ChapterReportFactory(factory.django.DjangoModelFactory):
 
 class RiskManagementFactory(factory.django.DjangoModelFactory):
     year = factory.Faker("random_int", min=2016, max=2030)
-    term = factory.Faker(
-        "random_element", elements=[item.value[0] for item in RiskManagement.TERMS]
-    )
+    term = factory.Faker("random_element", elements=[item.value[0] for item in RiskManagement.TERMS])
     user = factory.SubFactory(UserFactory)
     role = factory.Faker("name")
     submission = factory.SubFactory(SubmissionFactory)
@@ -200,9 +184,7 @@ class AuditFactory(factory.django.DjangoModelFactory):
         tzinfo=datetime.timezone.utc,
     )
     year = factory.Faker("random_int", min=2016, max=2030)
-    term = factory.Faker(
-        "random_element", elements=[item.value[0] for item in ChapterReport.TERMS]
-    )
+    term = factory.Faker("random_element", elements=[item.value[0] for item in ChapterReport.TERMS])
     user = factory.SubFactory(UserFactory)
     dues_member = factory.Faker("pyfloat", min_value=0, max_value=5000)
     dues_pledge = factory.Faker("pyfloat", min_value=0, max_value=5000)
@@ -241,9 +223,7 @@ class PledgeFactory(factory.django.DjangoModelFactory):
         tzinfo=datetime.timezone.utc,
     )
     user = factory.SubFactory(UserFactory)
-    signature = factory.LazyAttribute(
-        lambda o: f"{o.user.first_name}{o.user.last_name}"
-    )
+    signature = factory.LazyAttribute(lambda o: f"{o.user.first_name}{o.user.last_name}")
     parent_name = factory.LazyAttribute(lambda o: f"{o.user.first_name}"[:59])
     birth_place = factory.LazyAttribute(lambda o: "Test City")
     other_degrees = factory.Faker("word")
@@ -283,9 +263,7 @@ class PrematureAlumnusFactory(factory.django.DjangoModelFactory):
     semesters = factory.Faker("boolean")
     lifestyle = factory.Faker("boolean")
     consideration = factory.Faker("boolean")
-    prealumn_type = factory.Faker(
-        "random_element", elements=[item.value[0] for item in PrematureAlumnus.TYPES]
-    )
+    prealumn_type = factory.Faker("random_element", elements=[item.value[0] for item in PrematureAlumnus.TYPES])
     approved_exec = factory.Faker("boolean")
     exec_comments = factory.Faker("sentence")
     vote = factory.Faker("boolean")

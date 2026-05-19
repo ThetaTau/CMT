@@ -39,6 +39,4 @@ class TaskLinkColumn(tables.Column):
 
         url = reverse("tasks:detail", args=[value])
 
-        return mark_safe(
-            f'<a href="{url}" target="_blank">Completed Task Information</a>'
-        )
+        return mark_safe(f'<a href="{url}" target="_blank">Completed Task Information</a>')

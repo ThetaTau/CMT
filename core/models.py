@@ -3,7 +3,7 @@ import re
 from datetime import time, timedelta
 from enum import Enum
 
-from django.contrib.postgres.aggregates import ArrayAgg, StringAgg
+from django.contrib.postgres.aggregates import StringAgg
 from django.core.exceptions import ValidationError
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import IntegrityError, models, transaction
@@ -194,21 +194,11 @@ ALL_OFFICERS = sorted(set.union(CHAPTER_OFFICER, set(NAT_OFFICERS)))
 ALL_ROLES = sorted(set.union(set(ALL_OFFICERS), COMMITTEE_CHAIR, ADVISOR_ROLES))
 CHAPTER_ROLES = sorted(set.union(CHAPTER_OFFICER, COMMITTEE_CHAIR, ADVISOR_ROLES))
 
-ALL_OFFICERS_CHOICES = sorted(
-    [(officer, officer.title()) for officer in ALL_OFFICERS], key=lambda x: x[0]
-)
-CHAPTER_OFFICER_CHOICES = sorted(
-    [(officer, officer.title()) for officer in CHAPTER_OFFICER], key=lambda x: x[0]
-)
-ALL_ROLES_CHOICES = sorted(
-    [(role, role.title()) for role in ALL_ROLES], key=lambda x: x[0]
-)
-NAT_OFFICERS_CHOICES = sorted(
-    [(role, role.title()) for role in NAT_OFFICERS], key=lambda x: x[0]
-)
-CHAPTER_ROLES_CHOICES = sorted(
-    [(role, role.title()) for role in CHAPTER_ROLES], key=lambda x: x[0]
-)
+ALL_OFFICERS_CHOICES = sorted([(officer, officer.title()) for officer in ALL_OFFICERS], key=lambda x: x[0])
+CHAPTER_OFFICER_CHOICES = sorted([(officer, officer.title()) for officer in CHAPTER_OFFICER], key=lambda x: x[0])
+ALL_ROLES_CHOICES = sorted([(role, role.title()) for role in ALL_ROLES], key=lambda x: x[0])
+NAT_OFFICERS_CHOICES = sorted([(role, role.title()) for role in NAT_OFFICERS], key=lambda x: x[0])
+CHAPTER_ROLES_CHOICES = sorted([(role, role.title()) for role in CHAPTER_ROLES], key=lambda x: x[0])
 
 
 def semester_encompass_start_end_date(given_date=None, term=None, year=None):
@@ -317,9 +307,7 @@ def validate_year(value):
     year = int(value)
     thisyear = datetime.datetime.now().year
     if year < thisyear:
-        raise ValidationError(
-            "%s is a year in the past; please enter a current or future year." % value
-        )
+        raise ValidationError("%s is a year in the past; please enter a current or future year." % value)
 
 
 class YearTermModel(models.Model):
@@ -404,9 +392,7 @@ def annotate_rmp_status(queryset, date=TODAY_END):
     start, end = semester_encompass_start_end_date(date)
     qs = queryset.annotate(
         rmp_complete=models.Exists(
-            RiskManagement.objects.filter(
-                user=models.OuterRef("pk"), date__gte=start, date__lte=end
-            ),
+            RiskManagement.objects.filter(user=models.OuterRef("pk"), date__gte=start, date__lte=end),
         )
     )
     return qs
@@ -420,24 +406,20 @@ def annotate_role_status(queryset, date=TODAY_END):
         queryset.annotate(
             roles_all=models.FilteredRelation(
                 "roles",
-                condition=models.Q(roles__start__lte=date)
-                & models.Q(roles__end__gte=date),
+                condition=models.Q(roles__start__lte=date) & models.Q(roles__end__gte=date),
             )
         )
         .annotate(old_roles=StringAgg("roles_all__role", ", ", default=""))
         .annotate(
             status_all=models.FilteredRelation(
                 "status",
-                condition=models.Q(status__start__lte=date)
-                & models.Q(status__end__gte=date),
+                condition=models.Q(status__start__lte=date) & models.Q(status__end__gte=date),
             )
         )
         .annotate(old_status=StringAgg("status_all__status", ", ", default=""))
         .annotate(
             rmp_complete=models.Exists(
-                RiskManagement.objects.filter(
-                    user=models.OuterRef("pk"), date__gte=start, date__lte=end
-                ),
+                RiskManagement.objects.filter(user=models.OuterRef("pk"), date__gte=start, date__lte=end),
             )
         )
     )

@@ -45,24 +45,18 @@ def run(*args):
             #   if pledge check init
             if not alumni and not pledge:
                 # nothing, could be expelled, nonmember, friend, advisor
-                other_status = user_statuses.filter(
-                    status__in=["expelled", "nonmember", "friend", "advisor"]
-                )
+                other_status = user_statuses.filter(status__in=["expelled", "nonmember", "friend", "advisor"])
                 if not other_status:
                     print("        no status, need active ", user.graduation_year)
                     start = datetime(user.graduation_year, 6, 1)
-                    user.set_current_status(
-                        "active", start=start - timedelta(365 * 3.5), end=start
-                    )
+                    user.set_current_status("active", start=start - timedelta(365 * 3.5), end=start)
                     user.set_current_status("alumni", start=start)
             if alumni and not pledge:
                 print("        need active from alumni", alumni.start)
                 other_status = user_statuses.filter(status__in=["expelled"])
                 if not other_status:
                     start = alumni.start
-                    user.set_current_status(
-                        "active", start=start - timedelta(365 * 3.5), end=start
-                    )
+                    user.set_current_status("active", start=start - timedelta(365 * 3.5), end=start)
             if pledge:
                 # there is no alumni so the current status should be active
                 if hasattr(user, "initiation"):
@@ -115,7 +109,5 @@ def run(*args):
                 print("            Update status: ", user_status, next_status)
                 user_status.end = next_status.start
                 user_status.save()
-        final_statuses = (
-            user.status.all().order_by("start").values_list("status", flat=True)
-        )
+        final_statuses = user.status.all().order_by("start").values_list("status", flat=True)
         print("    Final Status", final_statuses)

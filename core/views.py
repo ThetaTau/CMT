@@ -43,9 +43,7 @@ class NatOfficerRequiredMixin(GroupRequiredMixin):
 
     def get_login_url(self):
         if self.request.user.is_authenticated:
-            messages.add_message(
-                self.request, messages.ERROR, "Only National officers can edit this."
-            )
+            messages.add_message(self.request, messages.ERROR, "Only National officers can edit this.")
             url = self.get_success_url()
         else:
             resolved_url = resolve_url(settings.LOGIN_URL)
@@ -129,13 +127,9 @@ class PagedFilteredTableView(SingleTableView):
             qs = qs.filter(chapter=self.request.user.current_chapter)
         elif self.filter_user_chapter:
             qs = qs.filter(user__chapter=self.request.user.current_chapter)
-        self.filter = self.filter_class(
-            request_get, queryset=qs, **self.get_filter_kwargs()
-        )
+        self.filter = self.filter_class(request_get, queryset=qs, **self.get_filter_kwargs())
         self.filter.request = self.request
-        self.filter.form.helper = self.formhelper_class(
-            **self.get_filter_helper_kwargs()
-        )
+        self.filter.form.helper = self.formhelper_class(**self.get_filter_helper_kwargs())
         if kwargs.get("clean_date", False):
             self.filter.form.full_clean()
             self.filter.form.cleaned_data.pop("date")
@@ -161,11 +155,7 @@ class TypeFieldFilteredChapterAdd(FormMixin):
             form.initial = {"type": score_obj[0].pk}
             form.fields["type"].queryset = score_obj
         else:
-            form.fields["type"].queryset = (
-                ScoreType.objects.filter(type=self.score_type)
-                .all()
-                .exclude(slug="article")
-            )
+            form.fields["type"].queryset = ScoreType.objects.filter(type=self.score_type).all().exclude(slug="article")
         return form
 
     def form_valid(self, form):
@@ -210,9 +200,7 @@ class TypeFieldFilteredChapterAdd(FormMixin):
                         submission_object=self.object,
                     ).save()
                 else:
-                    messages.add_message(
-                        self.request, messages.ERROR, f"Duplicate {self.officer_edit}!"
-                    )
+                    messages.add_message(self.request, messages.ERROR, f"Duplicate {self.officer_edit}!")
         return response
 
     def get_context_data(self, **kwargs):
@@ -275,10 +263,6 @@ class AssignOfficerFormMixin(object):
                     form.instance.officer2 = officer
                     break
         if not hasattr(form.instance, "officer1"):
-            form.instance.officer1 = User.objects.get(
-                username="Jim.Gaffney@thetatau.org"
-            )
+            form.instance.officer1 = User.objects.get(username="Jim.Gaffney@thetatau.org")
         if not hasattr(form.instance, "officer2"):
-            form.instance.officer2 = User.objects.get(
-                username="Jim.Gaffney@thetatau.org"
-            )
+            form.instance.officer2 = User.objects.get(username="Jim.Gaffney@thetatau.org")

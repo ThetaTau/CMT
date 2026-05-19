@@ -95,9 +95,7 @@ class SubmissionUpdateView(LoginRequiredMixin, TypeFieldFilteredChapterAdd, Upda
         try:
             submission = Submission.objects.get(pk=submission_id)
         except Submission.DoesNotExist:
-            messages.add_message(
-                request, messages.ERROR, "Submission could not be found!"
-            )
+            messages.add_message(request, messages.ERROR, "Submission could not be found!")
         else:
             if "forms:" in submission.file.name:
                 path, args = submission.file.name, None
@@ -200,14 +198,10 @@ class GearArticleFormView(LoginRequiredMixin, MultiFormsView):
         return HttpResponseRedirect(self.get_success_url())
 
     def create_picture_form(self, **kwargs):
-        factory = modelformset_factory(
-            Picture, form=PictureForm, **{"can_delete": True, "extra": 1}
-        )
+        factory = modelformset_factory(Picture, form=PictureForm, **{"can_delete": True, "extra": 1})
         formset_kwargs = dict(queryset=Picture.objects.none())
         if self.request.method in ("POST", "PUT"):
-            formset_kwargs.update(
-                {"data": self.request.POST.copy(), "files": self.request.FILES.copy()}
-            )
+            formset_kwargs.update({"data": self.request.POST.copy(), "files": self.request.FILES.copy()})
         return factory(**formset_kwargs)
 
 
@@ -222,9 +216,7 @@ class GearArticleDetailView(LoginRequiredMixin, UpdateView):
         return reverse("submissions:gearlist")
 
 
-class GearArticleListView(
-    LoginRequiredMixin, NatOfficerRequiredMixin, PagedFilteredTableView
-):
+class GearArticleListView(LoginRequiredMixin, NatOfficerRequiredMixin, PagedFilteredTableView):
     model = GearArticle
     context_object_name = "geararticle"
     table_class = GearArticleTable
@@ -285,22 +277,13 @@ class GearArticleListView(
         region_slug = self.filter.form.cleaned_data["region"]
         region = Region.objects.filter(slug=region_slug).first()
         if region:
-            missing_chapters = Chapter.objects.exclude(slug__in=form_chapters).filter(
-                region__in=[region]
-            )
+            missing_chapters = Chapter.objects.exclude(slug__in=form_chapters).filter(region__in=[region])
         elif region_slug == "candidate_chapter":
-            missing_chapters = Chapter.objects.exclude(slug__in=form_chapters).filter(
-                candidate_chapter=True
-            )
+            missing_chapters = Chapter.objects.exclude(slug__in=form_chapters).filter(candidate_chapter=True)
         else:
             missing_chapters = Chapter.objects.exclude(slug__in=form_chapters)
         chapter_officer_emails = {
-            chapter: [
-                user.email
-                for user in Chapter.objects.get(
-                    name=chapter
-                ).get_current_officers_council()[0]
-            ]
+            chapter: [user.email for user in Chapter.objects.get(name=chapter).get_current_officers_council()[0]]
             for chapter in missing_chapters
         }
         table = GearArticleTable(data=all_gears)
@@ -308,10 +291,6 @@ class GearArticleListView(
         context["table"] = table
         context["email_list_table"] = chapter_officer_emails
         context["email_list"] = ", ".join(
-            [
-                email
-                for chapter_emails in chapter_officer_emails.values()
-                for email in chapter_emails
-            ]
+            [email for chapter_emails in chapter_officer_emails.values() for email in chapter_emails]
         )
         return context

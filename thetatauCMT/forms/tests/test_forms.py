@@ -526,9 +526,7 @@ def test_disciplinary_form2_clean_no_take_and_no_why_take_raises():
         "minutes": None,
         "results_letter": None,
     }
-    with pytest.raises(
-        forms.ValidationError, match="A reason for not taking place is required"
-    ):
+    with pytest.raises(forms.ValidationError, match="A reason for not taking place is required"):
         f.clean()
 
 
@@ -550,9 +548,7 @@ def test_disciplinary_form2_clean_take_true_no_minutes_raises():
         "minutes": None,
         "results_letter": None,
     }
-    with pytest.raises(
-        forms.ValidationError, match="Both minutes and results letter are required"
-    ):
+    with pytest.raises(forms.ValidationError, match="Both minutes and results letter are required"):
         f.clean()
 
 
@@ -588,7 +584,7 @@ def test_disciplinary_form2_clean_take_true_all_files_passes():
 @pytest.mark.django_db
 def test_return_student_form_clean_user_with_prealumn_raises():
     """clean_user raises ValidationError when user has a prealumn form."""
-    from unittest.mock import MagicMock, PropertyMock
+    from unittest.mock import MagicMock
 
     from django.forms.renderers import get_default_renderer
     from django.forms.utils import ErrorDict

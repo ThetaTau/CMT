@@ -2,13 +2,9 @@ from django.conf import settings
 from herald import registry
 from herald.base import EmailNotification
 
-from thetatauCMT.configs.models import Config
-
 
 @registry.register_decorator()
-class DepledgeSurveyEmail(
-    EmailNotification
-):  # extend from EmailNotification for emails
+class DepledgeSurveyEmail(EmailNotification):  # extend from EmailNotification for emails
     render_types = ["html"]
     template_name = "depledge_survey"  # name of template, without extension
     subject = "Theta Tau PNM Exit Survey"  # subject of email
@@ -61,9 +57,7 @@ class SurveyFollowUpEmail(EmailNotification):
 
         survey = DepledgeSurvey.objects.order_by("?")[0]
         user = survey.user
-        link = reverse(
-            "admin:surveys_depledgesurvey_change", kwargs={"object_id": survey.id}
-        )
+        link = reverse("admin:surveys_depledgesurvey_change", kwargs={"object_id": survey.id})
         message = mark_safe(
             f"A depledge from {user.chapter.full_name} has asked "
             f"for a follow up to their survey. <br>"
@@ -105,7 +99,5 @@ class SurveyEmail(EmailNotification):  # extend from EmailNotification for email
 
         test_user = User.objects.order_by("?")[0]
 
-        survey_link = settings.CURRENT_URL + reverse(
-            "surveys:survey-detail", kwargs={"slug": "graduation-survey"}
-        )
+        survey_link = settings.CURRENT_URL + reverse("surveys:survey-detail", kwargs={"slug": "graduation-survey"})
         return [test_user, "Graduation", survey_link, "Please fill out the following"]

@@ -77,9 +77,7 @@ class UserAdminTrainingForm(forms.Form):
         if extra_group == "new_group" and new_group == "":
             self.add_error(
                 "new_group",
-                forms.ValidationError(
-                    "You must set a new group name when ***NEW GROUP*** is selected above"
-                ),
+                forms.ValidationError("You must set a new group name when ***NEW GROUP*** is selected above"),
             )
         elif extra_group == "new_group" and new_group:
             self.cleaned_data["extra_group"] = new_group

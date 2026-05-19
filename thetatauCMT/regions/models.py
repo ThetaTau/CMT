@@ -31,9 +31,7 @@ class Region(models.Model):
     def region_choices(cls):
         regions = []
         try:
-            regions = [
-                (region.slug, region.name.title()) for region in cls.objects.all()
-            ]
+            regions = [(region.slug, region.name.title()) for region in cls.objects.all()]
         except ProgrammingError:
             # Likely the database hasn't been setup yet?
             warnings.warn("Could not find region relation")

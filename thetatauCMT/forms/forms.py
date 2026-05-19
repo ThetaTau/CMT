@@ -11,7 +11,7 @@ from django_recaptcha.fields import ReCaptchaField
 from django_recaptcha.widgets import ReCaptchaV3
 from djmoney.forms.fields import MoneyField
 from hcaptcha.fields import hCaptchaField
-from tempus_dominus.widgets import DatePicker
+from tempus_dominus.widgets import DatePicker as TempusDominusDatePicker  # noqa: F401
 from upload_validator import FileTypeValidator
 
 from core.address import fix_address
@@ -51,9 +51,7 @@ class SetNoValidateField(forms.CharField):
 class UserSelectForm(forms.Form):
     user = forms.ModelChoiceField(
         queryset=User.objects.all(),
-        widget=autocomplete.ModelSelect2(
-            url="users:autocomplete", forward=(forward.Const("false", "chapter"),)
-        ),
+        widget=autocomplete.ModelSelect2(url="users:autocomplete", forward=(forward.Const("false", "chapter"),)),
     )
 
 
@@ -117,9 +115,7 @@ class InitiationForm(forms.ModelForm):
         max_badge = chapter.next_badge_number()
         chapter_badge_numbers = chapter.members.values_list("badge_number", flat=True)
         if data in chapter_badge_numbers:
-            raise forms.ValidationError(
-                f"Badge number taken, chapter max badge number: {max_badge-1}"
-            )
+            raise forms.ValidationError(f"Badge number taken, chapter max badge number: {max_badge-1}")
         return data
 
 
@@ -190,9 +186,7 @@ class DepledgeForm(forms.ModelForm):
         if self.cleaned_data.get("reason") == "other" and reason_other == "":
             self.add_error(
                 "reason_other",
-                forms.ValidationError(
-                    "You must submit the other reason for depledging"
-                ),
+                forms.ValidationError("You must submit the other reason for depledging"),
             )
         meeting_held = self.cleaned_data.get("meeting_held")
         if not meeting_held:
@@ -205,9 +199,7 @@ class DepledgeForm(forms.ModelForm):
             if meeting_not == "":
                 self.add_error(
                     "meeting_not",
-                    forms.ValidationError(
-                        "You must submit a reason for no meeting with depledged."
-                    ),
+                    forms.ValidationError("You must submit a reason for no meeting with depledged."),
                 )
         else:
             meeting_date = self.cleaned_data.get("meeting_date", "")
@@ -215,16 +207,12 @@ class DepledgeForm(forms.ModelForm):
             if meeting_date == "":
                 self.add_error(
                     "meeting_date",
-                    forms.ValidationError(
-                        "You must submit meeting date for depledged meeting"
-                    ),
+                    forms.ValidationError("You must submit meeting date for depledged meeting"),
                 )
             if meeting_attend == "":
                 self.add_error(
                     "meeting_attend",
-                    forms.ValidationError(
-                        "You must submit meeting attendance for depledged meeting"
-                    ),
+                    forms.ValidationError("You must submit meeting attendance for depledged meeting"),
                 )
         returned_other = self.cleaned_data.get("returned_other", "")
         returned_items = self.cleaned_data.get("returned_items")
@@ -301,9 +289,7 @@ class StatusChangeSelectForm(forms.Form):
         exclude = ["covid"]
         if not colony:
             exclude.append("resignedCC")
-        self.fields["state"].choices = [
-            x.value for x in StatusChange.REASONS if x.name not in exclude
-        ]
+        self.fields["state"].choices = [x.value for x in StatusChange.REASONS if x.name not in exclude]
 
 
 class StatusChangeSelectFormHelper(FormHelper):
@@ -459,13 +445,9 @@ class CSMTForm(forms.ModelForm):
             if date_end < date_start:
                 self.add_error(
                     "date_end",
-                    forms.ValidationError(
-                        "End date must be greater than the start date."
-                    ),
+                    forms.ValidationError("End date must be greater than the start date."),
                 )
-                raise forms.ValidationError(
-                    "End date must be greater than the start date."
-                )
+                raise forms.ValidationError("End date must be greater than the start date.")
 
 
 CSMTFormSet = forms.formset_factory(CSMTForm, extra=0)
@@ -488,14 +470,10 @@ class CSMTFormHelper(FormHelper):
 class RoleChangeNationalSelectForm(forms.ModelForm):
     user = forms.ModelChoiceField(
         queryset=User.objects.all(),
-        widget=autocomplete.ModelSelect2(
-            url="users:autocomplete", forward=(forward.Const("false", "chapter"),)
-        ),
+        widget=autocomplete.ModelSelect2(url="users:autocomplete", forward=(forward.Const("false", "chapter"),)),
         disabled=True,
     )
-    role = forms.ChoiceField(
-        choices=[("", "---------")] + NAT_OFFICERS_CHOICES, disabled=True
-    )
+    role = forms.ChoiceField(choices=[("", "---------")] + NAT_OFFICERS_CHOICES, disabled=True)
     start = forms.DateField(
         initial=timezone.now().date(),
         label="Start Date",
@@ -529,14 +507,10 @@ class RoleChangeNationalSelectForm(forms.ModelForm):
 class RoleChangeSelectForm(forms.ModelForm):
     user = forms.ModelChoiceField(
         queryset=User.objects.all(),
-        widget=autocomplete.ModelSelect2(
-            url="users:autocomplete", forward=(forward.Const("true", "chapter"),)
-        ),
+        widget=autocomplete.ModelSelect2(url="users:autocomplete", forward=(forward.Const("true", "chapter"),)),
         disabled=True,
     )
-    role = forms.ChoiceField(
-        choices=[("", "---------")] + CHAPTER_ROLES_CHOICES, disabled=True
-    )
+    role = forms.ChoiceField(choices=[("", "---------")] + CHAPTER_ROLES_CHOICES, disabled=True)
     start = forms.DateField(
         initial=timezone.now().date(),
         label="Start Date",
@@ -691,37 +665,21 @@ class ChapterInfoReportForm(MultiModelForm):
 class RiskManagementForm(forms.ModelForm):
     alcohol = forms.BooleanField(label="I understand the Policy on Alcoholic Beverages")
     hosting = forms.BooleanField(label="I understand the Policy on Hosting an event")
-    monitoring = forms.BooleanField(
-        label="I understand the Policy on Organizing/Monitoring an event"
-    )
-    member = forms.BooleanField(
-        label="I understand the Policy on Member Responsibilities"
-    )
-    officer = forms.BooleanField(
-        label="I understand the Policy on Officer Responsibilities"
-    )
+    monitoring = forms.BooleanField(label="I understand the Policy on Organizing/Monitoring an event")
+    member = forms.BooleanField(label="I understand the Policy on Member Responsibilities")
+    officer = forms.BooleanField(label="I understand the Policy on Officer Responsibilities")
     abusive = forms.BooleanField(label="I understand the Policy on Abusive Behavior")
     hazing = forms.BooleanField(label="I understand the Policy on Hazing")
-    substances = forms.BooleanField(
-        label="I understand the Policy on Controlled Substances"
-    )
+    substances = forms.BooleanField(label="I understand the Policy on Controlled Substances")
     high_risk = forms.BooleanField(label="I understand the Policy on High Risk Events")
-    transportation = forms.BooleanField(
-        label="I understand the Policy on Transportation"
-    )
-    property_management = forms.BooleanField(
-        label="I understand the Policy on Property Management"
-    )
+    transportation = forms.BooleanField(label="I understand the Policy on Transportation")
+    property_management = forms.BooleanField(label="I understand the Policy on Property Management")
     guns = forms.BooleanField(label="I understand the Policy on Gun Safety")
     trademark = forms.BooleanField(label="I understand the Trademark Policy")
     social = forms.BooleanField(label="I understand the Website & Social Media Policy")
-    indemnification = forms.BooleanField(
-        label="I understand the Indemnification, Authority, and Signatory Policy"
-    )
+    indemnification = forms.BooleanField(label="I understand the Indemnification, Authority, and Signatory Policy")
     electronic_agreement = forms.BooleanField(label="I agree ")
-    terms_agreement = forms.BooleanField(
-        label="I accept the Electronic Terms of Service"
-    )
+    terms_agreement = forms.BooleanField(label="I accept the Electronic Terms of Service")
     photo_release = forms.BooleanField(label="I accept the Photo and Image Release")
     arbitration = forms.BooleanField(label="I accept the Arbitration Agreement")
     fines = forms.BooleanField(label="I accept the Fines and Late Fees Schedule")
@@ -799,15 +757,9 @@ class AuditForm(forms.ModelForm):
         coerce=lambda x: x == "True",
         choices=((False, "No"), (True, "Yes")),
     )
-    cash_book = forms.TypedChoiceField(
-        coerce=lambda x: x == "True", choices=((False, "No"), (True, "Yes"))
-    )
-    cash_register = forms.TypedChoiceField(
-        coerce=lambda x: x == "True", choices=((False, "No"), (True, "Yes"))
-    )
-    member_account = forms.TypedChoiceField(
-        coerce=lambda x: x == "True", choices=((False, "No"), (True, "Yes"))
-    )
+    cash_book = forms.TypedChoiceField(coerce=lambda x: x == "True", choices=((False, "No"), (True, "Yes")))
+    cash_register = forms.TypedChoiceField(coerce=lambda x: x == "True", choices=((False, "No"), (True, "Yes")))
+    member_account = forms.TypedChoiceField(coerce=lambda x: x == "True", choices=((False, "No"), (True, "Yes")))
     debit_card = forms.TypedChoiceField(
         label="Does the chapter have a debit card used by members?",
         coerce=lambda x: x == "True",
@@ -829,9 +781,7 @@ class AuditForm(forms.ModelForm):
         for field in required_fields:
             value = cleaned_data.get(field)
             if not value:
-                self.add_error(
-                    field, f"{field.replace('_', ' ')} is required to be completed."
-                )
+                self.add_error(field, f"{field.replace('_', ' ')} is required to be completed.")
         return self.cleaned_data
 
 
@@ -1122,9 +1072,7 @@ class PledgeDemographicsForm(forms.ModelForm):
 
 
 class PledgeUserBase(forms.ModelForm):
-    school_name = SchoolModelChoiceField(
-        queryset=Chapter.objects.exclude(active=False).order_by("school")
-    )
+    school_name = SchoolModelChoiceField(queryset=Chapter.objects.exclude(active=False).order_by("school"))
     birth_date = forms.DateField(
         label="Birth Date",
         widget=DatePicker(
@@ -1133,9 +1081,7 @@ class PledgeUserBase(forms.ModelForm):
         ),
     )
     address = DuplicateAddressField(widget=AddressWidget)
-    email = forms.EmailField(
-        label="Email Address", help_text="Non school email, does NOT end in .edu"
-    )
+    email = forms.EmailField(label="Email Address", help_text="Non school email, does NOT end in .edu")
 
     class Meta:
         model = User
@@ -1168,9 +1114,7 @@ class PledgeUserBase(forms.ModelForm):
             if field not in ["middle_name", "preferred_name", "preferred_pronouns"]:
                 self.fields[field].required = True
             else:
-                self.fields[field].widget = forms.TextInput(
-                    attrs={"placeholder": "If None, leave blank"}
-                )
+                self.fields[field].widget = forms.TextInput(attrs={"placeholder": "If None, leave blank"})
                 if field == "middle_name":
                     self.fields[field].help_text = "If None, leave blank"
 
@@ -1187,9 +1131,7 @@ class PledgeUserBase(forms.ModelForm):
     def clean_email(self):
         email = self.cleaned_data.get("email")
         if email.endswith(".edu"):
-            raise forms.ValidationError(
-                "No .edu email addresses allowed for personal email"
-            )
+            raise forms.ValidationError("No .edu email addresses allowed for personal email")
         return email
 
 
@@ -1233,17 +1175,15 @@ class PledgeFormFull(CrispyCompatableMultiModelForm):
         if "user-school_name" in self.forms["user"].data:
             try:
                 chapter_id = int(self.data.get("user-school_name"))
-                self.forms["user"].fields["major"].queryset = (
-                    ChapterCurricula.objects.filter(chapter__pk=chapter_id).order_by(
-                        "major"
-                    )
-                )
+                self.forms["user"].fields["major"].queryset = ChapterCurricula.objects.filter(
+                    chapter__pk=chapter_id
+                ).order_by("major")
             except (ValueError, TypeError):
                 pass  # invalid input from the client; ignore and fallback to empty City queryset
         elif self.forms["user"].instance.pk:
-            self.forms["user"].fields["major"].queryset = self.forms[
-                "user"
-            ].instance.school_name.major_set.order_by("major")
+            self.forms["user"].fields["major"].queryset = self.forms["user"].instance.school_name.major_set.order_by(
+                "major"
+            )
         self.helper = FormHelper()
         self.helper.layout = Layout(
             Accordion(
@@ -1378,16 +1318,12 @@ class PledgeFormFull(CrispyCompatableMultiModelForm):
                 ),
                 AccordionGroup(
                     "BILL OF RIGHTS",
-                    HTML(
-                        "<div id='bill'>Select your 'School Name' under 'College & Degree Information'</div>"
-                    ),
+                    HTML("<div id='bill'>Select your 'School Name' under 'College & Degree Information'</div>"),
                     "pledge-bill",
                 ),
                 AccordionGroup(
                     "Pause and Deliberate",
-                    HTML(
-                        "<h2>Please carefully read and answer each question below honestly</h2>"
-                    ),
+                    HTML("<h2>Please carefully read and answer each question below honestly</h2>"),
                     "pledge-loyalty",
                     "pledge-not_honor",
                     "pledge-accountable",
@@ -1414,24 +1350,12 @@ class PledgeFormFull(CrispyCompatableMultiModelForm):
 
 class PrematureAlumnusForm(forms.ModelForm):
     CHOICES = [("", ""), (True, "True"), (False, "False")]
-    good_standing = forms.ChoiceField(
-        label=PrematureAlumnus.verbose_good_standing, choices=CHOICES, initial=""
-    )
-    financial = forms.ChoiceField(
-        label=PrematureAlumnus.verbose_financial, choices=CHOICES, initial=""
-    )
-    semesters = forms.ChoiceField(
-        label=PrematureAlumnus.verbose_semesters, choices=CHOICES, initial=""
-    )
-    lifestyle = forms.ChoiceField(
-        label=PrematureAlumnus.verbose_lifestyle, choices=CHOICES, initial=""
-    )
-    consideration = forms.ChoiceField(
-        label=PrematureAlumnus.verbose_consideration, choices=CHOICES, initial=""
-    )
-    vote = forms.ChoiceField(
-        label=PrematureAlumnus.verbose_vote, choices=CHOICES, initial=""
-    )
+    good_standing = forms.ChoiceField(label=PrematureAlumnus.verbose_good_standing, choices=CHOICES, initial="")
+    financial = forms.ChoiceField(label=PrematureAlumnus.verbose_financial, choices=CHOICES, initial="")
+    semesters = forms.ChoiceField(label=PrematureAlumnus.verbose_semesters, choices=CHOICES, initial="")
+    lifestyle = forms.ChoiceField(label=PrematureAlumnus.verbose_lifestyle, choices=CHOICES, initial="")
+    consideration = forms.ChoiceField(label=PrematureAlumnus.verbose_consideration, choices=CHOICES, initial="")
+    vote = forms.ChoiceField(label=PrematureAlumnus.verbose_vote, choices=CHOICES, initial="")
     user = forms.ModelChoiceField(
         label="Member requesting prealumn status",
         queryset=User.objects.all(),
@@ -1616,9 +1540,7 @@ class DisciplinaryForm1(forms.ModelForm):
         if advisor and advisor_name is None:
             raise forms.ValidationError("Please provide the alumni advisor's name")
         if faculty and faculty_name is None:
-            raise forms.ValidationError(
-                "Please provide the campus/faculty adviser name"
-            )
+            raise forms.ValidationError("Please provide the campus/faculty adviser name")
         return cleaned_data
 
     def clean_address(self):
@@ -1713,9 +1635,7 @@ class CollectionReferralForm(forms.ModelForm):
             ),
         ),
     )
-    balance_due = MoneyField(
-        currency_widget=forms.HiddenInput(), default_currency="USD"
-    )
+    balance_due = MoneyField(currency_widget=forms.HiddenInput(), default_currency="USD")
     ledger_sheet = forms.FileField(
         help_text="Only PDF format accepted",
         validators=[FileTypeValidator(allowed_types=["application/pdf"])],
@@ -1752,12 +1672,8 @@ class ResignationForm(forms.ModelForm):
 
 class ReturnStudentForm(forms.ModelForm):
     CHOICES = [("", ""), (True, "True"), (False, "False")]
-    financial = forms.ChoiceField(
-        label=ReturnStudent.verbose_financial, choices=CHOICES, initial=""
-    )
-    debt = forms.ChoiceField(
-        label=ReturnStudent.verbose_debt, choices=CHOICES, initial=""
-    )
+    financial = forms.ChoiceField(label=ReturnStudent.verbose_financial, choices=CHOICES, initial="")
+    debt = forms.ChoiceField(label=ReturnStudent.verbose_debt, choices=CHOICES, initial="")
     user = forms.ModelChoiceField(
         label="Member requesting return",
         queryset=User.objects.all(),
@@ -1852,9 +1768,7 @@ class AlumniExclusionForm(forms.ModelForm):
         if (date_end - date_start).days > (4 * 30):
             self.add_error(
                 "date_end",
-                forms.ValidationError(
-                    "End date of exclusion must be less than 4 months from start date"
-                ),
+                forms.ValidationError("End date of exclusion must be less than 4 months from start date"),
             )
 
 
@@ -1887,9 +1801,7 @@ class AlumniExclusionReviewForm(forms.ModelForm):
                 "regional_director_veto",
                 forms.ValidationError("You must approve or veto the exclusion"),
             )
-        if (
-            not regional_director_veto or regional_director_veto == "False"
-        ) and not veto_reason:
+        if (not regional_director_veto or regional_director_veto == "False") and not veto_reason:
             self.add_error(
                 "veto_reason",
                 forms.ValidationError("Reason is required if vetoing"),

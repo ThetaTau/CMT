@@ -29,9 +29,7 @@ class Command(BaseCommand):
             user_status.save()
 
         # Users with no current status
-        users = User.objects.exclude(
-            status__start__lte=TODAY_END, status__end__gte=TODAY_END
-        )
+        users = User.objects.exclude(status__start__lte=TODAY_END, status__end__gte=TODAY_END)
         print(f"{users} with no current status")
 
         # Users with duplicate current statuss
@@ -49,9 +47,9 @@ class Command(BaseCommand):
         for count, user in enumerate(dup_status):
             current_status = None
             other_statuss = []
-            current_statuss = user.status.filter(
-                start__lte=TODAY_END, end__gte=TODAY_END
-            ).values_list("status", flat=True)
+            current_statuss = user.status.filter(start__lte=TODAY_END, end__gte=TODAY_END).values_list(
+                "status", flat=True
+            )
             print(f"{count + 1}/{total} {user} Current duplicates: {current_statuss}")
             status_check = [
                 "deceased",

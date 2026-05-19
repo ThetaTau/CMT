@@ -71,9 +71,7 @@ def simple_report(db):
 
 
 @pytest.mark.django_db
-def test_report_builder_generate_returns_200(
-    client, staff_user_with_rmp, simple_report
-):
+def test_report_builder_generate_returns_200(client, staff_user_with_rmp, simple_report):
     """GenerateReport endpoint returns 200 with a JSON body for a staff user."""
     client.force_login(staff_user_with_rmp)
     url = reverse("generate_report", kwargs={"report_id": simple_report.pk})

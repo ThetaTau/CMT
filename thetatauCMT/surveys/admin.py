@@ -67,9 +67,7 @@ class Survey2CsvUpdated(Survey2Csv):
                 response.write(survey_as_csv)
             else:
                 if EXCEL_COMPATIBLE_CSV:
-                    survey_as_csv = str(survey_as_csv).replace(
-                        f"{Survey2Csv.EXCEL_HACK}\n", ""
-                    )
+                    survey_as_csv = str(survey_as_csv).replace(f"{Survey2Csv.EXCEL_HACK}\n", "")
                 if i != 0:
                     filename += f"-{survey.safe_name}"
                 elif EXCEL_COMPATIBLE_CSV:

@@ -7,9 +7,7 @@ from .models import TaskDate
 
 
 class TaskTable(tables.Table):
-    task_name = tables.LinkColumn(
-        "tasks:complete", accessor="task__name", args=[A("pk")]
-    )
+    task_name = tables.LinkColumn("tasks:complete", accessor="task__name", args=[A("pk")])
     form = tables.URLColumn(
         verbose_name="Form to Submit",
         accessor="task__resource",
@@ -31,9 +29,7 @@ class TaskTable(tables.Table):
     def __init__(self, complete=True, *args, **kwargs):
         extra_columns = []
         if complete:
-            extra_columns.extend(
-                [("complete_link", tables.Column(verbose_name="Complete Link"))]
-            )
+            extra_columns.extend([("complete_link", tables.Column(verbose_name="Complete Link"))])
         kwargs["extra_columns"] = extra_columns
         super().__init__(*args, **kwargs)
 
@@ -45,9 +41,7 @@ class TaskTable(tables.Table):
     def render_complete_link(self, value):
         if value != 0:
             url = reverse("tasks:detail", args=[value])
-            value = mark_safe(
-                f'<a href="{url}" target="_blank">Completed Task Information</a>'
-            )
+            value = mark_safe(f'<a href="{url}" target="_blank">Completed Task Information</a>')
         else:
             value = mark_safe("<i>None</i>")
         return value

@@ -4,7 +4,6 @@ import pytest
 from django.utils.text import slugify
 
 from thetatauCMT.ballots.models import Ballot, BallotComplete
-from thetatauCMT.ballots.tests.factories import BallotCompleteFactory, BallotFactory
 from thetatauCMT.users.tests.factories import UserFactory
 
 # ---------------------------------------------------------------------------
@@ -99,18 +98,14 @@ def test_ballot_save_without_all_chapters_no_task():
 
 @pytest.mark.django_db
 def test_ballot_ayes_nays_abstains():
-    ballot = _create_ballot(
-        name="Vote Count Test", type="other", description="Testing vote counts"
-    )
+    ballot = _create_ballot(name="Vote Count Test", type="other", description="Testing vote counts")
     user1 = UserFactory.create()
     user2 = UserFactory.create()
     user3 = UserFactory.create()
     user4 = UserFactory.create()
 
     def _bc(user, motion):
-        bc = BallotComplete(
-            ballot=ballot, user=user, motion=motion, role="grand regent"
-        )
+        bc = BallotComplete(ballot=ballot, user=user, motion=motion, role="grand regent")
         bc.save()
         return bc
 
@@ -156,9 +151,7 @@ def test_ballot_counts_includes_all_ballots():
 
 @pytest.mark.django_db
 def test_ballot_get_completed_returns_none_when_not_voted():
-    ballot = _create_ballot(
-        name="Incomplete Ballot", type="other", description="testing"
-    )
+    ballot = _create_ballot(name="Incomplete Ballot", type="other", description="testing")
     user = UserFactory.create()
     result = ballot.get_completed(user)
     assert result is None
@@ -166,9 +159,7 @@ def test_ballot_get_completed_returns_none_when_not_voted():
 
 @pytest.mark.django_db
 def test_ballot_get_completed_returns_vote_when_voted():
-    ballot = _create_ballot(
-        name="Completed Ballot", type="other", description="testing"
-    )
+    ballot = _create_ballot(name="Completed Ballot", type="other", description="testing")
     user = UserFactory.create()
     bc = BallotComplete(ballot=ballot, user=user, motion="aye", role="grand regent")
     bc.save()

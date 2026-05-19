@@ -19,9 +19,7 @@ SECRET_KEY = env(
 TEST_RUNNER = "django.test.runner.DiscoverRunner"
 
 DATABASES = {
-    "default": env.db(
-        "DATABASE_URL_TEST", default="postgres://thetatau:test@postgres:5432/testcmt"
-    ),
+    "default": env.db("DATABASE_URL_TEST", default="postgres://thetatau:test@postgres:5432/testcmt"),
 }
 DATABASES["default"]["ATOMIC_REQUESTS"] = True
 
@@ -83,7 +81,7 @@ SILENCED_SYSTEM_CHECKS = ["django_recaptcha.recaptcha_test_key_error", "urls.W00
 #   django.contrib.postgres.aggregates.StringAgg() without default= argument
 #   → will change behaviour in Django 5.0.  Fix: add default="" to each call
 #   in core/models.py and thetatauCMT/forms/views.py before the 5.x upgrade.
-import warnings
+import warnings  # noqa: E402
 
 warnings.filterwarnings("error", category=DeprecationWarning, module="django")
 

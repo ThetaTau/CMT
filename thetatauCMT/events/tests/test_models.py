@@ -23,17 +23,13 @@ def test_event_instance(event):
 
 
 @pytest.mark.django_db
-@pytest.mark.parametrize(
-    "event__name,event__date", [("Very Special event", datetime.date(2016, 10, 1))]
-)
+@pytest.mark.parametrize("event__name,event__date", [("Very Special event", datetime.date(2016, 10, 1))])
 def test_event_str(event):
     assert str(event) == "Very Special event on 2016-10-01"
 
 
 @pytest.mark.django_db
-@pytest.mark.parametrize(
-    "event__name,event__date", [("Very Special event", datetime.date(2016, 10, 1))]
-)
+@pytest.mark.parametrize("event__name,event__date", [("Very Special event", datetime.date(2016, 10, 1))])
 def test_get_absolute_url(event):
     assert event.get_absolute_url() == (
         "events:detail",
@@ -55,9 +51,7 @@ def test_chapter_events(chapter, event_factory):
 
 
 @pytest.mark.django_db
-def test_calculate_meeting_attendance(
-    chapter, event_factory, user_status_change_factory
-):
+def test_calculate_meeting_attendance(chapter, event_factory, user_status_change_factory):
     score_type = ScoreType.objects.get(name="Attendance at meetings")
     user_status_change_factory.create_batch(
         20,

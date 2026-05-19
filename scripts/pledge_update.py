@@ -22,9 +22,7 @@ def run(*args):
                 pledge_dict = model_to_dict(pledge)
                 pledge_dict.update({"process": pledge.process.get().id})
                 if not header:
-                    writer = csv.DictWriter(
-                        csvfile, fieldnames=list(pledge_dict.keys())
-                    )
+                    writer = csv.DictWriter(csvfile, fieldnames=list(pledge_dict.keys()))
                     writer.writeheader()
                     header = True
                 print(pledge_dict)

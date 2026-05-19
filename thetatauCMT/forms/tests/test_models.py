@@ -372,7 +372,7 @@ def test_initiation_chapter_initiations():
     from thetatauCMT.forms.tests.factories import InitiationFactory
 
     chapter = ChapterFactory.create()
-    init = InitiationFactory.create()
+    InitiationFactory.create()
     # The method has a bug: self.objects won't work on an instance.
     # Cover lines by calling the equivalent query directly.
     result = Initiation.objects.filter(user__chapter=chapter)
@@ -505,9 +505,7 @@ def test_get_chapter_education_upload_path_returns_path():
     from thetatauCMT.forms.models import get_chapter_education_upload_path
 
     chapter = ChapterFactory.create()
-    instance = SimpleNamespace(
-        chapter=chapter, category="fire", program_date=datetime.date(2024, 1, 15)
-    )
+    instance = SimpleNamespace(chapter=chapter, category="fire", program_date=datetime.date(2024, 1, 15))
     result = get_chapter_education_upload_path(instance, "test.pdf")
     assert "test.pdf" in result
 
@@ -780,9 +778,7 @@ def test_get_chapter_exclusions_upload_path_returns_path():
 
     chapter = SimpleNamespace(slug="excl-chapter")
     user = SimpleNamespace(id=55)
-    instance = SimpleNamespace(
-        chapter=chapter, user=user, created=datetime.datetime(2024, 3, 10)
-    )
+    instance = SimpleNamespace(chapter=chapter, user=user, created=datetime.datetime(2024, 3, 10))
     result = get_chapter_exclusions_upload_path(instance, "exclusion.pdf")
     assert "exclusion.pdf" in result
     assert "excl-chapter" in result
@@ -919,9 +915,7 @@ def test_disciplinary_process_forms_pdf():
     user = UserFactory.create()
     dp = DisciplinaryProcess(user=user, chapter=user.chapter, notify_method="email")
     dp.save()
-    with patch(
-        "thetatauCMT.forms.models.render_to_pdf", return_value=b"PDF", create=True
-    ):
+    with patch("thetatauCMT.forms.models.render_to_pdf", return_value=b"PDF", create=True):
         result = dp.forms_pdf()
     assert result == b"PDF"
 

@@ -48,9 +48,7 @@ def auto_login_user(db, client, user_factory, test_password):
         from thetatauCMT.forms.models import RiskManagement
 
         if user is None:
-            user = user_factory.create(
-                password=test_password, make_officer=make_officer
-            )
+            user = user_factory.create(password=test_password, make_officer=make_officer)
         # Create RMP record so RMPSignMiddleware does not redirect the user
         RiskManagement.objects.get_or_create(
             user=user,

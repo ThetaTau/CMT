@@ -60,11 +60,7 @@ class NoAssignActivation(flow.nodes.ManagedViewActivation):
 
         if data:
             if not self.management_form.is_valid():
-                raise ValueError(
-                    "Activation metadata is broken {}".format(
-                        self.management_form.errors
-                    )
-                )
+                raise ValueError("Activation metadata is broken {}".format(self.management_form.errors))
             self.task = self.management_form.save(commit=False)
 
 
@@ -170,9 +166,7 @@ class FilterProcessListView(ProcessListView, FlowListMixin):
                     filter_key = filter_key + "name__iexact"
                 else:
                     filter_key = filter_key + "name__icontains"
-                queryset = queryset.filter(
-                    Q(**{filter_key: search_chapter}) | Q(**extra)
-                )
+                queryset = queryset.filter(Q(**{filter_key: search_chapter}) | Q(**extra))
             if search_status:
                 processes = []
                 for process in queryset:
@@ -197,9 +191,7 @@ class FilterProcessListView(ProcessListView, FlowListMixin):
                 summary = "n/a"
                 if flow_task:
                     summary = flow_task.task_title
-                task_url = frontend_url(
-                    self.request, self.get_task_url(task), back_link="here"
-                )
+                task_url = frontend_url(self.request, self.get_task_url(task), back_link="here")
                 return mark_safe('<a href="{}">{}</a>'.format(task_url, summary))
         process_url = self.get_process_url(process)
         return mark_safe('<a href="{}">Complete</a>'.format(process_url))
@@ -230,9 +222,7 @@ class FilterableFlowViewSet(FlowViewSet):
 def cancel_process(process):
     active_tasks = process.task_set.exclude(status__in=[STATUS.DONE, STATUS.CANCELED])
     for task in active_tasks:
-        print(
-            f"Cancelling process task: {task.flow_task.name} for process: {process.flow_class.process_title}"
-        )
+        print(f"Cancelling process task: {task.flow_task.name} for process: {process.flow_class.process_title}")
         activation = task.activate()
         if hasattr(activation, "unassign"):
             activation.unassign()

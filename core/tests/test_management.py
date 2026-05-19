@@ -20,9 +20,7 @@ def test_system_check_passes():
     # Raises SystemCheckError if any ERROR/CRITICAL checks fail; the test
     # simply fails if that exception propagates.
     call_command("check", stdout=out, stderr=StringIO())
-    assert (
-        "no issues" in out.getvalue()
-    ), f"System check output did not confirm clean state:\n{out.getvalue()}"
+    assert "no issues" in out.getvalue(), f"System check output did not confirm clean state:\n{out.getvalue()}"
 
 
 @pytest.mark.django_db
@@ -31,6 +29,4 @@ def test_no_unapplied_migrations():
     out = StringIO()
     call_command("migrate", "--plan", "--no-input", stdout=out, stderr=StringIO())
     plan_output = out.getvalue()
-    assert (
-        "No planned migration operations" in plan_output
-    ), f"Unapplied migrations detected:\n{plan_output}"
+    assert "No planned migration operations" in plan_output, f"Unapplied migrations detected:\n{plan_output}"

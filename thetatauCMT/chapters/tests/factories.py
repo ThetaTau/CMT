@@ -23,15 +23,11 @@ class ChapterFactory(factory.django.DjangoModelFactory):
     school = factory.LazyAttribute(lambda o: f"{o.name} SCHOOL")
     latitude = factory.Faker("latitude")
     longitude = factory.Faker("longitude")
-    school_type = factory.Faker(
-        "random_element", elements=[item[0] for item in Chapter.TYPES]
-    )
+    school_type = factory.Faker("random_element", elements=[item[0] for item in Chapter.TYPES])
     address_contact = factory.Faker("name")
     address_phone_number = factory.Faker("numerify", text="##########")
     council = factory.Faker("text", max_nb_chars=55)
-    recognition = factory.Faker(
-        "random_element", elements=[item.value[0] for item in Chapter.RECOGNITION]
-    )
+    recognition = factory.Faker("random_element", elements=[item.value[0] for item in Chapter.RECOGNITION])
 
     @factory.post_generation
     def curricula(self, create, extracted, **kwargs):

@@ -13,9 +13,7 @@ def run():
     """
     python manage.py runscript grad_survey_email
     """
-    grads = StatusChange.objects.filter(
-        reason__in=["graduate"], date_start__gt=datetime(2022, 3, 1)
-    )
+    grads = StatusChange.objects.filter(reason__in=["graduate"], date_start__gt=datetime(2022, 3, 1))
     total = grads.count()
     slug = Config.get_value("GraduationSurvey")
     for count, grad in enumerate(grads):

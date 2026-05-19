@@ -90,7 +90,10 @@ def test_check_approval_condition_false():
 def test_check_manual_outcome_matched_case():
     """check_manual_outcome 'matched' case is True only when outcome == 'matched'."""
     act = MagicMock()
-    cond = lambda a: a.process.outcome == "matched"
+
+    def cond(a):
+        return a.process.outcome == "matched"
+
     act.process.outcome = "matched"
     assert cond(act) is True
     act.process.outcome = "created"
@@ -100,7 +103,10 @@ def test_check_manual_outcome_matched_case():
 def test_check_manual_outcome_created_case():
     """check_manual_outcome 'created' case is True only when outcome == 'created'."""
     act = MagicMock()
-    cond = lambda a: a.process.outcome == "created"
+
+    def cond(a):
+        return a.process.outcome == "created"
+
     act.process.outcome = "created"
     assert cond(act) is True
     act.process.outcome = "denied"
@@ -110,7 +116,10 @@ def test_check_manual_outcome_created_case():
 def test_check_manual_outcome_denied_case():
     """check_manual_outcome 'denied' case is True only when outcome == 'denied'."""
     act = MagicMock()
-    cond = lambda a: a.process.outcome == "denied"
+
+    def cond(a):
+        return a.process.outcome == "denied"
+
     act.process.outcome = "denied"
     assert cond(act) is True
     act.process.outcome = "matched"
@@ -192,9 +201,7 @@ def test_email_delay_func_sends_email(user_factory):
     with patch("thetatauCMT.users.flows.EmailProcessUpdate") as MockEmail:
         mock_instance = MagicMock()
         MockEmail.return_value = mock_instance
-        with patch.object(
-            MemberUpdateFlow, "get_updated", return_value={"email": "x@x.com"}
-        ):
+        with patch.object(MemberUpdateFlow, "get_updated", return_value={"email": "x@x.com"}):
             flow_instance = MemberUpdateFlow()
             flow_instance.email_delay_func(activation)
     mock_instance.send.assert_called_once()
@@ -262,9 +269,7 @@ def test_update_func_sends_email_when_user_exists(user_factory):
     with patch("thetatauCMT.users.flows.EmailProcessUpdate") as MockEmail:
         mock_instance = MagicMock()
         MockEmail.return_value = mock_instance
-        with patch.object(
-            MemberUpdateFlow, "get_updated", return_value={"email": "x@x.com"}
-        ):
+        with patch.object(MemberUpdateFlow, "get_updated", return_value={"email": "x@x.com"}):
             flow_instance = MemberUpdateFlow()
             flow_instance.update_func(activation)
     mock_instance.send.assert_called_once()

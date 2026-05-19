@@ -12,8 +12,6 @@ from core.views import LoginRequiredMixin, PagedFilteredTableView, RequestConfig
 from thetatauCMT.forms.models import Audit
 from thetatauCMT.forms.notifications import EmailAdvisorWelcome
 from thetatauCMT.notes.tables import ChapterNoteTable
-from thetatauCMT.submissions.models import Submission
-from thetatauCMT.tasks.models import Task
 from thetatauCMT.users.forms import ExternalUserForm
 from thetatauCMT.users.models import User
 from thetatauCMT.users.tables import UserTable
@@ -126,11 +124,7 @@ class ChapterDetailView(LoginRequiredMixin, MultiFormsView):
             "debit_card",
             "debit_card_access",
         ]
-        audits = (
-            Audit.objects.filter(user__chapter=chapter)
-            .order_by("-modified")
-            .values(*row_names)
-        )
+        audits = Audit.objects.filter(user__chapter=chapter).order_by("-modified").values(*row_names)
         audit_items = []
         audit_data = {}
         for audit in audits:
@@ -210,9 +204,7 @@ class ChapterRedirectView(LoginRequiredMixin, RedirectView):
     permanent = False
 
     def get_redirect_url(self):
-        return reverse(
-            "chapters:detail", kwargs={"slug": self.request.user.current_chapter.slug}
-        )
+        return reverse("chapters:detail", kwargs={"slug": self.request.user.current_chapter.slug})
 
 
 class ChapterListView(LoginRequiredMixin, PagedFilteredTableView):

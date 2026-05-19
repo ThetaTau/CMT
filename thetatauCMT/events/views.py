@@ -84,14 +84,10 @@ class EventCreateView(
         return HttpResponseRedirect(self.get_success_url())
 
     def create_picture_form(self, **kwargs):
-        factory = modelformset_factory(
-            Picture, form=PictureForm, **{"can_delete": True, "extra": 1}
-        )
+        factory = modelformset_factory(Picture, form=PictureForm, **{"can_delete": True, "extra": 1})
         formset_kwargs = dict(queryset=Picture.objects.none())
         if self.request.method in ("POST", "PUT"):
-            formset_kwargs.update(
-                {"data": self.request.POST.copy(), "files": self.request.FILES.copy()}
-            )
+            formset_kwargs.update({"data": self.request.POST.copy(), "files": self.request.FILES.copy()})
         return factory(**formset_kwargs)
 
     def get_context_data(self, **kwargs):
@@ -109,9 +105,7 @@ class EventCreateView(
             form.initial = {"type": score_obj[0].pk}
             form.fields["type"].queryset = score_obj
         else:
-            form.fields["type"].queryset = ScoreType.objects.filter(
-                type=self.score_type
-            ).all()
+            form.fields["type"].queryset = ScoreType.objects.filter(type=self.score_type).all()
         # return form
         context["descriptions"] = descriptions
         return context

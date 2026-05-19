@@ -217,7 +217,7 @@ def test_rd_monthly_skips_inactive_chapters():
     # Create one active and one inactive chapter in the same region
     active_chapter = ChapterFactory.create(active=True)
     region = active_chapter.region
-    inactive_chapter = ChapterFactory.create(region=region, active=False)
+    ChapterFactory.create(region=region, active=False)
     notif = RDMonthly(region)
     # Table data should only have the active chapter
     assert "table" in notif.context

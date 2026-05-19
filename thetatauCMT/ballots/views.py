@@ -75,9 +75,7 @@ class BallotDetailView(
         if region == "national":
             all_ballots = all_ballots.filter(region="National")
         users = all_ballots.values_list("user", flat=True)
-        chapters = all_ballots.exclude(role__in=NAT_OFFICERS).values_list(
-            "chapter", flat=True
-        )
+        chapters = all_ballots.exclude(role__in=NAT_OFFICERS).values_list("chapter", flat=True)
         data = list(
             all_ballots.values(
                 "user_name",
@@ -92,9 +90,7 @@ class BallotDetailView(
         nat_offs = nat_offs.filter(role__in=self.object.voters)
         if "all_chapters" in self.object.voters and region != "national":
             # Candidate Chapters can not vote
-            chapters = Chapter.objects.filter(candidate_chapter=False).exclude(
-                name__in=chapters
-            )
+            chapters = Chapter.objects.filter(candidate_chapter=False).exclude(name__in=chapters)
             if region != "":
                 chapters = chapters.filter(region__slug=region)
             incomplete_chapter = [
@@ -194,9 +190,7 @@ class BallotUpdateView(
         return reverse("ballots:list")
 
 
-class BallotListView(
-    LoginRequiredMixin, NatOfficerRequiredMixin, PagedFilteredTableView
-):
+class BallotListView(LoginRequiredMixin, NatOfficerRequiredMixin, PagedFilteredTableView):
     model = Ballot
     context_object_name = "ballot"
     ordering = ["-date"]
@@ -272,8 +266,7 @@ class BallotCompleteCreateView(LoginRequiredMixin, OfficerRequiredMixin, CreateV
             messages.add_message(
                 self.request,
                 messages.ERROR,
-                f"This ballot is for {roles_allowed}. "
-                f"Your current roles are: {current_roles}",
+                f"This ballot is for {roles_allowed}. " f"Your current roles are: {current_roles}",
             )
             return super().form_invalid(form)
         else:

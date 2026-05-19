@@ -57,9 +57,7 @@ class MultiFormMixin(ContextMixin):
             [
                 (
                     key,
-                    self._create_form(
-                        key, klass, (form_names and key in form_names) or bind_all
-                    ),
+                    self._create_form(key, klass, (form_names and key in form_names) or bind_all),
                 )
                 for key, klass in form_classes.items()
             ]
@@ -191,11 +189,7 @@ class DuplicateAddressField(AddressField):
         try:
             value = super().to_python(value)
         except Address.MultipleObjectsReturned:
-            if (
-                not value["street_number"]
-                and not value["route"]
-                and value["locality"] is None
-            ):
+            if not value["street_number"] and not value["route"] and value["locality"] is None:
                 return None
             fix_duplicate_address(value)
             try:
@@ -203,14 +197,12 @@ class DuplicateAddressField(AddressField):
             except Address.MultipleObjectsReturned:
                 try:
                     fix_duplicate_address(value)
-                except:
+                except Exception:
                     return None
         return value
 
 
-class Select2ListCreateMultipleChoiceField(
-    Select2ListCreateChoiceField, Select2Multiple
-):
+class Select2ListCreateMultipleChoiceField(Select2ListCreateChoiceField, Select2Multiple):
     queryset = None
 
     def __init__(self, *args, **kwargs):

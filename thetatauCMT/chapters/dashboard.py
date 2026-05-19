@@ -116,9 +116,7 @@ def layout(fig, title, YEARS):
             ticktext=YEARS,
             tickvals=YEARS,
         ),
-        yaxis=dict(
-            showgrid=False, zeroline=False, showline=False, showticklabels=False
-        ),
+        yaxis=dict(showgrid=False, zeroline=False, showline=False, showticklabels=False),
         plot_bgcolor="#F9F9F9",
         paper_bgcolor="#F9F9F9",
     )
@@ -149,9 +147,7 @@ app.layout = html.Div(
         dcc.Store(id="chapter-data", storage_type="local"),
         html.Div(
             children=[html.H1("Status Dashboard")],
-            style=dict(
-                display="flex", flexDirection="row", marginBottom=10, marginTop=20
-            ),
+            style=dict(display="flex", flexDirection="row", marginBottom=10, marginTop=20),
         ),
         html.Div(
             children=[
@@ -431,12 +427,8 @@ def update_text(data, years, **kwargs):
             start_term = "Fall"
         if str(end).endswith(".5"):
             end_term = "Fall"
-        start_val = df[(df["year"] == int(start)) & (df["term"] == start_term)][
-            status
-        ].iloc[0]
-        end_val = df[(df["year"] == int(end)) & (df["term"] == end_term)][status].iloc[
-            0
-        ]
+        start_val = df[(df["year"] == int(start)) & (df["term"] == start_term)][status].iloc[0]
+        end_val = df[(df["year"] == int(end)) & (df["term"] == end_term)][status].iloc[0]
         out = fetch_stats(start_val, end_val)
         outs.append(out)
     return (

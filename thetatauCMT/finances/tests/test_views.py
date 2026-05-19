@@ -33,7 +33,7 @@ def test_invoice_list_view_filters_by_chapter(auto_login_user):
     """Invoice list shows invoices; user's chapter filter is applied."""
     client, user = auto_login_user()
     # Create an invoice for user's chapter
-    invoice = InvoiceFactory(chapter=user.current_chapter)
+    InvoiceFactory(chapter=user.current_chapter)
     url = reverse("finances:list")
     response = client.get(url)
     assert response.status_code == 200

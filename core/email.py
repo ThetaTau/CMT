@@ -56,15 +56,13 @@ def sync_email_provider(request, report_id):
     report = get_object_or_404(Report, pk=report_id)
     if report.root_model.name == "user":
         values = ["name", "email"]
-    elif "user" in [
-        field.name for field in report.root_model.model_class()._meta.fields
-    ]:
+    elif "user" in [field.name for field in report.root_model.model_class()._meta.fields]:
         values = ["user__name", "user__email"]
     else:
         messages.add_message(
             request,
             messages.ERROR,
-            f"Sync with email provider only set up for user root model",
+            "Sync with email provider only set up for user root model",
         )
         return redirect(reverse("admin:report_builder_report_changelist"))
     queryset = report.get_query()
@@ -79,29 +77,21 @@ def sync_email_provider(request, report_id):
     format = "json"
     apikey = settings.MOOSEND_API_KEY
     time_str = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-    mailing_body = moosend_api_wrapper.CreatingAMailingListRequest(
-        name=f"{report.name} {time_str}"
-    )
+    mailing_body = moosend_api_wrapper.CreatingAMailingListRequest(name=f"{report.name} {time_str}")
     subscriber_bodies = []
     # Maximum number of subscribers per request is 1000
     subscriber_groups = list(zip_longest(*(iter(subscribers),) * 999))
     for subscriber_group in subscriber_groups:
         subscribers = [subscriber for subscriber in subscriber_group if subscriber]
-        subscriber_body = moosend_api_wrapper.AddingMultipleSubscribersRequest(
-            subscribers=subscribers
-        )
+        subscriber_body = moosend_api_wrapper.AddingMultipleSubscribersRequest(subscribers=subscribers)
         subscriber_bodies.append(subscriber_body)
     try:
         # Creating a mailing list
-        create_mailing_response = mailing_api_instance.creating_a_mailing_list(
-            format, apikey, mailing_body
-        )
+        create_mailing_response = mailing_api_instance.creating_a_mailing_list(format, apikey, mailing_body)
         subscriber_mailing_responses = [create_mailing_response]
         for subscriber_body in subscriber_bodies:
-            subscriber_mailing_response = (
-                subscriber_api_instance.adding_multiple_subscribers(
-                    format, apikey, create_mailing_response.context, subscriber_body
-                )
+            subscriber_mailing_response = subscriber_api_instance.adding_multiple_subscribers(
+                format, apikey, create_mailing_response.context, subscriber_body
             )
             # https://help.moosend.com/hc/en-us/articles/4405591335314-Does-Moosend-have-any-API-rate-limits-
             # The rate limit for this call is 2 requests per 10 seconds
@@ -114,11 +104,7 @@ def sync_email_provider(request, report_id):
             f"Error sync with email provider {e}",
         )
     else:
-        errors = [
-            response.error
-            for response in subscriber_mailing_responses
-            if response.error
-        ]
+        errors = [response.error for response in subscriber_mailing_responses if response.error]
         if errors:
             messages.add_message(
                 request,

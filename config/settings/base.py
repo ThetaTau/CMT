@@ -46,9 +46,7 @@ LOCALE_PATHS = [str(ROOT_DIR / "locale")]
 # https://docs.djangoproject.com/en/dev/ref/settings/#databases
 
 DATABASES = {
-    "default": env.db(
-        "DATABASE_URL", default="postgres://postgres:test@localhost:5432/thetatauCMT"
-    ),
+    "default": env.db("DATABASE_URL", default="postgres://postgres:test@localhost:5432/thetatauCMT"),
 }
 DATABASES["default"]["ATOMIC_REQUESTS"] = True
 
@@ -332,12 +330,7 @@ MANAGERS = ADMINS
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
-    "formatters": {
-        "verbose": {
-            "format": "%(levelname)s %(asctime)s %(module)s "
-            "%(process)d %(thread)d %(message)s"
-        }
-    },
+    "formatters": {"verbose": {"format": "%(levelname)s %(asctime)s %(module)s " "%(process)d %(thread)d %(message)s"}},
     "handlers": {
         "console": {
             "level": "DEBUG",
@@ -414,9 +407,7 @@ try:
         str(ROOT_DIR / "secrets" / "chaptermanagementtool-e11151065a69.json")
     )
 except FileNotFoundError:
-    warnings.warn(
-        "Google credentials not found! Missing secrets/chaptermanagementtool-e11151065a69.json"
-    )
+    warnings.warn("Google credentials not found! Missing secrets/chaptermanagementtool-e11151065a69.json")
 else:
     # GoogleCloudStorage LINK https://console.cloud.google.com/storage/browser/theta-tau?authuser=3&folder=true&organizationId=true&project=chaptermanagementtool
     FILE_STORAGE_TO_USE = "storages.backends.gcloud.GoogleCloudStorage"
@@ -452,9 +443,7 @@ DBBACKUP_CONNECTORS = {
 }
 if DBBACKUP_LOCAL:
     DBBACKUP_STORAGE = "django.core.files.storage.FileSystemStorage"
-    DBBACKUP_STORAGE_LOCATION = env(
-        "DBBACKUP_STORAGE_LOCATION", default="database_backups"
-    )
+    DBBACKUP_STORAGE_LOCATION = env("DBBACKUP_STORAGE_LOCATION", default="database_backups")
     DBBACKUP_STORAGE_OPTIONS = {"location": DBBACKUP_STORAGE_LOCATION}
     DBBACKUP_CLEANUP_KEEP = 2
 else:
@@ -615,9 +604,7 @@ CKEDITOR_5_CONFIGS = {
 }
 
 # Define a constant in settings.py to specify file upload permissions
-CKEDITOR_5_FILE_UPLOAD_PERMISSION = (
-    "authenticated"  # Possible values: "staff", "authenticated", "any"
-)
+CKEDITOR_5_FILE_UPLOAD_PERMISSION = "authenticated"  # Possible values: "staff", "authenticated", "any"
 
 RECAPTCHA_REQUIRED_SCORE = 0.69
 

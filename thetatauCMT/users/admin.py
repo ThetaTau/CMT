@@ -583,9 +583,7 @@ class MyUserAdmin(
                 user_pk = request.resolver_match.kwargs.get("object_id")
                 if user_pk:
                     user = User.objects.get(id=user_pk)
-                    kwargs["queryset"] = ChapterCurricula.objects.filter(
-                        chapter=user.chapter
-                    )
+                    kwargs["queryset"] = ChapterCurricula.objects.filter(chapter=user.chapter)
             except IndexError:
                 pass
         return super().formfield_for_foreignkey(db_field, request, **kwargs)
@@ -611,9 +609,7 @@ class MyUserAdmin(
             message = User.fix_badge_numbers(reader)
             self.message_user(request, mark_safe(f"Fix Badge process:<br>{message}"))
             return HttpResponseRedirect(request.get_full_path())
-        form = UserAdminBadgeFixForm(
-            initial={"_selected_action": queryset.values_list("id", flat=True)}
-        )
+        form = UserAdminBadgeFixForm(initial={"_selected_action": queryset.values_list("id", flat=True)})
         return render(
             request,
             "admin/badge_fixes.html",
@@ -633,13 +629,9 @@ class MyUserAdmin(
                 user.set_current_status(new_status, start=start, end=end)
                 if end < forever().date():
                     user.set_current_status(current_status, start=end, current=False)
-            self.message_user(
-                request, f"Set status to {new_status} {start=} {end=} for {queryset}"
-            )
+            self.message_user(request, f"Set status to {new_status} {start=} {end=} for {queryset}")
             return HttpResponseRedirect(request.get_full_path())
-        form = UserAdminStatusForm(
-            initial={"_selected_action": queryset.values_list("id", flat=True)}
-        )
+        form = UserAdminStatusForm(initial={"_selected_action": queryset.values_list("id", flat=True)})
         return render(
             request,
             "admin/update_status.html",

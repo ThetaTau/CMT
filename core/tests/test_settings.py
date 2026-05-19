@@ -12,7 +12,7 @@ import pytest
 
 def test_production_settings_define_ssl_redirect():
     """SECURE_SSL_REDIRECT must default to True in production settings."""
-    import importlib
+    import importlib  # noqa: F401
     import os
 
     import environ
@@ -49,12 +49,7 @@ def test_production_settings_file_has_secure_cookies():
     import ast
     import pathlib
 
-    prod_settings_path = (
-        pathlib.Path(__file__).parent.parent.parent.parent
-        / "config"
-        / "settings"
-        / "production.py"
-    )
+    prod_settings_path = pathlib.Path(__file__).parent.parent.parent.parent / "config" / "settings" / "production.py"
     if not prod_settings_path.exists():
         pytest.skip("production.py not found")
 
@@ -72,13 +67,7 @@ def test_production_settings_file_has_secure_cookies():
                 ):
                     assignments[target.id] = ast.literal_eval(node.value)
 
-    assert (
-        assignments.get("SESSION_COOKIE_SECURE") is True
-    ), "SESSION_COOKIE_SECURE must be True in production settings"
-    assert (
-        assignments.get("CSRF_COOKIE_SECURE") is True
-    ), "CSRF_COOKIE_SECURE must be True in production settings"
+    assert assignments.get("SESSION_COOKIE_SECURE") is True, "SESSION_COOKIE_SECURE must be True in production settings"
+    assert assignments.get("CSRF_COOKIE_SECURE") is True, "CSRF_COOKIE_SECURE must be True in production settings"
     hsts = assignments.get("SECURE_HSTS_SECONDS", 0)
-    assert (
-        hsts > 0
-    ), f"SECURE_HSTS_SECONDS must be > 0 in production settings, got {hsts}"
+    assert hsts > 0, f"SECURE_HSTS_SECONDS must be > 0 in production settings, got {hsts}"

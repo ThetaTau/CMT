@@ -39,13 +39,9 @@ class Command(BaseCommand):
         for chapter in chapters:
             print(chapter)
             if score_type.type == "Evt":
-                objects = chapter.events.filter(
-                    date__gte=datetime.date(year, 8, 1), type=score_type
-                )
+                objects = chapter.events.filter(date__gte=datetime.date(year, 8, 1), type=score_type)
             elif score_type.type == "Sub":
-                objects = chapter.submissions.filter(
-                    date__gte=datetime.date(year, 8, 1), type=score_type
-                )
+                objects = chapter.submissions.filter(date__gte=datetime.date(year, 8, 1), type=score_type)
             print(f"    Found {objects.count()} to recalculate")
             for obj in objects:
                 obj.save(calculate_score=True)

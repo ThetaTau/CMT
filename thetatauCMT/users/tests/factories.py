@@ -4,10 +4,10 @@ import factory
 from faker import Faker as FakerLib
 
 _faker = FakerLib()
-from core.models import ADVISOR_ROLES, CHAPTER_OFFICER, NAT_OFFICERS
-from thetatauCMT.chapters.tests.factories import ChapterCurriculaFactory, ChapterFactory
+from core.models import ADVISOR_ROLES, CHAPTER_OFFICER, NAT_OFFICERS  # noqa: E402
+from thetatauCMT.chapters.tests.factories import ChapterCurriculaFactory, ChapterFactory  # noqa: E402
 
-from ..models import (
+from ..models import (  # noqa: E402
     UserAlter,
     UserOrgParticipate,
     UserRoleChange,
@@ -40,9 +40,7 @@ class UserFactory(factory.django.DjangoModelFactory):
     major = factory.LazyAttribute(lambda o: ChapterCurriculaFactory(chapter=o.chapter))
     employer = factory.Faker("sentence", nb_words=3)
     employer_position = factory.Faker("sentence", nb_words=3)
-    graduation_year = factory.Faker(
-        "random_int", min=1950, max=datetime.datetime.now().year + 10
-    )
+    graduation_year = factory.Faker("random_int", min=1950, max=datetime.datetime.now().year + 10)
     phone_number = factory.Faker("msisdn")
     address = factory.Faker("address")
     chapter = factory.SubFactory(ChapterFactory)
@@ -70,9 +68,7 @@ class UserFactory(factory.django.DjangoModelFactory):
 class UserAlterFactory(factory.django.DjangoModelFactory):
     user = factory.SubFactory(UserFactory)
     chapter = factory.SubFactory(ChapterFactory)
-    role = factory.Faker(
-        "random_element", elements=[item[0] for item in UserAlter.ROLES]
-    )
+    role = factory.Faker("random_element", elements=[item[0] for item in UserAlter.ROLES])
 
     class Meta:
         model = UserAlter
@@ -120,9 +116,7 @@ class UserStatusChangeFactory(factory.django.DjangoModelFactory):
         tzinfo=datetime.timezone.utc,
     )
     user = factory.SubFactory(UserFactory)
-    status = factory.Faker(
-        "random_element", elements=[x.value[0] for x in UserStatusChange.STATUS]
-    )
+    status = factory.Faker("random_element", elements=[x.value[0] for x in UserStatusChange.STATUS])
 
     class Meta:
         model = UserStatusChange
@@ -152,9 +146,7 @@ class UserRoleChangeFactory(factory.django.DjangoModelFactory):
         tzinfo=datetime.timezone.utc,
     )
     user = factory.SubFactory(UserFactory)
-    role = factory.Faker(
-        "random_element", elements=[item[0] for item in UserRoleChange.ROLES]
-    )
+    role = factory.Faker("random_element", elements=[item[0] for item in UserRoleChange.ROLES])
 
     class Meta:
         model = UserRoleChange
@@ -198,9 +190,7 @@ class UserOrgParticipateFactory(factory.django.DjangoModelFactory):
     end = factory.Faker("date_between", start_date="-4y", end_date="+4y")
     user = factory.SubFactory(UserFactory)
     org_name = factory.Faker("sentence", nb_words=3)
-    type = factory.Faker(
-        "random_element", elements=[item[0] for item in UserOrgParticipate.TYPES]
-    )
+    type = factory.Faker("random_element", elements=[item[0] for item in UserOrgParticipate.TYPES])
     officer = factory.Faker("boolean")
 
     class Meta:

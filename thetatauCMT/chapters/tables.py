@@ -44,9 +44,7 @@ class ChapterTable(tables.Table):
 
 
 class AuditTable(tables.Table):
-    item = tables.Column(
-        "", attrs={"td": {"align": "left", "style": "font-weight:bold"}}
-    )
+    item = tables.Column("", attrs={"td": {"align": "left", "style": "font-weight:bold"}})
     corresponding_secretary = tables.Column("Corr Sec")
     treasurer = tables.Column()
     scribe = tables.Column()

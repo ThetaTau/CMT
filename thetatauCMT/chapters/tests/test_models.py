@@ -36,9 +36,7 @@ def test_chapter_str(chapter):
 
 
 @pytest.mark.django_db
-@pytest.mark.parametrize(
-    "chapter__candidate_chapter,suffix", [(True, "Co"), (False, "Ch")]
-)
+@pytest.mark.parametrize("chapter__candidate_chapter,suffix", [(True, "Co"), (False, "Ch")])
 def test_chapter_account(chapter, suffix):
     assert chapter.account == f"{chapter.greek}0{suffix}"
 
@@ -93,12 +91,8 @@ def test_get_current_officers_council_previous(chapter, user_factory):
     result = chapter.get_current_officers_council()
     assert result[1] is True
     assert result[0].count() == 0
-    regent = user_factory.create(
-        chapter=chapter, make_officer="regent", make_officer__current=False
-    )
-    vice = user_factory.create(
-        chapter=chapter, make_officer="vice regent", make_officer__current=False
-    )
+    regent = user_factory.create(chapter=chapter, make_officer="regent", make_officer__current=False)
+    vice = user_factory.create(chapter=chapter, make_officer="vice regent", make_officer__current=False)
     old_officer_pks = [regent.pk, vice.pk]
     result = chapter.get_current_officers_council()
     assert result[1] is True
@@ -114,9 +108,7 @@ def test_get_current_officers_council(chapter, user_factory):
     vice = user_factory.create(chapter=chapter, make_officer="vice regent")
     treasurer = user_factory.create(chapter=chapter, make_officer="treasurer")
     scribe = user_factory.create(chapter=chapter, make_officer="scribe")
-    corsec = user_factory.create(
-        chapter=chapter, make_officer="corresponding secretary"
-    )
+    corsec = user_factory.create(chapter=chapter, make_officer="corresponding secretary")
     officer_pks = [regent.pk, vice.pk, treasurer.pk, scribe.pk, corsec.pk]
     result = chapter.get_current_officers_council()
     assert result[1] is False
@@ -133,9 +125,7 @@ def make_many_users_status(user_factory, chapter, testing):
     expected_users = []
     for status in UserStatusChange.STATUS:
         status_value = status.value[0]
-        users = user_factory.create_batch(
-            10, chapter=chapter, status=status_value, major=curricula
-        )
+        users = user_factory.create_batch(10, chapter=chapter, status=status_value, major=curricula)
         if status_value in testing:
             expected_users.extend(users)
     return expected_users
@@ -190,9 +180,7 @@ def test_advisors_all(chapter, user_factory):
     result = chapter.advisors
     assert set(expected_users) == set(result)
     curricula = ChapterCurriculaFactory(chapter=chapter)
-    users = user_factory.create_batch(
-        5, chapter=chapter, make_officer="advisor", major=curricula
-    )
+    users = user_factory.create_batch(5, chapter=chapter, make_officer="advisor", major=curricula)
     expected_users.extend(users)
     result = chapter.advisors
     assert set(expected_users) == set(result)
@@ -208,9 +196,7 @@ def test_advisors_external(chapter, user_factory):
     assert set(expected_users) == set(result)
     # External advisors should NOT include members with advisor role
     curricula = ChapterCurriculaFactory(chapter=chapter)
-    user_factory.create_batch(
-        5, chapter=chapter, make_officer="advisor", major=curricula
-    )
+    user_factory.create_batch(5, chapter=chapter, make_officer="advisor", major=curricula)
     result = chapter.advisors_external
     assert set(expected_users) == set(result)
 
@@ -495,13 +481,11 @@ def test_get_about_expired_council_no_officers(chapter):
 @pytest.mark.django_db
 def test_get_about_expired_council_with_current_officers(chapter, user_factory):
     """With 5 current officers who have far-future end dates, no officers need updating."""
-    regent = user_factory.create(chapter=chapter, make_officer="regent")
-    vice = user_factory.create(chapter=chapter, make_officer="vice regent")
-    treasurer = user_factory.create(chapter=chapter, make_officer="treasurer")
-    scribe = user_factory.create(chapter=chapter, make_officer="scribe")
-    corsec = user_factory.create(
-        chapter=chapter, make_officer="corresponding secretary"
-    )
+    user_factory.create(chapter=chapter, make_officer="regent")
+    user_factory.create(chapter=chapter, make_officer="vice regent")
+    user_factory.create(chapter=chapter, make_officer="treasurer")
+    user_factory.create(chapter=chapter, make_officer="scribe")
+    user_factory.create(chapter=chapter, make_officer="corresponding secretary")
     emails, officers_to_update = chapter.get_about_expired_coucil()
     assert isinstance(officers_to_update, list)
     assert isinstance(emails, list)

@@ -94,13 +94,9 @@ class RegionOfficerView(LoginRequiredMixin, NatOfficerRequiredMixin, DetailView)
         for chapter in chapters:
             chapter_officers = chapter.get_current_officers()
             all_chapter_officers = chapter_officers | all_chapter_officers
-        self.filter = self.filter_class(
-            request_get, queryset=all_chapter_officers, request=self.request
-        )
+        self.filter = self.filter_class(request_get, queryset=all_chapter_officers, request=self.request)
         self.filter.form.helper = self.formhelper_class()
-        email_list = ", ".join(
-            [x[0] for x in self.filter.qs.values_list("email").distinct()]
-        )
+        email_list = ", ".join([x[0] for x in self.filter.qs.values_list("email").distinct()])
         self.filter.form.fields["chapter"].queryset = chapters
         admin = self.request.user.is_superuser
         table = UserTable(
@@ -183,9 +179,7 @@ class RegionAdvisorView(LoginRequiredMixin, NatOfficerRequiredMixin, DetailView)
             all_chapter_advisors = chapter.advisors | all_chapter_advisors
         self.filter = self.filter_class(request_get, queryset=all_chapter_advisors)
         self.filter.form.helper = self.formhelper_class()
-        email_list = ", ".join(
-            [x[0] for x in self.filter.qs.values_list("email").distinct()]
-        )
+        email_list = ", ".join([x[0] for x in self.filter.qs.values_list("email").distinct()])
         self.filter.form.fields["chapter"].queryset = chapters
         admin = self.request.user.is_superuser
         table = UserTable(
@@ -234,12 +228,7 @@ class RegionDetailView(LoginRequiredMixin, NatOfficerRequiredMixin, DetailView):
         iframeUrl = "about:blank"
         if secret:
             token = jwt.encode(payload, secret, algorithm="HS256")
-            iframeUrl = (
-                "https://thetatau.metabaseapp.com"
-                + "/embed/dashboard/"
-                + token
-                + "#bordered=true&titled=true"
-            )
+            iframeUrl = "https://thetatau.metabaseapp.com" + "/embed/dashboard/" + token + "#bordered=true&titled=true"
         context["iframeUrl"] = iframeUrl
         return context
 
@@ -261,9 +250,7 @@ class RegionTaskView(LoginRequiredMixin, NatOfficerRequiredMixin, DetailView):
             request_get = QueryDict()
         self.filter = self.filter_class(request_get, queryset=qs)
         self.filter.form.helper = self.formhelper_class()
-        all_chapters_tasks = {
-            task.pk: defaultdict(lambda: None) for task in self.filter.qs
-        }
+        all_chapters_tasks = {task.pk: defaultdict(lambda: None) for task in self.filter.qs}
         [
             all_chapters_tasks[task.id].update(
                 {
@@ -305,15 +292,11 @@ class RegionTaskView(LoginRequiredMixin, NatOfficerRequiredMixin, DetailView):
             extra_columns.append(
                 (
                     column_link,
-                    TaskLinkColumn(
-                        verbose_name=chapter_name.replace("_", " "), empty_values=()
-                    ),
+                    TaskLinkColumn(verbose_name=chapter_name.replace("_", " "), empty_values=()),
                 )
             )
         all_chapters_tasks = all_chapters_tasks.values()
-        table = RegionChapterTaskTable(
-            data=all_chapters_tasks, extra_columns=extra_columns
-        )
+        table = RegionChapterTaskTable(data=all_chapters_tasks, extra_columns=extra_columns)
         context["table"] = table
         context["filter"] = self.filter
         return context

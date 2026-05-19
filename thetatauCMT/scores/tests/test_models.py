@@ -2,7 +2,6 @@ import datetime
 
 import pytest
 
-from thetatauCMT.events.tests.factories import EventFactory
 from thetatauCMT.scores.models import ScoreChapter, ScoreType
 from thetatauCMT.submissions.tests.factories import SubmissionFactory
 
@@ -56,9 +55,7 @@ def test_chapter_events_with_date(chapter, event_factory):
     score_type = ScoreType.objects.filter(type="Evt").first()
     recent_date = datetime.date.today()
     old_date = datetime.date(2010, 3, 1)
-    event_recent = event_factory.create(
-        chapter=chapter, type=score_type, date=recent_date
-    )
+    event_recent = event_factory.create(chapter=chapter, type=score_type, date=recent_date)
     event_old = event_factory.create(chapter=chapter, type=score_type, date=old_date)
     result = score_type.chapter_events(chapter, date=recent_date)
     result_pks = set(result.values_list("pk", flat=True))
@@ -106,7 +103,7 @@ def test_chapter_score_sub_with_submissions(chapter):
     score_type = ScoreType.objects.filter(type="Sub").first()
     if score_type is None:
         pytest.skip("No Sub type ScoreType in fixture")
-    sub = SubmissionFactory.create(chapter=chapter, type=score_type, score=5.0)
+    SubmissionFactory.create(chapter=chapter, type=score_type, score=5.0)
     score = score_type.chapter_score(chapter)
     assert score >= 0
 
@@ -127,13 +124,9 @@ def test_chapter_score_spe_returns_zero(chapter):
 
 
 @pytest.mark.django_db
-def test_calculate_score_base_points_only(
-    chapter, event_factory, user_status_change_factory
-):
+def test_calculate_score_base_points_only(chapter, event_factory, user_status_change_factory):
     """ScoreType with only base_points uses that amount."""
-    score_type = ScoreType.objects.filter(
-        type="Evt", base_points__gt=0, special=""
-    ).first()
+    score_type = ScoreType.objects.filter(type="Evt", base_points__gt=0, special="").first()
     if score_type is None:
         pytest.skip("No suitable ScoreType for base_points test")
     # Create actives so percent_attendance calculation works
@@ -142,9 +135,7 @@ def test_calculate_score_base_points_only(
         status="active",
         user__chapter=chapter,
     )
-    event = event_factory.create(
-        chapter=chapter, type=score_type, members=0, alumni=0, guests=0, stem=False
-    )
+    event = event_factory.create(chapter=chapter, type=score_type, members=0, alumni=0, guests=0, stem=False)
     calculated = score_type.calculate_score(event)
     assert calculated >= 0
 
@@ -152,9 +143,7 @@ def test_calculate_score_base_points_only(
 @pytest.mark.django_db
 def test_calculate_score_member_add(chapter, event_factory, user_status_change_factory):
     """Member attendance is factored into score via member_add."""
-    score_type = ScoreType.objects.filter(
-        type="Evt", member_add__gt=0, special=""
-    ).first()
+    score_type = ScoreType.objects.filter(type="Evt", member_add__gt=0, special="").first()
     if score_type is None:
         pytest.skip("No suitable ScoreType with member_add for test")
     user_status_change_factory.create_batch(
@@ -162,9 +151,7 @@ def test_calculate_score_member_add(chapter, event_factory, user_status_change_f
         status="active",
         user__chapter=chapter,
     )
-    event = event_factory.create(
-        chapter=chapter, type=score_type, members=10, alumni=0, guests=0, stem=False
-    )
+    event = event_factory.create(chapter=chapter, type=score_type, members=10, alumni=0, guests=0, stem=False)
     score = score_type.calculate_score(event)
     assert score >= score_type.base_points
 
@@ -206,21 +193,15 @@ def test_calculate_special_calculated_elsewhere(chapter, event_factory):
 def test_score_chapter_create_directly(chapter):
     """ScoreChapter can be created directly without the broken factory."""
     score_type = ScoreType.objects.first()
-    sc = ScoreChapter.objects.create(
-        chapter=chapter, type=score_type, score=10.0, year=2025, term="fa"
-    )
+    sc = ScoreChapter.objects.create(chapter=chapter, type=score_type, score=10.0, year=2025, term="fa")
     assert isinstance(sc, ScoreChapter)
 
 
 @pytest.mark.django_db
 def test_score_chapter_type_score_biennium_returns_values(chapter):
     score_type = ScoreType.objects.first()
-    ScoreChapter.objects.create(
-        chapter=chapter, type=score_type, score=15.0, year=2025, term="fa"
-    )
-    ScoreChapter.objects.create(
-        chapter=chapter, type=score_type, score=10.0, year=2026, term="sp"
-    )
+    ScoreChapter.objects.create(chapter=chapter, type=score_type, score=15.0, year=2025, term="fa")
+    ScoreChapter.objects.create(chapter=chapter, type=score_type, score=10.0, year=2026, term="sp")
     result = list(ScoreChapter.type_score_biennium(chapters=[chapter]))
     # Returns a list/dict-like iterable; should have entries with section totals
     assert isinstance(result, list)
@@ -230,7 +211,5 @@ def test_score_chapter_type_score_biennium_returns_values(chapter):
 def test_score_chapter_update_score(chapter):
     """update_score re-reads chapter_score from db without error."""
     score_type = ScoreType.objects.first()
-    sc = ScoreChapter.objects.create(
-        chapter=chapter, type=score_type, score=5.0, year=2025, term="fa"
-    )
+    sc = ScoreChapter.objects.create(chapter=chapter, type=score_type, score=5.0, year=2025, term="fa")
     sc.update_score()  # should not raise

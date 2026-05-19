@@ -116,13 +116,7 @@ class RDMonthly(EmailNotification):  # extend from EmailNotification for emails
                 3: "Treasurer",
                 4: "Corresponding Secretary",
             }
-            missing = ", ".join(
-                [
-                    officer_order[ind]
-                    for ind, officer in enumerate(officers)
-                    if officer is None
-                ]
-            )
+            missing = ", ".join([officer_order[ind] for ind, officer in enumerate(officers) if officer is None])
             host = settings.CURRENT_URL
             link = reverse("chapters:detail", kwargs={"slug": chapter.slug})
             link = host + link
@@ -137,9 +131,7 @@ class RDMonthly(EmailNotification):  # extend from EmailNotification for emails
                     "member_count": chapter.actives().count(),
                     "pledge_count": chapter.pledges().count(),
                     "event_count": chapter.events_last_month().count(),
-                    "tasks_overdue": TaskDate.incomplete_dates_for_chapter(
-                        chapter
-                    ).count(),
+                    "tasks_overdue": TaskDate.incomplete_dates_for_chapter(chapter).count(),
                     "host": host,
                 }
             )
@@ -162,9 +154,7 @@ class NewOfficers(EmailNotification):  # extend from EmailNotification for email
     subject = "Welcome New Theta Tau Officers"  # subject of email
 
     def __init__(self, new_officers):  # optionally customize the initialization
-        self.to_emails = set(
-            [officer.email for officer in new_officers]
-        )  # set list of emails to send to
+        self.to_emails = set([officer.email for officer in new_officers])  # set list of emails to send to
         self.reply_to = [
             "central.office@thetatau.org",
         ]
@@ -191,16 +181,12 @@ class NewOfficers(EmailNotification):  # extend from EmailNotification for email
 
 
 @registry.register_decorator()
-class OfficerUpdateReminder(
-    EmailNotification
-):  # extend from EmailNotification for emails
+class OfficerUpdateReminder(EmailNotification):  # extend from EmailNotification for emails
     render_types = ["html"]
     template_name = "officer_update_reminder"  # name of template, without extension
     subject = "Officer update reminder"  # subject of email
 
-    def __init__(
-        self, chapter, emails, officers_to_update
-    ):  # optionally customize the initialization
+    def __init__(self, chapter, emails, officers_to_update):  # optionally customize the initialization
         emails = {email for email in emails if email}
         format_officers = ", ".join(officers_to_update)
         self.to_emails = emails
@@ -256,6 +242,6 @@ class MemberEmail(EmailNotification):
     def get_demo_args():  # define a static method to return list of args needed to initialize class for testing
         user = User.objects.order_by("?")[0]
         title = "Demo Title"
-        email_content = f"Hello {{ user.get_full_name }} Demo email content"
+        email_content = "Hello {{ user.get_full_name }} Demo email content"
         context = {"user": user}
         return [user, title, email_content, context]

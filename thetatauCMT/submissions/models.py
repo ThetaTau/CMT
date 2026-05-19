@@ -16,9 +16,7 @@ from thetatauCMT.tasks.models import TaskChapter
 
 
 def get_upload_path(instance, filename):
-    return os.path.join(
-        "submissions", instance.type.slug, f"{instance.chapter.slug}_{filename}"
-    )
+    return os.path.join("submissions", instance.type.slug, f"{instance.chapter.slug}_{filename}")
 
 
 class Submission(TimeStampedModel, EmailSignalMixin):
@@ -43,13 +41,9 @@ class Submission(TimeStampedModel, EmailSignalMixin):
     file = models.FileField(upload_to=get_upload_path)
     name = models.CharField("Submission Name", max_length=200)
     slug = models.SlugField(unique=False, max_length=200)
-    type = models.ForeignKey(
-        ScoreType, related_name="submissions", on_delete=models.PROTECT
-    )
+    type = models.ForeignKey(ScoreType, related_name="submissions", on_delete=models.PROTECT)
     score = models.FloatField(default=0)
-    chapter = models.ForeignKey(
-        Chapter, related_name="submissions", on_delete=models.CASCADE
-    )
+    chapter = models.ForeignKey(Chapter, related_name="submissions", on_delete=models.CASCADE)
     task = GenericRelation(
         TaskChapter,
         content_type_field="submission_type",

@@ -1,6 +1,6 @@
-from crispy_forms.bootstrap import Field, FormActions, InlineField, StrictButton
+from crispy_forms.bootstrap import FormActions, InlineField, StrictButton
 from crispy_forms.helper import FormHelper
-from crispy_forms.layout import Column, Fieldset, Layout, Row, Submit
+from crispy_forms.layout import Fieldset, Layout, Row, Submit
 from dal import autocomplete, forward
 from django import forms
 

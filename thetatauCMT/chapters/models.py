@@ -183,9 +183,7 @@ class Chapter(models.Model, EmailSignalMixin):
 
     name = models.CharField(max_length=50)
     modified = models.DateTimeField(auto_now=True)
-    region = models.ForeignKey(
-        Region, on_delete=models.PROTECT, related_name="chapters"
-    )
+    region = models.ForeignKey(Region, on_delete=models.PROTECT, related_name="chapters")
     slug = models.SlugField(max_length=50, null=True, default=None, unique=True)
     email = models.EmailField(_("email address"), blank=True)
     email_regent = models.EmailField(
@@ -258,8 +256,7 @@ class Chapter(models.Model, EmailSignalMixin):
     address_phone_number = models.CharField(
         validators=[phone_regex],
         max_length=17,
-        help_text="Phone number to contact at address for deliveries."
-        "Format: 9999999999 no spaces, dashes, etc.",
+        help_text="Phone number to contact at address for deliveries." "Format: 9999999999 no spaces, dashes, etc.",
     )
     address = AddressField(
         verbose_name=_("Mailing Address"),
@@ -274,9 +271,7 @@ class Chapter(models.Model, EmailSignalMixin):
         verbose_name=_("Mailing Address Line 2"),
         help_text="Sometimes the address is not sufficient and you need a second line for the address. This is not a separate address, just an additional line for the main address. For example, you may need to include a building name or a specific person to receive the mail.",
     )
-    balance = models.DecimalField(
-        default=0, decimal_places=2, max_digits=7, help_text="Balance chapter owes."
-    )
+    balance = models.DecimalField(default=0, decimal_places=2, max_digits=7, help_text="Balance chapter owes.")
     balance_date = models.DateField(auto_now_add=True)
     tax = models.PositiveIntegerField(
         blank=True,
@@ -284,9 +279,7 @@ class Chapter(models.Model, EmailSignalMixin):
         unique=True,
         help_text="Tax number, if chapter participates in group exemption.",
     )
-    greek = models.CharField(
-        max_length=10, blank=True, help_text="Greek letter abbreviation"
-    )
+    greek = models.CharField(max_length=10, blank=True, help_text="Greek letter abbreviation")
     active = models.BooleanField(default=True)
     candidate_chapter = models.BooleanField(default=False)
     extra_approval = models.BooleanField(
@@ -294,12 +287,8 @@ class Chapter(models.Model, EmailSignalMixin):
         help_text="Does this chapter require extra approval of automated tasks",
     )
     school = models.CharField(max_length=50, blank=True, unique=True)
-    latitude = models.DecimalField(
-        max_digits=22, decimal_places=16, blank=True, null=True
-    )
-    longitude = models.DecimalField(
-        max_digits=22, decimal_places=16, blank=True, null=True
-    )
+    latitude = models.DecimalField(max_digits=22, decimal_places=16, blank=True, null=True)
+    longitude = models.DecimalField(max_digits=22, decimal_places=16, blank=True, null=True)
     school_type = models.CharField(default="semester", max_length=10, choices=TYPES)
     council = models.CharField(
         verbose_name=_("Name of Council"),
@@ -357,10 +346,7 @@ class Chapter(models.Model, EmailSignalMixin):
     def chapter_choices(cls):
         chapters = []
         try:
-            chapters = [
-                (chapter.slug, chapter.name.title())
-                for chapter in cls.objects.exclude(active=False)
-            ]
+            chapters = [(chapter.slug, chapter.name.title()) for chapter in cls.objects.exclude(active=False)]
         except ProgrammingError:
             # Likely the database hasn't been setup yet?
             warnings.warn("Could not find chapter relation")
@@ -390,24 +376,18 @@ class Chapter(models.Model, EmailSignalMixin):
     def events_by_semester_biennium(self):
         semester_events = {}
         for names, dates in BIENNIUM_DATES.items():
-            events = self.events.filter(
-                date__lte=dates["end"], date__gte=dates["start"]
-            )
+            events = self.events.filter(date__lte=dates["end"], date__gte=dates["start"])
             semester_events[names] = events
 
     def events_last_month(self):
-        return self.events.filter(
-            date__lte=TODAY_END, date__gte=TODAY_END - timedelta(30)
-        )
+        return self.events.filter(date__lte=TODAY_END, date__gte=TODAY_END - timedelta(30))
 
     def events_semester(self):
         semester_start, semester_end = semester_encompass_start_end_date()
         return self.events.filter(date__lte=semester_end, date__gte=semester_start)
 
     def initiations_semester(self, given_date):
-        semester_start, semester_end = semester_encompass_start_end_date(
-            given_date=given_date
-        )
+        semester_start, semester_end = semester_encompass_start_end_date(given_date=given_date)
         return self.initiations.filter(date__lte=semester_end, date__gte=semester_start)
 
     def pledges_with_no_init_last_x_months(self, months=6):
@@ -508,17 +488,13 @@ class Chapter(models.Model, EmailSignalMixin):
         )
         """
         # started pledge status in this semester
-        semester_start, semester_end = semester_encompass_start_end_date(
-            given_date=given_date
-        )
+        semester_start, semester_end = semester_encompass_start_end_date(given_date=given_date)
         dates = dict(status__start__lte=semester_end, status__start__gte=semester_start)
         return self.members.filter(status__status="pnm", **dates)
 
     def graduates(self, given_date):
         # Alumni that started in this semester
-        semester_start, semester_end = semester_encompass_start_end_date(
-            given_date=given_date
-        )
+        semester_start, semester_end = semester_encompass_start_end_date(given_date=given_date)
         dates = dict(status__start__lte=semester_end, status__start__gte=semester_start)
         return self.members.filter(status__status="alumni", **dates).distinct()
 
@@ -587,9 +563,7 @@ class Chapter(models.Model, EmailSignalMixin):
 
     def council_emails(self):
         officers = self.get_current_officers_council_specific()
-        emails = set([officer.email for officer in officers if officer]) | set(
-            self.get_generic_chapter_emails()
-        )
+        emails = set([officer.email for officer in officers if officer]) | set(self.get_generic_chapter_emails())
         return {email for email in emails if email}
 
     def get_email_specific(self, roles=None):
@@ -637,16 +611,11 @@ class Chapter(models.Model, EmailSignalMixin):
 
         previous_officers = self.members.filter(
             roles__role__in=CHAPTER_OFFICER_REQUIRED,
-            roles__end__gte=TODAY_END
-            - timedelta(30 * 8),  # they ended their role in the last 8 months
+            roles__end__gte=TODAY_END - timedelta(30 * 8),  # they ended their role in the last 8 months
         ).prefetch_related("roles")
         previous = {}
         for role in CHAPTER_OFFICER_REQUIRED:
-            past = (
-                previous_officers.filter(roles__role=role)
-                .order_by("roles__end")
-                .first()
-            )
+            past = previous_officers.filter(roles__role=role).order_by("roles__end").first()
             previous[role] = past
         return previous
 
@@ -690,9 +659,7 @@ class Chapter(models.Model, EmailSignalMixin):
                     if not future_5_days or not already_notified:
                         # only notify every 7 days or every day within 5
                         # current hold the officer who is set to expire within the
-                        print(
-                            f"    {position} Not notified or 5 days, {already_notified=}"
-                        )
+                        print(f"    {position} Not notified or 5 days, {already_notified=}")
                         members_to_notify.append(current)
                     # There could be other positions to notify,
                     # this position still needs to be updated just not notify the members
@@ -713,9 +680,7 @@ class Chapter(models.Model, EmailSignalMixin):
 
     def next_badge_number(self):
         # Jan 2019 highest badge number was Mu with 1754
-        max_badge = self.members.filter(~models.Q(badge_number__gte=5000)).aggregate(
-            models.Max("badge_number")
-        )
+        max_badge = self.members.filter(~models.Q(badge_number__gte=5000)).aggregate(models.Max("badge_number"))
         max_badge = max_badge["badge_number__max"]
         if max_badge is None:
             max_badge = 0
@@ -725,9 +690,7 @@ class Chapter(models.Model, EmailSignalMixin):
     @property
     def next_advisor_number(self):
         badge_numbers = list(
-            self.members.filter(
-                badge_number__gte=7000, badge_number__lte=7999
-            ).values_list("badge_number", flat=True)
+            self.members.filter(badge_number__gte=7000, badge_number__lte=7999).values_list("badge_number", flat=True)
         )
         if not badge_numbers:
             badge_numbers.append(6999)
@@ -738,8 +701,7 @@ class Chapter(models.Model, EmailSignalMixin):
     def schools(cls):
         try:
             return [(-1, "Unknown")] + [
-                (school["pk"], school["school"])
-                for school in cls.objects.values("school", "pk").order_by("school")
+                (school["pk"], school["school"]) for school in cls.objects.values("school", "pk").order_by("school")
             ]
         except ProgrammingError:  # pragma: no cover
             # Likely the database hasn't been setup yet?
@@ -782,9 +744,7 @@ class Chapter(models.Model, EmailSignalMixin):
         if not self.candidate_chapter:
             # D1; Service; Semiannual Chapter Dues payable @ $80 each # Minimum per chapter is $1600.
             minimum = Config.get_value("ChapterMinimum")
-            line = create_line(
-                count, linenumber_count, name="D1", minimum=minimum, client=client
-            )
+            line = create_line(count, linenumber_count, name="D1", minimum=minimum, client=client)
             l1_min = Config.get_value("HealthSafetyMinimum_chapter")
             if self.house:
                 l1_min = Config.get_value("HealthSafetyMinimum_house")
@@ -795,9 +755,7 @@ class Chapter(models.Model, EmailSignalMixin):
         linenumber_count += 1
         invoice.Line.append(line)
         # L1; Service; Health and Safety Assessment - Semesterly
-        line = create_line(
-            count, linenumber_count, name="L1", minimum=l1_min, client=client
-        )
+        line = create_line(count, linenumber_count, name="L1", minimum=l1_min, client=client)
         linenumber_count += 1
         invoice.Line.append(line)
         if self.health_safety_surcharge != "none":
@@ -859,9 +817,7 @@ class Chapter(models.Model, EmailSignalMixin):
 
 
 class ChapterCurricula(models.Model):
-    chapter = models.ForeignKey(
-        Chapter, on_delete=models.CASCADE, related_name="curricula"
-    )
+    chapter = models.ForeignKey(Chapter, on_delete=models.CASCADE, related_name="curricula")
     approved = models.BooleanField(default=True)
     major = models.CharField(max_length=100)
 

@@ -58,10 +58,7 @@ def test_login_post_invalid_credentials_shows_error(client):
     assert response.status_code == 200
     content = response.content.decode().lower()
     # allauth 65 renders: "The e-mail address and/or password you specified are not correct."
-    assert any(
-        kw in content
-        for kw in ["incorrect", "invalid", "email address", "are not correct"]
-    )
+    assert any(kw in content for kw in ["incorrect", "invalid", "email address", "are not correct"])
 
 
 # ---------------------------------------------------------------------------
@@ -163,9 +160,7 @@ def test_pre_social_login_no_email_field_is_noop(rf):
     adapter = SocialAccountAdapter(request)
     sociallogin = MagicMock()
     sociallogin.is_existing = False
-    sociallogin.account.extra_data = {
-        "name": "Alice"
-    }  # neither 'email' nor 'emailAddress'
+    sociallogin.account.extra_data = {"name": "Alice"}  # neither 'email' nor 'emailAddress'
 
     adapter.pre_social_login(request, sociallogin)
 

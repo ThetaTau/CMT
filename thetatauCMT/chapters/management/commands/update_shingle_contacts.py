@@ -18,9 +18,7 @@ class Command(BaseCommand):
 
     # A command must define handle()
     def handle(self, *args, **options):
-        service_path = (
-            settings.ROOT_DIR / "secrets" / "ChapterManagementTool-b239bceff1a7.json"
-        )
+        service_path = settings.ROOT_DIR / "secrets" / "ChapterManagementTool-b239bceff1a7.json"
         gc = gspread.service_account(filename=service_path)
         sh = gc.open_by_key("1Tt8VdIkmcSq-mC6rXPWsHfFqXGVYn7LA5UzLKsfMhM8")
         worksheet = sh.worksheet("Chapters")

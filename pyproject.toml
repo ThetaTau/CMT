@@ -1,3 +1,14 @@
+# ==== black ====
+[tool.black]
+line-length = 120
+target-version = ["py312"]
+
+# ==== isort ====
+[tool.isort]
+profile = "black"
+line_length = 120
+skip = ["migrations", "media"]
+
 # ==== pytest ====
 [tool.pytest.ini_options]
 minversion = "6.0"

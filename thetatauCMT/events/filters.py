@@ -12,9 +12,7 @@ from .models import Event
 class EventListFilter(django_filters.FilterSet):
     name = django_filters.CharFilter(lookup_expr="icontains")
     date = DateRangeFilter(field_name="date")
-    type = django_filters.ModelChoiceFilter(
-        queryset=ScoreType.objects.filter(type="Evt").all()
-    )
+    type = django_filters.ModelChoiceFilter(queryset=ScoreType.objects.filter(type="Evt").all())
 
     class Meta:
         model = Event

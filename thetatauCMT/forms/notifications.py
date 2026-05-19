@@ -100,9 +100,7 @@ class EmailRMPReport(EmailNotification):  # extend from EmailNotification for em
 
 
 @registry.register_decorator()
-class EmailAdvisorWelcome(
-    EmailNotification
-):  # extend from EmailNotification for emails
+class EmailAdvisorWelcome(EmailNotification):  # extend from EmailNotification for emails
     template_name = "advisor"  # name of template, without extension
     subject = "Theta Tau Chapter Advisor"  # subject of email
 
@@ -170,9 +168,7 @@ class EmailPledgeOther(EmailNotification):  # extend from EmailNotification for 
 
 
 @registry.register_decorator()
-class EmailPledgeConfirmation(
-    EmailNotification
-):  # extend from EmailNotification for emails
+class EmailPledgeConfirmation(EmailNotification):  # extend from EmailNotification for emails
     template_name = "pledge"  # name of template, without extension
     subject = "Theta Tau Prospective New Member Confirmation"  # subject of email
 
@@ -222,9 +218,7 @@ class EmailPledgeConfirmation(
                 value = {True: "Yes", False: "No"}[value]
                 form_dict[getattr(pledge_form, f"verbose_{key}")] = value
             else:
-                if (
-                    key.startswith("explain_") or key.startswith("other_")
-                ) and value == "":
+                if (key.startswith("explain_") or key.startswith("other_")) and value == "":
                     continue
                 if key not in ["id", "address", "major", "chapter"]:
                     form_dict[key.replace("_", " ").title()] = value
@@ -317,9 +311,7 @@ class BadgePNMNotify(EmailNotification):  # extend from EmailNotification for em
             "central.office@thetatau.org",
         ]
         message = Config.get_value("badge_pnm_notify", clean=False)
-        badges = BadgeTable(
-            Badge.objects.exclude(name__icontains="candidate").order_by("cost")
-        )
+        badges = BadgeTable(Badge.objects.exclude(name__icontains="candidate").order_by("cost"))
         request = HttpRequest()
         badge_table = badges.as_html(request)
         message = message.replace("{{ badge_table }}", badge_table)
@@ -551,7 +543,7 @@ class EmailScribeExpulsion(EmailNotification):
         self.reply_to = [
             "central.office@thetatau.org",
         ]
-        self.subject = f"[CMT] Roll Book Update"
+        self.subject = "[CMT] Roll Book Update"
         self.context = {
             "user": user,
             "badge_number": user.badge_number,
@@ -656,10 +648,7 @@ class EmailAlumniExclusionUpdate(EmailNotification):
         chapter = activation.process.chapter
         state = "RD Review"
         addressee = f"{chapter.region.name} Regional Directors"
-        link = (
-            reverse("forms:alumniexclusion_list")
-            + f"?region={chapter.region.slug}&regional_director_veto=None"
-        )
+        link = reverse("forms:alumniexclusion_list") + f"?region={chapter.region.slug}&regional_director_veto=None"
         to = {chapter.region.email}
         cc = {
             "risk@thetatau.org",

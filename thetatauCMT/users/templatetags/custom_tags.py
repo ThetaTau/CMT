@@ -55,6 +55,6 @@ def get_fields(obj):
         ]:
             try:
                 fields.append((field.verbose_name.title(), field.value_to_string(obj)))
-            except:
+            except Exception:
                 continue
     return fields

@@ -12,7 +12,6 @@ import requests
 from address.models import AddressField
 from django.conf import settings
 from django.contrib import messages
-from django.contrib.auth.models import Group
 from django.core.validators import MaxValueValidator, RegexValidator
 from django.db import models, transaction
 from django.db.utils import IntegrityError
@@ -20,10 +19,10 @@ from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from django_userforeignkey.models.fields import UserForeignKey
 from djmoney.models.fields import MoneyField
+from easy_pdf.rendering import render_to_pdf
 from email_signals.models import EmailSignalMixin
 from multiselectfield import MultiSelectField
 from quickbooks.objects.attachable import Attachable, AttachableRef
-# from easy_pdf.rendering import render_to_pdf
 from quickbooks.objects.customer import Customer
 from viewflow.models import Process
 
@@ -55,9 +54,7 @@ class Badge(models.Model):
     name = models.CharField(max_length=50)
     code = models.CharField(max_length=50)
     description = models.CharField(max_length=500)
-    cost = models.DecimalField(
-        default=0, decimal_places=2, max_digits=7, help_text="Cost of item."
-    )
+    cost = models.DecimalField(default=0, decimal_places=2, max_digits=7, help_text="Cost of item.")
 
     def __str__(self):
         return f"{self.name}; ${self.cost}"
@@ -74,9 +71,7 @@ class Guard(models.Model):
     code = models.CharField(max_length=50)
     letters = models.IntegerField(default=ONE_LETTER, choices=NUM_LETTERS)
     description = models.CharField(max_length=500)
-    cost = models.DecimalField(
-        default=0, decimal_places=2, max_digits=7, help_text="Cost of item."
-    )
+    cost = models.DecimalField(default=0, decimal_places=2, max_digits=7, help_text="Cost of item.")
 
     def __str__(self):
         return f"{self.name}; ${self.cost}"
@@ -122,9 +117,7 @@ class PledgeProgram(YearTermModel, TimeStampedModel, EmailSignalMixin):
         )
         not_complete = ("not_complete", "We did not complete new member education.")
 
-    chapter = models.ForeignKey(
-        Chapter, on_delete=models.CASCADE, related_name="pledge_programs"
-    )
+    chapter = models.ForeignKey(Chapter, on_delete=models.CASCADE, related_name="pledge_programs")
     verbose_remote = "Have you or will you conduct your new member education remotely?"
     remote = models.BooleanField(verbose_remote, choices=BOOL_CHOICES, default=False)
     verbose_dues = "How much are your chapter's PNM dues, including the pledge fee but NOT including the initiation fee or badge cost?"
@@ -137,9 +130,7 @@ class PledgeProgram(YearTermModel, TimeStampedModel, EmailSignalMixin):
     date_initiation = models.DateField(verbose_initiation, default=timezone.now)
     verbose_weeks = "How many weeks is your typical new member education program?"
     weeks = models.PositiveIntegerField(verbose_weeks, default=0)
-    verbose_weeks_left = (
-        "How many weeks of new member education do you have yet to complete?"
-    )
+    verbose_weeks_left = "How many weeks of new member education do you have yet to complete?"
     weeks_left = models.PositiveIntegerField(verbose_weeks_left, default=0)
     status = models.CharField(
         verbose_name="What is the current status of your new member education?",
@@ -148,15 +139,9 @@ class PledgeProgram(YearTermModel, TimeStampedModel, EmailSignalMixin):
         default="none",
     )
     manual = models.CharField(max_length=10, choices=[x.value for x in MANUALS])
-    other_manual = models.FileField(
-        upload_to=get_pledge_program_upload_path, null=True, blank=True
-    )
-    schedule = models.FileField(
-        upload_to=get_pledge_program_upload_path, null=True, blank=True
-    )
-    test = models.FileField(
-        upload_to=get_pledge_program_upload_path, null=True, blank=True
-    )
+    other_manual = models.FileField(upload_to=get_pledge_program_upload_path, null=True, blank=True)
+    schedule = models.FileField(upload_to=get_pledge_program_upload_path, null=True, blank=True)
+    test = models.FileField(upload_to=get_pledge_program_upload_path, null=True, blank=True)
 
     def __str__(self):
         return f"Pledge Program for {self.chapter}"
@@ -202,12 +187,8 @@ class PledgeProgramProcess(Process, EmailSignalMixin):
         choices=[x.value for x in APPROVAL],
         default="not_reviewed",
     )
-    approval_comments = models.TextField(
-        _("If rejecting, please explain why."), blank=True
-    )
-    chapter = models.ForeignKey(
-        Chapter, on_delete=models.CASCADE, related_name="pledge_program_process"
-    )
+    approval_comments = models.TextField(_("If rejecting, please explain why."), blank=True)
+    chapter = models.ForeignKey(Chapter, on_delete=models.CASCADE, related_name="pledge_program_process")
     program = models.ForeignKey(
         PledgeProgram,
         on_delete=models.SET_NULL,
@@ -221,9 +202,7 @@ class PledgeProgramProcess(Process, EmailSignalMixin):
 
 
 class Initiation(TimeStampedModel, EmailSignalMixin):
-    user = models.OneToOneField(
-        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="initiation"
-    )
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="initiation")
     # The user chapter could change, so we record the initiation chapter
     chapter = models.ForeignKey(
         Chapter,
@@ -233,19 +212,13 @@ class Initiation(TimeStampedModel, EmailSignalMixin):
         null=True,
     )
     date_graduation = models.DateField(default=timezone.now)
-    date = models.DateField(
-        "Initiation Date", default=timezone.now, validators=[no_future]
-    )
+    date = models.DateField("Initiation Date", default=timezone.now, validators=[no_future])
     roll = models.PositiveIntegerField(default=999999999)
     gpa = models.FloatField()
     test_a = models.IntegerField(validators=[MaxValueValidator(100)])
     test_b = models.IntegerField(validators=[MaxValueValidator(100)])
-    badge = models.ForeignKey(
-        Badge, on_delete=models.SET_NULL, related_name="initiation", null=True
-    )
-    guard = models.ForeignKey(
-        Guard, on_delete=models.SET_NULL, related_name="initiation", null=True
-    )
+    badge = models.ForeignKey(Badge, on_delete=models.SET_NULL, related_name="initiation", null=True)
+    guard = models.ForeignKey(Guard, on_delete=models.SET_NULL, related_name="initiation", null=True)
 
     # task = GenericRelation(TaskChapter)  We are currently not using this
 
@@ -265,9 +238,7 @@ class Initiation(TimeStampedModel, EmailSignalMixin):
         except IntegrityError as e:
             print("User ALREADY EXISTS", str(e))
         if status_update:
-            self.user.set_current_status(
-                status="activepend", start=self.date, created=self.created
-            )
+            self.user.set_current_status(status="activepend", start=self.date, created=self.created)
 
     def chapter_initiations(self, chapter):
         result = self.objects.filter(user__chapter=chapter)
@@ -298,9 +269,7 @@ class Depledge(TimeStampedModel, EmailSignalMixin):
         other = ("other", "Other")
         na = ("na", "No Items Given")
 
-    user = models.OneToOneField(
-        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="depledge"
-    )
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="depledge")
     reason = models.CharField(max_length=10, choices=[x.value for x in REASONS])
     reason_other = models.CharField(
         "Other reason for depledging",
@@ -308,9 +277,7 @@ class Depledge(TimeStampedModel, EmailSignalMixin):
         null=True,
         blank=True,
     )
-    date = models.DateField(
-        "Depledge Date", default=timezone.now, validators=[no_future]
-    )
+    date = models.DateField("Depledge Date", default=timezone.now, validators=[no_future])
     meeting_held = models.CharField(
         "Was a meeting held with the depledged PNM?",
         max_length=10,
@@ -492,9 +459,7 @@ def get_chapter_report_upload_path(instance, filename):
 
 
 class ChapterReport(YearTermModel, TimeStampedModel, EmailSignalMixin):
-    user = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="chapter_form"
-    )
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="chapter_form")
     chapter = models.ForeignKey(Chapter, on_delete=models.CASCADE, related_name="info")
     report = models.FileField(upload_to=get_chapter_report_upload_path)
 
@@ -540,9 +505,7 @@ class HSEducation(Process, TimeStampedModel, EmailSignalMixin):
         verbose_name="The user that created this object",
         related_name="hseducation_created",
     )
-    chapter = models.ForeignKey(
-        Chapter, on_delete=models.CASCADE, related_name="education"
-    )
+    chapter = models.ForeignKey(Chapter, on_delete=models.CASCADE, related_name="education")
     report = models.FileField(upload_to=get_chapter_education_upload_path)
     program_date = models.DateField(default=timezone.now)
     category = models.CharField(
@@ -550,9 +513,7 @@ class HSEducation(Process, TimeStampedModel, EmailSignalMixin):
         max_length=20,
         choices=[x.value for x in CATEGORIES],
     )
-    first_name = models.CharField(
-        _("facilitator first name"), max_length=30, blank=True
-    )
+    first_name = models.CharField(_("facilitator first name"), max_length=30, blank=True)
     last_name = models.CharField(_("facilitator last name"), max_length=150, blank=True)
     email = models.EmailField(_("facilitator email address"), blank=True)
     title = models.CharField(
@@ -585,9 +546,7 @@ class HSEducation(Process, TimeStampedModel, EmailSignalMixin):
         choices=[x.value for x in APPROVAL],
         default="not_reviewed",
     )
-    approval_comments = models.TextField(
-        _("If rejecting, please explain why."), blank=True
-    )
+    approval_comments = models.TextField(_("If rejecting, please explain why."), blank=True)
 
     def __str__(self):
         return f"H&S Education {self.category} for {self.chapter}"
@@ -604,9 +563,7 @@ class HSEducation(Process, TimeStampedModel, EmailSignalMixin):
 
 
 class RiskManagement(YearTermModel):
-    user = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="risk_form"
-    )
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="risk_form")
     role = models.CharField(max_length=254)
     submission = models.ForeignKey(
         Submission,
@@ -643,9 +600,7 @@ class RiskManagement(YearTermModel):
     def risk_forms_chapter_semester(chapter, date):
         actives = chapter.active_actives()
         start, end = semester_encompass_start_end_date(date)
-        return RiskManagement.objects.filter(
-            user__in=actives, date__gte=start, date__lte=end
-        )
+        return RiskManagement.objects.filter(user__in=actives, date__gte=start, date__lte=end)
 
     @staticmethod
     def risk_forms_semester(date):
@@ -663,9 +618,7 @@ class RiskManagement(YearTermModel):
 
 
 class Audit(YearTermModel, TimeStampedModel, EmailSignalMixin):
-    user = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="audit_form"
-    )
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="audit_form")
     dues_member = models.FloatField("Member Dues")
     dues_pledge = models.FloatField("Potential New Member Pledging Fees/Dues")
     frequency = models.CharField(
@@ -707,15 +660,9 @@ class Pledge(TimeStampedModel, EmailSignalMixin):
         related_name="pledge_form",
         default=1,
     )
-    signature = models.CharField(
-        max_length=255, help_text="Please sign using your proper/legal name"
-    )
-    parent_name = models.CharField(
-        _("Parent / Guardian Name"), blank=True, null=True, max_length=60
-    )
-    parent_email = models.EmailField(
-        _("Parent / Guardian Email"), blank=True, null=True
-    )
+    signature = models.CharField(max_length=255, help_text="Please sign using your proper/legal name")
+    parent_name = models.CharField(_("Parent / Guardian Name"), blank=True, null=True, max_length=60)
+    parent_email = models.EmailField(_("Parent / Guardian Email"), blank=True, null=True)
     birth_place = models.CharField(
         _("Place of Birth"),
         max_length=50,
@@ -728,9 +675,7 @@ class Pledge(TimeStampedModel, EmailSignalMixin):
         help_text="Name of Major/Field of that Degree. If none, leave blank",
     )
     relative_members = models.CharField(
-        _(
-            "Indicate the names of any relatives you have who are members of Theta Tau below"
-        ),
+        _("Indicate the names of any relatives you have who are members of Theta Tau below"),
         max_length=60,
         blank=True,
         help_text="Include relationship, chapter, and graduation year, if known. If none, leave blank",
@@ -753,13 +698,9 @@ class Pledge(TimeStampedModel, EmailSignalMixin):
         blank=True,
         help_text="Other than Theta Tau -- If no other, leave blank",
     )
-    other_college = models.CharField(
-        _("Which? (Other college(s))"), max_length=60, blank=True
-    )
+    other_college = models.CharField(_("Which? (Other college(s))"), max_length=60, blank=True)
     explain_expelled_org = models.TextField(_("If yes, please explain."), blank=True)
-    explain_expelled_college = models.TextField(
-        _("If yes, please explain."), blank=True
-    )
+    explain_expelled_college = models.TextField(_("If yes, please explain."), blank=True)
     explain_crime = models.TextField(_("If yes, please explain."), blank=True)
     verbose_loyalty = _(
         "The purpose of Theta Tau shall be to develop and maintain a high standard of professional interest among "
@@ -773,17 +714,13 @@ class Pledge(TimeStampedModel, EmailSignalMixin):
         "Theta Tau is a fraternity, not an honor society. It aims to elect no one to any class of membership solely "
         "in recognition of his scholastic or professional achievements. Do you subscribe to this doctrine?"
     )
-    not_honor = models.BooleanField(
-        verbose_not_honor, choices=BOOL_CHOICES, default=False
-    )
+    not_honor = models.BooleanField(verbose_not_honor, choices=BOOL_CHOICES, default=False)
     verbose_accountable = _(
         "Do you understand, if you become a member of Theta Tau, that the other members will have the right to hold "
         "you accountable for your conduct? Do you further understand that the Fraternity has Risk Management policies "
         "(hazing, alcohol, etc) with which you are expected to comply and to which you should expect others to comply?"
     )
-    accountable = models.BooleanField(
-        verbose_accountable, choices=BOOL_CHOICES, default=False
-    )
+    accountable = models.BooleanField(verbose_accountable, choices=BOOL_CHOICES, default=False)
     verbose_life = _(
         "When you assume the oaths or obligations required during initiation, will you agree that they are binding "
         "on the member for life?"
@@ -793,24 +730,18 @@ class Pledge(TimeStampedModel, EmailSignalMixin):
         "Do you promise that you will not permit the use of a Theta Tau headquarters or meeting place for unlawful "
         "purposes?"
     )
-    unlawful = models.BooleanField(
-        verbose_unlawful, choices=BOOL_CHOICES, default=False
-    )
+    unlawful = models.BooleanField(verbose_unlawful, choices=BOOL_CHOICES, default=False)
     verbose_unlawful_org = _(
         "This Fraternity requires of its initiates that they shall not be members of any sect or organization which "
         "teaches or practices activities in violation of the laws of the state or the nation. Do you subscribe to this "
         "requirement?"
     )
-    unlawful_org = models.BooleanField(
-        verbose_unlawful_org, choices=BOOL_CHOICES, default=False
-    )
+    unlawful_org = models.BooleanField(verbose_unlawful_org, choices=BOOL_CHOICES, default=False)
     verbose_brotherhood = _(
         "The strength of the Fraternity depends largely on the character of its members and the close and loyal "
         "friendship uniting them. Do you realize you have no right to join if you do not act on this belief?"
     )
-    brotherhood = models.BooleanField(
-        verbose_brotherhood, choices=BOOL_CHOICES, default=False
-    )
+    brotherhood = models.BooleanField(verbose_brotherhood, choices=BOOL_CHOICES, default=False)
     verbose_engineering = _(
         "Theta Tau is an engineering fraternity whose student membership is limited to those regularly enrolled in "
         "a course leading to a degree in an approved engineering curriculum. Members of other fraternities that "
@@ -818,15 +749,9 @@ class Pledge(TimeStampedModel, EmailSignalMixin):
         "nor may our members join such fraternities. Engineering honor societies such as Tau Beta Pi, Eta Kappa Nu, "
         "etc., are not included in this classification. Do you fully understand and subscribe to that policy?"
     )
-    engineering = models.BooleanField(
-        verbose_engineering, choices=BOOL_CHOICES, default=False
-    )
-    verbose_engineering_grad = _(
-        """Is it your intention to practice engineering after graduation?"""
-    )
-    engineering_grad = models.BooleanField(
-        verbose_engineering_grad, choices=BOOL_CHOICES, default=False
-    )
+    engineering = models.BooleanField(verbose_engineering, choices=BOOL_CHOICES, default=False)
+    verbose_engineering_grad = _("""Is it your intention to practice engineering after graduation?""")
+    engineering_grad = models.BooleanField(verbose_engineering_grad, choices=BOOL_CHOICES, default=False)
     verbose_payment = _(
         "The Fraternity has a right to demand from you prompt payment of bills. Do you understand, and are you "
         "ready to accept, the financial obligations of becoming a member?"
@@ -836,9 +761,7 @@ class Pledge(TimeStampedModel, EmailSignalMixin):
         "The Fraternity has a right to demand from you regular attendance at meetings and faithful performance of "
         "duties entrusted to you. Are you ready to accept such obligations?"
     )
-    attendance = models.BooleanField(
-        verbose_attendance, choices=BOOL_CHOICES, default=False
-    )
+    attendance = models.BooleanField(verbose_attendance, choices=BOOL_CHOICES, default=False)
     verbose_harmless = _(
         "Do you agree hereby to fully and completely release, discharge, and hold harmless the Chapter, "
         "House Corporation, Theta Tau (the national Fraternity), and their respective members, officers, agents, "
@@ -849,9 +772,7 @@ class Pledge(TimeStampedModel, EmailSignalMixin):
         "compensatory damages, consequential damages or punitive/exemplary damages? Your affirmative answer binds you, "
         "under covenant, not to sue any of the previously named entities."
     )
-    harmless = models.BooleanField(
-        verbose_harmless, choices=BOOL_CHOICES, default=False
-    )
+    harmless = models.BooleanField(verbose_harmless, choices=BOOL_CHOICES, default=False)
     verbose_alumni = _(
         "As an alumnus, you should join with other alumni in the formation and support of alumni clubs or "
         "associations. Furthermore, on October 15th of each year, celebrations are held throughout the country to "
@@ -861,13 +782,9 @@ class Pledge(TimeStampedModel, EmailSignalMixin):
         "permit, after you are initiated into Theta Tau?"
     )
     alumni = models.BooleanField(verbose_alumni, choices=BOOL_CHOICES, default=False)
-    verbose_honest = _(
-        """My answers to these questions are my honest and sincere convictions."""
-    )
+    verbose_honest = _("""My answers to these questions are my honest and sincere convictions.""")
     honest = models.BooleanField(verbose_honest, choices=BOOL_CHOICES, default=False)
-    verbose_bill = _(
-        "I understand and have read the potential new member bill of rights."
-    )
+    verbose_bill = _("I understand and have read the potential new member bill of rights.")
     bill = models.BooleanField(verbose_bill, choices=BOOL_CHOICES, default=False)
 
     def __str__(self):
@@ -907,13 +824,9 @@ class PrematureAlumnus(Process, EmailSignalMixin):
     form = models.FileField(upload_to=get_premature_alumn_upload_path)
     verbose_good_standing = _("""Member is in good standing of Theta Tau.""")
     good_standing = models.BooleanField(verbose_good_standing, default=False)
-    verbose_financial = _(
-        """Member has no current financial obligation to the chapter."""
-    )
+    verbose_financial = _("""Member has no current financial obligation to the chapter.""")
     financial = models.BooleanField(verbose_financial, default=False)
-    verbose_semesters = _(
-        """Member has completed at least six months of active membership."""
-    )
+    verbose_semesters = _("""Member has completed at least six months of active membership.""")
     semesters = models.BooleanField(verbose_semesters, default=False)
     verbose_lifestyle = _(
         "Member has had a significant lifestyle change preventing adequately "
@@ -921,8 +834,7 @@ class PrematureAlumnus(Process, EmailSignalMixin):
     )
     lifestyle = models.BooleanField(verbose_lifestyle, default=False)
     verbose_consideration = _(
-        "I understand that this status change request is submitted "
-        "to the Executive Director for consideration."
+        "I understand that this status change request is submitted " "to the Executive Director for consideration."
     )
     consideration = models.BooleanField(verbose_consideration, default=False)
     verbose_prealumn_type = _("""Type of Premature (“Early”) Alumnus Status""")
@@ -968,22 +880,16 @@ class InitiationProcess(Process, EmailSignalMixin):
 
     initiations = models.ManyToManyField(Initiation, related_name="process", blank=True)
     invoice = models.PositiveIntegerField("Invoice Number", default=999999999)
-    chapter = models.ForeignKey(
-        Chapter, on_delete=models.CASCADE, related_name="initiation_process"
-    )
+    chapter = models.ForeignKey(Chapter, on_delete=models.CASCADE, related_name="initiation_process")
     verbose_ceremony = "What ceremony did you use to initiate these members?"
-    scheduled_date = models.DateField(
-        "Date order scheduled to be shipped on", default=timezone.now
-    )
+    scheduled_date = models.DateField("Date order scheduled to be shipped on", default=timezone.now)
     ceremony = models.CharField(
         verbose_ceremony,
         default="normal",
         max_length=10,
         choices=[x.value for x in CEREMONIES],
     )
-    badge_order = models.FileField(
-        blank=True, null=True, upload_to=get_badge_order_upload_path
-    )
+    badge_order = models.FileField(blank=True, null=True, upload_to=get_badge_order_upload_path)
 
     def __str__(self):
         return f"Initiation Process for {self.chapter}"
@@ -1094,9 +1000,7 @@ class InitiationProcess(Process, EmailSignalMixin):
         client = get_quickbooks_client()
         chapter = self.chapter
         if chapter.candidate_chapter:
-            messages.add_message(
-                request, messages.ERROR, "Candidate chapters do not pay initiation fees"
-            )
+            messages.add_message(request, messages.ERROR, "Candidate chapters do not pay initiation fees")
             return
         chapter_name = chapter.name
         customer = Customer.query(
@@ -1125,22 +1029,16 @@ class InitiationProcess(Process, EmailSignalMixin):
             invoice.Line.append(line)
             linenumber_count += 1
         if late_fee_count:
-            line = create_line(
-                late_fee_count, linenumber_count, name="I1C", client=client
-            )
+            line = create_line(late_fee_count, linenumber_count, name="I1C", client=client)
             invoice.Line.append(line)
         badge_count = Counter(self.initiations.values_list("badge__code", flat=True))
         for badge_guard_code, count in badge_count.items():
             if badge_guard_code == "None":
                 continue
-            line = create_line(
-                count, linenumber_count, name=badge_guard_code, client=client
-            )
+            line = create_line(count, linenumber_count, name=badge_guard_code, client=client)
             invoice.Line.append(line)
             linenumber_count += 1
-        memo = "Initiated: " + ", ".join(
-            self.initiations.values_list("user__name", flat=True)
-        )
+        memo = "Initiated: " + ", ".join(self.initiations.values_list("user__name", flat=True))
         old_memo = invoice.CustomerMemo.value
         memo = old_memo + "\n" + memo if old_memo else memo
         # Maximum 1000 chars
@@ -1217,13 +1115,9 @@ class InitiationProcess(Process, EmailSignalMixin):
         badge_filename = f"{chapter}_{init_date}_badge.{file_type}"
         # Intuit Invoice # - ChapterID_other stuff.csv
         shingle_filename = f"{self.invoice}-{self.chapter.id:03d}_{chapter}_{init_date}_shingle.{file_type}"
-        badge_mail.add_header(
-            "Content-Disposition", "attachment", filename=badge_filename
-        )
+        badge_mail.add_header("Content-Disposition", "attachment", filename=badge_filename)
         shingle_mail = MIMEBase("application", file_type)
-        shingle_mail.add_header(
-            "Content-Disposition", "attachment", filename=shingle_filename
-        )
+        shingle_mail.add_header("Content-Disposition", "attachment", filename=shingle_filename)
         if response is not None:
             if csv_type == "badge":
                 badge_file = response
@@ -1347,19 +1241,11 @@ class Convention(Process, YearTermModel):
         related_name="alternate",
         verbose_name="Alternate Signature",
     )
-    verbose_understand = _(
-        """I have read and understand the "Convention Expenses" and the "Alcohol Policy
-        for National Meetings" policies in the Theta Tau Policies and Procedures Manual."""
-    )
-    understand_del = models.BooleanField(
-        verbose_understand, choices=BOOL_CHOICES_UNDERSTAND, default=False
-    )
-    understand_alt = models.BooleanField(
-        verbose_understand, choices=BOOL_CHOICES_UNDERSTAND, default=False
-    )
-    chapter = models.ForeignKey(
-        Chapter, on_delete=models.CASCADE, related_name="convention"
-    )
+    verbose_understand = _("""I have read and understand the "Convention Expenses" and the "Alcohol Policy
+        for National Meetings" policies in the Theta Tau Policies and Procedures Manual.""")
+    understand_del = models.BooleanField(verbose_understand, choices=BOOL_CHOICES_UNDERSTAND, default=False)
+    understand_alt = models.BooleanField(verbose_understand, choices=BOOL_CHOICES_UNDERSTAND, default=False)
+    chapter = models.ForeignKey(Chapter, on_delete=models.CASCADE, related_name="convention")
     officer1 = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -1372,24 +1258,12 @@ class Convention(Process, YearTermModel):
         related_name="conv_off2",
         verbose_name="Officer Signature",
     )
-    signature_del = models.CharField(
-        max_length=255, help_text="Please sign using your proper/legal name"
-    )
-    signature_alt = models.CharField(
-        max_length=255, help_text="Please sign using your proper/legal name"
-    )
-    signature_o1 = models.CharField(
-        max_length=255, help_text="Please sign using your proper/legal name"
-    )
-    signature_o2 = models.CharField(
-        max_length=255, help_text="Please sign using your proper/legal name"
-    )
-    approved_o1 = models.BooleanField(
-        "Officer Approved", choices=BOOL_CHOICES, default=False
-    )
-    approved_o2 = models.BooleanField(
-        "Officer Approved", choices=BOOL_CHOICES, default=False
-    )
+    signature_del = models.CharField(max_length=255, help_text="Please sign using your proper/legal name")
+    signature_alt = models.CharField(max_length=255, help_text="Please sign using your proper/legal name")
+    signature_o1 = models.CharField(max_length=255, help_text="Please sign using your proper/legal name")
+    signature_o2 = models.CharField(max_length=255, help_text="Please sign using your proper/legal name")
+    approved_o1 = models.BooleanField("Officer Approved", choices=BOOL_CHOICES, default=False)
+    approved_o2 = models.BooleanField("Officer Approved", choices=BOOL_CHOICES, default=False)
 
     def __str__(self):
         return f"Convention Process for {self.chapter}"
@@ -1398,9 +1272,7 @@ class Convention(Process, YearTermModel):
 class PledgeProcess(Process, EmailSignalMixin):
     pledges = models.ManyToManyField(Pledge, related_name="process", blank=True)
     invoice = models.PositiveIntegerField("Invoice Number", default=999999999)
-    chapter = models.ForeignKey(
-        Chapter, on_delete=models.CASCADE, related_name="pledge_process"
-    )
+    chapter = models.ForeignKey(Chapter, on_delete=models.CASCADE, related_name="pledge_process")
 
     def __str__(self):
         return f"Pledge Process for {self.chapter}"
@@ -1429,9 +1301,7 @@ class PledgeProcess(Process, EmailSignalMixin):
         count = self.pledges.count()
         line = create_line(count, linenumber_count, name="P1A", client=client)
         invoice.Line.append(line)
-        memo = "Pledges: " + ", ".join(
-            self.pledges.values_list("user__name", flat=True)
-        )
+        memo = "Pledges: " + ", ".join(self.pledges.values_list("user__name", flat=True))
         old_memo = invoice.CustomerMemo.value
         memo = old_memo + "\n" + memo if old_memo else memo
         # Maximum 1000 chars
@@ -1477,9 +1347,7 @@ class PledgeProcess(Process, EmailSignalMixin):
         else:
             pledge_file = io.StringIO()
             pledge_mail = MIMEBase("application", "csv")
-            pledge_mail.add_header(
-                "Content-Disposition", "attachment", filename=filename
-            )
+            pledge_mail.add_header("Content-Disposition", "attachment", filename=filename)
         writer = csv.DictWriter(pledge_file, fieldnames=columns)
         writer.writeheader()
         for pledge in self.pledges.all():
@@ -1570,9 +1438,7 @@ class PledgeProcess(Process, EmailSignalMixin):
         else:
             pledge_file = io.StringIO()
             pledge_mail = MIMEBase("application", "csv")
-            pledge_mail.add_header(
-                "Content-Disposition", "attachment", filename=filename
-            )
+            pledge_mail.add_header("Content-Disposition", "attachment", filename=filename)
         writer = csv.DictWriter(pledge_file, fieldnames=columns)
         writer.writeheader()
         for pledge in self.pledges.all():
@@ -1654,8 +1520,7 @@ class OSM(Process, YearTermModel, EmailSignalMixin):
         verbose_name="OSM Nomination",
     )
     verbose_selection_process = (
-        "How was the Chapter Outstanding Student Member chosen?"
-        + " What process was used to select them?"
+        "How was the Chapter Outstanding Student Member chosen?" + " What process was used to select them?"
     )
     selection_process = models.TextField(verbose_selection_process)
     chapter = models.ForeignKey(Chapter, on_delete=models.CASCADE, related_name="osm")
@@ -1671,12 +1536,8 @@ class OSM(Process, YearTermModel, EmailSignalMixin):
         related_name="osm_off2",
         verbose_name="Officer Signature",
     )
-    approved_o1 = models.BooleanField(
-        "Officer Approved", choices=BOOL_CHOICES, default=False
-    )
-    approved_o2 = models.BooleanField(
-        "Officer Approved", choices=BOOL_CHOICES, default=False
-    )
+    approved_o1 = models.BooleanField("Officer Approved", choices=BOOL_CHOICES, default=False)
+    approved_o2 = models.BooleanField("Officer Approved", choices=BOOL_CHOICES, default=False)
 
     def __str__(self):
         return f"Outstanding Student Member {self.nominate} for {self.chapter}"
@@ -1742,21 +1603,13 @@ class DisciplinaryProcess(Process, TimeStampedModel, EmailSignalMixin):
         blank=True,
         null=True,
     )
-    chapter = models.ForeignKey(
-        Chapter, on_delete=models.CASCADE, related_name="discipline"
-    )
+    chapter = models.ForeignKey(Chapter, on_delete=models.CASCADE, related_name="discipline")
     charges = models.TextField(
-        help_text="Please specify which section of the PPM the member is "
-        "accused of violating."
+        help_text="Please specify which section of the PPM the member is " "accused of violating."
     )
-    verbose_resolve = (
-        "Did chapter officers try to resolve the problem through "
-        "private discussion with the brother?"
-    )
+    verbose_resolve = "Did chapter officers try to resolve the problem through " "private discussion with the brother?"
     resolve = models.BooleanField(verbose_resolve, choices=BOOL_CHOICES, default=False)
-    verbose_advisor = (
-        "Was the chapter alumni adviser involved in trying to resolve this problem?"
-    )
+    verbose_advisor = "Was the chapter alumni adviser involved in trying to resolve this problem?"
     advisor = models.BooleanField(verbose_advisor, choices=BOOL_CHOICES, default=False)
     advisor_name = models.CharField(
         "If yes, alumni advisor name",
@@ -1764,9 +1617,7 @@ class DisciplinaryProcess(Process, TimeStampedModel, EmailSignalMixin):
         blank=True,
         null=True,
     )
-    verbose_faculty = (
-        "Was a campus/faculty adviser involved in trying to resolve this problem?"
-    )
+    verbose_faculty = "Was a campus/faculty adviser involved in trying to resolve this problem?"
     faculty = models.BooleanField(verbose_faculty, choices=BOOL_CHOICES, default=False)
     faculty_name = models.CharField(
         "If yes, campus/faculty adviser name",
@@ -1775,12 +1626,9 @@ class DisciplinaryProcess(Process, TimeStampedModel, EmailSignalMixin):
         null=True,
     )
     verbose_financial = (
-        "Is a simple collections action (for financial delinquency) "
-        "better suited as a resolution to this issue?"
+        "Is a simple collections action (for financial delinquency) " "better suited as a resolution to this issue?"
     )
-    financial = models.BooleanField(
-        verbose_financial, choices=BOOL_CHOICES, default=False
-    )
+    financial = models.BooleanField(verbose_financial, choices=BOOL_CHOICES, default=False)
     charges_filed = models.DateField(
         "Charges filed by majority vote at a chapter meeting on date",
         default=timezone.now,
@@ -1817,16 +1665,10 @@ class DisciplinaryProcess(Process, TimeStampedModel, EmailSignalMixin):
     )
     verbose_attend = "Did the accused attend the trial and defend?"
     attend = models.BooleanField(verbose_attend, choices=BOOL_CHOICES, default=False)
-    verbose_guilty = (
-        "Was the accused found guilty of the charges by a 4/5 majority of the jury?"
-    )
+    verbose_guilty = "Was the accused found guilty of the charges by a 4/5 majority of the jury?"
     guilty = models.BooleanField(verbose_guilty, choices=BOOL_CHOICES, default=False)
-    verbose_notify_results = (
-        "Did the chapter notify the member by mail/email of the results of the trial?"
-    )
-    notify_results = models.BooleanField(
-        verbose_notify_results, choices=BOOL_CHOICES, default=False
-    )
+    verbose_notify_results = "Did the chapter notify the member by mail/email of the results of the trial?"
+    notify_results = models.BooleanField(verbose_notify_results, choices=BOOL_CHOICES, default=False)
     notify_results_date = models.DateField(
         "On what date was the member notified of the results of the trial?",
         default=timezone.now,
@@ -1843,23 +1685,18 @@ class DisciplinaryProcess(Process, TimeStampedModel, EmailSignalMixin):
         "If suspended, when will this member’s suspension end?",
         default=timezone.now,
     )
-    verbose_punishment_other = (
-        "What other punishments, if any, were agreed to by the chapter?"
-    )
+    verbose_punishment_other = "What other punishments, if any, were agreed to by the chapter?"
     punishment_other = models.TextField(verbose_punishment_other, blank=True, null=True)
     verbose_collect_items = (
         "If the member was suspended pending expulsion, did the chapter collect "
         "and receive the member’s badge, shingle and/or other Theta Tau property?"
     )
-    collect_items = models.BooleanField(
-        verbose_collect_items, choices=BOOL_CHOICES, default=False
-    )
+    collect_items = models.BooleanField(verbose_collect_items, choices=BOOL_CHOICES, default=False)
     minutes = models.FileField(
         upload_to=get_discipline_upload_path,
         blank=True,
         null=True,
-        help_text="Please attach a copy of the minutes from the meeting "
-        "where the trial was held.",
+        help_text="Please attach a copy of the minutes from the meeting " "where the trial was held.",
     )
     results_letter = models.FileField(
         upload_to=get_discipline_upload_path,
@@ -1876,9 +1713,7 @@ class DisciplinaryProcess(Process, TimeStampedModel, EmailSignalMixin):
         blank=True,
         null=True,
     )
-    ed_notes = models.TextField(
-        "Executive Director Review Notes", blank=True, null=True
-    )
+    ed_notes = models.TextField("Executive Director Review Notes", blank=True, null=True)
     ec_approval = models.BooleanField(
         "Executive Council Outcome",
         choices=(
@@ -1892,13 +1727,9 @@ class DisciplinaryProcess(Process, TimeStampedModel, EmailSignalMixin):
     )
     ec_notes = models.TextField("Executive Council Review Notes", blank=True, null=True)
     # Letter of outcome of trial
-    outcome_letter = models.FileField(
-        upload_to=get_discipline_upload_path, blank=True, null=True
-    )
+    outcome_letter = models.FileField(upload_to=get_discipline_upload_path, blank=True, null=True)
     # Letter at the end of whole process
-    final_letter = models.FileField(
-        upload_to=get_discipline_upload_path, blank=True, null=True
-    )
+    final_letter = models.FileField(upload_to=get_discipline_upload_path, blank=True, null=True)
 
     def __str__(self):
         return f"Disciplinary Process for {self.user} from {self.chapter}"
@@ -1906,9 +1737,7 @@ class DisciplinaryProcess(Process, TimeStampedModel, EmailSignalMixin):
     def forms_pdf(self):
         from thetatauCMT.forms.forms import DisciplinaryForm1, DisciplinaryForm2
 
-        all_fields = (
-            DisciplinaryForm1._meta.fields[:] + DisciplinaryForm2._meta.fields[:]
-        )
+        all_fields = DisciplinaryForm1._meta.fields[:] + DisciplinaryForm2._meta.fields[:]
         all_fields.extend(["ed_process", "ed_notes", "ec_approval", "ec_notes"])
         info = {}
         for field in all_fields:
@@ -1950,9 +1779,7 @@ class DisciplinaryAttachment(models.Model):
         help_text="Please attach a copy of the letter you sent to the member "
         "informing them of the outcome of the trial.",
     )
-    process = models.ForeignKey(
-        DisciplinaryProcess, on_delete=models.CASCADE, related_name="attachments"
-    )
+    process = models.ForeignKey(DisciplinaryProcess, on_delete=models.CASCADE, related_name="attachments")
 
 
 class CollectionReferral(TimeStampedModel, EmailSignalMixin):
@@ -1987,13 +1814,10 @@ class ResignationProcess(Process, EmailSignalMixin):
         null=True,
         blank=True,
     )
-    chapter = models.ForeignKey(
-        Chapter, on_delete=models.CASCADE, related_name="resignations"
-    )
+    chapter = models.ForeignKey(Chapter, on_delete=models.CASCADE, related_name="resignations")
     letter = models.FileField("Resignation Letter", upload_to=get_resign_upload_path)
     verbose_resign = _(
-        "For reasons which I deem good and sufficient, I wish to resign as a "
-        "member of Theta Tau Fraternity."
+        "For reasons which I deem good and sufficient, I wish to resign as a " "member of Theta Tau Fraternity."
     )
     resign = models.BooleanField(verbose_resign, choices=BOOL_CHOICES, default=False)
     verbose_secrets = _(
@@ -2013,43 +1837,25 @@ class ResignationProcess(Process, EmailSignalMixin):
         "and certify that evidence and insignia not returned to the chapter "
         "herewith has been lost or misplaced and if hereafter located will be returned."
     )
-    return_evidence = models.BooleanField(
-        verbose_return_evidence, choices=BOOL_CHOICES, default=False
-    )
+    return_evidence = models.BooleanField(verbose_return_evidence, choices=BOOL_CHOICES, default=False)
     verbose_obligation = _(
         "I consent to the retention by my chapter and by Theta Tau Fraternity "
         "of all fees and dues heretofore paid by me while a member of said "
         "chapter and said Fraternity hereby releasing them from any and all "
         "obligations to me henceforth and forever."
     )
-    obligation = models.BooleanField(
-        verbose_obligation, choices=BOOL_CHOICES, default=False
-    )
-    verbose_fee = _(
-        "I have or will submit the Resignation Processing Fee to the chapter."
-    )
+    obligation = models.BooleanField(verbose_obligation, choices=BOOL_CHOICES, default=False)
+    verbose_fee = _("I have or will submit the Resignation Processing Fee to the chapter.")
     fee = models.BooleanField(verbose_fee, choices=BOOL_CHOICES, default=False)
-    signature = models.CharField(
-        max_length=255, help_text="Please sign using your proper/legal name"
-    )
+    signature = models.CharField(max_length=255, help_text="Please sign using your proper/legal name")
     verbose_good_standing = _("The member is in good standing of Theta Tau.")
-    good_standing = models.BooleanField(
-        verbose_good_standing, choices=BOOL_CHOICES, default=False
-    )
+    good_standing = models.BooleanField(verbose_good_standing, choices=BOOL_CHOICES, default=False)
     verbose_returned = "Did the member return all evidence of membership in Theta Tau?"
-    returned = models.BooleanField(
-        verbose_returned, choices=BOOL_CHOICES, default=False
-    )
+    returned = models.BooleanField(verbose_returned, choices=BOOL_CHOICES, default=False)
     verbose_financial = _("Member has no current financial obligation to the chapter.")
-    financial = models.BooleanField(
-        verbose_financial, choices=BOOL_CHOICES, default=False
-    )
-    verbose_fee_paid = _(
-        "Member submitted the Resignation Processing Fee to the chapter."
-    )
-    fee_paid = models.BooleanField(
-        verbose_fee_paid, choices=BOOL_CHOICES, default=False
-    )
+    financial = models.BooleanField(verbose_financial, choices=BOOL_CHOICES, default=False)
+    verbose_fee_paid = _("Member submitted the Resignation Processing Fee to the chapter.")
+    fee_paid = models.BooleanField(verbose_fee_paid, choices=BOOL_CHOICES, default=False)
     officer1 = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -2062,18 +1868,10 @@ class ResignationProcess(Process, EmailSignalMixin):
         related_name="resign_off2",
         verbose_name="Officer Signature",
     )
-    signature_o1 = models.CharField(
-        max_length=255, help_text="Please sign using your proper/legal name"
-    )
-    signature_o2 = models.CharField(
-        max_length=255, help_text="Please sign using your proper/legal name"
-    )
-    approved_o1 = models.BooleanField(
-        "Officer Approved", choices=BOOL_CHOICES, default=False
-    )
-    approved_o2 = models.BooleanField(
-        "Officer Approved", choices=BOOL_CHOICES, default=False
-    )
+    signature_o1 = models.CharField(max_length=255, help_text="Please sign using your proper/legal name")
+    signature_o2 = models.CharField(max_length=255, help_text="Please sign using your proper/legal name")
+    approved_o1 = models.BooleanField("Officer Approved", choices=BOOL_CHOICES, default=False)
+    approved_o2 = models.BooleanField("Officer Approved", choices=BOOL_CHOICES, default=False)
     approved_exec = models.BooleanField("Executive Director Approved", default=False)
     exec_comments = models.TextField(_("If rejecting, please explain why."), blank=True)
 
@@ -2091,15 +1889,11 @@ class ReturnStudent(Process, EmailSignalMixin):
     )
     verbose_reason = _("""Reasons member requests transfer to student member status.""")
     reason = models.TextField(verbose_reason)
-    verbose_financial = _(
-        """I understand that semiannual dues obligation for the current semester
+    verbose_financial = _("""I understand that semiannual dues obligation for the current semester
         must be met if student member status
-        is resumed on or before the semiannual dues deadline (November 1/March 15)."""
-    )
+        is resumed on or before the semiannual dues deadline (November 1/March 15).""")
     financial = models.BooleanField(verbose_financial, default=False)
-    verbose_debt = _(
-        """This member has paid previous fraternity debt to the chapter."""
-    )
+    verbose_debt = _("""This member has paid previous fraternity debt to the chapter.""")
     debt = models.BooleanField(verbose_debt, default=False)
     approved_exec = models.BooleanField("Executive Director Approved", default=False)
     exec_comments = models.TextField(_("If rejecting, please explain why."), blank=True)
@@ -2121,9 +1915,7 @@ def get_chapter_bylaws_upload_path(instance, filename):
 
 
 class Bylaws(TimeStampedModel, EmailSignalMixin):
-    chapter = models.ForeignKey(
-        Chapter, on_delete=models.CASCADE, related_name="bylaws"
-    )
+    chapter = models.ForeignKey(Chapter, on_delete=models.CASCADE, related_name="bylaws")
     bylaws = models.FileField(upload_to=get_chapter_bylaws_upload_path)
     changes = models.TextField(_("Summary of Changes"))
 
@@ -2148,9 +1940,7 @@ class AlumniExclusion(Process, TimeStampedModel, EmailSignalMixin):
         on_delete=models.CASCADE,
         related_name="alumni_exclusions",
     )
-    chapter = models.ForeignKey(
-        Chapter, on_delete=models.CASCADE, related_name="alumni_exclusions"
-    )
+    chapter = models.ForeignKey(Chapter, on_delete=models.CASCADE, related_name="alumni_exclusions")
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     meeting_date = models.DateField(verbose_name="Date of Vote", default=timezone.now)
     date_start = models.DateField("Start Date", default=timezone.now)
@@ -2158,9 +1948,7 @@ class AlumniExclusion(Process, TimeStampedModel, EmailSignalMixin):
     voting_result = models.FloatField(verbose_name="Percentage Voting in Favor")
     reason = models.TextField(_("Reason for Exclusion"))
     minutes = models.FileField(upload_to=get_chapter_exclusions_upload_path)
-    regional_director_veto = models.BooleanField(
-        choices=BOOL_CHOICES, null=True, blank=True, default=None
-    )
+    regional_director_veto = models.BooleanField(choices=BOOL_CHOICES, null=True, blank=True, default=None)
     regional_director = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -2169,9 +1957,7 @@ class AlumniExclusion(Process, TimeStampedModel, EmailSignalMixin):
         null=True,
         blank=True,
     )
-    veto_reason = models.TextField(
-        _("Reason for RD Exclusion Veto"), null=True, blank=True
-    )
+    veto_reason = models.TextField(_("Reason for RD Exclusion Veto"), null=True, blank=True)
 
     def __str__(self):
         value = f"Exclusion {self.pk}"

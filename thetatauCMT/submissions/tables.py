@@ -21,9 +21,7 @@ class SubmissionTable(tables.Table):
 
 class GearArticleTable(tables.Table):
     date = tables.DateColumn(verbose_name="Submit Date")
-    title = tables.LinkColumn(
-        "submissions:gear_detail", args=[A("pk")], verbose_name="Title"
-    )
+    title = tables.LinkColumn("submissions:gear_detail", args=[A("pk")], verbose_name="Title")
     chapter = tables.Column()
     pictures_count = tables.Column()
 

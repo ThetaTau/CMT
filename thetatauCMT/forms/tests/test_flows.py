@@ -137,7 +137,7 @@ def test_task_flow_task_reference_roundtrip():
 @pytest.mark.django_db
 def test_premature_alumnus_auto_approve_func_all_checks_pass():
     """auto_approve_func sets approved_exec=True when all process checks pass."""
-    from unittest.mock import MagicMock, patch
+    from unittest.mock import MagicMock
 
     from thetatauCMT.forms.flows import PrematureAlumnusFlow
     from thetatauCMT.forms.tests.factories import PrematureAlumnusFactory
@@ -325,13 +325,11 @@ def test_initiation_process_flow_send_invoice_func():
     activation.process = process
 
     flow_instance = InitiationProcessFlow()
-    with patch.object(
-        process, "generate_blackbaud_update", return_value=MagicMock()
-    ) as mock_gen, patch(
-        "thetatauCMT.forms.flows.EmailProcessUpdate"
-    ) as MockEmail, patch(
-        "thetatauCMT.forms.flows.CentralOfficeGenericEmail"
-    ) as MockCO:
+    with (
+        patch.object(process, "generate_blackbaud_update", return_value=MagicMock()),  # noqa: F841
+        patch("thetatauCMT.forms.flows.EmailProcessUpdate") as MockEmail,
+        patch("thetatauCMT.forms.flows.CentralOfficeGenericEmail") as MockCO,
+    ):
         MockEmail.return_value.send = MagicMock()
         MockCO.return_value.send = MagicMock()
         try:

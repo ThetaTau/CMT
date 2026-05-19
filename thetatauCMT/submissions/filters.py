@@ -12,9 +12,7 @@ from .models import GearArticle, Submission
 class SubmissionListFilter(django_filters.FilterSet):
     name = django_filters.CharFilter(lookup_expr="icontains")
     date = DateRangeFilter(field_name="date")
-    type = django_filters.ModelChoiceFilter(
-        queryset=ScoreType.objects.filter(type="Sub").all()
-    )
+    type = django_filters.ModelChoiceFilter(queryset=ScoreType.objects.filter(type="Sub").all())
 
     class Meta:
         model = Submission
@@ -27,12 +25,8 @@ class SubmissionListFilter(django_filters.FilterSet):
 
 
 class GearArticleListFilter(django_filters.FilterSet):
-    region = django_filters.ChoiceFilter(
-        label="Region", choices=Region.region_choices(), method="filter_region"
-    )
-    chapter = django_filters.ChoiceFilter(
-        label="Chapter", choices=Chapter.chapter_choices(), method="filter_chapter"
-    )
+    region = django_filters.ChoiceFilter(label="Region", choices=Region.region_choices(), method="filter_region")
+    chapter = django_filters.ChoiceFilter(label="Chapter", choices=Chapter.chapter_choices(), method="filter_chapter")
     date = DateRangeFilter(label="Submit Date")
 
     class Meta:

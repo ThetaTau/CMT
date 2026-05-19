@@ -346,9 +346,7 @@ def test_ritual_proficiency_user_table_view_unauthenticated_redirects(client):
 def test_ritual_proficiency_user_table_view_natoff_returns_200(auto_login_user):
     client, user = auto_login_user()
     _add_to_group(user, "natoff")
-    response = client.get(
-        reverse("forms:ritual_proficiency_user_table"), {"user_id": ""}
-    )
+    response = client.get(reverse("forms:ritual_proficiency_user_table"), {"user_id": ""})
     assert response.status_code == 200
 
 
@@ -593,7 +591,7 @@ def test_ritual_proficiency_create_view_natoff_returns_200(auto_login_user):
 
 
 @pytest.mark.django_db
-def test_ritual_proficiency_user_table_view_natoff_returns_200(auto_login_user):
+def test_ritual_proficiency_user_table_view_natoff_with_follow_returns_200(auto_login_user):
     """NatOff can access the ritual proficiency user table view."""
     client, user = auto_login_user()
     _add_to_group(user, "natoff")
@@ -616,14 +614,14 @@ def test_ritual_proficiency_user_table_view_with_user_id(auto_login_user):
 
 
 @pytest.mark.django_db
-def test_collection_referral_view_unauthenticated_redirects(client, db):
+def test_collection_referral_view_unauthenticated_with_db_redirects(client, db):
     url = reverse("forms:collection")
     response = client.get(url)
     assert response.status_code == 302
 
 
 @pytest.mark.django_db
-def test_collection_referral_view_officer_returns_200(auto_login_user):
+def test_collection_referral_view_officer_with_follow_returns_200(auto_login_user):
     """Officer can access the collection referral view."""
     client, user = auto_login_user()
     _add_to_group(user, "officer")
@@ -834,9 +832,7 @@ def test_active_chapters_filter_bound_candidate_chapter():
     assert len(dates) == 2
 
 
-@pytest.mark.skip(
-    reason="Triggers decimal.Decimal integer-interpretation bug in core/models.py:225"
-)
+@pytest.mark.skip(reason="Triggers decimal.Decimal integer-interpretation bug in core/models.py:225")
 @pytest.mark.django_db
 def test_active_chapters_filter_bound_with_year_term():
     """Bound filter with year and term returns correct date range."""
@@ -1281,7 +1277,7 @@ def test_bylaws_create_view_get_returns_200(auto_login_user):
 
 
 @pytest.mark.django_db
-def test_resignation_list_view_unauthenticated_redirects(client, db):
+def test_resignation_list_view_unauthenticated_explicit_redirects(client, db):
     """Unauthenticated access to resignation list is redirected."""
     url = reverse("forms:resign_list")
     response = client.get(url)
@@ -1289,7 +1285,7 @@ def test_resignation_list_view_unauthenticated_redirects(client, db):
 
 
 @pytest.mark.django_db
-def test_resignation_list_view_officer_returns_200(auto_login_user):
+def test_resignation_list_view_officer_explicit_returns_200(auto_login_user):
     """Officer can access resignation list."""
     client, user = auto_login_user()
     _add_to_group(user, "officer")
@@ -1565,7 +1561,7 @@ def test_rmp_form_view_get(auto_login_user):
 
 
 @pytest.mark.django_db
-def test_pledge_form_alt_get_returns_200(client):
+def test_pledge_form_alt_get_with_description_returns_200(client):
     """PledgeFormView alt form GET returns 200."""
     url = reverse("forms:pledgeform-alt")
     response = client.get(url)
@@ -1598,7 +1594,7 @@ def test_status_change_select_view_post_empty(auto_login_user):
 
 
 @pytest.mark.django_db
-def test_role_change_view_officer_returns_200(auto_login_user):
+def test_role_change_view_officer_with_description_returns_200(auto_login_user):
     """RoleChangeView GET returns 200 for officers."""
     client, user = auto_login_user()
     _add_to_group(user, "officer")
@@ -1791,9 +1787,7 @@ def test_osm_list_complete_0_candidate_chapter(auto_login_user):
     client, user = auto_login_user()
     _add_to_group(user, "natoff")
     url = reverse("forms:osm_list")
-    response = client.get(
-        url, {"complete": "0", "region": "candidate_chapter"}, follow=True
-    )
+    response = client.get(url, {"complete": "0", "region": "candidate_chapter"}, follow=True)
     assert response.status_code == 200
 
 
@@ -1803,9 +1797,7 @@ def test_convention_list_complete_0_candidate_chapter(auto_login_user):
     client, user = auto_login_user()
     _add_to_group(user, "natoff")
     url = reverse("forms:convention_list")
-    response = client.get(
-        url, {"complete": "0", "region": "candidate_chapter"}, follow=True
-    )
+    response = client.get(url, {"complete": "0", "region": "candidate_chapter"}, follow=True)
     assert response.status_code == 200
 
 
@@ -1813,7 +1805,7 @@ def test_convention_list_complete_0_candidate_chapter(auto_login_user):
 
 
 @pytest.mark.django_db
-def test_role_change_view_unauthenticated_redirects(client, db):
+def test_role_change_view_unauthenticated_with_description_redirects(client, db):
     """Unauthenticated access to officer role change is redirected."""
     url = reverse("forms:officer")
     response = client.get(url)
@@ -2042,9 +2034,7 @@ def test_get_sign_status_creds_complete_false(auto_login_user):
 
     _, user = auto_login_user()
     ConventionFactory.create(chapter=user.current_chapter)
-    data, submitted, users = get_sign_status(
-        user, type_sign="creds", initial=True, complete=False
-    )
+    data, submitted, users = get_sign_status(user, type_sign="creds", initial=True, complete=False)
     assert isinstance(data, list)
 
 
@@ -2173,9 +2163,7 @@ def test_status_change_select_view_get(auto_login_user):
 # ─── badge_shingle_init_csv (lines 1817-1827) ────────────────────────────────
 
 
-@pytest.mark.skip(
-    reason="generate_blackbaud_update requires fee configuration not available in test DB"
-)
+@pytest.mark.skip(reason="generate_blackbaud_update requires fee configuration not available in test DB")
 @pytest.mark.django_db
 def test_badge_shingle_init_csv_crm(auto_login_user):
     """badge_shingle_init_csv with csv_type='crm' covers lines 1817-1827."""
@@ -2192,9 +2180,7 @@ def test_badge_shingle_init_csv_crm(auto_login_user):
     assert response.status_code == 200
 
 
-@pytest.mark.skip(
-    reason="generate_blackbaud_update requires fee configuration not available in test DB"
-)
+@pytest.mark.skip(reason="generate_blackbaud_update requires fee configuration not available in test DB")
 @pytest.mark.django_db
 def test_badge_shingle_init_csv_invoice(auto_login_user):
     """badge_shingle_init_csv with csv_type='invoice' covers line 1823."""
@@ -2515,7 +2501,7 @@ def _create_all_chapter_officers(chapter):
 
 
 @pytest.mark.django_db
-def test_initiation_view_get_with_session(auto_login_user):
+def test_initiation_view_get_with_session_data_branches(auto_login_user):
     """InitiationView GET with init-selection session data covers the 'else'
     branch at lines 355-368 and get_context_data lines 396-451."""
     client, user = auto_login_user()
@@ -2566,7 +2552,7 @@ def test_pledge_program_list_view_get_candidate_chapter(auto_login_user):
 
 
 @pytest.mark.django_db
-def test_hs_education_create_view_get(auto_login_user):
+def test_hs_education_create_view_get_with_context(auto_login_user):
     """HSEducationCreateView GET covers get_table (line 1142) and
     get_context_data."""
     client, user = auto_login_user()
@@ -2635,9 +2621,7 @@ def test_pledge_program_list_view_csv_download(auto_login_user):
 # ─── ResignationCreateView GET when no officers (lines 2949-2959 form_valid) ──
 
 
-@pytest.mark.skip(
-    reason="ResignationCreateView POST requires viewflow process task setup"
-)
+@pytest.mark.skip(reason="ResignationCreateView POST requires viewflow process task setup")
 @pytest.mark.django_db
 def test_resignation_create_view_form_valid_no_existing(auto_login_user):
     """ResignationCreateView POST with valid data when no existing resignation
@@ -2778,7 +2762,7 @@ def test_pledge_program_list_csv_download_has_attachment_header(auto_login_user)
 
     client, user = auto_login_user()
     _add_to_group(user, "natoff")
-    officers = _create_all_chapter_officers(user.chapter)
+    _create_all_chapter_officers(user.chapter)
     # Create a pledge program so the CSV writer has data
     PledgeProgramFactory.create(chapter=user.chapter)
     url = reverse("forms:pledge_program_list")
@@ -2972,7 +2956,7 @@ def test_initiation_view_get_with_roll_items(auto_login_user):
 @pytest.mark.django_db
 def test_initiation_view_get_candidate_chapter(auto_login_user):
     """InitiationView GET when chapter is a candidate chapter (line 379)."""
-    from thetatauCMT.chapters.tests.factories import ChapterFactory
+    from thetatauCMT.chapters.tests.factories import ChapterFactory  # noqa: F401
 
     client, user = auto_login_user()
     _add_to_group(user, "officer")

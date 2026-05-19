@@ -12,9 +12,7 @@ from thetatauCMT.scores.models import ScoreType
 
 
 def get_event_upload_event(instance, filename):
-    return os.path.join(
-        "event-pictures", instance.type.slug, f"{instance.chapter.slug}_{filename}"
-    )
+    return os.path.join("event-pictures", instance.type.slug, f"{instance.chapter.slug}_{filename}")
 
 
 class Event(TimeStampedModel, EmailSignalMixin):
@@ -36,9 +34,7 @@ class Event(TimeStampedModel, EmailSignalMixin):
     date = models.DateField("Event Date", default=timezone.now)
     slug = models.SlugField(unique=False)
     type = models.ForeignKey(ScoreType, on_delete=models.PROTECT, related_name="events")
-    chapter = models.ForeignKey(
-        Chapter, on_delete=models.CASCADE, related_name="events"
-    )
+    chapter = models.ForeignKey(Chapter, on_delete=models.CASCADE, related_name="events")
     score = models.FloatField(default=0)
     description = models.CharField(max_length=200)
     # users = models.ManyToManyField(settings.AUTH_USER_MODEL,
@@ -53,12 +49,8 @@ class Event(TimeStampedModel, EmailSignalMixin):
         default=False,
         help_text="Does the event relate to Science Technology Engineering or Math (STEM)?",
     )
-    host = models.BooleanField(
-        default=False, help_text="Did this event host another chapter?"
-    )
-    miles = models.PositiveIntegerField(
-        default=0, help_text="Miles traveled to an event hosted by another chapter."
-    )
+    host = models.BooleanField(default=False, help_text="Did this event host another chapter?")
+    miles = models.PositiveIntegerField(default=0, help_text="Miles traveled to an event hosted by another chapter.")
     raised = models.DecimalField(
         default=0.00,
         decimal_places=2,
@@ -130,9 +122,7 @@ class Event(TimeStampedModel, EmailSignalMixin):
     @classmethod
     def count_events_biennium(cls, date=None, chapters=None):
         if date is None:
-            query = cls.objects.filter(
-                date__gte=BIENNIUM_START_DATE, date__lte=BIENNIUM_END_DATE
-            )
+            query = cls.objects.filter(date__gte=BIENNIUM_START_DATE, date__lte=BIENNIUM_END_DATE)
         else:
             semester_start, semester_end = semester_encompass_start_end_date(date)
             cls.objects.filter(date__gte=semester_start, date__lte=semester_end)
@@ -152,21 +142,15 @@ class Event(TimeStampedModel, EmailSignalMixin):
         for event in events:
             chapter = event["chapter"]
             event[f"{event.pop('type__section')}"] = event.pop("section_count")
-            chapter_dict = grouped_events.get(
-                chapter, {"Bro": 0, "Ops": 0, "Ser": 0, "Pro": 0}
-            )
+            chapter_dict = grouped_events.get(chapter, {"Bro": 0, "Ops": 0, "Ser": 0, "Pro": 0})
             chapter_dict.update(event)
             grouped_events[chapter] = chapter_dict
         for chapter, score in grouped_events.items():
-            grouped_events[chapter]["total"] = round(
-                score["Bro"] + score["Ops"] + score["Ser"] + score["Pro"], 2
-            )
+            grouped_events[chapter]["total"] = round(score["Bro"] + score["Ops"] + score["Ser"] + score["Pro"], 2)
         return grouped_events.values()
 
 
-def get_event_picture_upload_path(
-    instance, filename
-):  # instance refers to object road to data base
+def get_event_picture_upload_path(instance, filename):  # instance refers to object road to data base
     return os.path.join(
         "event-pictures",
         f"{instance.event.chapter.slug}",  # name of chapter

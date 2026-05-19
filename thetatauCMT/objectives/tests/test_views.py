@@ -2,7 +2,7 @@ import pytest
 from django.contrib.auth.models import Group
 from django.urls import reverse
 
-from thetatauCMT.objectives.models import Action, Objective
+from thetatauCMT.objectives.models import Objective
 
 
 def _make_natoff(user, client):

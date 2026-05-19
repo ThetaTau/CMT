@@ -12,9 +12,7 @@ file_path = r"thetatauCMT/tasks/management/commands/date_data.csv"
 # The class must be named Command, and subclass BaseCommand
 class Command(BaseCommand):
     # Show this when the user types help
-    help = (
-        "Add all dates for next academic year for all tasks outlined in date_data.csv "
-    )
+    help = "Add all dates for next academic year for all tasks outlined in date_data.csv "
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -40,9 +38,7 @@ class Command(BaseCommand):
                 date = date.replace(year=year)
                 print("    ", task_obj, row["school_type"], date)
                 try:
-                    task_date_obj = TaskDate(
-                        task=task_obj, school_type=row["school_type"], date=date
-                    )
+                    task_date_obj = TaskDate(task=task_obj, school_type=row["school_type"], date=date)
                     task_date_obj.save()
                 except IntegrityError:
                     print(f"    Task {task_obj} date already exists {date}")

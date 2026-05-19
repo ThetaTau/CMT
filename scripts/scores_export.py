@@ -2,9 +2,7 @@ import csv
 import datetime
 
 from thetatauCMT.chapters.models import Chapter
-from thetatauCMT.events.models import Event
 from thetatauCMT.scores.models import ScoreChapter
-from thetatauCMT.submissions.models import Submission
 
 fields = [
     "Chapter name",
@@ -31,9 +29,7 @@ def run(*args):
     python manage.py runscript scores_export --script-args 2018 2022
     """
     year_start, year_end = args[0], args[1]
-    with open(
-        f"exports/scores_export_{year_start}_{year_end}.csv", "w", newline=""
-    ) as export_file:
+    with open(f"exports/scores_export_{year_start}_{year_end}.csv", "w", newline="") as export_file:
         writer = csv.DictWriter(export_file, fieldnames=fields)
         writer.writeheader()
         active_chapters = Chapter.objects.exclude(active=False)

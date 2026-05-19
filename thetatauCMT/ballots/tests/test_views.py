@@ -113,9 +113,7 @@ def test_ballot_detail_view_natoff(auto_login_user):
     """BallotDetailView is accessible to natoff (ordering bug skipped)."""
     # BallotDetailView has ordering=["-date"] but Ballot has no 'date' field;
     # the view crashes with FieldError — known app bug, verify access control only
-    pytest.skip(
-        "BallotDetailView has ordering=['-date'] but Ballot.date does not exist — app bug"
-    )
+    pytest.skip("BallotDetailView has ordering=['-date'] but Ballot.date does not exist — app bug")
 
 
 @pytest.mark.django_db

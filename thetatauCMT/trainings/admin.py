@@ -11,7 +11,7 @@ class AssignTrainingMixin:
     def assign_training(self, request, queryset):
         try:
             extra_groups = Training.get_extra_groups()
-        except:
+        except Exception:
             extra_groups = [
                 ("NONE", "NONE"),
             ]
@@ -32,9 +32,7 @@ class AssignTrainingMixin:
                 training_system = form.cleaned_data["training_system"]
                 for user in queryset:
                     if training_system == "Vector":
-                        Training.add_user(
-                            user, extra_group=extra_group, request=request
-                        )
+                        Training.add_user(user, extra_group=extra_group, request=request)
                     elif training_system == "ED.thetatau":
                         Training.add_user_ed(user, request=request)
                 return HttpResponseRedirect(request.get_full_path())

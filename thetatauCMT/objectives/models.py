@@ -24,12 +24,8 @@ class Objective(TimeStampedModel):
         verbose_name="The user that created this object",
         related_name="objectives_modified",
     )
-    owner = models.ForeignKey(
-        User, on_delete=models.CASCADE, related_name="objectives_owned"
-    )
-    user = models.ForeignKey(
-        User, on_delete=models.CASCADE, related_name="objectives", blank=True, null=True
-    )
+    owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name="objectives_owned")
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="objectives", blank=True, null=True)
     chapter = models.ForeignKey(
         Chapter,
         on_delete=models.CASCADE,
@@ -65,9 +61,7 @@ class Action(TimeStampedModel):
         verbose_name="The user that created this object",
         related_name="actions_modified",
     )
-    objective = models.ForeignKey(
-        Objective, on_delete=models.CASCADE, related_name="actions"
-    )
+    objective = models.ForeignKey(Objective, on_delete=models.CASCADE, related_name="actions")
     owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name="actions")
     date = models.DateField()
     complete = models.BooleanField(default=False)

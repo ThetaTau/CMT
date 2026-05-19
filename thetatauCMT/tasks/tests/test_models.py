@@ -127,9 +127,7 @@ def test_all_dates_for_task_chapter_matches_school_type(chapter):
 
 
 @pytest.mark.django_db
-def test_incomplete_dates_for_task_chapter_excludes_completed(
-    chapter, task_chapter_factory
-):
+def test_incomplete_dates_for_task_chapter_excludes_completed(chapter, task_chapter_factory):
     """Dates that have already been completed by the chapter are excluded."""
     school_type = chapter.school_type
     task, task_date = _make_task_with_date(school_type=school_type, days_offset=10)
@@ -213,7 +211,7 @@ def test_task_completed_last_returns_submission_when_completed(chapter):
     """When a TaskChapter exists for the chapter, completed_last returns its submission_object."""
     school_type = chapter.school_type
     task, task_date = _make_task_with_date(school_type=school_type, days_offset=5)
-    tc = TaskChapter.objects.create(
+    TaskChapter.objects.create(
         task=task_date,
         chapter=chapter,
         date=datetime.date.today(),
@@ -410,18 +408,14 @@ def test_mark_complete_audit_branch_creates_task_chapter(chapter):
     task = Task.objects.filter(name="Audit", owner="regent").first()
     assert task is not None, "Fixture must have an 'Audit' task for regent"
     due_date = datetime.date.today() + datetime.timedelta(days=5)
-    task_date = TaskDate.objects.create(
-        task=task, school_type=chapter.school_type, date=due_date
-    )
+    task_date = TaskDate.objects.create(task=task, school_type=chapter.school_type, date=due_date)
 
-    Task.mark_complete(
-        "Audit", chapter, current_roles=["regent"], user=None, obj=chapter
-    )
+    Task.mark_complete("Audit", chapter, current_roles=["regent"], user=None, obj=chapter)
 
     tc = TaskChapter.objects.filter(task=task_date, chapter=chapter).last()
     assert tc is not None
     # Verify the submission object is a Submission pointing to the audit form
-    from thetatauCMT.submissions.models import Submission
+    from thetatauCMT.submissions.models import Submission  # noqa: F401
 
     assert tc.submission_object is not None
     assert f"forms:audit_complete {chapter.pk}" in tc.submission_object.file.name
@@ -441,22 +435,18 @@ def test_mark_complete_pledge_program_branch_creates_task_chapter(chapter):
         defaults={"type": "task", "resource": "", "description": "Pledge Program task"},
     )
     due_date = datetime.date.today() + datetime.timedelta(days=5)
-    task_date = TaskDate.objects.create(
-        task=task, school_type=chapter.school_type, date=due_date
-    )
+    task_date = TaskDate.objects.create(task=task, school_type=chapter.school_type, date=due_date)
 
     # obj needs a .manual attribute (simulates a PledgeProcess)
     mock_obj = MagicMock()
     mock_obj.pk = 9002
     mock_obj.manual = "not_other"
 
-    Task.mark_complete(
-        "Pledge Program", chapter, current_roles=["regent"], user=None, obj=mock_obj
-    )
+    Task.mark_complete("Pledge Program", chapter, current_roles=["regent"], user=None, obj=mock_obj)
 
     tc = TaskChapter.objects.filter(task=task_date, chapter=chapter).last()
     assert tc is not None
-    from thetatauCMT.submissions.models import Submission
+    from thetatauCMT.submissions.models import Submission  # noqa: F401
 
     assert tc.submission_object is not None
     assert tc.submission_object.file.name == "forms:pledge_program"
@@ -473,9 +463,7 @@ def test_mark_complete_osm_branch_creates_task_chapter(chapter):
         defaults={"type": "task", "resource": "", "description": "OSM task"},
     )
     due_date = datetime.date.today() + datetime.timedelta(days=5)
-    task_date = TaskDate.objects.create(
-        task=task, school_type=chapter.school_type, date=due_date
-    )
+    task_date = TaskDate.objects.create(task=task, school_type=chapter.school_type, date=due_date)
 
     Task.mark_complete(
         "Outstanding Student Member",
@@ -487,7 +475,7 @@ def test_mark_complete_osm_branch_creates_task_chapter(chapter):
 
     tc = TaskChapter.objects.filter(task=task_date, chapter=chapter).last()
     assert tc is not None
-    from thetatauCMT.submissions.models import Submission
+    from thetatauCMT.submissions.models import Submission  # noqa: F401
 
     assert tc.submission_object is not None
     assert tc.submission_object.file.name == "osmform"

@@ -51,9 +51,7 @@ class SignalWatchMixin:
             for entity in queryset:
                 for watch_type in watch_types:
                     app, model, constraint_param = watch_type
-                    content_type = ContentType.objects.filter(
-                        app_label=app, model=model
-                    ).first()
+                    content_type = ContentType.objects.filter(app_label=app, model=model).first()
                     signal, created = Signal.objects.update_or_create(
                         name=f"{self.object_type} {entity} watch {app} {model}".title(),
                         defaults=dict(
@@ -77,9 +75,7 @@ class SignalWatchMixin:
                     else:
                         signal.mailing_list = email
                         signal.save()
-            self.message_user(
-                request, f"Added watch for {email} of {self.object_type}(s): {queryset}"
-            )
+            self.message_user(request, f"Added watch for {email} of {self.object_type}(s): {queryset}")
             return HttpResponseRedirect(request.get_full_path())
         return render(
             request,
@@ -102,8 +98,6 @@ class SignalWatchMixin:
                 )
                 if signal:
                     signal.first().delete()
-        self.message_user(
-            request, f"Removed watch of {self.object_type}(s): {queryset}"
-        )
+        self.message_user(request, f"Removed watch of {self.object_type}(s): {queryset}")
 
     watch_notification_remove.short_description = "Remove Notification Watch"

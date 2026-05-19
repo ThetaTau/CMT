@@ -23,9 +23,7 @@ def test_chapter_detail_view(auto_login_user):
     url = reverse("chapters:detail", kwargs={"slug": chapter.slug})
     response = client.get(url, follow=True)
     assert response.status_code == 200
-    assert f"{chapter.name} in the {chapter.region} Region" in response.content.decode(
-        "UTF-8"
-    )
+    assert f"{chapter.name} in the {chapter.region} Region" in response.content.decode("UTF-8")
 
 
 def test_chapter_list_view_denied(auto_login_user):

@@ -17,9 +17,7 @@ class InvoiceListView(LoginRequiredMixin, PagedFilteredTableView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["open_balance"] = Invoice.open_balance_chapter(
-            chapter=self.request.user.current_chapter
-        )
+        context["open_balance"] = Invoice.open_balance_chapter(chapter=self.request.user.current_chapter)
         return context
 
 

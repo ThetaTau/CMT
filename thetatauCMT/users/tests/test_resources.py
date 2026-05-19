@@ -81,8 +81,8 @@ def test_user_resource_get_instance_multiple_found_raises():
     from thetatauCMT.users.models import User
     from thetatauCMT.users.resources import UserResource
 
-    user1 = UserFactory.create()
-    user2 = UserFactory.create()
+    UserFactory.create()
+    UserFactory.create()
     resource = UserResource()
 
     # Use a queryset that will cause MultipleObjectsReturned by patching

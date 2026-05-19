@@ -165,9 +165,7 @@ class InitiationAdmin(ImportExportActionModelAdmin):
                     "process_pk": process.pk,
                 },
             )
-            return mark_safe(
-                f"<a href='{host}{link}' target='_blank'>Initiation Process Details<a/>"
-            )
+            return mark_safe(f"<a href='{host}{link}' target='_blank'>Initiation Process Details<a/>")
 
 
 @admin.register(Depledge)

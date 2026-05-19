@@ -144,16 +144,12 @@ urlpatterns = [
     ),
     path(
         "discipline/",
-        RedirectView.as_view(
-            pattern_name="viewflow:forms:disciplinaryprocess:start", permanent=True
-        ),
+        RedirectView.as_view(pattern_name="viewflow:forms:disciplinaryprocess:start", permanent=True),
         name="discipline",
     ),
     path(
         "pledgeprogram/",
-        RedirectView.as_view(
-            pattern_name="viewflow:forms:pledgeprogramprocess:start", permanent=True
-        ),
+        RedirectView.as_view(pattern_name="viewflow:forms:pledgeprogramprocess:start", permanent=True),
         name="pledge_program",
     ),
     path(
@@ -173,9 +169,7 @@ urlpatterns = [
     ),
     path(
         "resignation/",
-        RedirectView.as_view(
-            pattern_name="viewflow:forms:resignation:start", permanent=True
-        ),
+        RedirectView.as_view(pattern_name="viewflow:forms:resignation:start", permanent=True),
         name="resignation",
     ),
     path(

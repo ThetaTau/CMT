@@ -320,7 +320,7 @@ def test_badge_pnm_notify_to_emails_contains_user_email():
     user = UserFactory.create()
     with patch(
         "thetatauCMT.forms.notifications.Config.get_value",
-        return_value=f"Hello {{ badge_table }}",
+        return_value="Hello {{ badge_table }}",
     ):
         notif = BadgePNMNotify(user)
     assert user.email in notif.to_emails
@@ -335,7 +335,7 @@ def test_badge_pnm_notify_context_has_message():
     user = UserFactory.create()
     with patch(
         "thetatauCMT.forms.notifications.Config.get_value",
-        return_value=f"Hello {{ badge_table }}",
+        return_value="Hello {{ badge_table }}",
     ):
         notif = BadgePNMNotify(user)
     assert "message" in notif.context
@@ -376,9 +376,7 @@ def test_email_pledge_welcome_to_emails_contains_school_email():
     from thetatauCMT.forms.tests.factories import PledgeFactory
 
     pledge = PledgeFactory.create()
-    with patch(
-        "thetatauCMT.forms.notifications.Config.get_value", return_value="Welcome text"
-    ):
+    with patch("thetatauCMT.forms.notifications.Config.get_value", return_value="Welcome text"):
         notif = EmailPledgeWelcome(pledge)
     assert pledge.user.email_school in notif.to_emails
 
@@ -391,9 +389,7 @@ def test_email_pledge_welcome_context_has_name():
     from thetatauCMT.forms.tests.factories import PledgeFactory
 
     pledge = PledgeFactory.create()
-    with patch(
-        "thetatauCMT.forms.notifications.Config.get_value", return_value="Welcome text"
-    ):
+    with patch("thetatauCMT.forms.notifications.Config.get_value", return_value="Welcome text"):
         notif = EmailPledgeWelcome(pledge)
     assert notif.context["name"] == pledge.user.first_name
 
@@ -736,11 +732,7 @@ def test_email_pledge_welcome_no_cc_when_emails_same():
     pledge = PledgeFactory.create(user=user)
 
     notif = EmailPledgeWelcome(pledge)
-    assert (
-        not hasattr(notif, "cc")
-        or not notif.cc
-        or "same@example.com" not in (notif.cc or [])
-    )
+    assert not hasattr(notif, "cc") or not notif.cc or "same@example.com" not in (notif.cc or [])
 
 
 # ─── CentralOfficeGenericEmail – get_content_type attachment branch ───────────
@@ -796,19 +788,22 @@ def test_email_pledge_officer_scribe_vice_emails():
     vice_user = UserFactory.create(email="vice_test@example.com")
     pledge = PledgeFactory.create()
 
-    with patch.object(
-        pledge.user.chapter.__class__,
-        "get_current_officers_council_specific",
-        return_value=(None, scribe_user, vice_user, None, None),
-    ), patch.object(
-        pledge.user.chapter.__class__,
-        "get_generic_chapter_emails",
-        return_value=(
-            None,
-            "scribegeneric@example.com",
-            "vicegeneric@example.com",
-            None,
-            None,
+    with (
+        patch.object(
+            pledge.user.chapter.__class__,
+            "get_current_officers_council_specific",
+            return_value=(None, scribe_user, vice_user, None, None),
+        ),
+        patch.object(
+            pledge.user.chapter.__class__,
+            "get_generic_chapter_emails",
+            return_value=(
+                None,
+                "scribegeneric@example.com",
+                "vicegeneric@example.com",
+                None,
+                None,
+            ),
         ),
     ):
         from thetatauCMT.forms.notifications import EmailPledgeOfficer
@@ -856,19 +851,23 @@ def test_email_process_update_convention_no_user_field():
     conv = ConventionFactory.create()
     officer_user = UserFactory.create()
 
-    with patch.object(
-        type(conv),
-        "created_by",
-        new_callable=PropertyMock,
-        return_value=officer_user,
-    ), patch.object(
-        conv.chapter.__class__,
-        "get_current_officers_council_specific",
-        return_value=[officer_user, None, None, None, None],
-    ), patch.object(
-        conv.chapter.__class__,
-        "council_emails",
-        return_value={officer_user.email},
+    with (
+        patch.object(
+            type(conv),
+            "created_by",
+            new_callable=PropertyMock,
+            return_value=officer_user,
+        ),
+        patch.object(
+            conv.chapter.__class__,
+            "get_current_officers_council_specific",
+            return_value=[officer_user, None, None, None, None],
+        ),
+        patch.object(
+            conv.chapter.__class__,
+            "council_emails",
+            return_value={officer_user.email},
+        ),
     ):
         notif = EmailProcessUpdate(
             conv,
@@ -984,19 +983,23 @@ def test_email_process_update_subject_format_with_chapter_obj():
     conv = ConventionFactory.create()
     officer_user = UserFactory.create()
 
-    with patch.object(
-        type(conv),
-        "created_by",
-        new_callable=PropertyMock,
-        return_value=officer_user,
-    ), patch.object(
-        conv.chapter.__class__,
-        "get_current_officers_council_specific",
-        return_value=[officer_user, None, None, None, None],
-    ), patch.object(
-        conv.chapter.__class__,
-        "council_emails",
-        return_value={officer_user.email},
+    with (
+        patch.object(
+            type(conv),
+            "created_by",
+            new_callable=PropertyMock,
+            return_value=officer_user,
+        ),
+        patch.object(
+            conv.chapter.__class__,
+            "get_current_officers_council_specific",
+            return_value=[officer_user, None, None, None, None],
+        ),
+        patch.object(
+            conv.chapter.__class__,
+            "council_emails",
+            return_value={officer_user.email},
+        ),
     ):
         notif = EmailProcessUpdate(
             conv,
@@ -1026,14 +1029,17 @@ def test_email_process_update_email_officers_true_includes_council():
     officer_user = UserFactory.create(chapter=audit.user.chapter)
     council_email = "council@test.example.com"
 
-    with patch.object(
-        audit.user.chapter.__class__,
-        "council_emails",
-        return_value={council_email},
-    ), patch.object(
-        audit.user.chapter.__class__,
-        "get_current_officers_council_specific",
-        return_value=[officer_user, None, None, None, None],
+    with (
+        patch.object(
+            audit.user.chapter.__class__,
+            "council_emails",
+            return_value={council_email},
+        ),
+        patch.object(
+            audit.user.chapter.__class__,
+            "get_current_officers_council_specific",
+            return_value=[officer_user, None, None, None, None],
+        ),
     ):
         notif = EmailProcessUpdate(
             audit,
@@ -1066,9 +1072,7 @@ def test_email_pledge_welcome_cc_personal_when_differs_from_school():
     pledge.user.email = "personal@example.com"
     pledge.user.save()
 
-    with patch(
-        "thetatauCMT.forms.notifications.Config.get_value", return_value="Welcome"
-    ):
+    with patch("thetatauCMT.forms.notifications.Config.get_value", return_value="Welcome"):
         notif = EmailPledgeWelcome(pledge)
 
     assert "school@university.edu" in notif.to_emails
@@ -1076,7 +1080,7 @@ def test_email_pledge_welcome_cc_personal_when_differs_from_school():
 
 
 @pytest.mark.django_db
-def test_email_pledge_welcome_no_cc_when_emails_same():
+def test_email_pledge_welcome_no_cc_when_emails_same_explicit(pledge):
     """EmailPledgeWelcome does not add CC when school email == personal email."""
     from unittest.mock import patch
 
@@ -1089,9 +1093,7 @@ def test_email_pledge_welcome_no_cc_when_emails_same():
     pledge.user.email_school = "same@example.com"
     pledge.user.save()
 
-    with patch(
-        "thetatauCMT.forms.notifications.Config.get_value", return_value="Welcome"
-    ):
+    with patch("thetatauCMT.forms.notifications.Config.get_value", return_value="Welcome"):
         notif = EmailPledgeWelcome(pledge)
 
     assert "same@example.com" in notif.to_emails
@@ -1116,14 +1118,17 @@ def test_email_pledge_officer_to_emails_includes_scribe_and_vice_when_present():
 
     generic_emails = [None, None, None, None, None]  # no generics
 
-    with patch.object(
-        pledge.user.chapter.__class__,
-        "get_current_officers_council_specific",
-        return_value=[None, scribe, vice, None, None],
-    ), patch.object(
-        pledge.user.chapter.__class__,
-        "get_generic_chapter_emails",
-        return_value=generic_emails,
+    with (
+        patch.object(
+            pledge.user.chapter.__class__,
+            "get_current_officers_council_specific",
+            return_value=[None, scribe, vice, None, None],
+        ),
+        patch.object(
+            pledge.user.chapter.__class__,
+            "get_generic_chapter_emails",
+            return_value=generic_emails,
+        ),
     ):
         notif = EmailPledgeOfficer(pledge)
 

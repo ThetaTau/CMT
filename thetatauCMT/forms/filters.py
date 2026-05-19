@@ -43,9 +43,7 @@ class CompleteListFilter(django_filters.FilterSet):
             ("", "All"),
         ),
     )
-    region = django_filters.ChoiceFilter(
-        label="Region", choices=Region.region_choices(), method="filter_region"
-    )
+    region = django_filters.ChoiceFilter(label="Region", choices=Region.region_choices(), method="filter_region")
 
     class Meta:
         model = PledgeProgram  # This is needed to automatically make year/term
@@ -73,12 +71,8 @@ class PledgeProgramListFilter(CompleteListFilter):
 
 
 class AlumniExclusionListFilter(django_filters.FilterSet):
-    user = django_filters.CharFilter(
-        label="Excluded Alumni", field_name="user__name", lookup_expr="icontains"
-    )
-    region = django_filters.ChoiceFilter(
-        label="Region", choices=Region.region_choices(), method="filter_region"
-    )
+    user = django_filters.CharFilter(label="Excluded Alumni", field_name="user__name", lookup_expr="icontains")
+    region = django_filters.ChoiceFilter(label="Region", choices=Region.region_choices(), method="filter_region")
     regional_director_veto = django_filters.ChoiceFilter(
         label="RD Review",
         choices=((True, "Approved"), (False, "Vetoed"), ("None", "Not Reviewed")),
@@ -121,9 +115,7 @@ class RiskListFilter(django_filters.FilterSet):
         label="Term",
         choices=(("fa", "Fall"), ("sp", "Spring")),
     )
-    region = django_filters.ChoiceFilter(
-        label="Region", choices=Region.region_choices()
-    )
+    region = django_filters.ChoiceFilter(label="Region", choices=Region.region_choices())
 
     class Meta:
         fields = ["region", "term", "year"]
@@ -132,9 +124,7 @@ class RiskListFilter(django_filters.FilterSet):
 
 
 class EducationListFilter(django_filters.FilterSet):
-    region = django_filters.ChoiceFilter(
-        label="Region", choices=Region.region_choices(), method="filter_region"
-    )
+    region = django_filters.ChoiceFilter(label="Region", choices=Region.region_choices(), method="filter_region")
     program_date = DateRangeFilter()
 
     class Meta:
@@ -153,9 +143,7 @@ class EducationListFilter(django_filters.FilterSet):
 
 
 class BylawsListFilter(django_filters.FilterSet):
-    region = django_filters.ChoiceFilter(
-        label="Region", choices=Region.region_choices(), method="filter_region"
-    )
+    region = django_filters.ChoiceFilter(label="Region", choices=Region.region_choices(), method="filter_region")
 
     class Meta:
         model = Bylaws  # This is needed to automatically make year/term

@@ -9,8 +9,6 @@ Covers:
 - load_chapter_data with a real DB user (integration)
 """
 
-from unittest.mock import MagicMock
-
 import pytest
 
 # ---------------------------------------------------------------------------
@@ -219,9 +217,7 @@ def test_members_graph_returns_figure():
         "2019": {"label": "Spring 2019"},
         "2019.5": {"label": "Fall 2019"},
     }
-    result = members_graph(
-        data=data, years=[2019, 2019.5], status=["Actives"], year_info=year_info
-    )
+    result = members_graph(data=data, years=[2019, 2019.5], status=["Actives"], year_info=year_info)
     assert result is not None
 
 

@@ -62,9 +62,7 @@ class GearArticleForm(forms.ModelForm):
     )
     authors = forms.ModelMultipleChoiceField(
         queryset=User.objects.all(),
-        widget=autocomplete.ModelSelect2Multiple(
-            url="users:autocomplete", forward=(forward.Const("true", "chapter"),)
-        ),
+        widget=autocomplete.ModelSelect2Multiple(url="users:autocomplete", forward=(forward.Const("true", "chapter"),)),
     )
 
     class Meta:

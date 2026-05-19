@@ -125,9 +125,7 @@ def test_journey_unauthenticated_user_redirected_to_login(client):
     for url in protected_urls:
         response = client.get(url)
         assert response.status_code == 302, f"Expected redirect for {url}"
-        assert (
-            "login" in response["Location"]
-        ), f"Expected login redirect for {url}, got {response['Location']}"
+        assert "login" in response["Location"], f"Expected login redirect for {url}, got {response['Location']}"
 
 
 # ---------------------------------------------------------------------------

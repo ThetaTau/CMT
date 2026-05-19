@@ -1,17 +1,17 @@
 import os
 
 os.environ["DJANGO_SETTINGS_MODULE"] = "config.settings.test"
-import django
+import django  # noqa: E402
 
 django.setup()
-from thetatauCMT.chapters.models import Chapter
+from thetatauCMT.chapters.models import Chapter  # noqa: E402
 
 count = Chapter.objects.count()
 print("Count:", count)
 if count > 0:
     ch = Chapter.objects.first()
     print("First:", ch.slug, ch.name)
-from thetatauCMT.users.forms import UserAlterForm
+from thetatauCMT.users.forms import UserAlterForm  # noqa: E402
 
 print("AlterForm choices count:", len(UserAlterForm.base_fields["chapter"].choices))
 if UserAlterForm.base_fields["chapter"].choices:

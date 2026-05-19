@@ -53,17 +53,13 @@ class Note(TimeStampedModel):
     title = models.CharField(_("Title"), max_length=255)
     note = CKEditor5Field()
     file = models.FileField(upload_to=get_upload_path, blank=True, null=True)
-    type = models.CharField(
-        max_length=20, default="note", choices=[x.value for x in TYPES]
-    )
+    type = models.CharField(max_length=20, default="note", choices=[x.value for x in TYPES])
     restricted = models.BooleanField(
         verbose_name="Restrict read/write to Executive Council",
         default=False,
         help_text="If True only EC will be able to read or edit",
     )
-    parent = models.ForeignKey(
-        "self", on_delete=models.CASCADE, related_name="subnotes", blank=True, null=True
-    )
+    parent = models.ForeignKey("self", on_delete=models.CASCADE, related_name="subnotes", blank=True, null=True)
 
     class Meta:
         abstract = True

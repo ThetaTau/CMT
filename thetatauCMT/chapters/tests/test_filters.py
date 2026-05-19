@@ -2,7 +2,6 @@ import pytest
 from pytest_django.asserts import assertQuerySetEqual
 
 from thetatauCMT.chapters.models import Chapter
-from thetatauCMT.regions.models import Region
 
 
 @pytest.mark.django_db
@@ -18,12 +17,8 @@ def test_chapter_list_filter(chapter_factory):
     assertQuerySetEqual(filter_default.qs, chapter_pks, lambda o: o.pk, ordered=False)
     filter_national = ChapterListFilter({"region": "national"}, queryset=qs)
     assertQuerySetEqual(filter_national.qs, chapter_pks, lambda o: o.pk, ordered=False)
-    filter_candidate_chapter = ChapterListFilter(
-        {"region": "candidate_chapter"}, queryset=qs
-    )
-    candidate_chapter_pks = {
-        chapter.pk for chapter in candidate_chapters if chapter.candidate_chapter
-    }
+    filter_candidate_chapter = ChapterListFilter({"region": "candidate_chapter"}, queryset=qs)
+    candidate_chapter_pks = {chapter.pk for chapter in candidate_chapters if chapter.candidate_chapter}
     assertQuerySetEqual(
         filter_candidate_chapter.qs,
         candidate_chapter_pks,

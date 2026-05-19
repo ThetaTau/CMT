@@ -45,9 +45,9 @@ class MemberUpdateFlow(Flow):
     process_title = _("Member Update Process")
     process_description = _("This process is to update member info.")
 
-    start = flow.StartFunction(
-        this.create_flow, activation_class=flow.nodes.ManagedStartViewActivation
-    ).Next(this.check_user)
+    start = flow.StartFunction(this.create_flow, activation_class=flow.nodes.ManagedStartViewActivation).Next(
+        this.check_user
+    )
 
     check_user = (
         flow.If(
@@ -260,9 +260,7 @@ class MemberUpdateFlow(Flow):
         if activation.process.outcome == "created":
             # If the member was created then no need to update info
             perform_update = False
-        updated = MemberUpdateFlow.get_updated(
-            activation.process, perform_update=perform_update
-        )
+        updated = MemberUpdateFlow.get_updated(activation.process, perform_update=perform_update)
 
         if user:
             EmailProcessUpdate(
@@ -274,9 +272,7 @@ class MemberUpdateFlow(Flow):
                 + " Please review the changes below. These changes have now been made, "
                 "if you did not make these changes please notify the central office immediately at central.office@thetatau.org . ",
                 list(updated.keys()),
-                extra_emails=user.chapter.get_email_specific(
-                    roles=["corresponding secretary"]
-                ),
+                extra_emails=user.chapter.get_email_specific(roles=["corresponding secretary"]),
                 direct_user=user,
             ).send()
         else:

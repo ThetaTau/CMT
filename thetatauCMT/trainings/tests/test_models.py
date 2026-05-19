@@ -56,7 +56,7 @@ def test_training_ordering(auto_login_user):
     from django.utils import timezone
 
     _, user = auto_login_user()
-    t1 = Training.objects.create(
+    Training.objects.create(
         user=user,
         progress_id="p1",
         course_id="c1",

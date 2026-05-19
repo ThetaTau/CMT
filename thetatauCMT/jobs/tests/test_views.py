@@ -267,9 +267,7 @@ def test_job_detail_expired_job_redirects_non_creator(auto_login_user):
         publish_start=datetime.date.today() - datetime.timedelta(days=10),
         publish_end=datetime.date.today() - datetime.timedelta(days=1),
     )
-    url = reverse(
-        "jobs:detail", kwargs={"pk": expired_job.pk, "slug": expired_job.slug}
-    )
+    url = reverse("jobs:detail", kwargs={"pk": expired_job.pk, "slug": expired_job.slug})
     response = client.get(url, follow=True)
     # Non-creator accessing expired job is redirected to job list
     assert response.status_code == 200
@@ -297,9 +295,7 @@ def test_job_detail_expired_job_accessible_to_creator(auto_login_user):
         created_by=user,
     )
     expired_job.save()
-    url = reverse(
-        "jobs:detail", kwargs={"pk": expired_job.pk, "slug": expired_job.slug}
-    )
+    url = reverse("jobs:detail", kwargs={"pk": expired_job.pk, "slug": expired_job.slug})
     response = client.get(url)
     # Creator should see the job even if expired
     assert response.status_code == 200
@@ -322,12 +318,8 @@ def test_job_create_view_post_creates_job(auto_login_user):
         "experience": ["new_grad"],
         "job_type": ["full_time"],
         "location_type": ["remote"],
-        "publish_start": (
-            datetime.date.today() - datetime.timedelta(days=1)
-        ).isoformat(),
-        "publish_end": (
-            datetime.date.today() + datetime.timedelta(days=30)
-        ).isoformat(),
+        "publish_start": (datetime.date.today() - datetime.timedelta(days=1)).isoformat(),
+        "publish_end": (datetime.date.today() + datetime.timedelta(days=30)).isoformat(),
         "title": f"Created Job {datetime.datetime.now().microsecond}",
         "url": "https://example.com/apply",
         "priority": 5,

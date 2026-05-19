@@ -75,7 +75,7 @@ def test_render_complete_link_with_nonzero_value():
     """render_complete_link with a TaskChapter pk creates a link to tasks:detail."""
     import datetime
 
-    from django.utils import timezone
+    from django.utils import timezone  # noqa: F401
 
     from thetatauCMT.tasks.models import Task, TaskChapter, TaskDate
     from thetatauCMT.tasks.tables import TaskTable
@@ -97,9 +97,7 @@ def test_render_complete_link_with_nonzero_value():
     from thetatauCMT.chapters.tests.factories import ChapterFactory
 
     chapter = ChapterFactory()
-    tc = TaskChapter.objects.create(
-        task=task_date, chapter=chapter, date=datetime.date.today()
-    )
+    tc = TaskChapter.objects.create(task=task_date, chapter=chapter, date=datetime.date.today())
 
     table = TaskTable(data=[], complete=True)
     result = table.render_complete_link(tc.pk)

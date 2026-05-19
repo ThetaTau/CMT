@@ -108,9 +108,7 @@ class Job(TimeStampedModel):
         max_length=255,
         choices=[x.value for x in JOB_TYPE],
     )
-    location_type = MultiSelectField(
-        max_length=255, choices=[x.value for x in LOCATION_TYPE]
-    )
+    location_type = MultiSelectField(max_length=255, choices=[x.value for x in LOCATION_TYPE])
     publish_end = models.DateField(
         default=timezone.now,
         help_text="When the job post should NO LONGER be available for job searchers.",
@@ -131,9 +129,7 @@ class Job(TimeStampedModel):
         help_text="Is the job posting sponsored by a company?",
     )
     title = models.CharField(_("Title"), max_length=255)
-    url = models.URLField(
-        help_text="What is the link for more information about the job?"
-    )
+    url = models.URLField(help_text="What is the link for more information about the job?")
     priority = models.IntegerField(
         verbose_name="Priority order, 1 highest",
         help_text="The order you want Jobs to appear in, "
@@ -176,12 +172,8 @@ class Job(TimeStampedModel):
         related_name="jobs",
         help_text="What is the location of the main office even if the job is remote.",
     )
-    country = models.ForeignKey(
-        Country, null=True, related_name="jobs", on_delete=models.CASCADE
-    )
-    attachment = models.FileField(
-        upload_to=get_job_attachment_upload_path, null=True, blank=True
-    )
+    country = models.ForeignKey(Country, null=True, related_name="jobs", on_delete=models.CASCADE)
+    attachment = models.FileField(upload_to=get_job_attachment_upload_path, null=True, blank=True)
 
     class Meta:
         ordering = ["priority", "-publish_start"]
@@ -201,11 +193,7 @@ class Job(TimeStampedModel):
 
     @classmethod
     def get_live_jobs(cls, request=None):
-        return (
-            cls.objects.filter(
-                publish_start__lte=timezone.now(), publish_end__gte=timezone.now()
-            )
-        ).distinct()
+        return (cls.objects.filter(publish_start__lte=timezone.now(), publish_end__gte=timezone.now())).distinct()
 
 
 class JobSearch(TimeStampedModel):
@@ -469,8 +457,7 @@ class JobSearch(TimeStampedModel):
                 filter_vals = [filter_vals]
             elif filter_vals and isinstance(filter_vals, list):
                 filter_val_texts = [
-                    getattr(Job, filter_name.upper()).get_value(filter_val)
-                    for filter_val in filter_vals
+                    getattr(Job, filter_name.upper()).get_value(filter_val) for filter_val in filter_vals
                 ]
             if filter_vals:
                 # query_new = models.Q(**{f"{filter_name}{filter_type}": filter_val})

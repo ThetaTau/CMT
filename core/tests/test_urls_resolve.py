@@ -237,6 +237,4 @@ def test_url_resolves(url_name, kwargs):
     catch during the Django 3.2 → 4.2 upgrade.
     """
     url = reverse(url_name, kwargs=kwargs or None)
-    assert isinstance(url, str) and url.startswith(
-        "/"
-    ), f"Expected an absolute path string, got {url!r}"
+    assert isinstance(url, str) and url.startswith("/"), f"Expected an absolute path string, got {url!r}"

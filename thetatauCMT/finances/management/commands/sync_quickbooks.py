@@ -23,7 +23,7 @@ class Command(BaseCommand):
     # A command must define handle()
     def handle(self, *args, **options):
         live = options.get("live", False)
-        print(f"This is LIVE: ", live)
+        print("This is LIVE:", live)
         Invoice.objects.all().delete()
         query = dict(
             process__flow_class=InitiationProcessFlow,
@@ -39,9 +39,7 @@ class Command(BaseCommand):
         pledge_function_tasks = Task.objects.filter(**query)
         function_tasks = init_function_tasks | pledge_function_tasks
         outstanding_invoice_tasks = {
-            str(task.flow_process.invoice): task
-            for task in function_tasks
-            if task.flow_process.invoice != "999999999"
+            str(task.flow_process.invoice): task for task in function_tasks if task.flow_process.invoice != "999999999"
         }
         print(f"Found {len(outstanding_invoice_tasks)} outstanding_invoice_tasks")
         client = get_quickbooks_client()
@@ -69,7 +67,7 @@ class Command(BaseCommand):
                 else:
                     # Maybe not chapter/candidate chapter, but other?
                     continue
-                print(f"Syncing: ", chapter_name)
+                print("Syncing:", chapter_name)
                 try:
                     chapter = Chapter.objects.get(name=chapter_name)
                 except Chapter.DoesNotExist:
@@ -178,9 +176,7 @@ class Command(BaseCommand):
             except Exception as e:
                 message = f"Error processing customer {customer=} {customer.Id} {e}"
                 print(message)
-                CentralOfficeGenericEmail(
-                    message, subject="[CMT] Quickbooks Sync Error"
-                ).send()
+                CentralOfficeGenericEmail(message, subject="[CMT] Quickbooks Sync Error").send()
 
 
 """

@@ -35,17 +35,14 @@ class RMPSignMiddleware(MiddlewareMixin):
             messages.add_message(
                 request,
                 messages.ERROR,
-                "You must sign the Risk Management Policies and Agreements "
-                "of Theta Tau this semester.",
+                "You must sign the Risk Management Policies and Agreements " "of Theta Tau this semester.",
             )
             return redirect("rmp")
         if request.user.chapter_officer(altered=False):
             should_submit = (current_term() == "sp" and current_month() >= 2) or (
                 current_term() == "fa" and current_month() >= 9
             )
-            if should_submit and not PledgeProgram.signed_this_semester(
-                request.user.current_chapter
-            ):
+            if should_submit and not PledgeProgram.signed_this_semester(request.user.current_chapter):
                 host = settings.CURRENT_URL
                 link = reverse("viewflow:forms:pledgeprogramprocess:start")
                 link = host + link

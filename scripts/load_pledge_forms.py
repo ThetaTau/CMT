@@ -26,9 +26,7 @@ def run(*args):
                     name=name,
                     chapter=chapter_obj,
                     email=pledge_form["School E-mail"],
-                    created=datetime.strptime(
-                        pledge_form["Submission Date"], "%Y-%m-%d %H:%M:%S"
-                    ),
+                    created=datetime.strptime(pledge_form["Submission Date"], "%Y-%m-%d %H:%M:%S"),
                 )
                 try:
                     with transaction.atomic():

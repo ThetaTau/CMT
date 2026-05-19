@@ -78,9 +78,7 @@ class Command(BaseCommand):
                 print(f"    Sending message to: {chapter}\n")
                 officer_list, _ = chapter.get_current_officers_council()
                 # set list of emails to send to
-                emails = set([officer.email for officer in officer_list]) | set(
-                    chapter.get_generic_chapter_emails()
-                )
+                emails = set([officer.email for officer in officer_list]) | set(chapter.get_generic_chapter_emails())
                 if not chapter.candidate_chapter:
                     chapter_name = chapter.name + " Chapter"
                     region_email = chapter.region.email

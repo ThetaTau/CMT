@@ -48,7 +48,7 @@ def test_config_get_value_returns_latest_when_multiple(make_config):
 @pytest.mark.django_db
 def test_config_ordering(make_config):
     """Config ordering is by -modified (most recently modified first)."""
-    c1 = make_config("key1", "<p>A</p>")
+    make_config("key1", "<p>A</p>")
     c2 = make_config("key2", "<p>B</p>")
     configs = list(Config.objects.all())
     # Most recently modified should be first

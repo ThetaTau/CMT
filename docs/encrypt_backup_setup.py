@@ -8,9 +8,7 @@ import gnupg
 
 gpg = gnupg.GPG(gnupghome=rf"{os.getcwd()}/secrets")
 # gpg = gnupg.GPG()
-input_data = gpg.gen_key_input(
-    name_email="Frank.Ventura@thetatau.org", name_real="Theta Tau CMT"
-)
+input_data = gpg.gen_key_input(name_email="Frank.Ventura@thetatau.org", name_real="Theta Tau CMT")
 key = gpg.gen_key(input_data)
 ascii_armored_public_keys = gpg.export_keys(key.fingerprint)
 passphrase = input("Please enter passphrase")

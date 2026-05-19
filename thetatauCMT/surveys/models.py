@@ -67,16 +67,12 @@ class DepledgeSurvey(TimeStampedModel):
         null=True,
         blank=True,
     )
-    contact = models.BooleanField(
-        "Would you like someone to contact you?", choices=BOOL_CHOICES, default=False
-    )
+    contact = models.BooleanField("Would you like someone to contact you?", choices=BOOL_CHOICES, default=False)
 
 
 class Survey(Survey):
     slug = models.SlugField(unique=True)
-    anonymous = models.BooleanField(
-        help_text="Can the survey be submitted anonymously?", default=False
-    )
+    anonymous = models.BooleanField(help_text="Can the survey be submitted anonymously?", default=False)
 
     def save(self):
         self.slug = slugify(self.name)

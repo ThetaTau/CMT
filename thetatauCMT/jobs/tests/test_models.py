@@ -1,10 +1,9 @@
 import datetime
 
 import pytest
-from django.utils import timezone
 from django.utils.text import slugify
 
-from thetatauCMT.jobs.models import Job, JobSearch, Keyword, Major
+from thetatauCMT.jobs.models import Job, Keyword, Major
 
 
 def _make_job(**kwargs):
