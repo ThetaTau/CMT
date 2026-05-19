@@ -4,6 +4,7 @@ from django.contrib import admin
 from django.urls import reverse
 from django.utils.safestring import mark_safe
 from herald.admin import SentNotificationAdmin
+from herald.models import SentNotification
 from report_builder.admin import ReportAdmin
 
 
