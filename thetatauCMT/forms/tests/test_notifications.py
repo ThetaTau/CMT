@@ -954,7 +954,7 @@ def test_email_process_update_with_attachments_kwarg():
 
 @pytest.mark.django_db
 def test_email_process_update_subject_format():
-    "" f"EmailProcessUpdate subject follows '[CMT] {process_title} {state} for {obj}'." ""
+    """EmailProcessUpdate subject follows '[CMT] [process_title] [state] for [obj]'."""
     from thetatauCMT.forms.notifications import EmailProcessUpdate
     from thetatauCMT.forms.tests.factories import AuditFactory
 
