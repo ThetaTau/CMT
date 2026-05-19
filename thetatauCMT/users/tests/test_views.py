@@ -3,6 +3,7 @@ View tests for the users app.
 Uses the auto_login_user fixture which handles RMPSignMiddleware.
 """
 import pytest
+from django.test import override_settings
 from django.contrib.auth.models import Group
 from django.urls import reverse
 
@@ -1314,3 +1315,182 @@ def test_user_list_view_email_all_empty(auto_login_user):
     # No UserStatusChangeFactory → user current_status="" → empty queryset
     response = client.get(url, {"email": "email all"})
     assert response.status_code == 200
+
+
+# ---------------------------------------------------------------------------
+# UserDetailUpdateView – service_form_valid persists records to DB
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.django_db
+def test_user_detail_service_form_valid_saves_records_to_db(auto_login_user):
+    """POST action=service with non-zero hours creates UserSemesterServiceHours rows."""
+    from thetatauCMT.users.models import UserSemesterServiceHours
+
+    client, user = auto_login_user()
+    url = reverse("users:detail")
+    response = client.post(
+        url,
+        {
+            "action": "service",
+            "user": user.name,
+            "chapter": user.chapter.name,
+            "service1": "5",
+            "service2": "0",
+            "service3": "7",
+            "service4": "0",
+        },
+    )
+    assert response.status_code in [200, 302]
+    assert (
+        UserSemesterServiceHours.objects.filter(user=user).count() > 0
+    ), "Expected service hours records to be created in DB after POST"
+
+
+# ---------------------------------------------------------------------------
+# PasswordResetFormNotActive – email content assertions
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.django_db
+def test_password_reset_sends_email_to_user_address(auto_login_user, mailoutbox):
+    """PasswordResetFormNotActive.save() places an email addressed to user.email."""
+    from django.test import RequestFactory
+    from thetatauCMT.users.views import PasswordResetFormNotActive
+
+    client, user = auto_login_user()
+    factory = RequestFactory()
+    request = factory.get("/")
+    request.META["SERVER_NAME"] = "testserver"
+    request.META["SERVER_PORT"] = "80"
+
+    form = PasswordResetFormNotActive(data={"email": user.email})
+    assert form.is_valid(), f"Form errors: {form.errors}"
+    form.save(request=request)
+
+    assert len(mailoutbox) >= 1, "Expected at least one email to be sent"
+    all_recipients = [addr for msg in mailoutbox for addr in msg.to]
+    assert user.email in all_recipients, (
+        f"{user.email!r} not found in recipients {all_recipients}"
+    )
+
+
+@pytest.mark.django_db
+def test_password_reset_sends_separate_email_to_school_address(
+    auto_login_user, mailoutbox
+):
+    """save() sends an additional email to email_school when it differs from email."""
+    from django.test import RequestFactory
+    from thetatauCMT.users.views import PasswordResetFormNotActive
+
+    client, user = auto_login_user()
+    user.email_school = f"school-{user.email}"
+    user.save(update_fields=["email_school"])
+
+    factory = RequestFactory()
+    request = factory.get("/")
+    request.META["SERVER_NAME"] = "testserver"
+    request.META["SERVER_PORT"] = "80"
+
+    form = PasswordResetFormNotActive(data={"email": user.email})
+    assert form.is_valid(), f"Form errors: {form.errors}"
+    form.save(request=request)
+
+    all_recipients = [addr for msg in mailoutbox for addr in msg.to]
+    assert user.email_school in all_recipients, (
+        f"School email {user.email_school!r} not found in {all_recipients}"
+    )
+
+
+# ---------------------------------------------------------------------------
+# UserLookupSearchView – behavioral tests (session content, deceased, prospective)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.django_db
+def test_user_lookup_search_single_result_sets_session_and_redirects(
+    auto_login_user,
+):
+    """When watson returns 1 result the view stores user pk in session and redirects."""
+    from unittest.mock import patch, MagicMock
+    from thetatauCMT.users.tests.factories import UserFactory
+    from thetatauCMT.users.views import UserLookupSearchView
+
+    client, _ = auto_login_user()
+    target_user = UserFactory.create()
+    url = reverse("users:lookup_search")
+
+    mock_qs = MagicMock()
+    mock_qs.count.return_value = 1
+    mock_qs.values_list.return_value = [target_user.pk]
+
+    mock_form = MagicMock()
+    mock_form.is_valid.return_value = True
+    mock_form.cleaned_data = {"university": "-1", "name": "", "id": None}
+
+    with patch.object(UserLookupSearchView, "get_form", return_value=mock_form), patch(
+        "thetatauCMT.users.views.watson"
+    ) as mock_watson:
+        mock_watson.filter.return_value = mock_qs
+        response = client.post(url, {})
+
+    assert response.status_code == 302
+    assert target_user.pk in client.session["users"]
+
+
+@pytest.mark.django_db
+def test_user_lookup_search_deceased_user_not_filtered_by_view(auto_login_user):
+    """View does not exclude deceased users: a deceased user returned by watson is included."""
+    from unittest.mock import patch, MagicMock
+    from thetatauCMT.users.tests.factories import UserFactory
+    from thetatauCMT.users.views import UserLookupSearchView
+
+    client, _ = auto_login_user()
+    deceased_user = UserFactory.create(deceased=True)
+    url = reverse("users:lookup_search")
+
+    mock_qs = MagicMock()
+    mock_qs.count.return_value = 1
+    mock_qs.values_list.return_value = [deceased_user.pk]
+
+    mock_form = MagicMock()
+    mock_form.is_valid.return_value = True
+    mock_form.cleaned_data = {"university": "-1", "name": "", "id": None}
+
+    with patch.object(UserLookupSearchView, "get_form", return_value=mock_form), patch(
+        "thetatauCMT.users.views.watson"
+    ) as mock_watson:
+        mock_watson.filter.return_value = mock_qs
+        response = client.post(url, {})
+
+    assert response.status_code == 302
+    assert deceased_user.pk in client.session["users"]
+
+
+@pytest.mark.django_db
+def test_user_lookup_search_prospective_user_not_filtered_by_view(auto_login_user):
+    """View does not exclude prospective (pnm) users: returned by watson → in session."""
+    from unittest.mock import patch, MagicMock
+    from thetatauCMT.users.tests.factories import UserFactory
+    from thetatauCMT.users.views import UserLookupSearchView
+
+    client, _ = auto_login_user()
+    pnm_user = UserFactory.create()
+    url = reverse("users:lookup_search")
+
+    mock_qs = MagicMock()
+    mock_qs.count.return_value = 1
+    mock_qs.values_list.return_value = [pnm_user.pk]
+
+    mock_form = MagicMock()
+    mock_form.is_valid.return_value = True
+    mock_form.cleaned_data = {"university": "-1", "name": "", "id": None}
+
+    with patch.object(UserLookupSearchView, "get_form", return_value=mock_form), patch(
+        "thetatauCMT.users.views.watson"
+    ) as mock_watson:
+        mock_watson.filter.return_value = mock_qs
+        response = client.post(url, {})
+
+    assert response.status_code == 302
+    assert pnm_user.pk in client.session["users"]

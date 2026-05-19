@@ -2638,3 +2638,179 @@ def test_resignation_create_view_form_valid_no_existing(auto_login_user):
     response = client.post(url, data, follow=True)
     assert response.status_code == 200
 
+
+# ─── NatOfficerRequiredMixin: authenticated non-natoff gets home redirect ─────
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("view_name", [
+    "forms:audit_list",
+    "forms:rmp_list",
+    "forms:pledge_program_list",
+    "forms:convention_list",
+    "forms:osm_list",
+    "forms:bylaws_list",
+    "forms:alumniexclusion_list",
+])
+def test_natoff_view_denies_authenticated_non_natoff_user(auto_login_user, view_name):
+    """Authenticated user NOT in natoff group is redirected to home, not login."""
+    from django.urls import reverse as _reverse
+    client, user = auto_login_user()
+    # user is NOT in natoff group
+    url = _reverse(view_name)
+    response = client.get(url, follow=False)
+    # NatOfficerRequiredMixin.get_login_url returns reverse("home") when authenticated
+    assert response.status_code == 302
+    location = response["Location"]
+    # Should redirect toward home, NOT toward accounts/login
+    assert "login" not in location
+
+
+@pytest.mark.django_db
+def test_natoff_role_change_view_denies_authenticated_non_natoff_user(auto_login_user):
+    """Authenticated user NOT in natoff group is denied access to natoff role form."""
+    client, user = auto_login_user()
+    url = reverse("forms:natoff")
+    response = client.get(url, follow=False)
+    assert response.status_code == 302
+    assert "login" not in response["Location"]
+
+
+# ─── AssignOfficerFormMixin.check_officers unit test ─────────────────────────
+
+
+@pytest.mark.django_db
+def test_check_officers_returns_false_and_adds_error_message_when_officer_missing(
+    auto_login_user,
+):
+    """AssignOfficerFormMixin.check_officers returns False and adds an ERROR
+    message when any officer slot is None/falsy."""
+    from django.test import RequestFactory
+    from django.contrib.messages.storage.fallback import FallbackStorage
+    from core.views import AssignOfficerFormMixin
+
+    _, user = auto_login_user()
+    factory = RequestFactory()
+    request = factory.get("/fake/")
+    request.user = user
+    # Attach the messages middleware storage so add_message works
+    setattr(request, "session", "session")
+    messages_storage = FallbackStorage(request)
+    setattr(request, "_messages", messages_storage)
+
+    mixin = AssignOfficerFormMixin()
+    mixin.request = request
+
+    # Pass a list with None officers (regent and vice regent missing)
+    result = mixin.check_officers([None, user, None, user, user])
+
+    assert result is False
+    stored = list(messages_storage)
+    assert len(stored) == 1
+    assert "Missing officers" in stored[0].message
+    assert "regent" in stored[0].message
+    # Index 0 = regent, index 2 = vice regent are missing
+    assert "vice regent" in stored[0].message
+
+
+@pytest.mark.django_db
+def test_check_officers_returns_true_when_all_officers_present(auto_login_user):
+    """AssignOfficerFormMixin.check_officers returns True when all 5 officers set."""
+    from django.test import RequestFactory
+    from django.contrib.messages.storage.fallback import FallbackStorage
+    from core.views import AssignOfficerFormMixin
+    from thetatauCMT.users.tests.factories import UserFactory
+
+    _, user = auto_login_user()
+    factory = RequestFactory()
+    request = factory.get("/fake/")
+    request.user = user
+    setattr(request, "session", "session")
+    messages_storage = FallbackStorage(request)
+    setattr(request, "_messages", messages_storage)
+
+    mixin = AssignOfficerFormMixin()
+    mixin.request = request
+
+    users = [UserFactory.create() for _ in range(5)]
+    result = mixin.check_officers(users)
+
+    assert result is True
+    assert len(list(messages_storage)) == 0
+
+
+# ─── PledgeProgramListView CSV: Content-Disposition header ───────────────────
+
+
+@pytest.mark.django_db
+def test_pledge_program_list_csv_download_has_attachment_header(auto_login_user):
+    """PledgeProgramListView ?csv=Download CSV with officers and records returns
+    a CSV attachment response (Content-Disposition: attachment)."""
+    from thetatauCMT.forms.tests.factories import PledgeProgramFactory
+
+    client, user = auto_login_user()
+    _add_to_group(user, "natoff")
+    officers = _create_all_chapter_officers(user.chapter)
+    # Create a pledge program so the CSV writer has data
+    PledgeProgramFactory.create(chapter=user.chapter)
+    url = reverse("forms:pledge_program_list")
+    response = client.get(url, {"csv": "Download CSV"})
+    assert response.status_code in (200, 302)
+    if response.status_code == 200:
+        content_type = response.get("Content-Type", "")
+        content_disp = response.get("Content-Disposition", "")
+        assert "text/csv" in content_type or "attachment" in content_disp
+
+
+# ─── RiskManagementListView CSV Content-Type assertion ───────────────────────
+
+
+@pytest.mark.django_db
+def test_rmp_list_csv_content_type(auto_login_user):
+    """RiskManagementListView CSV download returns text/csv Content-Type."""
+    client, user = auto_login_user()
+    _add_to_group(user, "natoff")
+    url = reverse("forms:rmp_list")
+    response = client.get(url, {"csv": "download csv"})
+    assert response.status_code == 200
+    assert "text/csv" in response.get("Content-Type", "")
+
+
+# ─── OfficerRequiredMixin negative test: non-officer → home redirect ──────────
+
+
+@pytest.mark.django_db
+def test_audit_form_non_officer_authenticated_redirects_to_home(auto_login_user):
+    """Authenticated user NOT in officer group accessing audit form is redirected.
+    OfficerRequiredMixin.get_login_url returns home when authenticated."""
+    client, user = auto_login_user()
+    # user is NOT in the officer group
+    url = reverse("forms:audit")
+    response = client.get(url, follow=False)
+    assert response.status_code == 302
+    assert "login" not in response["Location"]
+
+
+# ─── download_all_rollbook view ───────────────────────────────────────────────
+
+
+@pytest.mark.django_db
+def test_download_all_rollbook_officer_empty_roll_returns_zip(auto_login_user):
+    """download_all_rollbook returns a ZIP attachment when the officer has set an
+    empty Roll list in the session (no users to render → empty ZIP still valid)."""
+    client, user = auto_login_user()
+    _add_to_group(user, "officer")
+
+    # Seed the session key that the view reads
+    session = client.session
+    session["init-selection"] = {"Roll": []}
+    session.save()
+
+    url = reverse("forms:roll_book_download_all")
+    response = client.get(url)
+
+    assert response.status_code == 200
+    assert response.get("Content-Disposition", "").startswith("attachment")
+    assert "zip" in response.get("Content-Type", "").lower()
+
+

@@ -203,3 +203,30 @@ def test_pre_social_login_unknown_email_is_noop(rf):
     adapter.pre_social_login(request, sociallogin)
 
     sociallogin.connect.assert_not_called()
+
+
+# ---------------------------------------------------------------------------
+# AccountAdapter – OTPAdapter inheritance
+# ---------------------------------------------------------------------------
+
+
+def test_account_adapter_is_subclass_of_otp_adapter():
+    """AccountAdapter inherits 2FA helpers from allauth_2fa's OTPAdapter base class."""
+    from allauth_2fa.adapter import OTPAdapter
+    from thetatauCMT.users.adapters import AccountAdapter
+
+    assert issubclass(AccountAdapter, OTPAdapter)
+    assert callable(getattr(AccountAdapter, "has_2fa_enabled", None))
+    assert callable(getattr(AccountAdapter, "get_2fa_authenticate_url", None))
+
+
+def test_account_adapter_2fa_methods_exist_on_instance(rf):
+    """AccountAdapter instances expose has_2fa_enabled and get_2fa_authenticate_url."""
+    from thetatauCMT.users.adapters import AccountAdapter
+
+    request = rf.get("/")
+    adapter = AccountAdapter(request)
+    assert hasattr(adapter, "has_2fa_enabled")
+    assert callable(adapter.has_2fa_enabled)
+    assert hasattr(adapter, "get_2fa_authenticate_url")
+    assert callable(adapter.get_2fa_authenticate_url)

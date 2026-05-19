@@ -969,3 +969,60 @@ def test_get_resign_upload_path_returns_path():
     assert "resign.pdf" in result
     assert "resign-chapter" in result
 
+
+# ─── InitiationProcess.generate_blackbaud_update: invoice column presence ────
+
+
+@pytest.mark.django_db
+def test_generate_blackbaud_update_default_excludes_invoice_columns():
+    """generate_blackbaud_update(invoice=False) CSV does not contain
+    'Date Submitted' or 'Sum for member' header columns."""
+    from unittest.mock import patch
+    from thetatauCMT.forms.tests.factories import InitiationProcessFactory
+
+    ip = InitiationProcessFactory.create()
+    with patch("thetatauCMT.forms.models.Config.get_value", return_value="50"):
+        mime_obj = ip.generate_blackbaud_update(invoice=False)
+    # MIMEBase payload is the CSV string
+    csv_payload = mime_obj.get_payload()
+    # The header row should NOT contain invoice-only columns
+    assert "Date Submitted" not in csv_payload
+    assert "Sum for member" not in csv_payload
+    # But core columns must be present
+    assert "First Name" in csv_payload
+    assert "Initiation Fee" in csv_payload
+
+
+@pytest.mark.django_db
+def test_generate_blackbaud_update_invoice_mode_includes_invoice_columns():
+    """generate_blackbaud_update(invoice=True) CSV contains 'Date Submitted'
+    and 'Sum for member' header columns."""
+    from unittest.mock import patch
+    from thetatauCMT.forms.tests.factories import InitiationProcessFactory
+
+    ip = InitiationProcessFactory.create()
+    with patch("thetatauCMT.forms.models.Config.get_value", return_value="50"):
+        mime_obj = ip.generate_blackbaud_update(invoice=True)
+    csv_payload = mime_obj.get_payload()
+    assert "Date Submitted" in csv_payload
+    assert "Sum for member" in csv_payload
+    assert "Initiation Fee" in csv_payload
+
+
+@pytest.mark.django_db
+def test_generate_blackbaud_update_response_mode_sets_content_disposition():
+    """generate_blackbaud_update(response=HttpResponse()) writes CSV to the
+    response and sets Content-Disposition: attachment."""
+    from unittest.mock import patch
+    from django.http import HttpResponse
+    from thetatauCMT.forms.tests.factories import InitiationProcessFactory
+
+    ip = InitiationProcessFactory.create()
+    response = HttpResponse(content_type="text/csv")
+    with patch("thetatauCMT.forms.models.Config.get_value", return_value="50"):
+        result = ip.generate_blackbaud_update(invoice=False, response=response)
+    # When response is passed, returns None (writes to response in place)
+    assert result is None
+    assert "attachment" in response.get("Content-Disposition", "")
+    assert "initiation.csv" in response.get("Content-Disposition", "")
+

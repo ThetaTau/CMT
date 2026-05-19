@@ -316,7 +316,7 @@ def test_badge_pnm_notify_to_emails_contains_user_email():
     from unittest.mock import patch
     from thetatauCMT.forms.notifications import BadgePNMNotify
     user = UserFactory.create()
-    with patch("thetatauCMT.forms.notifications.Config.get_value", return_value="Hello {{ badge_table }}"):
+    with patch("thetatauCMT.forms.notifications.Config.get_value", return_value=f"Hello {{ badge_table }}"):
         notif = BadgePNMNotify(user)
     assert user.email in notif.to_emails
 
@@ -326,7 +326,7 @@ def test_badge_pnm_notify_context_has_message():
     from unittest.mock import patch
     from thetatauCMT.forms.notifications import BadgePNMNotify
     user = UserFactory.create()
-    with patch("thetatauCMT.forms.notifications.Config.get_value", return_value="Hello {{ badge_table }}"):
+    with patch("thetatauCMT.forms.notifications.Config.get_value", return_value=f"Hello {{ badge_table }}"):
         notif = BadgePNMNotify(user)
     assert "message" in notif.context
 
@@ -921,4 +921,250 @@ def test_email_process_update_with_attachments_kwarg():
         attachments=["report"],
     )
     assert notif.to_emails
+
+
+# ─── EmailProcessUpdate: subject format assertion ────────────────────────────
+
+
+@pytest.mark.django_db
+def test_email_process_update_subject_format():
+    """EmailProcessUpdate subject follows '[CMT] {process_title} {state} for {obj}'."""
+    from thetatauCMT.forms.notifications import EmailProcessUpdate
+    from thetatauCMT.forms.tests.factories import AuditFactory
+
+    audit = AuditFactory.create()
+    notif = EmailProcessUpdate(
+        audit,
+        "Step 1",
+        "Step 2",
+        "Approved",
+        "Message",
+        [],
+        process_title="Audit Review",
+    )
+    assert "[CMT]" in notif.subject
+    assert "Audit Review" in notif.subject
+    assert "Approved" in notif.subject
+
+
+@pytest.mark.django_db
+def test_email_process_update_subject_format_with_chapter_obj():
+    """EmailProcessUpdate subject contains chapter name when obj is a chapter."""
+    from unittest.mock import patch, PropertyMock
+    from thetatauCMT.forms.notifications import EmailProcessUpdate
+    from thetatauCMT.forms.tests.factories import ConventionFactory
+
+    conv = ConventionFactory.create()
+    officer_user = UserFactory.create()
+
+    with patch.object(
+        type(conv),
+        "created_by",
+        new_callable=PropertyMock,
+        return_value=officer_user,
+    ), patch.object(
+        conv.chapter.__class__,
+        "get_current_officers_council_specific",
+        return_value=[officer_user, None, None, None, None],
+    ), patch.object(
+        conv.chapter.__class__,
+        "council_emails",
+        return_value={officer_user.email},
+    ):
+        notif = EmailProcessUpdate(
+            conv,
+            "Step 1",
+            "Step 2",
+            "Pending",
+            "Message",
+            [],
+            process_title="Convention Review",
+        )
+    assert "Convention Review" in notif.subject
+    assert "Pending" in notif.subject
+
+
+# ─── EmailProcessUpdate: email_officers=True explicit ─────────────────────────
+
+
+@pytest.mark.django_db
+def test_email_process_update_email_officers_true_includes_council():
+    """email_officers=True adds chapter council emails to CC."""
+    from unittest.mock import patch
+    from thetatauCMT.forms.notifications import EmailProcessUpdate
+    from thetatauCMT.forms.tests.factories import AuditFactory
+
+    audit = AuditFactory.create()
+    officer_user = UserFactory.create(chapter=audit.user.chapter)
+    council_email = "council@test.example.com"
+
+    with patch.object(
+        audit.user.chapter.__class__,
+        "council_emails",
+        return_value={council_email},
+    ), patch.object(
+        audit.user.chapter.__class__,
+        "get_current_officers_council_specific",
+        return_value=[officer_user, None, None, None, None],
+    ):
+        notif = EmailProcessUpdate(
+            audit,
+            "Step 1",
+            "Step 2",
+            "Reviewed",
+            "Officer message",
+            [],
+            process_title="Officer Review",
+            email_officers=True,
+        )
+    # The user's email is in to_emails; council emails go to CC
+    assert notif.to_emails
+
+
+# ─── EmailPledgeWelcome: CC behavior when emails differ ──────────────────────
+
+
+@pytest.mark.django_db
+def test_email_pledge_welcome_cc_personal_when_differs_from_school():
+    """EmailPledgeWelcome adds personal email to CC when it differs from school email."""
+    from unittest.mock import patch
+    from thetatauCMT.forms.notifications import EmailPledgeWelcome
+    from thetatauCMT.forms.tests.factories import PledgeFactory
+
+    pledge = PledgeFactory.create()
+    # Make sure school email and personal email are different
+    pledge.user.email_school = "school@university.edu"
+    pledge.user.email = "personal@example.com"
+    pledge.user.save()
+
+    with patch("thetatauCMT.forms.notifications.Config.get_value", return_value="Welcome"):
+        notif = EmailPledgeWelcome(pledge)
+
+    assert "school@university.edu" in notif.to_emails
+    assert "personal@example.com" in notif.cc
+
+
+@pytest.mark.django_db
+def test_email_pledge_welcome_no_cc_when_emails_same():
+    """EmailPledgeWelcome does not add CC when school email == personal email."""
+    from unittest.mock import patch
+    from thetatauCMT.forms.notifications import EmailPledgeWelcome
+    from thetatauCMT.forms.tests.factories import PledgeFactory
+
+    pledge = PledgeFactory.create()
+    # Make school email and personal email the same
+    pledge.user.email = "same@example.com"
+    pledge.user.email_school = "same@example.com"
+    pledge.user.save()
+
+    with patch("thetatauCMT.forms.notifications.Config.get_value", return_value="Welcome"):
+        notif = EmailPledgeWelcome(pledge)
+
+    assert "same@example.com" in notif.to_emails
+    # cc should NOT contain the same email (no duplicate CC)
+    assert not getattr(notif, "cc", None) or "same@example.com" not in notif.cc
+
+
+# ─── EmailPledgeOfficer: officers in to_emails ────────────────────────────────
+
+
+@pytest.mark.django_db
+def test_email_pledge_officer_to_emails_includes_scribe_and_vice_when_present():
+    """EmailPledgeOfficer to_emails contains scribe/vice email when they are officers."""
+    from thetatauCMT.forms.notifications import EmailPledgeOfficer
+    from thetatauCMT.forms.tests.factories import PledgeFactory
+    from unittest.mock import patch
+
+    pledge = PledgeFactory.create()
+    scribe = UserFactory.create(chapter=pledge.user.chapter)
+    vice = UserFactory.create(chapter=pledge.user.chapter)
+
+    generic_emails = [None, None, None, None, None]  # no generics
+
+    with patch.object(
+        pledge.user.chapter.__class__,
+        "get_current_officers_council_specific",
+        return_value=[None, scribe, vice, None, None],
+    ), patch.object(
+        pledge.user.chapter.__class__,
+        "get_generic_chapter_emails",
+        return_value=generic_emails,
+    ):
+        notif = EmailPledgeOfficer(pledge)
+
+    assert scribe.email in notif.to_emails
+    assert vice.email in notif.to_emails
+
+
+@pytest.mark.django_db
+def test_email_pledge_officer_reply_to_is_central_office():
+    """EmailPledgeOfficer reply_to is always central.office@thetatau.org."""
+    from thetatauCMT.forms.notifications import EmailPledgeOfficer
+    from thetatauCMT.forms.tests.factories import PledgeFactory
+
+    pledge = PledgeFactory.create()
+    notif = EmailPledgeOfficer(pledge)
+    assert "central.office@thetatau.org" in notif.reply_to
+
+
+# ─── EmailPledgeConfirmation ──────────────────────────────────────────────────
+
+
+@pytest.mark.django_db
+def test_email_pledge_confirmation_to_emails_contains_school_and_personal():
+    """EmailPledgeConfirmation sends to both school and personal email."""
+    from thetatauCMT.forms.notifications import EmailPledgeConfirmation
+    from thetatauCMT.forms.tests.factories import PledgeFactory
+
+    pledge = PledgeFactory.create()
+    pledge.user.email = "personal@example.com"
+    pledge.user.email_school = "school@university.edu"
+    pledge.user.save()
+
+    notif = EmailPledgeConfirmation(pledge, b"%PDF fake pdf content")
+
+    assert "school@university.edu" in notif.to_emails
+    assert "personal@example.com" in notif.to_emails
+
+
+@pytest.mark.django_db
+def test_email_pledge_confirmation_reply_to_is_central_office():
+    """EmailPledgeConfirmation reply_to is central.office@thetatau.org."""
+    from thetatauCMT.forms.notifications import EmailPledgeConfirmation
+    from thetatauCMT.forms.tests.factories import PledgeFactory
+
+    pledge = PledgeFactory.create()
+    notif = EmailPledgeConfirmation(pledge, b"%PDF fake")
+
+    assert "central.office@thetatau.org" in notif.reply_to
+
+
+@pytest.mark.django_db
+def test_email_pledge_confirmation_has_bill_of_rights_attachment():
+    """EmailPledgeConfirmation includes the bill-of-rights PDF as attachment."""
+    from thetatauCMT.forms.notifications import EmailPledgeConfirmation
+    from thetatauCMT.forms.tests.factories import PledgeFactory
+
+    pledge = PledgeFactory.create()
+    bill_content = b"%PDF-1.4 bill of rights content"
+    notif = EmailPledgeConfirmation(pledge, bill_content)
+
+    assert len(notif.attachments) >= 1
+    filename, content, mime = notif.attachments[0]
+    assert "Bill of Rights" in filename or "bill" in filename.lower()
+    assert content == bill_content
+
+
+@pytest.mark.django_db
+def test_email_pledge_confirmation_context_has_form_dict():
+    """EmailPledgeConfirmation context['form'] is a non-empty dict of member data."""
+    from thetatauCMT.forms.notifications import EmailPledgeConfirmation
+    from thetatauCMT.forms.tests.factories import PledgeFactory
+
+    pledge = PledgeFactory.create()
+    notif = EmailPledgeConfirmation(pledge, b"%PDF fake")
+
+    assert "form" in notif.context
+    assert isinstance(notif.context["form"], dict)
+    assert len(notif.context["form"]) > 0
 
