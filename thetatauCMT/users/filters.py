@@ -1,9 +1,10 @@
 # filters.py
 import django_filters
+
+from thetatauCMT.chapters.models import Chapter, ChapterCurricula
+from thetatauCMT.regions.models import Region
+
 from .models import User, UserRoleChange
-from core.models import TODAY_END
-from regions.models import Region
-from chapters.models import ChapterCurricula, Chapter
 
 
 class UserListFilterBase(django_filters.FilterSet):
@@ -33,9 +34,7 @@ class UserListFilterBase(django_filters.FilterSet):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.filters["major"].queryset = ChapterCurricula.objects.filter(
-            chapter=self.request.user.current_chapter
-        )
+        self.filters["major"].queryset = ChapterCurricula.objects.filter(chapter=self.request.user.current_chapter)
         if self.request.user.chapter_officer():
             self.filters["current_status"].field.choices.choices.extend(
                 [
@@ -91,12 +90,8 @@ class UserRoleListFilter(django_filters.FilterSet):
         ],
         method="filter_current_status",
     )
-    current_roles = django_filters.MultipleChoiceFilter(
-        choices=UserRoleChange.ROLES, method="filter_current_roles"
-    )
-    region = django_filters.ChoiceFilter(
-        choices=Region.region_choices(), method="filter_region"
-    )
+    current_roles = django_filters.MultipleChoiceFilter(choices=UserRoleChange.ROLES, method="filter_current_roles")
+    region = django_filters.ChoiceFilter(choices=Region.region_choices(), method="filter_region")
     major = django_filters.ModelChoiceFilter(
         queryset=ChapterCurricula.objects.none(),
         method="filter_major",
@@ -159,9 +154,7 @@ class UserRoleListFilter(django_filters.FilterSet):
 
 
 class AdvisorListFilter(django_filters.FilterSet):
-    region = django_filters.ChoiceFilter(
-        choices=Region.region_choices(), method="filter_region"
-    )
+    region = django_filters.ChoiceFilter(choices=Region.region_choices(), method="filter_region")
     chapter = django_filters.ChoiceFilter(
         label="Chapter",
         choices=Chapter.chapter_choices(),

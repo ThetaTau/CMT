@@ -1,5 +1,6 @@
 import django_tables2 as tables
 from django_tables2.utils import A
+
 from .models import User, UserStatusChange
 
 
@@ -27,21 +28,10 @@ class UserTable(tables.Table):
             + "Only officers can view alumni contact information."
         )
 
-    def __init__(
-        self,
-        chapter=False,
-        natoff=False,
-        admin=False,
-        extra_info=False,
-        rmp=False,
-        *args,
-        **kwargs
-    ):
+    def __init__(self, chapter=False, natoff=False, admin=False, extra_info=False, rmp=False, *args, **kwargs):
         extra_columns = kwargs.get("extra_columns", [])
         if admin:
-            self.base_columns["name"] = tables.LinkColumn(
-                "admin:users_user_change", kwargs={"object_id": A("id")}
-            )
+            self.base_columns["name"] = tables.LinkColumn("admin:users_user_change", kwargs={"object_id": A("id")})
             extra_columns.extend(
                 [
                     ("full_address", tables.Column(accessor="address")),
@@ -49,9 +39,7 @@ class UserTable(tables.Table):
                 ]
             )
         elif natoff:
-            self.base_columns["name"] = tables.LinkColumn(
-                "users:info", kwargs={"username": A("username")}
-            )
+            self.base_columns["name"] = tables.LinkColumn("users:info", kwargs={"username": A("username")})
         else:
             self.base_columns["name"] = tables.Column()
         if not rmp:
@@ -68,8 +56,8 @@ class UserTable(tables.Table):
         if chapter:
             extra_columns.extend(
                 [
-                    ("chapter.region", tables.Column("Region")),
-                    ("chapter.school", tables.Column("School")),
+                    ("chapter__region", tables.Column("Region")),
+                    ("chapter__school", tables.Column("School")),
                 ]
             )
         kwargs["extra_columns"] = extra_columns
@@ -100,9 +88,7 @@ class UserTable(tables.Table):
 
 
 class RollBookTable(tables.Table):
-    rollbook = tables.LinkColumn(
-        "forms:roll_book_page", args=[A("pk")], attrs={"a": {"target": "_blank"}}
-    )
+    rollbook = tables.LinkColumn("forms:roll_book_page", args=[A("pk")], attrs={"a": {"target": "_blank"}})
     birth_place = tables.Column()
     other_degrees = tables.Column()
     major_name = tables.Column()

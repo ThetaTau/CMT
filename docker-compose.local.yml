@@ -7,8 +7,6 @@ services:
     build:
       context: .
       dockerfile: ./compose/local/django/Dockerfile
-      args:
-        - DEBUGPY_ON=${DEBUGPY_ON:-0}
     image: thetataucmt_local_django
     container_name: thetataucmt_local_django
     depends_on:
@@ -26,14 +24,13 @@ services:
     command: /start
 
   postgres:
-    build:
-      context: .
-      dockerfile: ./compose/production/postgres/Dockerfile
-    image: thetataucmt_production_postgres
+    image: postgres:12.6
     container_name: thetataucmt_local_postgres
     volumes:
       - thetataucmt_local_postgres_data:/var/lib/postgresql/data
       - thetataucmt_local_postgres_data_backups:/backups
+    ports:
+      - "5435:5435"
     env_file:
       - ./.envs/.local/.postgres
 

@@ -1,7 +1,9 @@
 from django.contrib import admin
-from .models import Submission, GearArticle
+
+from .models import GearArticle, Submission
 
 
+@admin.register(Submission)
 class SubmissionAdmin(admin.ModelAdmin):
     raw_id_fields = ["user"]
     list_display = ("name", "date", "type", "user")
@@ -13,9 +15,6 @@ class SubmissionAdmin(admin.ModelAdmin):
         "created_by",
         "modified_by",
     )
-
-
-admin.site.register(Submission, SubmissionAdmin)
 
 
 def submission_chapter(obj):
@@ -30,6 +29,7 @@ def submission_title(obj):
     return obj.submission.name
 
 
+@admin.register(GearArticle)
 class GearArticleAdmin(admin.ModelAdmin):
     raw_id_fields = ["authors"]
     list_display = (
@@ -50,6 +50,3 @@ class GearArticleAdmin(admin.ModelAdmin):
         "created_by",
         "modified_by",
     )
-
-
-admin.site.register(GearArticle, GearArticleAdmin)

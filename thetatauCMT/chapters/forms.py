@@ -1,11 +1,13 @@
-from django import forms
 from address.forms import AddressWidget
-from crispy_forms.helper import FormHelper
-from crispy_forms.layout import Layout, Fieldset, Row, Submit
 from crispy_forms.bootstrap import FormActions, InlineField, StrictButton
-from .models import Chapter
+from crispy_forms.helper import FormHelper
+from crispy_forms.layout import Fieldset, Layout, Row, Submit
+from django import forms
+
 from core.address import fix_address
 from core.forms import DuplicateAddressField
+
+from .models import Chapter
 
 
 class ChapterForm(forms.ModelForm):
@@ -17,7 +19,13 @@ class ChapterForm(forms.ModelForm):
             "email",
             "website",
             "facebook",
+            "instagram",
+            "tiktok",
+            "linkedin",
+            "youtube",
+            "twitter",
             "address",
+            "address_line_2",
             "address_contact",
             "address_phone_number",
             "council",
@@ -32,8 +40,24 @@ class ChapterForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        optional_fields = {
+            "email",
+            "website",
+            "facebook",
+            "instagram",
+            "tiktok",
+            "linkedin",
+            "youtube",
+            "twitter",
+            "address_line_2",
+            "email_regent",
+            "email_vice_regent",
+            "email_scribe",
+            "email_treasurer",
+            "email_corresponding_secretary",
+        }
         for key in self.fields:
-            if "email" not in key:
+            if key not in optional_fields:
                 self.fields[key].required = True
 
     def clean_address(self):
@@ -51,7 +75,7 @@ class ChapterFormHelper(FormHelper):
     form_method = "GET"
     form_id = "chapter-search-form"
     form_class = "form-inline"
-    field_template = "bootstrap3/layout/inline_field.html"
+    field_template = "bootstrap5/layout/inline_field.html"
     field_class = "col-xs-3"
     label_class = "col-xs-3"
     form_show_errors = True

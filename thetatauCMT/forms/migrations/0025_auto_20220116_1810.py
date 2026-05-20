@@ -3,7 +3,7 @@
 import core.models
 from django.db import migrations, models
 import django.utils.timezone
-import forms.models
+import thetatauCMT.forms.models
 
 
 class Migration(migrations.Migration):
@@ -44,7 +44,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name="depledge",
             name="meeting_attend",
-            field=forms.models.MultiSelectField(
+            field=thetatauCMT.forms.models.MultiSelectField(
                 blank=True,
                 choices=[
                     ("None", "None"),
@@ -113,7 +113,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name="depledge",
             name="returned_items",
-            field=forms.models.MultiSelectField(
+            field=thetatauCMT.forms.models.MultiSelectField(
                 blank=True,
                 choices=[
                     ("pin", "Pledge Pin"),

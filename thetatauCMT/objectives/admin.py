@@ -1,5 +1,6 @@
 from django.contrib import admin
-from .models import Objective, Action
+
+from .models import Action, Objective
 
 
 class ActionInline(admin.TabularInline):
@@ -11,6 +12,7 @@ class ActionInline(admin.TabularInline):
     extra = 1
 
 
+@admin.register(Objective)
 class ObjectiveAdmin(admin.ModelAdmin):
     inlines = [ActionInline]
     raw_id_fields = ["owner", "user"]
@@ -38,6 +40,3 @@ class ObjectiveAdmin(admin.ModelAdmin):
         "created_by",
         "modified_by",
     )
-
-
-admin.site.register(Objective, ObjectiveAdmin)

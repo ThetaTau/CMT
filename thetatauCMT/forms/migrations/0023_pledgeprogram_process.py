@@ -2,7 +2,7 @@
 
 from django.db import migrations, models
 import django.db.models.deletion
-import forms.models
+import thetatauCMT.forms.models
 
 
 class Migration(migrations.Migration):
@@ -19,7 +19,7 @@ class Migration(migrations.Migration):
             field=models.FileField(
                 blank=True,
                 null=True,
-                upload_to=forms.models.get_pledge_program_upload_path,
+                upload_to=thetatauCMT.forms.models.get_pledge_program_upload_path,
             ),
         ),
         migrations.CreateModel(

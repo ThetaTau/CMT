@@ -5,7 +5,7 @@ import django.core.validators
 from django.db import migrations, models
 import django.db.models.deletion
 import django.utils.timezone
-import forms.models
+import thetatauCMT.forms.models
 
 
 class Migration(migrations.Migration):
@@ -105,7 +105,7 @@ class Migration(migrations.Migration):
                 ("debit_card", models.BooleanField()),
                 (
                     "debit_card_access",
-                    forms.models.MultiSelectField(
+                    thetatauCMT.forms.models.MultiSelectField(
                         choices=[
                             ("None", "None"),
                             ("adviser", "Adviser"),
@@ -233,7 +233,7 @@ class Migration(migrations.Migration):
                 (
                     "report",
                     models.FileField(
-                        upload_to=forms.models.get_chapter_report_upload_path
+                        upload_to=thetatauCMT.forms.models.get_chapter_report_upload_path
                     ),
                 ),
             ],
@@ -1075,7 +1075,7 @@ class Migration(migrations.Migration):
                     models.FileField(
                         blank=True,
                         null=True,
-                        upload_to=forms.models.get_pledge_program_upload_path,
+                        upload_to=thetatauCMT.forms.models.get_pledge_program_upload_path,
                     ),
                 ),
             ],
@@ -1097,7 +1097,7 @@ class Migration(migrations.Migration):
                 (
                     "form",
                     models.FileField(
-                        upload_to=forms.models.get_premature_alumn_upload_path
+                        upload_to=thetatauCMT.forms.models.get_premature_alumn_upload_path
                     ),
                 ),
                 (

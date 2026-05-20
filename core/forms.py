@@ -2,16 +2,36 @@
 Copied from: https://gist.github.com/jamesbrobb/748c47f46b9bd224b07f
     per: http://stackoverflow.com/questions/15497693/django-can-class-based-views-accept-two-forms-at-a-time/24011448#24011448
 """
+
 import re
+
+from address.forms import Address, AddressField
 from address.models import Locality
-from django import forms
-from django.views.generic.base import ContextMixin, TemplateResponseMixin
-from django.views.generic.edit import ProcessFormView
-from django.http.response import HttpResponseRedirect, HttpResponseForbidden
 from dal_select2.fields import Select2ListCreateChoiceField
 from dal_select2.widgets import Select2Multiple, Select2WidgetMixin, WidgetMixin
-from address.forms import AddressField, Address
+from django import forms
+from django.http.response import HttpResponseForbidden, HttpResponseRedirect
+from django.views.generic.base import ContextMixin, TemplateResponseMixin
+from django.views.generic.edit import ProcessFormView
+from tempus_dominus.widgets import DatePicker as _DatePicker
+
 from core.address import fix_duplicate_address
+
+
+class DatePicker(_DatePicker):
+    """Override moment_option to avoid moment.js treating ISO date strings as UTC.
+
+    Moment.js 2.x parses bare ISO date strings (e.g. "1995-03-27") as UTC
+    midnight.  In timezones behind UTC the picker then displays the previous
+    day, which the user submits and saves.  Appending T12:00:00 keeps the
+    value well within the same calendar day for any UTC offset.
+    """
+
+    def moment_option(self, value):
+        opts = super().moment_option(value)
+        if "date" in opts and "T" not in opts["date"]:
+            opts["date"] = opts["date"] + "T12:00:00"
+        return opts
 
 
 class SchoolModelChoiceField(forms.ModelChoiceField):
@@ -37,9 +57,7 @@ class MultiFormMixin(ContextMixin):
             [
                 (
                     key,
-                    self._create_form(
-                        key, klass, (form_names and key in form_names) or bind_all
-                    ),
+                    self._create_form(key, klass, (form_names and key in form_names) or bind_all),
                 )
                 for key, klass in form_classes.items()
             ]
@@ -171,11 +189,7 @@ class DuplicateAddressField(AddressField):
         try:
             value = super().to_python(value)
         except Address.MultipleObjectsReturned:
-            if (
-                not value["street_number"]
-                and not value["route"]
-                and value["locality"] is None
-            ):
+            if not value["street_number"] and not value["route"] and value["locality"] is None:
                 return None
             fix_duplicate_address(value)
             try:
@@ -183,14 +197,12 @@ class DuplicateAddressField(AddressField):
             except Address.MultipleObjectsReturned:
                 try:
                     fix_duplicate_address(value)
-                except:
+                except Exception:
                     return None
         return value
 
 
-class Select2ListCreateMultipleChoiceField(
-    Select2ListCreateChoiceField, Select2Multiple
-):
+class Select2ListCreateMultipleChoiceField(Select2ListCreateChoiceField, Select2Multiple):
     queryset = None
 
     def __init__(self, *args, **kwargs):

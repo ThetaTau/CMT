@@ -1,11 +1,13 @@
-from herald import registry
-from herald.base import EmailNotification
-from tasks.models import TaskDate
 from django.conf import settings
 from django.shortcuts import reverse
-from users.models import User
-from chapters.models import Chapter
-from chapters.tables import ChapterStatusTable
+from django.template import Context, Template
+from herald import registry
+from herald.base import EmailNotification
+
+from thetatauCMT.chapters.models import Chapter
+from thetatauCMT.chapters.tables import ChapterStatusTable
+from thetatauCMT.tasks.models import TaskDate
+from thetatauCMT.users.models import User
 
 
 @registry.register_decorator()
@@ -114,13 +116,7 @@ class RDMonthly(EmailNotification):  # extend from EmailNotification for emails
                 3: "Treasurer",
                 4: "Corresponding Secretary",
             }
-            missing = ", ".join(
-                [
-                    officer_order[ind]
-                    for ind, officer in enumerate(officers)
-                    if officer is None
-                ]
-            )
+            missing = ", ".join([officer_order[ind] for ind, officer in enumerate(officers) if officer is None])
             host = settings.CURRENT_URL
             link = reverse("chapters:detail", kwargs={"slug": chapter.slug})
             link = host + link
@@ -135,9 +131,7 @@ class RDMonthly(EmailNotification):  # extend from EmailNotification for emails
                     "member_count": chapter.actives().count(),
                     "pledge_count": chapter.pledges().count(),
                     "event_count": chapter.events_last_month().count(),
-                    "tasks_overdue": TaskDate.incomplete_dates_for_chapter(
-                        chapter
-                    ).count(),
+                    "tasks_overdue": TaskDate.incomplete_dates_for_chapter(chapter).count(),
                     "host": host,
                 }
             )
@@ -160,9 +154,7 @@ class NewOfficers(EmailNotification):  # extend from EmailNotification for email
     subject = "Welcome New Theta Tau Officers"  # subject of email
 
     def __init__(self, new_officers):  # optionally customize the initialization
-        self.to_emails = set(
-            [officer.email for officer in new_officers]
-        )  # set list of emails to send to
+        self.to_emails = set([officer.email for officer in new_officers])  # set list of emails to send to
         self.reply_to = [
             "central.office@thetatau.org",
         ]
@@ -177,7 +169,7 @@ class NewOfficers(EmailNotification):  # extend from EmailNotification for email
 
     @staticmethod
     def get_demo_args():  # define a static method to return list of args needed to initialize class for testing
-        from users.models import User
+        from thetatauCMT.users.models import User
 
         return [
             [
@@ -189,16 +181,12 @@ class NewOfficers(EmailNotification):  # extend from EmailNotification for email
 
 
 @registry.register_decorator()
-class OfficerUpdateReminder(
-    EmailNotification
-):  # extend from EmailNotification for emails
+class OfficerUpdateReminder(EmailNotification):  # extend from EmailNotification for emails
     render_types = ["html"]
     template_name = "officer_update_reminder"  # name of template, without extension
     subject = "Officer update reminder"  # subject of email
 
-    def __init__(
-        self, chapter, emails, officers_to_update
-    ):  # optionally customize the initialization
+    def __init__(self, chapter, emails, officers_to_update):  # optionally customize the initialization
         emails = {email for email in emails if email}
         format_officers = ", ".join(officers_to_update)
         self.to_emails = emails
@@ -226,3 +214,34 @@ class OfficerUpdateReminder(
             emails,
             officers_to_update,
         ]
+
+
+@registry.register_decorator()
+class MemberEmail(EmailNotification):
+    render_types = ["html"]
+    template_name = "member_email"
+
+    def __init__(self, user, title, email_content, context):
+        emails = set(user.emailaddress_set.values_list("email", flat=True)) | {
+            user.email,
+            user.email_school,
+        }
+        self.subject = title
+        rendered_content = Template(email_content).render(Context(context))
+        self.to_emails = emails
+        self.cc = []
+        self.reply_to = []
+        self.context = {
+            "user": user,
+            "host": settings.CURRENT_URL,
+            "title": title,
+            "email_content": rendered_content,
+        }
+
+    @staticmethod
+    def get_demo_args():  # define a static method to return list of args needed to initialize class for testing
+        user = User.objects.order_by("?")[0]
+        title = "Demo Title"
+        email_content = "Hello {{ user.get_full_name }} Demo email content"
+        context = {"user": user}
+        return [user, title, email_content, context]

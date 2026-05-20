@@ -7,8 +7,13 @@
 {% block content %}
   <script type="text/javascript" src="{% static 'admin/js/vendor/jquery/jquery.js' %}"></script>
   {{ formset.media }}
-    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/tempusdominus-bootstrap-4/5.0.0-alpha14/js/tempusdominus-bootstrap-4.min.js"></script>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tempusdominus-bootstrap-4/5.0.0-alpha14/css/tempusdominus-bootstrap-4.min.css" />
+    <!-- Popperjs -->
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js" integrity="sha256-BRqBN7dYgABqtY9Hd4ynE+1slnEw+roEPFzQ7TRRfcg=" crossorigin="anonymous"></script>
+    <!-- Tempus Dominus JavaScript -->
+    <script src="https://cdn.jsdelivr.net/npm/@eonasdan/tempus-dominus@6.9.4/dist/js/tempus-dominus.min.js" crossorigin="anonymous"></script>
+
+    <!-- Tempus Dominus Styles -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@eonasdan/tempus-dominus@6.9.4/dist/css/tempus-dominus.min.css" crossorigin="anonymous">
 {% specialspaceless %}
   <h1>Please select members to update role:</h1>
   <form action="" method="post">
@@ -64,7 +69,7 @@
                           </div>
                           </td>
                         {% else %}
-                          {% include 'bootstrap4/field.html' with tag="td" form_show_labels=False form_show_errors=True%}
+                          {% include 'bootstrap5/field.html' with tag="td" form_show_labels=False form_show_errors=True%}
                         {% endif %}
                       {% endfor %}
                   <td>
@@ -130,4 +135,3 @@ function cloneMore(selector, prefix) {
 }
 </script>
 {% endblock %}
-

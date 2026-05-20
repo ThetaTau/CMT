@@ -1,13 +1,15 @@
 import datetime
+
 from django.conf import settings
-from django.urls import reverse
 from django.core.management import BaseCommand
-from viewflow.models import Task
+from django.urls import reverse
 from viewflow.activation import STATUS
+from viewflow.models import Task
+
 from core.flows import cancel_process
-from forms.forms import DisciplinaryForm1
-from users.models import User
-from forms.notifications import EmailProcessUpdate, CentralOfficeGenericEmail
+from thetatauCMT.forms.forms import DisciplinaryForm1
+from thetatauCMT.forms.notifications import CentralOfficeGenericEmail, EmailProcessUpdate
+from thetatauCMT.users.models import User
 
 
 class Command(BaseCommand):
@@ -16,9 +18,7 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument("-date", nargs=1, type=str, help="all tasks < date + 1 day")
-        parser.add_argument(
-            "-chapter", nargs=1, type=str, help="Only process for this chapter"
-        )
+        parser.add_argument("-chapter", nargs=1, type=str, help="Only process for this chapter")
 
     # A command must define handle()
     def handle(self, *args, **options):
@@ -34,9 +34,7 @@ class Command(BaseCommand):
         print(f"Process tasks for date <= {date}")
         host = settings.CURRENT_URL
         # We look for tasks assigned but not handled
-        function_tasks = Task.objects.filter(
-            status=STATUS.ASSIGNED, flow_task_type="HUMAN"
-        )
+        function_tasks = Task.objects.filter(status=STATUS.ASSIGNED, flow_task_type="HUMAN")
         print(f"Assigned Tasks found {function_tasks.count()}")
         cancelled = []
         for function_task in function_tasks.all():
@@ -74,9 +72,11 @@ class Command(BaseCommand):
                         extra = "<i>This email will continue to be sent daily until the form is submitted or someone contacts the central office with an update.</i>"
                     elif process.trial_date == date_7:
                         process_title = f"REMINDER {process.flow_class.process_title}"
+                        extra_emails = {chapter.region.email}
                         days = 7
                     elif process.trial_date == date_14:
                         process_title = f"REMINDER {process.flow_class.process_title}"
+                        extra_emails = {chapter.region.email}
                         days = 14
                         email_officers = True
                     else:
@@ -124,9 +124,11 @@ class Command(BaseCommand):
                     process_title = f"REMINDER {process.flow_class.process_title}"
                     days = 14
                     email_officers = True
+                    extra_emails = {chapter.region.email}
                 elif created == date_7:
                     process_title = f"REMINDER {process.flow_class.process_title}"
                     days = 7
+                    extra_emails = {chapter.region.email}
                 else:
                     # not in time ranges
                     continue
@@ -258,13 +260,8 @@ class Command(BaseCommand):
                 extra_emails=extra_emails,
             ).send()
         if cancelled:
-            message = (
-                "The following processes were cancelled after over "
-                "60 days of no update:<ul>"
-            )
+            message = "The following processes were cancelled after over " "60 days of no update:<ul>"
             for process in cancelled:
                 message += f"<li>{process}</li>"
             message += "</ul>"
-            CentralOfficeGenericEmail(
-                message, subject="[CMT] Cancelled Processes"
-            ).send()
+            CentralOfficeGenericEmail(message, subject="[CMT] Cancelled Processes").send()

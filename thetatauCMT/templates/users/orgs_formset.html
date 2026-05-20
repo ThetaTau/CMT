@@ -59,7 +59,7 @@
                           </div>
                           </td>
                         {% else %}
-                          {% include 'bootstrap4/field.html' with tag="td" form_show_labels=False form_show_errors=True%}
+                          {% include 'bootstrap5/field.html' with tag="td" form_show_labels=False form_show_errors=True%}
                         {% endif %}
                       {% endfor %}
                   <td>
@@ -88,4 +88,3 @@
 {{ block.super }}
 <script src="{% static 'js/dynamic_formset.js' %}"></script>
 {% endblock %}
-

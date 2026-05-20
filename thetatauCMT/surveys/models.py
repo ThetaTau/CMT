@@ -2,7 +2,8 @@ from django.conf import settings
 from django.db import models
 from django.utils.text import slugify
 from survey.models import Survey
-from core.models import TimeStampedModel, EnumClass
+
+from core.models import EnumClass, TimeStampedModel
 
 
 class DepledgeSurvey(TimeStampedModel):
@@ -66,16 +67,12 @@ class DepledgeSurvey(TimeStampedModel):
         null=True,
         blank=True,
     )
-    contact = models.BooleanField(
-        "Would you like someone to contact you?", choices=BOOL_CHOICES, default=False
-    )
+    contact = models.BooleanField("Would you like someone to contact you?", choices=BOOL_CHOICES, default=False)
 
 
 class Survey(Survey):
     slug = models.SlugField(unique=True)
-    anonymous = models.BooleanField(
-        help_text="Can the survey be submitted anonymously?", default=False
-    )
+    anonymous = models.BooleanField(help_text="Can the survey be submitted anonymously?", default=False)
 
     def save(self):
         self.slug = slugify(self.name)

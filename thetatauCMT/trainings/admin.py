@@ -1,15 +1,17 @@
 from django.contrib import admin
 from django.http import HttpResponseRedirect
 from django.shortcuts import render
-from .models import Training
+
 from .forms import UserAdminTrainingForm
+from .models import Training
 
 
 class AssignTrainingMixin:
+    @admin.action(description="Assign Member Training")
     def assign_training(self, request, queryset):
         try:
             extra_groups = Training.get_extra_groups()
-        except:
+        except Exception:
             extra_groups = [
                 ("NONE", "NONE"),
             ]
@@ -30,9 +32,7 @@ class AssignTrainingMixin:
                 training_system = form.cleaned_data["training_system"]
                 for user in queryset:
                     if training_system == "Vector":
-                        Training.add_user(
-                            user, extra_group=extra_group, request=request
-                        )
+                        Training.add_user(user, extra_group=extra_group, request=request)
                     elif training_system == "ED.thetatau":
                         Training.add_user_ed(user, request=request)
                 return HttpResponseRedirect(request.get_full_path())
@@ -41,8 +41,6 @@ class AssignTrainingMixin:
             "admin/assign_training.html",
             context={"form": form},
         )
-
-    assign_training.short_description = "Assign Member Training"
 
 
 class TrainingInline(admin.TabularInline):
@@ -65,6 +63,7 @@ class TrainingInline(admin.TabularInline):
         return False
 
 
+@admin.register(Training)
 class TrainingAdmin(admin.ModelAdmin):
     raw_id_fields = ["user"]
     list_display = ("user", "course_title", "completed", "completed_time")
@@ -72,6 +71,3 @@ class TrainingAdmin(admin.ModelAdmin):
     ordering = [
         "-completed_time",
     ]
-
-
-admin.site.register(Training, TrainingAdmin)

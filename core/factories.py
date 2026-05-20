@@ -1,6 +1,7 @@
 import factory
 from viewflow.models import Task
-from users.tests.factories import UserFactory
+
+from thetatauCMT.users.tests.factories import UserFactory
 
 
 class TaskFactory(factory.django.DjangoModelFactory):

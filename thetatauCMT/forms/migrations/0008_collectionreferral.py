@@ -5,7 +5,7 @@ from django.db import migrations, models
 import django.db.models.deletion
 import django.utils.timezone
 import djmoney.models.fields
-import forms.models
+import thetatauCMT.forms.models
 
 
 class Migration(migrations.Migration):
@@ -245,7 +245,7 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "ledger_sheet",
-                    models.FileField(upload_to=forms.models.get_discipline_upload_path),
+                    models.FileField(upload_to=thetatauCMT.forms.models.get_discipline_upload_path),
                 ),
                 (
                     "created_by",

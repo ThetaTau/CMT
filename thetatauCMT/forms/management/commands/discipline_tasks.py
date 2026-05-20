@@ -1,8 +1,10 @@
 import datetime
+
 from django.core.management import BaseCommand
-from viewflow.models import Task
 from viewflow.activation import STATUS
-from forms.flows import DisciplinaryProcessFlow
+from viewflow.models import Task
+
+from thetatauCMT.forms.flows import DisciplinaryProcessFlow
 
 
 class Command(BaseCommand):
@@ -11,9 +13,7 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument("-date", nargs=1, type=str, help="all tasks < date + 1 day")
-        parser.add_argument(
-            "-chapter", nargs=1, type=str, help="Only process for this chapter"
-        )
+        parser.add_argument("-chapter", nargs=1, type=str, help="Only process for this chapter")
 
     # A command must define handle()
     def handle(self, *args, **options):

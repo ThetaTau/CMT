@@ -1,12 +1,13 @@
 import os
-from django.db import models
-from django.conf import settings
-from django.utils.translation import gettext_lazy as _
-from django_userforeignkey.models.fields import UserForeignKey
-from ckeditor_uploader.fields import RichTextUploadingField
 
-from core.models import TimeStampedModel, EnumClass
-from chapters.models import Chapter
+from django.conf import settings
+from django.db import models
+from django.utils.translation import gettext_lazy as _
+from django_ckeditor_5.fields import CKEditor5Field
+from django_userforeignkey.models.fields import UserForeignKey
+
+from core.models import EnumClass, TimeStampedModel
+from thetatauCMT.chapters.models import Chapter
 
 
 def get_upload_path(instance, filename):
@@ -50,19 +51,15 @@ class Note(TimeStampedModel):
         related_name="notes_modified",
     )
     title = models.CharField(_("Title"), max_length=255)
-    note = RichTextUploadingField()
+    note = CKEditor5Field()
     file = models.FileField(upload_to=get_upload_path, blank=True, null=True)
-    type = models.CharField(
-        max_length=20, default="note", choices=[x.value for x in TYPES]
-    )
+    type = models.CharField(max_length=20, default="note", choices=[x.value for x in TYPES])
     restricted = models.BooleanField(
         verbose_name="Restrict read/write to Executive Council",
         default=False,
         help_text="If True only EC will be able to read or edit",
     )
-    parent = models.ForeignKey(
-        "self", on_delete=models.CASCADE, related_name="subnotes", blank=True, null=True
-    )
+    parent = models.ForeignKey("self", on_delete=models.CASCADE, related_name="subnotes", blank=True, null=True)
 
     class Meta:
         abstract = True

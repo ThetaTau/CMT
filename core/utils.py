@@ -28,11 +28,7 @@ def login_with_service_account():
     config = {
         "client_config_backend": "service",
         "service_config": {
-            "client_json_file_path": str(
-                settings.ROOT_DIR
-                / "secrets"
-                / "ChapterManagementTool-b239bceff1a7.json"
-            ),
+            "client_json_file_path": str(settings.ROOT_DIR / "secrets" / "ChapterManagementTool-b239bceff1a7.json"),
         },
     }
     # Create instance of GoogleAuth

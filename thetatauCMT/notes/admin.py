@@ -1,11 +1,10 @@
 from django.contrib import admin
-from django.utils.safestring import mark_safe
 from django.urls import reverse
+from django.utils.safestring import mark_safe
 from import_export.admin import ImportMixin
 
-
-from .models import UserNote, ChapterNote
-from .resources import UserNoteResource, ChapterNoteResource
+from .models import ChapterNote, UserNote
+from .resources import ChapterNoteResource, UserNoteResource
 
 
 class ChapterSubNoteInline(admin.TabularInline):
@@ -28,6 +27,7 @@ class UserSubNoteInline(admin.TabularInline):
     fk_name = "parent"
 
 
+@admin.register(UserNote)
 class UserNoteAdmin(ImportMixin, admin.ModelAdmin):
     inlines = [UserSubNoteInline]
     raw_id_fields = ["user", "parent"]
@@ -82,9 +82,7 @@ class UserNoteAdmin(ImportMixin, admin.ModelAdmin):
         return kwargs
 
 
-admin.site.register(UserNote, UserNoteAdmin)
-
-
+@admin.register(ChapterNote)
 class ChapterNoteAdmin(ImportMixin, admin.ModelAdmin):
     inlines = [ChapterSubNoteInline]
     raw_id_fields = ["parent"]
@@ -142,9 +140,6 @@ class ChapterNoteAdmin(ImportMixin, admin.ModelAdmin):
         kwargs = super().get_resource_kwargs(request, *args, **kwargs)
         kwargs.update({"created_by": request.user})
         return kwargs
-
-
-admin.site.register(ChapterNote, ChapterNoteAdmin)
 
 
 class ChapterNoteInline(admin.TabularInline):

@@ -1,6 +1,7 @@
-# from users.models import User
-from chapters.models import Chapter
+# from thetatauCMT.users.models import User
 from csv import DictReader
+
+from thetatauCMT.chapters.models import Chapter
 
 file_path = "secrets/20180725_all_all.CSV"
 missing_chapters = set()

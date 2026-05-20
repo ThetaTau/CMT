@@ -5,7 +5,7 @@ from django.conf import settings
 from django.db import migrations, models
 import django.db.models.deletion
 import django.utils.timezone
-import forms.models
+import thetatauCMT.forms.models
 
 
 class Migration(migrations.Migration):
@@ -106,7 +106,7 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "notify_method",
-                    forms.models.MultiSelectField(
+                    thetatauCMT.forms.models.MultiSelectField(
                         choices=[
                             ("postal", "Postal Mail"),
                             ("email", "Email"),
@@ -130,7 +130,7 @@ class Migration(migrations.Migration):
                     "charging_letter",
                     models.FileField(
                         help_text="Please attach a copy of the charging letter that was sent to the member.",
-                        upload_to=forms.models.get_discipline_upload_path,
+                        upload_to=thetatauCMT.forms.models.get_discipline_upload_path,
                     ),
                 ),
                 (
@@ -232,7 +232,7 @@ class Migration(migrations.Migration):
                         blank=True,
                         help_text="Please attach a copy of the minutes from the meeting where the trial was held.",
                         null=True,
-                        upload_to=forms.models.get_discipline_upload_path,
+                        upload_to=thetatauCMT.forms.models.get_discipline_upload_path,
                     ),
                 ),
                 (
@@ -241,7 +241,7 @@ class Migration(migrations.Migration):
                         blank=True,
                         help_text="Please attach a copy of the letter you sent to the member informing them of the outcome of the trial.",
                         null=True,
-                        upload_to=forms.models.get_discipline_upload_path,
+                        upload_to=thetatauCMT.forms.models.get_discipline_upload_path,
                     ),
                 ),
                 (
@@ -292,7 +292,7 @@ class Migration(migrations.Migration):
                     models.FileField(
                         blank=True,
                         null=True,
-                        upload_to=forms.models.get_discipline_upload_path,
+                        upload_to=thetatauCMT.forms.models.get_discipline_upload_path,
                     ),
                 ),
                 (
@@ -300,7 +300,7 @@ class Migration(migrations.Migration):
                     models.FileField(
                         blank=True,
                         null=True,
-                        upload_to=forms.models.get_discipline_upload_path,
+                        upload_to=thetatauCMT.forms.models.get_discipline_upload_path,
                     ),
                 ),
                 (
@@ -342,7 +342,7 @@ class Migration(migrations.Migration):
                     "file",
                     models.FileField(
                         help_text="Please attach a copy of the letter you sent to the member informing them of the outcome of the trial.",
-                        upload_to=forms.models.get_discipline_upload_path,
+                        upload_to=thetatauCMT.forms.models.get_discipline_upload_path,
                     ),
                 ),
                 (

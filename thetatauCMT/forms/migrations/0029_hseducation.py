@@ -4,7 +4,7 @@ import django.core.validators
 from django.db import migrations, models
 import django.db.models.deletion
 import django.utils.timezone
-import forms.models
+import thetatauCMT.forms.models
 
 
 class Migration(migrations.Migration):
@@ -33,7 +33,7 @@ class Migration(migrations.Migration):
                 (
                     "report",
                     models.FileField(
-                        upload_to=forms.models.get_chapter_education_upload_path
+                        upload_to=thetatauCMT.forms.models.get_chapter_education_upload_path
                     ),
                 ),
                 ("program_date", models.DateField(default=django.utils.timezone.now)),

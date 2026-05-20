@@ -1,11 +1,13 @@
 import datetime
-import pytest
+
 import factory
-from faker import Faker
+import pytest
 from django.utils.text import slugify
-from events.tests.factories import EventFactory
-from events.models import Event
-from scores.models import ScoreType
+from faker import Faker
+
+from thetatauCMT.events.models import Event
+from thetatauCMT.events.tests.factories import EventFactory
+from thetatauCMT.scores.models import ScoreType
 
 fake = Faker()
 
@@ -21,17 +23,13 @@ def test_event_instance(event):
 
 
 @pytest.mark.django_db
-@pytest.mark.parametrize(
-    "event__name,event__date", [("Very Special event", datetime.date(2016, 10, 1))]
-)
+@pytest.mark.parametrize("event__name,event__date", [("Very Special event", datetime.date(2016, 10, 1))])
 def test_event_str(event):
     assert str(event) == "Very Special event on 2016-10-01"
 
 
 @pytest.mark.django_db
-@pytest.mark.parametrize(
-    "event__name,event__date", [("Very Special event", datetime.date(2016, 10, 1))]
-)
+@pytest.mark.parametrize("event__name,event__date", [("Very Special event", datetime.date(2016, 10, 1))])
 def test_get_absolute_url(event):
     assert event.get_absolute_url() == (
         "events:detail",
@@ -53,15 +51,13 @@ def test_chapter_events(chapter, event_factory):
 
 
 @pytest.mark.django_db
-def test_calculate_meeting_attendance(
-    chapter, event_factory, user_status_change_factory
-):
+def test_calculate_meeting_attendance(chapter, event_factory, user_status_change_factory):
     score_type = ScoreType.objects.get(name="Attendance at meetings")
     user_status_change_factory.create_batch(
         20,
         status="active",
         user__chapter=chapter,
-        start=factory.Faker("date_between", start_date="-1y", end_date="today"),
+        start=factory.Faker("date_between", start_date="-1y", end_date="-16d"),
         end=factory.Faker("date_between", start_date="today", end_date="+1y"),
     )
     event_factory.create_batch(
@@ -75,8 +71,8 @@ def test_calculate_meeting_attendance(
     date = fake.date_between(start_date="-15d", end_date="-5d")
     actual_score = Event.calculate_meeting_attendance(chapter, date)
     # 10 events at 25% attendance each eval "15*MEETINGS"
-    # Total score is 3.75 and individual event is 3.75/10=0.38
-    assert actual_score == 0.39
+    # avg_attendance = 0.25, score = 15*0.25 = 3.75, event_score = round(3.75/10, 2) = 0.38
+    assert actual_score == 0.38
 
 
 @pytest.mark.django_db

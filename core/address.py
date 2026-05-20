@@ -1,19 +1,15 @@
 import math
-from haversine import haversine
+
+from address.models import Address, Country, InconsistentDictError, Locality, State
+from dal import autocomplete
 from django.conf import settings
 from django.db.models import Q
-from dal import autocomplete
-from address.models import (
-    InconsistentDictError,
-    State,
-    Locality,
-    Country,
-    Address,
-)
+from haversine import haversine
 from pygeocoder import Geocoder, GeocoderError
-from users.models import User
-from chapters.models import Chapter
-from forms.models import DisciplinaryProcess
+
+from thetatauCMT.chapters.models import Chapter
+from thetatauCMT.forms.models import DisciplinaryProcess
+from thetatauCMT.users.models import User
 
 
 def xstr(s):
@@ -54,9 +50,7 @@ def process_value(value):
         if country:
             if len(country_code) > Country._meta.get_field("code").max_length:
                 if country_code != country:
-                    raise ValueError(
-                        "Invalid country code (too long): %s" % country_code
-                    )
+                    raise ValueError("Invalid country code (too long): %s" % country_code)
                 country_code = ""
             country_obj = Country.objects.create(name=country, code=country_code)
         else:
@@ -71,22 +65,16 @@ def process_value(value):
                 if state_code != state:
                     raise ValueError("Invalid state code (too long): %s" % state_code)
                 state_code = ""
-            state_obj = State.objects.create(
-                name=state, code=state_code, country=country_obj
-            )
+            state_obj = State.objects.create(name=state, code=state_code, country=country_obj)
         else:
             state_obj = None
 
     # Handle the locality.
     try:
-        locality_obj = Locality.objects.get(
-            name=locality, postal_code=postal_code, state=state_obj
-        )
+        locality_obj = Locality.objects.get(name=locality, postal_code=postal_code, state=state_obj)
     except Locality.DoesNotExist:
         if locality:
-            locality_obj = Locality.objects.create(
-                name=locality, postal_code=postal_code, state=state_obj
-            )
+            locality_obj = Locality.objects.create(name=locality, postal_code=postal_code, state=state_obj)
         else:
             locality_obj = None
 
@@ -136,9 +124,7 @@ def fix_duplicate_address(value):
         latitude,
         longitude,
     ) = process_value(value)
-    addresses = Address.objects.filter(
-        street_number=street_number, route=route, locality=locality_obj
-    )
+    addresses = Address.objects.filter(street_number=street_number, route=route, locality=locality_obj)
     deduplicate(addresses)
 
 
@@ -247,10 +233,7 @@ def isinradius(zip, distance):
         lngmin, lngmax = lngmax, lngmin
 
     zips = Address.objects.filter(
-        Q(longitude__gt=lngmin)
-        & Q(longitude__lt=lngmax)
-        & Q(latitude__gt=latmin)
-        & Q(latitude__lt=latmax)
+        Q(longitude__gt=lngmin) & Q(longitude__lt=lngmax) & Q(latitude__gt=latmin) & Q(latitude__lt=latmax)
     ).prefetch_related("user_set")
 
     for z in zips:
@@ -265,7 +248,5 @@ class ZipCodeAutocomplete(autocomplete.Select2QuerySetView):
         if self.request.user.is_authenticated:
             if self.q:
                 qs = Locality.objects.all()
-                qs = qs.filter(
-                    Q(name__icontains=self.q) | Q(postal_code__icontains=self.q)
-                )
+                qs = qs.filter(Q(name__icontains=self.q) | Q(postal_code__icontains=self.q))
         return qs.order_by("postal_code")

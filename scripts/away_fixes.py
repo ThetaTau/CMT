@@ -1,16 +1,15 @@
 import datetime
-from forms.models import StatusChange
-from users.models import UserStatusChange
+
 from core.models import TODAY
+from thetatauCMT.forms.models import StatusChange
+from thetatauCMT.users.models import UserStatusChange
 
 
 def run():
     """
     python manage.py runscript away_fixes
     """
-    aways = StatusChange.objects.filter(
-        reason__in=["coop", "covid", "military"], date_end__gt=TODAY
-    )
+    aways = StatusChange.objects.filter(reason__in=["coop", "covid", "military"], date_end__gt=TODAY)
     total = aways.count()
     for count, away in enumerate(aways):
         user = away.user

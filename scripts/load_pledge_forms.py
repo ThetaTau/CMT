@@ -1,10 +1,12 @@
 import csv
 import warnings
 from datetime import datetime
+
 from django.db import transaction
 from django.db.utils import IntegrityError
-from forms.models import Pledge
-from chapters.models import Chapter
+
+from thetatauCMT.chapters.models import Chapter
+from thetatauCMT.forms.models import Pledge
 
 
 def run(*args):
@@ -24,9 +26,7 @@ def run(*args):
                     name=name,
                     chapter=chapter_obj,
                     email=pledge_form["School E-mail"],
-                    created=datetime.strptime(
-                        pledge_form["Submission Date"], "%Y-%m-%d %H:%M:%S"
-                    ),
+                    created=datetime.strptime(pledge_form["Submission Date"], "%Y-%m-%d %H:%M:%S"),
                 )
                 try:
                     with transaction.atomic():

@@ -1,10 +1,10 @@
-ARG PYTHON_VERSION=3.9-slim
+ARG PYTHON_VERSION=3.13-slim
 
 # define an alias for the specfic python version used in this file.
-FROM python:${PYTHON_VERSION} as python
+FROM python:${PYTHON_VERSION} AS python
 
 # Python build stage
-FROM python as python-build-stage
+FROM python AS python-build-stage
 
 ARG BUILD_ENVIRONMENT=local
 
@@ -23,28 +23,38 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
   # Weasyprint dependencies
   libpango-1.0-0 \
   libpangoft2-1.0-0 \
-  gir1.2-harfbuzz-0.0
+  gir1.2-harfbuzz-0.0 \
+  # pycairo (via xhtml2pdf->svglib->rlpycairo) build dependencies
+  pkg-config \
+  libcairo2-dev
 #  libharfbuzz-subset0
 
 # Requirements are installed here to ensure they will be cached.
 COPY ./requirements .
 
 # Create Python Dependency and Sub-Dependency Wheels.
-RUN pip wheel --wheel-dir /usr/src/app/wheels  \
-  -r ${BUILD_ENVIRONMENT}.txt
+# setuptools and poetry-core are pre-built first:
+#   - setuptools provides pkg_resources, required at runtime by django-betterforms
+#   - poetry-core is the build backend for the git-pinned django-report-builder
+# --find-links ensures pip passes the local wheel cache to isolated build
+# environments it spawns for packages like the git-pinned report-builder.
+RUN pip wheel --wheel-dir /usr/src/app/wheels setuptools wheel poetry-core \
+  && pip wheel --wheel-dir /usr/src/app/wheels \
+    --retries 5 \
+    --timeout 60 \
+    --find-links=/usr/src/app/wheels \
+    -r ${BUILD_ENVIRONMENT}.txt
 
 
 # Python 'run' stage
-FROM python as python-run-stage
+FROM python AS python-run-stage
 
 ARG BUILD_ENVIRONMENT=local
 ARG APP_HOME=/app
-ARG DEBUGPY_ON=0
 
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV BUILD_ENV=${BUILD_ENVIRONMENT}
-ENV DEBUGPY_ON=${DEBUGPY_ON}
 
 WORKDIR ${APP_HOME}
 
@@ -53,6 +63,8 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
   # psycopg2 dependencies
   libpq-dev \
   git \
+  # SSH client for development
+  openssh-client \
   # Translations dependencies
   gettext \
   # python-magic dependenies
@@ -69,14 +81,14 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
 # copy python dependency wheels from python-build-stage
 COPY --from=python-build-stage /usr/src/app/wheels  /wheels/
 
-# use wheels to install python dependencies
-RUN pip install --no-cache-dir --no-index --find-links=/wheels/ /wheels/* \
-  && rm -rf /wheels/
+# copy requirements so pip can resolve by name (more reliable than glob for
+# bootstrap packages like setuptools that pip wheel may skip)
+COPY ./requirements /requirements/
 
-# conditional installation of debugpy
-RUN if [ "$DEBUGPY_ON" = "1" ]; then \
-  pip install --no-cache-dir debugpy -t /tmp; \
-  fi
+# use wheels to install python dependencies
+RUN pip install --no-cache-dir --no-index --find-links=/wheels/ -r /requirements/${BUILD_ENVIRONMENT}.txt \
+  && rm -rf /wheels/ /requirements/
+
 
 COPY ./compose/production/django/entrypoint /entrypoint
 RUN sed -i 's/\r$//g' /entrypoint

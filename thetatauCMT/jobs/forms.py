@@ -3,9 +3,9 @@ from crispy_forms.bootstrap import Field, FormActions, InlineField, StrictButton
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Column, Fieldset, Layout, Row, Submit
 from django import forms
-from tempus_dominus.widgets import DatePicker
 
 from core.forms import (
+    DatePicker,
     ListSelect2Multiple,
     Select2ListCreateMultipleChoiceField,
     set_multiple_choices_initial,
@@ -18,7 +18,7 @@ class JobListFormHelper(FormHelper):
     form_method = "GET"
     form_id = "job-search-form"
     form_class = "form-inline"
-    field_template = "bootstrap3/layout/inline_field.html"
+    field_template = "bootstrap5/layout/inline_field.html"
     field_class = "col-xs-3"
     label_class = "col-xs-3"
     form_show_errors = True
@@ -97,7 +97,6 @@ class JobForm(forms.ModelForm):
     )
     country = forms.ModelChoiceField(
         queryset=Country.objects.all(),
-        initial=Country.objects.get(name="United States"),
         help_text="What country is this job posting for?",
     )
 
@@ -125,6 +124,7 @@ class JobForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.fields["country"].initial = Country.objects.get(name="United States")
         if self.instance.id:
             set_multiple_choices_initial(self, "keywords")
             set_multiple_choices_initial(self, "majors")
@@ -135,7 +135,7 @@ class JobSearchFormHelper(FormHelper):
     form_method = "GET"
     form_id = "job-search-form"
     # form_class = "form-inline"
-    # field_template = "bootstrap3/layout/inline_field.html"
+    # field_template = "bootstrap5/layout/inline_field.html"
     field_class = "col-xs-3"
     label_class = "col-xs-3"
     form_show_errors = True
@@ -288,7 +288,7 @@ class JobSearchListFormHelper(FormHelper):
     form_method = "GET"
     form_id = "job-search-form"
     # form_class = "form-inline"
-    # field_template = "bootstrap3/layout/inline_field.html"
+    # field_template = "bootstrap5/layout/inline_field.html"
     field_class = "col-xs-3"
     label_class = "col-xs-3"
     form_show_errors = True

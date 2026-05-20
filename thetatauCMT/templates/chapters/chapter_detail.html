@@ -43,12 +43,44 @@
             {% endif %}
           </tr>
         </table>
+        {% if object.website or object.facebook or object.instagram or object.tiktok or object.linkedin or object.youtube or object.twitter %}
+        <h3>Chapter Social Media:</h3>
+        <p>
+          {% if object.website %}
+            <a href="{{ object.website }}" target="_blank" rel="noopener noreferrer" class="btn btn-outline-secondary btn-sm mr-1">Website</a>
+          {% endif %}
+          {% if object.facebook %}
+            <a href="{{ object.facebook }}" target="_blank" rel="noopener noreferrer" class="btn btn-outline-secondary btn-sm mr-1">Facebook</a>
+          {% endif %}
+          {% if object.instagram %}
+            <a href="{{ object.instagram }}" target="_blank" rel="noopener noreferrer" class="btn btn-outline-secondary btn-sm mr-1">Instagram</a>
+          {% endif %}
+          {% if object.tiktok %}
+            <a href="{{ object.tiktok }}" target="_blank" rel="noopener noreferrer" class="btn btn-outline-secondary btn-sm mr-1">TikTok</a>
+          {% endif %}
+          {% if object.linkedin %}
+            <a href="{{ object.linkedin }}" target="_blank" rel="noopener noreferrer" class="btn btn-outline-secondary btn-sm mr-1">LinkedIn</a>
+          {% endif %}
+          {% if object.youtube %}
+            <a href="{{ object.youtube }}" target="_blank" rel="noopener noreferrer" class="btn btn-outline-secondary btn-sm mr-1">YouTube</a>
+          {% endif %}
+          {% if object.twitter %}
+            <a href="{{ object.twitter }}" target="_blank" rel="noopener noreferrer" class="btn btn-outline-secondary btn-sm mr-1">X / Twitter</a>
+          {% endif %}
+        </p>
+        {% endif %}
       {% endif %}
       {% if request.is_nat_officer %}
-        <h3 id="audit">Chapter Notes:</h3>
-        <p>Notes about the chapter available to National Officers.
-          <a href="{% url 'notes:add' object.slug %}">Add notes here.</a></p>
-        {% render_table note_table %}
+        <h3 id="audit">
+          <a data-toggle="collapse" href="#chapter-notes-collapse" role="button" aria-expanded="false" aria-controls="chapter-notes-collapse" style="color: inherit; text-decoration: none;">
+            Chapter Notes: <small><i class="fa fa-chevron-down"></i></small>
+          </a>
+        </h3>
+        <div class="collapse" id="chapter-notes-collapse">
+          <p>Notes about the chapter available to National Officers.
+            <a href="{% url 'notes:add' object.slug %}">Add notes here.</a></p>
+          {% render_table note_table %}
+        </div>
       {% endif %}
     {% if request.user.current_chapter == object %}
     <h3 id="audit">Chapter Audit:</h3>
@@ -116,7 +148,7 @@
                               {{ field }}
                           </td>
                         {% else %}
-                          {% include 'bootstrap4/field.html' with tag="td" form_show_labels=False form_show_errors=True%}
+                          {% include 'bootstrap5/field.html' with tag="td" form_show_labels=False form_show_errors=True%}
                         {% endif %}
                       {% endfor %}
                   <td>

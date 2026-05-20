@@ -21,18 +21,18 @@ jobs:
     steps:
 
       - name: Checkout Code Repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
-      - name: Set up Python 3.9
-        uses: actions/setup-python@v3
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
         with:
-          python-version: 3.9
+          python-version: "3.12"
 
       # Run all pre-commit hooks on all the files.
       # Getting only staged files can be tricky in case a new PR is opened
       # since the action is run on a branch in detached head state
-      - name: Install and Run Pre-commit 
-        uses: pre-commit/action@v2.0.0
+      - name: Install and Run Pre-commit
+        uses: pre-commit/action@v3.0.1
 
   # With no caching at all the entire ci process takes 4m 30s to complete!
   pytest:
@@ -41,16 +41,20 @@ jobs:
     steps:
 
       - name: Checkout Code Repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Build the Stack
-        run:  docker-compose -f local.yml build
+        run:  docker compose -f docker-compose.local.yml build
 
       - name: Run DB Migrations
-        run:  docker-compose -f local.yml run --rm django python manage.py migrate
+        run:  docker compose -f docker-compose.local.yml run --rm django python manage.py migrate
 
       - name: Run Django Tests
-        run:  docker-compose -f local.yml run django pytest
+        # -p no:randomly ensures deterministic ordering so order-dependent
+        # failures surface consistently rather than flapping between runs.
+        # -n auto parallelizes across all available CPUs (GitHub runners have 4 vCPUs).
+        run:  docker compose -f docker-compose.local.yml run --rm django pytest -p no:randomly -n auto --dist loadgroup
 
       - name: Tear down the Stack
-        run:  docker-compose -f local.yml down
+        if: always()
+        run:  docker compose -f docker-compose.local.yml down

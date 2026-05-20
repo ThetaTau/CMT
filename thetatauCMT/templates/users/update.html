@@ -39,7 +39,7 @@ This will take longer, you will be notified once the update is successful or not
     <tr id="td_{{ field.name }}">
     <th>{{ field.label }}</th>
     <td>{{ user|lookup:field.name }}</td>
-    {% include 'bootstrap4/field.html' with tag="td" form_show_labels=False %}
+    {% include 'bootstrap5/field.html' with tag="td" form_show_labels=False %}
     {% if field.errors %}
       {% for error in field.errors %}
         <strong style="color:red">{{ error }}</strong>

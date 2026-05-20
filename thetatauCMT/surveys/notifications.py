@@ -1,14 +1,10 @@
+from django.conf import settings
 from herald import registry
 from herald.base import EmailNotification
-from django.conf import settings
-
-from configs.models import Config
 
 
 @registry.register_decorator()
-class DepledgeSurveyEmail(
-    EmailNotification
-):  # extend from EmailNotification for emails
+class DepledgeSurveyEmail(EmailNotification):  # extend from EmailNotification for emails
     render_types = ["html"]
     template_name = "depledge_survey"  # name of template, without extension
     subject = "Theta Tau PNM Exit Survey"  # subject of email
@@ -30,7 +26,7 @@ class DepledgeSurveyEmail(
 
     @staticmethod
     def get_demo_args():  # define a static method to return list of args needed to initialize class for testing
-        from forms.models import Depledge
+        from thetatauCMT.forms.models import Depledge
 
         user = Depledge.objects.order_by("?")[0].user
         return [
@@ -54,15 +50,14 @@ class SurveyFollowUpEmail(EmailNotification):
 
     @staticmethod
     def get_demo_args():
-        from .models import DepledgeSurvey
         from django.urls import reverse
         from django.utils.safestring import mark_safe
 
+        from .models import DepledgeSurvey
+
         survey = DepledgeSurvey.objects.order_by("?")[0]
         user = survey.user
-        link = reverse(
-            "admin:surveys_depledgesurvey_change", kwargs={"object_id": survey.id}
-        )
+        link = reverse("admin:surveys_depledgesurvey_change", kwargs={"object_id": survey.id})
         message = mark_safe(
             f"A depledge from {user.chapter.full_name} has asked "
             f"for a follow up to their survey. <br>"
@@ -99,11 +94,10 @@ class SurveyEmail(EmailNotification):  # extend from EmailNotification for email
     @staticmethod
     def get_demo_args():  # define a static method to return list of args needed to initialize class for testing
         from django.urls import reverse
-        from users.models import User
+
+        from thetatauCMT.users.models import User
 
         test_user = User.objects.order_by("?")[0]
 
-        survey_link = settings.CURRENT_URL + reverse(
-            "surveys:survey-detail", kwargs={"slug": "graduation-survey"}
-        )
+        survey_link = settings.CURRENT_URL + reverse("surveys:survey-detail", kwargs={"slug": "graduation-survey"})
         return [test_user, "Graduation", survey_link, "Please fill out the following"]

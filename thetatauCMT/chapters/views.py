@@ -1,29 +1,25 @@
-from django.urls import reverse
-from django.shortcuts import get_object_or_404
 from django.contrib import messages
 from django.forms.models import modelformset_factory
 from django.http.response import HttpResponseRedirect
-from django.views.generic import RedirectView
+from django.shortcuts import get_object_or_404
+from django.urls import reverse
 from django.utils.safestring import mark_safe
-from core.views import (
-    RequestConfig,
-    LoginRequiredMixin,
-    PagedFilteredTableView,
-)
-from core.models import CHAPTER_OFFICER
+from django.views.generic import RedirectView
+
 from core.forms import MultiFormsView
-from .models import Chapter
-from .forms import ChapterForm, ChapterFormHelper
+from core.models import CHAPTER_OFFICER
+from core.views import LoginRequiredMixin, PagedFilteredTableView, RequestConfig
+from thetatauCMT.forms.models import Audit
+from thetatauCMT.forms.notifications import EmailAdvisorWelcome
+from thetatauCMT.notes.tables import ChapterNoteTable
+from thetatauCMT.users.forms import ExternalUserForm
+from thetatauCMT.users.models import User
+from thetatauCMT.users.tables import UserTable
+
 from .filters import ChapterListFilter
-from .tables import ChapterCurriculaTable, ChapterTable, AuditTable
-from users.tables import UserTable
-from users.models import User
-from users.forms import ExternalUserForm
-from tasks.models import Task
-from submissions.models import Submission
-from forms.notifications import EmailAdvisorWelcome
-from forms.models import Audit
-from notes.tables import ChapterNoteTable
+from .forms import ChapterForm, ChapterFormHelper
+from .models import Chapter
+from .tables import AuditTable, ChapterCurriculaTable, ChapterTable
 
 
 class ChapterDetailView(LoginRequiredMixin, MultiFormsView):
@@ -128,11 +124,7 @@ class ChapterDetailView(LoginRequiredMixin, MultiFormsView):
             "debit_card",
             "debit_card_access",
         ]
-        audits = (
-            Audit.objects.filter(user__chapter=chapter)
-            .order_by("-modified")
-            .values(*row_names)
-        )
+        audits = Audit.objects.filter(user__chapter=chapter).order_by("-modified").values(*row_names)
         audit_items = []
         audit_data = {}
         for audit in audits:
@@ -212,9 +204,7 @@ class ChapterRedirectView(LoginRequiredMixin, RedirectView):
     permanent = False
 
     def get_redirect_url(self):
-        return reverse(
-            "chapters:detail", kwargs={"slug": self.request.user.current_chapter.slug}
-        )
+        return reverse("chapters:detail", kwargs={"slug": self.request.user.current_chapter.slug})
 
 
 class ChapterListView(LoginRequiredMixin, PagedFilteredTableView):

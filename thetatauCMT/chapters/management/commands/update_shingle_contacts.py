@@ -3,22 +3,22 @@ Notes:
     To test run command
         docker-compose -f local.yml run --rm django python manage.py chapter_pledges_check
 """
+
+import gspread
 from django.conf import settings
 from django.core.management import BaseCommand
-import gspread
 
-from chapters.models import Chapter
+from thetatauCMT.chapters.models import Chapter
 
 
+# python manage.py update_shingle_contacts
 class Command(BaseCommand):
     # Show this when the user types help
     help = "Sync the current chapter contact information with Shingle Order form"
 
     # A command must define handle()
     def handle(self, *args, **options):
-        service_path = (
-            settings.ROOT_DIR / "secrets" / "ChapterManagementTool-b239bceff1a7.json"
-        )
+        service_path = settings.ROOT_DIR / "secrets" / "ChapterManagementTool-b239bceff1a7.json"
         gc = gspread.service_account(filename=service_path)
         sh = gc.open_by_key("1Tt8VdIkmcSq-mC6rXPWsHfFqXGVYn7LA5UzLKsfMhM8")
         worksheet = sh.worksheet("Chapters")
@@ -67,6 +67,8 @@ class Command(BaseCommand):
                         value = f"{street_num} {street_name}"
                 elif header_name == "Notify":
                     value = ", ".join(chapter_obj.council_emails())
+                elif header_name == "Shopify Customer ID":
+                    value = chapter_obj.get_misc_data("shopify", "Not Set")
                 elif header_name in header_align:
                     chapter_name = header_align[header_name]
                     value = chapter_value[chapter_name]

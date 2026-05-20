@@ -1,15 +1,20 @@
 import datetime
+
 import factory
-from core.models import NAT_OFFICERS, CHAPTER_OFFICER, ADVISOR_ROLES
-from ..models import (
+from faker import Faker as FakerLib
+
+_faker = FakerLib()
+from core.models import ADVISOR_ROLES, CHAPTER_OFFICER, NAT_OFFICERS  # noqa: E402
+from thetatauCMT.chapters.tests.factories import ChapterCurriculaFactory, ChapterFactory  # noqa: E402
+
+from ..models import (  # noqa: E402
     UserAlter,
-    UserSemesterServiceHours,
-    UserSemesterGPA,
-    UserStatusChange,
-    UserRoleChange,
     UserOrgParticipate,
+    UserRoleChange,
+    UserSemesterGPA,
+    UserSemesterServiceHours,
+    UserStatusChange,
 )
-from chapters.tests.factories import ChapterFactory, ChapterCurriculaFactory
 
 
 class UserFactory(factory.django.DjangoModelFactory):
@@ -25,21 +30,24 @@ class UserFactory(factory.django.DjangoModelFactory):
     nickname = factory.Faker("name")
     email_school = factory.Faker("email")
     birth_date = factory.Faker("date_of_birth", minimum_age=18, maximum_age=70)
-    modified = factory.Faker("date_time_between", start_date="-1y", end_date="+1y")
+    modified = factory.Faker(
+        "date_time_between",
+        start_date="-1y",
+        end_date="+1y",
+        tzinfo=datetime.timezone.utc,
+    )
     badge_number = factory.Sequence(lambda n: n + 1)
-    major = factory.SubFactory(ChapterCurriculaFactory)
+    major = factory.LazyAttribute(lambda o: ChapterCurriculaFactory(chapter=o.chapter))
     employer = factory.Faker("sentence", nb_words=3)
     employer_position = factory.Faker("sentence", nb_words=3)
-    graduation_year = factory.Faker(
-        "random_int", min=1950, max=datetime.datetime.now().year + 10
-    )
+    graduation_year = factory.Faker("random_int", min=1950, max=datetime.datetime.now().year + 10)
     phone_number = factory.Faker("msisdn")
     address = factory.Faker("address")
     chapter = factory.SubFactory(ChapterFactory)
 
     class Meta:
         model = "users.User"
-        django_get_or_create = ("username", "id")
+        django_get_or_create = ("username",)
 
     @factory.post_generation
     def make_officer(self, create, extracted, **kwargs):
@@ -60,18 +68,14 @@ class UserFactory(factory.django.DjangoModelFactory):
 class UserAlterFactory(factory.django.DjangoModelFactory):
     user = factory.SubFactory(UserFactory)
     chapter = factory.SubFactory(ChapterFactory)
-    role = factory.Faker(
-        "random_element", elements=[item[0] for item in UserAlter.ROLES]
-    )
+    role = factory.Faker("random_element", elements=[item[0] for item in UserAlter.ROLES])
 
     class Meta:
         model = UserAlter
 
 
 class UserSemesterServiceHoursFactory(factory.django.DjangoModelFactory):
-    year = factory.Faker(
-        "random_element", elements=[item[0] for item in UserSemesterServiceHours.YEARS]
-    )
+    year = factory.Faker("random_int", min=2016, max=2030)
     term = factory.Faker(
         "random_element",
         elements=[item.value[0] for item in UserSemesterServiceHours.TERMS],
@@ -84,9 +88,7 @@ class UserSemesterServiceHoursFactory(factory.django.DjangoModelFactory):
 
 
 class UserSemesterGPAFactory(factory.django.DjangoModelFactory):
-    year = factory.Faker(
-        "random_element", elements=[item[0] for item in UserSemesterGPA.YEARS]
-    )
+    year = factory.Faker("random_int", min=2016, max=2030)
     term = factory.Faker(
         "random_element",
         elements=[item.value[0] for item in UserSemesterGPA.TERMS],
@@ -101,52 +103,68 @@ class UserSemesterGPAFactory(factory.django.DjangoModelFactory):
 class UserStatusChangeFactory(factory.django.DjangoModelFactory):
     start = factory.Faker("date_between", start_date="-4y", end_date="+4y")
     end = factory.Faker("date_between", start_date="-4y", end_date="+4y")
-    created = factory.Faker("date_time_between", start_date="-1y", end_date="+1y")
-    modified = factory.Faker("date_time_between", start_date="-1y", end_date="+1y")
-    user = factory.SubFactory(UserFactory)
-    status = factory.Faker(
-        "random_element", elements=[x.value for x in UserStatusChange.STATUS]
+    created = factory.Faker(
+        "date_time_between",
+        start_date="-1y",
+        end_date="+1y",
+        tzinfo=datetime.timezone.utc,
     )
+    modified = factory.Faker(
+        "date_time_between",
+        start_date="-1y",
+        end_date="+1y",
+        tzinfo=datetime.timezone.utc,
+    )
+    user = factory.SubFactory(UserFactory)
+    status = factory.Faker("random_element", elements=[x.value[0] for x in UserStatusChange.STATUS])
 
     class Meta:
         model = UserStatusChange
+        skip_postgeneration_save = True
 
     @factory.post_generation
     def current(self, create, extracted, **kwargs):
         if extracted:
-            self.start = factory.Faker("date_between", start_date="-4y").generate()
-            self.end = factory.Faker(
-                "date_between", start_date="+1d", end_date="+4y"
-            ).generate()
+            self.start = _faker.date_between(start_date="-4y")
+            self.end = _faker.date_between(start_date="+1d", end_date="+4y")
+            self.save()
 
 
 class UserRoleChangeFactory(factory.django.DjangoModelFactory):
     start = factory.Faker("date_between", start_date="-4y", end_date="+4y")
     end = factory.Faker("date_between", start_date="-4y", end_date="+4y")
-    created = factory.Faker("date_time_between", start_date="-1y", end_date="+1y")
-    modified = factory.Faker("date_time_between", start_date="-1y", end_date="+1y")
-    user = factory.SubFactory(UserFactory)
-    role = factory.Faker(
-        "random_element", elements=[item[0] for item in UserRoleChange.ROLES]
+    created = factory.Faker(
+        "date_time_between",
+        start_date="-1y",
+        end_date="+1y",
+        tzinfo=datetime.timezone.utc,
     )
+    modified = factory.Faker(
+        "date_time_between",
+        start_date="-1y",
+        end_date="+1y",
+        tzinfo=datetime.timezone.utc,
+    )
+    user = factory.SubFactory(UserFactory)
+    role = factory.Faker("random_element", elements=[item[0] for item in UserRoleChange.ROLES])
 
     class Meta:
         model = UserRoleChange
+        skip_postgeneration_save = True
 
     @factory.post_generation
     def current(self, create, extracted, **kwargs):
         if extracted:
-            self.start = factory.Faker("date_between", start_date="-4y").generate()
-            self.end = factory.Faker(
-                "date_between", start_date="+1d", end_date="+4y"
-            ).generate()
+            self.start = _faker.date_between(start_date="-4y")
+            self.end = _faker.date_between(start_date="+1d", end_date="+4y")
         else:
-            self.end = factory.Faker(
-                "date_between", start_date="-239d", end_date="-1d"
-            ).generate()
+            self.end = _faker.date_between(start_date="-239d", end_date="-1d")
+        self.save()
 
     @factory.post_generation
     def officer(self, create, extracted, **kwargs):
+        if not extracted:
+            return
         if extracted == "chapter":
             elements = CHAPTER_OFFICER
         elif extracted == "national":
@@ -155,7 +173,16 @@ class UserRoleChangeFactory(factory.django.DjangoModelFactory):
             elements = ADVISOR_ROLES
         else:
             elements = [extracted]
-        self.role = factory.Faker("random_element", elements=elements).generate()
+        old_role = self.role
+        self.role = _faker.random_element(elements=elements)
+        self.save()
+        # Clean up stale initial random role that the pre-save signal may have
+        # written to user.current_roles before the intended role was set.
+        if old_role != self.role:
+            self.user.refresh_from_db()
+            if self.user.current_roles and old_role in self.user.current_roles:
+                self.user.current_roles.remove(old_role)
+                self.user.save(update_fields=["current_roles"])
 
 
 class UserOrgParticipateFactory(factory.django.DjangoModelFactory):
@@ -163,9 +190,7 @@ class UserOrgParticipateFactory(factory.django.DjangoModelFactory):
     end = factory.Faker("date_between", start_date="-4y", end_date="+4y")
     user = factory.SubFactory(UserFactory)
     org_name = factory.Faker("sentence", nb_words=3)
-    type = factory.Faker(
-        "random_element", elements=[item[0] for item in UserOrgParticipate.TYPES]
-    )
+    type = factory.Faker("random_element", elements=[item[0] for item in UserOrgParticipate.TYPES])
     officer = factory.Faker("boolean")
 
     class Meta:

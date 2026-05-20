@@ -1,50 +1,52 @@
+from django.conf import settings
 from django.contrib import admin
 from django.urls import reverse
-from django.conf import settings
 from django.utils.safestring import mark_safe
 from import_export.admin import ImportExportActionModelAdmin
-from .models import (
-    Badge,
-    Bylaws,
-    Guard,
-    Initiation,
-    Depledge,
-    StatusChange,
-    RiskManagement,
-    PledgeProgram,
-    Audit,
-    Pledge,
-    ChapterReport,
-    HSEducation,
-    Convention,
-    OSM,
-    DisciplinaryProcess,
-    DisciplinaryAttachment,
-    InitiationProcess,
-    PledgeProcess,
-    PrematureAlumnus,
-    CollectionReferral,
-    ResignationProcess,
-    ReturnStudent,
-    PledgeProgramProcess,
-)
-from .resources import (
-    InitiationResource,
-    DepledgeResource,
-    PledgeResource,
-    StatusChangeResource,
-    PledgeProgramResource,
-    PrematureAlumnusResource,
-    CollectionReferralResource,
-    ReturnStudentResource,
-)
+
 from core.admin import user_chapter
 
+from .models import (
+    OSM,
+    Audit,
+    Badge,
+    Bylaws,
+    ChapterReport,
+    CollectionReferral,
+    Convention,
+    Depledge,
+    DisciplinaryAttachment,
+    DisciplinaryProcess,
+    Guard,
+    HSEducation,
+    Initiation,
+    InitiationProcess,
+    Pledge,
+    PledgeProcess,
+    PledgeProgram,
+    PledgeProgramProcess,
+    PrematureAlumnus,
+    ResignationProcess,
+    ReturnStudent,
+    RiskManagement,
+    StatusChange,
+)
+from .resources import (
+    CollectionReferralResource,
+    DepledgeResource,
+    InitiationResource,
+    PledgeProgramResource,
+    PledgeResource,
+    PrematureAlumnusResource,
+    ReturnStudentResource,
+    StatusChangeResource,
+)
 
 admin.site.register(Badge)
 admin.site.register(Guard)
 
 
+@admin.register(ChapterReport)
 class ChapterReportAdmin(admin.ModelAdmin):
     raw_id_fields = ["user"]
     list_display = (
@@ -61,9 +63,7 @@ class ChapterReportAdmin(admin.ModelAdmin):
     ]
 
 
-admin.site.register(ChapterReport, ChapterReportAdmin)
-
-
+@admin.register(HSEducation)
 class HSEducationAdmin(admin.ModelAdmin):
     list_display = ("chapter", "program_date", "category", "approval")
     list_filter = [
@@ -78,9 +78,7 @@ class HSEducationAdmin(admin.ModelAdmin):
     readonly_fields = ("created_by",)
 
 
-admin.site.register(HSEducation, HSEducationAdmin)
-
-
+@admin.register(PledgeProgram)
 class PledgeProgramAdmin(ImportExportActionModelAdmin):
     list_display = (
         "chapter",
@@ -101,9 +99,7 @@ class PledgeProgramAdmin(ImportExportActionModelAdmin):
     resource_class = PledgeProgramResource
 
 
-admin.site.register(PledgeProgram, PledgeProgramAdmin)
-
-
+@admin.register(RiskManagement)
 class RiskManagementAdmin(admin.ModelAdmin):
     raw_id_fields = ["user"]
     list_display = (
@@ -125,9 +121,7 @@ class RiskManagementAdmin(admin.ModelAdmin):
     ]
 
 
-admin.site.register(RiskManagement, RiskManagementAdmin)
-
-
+@admin.register(Audit)
 class AuditAdmin(admin.ModelAdmin):
     raw_id_fields = ["user"]
     list_display = (
@@ -149,9 +143,7 @@ class AuditAdmin(admin.ModelAdmin):
     ]
 
 
-admin.site.register(Audit, AuditAdmin)
-
-
+@admin.register(Initiation)
 class InitiationAdmin(ImportExportActionModelAdmin):
     raw_id_fields = ["user"]
     readonly_fields = ["process_link"]
@@ -173,14 +165,10 @@ class InitiationAdmin(ImportExportActionModelAdmin):
                     "process_pk": process.pk,
                 },
             )
-            return mark_safe(
-                f"<a href='{host}{link}' target='_blank'>Initiation Process Details<a/>"
-            )
+            return mark_safe(f"<a href='{host}{link}' target='_blank'>Initiation Process Details<a/>")
 
 
-admin.site.register(Initiation, InitiationAdmin)
-
-
+@admin.register(Depledge)
 class DepledgeAdmin(ImportExportActionModelAdmin):
     raw_id_fields = ["user"]
     list_display = ("user", "reason", "date", "created", user_chapter)
@@ -192,9 +180,7 @@ class DepledgeAdmin(ImportExportActionModelAdmin):
     resource_class = DepledgeResource
 
 
-admin.site.register(Depledge, DepledgeAdmin)
-
-
+@admin.register(StatusChange)
 class StatusChangeAdmin(ImportExportActionModelAdmin):
     raw_id_fields = ["user"]
     list_display = ("user", "reason", "date_start", "date_end", "created", user_chapter)
@@ -207,9 +193,7 @@ class StatusChangeAdmin(ImportExportActionModelAdmin):
     resource_class = StatusChangeResource
 
 
-admin.site.register(StatusChange, StatusChangeAdmin)
-
-
+@admin.register(Pledge)
 class PledgeAdmin(ImportExportActionModelAdmin):
     list_display = ("user", "created", user_chapter)
     raw_id_fields = [
@@ -226,9 +210,7 @@ class PledgeAdmin(ImportExportActionModelAdmin):
     resource_class = PledgeResource
 
 
-admin.site.register(Pledge, PledgeAdmin)
-
-
+@admin.register(Convention)
 class ConventionAdmin(admin.ModelAdmin):
     raw_id_fields = ["delegate", "alternate", "officer1", "officer2"]
     list_display = (
@@ -248,9 +230,7 @@ class ConventionAdmin(admin.ModelAdmin):
     search_fields = ["delegate__name", "alternate__name"]
 
 
-admin.site.register(Convention, ConventionAdmin)
-
-
+@admin.register(OSM)
 class OSMAdmin(admin.ModelAdmin):
     raw_id_fields = ["nominate", "officer1", "officer2"]
     list_display = (
@@ -272,15 +252,13 @@ class OSMAdmin(admin.ModelAdmin):
     ]
 
 
-admin.site.register(OSM, OSMAdmin)
-
-
 class DisciplinaryAttachmentInline(admin.TabularInline):
     model = DisciplinaryAttachment
     fields = ["file"]
     show_change_link = True
 
 
+@admin.register(DisciplinaryProcess)
 class DisciplinaryProcessAdmin(admin.ModelAdmin):
     inlines = [DisciplinaryAttachmentInline]
     raw_id_fields = [
@@ -318,15 +296,13 @@ class DisciplinaryProcessAdmin(admin.ModelAdmin):
     ]
 
 
-admin.site.register(DisciplinaryProcess, DisciplinaryProcessAdmin)
-
-
 class InitiationInline(admin.TabularInline):
     model = InitiationProcess.initiations.through
     raw_id_fields = ["initiation"]
     extra = 1
 
 
+@admin.register(InitiationProcess)
 class InitiationProcessAdmin(admin.ModelAdmin):
     list_display = (
         "chapter",
@@ -357,15 +333,13 @@ class InitiationProcessAdmin(admin.ModelAdmin):
     inlines = [InitiationInline]
 
 
-admin.site.register(InitiationProcess, InitiationProcessAdmin)
-
-
 class PledgeInline(admin.TabularInline):
     model = PledgeProcess.pledges.through
     extra = 1
     raw_id_fields = ("pledge",)
 
 
+@admin.register(PledgeProcess)
 class PledgeProcessAdmin(admin.ModelAdmin):
     inlines = [PledgeInline]
     list_display = (
@@ -395,9 +369,7 @@ class PledgeProcessAdmin(admin.ModelAdmin):
     ]
 
 
-admin.site.register(PledgeProcess, PledgeProcessAdmin)
-
-
+@admin.register(ResignationProcess)
 class ResignationProcessAdmin(admin.ModelAdmin):
     raw_id_fields = (
         "user",
@@ -430,9 +402,7 @@ class ResignationProcessAdmin(admin.ModelAdmin):
     ]
 
 
-admin.site.register(ResignationProcess, ResignationProcessAdmin)
-
-
+@admin.register(PrematureAlumnus)
 class PrematureAlumnusAdmin(ImportExportActionModelAdmin):
     raw_id_fields = ("user",)
     list_display = (
@@ -464,9 +434,7 @@ class PrematureAlumnusAdmin(ImportExportActionModelAdmin):
     resource_class = PrematureAlumnusResource
 
 
-admin.site.register(PrematureAlumnus, PrematureAlumnusAdmin)
-
-
+@admin.register(CollectionReferral)
 class CollectionReferralAdmin(ImportExportActionModelAdmin):
     raw_id_fields = (
         "created_by",
@@ -487,9 +455,7 @@ class CollectionReferralAdmin(ImportExportActionModelAdmin):
     resource_class = CollectionReferralResource
 
 
-admin.site.register(CollectionReferral, CollectionReferralAdmin)
-
-
+@admin.register(ReturnStudent)
 class ReturnStudentAdmin(ImportExportActionModelAdmin):
     raw_id_fields = ("user",)
     list_display = (
@@ -519,9 +485,7 @@ class ReturnStudentAdmin(ImportExportActionModelAdmin):
     resource_class = ReturnStudentResource
 
 
-admin.site.register(ReturnStudent, ReturnStudentAdmin)
-
-
+@admin.register(Bylaws)
 class BylawsAdmin(ImportExportActionModelAdmin):
     list_display = (
         "chapter",
@@ -536,9 +500,7 @@ class BylawsAdmin(ImportExportActionModelAdmin):
     ]
 
 
-admin.site.register(Bylaws, BylawsAdmin)
-
-
+@admin.register(PledgeProgramProcess)
 class PledgeProgramProcessAdmin(admin.ModelAdmin):
     list_display = (
         "chapter",
@@ -560,6 +522,3 @@ class PledgeProgramProcessAdmin(admin.ModelAdmin):
         "artifact_object_id",
         "data",
     ]
-
-
-admin.site.register(PledgeProgramProcess, PledgeProgramProcessAdmin)

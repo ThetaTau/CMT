@@ -1,16 +1,18 @@
-import json
-import datetime
-import core.requests as requests
 import base64
+import datetime
+import json
 from time import sleep
-from django.core.mail import send_mail
+
 from django.conf import settings
 from django.contrib import messages
+from django.core.mail import send_mail
 from django.db import models
-from django.http import Http404
 from django.db.models import Q
+from django.http import Http404
+
+import core.requests as requests
 from core.models import TimeStampedModel
-from users.models import User
+from thetatauCMT.users.models import User
 
 
 class Training(TimeStampedModel):
@@ -56,9 +58,7 @@ class Training(TimeStampedModel):
                     json.dump(response_json, file_obj)
             else:
                 # There was an error
-                raise Http404(
-                    f"Training System authentication error: {response.reason}"
-                )
+                raise Http404(f"Training System authentication error: {response.reason}")
         authenticate_header = {
             "Accept": "application/json",
             "Content-Type": "application/json",
@@ -108,11 +108,9 @@ class Training(TimeStampedModel):
                 }}
                 """
             try:
-                response = requests.post(
-                    url, json={"query": query}, headers=authenticate_header
-                )
+                response = requests.post(url, json={"query": query}, headers=authenticate_header)
                 json_response = response.json()
-            except:
+            except Exception:
                 if response.status_code == 429:
                     print("Delay for 300...")
                     sleep(300)
@@ -125,9 +123,7 @@ class Training(TimeStampedModel):
             total = json_response["data"]["People"]["pageInfo"]["totalCount"]
             batch_num += 1
             for count, user_info in enumerate(users):
-                print(
-                    f"Working on {count + 1 + (100 * batch_num)}/{total} batch has more {has_next}"
-                )
+                print(f"Working on {count + 1 + (100 * batch_num)}/{total} batch has more {has_next}")
                 progresses = user_info["progress"]
                 username = user_info["username"]
                 user_pk = user_info["externalUniqueId"]
@@ -174,18 +170,12 @@ class Training(TimeStampedModel):
                 )
                 print(values)
                 try:
-                    obj, created = Training.objects.update_or_create(
-                        user=user, course_id=course_id, defaults=values
-                    )
+                    obj, created = Training.objects.update_or_create(user=user, course_id=course_id, defaults=values)
                 except Training.MultipleObjectsReturned:
-                    trainings = Training.objects.filter(
-                        user=user, course_id=course_id
-                    ).order_by("-created")
+                    trainings = Training.objects.filter(user=user, course_id=course_id).order_by("-created")
                     for training in trainings[1:]:
                         training.delete()
-                    obj, created = Training.objects.update_or_create(
-                        user=user, course_id=course_id, defaults=values
-                    )
+                    obj, created = Training.objects.update_or_create(user=user, course_id=course_id, defaults=values)
 
     @staticmethod
     def get_extra_groups():
@@ -217,14 +207,10 @@ class Training(TimeStampedModel):
                     }}
                 }}
                 """
-            response = requests.post(
-                url, json={"query": query_positions}, headers=authenticate_header
-            )
+            response = requests.post(url, json={"query": query_positions}, headers=authenticate_header)
             json_response = response.json()
             extra_groups = [
-                (node["code"], node["name"])
-                for node in json_response["data"]["Positions"]["nodes"]
-                if node["code"]
+                (node["code"], node["name"]) for node in json_response["data"]["Positions"]["nodes"] if node["code"]
             ]
             extra_groups_total.extend(extra_groups)
             has_next = json_response["data"]["Positions"]["pageInfo"]["hasNextPage"]
@@ -247,9 +233,7 @@ class Training(TimeStampedModel):
                     }}
                 }}
                 """
-        response = requests.post(
-            url, json={"query": query_locations}, headers=authenticate_header
-        )
+        response = requests.post(url, json={"query": query_locations}, headers=authenticate_header)
         all_locations = response.json()
         location_id = all_locations["data"]["Locations"]["nodes"][0]["locationId"]
         # Frontend will let you add position as long as you want,
@@ -265,9 +249,7 @@ class Training(TimeStampedModel):
                     }}
                 }}
                 """
-        response = requests.post(
-            url, json={"query": query_positions}, headers=authenticate_header
-        )
+        response = requests.post(url, json={"query": query_positions}, headers=authenticate_header)
         all_positions = response.json()
         position_id_nodes = all_positions["data"]["Positions"]["nodes"]
         if position_id_nodes:
@@ -287,9 +269,7 @@ class Training(TimeStampedModel):
                     }}
                 }}
                 """
-            response = requests.post(
-                url, json={"query": add_position}, headers=authenticate_header
-            )
+            response = requests.post(url, json={"query": add_position}, headers=authenticate_header)
             new_positions = response.json()
             position_id = new_positions["data"]["addPosition"]["positionId"]
         return location_id, position_id
@@ -307,11 +287,10 @@ class Training(TimeStampedModel):
             "away": "active",
             "activepend": "active",
             "alumnipend": "alumni",
+            "": "pnm",
         }
         status = status_align.get(status, status)
-        location_id, position_id = Training.get_location_position_ids(
-            status, user.chapter.name
-        )
+        location_id, position_id = Training.get_location_position_ids(status, user.chapter.name)
         if not location_id or not position_id:
             response_json_location_add = ""
             if not location_id:
@@ -328,13 +307,9 @@ class Training(TimeStampedModel):
                 }}
                 """
                 authenticate_header = Training.authenticate_header()
-                response = requests.post(
-                    url, json={"query": location_add}, headers=authenticate_header
-                )
+                response = requests.post(url, json={"query": location_add}, headers=authenticate_header)
                 response_json_location_add = response.json()
-                location_id = response_json_location_add["data"]["addLocation"][
-                    "locationId"
-                ]
+                location_id = response_json_location_add["data"]["addLocation"]["locationId"]
             if not location_id or not position_id:
                 message = (
                     f"Sync training is missing:<br>{location_id=} {position_id=} for {user=} should be "
@@ -367,9 +342,7 @@ class Training(TimeStampedModel):
             }}
         }}
         """
-        response = requests.post(
-            url, headers=authenticate_header, json={"query": add_user_mutation}
-        )
+        response = requests.post(url, headers=authenticate_header, json={"query": add_user_mutation})
         if response.status_code == 200:
             response_json = response.json()
             """
@@ -386,9 +359,7 @@ class Training(TimeStampedModel):
                 message = f"{user} successfully added to training system"
                 level = messages.INFO
                 person_id = response_json["data"]["addPerson"]["personId"]
-            elif (
-                "This username already exists" in response_json["errors"][0]["message"]
-            ):
+            elif "This username already exists" in response_json["errors"][0]["message"]:
                 query = f"""
                 query a
                 {{ username: People (username: "{user.username}" )
@@ -417,9 +388,7 @@ class Training(TimeStampedModel):
                     }}
                 }}
                 """
-                response = requests.post(
-                    url, headers=authenticate_header, json={"query": query}
-                )
+                response = requests.post(url, headers=authenticate_header, json={"query": query})
                 response_json = response.json()
                 people_nodes = []
                 for node_name in [
@@ -434,21 +403,19 @@ class Training(TimeStampedModel):
                     person_id = people_nodes[0]["personId"]
                     ids = set([people_node["personId"] for people_node in people_nodes])
                     if len(ids) > 1:
-                        message = f"{user} Had multiple matching accounts. All other accounts, using first {people_nodes}"
+                        message = (
+                            f"{user} Had multiple matching accounts. All other accounts, using first {people_nodes}"
+                        )
                         level = messages.ERROR
                 else:
                     message = f"{user} NOT added to training system or updated, maybe an error. {response_json}"
                     level = messages.ERROR
             else:
-                message = (
-                    f"{user} NOT added to training system, maybe an error. {response}"
-                )
+                message = f"{user} NOT added to training system, maybe an error. {response}"
                 level = messages.ERROR
 
             def add_extra_group(extra_group, location, person_id):
-                location_id, position_id = Training.get_location_position_ids(
-                    extra_group, location
-                )
+                location_id, position_id = Training.get_location_position_ids(extra_group, location)
                 query = f"""
                     mutation  JobMutation {{
                         Person (personId: "{person_id}") {{
@@ -458,9 +425,7 @@ class Training(TimeStampedModel):
                       }}
                     }}
                     """
-                response = requests.post(
-                    url, json={"query": query}, headers=authenticate_header
-                )
+                response = requests.post(url, json={"query": query}, headers=authenticate_header)
                 json_response = response.json()
                 print(json_response)
 
@@ -469,9 +434,7 @@ class Training(TimeStampedModel):
                 message += f" Added {user} to extra_group=natoff and location=Theta Tau"
             if person_id and extra_group:
                 add_extra_group(extra_group, user.chapter.name, person_id)
-                message += (
-                    f" Added {user} to {extra_group=} and location={user.chapter.name}"
-                )
+                message += f" Added {user} to {extra_group=} and location={user.chapter.name}"
         elif response.status_code == 429:
             # 150 requests per rolling 300 seconds
             sleep(120)
@@ -510,9 +473,7 @@ class Training(TimeStampedModel):
             }}
          }}"""
         #
-        response = requests.post(
-            url, json={"query": find_id_query}, headers=authenticate_header
-        )
+        response = requests.post(url, json={"query": find_id_query}, headers=authenticate_header)
         person_id = None
         if response.status_code == 429:
             # 150 requests per rolling 300 seconds
@@ -534,18 +495,14 @@ class Training(TimeStampedModel):
                 if nodes:
                     person_id = nodes[0]["personId"]
                 elif id_type == "id":
-                    print(
-                        f"    No id found for type {id_type} for {user} {response_json}"
-                    )
-                    person_id, message, level = Training.get_person_id(
-                        user, id_type="username", request=request
-                    )
+                    print(f"    No id found for type {id_type} for {user} {response_json}")
+                    person_id, message, level = Training.get_person_id(user, id_type="username", request=request)
                 else:
-                    print(
-                        f"    No id found for type {id_type} for {user} {response_json}"
-                    )
+                    print(f"    No id found for type {id_type} for {user} {response_json}")
             else:
-                message = f"    {user} NOT deactivated from training system, ERROR getting ID maybe an error. {response_json}"
+                message = (
+                    f"    {user} NOT deactivated from training system, ERROR getting ID maybe an error. {response_json}"
+                )
                 level = messages.ERROR
         return person_id, message, level
 
@@ -582,9 +539,7 @@ class Training(TimeStampedModel):
                     'username': 'jim.gaffney@thetatau.org'}}}}
                 """
                 if "errors" not in response_json:
-                    message = (
-                        f"    {user} successfully deactivated from training system"
-                    )
+                    message = f"    {user} successfully deactivated from training system"
                     level = messages.INFO
                 else:
                     message = f"    {user} NOT deactivated from training system, maybe an error. {response_json}"
@@ -608,18 +563,14 @@ class Training(TimeStampedModel):
         client_id = settings.ED_ID
         client_secret = settings.ED_SECRET
         credential = f"{client_id}:{client_secret}"
-        encoded_credential = base64.b64encode(credential.encode("utf-8")).decode(
-            "utf-8"
-        )
+        encoded_credential = base64.b64encode(credential.encode("utf-8")).decode("utf-8")
         headers = {
             "Authorization": f"Basic {encoded_credential}",
             "Cache-Control": "no-cache",
         }
         data = {"grant_type": "client_credentials", "token_type": "jwt"}
 
-        token_request = requests.post(
-            "https://ed.thetatau.org/oauth2/access_token", headers=headers, data=data
-        )
+        token_request = requests.post("https://ed.thetatau.org/oauth2/access_token", headers=headers, data=data)
         access_token = token_request.json()["access_token"]
         headers = {"Authorization": f"JWT {access_token}"}
 
@@ -646,8 +597,6 @@ class Training(TimeStampedModel):
         if response.status_code != 200:
             level = messages.ERROR
             response_json = response.json()
-            message = (
-                f"{user} NOT added to training system, maybe an error. {response_json}"
-            )
+            message = f"{user} NOT added to training system, maybe an error. {response_json}"
 
         messages.add_message(request, level, message)

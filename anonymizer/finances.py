@@ -1,6 +1,6 @@
-from dj_anonymizer.register_models import register_clean, AnonymBase
+from dj_anonymizer.register_models import AnonymBase, register_clean
 
-from finances.models import Invoice
+from thetatauCMT.finances.models import Invoice
 
 register_clean(
     [

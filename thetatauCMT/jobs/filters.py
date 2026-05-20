@@ -18,9 +18,7 @@ def get_filter_expression(name, value):
 
 
 class JobListFilter(django_filters.FilterSet):
-    text_search = django_filters.CharFilter(
-        method="text_search_filter", label="Free Text Search"
-    )
+    text_search = django_filters.CharFilter(method="text_search_filter", label="Free Text Search")
 
     contact = django_filters.ChoiceFilter(
         label="Contact Available",
@@ -30,9 +28,7 @@ class JobListFilter(django_filters.FilterSet):
         ),
     )
     education_qualification = django_filters.MultipleChoiceFilter(
-        choices=sorted(
-            [x.value for x in Job.EDUCATION_QUALIFICATION], key=lambda x: x[1]
-        ),
+        choices=sorted([x.value for x in Job.EDUCATION_QUALIFICATION], key=lambda x: x[1]),
         method="filter_expression",
     )
     experience = django_filters.MultipleChoiceFilter(

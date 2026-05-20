@@ -21,8 +21,7 @@ class JobDetailView(LoginRequiredMixin, DetailView):
         obj = self.get_object()
         now = timezone.now().date()
         if (
-            (obj.publish_start and now < obj.publish_start)
-            or (obj.publish_end and now > obj.publish_end)
+            (obj.publish_start and now < obj.publish_start) or (obj.publish_end and now > obj.publish_end)
         ) and obj.created_by != request.user:
             messages.error(request, f"The job {obj.title} is not currently available.")
             return redirect("jobs:list")
@@ -70,7 +69,7 @@ class JobCopyView(JobCreateView):
     ]
 
     def get_job_initial(self):
-        job = Job.objects.get(pk=self.kwargs["pk"])
+        Job.objects.get(pk=self.kwargs["pk"])
         self.initial = {}
         return self.initial
 

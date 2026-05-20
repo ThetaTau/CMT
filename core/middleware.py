@@ -1,14 +1,14 @@
-from django.shortcuts import redirect
-from django.contrib import messages
-from django.conf import settings
-from django.urls import reverse
-from django.utils.safestring import mark_safe
-from django.utils.deprecation import MiddlewareMixin
 from allauth_2fa.middleware import BaseRequire2FAMiddleware
+from django.conf import settings
+from django.contrib import messages
+from django.shortcuts import redirect
+from django.urls import reverse
+from django.utils.deprecation import MiddlewareMixin
+from django.utils.safestring import mark_safe
 
-from forms.models import RiskManagement, PledgeProgram
-from core.utils import check_officer, check_nat_officer
-from core.models import current_term, current_month
+from core.models import current_month, current_term
+from core.utils import check_nat_officer, check_officer
+from thetatauCMT.forms.models import PledgeProgram, RiskManagement
 
 
 class RequireSuperuser2FAMiddleware(BaseRequire2FAMiddleware):
@@ -35,17 +35,14 @@ class RMPSignMiddleware(MiddlewareMixin):
             messages.add_message(
                 request,
                 messages.ERROR,
-                "You must sign the Risk Management Policies and Agreements "
-                "of Theta Tau this semester.",
+                "You must sign the Risk Management Policies and Agreements " "of Theta Tau this semester.",
             )
             return redirect("rmp")
         if request.user.chapter_officer(altered=False):
             should_submit = (current_term() == "sp" and current_month() >= 2) or (
                 current_term() == "fa" and current_month() >= 9
             )
-            if should_submit and not PledgeProgram.signed_this_semester(
-                request.user.current_chapter
-            ):
+            if should_submit and not PledgeProgram.signed_this_semester(request.user.current_chapter):
                 host = settings.CURRENT_URL
                 link = reverse("viewflow:forms:pledgeprogramprocess:start")
                 link = host + link

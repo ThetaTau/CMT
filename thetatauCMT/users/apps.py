@@ -3,7 +3,7 @@ from watson import search as watson
 
 
 class UsersConfig(AppConfig):
-    name = "users"
+    name = "thetatauCMT.users"
     verbose_name = "Users"
 
     def ready(self):
@@ -12,7 +12,7 @@ class UsersConfig(AppConfig):
         Users signal registration
         """
         try:
-            import users.signals  # noqa F401
+            import thetatauCMT.users.signals  # noqa F401
         except ImportError:
             pass
         model = self.get_model("User")

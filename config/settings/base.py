@@ -1,11 +1,13 @@
 """
 Base settings to build other settings files upon.
 """
-from pathlib import Path
-from google.oauth2 import service_account
-import environ
+
 import warnings
+from pathlib import Path
+
+import environ
 import rollbar
+from google.oauth2 import service_account
 
 ROOT_DIR = Path(__file__).resolve(strict=True).parent.parent.parent
 # thetataucmt/
@@ -13,7 +15,7 @@ APPS_DIR = ROOT_DIR / "thetatauCMT"
 env = environ.Env()
 ENV = "base"
 
-READ_DOT_ENV_FILE = env.bool("DJANGO_READ_DOT_ENV_FILE", default=False)
+READ_DOT_ENV_FILE = env.bool("DJANGO_READ_DOT_ENV_FILE", default=True)
 if READ_DOT_ENV_FILE:
     # OS environment variables take precedence over variables from .env
     env.read_env(str(ROOT_DIR / ".env"))
@@ -34,7 +36,6 @@ SITE_ID = 1
 # https://docs.djangoproject.com/en/dev/ref/settings/#use-i18n
 USE_I18N = True
 # https://docs.djangoproject.com/en/dev/ref/settings/#use-l10n
-USE_L10N = True
 # https://docs.djangoproject.com/en/dev/ref/settings/#use-tz
 USE_TZ = True
 # https://docs.djangoproject.com/en/dev/ref/settings/#locale-paths
@@ -45,9 +46,7 @@ LOCALE_PATHS = [str(ROOT_DIR / "locale")]
 # https://docs.djangoproject.com/en/dev/ref/settings/#databases
 
 DATABASES = {
-    "default": env.db(
-        "DATABASE_URL", default="postgres://postgres:test@localhost:5432/thetatauCMT"
-    ),
+    "default": env.db("DATABASE_URL", default="postgres://postgres:test@localhost:5432/thetatauCMT"),
 }
 DATABASES["default"]["ATOMIC_REQUESTS"] = True
 
@@ -77,6 +76,7 @@ DJANGO_APPS = [
 ]
 THIRD_PARTY_APPS = [
     "crispy_forms",
+    "crispy_bootstrap5",
     "allauth",
     "allauth.account",
     "allauth.socialaccount",
@@ -85,7 +85,7 @@ THIRD_PARTY_APPS = [
     "address",
     "django_tables2",
     "django_filters",
-    "bootstrap4",
+    "django_bootstrap5",
     "django_extensions",  # https://github.com/pydanny/cookiecutter-django/issues/417
     "herald",
     "multiselectfield",
@@ -100,9 +100,8 @@ THIRD_PARTY_APPS = [
     "import_export",
     "dbbackup",
     "watson",
-    "ckeditor",
-    "ckeditor_uploader",
-    "captcha",
+    "django_ckeditor_5",
+    "django_recaptcha",
     "report_builder",
     "django_otp",
     "django_otp.plugins.otp_static",
@@ -110,8 +109,8 @@ THIRD_PARTY_APPS = [
     "allauth_2fa",
     "hcaptcha",
     "termsandconditions",
-    "bootstrapform",
-    "survey",
+    "bootstrapform",  # used by django-survey-and-report
+    "survey",  # This is django-survey-and-report
     "simple_history",
     "django_userforeignkey",
 ]
@@ -199,6 +198,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django_otp.middleware.OTPMiddleware",
     "allauth_2fa.middleware.AllauthTwoFactorMiddleware",
+    "allauth.account.middleware.AccountMiddleware",
     "oauth2_provider.middleware.OAuth2TokenMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.common.BrokenLinkEmailsMiddleware",
@@ -240,6 +240,13 @@ MEDIA_ROOT = str(APPS_DIR / "media")
 # https://docs.djangoproject.com/en/dev/ref/settings/#media-url
 MEDIA_URL = "/media/"
 
+# FORM RENDERER
+# ------------------------------------------------------------------------------
+# Use div.html rendering (Django 5.0 default) to silence the RemovedInDjango50Warning
+# about the deprecated "default.html" form/formset template.
+# https://docs.djangoproject.com/en/4.2/ref/settings/#form-renderer
+FORM_RENDERER = "django.forms.renderers.DjangoDivFormRenderer"
+
 # TEMPLATES
 # ------------------------------------------------------------------------------
 # https://docs.djangoproject.com/en/dev/ref/settings/#templates
@@ -272,10 +279,11 @@ TEMPLATES = [
     }
 ]
 # http://django-crispy-forms.readthedocs.io/en/latest/install.html#template-packs
-CRISPY_TEMPLATE_PACK = "bootstrap4"
+CRISPY_TEMPLATE_PACK = "bootstrap5"
+CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap5"
 
 # https://django-tables2.readthedocs.io/en/latest/pages/custom-rendering.html#available-templates
-DJANGO_TABLES2_TEMPLATE = "django_tables2/bootstrap4.html"
+DJANGO_TABLES2_TEMPLATE = "django_tables2/bootstrap5.html"
 
 # FIXTURES
 # ------------------------------------------------------------------------------
@@ -289,8 +297,6 @@ SESSION_COOKIE_HTTPONLY = True
 # https://docs.djangoproject.com/en/dev/ref/settings/#csrf-cookie-httponly
 # Report Builder requires false, https://gitlab.com/burke-software/django-report-builder/-/issues/286
 CSRF_COOKIE_HTTPONLY = False
-# https://docs.djangoproject.com/en/dev/ref/settings/#secure-browser-xss-filter
-SECURE_BROWSER_XSS_FILTER = True
 # https://docs.djangoproject.com/en/dev/ref/settings/#x-frame-options
 X_FRAME_OPTIONS = "DENY"
 
@@ -324,12 +330,7 @@ MANAGERS = ADMINS
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
-    "formatters": {
-        "verbose": {
-            "format": "%(levelname)s %(asctime)s %(module)s "
-            "%(process)d %(thread)d %(message)s"
-        }
-    },
+    "formatters": {"verbose": {"format": "%(levelname)s %(asctime)s %(module)s " "%(process)d %(thread)d %(message)s"}},
     "handlers": {
         "console": {
             "level": "DEBUG",
@@ -339,6 +340,11 @@ LOGGING = {
     },
     "root": {"level": "INFO", "handlers": ["console"]},
     "loggers": {
+        "django": {
+            "handlers": ["console"],
+            "level": "INFO",
+            "propagate": False,
+        },
         "survey": {
             "handlers": ["console"],
             "level": "ERROR",
@@ -352,15 +358,15 @@ LOGGING = {
 # ------------------------------------------------------------------------------
 ACCOUNT_ALLOW_REGISTRATION = env.bool("DJANGO_ACCOUNT_ALLOW_REGISTRATION", False)
 # https://django-allauth.readthedocs.io/en/latest/configuration.html
-ACCOUNT_AUTHENTICATION_METHOD = "email"
+ACCOUNT_LOGIN_METHODS = {"email"}
 # https://django-allauth.readthedocs.io/en/latest/configuration.html
-ACCOUNT_EMAIL_REQUIRED = True
+ACCOUNT_SIGNUP_FIELDS = ["email*", "username*", "password1*", "password2*"]
 # https://django-allauth.readthedocs.io/en/latest/configuration.html
 ACCOUNT_EMAIL_VERIFICATION = "mandatory"
 # https://django-allauth.readthedocs.io/en/latest/configuration.html
-ACCOUNT_ADAPTER = "users.adapters.AccountAdapter"
+ACCOUNT_ADAPTER = "thetatauCMT.users.adapters.AccountAdapter"
 # https://django-allauth.readthedocs.io/en/latest/configuration.html
-SOCIALACCOUNT_ADAPTER = "users.adapters.SocialAccountAdapter"
+SOCIALACCOUNT_ADAPTER = "thetatauCMT.users.adapters.SocialAccountAdapter"
 
 OAUTH2_PROVIDER = {
     "OIDC_ENABLED": True,
@@ -390,6 +396,8 @@ if GOOGLE_API_KEY == "TESTING":
             GOOGLE_API_KEY = key_file.read()
     except FileNotFoundError:
         warnings.warn("GOOGLE_API_KEY is not set in environment or secrets folder!")
+
+FILE_STORAGE_TO_USE = "django.core.files.storage.FileSystemStorage"
 try:
     GOOGLE_APPLICATION_CREDENTIALS = env(
         "GOOGLE_APPLICATION_CREDENTIALS",
@@ -399,12 +407,10 @@ try:
         str(ROOT_DIR / "secrets" / "chaptermanagementtool-e11151065a69.json")
     )
 except FileNotFoundError:
-    warnings.warn(
-        "Google credentials not found! Missing secrets/chaptermanagementtool-e11151065a69.json"
-    )
+    warnings.warn("Google credentials not found! Missing secrets/chaptermanagementtool-e11151065a69.json")
 else:
     # GoogleCloudStorage LINK https://console.cloud.google.com/storage/browser/theta-tau?authuser=3&folder=true&organizationId=true&project=chaptermanagementtool
-    DEFAULT_FILE_STORAGE = "storages.backends.gcloud.GoogleCloudStorage"
+    FILE_STORAGE_TO_USE = "storages.backends.gcloud.GoogleCloudStorage"
     GS_BUCKET_NAME = "theta-tau"
     GS_DEFAULT_ACL = "publicRead"
 
@@ -437,9 +443,7 @@ DBBACKUP_CONNECTORS = {
 }
 if DBBACKUP_LOCAL:
     DBBACKUP_STORAGE = "django.core.files.storage.FileSystemStorage"
-    DBBACKUP_STORAGE_LOCATION = env(
-        "DBBACKUP_STORAGE_LOCATION", default="database_backups"
-    )
+    DBBACKUP_STORAGE_LOCATION = env("DBBACKUP_STORAGE_LOCATION", default="database_backups")
     DBBACKUP_STORAGE_OPTIONS = {"location": DBBACKUP_STORAGE_LOCATION}
     DBBACKUP_CLEANUP_KEEP = 2
 else:
@@ -467,7 +471,141 @@ PLOTLY_COMPONENTS = [
     "dpd_components",
 ]
 
+CKEDITOR_5_ALLOW_ALL_FILE_TYPES = True
 CKEDITOR_UPLOAD_PATH = "uploads/"
+CKEDITOR_5_CONFIGS = {
+    "default": {
+        "toolbar": {
+            "items": [
+                "heading",
+                "|",
+                "bold",
+                "italic",
+                "link",
+                "bulletedList",
+                "numberedList",
+                "blockQuote",
+                "imageUpload",
+                "fileUpload",
+            ],
+        }
+    },
+    "extends": {
+        "blockToolbar": [
+            "paragraph",
+            "heading1",
+            "heading2",
+            "heading3",
+            "|",
+            "bulletedList",
+            "numberedList",
+            "|",
+            "blockQuote",
+        ],
+        "toolbar": {
+            "items": [
+                "heading",
+                "|",
+                "outdent",
+                "indent",
+                "|",
+                "bold",
+                "italic",
+                "link",
+                "underline",
+                "strikethrough",
+                "code",
+                "subscript",
+                "superscript",
+                "highlight",
+                "|",
+                "codeBlock",
+                "sourceEditing",
+                "insertImage",
+                "bulletedList",
+                "numberedList",
+                "todoList",
+                "|",
+                "blockQuote",
+                "imageUpload",
+                "|",
+                "fontSize",
+                "fontFamily",
+                "fontColor",
+                "fontBackgroundColor",
+                "mediaEmbed",
+                "removeFormat",
+                "insertTable",
+            ],
+            "shouldNotGroupWhenFull": "true",
+        },
+        "image": {
+            "toolbar": [
+                "imageTextAlternative",
+                "|",
+                "imageStyle:alignLeft",
+                "imageStyle:alignRight",
+                "imageStyle:alignCenter",
+                "imageStyle:side",
+                "|",
+            ],
+            "styles": [
+                "full",
+                "side",
+                "alignLeft",
+                "alignRight",
+                "alignCenter",
+            ],
+        },
+        "table": {
+            "contentToolbar": [
+                "tableColumn",
+                "tableRow",
+                "mergeTableCells",
+                "tableProperties",
+                "tableCellProperties",
+            ],
+        },
+        "heading": {
+            "options": [
+                {
+                    "model": "paragraph",
+                    "title": "Paragraph",
+                    "class": "ck-heading_paragraph",
+                },
+                {
+                    "model": "heading1",
+                    "view": "h1",
+                    "title": "Heading 1",
+                    "class": "ck-heading_heading1",
+                },
+                {
+                    "model": "heading2",
+                    "view": "h2",
+                    "title": "Heading 2",
+                    "class": "ck-heading_heading2",
+                },
+                {
+                    "model": "heading3",
+                    "view": "h3",
+                    "title": "Heading 3",
+                    "class": "ck-heading_heading3",
+                },
+            ]
+        },
+    },
+    "list": {
+        "properties": {
+            "styles": "true",
+            "startIndex": "true",
+            "reversed": "true",
+        }
+    },
+}
+
+# Define a constant in settings.py to specify file upload permissions
+CKEDITOR_5_FILE_UPLOAD_PERMISSION = "authenticated"  # Possible values: "staff", "authenticated", "any"
+
 RECAPTCHA_REQUIRED_SCORE = 0.69
 
 MOOSEND_API_KEY = env("MOOSEND_API_KEY", default=None)

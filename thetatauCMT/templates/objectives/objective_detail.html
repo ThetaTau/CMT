@@ -26,10 +26,13 @@
       </form>
       <h4 id="actions">Add Actions to complete goal:</h4>
       {{ forms.actions.media }}
-      <script type="text/javascript"
-              src="https://cdnjs.cloudflare.com/ajax/libs/tempusdominus-bootstrap-4/5.0.0-alpha14/js/tempusdominus-bootstrap-4.min.js"></script>
-      <link rel="stylesheet"
-            href="https://cdnjs.cloudflare.com/ajax/libs/tempusdominus-bootstrap-4/5.0.0-alpha14/css/tempusdominus-bootstrap-4.min.css"/>
+        <!-- Popperjs -->
+        <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js" integrity="sha256-BRqBN7dYgABqtY9Hd4ynE+1slnEw+roEPFzQ7TRRfcg=" crossorigin="anonymous"></script>
+        <!-- Tempus Dominus JavaScript -->
+        <script src="https://cdn.jsdelivr.net/npm/@eonasdan/tempus-dominus@6.9.4/dist/js/tempus-dominus.min.js" crossorigin="anonymous"></script>
+
+        <!-- Tempus Dominus Styles -->
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@eonasdan/tempus-dominus@6.9.4/dist/css/tempus-dominus.min.css" crossorigin="anonymous">
       <form action="" method="post">
         {% csrf_token %}
         <div>{{ forms.actions.management_form|crispy }}</div>
@@ -67,7 +70,7 @@
                           </td>
                         {% elif field.label == "Description" %}
                         {% else %}
-                          {% include 'bootstrap4/field.html' with tag="td" form_show_labels=False form_show_errors=True %}
+                          {% include 'bootstrap5/field.html' with tag="td" form_show_labels=False form_show_errors=True %}
                         {% endif %}
                       {% endfor %}
                       <td>
@@ -79,7 +82,7 @@
                     <tr>
                     {% for field in form %}
                       {% if field.label == "Description" %}
-                        {% include 'bootstrap4/field.html' with tag='td colspan="4"' form_show_labels=False form_show_errors=True %}
+                        {% include 'bootstrap5/field.html' with tag='td colspan="4"' form_show_labels=False form_show_errors=True %}
                       {% endif %}
                     {% endfor %}
                   </tr>

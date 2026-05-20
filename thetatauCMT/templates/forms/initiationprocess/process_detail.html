@@ -58,6 +58,9 @@
           <button type="button" class="btn btn-primary" id="csv-badge">CSV Badge</button>
           <button type="button" class="btn btn-primary" id="csv-shingle">CSV Shingle</button>
           <button type="button" class="btn btn-primary" id="csv-crm">Update CRM</button>
+          <button type="button" class="btn btn-primary" id="json-badge">JSON Badge</button>
+          <button type="button" class="btn btn-primary" id="json-shingle">JSON Shingle</button>
+          <button type="button" class="btn btn-primary" id="post-shingle">POST Shingle</button>
         </div>
         <div class="card-action right-align">
             {% if view.flow_class|manage_permission_name in perms %}
@@ -86,6 +89,15 @@ $(function(){
   });
   $("#csv-shingle").click(function(event){
       window.open("{% url 'forms:init_csv' process.pk 'shingle' %}", '_blank');
+  });
+  $("#json-badge").click(function(event){
+      window.open("{% url 'forms:init_csv' process.pk 'badge' 'json' %}", '_blank');
+  });
+  $("#json-shingle").click(function(event){
+      window.open("{% url 'forms:init_csv' process.pk 'shingle' 'json' %}", '_blank');
+  });
+  $("#post-shingle").click(function(event){
+      window.location.href = "{% url 'forms:shingle_post' process.pk %}";
   });
   $("#csv-crm").click(function(event){
       window.open("{% url 'forms:init_csv' process.pk 'crm' %}", '_blank');

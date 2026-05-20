@@ -1,5 +1,6 @@
 import csv
-from address.models import Locality, State, Country, Address
+
+from address.models import Address, Country, Locality, State
 from django.conf import settings
 
 
@@ -92,9 +93,7 @@ def run(*args):
             address_raw = f"{city_name}, {state} {zipcode}, US"
             address, created = Address.objects.get_or_create(
                 raw=address_raw,
-                defaults=dict(
-                    latitude=lat, longitude=lng, locality=locality, raw=address_raw
-                ),
+                defaults=dict(latitude=lat, longitude=lng, locality=locality, raw=address_raw),
             )
             if not created:
                 # Need to verify that the lat/long are correct

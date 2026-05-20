@@ -1,8 +1,10 @@
 # filters.py
 import django_filters
 from django.forms.widgets import NumberInput
+
+from thetatauCMT.chapters.filters import ChapterListFilter
+
 from .models import ScoreType
-from chapters.filters import ChapterListFilter
 
 
 class ScoreListFilter(django_filters.FilterSet):

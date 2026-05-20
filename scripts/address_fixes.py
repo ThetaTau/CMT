@@ -1,6 +1,5 @@
-from users.models import User
 from core.address import fix_address
-from core.models import TODAY_END
+from thetatauCMT.users.models import User
 
 
 def run(*args):

@@ -1,7 +1,7 @@
 import django_tables2 as tables
-from django.urls import reverse
 from django.utils.safestring import mark_safe
 from django_tables2.utils import A
+
 from .models import Event
 
 
@@ -50,7 +50,7 @@ class EventTable(tables.Table):
             extra_columns.extend(
                 [
                     ("chapter", tables.Column("Chapter")),
-                    ("chapter.region", tables.Column("Region")),
+                    ("chapter__region", tables.Column("Region")),
                     ("pictures", tables.Column("Pictures")),
                 ]
             )

@@ -4,7 +4,15 @@ set -o errexit
 set -o pipefail
 set -o nounset
 
-
+# Load environment variables from .env file if it exists
+if [ -f .env ]; then
+    echo "Loading environment variables from .env file..."
+    set -o allexport
+    source .env
+    set +o allexport
+else
+    echo "No .env file found. Using existing environment variables."
+fi
 
 
 if [ -z "${POSTGRES_USER}" ]; then
@@ -34,7 +42,7 @@ sys.exit(0)
 END
 }
 until postgres_ready; do
-  >&2 echo 'Waiting for PostgreSQL to become available...'
+  >&2 echo "Waiting for PostgreSQL to become available at ${POSTGRES_HOST}:${POSTGRES_PORT}..."
   sleep 1
 done
 >&2 echo 'PostgreSQL is available'

@@ -1,15 +1,18 @@
 import base64
 from datetime import date
-from django.db import IntegrityError, transaction
+
 from django.conf import settings
-from django.urls import reverse
 from django.contrib import messages
-from django.shortcuts import redirect, Http404
+from django.db import IntegrityError, transaction
+from django.shortcuts import redirect
+from django.urls import reverse
 from django.utils.safestring import mark_safe
 from django.views.generic import CreateView
-from users.models import User
-from .models import DepledgeSurvey, Survey
+
+from thetatauCMT.users.models import User
+
 from .forms import DepledgeSurveyForm, ResponseForm
+from .models import DepledgeSurvey, Survey
 from .notifications import SurveyFollowUpEmail
 
 
@@ -114,11 +117,10 @@ class SurveyDetail(CreateView):
             try:
                 user_pk_decoded = base64.b64decode(user_pk_encoded).decode("utf-8")
                 self.user = User.objects.get(id=user_pk_decoded)
-            except Exception as e:
+            except Exception:
                 messages.error(
                     request,
-                    f"Error finding member. "
-                    f"Make sure you have the correct survey link",
+                    "Error finding member. " "Make sure you have the correct survey link",
                 )
             else:
                 self.user_pk = user_pk_encoded
@@ -138,42 +140,29 @@ class SurveyDetail(CreateView):
         message = None
         location = None
         if not self.object.is_published:
-            message = f"Survey is not available to complete."
+            message = "Survey is not available to complete."
             location = redirect(reverse("home"))
         elif self.object.publish_date > date.today():
-            message = (
-                f"Survey is not yet published. It is due: '{self.object.publish_date}'."
-            )
+            message = f"Survey is not yet published. It is due: '{self.object.publish_date}'."
             location = redirect(reverse("home"))
         elif self.object.expire_date < date.today():
             message = f"Survey is not published anymore. It was published until: '{self.object.expire_date}'."
             location = redirect(reverse("home"))
         elif self.object.need_logged_user and not request.user.is_authenticated:
-            message = f"You must log in to access the survey"
-            location = redirect(
-                f"{settings.CURRENT_URL}/accounts/login?next={request.path}"
-            )
+            message = "You must log in to access the survey"
+            location = redirect(f"{settings.CURRENT_URL}/accounts/login?next={request.path}")
         elif not self.object.anonymous and self.user.is_anonymous:
             # If the survey does not allow anonymous and the found user is anonymous
-            message = (
-                f"Make sure you have your unique link to fill out the survey, "
-                f"or log in to fill out the survey."
-            )
-            location = redirect(
-                f"{settings.CURRENT_URL}/accounts/login?next={request.path}"
-            )
+            message = "Make sure you have your unique link to fill out the survey, " "or log in to fill out the survey."
+            location = redirect(f"{settings.CURRENT_URL}/accounts/login?next={request.path}")
         elif self.object.need_logged_user and self.user != request.user:
             # If the survey needs logged user and the current user is not the found user
             #   above already checked logged in
-            message = f"You can not submit the survey for others"
+            message = "You can not submit the survey for others"
             location = redirect("surveys:survey-detail", slug=self.object.slug)
-        elif (
-            self.object.anonymous
-            and self.user.is_anonymous
-            and self.user == request.user
-        ):
+        elif self.object.anonymous and self.user.is_anonymous and self.user == request.user:
             # If the survey does allow anonymous and the found user is anonymous
-            message = f"You are filling out this survey anonymously."
+            message = "You are filling out this survey anonymously."
         if message is not None and request.method == "GET":
             messages.warning(request, message)
         if location is not None:
@@ -193,18 +182,11 @@ class SurveyDetail(CreateView):
         asset_context = {
             # If any of the widgets of the current form has a "date" class, flatpickr will be loaded into the
             # template
-            "flatpickr": any(
-                [
-                    field.widget.attrs.get("class") == "date"
-                    for _, field in form.fields.items()
-                ]
-            )
+            "flatpickr": any([field.widget.attrs.get("class") == "date" for _, field in form.fields.items()])
         }
         user_pk = "anonymous"
         if not self.user.is_anonymous:
-            user_pk = base64.b64encode(str(self.user.id).encode("utf-8")).decode(
-                "utf-8"
-            )
+            user_pk = base64.b64encode(str(self.user.id).encode("utf-8")).decode("utf-8")
         step = self.step
         if self.step is None:
             step = 0
@@ -225,7 +207,7 @@ class SurveyDetail(CreateView):
     def post(self, request, *args, **kwargs):
         form = self.get_form()
         if not self.object.editable_answers and form.response is not None:
-            messages.warning(self.request, f"Survey is not editable.")
+            messages.warning(self.request, "Survey is not editable.")
             return redirect(self.request.path, slug=self.object.slug)
         if form.is_valid():
             return self.form_valid(form)
@@ -258,8 +240,7 @@ class SurveyDetail(CreateView):
                 else:
                     messages.error(
                         self.request,
-                        f"A step of the multipage form failed. "
-                        f"If this issue persists, please reach out to us.",
+                        "A step of the multipage form failed. " "If this issue persists, please reach out to us.",
                     )
         # if there is a next step
         if next_url is not None:
@@ -268,7 +249,7 @@ class SurveyDetail(CreateView):
         if response is None:
             messages.error(
                 self.request,
-                f"There was an error submitting the form.",
+                "There was an error submitting the form.",
             )
             return redirect("surveys:survey-detail", slug=self.object.slug)
         next_ = self.request.session.get("next", None)
@@ -277,18 +258,14 @@ class SurveyDetail(CreateView):
                 del self.request.session["next"]
             return redirect(next_)
         message = "Thanks! Your answers have been saved"
-        new_location = redirect(
-            "surveys:survey-detail-member", slug=self.object.slug, user_pk=self.user_pk
-        )
+        new_location = redirect("surveys:survey-detail-member", slug=self.object.slug, user_pk=self.user_pk)
         if self.object.editable_answers and not self.user.is_anonymous:
             message += "<br>The survey is editable after submission, so you can always come back and change them."
         if self.object.redirect_url:
             new_location = redirect(self.object.redirect_url)
         messages.info(self.request, mark_safe(message))
         if complete:
-            answer = response.answers.filter(
-                question__text__icontains="to contact you"
-            ).first()
+            answer = response.answers.filter(question__text__icontains="to contact you").first()
             if answer and answer.body == "yes":
                 link = new_location.url
                 if "http" not in link:

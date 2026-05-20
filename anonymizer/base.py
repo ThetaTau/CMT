@@ -1,11 +1,10 @@
-from dj_anonymizer.register_models import register_skip, AnonymBase, register_anonym
 from dj_anonymizer import fields
-
-from django.contrib.sites.models import Site
+from dj_anonymizer.register_models import AnonymBase, register_anonym, register_skip
 from django.contrib.admin.models import LogEntry
-from django.contrib.auth.models import Permission, Group
-from django.contrib.sessions.models import Session
+from django.contrib.auth.models import Group, Permission
 from django.contrib.contenttypes.models import ContentType
+from django.contrib.sessions.models import Session
+from django.contrib.sites.models import Site
 
 register_skip([Site, Permission, Group, Session, ContentType])
 
