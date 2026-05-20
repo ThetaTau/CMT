@@ -42,8 +42,8 @@ def test_open_balance_chapter_sums_invoices():
 @pytest.mark.django_db
 def test_open_balance_chapter_excludes_other_chapters():
     """Only sums invoices for the specific chapter, not others."""
-    chapter_a = ChapterFactory()
-    chapter_b = ChapterFactory()
+    chapter_a = ChapterFactory(name="alpha")
+    chapter_b = ChapterFactory(name="beta")
     InvoiceFactory(chapter=chapter_a, total=Money(Decimal("100.00"), "USD"))
     InvoiceFactory(chapter=chapter_b, total=Money(Decimal("500.00"), "USD"))
     balance = Invoice.open_balance_chapter(chapter=chapter_a)

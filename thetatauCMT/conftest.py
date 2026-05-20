@@ -28,7 +28,11 @@ def django_db_setup(django_db_setup, django_db_blocker):
     with django_db_blocker.unblock():
         call_command("loaddata", "scoretypes.json")
         call_command("loaddata", "tasks.json")
+        from allauth.socialaccount.models import SocialApp
+
         current_site = Site.objects.get_current()
+        # Purge duplicates accumulated from prior --reuse-db runs, then create once
+        SocialApp.objects.filter(provider="google").delete()
         current_site.socialapp_set.create(
             provider="google",
             name="google",
@@ -77,7 +81,7 @@ def auto_login_user(db, client, user_factory, test_password):
                 typed_name="test user",
             ),
         )
-        client.login(username=user.username, password=test_password)
+        client.force_login(user)
         return client, user
 
     return make_auto_login
