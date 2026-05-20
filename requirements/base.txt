@@ -30,7 +30,7 @@ intuit-oauth==1.2.6  # https://github.com/intuit/oauth-pythonclient
 # pygeocoder is well out of date
 git+https://github.com/cobuso/pygeocoder.git@cb0acc44d57d20f8df207850aa84b79134eb1734
 haversine==2.9.0
-weasyprint==66.0
+weasyprint==68.0
 openpyxl==3.0.10  # django-report-builder needs save_virtual_workbook which was deprecated
 numpy==2.4.4
 jwcrypto==1.5.6
