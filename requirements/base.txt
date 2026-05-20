@@ -1,6 +1,6 @@
 setuptools<81  # pkg_resources removed from setuptools 81+; required at runtime by django-betterforms
 urllib3==2.5.0
-requests==2.32.4
+requests==2.33.0
 python-slugify==8.0.4  # https://github.com/un33k/python-slugify
 Pillow==11.3.0  # https://github.com/python-pillow/Pillow
 argon2-cffi==25.1.0  # https://github.com/hynek/argon2_cffi
