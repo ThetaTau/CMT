@@ -1,4 +1,4 @@
-from users.models import UserRoleChange
+from thetatauCMT.users.models import UserRoleChange
 
 
 def run():

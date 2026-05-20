@@ -3,7 +3,7 @@
 from django.db import migrations, models
 import django.db.models.deletion
 import django.utils.timezone
-import submissions.models
+import thetatauCMT.submissions.models
 
 
 class Migration(migrations.Migration):
@@ -38,7 +38,7 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "file",
-                    models.FileField(upload_to=submissions.models.get_upload_path),
+                    models.FileField(upload_to=thetatauCMT.submissions.models.get_upload_path),
                 ),
                 (
                     "name",

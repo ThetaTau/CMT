@@ -1,189 +1,170 @@
-import csv
 import base64
+import csv
 import datetime
 import zipfile
-from io import BytesIO
 from copy import deepcopy
+from io import BytesIO
 from pathlib import Path
-from django.db import IntegrityError, transaction
-from django.db.models import (
-    Q,
-    F,
-    Value,
-    CharField,
-    Count,
-    Exists,
-    OuterRef,
-    Subquery,
-    Case,
-    When,
-    SmallIntegerField,
-)
-from django.conf import settings
-from django.contrib.postgres.aggregates import StringAgg
-from django.forms import models as model_forms
-from django.http import HttpRequest
-from django.utils.safestring import mark_safe
-from django.http.request import QueryDict
-from django.core.files.base import ContentFile
-from django.contrib import messages
-from django.urls import reverse
-from django.utils import timezone
-from django.shortcuts import render
-from django import forms
-from django.views.generic import UpdateView, DetailView, TemplateView
-from django.views.generic.edit import FormView, CreateView, ModelFormMixin
-from django.views.decorators.csrf import csrf_exempt
-from django.shortcuts import redirect
-from django.http import HttpResponseRedirect, HttpResponse, JsonResponse
+
 from allauth.account.models import EmailAddress
 from crispy_forms.layout import Submit
-from extra_views import FormSetView, ModelFormSetView
-from easy_pdf.views import PDFTemplateResponseMixin
+from django import forms
+from django.conf import settings
+from django.contrib import messages
+from django.contrib.postgres.aggregates import StringAgg
+from django.core.files.base import ContentFile
+from django.db import IntegrityError, transaction
+from django.db.models import Case, CharField, Count, Exists, F, OuterRef, Q, SmallIntegerField, Subquery, Value, When
+from django.forms import models as model_forms
+from django.http import HttpRequest, HttpResponse, HttpResponseRedirect, JsonResponse
+from django.http.request import QueryDict
+from django.shortcuts import redirect, render
+from django.urls import reverse
+from django.utils import timezone
+from django.utils.safestring import mark_safe
+from django.views.decorators.csrf import csrf_exempt
+from django.views.generic import DetailView, TemplateView, UpdateView
+from django.views.generic.edit import CreateView, FormView, ModelFormMixin
 from django_weasyprint import WeasyTemplateResponseMixin
+from easy_pdf.views import PDFTemplateResponseMixin
+from extra_views import FormSetView, ModelFormSetView
 from viewflow.flow.views import CreateProcessView, UpdateProcessView
 from viewflow.frontend.viewset import FlowViewSet
 from viewflow.models import Task as FlowTask
 
-from core.flows import FilterProcessListView, AutoAssignUpdateProcessView
-from forms.notifications import CentralOfficeGenericEmail
+from core.flows import AutoAssignUpdateProcessView, FilterProcessListView
 from core.forms import MultiFormsView
 from core.models import (
-    semester_encompass_start_end_date,
+    CHAPTER_OFFICER,
+    COL_OFFICER_ALIGN,
+    SEMESTER,
     TODAY_END,
     current_term,
     current_year,
     current_year_term_slug,
-    CHAPTER_OFFICER,
-    COL_OFFICER_ALIGN,
-    SEMESTER,
+    semester_encompass_start_end_date,
 )
 from core.notifications import GenericEmail
 from core.views import (
-    OfficerRequiredMixin,
-    LoginRequiredMixin,
-    RequestConfig,
-    PagedFilteredTableView,
-    NatOfficerRequiredMixin,
-    group_required,
     AssignOfficerFormMixin,
+    LoginRequiredMixin,
+    NatOfficerRequiredMixin,
+    OfficerRequiredMixin,
+    PagedFilteredTableView,
+    RequestConfig,
+    group_required,
 )
-from surveys.notifications import DepledgeSurveyEmail, SurveyEmail
-from users.tables import RollBookTable
-from .forms import (
-    InitiationFormSet,
-    BylawsForm,
-    BylawsListFormHelper,
-    InitiationForm,
-    InitiationFormHelper,
-    InitDeplSelectForm,
-    InitDeplSelectFormHelper,
-    DepledgeFormSet,
-    DepledgeFormHelper,
-    StatusChangeSelectForm,
-    StatusChangeSelectFormHelper,
-    GraduateForm,
-    GraduateFormSet,
-    CSMTFormSet,
-    GraduateFormHelper,
-    CSMTFormHelper,
-    RoleChangeSelectForm,
-    RiskManagementForm,
-    RoleChangeNationalSelectForm,
-    PledgeProgramForm,
-    AuditForm,
-    PledgeFormFull,
-    PrematureAlumnusForm,
-    AuditListFormHelper,
-    RiskListFormHelper,
-    PledgeProgramFormHelper,
-    CompleteFormHelper,
-    ConventionForm,
-    HSEducationForm,
-    HSEducationListFormHelper,
-    OSMForm,
-    DisciplinaryForm1,
-    DisciplinaryForm2,
-    CollectionReferralForm,
-    ResignationForm,
-    ReturnStudentForm,
-    AlumniExclusionForm,
-    AlumniExclusionReviewForm,
-    AlumniExclusionFormHelper,
-    RitualProficiencyForm,
-)
-from tasks.models import Task
-from scores.models import ScoreType
-from submissions.models import Submission
-from configs.models import Config
-from users.models import User, UserRoleChange
-from users.forms import UserForm
-from users.notifications import NewOfficers
-from chapters.models import Chapter, ChapterCurricula
-from regions.models import Region
-from trainings.models import Training
-from .tables import (
-    BadgeTable,
-    BylawsListTable,
-    InitiationTable,
-    DepledgeTable,
-    StatusChangeTable,
-    PledgeFormTable,
-    AuditTable,
-    RiskFormTable,
-    PledgeProgramTable,
-    HSEducationTable,
-    HSEducationListTable,
-    PrematureAlumnusStatusTable,
-    SignTable,
-    ConventionListTable,
-    OSMListTable,
-    DisciplinaryStatusTable,
-    CollectionReferralTable,
-    AlumniExclusionTable,
-    ResignationStatusTable,
-    ReturnStudentStatusTable,
-    PledgeProgramStatusTable,
-    RitualProficiencyTable,
-)
-from .models import (
-    Badge,
-    Bylaws,
-    Depledge,
-    StatusChange,
-    RiskManagement,
-    PledgeProgram,
-    Audit,
-    HSEducation,
-    PrematureAlumnus,
-    InitiationProcess,
-    Convention,
-    PledgeProcess,
-    OSM,
-    DisciplinaryProcess,
-    CollectionReferral,
-    ResignationProcess,
-    ReturnStudent,
-    PledgeProgramProcess,
-    AlumniExclusion,
-    RitualProficiency,
-)
+from thetatauCMT.chapters.models import Chapter, ChapterCurricula
+from thetatauCMT.configs.models import Config
+from thetatauCMT.forms.notifications import CentralOfficeGenericEmail
+from thetatauCMT.regions.models import Region
+from thetatauCMT.scores.models import ScoreType
+from thetatauCMT.submissions.models import Submission
+from thetatauCMT.surveys.notifications import DepledgeSurveyEmail, SurveyEmail
+from thetatauCMT.tasks.models import Task
+from thetatauCMT.trainings.models import Training
+from thetatauCMT.users.forms import UserForm
+from thetatauCMT.users.models import User, UserRoleChange
+from thetatauCMT.users.notifications import NewOfficers
+from thetatauCMT.users.tables import RollBookTable
+
 from .filters import (
+    AlumniExclusionListFilter,
     AuditListFilter,
     BylawsListFilter,
-    PledgeProgramListFilter,
     CompleteListFilter,
-    RiskListFilter,
     EducationListFilter,
-    AlumniExclusionListFilter,
+    PledgeProgramListFilter,
+    RiskListFilter,
 )
-from .notifications import (
-    EmailRMPSigned,
-    EmailPledgeOther,
-    EmailPledgeConfirmation,
-    EmailPledgeWelcome,
-    EmailPledgeOfficer,
-    EmailProcessUpdate,
+from .forms import (
+    AlumniExclusionForm,
+    AlumniExclusionFormHelper,
+    AlumniExclusionReviewForm,
+    AuditForm,
+    AuditListFormHelper,
+    BylawsForm,
+    BylawsListFormHelper,
+    CollectionReferralForm,
+    CompleteFormHelper,
+    ConventionForm,
+    CSMTFormHelper,
+    CSMTFormSet,
+    DepledgeFormHelper,
+    DepledgeFormSet,
+    DisciplinaryForm1,
+    DisciplinaryForm2,
+    GraduateForm,
+    GraduateFormHelper,
+    GraduateFormSet,
+    HSEducationForm,
+    HSEducationListFormHelper,
+    InitDeplSelectForm,
+    InitDeplSelectFormHelper,
+    InitiationForm,
+    InitiationFormHelper,
+    InitiationFormSet,
+    OSMForm,
+    PledgeFormFull,
+    PledgeProgramForm,
+    PledgeProgramFormHelper,
+    PrematureAlumnusForm,
+    ResignationForm,
+    ReturnStudentForm,
+    RiskListFormHelper,
+    RiskManagementForm,
+    RitualProficiencyForm,
+    RoleChangeNationalSelectForm,
+    RoleChangeSelectForm,
+    StatusChangeSelectForm,
+    StatusChangeSelectFormHelper,
+)
+from .models import (
+    OSM,
+    AlumniExclusion,
+    Audit,
+    Badge,
+    Bylaws,
+    CollectionReferral,
+    Convention,
+    Depledge,
+    DisciplinaryProcess,
+    HSEducation,
+    InitiationProcess,
+    PledgeProcess,
+    PledgeProgram,
+    PledgeProgramProcess,
+    PrematureAlumnus,
+    ResignationProcess,
+    ReturnStudent,
+    RiskManagement,
+    RitualProficiency,
+    StatusChange,
+)
+from .notifications import EmailPledgeConfirmation, EmailPledgeOfficer, EmailProcessUpdate, EmailRMPSigned
+from .tables import (
+    AlumniExclusionTable,
+    AuditTable,
+    BadgeTable,
+    BylawsListTable,
+    CollectionReferralTable,
+    ConventionListTable,
+    DepledgeTable,
+    DisciplinaryStatusTable,
+    HSEducationListTable,
+    HSEducationTable,
+    InitiationTable,
+    OSMListTable,
+    PledgeFormTable,
+    PledgeProgramStatusTable,
+    PledgeProgramTable,
+    PrematureAlumnusStatusTable,
+    ResignationStatusTable,
+    ReturnStudentStatusTable,
+    RiskFormTable,
+    RitualProficiencyTable,
+    SignTable,
+    StatusChangeTable,
 )
 
 
@@ -214,9 +195,7 @@ class InitDeplSelectView(LoginRequiredMixin, FormSetView):
         helper = InitDeplSelectFormHelper()
         helper.add_input(Submit("submit", "Next"))
         context["helper"] = helper
-        processes = InitiationProcess.objects.filter(
-            chapter__name=self.request.user.current_chapter
-        )
+        processes = InitiationProcess.objects.filter(chapter__name=self.request.user.current_chapter)
         initiation_data = []
         for process in processes:
             active_task = process.active_tasks().first()
@@ -226,9 +205,7 @@ class InitDeplSelectView(LoginRequiredMixin, FormSetView):
                     status = active_task.flow_task.task_description
             else:
                 status = "Initiation Process Complete"
-            members = ", ".join(
-                list(process.initiations.values_list("user__name", flat=True))
-            )
+            members = ", ".join(list(process.initiations.values_list("user__name", flat=True)))
             initiation_data.append(
                 {
                     "initiation": process.initiations.first().date,
@@ -237,9 +214,7 @@ class InitDeplSelectView(LoginRequiredMixin, FormSetView):
                     "member_names": members,
                 }
             )
-        pledgeprocesses = PledgeProcess.objects.filter(
-            chapter__name=self.request.user.current_chapter
-        )
+        pledgeprocesses = PledgeProcess.objects.filter(chapter__name=self.request.user.current_chapter)
         pledge_data = []
         for process in pledgeprocesses:
             active_task = process.active_tasks().first()
@@ -263,9 +238,7 @@ class InitDeplSelectView(LoginRequiredMixin, FormSetView):
         pledges = PledgeFormTable(data=pledge_data, order_by="-submitted")
         inits = InitiationTable(data=initiation_data, order_by="-submitted")
         depledges = DepledgeTable(
-            Depledge.objects.filter(
-                user__chapter=self.request.user.current_chapter
-            ).order_by("-date")
+            Depledge.objects.filter(user__chapter=self.request.user.current_chapter).order_by("-date")
         )
         RequestConfig(self.request).configure(inits)
         RequestConfig(self.request).configure(depledges)
@@ -316,9 +289,7 @@ def download_all_rollbook(request):
             roll_view = view(new_request, pk=user.pk)
             roll_file = roll_view.rendered_content
             zf.writestr(f"RollBookPage_{user.chapter.slug}_{user.id}.pdf", roll_file)
-    response = HttpResponse(
-        zip_io.getvalue(), content_type="application/x-zip-compressed"
-    )
+    response = HttpResponse(zip_io.getvalue(), content_type="application/x-zip-compressed")
     response["Cache-Control"] = "no-cache"
     response["Content-Disposition"] = f"attachment; filename={zip_filename}"
     return response
@@ -371,8 +342,7 @@ class InitiationView(LoginRequiredMixin, OfficerRequiredMixin, FormView):
             if formset is None:
                 formset = InitiationFormSet(prefix="initiates")
             formset.initial = [
-                {"user": user, "roll": self.next_badge + num}
-                for num, user in enumerate(self.to_initiate)
+                {"user": user, "roll": self.next_badge + num} for num, user in enumerate(self.to_initiate)
             ]
             chapter = self.request.user.current_chapter
             if chapter.candidate_chapter:
@@ -388,9 +358,7 @@ class InitiationView(LoginRequiredMixin, OfficerRequiredMixin, FormView):
             depledge_formset = kwargs.get("depledge_formset", None)
             if depledge_formset is None:
                 depledge_formset = DepledgeFormSet(prefix="depledges")
-            depledge_formset.initial = [
-                {"user": user.name} for user in self.to_depledge
-            ]
+            depledge_formset.initial = [{"user": user.name} for user in self.to_depledge]
             context["depledge_formset"] = depledge_formset
             context["depledge_helper"] = DepledgeFormHelper()
             context["form_show_errors"] = True
@@ -406,19 +374,12 @@ class InitiationView(LoginRequiredMixin, OfficerRequiredMixin, FormView):
         self.initial_info(initiate)
         formset = InitiationFormSet(request.POST, request.FILES, prefix="initiates")
         formset.initial = [
-            {"user": user.pk, "roll": self.next_badge + num}
-            for num, user in enumerate(self.to_initiate)
+            {"user": user.pk, "roll": self.next_badge + num} for num, user in enumerate(self.to_initiate)
         ]
-        depledge_formset = DepledgeFormSet(
-            request.POST, request.FILES, prefix="depledges"
-        )
+        depledge_formset = DepledgeFormSet(request.POST, request.FILES, prefix="depledges")
         depledge_formset.initial = [{"user": user.name} for user in self.to_depledge]
         if not formset.is_valid() or not depledge_formset.is_valid():
-            return self.render_to_response(
-                self.get_context_data(
-                    formset=formset, depledge_formset=depledge_formset
-                )
-            )
+            return self.render_to_response(self.get_context_data(formset=formset, depledge_formset=depledge_formset))
         update_list = []
         depledge_list = []
         initiations = []
@@ -430,20 +391,18 @@ class InitiationView(LoginRequiredMixin, OfficerRequiredMixin, FormView):
         for form in depledge_formset:
             form.save()
             depledge_list.append(form.instance.user)
-        Task.mark_complete(
-            name="Initiation Report", chapter=self.request.user.current_chapter
-        )
+        Task.mark_complete(name="Initiation Report", chapter=self.request.user.current_chapter)
         if update_list:
             messages.add_message(
                 request,
                 messages.INFO,
-                f"You successfully submitted initiation report for:\n" f"{update_list}",
+                "You successfully submitted initiation report for:\n" f"{update_list}",
             )
         if depledge_list:
             messages.add_message(
                 request,
                 messages.INFO,
-                f"You successfully submitted depledge report for:\n" f"{depledge_list}",
+                "You successfully submitted depledge report for:\n" f"{depledge_list}",
             )
             for depledge in depledge_list:
                 DepledgeSurveyEmail(depledge).send()
@@ -454,9 +413,7 @@ class InitiationView(LoginRequiredMixin, OfficerRequiredMixin, FormView):
 
         ceremony = request.POST.get("initiates-__prefix__-ceremony", "normal")
         if initiations:
-            InitiationProcessFlow.start.run(
-                initiations=initiations, ceremony=ceremony, request=request
-            )
+            InitiationProcessFlow.start.run(initiations=initiations, ceremony=ceremony, request=request)
         return HttpResponseRedirect(self.get_success_url())
 
     def get_success_url(self):
@@ -474,9 +431,7 @@ class StatusChangeSelectView(LoginRequiredMixin, FormSetView):
         kwargs = super().get_formset_kwargs()
         kwargs.update(
             {
-                "form_kwargs": {
-                    "colony": self.request.user.current_chapter.candidate_chapter
-                },
+                "form_kwargs": {"colony": self.request.user.current_chapter.candidate_chapter},
             }
         )
         return kwargs
@@ -509,32 +464,23 @@ class StatusChangeSelectView(LoginRequiredMixin, FormSetView):
             formset = formset(
                 prefix="selection",
                 initial=initial,
-                form_kwargs={
-                    "colony": self.request.user.current_chapter.candidate_chapter
-                },
+                form_kwargs={"colony": self.request.user.current_chapter.candidate_chapter},
             )
         else:
             post_data = deepcopy(request.POST)
-            post_data["selection-INITIAL_FORMS"] = str(
-                int(post_data["selection-INITIAL_FORMS"]) + 1
-            )
+            post_data["selection-INITIAL_FORMS"] = str(int(post_data["selection-INITIAL_FORMS"]) + 1)
             formset = formset(
                 post_data,
                 request.FILES,
                 initial=initial,
                 prefix="selection",
-                form_kwargs={
-                    "colony": self.request.user.current_chapter.candidate_chapter
-                },
+                form_kwargs={"colony": self.request.user.current_chapter.candidate_chapter},
             )
         return formset
 
     def post(self, request, *args, **kwargs):
         formset = self.get_formset_request(request, request.POST["action"])
-        if (
-            request.POST["action"] in ["Add Row", "Delete Selected"]
-            or not formset.is_valid()
-        ):
+        if request.POST["action"] in ["Add Row", "Delete Selected"] or not formset.is_valid():
             return self.render_to_response(self.get_context_data(formset=formset))
         else:
             return self.formset_valid(formset)
@@ -557,9 +503,7 @@ class StatusChangeSelectView(LoginRequiredMixin, FormSetView):
         context["helper"] = helper
         context["input"] = Submit("action", "Next")
         status = StatusChangeTable(
-            StatusChange.objects.filter(
-                user__chapter=self.request.user.current_chapter
-            ).order_by("-created")
+            StatusChange.objects.filter(user__chapter=self.request.user.current_chapter).order_by("-created")
         )
         RequestConfig(self.request).configure(status)
         context["status_table"] = status
@@ -610,12 +554,7 @@ class StatusChangeView(LoginRequiredMixin, OfficerRequiredMixin, FormView):
         self.to_transfer = actives.filter(pk__in=status_change["transfer"])
         self.resignedCC = actives.filter(pk__in=status_change["resignedCC"])
         self.to_csmt = (
-            self.to_coop
-            | self.to_military
-            | self.to_withdraw
-            | self.to_transfer
-            | self.to_covid
-            | self.resignedCC
+            self.to_coop | self.to_military | self.to_withdraw | self.to_transfer | self.to_covid | self.resignedCC
         )
 
     def get(self, request, *args, **kwargs):
@@ -628,14 +567,9 @@ class StatusChangeView(LoginRequiredMixin, OfficerRequiredMixin, FormView):
             officers = chapter.get_current_officers_council()[0]
             for member in self.to_coop:
                 if member in officers:
-                    role_info = member.roles.filter(
-                        role__in=member.current_roles
-                    ).values("role", "start", "end")
+                    role_info = member.roles.filter(role__in=member.current_roles).values("role", "start", "end")
                     role_message = "<br>".join(
-                        [
-                            f"{role['role'].title()}:  start: {role['start']} end: {role['end']}"
-                            for role in role_info
-                        ]
+                        [f"{role['role'].title()}:  start: {role['start']} end: {role['end']}" for role in role_info]
                     )
                     messages.add_message(
                         self.request,
@@ -652,8 +586,7 @@ class StatusChangeView(LoginRequiredMixin, OfficerRequiredMixin, FormView):
         if formset is None:
             formset = GraduateFormSet(prefix="graduates")
         formset.initial = [
-            {"user": user.name, "email_personal": user.email, "reason": "graduate"}
-            for user in self.to_graduate
+            {"user": user.name, "email_personal": user.email, "reason": "graduate"} for user in self.to_graduate
         ]
         context["formset"] = formset
         context["helper"] = GraduateFormHelper()
@@ -662,27 +595,12 @@ class StatusChangeView(LoginRequiredMixin, OfficerRequiredMixin, FormView):
             csmt_formset = CSMTFormSet(prefix="csmt")
             next_semester = semester_encompass_start_end_date()[1]
             csmt_formset.initial = (
-                [
-                    {"user": user.name, "reason": "covid", "date_end": next_semester}
-                    for user in self.to_covid
-                ]
+                [{"user": user.name, "reason": "covid", "date_end": next_semester} for user in self.to_covid]
                 + [{"user": user.name, "reason": "coop"} for user in self.to_coop]
-                + [
-                    {"user": user.name, "reason": "military"}
-                    for user in self.to_military
-                ]
-                + [
-                    {"user": user.name, "reason": "withdraw"}
-                    for user in self.to_withdraw
-                ]
-                + [
-                    {"user": user.name, "reason": "transfer"}
-                    for user in self.to_transfer
-                ]
-                + [
-                    {"user": user.name, "reason": "resignedCC"}
-                    for user in self.resignedCC
-                ]
+                + [{"user": user.name, "reason": "military"} for user in self.to_military]
+                + [{"user": user.name, "reason": "withdraw"} for user in self.to_withdraw]
+                + [{"user": user.name, "reason": "transfer"} for user in self.to_transfer]
+                + [{"user": user.name, "reason": "resignedCC"} for user in self.resignedCC]
             )
         context["csmt_formset"] = csmt_formset
         context["csmt_helper"] = CSMTFormHelper()
@@ -697,16 +615,12 @@ class StatusChangeView(LoginRequiredMixin, OfficerRequiredMixin, FormView):
         self.initial_info(status_change)
         formset = GraduateFormSet(request.POST, request.FILES, prefix="graduates")
         formset.initial = [
-            {"user": user.name, "email_personal": user.email, "reason": "graduate"}
-            for user in self.to_graduate
+            {"user": user.name, "email_personal": user.email, "reason": "graduate"} for user in self.to_graduate
         ]
         csmt_formset = CSMTFormSet(request.POST, request.FILES, prefix="csmt")
         next_semester = semester_encompass_start_end_date()[1]
         csmt_formset.initial = (
-            [
-                {"user": user.name, "reason": "covid", "date_end": next_semester}
-                for user in self.to_covid
-            ]
+            [{"user": user.name, "reason": "covid", "date_end": next_semester} for user in self.to_covid]
             + [{"user": user.name, "reason": "coop"} for user in self.to_coop]
             + [{"user": user.name, "reason": "military"} for user in self.to_military]
             + [{"user": user.name, "reason": "withdraw"} for user in self.to_withdraw]
@@ -714,9 +628,7 @@ class StatusChangeView(LoginRequiredMixin, OfficerRequiredMixin, FormView):
             + [{"user": user.name, "reason": "resignedCC"} for user in self.resignedCC]
         )
         if not formset.is_valid() or not csmt_formset.is_valid():
-            return self.render_to_response(
-                self.get_context_data(formset=formset, csmt_formset=csmt_formset)
-            )
+            return self.render_to_response(self.get_context_data(formset=formset, csmt_formset=csmt_formset))
         chapter = self.request.user.current_chapter
         error = False
         officers = chapter.get_current_officers_council()[0]
@@ -743,9 +655,7 @@ class StatusChangeView(LoginRequiredMixin, OfficerRequiredMixin, FormView):
                                 ),
                             )
         if error:
-            return self.render_to_response(
-                self.get_context_data(formset=formset, csmt_formset=csmt_formset)
-            )
+            return self.render_to_response(self.get_context_data(formset=formset, csmt_formset=csmt_formset))
         update_list = []
         graduates_list = []
         for form in formset:
@@ -782,8 +692,7 @@ class StatusChangeView(LoginRequiredMixin, OfficerRequiredMixin, FormView):
         messages.add_message(
             self.request,
             messages.INFO,
-            f"You successfully updated the status of members:\n"
-            f"{update_list + graduates_list}",
+            "You successfully updated the status of members:\n" f"{update_list + graduates_list}",
         )
         return HttpResponseRedirect(self.get_success_url())
 
@@ -899,7 +808,7 @@ class RoleChangeView(LoginRequiredMixin, ModelFormSetView):
             messages.add_message(
                 self.request,
                 messages.INFO,
-                f"You successfully removed the officers:\n" f"{delete_list}",
+                "You successfully removed the officers:\n" f"{delete_list}",
             )
         if not delete_only:
             # instances = formset.save(commit=False)
@@ -933,7 +842,7 @@ class RoleChangeView(LoginRequiredMixin, ModelFormSetView):
                 messages.add_message(
                     self.request,
                     messages.INFO,
-                    f"You successfully updated the officers:\n" f"{update_list}",
+                    "You successfully updated the officers:\n" f"{update_list}",
                 )
         return HttpResponseRedirect(self.get_success_url())
 
@@ -942,9 +851,7 @@ class RoleChangeView(LoginRequiredMixin, ModelFormSetView):
         return reverse("forms:officer")
 
 
-class RoleChangeNationalView(
-    LoginRequiredMixin, NatOfficerRequiredMixin, ModelFormSetView
-):
+class RoleChangeNationalView(LoginRequiredMixin, NatOfficerRequiredMixin, ModelFormSetView):
     form_class = RoleChangeNationalSelectForm
     template_name = "forms/officer_national.html"
     factory_kwargs = {"extra": 1, "can_delete": True}
@@ -1011,7 +918,7 @@ class RoleChangeNationalView(
             messages.add_message(
                 self.request,
                 messages.INFO,
-                f"You successfully removed the officers:\n" f"{delete_list}",
+                "You successfully removed the officers:\n" f"{delete_list}",
             )
         if not delete_only:
             update_list = []
@@ -1025,14 +932,12 @@ class RoleChangeNationalView(
                 messages.add_message(
                     self.request,
                     messages.INFO,
-                    f"You successfully updated the officers:\n" f"{update_list}",
+                    "You successfully updated the officers:\n" f"{update_list}",
                 )
         return HttpResponseRedirect(self.get_success_url())
 
 
-class HSEducationListView(
-    LoginRequiredMixin, NatOfficerRequiredMixin, PagedFilteredTableView
-):
+class HSEducationListView(LoginRequiredMixin, NatOfficerRequiredMixin, PagedFilteredTableView):
     model = HSEducation
     context_object_name = "chapter_education_list"
     table_class = HSEducationListTable
@@ -1076,12 +981,10 @@ class HSEducationListView(
                     for program in alcohol_drugs.filter(chapter=chapter)
                 ],
                 "harassment": [
-                    (program.get_approval_display(), program.report)
-                    for program in harassment.filter(chapter=chapter)
+                    (program.get_approval_display(), program.report) for program in harassment.filter(chapter=chapter)
                 ],
                 "mental": [
-                    (program.get_approval_display(), program.report)
-                    for program in mental.filter(chapter=chapter)
+                    (program.get_approval_display(), program.report) for program in mental.filter(chapter=chapter)
                 ],
             }
             for chapter in active_chapters
@@ -1108,8 +1011,7 @@ class HSEducationCreateView(LoginRequiredMixin, CreateProcessView):
             next_step="Central Office Review",
             state="Pending Central Office Review",
             message=(
-                "Your chapter has submitted a H&S Education Program."
-                " Once the Central Office reviewed the program, "
+                "Your chapter has submitted a H&S Education Program." " Once the Central Office reviewed the program, "
             ),
             fields=[
                 "program_date",
@@ -1147,14 +1049,10 @@ class HSEducationCreateView(LoginRequiredMixin, CreateProcessView):
             self.request.user.current_chapter,
         )
         complete_categories = [
-            program.category
-            for program in previous_programs
-            if program.approval not in ["denied", "revisions"]
+            program.category for program in previous_programs if program.approval not in ["denied", "revisions"]
         ]
         incomplete_categories = [
-            category.value[1]
-            for category in HSEducation.CATEGORIES
-            if category.value[0] not in complete_categories
+            category.value[1] for category in HSEducation.CATEGORIES if category.value[0] not in complete_categories
         ]
         table = HSEducationTable(data=previous_programs)
         context["table"] = table
@@ -1223,9 +1121,7 @@ class RiskManagementFormView(LoginRequiredMixin, FormView):
         return reverse("home")
 
 
-class RiskManagementDetailView(
-    LoginRequiredMixin, PDFTemplateResponseMixin, UpdateView
-):
+class RiskManagementDetailView(LoginRequiredMixin, PDFTemplateResponseMixin, UpdateView):
     model = RiskManagement
     form_class = RiskManagementForm
     template_name = "forms/rmp_pdf.html"
@@ -1252,17 +1148,13 @@ class BillOfRightsPDFView(PDFTemplateResponseMixin, BillOfRightsDetailView):
     template_name = "forms/billofrights_pdf.html"
 
 
-class RollBookPDFView(
-    LoginRequiredMixin, OfficerRequiredMixin, WeasyTemplateResponseMixin, DetailView
-):
+class RollBookPDFView(LoginRequiredMixin, OfficerRequiredMixin, WeasyTemplateResponseMixin, DetailView):
     model = User
     template_name = "forms/rollbook_pdf.html"
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        init_date = self.request.session.get(
-            "init_date", datetime.datetime.today().date()
-        )
+        init_date = self.request.session.get("init_date", datetime.datetime.today().date())
         if isinstance(init_date, str):
             init_date = datetime.datetime.strptime(init_date, "%m/%d/%Y")
         with open(r"secrets/short_oath.txt", "r") as file:
@@ -1298,9 +1190,7 @@ def active_chapters_filter(filter_obj):
     return chapters_list, dates
 
 
-class RiskManagementListView(
-    LoginRequiredMixin, NatOfficerRequiredMixin, PagedFilteredTableView
-):
+class RiskManagementListView(LoginRequiredMixin, NatOfficerRequiredMixin, PagedFilteredTableView):
     model = User
     context_object_name = "risk"
     template_name = "forms/rmp_list.html"
@@ -1340,9 +1230,7 @@ class RiskManagementListView(
         qs = (
             qs.annotate(
                 rmp_complete=Exists(
-                    RiskManagement.objects.filter(
-                        user=OuterRef("pk"), date__gte=start, date__lte=end
-                    ),
+                    RiskManagement.objects.filter(user=OuterRef("pk"), date__gte=start, date__lte=end),
                 )
             )
             .values("chapter", "rmp_complete")
@@ -1352,9 +1240,7 @@ class RiskManagementListView(
 
     def get_table_data(self):
         all_forms = self.get_queryset()
-        risk_data = all_forms.values(
-            "chapter__name", "chapter__region__name", "rmp_complete", "count"
-        )
+        risk_data = all_forms.values("chapter__name", "chapter__region__name", "rmp_complete", "count")
         data = {}
         count_types = {
             True: "complete",
@@ -1380,9 +1266,7 @@ class RiskManagementListView(
         return context
 
 
-class PledgeProgramListView(
-    LoginRequiredMixin, NatOfficerRequiredMixin, PagedFilteredTableView
-):
+class PledgeProgramListView(LoginRequiredMixin, NatOfficerRequiredMixin, PagedFilteredTableView):
     model = PledgeProgram
     context_object_name = "pledge_program"
     table_class = PledgeProgramTable
@@ -1457,7 +1341,7 @@ class PledgeProgramListView(
             chapter_name=F("chapter__name"),
             region=F("chapter__region__name"),
             school=F("chapter__school"),
-            approval=StringAgg("process__approval", ", "),
+            approval=StringAgg("process__approval", ", ", default=""),
         )
         complete = self.filter.form.cleaned_data["complete"]
         if complete in ["0", ""]:
@@ -1466,13 +1350,9 @@ class PledgeProgramListView(
             region = Region.objects.filter(slug=region_slug).first()
             active_chapters = Chapter.objects.exclude(active=False)
             if region:
-                missing_chapters = active_chapters.exclude(id__in=form_chapters).filter(
-                    region__in=[region]
-                )
+                missing_chapters = active_chapters.exclude(id__in=form_chapters).filter(region__in=[region])
             elif region_slug == "candidate_chapter":
-                missing_chapters = active_chapters.exclude(id__in=form_chapters).filter(
-                    candidate_chapter=True
-                )
+                missing_chapters = active_chapters.exclude(id__in=form_chapters).filter(candidate_chapter=True)
             else:
                 missing_chapters = active_chapters.exclude(id__in=form_chapters)
             missing_data = [
@@ -1510,12 +1390,7 @@ class PledgeProgramListView(
             data = list(all_forms)
         chapter_names = list(all_forms.values_list("chapter_name", flat=True))
         chapter_officer_emails = {
-            chapter: [
-                user.email
-                for user in Chapter.objects.get(
-                    name=chapter
-                ).get_current_officers_council()[0]
-            ]
+            chapter: [user.email for user in Chapter.objects.get(name=chapter).get_current_officers_council()[0]]
             for chapter in chapter_names
         }
         table = PledgeProgramTable(data=data)
@@ -1523,11 +1398,7 @@ class PledgeProgramListView(
         context["table"] = table
         context["email_list_table"] = chapter_officer_emails
         context["email_list"] = ", ".join(
-            [
-                email
-                for chapter_emails in chapter_officer_emails.values()
-                for email in chapter_emails
-            ]
+            [email for chapter_emails in chapter_officer_emails.values() for email in chapter_emails]
         )
         return context
 
@@ -1579,9 +1450,7 @@ class AuditFormView(LoginRequiredMixin, OfficerRequiredMixin, UpdateView):
             chapter = self.request.user.current_chapter
             next_date = task.incomplete_dates_for_task_chapter(chapter).first()
             if next_date:
-                messages.add_message(
-                    self.request, messages.INFO, "You must submit an updated audit."
-                )
+                messages.add_message(self.request, messages.INFO, "You must submit an updated audit.")
                 return None
             else:
                 return self.request.user.audit_form.last()
@@ -1610,26 +1479,18 @@ class AuditFormView(LoginRequiredMixin, OfficerRequiredMixin, UpdateView):
             messages.add_message(
                 self.request,
                 messages.INFO,
-                f"You successfully submitted the Audit Form!\n"
-                f"Your current roles are: {*current_roles,}",
+                "You successfully submitted the Audit Form!\n" f"Your current roles are: {*current_roles,}",
             )
         return super().form_valid(form)
 
     def get_success_url(self):
         if self.request.user.is_authenticated:
-            return (
-                reverse(
-                    "chapters:detail", kwargs={"slug": self.request.user.chapter.slug}
-                )
-                + "#audit"
-            )
+            return reverse("chapters:detail", kwargs={"slug": self.request.user.chapter.slug}) + "#audit"
         else:
             return reverse("home")
 
 
-class AuditListView(
-    LoginRequiredMixin, NatOfficerRequiredMixin, PagedFilteredTableView
-):
+class AuditListView(LoginRequiredMixin, NatOfficerRequiredMixin, PagedFilteredTableView):
     model = Audit
     context_object_name = "audit"
     table_class = AuditTable
@@ -1653,24 +1514,16 @@ def load_majors(request):
     other = request.GET.get("other")
     majors = []
     if chapter_id:
-        majors = list(
-            ChapterCurricula.objects.filter(
-                chapter__pk=chapter_id, approved=True
-            ).order_by("major")
-        )
+        majors = list(ChapterCurricula.objects.filter(chapter__pk=chapter_id, approved=True).order_by("major"))
         if other:
             other = ChapterCurricula(pk=-1, major="Other")
             majors.append(other)
-    return render(
-        request, "forms/majors_dropdown_list_options.html", {"majors": majors}
-    )
+    return render(request, "forms/majors_dropdown_list_options.html", {"majors": majors})
 
 
 class PledgeFormView(CreateView):
     template_name = "forms/pledge_form.html"
-    initial = {
-        "demographics": {"gender": "", "sexual": "", "racial": "", "ability": ""}
-    }
+    initial = {"demographics": {"gender": "", "sexual": "", "racial": "", "ability": ""}}
 
     def get_form(self):
         alt_form = self.kwargs.get("alt_form", False)
@@ -1701,9 +1554,9 @@ class PledgeFormView(CreateView):
                 messages.ERROR,
                 mark_safe(
                     f"Pledge form already submitted for {user}!<br>"
-                    f"If you previously pledged Theta Tau, "
-                    f"please have a chapter officer contact<br> "
-                    f"central.office@thetatau.org to restart your pledge process."
+                    "If you previously pledged Theta Tau, "
+                    "please have a chapter officer contact<br> "
+                    "central.office@thetatau.org to restart your pledge process."
                 ),
             )
             return HttpResponseRedirect(self.get_success_url())
@@ -1728,9 +1581,7 @@ class PledgeFormView(CreateView):
             EmailAddress.objects.add_email(self.request, user, user.email, True)
         except IntegrityError:
             pass
-        processes = PledgeProcess.objects.filter(
-            chapter=user.chapter, finished__isnull=True
-        )
+        processes = PledgeProcess.objects.filter(chapter=user.chapter, finished__isnull=True)
         active_process = None
         for process in processes:
             active_task = process.active_tasks().first()
@@ -1740,18 +1591,14 @@ class PledgeFormView(CreateView):
         if active_process is None:
             from .flows import PledgeProcessFlow
 
-            activation = PledgeProcessFlow.start.run(
-                chapter=user.chapter, request=self.request
-            )
+            activation = PledgeProcessFlow.start.run(chapter=user.chapter, request=self.request)
             active_process = activation.process
         active_process.pledges.add(self.object)
         try:
             Training.add_user(user, request=self.request)
         except Exception as e:
             message = f"Error adding training {user=} {user.chapter=} {e}"
-            CentralOfficeGenericEmail(
-                message, subject="[CMT] Training Error"
-            ).send()
+            CentralOfficeGenericEmail(message, subject="[CMT] Training Error").send()
         messages.add_message(
             self.request,
             messages.INFO,
@@ -1772,9 +1619,7 @@ class PrematureAlumnusCreateView(LoginRequiredMixin, CreateProcessView):
     def activation_done(self, *args, **kwargs):
         """Finish task activation."""
         self.activation.done()
-        self.success(
-            "Premature Alumnus form submitted successfully to Executive Director for review"
-        )
+        self.success("Premature Alumnus form submitted successfully to Executive Director for review")
         Task.mark_complete(
             name="Premature Alumnus",
             chapter=self.request.user.current_chapter,
@@ -1785,9 +1630,7 @@ class PrematureAlumnusCreateView(LoginRequiredMixin, CreateProcessView):
     def get_context_data(self, *args, **kwargs):
         context = super().get_context_data(**kwargs)
         data = []
-        processes = PrematureAlumnus.objects.filter(
-            user__chapter=self.request.user.current_chapter
-        )
+        processes = PrematureAlumnus.objects.filter(user__chapter=self.request.user.current_chapter)
         for process in processes:
             status = "N/A"
             if process.finished is None:
@@ -1825,6 +1668,7 @@ def badge_shingle_init_csv(request, csv_type, process_pk, response_type="csv"):
         process.generate_blackbaud_update(response=response)
     response["Cache-Control"] = "no-cache"
     return response
+
 
 @group_required("natoff")
 @csrf_exempt
@@ -1935,12 +1779,7 @@ def get_sign_status(user, type_sign="creds", initial=False, name=False, complete
             if not initial:
                 task_pk, task_status = task_ids[signature]
             signer = getattr(process, signature)
-            member = ", ".join(
-                [
-                    str(getattr(process, member_field_name))
-                    for member_field_name in member_field_names
-                ]
-            )
+            member = ", ".join([str(getattr(process, member_field_name)) for member_field_name in member_field_names])
             users.append(signer)
             link = False
             approved = "N/A"
@@ -1977,9 +1816,7 @@ def get_sign_status(user, type_sign="creds", initial=False, name=False, complete
     return data, submitted, users
 
 
-class ConventionCreateView(
-    LoginRequiredMixin, CreateProcessView, AssignOfficerFormMixin
-):
+class ConventionCreateView(LoginRequiredMixin, CreateProcessView, AssignOfficerFormMixin):
     template_name = "forms/convention_form.html"
     model = Convention
     form_class = ConventionForm
@@ -1994,11 +1831,7 @@ class ConventionCreateView(
         if self.submitted and self.request.user in self.signers:
             for sign in self.data:
                 link = sign["link"]
-                if (
-                    self.request.user == sign["owner"]
-                    and link != "#"
-                    and not isinstance(link, bool)
-                ):
+                if self.request.user == sign["owner"] and link != "#" and not isinstance(link, bool):
                     return redirect(link)
         return super().get(request, *args, **kwargs)
 
@@ -2089,9 +1922,7 @@ class ConventionSignView(LoginRequiredMixin, UpdateProcessView, MultiFormsView):
     def create_process_form(self, *args, **kwargs):
         task_name = self.activation.flow_task.name
         self.fields = self.fields_options[task_name]
-        return model_forms.modelform_factory(self.model, fields=self.fields)(
-            **self.get_form_kwargs()
-        )
+        return model_forms.modelform_factory(self.model, fields=self.fields)(**self.get_form_kwargs())
 
     def get_forms(self, form_classes, form_names=None, bind_all=False):
         forms = super().get_forms(form_classes, form_names, bind_all)
@@ -2120,9 +1951,7 @@ class ConventionSignView(LoginRequiredMixin, UpdateProcessView, MultiFormsView):
         return context
 
 
-class ConventionListView(
-    LoginRequiredMixin, NatOfficerRequiredMixin, PagedFilteredTableView
-):
+class ConventionListView(LoginRequiredMixin, NatOfficerRequiredMixin, PagedFilteredTableView):
     model = Convention
     context_object_name = "convention_list"
     table_class = ConventionListTable
@@ -2222,13 +2051,9 @@ class ConventionListView(
             region = Region.objects.filter(slug=region_slug).first()
             active_chapters = Chapter.objects.exclude(active=False)
             if region:
-                missing_chapters = active_chapters.exclude(id__in=form_chapters).filter(
-                    region__in=[region]
-                )
+                missing_chapters = active_chapters.exclude(id__in=form_chapters).filter(region__in=[region])
             elif region_slug == "candidate_chapter":
-                missing_chapters = active_chapters.exclude(id__in=form_chapters).filter(
-                    candidate_chapter=True
-                )
+                missing_chapters = active_chapters.exclude(id__in=form_chapters).filter(candidate_chapter=True)
             else:
                 missing_chapters = active_chapters.exclude(id__in=form_chapters)
             missing_data = [
@@ -2247,9 +2072,7 @@ class ConventionListView(
             else:  # All
                 data.extend(missing_data)
         table = ConventionListTable(data=data)
-        all_users = [
-            [x["delegate"].email, x["alternate"].email] for x in data if x["delegate"]
-        ]
+        all_users = [[x["delegate"].email, x["alternate"].email] for x in data if x["delegate"]]
         flatten = [item for sublist in all_users for item in sublist]
         email_list = ", ".join(flatten)
         context["email_list"] = email_list
@@ -2302,9 +2125,7 @@ def pledge_process_sync(request, process_pk, invoice_number):
     return JsonResponse({"invoice_number": new_invoice_number})
 
 
-class AlumniExclusionListView(
-    LoginRequiredMixin, NatOfficerRequiredMixin, PagedFilteredTableView
-):
+class AlumniExclusionListView(LoginRequiredMixin, NatOfficerRequiredMixin, PagedFilteredTableView):
     model = AlumniExclusion
     table_class = AlumniExclusionTable
     filter_class = AlumniExclusionListFilter
@@ -2352,9 +2173,7 @@ class AlumniExclusionListView(
         return context
 
 
-class AlumniExclusionCreateView(
-    LoginRequiredMixin, CreateProcessView, AssignOfficerFormMixin
-):
+class AlumniExclusionCreateView(LoginRequiredMixin, CreateProcessView, AssignOfficerFormMixin):
     template_name = "forms/alumniexclusion_form.html"
     model = AlumniExclusion
     form_class = AlumniExclusionForm
@@ -2365,17 +2184,11 @@ class AlumniExclusionCreateView(
         officers = request.user.current_chapter.get_current_officers_council_specific()
         if not self.check_officers(officers):
             return redirect(reverse("forms:officer"))
-        self.data, self.submitted, self.signers = get_sign_status(
-            self.request.user, type_sign="osm"
-        )
+        self.data, self.submitted, self.signers = get_sign_status(self.request.user, type_sign="osm")
         if self.submitted and self.request.user in self.signers:
             for sign in self.data:
                 link = sign["link"]
-                if (
-                    self.request.user == sign["owner"]
-                    and link != "#"
-                    and not isinstance(link, bool)
-                ):
+                if self.request.user == sign["owner"] and link != "#" and not isinstance(link, bool):
                     return redirect(link)
         return super().get(request, *args, **kwargs)
 
@@ -2421,9 +2234,7 @@ class AlumniExclusionCreateView(
         return context
 
 
-class AlumniExclusionDetailView(
-    LoginRequiredMixin, NatOfficerRequiredMixin, DetailView
-):
+class AlumniExclusionDetailView(LoginRequiredMixin, NatOfficerRequiredMixin, DetailView):
     model = AlumniExclusion
     template_name = "forms/alumniexclusionreview.html"
 
@@ -2443,7 +2254,10 @@ class AlumniExclusionReview(
     template_name = "forms/alumniexclusionreview.html"
     model = AlumniExclusion
     form_class = AlumniExclusionReviewForm
-    fields = None
+
+    @property
+    def fields(self):
+        return None
 
     def dispatch(self, request, **kwargs):
         """Lock the process, initialize `self.activation`, check permission and execute."""
@@ -2454,9 +2268,7 @@ class AlumniExclusionReview(
             status = object.status
         if status == "DONE":
             list(messages.get_messages(request))
-            result = HttpResponseRedirect(
-                reverse("forms:alumniexclusion_detail", kwargs={"pk": object.pk})
-            )
+            result = HttpResponseRedirect(reverse("forms:alumniexclusion_detail", kwargs={"pk": object.pk}))
         return result
 
     def get_success_url(self):
@@ -2466,10 +2278,6 @@ class AlumniExclusionReview(
         """Finish task activation."""
         self.activation.done()
         self.success("Alumni Exclusion updated successfully.")
-
-    @property
-    def fields(self):
-        return None
 
     @fields.setter
     def fields(self, val):
@@ -2501,17 +2309,11 @@ class OSMCreateView(LoginRequiredMixin, CreateProcessView, AssignOfficerFormMixi
         officers = request.user.current_chapter.get_current_officers_council_specific()
         if not self.check_officers(officers):
             return redirect(reverse("forms:officer"))
-        self.data, self.submitted, self.signers = get_sign_status(
-            self.request.user, type_sign="osm"
-        )
+        self.data, self.submitted, self.signers = get_sign_status(self.request.user, type_sign="osm")
         if self.submitted and self.request.user in self.signers:
             for sign in self.data:
                 link = sign["link"]
-                if (
-                    self.request.user == sign["owner"]
-                    and link != "#"
-                    and not isinstance(link, bool)
-                ):
+                if self.request.user == sign["owner"] and link != "#" and not isinstance(link, bool):
                     return redirect(link)
         return super().get(request, *args, **kwargs)
 
@@ -2541,9 +2343,7 @@ class OSMCreateView(LoginRequiredMixin, CreateProcessView, AssignOfficerFormMixi
     def get_context_data(self, *args, **kwargs):
         context = super().get_context_data(**kwargs)
         context["submitted"] = self.submitted
-        process = OSM.objects.filter(
-            chapter=self.request.user.current_chapter, year=OSM.current_year()
-        ).first()
+        process = OSM.objects.filter(chapter=self.request.user.current_chapter, year=OSM.current_year()).first()
         if process:
             context["nominate"] = process.nominate
         context["table"] = SignTable(data=self.data)
@@ -2587,9 +2387,7 @@ class OSMVerifyView(LoginRequiredMixin, UpdateProcessView, ModelFormMixin):
         context = super().get_context_data(**kwargs)
         data, submitted, users = get_sign_status(self.request.user, type_sign="osm")
         context["submitted"] = submitted
-        process = OSM.objects.filter(
-            chapter=self.request.user.current_chapter, year=OSM.current_year()
-        ).first()
+        process = OSM.objects.filter(chapter=self.request.user.current_chapter, year=OSM.current_year()).first()
         if process:
             context["nominate"] = process.nominate
         context["table"] = SignTable(data=data)
@@ -2695,13 +2493,9 @@ class OSMListView(LoginRequiredMixin, NatOfficerRequiredMixin, PagedFilteredTabl
             region = Region.objects.filter(slug=region_slug).first()
             active_chapters = Chapter.objects.exclude(active=False)
             if region:
-                missing_chapters = active_chapters.exclude(id__in=form_chapters).filter(
-                    region__in=[region]
-                )
+                missing_chapters = active_chapters.exclude(id__in=form_chapters).filter(region__in=[region])
             elif region_slug == "candidate_chapter":
-                missing_chapters = active_chapters.exclude(id__in=form_chapters).filter(
-                    candidate_chapter=True
-                )
+                missing_chapters = active_chapters.exclude(id__in=form_chapters).filter(candidate_chapter=True)
             else:
                 missing_chapters = active_chapters.exclude(id__in=form_chapters)
             missing_data = [
@@ -2727,9 +2521,7 @@ class OSMListView(LoginRequiredMixin, NatOfficerRequiredMixin, PagedFilteredTabl
         return context
 
 
-class DisciplinaryCreateView(
-    LoginRequiredMixin, OfficerRequiredMixin, CreateProcessView
-):
+class DisciplinaryCreateView(LoginRequiredMixin, OfficerRequiredMixin, CreateProcessView):
     template_name = "forms/disciplinary_form.html"
     model = DisciplinaryProcess
     form_class = DisciplinaryForm1
@@ -2789,15 +2581,11 @@ class DisciplinaryForm2View(LoginRequiredMixin, UpdateProcessView, ModelFormMixi
 def get_signature():
     with open(r"secrets/JimGaffney_signature.jpg", "rb") as file:
         image = BytesIO(file.read())
-        image_string = "data:image/png;base64," + base64.b64encode(
-            image.getvalue()
-        ).decode("utf-8").replace("\n", "")
+        image_string = "data:image/png;base64," + base64.b64encode(image.getvalue()).decode("utf-8").replace("\n", "")
     return image_string
 
 
-class DisciplinaryPDFTest(
-    NatOfficerRequiredMixin, PDFTemplateResponseMixin, DetailView, ModelFormMixin
-):
+class DisciplinaryPDFTest(NatOfficerRequiredMixin, PDFTemplateResponseMixin, DetailView, ModelFormMixin):
     model = DisciplinaryProcess
     template_name = "forms/disciplinary_expel_letter.html"
     form_class = DisciplinaryForm1
@@ -2806,9 +2594,7 @@ class DisciplinaryPDFTest(
         context = super().get_context_data(**kwargs)
         image_string = get_signature()
         context["signature"] = image_string
-        all_fields = (
-            DisciplinaryForm1._meta.fields[:] + DisciplinaryForm2._meta.fields[:]
-        )
+        all_fields = DisciplinaryForm1._meta.fields[:] + DisciplinaryForm2._meta.fields[:]
         all_fields.extend(["ed_process", "ed_notes", "ec_approval", "ec_notes"])
         info = {}
         for field in all_fields:
@@ -2839,17 +2625,13 @@ def disciplinary_process_files(request, process_pk):
             f"{process.chapter.slug}_{process.user.id}_disciplinary_forms.pdf",
             forms,
         )
-    response = HttpResponse(
-        zip_io.getvalue(), content_type="application/x-zip-compressed"
-    )
+    response = HttpResponse(zip_io.getvalue(), content_type="application/x-zip-compressed")
     response["Cache-Control"] = "no-cache"
     response["Content-Disposition"] = f"attachment; filename={zip_filename}"
     return response
 
 
-class CollectionReferralFormView(
-    LoginRequiredMixin, OfficerRequiredMixin, MultiFormsView
-):
+class CollectionReferralFormView(LoginRequiredMixin, OfficerRequiredMixin, MultiFormsView):
     officer_edit = "collection referrals"
     officer_edit_type = "submit or view"
     template_name = "forms/collection.html"
@@ -2920,18 +2702,14 @@ class CollectionReferralFormView(
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         collections_table = CollectionReferralTable(
-            CollectionReferral.objects.filter(
-                user__chapter=self.request.user.current_chapter
-            ).order_by("-created")
+            CollectionReferral.objects.filter(user__chapter=self.request.user.current_chapter).order_by("-created")
         )
         RequestConfig(self.request).configure(collections_table)
         context["collections_table"] = collections_table
         return context
 
 
-class ResignationCreateView(
-    LoginRequiredMixin, CreateProcessView, AssignOfficerFormMixin
-):
+class ResignationCreateView(LoginRequiredMixin, CreateProcessView, AssignOfficerFormMixin):
     template_name = "forms/resignation_form.html"
     model = ResignationProcess
     form_class = ResignationForm
@@ -3035,9 +2813,7 @@ class ResignationSignView(LoginRequiredMixin, UpdateProcessView):
         return context
 
 
-class ResignationListView(
-    LoginRequiredMixin, OfficerRequiredMixin, PagedFilteredTableView
-):
+class ResignationListView(LoginRequiredMixin, OfficerRequiredMixin, PagedFilteredTableView):
     model = ResignationProcess
     context_object_name = "resign_list"
     table_class = SignTable
@@ -3069,9 +2845,7 @@ class ReturnStudentCreateView(LoginRequiredMixin, CreateProcessView):
     def get_context_data(self, *args, **kwargs):
         context = super().get_context_data(**kwargs)
         data = []
-        processes = ReturnStudent.objects.filter(
-            user__chapter=self.request.user.current_chapter
-        )
+        processes = ReturnStudent.objects.filter(user__chapter=self.request.user.current_chapter)
         for process in processes:
             status = "N/A"
             if process.finished is None:
@@ -3101,9 +2875,7 @@ class PledgeProgramProcessDetailView(LoginRequiredMixin, DetailView):
         context = super().get_context_data(**kwargs)
         chapter = self.request.user.current_chapter
         context["program_link"] = (
-            f"https://docs.google.com/document/d/{chapter.nme_file_id}/edit"
-            if chapter.nme_file_id != "none"
-            else None
+            f"https://docs.google.com/document/d/{chapter.nme_file_id}/edit" if chapter.nme_file_id != "none" else None
         )
         return context
 
@@ -3185,17 +2957,13 @@ class PledgeProgramProcessCreateView(LoginRequiredMixin, CreateProcessView):
                 submitted = "approved"
         context["submitted"] = submitted
         context["program_link"] = (
-            f"https://docs.google.com/document/d/{chapter.nme_file_id}/edit"
-            if chapter.nme_file_id != "none"
-            else None
+            f"https://docs.google.com/document/d/{chapter.nme_file_id}/edit" if chapter.nme_file_id != "none" else None
         )
         context["table"] = PledgeProgramStatusTable(data=data)
         return context
 
 
-class BylawsListView(
-    LoginRequiredMixin, NatOfficerRequiredMixin, PagedFilteredTableView
-):
+class BylawsListView(LoginRequiredMixin, NatOfficerRequiredMixin, PagedFilteredTableView):
     model = Bylaws
     context_object_name = "bylaws_list"
     table_class = BylawsListTable
@@ -3272,8 +3040,8 @@ class BylawsCreateView(
             messages.add_message(
                 self.request,
                 messages.INFO,
-                f"You successfully submitted updated chapter bylaws. "
-                f"An email was sent to the Executive Director and Regional Directors",
+                "You successfully submitted updated chapter bylaws. "
+                "An email was sent to the Executive Director and Regional Directors",
             )
         return reverse("forms:bylaws")
 
@@ -3294,9 +3062,7 @@ class BylawsCreateView(
         return context
 
 
-class RitualProficiencyCreateView(
-    LoginRequiredMixin, NatOfficerRequiredMixin, CreateView
-):
+class RitualProficiencyCreateView(LoginRequiredMixin, NatOfficerRequiredMixin, CreateView):
     model = RitualProficiency
     form_class = RitualProficiencyForm
     template_name = "forms/ritual_proficiency_form.html"
@@ -3314,9 +3080,7 @@ class RitualProficiencyCreateView(
         return reverse("forms:ritual_proficiency")
 
 
-class RitualProficiencyUserTableView(
-    LoginRequiredMixin, NatOfficerRequiredMixin, TemplateView
-):
+class RitualProficiencyUserTableView(LoginRequiredMixin, NatOfficerRequiredMixin, TemplateView):
     template_name = "forms/ritual_proficiency_table_partial.html"
 
     def get(self, request, *args, **kwargs):

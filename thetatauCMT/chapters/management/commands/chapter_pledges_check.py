@@ -3,13 +3,16 @@ Notes:
     To test run command
         docker-compose -f local.yml run --rm django python manage.py chapter_pledges_check
 """
+
 import datetime
-from django.utils.timezone import make_aware
+
 from django.core.management import BaseCommand
+from django.utils.timezone import make_aware
 from herald.models import SentNotification
+
 from core.models import TODAY_END
 from core.notifications import GenericEmail
-from chapters.models import Chapter
+from thetatauCMT.chapters.models import Chapter
 
 
 class Command(BaseCommand):
@@ -75,9 +78,7 @@ class Command(BaseCommand):
                 print(f"    Sending message to: {chapter}\n")
                 officer_list, _ = chapter.get_current_officers_council()
                 # set list of emails to send to
-                emails = set([officer.email for officer in officer_list]) | set(
-                    chapter.get_generic_chapter_emails()
-                )
+                emails = set([officer.email for officer in officer_list]) | set(chapter.get_generic_chapter_emails())
                 if not chapter.candidate_chapter:
                     chapter_name = chapter.name + " Chapter"
                     region_email = chapter.region.email

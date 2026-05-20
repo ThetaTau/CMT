@@ -4,6 +4,7 @@ tutor plugins disable myplugin
 tutor plugins enable myplugin
 tutor local restart
 """
+
 from tutor import hooks
 
 hooks.Filters.CONFIG_USER.add_items(

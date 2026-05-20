@@ -1,18 +1,18 @@
 # filters.py
 import django_filters
+
 from core.filters import DateRangeFilter
+from thetatauCMT.chapters.models import Chapter
+from thetatauCMT.regions.models import Region
+from thetatauCMT.scores.models import ScoreType
+
 from .models import Event
-from chapters.models import Chapter
-from regions.models import Region
-from scores.models import ScoreType
 
 
 class EventListFilter(django_filters.FilterSet):
     name = django_filters.CharFilter(lookup_expr="icontains")
     date = DateRangeFilter(field_name="date")
-    type = django_filters.ModelChoiceFilter(
-        queryset=ScoreType.objects.filter(type="Evt").all()
-    )
+    type = django_filters.ModelChoiceFilter(queryset=ScoreType.objects.filter(type="Evt").all())
 
     class Meta:
         model = Event

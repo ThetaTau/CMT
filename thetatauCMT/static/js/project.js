@@ -4,7 +4,7 @@
 Formatting hack to get around crispy-forms unfortunate hardcoding
 in helpers.FormHelper:
 
-    if template_pack == 'bootstrap4':
+    if template_pack == 'bootstrap5':
         grid_colum_matcher = re.compile('\w*col-(xs|sm|md|lg|xl)-\d+\w*')
         using_grid_layout = (grid_colum_matcher.match(self.label_class) or
                              grid_colum_matcher.match(self.field_class))

@@ -1,6 +1,7 @@
+from django.conf import settings
 from herald import registry
 from herald.base import EmailNotification
-from django.conf import settings
+
 from core.models import current_term
 
 

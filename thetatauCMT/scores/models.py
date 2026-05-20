@@ -1,10 +1,12 @@
 import datetime
 from enum import Enum
+
 from django.db import models
 from django.db.models import Sum
 from django.db.models.functions import Round
-from core.models import YearTermModel, BIENNIUM_YEARS
-from chapters.models import Chapter
+
+from core.models import BIENNIUM_YEARS, YearTermModel
+from thetatauCMT.chapters.models import Chapter
 
 
 class ScoreType(models.Model):
@@ -35,15 +37,9 @@ class ScoreType(models.Model):
     name = models.CharField(max_length=50)
     description = models.CharField(max_length=200)
     section = models.CharField(max_length=3, choices=[x.value for x in SECTION])
-    points = models.PositiveIntegerField(
-        default=0, help_text="Total number of points possible in year"
-    )
-    term_points = models.PositiveIntegerField(
-        default=0, help_text="Total number of points possible in term"
-    )
-    formula = models.CharField(
-        max_length=200, help_text="Formula for calculating score"
-    )
+    points = models.PositiveIntegerField(default=0, help_text="Total number of points possible in year")
+    term_points = models.PositiveIntegerField(default=0, help_text="Total number of points possible in term")
+    formula = models.CharField(max_length=200, help_text="Formula for calculating score")
     slug = models.SlugField(unique=True)  # name_short
     type = models.CharField(max_length=3, choices=[x.value for x in TYPES])
     base_points = models.FloatField(default=0)
@@ -62,9 +58,7 @@ class ScoreType(models.Model):
             qs = self.events.filter(chapter=chapter).all()
         else:
             date_start, date_end = YearTermModel.date_range(date)
-            qs = self.events.filter(
-                chapter=chapter, date__gt=date_start, date__lt=date_end
-            ).all()
+            qs = self.events.filter(chapter=chapter, date__gt=date_start, date__lt=date_end).all()
         return qs
 
     def chapter_submissions(self, chapter, date=None):
@@ -72,9 +66,7 @@ class ScoreType(models.Model):
             qs = self.submissions.filter(chapter=chapter).all()
         else:
             date_start, date_end = YearTermModel.date_range(date)
-            qs = self.submissions.filter(
-                chapter=chapter, date__gt=date_start, date__lt=date_end
-            ).all()
+            qs = self.submissions.filter(chapter=chapter, date__gt=date_start, date__lt=date_end).all()
         return qs
 
     def chapter_score(self, chapter, date=None):
@@ -110,9 +102,7 @@ class ScoreType(models.Model):
             chapters__year__lte=start_year + 2,
         ).values("chapters__year", "chapters__score", "chapters__term", "id")
         score_values_ids = set(scores_values.values_list("id", flat=True))
-        score_types = qs.all().values(
-            "type", "points", "section", "description", "name", "slug", "id"
-        )
+        score_types = qs.all().values("type", "points", "section", "description", "name", "slug", "id")
         score_types_out = []
         for score_info in score_types:
             if score_info["id"] in score_values_ids:
@@ -250,19 +240,13 @@ class ScoreType(models.Model):
         try:
             score_chapter = self.chapters.get(chapter=chapter, year=year, term=term)
         except ScoreChapter.DoesNotExist:
-            score_chapter = ScoreChapter(
-                chapter=chapter, type=self, year=year, term=term
-            )
+            score_chapter = ScoreChapter(chapter=chapter, type=self, year=year, term=term)
         score_chapter.score = score
         score_chapter.save()
         try:
-            score_chapter_opp = self.chapters.get(
-                chapter=chapter, year=year_opp, term=term_opp
-            )
+            score_chapter_opp = self.chapters.get(chapter=chapter, year=year_opp, term=term_opp)
         except ScoreChapter.DoesNotExist:
-            score_chapter_opp = ScoreChapter(
-                chapter=chapter, type=self, year=year_opp, term=term_opp
-            )
+            score_chapter_opp = ScoreChapter(chapter=chapter, type=self, year=year_opp, term=term_opp)
         score_chapter_opp.score = score_opp
         score_chapter_opp.save()
 
@@ -271,20 +255,14 @@ class ScoreChapter(YearTermModel):
     class Meta:
         unique_together = ("term", "year", "type", "chapter")
 
-    chapter = models.ForeignKey(
-        Chapter, related_name="scores", on_delete=models.CASCADE
-    )
-    type = models.ForeignKey(
-        ScoreType, on_delete=models.PROTECT, related_name="chapters"
-    )
+    chapter = models.ForeignKey(Chapter, related_name="scores", on_delete=models.CASCADE)
+    type = models.ForeignKey(ScoreType, on_delete=models.PROTECT, related_name="chapters")
     score = models.FloatField(default=0)
 
     @classmethod
     def type_score_biennium(cls, date=None, chapters=None):
         if date is None:
-            query = cls.objects.filter(year__gte=BIENNIUM_YEARS[0]).exclude(
-                year=BIENNIUM_YEARS[0], term="sp"
-            )
+            query = cls.objects.filter(year__gte=BIENNIUM_YEARS[0]).exclude(year=BIENNIUM_YEARS[0], term="sp")
         else:
             term = ScoreChapter.get_term(date)
             query = cls.objects.filter(year=date.year, term=term)
@@ -304,15 +282,11 @@ class ScoreChapter(YearTermModel):
         for score in scores:
             chapter = score["chapter"]
             score[f"{score.pop('type__section')}"] = score.pop("section_score")
-            chapter_dict = grouped_scores.get(
-                chapter, {"Bro": 0, "Ops": 0, "Ser": 0, "Pro": 0}
-            )
+            chapter_dict = grouped_scores.get(chapter, {"Bro": 0, "Ops": 0, "Ser": 0, "Pro": 0})
             chapter_dict.update(score)
             grouped_scores[chapter] = chapter_dict
         for chapter, score in grouped_scores.items():
-            grouped_scores[chapter]["total"] = round(
-                score["Bro"] + score["Ops"] + score["Ser"] + score["Pro"], 2
-            )
+            grouped_scores[chapter]["total"] = round(score["Bro"] + score["Ops"] + score["Ser"] + score["Pro"], 2)
         return grouped_scores.values()
 
     def update_score(self):

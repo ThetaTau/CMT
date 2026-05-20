@@ -1,23 +1,21 @@
 import datetime
+
 from django.contrib import messages
-from django.shortcuts import redirect, reverse
 from django.db import models, transaction
 from django.db.utils import IntegrityError
 from django.http.request import QueryDict
-from django.views.generic import DetailView, CreateView
+from django.shortcuts import reverse
+from django.views.generic import CreateView, DetailView
+
 from core.models import current_year_term_slug
-from core.views import (
-    PagedFilteredTableView,
-    RequestConfig,
-    OfficerRequiredMixin,
-    LoginRequiredMixin,
-)
-from forms.tables import SignTable
-from forms.views import get_sign_status, get_sign_status_discipline
-from .models import TaskChapter, TaskDate
-from .tables import TaskTable
+from core.views import LoginRequiredMixin, OfficerRequiredMixin, PagedFilteredTableView, RequestConfig
+from thetatauCMT.forms.tables import SignTable
+from thetatauCMT.forms.views import get_sign_status, get_sign_status_discipline
+
 from .filters import TaskListFilter
 from .forms import TaskListFormHelper
+from .models import TaskChapter, TaskDate
+from .tables import TaskTable
 
 
 class TaskCompleteView(LoginRequiredMixin, OfficerRequiredMixin, CreateView):
@@ -33,9 +31,7 @@ class TaskCompleteView(LoginRequiredMixin, OfficerRequiredMixin, CreateView):
         task_date = TaskDate.objects.get(pk=task_date_id)
         task = task_date.task
         context["task"] = task
-        dates = task.incomplete_dates_for_task_chapter(
-            chapter=self.request.user.current_chapter
-        )
+        dates = task.incomplete_dates_for_task_chapter(chapter=self.request.user.current_chapter)
         context["due_date"] = task_date
         context["dates"] = dates
         return context
@@ -49,8 +45,7 @@ class TaskCompleteView(LoginRequiredMixin, OfficerRequiredMixin, CreateView):
             messages.add_message(
                 self.request,
                 messages.ERROR,
-                f"Only executive officers can sign off tasks. "
-                f"Your current roles are: {*current_roles,}",
+                f"Only executive officers can sign off tasks. " f"Your current roles are: {*current_roles,}",
             )
             return super().form_invalid(form)
         form.instance.chapter = self.request.user.current_chapter
@@ -60,14 +55,10 @@ class TaskCompleteView(LoginRequiredMixin, OfficerRequiredMixin, CreateView):
             with transaction.atomic():
                 result = super().form_valid(form)
         except IntegrityError:
-            messages.add_message(
-                self.request, messages.ERROR, "The task only needs to be complete once"
-            )
+            messages.add_message(self.request, messages.ERROR, "The task only needs to be complete once")
             result = super().form_invalid(form)
         else:
-            messages.add_message(
-                self.request, messages.INFO, f"Task {task.name} marked as complete."
-            )
+            messages.add_message(self.request, messages.INFO, f"Task {task.name} marked as complete.")
         return result
 
     def get_success_url(self):
@@ -114,9 +105,7 @@ class TaskListView(LoginRequiredMixin, PagedFilteredTableView):
         qs = self.get_queryset()
         qs = qs.annotate(
             complete_link=models.Case(
-                models.When(
-                    models.Q(chapters__chapter=chapter), models.F("chapters__pk")
-                ),
+                models.When(models.Q(chapters__chapter=chapter), models.F("chapters__pk")),
                 default=models.Value(0),
             )
         )
@@ -130,21 +119,11 @@ class TaskListView(LoginRequiredMixin, PagedFilteredTableView):
         table.request = self.request
         RequestConfig(self.request, paginate={"per_page": 40}).configure(table)
         context["table"] = table
-        discipline_tasks = get_sign_status_discipline(
-            self.request.user, name=True, complete=False
-        )
-        convention_tasks = get_sign_status(
-            self.request.user, type_sign="creds", name=True, complete=False
-        )
-        resign_tasks = get_sign_status(
-            self.request.user, type_sign="resign", name=True, complete=False
-        )
-        osm_tasks = get_sign_status(
-            self.request.user, type_sign="osm", name=True, complete=False
-        )
-        all_process_tasks = (
-            convention_tasks[0] + resign_tasks[0] + osm_tasks[0] + discipline_tasks
-        )
+        discipline_tasks = get_sign_status_discipline(self.request.user, name=True, complete=False)
+        convention_tasks = get_sign_status(self.request.user, type_sign="creds", name=True, complete=False)
+        resign_tasks = get_sign_status(self.request.user, type_sign="resign", name=True, complete=False)
+        osm_tasks = get_sign_status(self.request.user, type_sign="osm", name=True, complete=False)
+        all_process_tasks = convention_tasks[0] + resign_tasks[0] + osm_tasks[0] + discipline_tasks
         task_table = SignTable(data=all_process_tasks, extra=True)
         task_table.request = self.request
         RequestConfig(self.request, paginate={"per_page": 40}).configure(task_table)

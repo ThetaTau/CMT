@@ -1,22 +1,22 @@
 import os
+
 from django.conf import settings
-from django.db import models, transaction
 from django.contrib.contenttypes.fields import GenericRelation
-from django_userforeignkey.models.fields import UserForeignKey
+from django.db import models, transaction
 from django.utils import timezone
 from django.utils.text import slugify
-from ckeditor.fields import RichTextField
+from django_ckeditor_5.fields import CKEditor5Field
+from django_userforeignkey.models.fields import UserForeignKey
 from email_signals.models import EmailSignalMixin
+
 from core.models import TimeStampedModel
-from scores.models import ScoreType
-from chapters.models import Chapter
-from tasks.models import TaskChapter
+from thetatauCMT.chapters.models import Chapter
+from thetatauCMT.scores.models import ScoreType
+from thetatauCMT.tasks.models import TaskChapter
 
 
 def get_upload_path(instance, filename):
-    return os.path.join(
-        "submissions", instance.type.slug, f"{instance.chapter.slug}_{filename}"
-    )
+    return os.path.join("submissions", instance.type.slug, f"{instance.chapter.slug}_{filename}")
 
 
 class Submission(TimeStampedModel, EmailSignalMixin):
@@ -41,13 +41,9 @@ class Submission(TimeStampedModel, EmailSignalMixin):
     file = models.FileField(upload_to=get_upload_path)
     name = models.CharField("Submission Name", max_length=200)
     slug = models.SlugField(unique=False, max_length=200)
-    type = models.ForeignKey(
-        ScoreType, related_name="submissions", on_delete=models.PROTECT
-    )
+    type = models.ForeignKey(ScoreType, related_name="submissions", on_delete=models.PROTECT)
     score = models.FloatField(default=0)
-    chapter = models.ForeignKey(
-        Chapter, related_name="submissions", on_delete=models.CASCADE
-    )
+    chapter = models.ForeignKey(Chapter, related_name="submissions", on_delete=models.CASCADE)
     task = GenericRelation(
         TaskChapter,
         content_type_field="submission_type",
@@ -97,7 +93,7 @@ class GearArticle(TimeStampedModel):
         on_delete=models.CASCADE,
         related_name="gear",
     )
-    article = RichTextField()
+    article = CKEditor5Field()
     reviewed = models.BooleanField(
         default=False,
         blank=True,

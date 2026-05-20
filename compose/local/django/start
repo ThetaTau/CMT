@@ -14,6 +14,10 @@ else
     echo "No .env file found. Using existing environment variables."
 fi
 
+# Echo PostgreSQL connection details
+echo "PostgreSQL Host: $POSTGRES_HOST"
+echo "PostgreSQL Port: $POSTGRES_PORT"
+
 #python manage.py migrate
 if [ $DEBUGPY_ON == 0 ]; then
     echo "Running in normal mode..."

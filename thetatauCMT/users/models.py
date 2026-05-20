@@ -1,47 +1,47 @@
 import datetime
-from django.contrib.auth.models import AbstractUser, Group
-from django.contrib.postgres.fields import ArrayField
-from django_userforeignkey.models.fields import UserForeignKey
-from django.db import models, IntegrityError
-from django.contrib.auth.models import UserManager
-from django.urls import reverse
-from django.conf import settings
-from django.utils.translation import gettext_lazy as _
-from django.core.validators import MinValueValidator, MaxValueValidator, RegexValidator
-from model_utils.fields import MonitorField
+
 from address.models import AddressField
-from multiselectfield import MultiSelectField
+from django.conf import settings
+from django.contrib.auth.models import AbstractUser, Group, UserManager
+from django.contrib.postgres.fields import ArrayField
+from django.core.validators import MaxValueValidator, MinValueValidator, RegexValidator
+from django.db import IntegrityError, models
+from django.urls import reverse
+from django.utils.translation import gettext_lazy as _
+from django_userforeignkey.models.fields import UserForeignKey
 from email_signals.models import EmailSignalMixin
+from model_utils.fields import MonitorField
+from multiselectfield import MultiSelectField
 from simple_history.models import HistoricalRecords
 from viewflow.models import Process
+
 from core.models import (
-    StartEndModel,
-    YearTermModel,
-    forever,
-    current_year,
-    current_year_plus_10,
-    TODAY,
-    TOMORROW,
-    TODAY_END,
-    CHAPTER_OFFICER,
     ALL_ROLES_CHOICES,
-    TimeStampedModel,
-    COL_OFFICER_ALIGN,
+    CHAPTER_OFFICER,
     CHAPTER_OFFICER_CHOICES,
     CHAPTER_ROLES,
-    NAT_OFFICERS,
     COUNCIL,
+    NAT_OFFICERS,
+    TODAY,
+    TODAY_END,
+    TOMORROW,
     EnumClass,
+    StartEndModel,
+    TimeStampedModel,
+    YearTermModel,
+    current_year,
+    current_year_plus_10,
+    forever,
 )
-from chapters.models import Chapter, ChapterCurricula
+from thetatauCMT.chapters.models import Chapter, ChapterCurricula
 
 
 class CustomUserManager(UserManager):
-    def create_superuser(self, email, password, **extra_fields):
+    def _get_or_create_default_chapter(self):
         chapter = Chapter.objects.first()
         if chapter is None:
             # this would happen on first install; make a default test region/chapter
-            from regions.models import Region
+            from thetatauCMT.regions.models import Region
 
             region = Region.objects.first()
             if region is None:
@@ -49,10 +49,15 @@ class CustomUserManager(UserManager):
                 region = Region.objects.first()
             Chapter(name="Test Chapter", region=region).save()
             chapter = Chapter.objects.first()
-        extra_fields.setdefault("chapter", chapter)
-        superuser = super().create_superuser(
-            email=email, password=password, **extra_fields
-        )
+        return chapter
+
+    def create_user(self, username, email=None, password=None, **extra_fields):
+        extra_fields.setdefault("chapter", self._get_or_create_default_chapter())
+        return super().create_user(username, email, password, **extra_fields)
+
+    def create_superuser(self, email, password, **extra_fields):
+        extra_fields.setdefault("chapter", self._get_or_create_default_chapter())
+        superuser = super().create_superuser(email=email, password=password, **extra_fields)
         self._give_superuser_natoff_roles(superuser)
 
     def _give_superuser_natoff_roles(self, superuser):
@@ -142,9 +147,7 @@ class User(AbstractUser, EmailSignalMixin):
             ("none", ""),
         ],
     )
-    degree = models.CharField(
-        max_length=4, choices=[x.value for x in DEGREES], default="bs"
-    )
+    degree = models.CharField(max_length=4, choices=[x.value for x in DEGREES], default="bs")
     major = models.ForeignKey(
         ChapterCurricula,
         on_delete=models.SET_NULL,
@@ -155,21 +158,11 @@ class User(AbstractUser, EmailSignalMixin):
     employer = models.CharField(max_length=100, blank=True)
     employer_changed = MonitorField(monitor="employer")
     employer_position = models.CharField(max_length=100, blank=True, default="")
-    employer_address = AddressField(
-        on_delete=models.SET_NULL, blank=True, null=True, related_name="employer"
-    )
-    emergency_first_name = models.CharField(
-        _("Emergency Contact first name"), max_length=30, blank=True, null=True
-    )
-    emergency_middle_name = models.CharField(
-        _("Emergency Contact Middle Name"), max_length=30, blank=True, null=True
-    )
-    emergency_last_name = models.CharField(
-        _("Emergency Contact last name"), max_length=150, blank=True, null=True
-    )
-    emergency_nickname = models.CharField(
-        _("Emergency Contact nickname name"), max_length=30, blank=True, null=True
-    )
+    employer_address = AddressField(on_delete=models.SET_NULL, blank=True, null=True, related_name="employer")
+    emergency_first_name = models.CharField(_("Emergency Contact first name"), max_length=30, blank=True, null=True)
+    emergency_middle_name = models.CharField(_("Emergency Contact Middle Name"), max_length=30, blank=True, null=True)
+    emergency_last_name = models.CharField(_("Emergency Contact last name"), max_length=150, blank=True, null=True)
+    emergency_nickname = models.CharField(_("Emergency Contact nickname name"), max_length=30, blank=True, null=True)
     phone_regex = RegexValidator(
         regex=r"^\+?1?\d{9,15}$",
         message="Phone number must be entered in the format: '+999999999'. Up to 15 digits allowed.",
@@ -222,9 +215,7 @@ class User(AbstractUser, EmailSignalMixin):
         null=True,
     )
     address_changed = MonitorField(monitor="address")
-    chapter = models.ForeignKey(
-        Chapter, on_delete=models.CASCADE, default=1, related_name="members"
-    )
+    chapter = models.ForeignKey(Chapter, on_delete=models.CASCADE, default=1, related_name="members")
     deceased = models.BooleanField(default=False)
     deceased_changed = MonitorField(monitor="deceased", default=forever)
     deceased_date = models.DateField(
@@ -241,7 +232,7 @@ class User(AbstractUser, EmailSignalMixin):
     )
     no_contact = models.BooleanField(default=False)
     charter = models.BooleanField(default=False, help_text="Charter member")
-    ##### DENORMALIZED FIELDS #####
+    ##### DENORMALIZED FIELDS #####  # noqa: E266
     current_status = models.CharField(max_length=10)
     current_roles = ArrayField(models.CharField(max_length=50), blank=True, null=True)
     officer = models.BooleanField(default=False)
@@ -290,9 +281,9 @@ class User(AbstractUser, EmailSignalMixin):
     @classmethod
     def next_pledge_number(cls):
         pledge_numbers = list(
-            cls.objects.filter(
-                badge_number__gte=2_000_000, badge_number__lte=3_000_000
-            ).values_list("badge_number", flat=True)
+            cls.objects.filter(badge_number__gte=2_000_000, badge_number__lte=3_000_000).values_list(
+                "badge_number", flat=True
+            )
         )
         if not pledge_numbers:
             pledge_numbers.append(1_999_999)
@@ -306,9 +297,7 @@ class User(AbstractUser, EmailSignalMixin):
         previous_status = statuses[-2]
         self.set_current_status(previous_status.status)
 
-    def set_current_status(
-        self, status, created=None, start=None, end=None, current=True
-    ):
+    def set_current_status(self, status, created=None, start=None, end=None, current=True):
         if start is None:
             start = datetime.datetime.now().date()
         if created is None:
@@ -324,9 +313,7 @@ class User(AbstractUser, EmailSignalMixin):
         if current:
             # If the current status is being set, previous status should end at the start
             TODAY_END = datetime.datetime.combine(datetime.datetime.now().date(), datetime.time.max)
-            current_status = self.status.filter(
-                start__lte=TODAY_END, end__gte=TODAY_END
-            ).all()
+            current_status = self.status.filter(start__lte=TODAY_END, end__gte=TODAY_END).all()
             for old_status in current_status:
                 old_status.end = start - datetime.timedelta(days=1)
                 old_status.save()
@@ -486,9 +473,7 @@ class UserDemographic(models.Model):
         not_listed = ("not_listed", "A disability or impairment not listed (write-in)")
         no_answer = ("no_answer", "Prefer not to answer")
 
-    user = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="demographic"
-    )
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="demographic")
     gender = MultiSelectField(
         _("How would you describe your gender identity? (Select all that apply)"),
         choices=[x.value for x in GENDER],
@@ -497,9 +482,7 @@ class UserDemographic(models.Model):
         null=True,
         max_length=500,
     )
-    gender_write = models.CharField(
-        _("Gender identity write-in"), max_length=30, blank=True, null=True
-    )
+    gender_write = models.CharField(_("Gender identity write-in"), max_length=30, blank=True, null=True)
     sexual = MultiSelectField(
         _("How would you describe your sexual identity? (Select all that apply)"),
         choices=[x.value for x in SEXUAL],
@@ -508,22 +491,16 @@ class UserDemographic(models.Model):
         null=True,
         max_length=500,
     )
-    sexual_write = models.CharField(
-        _("Sexual identity write-in"), max_length=30, blank=True, null=True
-    )
+    sexual_write = models.CharField(_("Sexual identity write-in"), max_length=30, blank=True, null=True)
     racial = MultiSelectField(
-        _(
-            "With which racial and ethnic group(s) do you identify? (Select all that apply)"
-        ),
+        _("With which racial and ethnic group(s) do you identify? (Select all that apply)"),
         choices=[x.value for x in RACIAL],
         default="no_answer",
         blank=True,
         null=True,
         max_length=500,
     )
-    racial_write = models.CharField(
-        _("Racial and ethnic identity write-in"), max_length=30, blank=True, null=True
-    )
+    racial_write = models.CharField(_("Racial and ethnic identity write-in"), max_length=30, blank=True, null=True)
     specific_ethnicity = models.CharField(
         _(
             "Please print your specific ethnicities. "
@@ -549,9 +526,7 @@ class UserDemographic(models.Model):
         null=True,
         max_length=500,
     )
-    ability_write = models.CharField(
-        _("Disability or impairment write-in"), max_length=30, blank=True, null=True
-    )
+    ability_write = models.CharField(_("Disability or impairment write-in"), max_length=30, blank=True, null=True)
     first_gen = models.BooleanField(
         _("Are you a first-generation college student?"),
         choices=BOOL_CHOICES,
@@ -574,12 +549,8 @@ class UserAlter(models.Model):
     ie. when a natoff wants to check things for another chapter
     """
 
-    user = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="altered"
-    )
-    chapter = models.ForeignKey(
-        Chapter, on_delete=models.CASCADE, default=1, related_name="altered_member"
-    )
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="altered")
+    chapter = models.ForeignKey(Chapter, on_delete=models.CASCADE, default=1, related_name="altered_member")
     ROLES = CHAPTER_OFFICER_CHOICES + [(None, "------------")]
     role = models.CharField(max_length=50, choices=ROLES, null=True)
 
@@ -596,9 +567,7 @@ class UserSemesterServiceHours(YearTermModel):
         verbose_name="The user that created this object",
         related_name="service_hours_modified",
     )
-    user = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="service_hours"
-    )
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="service_hours")
     service_hours = models.FloatField(default=0)
 
 
@@ -614,9 +583,7 @@ class UserSemesterGPA(YearTermModel):
         verbose_name="The user that created this object",
         related_name="gpa_modified",
     )
-    user = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="gpas"
-    )
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="gpas")
     gpa = models.FloatField()
 
 
@@ -642,9 +609,7 @@ class UserStatusChange(StartEndModel, TimeStampedModel, EmailSignalMixin):
         resignedCC = ("resignedCC", "Resigned")
         suspended = ("suspended", "Suspended")
 
-    user = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="status"
-    )
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="status")
     status = models.CharField(max_length=10, choices=[x.value for x in STATUS])
     created_by = UserForeignKey(
         auto_user_add=True,
@@ -674,9 +639,7 @@ class UserStatusChange(StartEndModel, TimeStampedModel, EmailSignalMixin):
 
 class UserRoleChange(StartEndModel, TimeStampedModel, EmailSignalMixin):
     ROLES = ALL_ROLES_CHOICES
-    user = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="roles"
-    )
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="roles")
     role = models.CharField(max_length=50, choices=ROLES)
     created_by = UserForeignKey(
         auto_user_add=True,
@@ -756,9 +719,7 @@ class UserRoleChange(StartEndModel, TimeStampedModel, EmailSignalMixin):
 
     @classmethod
     def get_role_members(cls, user, role):
-        return cls.objects.filter(
-            role=role, user__chapter=user.current_chapter, end__lte=TODAY_END
-        )
+        return cls.objects.filter(role=role, user__chapter=user.current_chapter, end__lte=TODAY_END)
 
     @classmethod
     def get_current_roles(cls, user):
@@ -771,9 +732,9 @@ class UserRoleChange(StartEndModel, TimeStampedModel, EmailSignalMixin):
 
     @classmethod
     def get_current_natoff(cls):
-        return cls.objects.filter(
-            role__in=NAT_OFFICERS, start__lte=TODAY_END, end__gte=TODAY_END
-        ).order_by("user__last_name")
+        return cls.objects.filter(role__in=NAT_OFFICERS, start__lte=TODAY_END, end__gte=TODAY_END).order_by(
+            "user__last_name"
+        )
 
 
 class UserOrgParticipate(StartEndModel):
@@ -783,9 +744,7 @@ class UserOrgParticipate(StartEndModel):
         ("hon", "Honor"),
         ("oth", "Other"),
     ]
-    user = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="orgs"
-    )
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="orgs")
     created_by = UserForeignKey(
         auto_user_add=True,
         verbose_name="The user that created this object",
@@ -844,9 +803,7 @@ class MemberUpdate(Process, EmailSignalMixin):
     suffix = models.CharField(blank=True, null=True, max_length=500)
     email = models.CharField(blank=True, null=True, max_length=500)
     email_school = models.CharField(blank=True, null=True, max_length=500)
-    address = AddressField(
-        on_delete=models.SET_NULL, blank=True, null=True, related_name="update"
-    )
+    address = AddressField(on_delete=models.SET_NULL, blank=True, null=True, related_name="update")
     birth_date = models.DateField(blank=True, null=True)
     phone_number = models.CharField(blank=True, null=True, max_length=500)
     graduation_year = models.PositiveIntegerField(blank=True, null=True)
@@ -861,8 +818,6 @@ class MemberUpdate(Process, EmailSignalMixin):
     major_other = models.CharField(blank=True, null=True, max_length=500)
     employer = models.CharField(blank=True, null=True, max_length=500)
     employer_position = models.CharField(blank=True, null=True, max_length=500)
-    employer_address = AddressField(
-        on_delete=models.SET_NULL, blank=True, null=True, related_name="update_employer"
-    )
+    employer_address = AddressField(on_delete=models.SET_NULL, blank=True, null=True, related_name="update_employer")
     unsubscribe_paper_gear = models.BooleanField(blank=True, null=True)
     unsubscribe_email = models.BooleanField(blank=True, null=True)

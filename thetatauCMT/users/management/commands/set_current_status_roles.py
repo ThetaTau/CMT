@@ -1,9 +1,11 @@
 import datetime
-from django.core.management import BaseCommand
+
 from django.contrib.auth.models import Group
+from django.core.management import BaseCommand
 from django.db import IntegrityError
-from users.models import User
+
 from core.models import TODAY_END
+from thetatauCMT.users.models import User
 
 
 # python manage.py set_current_status_roles
@@ -37,9 +39,7 @@ class Command(BaseCommand):
                 print(f"Working on user {count+1}/{total}")
             status_update = False
             roles_update = False
-            current_status = user.status.filter(
-                start__lte=TODAY_END, end__gte=TODAY_END
-            ).order_by("-start")
+            current_status = user.status.filter(start__lte=TODAY_END, end__gte=TODAY_END).order_by("-start")
             if not current_status:
                 # We will just take the last status user ever had
                 current_status = user.status.order_by("-start")
@@ -67,9 +67,7 @@ class Command(BaseCommand):
             if current_roles:
                 roles = set(current_roles)
             if roles != set_roles:
-                print(
-                    f"User {user} {count+1}/{total} updated previous roles {set_roles} new roles {roles}"
-                )
+                print(f"User {user} {count+1}/{total} updated previous roles {set_roles} new roles {roles}")
                 user.current_roles = list(roles)
                 roles_update = True
             if roles_update or status_update:

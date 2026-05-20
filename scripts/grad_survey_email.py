@@ -1,19 +1,19 @@
 import base64
 from datetime import datetime
+
 from django.conf import settings
 from django.urls import reverse
-from forms.models import StatusChange
-from configs.models import Config
-from surveys.notifications import SurveyEmail
+
+from thetatauCMT.configs.models import Config
+from thetatauCMT.forms.models import StatusChange
+from thetatauCMT.surveys.notifications import SurveyEmail
 
 
 def run():
     """
     python manage.py runscript grad_survey_email
     """
-    grads = StatusChange.objects.filter(
-        reason__in=["graduate"], date_start__gt=datetime(2022, 3, 1)
-    )
+    grads = StatusChange.objects.filter(reason__in=["graduate"], date_start__gt=datetime(2022, 3, 1))
     total = grads.count()
     slug = Config.get_value("GraduationSurvey")
     for count, grad in enumerate(grads):

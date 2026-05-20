@@ -1,18 +1,15 @@
 import os
-from enum import Enum
 from datetime import datetime, timedelta
-from multiselectfield import MultiSelectField
+from enum import Enum
+
 from django.conf import settings
 from django.db import models
 from django.utils.text import slugify
-from core.models import (
-    TimeStampedModel,
-    ALL_OFFICERS_CHOICES,
-    NAT_OFFICERS_CHOICES,
-    CHAPTER_OFFICER,
-)
-from users.models import UserRoleChange
-from tasks.models import Task, TaskDate, TaskChapter
+from multiselectfield import MultiSelectField
+
+from core.models import ALL_OFFICERS_CHOICES, CHAPTER_OFFICER, NAT_OFFICERS_CHOICES, TimeStampedModel
+from thetatauCMT.tasks.models import Task, TaskChapter, TaskDate
+from thetatauCMT.users.models import UserRoleChange
 
 
 def get_ballot_attachment_upload_path(instance, filename):
@@ -52,14 +49,10 @@ class Ballot(TimeStampedModel):
     # eg. NJIT Candidate Chapter Petition
     name = models.CharField(max_length=50)
     type = models.CharField(max_length=20, choices=[x.value for x in TYPES])
-    attachment = models.FileField(
-        upload_to=get_ballot_attachment_upload_path, null=True, blank=True
-    )
+    attachment = models.FileField(upload_to=get_ballot_attachment_upload_path, null=True, blank=True)
     description = models.TextField()
     due_date = models.DateField(default=return_date_time)
-    voters = MultiSelectField(
-        "Who is allowed to vote on this ballot?", choices=VOTERS, max_length=500
-    )
+    voters = MultiSelectField("Who is allowed to vote on this ballot?", choices=VOTERS, max_length=500)
 
     def __str__(self):
         return f"{self.name}"
@@ -100,26 +93,16 @@ class Ballot(TimeStampedModel):
         # django-sql-utils SubQueryCount is not needed provided values does not
         # NOT have the item filtering against, eg. completed__motion should
         # NOT be in the values() list as it will show up multiple times
-        return cls.objects.values(
-            "name", "type", "due_date", "voters", "slug", "pk"
-        ).annotate(
-            ayes=models.Count(
-                "completed__motion", filter=models.Q(completed__motion="aye")
-            ),
-            nays=models.Count(
-                "completed__motion", filter=models.Q(completed__motion="nay")
-            ),
-            abstains=models.Count(
-                "completed__motion", filter=models.Q(completed__motion="abstain")
-            ),
+        return cls.objects.values("name", "type", "due_date", "voters", "slug", "pk").annotate(
+            ayes=models.Count("completed__motion", filter=models.Q(completed__motion="aye")),
+            nays=models.Count("completed__motion", filter=models.Q(completed__motion="nay")),
+            abstains=models.Count("completed__motion", filter=models.Q(completed__motion="abstain")),
         )
 
     @classmethod
     def user_ballots(cls, user):
         voted = BallotComplete.objects.filter(ballot=models.OuterRef("pk"), user=user)
-        completed = BallotComplete.objects.filter(user=user).values_list(
-            "ballot__pk", flat=True
-        )
+        completed = BallotComplete.objects.filter(user=user).values_list("ballot__pk", flat=True)
         roles = user.current_roles
         roles = roles if roles is not None else []
         chapter_officer = list(set(roles) & set(CHAPTER_OFFICER))
@@ -162,12 +145,8 @@ class BallotComplete(TimeStampedModel):
 
     ROLES = ALL_OFFICERS_CHOICES
 
-    user = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="ballots"
-    )
-    ballot = models.ForeignKey(
-        Ballot, on_delete=models.CASCADE, related_name="completed"
-    )
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="ballots")
+    ballot = models.ForeignKey(Ballot, on_delete=models.CASCADE, related_name="completed")
     motion = models.CharField(max_length=20, choices=[x.value for x in MOTION])
     role = models.CharField(max_length=50, choices=ROLES)
 

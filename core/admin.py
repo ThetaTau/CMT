@@ -1,10 +1,10 @@
+from address.admin import UnidentifiedListFilter
 from django.conf import settings
 from django.contrib import admin
-from django.utils.safestring import mark_safe
 from django.urls import reverse
+from django.utils.safestring import mark_safe
+from herald.admin import SentNotificationAdmin
 from report_builder.admin import ReportAdmin
-from herald.admin import SentNotificationAdmin, SentNotification
-from address.admin import UnidentifiedListFilter
 
 
 def user_chapter(obj):
@@ -23,6 +23,7 @@ def user(obj):
 class ReportAdminSync(ReportAdmin):
     ReportAdmin.list_display += ("sync_mail",)
 
+    @admin.display(description="Email Sync")
     def sync_mail(self, model_object):
         return mark_safe(
             f'<a href="{reverse("users:sync_email_provider", kwargs={"report_id": model_object.id})}"'
@@ -30,9 +31,6 @@ class ReportAdminSync(ReportAdmin):
             '<img style="width: 26px; margin: -6px" src="'
             f'{getattr(settings, "STATIC_URL", "/static/")}report_builder/img/reorder.svg"/></a>'
         )
-
-    sync_mail.short_description = "Email Sync"
-    sync_mail.allow_tags = True
 
 
 class SentNotificationAdminUpdate(SentNotificationAdmin):

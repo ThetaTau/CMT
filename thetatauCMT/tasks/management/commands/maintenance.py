@@ -1,8 +1,8 @@
-import os
 import logging
+import os
+
 from django.conf import settings
 from django.core.management import BaseCommand
-
 
 logger = logging.getLogger(__name__)
 MAINTENANCE_FILE = settings.ROOT_DIR / "maintenance_active"

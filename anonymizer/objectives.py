@@ -1,6 +1,6 @@
-from dj_anonymizer.register_models import register_clean, AnonymBase
+from dj_anonymizer.register_models import AnonymBase, register_clean
 
-from objectives.models import Objective, Action
+from thetatauCMT.objectives.models import Action, Objective
 
 register_clean(
     [

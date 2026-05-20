@@ -1,6 +1,8 @@
 from django.contrib import admin
+
+from thetatauCMT.chapters.models import Chapter
+
 from .models import Region
-from chapters.models import Chapter
 
 
 class ChapterInline(admin.TabularInline):
@@ -15,12 +17,10 @@ class ChapterInline(admin.TabularInline):
         return False
 
 
+@admin.register(Region)
 class RegionTypeAdmin(admin.ModelAdmin):
     inlines = [ChapterInline]
     raw_id_fields = ["directors"]
     list_filter = ["name"]
     search_fields = ["name"]
     ordering = ["name"]
-
-
-admin.site.register(Region, RegionTypeAdmin)

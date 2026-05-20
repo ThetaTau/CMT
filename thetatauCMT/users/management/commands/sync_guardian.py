@@ -8,7 +8,8 @@ from django.conf import settings
 from django.core.management import BaseCommand
 from django.db.models import CharField, F, Func, Q, Value
 from django.db.models.functions import Cast, Coalesce
-from users.models import User
+
+from thetatauCMT.users.models import User
 
 
 # python manage.py sync_guardian -override -debug -full
@@ -190,12 +191,7 @@ class Command(BaseCommand):
                 ),
                 Value(""),
             ),
-        ).exclude(
-            Q(STUDENT_NUMBER="")
-            | Q(FIRST_NAME="")
-            | Q(LAST_NAME="")
-            | Q(CAMPUS_EMAIL="")
-        )
+        ).exclude(Q(STUDENT_NUMBER="") | Q(FIRST_NAME="") | Q(LAST_NAME="") | Q(CAMPUS_EMAIL=""))
         file_name = f"students-{datetime.date.today().strftime('%Y-%m-%d')}.csv"
         # Write CSV to a binary buffer instead of a file
         csv_buffer = io.StringIO()
@@ -247,9 +243,7 @@ class Command(BaseCommand):
         data = {
             "key": "data_import",
         }
-        upload_response = requests.post(
-            upload_url, headers=headers, data=data, files=files
-        )
+        upload_response = requests.post(upload_url, headers=headers, data=data, files=files)
 
         if upload_response.status_code == 200:
             upload_result = upload_response.json()
@@ -265,9 +259,7 @@ class Command(BaseCommand):
             "files": [upload_result],
             "type": "studentImport",
         }
-        import_response = requests.post(
-            data_import_url, headers=headers, json=data_import_payload
-        )
+        import_response = requests.post(data_import_url, headers=headers, json=data_import_payload)
 
         if import_response.status_code == 200:
             print("Data import successful")

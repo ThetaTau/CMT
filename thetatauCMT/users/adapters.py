@@ -1,6 +1,7 @@
-from django.conf import settings
 from allauth.socialaccount.adapter import DefaultSocialAccountAdapter
 from allauth_2fa.adapter import OTPAdapter
+from django.conf import settings
+
 from .models import User
 
 

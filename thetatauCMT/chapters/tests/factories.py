@@ -1,8 +1,9 @@
 import random
-import factory
-from chapters.models import Chapter, ChapterCurricula, GREEK_ABR
-from regions.tests.factories import RegionFactory
 
+import factory
+
+from thetatauCMT.chapters.models import GREEK_ABR, Chapter, ChapterCurricula
+from thetatauCMT.regions.tests.factories import RegionFactory
 
 GREEK_ABR_NAME = {v: k for k, v in GREEK_ABR.items()}
 
@@ -15,21 +16,18 @@ class ChapterFactory(factory.django.DjangoModelFactory):
     facebook = factory.Faker("uri")
     address = factory.Faker("address")
     balance = factory.Faker("pydecimal", left_digits=5, right_digits=2)
-    balance_date = factory.Faker("date_between", start_date="-4y", end_date="+4y")
-    tax = factory.Faker("random_int")
+    tax = factory.Sequence(lambda n: n + 1)
     greek = factory.LazyAttribute(lambda o: GREEK_ABR_NAME[o.name.lower()])
     active = True
     candidate_chapter = False
     school = factory.LazyAttribute(lambda o: f"{o.name} SCHOOL")
     latitude = factory.Faker("latitude")
     longitude = factory.Faker("longitude")
-    school_type = factory.Faker(
-        "random_element", elements=[item[0] for item in Chapter.TYPES]
-    )
+    school_type = factory.Faker("random_element", elements=[item[0] for item in Chapter.TYPES])
+    address_contact = factory.Faker("name")
+    address_phone_number = factory.Faker("numerify", text="##########")
     council = factory.Faker("text", max_nb_chars=55)
-    recognition = factory.Faker(
-        "random_element", elements=[item.value[0] for item in Chapter.RECOGNITION]
-    )
+    recognition = factory.Faker("random_element", elements=[item.value[0] for item in Chapter.RECOGNITION])
 
     @factory.post_generation
     def curricula(self, create, extracted, **kwargs):
@@ -38,6 +36,7 @@ class ChapterFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = Chapter
         django_get_or_create = ("name",)
+        skip_postgeneration_save = True
 
 
 class ChapterCurriculaFactory(factory.django.DjangoModelFactory):

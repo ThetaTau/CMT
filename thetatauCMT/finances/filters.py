@@ -1,8 +1,10 @@
 # filters.py
 import django_filters
+
 from core.filters import DateRangeFilter
+from thetatauCMT.regions.models import Region
+
 from .models import Invoice
-from regions.models import Region
 
 
 class InvoiceListFilter(django_filters.FilterSet):
@@ -17,9 +19,7 @@ class InvoiceListFilter(django_filters.FilterSet):
 
 
 class ChapterBalanceListFilter(django_filters.FilterSet):
-    region = django_filters.ChoiceFilter(
-        label="Region", choices=Region.region_choices(), method="filter_region"
-    )
+    region = django_filters.ChoiceFilter(label="Region", choices=Region.region_choices(), method="filter_region")
 
     class Meta:
         model = Invoice

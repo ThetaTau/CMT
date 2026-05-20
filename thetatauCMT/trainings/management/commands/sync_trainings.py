@@ -1,5 +1,6 @@
 from django.core.management import BaseCommand
-from trainings.models import Training
+
+from thetatauCMT.trainings.models import Training
 
 
 # python manage.py sync_trainings

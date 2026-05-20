@@ -1,35 +1,33 @@
 import csv
 import datetime
+
 from django.conf import settings
 from django.contrib import messages
 from django.db.models import Count, F
-from django.http.response import HttpResponseRedirect, HttpResponse
-from django.http.request import QueryDict
-from django.shortcuts import redirect, reverse
-from django.views.generic import DetailView, UpdateView, RedirectView, CreateView
 from django.forms.models import modelformset_factory
+from django.http.request import QueryDict
+from django.http.response import HttpResponse, HttpResponseRedirect
+from django.shortcuts import redirect, reverse
+from django.views.generic import CreateView, DetailView, RedirectView, UpdateView
+
+from core.forms import MultiFormsView
 from core.notifications import GenericEmail
 from core.views import (
-    PagedFilteredTableView,
-    TypeFieldFilteredChapterAdd,
     LoginRequiredMixin,
     NatOfficerRequiredMixin,
+    PagedFilteredTableView,
     RequestConfig,
+    TypeFieldFilteredChapterAdd,
 )
-from core.forms import MultiFormsView
-from chapters.models import Chapter
-from regions.models import Region
-from scores.models import ScoreType
-from tasks.models import Task
-from .models import Submission, Picture, GearArticle
-from .tables import SubmissionTable, GearArticleTable
-from .filters import SubmissionListFilter, GearArticleListFilter
-from .forms import (
-    SubmissionListFormHelper,
-    GearArticleForm,
-    PictureForm,
-    GearArticleListFormHelper,
-)
+from thetatauCMT.chapters.models import Chapter
+from thetatauCMT.regions.models import Region
+from thetatauCMT.scores.models import ScoreType
+from thetatauCMT.tasks.models import Task
+
+from .filters import GearArticleListFilter, SubmissionListFilter
+from .forms import GearArticleForm, GearArticleListFormHelper, PictureForm, SubmissionListFormHelper
+from .models import GearArticle, Picture, Submission
+from .tables import GearArticleTable, SubmissionTable
 
 
 class SubmissionDetailView(LoginRequiredMixin, DetailView):
@@ -97,9 +95,7 @@ class SubmissionUpdateView(LoginRequiredMixin, TypeFieldFilteredChapterAdd, Upda
         try:
             submission = Submission.objects.get(pk=submission_id)
         except Submission.DoesNotExist:
-            messages.add_message(
-                request, messages.ERROR, "Submission could not be found!"
-            )
+            messages.add_message(request, messages.ERROR, "Submission could not be found!")
         else:
             if "forms:" in submission.file.name:
                 path, args = submission.file.name, None
@@ -202,14 +198,10 @@ class GearArticleFormView(LoginRequiredMixin, MultiFormsView):
         return HttpResponseRedirect(self.get_success_url())
 
     def create_picture_form(self, **kwargs):
-        factory = modelformset_factory(
-            Picture, form=PictureForm, **{"can_delete": True, "extra": 1}
-        )
+        factory = modelformset_factory(Picture, form=PictureForm, **{"can_delete": True, "extra": 1})
         formset_kwargs = dict(queryset=Picture.objects.none())
         if self.request.method in ("POST", "PUT"):
-            formset_kwargs.update(
-                {"data": self.request.POST.copy(), "files": self.request.FILES.copy()}
-            )
+            formset_kwargs.update({"data": self.request.POST.copy(), "files": self.request.FILES.copy()})
         return factory(**formset_kwargs)
 
 
@@ -224,9 +216,7 @@ class GearArticleDetailView(LoginRequiredMixin, UpdateView):
         return reverse("submissions:gearlist")
 
 
-class GearArticleListView(
-    LoginRequiredMixin, NatOfficerRequiredMixin, PagedFilteredTableView
-):
+class GearArticleListView(LoginRequiredMixin, NatOfficerRequiredMixin, PagedFilteredTableView):
     model = GearArticle
     context_object_name = "geararticle"
     table_class = GearArticleTable
@@ -287,22 +277,13 @@ class GearArticleListView(
         region_slug = self.filter.form.cleaned_data["region"]
         region = Region.objects.filter(slug=region_slug).first()
         if region:
-            missing_chapters = Chapter.objects.exclude(slug__in=form_chapters).filter(
-                region__in=[region]
-            )
+            missing_chapters = Chapter.objects.exclude(slug__in=form_chapters).filter(region__in=[region])
         elif region_slug == "candidate_chapter":
-            missing_chapters = Chapter.objects.exclude(slug__in=form_chapters).filter(
-                candidate_chapter=True
-            )
+            missing_chapters = Chapter.objects.exclude(slug__in=form_chapters).filter(candidate_chapter=True)
         else:
             missing_chapters = Chapter.objects.exclude(slug__in=form_chapters)
         chapter_officer_emails = {
-            chapter: [
-                user.email
-                for user in Chapter.objects.get(
-                    name=chapter
-                ).get_current_officers_council()[0]
-            ]
+            chapter: [user.email for user in Chapter.objects.get(name=chapter).get_current_officers_council()[0]]
             for chapter in missing_chapters
         }
         table = GearArticleTable(data=all_gears)
@@ -310,10 +291,6 @@ class GearArticleListView(
         context["table"] = table
         context["email_list_table"] = chapter_officer_emails
         context["email_list"] = ", ".join(
-            [
-                email
-                for chapter_emails in chapter_officer_emails.values()
-                for email in chapter_emails
-            ]
+            [email for chapter_emails in chapter_officer_emails.values() for email in chapter_emails]
         )
         return context

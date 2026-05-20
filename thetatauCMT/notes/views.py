@@ -1,19 +1,18 @@
-from django.urls import reverse
-from django.views.generic import CreateView
-from django.shortcuts import redirect
+from django.contrib import messages
+from django.forms.models import modelformset_factory
 from django.http import Http404
 from django.http.response import HttpResponseRedirect
-from django.forms.models import modelformset_factory
-from django.contrib import messages
+from django.shortcuts import redirect
+from django.urls import reverse
+from django.views.generic import CreateView
+
 from core.forms import MultiFormsView
-from core.views import (
-    LoginRequiredMixin,
-    NatOfficerRequiredMixin,
-)
-from chapters.models import Chapter
-from users.models import User
-from .models import ChapterNote, UserNote
+from core.views import LoginRequiredMixin, NatOfficerRequiredMixin
+from thetatauCMT.chapters.models import Chapter
+from thetatauCMT.users.models import User
+
 from .forms import ChapterNoteForm
+from .models import ChapterNote, UserNote
 
 
 class ChapterNoteDetailView(LoginRequiredMixin, MultiFormsView):
@@ -26,13 +25,11 @@ class ChapterNoteDetailView(LoginRequiredMixin, MultiFormsView):
 
     def get(self, request, *args, **kwargs):
         self.object = self.get_object()
-        if (
-            self.object.restricted and not request.user.is_council_officer
-        ) and not request.user.is_superuser:
+        if (self.object.restricted and not request.user.is_council_officer) and not request.user.is_superuser:
             messages.add_message(
                 request,
                 messages.INFO,
-                f"You do not have permission to see this note.",
+                "You do not have permission to see this note.",
             )
             return redirect(
                 reverse(
@@ -50,7 +47,7 @@ class ChapterNoteDetailView(LoginRequiredMixin, MultiFormsView):
         messages.add_message(
             self.request,
             messages.INFO,
-            f"Note successfully updated",
+            "Note successfully updated",
         )
         return reverse("notes:detail", kwargs={"pk": self.object.pk})
 
@@ -90,9 +87,7 @@ class ChapterNoteDetailView(LoginRequiredMixin, MultiFormsView):
             # Get the single item from the filtered queryset
             obj = queryset.get()
         except queryset.model.DoesNotExist:
-            raise Http404(
-                f"No {queryset.model._meta.verbose_name}s found matching the query"
-            )
+            raise Http404(f"No {queryset.model._meta.verbose_name}s found matching the query")
         return obj
 
     def create_subnotes_form(self, **kwargs):
@@ -100,9 +95,7 @@ class ChapterNoteDetailView(LoginRequiredMixin, MultiFormsView):
         extra = 0
         if not subnotes:
             extra = 1
-        factory = modelformset_factory(
-            ChapterNote, form=ChapterNoteForm, **{"can_delete": True, "extra": extra}
-        )
+        factory = modelformset_factory(ChapterNote, form=ChapterNoteForm, **{"can_delete": True, "extra": extra})
         formset_kwargs = {
             "queryset": subnotes,
         }

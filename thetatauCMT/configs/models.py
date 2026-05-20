@@ -1,14 +1,14 @@
 from django.db import models
 from django.utils.html import strip_tags
 from django.utils.safestring import mark_safe
-from ckeditor.fields import RichTextField
+from django_ckeditor_5.fields import CKEditor5Field
 
 from core.models import TimeStampedModel
 
 
 class Config(TimeStampedModel):
     key = models.CharField(max_length=255)
-    value = RichTextField()
+    value = CKEditor5Field()
     description = models.TextField()
 
     class Meta:
@@ -24,7 +24,7 @@ class Config(TimeStampedModel):
         else:
             value = ""
         if clean:
-            # RichTextField value has HTML tags, when not needed strip
+            # CKEditor5Field value has HTML tags, when not needed strip
             value = strip_tags(value)
         else:
             value = mark_safe(value)

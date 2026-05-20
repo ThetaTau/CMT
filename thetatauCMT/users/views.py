@@ -2,66 +2,69 @@ import csv
 import datetime
 import zipfile
 from io import BytesIO, StringIO
+
+import viewflow
+from allauth.account.views import LoginView
+from crispy_forms.layout import Submit
+from dal import autocomplete
 from django import forms
+from django.contrib import messages
 from django.contrib.auth.forms import PasswordResetForm
 from django.contrib.auth.tokens import default_token_generator
 from django.contrib.sites.shortcuts import get_current_site
+from django.forms.models import modelformset_factory
+from django.http import HttpResponse
 from django.http.request import QueryDict
 from django.http.response import HttpResponseRedirect
-from django.http import HttpResponse
+from django.shortcuts import render
 from django.urls import reverse
-from django.forms.models import modelformset_factory
-from django.shortcuts import render, redirect
-from django.utils.http import is_safe_url, urlsafe_base64_encode
 from django.utils.encoding import force_bytes
-from django.contrib import messages
-from django.views.generic import RedirectView, FormView, DetailView, UpdateView
-from crispy_forms.layout import Submit
-from allauth.account.views import LoginView
+from django.utils.http import url_has_allowed_host_and_scheme, urlsafe_base64_encode
+from django.views.generic import DetailView, FormView, RedirectView, UpdateView
 from extra_views import FormSetView, ModelFormSetView
-import viewflow
 from watson import search as watson
+
 from core.address import isinradius
-from core.views import (
-    PagedFilteredTableView,
-    RequestConfig,
-    NatOfficerRequiredMixin,
-    OfficerRequiredMixin,
-    LoginRequiredMixin,
-    group_required,
-)
 from core.forms import MultiFormsView
 from core.models import BIENNIUM_YEARS, annotate_rmp_status
-from dal import autocomplete
-from .models import (
-    User,
-    UserAlter,
-    UserSemesterGPA,
-    UserSemesterServiceHours,
-    UserOrgParticipate,
-    UserDemographic,
-    MemberUpdate,
+from core.views import (
+    LoginRequiredMixin,
+    NatOfficerRequiredMixin,
+    OfficerRequiredMixin,
+    PagedFilteredTableView,
+    RequestConfig,
+    group_required,
 )
-from .tables import UserTable
+from thetatauCMT.chapters.models import Chapter
+from thetatauCMT.forms.forms import PledgeDemographicsForm
+from thetatauCMT.notes.tables import UserNoteTable
+from thetatauCMT.submissions.tables import SubmissionTable
+
 from .filters import UserListFilter, UserListFilterBase
 from .forms import (
     CaptchaLoginForm,
+    UserAlterForm,
+    UserForm,
+    UserGPAForm,
     UserListFormHelper,
     UserLookupForm,
-    UserAlterForm,
-    UserGPAForm,
-    UserForm,
-    UserServiceForm,
-    UserOrgForm,
     UserLookupSearchForm,
     UserLookupSelectForm,
+    UserOrgForm,
+    UserServiceForm,
     UserUpdateForm,
 )
+from .models import (
+    MemberUpdate,
+    User,
+    UserAlter,
+    UserDemographic,
+    UserOrgParticipate,
+    UserSemesterGPA,
+    UserSemesterServiceHours,
+)
 from .notifications import MemberInfoUpdate
-from forms.forms import PledgeDemographicsForm
-from chapters.models import Chapter
-from submissions.tables import SubmissionTable
-from notes.tables import UserNoteTable
+from .tables import UserTable
 
 
 class UserRedirectView(LoginRequiredMixin, RedirectView):
@@ -110,9 +113,7 @@ class UserDetailUpdateView(LoginRequiredMixin, MultiFormsView):
     def get_gpa_initial(self):
         user = self.request.user
         initial = {"user": user.name}
-        user_gpas = user.gpas.filter(year__gte=BIENNIUM_YEARS[0]).values(
-            "year", "term", "gpa"
-        )
+        user_gpas = user.gpas.filter(year__gte=BIENNIUM_YEARS[0]).values("year", "term", "gpa")
         if user_gpas:
             for i in range(4):
                 semester = "sp" if i % 2 else "fa"
@@ -155,12 +156,8 @@ class UserDetailUpdateView(LoginRequiredMixin, MultiFormsView):
         extra = 0
         if not orgs:
             extra = 1
-        factory = modelformset_factory(
-            UserOrgParticipate, form=UserOrgForm, **{"can_delete": True, "extra": extra}
-        )
-        factory.form.base_fields["user"].queryset = User.objects.filter(
-            pk=self.request.user.pk
-        )
+        factory = modelformset_factory(UserOrgParticipate, form=UserOrgForm, **{"can_delete": True, "extra": extra})
+        factory.form.base_fields["user"].queryset = User.objects.filter(pk=self.request.user.pk)
         formset_kwargs = {
             "queryset": orgs,
             "form_kwargs": {"hide_user": True, "initial": {"user": self.request.user}},
@@ -177,9 +174,7 @@ class UserDetailUpdateView(LoginRequiredMixin, MultiFormsView):
     def get_service_initial(self):
         user = self.request.user
         initial = {"user": user.name}
-        user_service = user.service_hours.filter(year__gte=BIENNIUM_YEARS[0]).values(
-            "year", "term", "service_hours"
-        )
+        user_service = user.service_hours.filter(year__gte=BIENNIUM_YEARS[0]).values("year", "term", "service_hours")
         if user_service:
             for i in range(4):
                 semester = "sp" if i % 2 else "fa"
@@ -248,9 +243,7 @@ class UserDetailUpdateView(LoginRequiredMixin, MultiFormsView):
         return User.objects.get(username=self.request.user.username)
 
 
-class UserSearchView(
-    LoginRequiredMixin, NatOfficerRequiredMixin, PagedFilteredTableView
-):
+class UserSearchView(LoginRequiredMixin, NatOfficerRequiredMixin, PagedFilteredTableView):
     model = User
     # These next two lines tell the view to index lookups by username
     slug_field = "username"
@@ -282,9 +275,7 @@ class UserSearchView(
         if zip:
             distance = self.request.GET.get("dist", "1")
             addressess = isinradius(zip, distance)
-            user_pks = [
-                user.pk for address in addressess for user in address.user_set.all()
-            ]
+            user_pks = [user.pk for address in addressess for user in address.user_set.all()]
             if not queryset:
                 queryset = User.objects
             queryset = queryset.filter(pk__in=user_pks)
@@ -327,9 +318,7 @@ class ExportActiveMixin:
                     f"{chapter}_{chapter.school}_activeexport_{time_name}.csv",
                     writer_file.getvalue(),
                 )
-        response = HttpResponse(
-            zip_io.getvalue(), content_type="application/x-zip-compressed"
-        )
+        response = HttpResponse(zip_io.getvalue(), content_type="application/x-zip-compressed")
         response["Cache-Control"] = "no-cache"
         response["Content-Disposition"] = f"attachment; filename={zip_filename}"
         return response
@@ -398,9 +387,7 @@ class UserListView(LoginRequiredMixin, PagedFilteredTableView):
         return super().get(request, *args, **kwargs)
 
     def get_queryset(self, **kwargs):
-        qs = self.model._default_manager.filter(
-            chapter=self.request.user.current_chapter
-        )
+        qs = self.model._default_manager.filter(chapter=self.request.user.current_chapter)
         ordering = self.get_ordering()
         if ordering:
             if isinstance(ordering, str):
@@ -489,7 +476,7 @@ class PasswordResetFormNotActive(PasswordResetForm):
                 messages.add_message(
                     request,
                     messages.ERROR,
-                    f"Please provide email",
+                    "Please provide email",
                 )
             return
         for user in self.get_users(email):
@@ -664,11 +651,7 @@ class UserLookupUpdateView(FormView):
             user = User.objects.get(id=user)
         if user is None:
             # When no user, all supplied values are updates
-            updated = {
-                key: value
-                for key, value in form.cleaned_data.items()
-                if value and key != "captcha"
-            }
+            updated = {key: value for key, value in form.cleaned_data.items() if value and key != "captcha"}
         else:
             # When there is an actual user look for only updated values
             for key, value in form.cleaned_data.items():
@@ -702,12 +685,8 @@ class UserLookupUpdateView(FormView):
             user_info["middle_name"] = user.middle_name
             user_info["last_name"] = user.last_name
             user_info["maiden_name"] = user.maiden_name
-            user_info["preferred_pronouns"] = (
-                user.preferred_pronouns if user.preferred_pronouns else ""
-            )
-            user_info["preferred_name"] = (
-                user.preferred_name if user.preferred_name else ""
-            )
+            user_info["preferred_pronouns"] = user.preferred_pronouns if user.preferred_pronouns else ""
+            user_info["preferred_name"] = user.preferred_name if user.preferred_name else ""
             user_info["nickname"] = user.nickname
             user_info["suffix"] = user.suffix
             user_info["email"] = hide_email(user.email)
@@ -719,25 +698,15 @@ class UserLookupUpdateView(FormView):
                     address = f"XXXXXXXX {zipcode}"
             user_info["address"] = address if address else "Unknown"
             user_info["birth_date"] = (
-                user.birth_date.month
-                if user.birth_date != datetime.date(1904, 10, 15)
-                else "Unknown"
+                user.birth_date.month if user.birth_date != datetime.date(1904, 10, 15) else "Unknown"
             )
-            user_info["phone_number"] = (
-                f"XXXXXX{user.phone_number[-4:]}" if user.phone_number else "Unknown"
-            )
-            user_info["graduation_year"] = (
-                user.graduation_year if user.graduation_year else "Unknown"
-            )
+            user_info["phone_number"] = f"XXXXXX{user.phone_number[-4:]}" if user.phone_number else "Unknown"
+            user_info["graduation_year"] = user.graduation_year if user.graduation_year else "Unknown"
             user_info["degree"] = user.get_degree_display()
             user_info["major"] = user.major if user.major else "Unknown"
             user_info["employer"] = user.employer if user.employer else "Unknown"
-            user_info["employer_position"] = (
-                user.employer_position if user.employer_position else "Unknown"
-            )
-            user_info["employer_address"] = (
-                user.employer_address if user.employer_address else "Unknown"
-            )
+            user_info["employer_position"] = user.employer_position if user.employer_position else "Unknown"
+            user_info["employer_address"] = user.employer_address if user.employer_address else "Unknown"
             user_info["school_name"] = user.chapter.school
             user_info["unsubscribe_paper_gear"] = user.unsubscribe_paper_gear
             user_info["unsubscribe_email"] = user.unsubscribe_email
@@ -831,10 +800,7 @@ class UserUpdateDirectReview(UpdateView):
 
 class UserAutocomplete(autocomplete.Select2QuerySetView):
     def get_queryset(self):
-        if (
-            not self.request.user.is_authenticated
-            or not self.request.user.is_officer_group
-        ):
+        if not self.request.user.is_authenticated or not self.request.user.is_officer_group:
             return User.objects.none()
         # users:autocomplete comes here
         chapter = self.forwarded.get("chapter", "true")
@@ -861,14 +827,12 @@ class UserAlterView(LoginRequiredMixin, NatOfficerRequiredMixin, FormView):
 
     def get_success_url(self):
         redirect_to = self.request.POST.get("next", "")
-        url_is_safe = is_safe_url(redirect_to, allowed_hosts=None)
+        url_is_safe = url_has_allowed_host_and_scheme(redirect_to, allowed_hosts=None)
         if self.request.user.is_anonymous:
             return reverse("home")
         if redirect_to and url_is_safe and "chapters" not in redirect_to:
             return redirect_to
-        return reverse(
-            "chapters:detail", kwargs={"slug": self.request.user.current_chapter.slug}
-        )
+        return reverse("chapters:detail", kwargs={"slug": self.request.user.current_chapter.slug})
 
     def form_valid(self, form):
         user = self.request.user
@@ -878,9 +842,7 @@ class UserAlterView(LoginRequiredMixin, NatOfficerRequiredMixin, FormView):
         except UserAlter.DoesNotExist:
             instance = None
         if self.request.POST["alter-action"] == "Reset":
-            form.instance.chapter = (
-                self.request.user.chapter
-            )  # This should remain origin chapter
+            form.instance.chapter = self.request.user.chapter  # This should remain origin chapter
             form.instance.role = None
         form.is_valid()
         if instance:
@@ -918,9 +880,7 @@ class UserGPAFormSetView(LoginRequiredMixin, OfficerRequiredMixin, FormSetView):
         for user in all_members:
             init_dict = {"user": user.name}
             if user in users_with_gpas:
-                user_gpas = user.gpas.filter(year__gte=BIENNIUM_YEARS[0]).values(
-                    "year", "term", "gpa"
-                )
+                user_gpas = user.gpas.filter(year__gte=BIENNIUM_YEARS[0]).values("year", "term", "gpa")
                 if user_gpas:
                     for i in range(4):
                         semester = "sp" if i % 2 else "fa"
@@ -982,9 +942,9 @@ class UserServiceFormSetView(LoginRequiredMixin, FormSetView):
         for user in all_members:
             init_dict = {"user": user.name}
             if user in users_with_service:
-                user_service_hours = user.service_hours.filter(
-                    year__gte=BIENNIUM_YEARS[0]
-                ).values("year", "term", "service_hours")
+                user_service_hours = user.service_hours.filter(year__gte=BIENNIUM_YEARS[0]).values(
+                    "year", "term", "service_hours"
+                )
                 if user_service_hours:
                     for i in range(4):
                         semester = "sp" if i % 2 else "fa"

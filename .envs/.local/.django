@@ -4,3 +4,6 @@ USE_DOCKER=yes
 IPYTHONDIR=/app/.ipython
 READ_DOT_ENV_FILE=True
 DEBUGPY_ON=0
+
+# Test database (separate DB so tests never touch the dev DB)
+DATABASE_URL_TEST=postgres://thetatau:test@postgres:5432/thetatauCMT

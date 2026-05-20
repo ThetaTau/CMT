@@ -4,11 +4,11 @@ Notes:
         docker-compose -f local.yml run --rm django python manage.py chapter_pledges_check
 """
 
+import gspread
 from django.conf import settings
 from django.core.management import BaseCommand
-import gspread
 
-from chapters.models import Chapter
+from thetatauCMT.chapters.models import Chapter
 
 
 # python manage.py update_shingle_contacts
@@ -18,9 +18,7 @@ class Command(BaseCommand):
 
     # A command must define handle()
     def handle(self, *args, **options):
-        service_path = (
-            settings.ROOT_DIR / "secrets" / "ChapterManagementTool-b239bceff1a7.json"
-        )
+        service_path = settings.ROOT_DIR / "secrets" / "ChapterManagementTool-b239bceff1a7.json"
         gc = gspread.service_account(filename=service_path)
         sh = gc.open_by_key("1Tt8VdIkmcSq-mC6rXPWsHfFqXGVYn7LA5UzLKsfMhM8")
         worksheet = sh.worksheet("Chapters")

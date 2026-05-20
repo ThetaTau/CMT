@@ -1,23 +1,21 @@
-from django.urls import reverse
+import logging
+
+from django.contrib import messages
 from django.db import transaction
 from django.db.utils import IntegrityError
-from django.contrib import messages
-from django.views.generic import DetailView, UpdateView, RedirectView, CreateView
-from core.views import (
-    PagedFilteredTableView,
-    TypeFieldFilteredChapterAdd,
-    LoginRequiredMixin,
-    NatOfficerRequiredMixin,
-)
-from scores.models import ScoreType
+from django.forms.models import modelformset_factory
+from django.http.response import HttpResponseRedirect
+from django.urls import reverse
+from django.views.generic import CreateView, DetailView, RedirectView, UpdateView
+
 from core.forms import MultiFormsView
+from core.views import LoginRequiredMixin, NatOfficerRequiredMixin, PagedFilteredTableView, TypeFieldFilteredChapterAdd
+from thetatauCMT.scores.models import ScoreType
+
+from .filters import EventListFilter
+from .forms import EventForm, EventListFormHelper, PictureForm
 from .models import Event, Picture
 from .tables import EventTable
-from .filters import EventListFilter
-from .forms import EventListFormHelper, EventForm, PictureForm
-from django.http.response import HttpResponseRedirect
-from django.forms.models import modelformset_factory
-import logging
 
 
 class EventDetailView(LoginRequiredMixin, DetailView):
@@ -86,14 +84,10 @@ class EventCreateView(
         return HttpResponseRedirect(self.get_success_url())
 
     def create_picture_form(self, **kwargs):
-        factory = modelformset_factory(
-            Picture, form=PictureForm, **{"can_delete": True, "extra": 1}
-        )
+        factory = modelformset_factory(Picture, form=PictureForm, **{"can_delete": True, "extra": 1})
         formset_kwargs = dict(queryset=Picture.objects.none())
         if self.request.method in ("POST", "PUT"):
-            formset_kwargs.update(
-                {"data": self.request.POST.copy(), "files": self.request.FILES.copy()}
-            )
+            formset_kwargs.update({"data": self.request.POST.copy(), "files": self.request.FILES.copy()})
         return factory(**formset_kwargs)
 
     def get_context_data(self, **kwargs):
@@ -111,9 +105,7 @@ class EventCreateView(
             form.initial = {"type": score_obj[0].pk}
             form.fields["type"].queryset = score_obj
         else:
-            form.fields["type"].queryset = ScoreType.objects.filter(
-                type=self.score_type
-            ).all()
+            form.fields["type"].queryset = ScoreType.objects.filter(type=self.score_type).all()
         # return form
         context["descriptions"] = descriptions
         return context

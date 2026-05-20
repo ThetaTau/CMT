@@ -1,24 +1,19 @@
-from dj_anonymizer.register_models import (
-    register_skip,
-    AnonymBase,
-    register_anonym,
-    register_clean,
-)
 from dj_anonymizer import fields
+from dj_anonymizer.register_models import AnonymBase, register_anonym, register_clean, register_skip
 from email_signals.models import Signal, SignalConstraint
 from faker import Factory
 
-from users.models import (
-    User,
-    UserDemographic,
-    UserAlter,
-    UserStatusChange,
-    UserRoleChange,
-    UserSemesterServiceHours,
-    UserOrgParticipate,
-    UserSemesterGPA,
-    MemberUpdate,
+from thetatauCMT.users.models import (
     HistoricalUser,
+    MemberUpdate,
+    User,
+    UserAlter,
+    UserDemographic,
+    UserOrgParticipate,
+    UserRoleChange,
+    UserSemesterGPA,
+    UserSemesterServiceHours,
+    UserStatusChange,
 )
 
 fake = Factory.create()

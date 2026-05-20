@@ -1,7 +1,8 @@
 import factory
-from ..models import ScoreType, ScoreChapter
-from chapters.tests.factories import ChapterFactory
 
+from thetatauCMT.chapters.tests.factories import ChapterFactory
+
+from ..models import ScoreChapter, ScoreType
 
 # class ScoreTypeFactory(factory.django.DjangoModelFactory):
 #     name = factory.Faker("sentence", nb_words=3)
@@ -37,16 +38,10 @@ class ScoreChapterFactory(factory.django.DjangoModelFactory):
     chapter = factory.SubFactory(ChapterFactory)
     type = factory.Iterator(ScoreType.objects.all())
     score = factory.LazyAttribute(
-        lambda o: factory.Faker(
-            "pyfloat", min_value=0, max_value=o.type.term_points
-        ).generate({})
+        lambda o: factory.Faker("pyfloat", min_value=0, max_value=o.type.term_points).generate({})
     )
-    year = factory.Faker(
-        "random_element", elements=[item[0] for item in ScoreChapter.YEARS]
-    )
-    term = factory.Faker(
-        "random_element", elements=[item.value[0] for item in ScoreChapter.TERMS]
-    )
+    year = factory.Faker("random_int", min=2016, max=2030)
+    term = factory.Faker("random_element", elements=[item.value[0] for item in ScoreChapter.TERMS])
 
     class Meta:
         model = ScoreChapter

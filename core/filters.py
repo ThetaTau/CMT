@@ -1,7 +1,7 @@
 from django.utils.timezone import now
 from django_filters import DateRangeFilter
-from .models import BIENNIUM_DATES
 
+from .models import BIENNIUM_DATES
 
 DateRangeFilter.filters["year_last"] = lambda qs, name: qs.filter(
     **{
@@ -48,9 +48,7 @@ BIENNIUM_FILTERS = {}
 
 for date_name, date_info in BIENNIUM_DATES.items():
     date_name_slug = date_name.replace(" ", "_")
-    DateRangeFilter.filters[date_name_slug] = filter_qs_dates(
-        date_info["start"].date(), date_info["end"].date()
-    )
+    DateRangeFilter.filters[date_name_slug] = filter_qs_dates(date_info["start"].date(), date_info["end"].date())
     choice = (date_name_slug, date_name)
     DateRangeFilter.choices.append(choice)
     BIENNIUM_FILTERS[choice] = (date_info["start"].date(), date_info["end"].date())

@@ -1,28 +1,31 @@
-import jwt
 import csv
-import time
 import datetime
+import time
 from collections import defaultdict
-from django.conf import settings
-from django.http import HttpResponse
-from django.contrib import messages
-from django.urls import reverse
-from django.http.request import QueryDict
-from django.db import models
-from django.views.generic import DetailView, ListView, RedirectView
+
 import django_tables2 as tables
+import jwt
+from django.conf import settings
+from django.contrib import messages
+from django.db import models
+from django.http import HttpResponse
+from django.http.request import QueryDict
+from django.urls import reverse
+from django.views.generic import DetailView, ListView, RedirectView
 from django_tables2.utils import A
-from core.views import NatOfficerRequiredMixin, RequestConfig, LoginRequiredMixin
-from .models import Region
-from tasks.models import TaskDate
-from chapters.models import Chapter
-from .tables import RegionChapterTaskTable, TaskLinkColumn
+
+from core.views import LoginRequiredMixin, NatOfficerRequiredMixin, RequestConfig
+from thetatauCMT.chapters.models import Chapter
+from thetatauCMT.tasks.models import TaskDate
+from thetatauCMT.users.filters import AdvisorListFilter, UserRoleListFilter
+from thetatauCMT.users.forms import AdvisorListFormHelper, UserRoleListFormHelper
+from thetatauCMT.users.models import User
+from thetatauCMT.users.tables import UserTable
+
 from .filters import RegionChapterTaskFilter
 from .forms import RegionChapterTaskFormHelper
-from users.tables import UserTable
-from users.models import User
-from users.filters import UserRoleListFilter, AdvisorListFilter
-from users.forms import UserRoleListFormHelper, AdvisorListFormHelper
+from .models import Region
+from .tables import RegionChapterTaskTable, TaskLinkColumn
 
 
 class RegionOfficerView(LoginRequiredMixin, NatOfficerRequiredMixin, DetailView):
@@ -91,13 +94,9 @@ class RegionOfficerView(LoginRequiredMixin, NatOfficerRequiredMixin, DetailView)
         for chapter in chapters:
             chapter_officers = chapter.get_current_officers()
             all_chapter_officers = chapter_officers | all_chapter_officers
-        self.filter = self.filter_class(
-            request_get, queryset=all_chapter_officers, request=self.request
-        )
+        self.filter = self.filter_class(request_get, queryset=all_chapter_officers, request=self.request)
         self.filter.form.helper = self.formhelper_class()
-        email_list = ", ".join(
-            [x[0] for x in self.filter.qs.values_list("email").distinct()]
-        )
+        email_list = ", ".join([x[0] for x in self.filter.qs.values_list("email").distinct()])
         self.filter.form.fields["chapter"].queryset = chapters
         admin = self.request.user.is_superuser
         table = UserTable(
@@ -107,10 +106,10 @@ class RegionOfficerView(LoginRequiredMixin, NatOfficerRequiredMixin, DetailView)
             extra_columns=[
                 (
                     "chapter",
-                    tables.LinkColumn("chapters:detail", args=[A("chapter.slug")]),
+                    tables.LinkColumn("chapters:detail", args=[A("chapter__slug")]),
                 ),
-                ("chapter.region", tables.Column("Region")),
-                ("chapter.school", tables.Column("School")),
+                ("chapter__region", tables.Column("Region")),
+                ("chapter__school", tables.Column("School")),
             ],
         )
         RequestConfig(self.request, paginate={"per_page": 50}).configure(table)
@@ -180,9 +179,7 @@ class RegionAdvisorView(LoginRequiredMixin, NatOfficerRequiredMixin, DetailView)
             all_chapter_advisors = chapter.advisors | all_chapter_advisors
         self.filter = self.filter_class(request_get, queryset=all_chapter_advisors)
         self.filter.form.helper = self.formhelper_class()
-        email_list = ", ".join(
-            [x[0] for x in self.filter.qs.values_list("email").distinct()]
-        )
+        email_list = ", ".join([x[0] for x in self.filter.qs.values_list("email").distinct()])
         self.filter.form.fields["chapter"].queryset = chapters
         admin = self.request.user.is_superuser
         table = UserTable(
@@ -192,10 +189,10 @@ class RegionAdvisorView(LoginRequiredMixin, NatOfficerRequiredMixin, DetailView)
             extra_columns=[
                 (
                     "chapter",
-                    tables.LinkColumn("chapters:detail", args=[A("chapter.slug")]),
+                    tables.LinkColumn("chapters:detail", args=[A("chapter__slug")]),
                 ),
-                ("chapter.region", tables.Column("Region")),
-                ("chapter.school", tables.Column("School")),
+                ("chapter__region", tables.Column("Region")),
+                ("chapter__school", tables.Column("School")),
             ],
         )
         table.exclude = (
@@ -231,12 +228,7 @@ class RegionDetailView(LoginRequiredMixin, NatOfficerRequiredMixin, DetailView):
         iframeUrl = "about:blank"
         if secret:
             token = jwt.encode(payload, secret, algorithm="HS256")
-            iframeUrl = (
-                "https://thetatau.metabaseapp.com"
-                + "/embed/dashboard/"
-                + token
-                + "#bordered=true&titled=true"
-            )
+            iframeUrl = "https://thetatau.metabaseapp.com" + "/embed/dashboard/" + token + "#bordered=true&titled=true"
         context["iframeUrl"] = iframeUrl
         return context
 
@@ -258,9 +250,7 @@ class RegionTaskView(LoginRequiredMixin, NatOfficerRequiredMixin, DetailView):
             request_get = QueryDict()
         self.filter = self.filter_class(request_get, queryset=qs)
         self.filter.form.helper = self.formhelper_class()
-        all_chapters_tasks = {
-            task.pk: defaultdict(lambda: None) for task in self.filter.qs
-        }
+        all_chapters_tasks = {task.pk: defaultdict(lambda: None) for task in self.filter.qs}
         [
             all_chapters_tasks[task.id].update(
                 {
@@ -302,15 +292,11 @@ class RegionTaskView(LoginRequiredMixin, NatOfficerRequiredMixin, DetailView):
             extra_columns.append(
                 (
                     column_link,
-                    TaskLinkColumn(
-                        verbose_name=chapter_name.replace("_", " "), empty_values=()
-                    ),
+                    TaskLinkColumn(verbose_name=chapter_name.replace("_", " "), empty_values=()),
                 )
             )
         all_chapters_tasks = all_chapters_tasks.values()
-        table = RegionChapterTaskTable(
-            data=all_chapters_tasks, extra_columns=extra_columns
-        )
+        table = RegionChapterTaskTable(data=all_chapters_tasks, extra_columns=extra_columns)
         context["table"] = table
         context["filter"] = self.filter
         return context

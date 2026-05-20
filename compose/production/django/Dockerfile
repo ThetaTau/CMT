@@ -1,4 +1,4 @@
-ARG PYTHON_VERSION=3.9-slim-buster
+ARG PYTHON_VERSION=3.12-slim-bookworm
 
 
 
@@ -20,14 +20,26 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
   git\
   # Pillow dependencies
   zlib1g-dev \
-  libjpeg-dev
+  libjpeg-dev \
+  # pycairo (via xhtml2pdf->svglib->rlpycairo) build dependencies
+  pkg-config \
+  libcairo2-dev
 
 # Requirements are installed here to ensure they will be cached.
 COPY ./requirements .
 
 # Create Python Dependency and Sub-Dependency Wheels.
-RUN pip wheel --wheel-dir /usr/src/app/wheels  \
-  -r ${BUILD_ENVIRONMENT}.txt
+# setuptools and poetry-core are pre-built first:
+#   - setuptools provides pkg_resources, required at runtime by django-betterforms
+#   - poetry-core is the build backend for the git-pinned django-report-builder
+# --find-links ensures pip passes the local wheel cache to isolated build
+# environments it spawns for packages like the git-pinned report-builder.
+RUN pip wheel --wheel-dir /usr/src/app/wheels setuptools wheel poetry-core \
+  && pip wheel --wheel-dir /usr/src/app/wheels \
+    --retries 5 \
+    --timeout 60 \
+    --find-links=/usr/src/app/wheels \
+    -r ${BUILD_ENVIRONMENT}.txt
 
 
 # Python 'run' stage
@@ -62,9 +74,13 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
 # copy python dependency wheels from python-build-stage
 COPY --from=python-build-stage /usr/src/app/wheels  /wheels/
 
+# copy requirements so pip can resolve by name (more reliable than glob for
+# bootstrap packages like setuptools that pip wheel may skip)
+COPY ./requirements /requirements/
+
 # use wheels to install python dependencies
-RUN pip install --no-cache-dir --no-index --find-links=/wheels/ /wheels/* \
-  && rm -rf /wheels/
+RUN pip install --no-cache-dir --no-index --find-links=/wheels/ -r /requirements/${BUILD_ENVIRONMENT}.txt \
+  && rm -rf /wheels/ /requirements/
 
 
 COPY --chown=django:django ./compose/production/django/entrypoint /entrypoint

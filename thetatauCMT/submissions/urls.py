@@ -1,30 +1,17 @@
-from django.conf.urls import url
 from django.urls import path
 
 from . import views
 
 app_name = "submissions"
 urlpatterns = [
-    url(regex=r"^$", view=views.SubmissionListView.as_view(), name="list"),
-    url(regex=r"^add/$", view=views.SubmissionCreateView.as_view(), name="add"),
-    url(
-        regex=r"^add/(?P<slug>[-\w]+)$",
-        view=views.SubmissionCreateView.as_view(),
-        name="add-direct",
-    ),
-    url(
-        regex=r"^redirect/$",
-        view=views.SubmissionRedirectView.as_view(),
-        name="redirect",
-    ),
-    url(
-        regex=r"^update/(?P<pk>\d+)/$",
-        view=views.SubmissionUpdateView.as_view(),
-        name="update",
-    ),
-    url(
-        regex=r"^~(?P<year>d{4})/(?P<month>[0-9]{2})/(?P<day>[0-9]{2})/(?P<slug>[-w]+)/$",
-        view=views.SubmissionDetailView.as_view(),
+    path("", views.SubmissionListView.as_view(), name="list"),
+    path("add/", views.SubmissionCreateView.as_view(), name="add"),
+    path("add/<slug:slug>", views.SubmissionCreateView.as_view(), name="add-direct"),
+    path("redirect/", views.SubmissionRedirectView.as_view(), name="redirect"),
+    path("update/<int:pk>/", views.SubmissionUpdateView.as_view(), name="update"),
+    path(
+        "~<int:year>/<int:month>/<int:day>/<slug:slug>/",
+        views.SubmissionDetailView.as_view(),
         name="detail",
     ),
     path("gear", views.GearArticleFormView.as_view(), name="gear"),

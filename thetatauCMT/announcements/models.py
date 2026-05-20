@@ -2,12 +2,13 @@ from django.db import models
 from django.template.defaultfilters import slugify
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
-from ckeditor_uploader.fields import RichTextUploadingField
+from django_ckeditor_5.fields import CKEditor5Field
+
 from core.models import TimeStampedModel
 
 
 class Announcement(TimeStampedModel):
-    content = RichTextUploadingField()
+    content = CKEditor5Field()
     priority = models.IntegerField(
         verbose_name="Priority order, 1 highest",
         help_text="The order you want announcements to appear in, "

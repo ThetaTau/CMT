@@ -1,7 +1,9 @@
 from django.contrib import admin
+
 from core.signals import SignalWatchMixin
-from chapters.models import Chapter, ChapterCurricula
-from notes.admin import ChapterNoteInline, ChapterNote
+from thetatauCMT.chapters.models import Chapter, ChapterCurricula
+from thetatauCMT.notes.admin import ChapterNote, ChapterNoteInline
+
 from .views import DuesSyncMixin
 
 
@@ -12,6 +14,7 @@ class ChapterCurriculaInline(admin.TabularInline):
     show_change_link = True
 
 
+@admin.register(Chapter)
 class ChapterAdmin(admin.ModelAdmin, DuesSyncMixin, SignalWatchMixin):
     object_type = "chapter"
     actions = [
@@ -44,6 +47,3 @@ class ChapterAdmin(admin.ModelAdmin, DuesSyncMixin, SignalWatchMixin):
                 instance.modified_by = user
                 instance.save()
         formset.save()
-
-
-admin.site.register(Chapter, ChapterAdmin)

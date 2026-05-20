@@ -1,20 +1,21 @@
-from django.utils.safestring import mark_safe
 import django_tables2 as tables
+from django.utils.safestring import mark_safe
 from django_tables2.utils import A
+
 from .models import (
+    OSM,
+    AlumniExclusion,
+    Audit,
     Badge,
     Bylaws,
-    Depledge,
-    StatusChange,
-    Audit,
-    PledgeProgram,
-    Convention,
-    HSEducation,
-    OSM,
     CollectionReferral,
+    Convention,
+    Depledge,
+    HSEducation,
+    PledgeProgram,
     PledgeProgramProcess,
-    AlumniExclusion,
     RitualProficiency,
+    StatusChange,
 )
 
 
@@ -111,9 +112,7 @@ class PledgeProgramTable(tables.Table):
     live_link = tables.Column(verbose_name="Live Program")
     approval = tables.Column()
     chapter_name = tables.Column(verbose_name="Chapter")
-    pk = tables.LinkColumn(
-        "forms:pledge_program_detail", verbose_name="Link", args=[A("pk")]
-    )
+    pk = tables.LinkColumn("forms:pledge_program_detail", verbose_name="Link", args=[A("pk")])
 
     class Meta:
         model = PledgeProgram
@@ -142,9 +141,7 @@ class PledgeProgramTable(tables.Table):
 
     def render_live_link(self, value):
         if value != "none":
-            value = mark_safe(
-                f"<a href='https://docs.google.com/document/d/{value}/edit' target='_blank'>Link</a>"
-            )
+            value = mark_safe(f"<a href='https://docs.google.com/document/d/{value}/edit' target='_blank'>Link</a>")
         else:
             value = None
         return value
@@ -173,9 +170,7 @@ def render_education_category(value, column, record, bound_column):
         )
         if "Approved" in value:
             column.attrs = {"td": {"bgcolor": "#40B0A6"}}
-        elif (
-            "Revisions" in value or "Denied" in value
-        ) and "Not Reviewed" not in value:
+        elif ("Revisions" in value or "Denied" in value) and "Not Reviewed" not in value:
             column.attrs = {"td": {"bgcolor": "#E1BE6A"}}
     else:
         value = ""
@@ -232,9 +227,7 @@ class HSEducationTable(tables.Table):
 
 
 class RiskFormTable(tables.Table):
-    chapter = tables.Column(
-        attrs={"td": {"align": "left", "style": "font-weight:bold"}}
-    )
+    chapter = tables.Column(attrs={"td": {"align": "left", "style": "font-weight:bold"}})
     region = tables.Column()
     complete = tables.Column()
     incomplete = tables.Column()
@@ -276,9 +269,7 @@ class DisciplinaryStatusTable(tables.Table):
     approved = tables.Column()
     created = tables.DateColumn()
     trial_date = tables.DateColumn()
-    link = tables.TemplateColumn(
-        '{% if record.link %}<a href="{{ record.link }}">Form 2 Link</a>{% endif %}'
-    )
+    link = tables.TemplateColumn('{% if record.link %}<a href="{{ record.link }}">Form 2 Link</a>{% endif %}')
 
     class Meta:
         attrs = {
@@ -405,14 +396,12 @@ class AlumniExclusionTable(tables.Table):
             )
             extra_columns = [
                 ("chapter", tables.Column("Chapter")),
-                ("chapter.region", tables.Column("Region")),
+                ("chapter__region", tables.Column("Region")),
                 ("regional_director", tables.Column("RD Reviewer")),
             ]
             del kwargs["natoff"]
         else:
-            self.base_columns["user"] = tables.Column(
-                verbose_name="Excluded Alumni", accessor="user__name"
-            )
+            self.base_columns["user"] = tables.Column(verbose_name="Excluded Alumni", accessor="user__name")
         kwargs["extra_columns"] = extra_columns
         super().__init__(*args, **kwargs)
 
@@ -461,7 +450,7 @@ class BylawsListTable(tables.Table):
             extra_columns.extend(
                 [
                     ("chapter", tables.Column("Chapter")),
-                    ("chapter.region", tables.Column("Region")),
+                    ("chapter__region", tables.Column("Region")),
                 ]
             )
         kwargs["extra_columns"] = extra_columns
@@ -477,7 +466,15 @@ class RitualProficiencyTable(tables.Table):
 
     class Meta:
         model = RitualProficiency
-        fields = ("recorded_by", "level", "date", "memorization", "directions", "performance", "notes")
+        fields = (
+            "recorded_by",
+            "level",
+            "date",
+            "memorization",
+            "directions",
+            "performance",
+            "notes",
+        )
         order_by = "-date"
         attrs = {"class": "table table-striped table-bordered"}
         empty_text = "There are no ritual proficiency records for the selected member..."

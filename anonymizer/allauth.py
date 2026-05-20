@@ -1,14 +1,8 @@
-from dj_anonymizer.register_models import (
-    register_skip,
-    AnonymBase,
-    register_anonym,
-    register_clean,
-)
+from allauth.account.models import EmailAddress, EmailConfirmation
+from allauth.socialaccount.models import SocialAccount, SocialApp, SocialToken
 from dj_anonymizer import fields
+from dj_anonymizer.register_models import AnonymBase, register_anonym, register_clean, register_skip
 from faker import Factory
-
-from allauth.socialaccount.models import SocialToken, SocialAccount, SocialApp
-from allauth.account.models import EmailConfirmation, EmailAddress
 
 register_skip([EmailConfirmation, SocialToken, SocialApp])
 register_clean(

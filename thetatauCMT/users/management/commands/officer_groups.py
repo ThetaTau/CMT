@@ -1,7 +1,9 @@
-from django.core.management import BaseCommand
 from csv import DictReader
+
 from django.contrib.auth.models import Group
-from users.models import User
+from django.core.management import BaseCommand
+
+from thetatauCMT.users.models import User
 
 file_path = r"secrets/natoff.csv"
 
@@ -38,9 +40,7 @@ class Command(BaseCommand):
                     nat_group.user_set.add(user)
                     continue
                 try:
-                    user = User.objects.get(
-                        first_name=row["First Name"], last_name=row["Last Name"]
-                    )
+                    user = User.objects.get(first_name=row["First Name"], last_name=row["Last Name"])
                 except User.DoesNotExist:
                     user = None
                 if user is not None:
@@ -68,7 +68,7 @@ class Command(BaseCommand):
 
 """
 from django.contrib.auth.models import Group
-from users.models import User
+from thetatauCMT.users.models import User
 off_group, created = Group.objects.get_or_create(name='officer')
 for user in User.objects.all():
     if user.chapter_officer():

@@ -1,26 +1,28 @@
+from address.widgets import AddressWidget
+from allauth.account.forms import LoginForm
+from crispy_forms.bootstrap import Field, FormActions, InlineField, StrictButton
+from crispy_forms.helper import FormHelper
+from crispy_forms.layout import Column, Fieldset, Layout, Row, Submit
+from dal import autocomplete, forward
 from django import forms
 from django.conf import settings
 from django.utils import timezone
-from dal import autocomplete, forward
-from address.widgets import AddressWidget
-from crispy_forms.helper import FormHelper
-from crispy_forms.layout import Layout, Fieldset, Row, Column, Submit
-from crispy_forms.bootstrap import FormActions, InlineField, StrictButton, Field
-from allauth.account.forms import LoginForm
-from captcha.fields import ReCaptchaField
-from captcha.widgets import ReCaptchaV3
+from django_recaptcha.fields import ReCaptchaField
+from django_recaptcha.widgets import ReCaptchaV3
+
 from core.address import fix_address
+from core.forms import DatePicker, DuplicateAddressField, SchoolModelChoiceField
 from core.models import BIENNIUM_YEARS, forever
-from core.forms import DuplicateAddressField, SchoolModelChoiceField, DatePicker
-from chapters.models import Chapter, ChapterCurricula
+from thetatauCMT.chapters.models import Chapter, ChapterCurricula
+
 from .models import (
-    UserAlter,
+    MemberUpdate,
     User,
+    UserAlter,
+    UserOrgParticipate,
     UserSemesterGPA,
     UserSemesterServiceHours,
-    UserOrgParticipate,
     UserStatusChange,
-    MemberUpdate,
 )
 
 
@@ -36,7 +38,7 @@ class UserListFormHelper(FormHelper):
     form_method = "GET"
     form_id = "user-search-form"
     form_class = "form-inline"
-    field_template = "bootstrap3/layout/inline_field.html"
+    field_template = "bootstrap5/layout/inline_field.html"
     field_class = "col-xs-3"
     label_class = "col-xs-3"
     form_show_errors = True
@@ -96,7 +98,7 @@ class UserRoleListFormHelper(FormHelper):
     form_method = "GET"
     form_id = "user-search-form"
     form_class = "form-inline"
-    field_template = "bootstrap3/layout/inline_field.html"
+    field_template = "bootstrap5/layout/inline_field.html"
     field_class = "col-xs-3"
     label_class = "col-xs-3"
     form_show_errors = True
@@ -132,7 +134,7 @@ class AdvisorListFormHelper(FormHelper):
     form_method = "GET"
     form_id = "user-search-form"
     form_class = "form-inline"
-    field_template = "bootstrap3/layout/inline_field.html"
+    field_template = "bootstrap5/layout/inline_field.html"
     field_class = "col-xs-3"
     label_class = "col-xs-3"
     form_show_errors = True
@@ -172,9 +174,7 @@ class UserLookupForm(forms.Form):
 
 
 class UserUpdateForm(forms.ModelForm):
-    badge_number = forms.IntegerField(
-        help_text="If you do not know your badge number, leave this blank"
-    )
+    badge_number = forms.IntegerField(help_text="If you do not know your badge number, leave this blank")
     school_name = SchoolModelChoiceField(
         queryset=Chapter.objects.exclude(active=False).order_by("school"),
         help_text="Where did you attend school while pledging?",
@@ -237,9 +237,7 @@ class UserUpdateForm(forms.ModelForm):
 class MemberUpdateForm(forms.ModelForm):
     user = forms.ModelChoiceField(
         queryset=User.objects.all(),
-        widget=autocomplete.ModelSelect2(
-            url="users:autocomplete", forward=(forward.Const("false", "chapter"),)
-        ),
+        widget=autocomplete.ModelSelect2(url="users:autocomplete", forward=(forward.Const("false", "chapter"),)),
         required=False,
     )
     outcome = forms.TypedChoiceField(
@@ -361,9 +359,7 @@ class UserForm(forms.ModelForm):
 
 
 class UserGPAForm(forms.Form):
-    user = forms.CharField(
-        label="", widget=forms.TextInput(attrs={"readonly": "readonly"})
-    )
+    user = forms.CharField(label="", widget=forms.TextInput(attrs={"readonly": "readonly"}))
     gpa1 = forms.FloatField(label="", max_value=5.0, min_value=0)  # Fall 2018
     gpa2 = forms.FloatField(label="", max_value=5.0, min_value=0)  # Spring 2019
     gpa3 = forms.FloatField(label="", max_value=5.0, min_value=0)  # Fall 2019
@@ -377,9 +373,7 @@ class UserGPAForm(forms.Form):
 
     def save(self):
         user_name = self.cleaned_data["user"]
-        user = User.objects.filter(
-            name=user_name, chapter__name=self.data["chapter"]
-        ).last()
+        user = User.objects.filter(name=user_name, chapter__name=self.data["chapter"]).last()
         for i in range(4):
             gpa = self.cleaned_data[f"gpa{i + 1}"]
             if gpa == 0:
@@ -403,9 +397,7 @@ class UserGPAForm(forms.Form):
 
 
 class UserServiceForm(forms.Form):
-    user = forms.CharField(
-        label="", widget=forms.TextInput(attrs={"readonly": "readonly"})
-    )
+    user = forms.CharField(label="", widget=forms.TextInput(attrs={"readonly": "readonly"}))
     service1 = forms.FloatField(label="", min_value=0)  # Fall 2018
     service2 = forms.FloatField(label="", min_value=0)  # Spring 2019
     service3 = forms.FloatField(label="", min_value=0)  # Fall 2019
@@ -419,9 +411,7 @@ class UserServiceForm(forms.Form):
 
     def save(self):
         user_name = self.cleaned_data["user"]
-        user = User.objects.filter(
-            name=user_name, chapter__name=self.data["chapter"]
-        ).last()
+        user = User.objects.filter(name=user_name, chapter__name=self.data["chapter"]).last()
         for i in range(4):
             service = self.cleaned_data[f"service{i + 1}"]
             if service == 0:
@@ -462,9 +452,7 @@ class UserOrgForm(forms.ModelForm):
             attrs={"autocomplete": "off"},
         ),
     )
-    officer = forms.TypedChoiceField(
-        coerce=lambda x: x == "True", choices=((False, "No"), (True, "Yes"))
-    )
+    officer = forms.TypedChoiceField(coerce=lambda x: x == "True", choices=((False, "No"), (True, "Yes")))
 
     class Meta:
         model = UserOrgParticipate

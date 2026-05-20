@@ -1,99 +1,109 @@
-urllib3==1.26.11
-requests==2.31.0
-pytz==2024.1  # https://github.com/stub42/pytz
-python-slugify==5.0.2  # https://github.com/un33k/python-slugify
-Pillow==9.2.0 # https://github.com/python-pillow/Pillow
-argon2-cffi==20.1.0  # https://github.com/hynek/argon2_cffi
-whitenoise==5.3.0  # https://github.com/evansd/whitenoise
-redis==3.5.3  # https://github.com/antirez/redis
-celery==5.1.2  # pyup: < 5.0  # https://github.com/celery/celery
+setuptools<81  # pkg_resources removed from setuptools 81+; required at runtime by django-betterforms
+urllib3==2.5.0
+requests==2.32.4
+python-slugify==8.0.4  # https://github.com/un33k/python-slugify
+Pillow==11.3.0  # https://github.com/python-pillow/Pillow
+argon2-cffi==25.1.0  # https://github.com/hynek/argon2_cffi
+whitenoise==6.9.0  # https://github.com/evansd/whitenoise
+redis==6.2.0  # https://github.com/antirez/redis
+celery==5.5.3  # pyup: < 5.0  # https://github.com/celery/celery
 google-api-python-client==2.14.0  # https://github.com/googleapis/google-api-python-client
-PyDrive2==1.17.0  # https://github.com/iterative/PyDrive2
-gspread==5.10.0  # https://github.com/burnash/gspread
-reportlab==3.6.11  # https://www.reportlab.com/
-xhtml2pdf==0.2.8  # https://github.com/xhtml2pdf/xhtml2pdf
-google-api-core==1.31.0
-google-auth==1.33.1
-google-cloud-core==1.7.1
-google-cloud-storage==1.41.1
-google-resumable-media==1.3.1
-googleapis-common-protos==1.53.0
-protobuf==3.18.3
-rollbar==1.0.0  # https://github.com/rollbar/pyrollbar
-python-gnupg==0.4.9  # https://pythonhosted.org/python-gnupg/
+PyDrive2==1.21.3  # https://github.com/iterative/PyDrive2
+gspread==6.2.1  # https://github.com/burnash/gspread
+reportlab==4.4.3  # https://www.reportlab.com/
+xhtml2pdf==0.2.17  # https://github.com/xhtml2pdf/xhtml2pdf
+google-api-core==2.25.1
+google-auth==2.40.3
+google-cloud-core==2.4.3
+google-cloud-storage==3.2.0
+google-resumable-media==2.7.2
+googleapis-common-protos==1.70.0
+protobuf==6.31.1
+rollbar==1.3.0  # https://github.com/rollbar/pyrollbar
+python-gnupg==0.5.4  # https://pythonhosted.org/python-gnupg/
 # python anywhere does not work with latest version
-python-magic==0.4.24 # https://github.com/ahupp/python-magic
+python-magic==0.4.27 # https://github.com/ahupp/python-magic
 python-magic-bin==0.4.14; platform_system == "Windows"
 git+https://github.com/VenturaFranklin/api-wrappers-python.git
-python-quickbooks==0.9.0  # https://github.com/ej2/python-quickbooks
-intuit-oauth==1.2.4  # https://github.com/intuit/oauth-pythonclient
-pygeocoder==1.2.5
-haversine==2.6.0
-weasyprint==53.4
-openpyxl==3.0.10  # report_builder needs save_virtual_workbook which was deprecated
-numpy==1.21.1
+python-quickbooks==0.9.12  # https://github.com/ej2/python-quickbooks
+intuit-oauth==1.2.6  # https://github.com/intuit/oauth-pythonclient
+# pygeocoder is well out of date
+git+https://github.com/cobuso/pygeocoder.git@cb0acc44d57d20f8df207850aa84b79134eb1734
+haversine==2.9.0
+weasyprint==66.0
+openpyxl==3.0.10  # django-report-builder needs save_virtual_workbook which was deprecated
+numpy==2.4.4
 jwcrypto==1.5.6
 
 # Django
 # ------------------------------------------------------------------------------
-django==3.2.15  # pyup: < 3.0  # https://www.djangoproject.com/
-django-environ==0.9.0  # https://github.com/joke2k/django-environ
-django-model-utils==4.2.0  # https://github.com/jazzband/django-model-utils
-django-allauth==0.51.0  # https://github.com/pennersr/django-allauth
-django-crispy-forms==1.14.0  # https://github.com/django-crispy-forms/django-crispy-forms
-django-redis==5.0.0  # https://github.com/niwinz/django-redis
-django-extensions==3.2.0  # https://github.com/django-extensions/django-extensions
+
+# Django 5+ requires postgres > 12 but python anywhere only supports 12 currently
+#   so we are using django 4.2 for now
+#   https://code.djangoproject.com/wiki/SupportedDatabaseVersions
+#   https://www.pythonanywhere.com/forums/topic/35311/#id_post_127734
+django==4.2.23 # https://www.djangoproject.com/
+django-environ==0.12.0  # https://github.com/joke2k/django-environ
+django-model-utils==5.0.0  # https://github.com/jazzband/django-model-utils
+django-allauth==65.10.0  # https://github.com/pennersr/django-allauth
+django-crispy-forms==2.4  # https://github.com/django-crispy-forms/django-crispy-forms
+crispy-bootstrap5==2025.6 # https://github.com/django-crispy-forms/crispy-bootstrap5
+django-redis==6.0.0  # https://github.com/niwinz/django-redis
+django-extensions==4.1  # https://github.com/django-extensions/django-extensions
 django-address==0.2.8  # https://github.com/furious-luke/django-address
-django-bootstrap4==22.2  # https://github.com/zostera/django-bootstrap4
-django-braces==1.15.0  # https://github.com/brack3t/django-braces/
-django-extra-views==0.14.0  # https://github.com/AndrewIngram/django-extra-views
-django-filter==22.1  # https://django-filter.readthedocs.io/
+django-bootstrap5==25.1  # https://github.com/zostera/django-bootstrap5
+django-braces==1.17.0  # https://github.com/brack3t/django-braces/
+django-extra-views==0.16.0  # https://github.com/AndrewIngram/django-extra-views
+django-filter==25.1  # https://django-filter.readthedocs.io/
 django-jquery-js==3.1.1  # https://bitbucket.org/tim_heap/django-jquery/src/master/
-django-tables2==2.4.1  # https://github.com/jieter/django-tables2/
+django-tables2==2.7.5  # https://github.com/jieter/django-tables2/
 django-tempus-dominus==5.1.2.17  # https://github.com/FlipperPA/django-tempus-dominus
-django-autocomplete-light==3.9.4  # https://github.com/yourlabs/django-autocomplete-light
-django-multiselectfield==0.1.12  # https://github.com/goinnn/django-multiselectfield
-django-celery-beat==2.2.1  # https://github.com/celery/django-celery-beat
+django-autocomplete-light==3.12.1  # https://github.com/yourlabs/django-autocomplete-light
+django-multiselectfield==1.0.1  # https://github.com/goinnn/django-multiselectfield
+django-celery-beat==2.8.1  # https://github.com/celery/django-celery-beat
 django-easy-pdf3==0.1.4  # https://github.com/olksndrdevhub/django-easy-pdf3
-django-money==2.0.1  # https://github.com/django-money/django-money
-django-storages==1.13.1  # https://django-storages.readthedocs.io/en/latest/backends/gcloud.html
+django-money==3.5.4  # https://github.com/django-money/django-money
+django-storages==1.14.6  # https://django-storages.readthedocs.io/en/latest/backends/gcloud.html
 django-betterforms==2.0.0  # https://django-betterforms.readthedocs.io/
-django-herald==0.2.1  # https://github.com/worthwhile/django-herald
+django-herald==0.3.0  # https://github.com/worthwhile/django-herald
 django-viewflow==1.11.0  # http://docs.viewflow.io/
 django-material==1.11.3  #
-django-import-export==2.8.0  # https://django-import-export.readthedocs.io
+django-import-export==4.3.9  # https://django-import-export.readthedocs.io
 git+https://github.com/django-dbbackup/django-dbbackup.git@9d1909c30a3271c8c9c8450add30d6e0b996e145
   # https://django-dbbackup.readthedocs.io/
-django-watson==1.6.2 # https://github.com/etianen/django-watson
-django-ckeditor==6.5.0 # https://github.com/django-ckeditor/django-ckeditor
-django-recaptcha==2.0.6 # https://github.com/praekelt/django-recaptcha
-django-report-builder==6.4.2 # https://gitlab.com/burke-software/django-report-builder
+django-watson==1.6.3 # https://github.com/etianen/django-watson
+# django-ckeditor==6.7.3 # https://github.com/django-ckeditor/django-ckeditor
+django-ckeditor-5==0.2.18 #https://github.com/hvlads/django-ckeditor-5
+django-recaptcha==4.1.0 # https://github.com/praekelt/django-recaptcha
+# django-report-builder==6.4.2 # https://gitlab.com/burke-software/django-report-builder
+# No longer supported, but added in urls fix in this commit
+git+https://gitlab.com/burke-software/django-report-builder.git@aac796ebfb2b9ffc7f457cd37b1b5b0adfca45de
 django-upload-validator==1.1.6 # https://github.com/mckinseyacademy/django-upload-validator
 # django-allauth-2fa==0.10.0  # https://github.com/percipient/django-allauth-2fa
 git+https://github.com/valohai/django-allauth-2fa.git@6bd3101916f2fca6f2ff414b3b1181bbd44d1b99
 django-hCaptcha==0.2.0  # https://pypi.org/project/django-hCaptcha/
-django-termsandconditions==2.0.10  # https://github.com/cyface/django-termsandconditions
+django-termsandconditions==2.0.12  # https://github.com/cyface/django-termsandconditions
 django-email-bandit==2.0  # https://github.com/caktus/django-email-bandit
-django-middleware-global-request==0.3.0  # https://github.com/appstore-zencore/django-middleware-global-request
-django-anymail[mailjet]==8.6  # https://github.com/anymail/django-anymail
-django-weasyprint==2.2.0  # https://github.com/fdemmer/django-weasyprint
-django-survey-and-report==1.4.2  # https://github.com/Pierre-Sassoulas/django-survey/
-django-email-signals==1.0.7  # https://github.com/Salaah01/django-email-signals
-django-simple-history==3.3.0  # https://django-simple-history.readthedocs.io/en/latest/index.html
+django-middleware-global-request==0.3.5  # https://github.com/appstore-zencore/django-middleware-global-request
+django-anymail[mailjet]==13.0  # https://github.com/anymail/django-anymail
+django-weasyprint==2.4.0  # https://github.com/fdemmer/django-weasyprint
+django-survey-and-report==1.4.12  # https://github.com/Pierre-Sassoulas/django-survey/
+django-bootstrap-form==3.4  # provides `bootstrapform` module; required by django-survey-and-report
+django-email-signals==2.0.0  # https://github.com/Salaah01/django-email-signals
+django-simple-history==3.10.1  # https://django-simple-history.readthedocs.io/en/latest/index.html
 django-userforeignkey==0.5.0  # https://github.com/beachmachine/django-userforeignkey
-django-oauth-toolkit==2.4.0
-django-cors-headers==4.4.0
-django-appconf==1.0.6  # https://django-appconf.readthedocs.io/en/latest/
+django-oauth-toolkit==3.0.1  # https://github.com/jazzband/django-oauth-toolkit
+django-cors-headers==4.7.0  # https://github.com/adamchainz/django-cors-headers
+django-appconf==1.1.0  # https://django-appconf.readthedocs.io/en/latest/
 
 # Django REST Framework
-djangorestframework==3.13.1  # https://github.com/encode/django-rest-framework
+djangorestframework==3.16.0  # https://github.com/encode/django-rest-framework
 coreapi==2.3.3  # https://github.com/core-api/python-client
 
 # Django Plotly Dash
-dash==1.21.0
-dash-renderer==1.9.1
-dash-html-components==1.1.4
-pandas==1.4.3; python_version >= '3.7'
-plotly==5.10.0
-django-plotly-dash==1.6.4
-django-pandas==0.6.6
+dash==3.1.1
+# dash-renderer and dash-html-components were merged into dash in Dash 2.0; removed
+pandas==2.3.1
+plotly==6.2.0
+django-plotly-dash==2.5.0
+django-pandas==0.6.7

@@ -4,7 +4,15 @@ set -o errexit
 set -o pipefail
 set -o nounset
 
-
+# Load environment variables from .env file if it exists
+if [ -f .env ]; then
+    echo "Loading environment variables from .env file..."
+    set -o allexport
+    source .env
+    set +o allexport
+else
+    echo "No .env file found. Using existing environment variables."
+fi
 
 
 if [ -z "${POSTGRES_USER}" ]; then

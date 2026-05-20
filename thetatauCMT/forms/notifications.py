@@ -1,16 +1,17 @@
-from herald import registry
-from herald.base import EmailNotification
 from django.conf import settings
+from django.core.files.base import ContentFile
+from django.forms.models import model_to_dict
 from django.http import HttpRequest
 from django.urls import reverse
 from django.utils.safestring import mark_safe
-from django.core.files.base import ContentFile
-from django.forms.models import model_to_dict
+from herald import registry
+from herald.base import EmailNotification
+
 from core.models import current_term, current_year
-from forms.tables import SignTable, BadgeTable
-from forms.models import Badge
-from users.models import User
-from configs.models import Config
+from thetatauCMT.configs.models import Config
+from thetatauCMT.forms.models import Badge
+from thetatauCMT.forms.tables import BadgeTable, SignTable
+from thetatauCMT.users.models import User
 
 
 @registry.register_decorator()
@@ -36,10 +37,11 @@ class EmailRMPSigned(EmailNotification):  # extend from EmailNotification for em
 
     @staticmethod
     def get_demo_args():  # define a static method to return list of args needed to initialize class for testing
-        from users.models import User
-        from forms.views import RiskManagementDetailView
-        from forms.models import RiskManagement
         from django.http import HttpRequest
+
+        from thetatauCMT.forms.models import RiskManagement
+        from thetatauCMT.forms.views import RiskManagementDetailView
+        from thetatauCMT.users.models import User
 
         form = RiskManagement.objects.order_by("?")[0]
         view = RiskManagementDetailView.as_view()
@@ -85,7 +87,7 @@ class EmailRMPReport(EmailNotification):  # extend from EmailNotification for em
 
     @staticmethod
     def get_demo_args():  # define a static method to return list of args needed to initialize class for testing
-        from users.models import User
+        from thetatauCMT.users.models import User
 
         test_user = User.objects.order_by("?")[0]
         from django.core.files import File
@@ -98,9 +100,7 @@ class EmailRMPReport(EmailNotification):  # extend from EmailNotification for em
 
 
 @registry.register_decorator()
-class EmailAdvisorWelcome(
-    EmailNotification
-):  # extend from EmailNotification for emails
+class EmailAdvisorWelcome(EmailNotification):  # extend from EmailNotification for emails
     template_name = "advisor"  # name of template, without extension
     subject = "Theta Tau Chapter Advisor"  # subject of email
 
@@ -125,7 +125,7 @@ class EmailAdvisorWelcome(
 
     @staticmethod
     def get_demo_args():  # define a static method to return list of args needed to initialize class for testing
-        from users.models import User
+        from thetatauCMT.users.models import User
 
         test_user = User.objects.order_by("?")[0]
         return [test_user]
@@ -155,7 +155,7 @@ class EmailPledgeOther(EmailNotification):  # extend from EmailNotification for 
 
     @staticmethod
     def get_demo_args():  # define a static method to return list of args needed to initialize class for testing
-        from users.models import User
+        from thetatauCMT.users.models import User
 
         test_user = User.objects.order_by("?")[0]
         from django.core.files import File
@@ -168,9 +168,7 @@ class EmailPledgeOther(EmailNotification):  # extend from EmailNotification for 
 
 
 @registry.register_decorator()
-class EmailPledgeConfirmation(
-    EmailNotification
-):  # extend from EmailNotification for emails
+class EmailPledgeConfirmation(EmailNotification):  # extend from EmailNotification for emails
     template_name = "pledge"  # name of template, without extension
     subject = "Theta Tau Prospective New Member Confirmation"  # subject of email
 
@@ -220,9 +218,7 @@ class EmailPledgeConfirmation(
                 value = {True: "Yes", False: "No"}[value]
                 form_dict[getattr(pledge_form, f"verbose_{key}")] = value
             else:
-                if (
-                    key.startswith("explain_") or key.startswith("other_")
-                ) and value == "":
+                if (key.startswith("explain_") or key.startswith("other_")) and value == "":
                     continue
                 if key not in ["id", "address", "major", "chapter"]:
                     form_dict[key.replace("_", " ").title()] = value
@@ -245,9 +241,10 @@ class EmailPledgeConfirmation(
 
     @staticmethod
     def get_demo_args():  # define a static method to return list of args needed to initialize class for testing
-        from forms.models import Pledge
-        from forms.views import BillOfRightsPDFView
         from django.http import HttpRequest
+
+        from thetatauCMT.forms.models import Pledge
+        from thetatauCMT.forms.views import BillOfRightsPDFView
 
         test_pledge_form = Pledge.objects.order_by("?")[0]
         new_request = HttpRequest()
@@ -293,7 +290,7 @@ class EmailPledgeWelcome(EmailNotification):  # extend from EmailNotification fo
 
     @staticmethod
     def get_demo_args():  # define a static method to return list of args needed to initialize class for testing
-        from forms.models import Pledge
+        from thetatauCMT.forms.models import Pledge
 
         test_pledge_form = Pledge.objects.order_by("?")[0]
         return [test_pledge_form]
@@ -314,9 +311,7 @@ class BadgePNMNotify(EmailNotification):  # extend from EmailNotification for em
             "central.office@thetatau.org",
         ]
         message = Config.get_value("badge_pnm_notify", clean=False)
-        badges = BadgeTable(
-            Badge.objects.exclude(name__icontains="candidate").order_by("cost")
-        )
+        badges = BadgeTable(Badge.objects.exclude(name__icontains="candidate").order_by("cost"))
         request = HttpRequest()
         badge_table = badges.as_html(request)
         message = message.replace("{{ badge_table }}", badge_table)
@@ -327,7 +322,7 @@ class BadgePNMNotify(EmailNotification):  # extend from EmailNotification for em
 
     @staticmethod
     def get_demo_args():  # define a static method to return list of args needed to initialize class for testing
-        from forms.models import Pledge
+        from thetatauCMT.forms.models import Pledge
 
         test_pledge = Pledge.objects.order_by("?")[0]
         return [test_pledge]
@@ -371,7 +366,7 @@ class EmailPledgeOfficer(EmailNotification):
 
     @staticmethod
     def get_demo_args():  # define a static method to return list of args needed to initialize class for testing
-        from forms.models import Pledge
+        from thetatauCMT.forms.models import Pledge
 
         test_pledge_form = Pledge.objects.order_by("?")[0]
         return [test_pledge_form]
@@ -498,7 +493,7 @@ class EmailProcessUpdate(EmailNotification):
 
     @staticmethod
     def get_demo_args():  # define a static method to return list of args needed to initialize class for testing
-        from forms.models import InitiationProcess
+        from thetatauCMT.forms.models import InitiationProcess
 
         # test = PrematureAlumnus.objects.order_by('?')[0]
         test = InitiationProcess.objects.order_by("?")[0]
@@ -548,7 +543,7 @@ class EmailScribeExpulsion(EmailNotification):
         self.reply_to = [
             "central.office@thetatau.org",
         ]
-        self.subject = f"[CMT] Roll Book Update"
+        self.subject = "[CMT] Roll Book Update"
         self.context = {
             "user": user,
             "badge_number": user.badge_number,
@@ -558,7 +553,7 @@ class EmailScribeExpulsion(EmailNotification):
 
     @staticmethod
     def get_demo_args():  # define a static method to return list of args needed to initialize class for testing
-        from forms.models import DisciplinaryProcess
+        from thetatauCMT.forms.models import DisciplinaryProcess
 
         test = DisciplinaryProcess.objects.order_by("?")[0]
 
@@ -574,7 +569,7 @@ class EmailConventionUpdate(EmailNotification):
     template_name = "convention"
 
     def __init__(self, activation, user, message):
-        from forms.views import get_sign_status
+        from thetatauCMT.forms.views import get_sign_status
 
         data, _, _ = get_sign_status(user, initial=True)
         table = SignTable(data=data)
@@ -594,7 +589,7 @@ class EmailConventionUpdate(EmailNotification):
 
     @staticmethod
     def get_demo_args():  # define a static method to return list of args needed to initialize class for testing
-        from forms.models import Convention
+        from thetatauCMT.forms.models import Convention
 
         test = Convention.objects.order_by("?")[0]
         test.process = test
@@ -633,7 +628,7 @@ class EmailOSMUpdate(EmailNotification):
 
     @staticmethod
     def get_demo_args():
-        from forms.models import OSM
+        from thetatauCMT.forms.models import OSM
 
         test = OSM.objects.order_by("?")[0]
         test.process = test
@@ -653,10 +648,7 @@ class EmailAlumniExclusionUpdate(EmailNotification):
         chapter = activation.process.chapter
         state = "RD Review"
         addressee = f"{chapter.region.name} Regional Directors"
-        link = (
-            reverse("forms:alumniexclusion_list")
-            + f"?region={chapter.region.slug}&regional_director_veto=None"
-        )
+        link = reverse("forms:alumniexclusion_list") + f"?region={chapter.region.slug}&regional_director_veto=None"
         to = {chapter.region.email}
         cc = {
             "risk@thetatau.org",
@@ -696,7 +688,7 @@ class EmailAlumniExclusionUpdate(EmailNotification):
 
     @staticmethod
     def get_demo_args():
-        from forms.models import AlumniExclusion
+        from thetatauCMT.forms.models import AlumniExclusion
 
         test = AlumniExclusion.objects.order_by("?")[0]
         test.process = test
@@ -741,7 +733,7 @@ class CentralOfficeGenericEmail(EmailNotification):
 
     @staticmethod
     def get_demo_args():
-        from forms.flows import render_to_pdf
+        from thetatauCMT.forms.flows import render_to_pdf
 
         info = {"Test": "This is a test"}
         forms = render_to_pdf(

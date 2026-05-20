@@ -1,71 +1,69 @@
-import os
 import base64
 import datetime
+import os
 from io import BytesIO
+
 from django.conf import settings
 from django.core.files.base import ContentFile
 from django.http import HttpResponseRedirect
 from django.urls import reverse
 from django.utils.decorators import method_decorator
+from easy_pdf.rendering import UnsupportedMediaPathException, render_to_pdf
 from pydrive2.drive import GoogleDrive
 from viewflow import flow
-from viewflow.base import this, Flow
+from viewflow.base import Flow, this
 from viewflow.compat import _
 from viewflow.flow import views as flow_views
-from viewflow.templatetags.viewflow import register
 from viewflow.templatetags.viewflow import flowurl as old_flowurl
-from easy_pdf.rendering import render_to_pdf, UnsupportedMediaPathException
-from core.flows import (
-    AutoAssignUpdateProcessView,
-    NoAssignView,
-    FilterableFlowViewSet,
-    register_factory,
-)
+from viewflow.templatetags.viewflow import register
+
+from core.flows import AutoAssignUpdateProcessView, FilterableFlowViewSet, NoAssignView, register_factory
 from core.utils import login_with_service_account
-from trainings.models import Training
+from thetatauCMT.configs.models import Config
+from thetatauCMT.surveys.notifications import SurveyEmail
+from thetatauCMT.trainings.models import Training
+from thetatauCMT.users.models import User
+
+from .forms import DisciplinaryForm1, DisciplinaryForm2, UserSelectForm
 from .models import (
-    AlumniExclusion,
-    PrematureAlumnus,
-    InitiationProcess,
-    Convention,
-    PledgeProcess,
     OSM,
+    AlumniExclusion,
+    Convention,
     DisciplinaryProcess,
+    HSEducation,
+    InitiationProcess,
+    PledgeProcess,
+    PledgeProgramProcess,
+    PrematureAlumnus,
     ResignationProcess,
     ReturnStudent,
-    PledgeProgramProcess,
-    HSEducation,
+)
+from .notifications import (
+    CentralOfficeGenericEmail,
+    EmailAlumniExclusionUpdate,
+    EmailConventionUpdate,
+    EmailOSMUpdate,
+    EmailProcessUpdate,
+    EmailScribeExpulsion,
 )
 from .views import (
     AlumniExclusionCreateView,
-    PrematureAlumnusCreateView,
+    AlumniExclusionReview,
     ConventionCreateView,
-    HSEducationCreateView,
     ConventionSignView,
-    FilterableInvoiceFlowViewSet,
-    OSMCreateView,
-    OSMVerifyView,
     DisciplinaryCreateView,
     DisciplinaryForm2View,
-    get_signature,
+    FilterableInvoiceFlowViewSet,
+    HSEducationCreateView,
+    OSMCreateView,
+    OSMVerifyView,
+    PledgeProgramProcessCreateView,
+    PrematureAlumnusCreateView,
     ResignationCreateView,
     ResignationSignView,
     ReturnStudentCreateView,
-    PledgeProgramProcessCreateView,
-    AlumniExclusionReview,
+    get_signature,
 )
-from .forms import DisciplinaryForm1, DisciplinaryForm2, UserSelectForm
-from .notifications import (
-    EmailProcessUpdate,
-    EmailConventionUpdate,
-    EmailOSMUpdate,
-    CentralOfficeGenericEmail,
-    EmailScribeExpulsion,
-    EmailAlumniExclusionUpdate,
-)
-from users.models import User
-from configs.models import Config
-from surveys.notifications import SurveyEmail
 
 
 def link_callback(uri, rel):
@@ -80,9 +78,7 @@ def link_callback(uri, rel):
 
     if not os.path.isfile(path):
         raise UnsupportedMediaPathException(
-            "media urls must start with {} or {}".format(
-                settings.MEDIA_ROOT, settings.STATIC_ROOT
-            )
+            "media urls must start with {} or {}".format(settings.MEDIA_ROOT, settings.STATIC_ROOT)
         )
     return path.replace("\\", "/")
 
@@ -97,7 +93,7 @@ def flowurl(parser, token):
         url = ""
         try:
             url = old_render(context)
-        except:
+        except Exception:
             pass
         return url
 
@@ -138,9 +134,9 @@ class PrematureAlumnusFlow(Flow):
     process_title = _("Premature Alumnus Process")
     process_description = _("This process is for premature alumnus processing.")
 
-    start = flow.Start(
-        PrematureAlumnusCreateView, task_title=_("Request Premature Alumnus")
-    ).Next(this.check_auto_approve)
+    start = flow.Start(PrematureAlumnusCreateView, task_title=_("Request Premature Alumnus")).Next(
+        this.check_auto_approve
+    )
 
     check_auto_approve = (
         flow.If(
@@ -165,9 +161,7 @@ class PrematureAlumnusFlow(Flow):
             ],
             task_title=_("Executive Director Review"),
             task_description=_("Pre Alumn Executive Director Review"),
-            task_result_summary=_(
-                "Messsage was {{ process.approved_exec|yesno:'Approved,Rejected' }}"
-            ),
+            task_result_summary=_("Messsage was {{ process.approved_exec|yesno:'Approved,Rejected' }}"),
         )
         .Assign(lambda act: User.objects.get(username="Jim.Gaffney@thetatau.org"))
         .Next(this.check_approve)
@@ -204,9 +198,7 @@ class PrematureAlumnusFlow(Flow):
 
     complete = flow.End(
         task_title=_("Complete"),
-        task_result_summary=_(
-            "Request was {{ process.approved_exec|yesno:'Approved,Rejected' }}"
-        ),
+        task_result_summary=_("Request was {{ process.approved_exec|yesno:'Approved,Rejected' }}"),
     )
 
     def set_status_email(self, activation):
@@ -340,9 +332,9 @@ class InitiationProcessFlow(Flow):
     process_description = _("This process is for initiation form processing.")
     summary_template = "{{ flow_class.process_title }} - {{ process.chapter }}"
 
-    start = flow.StartFunction(
-        this.create_flow, activation_class=flow.nodes.ManagedStartViewActivation
-    ).Next(this.invoice_chapter)
+    start = flow.StartFunction(this.create_flow, activation_class=flow.nodes.ManagedStartViewActivation).Next(
+        this.invoice_chapter
+    )
     start_manual = (
         flow.Start(
             flow_views.CreateProcessView,
@@ -394,9 +386,7 @@ class InitiationProcessFlow(Flow):
         task_title=_("Send shingle order to Collegiate Regalia"),
     ).Next(this.complete)
 
-    complete = flow.End(
-        task_title=_("Complete"), task_result_summary=_("Initiation Process Complete")
-    )
+    complete = flow.End(task_title=_("Complete"), task_result_summary=_("Initiation Process Complete"))
 
     @method_decorator(flow.flow_start_func)
     def create_flow(
@@ -454,9 +444,7 @@ class InitiationProcessFlow(Flow):
     def send_invoice_func(self, activation): ...
 
     def send_invoice_payment_email(self, activation):
-        member_list = activation.process.initiations.values_list(
-            "user__name", flat=True
-        )
+        member_list = activation.process.initiations.values_list("user__name", flat=True)
         for initiation in activation.process.initiations.all():
             if initiation.user.current_status != "active":
                 initiation.user.set_current_status(
@@ -500,13 +488,9 @@ class InitiationProcessFlow(Flow):
 class ConventionFlow(Flow):
     process_class = Convention
     process_title = _("Convention Process")
-    process_description = _(
-        "This process is for delegeate and alternate for convention."
-    )
+    process_description = _("This process is for delegeate and alternate for convention.")
 
-    start = flow.Start(
-        ConventionCreateView, task_title=_("Submit Convention Form")
-    ).Next(this.email_signers)
+    start = flow.Start(ConventionCreateView, task_title=_("Submit Convention Form")).Next(this.email_signers)
 
     email_signers = flow.Handler(
         this.email_signers_func,
@@ -592,9 +576,9 @@ class PledgeProcessFlow(Flow):
     process_description = _("This process is for pledge form processing.")
     summary_template = "{{ flow_class.process_title }} - {{ process.chapter }}"
 
-    start = flow.StartFunction(
-        this.create_flow, activation_class=flow.nodes.ManagedStartViewActivation
-    ).Next(this.invoice_chapter)
+    start = flow.StartFunction(this.create_flow, activation_class=flow.nodes.ManagedStartViewActivation).Next(
+        this.invoice_chapter
+    )
 
     invoice_chapter = (
         NoAssignView(
@@ -631,9 +615,7 @@ class PledgeProcessFlow(Flow):
         task_title=_("Send Invoice Payment Email"),
     ).Next(this.complete)
 
-    complete = flow.End(
-        task_title=_("Complete"), task_result_summary=_("Pledge Process Complete")
-    )
+    complete = flow.End(task_title=_("Complete"), task_result_summary=_("Pledge Process Complete"))
 
     @method_decorator(flow.flow_start_func)
     def create_flow(self, activation, chapter, request=None, created=None, **kwargs):
@@ -684,9 +666,7 @@ class OSMFlow(Flow):
     process_title = _("OSM Process")
     process_description = _("This process is for outstanding student member selection.")
 
-    start = flow.Start(OSMCreateView, task_title=_("Submit OSM Form")).Next(
-        this.email_signers
-    )
+    start = flow.Start(OSMCreateView, task_title=_("Submit OSM Form")).Next(this.email_signers)
 
     email_signers = flow.Handler(
         this.email_signers_func,
@@ -754,9 +734,7 @@ class AlumniExclusionFlow(Flow):
     process_title = _("Alumni Exclusion Process")
     process_description = _("This process is for exclusion alumni.")
 
-    start = flow.Start(
-        AlumniExclusionCreateView, task_title=_("Submit Alumni Exclusion Form")
-    ).Next(this.email_rd)
+    start = flow.Start(AlumniExclusionCreateView, task_title=_("Submit Alumni Exclusion Form")).Next(this.email_rd)
 
     email_rd = flow.Handler(
         this.email_rds_func,
@@ -768,9 +746,7 @@ class AlumniExclusionFlow(Flow):
         fields=["regional_director_veto", "veto_reason"],
         task_title=_("RD Review"),
         task_description=_("Review of Alumni Exclusion by RDs"),
-        task_result_summary=_(
-            "Exclusion was: {{ process.get_regional_director_veto_display  }}"
-        ),
+        task_result_summary=_("Exclusion was: {{ process.get_regional_director_veto_display  }}"),
     ).Next(this.email_result)
 
     email_result = flow.Handler(
@@ -826,18 +802,16 @@ class DisciplinaryProcessFlow(Flow):
     process_title = _("Disciplinary Process")
     process_description = _("This process is for chapter disciplinary process.")
 
-    restart = flow.StartFunction(
-        this.restart_flow, activation_class=flow.nodes.ManagedStartViewActivation
-    ).Next(this.email_form1_rescheduled)
+    restart = flow.StartFunction(this.restart_flow, activation_class=flow.nodes.ManagedStartViewActivation).Next(
+        this.email_form1_rescheduled
+    )
 
     email_form1_rescheduled = flow.Handler(
         this.email_all,
         task_title=_("Email Form 1 Rescheduled"),
     ).Next(this.delay)
 
-    start = flow.Start(
-        DisciplinaryCreateView, task_title=_("Submit Disciplinary Form")
-    ).Next(this.email_form1)
+    start = flow.Start(DisciplinaryCreateView, task_title=_("Submit Disciplinary Form")).Next(this.email_form1)
 
     email_form1 = flow.Handler(
         this.email_all,
@@ -857,9 +831,7 @@ class DisciplinaryProcessFlow(Flow):
 
     submit_form2 = (
         ReassignView(DisciplinaryForm2View, task_title=_("Submit Form 2"))
-        .Assign(
-            lambda act: act.process.chapter.get_current_officers_council_specific()[0]
-        )
+        .Assign(lambda act: act.process.chapter.get_current_officers_council_specific()[0])
         .Next(this.check_reschedule)
     )
 
@@ -1068,9 +1040,7 @@ class DisciplinaryProcessFlow(Flow):
                     context={"object": activation.process, "signature": image_string},
                     link_callback=link_callback,
                 )
-                activation.process.final_letter.save(
-                    "final_letter.pdf", ContentFile(content), save=True
-                )
+                activation.process.final_letter.save("final_letter.pdf", ContentFile(content), save=True)
                 attachments = ["final_letter"]
                 user.set_current_status(status="expelled")
                 user.set_no_contact()
@@ -1198,8 +1168,7 @@ class DisciplinaryProcessFlow(Flow):
         """
         forms = activation.process.forms_pdf()
         CentralOfficeGenericEmail(
-            message=f"Disciplinary Process complete for {activation.process.user},"
-            f"See attached documents to file.",
+            message=f"Disciplinary Process complete for {activation.process.user}," f"See attached documents to file.",
             attachments=[
                 ContentFile(
                     forms,
@@ -1227,9 +1196,7 @@ class ResignationFlow(Flow):
     process_title = _("Resignation Process")
     process_description = _("This process is for member resignation.")
 
-    start = flow.Start(
-        ResignationCreateView, task_title=_("Submit Resignation Form")
-    ).Next(this.email_signers)
+    start = flow.Start(ResignationCreateView, task_title=_("Submit Resignation Form")).Next(this.email_signers)
 
     email_signers = flow.Handler(
         this.email_signers_func,
@@ -1261,9 +1228,7 @@ class ResignationFlow(Flow):
             ],
             task_title=_("Executive Director Review"),
             task_description=_("Resignation Executive Director Review"),
-            task_result_summary=_(
-                "Messsage was {{ process.approved_exec|yesno:'Approved,Rejected' }}"
-            ),
+            task_result_summary=_("Messsage was {{ process.approved_exec|yesno:'Approved,Rejected' }}"),
         )
         .Assign(lambda act: User.objects.get(username="Jim.Gaffney@thetatau.org"))
         .Next(this.check_approve)
@@ -1290,9 +1255,7 @@ class ResignationFlow(Flow):
 
     end = flow.End(
         task_title=_("Complete"),
-        task_result_summary=_(
-            "Request was {{ process.approved_exec|yesno:'Approved,Rejected' }}"
-        ),
+        task_result_summary=_("Request was {{ process.approved_exec|yesno:'Approved,Rejected' }}"),
     )
 
     def email_signers_func(self, activation):
@@ -1354,9 +1317,7 @@ class ReturnStudentFlow(Flow):
     process_title = _("Return Student Process")
     process_description = _("This process is for return student processing.")
 
-    start = flow.Start(
-        ReturnStudentCreateView, task_title=_("Request Return Student")
-    ).Next(this.active_status)
+    start = flow.Start(ReturnStudentCreateView, task_title=_("Request Return Student")).Next(this.active_status)
 
     active_status = flow.Handler(
         this.set_active_status,
@@ -1370,9 +1331,7 @@ class ReturnStudentFlow(Flow):
 
     complete = flow.End(
         task_title=_("Complete"),
-        task_result_summary=_(
-            "Request was {{ process.approved_exec|yesno:'Approved,Rejected' }}"
-        ),
+        task_result_summary=_("Request was {{ process.approved_exec|yesno:'Approved,Rejected' }}"),
     )
 
     def set_active_status(self, activation):
@@ -1415,9 +1374,9 @@ class PledgeProgramProcessFlow(Flow):
     process_title = _("Pledge Program Process")
     process_description = _("This process is for chapter pledge programs.")
 
-    start = flow.Start(
-        PledgeProgramProcessCreateView, task_title=_("Submit Pledge Program For Review")
-    ).Next(this.email_all)
+    start = flow.Start(PledgeProgramProcessCreateView, task_title=_("Submit Pledge Program For Review")).Next(
+        this.email_all
+    )
 
     email_all = flow.Handler(
         this.email_all_func,

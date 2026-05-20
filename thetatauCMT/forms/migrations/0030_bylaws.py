@@ -3,7 +3,7 @@
 from django.db import migrations, models
 import django.db.models.deletion
 import django.utils.timezone
-import forms.models
+import thetatauCMT.forms.models
 
 
 class Migration(migrations.Migration):
@@ -30,7 +30,7 @@ class Migration(migrations.Migration):
                 (
                     "bylaws",
                     models.FileField(
-                        upload_to=forms.models.get_chapter_bylaws_upload_path
+                        upload_to=thetatauCMT.forms.models.get_chapter_bylaws_upload_path
                     ),
                 ),
                 ("changes", models.TextField(verbose_name="Summary of Changes")),

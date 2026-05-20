@@ -1,66 +1,59 @@
 import csv
 import datetime
+
+from address.admin import Address
 from django import forms
 from django.contrib import admin
-from django.contrib.admin.models import LogEntry, DELETION
-from django.shortcuts import render
-from django.http import HttpResponseRedirect
-from django.utils.html import escape
-from django.urls import reverse
-from django.utils.safestring import mark_safe
-from django.contrib.auth.models import Permission
-from django.utils.translation import gettext_lazy as _
+from django.contrib.admin.models import DELETION, LogEntry
 from django.contrib.auth.admin import UserAdmin as AuthUserAdmin
 from django.contrib.auth.forms import UserChangeForm
+from django.contrib.auth.models import Permission
+from django.http import HttpResponseRedirect
+from django.shortcuts import render
+from django.urls import reverse
+from django.utils.html import escape
+from django.utils.safestring import mark_safe
+from django.utils.translation import gettext_lazy as _
+from herald.models import SentNotification
 from import_export.admin import ImportExportActionModelAdmin, ImportMixin
 from report_builder.admin import Report
-from address.admin import Address
-from watson.admin import SearchAdmin
 from simple_history.admin import SimpleHistoryAdmin
-from .forms import (
-    UserAdminStatusForm,
-    UserAdminBadgeFixForm,
-    UserStatusForm,
-    status_options,
-)
-from .models import (
-    User,
-    UserRoleChange,
-    UserStatusChange,
-    UserOrgParticipate,
-    UserSemesterGPA,
-    UserSemesterServiceHours,
-    UserAlter,
-    ChapterCurricula,
-    UserDemographic,
-    MemberUpdate,
-)
-from .resources import UserRoleChangeResource, UserResource, UserStatusChangeResource
-from .views import ExportActiveMixin
-from forms.models import (
-    Depledge,
-    Initiation,
-    StatusChange,
-    CollectionReferral,
-    DisciplinaryProcess,
+from watson.admin import SearchAdmin
+
+from core.admin import AddressAdmin, ReportAdminSync, SentNotificationAdminUpdate, user_chapter
+from core.models import forever
+from core.signals import SignalWatchMixin
+from thetatauCMT.forms.models import (
     OSM,
+    AlumniExclusion,
+    CollectionReferral,
+    Depledge,
+    DisciplinaryProcess,
+    Initiation,
     PrematureAlumnus,
     ResignationProcess,
     ReturnStudent,
-    AlumniExclusion,
     RitualProficiency,
+    StatusChange,
 )
-from core.admin import (
-    user_chapter,
-    ReportAdminSync,
-    SentNotificationAdminUpdate,
-    SentNotification,
-    AddressAdmin,
+from thetatauCMT.notes.admin import UserNote, UserNoteInline
+from thetatauCMT.trainings.admin import AssignTrainingMixin, TrainingInline
+
+from .forms import UserAdminBadgeFixForm, UserAdminStatusForm, UserStatusForm, status_options
+from .models import (
+    ChapterCurricula,
+    MemberUpdate,
+    User,
+    UserAlter,
+    UserDemographic,
+    UserOrgParticipate,
+    UserRoleChange,
+    UserSemesterGPA,
+    UserSemesterServiceHours,
+    UserStatusChange,
 )
-from notes.admin import UserNoteInline, UserNote
-from trainings.admin import AssignTrainingMixin, TrainingInline
-from core.signals import SignalWatchMixin
-from core.models import forever
+from .resources import UserResource, UserRoleChangeResource, UserStatusChangeResource
+from .views import ExportActiveMixin
 
 admin.site.register(Permission)
 admin.site.unregister(Report)
@@ -100,6 +93,7 @@ class StatusListFilter(admin.SimpleListFilter):
         return queryset.filter(**self.used_parameters)
 
 
+@admin.register(UserStatusChange)
 class UserStatusChangeAdmin(ImportExportActionModelAdmin, SearchAdmin):
     raw_id_fields = ["user"]
     list_display = ("user", status, "created", user_chapter, "start", "end")
@@ -121,9 +115,7 @@ class UserStatusChangeAdmin(ImportExportActionModelAdmin, SearchAdmin):
     resource_class = UserStatusChangeResource
 
 
-admin.site.register(UserStatusChange, UserStatusChangeAdmin)
-
-
+@admin.register(UserDemographic)
 class UserDemographicAdmin(admin.ModelAdmin):
     exclude = ("user",)
     list_display = (
@@ -147,9 +139,7 @@ class UserDemographicAdmin(admin.ModelAdmin):
     search_fields = ["user__chapter__name"]
 
 
-admin.site.register(UserDemographic, UserDemographicAdmin)
-
-
+@admin.register(UserOrgParticipate)
 class UserOrgParticipateAdmin(admin.ModelAdmin):
     raw_id_fields = ["user"]
     list_display = ("user", "org_name", "type", "officer", "start", "end")
@@ -163,9 +153,7 @@ class UserOrgParticipateAdmin(admin.ModelAdmin):
     )
 
 
-admin.site.register(UserOrgParticipate, UserOrgParticipateAdmin)
-
-
+@admin.register(UserSemesterGPA)
 class UserSemesterGPAAdmin(admin.ModelAdmin):
     raw_id_fields = ["user"]
     list_display = ("user", "gpa", "year", "term")
@@ -179,9 +167,7 @@ class UserSemesterGPAAdmin(admin.ModelAdmin):
     )
 
 
-admin.site.register(UserSemesterGPA, UserSemesterGPAAdmin)
-
-
+@admin.register(UserSemesterServiceHours)
 class UserSemesterServiceHoursAdmin(admin.ModelAdmin):
     raw_id_fields = ["user"]
     list_display = ("user", "service_hours", "year", "term")
@@ -193,9 +179,6 @@ class UserSemesterServiceHoursAdmin(admin.ModelAdmin):
         "created_by",
         "modified_by",
     )
-
-
-admin.site.register(UserSemesterServiceHours, UserSemesterServiceHoursAdmin)
 
 
 class MemberInline(admin.TabularInline):
@@ -210,6 +193,7 @@ class MemberInline(admin.TabularInline):
         return False
 
 
+@admin.register(UserRoleChange)
 class UserRoleChangeAdmin(ImportExportActionModelAdmin):
     list_display = ("user", "role", "start", "end", "created", user_chapter)
     list_filter = ["start", "end", "role", "created", "user__chapter"]
@@ -218,9 +202,6 @@ class UserRoleChangeAdmin(ImportExportActionModelAdmin):
     ]
     raw_id_fields = ["user"]
     resource_class = UserRoleChangeResource
-
-
-admin.site.register(UserRoleChange, UserRoleChangeAdmin)
 
 
 class MyUserChangeForm(UserChangeForm):
@@ -436,7 +417,15 @@ class RitualProficiencyInline(admin.TabularInline):
     model = RitualProficiency
     fk_name = "user"
     readonly_fields = ("recorded_by", "created")
-    fields = ["level", "date", "memorization", "directions", "performance", "notes", "recorded_by"]
+    fields = [
+        "level",
+        "date",
+        "memorization",
+        "directions",
+        "performance",
+        "notes",
+        "recorded_by",
+    ]
     show_change_link = True
     extra = 0
 
@@ -595,9 +584,7 @@ class MyUserAdmin(
                 user_pk = request.resolver_match.kwargs.get("object_id")
                 if user_pk:
                     user = User.objects.get(id=user_pk)
-                    kwargs["queryset"] = ChapterCurricula.objects.filter(
-                        chapter=user.chapter
-                    )
+                    kwargs["queryset"] = ChapterCurricula.objects.filter(chapter=user.chapter)
             except IndexError:
                 pass
         return super().formfield_for_foreignkey(db_field, request, **kwargs)
@@ -614,6 +601,7 @@ class MyUserAdmin(
                 instance.save()
         formset.save()
 
+    @admin.action(description="Fix Badge Numbers")
     def badge_fix(self, request, queryset):
         if "apply" in request.POST:
             badge_file = request.FILES.get("badge_file")
@@ -622,17 +610,14 @@ class MyUserAdmin(
             message = User.fix_badge_numbers(reader)
             self.message_user(request, mark_safe(f"Fix Badge process:<br>{message}"))
             return HttpResponseRedirect(request.get_full_path())
-        form = UserAdminBadgeFixForm(
-            initial={"_selected_action": queryset.values_list("id", flat=True)}
-        )
+        form = UserAdminBadgeFixForm(initial={"_selected_action": queryset.values_list("id", flat=True)})
         return render(
             request,
             "admin/badge_fixes.html",
             context={"form": form},
         )
 
-    badge_fix.short_description = "Fix Badge Numbers"
-
+    @admin.action(description="Update Status")
     def update_status(self, request, queryset):
         if "apply" in request.POST:
             new_status = request.POST.get("status")
@@ -645,20 +630,14 @@ class MyUserAdmin(
                 user.set_current_status(new_status, start=start, end=end)
                 if end < forever().date():
                     user.set_current_status(current_status, start=end, current=False)
-            self.message_user(
-                request, f"Set status to {new_status} {start=} {end=} for {queryset}"
-            )
+            self.message_user(request, f"Set status to {new_status} {start=} {end=} for {queryset}")
             return HttpResponseRedirect(request.get_full_path())
-        form = UserAdminStatusForm(
-            initial={"_selected_action": queryset.values_list("id", flat=True)}
-        )
+        form = UserAdminStatusForm(initial={"_selected_action": queryset.values_list("id", flat=True)})
         return render(
             request,
             "admin/update_status.html",
             context={"form": form},
         )
-
-    update_status.short_description = "Update Status"
 
 
 @admin.register(LogEntry)
@@ -689,6 +668,10 @@ class LogEntryAdmin(admin.ModelAdmin):
     def has_view_permission(self, request, obj=None):
         return request.user.is_superuser
 
+    @admin.display(
+        description="object",
+        ordering="object_repr",
+    )
     def object_link(self, obj):
         if obj.action_flag == DELETION:
             link = escape(obj.object_repr)
@@ -703,10 +686,8 @@ class LogEntryAdmin(admin.ModelAdmin):
             )
         return mark_safe(link)
 
-    object_link.admin_order_field = "object_repr"
-    object_link.short_description = "object"
 
-
+@admin.register(MemberUpdate)
 class MemberUpdateAdmin(SearchAdmin, admin.ModelAdmin):
     raw_id_fields = ["user"]
     list_display = (
@@ -732,6 +713,3 @@ class MemberUpdateAdmin(SearchAdmin, admin.ModelAdmin):
         "last_name",
         "user__preferred_name",
     ]
-
-
-admin.site.register(MemberUpdate, MemberUpdateAdmin)

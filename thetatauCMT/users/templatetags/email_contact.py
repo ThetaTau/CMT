@@ -1,5 +1,6 @@
 from django import template
-from configs.models import Config
+
+from thetatauCMT.configs.models import Config
 
 register = template.Library()
 

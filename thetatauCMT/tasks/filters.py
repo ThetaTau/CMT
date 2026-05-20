@@ -1,9 +1,11 @@
 # filters.py
 import django_filters
+from django.db import models
+
 from core.filters import DateRangeFilter
 from core.models import CHAPTER_OFFICER_CHOICES
+
 from .models import TaskDate
-from django.db import models
 
 
 class TaskListFilter(django_filters.FilterSet):

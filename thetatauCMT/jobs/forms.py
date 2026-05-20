@@ -5,9 +5,10 @@ from crispy_forms.layout import Column, Fieldset, Layout, Row, Submit
 from django import forms
 
 from core.forms import (
+    DatePicker,
     ListSelect2Multiple,
     Select2ListCreateMultipleChoiceField,
-    set_multiple_choices_initial, DatePicker,
+    set_multiple_choices_initial,
 )
 
 from .models import Job, JobSearch, Keyword, Major
@@ -17,7 +18,7 @@ class JobListFormHelper(FormHelper):
     form_method = "GET"
     form_id = "job-search-form"
     form_class = "form-inline"
-    field_template = "bootstrap3/layout/inline_field.html"
+    field_template = "bootstrap5/layout/inline_field.html"
     field_class = "col-xs-3"
     label_class = "col-xs-3"
     form_show_errors = True
@@ -134,7 +135,7 @@ class JobSearchFormHelper(FormHelper):
     form_method = "GET"
     form_id = "job-search-form"
     # form_class = "form-inline"
-    # field_template = "bootstrap3/layout/inline_field.html"
+    # field_template = "bootstrap5/layout/inline_field.html"
     field_class = "col-xs-3"
     label_class = "col-xs-3"
     form_show_errors = True
@@ -287,7 +288,7 @@ class JobSearchListFormHelper(FormHelper):
     form_method = "GET"
     form_id = "job-search-form"
     # form_class = "form-inline"
-    # field_template = "bootstrap3/layout/inline_field.html"
+    # field_template = "bootstrap5/layout/inline_field.html"
     field_class = "col-xs-3"
     label_class = "col-xs-3"
     form_show_errors = True

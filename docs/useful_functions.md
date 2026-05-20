@@ -33,7 +33,7 @@ to go back in time:
     python manage.py shell
 
 ```python
-from users.models import User
+from thetatauCMT.users.models import User
 
 me = User.objects.get(username='venturafranklin@gmail.com')
 me.is_superuser = True
@@ -114,7 +114,7 @@ WHERE pg_stat_activity.datname = 'testcmt';
 
 DROP DATABASE testcmt;
 
-CREATE DATABASE testcmt OWNER testthetatau;
+CREATE DATABASE testCMT OWNER thetatau;
 
 -- after to verify restore worked
 \c testcmt
@@ -138,3 +138,7 @@ with open(filename, 'rb') as inputfile:
 ### To anonymize the data
 
 `python manage.py anonymize_db --check_only`
+
+# Connect to production DB
+
+`ssh -L {localport}:{databaseURL CASE MATTERS}:{DB PORT} {USERNAME CASE MATTERS}@ssh.pythonanywhere.com`

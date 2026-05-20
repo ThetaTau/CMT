@@ -1,18 +1,20 @@
 import datetime
 from datetime import timedelta
+
+from django.contrib.contenttypes.fields import GenericForeignKey
+from django.contrib.contenttypes.models import ContentType
 from django.db import models
 from django.db.models import Q
 from django.shortcuts import reverse
 from django.utils import timezone
 from django.utils.html import mark_safe
-from django.contrib.contenttypes.fields import GenericForeignKey
-from django_userforeignkey.models.fields import UserForeignKey
-from django.contrib.contenttypes.models import ContentType
 from django.utils.text import slugify
+from django_userforeignkey.models.fields import UserForeignKey
 from email_signals.models import EmailSignalMixin
+
 from core.models import ALL_ROLES_CHOICES, TODAY_END, academic_encompass_start_end_date
-from chapters.models import Chapter
-from scores.models import ScoreType
+from thetatauCMT.chapters.models import Chapter
+from thetatauCMT.scores.models import ScoreType
 
 
 class Task(models.Model):
@@ -35,9 +37,7 @@ class Task(models.Model):
     days_advance = models.PositiveIntegerField(default=90)
     resource = models.CharField(max_length=100, blank=True)
     description = models.CharField(max_length=1000)
-    submission_type = models.ForeignKey(
-        ScoreType, on_delete=models.CASCADE, related_name="task", blank=True, null=True
-    )
+    submission_type = models.ForeignKey(ScoreType, on_delete=models.CASCADE, related_name="task", blank=True, null=True)
 
     def __str__(self):
         return f"{self.name}"
@@ -53,28 +53,20 @@ class Task(models.Model):
         task_type = self.type
         if task_type == "sub" and self.submission_type:
             value = mark_safe(
-                "<a href="
-                + reverse("submissions:add-direct", args=(self.submission_type.slug,))
-                + ">Submission</a>"
+                "<a href=" + reverse("submissions:add-direct", args=(self.submission_type.slug,)) + ">Submission</a>"
             )
         elif "http" in resource:
             value = mark_safe(f'<a href="{resource}">Form</a>')
         elif ":" in resource:
             if "ballot" in resource:
-                value = mark_safe(
-                    "<a href="
-                    + reverse(resource, args=(slugify(self.name),))
-                    + ">Ballot</a>"
-                )
+                value = mark_safe("<a href=" + reverse(resource, args=(slugify(self.name),)) + ">Ballot</a>")
             else:
                 value = mark_safe("<a href=" + reverse(resource) + ">Form</a>")
         return value
 
     def all_dates_for_task_chapter(self, chapter):
         school_type = chapter.school_type
-        dates = self.dates.filter(
-            Q(school_type=school_type) | Q(school_type="all")
-        ).all()
+        dates = self.dates.filter(Q(school_type=school_type) | Q(school_type="all")).all()
         return dates
 
     def incomplete_dates_for_task_chapter(self, chapter):
@@ -96,9 +88,7 @@ class Task(models.Model):
     def completed_last(self, chapter):
         completed = (
             TaskChapter.objects.filter(
-                id__in=self.dates.filter(chapters__chapter=chapter).values_list(
-                    "chapters", flat=True
-                )
+                id__in=self.dates.filter(chapters__chapter=chapter).values_list("chapters", flat=True)
             )
             .order_by("date")
             .last()
@@ -119,7 +109,7 @@ class Task(models.Model):
             return
         task_obj = TaskChapter(task=next_date, chapter=chapter, date=timezone.now())
         if obj:
-            from submissions.models import Submission
+            from thetatauCMT.submissions.models import Submission
 
             extra_info = None
             create_submission = True
@@ -224,9 +214,7 @@ class TaskDate(models.Model):
     @classmethod
     def dates_for_chapter(cls, chapter):
         school_type = chapter.school_type
-        tasks = cls.objects.filter(
-            Q(school_type=school_type) | Q(school_type="all")
-        ).all()
+        tasks = cls.objects.filter(Q(school_type=school_type) | Q(school_type="all")).all()
         return tasks
 
 
@@ -248,16 +236,12 @@ class TaskChapter(models.Model, EmailSignalMixin):
         verbose_name="The user that created this object",
         related_name="tasks_modified",
     )
-    task = models.ForeignKey(
-        TaskDate, on_delete=models.CASCADE, related_name="chapters"
-    )
+    task = models.ForeignKey(TaskDate, on_delete=models.CASCADE, related_name="chapters")
     chapter = models.ForeignKey(Chapter, on_delete=models.CASCADE, related_name="tasks")
     date = models.DateField("Task Completed Date", default=datetime.date.today)
     # This can only be used for a submission or form
     # Whatever results in the completion of the task
-    submission_type = models.ForeignKey(
-        ContentType, on_delete=models.CASCADE, blank=True, null=True
-    )
+    submission_type = models.ForeignKey(ContentType, on_delete=models.CASCADE, blank=True, null=True)
     submission_id = models.PositiveIntegerField(blank=True, null=True)
     submission_object = GenericForeignKey("submission_type", "submission_id")
 

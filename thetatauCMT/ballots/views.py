@@ -1,27 +1,25 @@
-from django.db import models
 from django.contrib import messages
+from django.db import models
 from django.http.request import QueryDict
 from django.urls import reverse
-from django.views.generic import DetailView, UpdateView, RedirectView, CreateView
+from django.views.generic import CreateView, DetailView, RedirectView, UpdateView
+
+from core.models import CHAPTER_OFFICER, NAT_OFFICERS
 from core.views import (
+    LoginRequiredMixin,
+    NatOfficerRequiredMixin,
+    OfficerRequiredMixin,
     PagedFilteredTableView,
     RequestConfig,
     TypeFieldFilteredChapterAdd,
-    OfficerRequiredMixin,
-    LoginRequiredMixin,
-    NatOfficerRequiredMixin,
 )
-from core.models import NAT_OFFICERS, CHAPTER_OFFICER
-from users.models import UserRoleChange
-from chapters.models import Chapter
+from thetatauCMT.chapters.models import Chapter
+from thetatauCMT.users.models import UserRoleChange
+
+from .filters import BallotCompleteFilter, BallotFilter, BallotUserFilter
+from .forms import BallotCompleteListFormHelper, BallotListFormHelper, BallotUserListFormHelper
 from .models import Ballot, BallotComplete
-from .tables import BallotTable, BallotUserTable, BallotCompleteTable
-from .filters import BallotFilter, BallotUserFilter, BallotCompleteFilter
-from .forms import (
-    BallotListFormHelper,
-    BallotUserListFormHelper,
-    BallotCompleteListFormHelper,
-)
+from .tables import BallotCompleteTable, BallotTable, BallotUserTable
 
 
 class BallotDetailView(
@@ -77,9 +75,7 @@ class BallotDetailView(
         if region == "national":
             all_ballots = all_ballots.filter(region="National")
         users = all_ballots.values_list("user", flat=True)
-        chapters = all_ballots.exclude(role__in=NAT_OFFICERS).values_list(
-            "chapter", flat=True
-        )
+        chapters = all_ballots.exclude(role__in=NAT_OFFICERS).values_list("chapter", flat=True)
         data = list(
             all_ballots.values(
                 "user_name",
@@ -94,9 +90,7 @@ class BallotDetailView(
         nat_offs = nat_offs.filter(role__in=self.object.voters)
         if "all_chapters" in self.object.voters and region != "national":
             # Candidate Chapters can not vote
-            chapters = Chapter.objects.filter(candidate_chapter=False).exclude(
-                name__in=chapters
-            )
+            chapters = Chapter.objects.filter(candidate_chapter=False).exclude(name__in=chapters)
             if region != "":
                 chapters = chapters.filter(region__slug=region)
             incomplete_chapter = [
@@ -196,9 +190,7 @@ class BallotUpdateView(
         return reverse("ballots:list")
 
 
-class BallotListView(
-    LoginRequiredMixin, NatOfficerRequiredMixin, PagedFilteredTableView
-):
+class BallotListView(LoginRequiredMixin, NatOfficerRequiredMixin, PagedFilteredTableView):
     model = Ballot
     context_object_name = "ballot"
     ordering = ["-date"]
@@ -274,8 +266,7 @@ class BallotCompleteCreateView(LoginRequiredMixin, OfficerRequiredMixin, CreateV
             messages.add_message(
                 self.request,
                 messages.ERROR,
-                f"This ballot is for {roles_allowed}. "
-                f"Your current roles are: {current_roles}",
+                f"This ballot is for {roles_allowed}. " f"Your current roles are: {current_roles}",
             )
             return super().form_invalid(form)
         else:

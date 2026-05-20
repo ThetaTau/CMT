@@ -1,6 +1,8 @@
 import factory
-from ..models import TaskDate, TaskChapter
-from chapters.tests.factories import ChapterFactory
+
+from thetatauCMT.chapters.tests.factories import ChapterFactory
+
+from ..models import TaskChapter, TaskDate
 
 
 class TaskChapterFactory(factory.django.DjangoModelFactory):

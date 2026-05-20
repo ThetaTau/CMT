@@ -23,4 +23,3 @@ omit =
   core/factories.py
   *admin.py
   scripts/*
-

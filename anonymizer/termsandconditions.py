@@ -1,8 +1,7 @@
-from dj_anonymizer.register_models import register_skip, AnonymBase, register_anonym
 from dj_anonymizer import fields
+from dj_anonymizer.register_models import AnonymBase, register_anonym, register_skip
 from faker import Factory
-
-from termsandconditions.models import UserTermsAndConditions, TermsAndConditions
+from termsandconditions.models import TermsAndConditions, UserTermsAndConditions
 
 fake = Factory.create()
 
