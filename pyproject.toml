@@ -12,7 +12,7 @@ skip = ["migrations", "media"]
 # ==== pytest ====
 [tool.pytest.ini_options]
 minversion = "6.0"
-addopts = "--ds=config.settings.test --reuse-db --import-mode=importlib"
+addopts = "--ds=config.settings.test --reuse-db --import-mode=importlib -n auto --dist loadgroup"
 python_files = [
     "tests.py",
     "test_*.py",

@@ -52,7 +52,8 @@ jobs:
       - name: Run Django Tests
         # -p no:randomly ensures deterministic ordering so order-dependent
         # failures surface consistently rather than flapping between runs.
-        run:  docker compose -f docker-compose.local.yml run --rm django pytest -p no:randomly
+        # -n auto parallelizes across all available CPUs (GitHub runners have 4 vCPUs).
+        run:  docker compose -f docker-compose.local.yml run --rm django pytest -p no:randomly -n auto --dist loadgroup
 
       - name: Tear down the Stack
         if: always()

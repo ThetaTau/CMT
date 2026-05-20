@@ -13,6 +13,7 @@ debugpy==1.8.15
 # Testing
 # ------------------------------------------------------------------------------
 pytest==8.4.1  # https://github.com/pytest-dev/pytest
+pytest-xdist==3.8.0  # https://github.com/pytest-dev/pytest-xdist
 pytest-sugar==1.0.0  # https://github.com/Frozenball/pytest-sugar
 pytest-factoryboy==2.8.1  # https://pytest-factoryboy.readthedocs.io
 pytest-cov==6.2.1  # https://github.com/pytest-dev/pytest-cov
