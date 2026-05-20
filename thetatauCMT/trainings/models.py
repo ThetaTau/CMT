@@ -287,7 +287,7 @@ class Training(TimeStampedModel):
             "away": "active",
             "activepend": "active",
             "alumnipend": "alumni",
-            "": "pnm"
+            "": "pnm",
         }
         status = status_align.get(status, status)
         location_id, position_id = Training.get_location_position_ids(status, user.chapter.name)
