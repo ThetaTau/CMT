@@ -1080,7 +1080,7 @@ def test_email_pledge_welcome_cc_personal_when_differs_from_school():
 
 
 @pytest.mark.django_db
-def test_email_pledge_welcome_no_cc_when_emails_same_explicit(pledge):
+def test_email_pledge_welcome_no_cc_when_emails_same_explicit():
     """EmailPledgeWelcome does not add CC when school email == personal email."""
     from unittest.mock import patch
 

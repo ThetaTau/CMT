@@ -14,12 +14,13 @@ from django.urls import reverse
 from django.utils.html import escape
 from django.utils.safestring import mark_safe
 from django.utils.translation import gettext_lazy as _
+from herald.models import SentNotification
 from import_export.admin import ImportExportActionModelAdmin, ImportMixin
 from report_builder.admin import Report
 from simple_history.admin import SimpleHistoryAdmin
 from watson.admin import SearchAdmin
 
-from core.admin import AddressAdmin, ReportAdminSync, SentNotification, SentNotificationAdminUpdate, user_chapter
+from core.admin import AddressAdmin, ReportAdminSync, SentNotificationAdminUpdate, user_chapter
 from core.models import forever
 from core.signals import SignalWatchMixin
 from thetatauCMT.forms.models import (

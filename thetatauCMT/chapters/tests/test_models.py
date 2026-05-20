@@ -226,8 +226,9 @@ def test_chapter_full_name(candidate_chapter, expected_suffix):
 
 @pytest.mark.django_db
 def test_chapter_choices_excludes_inactive():
-    active = ChapterFactory(active=True)
-    inactive = ChapterFactory(active=False)
+    # Use explicit distinct names to avoid django_get_or_create collision with random Faker names
+    active = ChapterFactory(name="alpha", active=True)
+    inactive = ChapterFactory(name="beta", active=False)
     choices = Chapter.chapter_choices()
     slugs = [slug for slug, _ in choices]
     assert active.slug in slugs
