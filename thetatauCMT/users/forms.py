@@ -29,7 +29,7 @@ from .models import (
 class CaptchaLoginForm(LoginForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        if not settings.DEBUG:
+        if not settings.DEBUG and not settings.BYPASS_CAPTCHA:
             captcha = ReCaptchaField(label="", widget=ReCaptchaV3)
             self.fields.update({"captcha": captcha})
 
