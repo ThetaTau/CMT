@@ -175,6 +175,15 @@
     </tr>
     <tr>
       <td>
+        <a href="{% url 'forms:pledge_pins' %}">{% trans "Pledge Pins" %}</a>
+      </td>
+      {% if request.is_nat_officer %}
+      <td></td>
+      {% endif %}
+      <td>Purchase pledge pins through the Theta Tau online store (Shopify).</td>
+    </tr>
+    <tr>
+      <td>
         <a href="{% url 'viewflow:forms:prematurealumnus:start' %}"
           >{% trans "Premature Alumnus" %}</a
         >
