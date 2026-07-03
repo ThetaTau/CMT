@@ -1,3 +1,5 @@
+import logging
+
 from address.widgets import AddressWidget
 from allauth.account.forms import LoginForm
 from crispy_forms.bootstrap import Field, FormActions, InlineField, StrictButton
@@ -25,11 +27,20 @@ from .models import (
     UserStatusChange,
 )
 
+logger = logging.getLogger(__name__)
+
 
 class CaptchaLoginForm(LoginForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        if not settings.DEBUG and not settings.BYPASS_CAPTCHA:
+        add_captcha = not settings.DEBUG and not settings.BYPASS_CAPTCHA
+        logger.warning(
+            "CaptchaLoginForm: DEBUG=%s BYPASS_CAPTCHA=%s -> add_captcha=%s",
+            settings.DEBUG,
+            settings.BYPASS_CAPTCHA,
+            add_captcha,
+        )
+        if add_captcha:
             captcha = ReCaptchaField(label="", widget=ReCaptchaV3)
             self.fields.update({"captcha": captcha})
 
