@@ -25,6 +25,8 @@ if READ_DOT_ENV_FILE:
 # https://docs.djangoproject.com/en/dev/ref/settings/#debug
 DEBUG = env.bool("DJANGO_DEBUG", False)
 BYPASS_CAPTCHA = env.bool("BYPASS_CAPTCHA", False)
+# RECAPTCHA_PUBLIC_KEY = env("RECAPTCHA_PUBLIC_KEY")
+# RECAPTCHA_PRIVATE_KEY = env("RECAPTCHA_PRIVATE_KEY")
 # Local time zone. Choices are
 # http://en.wikipedia.org/wiki/List_of_tz_zones_by_name
 # though not all of them may be available with every OS.
@@ -243,20 +245,27 @@ MEDIA_URL = "/media/"
 
 # FORM RENDERER
 # ------------------------------------------------------------------------------
-# Use div.html rendering (Django 5.0 default) to silence the RemovedInDjango50Warning
-# about the deprecated "default.html" form/formset template.
+# TemplatesSetting-based renderer so overrides in TEMPLATES.DIRS win over app
+# template dirs (needed to override django_recaptcha/includes/js_v3.html).
 # https://docs.djangoproject.com/en/4.2/ref/settings/#form-renderer
-FORM_RENDERER = "django.forms.renderers.DjangoDivFormRenderer"
+FORM_RENDERER = "core.renderers.DivTemplatesSetting"
 
 # TEMPLATES
 # ------------------------------------------------------------------------------
 # https://docs.djangoproject.com/en/dev/ref/settings/#templates
+import django as _django  # noqa: E402
+
+_DJANGO_FORMS_TEMPLATES = str(Path(_django.__file__).parent / "forms" / "templates")
 TEMPLATES = [
     {
         # https://docs.djangoproject.com/en/dev/ref/settings/#std:setting-TEMPLATES-BACKEND
         "BACKEND": "django.template.backends.django.DjangoTemplates",
         # https://docs.djangoproject.com/en/dev/ref/settings/#template-dirs
-        "DIRS": [str(APPS_DIR / "templates")],
+        # Project templates first (so overrides win); Django's built-in forms
+        # templates last so TemplatesSetting form renderer can locate them
+        # without needing django.forms in INSTALLED_APPS (which would clash
+        # with the local `forms` app label).
+        "DIRS": [str(APPS_DIR / "templates"), _DJANGO_FORMS_TEMPLATES],
         "OPTIONS": {
             # https://docs.djangoproject.com/en/dev/ref/settings/#template-loaders
             # https://docs.djangoproject.com/en/dev/ref/templates/api/#loader-types
