@@ -6,6 +6,11 @@ from . import views
 app_name = "forms"
 urlpatterns = [
     path("", views.FormLanding.as_view(), name="landing"),
+    path(
+        "pledge-pins/",
+        view=views.PledgePinsView.as_view(),
+        name="pledge_pins",
+    ),
     path("bylaws", views.BylawsCreateView.as_view(), name="bylaws"),
     path("bylaws-list", views.BylawsListView.as_view(), name="bylaws_list"),
     path("audit/", view=views.AuditFormView.as_view(), name="audit"),

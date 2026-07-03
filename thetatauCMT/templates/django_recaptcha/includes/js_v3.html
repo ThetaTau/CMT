@@ -1,0 +1,21 @@
+{# Overrides django_recaptcha's upstream template, which uses a global `element` #}
+{# and `recaptchaFormSubmit` and therefore hooks the wrong <form> when more #}
+{# than one v3 widget is rendered on the same page (e.g. login + lookup). #}
+<script src="https://{{ recaptcha_domain }}/recaptcha/api.js?render={{ public_key }}{% if api_params %}&{{ api_params }}{% endif %}"></script>
+<script>
+    (function () {
+        var widgetUuid = "{{ widget_uuid }}";
+        grecaptcha.ready(function () {
+            var element = document.querySelector('.g-recaptcha[data-widget-uuid="' + widgetUuid + '"]');
+            if (!element || !element.form) { return; }
+            element.form.addEventListener('submit', function (event) {
+                event.preventDefault();
+                grecaptcha.execute('{{ public_key }}', {% if action %}{action: '{{ action|escape }}'}{% else %}{}{% endif %})
+                    .then(function (token) {
+                        element.value = token;
+                        element.form.submit();
+                    });
+            });
+        });
+    })();
+</script>

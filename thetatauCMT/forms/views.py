@@ -172,6 +172,10 @@ class FormLanding(LoginRequiredMixin, TemplateView):
     template_name = "forms/landing.html"
 
 
+class PledgePinsView(LoginRequiredMixin, TemplateView):
+    template_name = "forms/pledge_pins.html"
+
+
 class InitDeplSelectView(LoginRequiredMixin, FormSetView):
     form_class = InitDeplSelectForm
     template_name = "forms/init-depl-select.html"

@@ -15,6 +15,7 @@ urlpatterns = [
     path("memberinfo/<str:username>", views.UserDetailView.as_view(), name="info"),
     path("search/", views.UserSearchView.as_view(), name="search"),
     path("lookup-search/", views.UserLookupSearchView.as_view(), name="lookup_search"),
+    path("badge-lookup/", views.UserBadgeLookupView.as_view(), name="badge_lookup"),
     path("lookup-select/", views.UserLookupSelectView.as_view(), name="lookup_select"),
     path("update/", views.UserLookupUpdateView.as_view(), name="update"),
     path(
