@@ -538,6 +538,73 @@ class UserLookupLoginView(CaptchaLoginView):
         return context
 
 
+def mask_email(email):
+    """Return an email masked as ``f****l@domain.tld``: first + '****' + last of
+    the local part, then the unaltered ``@domain`` so users can recognise which
+    inbox to check without exposing the full address."""
+    if not email or "@" not in email:
+        return ""
+    local, _, domain = email.partition("@")
+    if len(local) < 2:
+        return f"{local}****@{domain}"
+    return f"{local[0]}****{local[-1]}@{domain}"
+
+
+class UserBadgeLookupView(FormView):
+    """Login-page badge-number lookup: find the user by university + badge,
+    trigger a password-reset email via PasswordResetFormNotActive, and report
+    back on the login page with a masked email address."""
+
+    form_class = UserLookupForm
+    http_method_names = ["post"]
+
+    def form_valid(self, form):
+        chapter_id = form.cleaned_data["university"]
+        badge = form.cleaned_data["badge_number"]
+        qs = User.objects.filter(badge_number=badge)
+        if chapter_id and chapter_id != "-1":
+            qs = qs.filter(chapter_id=chapter_id)
+        user = qs.first()
+        if user is None:
+            messages.add_message(
+                self.request,
+                messages.ERROR,
+                f"No member was found with badge number {badge}. "
+                "Double-check the university and badge number, or contact cmt@thetatau.org.",
+            )
+            return HttpResponseRedirect(reverse("account_login"))
+        if not user.email:
+            messages.add_message(
+                self.request,
+                messages.ERROR,
+                "Member found but no email is on file. Please contact cmt@thetatau.org.",
+            )
+            return HttpResponseRedirect(reverse("account_login"))
+        reset = PasswordResetFormNotActive({"email": user.email})
+        if reset.is_valid():
+            reset.save(
+                request=self.request,
+                use_https=self.request.is_secure(),
+            )
+        messages.add_message(
+            self.request,
+            messages.INFO,
+            f"Password reset instructions were sent to {mask_email(user.email)}. "
+            "Check your inbox (and spam folder).",
+        )
+        return HttpResponseRedirect(reverse("account_login"))
+
+    def form_invalid(self, form):
+        for err in form.non_field_errors():
+            messages.add_message(self.request, messages.ERROR, err)
+        for field, errs in form.errors.items():
+            if field == "__all__":
+                continue
+            for err in errs:
+                messages.add_message(self.request, messages.ERROR, f"{field}: {err}")
+        return HttpResponseRedirect(reverse("account_login"))
+
+
 class UserLookupSearchView(FormView):
     form_class = UserLookupSearchForm
     template_name = "users/lookup_search.html"
