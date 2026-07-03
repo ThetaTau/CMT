@@ -69,6 +69,7 @@ class PledgeProgramResource(resources.ModelResource):
 class StatusChangeResource(resources.ModelResource):
     chapter = Field("user__chapter__name")
     school = Field("user__chapter__school")
+    new_school = Field("new_school__name")
 
     class Meta:
         model = StatusChange
