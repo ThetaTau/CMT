@@ -20,20 +20,31 @@ Issues with the above approach:
 */
 $('.form-group').removeClass('row');
 
-$('.clipboard').tooltip({
-  trigger: 'click',
-  placement: 'bottom'
+// Bootstrap 5: tooltips are opt-in and must be initialized per element
+var clipboardTooltips = {};
+$('.clipboard').each(function () {
+  clipboardTooltips[this] = new bootstrap.Tooltip(this, {
+    trigger: 'click',
+    placement: 'bottom'
+  });
 });
 
 function setTooltip(message) {
-  $('.clipboard').tooltip('hide')
-    .attr('data-original-title', message)
-    .tooltip('show');
+  $('.clipboard').each(function () {
+    var tip = clipboardTooltips[this];
+    if (!tip) { return; }
+    this.setAttribute('data-bs-original-title', message);
+    tip.setContent({ '.tooltip-inner': message });
+    tip.show();
+  });
 }
 
 function hideTooltip() {
-  setTimeout(function() {
-    $('.clipboard').tooltip('hide');
+  setTimeout(function () {
+    $('.clipboard').each(function () {
+      var tip = clipboardTooltips[this];
+      if (tip) { tip.hide(); }
+    });
   }, 1000);
 }
 

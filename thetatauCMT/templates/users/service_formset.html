@@ -6,7 +6,7 @@
 {% block content %}
   <h1>Member Service Hours</h1>
   <div class="d-flex justify-content-center">
-    <form method="get" class="form-inline form-search pull-right">
+    <form method="get" class="form-search d-flex flex-wrap align-items-center ms-md-auto">
       {% csrf_token %}
       {% crispy filter.form filter.form.helper %}
     </form>

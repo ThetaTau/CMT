@@ -35,68 +35,288 @@ td[complete='True'] {
 	margin-left: -10px;
 }
 
-/* ===Navigation=== */
-#NAV, .navbar,  .navbar a:hover, .dropdown-item.active,
-.dropdown-item:active, .dropdown, .dropdown-item, dropdown-toggle, .nav-link{
-    background: linear-gradient( #8B0000, #A00000 10%, #8B0000 90%);
+/* ===Theta Tau brand palette (Bootstrap 5 CSS variable overrides)=== */
+/* Colors match the main thetatau.org site */
+:root {
+  --tt-dark-red: #a00e11;
+  --tt-dark-red-hover: #ce1215;
+  --tt-dark-red-dark: #7a0a0d;
+  --tt-gold: #f4c046;
+  --tt-gold-dark: #ae882e;
+  --tt-gold-rgb: 244, 192, 70;
+  --tt-off-white: #fdf9f8;
+  --tt-charcoal: #252b33;
+  --tt-near-black: #0d0e10;
+
+  /* Point Bootstrap's primary at the brand red */
+  --bs-primary: var(--tt-dark-red);
+  --bs-primary-rgb: 160, 14, 17;
+  --bs-link-color: var(--tt-dark-red);
+  --bs-link-hover-color: var(--tt-dark-red-hover);
 }
 
-.dropdown-item, .navbar-light .navbar-brand,
-.navbar-light .navbar-nav >.nav-link,
-.navbar-light .navbar-nav .nav-link, .nav-link {
-    color: #FFCC33;
-  font-weight: bold;
+.btn-primary {
+  --bs-btn-bg: var(--tt-dark-red);
+  --bs-btn-border-color: var(--tt-dark-red);
+  --bs-btn-hover-bg: var(--tt-dark-red-hover);
+  --bs-btn-hover-border-color: var(--tt-dark-red-hover);
+  --bs-btn-active-bg: var(--tt-dark-red-dark);
+  --bs-btn-active-border-color: var(--tt-dark-red-dark);
+  --bs-btn-disabled-bg: var(--tt-dark-red);
+  --bs-btn-disabled-border-color: var(--tt-dark-red);
+}
+.btn-outline-primary {
+  --bs-btn-color: var(--tt-dark-red);
+  --bs-btn-border-color: var(--tt-dark-red);
+  --bs-btn-hover-bg: var(--tt-dark-red);
+  --bs-btn-hover-border-color: var(--tt-dark-red);
+  --bs-btn-active-bg: var(--tt-dark-red);
+  --bs-btn-active-border-color: var(--tt-dark-red);
+}
+.accordion {
+  --bs-accordion-active-color: var(--tt-dark-red);
+  --bs-accordion-active-bg: rgba(160, 14, 17, 0.08);
+  --bs-accordion-btn-focus-border-color: var(--tt-dark-red);
+  --bs-accordion-btn-focus-box-shadow: 0 0 0 0.25rem rgba(160, 14, 17, 0.2);
 }
 
-a.nav-link:focus, a.nav-link:hover, .dropdown-header,
-.dropdown-item:focus, .dropdown-item:hover {
-    color: rgba(0,0,0,.9);
-    font-weight: bold;
+/* ===Site chrome & layout=== */
+body {
+  background-color: var(--tt-off-white);
+  color: var(--tt-charcoal);
+}
+main,
+.fusion-row {
+  background-color: transparent;
+}
+.container > .alert {
+  margin-top: 1rem;
+}
+#MPOuterHeader {
+  background-color: #ffffff;
+}
+.est {
+  background: url('../images/established.png') no-repeat top left;
+}
+.gear > li {
+  list-style-image: url('../images/gear.png');
+  padding-bottom: 5px;
 }
 
-.navbar, #NAV{
-    border: none;
+/* ===Header banner=== */
+.SloganText {
+  color: var(--tt-dark-red);
+  margin-left: 15px;
+  vertical-align: middle;
+  font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-weight: 600;
 }
-.breadcrumb{
-    background-color: rgba(255,255,255,0.25);
-    margin-bottom: 0px;
+.SloganText a {
+  color: inherit;
+  text-decoration: none;
 }
-@media screen and (max-width: 768px){
-  .header{
-    position: fixed;
-    left: -240px;
-    top: 0;
-    bottom: 0;
-    width: 240px;
-    height: 100%;
-    overflow: auto;
-    border-bottom: 0;
-    padding-top: 0;
-    z-index: 99;
-    background: #A11019;
-    }
-  .hidden-title {
-    display: inline;
-    color: #FFCC33;
-    }
-  .dropdown-menu {
-  position: absolute;
-  top: 100%; /* Bottom of button */
-  right: 0;
-  background: linear-gradient( #8B0000, #A00000 10%, #8B0000 90%);
-    }
+.SloganText a:hover {
+  color: var(--tt-dark-red-hover);
 }
-@media screen and (min-width: 768px){
-  .hidden-title {
-    display: none;
-    }
-  .dropdown-menu {
-  position: absolute;
-  top: 100%; /* Bottom of button */
-  right: 0;
-  margin-left: -100px; /* More to the left */
-  background: linear-gradient( #8B0000, #A00000 10%, #8B0000 90%);
-    }
+
+/* ===Main navigation (white bar, dark uppercase Montserrat, matches thetatau.org)=== */
+.tt-navbar {
+  background: #ffffff;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+.tt-navbar .navbar-brand,
+.tt-navbar .nav-link {
+  color: var(--tt-charcoal);
+  font-weight: 500;
+  font-size: 0.9375rem;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+.tt-navbar .nav-link:hover,
+.tt-navbar .nav-link:focus,
+.tt-navbar .nav-link.active,
+.tt-navbar .show > .nav-link {
+  color: var(--tt-dark-red-hover);
+}
+.tt-navbar .nav-link .fa-solid,
+.tt-navbar .nav-link .fa-brands,
+.tt-navbar .nav-link .fa-regular {
+  color: var(--tt-dark-red);
+  transition: color 150ms ease;
+}
+.tt-navbar .nav-link:hover .fa-solid,
+.tt-navbar .nav-link:hover .fa-brands,
+.tt-navbar .nav-link:hover .fa-regular {
+  color: var(--tt-dark-red-hover);
+}
+.tt-navbar .navbar-toggler {
+  color: var(--tt-charcoal);
+  border-color: rgba(0, 0, 0, 0.15);
+}
+
+/* Off-canvas mobile drawer matches the white navbar */
+.tt-offcanvas {
+  background: #ffffff;
+  color: var(--tt-charcoal);
+  font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+.tt-offcanvas .offcanvas-title {
+  color: var(--tt-charcoal);
+  font-weight: 600;
+}
+.tt-offcanvas .nav-link {
+  color: var(--tt-charcoal);
+  font-weight: 500;
+  text-transform: uppercase;
+  font-size: 0.9375rem;
+  letter-spacing: 0.02em;
+}
+.tt-offcanvas .nav-link:hover,
+.tt-offcanvas .nav-link:focus,
+.tt-offcanvas .nav-link.active,
+.tt-offcanvas .show > .nav-link {
+  color: var(--tt-dark-red-hover);
+}
+.tt-offcanvas .nav-link .fa-solid,
+.tt-offcanvas .nav-link .fa-brands,
+.tt-offcanvas .nav-link .fa-regular {
+  color: var(--tt-dark-red);
+}
+
+/* Dropdown menus - clean light surface with brand hover */
+.tt-navbar .dropdown-menu,
+.tt-offcanvas .dropdown-menu {
+  --bs-dropdown-link-hover-bg: rgba(160, 14, 17, 0.08);
+  --bs-dropdown-link-hover-color: var(--tt-dark-red-hover);
+  --bs-dropdown-link-active-bg: var(--tt-dark-red);
+  --bs-dropdown-link-active-color: #fff;
+  --bs-dropdown-color: var(--tt-charcoal);
+  --bs-dropdown-header-color: var(--tt-dark-red);
+  background: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  font-size: 0.9375rem;
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+/* Secondary regional bar */
+.tt-region-bar {
+  background-color: var(--tt-off-white);
+  font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+.tt-region-bar .navbar-brand {
+  color: var(--tt-dark-red);
+  font-weight: 600;
+}
+
+.breadcrumb {
+  background-color: rgba(255,255,255,0.25);
+  margin-bottom: 0;
+}
+@media screen and (max-width: 768px) {
+  .header {
+    background: #ffffff;
+  }
+}
+
+/* ===User-preference toggles=== */
+/* Theme toggle labels — show the label matching the action, not the current state */
+.theme-label-light { display: none; }
+[data-bs-theme="dark"] .theme-label-dark { display: none; }
+[data-bs-theme="dark"] .theme-label-light { display: inline; }
+
+/* Region-bar toggle labels + hide state */
+.region-bar-label-show { display: none; }
+body.region-bar-hidden .region-bar-label-hide { display: none; }
+body.region-bar-hidden .region-bar-label-show { display: inline; }
+body.region-bar-hidden .tt-region-bar { display: none !important; }
+
+/* ===Dark mode (brand-consistent overrides)=== */
+[data-bs-theme="dark"] body {
+  background-color: #16181c;
+  color: #e8eaed;
+}
+[data-bs-theme="dark"] #MPOuterHeader {
+  background-color: #16181c;
+}
+[data-bs-theme="dark"] .SloganText,
+[data-bs-theme="dark"] .SloganText a {
+  color: var(--tt-gold);
+}
+
+/* Navbar */
+[data-bs-theme="dark"] .tt-navbar {
+  background: #1e2126;
+  border-bottom-color: rgba(255, 255, 255, 0.08);
+}
+[data-bs-theme="dark"] .tt-navbar .navbar-brand,
+[data-bs-theme="dark"] .tt-navbar .nav-link {
+  color: #e8eaed;
+}
+[data-bs-theme="dark"] .tt-navbar .nav-link:hover,
+[data-bs-theme="dark"] .tt-navbar .nav-link:focus,
+[data-bs-theme="dark"] .tt-navbar .nav-link.active,
+[data-bs-theme="dark"] .tt-navbar .show > .nav-link {
+  color: var(--tt-gold);
+}
+[data-bs-theme="dark"] .tt-navbar .navbar-toggler {
+  color: #e8eaed;
+  border-color: rgba(255, 255, 255, 0.2);
+}
+[data-bs-theme="dark"] .tt-navbar .navbar-toggler-icon {
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='%23e8eaed' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");
+}
+
+/* Offcanvas drawer */
+[data-bs-theme="dark"] .tt-offcanvas {
+  background: #1e2126;
+  color: #e8eaed;
+}
+[data-bs-theme="dark"] .tt-offcanvas .offcanvas-title,
+[data-bs-theme="dark"] .tt-offcanvas .nav-link {
+  color: #e8eaed;
+}
+[data-bs-theme="dark"] .tt-offcanvas .nav-link:hover,
+[data-bs-theme="dark"] .tt-offcanvas .nav-link:focus,
+[data-bs-theme="dark"] .tt-offcanvas .nav-link.active,
+[data-bs-theme="dark"] .tt-offcanvas .show > .nav-link {
+  color: var(--tt-gold);
+}
+[data-bs-theme="dark"] .tt-offcanvas .btn-close {
+  filter: invert(1);
+}
+
+/* Dropdowns */
+[data-bs-theme="dark"] .tt-navbar .dropdown-menu,
+[data-bs-theme="dark"] .tt-offcanvas .dropdown-menu {
+  --bs-dropdown-bg: #2b2f36;
+  --bs-dropdown-color: #e8eaed;
+  --bs-dropdown-link-color: #e8eaed;
+  --bs-dropdown-link-hover-bg: rgba(244, 192, 70, 0.12);
+  --bs-dropdown-link-hover-color: var(--tt-gold);
+  --bs-dropdown-link-active-bg: var(--tt-dark-red);
+  --bs-dropdown-link-active-color: #fff;
+  --bs-dropdown-header-color: var(--tt-gold);
+  --bs-dropdown-divider-bg: rgba(255, 255, 255, 0.1);
+  background: #2b2f36;
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Region bar */
+[data-bs-theme="dark"] .tt-region-bar {
+  background-color: #212529;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+[data-bs-theme="dark"] .tt-region-bar .navbar-brand {
+  color: var(--tt-gold);
+}
+
+/* Accordion brand accents in dark mode */
+[data-bs-theme="dark"] .accordion {
+  --bs-accordion-active-color: var(--tt-gold);
+  --bs-accordion-active-bg: rgba(244, 192, 70, 0.1);
 }
 
 /* ===Page Title=== */

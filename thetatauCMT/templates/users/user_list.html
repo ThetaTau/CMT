@@ -18,7 +18,7 @@
             <thead>
                 <tr>
                     <th colspan="8">
-                        <form method="get" class="form-inline form-search pull-right">
+                        <form method="get" class="form-search d-flex flex-wrap align-items-center ms-md-auto">
                           {% csrf_token %}
                           {% crispy filter.form filter.form.helper %}
                         </form>

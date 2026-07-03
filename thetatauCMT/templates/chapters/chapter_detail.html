@@ -5,182 +5,272 @@
 {% block title %}Chapter: {{ object.name }}{% endblock %}
 
 {% block content %}
-<div class="container">
-  <div class="row">
-    <div class="col-sm-12">
-      <h2>{{ object.name }} in the {{ object.region }} Region</h2>
-      {% if object.name %}
-        <table class="table">
-          <tr>
-            <th>School</th>
-            <td>{{ object.school }}</td>
-          </tr>
-          <tr>
-            <th>Health and Safety Programming</th>
-            <td>{{ object.get_health_safety_surcharge_display }}</td>
-          </tr>
-          <tr>
-            <th>Regional Director Email</th>
-            <td>{{ object.region.email }}</td>
-          </tr>
-          <tr>
-            <th>Actives</th>
-            <td>{{ object.actives|length }}</td>
-          </tr>
-          <tr>
-            <th>PNMs</th>
-            <td>{{ object.pledges|length }}</td>
-          </tr>
-          <tr>
-            <th>Tax ID</th>
-            {% if object.tax %}
-              <td>{{ object.tax }}</td>
-            {% else %}
-              <td colspan="2">Your chapter does not have a group tax ID.
-                If your chapter would like to become part of that group, please complete <a href="http://thetatau.org/Websites/thetatauhq/images/Chapter_Group_Exemption_Application.docx">
-                  this form</a>.
-                Please contact the Central Office if you have any questions.</td>
+<div class="container py-4">
+  {% if object.name %}
+    {# ---------- Chapter header card ---------- #}
+    <div class="card shadow-sm mb-4 border-0">
+      <div class="card-body">
+        <div class="d-flex flex-wrap justify-content-between align-items-start gap-3">
+          <div>
+            <h2 class="card-title mb-1">{{ object.name }}</h2>
+            <p class="text-muted mb-2">
+              {{ object.school }}
+              <span class="mx-2">&middot;</span>
+              {{ object.region }} Region
+            </p>
+            {% if object.region.email %}
+              <p class="mb-0 small">
+                <span class="text-muted">Regional Director:</span>
+                <a href="mailto:{{ object.region.email }}">{{ object.region.email }}</a>
+              </p>
             {% endif %}
-          </tr>
-        </table>
-        {% if object.website or object.facebook or object.instagram or object.tiktok or object.linkedin or object.youtube or object.twitter %}
-        <h3>Chapter Social Media:</h3>
-        <p>
-          {% if object.website %}
-            <a href="{{ object.website }}" target="_blank" rel="noopener noreferrer" class="btn btn-outline-secondary btn-sm mr-1">Website</a>
+          </div>
+          {% if object.website or object.facebook or object.instagram or object.tiktok or object.linkedin or object.youtube or object.twitter %}
+            <div class="d-flex flex-wrap gap-2">
+              {% if object.website %}
+                <a href="{{ object.website }}" target="_blank" rel="noopener noreferrer" class="btn btn-outline-secondary btn-sm">Website</a>
+              {% endif %}
+              {% if object.facebook %}
+                <a href="{{ object.facebook }}" target="_blank" rel="noopener noreferrer" class="btn btn-outline-primary btn-sm">Facebook</a>
+              {% endif %}
+              {% if object.instagram %}
+                <a href="{{ object.instagram }}" target="_blank" rel="noopener noreferrer" class="btn btn-outline-danger btn-sm">Instagram</a>
+              {% endif %}
+              {% if object.tiktok %}
+                <a href="{{ object.tiktok }}" target="_blank" rel="noopener noreferrer" class="btn btn-outline-dark btn-sm">TikTok</a>
+              {% endif %}
+              {% if object.linkedin %}
+                <a href="{{ object.linkedin }}" target="_blank" rel="noopener noreferrer" class="btn btn-outline-primary btn-sm">LinkedIn</a>
+              {% endif %}
+              {% if object.youtube %}
+                <a href="{{ object.youtube }}" target="_blank" rel="noopener noreferrer" class="btn btn-outline-danger btn-sm">YouTube</a>
+              {% endif %}
+              {% if object.twitter %}
+                <a href="{{ object.twitter }}" target="_blank" rel="noopener noreferrer" class="btn btn-outline-dark btn-sm">X / Twitter</a>
+              {% endif %}
+            </div>
           {% endif %}
-          {% if object.facebook %}
-            <a href="{{ object.facebook }}" target="_blank" rel="noopener noreferrer" class="btn btn-outline-secondary btn-sm mr-1">Facebook</a>
-          {% endif %}
-          {% if object.instagram %}
-            <a href="{{ object.instagram }}" target="_blank" rel="noopener noreferrer" class="btn btn-outline-secondary btn-sm mr-1">Instagram</a>
-          {% endif %}
-          {% if object.tiktok %}
-            <a href="{{ object.tiktok }}" target="_blank" rel="noopener noreferrer" class="btn btn-outline-secondary btn-sm mr-1">TikTok</a>
-          {% endif %}
-          {% if object.linkedin %}
-            <a href="{{ object.linkedin }}" target="_blank" rel="noopener noreferrer" class="btn btn-outline-secondary btn-sm mr-1">LinkedIn</a>
-          {% endif %}
-          {% if object.youtube %}
-            <a href="{{ object.youtube }}" target="_blank" rel="noopener noreferrer" class="btn btn-outline-secondary btn-sm mr-1">YouTube</a>
-          {% endif %}
-          {% if object.twitter %}
-            <a href="{{ object.twitter }}" target="_blank" rel="noopener noreferrer" class="btn btn-outline-secondary btn-sm mr-1">X / Twitter</a>
-          {% endif %}
-        </p>
-        {% endif %}
-      {% endif %}
-      {% if request.is_nat_officer %}
-        <h3 id="audit">
-          <a data-toggle="collapse" href="#chapter-notes-collapse" role="button" aria-expanded="false" aria-controls="chapter-notes-collapse" style="color: inherit; text-decoration: none;">
-            Chapter Notes: <small><i class="fa fa-chevron-down"></i></small>
-          </a>
-        </h3>
-        <div class="collapse" id="chapter-notes-collapse">
-          <p>Notes about the chapter available to National Officers.
-            <a href="{% url 'notes:add' object.slug %}">Add notes here.</a></p>
-          {% render_table note_table %}
         </div>
-      {% endif %}
-    {% if request.user.current_chapter == object %}
-    <h3 id="audit">Chapter Audit:</h3>
-      <p>An audit should be conducted by the chapter officers at the beginning of fall semester, in January, and end of spring semester.
-      Contact <a href="{% url 'chapters:detail' object.slug %}#officers">current officers</a> with any questions or concerns about the information below.<br>
-      Only your chapter members and alumni can see this information.</p>
-      {% render_table audit_table %}
-    {% endif %}
-    <h3>Update Chapter Information:</h3>
-    <p>Only can be updated by chapter officers.
-      <br> Last Updated {{ object.modified }}</p>
-    <form class="chapter" method="POST">
-      {% csrf_token %}
-      <fieldset
-        {% if not request.is_officer or request.user.current_chapter != object %}
-          disabled
-        {% endif %}
-      >
-        {{ forms.chapter.media }}
-        {{ forms.chapter|crispy }}
-      </fieldset>
-    {% if request.is_officer and request.user.current_chapter == object %}
-      <button class="btn btn-primary" name='action' value='chapter' type="submit">Update Chapter Information</button>
-    {% endif %}
-    </form>
-      <br>
-    {% if request.user.current_chapter == object %}
-    <h3>Chapter Advisors:</h3>
-    <p>We occasionally need to speak with someone on your campus and it is helpful
-          to know who your advisor or Fraternity & Student Life staffer is so that we may direct our questions to them.</p>
-    <h5>This form is only for <b>EXTERNAL</b> advisors.</h5>
-      Alumni advisors should be submitted with an <a href="{% url 'forms:officer' %}"> officer election report.</a>
-    <form class="faculty" method="POST">
-      {% csrf_token %}
-    <fieldset
-        {% if not request.is_officer%}
-          disabled
-        {% endif %}
-      >
-      <table{% if form_id %} id="{{ form_id }}_table"{% endif%} class="table table-striped table-sm">
-        <thead>
-            {{ forms.faculty.media }}
-            <div>{{ forms.faculty.management_form|crispy }}</div>
-            {% if forms.faculty.readonly and not forms.faculty.queryset.exists %}
+      </div>
+    </div>
+
+    {# ---------- Stat cards ---------- #}
+    <div class="row g-3 mb-4">
+      <div class="col-6 col-md-3">
+        <div class="card h-100 border-0 shadow-sm text-center">
+          <div class="card-body">
+            <div class="text-muted small text-uppercase">Actives</div>
+            <div class="display-6 fw-bold text-primary">{{ object.actives|length }}</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="card h-100 border-0 shadow-sm text-center">
+          <div class="card-body">
+            <div class="text-muted small text-uppercase">Potential New Members</div>
+            <div class="display-6 fw-bold text-success">{{ object.pledges|length }}</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-12 col-md-3">
+        <div class="card h-100 border-0 shadow-sm">
+          <div class="card-body">
+            <div class="text-muted small text-uppercase mb-1">Health &amp; Safety</div>
+            <div class="fw-semibold">{{ object.get_health_safety_surcharge_display }}</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-12 col-md-3">
+        <div class="card h-100 border-0 shadow-sm">
+          <div class="card-body">
+            <div class="text-muted small text-uppercase mb-1">Tax ID</div>
+            {% if object.tax %}
+              <div class="fw-semibold">{{ object.tax }}</div>
             {% else %}
-                <tr>
-                    {% for field in forms.faculty.forms.0 %}
-                        {% if field.label and not field.is_hidden and field.label != "Delete" %}
-                            <th for="{{ field.auto_id }}" class="col-form-label {% if field.field.required %}requiredField{% endif %}">
-                                {{ field.label|safe }}{% if field.field.required %}<span class="asteriskField">*</span>{% endif %}
-                            </th>
-                        {% endif %}
-                    {% endfor %}
-                <th>Add / <br>Remove</th>
-                </tr>
+              <div class="small text-muted">
+                No group tax ID.
+                <a href="https://docs.google.com/document/d/1ZlfZ6woDNeesdWDPhiWrHW1Of5PiyOw4/edit#heading=h.gjdgxs" target="_blank" rel="noopener noreferrer">Apply here</a>
+                or contact the Central Office.
+              </div>
             {% endif %}
-        </thead>
-        <tbody>
-            {% for form in forms.faculty %}
-                  <tr class="row_form">
-                  <div class="input-group">
-                      {% for field in form %}
-                        {% if field.label == "Delete" %}
-                          <td class="hidden" style="display: none;">
-                              {{ field }}
-                          </td>
-                        {% else %}
-                          {% include 'bootstrap5/field.html' with tag="td" form_show_labels=False form_show_errors=True%}
-                        {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {# ---------- Current officers moved into the accordion below ---------- #}
+  {% endif %}
+
+  {# ---------- Collapsible sections ---------- #}
+  <div class="accordion" id="chapter-accordion">
+    <div class="accordion-item" id="officers">
+      <h2 class="accordion-header" id="heading-officers">
+        <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#chapter-officers-collapse" aria-expanded="true" aria-controls="chapter-officers-collapse">
+          Current Officers
+        </button>
+      </h2>
+      <div id="chapter-officers-collapse" class="accordion-collapse collapse show" aria-labelledby="heading-officers" data-bs-parent="#chapter-accordion">
+        <div class="accordion-body">
+          <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+            <p class="text-muted small mb-0">Missing officers? Any officer listed below can submit an officer election report.</p>
+            <div class="d-flex flex-wrap gap-2">
+              <a href="{% url 'forms:officer' %}" class="btn btn-outline-primary btn-sm">Officer election report</a>
+              <button class="clipboard btn btn-primary btn-sm"
+                      data-clipboard-text="{{ email_list }}">Copy emails</button>
+            </div>
+          </div>
+          {% render_table table %}
+        </div>
+      </div>
+    </div>
+    {% if request.is_nat_officer %}
+      <div class="accordion-item">
+        <h2 class="accordion-header" id="heading-notes">
+          <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#chapter-notes-collapse" aria-expanded="false" aria-controls="chapter-notes-collapse">
+            Chapter Notes
+            <span class="badge bg-warning text-dark ms-2">National Officers</span>
+          </button>
+        </h2>
+        <div id="chapter-notes-collapse" class="accordion-collapse collapse" aria-labelledby="heading-notes" data-bs-parent="#chapter-accordion">
+          <div class="accordion-body">
+            <p>Notes about the chapter available to National Officers.
+              <a href="{% url 'notes:add' object.slug %}">Add notes here.</a></p>
+            {% render_table note_table %}
+          </div>
+        </div>
+      </div>
+    {% endif %}
+
+    {% if request.user.current_chapter == object %}
+      <div class="accordion-item">
+        <h2 class="accordion-header" id="heading-audit">
+          <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#chapter-audit-collapse" aria-expanded="false" aria-controls="chapter-audit-collapse">
+            <span id="audit">Chapter Audit</span>
+          </button>
+        </h2>
+        <div id="chapter-audit-collapse" class="accordion-collapse collapse" aria-labelledby="heading-audit" data-bs-parent="#chapter-accordion">
+          <div class="accordion-body">
+            <p class="text-muted">An audit should be conducted by the chapter officers at the beginning of fall semester, in January, and end of spring semester.
+              Contact <a href="{% url 'chapters:detail' object.slug %}#officers">current officers</a> with any questions or concerns about the information below.<br>
+              Only your chapter members and alumni can see this information.</p>
+            {% render_table audit_table %}
+          </div>
+        </div>
+      </div>
+    {% endif %}
+
+    <div class="accordion-item">
+      <h2 class="accordion-header" id="heading-info">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#chapter-info-collapse" aria-expanded="false" aria-controls="chapter-info-collapse">
+          Update Chapter Information
+          <small class="text-muted ms-2">Last updated {{ object.modified|date:"M j, Y" }}</small>
+        </button>
+      </h2>
+      <div id="chapter-info-collapse" class="accordion-collapse collapse" aria-labelledby="heading-info" data-bs-parent="#chapter-accordion">
+        <div class="accordion-body">
+          <p class="text-muted small">Only chapter officers can update.</p>
+          <form class="chapter" method="POST">
+            {% csrf_token %}
+            <fieldset
+              {% if not request.is_officer or request.user.current_chapter != object %}
+                disabled
+              {% endif %}
+            >
+              {{ forms.chapter.media }}
+              {{ forms.chapter|crispy }}
+            </fieldset>
+            {% if request.is_officer and request.user.current_chapter == object %}
+              <button class="btn btn-primary" name='action' value='chapter' type="submit">Update Chapter Information</button>
+            {% endif %}
+          </form>
+        </div>
+      </div>
+    </div>
+
+    {% if request.user.current_chapter == object %}
+      <div class="accordion-item">
+        <h2 class="accordion-header" id="heading-advisors">
+          <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#chapter-advisors-collapse" aria-expanded="false" aria-controls="chapter-advisors-collapse">
+            Chapter Advisors
+          </button>
+        </h2>
+        <div id="chapter-advisors-collapse" class="accordion-collapse collapse" aria-labelledby="heading-advisors" data-bs-parent="#chapter-accordion">
+          <div class="accordion-body">
+            <p>We occasionally need to speak with someone on your campus and it is helpful
+              to know who your advisor or Fraternity &amp; Student Life staffer is so that we may direct our questions to them.</p>
+            <div class="alert alert-info py-2 small mb-3">
+              This form is only for <strong>EXTERNAL</strong> advisors.
+              Alumni advisors should be submitted with an <a href="{% url 'forms:officer' %}">officer election report</a>.
+            </div>
+            <form class="faculty" method="POST">
+              {% csrf_token %}
+              <fieldset
+                  {% if not request.is_officer%}
+                    disabled
+                  {% endif %}
+                >
+                <table{% if form_id %} id="{{ form_id }}_table"{% endif%} class="table table-striped table-sm">
+                  <thead>
+                      {{ forms.faculty.media }}
+                      <div>{{ forms.faculty.management_form|crispy }}</div>
+                      {% if forms.faculty.readonly and not forms.faculty.queryset.exists %}
+                      {% else %}
+                          <tr>
+                              {% for field in forms.faculty.forms.0 %}
+                                  {% if field.label and not field.is_hidden and field.label != "Delete" %}
+                                      <th for="{{ field.auto_id }}" class="col-form-label {% if field.field.required %}requiredField{% endif %}">
+                                          {{ field.label|safe }}{% if field.field.required %}<span class="asteriskField">*</span>{% endif %}
+                                      </th>
+                                  {% endif %}
+                              {% endfor %}
+                          <th>Add / <br>Remove</th>
+                          </tr>
+                      {% endif %}
+                  </thead>
+                  <tbody>
+                      {% for form in forms.faculty %}
+                            <tr class="row_form">
+                            <div class="input-group">
+                                {% for field in form %}
+                                  {% if field.label == "Delete" %}
+                                    <td class="hidden" style="display: none;">
+                                        {{ field }}
+                                    </td>
+                                  {% else %}
+                                    {% include 'bootstrap5/field.html' with tag="td" form_show_labels=False form_show_errors=True%}
+                                  {% endif %}
+                                {% endfor %}
+                            <td>
+                                <button class="btn btn-success add-row_form">+</button>
+                            </td>
+                            </div>
+                            </tr>
                       {% endfor %}
-                  <td>
-                  <div class="input-group-append">
-                      <button class="btn btn-success add-row_form">+</button>
-                  </div>
-                  </td>
-                  </div>
-                  </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-    </fieldset>
-    {% if request.is_officer and request.user.current_chapter == object %}
-      <button class="btn btn-primary" name='action' value='faculty' type="submit">Update Advisors</button>
+                  </tbody>
+                </table>
+              </fieldset>
+              {% if request.is_officer and request.user.current_chapter == object %}
+                <button class="btn btn-primary" name='action' value='faculty' type="submit">Update Advisors</button>
+              {% endif %}
+            </form>
+          </div>
+        </div>
+      </div>
     {% endif %}
-    </form>
-    {% endif %}
-      <br>
-    <h3>Approved Majors:</h3>
-      <p>If your chapter would like to add majors,
-        please follow the process outlined under "Curriculum Requirements" in the <a href="http://thetatau.org/policies">Policy and Procedures Manual</a></p>
-      {% render_table majors %}
-    <br>
-    <h3 id="officers">Current Officers:</h3>
-      <p>Missing officers? Any officer listed below can submit an <a href="{% url 'forms:officer' %}"> officer election report.</a>
-      <button class="clipboard button btn btn-primary" style="float: right;"
-            data-clipboard-text="{{ email_list }}">
-      Copy emails to clipboard
-    </button>
-      </p>
-      {% render_table table %}
+
+    <div class="accordion-item">
+      <h2 class="accordion-header" id="heading-majors">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#chapter-majors-collapse" aria-expanded="false" aria-controls="chapter-majors-collapse">
+          Approved Majors
+        </button>
+      </h2>
+      <div id="chapter-majors-collapse" class="accordion-collapse collapse" aria-labelledby="heading-majors" data-bs-parent="#chapter-accordion">
+        <div class="accordion-body">
+          <p>If your chapter would like to add majors,
+            please follow the process outlined under &ldquo;Curriculum Requirements&rdquo; in the <a href="http://thetatau.org/policies">Policy and Procedures Manual</a>.</p>
+          {% render_table majors %}
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -189,4 +279,15 @@
 {% block javascript %}
 {{ block.super }}
 <script src="{% static 'js/dynamic_formset.js' %}"></script>
+<script>
+  // Scroll any accordion item into view when it opens, so the header sits at the top.
+  document.querySelectorAll('#chapter-accordion .accordion-collapse').forEach(function (el) {
+    el.addEventListener('shown.bs.collapse', function () {
+      var item = el.closest('.accordion-item');
+      if (item) {
+        item.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    });
+  });
+</script>
 {% endblock %}

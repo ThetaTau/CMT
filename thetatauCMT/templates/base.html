@@ -13,35 +13,32 @@
     <meta name="author" content="Theta Tau">
     <meta name="robots" content="noindex">
 
+    <!-- Apply saved theme / region-bar state ASAP to avoid a flash of the wrong theme -->
+    <script>
+      (function () {
+        try {
+          var t = localStorage.getItem('tt-theme');
+          if (t === 'dark' || t === 'light') {
+            document.documentElement.setAttribute('data-bs-theme', t);
+          }
+        } catch (e) { /* localStorage unavailable */ }
+      })();
+    </script>
+
     <!-- HTML5 shim, for IE6-8 support of HTML5 elements -->
     <!--[if lt IE 9]>
       <script src="https://cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv.min.js"></script>
     <![endif]-->
 
     {% block css %}
-    <style>
-      .est {
-        background: url('{% static 'images/established.png' %}') no-repeat top left;
-      }
-      .gear > li {
-        list-style-image: url('{% static 'images/gear.png' %}');
-        padding-bottom: 5px;
-      }
-      #MPOuterHeader {
-        background-image: url('{% static 'images/header-bg.jpg' %}');
-        background-repeat: repeat;
-      }
-      body {
-        background-image: url('{% static 'images/background.png' %}');
-        background-repeat: repeat;
-      }
-    </style>
-    <!-- Latest compiled and minified Bootstrap CSS -->
-    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
-    <script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha384-tsQFqpEReu7ZLhBV2VZlAu7zcOV+rXbYlF2cqB8txI/8aZajjp4Bqd+V6D5IgvKT" crossorigin="anonymous"></script>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <script src="https://code.jquery.com/jquery-3.6.4.min.js" integrity="sha256-oP6HI9z1XaZNBrJURtCoUT5SUnxFr8s3BzRl+cbzUq8=" crossorigin="anonymous"></script>
 
-    <!-- SmartMenus jQuery Bootstrap 4 Addon CSS -->
-    <link href="{% static 'css/jquery.smartmenus.bootstrap-4.css' %}" rel="stylesheet">
+    <!-- Brand typography (Montserrat, matches thetatau.org) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
 
     <!-- Your stuff: Third-party CSS libraries go here -->
     <link
@@ -97,178 +94,193 @@
         </div>
     </div>
   </section>
-    <div id="NAV" class="m-b-1">
-      <nav class="navbar navbar-expand-md navbar-light bg-light">
-        <button class="navbar-toggler navbar-toggler-right" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
-          <span class="navbar-toggler-icon"></span>
-        </button>
-        <div class="collapse navbar-collapse" id="navbarSupportedContent">
-          <ul class="nav navbar-nav mr-auto">
-            <li class="nav-item">
-              <a class="nav-link" href="{% url 'home' %}">Home <span class="sr-only">(current)</span></a>
-            </li>
-            {% if not request.user.is_authenticated %}
-            <li class="nav-item">
-              <a class="nav-link" href="{% url 'forms:pledgeform' %}">Pledge Form</a>
-            </li>
-            {% endif %}
+    <div id="NAV" class="mb-3">
+      <nav class="navbar navbar-expand-lg navbar-light tt-navbar shadow-sm">
+        <div class="container-fluid">
+          <a class="navbar-brand d-lg-none" href="{% url 'home' %}">
             {% if request.user.is_authenticated %}
-              <li class="nav-item">
-                <a class="nav-link" href="{% url 'chapters:detail' request.user.current_chapter.slug %}">Chapter</a>
-              </li>
-              <li class="nav-item dropdown"><a class="nav-link dropdown-toggle" href="#">{% trans "Members" %}</a>
-                  <ul class="dropdown-menu">
-                    <li class="dropdown-item">
-                      <a class="nav-link" href="{% url 'users:list' %}">{% trans "List" %}</a>
-                    </li>
-                    {% if request.is_officer %}
-                    <li class="dropdown-item">
-                      <a class="nav-link" href="{% url 'users:gpas' %}">{% trans "GPAs" %}</a>
-                    </li>
-                    {% endif %}
-                    <li class="dropdown-item">
-                      <a class="nav-link" href="{% url 'users:service' %}">{% trans "Service Hours" %}</a>
-                    </li>
-                    <li class="dropdown-item">
-                      <a class="nav-link" href="{% url 'users:orgs' %}">{% trans "External Orgs" %}</a>
-                    </li>
-                  </ul>
+              {{ request.user.current_chapter }}
+            {% else %}
+              Theta Tau
+            {% endif %}
+          </a>
+          <button class="navbar-toggler" type="button" data-bs-toggle="offcanvas" data-bs-target="#mainNavOffcanvas" aria-controls="mainNavOffcanvas" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+          </button>
+
+          <div class="offcanvas offcanvas-end tt-offcanvas" tabindex="-1" id="mainNavOffcanvas" aria-labelledby="mainNavOffcanvasLabel">
+            <div class="offcanvas-header border-bottom">
+              <h5 class="offcanvas-title" id="mainNavOffcanvasLabel">Menu</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+            </div>
+            <div class="offcanvas-body">
+              <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                <li class="nav-item">
+                  <a class="nav-link" href="{% url 'home' %}">Home</a>
                 </li>
-              <li class="nav-item">
-                <a class="nav-link" href="{% url 'scores:list' %}">Scores</a>
-              </li>
-              <li class="nav-item">
-                <a class="nav-link" href="{% url 'events:list' %}">Events</a>
-              </li>
-              <li class="nav-item dropdown"><a class="nav-link dropdown-toggle" href="#">{% trans "Submissions" %}</a>
-                <ul class="dropdown-menu">
-                  <li class="dropdown-item">
-                    <a class="nav-link" href="{% url 'submissions:list' %}">List</a>
+
+                {% if not request.user.is_authenticated %}
+                  <li class="nav-item">
+                    <a class="nav-link" href="{% url 'forms:pledgeform' %}">Pledge Form</a>
                   </li>
-                    <li class="dropdown-item">
-                      <a class="nav-link" href="{% url 'submissions:add' %}">Add Submission</a>
-                    </li>
-                    <li class="dropdown-item">
-                      <a class="nav-link" href="{% url 'gear' %}">Gear Article</a>
-                    </li>
-                </ul>
-              </li>
-              <li class="nav-item">
-                <a class="nav-link" href="{% url 'tasks:list' %}">Tasks</a>
-              </li>
-              <li class="nav-item">
-                <a class="nav-link" href="{% url 'objectives:list' %}">Goals</a>
-              </li>
-              <li class="nav-item">
-                <a class="nav-link" href="{% url 'trainings:list' %}">Training</a>
-              </li>
-              <li class="nav-item">
-                <a class="nav-link" href="{% url 'finances:list' %}">{% trans "Invoices" %}</a>
-              </li>
-            {% endif %}
-          </ul>
-          <ul class="nav navbar-nav justify-content-end">
-            {% if request.user.is_authenticated %}
-              <li class="nav-item">
-                <a class="nav-link" href="{% url 'chapters:list' %}">{% trans "Chapters" %}</a>
-              </li>
-              <li class="nav-item">
-                <a class="nav-link" href="{% url 'forms:landing' %}">{% trans "Forms" %}</a>
-              </li>
-              {% if request.is_nat_officer %}
-                <li class="dropdown"><a class="nav-link dropdown-toggle" href="#">{% trans "NatOff" %}</a>
-                  <ul class="dropdown-menu">
-                    <li class="dropdown-item">
-                      <a class="nav-link" href="{% url 'regions:detail' "national" %}">{% trans "Dashboard" %}</a>
-                    </li>
-                    <li class="dropdown-item">
-                      <a class="nav-link" href="https://apps.ed.thetatau.org/authn/login?tpa_hint=oa2-cmt" target="_blank">{% trans "Training" %}</a>
-                    </li>
-                    <li class="dropdown-item">
-                      <a class="nav-link" href="{% url 'users:search' %}">{% trans "Member Search" %}</a>
-                    </li>
-                    <li class="dropdown-item">
-                      <a class="nav-link" href="{% url 'ballots:list' %}">{% trans "Ballots" %}</a>
-                    </li>
-                    <li class="dropdown-item">
-                      <a class="nav-link" href="{% url 'forms:natoff' %}">{% trans "Nat Officers" %}</a>
-                    </li>
-                    <li class="dropdown-divider"></li>
-                    <li class="dropdown-header">Chapter Information</li>
-                    <li class="dropdown-item">
-                      <a class="nav-link" href="{% url 'regions:officers' 'national' %}">{% trans "All Officers" %}</a>
-                    </li>
-                    <li class="dropdown-item">
-                      <a class="nav-link" href="{% url 'regions:advisors' 'national' %}">{% trans "All Advisors" %}</a>
-                    </li>
-                    <li class="dropdown-item">
-                      <a class="nav-link" href="{% url 'forms:landing' %}">{% trans "All Forms" %}</a>
-                    </li>
-                  <li class="dropdown"><a class="dropdown-item dropdown-toggle" href="#">Chapter Info</a>
+                {% endif %}
+
+                {% if request.user.is_authenticated %}
+                  <li class="nav-item">
+                    <a class="nav-link" href="{% url 'chapters:detail' request.user.current_chapter.slug %}">Chapter</a>
+                  </li>
+
+                  <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">{% trans "Members" %}</a>
                     <ul class="dropdown-menu">
-                      <li class="dropdown-item">
-                        <a class="nav-link" href="{% url 'finances:chapters' %}">{% trans "Balances" %}</a>
-                      </li>
-                      <li class="dropdown-item">
-                        <a class="nav-link" href="{% url 'scores:chapterlist' %}">{% trans "Scores" %}</a>
-                      </li>
-                      <li class="dropdown-item">
-                        <a class="nav-link"
-                           href="{% url 'events:list_all' %}">{% trans "Events" %}</a>
-                      </li>
+                      <li><a class="dropdown-item" href="{% url 'users:list' %}">{% trans "Member List" %}</a></li>
+                      {% if request.is_officer %}
+                        <li><a class="dropdown-item" href="{% url 'users:gpas' %}">{% trans "GPAs" %}</a></li>
+                      {% endif %}
+                      <li><a class="dropdown-item" href="{% url 'users:service' %}">{% trans "Service Hours" %}</a></li>
+                      <li><a class="dropdown-item" href="{% url 'users:orgs' %}">{% trans "External Orgs" %}</a></li>
+                      {% if request.is_nat_officer %}
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="{% url 'users:search' %}">{% trans "Member Search" %}</a></li>
+                      {% endif %}
                     </ul>
                   </li>
-                  </ul>
+
+                  <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">{% trans "Activity" %}</a>
+                    <ul class="dropdown-menu">
+                      <li><a class="dropdown-item" href="{% url 'scores:list' %}">Scores</a></li>
+                      <li><a class="dropdown-item" href="{% url 'events:list' %}">Events</a></li>
+                      <li><a class="dropdown-item" href="{% url 'tasks:list' %}">Tasks</a></li>
+                      <li><a class="dropdown-item" href="{% url 'objectives:list' %}">Goals</a></li>
+                      <li><a class="dropdown-item" href="{% url 'trainings:list' %}">Training</a></li>
+                    </ul>
+                  </li>
+
+                  <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">{% trans "Submissions" %}</a>
+                    <ul class="dropdown-menu">
+                      <li><a class="dropdown-item" href="{% url 'submissions:list' %}">List</a></li>
+                      <li><a class="dropdown-item" href="{% url 'submissions:add' %}">Add Submission</a></li>
+                      <li><a class="dropdown-item" href="{% url 'gear' %}">Gear Article</a></li>
+                    </ul>
+                  </li>
+
+                  <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">{% trans "Finances" %}</a>
+                    <ul class="dropdown-menu">
+                      <li><a class="dropdown-item" href="{% url 'finances:list' %}">{% trans "Invoices" %}</a></li>
+                      {% if request.is_nat_officer %}
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="{% url 'finances:chapters' %}">{% trans "All Balances" %}</a></li>
+                      {% endif %}
+                    </ul>
+                  </li>
+
+                  <li class="nav-item">
+                    <a class="nav-link" href="{% url 'forms:landing' %}">{% trans "Forms" %}</a>
+                  </li>
+
+                  <li class="nav-item">
+                    <a class="nav-link" href="{% url 'jobs:list' %}">{% trans "Job Board" %}</a>
+                  </li>
+
+                  <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">{% trans "Directory" %}</a>
+                    <ul class="dropdown-menu">
+                      <li><a class="dropdown-item" href="{% url 'chapters:list' %}">{% trans "Chapters" %}</a></li>
+                      {% if request.is_nat_officer %}
+                        <li><hr class="dropdown-divider"></li>
+                        <li><h6 class="dropdown-header">National</h6></li>
+                        <li><a class="dropdown-item" href="{% url 'regions:officers' 'national' %}">{% trans "All Officers" %}</a></li>
+                        <li><a class="dropdown-item" href="{% url 'regions:advisors' 'national' %}">{% trans "All Advisors" %}</a></li>
+                        <li><a class="dropdown-item" href="{% url 'ballots:list' %}">{% trans "Ballots" %}</a></li>
+                      {% endif %}
+                    </ul>
+                  </li>
+
+                  {% if request.is_nat_officer %}
+                    <li class="nav-item dropdown">
+                      <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">{% trans "National" %}</a>
+                      <ul class="dropdown-menu">
+                        <li><a class="dropdown-item" href="{% url 'regions:detail' 'national' %}">{% trans "National Dashboard" %}</a></li>
+                        <li><a class="dropdown-item" href="{% url 'scores:chapterlist' %}">{% trans "All Scores" %}</a></li>
+                        <li><a class="dropdown-item" href="{% url 'events:list_all' %}">{% trans "All Events" %}</a></li>
+                        <li><a class="dropdown-item" href="{% url 'forms:natoff' %}">{% trans "Nat Officers" %}</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="https://apps.ed.thetatau.org/authn/login?tpa_hint=oa2-cmt" target="_blank" rel="noopener noreferrer">{% trans "Training Portal" %}</a></li>
+                      </ul>
+                    </li>
+                  {% endif %}
+                {% endif %}
+              </ul>
+
+              <ul class="navbar-nav ms-auto">
+                <li class="nav-item">
+                  <a id="help" class="nav-link" href="{% url 'help' %}" aria-label="{% trans 'Help' %}" title="{% trans 'Help' %}">
+                    <i class="fa-solid fa-circle-question"></i>
+                    <span class="d-lg-none ms-2">{% trans "Help" %}</span>
+                  </a>
                 </li>
-              {% endif %}
-              <li class="nav-item">
-                {# URL provided by django-allauth/account/urls.py #}
-                <a class="nav-link" href="{% url 'users:detail'  %}">{% trans "My Profile" %}</a>
-              </li>
-              <li class="nav-item">
-                {# URL provided by django-allauth/account/urls.py #}
-                <a class="nav-link" href="{% url 'account_logout' %}">{% trans "Sign Out" %}</a>
-              </li>
-            {% else %}
-              <li class="nav-item">
-                <a id="udpate-info" class="nav-link" href="{% url 'update_lookup' %}">{% trans "Update Info" %}</a>
-              </li>
-              <li class="nav-item">
-                {# URL provided by django-allauth/account/urls.py #}
-                <a id="log-in-link" class="nav-link" href="{% url 'account_login' %}">{% trans "Sign In" %}</a>
-              </li>
-            {% endif %}
-          <li class="nav-item">
-            <a id="help" class="nav-link" href="{% url 'help' %}">{% trans "Help" %}</a>
-          </li>
-          </ul>
-        </div>
-      <a class="hidden-title" href="{% url 'home' %}">
-        <h5>
-          {% if request.user.is_authenticated %}
-            {{ request.user.current_chapter }}
-          {% else %}
-            Theta Tau
-          {% endif %}
-          Chapter Management Tool</h5></a>
-      </nav>
-    {% if request.is_nat_officer %}
-      <nav class="navbar navbar-fixed-top navbar-light navbar-inverse bg-light">
-      <a class="navbar-brand" href="{% url 'regions:detail' request.user.current_chapter.region.slug %}">{{ request.user.current_chapter.region.name }} Dashboard</a>
-      <a class="nav-item nav-link" href="{% url 'regions:officers' request.user.current_chapter.region.slug  %}">Officers</a>
-      <a class="nav-item nav-link" href="{% url 'events:list_all' %}?region={{ request.user.current_chapter.region.slug }}">Events</a>
-      <a class="nav-item nav-link" href="{% url 'regions:tasks' request.user.current_chapter.region.slug %}">Tasks</a>
-        <form class="form-inline ml-auto" action="{% url 'users:alterchapter' %}" method="post">
-          {% csrf_token %}
-          {{ user_alter_form|crispy }}
-          <input type="hidden" name="next" value="{{ request.path }}"/>
-          <div class="control-group">
-          <div class="controls">
-            <button type="submit" class="btn nav-link" name="alter-action" value="Save" style="display:inline-block;">Apply</button>
-            <button type="submit" class="btn nav-link" name="alter-action" value="Reset" style="display:inline-block;">Reset</button>
+
+                {% if request.user.is_authenticated %}
+                  <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="{{ request.user.first_name|default:request.user.username }} — account menu" title="{{ request.user.first_name|default:request.user.username }}">
+                      <i class="fa-solid fa-circle-user"></i>
+                      <span class="d-lg-none ms-2">{{ request.user.first_name|default:request.user.username }}</span>
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-lg-end">
+                      <li><a class="dropdown-item" href="{% url 'users:detail' %}">{% trans "My Profile" %}</a></li>
+                      <li><hr class="dropdown-divider"></li>
+                      <li>
+                        <button id="theme-toggle" type="button" class="dropdown-item">
+                          <span class="theme-label-dark">{% trans "Switch to dark mode" %}</span>
+                          <span class="theme-label-light">{% trans "Switch to light mode" %}</span>
+                        </button>
+                      </li>
+                      {% if request.is_nat_officer %}
+                        <li>
+                          <button id="region-bar-toggle" type="button" class="dropdown-item">
+                            <span class="region-bar-label-hide">{% trans "Hide region bar" %}</span>
+                            <span class="region-bar-label-show">{% trans "Show region bar" %}</span>
+                          </button>
+                        </li>
+                      {% endif %}
+                      <li><hr class="dropdown-divider"></li>
+                      <li><a class="dropdown-item" href="{% url 'account_logout' %}">{% trans "Sign Out" %}</a></li>
+                    </ul>
+                  </li>
+                {% else %}
+                  <li class="nav-item">
+                    <a id="udpate-info" class="nav-link" href="{% url 'update_lookup' %}">{% trans "Update Info" %}</a>
+                  </li>
+                  <li class="nav-item">
+                    <a id="log-in-link" class="nav-link" href="{% url 'account_login' %}">{% trans "Sign In" %}</a>
+                  </li>
+                {% endif %}
+              </ul>
+            </div>
           </div>
         </div>
-      </form>
+      </nav>
+    {% if request.is_nat_officer %}
+      <nav class="navbar tt-region-bar border-bottom py-1">
+        <div class="container-fluid d-flex flex-wrap align-items-center gap-2">
+          <a class="navbar-brand mb-0 h6 me-3" href="{% url 'regions:detail' request.user.current_chapter.region.slug %}">
+            {{ request.user.current_chapter.region.name }} Region
+          </a>
+          <a class="btn btn-sm btn-outline-secondary" href="{% url 'regions:officers' request.user.current_chapter.region.slug %}">Officers</a>
+          <a class="btn btn-sm btn-outline-secondary" href="{% url 'events:list_all' %}?region={{ request.user.current_chapter.region.slug }}">Events</a>
+          <a class="btn btn-sm btn-outline-secondary" href="{% url 'regions:tasks' request.user.current_chapter.region.slug %}">Tasks</a>
+
+          <form class="d-flex flex-wrap align-items-center gap-2 ms-auto" action="{% url 'users:alterchapter' %}" method="post">
+            {% csrf_token %}
+            {{ user_alter_form|crispy }}
+            <input type="hidden" name="next" value="{{ request.path }}"/>
+            <button type="submit" class="btn btn-sm btn-primary" name="alter-action" value="Save">Apply</button>
+            <button type="submit" class="btn btn-sm btn-outline-secondary" name="alter-action" value="Reset">Reset</button>
+          </form>
+        </div>
       </nav>
     {% endif %}
     </div>
@@ -291,7 +303,7 @@
       <!-- Grid row -->
       <div class="row">
         <div class="col-md-4" style="position: relative; font-size: 16px;">
-          <h5 class="font-weight-bold text-uppercase mt-3 mb-4">Contact Info</h5>
+          <h5 class="fw-bold text-uppercase mt-3 mb-4">Contact Info</h5>
           <i class="fas fa-phone"></i> 512.472.1904<br>
           <i class="fas fa-envelope"></i>
           <a href="mailto:cmt@thetatau.org"> cmt@thetatau.org</a><br>
@@ -304,7 +316,7 @@
         <hr class="clearfix w-100 d-md-none">
         <div class="col-md-4 mx-auto">
           <!-- Content -->
-          <h5 class="font-weight-bold text-uppercase mt-3 mb-4">We need YOU!</h5>
+          <h5 class="fw-bold text-uppercase mt-3 mb-4">We need YOU!</h5>
           <p>Interested in contributing to the Chapter Management Tool?<br>
             <a href="https://github.com/VenturaFranklin/thetatauCMT/blob/master/CONTRIBUTING.md">Please see contributing instructions here.</a></p>
         </div>
@@ -312,7 +324,7 @@
         <hr class="clearfix w-100 d-md-none">
         <!-- Grid column -->
         <div class="col-md-4 mx-auto">
-          <h5 class="font-weight-bold text-uppercase mt-3 mb-4">Help/Issues</h5>
+          <h5 class="fw-bold text-uppercase mt-3 mb-4">Help/Issues</h5>
           <p><a href="{% url 'help' %}">See the help document here.</a></p>
           <p>Or if you have ideas for features/improvements.<br><a href="https://github.com/VenturaFranklin/thetatauCMT/issues">Please let us know, by submitting an issue/feature request here.</a></p>
         </div>
@@ -325,25 +337,45 @@
     <!-- Social buttons -->
     <ul class="list-unstyled list-inline text-center">
       <li class="social list-inline-item">
-        <a class="btn-floating" href="https://www.facebook.com/thetatau">
-          <i class="fab fa-facebook fa-3x"> </i>
+        <a class="btn-floating" href="https://thetatau.org/" target="_blank" rel="noopener noreferrer" aria-label="Theta Tau website" title="thetatau.org">
+          <i class="fa-solid fa-globe fa-3x"></i>
         </a>
       </li>
       <li class="social list-inline-item">
-        <a class="btn-floating" href="https://twitter.com/theta_tau">
-          <i class="fab fa-twitter fa-3x"> </i>
+        <a class="btn-floating" href="https://www.facebook.com/thetatau" target="_blank" rel="noopener noreferrer" aria-label="Facebook" title="Facebook">
+          <i class="fab fa-facebook fa-3x"></i>
         </a>
       </li>
       <li class="social list-inline-item">
-        <a class="btn-floating" href="https://www.linkedin.com/company/thetatau/">
-          <i class="fab fa-linkedin fa-3x"> </i>
+        <a class="btn-floating" href="https://www.instagram.com/theta_tau/?hl=en" target="_blank" rel="noopener noreferrer" aria-label="Instagram" title="Instagram">
+          <i class="fab fa-instagram fa-3x"></i>
+        </a>
+      </li>
+      <li class="social list-inline-item">
+        <a class="btn-floating" href="https://www.youtube.com/c/ThetaTauFraternity" target="_blank" rel="noopener noreferrer" aria-label="YouTube" title="YouTube">
+          <i class="fab fa-youtube fa-3x"></i>
+        </a>
+      </li>
+      <li class="social list-inline-item">
+        <a class="btn-floating" href="https://twitter.com/theta_tau" target="_blank" rel="noopener noreferrer" aria-label="Twitter" title="Twitter">
+          <i class="fab fa-twitter fa-3x"></i>
+        </a>
+      </li>
+      <li class="social list-inline-item">
+        <a class="btn-floating" href="https://www.linkedin.com/company/thetatau/" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn" title="LinkedIn">
+          <i class="fab fa-linkedin fa-3x"></i>
+        </a>
+      </li>
+      <li class="social list-inline-item">
+        <a class="btn-floating" href="https://www.reddit.com/r/ThetaTau/" target="_blank" rel="noopener noreferrer" aria-label="Reddit" title="Reddit">
+          <i class="fab fa-reddit fa-3x"></i>
         </a>
       </li>
     </ul>
     <!-- Social buttons -->
 
     <!-- Copyright -->
-    <div class="footer-copyright text-center py-3">© 2018-2022 Copyright:
+    <div class="footer-copyright text-center py-3">© 2018-{% now "Y" %} Copyright:
       <a href="http://thetatau.org"> thetatau.org</a><br>
       <a href="{% url 'privacy' %}">Privacy Notice</a> -
       <a href="{% url 'eula' %}">Terms of Service (EULA)</a> -
@@ -357,21 +389,43 @@
     <!-- Placed at the end of the document so the pages load faster -->
     {% block javascript %}
 
-      <!-- Bootstrap JS and its dependencies -->
-      <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js" integrity="sha384-ZMP7rVo3mIykV+2+9J3UJ46jBk0WLaUAdn689aCwoqbBJiSnjAK/l8WvCWPIPm49" crossorigin="anonymous"></script>
-      <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
-
-
-      <!-- Your stuff: Third-party javascript libraries go here -->
-      <!-- SmartMenus jQuery plugin -->
-      <script type="text/javascript" src="{% static 'js/jquery.smartmenus.js' %}"></script>
-
-      <!-- SmartMenus jQuery Bootstrap 4 Addon -->
-      <script type="text/javascript" src="{% static 'js/jquery.smartmenus.bootstrap-4.js' %}"></script>
+      <!-- Bootstrap 5 bundle (includes Popper) -->
+      <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
 
       <!-- place project specific Javascript in this file -->
 
       <script src="{% static 'js/project.js' %}"></script>
+
+      <!-- Theme + region-bar toggles -->
+      <script>
+        (function () {
+          var STORAGE_THEME = 'tt-theme';
+          var STORAGE_REGION_BAR = 'tt-region-bar-hidden';
+
+          // Apply saved region-bar state (theme was applied in <head> to avoid flash)
+          if (localStorage.getItem(STORAGE_REGION_BAR) === 'true') {
+            document.body.classList.add('region-bar-hidden');
+          }
+
+          var themeToggle = document.getElementById('theme-toggle');
+          if (themeToggle) {
+            themeToggle.addEventListener('click', function () {
+              var current = document.documentElement.getAttribute('data-bs-theme') === 'dark' ? 'dark' : 'light';
+              var next = current === 'dark' ? 'light' : 'dark';
+              document.documentElement.setAttribute('data-bs-theme', next);
+              try { localStorage.setItem(STORAGE_THEME, next); } catch (e) {}
+            });
+          }
+
+          var regionToggle = document.getElementById('region-bar-toggle');
+          if (regionToggle) {
+            regionToggle.addEventListener('click', function () {
+              var hidden = document.body.classList.toggle('region-bar-hidden');
+              try { localStorage.setItem(STORAGE_REGION_BAR, hidden ? 'true' : 'false'); } catch (e) {}
+            });
+          }
+        })();
+      </script>
 
 
     {% endblock javascript %}
