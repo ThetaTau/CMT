@@ -1137,7 +1137,7 @@ class PledgeUserBase(forms.ModelForm):
 
 class PledgeUser(PledgeUserBase):
     captcha = ReCaptchaField(label="", widget=ReCaptchaV3)
-    if getattr(settings, "DEBUG", False):
+    if getattr(settings, "DEBUG", False) or getattr(settings, "BYPASS_CAPTCHA", False):
         captcha.clean = lambda x: True
 
 
