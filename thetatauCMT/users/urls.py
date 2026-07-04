@@ -11,6 +11,11 @@ urlpatterns = [
     path("service/", views.UserServiceFormSetView.as_view(), name="service"),
     path("orgs/", views.UserOrgsFormSetView.as_view(), name="orgs"),
     path("redirect/", views.UserRedirectView.as_view(), name="redirect"),
+    path(
+        "unsubscribe/<str:token>/",
+        views.UnsubscribeConfirmView.as_view(),
+        name="unsubscribe",
+    ),
     path("myinfo/", views.UserDetailUpdateView.as_view(), name="detail"),
     path("memberinfo/<str:username>", views.UserDetailView.as_view(), name="info"),
     path("search/", views.UserSearchView.as_view(), name="search"),

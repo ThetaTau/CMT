@@ -1,13 +1,84 @@
+import html as _html
+import re
+
 from django.conf import settings
 from django.shortcuts import reverse
 from django.template import Context, Template
+from django.urls import NoReverseMatch
+from django.urls import reverse as url_reverse
 from herald import registry
 from herald.base import EmailNotification
 
 from thetatauCMT.chapters.models import Chapter
 from thetatauCMT.chapters.tables import ChapterStatusTable
+from thetatauCMT.configs.models import Config
 from thetatauCMT.tasks.models import TaskDate
 from thetatauCMT.users.models import User
+
+# ----- Config-driven email body helpers --------------------------------------
+# Shared by any EmailNotification whose HTML body lives in a Config row and is
+# authored in the CKEditor admin. Kept module-private; call
+# ``MemberEmail.from_config(...)`` rather than these directly.
+
+UNSUBSCRIBE_CONTACT_EMAIL = "central.office@thetatau.org"
+
+# CKEditor often wraps parts of a ``{{ ... }}`` token in inline ``<span>``
+# styling, producing broken markup like ``{{<span>user.name}</span>}`` that
+# Django's template parser rejects. The token regex matches each token even
+# when tags landed between the inner ``}`` and outer ``}`` so we can strip
+# them from the token body before Django sees it.
+_TOKEN_RE = re.compile(r"\{\{(.*?)\}(?:<[^>]*>|\s)*\}", re.DOTALL)
+_TAG_RE = re.compile(r"<[^>]+>")
+# CKEditor spacing artifacts: empty paragraphs and leading ``<br>``.
+_EMPTY_P_RE = re.compile(r"<p>\s*(?:&nbsp;|<br\s*/?>)\s*</p>", re.IGNORECASE)
+_P_LEADING_BR_RE = re.compile(r"<p>(?:\s|&nbsp;)*<br\s*/?>\s*", re.IGNORECASE)
+# Single-brace ALL_CAPS placeholder like ``{EC_CONTACT}`` → looked up in
+# Config with that exact key. Missing keys leave the placeholder in place so
+# the omission is visible in the sent email.
+_CONFIG_PLACEHOLDER_RE = re.compile(r"\{([A-Z][A-Z0-9_]*)\}")
+
+
+def _sanitize_config_template(source):
+    def repl(match):
+        inner = _TAG_RE.sub("", match.group(1))
+        inner = _html.unescape(inner).strip()
+        return "{{ " + inner + " }}"
+
+    source = _TOKEN_RE.sub(repl, source)
+    source = _EMPTY_P_RE.sub("", source)
+    source = _P_LEADING_BR_RE.sub("<p>", source)
+    return source
+
+
+def _substitute_config_placeholders(source):
+    def repl(match):
+        key = match.group(1)
+        value = Config.get_value(key)
+        return value if value else match.group(0)
+
+    return _CONFIG_PLACEHOLDER_RE.sub(repl, source)
+
+
+def _unsubscribe_footer(user):
+    from thetatauCMT.users.views import make_unsubscribe_token
+
+    host = getattr(settings, "CURRENT_URL", "").rstrip("/")
+    token = make_unsubscribe_token(user)
+    try:
+        unsubscribe_path = url_reverse("users:unsubscribe", kwargs={"token": token})
+    except NoReverseMatch:
+        unsubscribe_path = f"/users/unsubscribe/{token}/"
+    unsubscribe_url = f"{host}{unsubscribe_path}"
+    return (
+        '<hr style="margin: 24px 0 10px 0;border: 0;border-top: 1px solid #cccccc;">'
+        '<p style="font-size: 11px;color: #888888;text-align: center;margin: 6px 0;">'
+        "You&rsquo;re receiving this because our records show you are a Theta Tau member. "
+        f'<br><a href="{unsubscribe_url}" style="color: #a00e11;text-decoration: underline;">Unsubscribe</a>'
+        " or email "
+        f'<a href="mailto:{UNSUBSCRIBE_CONTACT_EMAIL}?subject=Unsubscribe" style="color: #a00e11;text-decoration: underline;">{UNSUBSCRIBE_CONTACT_EMAIL}</a>'
+        "."
+        "</p>"
+    )
 
 
 @registry.register_decorator()
@@ -245,3 +316,29 @@ class MemberEmail(EmailNotification):
         email_content = "Hello {{ user.get_full_name }} Demo email content"
         context = {"user": user}
         return [user, title, email_content, context]
+
+    @classmethod
+    def from_config(cls, user, config_key, title, context=None, *, unsubscribe=False):
+        """Build a ``MemberEmail`` from an HTML body stored under ``config_key``.
+
+        Pipeline (applied in order):
+          1. Fetch ``Config.get_value(config_key, clean=False)``.
+          2. Sanitize CKEditor artefacts inside the value (broken
+             ``{{ ... }}`` tokens, empty paragraphs, ``<p><br>`` cruft).
+          3. Substitute any single-brace ``{ALL_CAPS_KEY}`` placeholder with
+             the corresponding ``Config`` row's value (leaves the token in
+             place when no matching Config exists).
+          4. If ``unsubscribe`` is truthy, append a per-recipient signed
+             unsubscribe footer that links to the public confirmation page.
+
+        Returns ``None`` when the config row is missing/empty so the caller
+        can log and skip. Otherwise returns a ready-to-``send()`` instance.
+        """
+        raw = Config.get_value(config_key, clean=False)
+        if not raw:
+            return None
+        body = _sanitize_config_template(raw)
+        body = _substitute_config_placeholders(body)
+        if unsubscribe:
+            body += _unsubscribe_footer(user)
+        return cls(user, title, body, context or {})

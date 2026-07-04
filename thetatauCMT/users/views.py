@@ -12,6 +12,7 @@ from django.contrib import messages
 from django.contrib.auth.forms import PasswordResetForm
 from django.contrib.auth.tokens import default_token_generator
 from django.contrib.sites.shortcuts import get_current_site
+from django.core import signing
 from django.forms.models import modelformset_factory
 from django.http import HttpResponse
 from django.http.request import QueryDict
@@ -20,7 +21,7 @@ from django.shortcuts import render
 from django.urls import reverse
 from django.utils.encoding import force_bytes
 from django.utils.http import url_has_allowed_host_and_scheme, urlsafe_base64_encode
-from django.views.generic import DetailView, FormView, RedirectView, UpdateView
+from django.views.generic import DetailView, FormView, RedirectView, TemplateView, UpdateView
 from extra_views import FormSetView, ModelFormSetView
 from watson import search as watson
 
@@ -72,6 +73,51 @@ class UserRedirectView(LoginRequiredMixin, RedirectView):
 
     def get_redirect_url(self):
         return reverse("users:detail")
+
+
+UNSUBSCRIBE_SALT = "users.unsubscribe.v1"
+
+
+def make_unsubscribe_token(user):
+    """Return a signed, tamper-resistant token that identifies ``user``."""
+    return signing.dumps({"user_pk": user.pk}, salt=UNSUBSCRIBE_SALT)
+
+
+class UnsubscribeConfirmView(TemplateView):
+    """Public one-click-confirm unsubscribe landing page.
+
+    GET renders a confirmation page with the recipient's email shown so they
+    know which address is being opted out. POST flips ``unsubscribe_email``
+    and shows a success message. POST-on-confirm prevents mail-scanner
+    prefetch (Gmail/Outlook/etc.) from silently unsubscribing users.
+    """
+
+    template_name = "users/unsubscribe_confirm.html"
+    http_method_names = ["get", "post"]
+
+    def _load_user(self):
+        token = self.kwargs.get("token", "")
+        try:
+            data = signing.loads(token, salt=UNSUBSCRIBE_SALT)
+        except signing.BadSignature:
+            return None
+        return User.objects.filter(pk=data.get("user_pk")).first()
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx["user_obj"] = self._load_user()
+        ctx["done"] = False
+        return ctx
+
+    def post(self, request, *args, **kwargs):
+        user = self._load_user()
+        if user is not None and not user.unsubscribe_email:
+            user.unsubscribe_email = True
+            user.save(update_fields=["unsubscribe_email"])
+        ctx = self.get_context_data(**kwargs)
+        ctx["user_obj"] = user
+        ctx["done"] = True
+        return self.render_to_response(ctx)
 
 
 @group_required(["officer", "natoff"])
