@@ -10,7 +10,7 @@
   <h1>Announcements</h1>
   <hr>
   {% for announcement in announcements %}
-    <div class="card bg-light">
+    <div class="card bg-body-tertiary text-body">
       <div class="card-body">
         <h5 class="card-title">{{ announcement.title }}</h5>
         {{ announcement.content|safe }}

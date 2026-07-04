@@ -6,13 +6,13 @@
 {% block head_title %}{% trans "Chapter Financial Audit" %}{% endblock %}
 {% block content %}
   {% if complete %}
-    <div class="p-4 p-md-5 mb-4 bg-light rounded-3 border"><div class="container">
+    <div class="p-4 p-md-5 mb-4 bg-body-tertiary text-body rounded-3 border"><div class="container">
       <h2>{% trans "Audit complete" %}</h2>
       This audit was completed on {{ audit.created }} by {{ audit.user }}
       <br>Please check task list for next audit due date.</div>
       </div>
   {% else %}
-    <div class="p-4 p-md-5 mb-4 bg-light rounded-3 border"><div class="container">
+    <div class="p-4 p-md-5 mb-4 bg-body-tertiary text-body rounded-3 border"><div class="container">
     <h2>{% trans "Review of Chapter Finances" %}</h2>
     Several separate items must be reviewed to ensure that the financial
       records kept by the Treasurer are accurate and up-to-date.
@@ -209,7 +209,7 @@ If all these three things are reviewed, you will have conducted a satisfactory
     <strong style="color:red">{{ error }}</strong>
   {% endfor %}
 {% endif %}
-  <div class="p-4 p-md-5 mb-4 bg-light rounded-3 border">
+  <div class="p-4 p-md-5 mb-4 bg-body-tertiary text-body rounded-3 border">
   <p><h5>As a principal officer of my chapter, I hereby certify that a review
     of our chapter’s finances (as outlined above) has shown no misappropriation
     of funds and that all records are now being maintained by the standards

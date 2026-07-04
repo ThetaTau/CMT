@@ -515,3 +515,100 @@ select.form-control[multiple], select.form-control[size] {
   gap: 0.5rem;
   margin: 0;
 }
+
+/* ===Dark-mode safeguards for hard-coded highlight colors=== */
+/* Inline yellow/green/red highlights on notices, process-data cells, and status
+   markers force a light background; ensure text stays legible in dark mode. */
+[data-bs-theme="dark"] [style*="background-color: #FFFF00"],
+[data-bs-theme="dark"] [style*="background-color:#FFFF00"],
+[data-bs-theme="dark"] [style*="background-color: #00FF00"],
+[data-bs-theme="dark"] [style*="background-color:#00FF00"],
+[data-bs-theme="dark"] td[complete="True"],
+[data-bs-theme="dark"] td[complete="False"],
+[data-bs-theme="dark"] td[complete="N/A"] {
+  color: #16181c !important;
+}
+/* Bootstrap contextual backgrounds (bg-warning / bg-info / bg-success) render
+   the same light color in both themes; force dark text on top for contrast. */
+[data-bs-theme="dark"] .bg-warning:not(.text-white):not(.text-light),
+[data-bs-theme="dark"] .bg-info:not(.text-white):not(.text-light),
+[data-bs-theme="dark"] .bg-success:not(.text-white):not(.text-light) {
+  color: #16181c;
+}
+
+/* ===Select2 (django-autocomplete-light) dark-mode overrides===
+   Select2 ships a light theme with white/gray backgrounds; wire it to the
+   Bootstrap CSS variables so the widget matches the current theme. */
+[data-bs-theme="dark"] .select2-container--default .select2-selection--single,
+[data-bs-theme="dark"] .select2-container--default .select2-selection--multiple {
+  background-color: var(--bs-body-bg);
+  border-color: var(--bs-border-color);
+  color: var(--bs-body-color);
+}
+[data-bs-theme="dark"] .select2-container--default .select2-selection--single .select2-selection__rendered,
+[data-bs-theme="dark"] .select2-container--default .select2-selection--multiple .select2-selection__rendered {
+  color: var(--bs-body-color);
+}
+[data-bs-theme="dark"] .select2-container--default .select2-selection--single .select2-selection__placeholder,
+[data-bs-theme="dark"] .select2-container--default .select2-search__field::placeholder {
+  color: var(--bs-secondary-color, #adb5bd);
+}
+[data-bs-theme="dark"] .select2-container--default .select2-selection--single .select2-selection__arrow b {
+  border-color: var(--bs-body-color) transparent transparent transparent;
+}
+[data-bs-theme="dark"] .select2-container--default.select2-container--open .select2-selection--single .select2-selection__arrow b {
+  border-color: transparent transparent var(--bs-body-color) transparent;
+}
+/* Dropdown panel */
+[data-bs-theme="dark"] .select2-dropdown {
+  background-color: var(--bs-body-bg);
+  border-color: var(--bs-border-color);
+  color: var(--bs-body-color);
+}
+[data-bs-theme="dark"] .select2-search--dropdown .select2-search__field {
+  background-color: var(--bs-body-bg);
+  border-color: var(--bs-border-color);
+  color: var(--bs-body-color);
+}
+[data-bs-theme="dark"] .select2-results__option {
+  color: var(--bs-body-color);
+}
+[data-bs-theme="dark"] .select2-container--default .select2-results__option--highlighted[aria-selected],
+[data-bs-theme="dark"] .select2-container--default .select2-results__option--highlighted.select2-results__option--selectable {
+  background-color: var(--tt-dark-red, #a00e11);
+  color: #fff;
+}
+[data-bs-theme="dark"] .select2-container--default .select2-results__option[aria-selected="true"],
+[data-bs-theme="dark"] .select2-container--default .select2-results__option--selected {
+  background-color: rgba(244, 192, 70, 0.15);
+  color: var(--bs-body-color);
+}
+[data-bs-theme="dark"] .select2-container--default .select2-results__option[aria-disabled="true"] {
+  color: var(--bs-secondary-color, #6c757d);
+}
+/* Multi-select chips */
+[data-bs-theme="dark"] .select2-container--default .select2-selection--multiple .select2-selection__choice {
+  background-color: #2b2f36;
+  border-color: var(--bs-border-color);
+  color: var(--bs-body-color);
+}
+[data-bs-theme="dark"] .select2-container--default .select2-selection--multiple .select2-selection__choice__remove {
+  color: var(--bs-body-color);
+  border-color: var(--bs-border-color);
+}
+[data-bs-theme="dark"] .select2-container--default .select2-selection--multiple .select2-selection__choice__remove:hover {
+  background-color: var(--tt-dark-red, #a00e11);
+  color: #fff;
+}
+/* Disabled state */
+[data-bs-theme="dark"] .select2-container--default.select2-container--disabled .select2-selection--single,
+[data-bs-theme="dark"] .select2-container--default.select2-container--disabled .select2-selection--multiple {
+  background-color: var(--bs-tertiary-bg, #2b2f36);
+  color: var(--bs-secondary-color, #adb5bd);
+}
+/* Focus ring to match Bootstrap form controls */
+[data-bs-theme="dark"] .select2-container--default.select2-container--focus .select2-selection--single,
+[data-bs-theme="dark"] .select2-container--default.select2-container--focus .select2-selection--multiple {
+  border-color: var(--tt-dark-red, #a00e11);
+  box-shadow: 0 0 0 0.25rem rgba(160, 14, 17, 0.25);
+}
