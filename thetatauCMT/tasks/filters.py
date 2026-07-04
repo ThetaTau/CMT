@@ -1,11 +1,11 @@
 # filters.py
 import django_filters
-from django.db import models
+from django.db.models import Exists, OuterRef
 
 from core.filters import DateRangeFilter
 from core.models import CHAPTER_OFFICER_CHOICES
 
-from .models import TaskDate
+from .models import TaskChapter, TaskDate
 
 
 class TaskListFilter(django_filters.FilterSet):
@@ -30,14 +30,14 @@ class TaskListFilter(django_filters.FilterSet):
         order_by = ["date"]
 
     def filter_complete(self, queryset, field_name, value):
-        if value and value != "A":
-            chapter = self.request.user.current_chapter
-            queryset = queryset.annotate(
-                complete_result=models.Case(
-                    models.When(models.Q(chapters__chapter=chapter), models.Value("1")),
-                    default=models.Value("0"),
-                    output_field=models.CharField(),
-                )
-            )
-            queryset = queryset.filter(complete_result=value)
-        return queryset
+        if not value or value == "A":
+            return queryset
+        chapter = self.request.user.current_chapter
+        # Use Exists on a correlated subquery so that a TaskChapter created by
+        # a *different* chapter cannot introduce duplicate rows or misclassify
+        # the TaskDate for the current chapter.
+        completed = TaskChapter.objects.filter(task=OuterRef("pk"), chapter=chapter)
+        if value == "1":
+            return queryset.filter(Exists(completed))
+        # value == "0" → Incomplete for the current chapter
+        return queryset.filter(~Exists(completed))

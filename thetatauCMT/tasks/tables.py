@@ -29,7 +29,10 @@ class TaskTable(tables.Table):
     def __init__(self, complete=True, *args, **kwargs):
         extra_columns = []
         if complete:
-            extra_columns.extend([("complete_link", tables.Column(verbose_name="Complete Link"))])
+            # empty_values=() ensures render_complete_link is called even when
+            # the annotation is None (no completion for this chapter), so we
+            # emit the "None" placeholder instead of the default em-dash.
+            extra_columns.extend([("complete_link", tables.Column(verbose_name="Complete Link", empty_values=()))])
         kwargs["extra_columns"] = extra_columns
         super().__init__(*args, **kwargs)
 
@@ -39,9 +42,7 @@ class TaskTable(tables.Table):
         return value
 
     def render_complete_link(self, value):
-        if value != 0:
+        if value:
             url = reverse("tasks:detail", args=[value])
-            value = mark_safe(f'<a href="{url}" target="_blank">Completed Task Information</a>')
-        else:
-            value = mark_safe("<i>None</i>")
-        return value
+            return mark_safe(f'<a href="{url}" target="_blank">Completed Task Information</a>')
+        return mark_safe("<i>None</i>")
