@@ -7,195 +7,291 @@
 {% block title %}Member: {{ object.username }}{% endblock %}
 
 {% block content %}
-<div class="container">
-  <div class="row">
-    <div class="col-sm-12">
-      <h2>{{ object.name }}</h2>
-      {% if object.name %}
-        <table class="table">
-          <tr>
-            <td>Username</td>
-            <td>{{ object.username }}</td>
-          </tr>
-          <tr>
-            <td>Chapter</td>
-            <td>{{ object.chapter }}</td>
-          </tr>
-          <tr>
-            <td>Current Status</td>
-            <td>{{ object.get_current_status.status.title }}</td>
-          </tr>
-          <tr>
-            <td>Current Chapter Officer</td>
-            <td>{{ object.role.role|title }}</td>
-          </tr>
-        </table>
-        <h3>Current/Previous Roles:</h3>
-      {% for role in object.roles.all %}
-        <p>{{ role }} {{ role.start }} {{ role.end }}</p>
-      {% endfor %}
-      {% endif %}
+<div class="container py-4">
+  {% if object.name %}
+    {# ---------- Member header card ---------- #}
+    <div class="card shadow-sm mb-4 border-0">
+      <div class="card-body">
+        <div class="d-flex flex-wrap justify-content-between align-items-start gap-3">
+          <div>
+            <h2 class="card-title mb-1">{{ object.name }}</h2>
+            <p class="text-muted mb-2">
+              {{ object.username }}
+              {% if object.chapter %}
+                <span class="mx-2">&middot;</span>
+                {{ object.chapter }}
+              {% endif %}
+            </p>
+            <p class="mb-0 small">
+              <span class="text-muted">Current status:</span>
+              <span class="fw-semibold">{{ object.get_current_status.status.title }}</span>
+              {% if object.role.role %}
+                <span class="mx-2">&middot;</span>
+                <span class="text-muted">Officer role:</span>
+                <span class="fw-semibold">{{ object.role.role|title }}</span>
+              {% endif %}
+            </p>
+          </div>
+          {% if object == request.user %}
+            <div class="d-flex flex-wrap gap-2">
+              <a class="btn btn-outline-primary btn-sm" href="{% url 'account_email' %}">Update E-Mail</a>
+              <a class="btn btn-outline-warning btn-sm" href="{% url 'password_reset' %}">Change Password</a>
+              <a class="btn btn-outline-warning btn-sm" href="{% url 'two-factor-setup' %}">Setup 2FA</a>
+              <a class="btn btn-outline-warning btn-sm" href="{% url 'two-factor-backup-tokens' %}">Backup 2FA</a>
+              <a class="btn btn-outline-danger btn-sm" href="{% url 'two-factor-remove' %}">Remove 2FA</a>
+              <a class="btn btn-outline-danger btn-sm" href="{% url 'forms:resignation' %}">Resign Membership</a>
+            </div>
+          {% endif %}
+        </div>
+      </div>
     </div>
-  </div>
-<h3 id="user">Update Member Information:</h3>
-{% if object == request.user %}
-<!-- Action buttons -->
-<div class="row">
-  <div class="col-sm-12">
-    <a class="btn btn-primary" href="{% url 'account_email' %}" role="button">Update E-Mail</a>
-    <a class="btn btn-warning" href="{% url 'password_reset' %}" role="button">Change Password</a>
-    <br><a class="btn btn-warning" href="{% url 'two-factor-setup' %}" role="button">Setup Two Factor Auth</a>
-    <a class="btn btn-warning" href="{% url 'two-factor-backup-tokens' %}" role="button">Backup Two Factor Auth</a>
-    <a class="btn btn-danger" href="{% url 'two-factor-remove' %}" role="button">Remove Two Factor Auth</a>
-    <br><a class="btn btn-danger" href="{% url 'forms:resignation' %}" role="button">Resign Membership</a>
-  </div>
-</div>
-<!-- End Action buttons -->
-{% endif %}
-<form class="user" method="POST">
-  <script type="text/javascript" src="{% static 'admin/js/vendor/jquery/jquery.js' %}"></script>
-    {% csrf_token %}
-    <div>{{ forms.user.management_form|crispy }}</div>
-    {{ forms.user.media }}
-    {{ forms.user|crispy }}
-    <button class="btn btn-primary" name='action' value='user' type="submit">Update Member Information</button>
-</form>
-  <h3 id="demo">Update Member Demographics:</h3>
-  <h4>Why are we asking for these data?</h4>
-  <p>Theta Tau is committed to diversity, equity,
-  and inclusion. As part of that commitment,
-  we want to understand who our members are so that we
-  can gauge how diverse we are.</p>
-  <h4>What will Theta Tau do with these data?</h4>
-  <p>Our target right now is for our chapters to be at
-  least as diverse (in terms of gender and race
-  identities) as the population of engineers that they
-  draw from. These data will be used to inform chapters
-  of how they compare. These data will also be used to
-  study regional and national trends.</p>
-  <p>Theta Tau will not associate these data with
-  individual member records; e.g.,
-  when a member is looked up in the database,
-  it will not say “John Doe, black gay male.”
-  These data will only be used and reviewed in the aggregate.
-  These data will also never be broken down to the
-  point where a casual observer would be able to
-  identify individual members from the data
-  (we will never share data about an individual pledge
-  class, or a very small chapter.)</p>
-  <p>We will never use these data to target
-  communications or programming advertisements to you.</p>
-  <p><b>Only you can see answers below, otherwise data is viewed in aggregate.</b></p>
-  <form class="demo" method="POST">
-    {% csrf_token %}
-    {{ forms.demo.management_form|crispy }}
-    {{ forms.demo.media }}
-    {{ forms.demo|crispy }}
-    <button class="btn btn-primary" name='action' value='demo' type="submit">Update Member Demographics</button>
-  </form>
-<br>
-<h4 id="member_gpaservice">Update Member GPA / Service Hours:</h4>
-  <table>
-    <tr>
-        <th></th>
-        {% for header in table_headers %}
-          <th>{{ header }}</th>
-        {% endfor %}
-        <th></th>
-    </tr>
-        <tr  style="vertical-align:top">
-          <form class="gpa" method="POST">
-          {% csrf_token %}
-          <div>{{ forms.gpa.management_form|crispy }}</div>
-          <input type="hidden" id="chapter" name="chapter" value="{{ user.chapter }}">
-          <th>GPA</th>
-            {% for field in forms.gpa %}
-              <td>{{ field|as_crispy_field }}</td>
-            {% endfor %}
-            <td>
-              <button class="btn btn-primary" name='action' value='gpa' type="submit">Update</button>
-            </td>
+  {% endif %}
+
+  {# ---------- Collapsible sections ---------- #}
+  <div class="accordion" id="user-accordion">
+    {% if object.roles.all %}
+      <div class="accordion-item">
+        <h2 class="accordion-header" id="heading-roles">
+          <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#user-roles-collapse" aria-expanded="false" aria-controls="user-roles-collapse">
+            Current / Previous Roles
+          </button>
+        </h2>
+        <div id="user-roles-collapse" class="accordion-collapse collapse" aria-labelledby="heading-roles" data-bs-parent="#user-accordion">
+          <div class="accordion-body">
+            <ul class="list-unstyled mb-0">
+              {% for role in object.roles.all %}
+                <li>{{ role }} <span class="text-muted small">{{ role.start }} &ndash; {{ role.end }}</span></li>
+              {% endfor %}
+            </ul>
+          </div>
+        </div>
+      </div>
+    {% endif %}
+
+    <div class="accordion-item" id="user">
+      <h2 class="accordion-header" id="heading-user">
+        <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#user-info-collapse" aria-expanded="true" aria-controls="user-info-collapse">
+          Update Member Information
+        </button>
+      </h2>
+      <div id="user-info-collapse" class="accordion-collapse collapse show" aria-labelledby="heading-user" data-bs-parent="#user-accordion">
+        <div class="accordion-body">
+          <form class="user" method="POST">
+            <script type="text/javascript" src="{% static 'admin/js/vendor/jquery/jquery.js' %}"></script>
+            {% csrf_token %}
+            <div>{{ forms.user.management_form|crispy }}</div>
+            {{ forms.user.media }}
+            {{ forms.user|crispy }}
+            <button class="btn btn-primary" name='action' value='user' type="submit">Update Member Information</button>
           </form>
-        </tr>
-        <tr style="vertical-align:top">
-          <form class="service" method="POST">
-          {% csrf_token %}
-          <div>{{ forms.service.management_form|crispy }}</div>
-          <input type="hidden" id="chapter" name="chapter" value="{{ user.chapter }}">
-          <th>Service</th>
-            {% for field in forms.service %}
-              <td>{{ field|as_crispy_field }}</td>
-            {% endfor %}
-            <td>
-              <button class="btn btn-primary"  name='action' value='service' type="submit">Update</button>
-            </td>
+        </div>
+      </div>
+    </div>
+
+    <div class="accordion-item" id="demo">
+      <h2 class="accordion-header" id="heading-demo">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#user-demo-collapse" aria-expanded="false" aria-controls="user-demo-collapse">
+          Update Member Demographics
+        </button>
+      </h2>
+      <div id="user-demo-collapse" class="accordion-collapse collapse" aria-labelledby="heading-demo" data-bs-parent="#user-accordion">
+        <div class="accordion-body">
+          <h5>Why are we asking for these data?</h5>
+          <p>Theta Tau is committed to diversity, equity,
+            and inclusion. As part of that commitment,
+            we want to understand who our members are so that we
+            can gauge how diverse we are.</p>
+          <h5>What will Theta Tau do with these data?</h5>
+          <p>Our target right now is for our chapters to be at
+            least as diverse (in terms of gender and race
+            identities) as the population of engineers that they
+            draw from. These data will be used to inform chapters
+            of how they compare. These data will also be used to
+            study regional and national trends.</p>
+          <p>Theta Tau will not associate these data with
+            individual member records; e.g.,
+            when a member is looked up in the database,
+            it will not say &ldquo;John Doe, black gay male.&rdquo;
+            These data will only be used and reviewed in the aggregate.
+            These data will also never be broken down to the
+            point where a casual observer would be able to
+            identify individual members from the data
+            (we will never share data about an individual pledge
+            class, or a very small chapter.)</p>
+          <p>We will never use these data to target
+            communications or programming advertisements to you.</p>
+          <p><b>Only you can see answers below, otherwise data is viewed in aggregate.</b></p>
+          <form class="demo" method="POST">
+            {% csrf_token %}
+            {{ forms.demo.management_form|crispy }}
+            {{ forms.demo.media }}
+            {{ forms.demo|crispy }}
+            <button class="btn btn-primary" name='action' value='demo' type="submit">Update Member Demographics</button>
           </form>
-        </tr>
-    </table>
-  <h4 id="member_orgs">Update Member External Organizations:</h4>
-  {% comment %} Can not have the media here as it conflicts with tempus in another media {% endcomment %}
-  <form action="" method="post">
-    {% csrf_token %}
-    <div>{{ forms.orgs.management_form|crispy }}</div>
-  <table{% if form_id %} id="{{ form_id }}_table"{% endif%} class="table table-striped table-sm">
-        <thead>
-            {% if forms.orgs.readonly and not forms.orgs.queryset.exists %}
-            {% else %}
-                <tr>
+        </div>
+      </div>
+    </div>
+
+    <div class="accordion-item" id="member_gpaservice">
+      <h2 class="accordion-header" id="heading-gpa">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#user-gpa-collapse" aria-expanded="false" aria-controls="user-gpa-collapse">
+          Update Member GPA / Service Hours
+        </button>
+      </h2>
+      <div id="user-gpa-collapse" class="accordion-collapse collapse" aria-labelledby="heading-gpa" data-bs-parent="#user-accordion">
+        <div class="accordion-body">
+          <div class="table-responsive">
+            <table class="table">
+              <tr>
+                <th></th>
+                {% for header in table_headers %}
+                  <th>{{ header }}</th>
+                {% endfor %}
+                <th></th>
+              </tr>
+              <tr style="vertical-align:top">
+                <form class="gpa" method="POST">
+                  {% csrf_token %}
+                  <div>{{ forms.gpa.management_form|crispy }}</div>
+                  <input type="hidden" id="chapter" name="chapter" value="{{ user.chapter }}">
+                  <th>GPA</th>
+                  {% for field in forms.gpa %}
+                    <td>{{ field|as_crispy_field }}</td>
+                  {% endfor %}
+                  <td>
+                    <button class="btn btn-primary" name='action' value='gpa' type="submit">Update</button>
+                  </td>
+                </form>
+              </tr>
+              <tr style="vertical-align:top">
+                <form class="service" method="POST">
+                  {% csrf_token %}
+                  <div>{{ forms.service.management_form|crispy }}</div>
+                  <input type="hidden" id="chapter" name="chapter" value="{{ user.chapter }}">
+                  <th>Service</th>
+                  {% for field in forms.service %}
+                    <td>{{ field|as_crispy_field }}</td>
+                  {% endfor %}
+                  <td>
+                    <button class="btn btn-primary" name='action' value='service' type="submit">Update</button>
+                  </td>
+                </form>
+              </tr>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="accordion-item" id="member_orgs">
+      <h2 class="accordion-header" id="heading-orgs">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#user-orgs-collapse" aria-expanded="false" aria-controls="user-orgs-collapse">
+          Update Member External Organizations
+        </button>
+      </h2>
+      <div id="user-orgs-collapse" class="accordion-collapse collapse" aria-labelledby="heading-orgs" data-bs-parent="#user-accordion">
+        <div class="accordion-body">
+          {% comment %} Can not have the media here as it conflicts with tempus in another media {% endcomment %}
+          <form action="" method="post">
+            {% csrf_token %}
+            <div>{{ forms.orgs.management_form|crispy }}</div>
+            <table{% if form_id %} id="{{ form_id }}_table"{% endif %} class="table table-striped table-sm">
+              <thead>
+                {% if forms.orgs.readonly and not forms.orgs.queryset.exists %}
+                {% else %}
+                  <tr>
                     {% for field in forms.orgs.forms.0 %}
-                        {% if field.label and not field.is_hidden and field.label != "Delete" %}
-                            <th for="{{ field.auto_id }}" class="col-form-label {% if field.field.required %}requiredField{% endif %}">
-                                {{ field.label|safe }}{% if field.field.required %}<span class="asteriskField">*</span>{% endif %}
-                            </th>
-                        {% endif %}
+                      {% if field.label and not field.is_hidden and field.label != "Delete" %}
+                        <th for="{{ field.auto_id }}" class="col-form-label {% if field.field.required %}requiredField{% endif %}">
+                          {{ field.label|safe }}{% if field.field.required %}<span class="asteriskField">*</span>{% endif %}
+                        </th>
+                      {% endif %}
                     {% endfor %}
-                <th>Add / <br>Remove</th>
-                </tr>
-            {% endif %}
-        </thead>
-        <tbody>
-            {% for form in forms.orgs %}
+                    <th>Add / <br>Remove</th>
+                  </tr>
+                {% endif %}
+              </thead>
+              <tbody>
+                {% for form in forms.orgs %}
                   <tr class="row_form">
-                  <div class="input-group">
+                    <div class="input-group">
                       {% for field in form %}
                         {% if field.label == "Delete" %}
                           <td class="hidden" style="display: none;">
-                              {{ field }}
+                            {{ field }}
                           </td>
-                        {% elif field.label == "Start Date" or field.label == "End Date"%}
+                        {% elif field.label == "Start Date" or field.label == "End Date" %}
                           <td>
-                          <div style="position: relative">
-                            {% crispy_field field %}
-                            {% if field.errors %}
-                              {% for error in field.errors %}
-                                <strong style="color:red">{{ error }}</strong>
-                              {% endfor %}
-                            {% endif %}
-                          </div>
+                            <div style="position: relative">
+                              {% crispy_field field %}
+                              {% if field.errors %}
+                                {% for error in field.errors %}
+                                  <strong style="color:red">{{ error }}</strong>
+                                {% endfor %}
+                              {% endif %}
+                            </div>
                           </td>
                         {% else %}
-                          {% include 'bootstrap5/field.html' with tag="td" form_show_labels=False form_show_errors=True%}
+                          {% include 'bootstrap5/field.html' with tag="td" form_show_labels=False form_show_errors=True %}
                         {% endif %}
                       {% endfor %}
-                  <td>
-                      <button class="btn btn-success add-row_form">+</button>
-                  </td>
-                  </div>
+                      <td>
+                        <button class="btn btn-success add-row_form">+</button>
+                      </td>
+                    </div>
                   </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-    <button class="btn btn-primary"  name='action' value='orgs' type="submit">Update Orgs</button>
-  </form>
-<br>
-<h4 id="submissions">Previous Member Submissions:</h4>
-{% render_table submission_table %}
+                {% endfor %}
+              </tbody>
+            </table>
+            <button class="btn btn-primary" name='action' value='orgs' type="submit">Update Orgs</button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <div class="accordion-item" id="submissions">
+      <h2 class="accordion-header" id="heading-submissions">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#user-submissions-collapse" aria-expanded="false" aria-controls="user-submissions-collapse">
+          Previous Member Submissions
+        </button>
+      </h2>
+      <div id="user-submissions-collapse" class="accordion-collapse collapse" aria-labelledby="heading-submissions" data-bs-parent="#user-accordion">
+        <div class="accordion-body">
+          {% render_table submission_table %}
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
 {% endblock content %}
 {% block javascript %}
 {{ block.super }}
 <script src="{% static 'js/dynamic_formset.js' %}"></script>
 <script type="text/javascript">
+  // Scroll any accordion item into view when it opens, so the header sits at the top.
+  document.querySelectorAll('#user-accordion .accordion-collapse').forEach(function (el) {
+    el.addEventListener('shown.bs.collapse', function () {
+      var item = el.closest('.accordion-item');
+      if (item) {
+        item.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    });
+  });
+
+  // If the URL includes an anchor that matches one of our accordion items, open it.
+  (function openAccordionFromHash() {
+    var hash = window.location.hash;
+    if (!hash) { return; }
+    var target = document.querySelector(hash);
+    if (!target) { return; }
+    var pane = target.classList.contains('accordion-collapse')
+      ? target
+      : target.querySelector('.accordion-collapse');
+    if (pane && typeof bootstrap !== 'undefined' && bootstrap.Collapse) {
+      bootstrap.Collapse.getOrCreateInstance(pane).show();
+    }
+  })();
+
   $(document).ready(function() {
     var selected_values = $('input[name="gender"]:checked');
     var set = false;
