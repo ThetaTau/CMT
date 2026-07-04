@@ -1603,12 +1603,33 @@ class DisciplinaryForm2(forms.ModelForm):
             "results_letter",
         ]
 
+    # Fields that describe the outcome of the trial. When the trial did not
+    # take place (take == "False"), these are N/A and must not be required —
+    # otherwise the template hides them while they remain required, and submit
+    # silently fails HTML5 / server-side validation.
+    TRIAL_OUTCOME_FIELDS = (
+        "attend",
+        "guilty",
+        "notify_results",
+        "notify_results_date",
+        "punishment",
+        "suspension_end",
+        "collect_items",
+        "rescheduled_date",
+    )
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         for field in self.fields:
             if field in ["punishment_other", "minutes", "results_letter", "why_take"]:
                 continue
             self.fields[field].required = True
+        if self.is_bound and self.data.get("take") == "False":
+            for field in self.TRIAL_OUTCOME_FIELDS:
+                self.fields[field].required = False
+            self.fields["why_take"].required = True
+            if self.data.get("why_take") == "rescheduled":
+                self.fields["rescheduled_date"].required = True
 
     def clean(self):
         cleaned_data = super().clean()

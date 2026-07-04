@@ -13,7 +13,7 @@
   {% if object.trial_date > date %}
     Trial date not yet reached, please return on or after the trial date to submit the form.
   {% else %}
-  <form method="POST" enctype="multipart/form-data" class="form">
+  <form method="POST" enctype="multipart/form-data" class="form" novalidate>
     {{ form.media }}
     <link href="{% static 'css/project.css' %}" rel="stylesheet">
     {% csrf_token %}
