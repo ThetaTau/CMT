@@ -560,31 +560,65 @@ select.form-control[multiple], select.form-control[size] {
   border-color: transparent transparent var(--bs-body-color) transparent;
 }
 /* Dropdown panel */
-[data-bs-theme="dark"] .select2-dropdown {
-  background-color: var(--bs-body-bg);
-  border-color: var(--bs-border-color);
-  color: var(--bs-body-color);
+[data-bs-theme="dark"] .select2-dropdown,
+[data-bs-theme="dark"] .select2-container--default .select2-dropdown {
+  background-color: var(--bs-body-bg) !important;
+  border-color: var(--bs-border-color) !important;
+  color: var(--bs-body-color) !important;
 }
-[data-bs-theme="dark"] .select2-search--dropdown .select2-search__field {
-  background-color: var(--bs-body-bg);
-  border-color: var(--bs-border-color);
-  color: var(--bs-body-color);
+/* Search input inside the dropdown (the box you type in) */
+[data-bs-theme="dark"] .select2-search--dropdown,
+[data-bs-theme="dark"] .select2-container--default .select2-search--dropdown {
+  background-color: var(--bs-body-bg) !important;
 }
-[data-bs-theme="dark"] .select2-results__option {
-  color: var(--bs-body-color);
+[data-bs-theme="dark"] .select2-search--dropdown .select2-search__field,
+[data-bs-theme="dark"] .select2-container--default .select2-search--dropdown .select2-search__field {
+  background-color: var(--bs-body-bg) !important;
+  border-color: var(--bs-border-color) !important;
+  color: var(--bs-body-color) !important;
+}
+[data-bs-theme="dark"] .select2-search--dropdown .select2-search__field:focus,
+[data-bs-theme="dark"] .select2-container--default .select2-search--dropdown .select2-search__field:focus {
+  border-color: var(--tt-dark-red, #a00e11) !important;
+  outline: none !important;
+  box-shadow: 0 0 0 0.15rem rgba(160, 14, 17, 0.35) !important;
+}
+/* Results list container (the <ul> that holds each option) */
+[data-bs-theme="dark"] .select2-results,
+[data-bs-theme="dark"] .select2-results__options,
+[data-bs-theme="dark"] .select2-container--default .select2-results > .select2-results__options {
+  background-color: var(--bs-body-bg) !important;
+  color: var(--bs-body-color) !important;
+}
+[data-bs-theme="dark"] .select2-results__option,
+[data-bs-theme="dark"] .select2-container--default .select2-results__option {
+  background-color: var(--bs-body-bg) !important;
+  color: var(--bs-body-color) !important;
 }
 [data-bs-theme="dark"] .select2-container--default .select2-results__option--highlighted[aria-selected],
 [data-bs-theme="dark"] .select2-container--default .select2-results__option--highlighted.select2-results__option--selectable {
-  background-color: var(--tt-dark-red, #a00e11);
-  color: #fff;
+  background-color: var(--tt-dark-red, #a00e11) !important;
+  color: #fff !important;
 }
 [data-bs-theme="dark"] .select2-container--default .select2-results__option[aria-selected="true"],
 [data-bs-theme="dark"] .select2-container--default .select2-results__option--selected {
-  background-color: rgba(244, 192, 70, 0.15);
-  color: var(--bs-body-color);
+  background-color: rgba(244, 192, 70, 0.15) !important;
+  color: var(--bs-body-color) !important;
 }
 [data-bs-theme="dark"] .select2-container--default .select2-results__option[aria-disabled="true"] {
-  color: var(--bs-secondary-color, #6c757d);
+  color: var(--bs-secondary-color, #6c757d) !important;
+  background-color: var(--bs-body-bg) !important;
+}
+/* No results / loading / searching messages */
+[data-bs-theme="dark"] .select2-container--default .select2-results__option[role="alert"],
+[data-bs-theme="dark"] .select2-results__message {
+  background-color: var(--bs-body-bg) !important;
+  color: var(--bs-secondary-color, #adb5bd) !important;
+}
+/* Group headings inside the results list */
+[data-bs-theme="dark"] .select2-container--default .select2-results__group {
+  background-color: var(--bs-tertiary-bg, #2b2f36) !important;
+  color: var(--bs-body-color) !important;
 }
 /* Multi-select chips */
 [data-bs-theme="dark"] .select2-container--default .select2-selection--multiple .select2-selection__choice {
@@ -611,4 +645,108 @@ select.form-control[multiple], select.form-control[size] {
 [data-bs-theme="dark"] .select2-container--default.select2-container--focus .select2-selection--multiple {
   border-color: var(--tt-dark-red, #a00e11);
   box-shadow: 0 0 0 0.25rem rgba(160, 14, 17, 0.25);
+}
+
+/* ===CKEditor 5 (django-ckeditor-5) dark-mode overrides===
+   CKEditor 5 exposes its color palette via CSS custom properties on the
+   .ck root class. Re-point the relevant tokens at the Bootstrap theme
+   variables so the editable area, toolbar, dropdowns, and input widgets
+   render with the same dark palette as the rest of the page. */
+[data-bs-theme="dark"] .ck.ck-editor,
+[data-bs-theme="dark"] .ck.ck-content,
+[data-bs-theme="dark"] .ck.ck-toolbar,
+[data-bs-theme="dark"] .ck-body-wrapper .ck,
+[data-bs-theme="dark"] .ck-balloon-panel {
+  --ck-color-base-background: var(--bs-body-bg);
+  --ck-color-base-foreground: var(--bs-tertiary-bg, #2b2f36);
+  --ck-color-base-border: var(--bs-border-color);
+  --ck-color-base-text: var(--bs-body-color);
+  --ck-color-base-active: var(--tt-dark-red, #a00e11);
+  --ck-color-base-active-focus: var(--tt-dark-red, #a00e11);
+  --ck-color-focus-border: var(--tt-dark-red, #a00e11);
+  --ck-color-focus-outer-shadow: rgba(160, 14, 17, 0.25);
+  --ck-color-shadow-drop: rgba(0, 0, 0, 0.35);
+  --ck-color-shadow-inner: rgba(0, 0, 0, 0.2);
+
+  --ck-color-toolbar-background: var(--bs-tertiary-bg, #2b2f36);
+  --ck-color-toolbar-border: var(--bs-border-color);
+
+  --ck-color-button-default-background: transparent;
+  --ck-color-button-default-hover-background: rgba(255, 255, 255, 0.08);
+  --ck-color-button-default-active-background: rgba(255, 255, 255, 0.12);
+  --ck-color-button-default-disabled-background: transparent;
+  --ck-color-button-on-background: rgba(244, 192, 70, 0.15);
+  --ck-color-button-on-hover-background: rgba(244, 192, 70, 0.22);
+  --ck-color-button-on-active-background: rgba(244, 192, 70, 0.28);
+  --ck-color-button-on-color: var(--tt-gold, #f4c046);
+  --ck-color-button-action-background: var(--tt-dark-red, #a00e11);
+  --ck-color-button-action-hover-background: #b0161a;
+  --ck-color-button-action-active-background: #8b0d10;
+  --ck-color-button-save: #3fbf7a;
+  --ck-color-button-cancel: #d9534f;
+
+  --ck-color-input-background: var(--bs-body-bg);
+  --ck-color-input-border: var(--bs-border-color);
+  --ck-color-input-text: var(--bs-body-color);
+  --ck-color-input-disabled-background: var(--bs-tertiary-bg, #2b2f36);
+  --ck-color-input-disabled-border: var(--bs-border-color);
+  --ck-color-input-disabled-text: var(--bs-secondary-color, #adb5bd);
+
+  --ck-color-panel-background: var(--bs-tertiary-bg, #2b2f36);
+  --ck-color-panel-border: var(--bs-border-color);
+  --ck-color-dropdown-panel-background: var(--bs-tertiary-bg, #2b2f36);
+  --ck-color-dropdown-panel-border: var(--bs-border-color);
+
+  --ck-color-list-background: var(--bs-tertiary-bg, #2b2f36);
+  --ck-color-list-button-hover-background: rgba(255, 255, 255, 0.08);
+  --ck-color-list-button-on-background: var(--tt-dark-red, #a00e11);
+  --ck-color-list-button-on-background-focus: #8b0d10;
+  --ck-color-list-button-on-text: #fff;
+
+  --ck-color-tooltip-background: #16181c;
+  --ck-color-tooltip-text: #e8eaed;
+
+  --ck-color-widget-blurred-border: var(--bs-border-color);
+  --ck-color-widget-hover-border: var(--tt-gold, #f4c046);
+  --ck-color-widget-editable-focus-background: var(--bs-body-bg);
+  --ck-color-widget-drag-handler-icon-color: var(--bs-body-color);
+
+  --ck-color-image-caption-background: var(--bs-tertiary-bg, #2b2f36);
+  --ck-color-image-caption-text: var(--bs-body-color);
+
+  --ck-color-table-caption-background: var(--bs-tertiary-bg, #2b2f36);
+  --ck-color-table-caption-text: var(--bs-body-color);
+  --ck-color-table-focused-cell-background: rgba(244, 192, 70, 0.12);
+
+  --ck-color-link-default: #6ea8fe;
+  --ck-color-link-selected-background: rgba(110, 168, 254, 0.15);
+}
+/* The editable region has its own background/text tokens that fall back to
+   white if not set explicitly. */
+[data-bs-theme="dark"] .ck.ck-editor__main > .ck-editor__editable,
+[data-bs-theme="dark"] .ck.ck-content {
+  background-color: var(--bs-body-bg) !important;
+  color: var(--bs-body-color) !important;
+}
+[data-bs-theme="dark"] .ck.ck-editor__main > .ck-editor__editable.ck-blurred {
+  background-color: var(--bs-body-bg) !important;
+}
+[data-bs-theme="dark"] .ck.ck-editor__main > .ck-editor__editable.ck-focused {
+  border-color: var(--tt-dark-red, #a00e11) !important;
+  box-shadow: 0 0 0 0.25rem rgba(160, 14, 17, 0.25) !important;
+}
+/* Toolbar buttons/icons need explicit color to render on the dark surface. */
+[data-bs-theme="dark"] .ck.ck-toolbar .ck-button,
+[data-bs-theme="dark"] .ck.ck-toolbar .ck-button .ck-icon,
+[data-bs-theme="dark"] .ck.ck-toolbar .ck-button .ck-button__label,
+[data-bs-theme="dark"] .ck.ck-dropdown__panel .ck-button,
+[data-bs-theme="dark"] .ck.ck-dropdown__panel .ck-button .ck-icon,
+[data-bs-theme="dark"] .ck.ck-dropdown__panel .ck-button .ck-button__label {
+  color: var(--bs-body-color);
+}
+/* Balloon panels (link edit, table settings, etc.) */
+[data-bs-theme="dark"] .ck.ck-balloon-panel {
+  background-color: var(--bs-tertiary-bg, #2b2f36) !important;
+  border-color: var(--bs-border-color) !important;
+  color: var(--bs-body-color);
 }

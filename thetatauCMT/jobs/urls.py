@@ -44,5 +44,25 @@ urlpatterns = [
         views.JobSearchUpdateView.as_view(),
         name="update_search",
     ),
+    path(
+        "report/<int:pk>/",
+        views.JobReportView.as_view(),
+        name="report",
+    ),
+    path(
+        "approve/<int:pk>/",
+        views.JobApproveView.as_view(),
+        name="approve",
+    ),
+    path(
+        "delete/<int:pk>/",
+        views.JobDeleteView.as_view(),
+        name="delete",
+    ),
+    path(
+        "ban/<int:pk>/",
+        views.JobBanUserView.as_view(),
+        name="ban",
+    ),
     path("<int:pk>/<slug:slug>/", views.JobDetailView.as_view(), name="detail"),
 ]

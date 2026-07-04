@@ -10,9 +10,15 @@
 <div class="page-header d-flex flex-wrap align-items-center gap-2 mb-3">
   <h2 class="page-title mb-0">Job Board</h2>
   <div class="page-actions">
-    <a href="{% url 'jobs:add' %}" class="btn btn-primary">
-      <i class="fa fa-briefcase"></i> Add Job
-    </a>
+    {% if user_is_banned %}
+      <span class="badge bg-danger align-self-center" title="Your account has been barred from posting new jobs. Contact the Central Office if you believe this is an error.">
+        <i class="fas fa-ban"></i> Job posting disabled
+      </span>
+    {% else %}
+      <a href="{% url 'jobs:add' %}" class="btn btn-primary">
+        <i class="fa fa-briefcase"></i> Add Job
+      </a>
+    {% endif %}
     <a href="{% url 'jobs:search' %}" class="btn btn-outline-secondary">
       <i class="fas fa-magnifying-glass-plus"></i> Advanced Searches
     </a>

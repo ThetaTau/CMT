@@ -59,12 +59,21 @@ class JobForm(forms.ModelForm):
         widget=ListSelect2Multiple(
             url="zipcode-autocomplete",
         ),
-        help_text="What is the location that this job is related to.",
+        help_text=(
+            "Start typing a city name or 5-digit zip code to search. "
+            "You do NOT have to pick from the list, if the location you want isn't shown, "
+            "type it in full and press Enter (or Tab) to add it as a new entry."
+        ),
     )
     keywords = Select2ListCreateMultipleChoiceField(
         label="Keywords",
         queryset=Keyword.objects.all(),
-        help_text="Keywords to help job searchers find this job",
+        help_text=(
+            "Keywords help job searchers find this job. "
+            "Start typing to search existing keywords, you do NOT have to pick from the list. "
+            "If nothing matches, just type your own keyword and press Enter (or Tab) to add it. "
+            "Add as many as you like."
+        ),
         widget=ListSelect2Multiple(
             url="jobs:keyword-autocomplete",
         ),
@@ -73,7 +82,11 @@ class JobForm(forms.ModelForm):
     majors = Select2ListCreateMultipleChoiceField(
         label="Majors",
         queryset=Major.objects.all(),
-        help_text="If the job posting is for specific majors only, what are those majors?",
+        help_text=(
+            "If this job is only for specific majors, list them here. "
+            "Start typing to search, you do NOT have to pick from the list. "
+            "If the major isn't shown, type it in and press Enter (or Tab) to add it as a new entry."
+        ),
         widget=ListSelect2Multiple(
             url="jobs:major-autocomplete",
         ),

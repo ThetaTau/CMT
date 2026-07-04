@@ -6,111 +6,436 @@
 {% block css %}
     {{ block.super }}
     <style>
-        body {
-            background-color: #f8f9fa;
-        }
-        .card {
+        .job-card {
             border-radius: 10px;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-            padding: 20px;
+            padding: 25px 30px;
             margin: 20px 0;
+            background-color: var(--bs-body-bg);
+            color: var(--bs-body-color);
+            border: 1px solid var(--bs-border-color);
         }
-        .badge {
-            font-size: 14px;
-            padding: 8px 12px;
+        .job-header {
+            border-bottom: 1px solid var(--bs-border-color);
+            padding-bottom: 15px;
+            margin-bottom: 20px;
         }
-        .contact-info {
-            font-weight: bold;
-            color: #007bff;
+        .job-header .job-title {
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+        .job-header .job-company {
+            color: var(--bs-secondary-color, var(--bs-body-color));
+            margin-bottom: 5px;
+        }
+        .job-meta-list {
+            list-style: none;
+            padding-left: 0;
+            margin-bottom: 0;
+        }
+        .job-meta-list li {
+            padding: 6px 0;
+            border-bottom: 1px dashed var(--bs-border-color);
+        }
+        .job-meta-list li:last-child {
+            border-bottom: none;
+        }
+        .job-meta-label {
+            font-weight: 600;
+            color: var(--bs-emphasis-color, var(--bs-body-color));
+            min-width: 190px;
+            display: inline-block;
+        }
+        .job-description {
+            background-color: var(--bs-tertiary-bg, var(--bs-body-bg));
+            color: var(--bs-body-color);
+            border-left: 4px solid var(--bs-primary);
+            padding: 15px 18px;
+            border-radius: 4px;
+        }
+        .job-actions .btn {
+            margin-right: 6px;
+            margin-bottom: 6px;
+        }
+        .badge-pill-tag {
+            display: inline-block;
+            background-color: var(--bs-secondary-bg, var(--bs-tertiary-bg));
+            color: var(--bs-body-color);
+            border: 1px solid var(--bs-border-color);
+            border-radius: 12px;
+            padding: 3px 10px;
+            margin: 2px 4px 2px 0;
+            font-size: 13px;
         }
     </style>
 {% endblock %}
 {% block content %}
-<div class="container mt-5">
+<div class="container mt-4">
     <div class="row justify-content-center">
-        <div class="col-md-8">
-            <div class="card">
-                <h2 class="text-center text-primary">{{ job.title }}</h2>
-                <h5 class="text-center text-secondary">{{ job.company }}</h5>
-              <h5 class="text-center text-secondary"><a href="{{ job.url }}" target="_blank">Link to Job Post</a></h5>
-              {% if job.sponsored %}<h9 class="text-center text-muted"><i>Sponsored</i></h9>{% endif %}
-              <hr>
-            {% if job.contact %}
-              <div class="mb-3">
-              <strong>Available Contact:</strong> {{ job.created_by }}
-            {% endif %}</div>
-            <div class="mb-3">
-                {% if job.other_contact %}
-                  <strong>Other Contact:</strong> {{ job.other_contact }}
-                {% endif %}
-              </div>
-              <div class="mb-3">
-                    <strong>Description:</strong>
-                    <p>{{ job.description|safe }}</p>
-                </div>
-
-                <div class="mb-3">
-                    <strong>Education Qualification:</strong>
-                    {{ job.education_qualification }}
-                </div>
-
-                <div class="mb-3">
-                    <strong>Experience:</strong>
-                    {{ job.experience }}
-                </div>
-                {% if job.majors_specific %}
-                  <div class="mb-3">
-                    <strong>Majors:</strong>
-                        {% for major in job.majors.all %}
-                            <span>{{ major.name }}</span>
-                        {% endfor %}
+        <div class="col-md-9">
+            {% if creator_is_banned and request.is_nat_officer or creator_is_banned and request.user.is_superuser %}
+<div class="alert alert-secondary" role="alert">
+    <i class="fas fa-ban"></i>
+    <strong>{{ job.created_by }}</strong> has been barred from creating new job postings
+    {% if creator_ban.banned_by %}by <strong>{{ creator_ban.banned_by }}</strong>{% endif %}
+    {% if creator_ban.banned_at %}on {{ creator_ban.banned_at|date:"M j, Y g:i A" }}{% endif %}.
+    {% if creator_ban.reason %}<br><strong>Reason:</strong> {{ creator_ban.reason }}{% endif %}
+</div>
+{% endif %}
+{% if job.deleted %}
+                <div class="alert alert-danger" role="alert">
+                    <h5 class="alert-heading mb-2">
+                        <i class="fas fa-trash"></i> This posting has been removed
+                    </h5>
+                    <p class="mb-2">
+                        <strong>Removed by:</strong>
+                        {{ job.deleted_by.get_full_name|default:job.deleted_by|default:"a National Officer" }}
+                        {% if job.deleted_at %}
+                            on {{ job.deleted_at|date:"M j, Y g:i A" }}
+                        {% endif %}
+                    </p>
+                    {% if job.deleted_reason %}
+                        <p class="mb-0"><strong>Reason:</strong> {{ job.deleted_reason }}</p>
+                    {% endif %}
                 </div>
             {% endif %}
-
-                <div class="mb-3">
-                    <strong>Job Type:</strong>
-                    <span>{{ job.job_type }}</span>
-                </div>
-                <div class="mb-3">
-                    <strong>Location Type:</strong>
-                    <span>{{ job.location_type }}</span>
-                </div>
-
-                <div class="mb-3">
-                    <strong>Locations:</strong>
-                        {% for location in job.location.all %}
-                            <span>{{ location.name }}</span>
-                        {% endfor %}
-                    <p>{{ job.country }}</p>
-                </div>
-
-                <div class="mb-3">
-                    <strong>Keywords:</strong>
-                    <p>
-                        {% for keyword in job.keywords.all %}
-                            <span>{{ keyword }},</span>
-                        {% endfor %}
-                    </p>
-                </div>
-                {% if job.attachment %}
-                    <div class="mb-3">
-                    Attachment: <a href="{{ job.attachment.url }}">{{ job.attachment }}</a></td>
+            {% if job.reported and not job.approved %}
+                {% if request.is_nat_officer or request.user.is_superuser %}
+                    <div class="alert alert-warning" role="alert">
+                        <h5 class="alert-heading mb-2">
+                            <i class="fas fa-flag"></i> This posting has been reported
+                        </h5>
+                        <p class="mb-2">
+                            <strong>Reported by:</strong>
+                            {{ job.reported_by.get_full_name|default:job.reported_by|default:"(unknown)" }}
+                            {% if job.reported_by.email %}
+                                (<a href="mailto:{{ job.reported_by.email }}">{{ job.reported_by.email }}</a>)
+                            {% endif %}
+                            {% if job.reported_at %}
+                                on {{ job.reported_at|date:"M j, Y g:i A" }}
+                            {% endif %}
+                        </p>
+                        {% if job.reported_reason %}
+                            <p class="mb-2"><strong>Reason:</strong> {{ job.reported_reason }}</p>
+                        {% endif %}
+                        <p class="mb-2">This posting is hidden from all non-National-Officer members until it is approved or removed.</p>
+                        {% if not job.deleted %}
+                            <button type="button" class="btn btn-success"
+                                    data-bs-toggle="modal" data-bs-target="#approveJobModal">
+                                <i class="fas fa-check"></i> Approve Posting
+                            </button>
+                            <button type="button" class="btn btn-danger ms-2"
+                                    data-bs-toggle="modal" data-bs-target="#deleteJobModal">
+                                <i class="fas fa-trash"></i> Delete Posting
+                            </button>
+                            {% if job.created_by and job.created_by != request.user and not creator_is_banned %}
+                                <button type="button" class="btn btn-dark ms-2"
+                                        data-bs-toggle="modal" data-bs-target="#banMemberModal">
+                                    <i class="fas fa-ban"></i> Ban Member
+                                </button>
+                            {% endif %}
+                        {% endif %}
+                    </div>
+                {% elif request.user == job.created_by %}
+                    <div class="alert alert-warning" role="alert">
+                        <h5 class="alert-heading mb-2">
+                            <i class="fas fa-flag"></i> This posting has been reported
+                        </h5>
+                        <p class="mb-2">A member has reported this posting for review by the Central Office. It is currently hidden from other members until a National Officer approves or removes it.</p>
+                        {% if job.reported_at %}
+                            <p class="mb-2"><strong>Reported on:</strong> {{ job.reported_at|date:"M j, Y g:i A" }}</p>
+                        {% endif %}
+                        {% if job.reported_reason %}
+                            <p class="mb-0"><strong>Reason given:</strong> {{ job.reported_reason }}</p>
+                        {% endif %}
                     </div>
                 {% endif %}
-                <div class="mb-3">
+            {% elif job.approved %}
+                <div class="alert alert-success py-2" role="alert">
+                    <i class="fas fa-check-circle"></i>
+                    Approved by {{ job.approved_by.get_full_name|default:job.approved_by|default:"a National Officer" }}
+                    {% if job.approved_at %}on {{ job.approved_at|date:"M j, Y" }}{% endif %}.
+                </div>
+            {% endif %}
+            <div class="job-card">
+                <div class="job-header text-center">
+                    <h2 class="job-title text-primary">{{ job.title }}</h2>
+                    <h5 class="job-company">{{ job.company }}</h5>
+                    <div>
+                        <a href="{{ job.url }}" target="_blank" rel="noopener noreferrer">
+                            <i class="fas fa-external-link-alt"></i> View Original Job Post
+                        </a>
+                    </div>
+                    {% if job.sponsored %}
+                        <div class="mt-2">
+                            <span class="badge bg-warning text-dark"><i class="fas fa-star"></i> Sponsored</span>
+                        </div>
+                    {% endif %}
+                </div>
+
+                <ul class="job-meta-list">
+                    {% if job.contact %}
+                        <li>
+                            <span class="job-meta-label">Available Contact:</span>
+                            {{ job.created_by.get_full_name|default:job.created_by }}
+                            {% if job.created_by.email %}
+                                &mdash;
+                                <a href="mailto:{{ job.created_by.email }}">{{ job.created_by.email }}</a>
+                            {% endif %}
+                        </li>
+                    {% endif %}
+                    {% if job.other_contact %}
+                        <li>
+                            <span class="job-meta-label">Other Contact:</span>
+                            {{ job.other_contact }}
+                        </li>
+                    {% endif %}
+                    <li>
+                        <span class="job-meta-label">Education Qualification:</span>
+                        {{ job.get_education_qualification_display|default:"&mdash;" }}
+                    </li>
+                    <li>
+                        <span class="job-meta-label">Experience:</span>
+                        {{ job.get_experience_display|default:"&mdash;" }}
+                    </li>
+                    <li>
+                        <span class="job-meta-label">Job Type:</span>
+                        {{ job.get_job_type_display|default:"&mdash;" }}
+                    </li>
+                    <li>
+                        <span class="job-meta-label">Location Type:</span>
+                        {{ job.get_location_type_display|default:"&mdash;" }}
+                    </li>
+                    {% if job.majors_specific %}
+                        <li>
+                            <span class="job-meta-label">Majors:</span>
+                            {% for major in job.majors.all %}
+                                <span class="badge-pill-tag">{{ major.name }}</span>
+                            {% empty %}
+                                &mdash;
+                            {% endfor %}
+                        </li>
+                    {% endif %}
+                    <li>
+                        <span class="job-meta-label">Location:</span>
+                        {% for location in job.location.all %}
+                            <span class="badge-pill-tag">{{ location.name }}</span>
+                        {% empty %}
+                            &mdash;
+                        {% endfor %}
+                        {% if job.country %}
+                            <span class="badge-pill-tag">{{ job.country }}</span>
+                        {% endif %}
+                    </li>
+                    <li>
+                        <span class="job-meta-label">Keywords:</span>
+                        {% for keyword in job.keywords.all %}
+                            <span class="badge-pill-tag">{{ keyword }}</span>
+                        {% empty %}
+                            &mdash;
+                        {% endfor %}
+                    </li>
+                    <li>
+                        <span class="job-meta-label">Posted:</span>
+                        {{ job.publish_start|date:"M j, Y" }}
+                        &nbsp;&mdash;&nbsp;
+                        <span class="job-meta-label" style="min-width: 0;">Closes:</span>
+                        {{ job.publish_end|date:"M j, Y" }}
+                    </li>
+                    {% if job.attachment %}
+                        <li>
+                            <span class="job-meta-label">Attachment:</span>
+                            <a href="{{ job.attachment.url }}" target="_blank" rel="noopener noreferrer">
+                                <i class="fas fa-paperclip"></i> {{ job.attachment.name|cut:"jobs-attachments/" }}
+                            </a>
+                        </li>
+                    {% endif %}
+                </ul>
+
+                <div class="mt-4">
+                    <h5>Description</h5>
+                    <div class="job-description">
+                        {{ job.description|safe }}
+                    </div>
+                </div>
+
+                <div class="mt-4 job-actions">
                     <button type="button" class="btn btn-secondary"
-                    onclick="window.history.back();"
-                    style="display: none;"
-                    id="backButton">Back</button>
-                    <button type="button" class="btn btn-secondary" onclick="location.href='{% url 'jobs:list' %}';">Jobs list</button><br>
-                    {% if request.user == job.created_by %}
-                      Only you can edit this job. <br><a class="btn btn-primary" href="{% url 'jobs:update' job.pk %}" role="button">Edit Job</a>
+                            onclick="window.history.back();"
+                            style="display: none;"
+                            id="backButton">
+                        <i class="fas fa-arrow-left"></i> Back
+                    </button>
+                    <a href="{% url 'jobs:list' %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-list"></i> Jobs List
+                    </a>
+                    {% if request.user == job.created_by and not job.deleted %}
+                        <a class="btn btn-primary" href="{% url 'jobs:update' job.pk %}" role="button">
+                            <i class="fas fa-edit"></i> Edit Job
+                        </a>
+                        <a class="btn btn-outline-primary" href="{% url 'jobs:copy' job.pk %}" role="button">
+                            <i class="fas fa-clone"></i> Clone Job
+                        </a>
+                    {% endif %}
+                    {% if request.user.is_authenticated and not job.approved and not job.deleted %}
+                        <button type="button" class="btn btn-outline-warning"
+                                data-bs-toggle="modal" data-bs-target="#reportJobModal">
+                            <i class="fas fa-flag"></i> Report Job
+                        </button>
+                    {% endif %}
+                    {% if not job.approved and not job.deleted and request.is_nat_officer or not job.approved and not job.deleted and request.user.is_superuser %}
+                        <button type="button" class="btn btn-outline-danger"
+                                data-bs-toggle="modal" data-bs-target="#deleteJobModal">
+                            <i class="fas fa-trash"></i> Delete Job
+                        </button>
+                    {% endif %}
+                    {% if request.is_nat_officer or request.user.is_superuser %}
+                        {% if job.created_by and job.created_by != request.user and not creator_is_banned %}
+                            <button type="button" class="btn btn-dark"
+                                    data-bs-toggle="modal" data-bs-target="#banMemberModal">
+                                <i class="fas fa-ban"></i> Ban Member
+                            </button>
+                        {% endif %}
+                        {% if creator_is_banned %}
+                            <span class="badge bg-danger ms-1" title="This member has been barred from creating new job postings.">
+                                <i class="fas fa-ban"></i> Member banned
+                            </span>
+                        {% endif %}
                     {% endif %}
                 </div>
             </div>
         </div>
     </div>
 </div>
+
+{% if request.user.is_authenticated and not job.approved and not job.deleted %}
+<div class="modal fade" id="reportJobModal" tabindex="-1" aria-labelledby="reportJobModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <form method="post" action="{% url 'jobs:report' job.pk %}">
+            {% csrf_token %}
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="reportJobModalLabel">
+                        <i class="fas fa-flag text-warning"></i> Report Job
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Report this job posting to the Theta Tau Central Office. Please describe why this posting should be reviewed (e.g. inappropriate content, spam, scam, incorrect information).</p>
+                    <div class="mb-3">
+                        <label for="reportReason" class="form-label">Reason <span class="text-danger">*</span></label>
+                        <textarea class="form-control" id="reportReason" name="reason" rows="4" required maxlength="2000"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-warning">
+                        <i class="fas fa-flag"></i> Submit Report
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+{% endif %}
+
+{% if not job.approved and not job.deleted and request.is_nat_officer or not job.approved and not job.deleted and request.user.is_superuser %}
+<div class="modal fade" id="approveJobModal" tabindex="-1" aria-labelledby="approveJobModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <form method="post" action="{% url 'jobs:approve' job.pk %}">
+            {% csrf_token %}
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="approveJobModalLabel">
+                        <i class="fas fa-check text-success"></i> Approve Job
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Approve the job
+                        &ldquo;<strong>{{ job.title }}</strong>&rdquo; posted by
+                        <strong>{{ job.created_by }}</strong>? Once approved the posting is visible to all members and can no longer be reported or deleted from this screen.</p>
+                    <div class="mb-3">
+                        <label for="approveReason" class="form-label">Reason for approval <span class="text-danger">*</span></label>
+                        <textarea class="form-control" id="approveReason" name="reason" rows="3" required maxlength="2000" placeholder="e.g. Verified with company, legitimate posting"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-check"></i> Approve Job
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="modal fade" id="deleteJobModal" tabindex="-1" aria-labelledby="deleteJobModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <form method="post" action="{% url 'jobs:delete' job.pk %}">
+            {% csrf_token %}
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="deleteJobModalLabel">
+                        <i class="fas fa-trash text-danger"></i> Delete Job
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Are you sure you want to remove the job
+                        &ldquo;<strong>{{ job.title }}</strong>&rdquo; posted by
+                        <strong>{{ job.created_by }}</strong>?</p>
+                    <p>The posting will be hidden from all listings. This is a soft delete &mdash; the record is retained in the database and can be restored by an administrator.</p>
+                    <div class="mb-3">
+                        <label for="deleteReason" class="form-label">Reason for removal <span class="text-danger">*</span></label>
+                        <textarea class="form-control" id="deleteReason" name="reason" rows="3" required maxlength="2000" placeholder="e.g. Confirmed scam / duplicate / requester withdrew"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-trash"></i> Delete Job
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+{% endif %}
+{% if job.created_by and job.created_by != request.user and not creator_is_banned and request.is_nat_officer or job.created_by and job.created_by != request.user and not creator_is_banned and request.user.is_superuser %}
+<div class="modal fade" id="banMemberModal" tabindex="-1" aria-labelledby="banMemberModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <form method="post" action="{% url 'jobs:ban' job.pk %}">
+            {% csrf_token %}
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="banMemberModalLabel">
+                        <i class="fas fa-ban text-danger"></i> Ban Member from Posting Jobs
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Bar <strong>{{ job.created_by }}</strong>
+                        {% if job.created_by.email %}(<a href="mailto:{{ job.created_by.email }}">{{ job.created_by.email }}</a>){% endif %}
+                        from creating any new job postings? Existing postings are not affected.</p>
+                    <p class="mb-3">The member will no longer see the “Add Job” button and will be blocked from the create-job page. The ban can be lifted from the Django admin.</p>
+                    <div class="mb-3">
+                        <label for="banReason" class="form-label">Reason for ban <span class="text-danger">*</span></label>
+                        <textarea class="form-control" id="banReason" name="reason" rows="3" required maxlength="2000" placeholder="e.g. Repeated spam / scam postings after warnings"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-ban"></i> Ban Member
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+{% endif %}
 {% endblock content %}
 {% block javascript %}
 {{ block.super }}

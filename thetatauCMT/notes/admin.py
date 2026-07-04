@@ -157,5 +157,5 @@ class UserNoteInline(admin.TabularInline):
     fields = ["title", "type", "note", "restricted", "parent", "file"]
     ordering = ["-created"]
     show_change_link = True
-    extra = 1
+    extra = 0
     fk_name = "user"
