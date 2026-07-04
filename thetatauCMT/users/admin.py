@@ -51,8 +51,9 @@ from .models import (
     UserSemesterGPA,
     UserSemesterServiceHours,
     UserStatusChange,
+    UserTag,
 )
-from .resources import UserResource, UserRoleChangeResource, UserStatusChangeResource
+from .resources import UserResource, UserRoleChangeResource, UserStatusChangeResource, UserTagResource
 from .views import ExportActiveMixin
 
 admin.site.register(Permission)
@@ -69,6 +70,30 @@ def status(obj):
     if "CC" in obj.status:
         status += " CC"
     return status
+
+
+@admin.register(UserTag)
+class UserTagAdmin(ImportExportActionModelAdmin):
+    list_display = ("name", "user_count")
+    search_fields = ("name",)
+    ordering = ("name",)
+    resource_class = UserTagResource
+
+    class UserTagUserInline(admin.TabularInline):
+        # Auto-created through table for the User.tags M2M. Lets admins
+        # see every user carrying this tag and add more via autocomplete.
+        model = User.tags.through
+        extra = 1
+        verbose_name = "Tagged user"
+        verbose_name_plural = "Tagged users"
+        autocomplete_fields = ("user",)
+        fk_name = "usertag"
+
+    inlines = [UserTagUserInline]
+
+    @admin.display(description="Users", ordering="users__count")
+    def user_count(self, obj):
+        return obj.users.count()
 
 
 class StatusListFilter(admin.SimpleListFilter):
@@ -460,6 +485,7 @@ class MyUserAdmin(
         "officer",
         "id",
     )
+    autocomplete_fields = ("tags",)
     inlines = [
         UserNoteInline,
         UserAlterInline,
@@ -512,6 +538,7 @@ class MyUserAdmin(
                     "current_status",
                     "current_roles",
                     "officer",
+                    "tags",
                     "charter",
                     "no_contact",
                     "address",

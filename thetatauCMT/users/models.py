@@ -70,6 +70,16 @@ class CustomUserManager(UserManager):
         nat_group.user_set.add(superuser)
 
 
+class UserTag(models.Model):
+    name = models.CharField(max_length=100, unique=True)
+
+    class Meta:
+        ordering = ["name"]
+
+    def __str__(self):
+        return self.name
+
+
 class User(AbstractUser, EmailSignalMixin):
     class EMERGENCY_RELATIONSHIP(EnumClass):
         parent = ("parent", "Parent")
@@ -236,6 +246,15 @@ class User(AbstractUser, EmailSignalMixin):
     current_status = models.CharField(max_length=10)
     current_roles = ArrayField(models.CharField(max_length=50), blank=True, null=True)
     officer = models.BooleanField(default=False)
+    tags = models.ManyToManyField(
+        UserTag,
+        related_name="users",
+        blank=True,
+        help_text=(
+            "Admin-only tags for record-keeping (e.g. trustee at a chapter, "
+            "non-regional national director). Not shown on member profiles."
+        ),
+    )
     history = HistoricalRecords()
 
     def save(self, *args, **kwargs):
