@@ -21,6 +21,7 @@ from simple_history.admin import SimpleHistoryAdmin
 from watson.admin import SearchAdmin
 
 from core.admin import AddressAdmin, ReportAdminSync, SentNotificationAdminUpdate, user_chapter
+from core.forms import ComponentAddressField
 from core.models import forever
 from core.signals import SignalWatchMixin
 from thetatauCMT.forms.models import (
@@ -230,6 +231,8 @@ class UserRoleChangeAdmin(ImportExportActionModelAdmin):
 
 
 class MyUserChangeForm(UserChangeForm):
+    address = ComponentAddressField(required=False)
+
     class Meta(UserChangeForm.Meta):
         model = User
 
@@ -477,7 +480,7 @@ class MyUserAdmin(
         "update_status",
         "badge_fix",
     ]
-    raw_id_fields = ["address"]
+    raw_id_fields = []
     readonly_fields = (
         "deceased_changed",
         "current_roles",

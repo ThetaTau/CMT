@@ -1,0 +1,46 @@
+{% spaceless %}
+<div class="component-address-widget">
+  {% if widget.google_api_key %}
+    <div class="row g-2 mb-1">
+      <div class="col-12">
+        <input type="text"
+               id="{{ widget.autocomplete_id }}"
+               class="form-control component-address-autocomplete"
+               placeholder="Search address (autofills fields below)…"
+               autocomplete="off"
+               data-target-prefix="{{ widget.autocomplete_prefix }}">
+        <small class="text-muted">Optional — start typing and pick a suggestion to auto-fill, or fill the fields below manually.</small>
+      </div>
+    </div>
+  {% endif %}
+  {% with subwidgets=widget.subwidgets %}
+    <div class="row g-2">
+      <div class="col-12 mb-1">
+        {% with widget=subwidgets.0 %}{% include widget.template_name %}{% endwith %}
+      </div>
+    </div>
+    <div class="row g-2">
+      <div class="col-sm-5 mb-1">
+        {% with widget=subwidgets.1 %}{% include widget.template_name %}{% endwith %}
+      </div>
+      <div class="col-sm-3 mb-1">
+        {% with widget=subwidgets.2 %}{% include widget.template_name %}{% endwith %}
+      </div>
+      <div class="col-sm-4 mb-1">
+        {% with widget=subwidgets.3 %}{% include widget.template_name %}{% endwith %}
+      </div>
+    </div>
+    <div class="row g-2">
+      <div class="col-12">
+        {% with widget=subwidgets.4 %}{% include widget.template_name %}{% endwith %}
+      </div>
+    </div>
+  {% endwith %}
+  <datalist id="{{ widget.state_datalist_id }}">
+    {% for option in widget.state_datalist_options %}<option value="{{ option }}">{% endfor %}
+  </datalist>
+  <datalist id="{{ widget.country_datalist_id }}">
+    {% for option in widget.country_datalist_options %}<option value="{{ option }}">{% endfor %}
+  </datalist>
+</div>
+{% endspaceless %}

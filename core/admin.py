@@ -20,6 +20,13 @@ def user(obj):
     return user
 
 
+def chapter(obj):
+    chapters = ""
+    if hasattr(obj, "chapter_set"):
+        chapters = ", ".join(obj.chapter_set.values_list("name", flat=True))
+    return chapters
+
+
 class ReportAdminSync(ReportAdmin):
     ReportAdmin.list_display += ("sync_mail",)
 
@@ -68,12 +75,31 @@ class UnidentifiedNoUserListFilter(UnidentifiedListFilter):
             return queryset.filter(user__isnull=False)
 
 
+class ChapterPresenceListFilter(admin.SimpleListFilter):
+    title = "chapters"
+    parameter_name = "chapters"
+
+    def lookups(self, request, model_admin):
+        return (
+            ("nochapter", "No Chapters"),
+            ("withchapter", "With Chapters"),
+        )
+
+    def queryset(self, request, queryset):
+        if self.value() == "nochapter":
+            return queryset.filter(chapter__isnull=True)
+        if self.value() == "withchapter":
+            return queryset.filter(chapter__isnull=False).distinct()
+
+
 class AddressAdmin(admin.ModelAdmin):
     raw_id_fields = ["locality"]
-    list_display = ("raw", user, city, state)
-    search_fields = ("street_number", "route", "raw", "user__username")
+    list_display = ("raw", user, chapter, city, state)
+    search_fields = ("street_number", "route", "raw", "user__username", "chapter__name")
     list_filter = (
         UnidentifiedNoUserListFilter,
+        ChapterPresenceListFilter,
         "locality__state__name",
         "user__chapter",
+        "chapter",
     )

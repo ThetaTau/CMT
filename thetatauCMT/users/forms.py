@@ -1,6 +1,5 @@
 import logging
 
-from address.widgets import AddressWidget
 from allauth.account.forms import LoginForm
 from crispy_forms.bootstrap import Field, FormActions, InlineField, StrictButton
 from crispy_forms.helper import FormHelper
@@ -12,8 +11,7 @@ from django.utils import timezone
 from django_recaptcha.fields import ReCaptchaField
 from django_recaptcha.widgets import ReCaptchaV3
 
-from core.address import fix_address
-from core.forms import DatePicker, DuplicateAddressField, SchoolModelChoiceField
+from core.forms import ComponentAddressField, DatePicker, SchoolModelChoiceField
 from core.models import BIENNIUM_YEARS, forever
 from thetatauCMT.chapters.models import Chapter, ChapterCurricula
 
@@ -331,7 +329,7 @@ class UserAlterForm(forms.ModelForm):
 
 
 class UserForm(forms.ModelForm):
-    address = DuplicateAddressField(widget=AddressWidget)
+    address = ComponentAddressField(required=True)
     birth_date = forms.DateField(
         label="Birth Date",
         widget=DatePicker(
@@ -361,16 +359,6 @@ class UserForm(forms.ModelForm):
             self.fields["graduation_year"].widget = forms.HiddenInput()
         else:
             self.fields["email"].widget = forms.HiddenInput()
-
-    def clean_address(self):
-        address = self.cleaned_data["address"]
-        if address.raw == "None" or address.raw == "":
-            raise forms.ValidationError("Address should not be None or blank")
-        if not address.locality:
-            address = fix_address(address)
-        if address is None:
-            raise forms.ValidationError("Invalid Address")
-        return address
 
 
 class UserGPAForm(forms.Form):

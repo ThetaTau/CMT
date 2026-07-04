@@ -5,17 +5,27 @@ Copied from: https://gist.github.com/jamesbrobb/748c47f46b9bd224b07f
 
 import re
 
-from address.forms import Address, AddressField
+from address.forms import Address
 from address.models import Locality
 from dal_select2.fields import Select2ListCreateChoiceField
 from dal_select2.widgets import Select2Multiple, Select2WidgetMixin, WidgetMixin
 from django import forms
+from django.conf import settings
 from django.http.response import HttpResponseForbidden, HttpResponseRedirect
 from django.views.generic.base import ContextMixin, TemplateResponseMixin
 from django.views.generic.edit import ProcessFormView
 from tempus_dominus.widgets import DatePicker as _DatePicker
 
-from core.address import fix_duplicate_address
+from core.address import get_or_create_address
+from core.choices import (
+    ADDRESS_REGION_SUGGESTIONS,
+    CA_PROVINCE_CODE_TO_NAME,
+    CA_PROVINCE_NAME_TO_CODE,
+    COUNTRY_CHOICES,
+    UK_REGION_NAME_TO_CODE,
+    US_STATE_CODE_TO_NAME,
+    US_STATE_NAME_TO_CODE,
+)
 
 
 class DatePicker(_DatePicker):
@@ -179,27 +189,183 @@ class MultiFormsView(TemplateResponseMixin, BaseMultipleFormsView):
     """
 
 
-class DuplicateAddressField(AddressField):
-    """
-    Django Address does not handle duplicates https://github.com/furious-luke/django-address
-    When cleaning if duplicate it just errors
+class ComponentAddressWidget(forms.MultiWidget):
+    """Renders address as five side-by-side inputs (street / city / state /
+    postal code / country).  State and country are free-text inputs backed by
+    an HTML ``<datalist>`` of common US / Canadian / UK values so members
+    from any of those regions get autocomplete without being forced into a
+    dropdown.  When ``GOOGLE_API_KEY`` is configured, an additional Google
+    Places autocomplete search box is rendered above the five fields;
+    picking a suggestion fills the split fields via JS.  The autocomplete
+    search input itself is not part of the form submission.
+
+    The widget accepts either an `Address` instance, a dict of components, or
+    a 5-tuple as its ``value``.
     """
 
-    def to_python(self, value):
-        try:
-            value = super().to_python(value)
-        except Address.MultipleObjectsReturned:
-            if not value["street_number"] and not value["route"] and value["locality"] is None:
-                return None
-            fix_duplicate_address(value)
+    template_name = "core/component_address_widget.html"
+
+    STATE_DATALIST_ID = "cmt-address-region-suggestions"
+    COUNTRY_DATALIST_ID = "cmt-address-country-suggestions"
+
+    def __init__(self, attrs=None):
+        base = {"class": "form-control"}
+        widgets = [
+            forms.TextInput(attrs={**base, "placeholder": "Street address", "autocomplete": "street-address"}),
+            forms.TextInput(attrs={**base, "placeholder": "City", "autocomplete": "address-level2"}),
+            forms.TextInput(
+                attrs={
+                    **base,
+                    "placeholder": "State / Province / Region",
+                    "autocomplete": "address-level1",
+                    "list": self.STATE_DATALIST_ID,
+                }
+            ),
+            forms.TextInput(attrs={**base, "placeholder": "ZIP / postal code", "autocomplete": "postal-code"}),
+            forms.TextInput(
+                attrs={
+                    **base,
+                    "placeholder": "Country",
+                    "autocomplete": "country-name",
+                    "list": self.COUNTRY_DATALIST_ID,
+                }
+            ),
+        ]
+        super().__init__(widgets, attrs)
+
+    def _google_api_key(self):
+        key = getattr(settings, "GOOGLE_API_KEY", "")
+        return key if key and key != "TESTING" else ""
+
+    def get_context(self, name, value, attrs):
+        ctx = super().get_context(name, value, attrs)
+        parent_id = ctx["widget"]["attrs"].get("id") or f"id_{name}"
+        ctx["widget"]["google_api_key"] = self._google_api_key()
+        ctx["widget"]["autocomplete_id"] = f"{parent_id}_search"
+        ctx["widget"]["autocomplete_prefix"] = parent_id
+        ctx["widget"]["state_datalist_id"] = self.STATE_DATALIST_ID
+        ctx["widget"]["country_datalist_id"] = self.COUNTRY_DATALIST_ID
+        ctx["widget"]["state_datalist_options"] = ADDRESS_REGION_SUGGESTIONS
+        ctx["widget"]["country_datalist_options"] = [name for name, _ in COUNTRY_CHOICES if name != "Other"]
+        return ctx
+
+    @property
+    def media(self):
+        base = super().media
+        js = ["core/js/component_address_autocomplete.js"]
+        key = self._google_api_key()
+        if key:
+            js.insert(0, f"https://maps.googleapis.com/maps/api/js?libraries=places&key={key}")
+        return base + forms.Media(js=js)
+
+    def decompress(self, value):
+        if value in (None, ""):
+            return ["", "", "", "", "United States"]
+        # ModelForm passes an FK's PK as the field's initial value, not the
+        # related instance — resolve it before decomposing.
+        if isinstance(value, int):
             try:
-                value = super().to_python(value)
-            except Address.MultipleObjectsReturned:
-                try:
-                    fix_duplicate_address(value)
-                except Exception:
-                    return None
-        return value
+                value = Address.objects.select_related("locality__state__country").get(pk=value)
+            except Address.DoesNotExist:
+                return ["", "", "", "", "United States"]
+        if isinstance(value, Address):
+            street = " ".join(p for p in [value.street_number, value.route] if p).strip()
+            locality = value.locality
+            city = locality.name if locality else ""
+            postal = locality.postal_code if locality else ""
+            state_obj = locality.state if locality else None
+            # Prefer the full name; fall back to the code so the input always
+            # shows something meaningful even when historical data only stored
+            # the abbreviation.
+            state = ""
+            if state_obj:
+                state = state_obj.name or state_obj.code or ""
+            country = state_obj.country.name if state_obj and state_obj.country else "United States"
+            return [street, city, state, postal, country]
+        if isinstance(value, dict):
+            return [
+                value.get("street", ""),
+                value.get("city", ""),
+                value.get("state", ""),
+                value.get("postal_code", ""),
+                value.get("country", "United States"),
+            ]
+        if isinstance(value, (list, tuple)) and len(value) == 5:
+            return list(value)
+        return ["", "", "", "", "United States"]
+
+
+class ComponentAddressField(forms.MultiValueField):
+    """Form field backing an `AddressField` FK using typed-in components.
+
+    On ``compress`` looks up (or creates) the underlying `Address` row via
+    `get_or_create_address`.  When multiple rows already match the given
+    components the oldest is returned; no merging happens here.
+    """
+
+    widget = ComponentAddressWidget
+
+    def __init__(self, *, required=False, **kwargs):
+        fields = (
+            forms.CharField(max_length=200, required=False),
+            forms.CharField(max_length=165, required=False),
+            forms.CharField(max_length=165, required=False),
+            forms.CharField(max_length=10, required=False),
+            forms.CharField(max_length=100, required=False),
+        )
+        kwargs.setdefault("require_all_fields", False)
+        super().__init__(fields=fields, required=required, **kwargs)
+
+    def compress(self, data_list):
+        if not data_list:
+            return None
+        street, city, state, postal_code, country = (data_list + ["", "", "", "", ""])[:5]
+        state = (state or "").strip()
+        country = (country or "").strip() or "United States"
+
+        # Users can type either the 2-letter code or the full name for US
+        # states and Canadian provinces; UK constituent countries only carry a
+        # name.  Normalize to (full_name, code) so the persisted `State` row
+        # is consistent regardless of what was typed.
+        state_code = ""
+        if country == "United States" and state:
+            upper = state.upper()
+            if upper in US_STATE_CODE_TO_NAME:
+                state_code = upper
+                state = US_STATE_CODE_TO_NAME[upper]
+            elif state in US_STATE_NAME_TO_CODE:
+                state_code = US_STATE_NAME_TO_CODE[state]
+        elif country == "Canada" and state:
+            upper = state.upper()
+            if upper in CA_PROVINCE_CODE_TO_NAME:
+                state_code = upper
+                state = CA_PROVINCE_CODE_TO_NAME[upper]
+            elif state in CA_PROVINCE_NAME_TO_CODE:
+                state_code = CA_PROVINCE_NAME_TO_CODE[state]
+        elif country == "United Kingdom" and state in UK_REGION_NAME_TO_CODE:
+            state_code = UK_REGION_NAME_TO_CODE[state]
+
+        address = get_or_create_address(
+            street=street,
+            city=city,
+            state=state,
+            postal_code=postal_code,
+            country=country,
+            state_code=state_code,
+        )
+        if address is None and self.required:
+            raise forms.ValidationError("Address is required.")
+        return address
+
+    def has_changed(self, initial, data):
+        # `initial` is an Address instance (or None); `data` is the raw component
+        # list from POST.  Compare the decomposed initial values against POST.
+        widget = self.widget if isinstance(self.widget, ComponentAddressWidget) else ComponentAddressWidget()
+        initial_list = widget.decompress(initial)
+        data_list = list(data or [])
+        while len(data_list) < 5:
+            data_list.append("")
+        return [str(x or "").strip() for x in initial_list[:5]] != [str(x or "").strip() for x in data_list[:5]]
 
 
 class Select2ListCreateMultipleChoiceField(Select2ListCreateChoiceField, Select2Multiple):

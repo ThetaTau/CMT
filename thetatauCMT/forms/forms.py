@@ -1,4 +1,3 @@
-from address.forms import AddressWidget
 from betterforms.multiform import MultiModelForm
 from crispy_forms.bootstrap import Accordion, AccordionGroup, Field, FormActions, InlineField, StrictButton
 from crispy_forms.helper import FormHelper
@@ -14,8 +13,7 @@ from hcaptcha.fields import hCaptchaField
 from tempus_dominus.widgets import DatePicker as TempusDominusDatePicker  # noqa: F401
 from upload_validator import FileTypeValidator
 
-from core.address import fix_address
-from core.forms import DatePicker, DuplicateAddressField, SchoolModelChoiceField
+from core.forms import ComponentAddressField, DatePicker, SchoolModelChoiceField
 from core.models import CHAPTER_ROLES_CHOICES, NAT_OFFICERS_CHOICES
 from thetatauCMT.chapters.forms import ChapterForm
 from thetatauCMT.chapters.models import Chapter, ChapterCurricula
@@ -1080,7 +1078,7 @@ class PledgeUserBase(forms.ModelForm):
             attrs={"autocomplete": "off"},
         ),
     )
-    address = DuplicateAddressField(widget=AddressWidget)
+    address = ComponentAddressField(required=True)
     email = forms.EmailField(label="Email Address", help_text="Non school email, does NOT end in .edu")
 
     class Meta:
@@ -1117,16 +1115,6 @@ class PledgeUserBase(forms.ModelForm):
                 self.fields[field].widget = forms.TextInput(attrs={"placeholder": "If None, leave blank"})
                 if field == "middle_name":
                     self.fields[field].help_text = "If None, leave blank"
-
-    def clean_address(self):
-        address = self.cleaned_data["address"]
-        if address.raw == "None" or address.raw == "":
-            raise forms.ValidationError("Address should not be None or blank")
-        if not address.locality:
-            address = fix_address(address)
-        if address is None:
-            raise forms.ValidationError("Invalid Address")
-        return address
 
     def clean_email(self):
         email = self.cleaned_data.get("email")
@@ -1510,7 +1498,7 @@ class DisciplinaryForm1(forms.ModelForm):
         help_text="Only PDF format accepted",
         validators=[FileTypeValidator(allowed_types=["application/pdf"])],
     )
-    address = DuplicateAddressField(widget=AddressWidget)
+    address = ComponentAddressField(required=True)
 
     class Meta:
         model = DisciplinaryProcess
@@ -1542,16 +1530,6 @@ class DisciplinaryForm1(forms.ModelForm):
         if faculty and faculty_name is None:
             raise forms.ValidationError("Please provide the campus/faculty adviser name")
         return cleaned_data
-
-    def clean_address(self):
-        address = self.cleaned_data["address"]
-        if address.raw == "None" or address.raw == "":
-            raise forms.ValidationError("Address should not be None or blank")
-        if not address.locality:
-            address = fix_address(address)
-        if address is None:
-            raise forms.ValidationError("Invalid Address")
-        return address
 
 
 class DisciplinaryForm2(forms.ModelForm):
