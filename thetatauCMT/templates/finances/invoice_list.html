@@ -2,14 +2,17 @@
 {% load querystring from django_tables2 %}
 {% load django_bootstrap5 %}
 {% load crispy_forms_tags %}
+{% load filter_tags %}
 {% load static i18n %}
 {% block title %}Finances{% endblock %}
 
 {% block content %}
+<div class="page-header d-flex flex-wrap align-items-center gap-2 mb-3">
+  <h2 class="page-title mb-0">All Chapter Invoices</h2>
+</div>
 {% if table.page %}
   <div class="table-container">
 {% endif %}
-  <h1>All Chapter Invoices</h1>
 <p>All of your chapter's invoices are listed below, both paid and unpaid.
 <br>
   Paid invoices that were issued after 2021 should have a link to the paid invoices.
@@ -22,9 +25,7 @@
             <thead>
                 <tr>
                     <th colspan="11">
-                        <form method="get" class="form-search d-flex flex-wrap align-items-center ms-md-auto">
-                          {% crispy filter.form filter.form.helper %}
-                        </form>
+                        {% collapsible_filter filter label="Filter Invoices" collapse_id="invoiceFilter" %}
                     </th>
                 </tr>
                 <tr>

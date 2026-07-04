@@ -2,31 +2,29 @@
 {% load querystring from django_tables2 %}
 {% load django_bootstrap5 %}
 {% load crispy_forms_tags %}
+{% load filter_tags %}
 {% load static i18n %}
 {% block title %}Chapter OSM Forms{% endblock %}
 
 {% block content %}
+<div class="page-header d-flex flex-wrap align-items-center gap-2 mb-3">
+  <h2 class="page-title mb-0">Chapter OSM Forms</h2>
+  <div class="page-actions">
+    <button class="clipboard btn btn-outline-primary" data-clipboard-text="{{ email_list }}">
+      <i class="fas fa-envelope"></i> Copy emails to clipboard
+    </button>
+    <form action="" method="GET">
+      {% for key, values in request.GET.lists %}{% if key != "csv" %}{% for v in values %}<input type="hidden" name="{{ key }}" value="{{ v }}">{% endfor %}{% endif %}{% endfor %}
+      <button type="submit" class="btn btn-primary" name="csv" value="Download CSV">
+        <i class="fas fa-file-csv"></i> Download CSV
+      </button>
+    </form>
+  </div>
+</div>
 {#  {% render_table table %}#}
 {% if table.page %}
   <div class="table-container">
 {% endif %}
-<table>
-      <tr>
-        <td><h2>Chapter OSM Forms:</h2></td>
-        <td>
-          <button class="clipboard button btn btn-primary"
-            data-clipboard-text="{{ email_list }}">
-            Copy emails to clipboard
-          </button>
-        </td>
-        <td>
-          <form action='' method='GET'>
-          {% csrf_token %}
-          <input type='hidden'>
-          <input type='submit' class="btn btn-primary" name="csv" value="Download CSV" style="float: right;">
-        </td>
-      </tr>
-    </table>
 {% block table %}
     <div class="table-responsive">
         <table class="table table-hover table-bordered table-striped"{% if table.attrs %} {{ table.attrs.as_html }}{% endif %}>
@@ -34,9 +32,7 @@
             <thead>
                 <tr>
                     <th colspan="11">
-                        <form method="get" class="form-search d-flex flex-wrap align-items-center ms-md-auto">
-                          {% crispy filter.form filter.form.helper %}
-                        </form>
+                        {% collapsible_filter filter label="Filter OSMs" collapse_id="osmFilter" %}
                     </th>
                 </tr>
 

@@ -365,3 +365,153 @@ body.region-bar-hidden .tt-region-bar { display: none !important; }
 select.form-control[multiple], select.form-control[size] {
   height: min-content;
 }
+
+/* ===Collapsible list-view filter panel=== */
+.filter-toolbar .btn i.fa-caret-down {
+  transition: transform 0.2s ease-in-out;
+}
+.filter-toolbar .btn[aria-expanded="true"] i.fa-caret-down {
+  transform: rotate(180deg);
+}
+.filter-panel {
+  border: 1px solid var(--bs-border-color, rgba(0, 0, 0, 0.08));
+  border-radius: 0.5rem;
+}
+.filter-panel .filter-form fieldset > legend {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--tt-dark-red, #8B0000);
+  border-bottom: 1px solid var(--bs-border-color, rgba(0, 0, 0, 0.08));
+  padding-bottom: 0.35rem;
+  margin-bottom: 0.75rem;
+}
+/* Reveal labels inside the filter panel even when the crispy inline layout hides them */
+.filter-panel label {
+  display: inline-block;
+  font-weight: 500;
+  font-size: 0.85rem;
+  margin-bottom: 0.15rem;
+  color: var(--bs-secondary-color, #495057);
+}
+/* Dark-mode adjustments for the filter panel */
+[data-bs-theme="dark"] .filter-panel .filter-form fieldset > legend {
+  color: var(--tt-light-red, #ff8a8a);
+}
+[data-bs-theme="dark"] .filter-panel label {
+  color: var(--bs-body-color, #dee2e6);
+}
+.filter-panel .visually-hidden,
+.filter-panel .sr-only {
+  position: static !important;
+  width: auto !important;
+  height: auto !important;
+  padding: 0 !important;
+  margin: 0 0 0.15rem 0 !important;
+  overflow: visible !important;
+  clip: auto !important;
+  white-space: normal !important;
+  clip-path: none !important;
+}
+/* Space out inline fields so filters don't crowd each other */
+.filter-panel .form-inline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.75rem 1rem;
+}
+.filter-panel .form-inline .form-group {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-width: 12rem;
+  margin: 0;
+}
+.filter-panel .form-actions {
+  align-self: flex-end;
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-top: 0.5rem;
+}
+.filter-panel .form-inline .form-control,
+.filter-panel .form-inline .form-select,
+.filter-panel .form-inline .select2-container {
+  min-width: 12rem;
+}
+/* When crispy uses a Bootstrap grid Row/Column layout (e.g. Officers filter),
+   let the columns wrap and keep each one wide enough to be usable. */
+.filter-panel .row {
+  --bs-gutter-y: 0.75rem;
+  row-gap: 0.75rem;
+}
+.filter-panel .row > [class*="col"] {
+  flex: 0 0 auto;
+  width: auto;
+  min-width: 14rem;
+}
+.filter-panel .row > [class*="col"] .form-control,
+.filter-panel .row > [class*="col"] .form-select,
+.filter-panel .row > [class*="col"] .select2-container {
+  width: 100% !important;
+  min-width: 12rem;
+}
+.filter-panel .row > [class*="col"] .form-actions {
+  margin-top: 0;
+}
+
+/* Active-filter summary chips shown next to the toolbar buttons */
+.filter-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.15rem 0.55rem;
+  background: var(--bs-secondary-bg, #e9ecef);
+  color: var(--bs-body-color, #212529);
+  border: 1px solid var(--bs-border-color, rgba(0, 0, 0, 0.08));
+  border-radius: 1rem;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  white-space: nowrap;
+  max-width: 22rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.filter-chip .filter-chip-label {
+  font-weight: 600;
+  margin-right: 0.25rem;
+  opacity: 0.75;
+}
+.filter-summary {
+  min-width: 0;
+}
+[data-bs-theme="dark"] .filter-chip {
+  background: var(--bs-tertiary-bg, #2b3035);
+  color: var(--bs-body-color, #dee2e6);
+}
+
+/* ===Consistent list page header (title + inline action buttons)=== */
+.page-header {
+  border-bottom: 1px solid var(--bs-border-color, rgba(0, 0, 0, 0.1));
+  padding-bottom: 0.5rem;
+}
+.page-header .page-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--tt-dark-red, #8B0000);
+  margin-right: 0.5rem;
+}
+[data-bs-theme="dark"] .page-header .page-title {
+  color: var(--tt-light-red, #ff8a8a);
+}
+.page-header .page-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-left: auto;
+}
+.page-header .page-actions form {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+}

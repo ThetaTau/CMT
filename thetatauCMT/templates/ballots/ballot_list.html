@@ -2,10 +2,21 @@
 {% load querystring from django_tables2 %}
 {% load django_bootstrap5 %}
 {% load crispy_forms_tags %}
+{% load filter_tags %}
 {% load static i18n %}
 {% block title %}Ballots{% endblock %}
 
 {% block content %}
+<div class="page-header d-flex flex-wrap align-items-center gap-2 mb-3">
+  <h2 class="page-title mb-0">Ballots</h2>
+  {% if request.is_officer %}
+    <div class="page-actions">
+      <a href="{% url 'ballots:create' %}" class="btn btn-primary">
+        <i class="fas fa-calendar-alt"></i> Create Ballot
+      </a>
+    </div>
+  {% endif %}
+</div>
 {% if table.page %}
   <div class="table-container">
 {% endif %}
@@ -16,18 +27,8 @@
             {% block table.thead %}
             <thead>
                 <tr>
-                  {% if request.is_officer %}
-                    <th>
-                      <a href="{% url "ballots:create" %}" class="btn btn-small btn-primary dark">
-                          <i class="fas fa-calendar-alt"></i>
-                          Create Ballot
-                      </a>
-                    </th>
-                  {% endif %}
                     <th colspan="11">
-                        <form method="get" class="form-search d-flex flex-wrap align-items-center ms-md-auto">
-                          {% crispy filter.form filter.form.helper %}
-                        </form>
+                        {% collapsible_filter filter label="Filter Ballots" collapse_id="ballotFilter" %}
                     </th>
                 </tr>
 

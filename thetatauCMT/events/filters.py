@@ -28,7 +28,9 @@ class EventListFilter(django_filters.FilterSet):
         if natoff:
             kwargs.pop("natoff")
             self.base_filters["region"] = django_filters.ChoiceFilter(
-                choices=Region.region_choices(), method="filter_region"
+                label="Region",
+                choices=Region.region_choices(),
+                method="filter_region",
             )
             self.base_filters["chapter"] = django_filters.ChoiceFilter(
                 label="Chapter",

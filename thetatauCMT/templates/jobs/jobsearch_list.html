@@ -6,6 +6,17 @@
 {% block title %}Job Search{% endblock %}
 
 {% block content %}
+<div class="page-header d-flex flex-wrap align-items-center gap-2 mb-3">
+  <h2 class="page-title mb-0">Job Searches</h2>
+  <div class="page-actions">
+    <a href="{% url 'jobs:add_search' %}" class="btn btn-primary">
+      <i class="fas fa-plus"></i> Create Job Search
+    </a>
+    <a href="{% url 'jobs:list' %}" class="btn btn-outline-secondary">
+      <i class="fas fa-briefcase"></i> All Jobs
+    </a>
+  </div>
+</div>
 {#  {% render_table table %}#}
 {% if table.page %}
   <div class="table-container">
@@ -16,21 +27,6 @@
         <table class="table table-hover table-bordered table-striped"{% if table.attrs %} {{ table.attrs.as_html }}{% endif %}>
             {% block table.thead %}
             <thead>
-                <tr>
-                    <th colspan="5">
-                      <a href="{% url "jobs:add_search" %}" class="btn btn-small btn-primary dark">
-{#                        <span class="hidden-phone">#}
-                          <i class="fas fa-plus"></i>
-                          Create Job Search
-{#                        </span>#}
-                      </a>
-                      <a href="{% url "jobs:list" %}" class="btn btn-medium btn-primary dark">
-                          <i class="fas fa-briefcase"></i>
-                          All Jobs
-                      </a>
-                    </th>
-                </tr>
-
               <tr>
                 {% for column in table.columns %}
                     {% if column.orderable %}
