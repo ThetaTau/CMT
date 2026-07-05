@@ -149,6 +149,10 @@
                   <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">{% trans "Activity" %}</a>
                     <ul class="dropdown-menu">
+                      {% if request.is_officer or request.is_nat_officer or user.is_superuser %}
+                        <li><a class="dropdown-item" href="{% url 'chapters:activity_redirect' %}">{% trans "All Activities" %}</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                      {% endif %}
                       <li><a class="dropdown-item" href="{% url 'scores:list' %}">Scores</a></li>
                       <li><a class="dropdown-item" href="{% url 'events:list' %}">Events</a></li>
                       <li><a class="dropdown-item" href="{% url 'tasks:list' %}">Tasks</a></li>

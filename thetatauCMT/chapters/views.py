@@ -3,8 +3,9 @@ from django.forms.models import modelformset_factory
 from django.http.response import HttpResponseRedirect
 from django.shortcuts import get_object_or_404
 from django.urls import reverse
+from django.utils import timezone
 from django.utils.safestring import mark_safe
-from django.views.generic import RedirectView
+from django.views.generic import RedirectView, TemplateView
 
 from core.forms import MultiFormsView
 from core.models import CHAPTER_OFFICER
@@ -205,6 +206,157 @@ class ChapterRedirectView(LoginRequiredMixin, RedirectView):
 
     def get_redirect_url(self):
         return reverse("chapters:detail", kwargs={"slug": self.request.user.current_chapter.slug})
+
+
+class ChapterActivityRedirectView(LoginRequiredMixin, RedirectView):
+    """Sends a logged-in user to their own chapter's activity page."""
+
+    permanent = False
+
+    def get_redirect_url(self, *args, **kwargs):
+        chapter = self.request.user.current_chapter
+        return reverse("chapters:activity", kwargs={"slug": chapter.slug})
+
+
+class ChapterActivityView(LoginRequiredMixin, TemplateView):
+    """One-stop view of everything a chapter's members have done.
+
+    Access: superusers, national officers (natoff group), or chapter officers
+    (officer group) whose current chapter matches the requested slug.
+    """
+
+    template_name = "chapters/chapter_activity.html"
+    default_months = 6
+    per_page = 50
+    window_choices = (
+        ("3m", "Last 3 months"),
+        ("6m", "Last 6 months"),
+        ("12m", "Last 12 months"),
+        ("current_term", "Current term"),
+        ("previous_term", "Previous term"),
+        ("academic_year", "Current academic year"),
+    )
+
+    def _get_chapter(self):
+        return get_object_or_404(Chapter, slug=self.kwargs["slug"])
+
+    def _user_allowed(self, user, chapter):
+        if not user.is_authenticated:
+            return False
+        if user.is_superuser:
+            return True
+        if user.groups.filter(name="natoff").exists():
+            return True
+        if user.groups.filter(name="officer").exists():
+            current = getattr(user, "current_chapter", None)
+            if current is not None and current.pk == chapter.pk:
+                return True
+        return False
+
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return super().dispatch(request, *args, **kwargs)
+        chapter = self._get_chapter()
+        if not self._user_allowed(request.user, chapter):
+            messages.add_message(
+                request,
+                messages.ERROR,
+                "Only chapter officers of this chapter, national officers, " "or superusers can view chapter activity.",
+            )
+            return HttpResponseRedirect(reverse("home"))
+        self.chapter = chapter
+        return super().dispatch(request, *args, **kwargs)
+
+    def _resolve_window(self):
+        """Return (window_key, start_dt, end_dt) based on ?window=... query param."""
+        import datetime as _dt
+
+        from core.models import academic_encompass_start_end_date, semester_encompass_start_end_date
+
+        now = timezone.now()
+        raw = (self.request.GET.get("window") or "6m").strip()
+        valid_keys = {key for key, _ in self.window_choices}
+        window = raw if raw in valid_keys else "6m"
+        if window == "3m":
+            start = now - _dt.timedelta(days=90)
+            end = now
+        elif window == "12m":
+            start = now - _dt.timedelta(days=365)
+            end = now
+        elif window == "current_term":
+            start, end = semester_encompass_start_end_date()
+        elif window == "previous_term":
+            _, prev_end = semester_encompass_start_end_date()
+            prev_middle = prev_end - _dt.timedelta(days=120)
+            start, end = semester_encompass_start_end_date(prev_middle)
+        elif window == "academic_year":
+            start, end = academic_encompass_start_end_date()
+        else:
+            start = now - _dt.timedelta(days=self.default_months * 30)
+            end = now
+        # Normalize to tz-aware datetimes
+        if isinstance(start, _dt.datetime) and timezone.is_naive(start):
+            start = timezone.make_aware(start, timezone.get_current_timezone())
+        if isinstance(end, _dt.datetime) and timezone.is_naive(end):
+            end = timezone.make_aware(end, timezone.get_current_timezone())
+        return window, start, end
+
+    def get_context_data(self, **kwargs):
+        from collections import Counter
+
+        from django.core.paginator import EmptyPage, PageNotAnInteger, Paginator
+
+        from thetatauCMT.chapters.activity import CATEGORIES, iter_chapter_activity
+
+        context = super().get_context_data(**kwargs)
+        window, start_dt, end_dt = self._resolve_window()
+        all_items = iter_chapter_activity(self.chapter, start_dt, end_dt)
+        counts = Counter(item.category for item in all_items)
+
+        selected = (self.request.GET.get("category") or "").strip()
+        if selected in CATEGORIES:
+            display_items = [i for i in all_items if i.category == selected]
+        else:
+            selected = ""
+            display_items = all_items
+
+        paginator = Paginator(display_items, self.per_page)
+        raw_page = self.request.GET.get("page")
+        try:
+            page_obj = paginator.page(raw_page)
+        except PageNotAnInteger:
+            page_obj = paginator.page(1)
+        except EmptyPage:
+            page_obj = paginator.page(paginator.num_pages)
+
+        base_qs = {"window": window}
+        if selected:
+            base_qs["category"] = selected
+        base_query = "&".join(f"{k}={v}" for k, v in base_qs.items())
+
+        context.update(
+            {
+                "object": self.chapter,
+                "chapter": self.chapter,
+                "activity_items": list(page_obj.object_list),
+                "page_obj": page_obj,
+                "paginator": paginator,
+                "is_paginated": paginator.num_pages > 1,
+                "per_page": self.per_page,
+                "filtered_count": len(display_items),
+                "base_query": base_query,
+                "counts": {c: counts.get(c, 0) for c in CATEGORIES},
+                "counts_list": [(c, counts.get(c, 0)) for c in CATEGORIES],
+                "total_count": len(all_items),
+                "selected_window": window,
+                "window_choices": self.window_choices,
+                "start_date": start_dt.date(),
+                "end_date": end_dt.date(),
+                "categories": CATEGORIES,
+                "selected_category": selected,
+            }
+        )
+        return context
 
 
 class ChapterListView(LoginRequiredMixin, PagedFilteredTableView):

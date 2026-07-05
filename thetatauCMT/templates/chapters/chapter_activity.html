@@ -1,0 +1,146 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Chapter Activity: {{ chapter.name }}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+  <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-3">
+    <div>
+      <h2 class="mb-1">All Chapter Activity</h2>
+      <p class="text-body-secondary mb-0">
+        <a href="{% url 'chapters:detail' slug=chapter.slug %}">{{ chapter.name }}</a>
+        <span class="mx-1">&middot;</span>
+        {{ start_date|date:"M j, Y" }} &ndash; {{ end_date|date:"M j, Y" }}
+      </p>
+    </div>
+    <div>
+      <span class="badge bg-secondary fs-6">{{ total_count }} total</span>
+    </div>
+  </div>
+
+  {# ---------- filter bar ---------- #}
+  <form method="get" class="card card-body bg-body-tertiary border mb-3">
+    <div class="row g-2 align-items-end">
+      <div class="col-md-4">
+        <label for="window" class="form-label mb-1"><small>Time window</small></label>
+        <select id="window" name="window" class="form-select form-select-sm" onchange="this.form.submit()">
+          {% for value, label in window_choices %}
+            <option value="{{ value }}" {% if value == selected_window %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-4">
+        <label for="category" class="form-label mb-1"><small>Category</small></label>
+        <select id="category" name="category" class="form-select form-select-sm" onchange="this.form.submit()">
+          <option value="">All categories ({{ total_count }})</option>
+          {% for cat, count in counts_list %}
+            <option value="{{ cat }}" {% if cat == selected_category %}selected{% endif %}>
+              {{ cat }} ({{ count }})
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-4 text-end">
+        <noscript>
+          <button type="submit" class="btn btn-primary btn-sm">Apply</button>
+        </noscript>
+      </div>
+    </div>
+  </form>
+
+  {# ---------- category summary chips ---------- #}
+  <div class="mb-3 d-flex flex-wrap gap-2">
+    <a href="?window={{ selected_window }}"
+       class="badge rounded-pill text-decoration-none {% if not selected_category %}bg-primary{% else %}bg-secondary{% endif %}">
+      All &middot; {{ total_count }}
+    </a>
+    {% for cat, count in counts_list %}
+      <a href="?window={{ selected_window }}&amp;category={{ cat }}"
+         class="badge rounded-pill text-decoration-none {% if cat == selected_category %}bg-primary{% else %}bg-secondary{% endif %}">
+        {{ cat }} &middot; {{ count }}
+      </a>
+    {% endfor %}
+  </div>
+
+  {# ---------- activity table ---------- #}
+  {% if activity_items %}
+    <div class="d-flex justify-content-between align-items-center mb-2">
+      <small class="text-body-secondary">
+        Showing {{ page_obj.start_index }}&ndash;{{ page_obj.end_index }} of {{ filtered_count }}{% if selected_category %} in {{ selected_category }}{% endif %}
+      </small>
+      {% if is_paginated %}
+        <small class="text-body-secondary">Page {{ page_obj.number }} of {{ paginator.num_pages }}</small>
+      {% endif %}
+    </div>
+    <div class="table-responsive">
+      <table class="table table-sm table-hover align-middle">
+        <thead>
+          <tr>
+            <th scope="col" style="width: 8em;">Date</th>
+            <th scope="col" style="width: 8em;">Category</th>
+            <th scope="col" style="width: 12em;">Kind</th>
+            <th scope="col">What</th>
+            <th scope="col" style="width: 12em;">Who</th>
+            <th scope="col" style="width: 5em;"></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in activity_items %}
+            <tr>
+              <td class="text-nowrap">{{ item.display_date|date:"Y-m-d" }}</td>
+              <td>
+                <span class="badge activity-badge activity-badge-{{ item.category|lower }}">
+                  {{ item.category }}
+                </span>
+              </td>
+              <td class="text-nowrap"><small class="text-body-secondary">{{ item.label }}</small></td>
+              <td>{{ item.title }}</td>
+              <td class="text-nowrap"><small>{{ item.actor }}</small></td>
+              <td class="text-end">
+                <a href="{{ item.url }}" class="btn btn-outline-primary btn-sm">Open</a>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    {% if is_paginated %}
+      <nav aria-label="Activity pagination">
+        <ul class="pagination pagination-sm justify-content-center mb-0">
+          <li class="page-item {% if not page_obj.has_previous %}disabled{% endif %}">
+            <a class="page-link" href="?{{ base_query }}&amp;page=1" aria-label="First">&laquo;&laquo;</a>
+          </li>
+          <li class="page-item {% if not page_obj.has_previous %}disabled{% endif %}">
+            <a class="page-link"
+               href="?{{ base_query }}&amp;page={% if page_obj.has_previous %}{{ page_obj.previous_page_number }}{% else %}1{% endif %}"
+               aria-label="Previous">&laquo;</a>
+          </li>
+          {% for num in paginator.page_range %}
+            {% if num == page_obj.number %}
+              <li class="page-item active" aria-current="page"><span class="page-link">{{ num }}</span></li>
+            {% elif num == 1 or num == paginator.num_pages or num >= page_obj.number|add:'-2' and num <= page_obj.number|add:'2' %}
+              <li class="page-item"><a class="page-link" href="?{{ base_query }}&amp;page={{ num }}">{{ num }}</a></li>
+            {% elif num == page_obj.number|add:'-3' or num == page_obj.number|add:'3' %}
+              <li class="page-item disabled"><span class="page-link">&hellip;</span></li>
+            {% endif %}
+          {% endfor %}
+          <li class="page-item {% if not page_obj.has_next %}disabled{% endif %}">
+            <a class="page-link"
+               href="?{{ base_query }}&amp;page={% if page_obj.has_next %}{{ page_obj.next_page_number }}{% else %}{{ paginator.num_pages }}{% endif %}"
+               aria-label="Next">&raquo;</a>
+          </li>
+          <li class="page-item {% if not page_obj.has_next %}disabled{% endif %}">
+            <a class="page-link" href="?{{ base_query }}&amp;page={{ paginator.num_pages }}" aria-label="Last">&raquo;&raquo;</a>
+          </li>
+        </ul>
+      </nav>
+    {% endif %}
+  {% else %}
+    <div class="alert alert-info mb-0">
+      No activity recorded for this chapter in the selected window.
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

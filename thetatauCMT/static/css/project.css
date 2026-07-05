@@ -516,6 +516,25 @@ select.form-control[multiple], select.form-control[size] {
   margin: 0;
 }
 
+/* ===Chapter Activity feed category badges (theme-aware)=== */
+.activity-badge {
+  background-color: var(--activity-bg, var(--bs-secondary-bg));
+  color: var(--activity-fg, var(--bs-body-color));
+}
+.activity-badge-event      { --activity-bg: #0dcaf0; --activity-fg: #0b3a44; }  /* info */
+.activity-badge-task       { --activity-bg: #198754; --activity-fg: #ffffff; }  /* success */
+.activity-badge-form       { --activity-bg: #ffc107; --activity-fg: #4a3a00; }  /* warning */
+.activity-badge-submission { --activity-bg: var(--tt-dark-red, #a00e11); --activity-fg: #ffffff; }
+.activity-badge-ballot     { --activity-bg: #6f42c1; --activity-fg: #ffffff; }  /* purple */
+.activity-badge-training   { --activity-bg: #20c997; --activity-fg: #05392a; }  /* teal */
+
+[data-bs-theme="dark"] .activity-badge-event      { --activity-bg: #0aa1c2; --activity-fg: #e5f8ff; }
+[data-bs-theme="dark"] .activity-badge-task       { --activity-bg: #15774a; --activity-fg: #e6f8ee; }
+[data-bs-theme="dark"] .activity-badge-form       { --activity-bg: #d9a406; --activity-fg: #1c1600; }
+[data-bs-theme="dark"] .activity-badge-submission { --activity-bg: #c73a3d; --activity-fg: #ffffff; }
+[data-bs-theme="dark"] .activity-badge-ballot     { --activity-bg: #8a63d2; --activity-fg: #ffffff; }
+[data-bs-theme="dark"] .activity-badge-training   { --activity-bg: #1ba57c; --activity-fg: #e6fbf3; }
+
 /* ===Dark-mode safeguards for hard-coded highlight colors=== */
 /* Inline yellow/green/red highlights on notices, process-data cells, and status
    markers force a light background; ensure text stays legible in dark mode. */
