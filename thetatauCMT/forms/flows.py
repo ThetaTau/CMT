@@ -832,16 +832,14 @@ class DisciplinaryProcessFlow(Flow):
     submit_form2 = (
         ReassignView(DisciplinaryForm2View, task_title=_("Submit Form 2"))
         .Assign(lambda act: act.process.chapter.get_current_officers_council_specific()[0])
-        .Next(this.check_reschedule)
+        .Next(this.check_officer)
     )
 
-    check_reschedule = (
-        flow.If(
-            cond=lambda act: act.process.why_take == "rescheduled",
-            task_title=_("Reschedule check"),
-        )
-        .Then(this.reschedule)
-        .Else(this.exec_approve)
+    check_officer = (
+        flow.Switch()
+        .Case(this.reschedule, cond=lambda act: act.process.why_take == "rescheduled")
+        .Case(this.end, cond=lambda act: act.process.guilty is False)
+        .Default(this.exec_approve)
     )
 
     reschedule = flow.Handler(
