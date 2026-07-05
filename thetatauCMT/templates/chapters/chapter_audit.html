@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% load static %}
+{% load render_table from django_tables2 %}
+
+{% block title %}Chapter Audit: {{ chapter.name }}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+  <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-3">
+    <div>
+      <h2 class="mb-1">Chapter Audit</h2>
+      <p class="text-body-secondary mb-0">
+        <a href="{% url 'chapters:detail' slug=chapter.slug %}">{{ chapter.name }}</a>
+        <span class="mx-1">&middot;</span>
+        {{ chapter.school }}
+      </p>
+    </div>
+    <div class="d-flex flex-wrap gap-2">
+      <a href="{% url 'forms:audit' %}" class="btn btn-outline-primary btn-sm">Submit an audit</a>
+      <a href="{% url 'chapters:detail' slug=chapter.slug %}#officers" class="btn btn-outline-secondary btn-sm">Chapter officers</a>
+    </div>
+  </div>
+
+  <div class="card border-0 shadow-sm mb-4">
+    <div class="card-body">
+      <p class="text-body-secondary mb-3">
+        An audit should be conducted by the chapter officers at the beginning of fall semester, in January,
+        and at the end of spring semester. Each column shows the most-recent submission by that officer role;
+        <em>Incomplete</em> means no audit from that role has been recorded yet.
+        Only chapter members, alumni, and national officers can see this information.
+      </p>
+      {% render_table audit_table %}
+    </div>
+  </div>
+</div>
+{% endblock content %}

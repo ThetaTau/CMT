@@ -1417,7 +1417,7 @@ class AuditFormView(LoginRequiredMixin, OfficerRequiredMixin, UpdateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         complete = False
-        if "object" in context:
+        if context.get("object") is not None:
             form = context["form"]
             for field_name, field in form.fields.items():
                 field.disabled = True
@@ -1426,6 +1426,33 @@ class AuditFormView(LoginRequiredMixin, OfficerRequiredMixin, UpdateView):
         return context
 
     def get_object(self, queryset=None):
+        # Viewing an existing audit by pk: read-only access is scoped to the
+        # audit's chapter (plus national officers / superusers). This path does
+        # NOT require the viewer to currently hold an executive-officer role —
+        # otherwise a former officer or a chapter member navigating to a
+        # completed audit is bounced to a blank submission form.
+        if "pk" in self.kwargs:
+            try:
+                audit = Audit.objects.get(pk=self.kwargs["pk"])
+            except Audit.DoesNotExist:
+                messages.add_message(
+                    self.request,
+                    messages.ERROR,
+                    "Requested audit could not be found.",
+                )
+                return None
+            audit_chapter = audit.user.chapter
+            user = self.request.user
+            if audit_chapter == user.current_chapter or user.is_national_officer_group or user.is_superuser:
+                return audit
+            messages.add_message(
+                self.request,
+                messages.ERROR,
+                f"Requested audit is for {audit_chapter} Chapter not your chapter.",
+            )
+            return None
+
+        # No pk: submission flow. Only executive officers can submit.
         current_roles = self.request.user.chapter_officer()
         if not current_roles or current_roles == {""}:
             messages.add_message(
@@ -1435,29 +1462,15 @@ class AuditFormView(LoginRequiredMixin, OfficerRequiredMixin, UpdateView):
                 f"Your current roles are: {*current_roles,}",
             )
             return None
-        else:
-            if "pk" in self.kwargs:
-                try:
-                    audit = Audit.objects.get(pk=self.kwargs["pk"])
-                except Audit.DoesNotExist:
-                    return Audit.objects.last()
-                audit_chapter = audit.user.chapter
-                if audit_chapter == self.request.user.current_chapter:
-                    return audit
-                else:
-                    messages.add_message(
-                        self.request,
-                        messages.ERROR,
-                        f"Requested audit is for {audit_chapter} Chapter not your chapter.",
-                    )
-            task = Task.objects.filter(name="Audit", owner__in=current_roles).first()
-            chapter = self.request.user.current_chapter
+        task = Task.objects.filter(name="Audit", owner__in=current_roles).first()
+        chapter = self.request.user.current_chapter
+        next_date = None
+        if task is not None:
             next_date = task.incomplete_dates_for_task_chapter(chapter).first()
-            if next_date:
-                messages.add_message(self.request, messages.INFO, "You must submit an updated audit.")
-                return None
-            else:
-                return self.request.user.audit_form.last()
+        if next_date:
+            messages.add_message(self.request, messages.INFO, "You must submit an updated audit.")
+            return None
+        return self.request.user.audit_form.last()
 
     def form_valid(self, form):
         form.instance.year = datetime.datetime.now().year
@@ -1489,7 +1502,7 @@ class AuditFormView(LoginRequiredMixin, OfficerRequiredMixin, UpdateView):
 
     def get_success_url(self):
         if self.request.user.is_authenticated:
-            return reverse("chapters:detail", kwargs={"slug": self.request.user.chapter.slug}) + "#audit"
+            return reverse("chapters:audit", kwargs={"slug": self.request.user.chapter.slug})
         else:
             return reverse("home")
 

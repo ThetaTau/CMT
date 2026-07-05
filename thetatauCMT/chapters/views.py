@@ -104,62 +104,6 @@ class ChapterDetailView(LoginRequiredMixin, MultiFormsView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        # Can not use Task model as no guarantee that Task was completed
-        # Use audit instead and get the officers
-        chapter = self.request.user.current_chapter
-        row_names = [
-            "user",
-            "modified",
-            "dues_member",
-            "dues_pledge",
-            "frequency",
-            "payment_plan",
-            "cash_book",
-            "cash_book_reviewed",
-            "cash_register",
-            "cash_register_reviewed",
-            "member_account",
-            "member_account_reviewed",
-            "balance_checking",
-            "balance_savings",
-            "debit_card",
-            "debit_card_access",
-        ]
-        audits = Audit.objects.filter(user__chapter=chapter).order_by("-modified").values(*row_names)
-        audit_items = []
-        audit_data = {}
-        for audit in audits:
-            user = User.objects.get(id=audit["user"])
-            role = user.get_officer_role_on_date(audit["modified"])
-            if role is not None:
-                role = role.role
-            if (role not in audit_data) and (role in CHAPTER_OFFICER):
-                audit["user"] = user
-                audit_data[role] = audit
-            if len(audit_data) == len(CHAPTER_OFFICER):
-                break
-        for name in row_names:
-            audit_item = {
-                "item": Audit._meta.get_field(name).verbose_name.title(),
-            }
-            for officer in CHAPTER_OFFICER:
-                audit = audit_data.get(officer, None)
-                value = "Incomplete"
-                if audit is not None:
-                    value = audit.get(name, "Incomplete")
-                audit_item.update({officer.replace(" ", "_"): value})
-            audit_items.append(audit_item)
-            # {
-            #     'item': 'Debit Card Access',
-            #     'corresponding_secretary': 'Incomplete',
-            #     'treasurer': ['regent', 'treasurer'],
-            #     'scribe': 'Incomplete',
-            #     'vice_regent': ['regent', 'treasurer'],
-            #     'regent': ['regent', 'treasurer']
-            # }
-        audit_table = AuditTable(data=audit_items)
-        RequestConfig(self.request).configure(audit_table)
-        context["audit_table"] = audit_table
         chapter = self.get_object()
         note_table = ChapterNoteTable(data=chapter.notes_filtered(self.request.user))
         RequestConfig(self.request).configure(note_table)
@@ -356,6 +300,115 @@ class ChapterActivityView(LoginRequiredMixin, TemplateView):
                 "selected_category": selected,
             }
         )
+        return context
+
+
+AUDIT_ROW_NAMES = [
+    "user",
+    "modified",
+    "dues_member",
+    "dues_pledge",
+    "frequency",
+    "payment_plan",
+    "cash_book",
+    "cash_book_reviewed",
+    "cash_register",
+    "cash_register_reviewed",
+    "member_account",
+    "member_account_reviewed",
+    "balance_checking",
+    "balance_savings",
+    "debit_card",
+    "debit_card_access",
+]
+
+
+def build_chapter_audit_items(chapter):
+    """Build the officer-role audit summary rows for ``chapter``.
+
+    Returns the list of dicts consumed by :class:`chapters.tables.AuditTable`.
+    Each row represents one audit field and its most-recent value per
+    CHAPTER_OFFICER role.
+    """
+    audits = Audit.objects.filter(user__chapter=chapter).order_by("-modified").values(*AUDIT_ROW_NAMES)
+    audit_data = {}
+    for audit in audits:
+        user = User.objects.get(id=audit["user"])
+        role = user.get_officer_role_on_date(audit["modified"])
+        if role is not None:
+            role = role.role
+        if (role not in audit_data) and (role in CHAPTER_OFFICER):
+            audit["user"] = user
+            audit_data[role] = audit
+        if len(audit_data) == len(CHAPTER_OFFICER):
+            break
+    audit_items = []
+    for name in AUDIT_ROW_NAMES:
+        row = {"item": Audit._meta.get_field(name).verbose_name.title()}
+        for officer in CHAPTER_OFFICER:
+            audit = audit_data.get(officer)
+            value = "Incomplete"
+            if audit is not None:
+                value = audit.get(name, "Incomplete")
+            row[officer.replace(" ", "_")] = value
+        audit_items.append(row)
+    return audit_items
+
+
+class ChapterAuditRedirectView(LoginRequiredMixin, RedirectView):
+    """Sends a logged-in user to their own chapter's audit page."""
+
+    permanent = False
+
+    def get_redirect_url(self, *args, **kwargs):
+        chapter = self.request.user.current_chapter
+        return reverse("chapters:audit", kwargs={"slug": chapter.slug})
+
+
+class ChapterAuditView(LoginRequiredMixin, TemplateView):
+    """Chapter Audit summary — one row per audit field, one column per role.
+
+    Access: superusers, national officers, or a user whose current chapter
+    matches the requested slug. Non-members are redirected home so they cannot
+    inspect another chapter's financial state.
+    """
+
+    template_name = "chapters/chapter_audit.html"
+
+    def _get_chapter(self):
+        return get_object_or_404(Chapter, slug=self.kwargs["slug"])
+
+    def _user_allowed(self, user, chapter):
+        if not user.is_authenticated:
+            return False
+        if user.is_superuser:
+            return True
+        if user.groups.filter(name="natoff").exists():
+            return True
+        current = getattr(user, "current_chapter", None)
+        return current is not None and current.pk == chapter.pk
+
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return super().dispatch(request, *args, **kwargs)
+        chapter = self._get_chapter()
+        if not self._user_allowed(request.user, chapter):
+            messages.add_message(
+                request,
+                messages.ERROR,
+                "Only chapter members, national officers, or superusers " "can view a chapter's audit.",
+            )
+            return HttpResponseRedirect(reverse("home"))
+        self.chapter = chapter
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        audit_items = build_chapter_audit_items(self.chapter)
+        audit_table = AuditTable(data=audit_items)
+        RequestConfig(self.request).configure(audit_table)
+        context["audit_table"] = audit_table
+        context["chapter"] = self.chapter
         return context
 
 

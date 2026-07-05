@@ -273,3 +273,77 @@ def test_chapter_detail_view_with_national_officer_role(auto_login_user):
     url = reverse("chapters:detail", kwargs={"slug": chapter.slug})
     response = client.get(url)
     assert response.status_code == 200
+
+
+# ─── ChapterAuditView / ChapterAuditRedirectView ─────────────────────────────
+
+
+@pytest.mark.django_db
+def test_chapter_audit_redirect_view(auto_login_user):
+    """The Finances nav link at /chapters/audit/ sends the user to their own
+    chapter's audit page."""
+    client, user = auto_login_user()
+    chapter = user.current_chapter
+    url = reverse("chapters:audit_redirect")
+    response = client.get(url, follow=False)
+    assert response.status_code == 302
+    assert response["Location"] == reverse("chapters:audit", kwargs={"slug": chapter.slug})
+
+
+@pytest.mark.django_db
+def test_chapter_audit_view_own_chapter(auto_login_user):
+    """A logged-in chapter member can view their own chapter's audit summary."""
+    from django.utils import timezone
+
+    from thetatauCMT.forms.models import Audit
+
+    client, user = auto_login_user()
+    chapter = user.current_chapter
+    Audit.objects.create(
+        user=user,
+        year=2023,
+        term="fa",
+        modified=timezone.now(),
+        dues_member=100.0,
+        dues_pledge=50.0,
+        frequency="month",
+        payment_plan=True,
+        cash_book=True,
+        cash_register=True,
+        member_account=True,
+        cash_book_reviewed=True,
+        cash_register_reviewed=True,
+        member_account_reviewed=True,
+        balance_checking=1000.0,
+        balance_savings=500.0,
+        debit_card=True,
+        debit_card_access="regent",
+        agreement=True,
+    )
+    url = reverse("chapters:audit", kwargs={"slug": chapter.slug})
+    response = client.get(url)
+    assert response.status_code == 200
+    body = response.content.decode()
+    assert "Chapter Audit" in body
+
+
+@pytest.mark.django_db
+def test_chapter_audit_view_other_chapter_denied(auto_login_user):
+    """A regular chapter member cannot view another chapter's audit."""
+    client, user = auto_login_user()
+    other_chapter = ChapterFactory()
+    url = reverse("chapters:audit", kwargs={"slug": other_chapter.slug})
+    response = client.get(url, follow=False)
+    assert response.status_code == 302
+    assert response["Location"] == reverse("home")
+
+
+@pytest.mark.django_db
+def test_chapter_audit_view_natoff_can_view_any(auto_login_user):
+    """National officers can view any chapter's audit."""
+    client, user = auto_login_user()
+    _add_to_group(user, "natoff")
+    other_chapter = ChapterFactory()
+    url = reverse("chapters:audit", kwargs={"slug": other_chapter.slug})
+    response = client.get(url)
+    assert response.status_code == 200

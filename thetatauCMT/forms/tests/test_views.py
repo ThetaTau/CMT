@@ -2239,7 +2239,7 @@ def test_rmp_list_with_active_user(auto_login_user):
 @pytest.mark.django_db
 def test_audit_form_view_get_with_pk(auto_login_user):
     """AuditFormView GET with existing pk triggers get_object pk-branch and
-    get_context_data 'object in context' branch at lines 1546-1571."""
+    renders the 'Audit complete' banner."""
     from thetatauCMT.forms.tests.factories import AuditFactory
     from thetatauCMT.users.tests.factories import UserRoleChangeFactory
 
@@ -2250,6 +2250,46 @@ def test_audit_form_view_get_with_pk(auto_login_user):
     url = reverse("forms:audit_complete", kwargs={"pk": audit.pk})
     response = client.get(url, follow=True)
     assert response.status_code == 200
+    assert "Audit complete" in response.content.decode()
+
+
+@pytest.mark.django_db
+def test_audit_form_view_get_with_pk_non_exec_officer(auto_login_user):
+    """A user in the 'officer' group without a current executive role should
+    still be able to VIEW a completed audit for their own chapter — they must
+    not be bounced to a blank submit form."""
+    from thetatauCMT.forms.tests.factories import AuditFactory
+
+    client, user = auto_login_user()
+    _add_to_group(user, "officer")
+    # No UserRoleChangeFactory: user has no current CHAPTER_OFFICER role.
+    audit = AuditFactory.create(user=user)
+    url = reverse("forms:audit_complete", kwargs={"pk": audit.pk})
+    response = client.get(url, follow=True)
+    assert response.status_code == 200
+    assert "Audit complete" in response.content.decode()
+
+
+@pytest.mark.django_db
+def test_audit_form_view_get_with_pk_wrong_chapter(auto_login_user):
+    """An officer requesting an audit belonging to a different chapter must
+    NOT see the completed-audit page for that chapter."""
+    from thetatauCMT.chapters.tests.factories import ChapterFactory
+    from thetatauCMT.forms.tests.factories import AuditFactory
+    from thetatauCMT.users.tests.factories import UserFactory, UserRoleChangeFactory
+
+    client, user = auto_login_user()
+    _add_to_group(user, "officer")
+    UserRoleChangeFactory.create(user=user, current=True, role="treasurer")
+    other_chapter = ChapterFactory()
+    other_user = UserFactory(chapter=other_chapter)
+    audit = AuditFactory.create(user=other_user)
+
+    url = reverse("forms:audit_complete", kwargs={"pk": audit.pk})
+    response = client.get(url, follow=True)
+    assert response.status_code == 200
+    # The view falls back to the empty (submission) form — no completed banner.
+    assert "Audit complete" not in response.content.decode()
 
 
 # ─── AuditFormView POST as officer – form_valid (lines 1590-1616) ────────────
