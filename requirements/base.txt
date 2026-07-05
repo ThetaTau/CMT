@@ -101,9 +101,9 @@ djangorestframework==3.16.0  # https://github.com/encode/django-rest-framework
 coreapi==2.3.3  # https://github.com/core-api/python-client
 
 # Django Plotly Dash
-dash==3.1.1
+dash==4.4.0
 # dash-renderer and dash-html-components were merged into dash in Dash 2.0; removed
 pandas==2.3.1
-plotly==6.2.0
-django-plotly-dash==2.5.0
+plotly==6.8.0
+django-plotly-dash==2.5.1
 django-pandas==0.6.7

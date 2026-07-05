@@ -1,0 +1,14 @@
+[
+{
+    "model": "regions.region",
+    "pk": 1,
+    "fields": {
+        "name": "National",
+        "slug": "national",
+        "email": "",
+        "website": "https://thetatau.org",
+        "facebook": "https://www.facebook.com/ThetaTauFraternity",
+        "directors": []
+    }
+}
+]

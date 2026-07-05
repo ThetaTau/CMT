@@ -1,7 +1,7 @@
 # filters.py
 import django_filters
 
-from core.filters import DateRangeFilter
+from core.filters import DateRangeFilter, DynamicScopeFilterSetMixin
 from thetatauCMT.regions.models import Region
 
 from .models import Invoice
@@ -18,7 +18,7 @@ class InvoiceListFilter(django_filters.FilterSet):
         order_by = ["-due_date"]
 
 
-class ChapterBalanceListFilter(django_filters.FilterSet):
+class ChapterBalanceListFilter(DynamicScopeFilterSetMixin, django_filters.FilterSet):
     region = django_filters.ChoiceFilter(label="Region", choices=Region.region_choices(), method="filter_region")
 
     class Meta:

@@ -1,6 +1,6 @@
 from django.urls import path
 
-from . import views
+from . import dashboard, views  # noqa: F401  dashboard import registers the DjangoDash app
 
 app_name = "regions"
 urlpatterns = [

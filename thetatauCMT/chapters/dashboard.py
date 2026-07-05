@@ -5,8 +5,7 @@ import dash
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
-from dash import dcc, html
-from dash.dependencies import Input, Output, State
+from dash import Input, Output, State, dcc, html
 from dash.exceptions import PreventUpdate
 from django.conf import settings
 from django.db.models import Avg, Count
@@ -35,7 +34,15 @@ if __name__ == "__main__":
 else:
     from django_plotly_dash import DjangoDash
 
-    app = DjangoDash("Dashboard")
+    # See `regions/dashboard.py` for the rationale — django-plotly-dash 2.5.1
+    # doesn't route dash 3+/4's new `_dash-component-suites` URL scheme, so
+    # locally-served plotly.min.js 404s and dcc.Graphs never mount. Load it
+    # from the CDN at the exact version bundled with `plotly==6.8.0` (v3.6.0).
+    app = DjangoDash(
+        "Dashboard",
+        serve_locally=False,
+        external_scripts=["https://cdn.plot.ly/plotly-3.6.0.min.js"],
+    )
 
 
 # -------------------------------------------------------------------------------
@@ -57,46 +64,50 @@ COLORS = {
 now = datetime.datetime.now()
 YEARS = [x for x in range(2018, now.year + 1)]
 
+# Class applied to every dashboard panel so Bootstrap 5.3 theme tokens
+# (`bg-body-tertiary`, `text-body`) drive colors in both light and dark modes
+# without having to keep hex values in Python.
+_PANEL_CLASS = "tt-dashboard-panel card border-0 shadow-sm bg-body-tertiary text-body"
+
+_PANEL_BASE = dict(
+    borderRadius=8,
+    margin=10,
+    padding=15,
+    position="relative",
+)
 style = {
-    "slider": dict(
-        borderRadius=5,
-        backgroundColor="#f9f9f9",
-        margin=5,
-        padding=30,
-        position="relative",
-        boxShadow="2px 2px 2px lightgrey",
-    ),
-    "number": dict(
-        borderRadius=5,
-        backgroundColor="#f9f9f9",
-        margin=10,
-        padding=15,
-        width="20%",
-        position="relative",
-        boxShadow="2px 2px 2px lightgrey",
-    ),
-    "big_graph": dict(
-        borderRadius=5,
-        backgroundColor="#f9f9f9",
-        margin=10,
-        padding=15,
-        position="relative",
-        boxShadow="2px 2px 2px lightgrey",
-    ),
-    "small_graph": dict(
-        borderRadius=5,
-        backgroundColor="#f9f9f9",
-        margin=10,
-        padding=15,
-        width="48%",
-        position="relative",
-        boxShadow="2px 2px 2px lightgrey",
-    ),
+    "slider": {**_PANEL_BASE, "margin": 5, "padding": 30},
+    "number": {**_PANEL_BASE, "width": "20%", "textAlign": "center"},
+    "big_graph": {**_PANEL_BASE, "flex": "1 1 auto", "minWidth": 0},
+    # Year selector is a compact control — shrink it to leave room for the
+    # majors-of-study pie chart next to it.
+    "small_graph": {**_PANEL_BASE, "flex": "0 0 220px", "maxWidth": "260px"},
 }
 
 
-def layout(fig, title, YEARS):
+def _theme_template(theme):
+    return "plotly_dark" if theme == "dark" else "plotly_white"
+
+
+def _apply_theme(fig, theme):
+    """Set a theme-aware template and transparent backgrounds on `fig`."""
     fig.update_layout(
+        template=_theme_template(theme),
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+    )
+    return fig
+
+
+def layout(fig, title, YEARS, theme="light"):
+    """Apply the shared axis + title layout used by legacy chapter graphs.
+
+    `theme` is optional so tests that call ``layout(fig, title, YEARS)``
+    positionally keep working; callbacks pass the current theme so the
+    figure background matches the outer light / dark mode.
+    """
+    fig.update_layout(
+        template=_theme_template(theme),
         title={
             "text": title,
             "x": 0.5,
@@ -109,16 +120,15 @@ def layout(fig, title, YEARS):
             showline=True,
             showgrid=False,
             showticklabels=True,
-            linecolor="rgb(204, 204, 204)",
             linewidth=2,
             ticks="outside",
-            tickfont=dict(family="Arial", size=12, color="rgb(82,82,82)"),
+            tickfont=dict(family="Arial", size=12),
             ticktext=YEARS,
             tickvals=YEARS,
         ),
         yaxis=dict(showgrid=False, zeroline=False, showline=False, showticklabels=False),
-        plot_bgcolor="#F9F9F9",
-        paper_bgcolor="#F9F9F9",
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
     )
 
 
@@ -145,13 +155,19 @@ app.layout = html.Div(
         # invisible button for initial loading
         html.Button(id="invisible-button", style={"display": "none"}),
         dcc.Store(id="chapter-data", storage_type="local"),
+        # Theme sync — a clientside interval mirrors the outer page's
+        # `data-bs-theme` attribute into `theme-store` so figure callbacks
+        # can re-render with `plotly_dark` / `plotly_white` templates.
+        dcc.Interval(id="theme-poll", interval=1500, n_intervals=0),
+        dcc.Store(id="theme-store", data="light"),
         html.Div(
-            children=[html.H1("Status Dashboard")],
+            children=[html.H1("Status Dashboard", className="mb-0")],
             style=dict(display="flex", flexDirection="row", marginBottom=10, marginTop=20),
         ),
         html.Div(
+            className=_PANEL_CLASS,
             children=[
-                html.P("Select date range:"),
+                html.P("Select date range:", className="mb-2"),
                 dcc.RangeSlider(
                     id="years-slider",
                     dots=True,
@@ -161,8 +177,9 @@ app.layout = html.Div(
             style=style["slider"],
         ),
         html.Div(
+            className=_PANEL_CLASS,
             children=[
-                html.P("Select status: "),
+                html.P("Select status: ", className="mb-2"),
                 dcc.Dropdown(
                     id="status-dropdown",
                     options=[
@@ -179,20 +196,20 @@ app.layout = html.Div(
             style=style["big_graph"],
         ),
         html.Div(
+            className=_PANEL_CLASS,
             children=[
-                dcc.Loading(
-                    type="default",
-                    children=[
-                        # Graph 1: Chapter size over time
-                        dcc.Graph(id="composition-graph"),
-                    ],
-                )
+                # NOTE: dash 4.x's `dcc.Loading` drops nested Dash components
+                # from its `children` prop during render, leaving an empty
+                # wrapper. Graphs go straight into the panel instead — Dash 4
+                # already shows loading state on the target output.
+                dcc.Graph(id="composition-graph", config={"displaylogo": False}),
             ],
             style=style["big_graph"],
         ),
         html.Div(
             children=[
                 html.Div(
+                    className=_PANEL_CLASS,
                     children=[
                         html.Div(id="actives-num"),
                         html.H6(
@@ -201,26 +218,30 @@ app.layout = html.Div(
                         ),
                         html.H6(
                             "[ activepend + active + alumnipend]",
-                            style=dict(fontSize=14, color="grey", textAlign="center"),
+                            className="text-body-secondary",
+                            style=dict(fontSize=14, textAlign="center"),
                         ),
                     ],
                     style=style["number"],
                 ),
                 html.Div(
+                    className=_PANEL_CLASS,
                     children=[
-                        html.Div(id="awayss-num"),
+                        html.Div(id="aways-num"),
                         html.H6(
                             "Aways",
                             style=dict(color=COLORS["Aways"], textAlign="center"),
                         ),
                         html.H6(
                             "[ coop + military + study abroad ]",
-                            style=dict(fontSize=14, color="grey", textAlign="center"),
+                            className="text-body-secondary",
+                            style=dict(fontSize=14, textAlign="center"),
                         ),
                     ],
                     style=style["number"],
                 ),
                 html.Div(
+                    className=_PANEL_CLASS,
                     children=[
                         html.Div(id="pnms-num"),
                         html.H6(
@@ -229,12 +250,14 @@ app.layout = html.Div(
                         ),
                         html.H6(
                             "[ pnm ]",
-                            style=dict(fontSize=14, color="grey", textAlign="center"),
+                            className="text-body-secondary",
+                            style=dict(fontSize=14, textAlign="center"),
                         ),
                     ],
                     style=style["number"],
                 ),
                 html.Div(
+                    className=_PANEL_CLASS,
                     children=[
                         html.Div(id="depledges-num"),
                         html.H6(
@@ -243,12 +266,14 @@ app.layout = html.Div(
                         ),
                         html.H6(
                             "[ depledge ]",
-                            style=dict(fontSize=14, color="grey", textAlign="center"),
+                            className="text-body-secondary",
+                            style=dict(fontSize=14, textAlign="center"),
                         ),
                     ],
                     style=style["number"],
                 ),
                 html.Div(
+                    className=_PANEL_CLASS,
                     children=[
                         html.Div(id="alumni-num"),
                         html.H6(
@@ -257,7 +282,8 @@ app.layout = html.Div(
                         ),
                         html.H6(
                             "[ alumni ]",
-                            style=dict(fontSize=14, color="grey", textAlign="center"),
+                            className="text-body-secondary",
+                            style=dict(fontSize=14, textAlign="center"),
                         ),
                     ],
                     style=style["number"],
@@ -269,21 +295,18 @@ app.layout = html.Div(
         html.Div(
             children=[
                 html.Div(
+                    className=_PANEL_CLASS,
                     children=[
-                        html.P("Select year: "),
+                        html.P("Select year: ", className="mb-2"),
                         dcc.Dropdown(id="years-dropdown", value=now.year),
                     ],
                     style=style["small_graph"],
                 ),
                 html.Div(
+                    className=_PANEL_CLASS,
                     children=[
-                        dcc.Loading(
-                            type="default",
-                            children=[
-                                # Graph 3: Majors of Study
-                                dcc.Graph(id="majors-graph"),
-                            ],
-                        )
+                        # Graph 3: Majors of Study — see note on Loading above.
+                        dcc.Graph(id="majors-graph", config={"displaylogo": False}),
                     ],
                     style=style["big_graph"],
                 ),
@@ -291,18 +314,46 @@ app.layout = html.Div(
             style=dict(display="flex", flexDirection="row"),
         ),
         html.Div(
+            className=_PANEL_CLASS,
             children=[
-                dcc.Loading(
-                    type="default",
-                    children=[
-                        # Graph 4: Average GPA over time
-                        dcc.Graph(id="gpa-graph"),
-                    ],
-                )
+                # Graph 4: Average GPA over time — see note on Loading above.
+                dcc.Graph(id="gpa-graph", config={"displaylogo": False}),
             ],
             style=style["big_graph"],
         ),
     ]
+)
+
+
+# Clientside — mirror the outer page's `data-bs-theme` attribute into the store
+# so figure callbacks re-render with the appropriate Plotly template.
+# Returns `dash_clientside.no_update` when the theme hasn't changed; without
+# this guard every 1.5s interval tick would re-write the store and cascade
+# through every figure callback, causing a permanent POST loop.
+app.clientside_callback(
+    """
+    function(_n) {
+        try {
+            var root = (window.parent && window.parent.document)
+                ? window.parent.document.documentElement
+                : document.documentElement;
+            var current = root.getAttribute('data-bs-theme') === 'dark' ? 'dark' : 'light';
+            if (window._ttChapterLastTheme === undefined) {
+                window._ttChapterLastTheme = current;
+                return current === 'light' ? window.dash_clientside.no_update : current;
+            }
+            if (window._ttChapterLastTheme === current) {
+                return window.dash_clientside.no_update;
+            }
+            window._ttChapterLastTheme = current;
+            return current;
+        } catch (e) {
+            return window.dash_clientside.no_update;
+        }
+    }
+    """,
+    Output("theme-store", "data"),
+    Input("theme-poll", "n_intervals"),
 )
 
 
@@ -371,7 +422,8 @@ def load_chapter_data(clicks, **kwargs):
             dfs.append(df_year_term)
             year_terms_marks[year + {"Spring": 0, "Fall": 0.5}[term]] = {
                 "label": f"{term} {year}",
-                "style": dict(color="#c0392b"),
+                # Colour is applied via `.dash-slider-mark` / `.rc-slider-mark-text`
+                # in `project.css`, which follows the Bootstrap theme in light + dark.
             }
     align_status = {
         "Actives": ["active", "activepend", "alumnipend"],
@@ -382,23 +434,63 @@ def load_chapter_data(clicks, **kwargs):
     }
     df = pd.concat(dfs, sort=True)
     for main_status, align_statuss in align_status.items():
-        if all([status in df.columns for status in align_statuss]):
-            df[main_status] = df[align_statuss].sum(axis=1)
+        # Only sum columns that actually appear in the dataframe. The old
+        # `all(status in df.columns)` guard forced the entire count to 0 when
+        # ANY sub-status was absent — so e.g. a chapter with only "active"
+        # users (no `activepend` / `alumnipend`) would always show Actives = 0.
+        present = [status for status in align_statuss if status in df.columns]
+        if present:
+            df[main_status] = df[present].sum(axis=1)
         else:
             df[main_status] = 0
     df["Year Term"] = df.index
     year_terms = [{"label": val, "value": val} for val in df["Year Term"]]
+    # Present the year dropdown newest-first so the current term is at the top.
+    year_terms_newest_first = list(reversed(year_terms))
+    # Default the range slider to the last two years (four semester marks); the
+    # user can still drag back further to inspect deeper history.
+    mark_keys = list(year_terms_marks.keys())
+    default_start_idx = max(0, len(mark_keys) - 4)
     return (
         df.to_dict(orient="records"),
         year_terms_marks,
-        list(year_terms_marks.keys())[0],
-        list(year_terms_marks.keys())[-1],
+        mark_keys[0],
+        mark_keys[-1],
+        [mark_keys[default_start_idx], mark_keys[-1]],
+        year_terms_newest_first,
+        year_terms_newest_first[0]["value"],
+    )
+
+
+def _count_card(end_val, start_val):
+    """KPI-card body: the count at the end of the selected range, with a
+    small coloured delta showing change since the start of the range."""
+    try:
+        end_int = int(end_val)
+    except (TypeError, ValueError):
+        end_int = 0
+    change = None
+    try:
+        change = round(((end_val - start_val) / start_val * 100), 2)
+    except (ZeroDivisionError, TypeError):
+        pass
+    if change is None or change == 0:
+        delta_color = "#b2bec3"
+        delta_text = "no change" if change == 0 else "—"
+    elif change > 0:
+        delta_color = "#20bf6b"
+        delta_text = f"▲ +{change}%"
+    else:
+        delta_color = "#ff6b6b"
+        delta_text = f"▼ {change}%"
+    return html.Div(
         [
-            list(year_terms_marks.keys())[0],
-            list(year_terms_marks.keys())[-1],
-        ],
-        year_terms,
-        year_terms[-1]["value"],
+            html.H2(f"{end_int:,}", style={"textAlign": "center", "margin": 0}),
+            html.Div(
+                delta_text,
+                style={"color": delta_color, "textAlign": "center", "fontSize": 12},
+            ),
+        ]
     )
 
 
@@ -419,21 +511,16 @@ def update_text(data, years, **kwargs):
     df = df.fillna(0)
     if years is None or "year" not in df:
         raise PreventUpdate
+    start, end = years
+    start_term = "Fall" if str(start).endswith(".5") else "Spring"
+    end_term = "Fall" if str(end).endswith(".5") else "Spring"
     outs = []
     for status in statuss:
-        start, end = years
-        start_term, end_term = "Spring", "Spring"
-        if str(start).endswith(".5"):
-            start_term = "Fall"
-        if str(end).endswith(".5"):
-            end_term = "Fall"
         start_val = df[(df["year"] == int(start)) & (df["term"] == start_term)][status].iloc[0]
         end_val = df[(df["year"] == int(end)) & (df["term"] == end_term)][status].iloc[0]
-        out = fetch_stats(start_val, end_val)
-        outs.append(out)
+        outs.append(_count_card(end_val, start_val))
     return (
-        f"NOTE: Percent change of member status will result in 'N/A' if value "
-        f"at either {years[0]} or {years[1]} is zero.",
+        f"Showing counts at {end_term} {int(end)}. " f"Change vs. {start_term} {int(start)} shown below each number.",
         *outs,
     )
 
@@ -444,12 +531,13 @@ def update_text(data, years, **kwargs):
         Input("chapter-data", "data"),
         Input("years-slider", "value"),
         Input("status-dropdown", "value"),
+        Input("theme-store", "data"),
     ],
     [
         State("years-slider", "marks"),
     ],
 )
-def members_graph(data, years, status, year_info, **kwargs):
+def members_graph(data, years, status, theme="light", year_info=None, **kwargs):
     df = pd.DataFrame.from_dict(data)
     df = df.fillna(0)
     if year_info is None or "Year Term" not in df:
@@ -463,19 +551,27 @@ def members_graph(data, years, status, year_info, **kwargs):
             y=status,
             title="Membership Composition",
             color_discrete_map=COLORS,
+            # Markers keep the graph readable when the range collapses to a
+            # single point (a line with one point renders as empty).
+            markers=True,
         )
-        fig.layout.update(showlegend=False, yaxis_title="", xaxis_title="")
+        fig.update_traces(marker=dict(size=8), line=dict(width=2))
+        fig.update_layout(showlegend=False, yaxis_title="", xaxis_title="")
     except KeyError:
         raise PreventUpdate
     else:
-        return fig
+        return _apply_theme(fig, theme)
 
 
 @app.callback(
     Output("majors-graph", "figure"),
-    [Input("chapter-data", "data"), Input("years-dropdown", "value")],
+    [
+        Input("chapter-data", "data"),
+        Input("years-dropdown", "value"),
+        Input("theme-store", "data"),
+    ],
 )
-def majors_graph(data, yearterm, **kwargs):
+def majors_graph(data, yearterm, theme="light", **kwargs):
     df = pd.DataFrame.from_dict(data)
     df = df.fillna(0)
     try:
@@ -495,10 +591,8 @@ def majors_graph(data, yearterm, **kwargs):
             "xanchor": "center",
             "yanchor": "top",
         },
-        plot_bgcolor="#F9F9F9",
-        paper_bgcolor="#F9F9F9",
     )
-    return fig
+    return _apply_theme(fig, theme)
 
 
 @app.callback(
@@ -506,10 +600,11 @@ def majors_graph(data, yearterm, **kwargs):
     [
         Input("chapter-data", "data"),
         Input("years-slider", "value"),
+        Input("theme-store", "data"),
     ],
     [State("years-slider", "marks")],
 )
-def gpa_graph(data, years, year_info, **kwargs):
+def gpa_graph(data, years, theme="light", year_info=None, **kwargs):
     df = pd.DataFrame.from_dict(data)
     df = df.fillna(0)
     if year_info is None or "Year Term" not in df:
@@ -522,9 +617,11 @@ def gpa_graph(data, years, year_info, **kwargs):
         y="gpa__avg",
         title="Average GPA",
         hover_data=["gpa__count"],
+        markers=True,
     )
-    fig.layout.update(showlegend=False, yaxis_title="", xaxis_title="")
-    return fig
+    fig.update_traces(marker=dict(size=8), line=dict(width=2))
+    fig.update_layout(showlegend=False, yaxis_title="", xaxis_title="")
+    return _apply_theme(fig, theme)
 
 
 if __name__ == "__main__":

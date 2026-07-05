@@ -1,11 +1,8 @@
 import csv
 import datetime
-import time
 from collections import defaultdict
 
 import django_tables2 as tables
-import jwt
-from django.conf import settings
 from django.contrib import messages
 from django.db import models
 from django.http import HttpResponse
@@ -214,23 +211,16 @@ class RegionDetailView(LoginRequiredMixin, NatOfficerRequiredMixin, DetailView):
     slug_field = "slug"
     slug_url_kwarg = "slug"
 
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        params = {"region": self.object.name}
-        if self.object.slug == "national":
-            params = {}
-        payload = {
-            "resource": {"dashboard": 2},
-            "params": params,
-            "exp": round(time.time()) + (60 * 10),  # 10 min expiration
-        }
-        secret = settings.METABASE_SECRET_KEY
-        iframeUrl = "about:blank"
-        if secret:
-            token = jwt.encode(payload, secret, algorithm="HS256")
-            iframeUrl = "https://thetatau.metabaseapp.com" + "/embed/dashboard/" + token + "#bordered=true&titled=true"
-        context["iframeUrl"] = iframeUrl
-        return context
+    def get_object(self, queryset=None):
+        # `candidate_chapter` isn't a real Region row — it's a synthetic
+        # scope surfaced in `Region.region_choices()`. Fake a Region instance
+        # so the detail template can render (it only reads `.name`/`.slug`).
+        slug = self.kwargs.get(self.slug_url_kwarg)
+        if slug == "candidate_chapter":
+            region = Region(name="Candidate Chapters")
+            region.slug = "candidate_chapter"
+            return region
+        return super().get_object(queryset)
 
 
 class RegionTaskView(LoginRequiredMixin, NatOfficerRequiredMixin, DetailView):

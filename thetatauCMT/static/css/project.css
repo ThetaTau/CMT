@@ -535,6 +535,70 @@ select.form-control[multiple], select.form-control[size] {
 [data-bs-theme="dark"] .activity-badge-ballot     { --activity-bg: #8a63d2; --activity-fg: #ffffff; }
 [data-bs-theme="dark"] .activity-badge-training   { --activity-bg: #1ba57c; --activity-fg: #e6fbf3; }
 
+/* ===Plotly Dash dashboards (chapter + region)=== */
+/* Panel wrapper — pairs with the `_PANEL_CLASS` used in dashboard.py.
+   Backgrounds/borders come from `bg-body-tertiary` so both light and dark
+   Bootstrap themes apply automatically. */
+.tt-dashboard-panel { border-radius: 0.5rem; }
+
+/* Region dashboard tabs — theme-aware overrides for dcc.Tabs. */
+.tt-dashboard-tabs .tab {
+  background-color: transparent !important;
+  color: var(--bs-body-color) !important;
+  border-color: var(--bs-border-color) !important;
+}
+.tt-dashboard-tabs .tab--selected {
+  background-color: var(--bs-body-tertiary-bg) !important;
+  color: var(--bs-body-color) !important;
+  border-top: 2px solid var(--tt-red, #a00e11) !important;
+  font-weight: 600;
+}
+.tt-dashboard-tabs .tt-dashboard-tab {
+  background-color: transparent !important;
+  color: var(--bs-body-color) !important;
+}
+.tt-dashboard-tabs .tt-dashboard-tab--active {
+  background-color: var(--bs-tertiary-bg) !important;
+  color: var(--bs-body-color) !important;
+  border-top: 2px solid var(--tt-red, #a00e11) !important;
+}
+
+/* Dash 4.x ships its own CSS custom properties (`--Dash-*`) that its form
+   controls (dropdowns, sliders, checklists, inputs, etc.) read at runtime.
+   The defaults are hard-coded to a LIGHT palette in `:root`, so in dark mode
+   dropdowns render with a white background and dark-blue text on our dark
+   panels. Override them here to track Bootstrap's dark theme. */
+[data-bs-theme="dark"] {
+  --Dash-Fill-Inverse-Strong: var(--bs-body-bg);
+  --Dash-Fill-Interactive-Weak: rgba(255, 255, 255, 0.06);
+  --Dash-Text-Primary: var(--bs-body-color);
+  --Dash-Text-Strong: var(--bs-body-color);
+  --Dash-Text-Weak: var(--bs-secondary-color, rgba(248, 249, 250, 0.7));
+  --Dash-Text-Disabled: rgba(248, 249, 250, 0.4);
+  --Dash-Stroke-Strong: rgba(248, 249, 250, 0.35);
+  --Dash-Stroke-Weak: rgba(248, 249, 250, 0.15);
+  --Dash-Fill-Disabled: rgba(255, 255, 255, 0.1);
+  --Dash-Fill-Primary-Hover: rgba(255, 255, 255, 0.06);
+  --Dash-Fill-Primary-Active: rgba(255, 255, 255, 0.12);
+}
+/* Dash's Dropdown option popover renders in a portal outside the theme scope,
+   so target it explicitly too. */
+[data-bs-theme="dark"] .dash-dropdown-content,
+[data-bs-theme="dark"] .dash-dropdown-options,
+[data-bs-theme="dark"] .dash-dropdown-option {
+  background-color: var(--bs-body-bg) !important;
+  color: var(--bs-body-color) !important;
+}
+[data-bs-theme="dark"] .dash-dropdown-option:hover {
+  background-color: var(--bs-tertiary-bg) !important;
+}
+/* RangeSlider mark labels default to `#c0392b` inline; that's illegible on
+   dark bg. Force the mark text to use the current body color. */
+[data-bs-theme="dark"] .dash-slider-mark,
+[data-bs-theme="dark"] .rc-slider-mark-text {
+  color: var(--bs-body-color) !important;
+}
+
 /* ===Dark-mode safeguards for hard-coded highlight colors=== */
 /* Inline yellow/green/red highlights on notices, process-data cells, and status
    markers force a light background; ensure text stays legible in dark mode. */

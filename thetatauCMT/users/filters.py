@@ -1,6 +1,7 @@
 # filters.py
 import django_filters
 
+from core.filters import DynamicScopeFilterSetMixin
 from thetatauCMT.chapters.models import Chapter, ChapterCurricula
 from thetatauCMT.regions.models import Region
 
@@ -82,7 +83,7 @@ class UserListFilter(UserListFilterBase):
     )
 
 
-class UserRoleListFilter(django_filters.FilterSet):
+class UserRoleListFilter(DynamicScopeFilterSetMixin, django_filters.FilterSet):
     current_status = django_filters.ChoiceFilter(
         choices=[
             ("active", "active"),
@@ -153,7 +154,7 @@ class UserRoleListFilter(django_filters.FilterSet):
         return queryset
 
 
-class AdvisorListFilter(django_filters.FilterSet):
+class AdvisorListFilter(DynamicScopeFilterSetMixin, django_filters.FilterSet):
     region = django_filters.ChoiceFilter(choices=Region.region_choices(), method="filter_region")
     chapter = django_filters.ChoiceFilter(
         label="Chapter",

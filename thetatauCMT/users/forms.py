@@ -316,11 +316,18 @@ class UserLookupSearchForm(forms.ModelForm):
 
 class UserAlterForm(forms.ModelForm):
     role = forms.ChoiceField(choices=UserAlter.ROLES, required=False)
-    chapter = forms.ChoiceField(choices=Chapter.chapter_choices(), required=True)
+    # Choices are populated per-instance in __init__ so newly-added chapters
+    # (e.g. from the `seed_dashboard_data` command) show up without needing
+    # to restart the Django worker.
+    chapter = forms.ChoiceField(choices=[], required=True)
 
     class Meta:
         model = UserAlter
         fields = ["chapter", "role"]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["chapter"].choices = Chapter.chapter_choices()
 
     def clean_chapter(self):
         data = self.cleaned_data["chapter"]

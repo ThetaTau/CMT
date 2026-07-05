@@ -230,8 +230,11 @@ class ChapterActivityView(LoginRequiredMixin, TemplateView):
         elif window == "current_term":
             start, end = semester_encompass_start_end_date()
         elif window == "previous_term":
-            _, prev_end = semester_encompass_start_end_date()
-            prev_middle = prev_end - _dt.timedelta(days=120)
+            # Step back from the START of the current term (not the end).
+            # Starting from `prev_end` and stepping back 120 days can land in
+            # the same term for long terms, returning the current term twice.
+            current_start, _ = semester_encompass_start_end_date()
+            prev_middle = current_start - _dt.timedelta(days=90)
             start, end = semester_encompass_start_end_date(prev_middle)
         elif window == "academic_year":
             start, end = academic_encompass_start_end_date()
