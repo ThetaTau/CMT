@@ -28,8 +28,10 @@ from .models import (
     Convention,
     Depledge,
     DisciplinaryProcess,
+    Employer,
     HSEducation,
     Initiation,
+    OtherSchool,
     Pledge,
     PledgeProgram,
     PrematureAlumnus,
@@ -311,7 +313,13 @@ class GraduateForm(forms.ModelForm):
     )
     email_personal = forms.EmailField()
     email_work = forms.EmailField(required=False)
-    employer = forms.CharField(required=False)
+    employer = forms.ModelChoiceField(
+        label="Employer / School / Location",
+        queryset=Employer.objects.all(),
+        required=False,
+        widget=autocomplete.ModelSelect2(url="forms:employer-autocomplete"),
+        help_text="Start typing to search; if not listed, press Enter to add it.",
+    )
 
     class Meta:
         model = StatusChange
@@ -359,6 +367,28 @@ class CSMTForm(forms.ModelForm):
 
     user = SetNoValidateField(disabled=True)
     reason = SetNoValidateField(disabled=True)
+    new_school = SchoolModelChoiceField(
+        label="New School",
+        queryset=Chapter.objects.exclude(active=False).order_by("school"),
+        required=False,
+    )
+    new_school_other = forms.ModelChoiceField(
+        label="Other School",
+        queryset=OtherSchool.objects.all(),
+        required=False,
+        widget=autocomplete.ModelSelect2(url="forms:otherschool-autocomplete"),
+        help_text=(
+            "Only for transfers to a school without a Theta Tau chapter. "
+            "Start typing to search; if the school is not listed, press Enter to add it."
+        ),
+    )
+    employer = forms.ModelChoiceField(
+        label="Employer",
+        queryset=Employer.objects.all(),
+        required=False,
+        widget=autocomplete.ModelSelect2(url="forms:employer-autocomplete"),
+        help_text="Start typing to search; if not listed, press Enter to add it.",
+    )
     date_start = forms.DateField(
         label="Start Date",
         widget=DatePicker(
@@ -381,6 +411,7 @@ class CSMTForm(forms.ModelForm):
             "reason",  # Set selected
             "employer",  # If Coop only
             "new_school",  # If transfer
+            "new_school_other",  # If transfer and school not in list
             "date_start",
             "date_end",
             "miles",
@@ -388,9 +419,16 @@ class CSMTForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.fields["new_school"].required = False
+        self.fields["new_school"].help_text = "Leave blank if the school is not listed and use 'Other School' instead."
+        self.fields["new_school_other"].required = False
+        self.fields["new_school_other"].help_text = (
+            "Fill in only if transferring to a school without a Theta Tau chapter."
+        )
         reason = self.initial.get("reason", None)
         if reason == "coop":
             self.fields["new_school"].widget = forms.HiddenInput()
+            self.fields["new_school_other"].widget.attrs["disabled"] = "true"
         if reason == "military":
             self.fields["miles"].widget.attrs["disabled"] = "true"
             self.fields["miles"].required = False
@@ -398,6 +436,7 @@ class CSMTForm(forms.ModelForm):
             self.fields["employer"].required = False
             self.fields["new_school"].widget = forms.HiddenInput()
             self.fields["new_school"].required = False
+            self.fields["new_school_other"].widget.attrs["disabled"] = "true"
         if reason == "withdraw" or reason == "resignedCC":
             self.fields["miles"].widget.attrs["disabled"] = "true"
             self.fields["miles"].required = False
@@ -407,6 +446,7 @@ class CSMTForm(forms.ModelForm):
             self.fields["employer"].required = False
             self.fields["new_school"].widget = forms.HiddenInput()
             self.fields["new_school"].required = False
+            self.fields["new_school_other"].widget.attrs["disabled"] = "true"
         if reason == "transfer":
             self.fields["miles"].widget.attrs["disabled"] = "true"
             self.fields["miles"].required = False
@@ -425,6 +465,7 @@ class CSMTForm(forms.ModelForm):
             self.fields["employer"].required = False
             self.fields["new_school"].widget = forms.HiddenInput()
             self.fields["new_school"].required = False
+            self.fields["new_school_other"].widget = forms.HiddenInput()
 
     def clean_user(self):
         data = self.cleaned_data["user"]
@@ -446,6 +487,29 @@ class CSMTForm(forms.ModelForm):
                     forms.ValidationError("End date must be greater than the start date."),
                 )
                 raise forms.ValidationError("End date must be greater than the start date.")
+        if self.cleaned_data.get("reason") == "transfer":
+            new_school = self.cleaned_data.get("new_school")
+            new_school_other = self.cleaned_data.get("new_school_other")
+            if not new_school and not new_school_other:
+                self.add_error(
+                    "new_school",
+                    forms.ValidationError(
+                        "Select the new school from the list, or fill in 'Other School' if it is not listed."
+                    ),
+                )
+            elif new_school and new_school_other:
+                self.add_error(
+                    "new_school_other",
+                    forms.ValidationError("Provide either a listed chapter or an 'Other School' name, not both."),
+                )
+            elif new_school_other and Chapter.objects.filter(school__iexact=new_school_other.name).exists():
+                self.add_error(
+                    "new_school_other",
+                    forms.ValidationError(
+                        f"'{new_school_other.name}' is already a Theta Tau chapter school; "
+                        "select it from the New School dropdown instead."
+                    ),
+                )
 
 
 CSMTFormSet = forms.formset_factory(CSMTForm, extra=0)
@@ -459,6 +523,7 @@ class CSMTFormHelper(FormHelper):
         "reason",  # Set selected
         "employer",
         "new_school",  # If transfer
+        "new_school_other",  # If transfer and not in list
         "date_start",
         "date_end",
         "miles",
@@ -616,6 +681,13 @@ class HSEducationForm(forms.ModelForm):
         required=True,
         help_text="Only PDF format accepted",
         validators=[FileTypeValidator(allowed_types=["application/pdf"])],
+    )
+    program_date = forms.DateField(
+        label="Program Date",
+        widget=DatePicker(
+            options={"format": "M/DD/YYYY"},
+            attrs={"autocomplete": "off"},
+        ),
     )
 
     class Meta:

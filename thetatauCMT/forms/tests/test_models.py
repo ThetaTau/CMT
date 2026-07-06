@@ -102,9 +102,10 @@ def test_depledge_str():
 
 @pytest.mark.django_db
 def test_status_change_str():
-    from thetatauCMT.forms.models import StatusChange
+    from thetatauCMT.forms.models import Employer, StatusChange
 
     user = UserFactory.create()
+    employer = Employer.objects.create(name="Test Employer")
     sc = StatusChange(
         user=user,
         created_by=user,
@@ -112,7 +113,7 @@ def test_status_change_str():
         degree="bs",
         date_start=datetime.date.today(),
         date_end=datetime.date.today() + datetime.timedelta(days=365),
-        employer="Test Employer",
+        employer=employer,
         miles=0,
     )
     sc.save_only()
@@ -457,9 +458,10 @@ def test_initiation_save_integrity_error_branch():
 @pytest.mark.django_db
 def test_status_change_save_military_else_branch():
     """StatusChange.save() with reason='military' covers the else branch."""
-    from thetatauCMT.forms.models import StatusChange
+    from thetatauCMT.forms.models import Employer, StatusChange
 
     user = UserFactory.create()
+    employer = Employer.objects.create(name="Test Employer")
     sc = StatusChange(
         user=user,
         created_by=user,
@@ -467,7 +469,7 @@ def test_status_change_save_military_else_branch():
         degree="bs",
         date_start=datetime.date.today(),
         date_end=datetime.date.today() + datetime.timedelta(days=365),
-        employer="Test Employer",
+        employer=employer,
         miles=0,
     )
     sc.save()
@@ -477,9 +479,10 @@ def test_status_change_save_military_else_branch():
 @pytest.mark.django_db
 def test_status_change_save_graduate_if_branch():
     """StatusChange.save() with reason='graduate' covers the if branch (lines 463-468)."""
-    from thetatauCMT.forms.models import StatusChange
+    from thetatauCMT.forms.models import Employer, StatusChange
 
     user = UserFactory.create()
+    employer = Employer.objects.create(name="Test Employer")
     sc = StatusChange(
         user=user,
         created_by=user,
@@ -487,7 +490,7 @@ def test_status_change_save_graduate_if_branch():
         degree="bs",
         date_start=datetime.date.today(),
         date_end=datetime.date.today() + datetime.timedelta(days=365),
-        employer="Test Employer",
+        employer=employer,
         miles=0,
     )
     sc.save()

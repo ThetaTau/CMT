@@ -14,6 +14,7 @@ from ..models import (
     ChapterReport,
     Convention,
     Depledge,
+    Employer,
     Guard,
     Initiation,
     InitiationProcess,
@@ -103,7 +104,7 @@ class StatusChangeFactory(factory.django.DjangoModelFactory):
     degree = factory.Faker("random_element", elements=[item.value[0] for item in StatusChange.DEGREES])
     date_start = factory.Faker("date_between", start_date="-4y", end_date="+4y")
     date_end = factory.Faker("date_between", start_date="-4y", end_date="+4y")
-    employer = factory.Faker("sentence", nb_words=3)
+    employer = factory.SubFactory("thetatauCMT.forms.tests.factories.EmployerFactory")
     miles = factory.Faker("random_int", max=5000)
     email_work = factory.Faker("email")
 
@@ -111,6 +112,14 @@ class StatusChangeFactory(factory.django.DjangoModelFactory):
 
     class Meta:
         model = StatusChange
+
+
+class EmployerFactory(factory.django.DjangoModelFactory):
+    name = factory.Sequence(lambda n: f"Employer {n}")
+
+    class Meta:
+        model = Employer
+        django_get_or_create = ("name",)
 
 
 class ChapterReportFactory(factory.django.DjangoModelFactory):

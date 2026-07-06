@@ -105,6 +105,16 @@ urlpatterns = [
         view=views.StatusChangeSelectView.as_view(),
         name="status_selection",
     ),
+    path(
+        "otherschool-autocomplete/",
+        view=views.OtherSchoolAutocomplete.as_view(create_field="name"),
+        name="otherschool-autocomplete",
+    ),
+    path(
+        "employer-autocomplete/",
+        view=views.EmployerAutocomplete.as_view(create_field="name"),
+        name="employer-autocomplete",
+    ),
     path("officer/", view=views.RoleChangeView.as_view(), name="officer"),
     path(
         "national-officer/",

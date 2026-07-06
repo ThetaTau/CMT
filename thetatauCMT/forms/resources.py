@@ -70,6 +70,8 @@ class StatusChangeResource(resources.ModelResource):
     chapter = Field("user__chapter__name")
     school = Field("user__chapter__school")
     new_school = Field("new_school__name")
+    new_school_other = Field("new_school_other__name")
+    employer = Field("employer__name")
 
     class Meta:
         model = StatusChange
@@ -86,6 +88,7 @@ class StatusChangeResource(resources.ModelResource):
             "new_school",
             "chapter",
             "school",
+            "new_school_other",
         )
 
 

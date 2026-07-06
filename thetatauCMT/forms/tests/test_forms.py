@@ -105,13 +105,21 @@ def test_csmt_form_init_resigned_cc_reason():
 
 @pytest.mark.django_db
 def test_csmt_form_init_transfer_reason():
-    """reason='transfer' hides employer, disables miles and date_end."""
+    """reason='transfer' hides employer, disables miles and date_end.
+
+    new_school and new_school_other remain visible so the officer can pick a
+    known chapter or write in a school that has no Theta Tau chapter.
+    """
     from thetatauCMT.forms.forms import CSMTForm
 
     form = CSMTForm(initial={"reason": "transfer"})
     assert form.fields["miles"].required is False
     assert form.fields["date_end"].required is False
     assert isinstance(form.fields["employer"].widget, forms.HiddenInput)
+    assert not isinstance(form.fields["new_school"].widget, forms.HiddenInput)
+    assert not isinstance(form.fields["new_school_other"].widget, forms.HiddenInput)
+    assert form.fields["new_school"].required is False
+    assert form.fields["new_school_other"].required is False
 
 
 @pytest.mark.django_db
@@ -125,6 +133,181 @@ def test_csmt_form_init_covid_reason():
     assert form.fields["date_start"].required is False
     assert form.fields["employer"].required is False
     assert isinstance(form.fields["new_school"].widget, forms.HiddenInput)
+    assert isinstance(form.fields["new_school_other"].widget, forms.HiddenInput)
+
+
+@pytest.mark.django_db
+def test_csmt_form_transfer_requires_school_or_other():
+    """reason='transfer' with neither new_school nor new_school_other errors."""
+    from thetatauCMT.chapters.tests.factories import ChapterFactory
+    from thetatauCMT.forms.forms import CSMTForm
+    from thetatauCMT.users.tests.factories import UserFactory
+
+    chapter = ChapterFactory()
+    user = UserFactory(chapter=chapter)
+    data = {
+        "user": user.name,
+        "chapter": chapter.name,
+        "reason": "transfer",
+        "degree": "bs",
+        "date_start": "01/01/2026",
+        "employer": "",
+        "new_school": "",
+        "new_school_other": "",
+        "miles": "0",
+    }
+    form = CSMTForm(data=data, initial={"reason": "transfer"})
+    assert not form.is_valid()
+    assert "new_school" in form.errors
+
+
+@pytest.mark.django_db
+def test_csmt_form_transfer_rejects_both_school_and_other():
+    """Providing both new_school and new_school_other is rejected."""
+    from thetatauCMT.chapters.tests.factories import ChapterFactory
+    from thetatauCMT.forms.forms import CSMTForm
+    from thetatauCMT.forms.models import OtherSchool
+    from thetatauCMT.users.tests.factories import UserFactory
+
+    chapter = ChapterFactory()
+    other_chapter = ChapterFactory()
+    user = UserFactory(chapter=chapter)
+    other = OtherSchool.objects.create(name="Some Non-Chapter U")
+    data = {
+        "user": user.name,
+        "chapter": chapter.name,
+        "reason": "transfer",
+        "degree": "bs",
+        "date_start": "01/01/2026",
+        "employer": "",
+        "new_school": str(other_chapter.pk),
+        "new_school_other": str(other.pk),
+        "miles": "0",
+    }
+    form = CSMTForm(data=data, initial={"reason": "transfer"})
+    assert not form.is_valid()
+    assert "new_school_other" in form.errors
+
+
+@pytest.mark.django_db
+def test_csmt_form_transfer_accepts_other_school_write_in():
+    """A picked `OtherSchool` alone satisfies transfer validation."""
+    from thetatauCMT.chapters.tests.factories import ChapterFactory
+    from thetatauCMT.forms.forms import CSMTForm
+    from thetatauCMT.forms.models import OtherSchool
+    from thetatauCMT.users.tests.factories import UserFactory
+
+    chapter = ChapterFactory()
+    user = UserFactory(chapter=chapter)
+    other = OtherSchool.objects.create(name="State University")
+    data = {
+        "user": user.name,
+        "chapter": chapter.name,
+        "reason": "transfer",
+        "degree": "bs",
+        "date_start": "01/01/2026",
+        "employer": "",
+        "new_school": "",
+        "new_school_other": str(other.pk),
+        "miles": "0",
+    }
+    form = CSMTForm(
+        data=data,
+        initial={"user": user.name, "reason": "transfer"},
+    )
+    assert form.is_valid(), form.errors
+    assert form.cleaned_data["new_school_other"] == other
+    assert form.cleaned_data["new_school"] is None
+
+
+@pytest.mark.django_db
+def test_csmt_form_transfer_rejects_other_school_matching_chapter():
+    """If an OtherSchool name matches an existing Chapter.school, reject it."""
+    from thetatauCMT.chapters.tests.factories import ChapterFactory
+    from thetatauCMT.forms.forms import CSMTForm
+    from thetatauCMT.forms.models import OtherSchool
+    from thetatauCMT.users.tests.factories import UserFactory
+
+    chapter = ChapterFactory(school="Collision State")
+    user = UserFactory(chapter=chapter)
+    # Simulate an OtherSchool that predates the chapter being added.
+    other = OtherSchool.objects.create(name="Collision State")
+    data = {
+        "user": user.name,
+        "chapter": chapter.name,
+        "reason": "transfer",
+        "degree": "bs",
+        "date_start": "01/01/2026",
+        "employer": "",
+        "new_school": "",
+        "new_school_other": str(other.pk),
+        "miles": "0",
+    }
+    form = CSMTForm(
+        data=data,
+        initial={"user": user.name, "reason": "transfer"},
+    )
+    assert not form.is_valid()
+    assert "new_school_other" in form.errors
+
+
+@pytest.mark.django_db
+def test_other_school_model_clean_rejects_chapter_name():
+    """OtherSchool.clean() blocks names that duplicate a Chapter.school."""
+    from django.core.exceptions import ValidationError
+
+    from thetatauCMT.chapters.tests.factories import ChapterFactory
+    from thetatauCMT.forms.models import OtherSchool
+
+    ChapterFactory(school="Duplicate U")
+    with pytest.raises(ValidationError):
+        OtherSchool(name="duplicate u").clean()
+
+
+@pytest.mark.django_db
+def test_otherschool_autocomplete_create_rejects_chapter_name(rf):
+    """OtherSchoolAutocomplete.post refuses names matching a Chapter.school."""
+    import json
+
+    from django.contrib.auth.models import Group
+
+    from thetatauCMT.chapters.tests.factories import ChapterFactory
+    from thetatauCMT.forms.models import OtherSchool
+    from thetatauCMT.forms.views import OtherSchoolAutocomplete
+    from thetatauCMT.users.tests.factories import UserFactory
+
+    ChapterFactory(school="Existing Chapter U")
+    officer = UserFactory()
+    officer.groups.add(Group.objects.get_or_create(name="officer")[0])
+    request = rf.post("/forms/otherschool-autocomplete/", {"text": "Existing Chapter U"})
+    request.user = officer
+    response = OtherSchoolAutocomplete.as_view(create_field="name")(request)
+    assert response.status_code == 400
+    payload = json.loads(response.content.decode())
+    assert "error" in payload
+    assert not OtherSchool.objects.filter(name__iexact="Existing Chapter U").exists()
+
+
+@pytest.mark.django_db
+def test_otherschool_autocomplete_create_creates_valid_name(rf):
+    """OtherSchoolAutocomplete.post creates a new record for a non-chapter school."""
+    import json
+
+    from django.contrib.auth.models import Group
+
+    from thetatauCMT.forms.models import OtherSchool
+    from thetatauCMT.forms.views import OtherSchoolAutocomplete
+    from thetatauCMT.users.tests.factories import UserFactory
+
+    officer = UserFactory()
+    officer.groups.add(Group.objects.get_or_create(name="officer")[0])
+    request = rf.post("/forms/otherschool-autocomplete/", {"text": "  Fresh College  "})
+    request.user = officer
+    response = OtherSchoolAutocomplete.as_view(create_field="name")(request)
+    assert response.status_code == 200
+    payload = json.loads(response.content.decode())
+    assert payload["text"] == "Fresh College"
+    assert OtherSchool.objects.filter(name="Fresh College").exists()
 
 
 # ─── DepledgeForm.clean branches ─────────────────────────────────────────────

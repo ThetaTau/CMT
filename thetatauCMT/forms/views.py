@@ -8,6 +8,7 @@ from pathlib import Path
 
 from allauth.account.models import EmailAddress
 from crispy_forms.layout import Submit
+from dal import autocomplete
 from django import forms
 from django.conf import settings
 from django.contrib import messages
@@ -129,8 +130,10 @@ from .models import (
     Convention,
     Depledge,
     DisciplinaryProcess,
+    Employer,
     HSEducation,
     InitiationProcess,
+    OtherSchool,
     PledgeProcess,
     PledgeProgram,
     PledgeProgramProcess,
@@ -608,6 +611,10 @@ class StatusChangeView(LoginRequiredMixin, OfficerRequiredMixin, FormView):
             )
         context["csmt_formset"] = csmt_formset
         context["csmt_helper"] = CSMTFormHelper()
+        # Merge form + csmt formset media so tempus-dominus/moment aren't loaded
+        # twice — a duplicate load resets $.fn.datetimepicker and breaks the
+        # date pickers on this page.
+        context["combined_media"] = formset.media + csmt_formset.media
         context["form_show_errors"] = True
         context["error_text_inline"] = True
         context["help_text_inline"] = True
@@ -3108,3 +3115,81 @@ class RitualProficiencyUserTableView(LoginRequiredMixin, NatOfficerRequiredMixin
             qs = RitualProficiency.objects.none()
         table = RitualProficiencyTable(data=qs)
         return render(request, self.template_name, {"table": table})
+
+
+class OtherSchoolAutocomplete(autocomplete.Select2QuerySetView):
+    """Autocomplete for `StatusChange.new_school_other`.
+
+    Officers may search existing entries or type a new school name to create
+    one on the fly. Names that duplicate an existing `Chapter.school` are
+    hidden from search results and refused at create-time.
+    """
+
+    def _is_authorized(self):
+        user = self.request.user
+        return user.is_authenticated and (user.is_officer_group or user.is_superuser)
+
+    def get_queryset(self):
+        if not self._is_authorized():
+            return OtherSchool.objects.none()
+        chapter_schools = Chapter.objects.values_list("school", flat=True)
+        qs = OtherSchool.objects.exclude(name__in=chapter_schools)
+        if self.q:
+            qs = qs.filter(name__icontains=self.q)
+        return qs.order_by("name")
+
+    def has_add_permission(self, request):
+        user = request.user
+        return user.is_authenticated and (user.is_officer_group or user.is_superuser)
+
+    def post(self, request, *args, **kwargs):
+        if not self.has_add_permission(request):
+            return HttpResponse(status=403)
+        text = (request.POST.get("text") or "").strip()
+        if not text:
+            return JsonResponse({"error": "School name is required."}, status=400)
+        if Chapter.objects.filter(school__iexact=text).exists():
+            return JsonResponse(
+                {
+                    "error": (
+                        f"'{text}' is already a Theta Tau chapter school; "
+                        "select it from the New School dropdown instead."
+                    )
+                },
+                status=400,
+            )
+        obj, _ = OtherSchool.objects.get_or_create(name=text)
+        return JsonResponse({"id": obj.pk, "text": str(obj)})
+
+
+class EmployerAutocomplete(autocomplete.Select2QuerySetView):
+    """Autocomplete for `StatusChange.employer`.
+
+    Officers may search existing employer names or type a new one to create
+    it inline.
+    """
+
+    def _is_authorized(self):
+        user = self.request.user
+        return user.is_authenticated and (user.is_officer_group or user.is_superuser)
+
+    def get_queryset(self):
+        if not self._is_authorized():
+            return Employer.objects.none()
+        qs = Employer.objects.all()
+        if self.q:
+            qs = qs.filter(name__icontains=self.q)
+        return qs.order_by("name")
+
+    def has_add_permission(self, request):
+        user = request.user
+        return user.is_authenticated and (user.is_officer_group or user.is_superuser)
+
+    def post(self, request, *args, **kwargs):
+        if not self.has_add_permission(request):
+            return HttpResponse(status=403)
+        text = (request.POST.get("text") or "").strip()
+        if not text:
+            return JsonResponse({"error": "Employer name is required."}, status=400)
+        obj, _ = Employer.objects.get_or_create(name=text)
+        return JsonResponse({"id": obj.pk, "text": str(obj)})
