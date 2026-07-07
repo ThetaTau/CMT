@@ -89,8 +89,11 @@
             {% else %}
               <div class="small text-muted">
                 No group tax ID.
-                <a href="https://docs.google.com/document/d/1ZlfZ6woDNeesdWDPhiWrHW1Of5PiyOw4/edit#heading=h.gjdgxs" target="_blank" rel="noopener noreferrer">Apply here</a>
-                or contact the Central Office.
+                {% if group_tax_form_url %}
+                  <a href="{{ group_tax_form_url }}" target="_blank" rel="noopener noreferrer">Apply here</a>
+                  or
+                {% endif %}
+                contact the Central Office.
               </div>
             {% endif %}
           </div>

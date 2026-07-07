@@ -10,6 +10,7 @@ from django.views.generic import RedirectView, TemplateView
 from core.forms import MultiFormsView
 from core.models import CHAPTER_OFFICER
 from core.views import LoginRequiredMixin, PagedFilteredTableView, RequestConfig
+from thetatauCMT.configs.models import Config
 from thetatauCMT.forms.models import Audit
 from thetatauCMT.forms.notifications import EmailAdvisorWelcome
 from thetatauCMT.notes.tables import ChapterNoteTable
@@ -128,6 +129,7 @@ class ChapterDetailView(LoginRequiredMixin, MultiFormsView):
         email_list = ", ".join([x.email for x in chapter_officers])
         email_list += f", {chapter.region.email}"
         context["email_list"] = email_list
+        context["group_tax_form_url"] = Config.get_value("GROUP_TAX_FORM")
         return context
 
     def get_form_kwargs(self, form_name, bind_form=False):
