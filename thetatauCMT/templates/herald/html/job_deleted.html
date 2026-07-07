@@ -1,0 +1,21 @@
+{% extends "herald/html/base_email.html" %}
+{% block title %}Job Posting Removed{% endblock %}
+{% block content %}
+<br>
+Central Office,
+<p>A National Officer removed a job posting.</p>
+<ul>
+  <li><strong>Title:</strong> {{ job.title }}</li>
+  <li><strong>Company:</strong> {{ job.company }}</li>
+  <li><strong>Posted by:</strong> {{ creator_line }}</li>
+  <li><strong>Removed by:</strong> {{ actor_line }}</li>
+  {% if job.deleted_at %}<li><strong>Removed at:</strong> {{ job.deleted_at|date:"M j, Y g:i A" }}</li>{% endif %}
+  <li><strong>Detail page:</strong> <a href="{{ job_detail_url }}">{{ job_detail_url }}</a></li>
+  <li><strong>Original job link:</strong> <a href="{{ job.url }}">{{ job.url }}</a></li>
+</ul>
+{% if job.deleted_reason %}
+<p><strong>Reason:</strong><br>{{ job.deleted_reason|linebreaksbr }}</p>
+{% endif %}
+<p>The posting has been soft-deleted and is hidden from all listings.</p>
+<p>In H&amp;T,<br>Chapter Management Tool</p>
+{% endblock content %}

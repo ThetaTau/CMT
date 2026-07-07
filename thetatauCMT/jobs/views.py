@@ -12,6 +12,7 @@ from thetatauCMT.forms.notifications import CentralOfficeGenericEmail
 from .filters import JobListFilter, JobSearchListFilter
 from .forms import JobForm, JobListFormHelper, JobSearchForm, JobSearchListFormHelper
 from .models import Job, JobPostingBan, JobSearch, Keyword, Major
+from .notifications import notify_job_banned, notify_job_created, notify_job_deleted
 from .tables import JobSearchTable, JobTable
 
 
@@ -66,6 +67,26 @@ class JobCreateView(
             )
             return redirect("jobs:list")
         return super().dispatch(request, *args, **kwargs)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        user = self.request.user
+        context["user_is_natoff_or_superuser"] = bool(
+            user.is_authenticated and (user.is_national_officer_group or user.is_superuser)
+        )
+        return context
+
+    def form_valid(self, form):
+        user = self.request.user
+        is_natoff = bool(user.is_authenticated and (user.is_national_officer_group or user.is_superuser))
+        if is_natoff:
+            form.instance.approved = True
+            form.instance.approved_at = timezone.now()
+            form.instance.approved_by = user
+            form.instance.approved_reason = "Auto-approved: posted by National Officer or superuser."
+        response = super().form_valid(form)
+        notify_job_created(self.object)
+        return response
 
     def get_success_url(self):
         return reverse("jobs:list")
@@ -365,6 +386,7 @@ class JobDeleteView(LoginRequiredMixin, NatOfficerRequiredMixin, View):
             messages.error(request, "Please provide a reason before deleting the posting.")
             return redirect("jobs:detail", pk=job.pk, slug=job.slug)
         reason = reason[:2000]
+        newly_deleted = False
         if not job.deleted:
             job.deleted = True
             job.deleted_at = timezone.now()
@@ -379,6 +401,9 @@ class JobDeleteView(LoginRequiredMixin, NatOfficerRequiredMixin, View):
                     "modified",
                 ]
             )
+            newly_deleted = True
+        if newly_deleted:
+            notify_job_deleted(job)
         messages.success(request, f'Job posting "{job.title}" was removed.')
         return redirect("jobs:list")
 
@@ -468,6 +493,7 @@ class JobBanUserView(LoginRequiredMixin, NatOfficerRequiredMixin, View):
                 deleted_by=ban.banned_by,
                 deleted_reason=delete_note,
             )
+            notify_job_banned(ban, affected_count=affected)
             messages.success(
                 request,
                 f"{target} has been barred from creating new job postings."
