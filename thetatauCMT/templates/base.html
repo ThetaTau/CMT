@@ -235,7 +235,8 @@
                       <span class="d-lg-none ms-2">{{ request.user.first_name|default:request.user.username }}</span>
                     </a>
                     <ul class="dropdown-menu dropdown-menu-lg-end">
-                      <li><a class="dropdown-item" href="{% url 'users:detail' %}">{% trans "My Profile" %}</a></li>
+                      <li><a class="dropdown-item" href="{% url 'users:profile' username=request.user.username %}">{% trans "My Profile" %}</a></li>
+                      <li><a class="dropdown-item" href="{% url 'users:detail' %}">{% trans "Edit My Info" %}</a></li>
                       <li><hr class="dropdown-divider"></li>
                       <li>
                         <button id="theme-toggle" type="button" class="dropdown-item">

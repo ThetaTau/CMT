@@ -1,0 +1,381 @@
+{% extends "base.html" %}
+{% load static %}
+{% load render_table from django_tables2 %}
+{% block title %}Profile: {{ object.name }}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+
+  {# ---------- Status banners ---------- #}
+  {% if object.deceased %}
+    <div class="alert alert-secondary d-flex align-items-center" role="alert">
+      <i class="fa fa-heart me-2"></i>
+      <strong>Deceased</strong>
+      {% if object.deceased_date %}<span class="ms-2 text-body-secondary">on {{ object.deceased_date|date:"F j, Y" }}</span>{% endif %}
+    </div>
+  {% endif %}
+  {% if is_expelled %}
+    <div class="alert alert-danger d-flex align-items-center" role="alert">
+      <i class="fa fa-ban me-2"></i>
+      <strong>{{ current_status_label }}</strong>
+      <span class="ms-2">This member has been {{ current_status_label|lower }} from Theta Tau.</span>
+    </div>
+  {% elif is_resigned %}
+    <div class="alert alert-warning d-flex align-items-center" role="alert">
+      <i class="fa fa-user-times me-2"></i>
+      <strong>Resigned</strong>
+      <span class="ms-2">This member has resigned from Theta Tau.</span>
+    </div>
+  {% elif is_discipline %}
+    <div class="alert alert-warning d-flex align-items-center" role="alert">
+      <i class="fa fa-exclamation-triangle me-2"></i>
+      <strong>{{ current_status_label }}</strong>
+    </div>
+  {% endif %}
+  {% if object.no_contact %}
+    <div class="alert alert-info d-flex align-items-center" role="alert">
+      <i class="fa fa-envelope-o me-2"></i>
+      <strong>No Contact</strong>
+      <span class="ms-2">This member has requested no further contact from Theta Tau.</span>
+    </div>
+  {% endif %}
+
+  {# ---------- Header card ---------- #}
+  <div class="card shadow-sm mb-4 border-0">
+    <div class="card-body">
+      <div class="d-flex flex-wrap align-items-start gap-3">
+
+        <div class="flex-shrink-0 text-center">
+          {% if object.profile_picture %}
+            <img src="{{ object.profile_picture.url }}"
+                 alt="Profile picture of {{ object.name }}"
+                 class="rounded-circle border"
+                 style="width: 128px; height: 128px; object-fit: cover;">
+          {% else %}
+            <div class="rounded-circle border bg-body-tertiary d-inline-flex align-items-center justify-content-center"
+                 style="width: 128px; height: 128px;">
+              <i class="fa fa-user text-body-secondary" style="font-size: 4rem;"></i>
+            </div>
+          {% endif %}
+          {% if is_owner %}
+            <div class="mt-2">
+              <a class="btn btn-outline-secondary btn-sm"
+                 href="{% url 'users:profile_picture' %}">
+                <i class="fa fa-camera"></i> {% if object.profile_picture %}Change{% else %}Add{% endif %} Photo
+              </a>
+            </div>
+          {% endif %}
+        </div>
+
+        <div class="flex-grow-1">
+          <h2 class="card-title mb-1">
+            {% if object.title and object.title != 'none' %}{{ object.get_title_display }} {% endif %}{{ object.name }}{% if object.suffix %}, {{ object.suffix }}{% endif %}
+          </h2>
+          <div class="text-body-secondary mb-2 small">
+            {% if object.preferred_name and object.preferred_name != object.first_name %}
+              <span class="me-2"><strong>Preferred name:</strong> {{ object.preferred_name }}</span>
+            {% endif %}
+            {% if object.nickname %}
+              <span class="me-2"><strong>Nickname:</strong> {{ object.nickname }}</span>
+            {% endif %}
+            {% if object.preferred_pronouns %}
+              <span class="me-2"><strong>Pronouns:</strong> {{ object.preferred_pronouns }}</span>
+            {% endif %}
+            {% if object.maiden_name %}
+              <span class="me-2"><strong>Maiden name:</strong> {{ object.maiden_name }}</span>
+            {% endif %}
+          </div>
+
+          <p class="mb-2">
+            {% if object.chapter %}
+              <a href="{% url 'chapters:detail' slug=object.chapter.slug %}">{{ object.chapter }}</a>
+              {% if object.chapter.school %}<span class="text-body-secondary">&middot; {{ object.chapter.school }}</span>{% endif %}
+            {% endif %}
+            {% if object.badge_number and object.badge_number != 999999999 %}
+              <span class="mx-2 text-body-secondary">&middot;</span>
+              <span class="text-body-secondary">Badge #{{ object.badge_number }}</span>
+            {% endif %}
+          </p>
+
+          <div class="d-flex flex-wrap gap-3 small">
+            <div>
+              <span class="text-body-secondary">Current status:</span>
+              <span class="fw-semibold">{{ current_status_label|default:"—" }}</span>
+            </div>
+            {% if role_labels %}
+              <div>
+                <span class="text-body-secondary">Current role{{ role_labels|length|pluralize }}:</span>
+                {% for slug, label in role_labels %}
+                  <span class="badge bg-primary">{{ label }}</span>
+                {% endfor %}
+              </div>
+            {% endif %}
+            {% if object.charter %}
+              <div><span class="badge bg-info text-dark">Charter Member</span></div>
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="d-flex flex-wrap gap-2 align-self-start">
+          {% if is_owner %}
+            <a class="btn btn-primary btn-sm" href="{% url 'users:detail' %}">
+              <i class="fa fa-pencil"></i> Edit My Info
+            </a>
+          {% endif %}
+          {% if is_superuser %}
+            <a class="btn btn-outline-danger btn-sm" href="{% url 'admin:users_user_change' object.id %}">
+              <i class="fa fa-cog"></i> Admin
+            </a>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3">
+
+    {# ---------- Basics ---------- #}
+    <div class="col-md-6">
+      <div class="card h-100">
+        <div class="card-header bg-body-tertiary">
+          <h5 class="mb-0"><i class="fa fa-id-card me-2"></i>Basics</h5>
+        </div>
+        <div class="card-body">
+          <dl class="row mb-0">
+            {% if initiation %}
+              <dt class="col-sm-5">Initiation date</dt>
+              <dd class="col-sm-7">{{ initiation.date|date:"F j, Y" }}
+                {% if initiation.chapter and initiation.chapter != object.chapter %}
+                  <span class="text-body-secondary small">at {{ initiation.chapter }}</span>
+                {% endif %}
+              </dd>
+              {% if initiation.roll and initiation.roll != 999999999 %}
+                <dt class="col-sm-5">Roll</dt>
+                <dd class="col-sm-7">{{ initiation.roll }}</dd>
+              {% endif %}
+            {% endif %}
+            {% if object.graduation_year %}
+              <dt class="col-sm-5">Graduation year</dt>
+              <dd class="col-sm-7">{{ object.graduation_year }}</dd>
+            {% endif %}
+            {% if object.degree %}
+              <dt class="col-sm-5">Degree</dt>
+              <dd class="col-sm-7">{{ object.get_degree_display }}</dd>
+            {% endif %}
+            {% if object.major %}
+              <dt class="col-sm-5">Major</dt>
+              <dd class="col-sm-7">{{ object.major }}</dd>
+            {% endif %}
+            {% if object.class_year %}
+              <dt class="col-sm-5">Class year</dt>
+              <dd class="col-sm-7">{{ object.get_class_year_display }}</dd>
+            {% endif %}
+            {% if object.employer %}
+              <dt class="col-sm-5">Employer</dt>
+              <dd class="col-sm-7">
+                {{ object.employer }}
+                {% if object.employer_position %}<span class="text-body-secondary">&mdash; {{ object.employer_position }}</span>{% endif %}
+              </dd>
+            {% endif %}
+          </dl>
+        </div>
+      </div>
+    </div>
+
+    {# ---------- Contact ---------- #}
+    <div class="col-md-6">
+      <div class="card h-100">
+        <div class="card-header bg-body-tertiary">
+          <h5 class="mb-0"><i class="fa fa-envelope me-2"></i>Contact</h5>
+        </div>
+        <div class="card-body">
+          <dl class="row mb-0">
+            {% if object.email %}
+              <dt class="col-sm-4">Email</dt>
+              <dd class="col-sm-8"><a href="mailto:{{ object.email }}">{{ object.email }}</a></dd>
+            {% endif %}
+            {% if object.email_school %}
+              <dt class="col-sm-4">School email</dt>
+              <dd class="col-sm-8"><a href="mailto:{{ object.email_school }}">{{ object.email_school }}</a></dd>
+            {% endif %}
+            {% if object.phone_number %}
+              <dt class="col-sm-4">Phone</dt>
+              <dd class="col-sm-8">{{ object.phone_number }}</dd>
+            {% endif %}
+            {% if object.address %}
+              <dt class="col-sm-4">Address</dt>
+              <dd class="col-sm-8">{{ object.address }}</dd>
+            {% endif %}
+            {% if not object.email and not object.email_school and not object.phone_number and not object.address %}
+              <dd class="col-12 text-body-secondary mb-0">No contact information on file.</dd>
+            {% endif %}
+          </dl>
+        </div>
+      </div>
+    </div>
+
+    {# ---------- Officer roles history ---------- #}
+    {% if roles_history %}
+      <div class="col-md-6">
+        <div class="card h-100">
+          <div class="card-header bg-body-tertiary">
+            <h5 class="mb-0"><i class="fa fa-star me-2"></i>Officer Roles</h5>
+          </div>
+          <div class="card-body">
+            <ul class="list-unstyled mb-0">
+              {% for role in roles_history %}
+                <li class="mb-1">
+                  <span class="fw-semibold">{{ role.get_role_display|default:role.role|title }}</span>
+                  <span class="text-body-secondary small">{{ role.start|date:"M Y" }} &ndash; {{ role.end|date:"M Y" }}</span>
+                </li>
+              {% endfor %}
+            </ul>
+          </div>
+        </div>
+      </div>
+    {% endif %}
+
+    {# ---------- External organizations ---------- #}
+    {% if orgs %}
+      <div class="col-md-6">
+        <div class="card h-100">
+          <div class="card-header bg-body-tertiary">
+            <h5 class="mb-0"><i class="fa fa-users me-2"></i>External Organizations</h5>
+          </div>
+          <div class="card-body">
+            <ul class="list-unstyled mb-0">
+              {% for org in orgs %}
+                <li class="mb-1">
+                  <span class="fw-semibold">{{ org.org_name }}</span>
+                  <span class="badge bg-secondary">{{ org.get_type_display }}</span>
+                  {% if org.officer %}<span class="badge bg-primary">Officer</span>{% endif %}
+                  <span class="text-body-secondary small">{{ org.start|date:"M Y" }} &ndash; {{ org.end|date:"M Y" }}</span>
+                </li>
+              {% endfor %}
+            </ul>
+          </div>
+        </div>
+      </div>
+    {% endif %}
+
+    {# ---------- Ritual Proficiency ---------- #}
+    {% if ritual_records %}
+      <div class="col-12">
+        <div class="card">
+          <div class="card-header bg-body-tertiary">
+            <h5 class="mb-0"><i class="fa fa-book me-2"></i>Ritual Proficiency</h5>
+          </div>
+          <div class="card-body p-0">
+            <div class="table-responsive">
+              <table class="table table-sm table-hover align-middle mb-0">
+                <thead>
+                  <tr>
+                    <th>Level</th>
+                    <th>Date</th>
+                    <th>Memorization</th>
+                    <th>Directions</th>
+                    <th>Performance</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for r in ritual_records %}
+                    <tr>
+                      <td>{{ r.get_level_display }}</td>
+                      <td>{{ r.date|date:"M j, Y" }}</td>
+                      <td>{{ r.get_memorization_display }}</td>
+                      <td>{{ r.get_directions_display }}</td>
+                      <td>{{ r.get_performance_display }}</td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    {% endif %}
+
+    {# ---------- National-officer-only sections ---------- #}
+    {% if can_view_sensitive %}
+      <div class="col-12">
+        <hr>
+        <div class="alert alert-info d-flex align-items-center mb-3" role="alert">
+          <i class="fa fa-lock me-2"></i>
+          <span>The sections below are visible to National Officers and administrators only.</span>
+        </div>
+      </div>
+
+      <div class="col-12">
+        <div class="card">
+          <div class="card-header bg-body-tertiary d-flex justify-content-between align-items-center">
+            <h5 class="mb-0"><i class="fa fa-sticky-note me-2"></i>Notes</h5>
+            <a class="btn btn-primary btn-sm" href="{% url 'notes:add_user' object.username %}">Add Note</a>
+          </div>
+          <div class="card-body">
+            {% render_table note_table %}
+          </div>
+        </div>
+      </div>
+
+      {% if submission_table.data %}
+        <div class="col-12">
+          <div class="card">
+            <div class="card-header bg-body-tertiary">
+              <h5 class="mb-0"><i class="fa fa-file-text-o me-2"></i>Member Submissions</h5>
+            </div>
+            <div class="card-body">
+              {% render_table submission_table %}
+            </div>
+          </div>
+        </div>
+      {% endif %}
+
+      {% if job_table.data %}
+        <div class="col-12">
+          <div class="card">
+            <div class="card-header bg-body-tertiary">
+              <h5 class="mb-0"><i class="fa fa-briefcase me-2"></i>Job Postings by This Member</h5>
+            </div>
+            <div class="card-body">
+              {% render_table job_table %}
+            </div>
+          </div>
+        </div>
+      {% endif %}
+
+      {% if task_completions %}
+        <div class="col-12">
+          <div class="card">
+            <div class="card-header bg-body-tertiary">
+              <h5 class="mb-0"><i class="fa fa-check-square-o me-2"></i>Tasks Completed by This Member</h5>
+            </div>
+            <div class="card-body p-0">
+              <div class="table-responsive">
+                <table class="table table-sm table-hover align-middle mb-0">
+                  <thead>
+                    <tr>
+                      <th>Date</th>
+                      <th>Chapter</th>
+                      <th>Task</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for tc in task_completions %}
+                      <tr>
+                        <td>{{ tc.date|date:"M j, Y" }}</td>
+                        <td>{{ tc.chapter }}</td>
+                        <td>{{ tc.task.task.name|default:tc.task }}</td>
+                      </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      {% endif %}
+    {% endif %}
+
+  </div>
+</div>
+{% endblock content %}

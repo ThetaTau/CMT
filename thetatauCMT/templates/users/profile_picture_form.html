@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+{% block title %}Profile Picture{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+  <div class="row justify-content-center">
+    <div class="col-md-6">
+      <div class="card shadow-sm">
+        <div class="card-header bg-body-tertiary">
+          <h4 class="mb-0">Profile Picture</h4>
+        </div>
+        <div class="card-body">
+          <div class="text-center mb-3">
+            {% if object.profile_picture %}
+              <img src="{{ object.profile_picture.url }}"
+                   alt="Current profile picture"
+                   class="rounded-circle border"
+                   style="width: 160px; height: 160px; object-fit: cover;">
+            {% else %}
+              <div class="rounded-circle border bg-body-tertiary d-inline-flex align-items-center justify-content-center"
+                   style="width: 160px; height: 160px;">
+                <i class="fa fa-user text-body-secondary" style="font-size: 5rem;"></i>
+              </div>
+            {% endif %}
+          </div>
+
+          <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            {{ form|crispy }}
+            <div class="d-flex flex-wrap gap-2 justify-content-between">
+              <div>
+                <button type="submit" class="btn btn-primary">
+                  <i class="fa fa-upload"></i> Save
+                </button>
+                <a href="{% url 'users:profile' username=request.user.username %}" class="btn btn-outline-secondary">Cancel</a>
+              </div>
+              {% if object.profile_picture %}
+                <button type="submit" name="clear" value="1"
+                        class="btn btn-outline-danger"
+                        onclick="return confirm('Remove your current profile picture?');">
+                  <i class="fa fa-trash"></i> Remove Photo
+                </button>
+              {% endif %}
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock content %}

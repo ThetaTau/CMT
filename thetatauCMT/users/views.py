@@ -64,6 +64,7 @@ from .models import (
     UserOrgParticipate,
     UserSemesterGPA,
     UserSemesterServiceHours,
+    UserStatusChange,
 )
 from .notifications import MemberInfoUpdate
 from .tables import UserTable
@@ -195,18 +196,131 @@ def user_verify(request):
     return render(request, "users/user_verify_form.html", {"form": form})
 
 
-class UserDetailView(LoginRequiredMixin, NatOfficerRequiredMixin, DetailView):
+RESIGNED_STATUSES = {"resigned", "resignedCC"}
+EXPELLED_STATUSES = {"expelled", "pendexpul"}
+DISCIPLINE_STATUSES = {"suspended", "probation"}
+
+
+class UserProfileView(LoginRequiredMixin, DetailView):
+    """Public member profile visible to any authenticated Theta Tau member.
+
+    Sensitive natoff-only content (notes, submissions, job postings, task
+    completions) is added to the context only for national officers. Owner
+    and superuser get edit shortcuts in the template.
+    """
+
     slug_field = "username"
     slug_url_kwarg = "username"
-    template_name = "users/user_info.html"
+    template_name = "users/user_profile.html"
     model = User
+
+    def get_queryset(self):
+        return (
+            super()
+            .get_queryset()
+            .select_related("chapter", "major", "address__locality__state__country")
+            .prefetch_related("roles", "orgs", "ritual_proficiency")
+        )
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        table = UserNoteTable(self.object.notes.all())
-        RequestConfig(self.request).configure(table)
-        context["note_table"] = table
+        target = self.object
+        viewer = self.request.user
+
+        is_owner = viewer.is_authenticated and viewer.pk == target.pk
+        is_natoff = viewer.is_national_officer_group
+        is_officer = viewer.is_officer_group
+        is_superuser = viewer.is_superuser
+
+        try:
+            initiation = target.initiation
+        except Exception:
+            initiation = None
+
+        context.update(
+            {
+                "is_owner": is_owner,
+                "is_natoff": is_natoff,
+                "is_officer": is_officer,
+                "is_superuser": is_superuser,
+                "can_view_sensitive": is_natoff or is_superuser,
+                "current_status_label": (
+                    UserStatusChange.STATUS.get_value(target.current_status) if target.current_status else ""
+                ),
+                "is_resigned": target.current_status in RESIGNED_STATUSES,
+                "is_expelled": target.current_status in EXPELLED_STATUSES,
+                "is_discipline": target.current_status in DISCIPLINE_STATUSES,
+                "initiation": initiation,
+                "roles_history": target.roles.all().order_by("-end", "-start"),
+                "orgs": target.orgs.all().order_by("-start", "org_name"),
+                "ritual_records": target.ritual_proficiency.all().order_by("-date", "-level"),
+                "role_labels": _role_labels(target.current_roles),
+            }
+        )
+
+        if is_natoff or is_superuser:
+            note_table = UserNoteTable(target.notes.all())
+            RequestConfig(self.request, paginate={"per_page": 15}).configure(note_table)
+            context["note_table"] = note_table
+
+            submission_table = SubmissionTable(target.submissions.all())
+            RequestConfig(self.request, paginate={"per_page": 15}).configure(submission_table)
+            context["submission_table"] = submission_table
+
+            from thetatauCMT.jobs.models import Job
+            from thetatauCMT.jobs.tables import JobTable
+
+            job_qs = Job.objects.filter(created_by=target).order_by("-publish_start")
+            job_table = JobTable(job_qs)
+            RequestConfig(self.request, paginate={"per_page": 15}).configure(job_table)
+            context["job_table"] = job_table
+
+            from thetatauCMT.tasks.models import TaskChapter
+
+            context["task_completions"] = (
+                TaskChapter.objects.filter(created_by=target)
+                .select_related("task__task", "chapter")
+                .order_by("-date")[:100]
+            )
+
         return context
+
+
+# Backward-compat alias so any external imports keep working.
+UserDetailView = UserProfileView
+
+
+def _role_labels(current_roles):
+    """Return a list of ``(slug, label)`` pairs for the user's current roles."""
+    if not current_roles:
+        return []
+    return [(slug, slug.title()) for slug in current_roles]
+
+
+class ProfilePictureUpdateView(LoginRequiredMixin, UpdateView):
+    """Owner-only view for uploading / clearing a profile picture."""
+
+    model = User
+    template_name = "users/profile_picture_form.html"
+    fields = ("profile_picture",)
+
+    def get_object(self, queryset=None):
+        return self.request.user
+
+    def get_success_url(self):
+        return reverse("users:profile", kwargs={"username": self.request.user.username})
+
+    def form_valid(self, form):
+        if self.request.POST.get("clear") == "1":
+            if form.instance.profile_picture:
+                form.instance.profile_picture.delete(save=False)
+            form.instance.profile_picture = None
+            form.instance.save(update_fields=["profile_picture"])
+            messages.success(self.request, "Profile picture removed.")
+            return HttpResponseRedirect(self.get_success_url())
+        response = super().form_valid(form)
+        messages.success(self.request, "Profile picture updated.")
+        return response
 
 
 class UserDetailUpdateView(LoginRequiredMixin, MultiFormsView):

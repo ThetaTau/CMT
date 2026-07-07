@@ -251,6 +251,13 @@ class User(AbstractUser, EmailSignalMixin):
     )
     no_contact = models.BooleanField(default=False)
     charter = models.BooleanField(default=False, help_text="Charter member")
+    profile_picture = models.ImageField(
+        _("Profile Picture"),
+        upload_to="profile_pictures/%Y/%m/",
+        blank=True,
+        null=True,
+        help_text="Optional photo displayed on your public member profile.",
+    )
     ##### DENORMALIZED FIELDS #####  # noqa: E266
     current_status = models.CharField(max_length=10)
     current_roles = ArrayField(models.CharField(max_length=50), blank=True, null=True)

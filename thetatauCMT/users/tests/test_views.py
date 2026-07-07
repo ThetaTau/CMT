@@ -259,7 +259,8 @@ def test_user_verify_view_denied_no_officer(auto_login_user, user_factory):
 
 
 # ---------------------------------------------------------------------------
-# UserDetailView (memberinfo/<username>) — natoff only
+# UserProfileView (memberinfo/<username> and profile/<username>) — public to
+# any authenticated member, with natoff-only sensitive sections.
 # ---------------------------------------------------------------------------
 
 
@@ -274,12 +275,75 @@ def test_user_detail_view_natoff(auto_login_user, user_factory):
 
 
 @pytest.mark.django_db
-def test_user_detail_view_denied_regular_user(auto_login_user, user_factory):
+def test_user_profile_view_regular_user_can_view(auto_login_user, user_factory):
+    """Any authenticated member can view another member's profile page."""
     client, user = auto_login_user()
     target = user_factory.create()
-    url = reverse("users:info", kwargs={"username": target.username})
+    url = reverse("users:profile", kwargs={"username": target.username})
     response = client.get(url)
-    assert response.status_code == 302  # redirect (not natoff)
+    assert response.status_code == 200
+    # Non-natoff viewers should NOT see the sensitive sections.
+    assert b"Notes" not in response.content or b"Add Note" not in response.content
+
+
+@pytest.mark.django_db
+def test_user_profile_view_natoff_sees_sensitive_sections(auto_login_user, user_factory):
+    """Natoff sees the Notes / Submissions section headers."""
+    client, user = auto_login_user()
+    _make_natoff(user, client)
+    target = user_factory.create()
+    url = reverse("users:profile", kwargs={"username": target.username})
+    response = client.get(url)
+    assert response.status_code == 200
+    assert b"Add Note" in response.content
+
+
+@pytest.mark.django_db
+def test_user_profile_view_unauthenticated_redirects(client, user_factory):
+    target = user_factory.create()
+    url = reverse("users:profile", kwargs={"username": target.username})
+    response = client.get(url)
+    assert response.status_code == 302  # login required
+
+
+@pytest.mark.django_db
+def test_user_profile_view_owner_sees_edit_button(auto_login_user):
+    client, user = auto_login_user()
+    url = reverse("users:profile", kwargs={"username": user.username})
+    response = client.get(url)
+    assert response.status_code == 200
+    assert b"Edit My Info" in response.content
+
+
+@pytest.mark.django_db
+def test_user_profile_view_superuser_sees_admin_link(auto_login_user, user_factory):
+    from django.test import override_settings
+
+    client, user = auto_login_user()
+    user.is_superuser = True
+    user.save()
+    client.force_login(user)
+    target = user_factory.create()
+    url = reverse("users:profile", kwargs={"username": target.username})
+    with override_settings(DEBUG=True):
+        response = client.get(url)
+    assert response.status_code == 200
+    assert b"users_user_change" in response.content or b"Admin" in response.content
+
+
+@pytest.mark.django_db
+def test_profile_picture_view_owner_returns_200(auto_login_user):
+    client, user = auto_login_user()
+    url = reverse("users:profile_picture")
+    response = client.get(url)
+    assert response.status_code == 200
+
+
+@pytest.mark.django_db
+def test_profile_picture_view_unauthenticated_redirects(client):
+    url = reverse("users:profile_picture")
+    response = client.get(url)
+    assert response.status_code == 302
 
 
 # ---------------------------------------------------------------------------
