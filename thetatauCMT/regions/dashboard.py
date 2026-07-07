@@ -306,6 +306,31 @@ app.layout = html.Div(
                         ],
                     ),
                 ),
+                dcc.Tab(
+                    label="Recruitment & Careers",
+                    value="recruitment",
+                    className="tt-dashboard-tab",
+                    selected_className="tt-dashboard-tab--active",
+                    children=html.Div(
+                        className="row",
+                        children=[
+                            _panel(
+                                "Top 10 recruiting chapters (initiations)",
+                                "top-recruiting-chapters",
+                                sm_cols=12,
+                                md_cols=6,
+                            ),
+                            _panel(
+                                "PNM retention rate by chapter",
+                                "retention-by-chapter",
+                                sm_cols=12,
+                                md_cols=6,
+                            ),
+                            _panel("Majors of study (current members)", "majors-breakdown"),
+                            _panel("Graduate employers (sized by hires)", "graduation-employer-cloud"),
+                        ],
+                    ),
+                ),
             ],
         ),
     ],
@@ -530,6 +555,87 @@ def _bar_by_chapter(rows, y_label, theme):
         yaxis_title=y_label,
         legend_title_text="Region",
     )
+    return _apply_theme(fig, theme)
+
+
+def _horizontal_bar_top_n(rows, label_key, value_key, x_label, theme, top_n=10, region_key=None):
+    """Render a top-N horizontal bar chart, largest bar at the top.
+
+    When `region_key` is provided, bars are coloured by region using the same
+    palette as `_bar_by_chapter` so recruitment charts stay visually
+    consistent with the region-scoped charts above them.
+    """
+    if not rows:
+        return _empty_figure(theme, "No data for this period")
+    df = pd.DataFrame(rows)
+    if label_key not in df.columns or value_key not in df.columns:
+        return _empty_figure(theme, "No data for this period")
+    df = df.dropna(subset=[label_key])
+    df = df[df[value_key].fillna(0) > 0]
+    if df.empty:
+        return _empty_figure(theme, "No data for this period")
+    df = df.sort_values(value_key, ascending=False).head(top_n)
+    # plotly draws the first item at the bottom of a horizontal bar chart;
+    # reverse the rows so the largest value ends up on top.
+    df = df.iloc[::-1]
+
+    if region_key and region_key in df.columns:
+        regions_series = df[region_key].fillna("Candidate")
+        regions_in_order = list(dict.fromkeys(regions_series.tolist()))
+        color_by_region = {region: REGION_PALETTE[i % len(REGION_PALETTE)] for i, region in enumerate(regions_in_order)}
+        marker_colors = [color_by_region[r] for r in regions_series.tolist()]
+    else:
+        marker_colors = REGION_PALETTE[0]
+
+    fig = go.Figure()
+    fig.add_trace(
+        go.Bar(
+            x=df[value_key].tolist(),
+            y=df[label_key].tolist(),
+            orientation="h",
+            marker_color=marker_colors,
+            text=df[value_key].tolist(),
+            textposition="outside",
+            cliponaxis=False,
+            hovertemplate=f"%{{y}}<br>{x_label}=%{{x}}<extra></extra>",
+        )
+    )
+    fig.update_layout(
+        showlegend=False,
+        bargap=0.15,
+        xaxis_title=x_label,
+        yaxis_title=None,
+    )
+    return _apply_theme(fig, theme)
+
+
+def _treemap_from_rows(rows, label_key, value_key, theme):
+    """Render a treemap where each rectangle's area is proportional to its
+    value. Used in place of a word cloud (plotly ships no wordcloud trace)
+    so the tag-cloud "biggest is most common" affordance survives.
+    """
+    if not rows:
+        return _empty_figure(theme, "No data for this period")
+    df = pd.DataFrame(rows)
+    if label_key not in df.columns or value_key not in df.columns:
+        return _empty_figure(theme, "No data for this period")
+    df = df.dropna(subset=[label_key])
+    df = df[df[value_key].fillna(0) > 0]
+    if df.empty:
+        return _empty_figure(theme, "No data for this period")
+    df = df.sort_values(value_key, ascending=False)
+
+    fig = go.Figure(
+        go.Treemap(
+            labels=df[label_key].tolist(),
+            parents=[""] * len(df),
+            values=df[value_key].tolist(),
+            textinfo="label+value",
+            hovertemplate="%{label}<br>Graduates=%{value}<extra></extra>",
+            marker=dict(colors=[REGION_PALETTE[i % len(REGION_PALETTE)] for i in range(len(df))]),
+        )
+    )
+    fig.update_layout(margin=dict(l=10, r=10, t=30, b=10))
     return _apply_theme(fig, theme)
 
 
@@ -789,3 +895,194 @@ def scores_pro_by_chapter(region_slug, ay_start_year, theme):
 def scores_ser_by_chapter(region_slug, ay_start_year, theme):
     rows = _score_rows(region_slug, ay_start_year, section="Ser")
     return _bar_by_chapter(rows, "Service score", theme)
+
+
+# ---------------------------------------------------------------------------
+# Recruitment & Careers tab
+# ---------------------------------------------------------------------------
+
+
+@app.callback(
+    Output("majors-breakdown", "figure"),
+    [Input("region-slug-store", "data"), Input("theme-store", "data")],
+)
+def majors_breakdown(region_slug, theme):
+    """Top majors across current active members in scope."""
+    from thetatauCMT.users.models import User
+
+    chapters = get_scope_chapters(region_slug)
+    rows = list(
+        User.objects.filter(
+            chapter__in=chapters,
+            current_status__in=ACTIVE_STATUSES,
+            major__isnull=False,
+        )
+        .values("major__major")
+        .annotate(count=Count("id"))
+    )
+    # Normalize the FK-traversal key into the label column the helper expects.
+    for row in rows:
+        row["Major"] = row.pop("major__major")
+    return _horizontal_bar_top_n(rows, label_key="Major", value_key="count", x_label="Members", theme=theme, top_n=15)
+
+
+@app.callback(
+    Output("top-recruiting-chapters", "figure"),
+    [
+        Input("region-slug-store", "data"),
+        Input("ay-store", "data"),
+        Input("theme-store", "data"),
+    ],
+)
+def top_recruiting_chapters(region_slug, ay_start_year, theme):
+    """10 chapters with the most initiations in the selected AY."""
+    from thetatauCMT.forms.models import Initiation
+
+    chapters = get_scope_chapters(region_slug)
+    ay_start, ay_end = ay_dates(ay_start_year)
+    rows = list(
+        Initiation.objects.filter(
+            chapter__in=chapters,
+            date__gte=ay_start.date(),
+            date__lt=ay_end.date(),
+        )
+        .values("chapter__name", "chapter__region__name")
+        .annotate(count=Count("id"))
+    )
+    for row in rows:
+        row["Chapter"] = row.pop("chapter__name")
+        row["Region"] = row.pop("chapter__region__name")
+    return _horizontal_bar_top_n(
+        rows,
+        label_key="Chapter",
+        value_key="count",
+        x_label="Initiations",
+        theme=theme,
+        top_n=10,
+        region_key="Region",
+    )
+
+
+@app.callback(
+    Output("retention-by-chapter", "figure"),
+    [
+        Input("region-slug-store", "data"),
+        Input("ay-store", "data"),
+        Input("theme-store", "data"),
+    ],
+)
+def retention_by_chapter(region_slug, ay_start_year, theme):
+    """Per-chapter PNM retention: `1 - depledges / pnms` in the AY.
+
+    Only chapters that recorded at least one PNM in the window are shown; a
+    zero-PNM chapter would divide-by-zero, so it's silently dropped rather
+    than counted as 100% retention.
+    """
+    from thetatauCMT.forms.models import Depledge
+    from thetatauCMT.users.models import UserStatusChange
+
+    chapters = get_scope_chapters(region_slug)
+    ay_start, ay_end = ay_dates(ay_start_year)
+    ay_start_date, ay_end_date = ay_start.date(), ay_end.date()
+
+    pnm_rows = (
+        UserStatusChange.objects.filter(
+            status="pnm",
+            start__gte=ay_start_date,
+            start__lt=ay_end_date,
+            user__chapter__in=chapters,
+        )
+        .values("user__chapter__name", "user__chapter__region__name")
+        .annotate(count=Count("user_id", distinct=True))
+    )
+    depledge_rows = (
+        Depledge.objects.filter(
+            user__chapter__in=chapters,
+            date__gte=ay_start_date,
+            date__lt=ay_end_date,
+        )
+        .values("user__chapter__name")
+        .annotate(count=Count("id"))
+    )
+    depledge_by_chapter = {r["user__chapter__name"]: r["count"] for r in depledge_rows}
+
+    rows = []
+    for row in pnm_rows:
+        chapter_name = row["user__chapter__name"]
+        pnms = row["count"] or 0
+        if not pnms:
+            continue
+        depledges = depledge_by_chapter.get(chapter_name, 0)
+        rate = max(0.0, 1.0 - (depledges / pnms)) * 100
+        rows.append(
+            {
+                "Chapter": chapter_name,
+                "Region": row["user__chapter__region__name"] or "Candidate",
+                "count": round(rate, 1),
+            }
+        )
+    if not rows:
+        return _empty_figure(theme, "No PNM data for this period")
+
+    df = pd.DataFrame(rows).sort_values(["Region", "count"], ascending=[True, False])
+    regions_in_order = list(dict.fromkeys(df["Region"].tolist()))
+    color_by_region = {region: REGION_PALETTE[i % len(REGION_PALETTE)] for i, region in enumerate(regions_in_order)}
+
+    fig = go.Figure()
+    for region in regions_in_order:
+        group = df[df["Region"] == region]
+        fig.add_trace(
+            go.Bar(
+                x=group["Chapter"].tolist(),
+                y=group["count"].tolist(),
+                name=region,
+                marker_color=color_by_region[region],
+                text=[f"{v:.0f}%" for v in group["count"].tolist()],
+                textposition="outside",
+                hovertemplate=(f"Region={region}<br>Chapter=%{{x}}<br>Retention=%{{y:.1f}}%<extra></extra>"),
+            )
+        )
+    fig.update_layout(
+        barmode="group",
+        bargap=0.15,
+        xaxis_title=None,
+        xaxis_tickangle=-45,
+        yaxis_title="Retention (%)",
+        yaxis_range=[0, 105],
+        legend_title_text="Region",
+    )
+    return _apply_theme(fig, theme)
+
+
+@app.callback(
+    Output("graduation-employer-cloud", "figure"),
+    [
+        Input("region-slug-store", "data"),
+        Input("ay-store", "data"),
+        Input("theme-store", "data"),
+    ],
+)
+def graduation_employer_cloud(region_slug, ay_start_year, theme):
+    """Treemap of employers named on graduate StatusChange rows in the AY.
+
+    Rectangle area is proportional to the number of graduates who reported
+    that employer — the closest plotly-native equivalent of a word cloud.
+    """
+    from thetatauCMT.forms.models import StatusChange
+
+    chapters = get_scope_chapters(region_slug)
+    ay_start, ay_end = ay_dates(ay_start_year)
+    rows = list(
+        StatusChange.objects.filter(
+            reason="graduate",
+            user__chapter__in=chapters,
+            employer__isnull=False,
+            date_start__gte=ay_start.date(),
+            date_start__lt=ay_end.date(),
+        )
+        .values("employer__name")
+        .annotate(count=Count("id"))
+    )
+    for row in rows:
+        row["Employer"] = row.pop("employer__name")
+    return _treemap_from_rows(rows, label_key="Employer", value_key="count", theme=theme)

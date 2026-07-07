@@ -118,6 +118,82 @@ def test_bar_by_chapter_handles_user_chapter_field_names():
 
 
 # ---------------------------------------------------------------------------
+# _horizontal_bar_top_n + _treemap_from_rows
+# ---------------------------------------------------------------------------
+
+
+def test_horizontal_bar_top_n_empty_rows_returns_empty_figure():
+    from thetatauCMT.regions.dashboard import _horizontal_bar_top_n
+
+    fig = _horizontal_bar_top_n([], label_key="Major", value_key="count", x_label="Members", theme="light")
+    assert len(fig.data) == 0
+    assert fig.layout.annotations[0].text == "No data for this period"
+
+
+def test_horizontal_bar_top_n_drops_missing_columns():
+    """When neither key is present the helper should not raise; it should
+    fall through to the empty-figure branch."""
+    from thetatauCMT.regions.dashboard import _horizontal_bar_top_n
+
+    rows = [{"other_key": "x", "count": 3}]
+    fig = _horizontal_bar_top_n(rows, label_key="Major", value_key="count", x_label="Members", theme="light")
+    assert len(fig.data) == 0
+
+
+def test_horizontal_bar_top_n_orders_largest_on_top_and_caps_at_top_n():
+    from thetatauCMT.regions.dashboard import _horizontal_bar_top_n
+
+    rows = [
+        {"Chapter": "A", "count": 5},
+        {"Chapter": "B", "count": 20},
+        {"Chapter": "C", "count": 10},
+        {"Chapter": "D", "count": 1},
+    ]
+    fig = _horizontal_bar_top_n(rows, label_key="Chapter", value_key="count", x_label="Init", theme="light", top_n=3)
+    # top_n=3 → the smallest row ("D", 1) is dropped.
+    assert set(fig.data[0].y) == {"A", "B", "C"}
+    # Largest value ends up last in the y-list (plotly draws bottom→top).
+    assert fig.data[0].y[-1] == "B"
+
+
+def test_horizontal_bar_top_n_uses_region_colors():
+    from thetatauCMT.regions.dashboard import _horizontal_bar_top_n
+
+    rows = [
+        {"Chapter": "A", "Region": "West", "count": 5},
+        {"Chapter": "B", "Region": "East", "count": 20},
+    ]
+    fig = _horizontal_bar_top_n(
+        rows, label_key="Chapter", value_key="count", x_label="Init", theme="light", region_key="Region"
+    )
+    # A per-bar marker_color list means colors is a tuple/list matching bar count.
+    marker_color = fig.data[0].marker.color
+    assert hasattr(marker_color, "__len__")
+    assert len(marker_color) == 2
+
+
+def test_treemap_from_rows_empty_returns_empty_figure():
+    from thetatauCMT.regions.dashboard import _treemap_from_rows
+
+    fig = _treemap_from_rows([], label_key="Employer", value_key="count", theme="light")
+    assert len(fig.data) == 0
+    assert fig.layout.annotations[0].text == "No data for this period"
+
+
+def test_treemap_from_rows_renders_labels_and_values():
+    from thetatauCMT.regions.dashboard import _treemap_from_rows
+
+    rows = [
+        {"Employer": "Boeing", "count": 3},
+        {"Employer": "SpaceX", "count": 5},
+    ]
+    fig = _treemap_from_rows(rows, label_key="Employer", value_key="count", theme="light")
+    assert len(fig.data) == 1
+    assert set(fig.data[0].labels) == {"Boeing", "SpaceX"}
+    assert sum(fig.data[0].values) == 8
+
+
+# ---------------------------------------------------------------------------
 # region_options + get_scope_chapters — need DB
 # ---------------------------------------------------------------------------
 
@@ -206,6 +282,9 @@ def test_ay_dates_none_defaults_to_current():
         "scores_ops_by_chapter",
         "scores_pro_by_chapter",
         "scores_ser_by_chapter",
+        "top_recruiting_chapters",
+        "retention_by_chapter",
+        "graduation_employer_cloud",
     ],
 )
 def test_ay_dependent_graph_callbacks_return_figure(callback_name):
@@ -222,6 +301,15 @@ def test_members_by_chapter_returns_figure():
     from thetatauCMT.regions.dashboard import members_by_chapter
 
     fig = members_by_chapter("national", "light")
+    assert isinstance(fig, go.Figure)
+
+
+@pytest.mark.django_db
+def test_majors_breakdown_returns_figure():
+    """majors-breakdown is AY-independent (snapshot of current members)."""
+    from thetatauCMT.regions.dashboard import majors_breakdown
+
+    fig = majors_breakdown("national", "light")
     assert isinstance(fig, go.Figure)
 
 
