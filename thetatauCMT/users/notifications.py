@@ -59,21 +59,33 @@ def _substitute_config_placeholders(source):
     return _CONFIG_PLACEHOLDER_RE.sub(repl, source)
 
 
-def _unsubscribe_footer(user):
+def _unsubscribe_footer(user, category=None):
     from thetatauCMT.users.views import make_unsubscribe_token
 
+    from .unsubscribe import get_category
+
     host = getattr(settings, "CURRENT_URL", "").rstrip("/")
-    token = make_unsubscribe_token(user)
+    category_obj = get_category(category) if category else None
+    token = make_unsubscribe_token(user, category=category_obj.slug if category_obj else None)
     try:
         unsubscribe_path = url_reverse("users:unsubscribe", kwargs={"token": token})
     except NoReverseMatch:
         unsubscribe_path = f"/users/unsubscribe/{token}/"
     unsubscribe_url = f"{host}{unsubscribe_path}"
+    if category_obj is not None:
+        intro = (
+            f"You&rsquo;re receiving this {category_obj.label} email because our "
+            "records show you are a Theta Tau member."
+        )
+        link_text = f"Unsubscribe from {category_obj.label}"
+    else:
+        intro = "You&rsquo;re receiving this because our records show you are a Theta Tau member."
+        link_text = "Manage email preferences"
     return (
         '<hr style="margin: 24px 0 10px 0;border: 0;border-top: 1px solid #cccccc;">'
         '<p style="font-size: 11px;color: #888888;text-align: center;margin: 6px 0;">'
-        "You&rsquo;re receiving this because our records show you are a Theta Tau member. "
-        f'<br><a href="{unsubscribe_url}" style="color: #a00e11;text-decoration: underline;">Unsubscribe</a>'
+        f"{intro} "
+        f'<br><a href="{unsubscribe_url}" style="color: #a00e11;text-decoration: underline;">{link_text}</a>'
         " or email "
         f'<a href="mailto:{UNSUBSCRIBE_CONTACT_EMAIL}?subject=Unsubscribe" style="color: #a00e11;text-decoration: underline;">{UNSUBSCRIBE_CONTACT_EMAIL}</a>'
         "."
@@ -318,7 +330,7 @@ class MemberEmail(EmailNotification):
         return [user, title, email_content, context]
 
     @classmethod
-    def from_config(cls, user, config_key, title, context=None, *, unsubscribe=False):
+    def from_config(cls, user, config_key, title, context=None, *, unsubscribe=False, category=None):
         """Build a ``MemberEmail`` from an HTML body stored under ``config_key``.
 
         Pipeline (applied in order):
@@ -330,6 +342,9 @@ class MemberEmail(EmailNotification):
              place when no matching Config exists).
           4. If ``unsubscribe`` is truthy, append a per-recipient signed
              unsubscribe footer that links to the public confirmation page.
+             When ``category`` is a slug from
+             ``users.unsubscribe.UNSUBSCRIBE_CATEGORIES``, the footer names
+             the mailing list and the confirm page pre-checks it.
 
         Returns ``None`` when the config row is missing/empty so the caller
         can log and skip. Otherwise returns a ready-to-``send()`` instance.
@@ -340,5 +355,5 @@ class MemberEmail(EmailNotification):
         body = _sanitize_config_template(raw)
         body = _substitute_config_placeholders(body)
         if unsubscribe:
-            body += _unsubscribe_footer(user)
+            body += _unsubscribe_footer(user, category=category)
         return cls(user, title, body, context or {})

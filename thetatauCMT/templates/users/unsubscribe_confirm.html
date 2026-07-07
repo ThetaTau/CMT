@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Unsubscribe from Theta Tau Emails{% endblock %}
+{% block title %}Manage Theta Tau Email Preferences{% endblock %}
 
 {% block content %}
 <div class="container" style="max-width: 640px; margin-top: 40px;">
@@ -7,33 +7,94 @@
     <h2>Invalid or expired link</h2>
     <p>
       This unsubscribe link is invalid or has expired. If you would still like
-      to stop receiving alumni emails from Theta Tau, please email
+      to stop receiving emails from Theta Tau, please email
       <a href="mailto:central.office@thetatau.org?subject=Unsubscribe">central.office@thetatau.org</a>.
     </p>
   {% elif done %}
-    <h2>You&rsquo;re unsubscribed</h2>
+    <h2>Your preferences are saved</h2>
     <p>
-      We&rsquo;ve stopped alumni email to
+      We&rsquo;ve updated the email preferences for
       <strong>{{ user_obj.email|default:user_obj.email_school }}</strong>.
-      You will still receive essential account and official chapter business
-      messages that are not marketing.
     </p>
+    {% if all_checked %}
+      <p>
+        You are unsubscribed from <strong>all optional Theta Tau email</strong>.
+        You will still receive essential account and official chapter business
+        messages that are not marketing.
+      </p>
+    {% else %}
+      <ul>
+        {% for cat in categories %}
+          <li>
+            <strong>{{ cat.label }}:</strong>
+            {% if cat.checked %}unsubscribed{% else %}subscribed{% endif %}
+          </li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+    <div class="alert alert-warning" style="margin-top: 16px;">
+      <strong>Please note:</strong> some of our mailings (such as newsletters)
+      are sent from external systems that sync with the CMT roughly once a
+      month. Your change is effective here immediately, but it may take up to
+      about a month to take effect in those other systems.
+    </div>
     <p>
-      Changed your mind? Log in and clear the &ldquo;unsubscribe from email&rdquo;
-      checkbox on your <a href="{% url 'users:detail' %}">profile</a>, or reply
-      to any of our messages.
+      Changed your mind? Log in and update your preferences on your
+      <a href="{% url 'users:detail' %}#email_prefs">profile</a>, or reply to
+      any of our messages.
     </p>
   {% else %}
-    <h2>Confirm unsubscribe</h2>
+    <h2>Manage email preferences</h2>
     <p>
-      You&rsquo;re about to unsubscribe
-      <strong>{{ user_obj.email|default:user_obj.email_school }}</strong>
-      from Theta Tau alumni emails. You&rsquo;ll still receive essential
-      account and official chapter business messages.
+      Update the email preferences for
+      <strong>{{ user_obj.email|default:user_obj.email_school }}</strong>.
+      {% if focus_category %}
+        You clicked an unsubscribe link in a <strong>{{ focus_category.label }}</strong>
+        email &mdash; that box is pre-checked below.
+      {% endif %}
+      You&rsquo;ll still receive essential account and official chapter
+      business messages regardless of these settings.
     </p>
+    <div class="alert alert-info" style="margin-top: 16px;">
+      <strong>Heads up:</strong> some Theta Tau mailings (such as newsletters)
+      are sent from external systems that sync with the CMT roughly once a
+      month. Your change here is effective immediately, but it may take up to
+      about a month to propagate to those other systems.
+    </div>
     <form method="post" style="margin-top: 24px;">
       {% csrf_token %}
-      <button type="submit" class="btn btn-primary">Confirm unsubscribe</button>
+      <fieldset style="border: 1px solid #dddddd; padding: 16px 20px; margin-bottom: 20px;">
+        <legend style="width:auto;padding:0 8px;font-size:14px;">Unsubscribe from</legend>
+        {% for cat in categories %}
+          <div class="form-check" style="margin-bottom: 10px;">
+            <input class="form-check-input" type="checkbox"
+                   name="categories" value="{{ cat.slug }}"
+                   id="cat-{{ cat.slug }}"
+                   {% if cat.checked %}checked{% endif %}>
+            <label class="form-check-label" for="cat-{{ cat.slug }}">
+              <strong>{{ cat.label }}</strong>
+              {% if cat.focused %}<span class="badge bg-secondary" style="margin-left:6px;">from this email</span>{% endif %}
+              <br>
+              <small class="text-body-secondary">{{ cat.description }}</small>
+            </label>
+          </div>
+        {% endfor %}
+        <hr>
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox"
+                 name="categories" value="{{ category_all }}"
+                 id="cat-all"
+                 {% if all_checked %}checked{% endif %}>
+          <label class="form-check-label" for="cat-all">
+            <strong>Unsubscribe from all optional Theta Tau email</strong><br>
+            <small class="text-body-secondary">
+              Turns off every optional mailing list. You&rsquo;ll still receive
+              essential account and chapter business messages.
+            </small>
+          </label>
+        </div>
+      </fieldset>
+      <button type="submit" class="btn btn-primary">Save preferences</button>
       <a href="https://thetatau.org/" class="btn btn-link">Cancel</a>
     </form>
   {% endif %}

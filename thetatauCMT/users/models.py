@@ -240,6 +240,15 @@ class User(AbstractUser, EmailSignalMixin):
         default=False,
         help_text="Select if you no longer wish to receive email from Theta Tau",
     )
+    unsubscribe_categories = ArrayField(
+        models.CharField(max_length=64),
+        default=list,
+        blank=True,
+        help_text=(
+            "Per-mailing opt-outs (e.g. birthday, velocitas). "
+            "See users.unsubscribe.UNSUBSCRIBE_CATEGORIES for valid slugs."
+        ),
+    )
     no_contact = models.BooleanField(default=False)
     charter = models.BooleanField(default=False, help_text="Charter member")
     ##### DENORMALIZED FIELDS #####  # noqa: E266

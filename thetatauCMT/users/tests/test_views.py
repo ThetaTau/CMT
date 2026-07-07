@@ -1531,3 +1531,235 @@ def test_user_lookup_search_prospective_user_not_filtered_by_view(auto_login_use
 
     assert response.status_code == 302
     assert pnm_user.pk in client.session["users"]
+
+
+# ---------------------------------------------------------------------------
+# UnsubscribeConfirmView – categorized unsubscribe flow
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.django_db
+def test_unsubscribe_get_bad_token_shows_invalid(client):
+    url = reverse("users:unsubscribe", kwargs={"token": "garbage"})
+    response = client.get(url)
+    assert response.status_code == 200
+    assert b"Invalid or expired link" in response.content
+
+
+@pytest.mark.django_db
+def test_unsubscribe_get_preselects_focus_category(client):
+    from thetatauCMT.users.tests.factories import UserFactory
+    from thetatauCMT.users.views import make_unsubscribe_token
+
+    user = UserFactory.create()
+    token = make_unsubscribe_token(user, category="grad_anniversary")
+    url = reverse("users:unsubscribe", kwargs={"token": token})
+    response = client.get(url)
+    assert response.status_code == 200
+    assert b"Graduation Anniversary" in response.content
+    assert b"Velocitas Newsletter" in response.content
+    assert b"Birthday Celebrations" in response.content
+    # Focused category is checked
+    assert b'value="grad_anniversary"' in response.content
+    assert b"from this email" in response.content
+    # Global toggle available but not checked for a fresh user
+    assert b'value="all"' in response.content
+
+
+@pytest.mark.django_db
+def test_unsubscribe_post_single_category(client):
+    from thetatauCMT.users.tests.factories import UserFactory
+    from thetatauCMT.users.views import make_unsubscribe_token
+
+    user = UserFactory.create()
+    assert user.unsubscribe_categories == []
+    token = make_unsubscribe_token(user, category="grad_anniversary")
+    url = reverse("users:unsubscribe", kwargs={"token": token})
+    # Simulate the one-click confirm: pre-checked box is submitted.
+    response = client.post(url, {"categories": ["grad_anniversary"]})
+    assert response.status_code == 200
+    assert b"preferences are saved" in response.content
+    user.refresh_from_db()
+    assert user.unsubscribe_email is False
+    assert "grad_anniversary" in user.unsubscribe_categories
+    assert "velocitas" not in user.unsubscribe_categories
+
+
+@pytest.mark.django_db
+def test_unsubscribe_post_all_toggles_global_flag(client):
+    from thetatauCMT.users.tests.factories import UserFactory
+    from thetatauCMT.users.views import make_unsubscribe_token
+
+    user = UserFactory.create()
+    token = make_unsubscribe_token(user)
+    url = reverse("users:unsubscribe", kwargs={"token": token})
+    response = client.post(url, {"categories": ["all"]})
+    assert response.status_code == 200
+    user.refresh_from_db()
+    assert user.unsubscribe_email is True
+
+
+@pytest.mark.django_db
+def test_unsubscribe_post_clears_previously_set_category(client):
+    from thetatauCMT.users.tests.factories import UserFactory
+    from thetatauCMT.users.views import make_unsubscribe_token
+
+    user = UserFactory.create()
+    user.unsubscribe_categories = ["velocitas", "birthday"]
+    user.save(update_fields=["unsubscribe_categories"])
+    token = make_unsubscribe_token(user)
+    url = reverse("users:unsubscribe", kwargs={"token": token})
+    # Re-submit with only birthday checked → velocitas is cleared.
+    response = client.post(url, {"categories": ["birthday"]})
+    assert response.status_code == 200
+    user.refresh_from_db()
+    assert "velocitas" not in user.unsubscribe_categories
+    assert "birthday" in user.unsubscribe_categories
+
+
+@pytest.mark.django_db
+def test_unsubscribe_post_preserves_unknown_slugs(client):
+    """Unknown slugs already on the user must survive an unrelated save."""
+    from thetatauCMT.users.tests.factories import UserFactory
+    from thetatauCMT.users.views import make_unsubscribe_token
+
+    user = UserFactory.create()
+    user.unsubscribe_categories = ["legacy_slug", "velocitas"]
+    user.save(update_fields=["unsubscribe_categories"])
+    token = make_unsubscribe_token(user)
+    url = reverse("users:unsubscribe", kwargs={"token": token})
+    client.post(url, {"categories": ["velocitas"]})
+    user.refresh_from_db()
+    assert "legacy_slug" in user.unsubscribe_categories
+    assert "velocitas" in user.unsubscribe_categories
+
+
+@pytest.mark.django_db
+def test_unsubscribe_helpers_is_unsubscribed():
+    from thetatauCMT.users.tests.factories import UserFactory
+    from thetatauCMT.users.unsubscribe import is_unsubscribed, set_category_unsubscribed
+
+    user = UserFactory.create()
+    assert is_unsubscribed(user, "grad_anniversary") is False
+
+    changed = set_category_unsubscribed(user, "grad_anniversary", True)
+    assert changed is True
+    assert is_unsubscribed(user, "grad_anniversary") is True
+    assert is_unsubscribed(user, "velocitas") is False
+
+    # Global unsubscribe wins
+    user.unsubscribe_email = True
+    assert is_unsubscribed(user, "velocitas") is True
+
+
+@pytest.mark.django_db
+def test_unsubscribe_token_ignores_unknown_category():
+    from django.core import signing
+
+    from thetatauCMT.users.tests.factories import UserFactory
+    from thetatauCMT.users.views import UNSUBSCRIBE_SALT, make_unsubscribe_token
+
+    user = UserFactory.create()
+    token = make_unsubscribe_token(user, category="not_a_real_slug")
+    payload = signing.loads(token, salt=UNSUBSCRIBE_SALT)
+    assert "category" not in payload
+
+
+@pytest.mark.django_db
+def test_grad_anniversary_queryset_excludes_category_opt_out():
+    """grad_anniversary queryset must skip users who opted out of that category."""
+    import datetime
+
+    from thetatauCMT.forms.tests.factories import StatusChangeFactory
+    from thetatauCMT.users.management.commands.grad_anniversary_email import _grad_queryset
+    from thetatauCMT.users.tests.factories import UserFactory
+
+    target_year = datetime.date.today().year - 5
+    subscribed = UserFactory.create()
+    opted_out = UserFactory.create(unsubscribe_categories=["grad_anniversary"])
+    globally_off = UserFactory.create(unsubscribe_email=True)
+
+    for user in (subscribed, opted_out, globally_off):
+        StatusChangeFactory.create(
+            user=user,
+            reason="graduate",
+            date_start=datetime.date(target_year, 5, 15),
+        )
+
+    qs = _grad_queryset(target_year, range(1, 8))
+    recipients = {sc.user_id for sc in qs}
+    assert subscribed.pk in recipients
+    assert opted_out.pk not in recipients
+    assert globally_off.pk not in recipients
+
+
+# ---------------------------------------------------------------------------
+# UserDetailUpdateView – prefs (Email Preferences) accordion form
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.django_db
+def test_user_detail_prefs_form_sets_category(auto_login_user):
+    """POST action=prefs sets unsubscribe_categories on the user."""
+    client, user = auto_login_user()
+    url = reverse("users:detail")
+    response = client.post(
+        url,
+        {
+            "action": "prefs",
+            "unsubscribe_categories": ["grad_anniversary", "velocitas"],
+        },
+    )
+    assert response.status_code in [200, 302]
+    user.refresh_from_db()
+    assert "grad_anniversary" in user.unsubscribe_categories
+    assert "velocitas" in user.unsubscribe_categories
+    assert user.unsubscribe_email is False
+
+
+@pytest.mark.django_db
+def test_user_detail_prefs_form_toggles_global_flag(auto_login_user):
+    """POST action=prefs with unsubscribe_email checked flips the global flag."""
+    client, user = auto_login_user()
+    url = reverse("users:detail")
+    response = client.post(
+        url,
+        {
+            "action": "prefs",
+            "unsubscribe_email": "on",
+        },
+    )
+    assert response.status_code in [200, 302]
+    user.refresh_from_db()
+    assert user.unsubscribe_email is True
+
+
+@pytest.mark.django_db
+def test_user_detail_prefs_form_preserves_unknown_slugs(auto_login_user):
+    """A profile save must not silently discard legacy/unknown slugs."""
+    client, user = auto_login_user()
+    user.unsubscribe_categories = ["legacy_slug", "velocitas"]
+    user.save(update_fields=["unsubscribe_categories"])
+    url = reverse("users:detail")
+    client.post(
+        url,
+        {
+            "action": "prefs",
+            "unsubscribe_categories": ["birthday"],
+        },
+    )
+    user.refresh_from_db()
+    assert "legacy_slug" in user.unsubscribe_categories
+    assert "birthday" in user.unsubscribe_categories
+    assert "velocitas" not in user.unsubscribe_categories
+
+
+@pytest.mark.django_db
+def test_user_detail_page_renders_prefs_section(auto_login_user):
+    """GET /myinfo/ includes the new Email Preferences accordion section."""
+    client, user = auto_login_user()
+    url = reverse("users:detail")
+    response = client.get(url)
+    assert response.status_code == 200
+    assert b"Email Preferences" in response.content
+    assert b"unsubscribe_categories" in response.content

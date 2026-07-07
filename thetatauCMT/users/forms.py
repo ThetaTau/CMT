@@ -24,6 +24,7 @@ from .models import (
     UserSemesterServiceHours,
     UserStatusChange,
 )
+from .unsubscribe import CATEGORY_SLUGS, UNSUBSCRIBE_CATEGORIES
 
 logger = logging.getLogger(__name__)
 
@@ -366,6 +367,60 @@ class UserForm(forms.ModelForm):
             self.fields["graduation_year"].widget = forms.HiddenInput()
         else:
             self.fields["email"].widget = forms.HiddenInput()
+
+
+class EmailPreferencesForm(forms.ModelForm):
+    """Member-facing controls for opting out of optional mailings.
+
+    Renders one checkbox per registered ``UNSUBSCRIBE_CATEGORIES`` entry
+    (Graduation Anniversary, Velocitas, Birthday, ...) plus the global
+    "unsubscribe from all optional email" toggle and the paper-GEAR toggle.
+    """
+
+    unsubscribe_categories = forms.MultipleChoiceField(
+        required=False,
+        widget=forms.CheckboxSelectMultiple,
+        choices=[(c.slug, c.label) for c in UNSUBSCRIBE_CATEGORIES],
+        label="Unsubscribe from specific mailings",
+        help_text="Check any mailings you no longer wish to receive.",
+    )
+
+    class Meta:
+        model = User
+        fields = [
+            "unsubscribe_email",
+            "unsubscribe_paper_gear",
+            "unsubscribe_categories",
+        ]
+        labels = {
+            "unsubscribe_email": "Unsubscribe from all optional Theta Tau email",
+            "unsubscribe_paper_gear": "Unsubscribe from paper copies of The GEAR",
+        }
+        help_texts = {
+            "unsubscribe_email": (
+                "Turns off every optional mailing list. You&rsquo;ll still receive "
+                "essential account and chapter business messages."
+            ),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance and self.instance.pk:
+            existing = list(self.instance.unsubscribe_categories or [])
+            self.fields["unsubscribe_categories"].initial = [slug for slug in existing if slug in CATEGORY_SLUGS]
+            # Snapshot legacy/unknown slugs here; ModelForm._post_clean will
+            # overwrite ``instance.unsubscribe_categories`` with the cleaned
+            # value before ``save()`` runs, so we can't recover them there.
+            self._preserved_slugs = [slug for slug in existing if slug not in CATEGORY_SLUGS]
+        else:
+            self._preserved_slugs = []
+
+    def save(self, commit=True):
+        selected = set(self.cleaned_data.get("unsubscribe_categories") or [])
+        self.instance.unsubscribe_categories = [c.slug for c in UNSUBSCRIBE_CATEGORIES if c.slug in selected] + list(
+            self._preserved_slugs
+        )
+        return super().save(commit=commit)
 
 
 class UserGPAForm(forms.Form):

@@ -44,6 +44,7 @@ from thetatauCMT.submissions.tables import SubmissionTable
 from .filters import UserListFilter, UserListFilterBase
 from .forms import (
     CaptchaLoginForm,
+    EmailPreferencesForm,
     UserAlterForm,
     UserForm,
     UserGPAForm,
@@ -66,6 +67,7 @@ from .models import (
 )
 from .notifications import MemberInfoUpdate
 from .tables import UserTable
+from .unsubscribe import CATEGORY_ALL, UNSUBSCRIBE_CATEGORIES, get_category, is_unsubscribed
 
 
 class UserRedirectView(LoginRequiredMixin, RedirectView):
@@ -78,44 +80,109 @@ class UserRedirectView(LoginRequiredMixin, RedirectView):
 UNSUBSCRIBE_SALT = "users.unsubscribe.v1"
 
 
-def make_unsubscribe_token(user):
-    """Return a signed, tamper-resistant token that identifies ``user``."""
-    return signing.dumps({"user_pk": user.pk}, salt=UNSUBSCRIBE_SALT)
+def make_unsubscribe_token(user, category=None):
+    """Return a signed, tamper-resistant token that identifies ``user``.
+
+    When ``category`` is provided it is embedded in the token so the
+    confirmation page can pre-select that mailing list. Unknown category
+    slugs are silently dropped so a mis-typed slug in an email footer does
+    not blow up the recipient's unsubscribe page.
+    """
+    payload = {"user_pk": user.pk}
+    if category and get_category(category) is not None:
+        payload["category"] = category
+    return signing.dumps(payload, salt=UNSUBSCRIBE_SALT)
 
 
 class UnsubscribeConfirmView(TemplateView):
-    """Public one-click-confirm unsubscribe landing page.
+    """Public unsubscribe manager.
 
-    GET renders a confirmation page with the recipient's email shown so they
-    know which address is being opted out. POST flips ``unsubscribe_email``
-    and shows a success message. POST-on-confirm prevents mail-scanner
+    GET renders one checkbox per registered category plus an "unsubscribe
+    from all optional email" toggle. When the token embeds a category, that
+    box is pre-checked so the one-click flow (from the email footer) still
+    just needs a single form submission to opt out of that mailing list.
+    POST persists the choices. Requiring a POST prevents mail-scanner
     prefetch (Gmail/Outlook/etc.) from silently unsubscribing users.
     """
 
     template_name = "users/unsubscribe_confirm.html"
     http_method_names = ["get", "post"]
 
-    def _load_user(self):
+    def _load_payload(self):
         token = self.kwargs.get("token", "")
         try:
             data = signing.loads(token, salt=UNSUBSCRIBE_SALT)
         except signing.BadSignature:
-            return None
-        return User.objects.filter(pk=data.get("user_pk")).first()
+            return None, None
+        user = User.objects.filter(pk=data.get("user_pk")).first()
+        category_slug = data.get("category")
+        return user, category_slug
+
+    def _category_rows(self, user, focus_slug, *, preselect_focus):
+        rows = []
+        for category in UNSUBSCRIBE_CATEGORIES:
+            unsubscribed = is_unsubscribed(user, category.slug) if user else False
+            focused = category.slug == focus_slug
+            checked = unsubscribed or (preselect_focus and focused)
+            rows.append(
+                {
+                    "slug": category.slug,
+                    "label": category.label,
+                    "description": category.description,
+                    "checked": checked,
+                    "focused": focused,
+                }
+            )
+        return rows
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        ctx["user_obj"] = self._load_user()
+        user, focus_slug = self._load_payload()
+        ctx["user_obj"] = user
+        ctx["focus_slug"] = focus_slug
+        ctx["focus_category"] = get_category(focus_slug) if focus_slug else None
+        ctx["categories"] = self._category_rows(user, focus_slug, preselect_focus=True)
+        ctx["all_checked"] = bool(user and user.unsubscribe_email)
+        ctx["category_all"] = CATEGORY_ALL
         ctx["done"] = False
         return ctx
 
     def post(self, request, *args, **kwargs):
-        user = self._load_user()
-        if user is not None and not user.unsubscribe_email:
-            user.unsubscribe_email = True
-            user.save(update_fields=["unsubscribe_email"])
-        ctx = self.get_context_data(**kwargs)
+        user, focus_slug = self._load_payload()
+        if user is None:
+            ctx = super().get_context_data(**kwargs)
+            ctx["user_obj"] = None
+            ctx["done"] = False
+            return self.render_to_response(ctx)
+
+        selected = set(request.POST.getlist("categories"))
+        unsubscribe_all = CATEGORY_ALL in selected
+        update_fields = []
+
+        if unsubscribe_all != user.unsubscribe_email:
+            user.unsubscribe_email = unsubscribe_all
+            update_fields.append("unsubscribe_email")
+
+        current = list(user.unsubscribe_categories or [])
+        new_list = [c.slug for c in UNSUBSCRIBE_CATEGORIES if c.slug in selected]
+        # Keep any legacy/unknown slugs the model may already hold instead
+        # of silently discarding them on an unrelated save.
+        preserved = [slug for slug in current if slug not in {c.slug for c in UNSUBSCRIBE_CATEGORIES}]
+        new_list.extend(preserved)
+        if set(new_list) != set(current):
+            user.unsubscribe_categories = new_list
+            update_fields.append("unsubscribe_categories")
+
+        if update_fields:
+            user.save(update_fields=update_fields)
+
+        ctx = super().get_context_data(**kwargs)
         ctx["user_obj"] = user
+        ctx["focus_slug"] = focus_slug
+        ctx["focus_category"] = get_category(focus_slug) if focus_slug else None
+        ctx["categories"] = self._category_rows(user, focus_slug, preselect_focus=False)
+        ctx["all_checked"] = user.unsubscribe_email
+        ctx["category_all"] = CATEGORY_ALL
         ctx["done"] = True
         return self.render_to_response(ctx)
 
@@ -149,6 +216,7 @@ class UserDetailUpdateView(LoginRequiredMixin, MultiFormsView):
         "service": UserServiceForm,
         "user": UserForm,
         "demo": PledgeDemographicsForm,
+        "prefs": EmailPreferencesForm,
         "orgs": None,
     }
 
@@ -184,6 +252,11 @@ class UserDetailUpdateView(LoginRequiredMixin, MultiFormsView):
         if form.has_changed():
             form.save()
         return HttpResponseRedirect(self.get_success_url() + "#user")
+
+    def prefs_form_valid(self, form):
+        if form.has_changed():
+            form.save()
+        return HttpResponseRedirect(self.get_success_url() + "#email_prefs")
 
     def demo_form_valid(self, form):
         if form.has_changed():
@@ -263,6 +336,12 @@ class UserDetailUpdateView(LoginRequiredMixin, MultiFormsView):
     def _get_form_kwargs(self, form_name, bind_form=False):
         kwargs = super()._get_form_kwargs(form_name, bind_form)
         if form_name == "user":
+            kwargs.update(
+                {
+                    "instance": self.get_object(),
+                }
+            )
+        if form_name == "prefs":
             kwargs.update(
                 {
                     "instance": self.get_object(),

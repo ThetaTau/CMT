@@ -550,6 +550,7 @@ class MyUserAdmin(
                     "deceased_changed",
                     "unsubscribe_paper_gear",
                     "unsubscribe_email",
+                    "unsubscribe_categories",
                     "suffix",
                     "nickname",
                     "preferred_pronouns",

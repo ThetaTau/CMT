@@ -249,6 +249,35 @@
       </div>
     </div>
 
+    <div class="accordion-item" id="email_prefs">
+      <h2 class="accordion-header" id="heading-prefs">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#user-prefs-collapse" aria-expanded="false" aria-controls="user-prefs-collapse">
+          Email Preferences / Unsubscribe
+        </button>
+      </h2>
+      <div id="user-prefs-collapse" class="accordion-collapse collapse" aria-labelledby="heading-prefs" data-bs-parent="#user-accordion">
+        <div class="accordion-body">
+          <p>
+            Manage which optional Theta Tau mailings you receive. You&rsquo;ll still
+            receive essential account and official chapter business messages
+            regardless of these settings.
+          </p>
+          <div class="alert alert-info">
+            <strong>Heads up:</strong> some Theta Tau mailings (such as
+            newsletters) are sent from external systems that sync with the CMT
+            roughly once a month. Changes here are effective immediately, but
+            it may take up to about a month to propagate to those other systems.
+          </div>
+          <form class="prefs" method="POST">
+            {% csrf_token %}
+            <div>{{ forms.prefs.management_form|crispy }}</div>
+            {{ forms.prefs|crispy }}
+            <button class="btn btn-primary" name='action' value='prefs' type="submit">Save Email Preferences</button>
+          </form>
+        </div>
+      </div>
+    </div>
+
     <div class="accordion-item" id="submissions">
       <h2 class="accordion-header" id="heading-submissions">
         <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#user-submissions-collapse" aria-expanded="false" aria-controls="user-submissions-collapse">

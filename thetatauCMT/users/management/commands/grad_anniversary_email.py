@@ -23,8 +23,10 @@ from django.core.management import BaseCommand
 from thetatauCMT.forms.models import StatusChange
 from thetatauCMT.users.models import User
 from thetatauCMT.users.notifications import MemberEmail
+from thetatauCMT.users.unsubscribe import is_unsubscribed
 
 CONFIG_KEY = "GradAnniversary"
+CATEGORY_SLUG = "grad_anniversary"
 DEFAULT_YEARS = 5
 DEFAULT_SUBJECT = "Theta Tau Graduation Anniversary"
 
@@ -47,6 +49,7 @@ def _grad_queryset(target_year, grad_months):
         )
         .exclude(user__unsubscribe_email=True)
         .exclude(user__no_contact=True)
+        .exclude(user__unsubscribe_categories__contains=[CATEGORY_SLUG])
         .select_related("user", "user__chapter")
     )
 
@@ -175,8 +178,8 @@ class Command(BaseCommand):
         total = grads.count()
         self.stdout.write(
             f"Found {total} {season_label} {target_year} graduate(s) for a "
-            f"{years}-year anniversary email (unsubscribed / no-contact users "
-            f"already excluded)."
+            f"{years}-year anniversary email (unsubscribed / no-contact / "
+            f"{CATEGORY_SLUG} opt-outs already excluded)."
         )
 
         sent = 0
@@ -192,6 +195,7 @@ class Command(BaseCommand):
                     subject,
                     _context_for(user, grad.date_start, years),
                     unsubscribe=True,
+                    category=CATEGORY_SLUG,
                 )
                 if notif is None:
                     self.stderr.write(f"Config key '{CONFIG_KEY}' is empty or missing; aborting.")
@@ -220,6 +224,12 @@ class Command(BaseCommand):
                 f"Choose a different --test-user or clear the flag on this user first."
             )
             return
+        if is_unsubscribed(user, CATEGORY_SLUG):
+            self.stderr.write(
+                f"{user} is opted out of the '{CATEGORY_SLUG}' category; refusing to send preview. "
+                f"Remove it from user.unsubscribe_categories or choose a different --test-user."
+            )
+            return
 
         today = datetime.date.today()
         grad = StatusChange.objects.filter(user=user, reason="graduate").order_by("-date_start").first()
@@ -237,6 +247,7 @@ class Command(BaseCommand):
                 subject,
                 _context_for(user, graduation_date, years),
                 unsubscribe=True,
+                category=CATEGORY_SLUG,
             )
             if notif is None:
                 self.stderr.write(f"Config key '{CONFIG_KEY}' is empty or missing; nothing sent.")
