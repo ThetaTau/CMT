@@ -9,6 +9,7 @@ Tests cover:
 """
 
 import pytest
+from django import forms
 from django.contrib.auth.models import Group
 from django.http import HttpResponse
 from django.urls import reverse
@@ -3121,3 +3122,318 @@ def test_alumni_exclusion_detail_view_get(auto_login_user):
     url = reverse("forms:alumniexclusion_detail", kwargs={"pk": ae.pk})
     response = client.get(url, follow=True)
     assert response.status_code == 200
+
+
+# ─── Self-submission blocking for peer-review forms ───────────────────────────
+#
+# Officers must not be able to submit these forms about themselves. Each form
+# rejects the requesting user via a ``clean_<field>`` method on the form (with
+# the requesting user injected through ``request_user`` via ``get_form_kwargs``
+# on the view). The ``UserAutocomplete`` also filters out the requesting user
+# from the picker via ``exclude_self=true`` in the forward config.
+
+
+@pytest.mark.django_db
+def test_user_autocomplete_exclude_self_flag_hides_requesting_user(auto_login_user):
+    """UserAutocomplete honors ``exclude_self=true`` in forwarded config."""
+    import json
+
+    from thetatauCMT.users.tests.factories import UserFactory
+
+    client, user = auto_login_user()
+    _add_to_group(user, "officer")
+    other = UserFactory.create(chapter=user.chapter)
+    other.set_current_status(status="active")
+    user.set_current_status(status="active")
+    url = reverse("users:autocomplete")
+    forward = json.dumps({"chapter": "true", "actives": "true", "exclude_self": "true"})
+    response = client.get(url, {"forward": forward})
+    assert response.status_code == 200
+    payload = response.json()
+    ids = {int(item["id"]) for item in payload.get("results", [])}
+    assert user.pk not in ids
+    # The other active chapter member should still be present
+    assert other.pk in ids
+
+
+@pytest.mark.django_db
+def test_premature_alumnus_form_rejects_self():
+    """PrematureAlumnusForm.clean_user rejects the requesting user."""
+    from django.forms.renderers import get_default_renderer
+    from django.forms.utils import ErrorDict
+
+    from thetatauCMT.forms.forms import PrematureAlumnusForm
+    from thetatauCMT.users.tests.factories import UserFactory
+
+    user = UserFactory.create()
+    f = PrematureAlumnusForm.__new__(PrematureAlumnusForm)
+    f._errors = ErrorDict()
+    f.renderer = get_default_renderer()
+    f.fields = {}
+    f.cleaned_data = {"user": user}
+    f.request_user = user
+    with pytest.raises(forms.ValidationError, match="cannot list yourself"):
+        f.clean_user()
+
+
+@pytest.mark.django_db
+def test_convention_form_rejects_self_delegate_and_alternate():
+    """ConventionForm.clean_delegate/alternate reject the requesting user."""
+    from django.forms.renderers import get_default_renderer
+    from django.forms.utils import ErrorDict
+
+    from thetatauCMT.forms.forms import ConventionForm
+    from thetatauCMT.users.tests.factories import UserFactory
+
+    user = UserFactory.create()
+    other = UserFactory.create()
+
+    f = ConventionForm.__new__(ConventionForm)
+    f._errors = ErrorDict()
+    f.renderer = get_default_renderer()
+    f.fields = {}
+    f.request_user = user
+
+    # Self as delegate
+    f.cleaned_data = {"delegate": user}
+    with pytest.raises(forms.ValidationError, match="cannot list yourself"):
+        f.clean_delegate()
+
+    # Self as alternate
+    f.cleaned_data = {"alternate": user}
+    with pytest.raises(forms.ValidationError, match="cannot list yourself"):
+        f.clean_alternate()
+
+    # Other user should pass both
+    f.cleaned_data = {"delegate": other}
+    assert f.clean_delegate() is other
+    f.cleaned_data = {"alternate": other}
+    assert f.clean_alternate() is other
+
+
+@pytest.mark.django_db
+def test_osm_form_rejects_self_nominee():
+    """OSMForm.clean_nominate rejects the requesting user."""
+    from django.forms.renderers import get_default_renderer
+    from django.forms.utils import ErrorDict
+
+    from thetatauCMT.forms.forms import OSMForm
+    from thetatauCMT.users.tests.factories import UserFactory
+
+    user = UserFactory.create()
+    f = OSMForm.__new__(OSMForm)
+    f._errors = ErrorDict()
+    f.renderer = get_default_renderer()
+    f.fields = {}
+    f.cleaned_data = {"nominate": user}
+    f.request_user = user
+    with pytest.raises(forms.ValidationError, match="cannot list yourself"):
+        f.clean_nominate()
+
+
+@pytest.mark.django_db
+def test_disciplinary_form1_rejects_self():
+    """DisciplinaryForm1.clean_user rejects the requesting user."""
+    from django.forms.renderers import get_default_renderer
+    from django.forms.utils import ErrorDict
+
+    from thetatauCMT.forms.forms import DisciplinaryForm1
+    from thetatauCMT.users.tests.factories import UserFactory
+
+    user = UserFactory.create()
+    f = DisciplinaryForm1.__new__(DisciplinaryForm1)
+    f._errors = ErrorDict()
+    f.renderer = get_default_renderer()
+    f.fields = {}
+    f.cleaned_data = {"user": user}
+    f.request_user = user
+    with pytest.raises(forms.ValidationError, match="cannot list yourself"):
+        f.clean_user()
+
+
+@pytest.mark.django_db
+def test_alumni_exclusion_form_rejects_self():
+    """AlumniExclusionForm.clean_user rejects the requesting user."""
+    from django.forms.renderers import get_default_renderer
+    from django.forms.utils import ErrorDict
+
+    from thetatauCMT.forms.forms import AlumniExclusionForm
+    from thetatauCMT.users.tests.factories import UserFactory
+
+    user = UserFactory.create()
+    f = AlumniExclusionForm.__new__(AlumniExclusionForm)
+    f._errors = ErrorDict()
+    f.renderer = get_default_renderer()
+    f.fields = {}
+    f.cleaned_data = {"user": user}
+    f.request_user = user
+    with pytest.raises(forms.ValidationError, match="cannot list yourself"):
+        f.clean_user()
+
+
+@pytest.mark.django_db
+def test_collection_referral_form_rejects_self():
+    """CollectionReferralForm.clean_user rejects the requesting user."""
+    from django.forms.renderers import get_default_renderer
+    from django.forms.utils import ErrorDict
+
+    from thetatauCMT.forms.forms import CollectionReferralForm
+    from thetatauCMT.users.tests.factories import UserFactory
+
+    user = UserFactory.create()
+    f = CollectionReferralForm.__new__(CollectionReferralForm)
+    f._errors = ErrorDict()
+    f.renderer = get_default_renderer()
+    f.fields = {}
+    f.cleaned_data = {"user": user}
+    f.request_user = user
+    with pytest.raises(forms.ValidationError, match="cannot list yourself"):
+        f.clean_user()
+
+
+@pytest.mark.django_db
+def test_return_student_form_rejects_self():
+    """ReturnStudentForm.clean_user rejects the requesting user even when the
+    user has no prealumn form."""
+    from unittest.mock import MagicMock
+
+    from django.forms.renderers import get_default_renderer
+    from django.forms.utils import ErrorDict
+
+    from thetatauCMT.forms.forms import ReturnStudentForm
+
+    user = MagicMock()
+    prealumn_qs = MagicMock()
+    prealumn_qs.__bool__ = lambda self: False
+    user.prealumn_form.all.return_value = prealumn_qs
+
+    f = ReturnStudentForm.__new__(ReturnStudentForm)
+    f._errors = ErrorDict()
+    f.renderer = get_default_renderer()
+    f.fields = {}
+    f.cleaned_data = {"user": user}
+    f.request_user = user
+    with pytest.raises(forms.ValidationError, match="cannot request return"):
+        f.clean_user()
+
+
+@pytest.mark.django_db
+def test_ritual_proficiency_form_rejects_self():
+    """RitualProficiencyForm.clean_user rejects the requesting user."""
+    from django.forms.renderers import get_default_renderer
+    from django.forms.utils import ErrorDict
+
+    from thetatauCMT.forms.forms import RitualProficiencyForm
+    from thetatauCMT.users.tests.factories import UserFactory
+
+    user = UserFactory.create()
+    f = RitualProficiencyForm.__new__(RitualProficiencyForm)
+    f._errors = ErrorDict()
+    f.renderer = get_default_renderer()
+    f.fields = {}
+    f.cleaned_data = {"user": user}
+    f.request_user = user
+    with pytest.raises(forms.ValidationError, match="cannot list yourself"):
+        f.clean_user()
+
+
+@pytest.mark.django_db
+def test_status_change_select_form_rejects_self():
+    """StatusChangeSelectForm.clean_user rejects the requesting user."""
+    from django.forms.renderers import get_default_renderer
+    from django.forms.utils import ErrorDict
+
+    from thetatauCMT.forms.forms import StatusChangeSelectForm
+    from thetatauCMT.users.tests.factories import UserFactory
+
+    user = UserFactory.create()
+    f = StatusChangeSelectForm.__new__(StatusChangeSelectForm)
+    f._errors = ErrorDict()
+    f.renderer = get_default_renderer()
+    f.fields = {}
+    f.cleaned_data = {"user": user}
+    f.request_user = user
+    with pytest.raises(forms.ValidationError, match="cannot report a status change"):
+        f.clean_user()
+
+
+@pytest.mark.django_db
+def test_role_change_select_form_rejects_self_when_field_enabled():
+    """RoleChangeSelectForm.clean_user rejects self only when the user field
+    is editable (extra/new row); existing disabled rows must pass through so
+    the officer can still edit other rows on the page."""
+    from django.forms.renderers import get_default_renderer
+    from django.forms.utils import ErrorDict
+
+    from thetatauCMT.forms.forms import RoleChangeSelectForm
+    from thetatauCMT.users.tests.factories import UserFactory
+
+    user = UserFactory.create()
+
+    # Enabled (extra/new row): rejects self
+    f = RoleChangeSelectForm.__new__(RoleChangeSelectForm)
+    f._errors = ErrorDict()
+    f.renderer = get_default_renderer()
+    enabled_field = forms.ModelChoiceField(queryset=type(user).objects.all())
+    enabled_field.disabled = False
+    f.fields = {"user": enabled_field}
+    f.cleaned_data = {"user": user}
+    f.request_user = user
+    with pytest.raises(forms.ValidationError, match="cannot list yourself"):
+        f.clean_user()
+
+    # Disabled (existing row): allowed even if the same user
+    disabled_field = forms.ModelChoiceField(queryset=type(user).objects.all())
+    disabled_field.disabled = True
+    f.fields = {"user": disabled_field}
+    assert f.clean_user() == user
+
+
+@pytest.mark.django_db
+def test_role_change_national_select_form_rejects_self_when_field_enabled():
+    """RoleChangeNationalSelectForm.clean_user follows the same enabled/disabled
+    rule as the chapter-level form."""
+    from django.forms.renderers import get_default_renderer
+    from django.forms.utils import ErrorDict
+
+    from thetatauCMT.forms.forms import RoleChangeNationalSelectForm
+    from thetatauCMT.users.tests.factories import UserFactory
+
+    user = UserFactory.create()
+
+    f = RoleChangeNationalSelectForm.__new__(RoleChangeNationalSelectForm)
+    f._errors = ErrorDict()
+    f.renderer = get_default_renderer()
+    enabled_field = forms.ModelChoiceField(queryset=type(user).objects.all())
+    enabled_field.disabled = False
+    f.fields = {"user": enabled_field}
+    f.cleaned_data = {"user": user}
+    f.request_user = user
+    with pytest.raises(forms.ValidationError, match="cannot list yourself"):
+        f.clean_user()
+
+    disabled_field = forms.ModelChoiceField(queryset=type(user).objects.all())
+    disabled_field.disabled = True
+    f.fields = {"user": disabled_field}
+    assert f.clean_user() == user
+
+
+@pytest.mark.django_db
+def test_status_change_select_view_excludes_self_from_actives(auto_login_user):
+    """StatusChangeSelectView must NOT include the requesting officer in the
+    user field queryset — the picker should only surface other chapter members."""
+    from thetatauCMT.users.tests.factories import UserFactory
+
+    client, user = auto_login_user()
+    _add_to_group(user, "officer")
+    other = UserFactory.create(chapter=user.chapter)
+    user.set_current_status(status="active")
+    other.set_current_status(status="active")
+    url = reverse("forms:status_selection")
+    response = client.get(url)
+    assert response.status_code == 200
+    formset = response.context["formset"]
+    user_qs = formset.form.base_fields["user"].queryset
+    pks = set(user_qs.values_list("pk", flat=True))
+    assert user.pk not in pks
+    assert other.pk in pks

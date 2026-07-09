@@ -16,6 +16,13 @@
   <p>This form is not to be used for members Resigning or Early Alumnus. <br>
     See Policy and Procedures Manual for details on these status:
     <a href="http://thetatau.org/policies">http://thetatau.org/policies</a></p>
+  <div class="alert alert-info" role="alert">
+    <strong>Note:</strong> Officers cannot report a status change for
+    themselves — your name will not appear in the member picker. Use the
+    <a href="{% url 'viewflow:forms:resignation:start' %}" class="alert-link">Resignation</a>
+    or Premature Alumnus forms for changes to your own status, or ask another
+    officer to submit a status change on your behalf.
+  </div>
   <form action="" method="post">
     {% csrf_token %}
     <div>{{ formset.management_form|crispy }}</div>

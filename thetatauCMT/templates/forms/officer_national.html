@@ -18,6 +18,10 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@eonasdan/tempus-dominus@6.9.4/dist/css/tempus-dominus.min.css" crossorigin="anonymous">
 {% specialspaceless %}
   <h1>Please select members to update officer:</h1>
+  <div class="alert alert-info" role="alert">
+    <strong>Note:</strong> National officers cannot assign a national officer
+    role to themselves. Another national officer must record the assignment.
+  </div>
   <form action="" method="post">
     {% csrf_token %}
     <link href="{% static 'css/project.css' %}" rel="stylesheet">

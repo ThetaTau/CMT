@@ -438,7 +438,10 @@ class StatusChangeSelectView(LoginRequiredMixin, FormSetView):
         kwargs = super().get_formset_kwargs()
         kwargs.update(
             {
-                "form_kwargs": {"colony": self.request.user.current_chapter.candidate_chapter},
+                "form_kwargs": {
+                    "colony": self.request.user.current_chapter.candidate_chapter,
+                    "request_user": self.request.user,
+                },
             }
         )
         return kwargs
@@ -467,11 +470,15 @@ class StatusChangeSelectView(LoginRequiredMixin, FormSetView):
                             "selected": "",
                         }
                     )
+        form_kwargs = {
+            "colony": self.request.user.current_chapter.candidate_chapter,
+            "request_user": self.request.user,
+        }
         if action in ["Add Row", "Delete Selected"]:
             formset = formset(
                 prefix="selection",
                 initial=initial,
-                form_kwargs={"colony": self.request.user.current_chapter.candidate_chapter},
+                form_kwargs=form_kwargs,
             )
         else:
             post_data = deepcopy(request.POST)
@@ -481,7 +488,7 @@ class StatusChangeSelectView(LoginRequiredMixin, FormSetView):
                 request.FILES,
                 initial=initial,
                 prefix="selection",
-                form_kwargs={"colony": self.request.user.current_chapter.candidate_chapter},
+                form_kwargs=form_kwargs,
             )
         return formset
 
@@ -493,7 +500,10 @@ class StatusChangeSelectView(LoginRequiredMixin, FormSetView):
             return self.formset_valid(formset)
 
     def get_formset(self):
-        actives = self.request.user.current_chapter.actives()
+        # Exclude the requesting officer — officers must not report status
+        # changes for themselves (except for the resignation form, which is
+        # a separate view).
+        actives = self.request.user.current_chapter.actives().exclude(pk=self.request.user.pk)
         formset = super().get_formset()
         formset.form.base_fields["user"].queryset = actives.order_by("name")
         return formset
@@ -503,7 +513,7 @@ class StatusChangeSelectView(LoginRequiredMixin, FormSetView):
         formset = kwargs.get("formset", None)
         if formset is None:
             formset = self.construct_formset()
-        actives = self.request.user.current_chapter.actives()
+        actives = self.request.user.current_chapter.actives().exclude(pk=self.request.user.pk)
         formset.form.base_fields["user"].queryset = actives.order_by("name")
         context["formset"] = formset
         helper = StatusChangeSelectFormHelper()
@@ -552,7 +562,9 @@ class StatusChangeView(LoginRequiredMixin, OfficerRequiredMixin, FormView):
 
     def initial_info(self, status_change):
         chapter = self.request.user.current_chapter
-        actives = chapter.actives()
+        # Officers must not report status changes for themselves — matches the
+        # exclusion applied at the selection step.
+        actives = chapter.actives().exclude(pk=self.request.user.pk)
         self.to_graduate = actives.filter(pk__in=status_change["graduate"])
         self.to_coop = actives.filter(pk__in=status_change["coop"])
         self.to_covid = actives.filter(pk__in=status_change["covid"])
@@ -732,6 +744,14 @@ class RoleChangeView(LoginRequiredMixin, ModelFormSetView):
     officer_edit = "member roles"
     model = UserRoleChange
 
+    def get_form_kwargs(self):
+        # Injected into every form in the formset via
+        # ``extra_views.ModelFormSetView`` — used by ``RoleChangeSelectForm``
+        # to reject the requesting officer as their own role recipient.
+        kwargs = super().get_form_kwargs()
+        kwargs["request_user"] = self.request.user
+        return kwargs
+
     def construct_formset(self, initial=False):
         formset = super().construct_formset()
         for field_name in formset.forms[-1].fields:
@@ -867,6 +887,14 @@ class RoleChangeNationalView(LoginRequiredMixin, NatOfficerRequiredMixin, ModelF
     template_name = "forms/officer_national.html"
     factory_kwargs = {"extra": 1, "can_delete": True}
     model = UserRoleChange
+
+    def get_form_kwargs(self):
+        # Injected into every form in the formset — used by
+        # ``RoleChangeNationalSelectForm`` to reject the requesting officer as
+        # their own national officer role recipient.
+        kwargs = super().get_form_kwargs()
+        kwargs["request_user"] = self.request.user
+        return kwargs
 
     def construct_formset(self, initial=False):
         formset = super().construct_formset()
@@ -1640,6 +1668,11 @@ class PrematureAlumnusCreateView(LoginRequiredMixin, CreateProcessView):
     model = PrematureAlumnus
     form_class = PrematureAlumnusForm
 
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs["request_user"] = self.request.user
+        return kwargs
+
     def activation_done(self, *args, **kwargs):
         """Finish task activation."""
         self.activation.done()
@@ -1846,6 +1879,11 @@ class ConventionCreateView(LoginRequiredMixin, CreateProcessView, AssignOfficerF
     form_class = ConventionForm
     submitted = False
     data = {}
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs["request_user"] = self.request.user
+        return kwargs
 
     def get(self, request, *args, **kwargs):
         officers = request.user.current_chapter.get_current_officers_council_specific()
@@ -2204,6 +2242,11 @@ class AlumniExclusionCreateView(LoginRequiredMixin, CreateProcessView, AssignOff
     submitted = False
     data = {}
 
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs["request_user"] = self.request.user
+        return kwargs
+
     def get(self, request, *args, **kwargs):
         officers = request.user.current_chapter.get_current_officers_council_specific()
         if not self.check_officers(officers):
@@ -2328,6 +2371,11 @@ class OSMCreateView(LoginRequiredMixin, CreateProcessView, AssignOfficerFormMixi
     form_class = OSMForm
     submitted = False
     data = {}
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs["request_user"] = self.request.user
+        return kwargs
 
     def get(self, request, *args, **kwargs):
         officers = request.user.current_chapter.get_current_officers_council_specific()
@@ -2552,6 +2600,11 @@ class DisciplinaryCreateView(LoginRequiredMixin, OfficerRequiredMixin, CreatePro
     officer_edit = "disciplinary forms"
     officer_edit_type = "submit or view"
 
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs["request_user"] = self.request.user
+        return kwargs
+
     def get_success_url(self):
         url = reverse("forms:landing")
         if self.request.user.is_authenticated and self.request.user.is_officer_group:
@@ -2715,6 +2768,9 @@ class CollectionReferralFormView(LoginRequiredMixin, OfficerRequiredMixin, Multi
         if form.has_changed():
             form.save()
 
+    def get_collection_kwargs(self):
+        return {"request_user": self.request.user}
+
     def get_user_kwargs(self):
         kwargs = {"verify": True}
         if self.request.method == "POST":
@@ -2857,6 +2913,11 @@ class ReturnStudentCreateView(LoginRequiredMixin, CreateProcessView):
     template_name = "forms/returnstudent_form.html"
     model = ReturnStudent
     form_class = ReturnStudentForm
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs["request_user"] = self.request.user
+        return kwargs
 
     def get_success_url(self):
         return reverse("viewflow:forms:returnstudent:start")
@@ -3090,6 +3151,11 @@ class RitualProficiencyCreateView(LoginRequiredMixin, NatOfficerRequiredMixin, C
     model = RitualProficiency
     form_class = RitualProficiencyForm
     template_name = "forms/ritual_proficiency_form.html"
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs["request_user"] = self.request.user
+        return kwargs
 
     def form_valid(self, form):
         response = super().form_valid(form)

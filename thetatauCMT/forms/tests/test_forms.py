@@ -784,6 +784,7 @@ def test_return_student_form_clean_user_with_prealumn_raises():
     f.renderer = get_default_renderer()
     f.fields = {}
     f.cleaned_data = {"user": mock_user}
+    f.request_user = None
 
     with pytest.raises(forms.ValidationError, match="prealumn form filed"):
         f.clean_user()
@@ -809,6 +810,7 @@ def test_return_student_form_clean_user_without_prealumn_returns_user():
     f.renderer = get_default_renderer()
     f.fields = {}
     f.cleaned_data = {"user": mock_user}
+    f.request_user = None
 
     result = f.clean_user()
     assert result is mock_user

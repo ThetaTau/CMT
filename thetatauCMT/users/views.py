@@ -1112,6 +1112,7 @@ class UserAutocomplete(autocomplete.Select2QuerySetView):
         chapter = self.forwarded.get("chapter", "true")
         actives = self.forwarded.get("actives", "false")
         alumni = self.forwarded.get("alumni", "false")
+        exclude_self = self.forwarded.get("exclude_self", "false")
         qs = User.objects.all()
         if chapter == "true":
             chapter = self.request.user.current_chapter
@@ -1121,6 +1122,8 @@ class UserAutocomplete(autocomplete.Select2QuerySetView):
                 qs = chapter.alumni()
             else:
                 qs = qs.filter(chapter=chapter)
+        if exclude_self == "true":
+            qs = qs.exclude(pk=self.request.user.pk)
         if self.q:
             qs = qs.filter(name__icontains=self.q)
         return qs.order_by("name")

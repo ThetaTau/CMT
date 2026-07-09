@@ -16,6 +16,10 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@eonasdan/tempus-dominus@6.9.4/dist/css/tempus-dominus.min.css" crossorigin="anonymous">
 {% specialspaceless %}
   <h1>Please select members to update role:</h1>
+  <div class="alert alert-info" role="alert">
+    <strong>Note:</strong> Officers cannot assign a chapter officer role to themselves.
+    Another officer must record the role change on your behalf.
+  </div>
   <form action="" method="post">
     {% csrf_token %}
     <link href="{% static 'css/project.css' %}" rel="stylesheet">
