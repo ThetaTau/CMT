@@ -9,15 +9,19 @@ from django.http.response import HttpResponseRedirect
 from django.shortcuts import render
 from django.urls import reverse
 from django.utils import timezone
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.generic import View
 
+from core.models import user_is_national_officer
 from core.views import LoginRequiredMixin
 from thetatauCMT.events.models import Event
 from thetatauCMT.users.models import User
 
-from .models import AttendanceRecord
+from .forms import NationalAttendanceUploadForm
+from .models import AttendanceRecord, MatchQueueItem
 from .quorum import quorum_status
 from .services import active_roster_for_event, can_record_attendance, parent_attendee_roster, record_attendance
+from .upload import ingest_attendance_csv
 
 logger = logging.getLogger(__name__)
 
@@ -138,6 +142,14 @@ class AttendanceRosterView(AttendancePermissionMixin, View):
             "bulk_update_url": reverse("attendance:bulk_update", kwargs=url_kwargs),
             "guest_add_url": reverse("attendance:guest_add", kwargs=url_kwargs),
             "rollup_url": reverse("attendance:rollup", kwargs=url_kwargs),
+            # National-event bulk upload + inline manual match review (WI-7).
+            "is_national_event": event.is_national,
+            "upload_url": f"{reverse('attendance:national_upload')}?event={event.pk}",
+            "match_queue_items": (
+                MatchQueueItem.objects.filter(event=event, status=MatchQueueItem.Status.PENDING).order_by(
+                    "-best_score", "raw_name"
+                )
+            ),
         }
 
 
@@ -324,3 +336,174 @@ class AttendanceGuestAddView(AttendancePermissionMixin, View):
         else:
             messages.add_message(request, messages.WARNING, "No guests were selected.")
         return HttpResponseRedirect(_roster_url(event))
+
+
+# ===========================================================================
+# WI-7 — National event bulk attendance upload + matching queue
+# ===========================================================================
+
+
+class NationalOfficerRequiredMixin(LoginRequiredMixin):
+    """Restrict a view to National Officers / Admins (WI-7).
+
+    Qualification is delegated to :func:`core.models.user_is_national_officer`
+    (superuser, the ``natoff`` group, or a current national-officer role).
+    """
+
+    def dispatch(self, request, *args, **kwargs):
+        user = request.user
+        if user.is_authenticated and not user_is_national_officer(user):
+            messages.add_message(
+                request,
+                messages.ERROR,
+                "Only National Officers can upload or resolve national attendance.",
+            )
+            return HttpResponseRedirect(reverse("events:list"))
+        return super().dispatch(request, *args, **kwargs)
+
+
+class NationalAttendanceUploadView(NationalOfficerRequiredMixin, View):
+    """Upload a CSV of attendees for a national event; auto-match confident rows
+    and route the rest to the manual match queue (WI-7)."""
+
+    template_name = "attendance/national_upload.html"
+
+    def get(self, request, *args, **kwargs):
+        initial = {}
+        event_id = request.GET.get("event")
+        if event_id:
+            event = Event.objects.national().filter(pk=event_id).first()
+            if event is not None:
+                initial["event"] = event.pk
+        return render(request, self.template_name, {"form": NationalAttendanceUploadForm(initial=initial)})
+
+    def post(self, request, *args, **kwargs):
+        form = NationalAttendanceUploadForm(request.POST, request.FILES)
+        if not form.is_valid():
+            return render(request, self.template_name, {"form": form})
+        event = form.cleaned_data["event"]
+        default_status = form.cleaned_data["default_status"]
+        file_bytes = form.cleaned_data["file"].read()
+        result = ingest_attendance_csv(event, file_bytes, request.user, default_status=default_status)
+        messages.add_message(
+            request,
+            messages.SUCCESS,
+            (
+                f"Processed {result.total} row(s) for {event.name}: "
+                f"{result.auto_matched} auto-matched, {result.updated} updated, "
+                f"{result.queued} routed to the review queue, {result.skipped} skipped."
+            ),
+        )
+        for err in result.errors[:10]:
+            messages.add_message(request, messages.WARNING, err)
+        url = reverse("attendance:match_queue")
+        return HttpResponseRedirect(f"{url}?event={event.pk}")
+
+
+class MatchQueueListView(NationalOfficerRequiredMixin, View):
+    """Review pending unresolved attendance rows and their candidate matches (WI-7)."""
+
+    template_name = "attendance/match_queue.html"
+
+    def get(self, request, *args, **kwargs):
+        items = MatchQueueItem.objects.filter(status=MatchQueueItem.Status.PENDING).select_related("event")
+        event = None
+        event_id = request.GET.get("event")
+        if event_id:
+            try:
+                event = Event.objects.filter(pk=int(event_id)).first()
+            except (TypeError, ValueError):
+                event = None
+            if event is not None:
+                items = items.filter(event=event)
+        context = {
+            "items": items.order_by("event__name", "-best_score", "raw_name"),
+            "event": event,
+            "STATUS": AttendanceRecord.STATUS,
+            "resolved_count": MatchQueueItem.objects.filter(status=MatchQueueItem.Status.RESOLVED).count(),
+        }
+        return render(request, self.template_name, context)
+
+
+class MatchQueueResolveView(NationalOfficerRequiredMixin, View):
+    """Manually resolve (confirm a candidate / pick a member) or skip a queue item (WI-7)."""
+
+    def post(self, request, *args, **kwargs):
+        item = MatchQueueItem.objects.filter(pk=request.POST.get("item")).select_related("event").first()
+        if item is None:
+            messages.add_message(request, messages.ERROR, "Queue item not found.")
+            return self._redirect(request)
+        if not item.is_pending:
+            messages.add_message(request, messages.INFO, "That row was already resolved.")
+            return self._redirect(request, item)
+
+        action = request.POST.get("action", "resolve")
+        if action == "skip":
+            item.skip(request.user, note=request.POST.get("note", ""))
+            messages.add_message(request, messages.SUCCESS, f"Skipped '{item.display_label}'.")
+            return self._redirect(request, item)
+
+        user_id = request.POST.get("user_id")
+        member = User.objects.filter(pk=user_id).first() if user_id else None
+        if member is None:
+            messages.add_message(request, messages.ERROR, "Select a member to confirm the match.")
+            return self._redirect(request, item)
+        status = request.POST.get("status", item.target_status)
+        if status not in AttendanceRecord.STATUS.values:
+            status = item.target_status
+        item.resolve_to(member, request.user, status=status)
+        messages.add_message(
+            request,
+            messages.SUCCESS,
+            f"Recorded attendance for {member.name} (from '{item.display_label}').",
+        )
+        return self._redirect(request, item)
+
+    def _redirect(self, request, item=None):
+        # Prefer an explicit, safe ``next`` (e.g. resolving inline from the
+        # national event's attendance page returns there); otherwise fall back
+        # to the match queue filtered to the item's event.
+        nxt = request.POST.get("next")
+        if nxt and url_has_allowed_host_and_scheme(
+            nxt, allowed_hosts={request.get_host()}, require_https=request.is_secure()
+        ):
+            return HttpResponseRedirect(nxt)
+        url = reverse("attendance:match_queue")
+        event_id = request.POST.get("event") or (item.event_id if item else None)
+        if event_id:
+            url = f"{url}?event={event_id}"
+        return HttpResponseRedirect(url)
+
+
+class NationalMemberAutocompleteView(NationalOfficerRequiredMixin, View):
+    """Cross-chapter member search for manual queue resolution (National Officers only)."""
+
+    def get(self, request, *args, **kwargs):
+        query = (request.GET.get("q") or "").strip()
+        min_length = getattr(settings, "ATTENDANCE_GUEST_SEARCH_MIN_LENGTH", 2)
+        if len(query) < min_length:
+            return JsonResponse({"results": [], "error": f"Enter at least {min_length} characters to search."})
+        max_results = getattr(settings, "ATTENDANCE_GUEST_SEARCH_MAX_RESULTS", 20)
+        filters = Q(name__icontains=query) | Q(first_name__icontains=query) | Q(last_name__icontains=query)
+        if query.isdigit():
+            filters |= Q(badge_number=int(query))
+        if "@" in query:
+            filters |= Q(email__iexact=query) | Q(email_school__iexact=query)
+        members = (
+            User.objects.filter(filters).select_related("chapter").order_by("last_name", "first_name")[:max_results]
+        )
+        results = [
+            {
+                "id": member.pk,
+                "text": (
+                    f"{member.name} — {member.chapter.name if member.chapter_id else 'No chapter'}, "
+                    f"badge {member.badge_number}, grad {member.graduation_year}"
+                ),
+                "name": member.name,
+                "chapter": member.chapter.name if member.chapter_id else "",
+                "badge_number": member.badge_number,
+                "graduation_year": member.graduation_year,
+            }
+            for member in members
+        ]
+        return JsonResponse({"results": results})

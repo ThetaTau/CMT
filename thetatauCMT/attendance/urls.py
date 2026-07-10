@@ -11,6 +11,15 @@ _EVENT = "~<int:year>/<int:month>/<int:day>/<slug:event_slug>/"
 
 urlpatterns = [
     path("guest-autocomplete/", views.GuestMemberAutocompleteView.as_view(), name="guest-autocomplete"),
+    # WI-7 — National event bulk upload + manual match queue (National Officers).
+    path("national/upload/", views.NationalAttendanceUploadView.as_view(), name="national_upload"),
+    path("national/queue/", views.MatchQueueListView.as_view(), name="match_queue"),
+    path("national/queue/resolve/", views.MatchQueueResolveView.as_view(), name="match_queue_resolve"),
+    path(
+        "national/member-autocomplete/",
+        views.NationalMemberAutocompleteView.as_view(),
+        name="national-member-autocomplete",
+    ),
     path(_EVENT, views.AttendanceRosterView.as_view(), name="roster"),
     path(_EVENT + "save/", views.AttendanceBulkSaveView.as_view(), name="save"),
     path(_EVENT + "update/", views.AttendanceBulkUpdateView.as_view(), name="bulk_update"),

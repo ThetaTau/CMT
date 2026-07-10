@@ -1,3 +1,5 @@
+import uuid
+
 from django.conf import settings
 from django.db import models
 from django.utils import timezone
@@ -137,3 +139,148 @@ class AttendanceStatusTransition(TimeStampedModel):
 
     def __str__(self):
         return f"{self.record_id}: {self.from_status or '∅'} → {self.to_status}"
+
+
+class MatchQueueItem(TimeStampedModel):
+    """An uploaded national-event attendance row that could not be matched to a
+    member with sufficient confidence (WI-7), awaiting manual admin resolution.
+
+    Stores the raw, as-uploaded identity fields plus the ranked candidate
+    matches (with scores) produced by :mod:`attendance.matching`. Resolving an
+    item creates the :class:`AttendanceRecord`. Re-uploads are idempotent: a
+    stable ``fingerprint`` of the raw identity keeps duplicate rows from
+    creating duplicate queue items, and already-resolved fingerprints are
+    skipped on subsequent uploads.
+    """
+
+    class Status(models.TextChoices):
+        PENDING = "pending", "Pending Review"
+        RESOLVED = "resolved", "Resolved"
+        SKIPPED = "skipped", "Skipped"
+
+    event = models.ForeignKey(Event, on_delete=models.CASCADE, related_name="match_queue_items")
+    upload_id = models.UUIDField(
+        default=uuid.uuid4,
+        db_index=True,
+        help_text="Groups all rows that arrived in the same upload.",
+    )
+    fingerprint = models.CharField(
+        max_length=64,
+        db_index=True,
+        help_text="Stable hash of the raw identity fields; keeps re-uploads idempotent.",
+    )
+    # Raw, as-uploaded values — no member id is required.
+    raw_member_id = models.CharField(max_length=100, blank=True, default="")
+    raw_badge_number = models.CharField(max_length=100, blank=True, default="")
+    raw_email = models.CharField(max_length=255, blank=True, default="")
+    raw_name = models.CharField(max_length=255, blank=True, default="")
+    raw_first_name = models.CharField(max_length=255, blank=True, default="")
+    raw_last_name = models.CharField(max_length=255, blank=True, default="")
+    raw_chapter = models.CharField(max_length=255, blank=True, default="")
+    raw_graduation_year = models.CharField(max_length=16, blank=True, default="")
+    raw_row = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text="The full original upload row, preserved for audit.",
+    )
+    # Ranked candidate matches: [{"user_id", "name", "score", "reasons", ...}].
+    candidates = models.JSONField(default=list, blank=True)
+    best_score = models.FloatField(
+        default=0.0,
+        help_text="Confidence (0..1) of the top candidate (below the auto-accept threshold).",
+    )
+    target_status = models.CharField(
+        max_length=20,
+        choices=AttendanceRecord.STATUS.choices,
+        default=AttendanceRecord.STATUS.ATTENDED,
+        help_text="Attendance status to assign when this row is resolved.",
+    )
+    status = models.CharField(
+        max_length=12,
+        choices=Status.choices,
+        default=Status.PENDING,
+        db_index=True,
+    )
+    resolved_user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="attendance_match_resolutions",
+    )
+    attendance_record = models.ForeignKey(
+        AttendanceRecord,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="match_queue_items",
+    )
+    resolved_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="attendance_matches_resolved",
+    )
+    resolved_at = models.DateTimeField(null=True, blank=True)
+    uploaded_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="attendance_uploads",
+    )
+    note = models.TextField(blank=True, default="")
+
+    class Meta:
+        ordering = ["-created"]
+        indexes = [models.Index(fields=["event", "status"])]
+
+    def __str__(self):
+        return f"MatchQueueItem({self.display_label} @ event {self.event_id}, {self.status})"
+
+    @property
+    def display_label(self):
+        return self.raw_name or self.raw_email or self.raw_member_id or self.raw_badge_number or "(no identity)"
+
+    @property
+    def is_pending(self):
+        return self.status == self.Status.PENDING
+
+    def resolve_to(self, user, resolved_by, status=None):
+        """Confirm a manual/candidate match: create (or upsert) the
+        AttendanceRecord and mark this item resolved.
+
+        Idempotent — :func:`attendance.services.record_attendance` upserts on the
+        unique ``(event, user)`` constraint, so resolving twice never
+        double-creates attendance.
+        """
+        from .services import record_attendance
+
+        status = status or self.target_status
+        record, _ = record_attendance(self.event, user, status, resolved_by)
+        self.resolved_user = user
+        self.attendance_record = record
+        self.resolved_by = resolved_by
+        self.resolved_at = timezone.now()
+        self.status = self.Status.RESOLVED
+        self.save(
+            update_fields=[
+                "resolved_user",
+                "attendance_record",
+                "resolved_by",
+                "resolved_at",
+                "status",
+                "modified",
+            ]
+        )
+        return record
+
+    def skip(self, resolved_by, note=""):
+        """Dismiss the row without creating attendance (no plausible match)."""
+        self.status = self.Status.SKIPPED
+        self.resolved_by = resolved_by
+        self.resolved_at = timezone.now()
+        if note:
+            self.note = note
+        self.save(update_fields=["status", "resolved_by", "resolved_at", "note", "modified"])

@@ -673,6 +673,10 @@ ATTENDANCE_QUORUM_RULE = env("ATTENDANCE_QUORUM_RULE", default="majority")
 ATTENDANCE_GUEST_SEARCH_MIN_LENGTH = env.int("ATTENDANCE_GUEST_SEARCH_MIN_LENGTH", default=2)
 # Maximum results returned by the guest autocomplete (never a full roster).
 ATTENDANCE_GUEST_SEARCH_MAX_RESULTS = env.int("ATTENDANCE_GUEST_SEARCH_MAX_RESULTS", default=20)
+# Minimum confidence (0..1) at which a national-event attendance upload row is
+# auto-matched to a member; anything at or below routes to the manual match
+# queue (WI-7). Match is auto-accepted only when strictly greater than this.
+ATTENDANCE_MATCH_AUTO_ACCEPT_THRESHOLD = env.float("ATTENDANCE_MATCH_AUTO_ACCEPT_THRESHOLD", default=0.60)
 
 # https://django-simple-history.readthedocs.io/en/latest/historical_model.html#filefield-as-a-charfield
 SIMPLE_HISTORY_FILEFIELD_TO_CHARFIELD = True

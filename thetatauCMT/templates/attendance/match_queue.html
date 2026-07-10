@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Attendance Match Queue{% endblock %}
+
+{% block content %}
+<div class="container">
+  <h2 class="page-title">Attendance Match Queue</h2>
+  <p class="text-body-secondary">
+    Rows that could not be auto-matched with sufficient confidence. Confirm a suggested candidate,
+    search for a different member, or skip the row. Confirming records attendance for the chosen member.
+    {% if event %}<br>Filtered to event: <strong>{{ event.name }}</strong> ({{ event.date }}).{% endif %}
+  </p>
+
+  <div class="d-flex gap-2 mb-3">
+    <a href="{% url 'attendance:national_upload' %}{% if event %}?event={{ event.pk }}{% endif %}" class="btn btn-outline-primary btn-sm">
+      <i class="fas fa-upload"></i> Upload more
+    </a>
+    {% if event %}<a href="{% url 'attendance:match_queue' %}" class="btn btn-outline-secondary btn-sm">Show all events</a>{% endif %}
+    <span class="ms-auto text-body-secondary align-self-center">{{ resolved_count }} resolved to date</span>
+  </div>
+
+  {% if not items %}
+    <div class="alert alert-secondary">The review queue is empty. Nothing needs manual matching.</div>
+  {% endif %}
+
+  {% include "attendance/_match_queue_review.html" with review_items=items %}
+</div>
+{% endblock %}

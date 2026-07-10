@@ -15,6 +15,11 @@
           <i class="fas fa-layer-group"></i> Sub-event rollup
         </a>
       {% endif %}
+      {% if is_national_event %}
+        <a href="{{ upload_url }}" class="btn btn-outline-primary btn-sm">
+          <i class="fas fa-upload"></i> Upload attendance
+        </a>
+      {% endif %}
     </div>
   </div>
   <p class="text-body-secondary">{{ event.date }} &middot; {{ event.chapter|default:"National (org-wide)" }} &middot; {{ event.type }}</p>
@@ -172,6 +177,25 @@
       {% endif %}
     </div>
   </div>
+
+  {# ---- Manual attendance to review (WI-7, national bulk uploads) ---- #}
+  {% if match_queue_items %}
+    <hr>
+    <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+      <h4 class="mb-0">Manual attendance to review</h4>
+      <span class="badge bg-warning text-dark">{{ match_queue_items|length }} pending</span>
+      {% if is_national_event %}
+        <a href="{{ upload_url }}" class="btn btn-outline-primary btn-sm ms-auto">
+          <i class="fas fa-upload"></i> Upload more
+        </a>
+      {% endif %}
+    </div>
+    <p class="text-body-secondary">
+      These uploaded rows could not be auto-matched with sufficient confidence. Confirm a suggested
+      candidate, search for a different member, or skip the row. Confirming records attendance.
+    </p>
+    {% include "attendance/_match_queue_review.html" with review_items=match_queue_items %}
+  {% endif %}
 </div>
 
 <script>
