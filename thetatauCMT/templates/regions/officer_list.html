@@ -16,6 +16,12 @@
           <button class="clipboard btn btn-outline-primary" data-clipboard-text="{{ email_list }}">
             <i class="fas fa-envelope"></i> Copy emails to clipboard
           </button>
+          {% if contact_sync_available %}
+            <button type="button" class="btn btn-outline-primary"
+                    data-bs-toggle="modal" data-bs-target="#contactSyncModal">
+              <i class="fas fa-address-book"></i> Sync to Contacts
+            </button>
+          {% endif %}
           <form action="" method="GET">
             {% for key, values in request.GET.lists %}{% if key != "csv" %}{% for v in values %}<input type="hidden" name="{{ key }}" value="{{ v }}">{% endfor %}{% endif %}{% endfor %}
             <button type="submit" class="btn btn-primary" name="csv" value="Download CSV">
@@ -92,5 +98,10 @@
     </div>
   </div>
 </div>
+{% if contact_sync_available %}
+  {# Modal + hidden CSRF token so contact_sync/sync_modal.html's fetch() calls can POST safely. #}
+  <form style="display:none">{% csrf_token %}</form>
+  {% include "contact_sync/sync_modal.html" %}
+{% endif %}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/1.5.10/clipboard.min.js"></script>
 {% endblock content %}

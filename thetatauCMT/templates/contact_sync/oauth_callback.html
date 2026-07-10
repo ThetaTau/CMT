@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% load static i18n %}
+{% block title %}{{ provider.label }} — connected{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+  <div class="card">
+    <div class="card-body">
+      <h1 class="h4 mb-3"><i class="fas fa-check-circle text-success"></i> Connected to {{ provider.label }}</h1>
+      {% if account_email %}
+        <p>Signed in as <strong>{{ account_email }}</strong>.</p>
+      {% endif %}
+      <p class="text-body-secondary">
+        You can now close this window and click <em>Sync</em> on the region officers page.
+      </p>
+      <p>
+        <a href="{{ next_url }}" class="btn btn-primary">Return to Officers page</a>
+        <button type="button" class="btn btn-outline-secondary" onclick="window.close();">Close window</button>
+      </p>
+    </div>
+  </div>
+</div>
+<script>
+  // If the OAuth flow was opened in a popup, try to notify the opener and self-close.
+  try {
+    if (window.opener && !window.opener.closed) {
+      window.opener.postMessage({ contactSync: { provider: "{{ provider.key|escapejs }}", connected: true } }, window.location.origin);
+      setTimeout(function () { window.close(); }, 1200);
+    }
+  } catch (err) { /* opener gone */ }
+</script>
+{% endblock %}

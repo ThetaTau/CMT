@@ -17,7 +17,15 @@
     <!-- Tempus Dominus Styles -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@eonasdan/tempus-dominus@6.9.4/dist/css/tempus-dominus.min.css" crossorigin="anonymous">
 {% specialspaceless %}
-  <h1>Please select members to update officer:</h1>
+  <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+    <h1 class="mb-0 me-auto">Please select members to update officer:</h1>
+    {% if contact_sync_available %}
+      <button type="button" class="btn btn-outline-primary"
+              data-bs-toggle="modal" data-bs-target="#contactSyncModal">
+        <i class="fas fa-address-book"></i> Sync National Officers to Contacts
+      </button>
+    {% endif %}
+  </div>
   <div class="alert alert-info" role="alert">
     <strong>Note:</strong> National officers cannot assign a national officer
     role to themselves. Another national officer must record the assignment.
@@ -93,6 +101,9 @@
     />
   </form>
 {% endspecialspaceless %}
+{% if contact_sync_available %}
+  {% include "contact_sync/sync_modal.html" %}
+{% endif %}
 {% endblock content %}
 {% block javascript %}
 {{ block.super }}
