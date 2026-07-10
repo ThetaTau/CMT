@@ -1,12 +1,13 @@
 import django_tables2 as tables
 from django.utils.safestring import mark_safe
-from django_tables2.utils import A
 
 from .models import Event
 
 
 class EventTable(tables.Table):
-    name = tables.LinkColumn("events:update", args=[A("pk")])
+    name = tables.Column(linkify=lambda record: record.get_absolute_url())
+    is_public = tables.BooleanColumn(verbose_name="Open to Other Chapters")
+    parent_event = tables.Column(verbose_name="Parent Event")
 
     class Meta:
         model = Event
@@ -26,6 +27,8 @@ class EventTable(tables.Table):
             "virtual",
             "miles",
             "raised",
+            "is_public",
+            "parent_event",
         )
         attrs = {"class": "table table-striped table-bordered"}
         empty_text = "There are no events matching the search criteria..."
@@ -56,6 +59,12 @@ class EventTable(tables.Table):
             )
         kwargs["extra_columns"] = extra_columns
         super().__init__(*args, **kwargs)
+
+    def render_parent_event(self, value, record):
+        if not record.parent_event_id:
+            return "—"
+        url = record.parent_event.get_absolute_url()
+        return mark_safe(f'<a href="{url}">{value}</a>')
 
     def render_pictures(self, value):
         out = ""

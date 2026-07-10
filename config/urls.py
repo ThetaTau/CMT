@@ -105,6 +105,7 @@ urlpatterns = [
     path("regions/", include("thetatauCMT.regions.urls", namespace="regions")),
     path("chapters/", include("thetatauCMT.chapters.urls", namespace="chapters")),
     path("events/", include("thetatauCMT.events.urls", namespace="events")),
+    path("attendance/", include("thetatauCMT.attendance.urls", namespace="attendance")),
     path("jobs/", include("thetatauCMT.jobs.urls", namespace="jobs")),
     path("notes/", include("thetatauCMT.notes.urls", namespace="notes")),
     path("goals/", include("thetatauCMT.objectives.urls", namespace="objectives")),

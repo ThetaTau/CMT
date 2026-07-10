@@ -9,6 +9,7 @@
   <h1>Create New Event</h1>
   <form class="form-horizontal" enctype="multipart/form-data" action="" method="POST">
     {% csrf_token %}
+    {{ forms.event.media }}
     {% for field in forms.event %}
       {{ field|as_crispy_field }}
       {% if field.name == "type" %}
@@ -92,6 +93,9 @@
                onclick='location.href="{% url 'events:list' %}";'
                value="Cancel" />
         <button type="submit" class="btn btn-primary" value="Submit">Submit</button>
+        <button type="submit" name="add_attendance" value="1" class="btn btn-success">
+          <i class="fas fa-clipboard-check"></i> Create &amp; Add Attendance
+        </button>
       </div>
     </div>
   </form>

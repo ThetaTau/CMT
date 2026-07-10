@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block title %}Attendance rollup: {{ parent.name }}{% endblock %}
+
+{% block content %}
+<div class="container">
+  <h2 class="page-title">Attendance rollup — {{ parent.name }}</h2>
+  <p class="text-body-secondary">{{ parent.date }} &middot; {{ parent.chapter|default:"National (org-wide)" }}</p>
+
+  <div class="row g-2 mb-3">
+    <div class="col-md-4">
+      <div class="card card-body text-center">
+        <div class="h4 mb-0">{{ aggregate.sub_event_count }}</div>
+        <div class="text-body-secondary">Sub-events</div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card card-body text-center">
+        <div class="h4 mb-0">{{ aggregate.unique_attendees }}</div>
+        <div class="text-body-secondary">Unique attendees (parent + sub-events)</div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card card-body text-center">
+        <div class="h4 mb-0">{{ aggregate.total_records }}</div>
+        <div class="text-body-secondary">Total attended records</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="table-responsive">
+    <table class="table table-striped table-bordered">
+      <thead>
+        <tr>
+          <th>Event</th><th>Date</th><th>Attended</th>
+          <th>Active attended</th><th>Active roster</th><th>Quorum</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr class="bg-body-tertiary">
+          <td><strong>{{ parent.name }}</strong> <span class="badge bg-secondary">parent</span></td>
+          <td>{{ parent.date }}</td>
+          <td>{{ parent_attended_count }}</td>
+          <td colspan="3" class="text-body-secondary">—</td>
+        </tr>
+        {% for row in rows %}
+          <tr>
+            <td><a href="{{ row.event.get_attendance_url }}">{{ row.event.name }}</a></td>
+            <td>{{ row.event.date }}</td>
+            <td>{{ row.attended_count }}</td>
+            <td>{{ row.attended_active }}</td>
+            <td>{{ row.active_count }}</td>
+            <td>
+              {% if row.quorum.met %}
+                <span class="badge bg-success">Met</span>
+              {% else %}
+                <span class="badge bg-warning text-dark">Not met</span>
+              {% endif %}
+              (need {{ row.quorum.required }})
+            </td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="6" class="text-center text-body-secondary">This event has no sub-events.</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <a href="{{ parent.get_attendance_url }}" class="btn btn-outline-secondary">Back to attendance</a>
+</div>
+{% endblock %}
