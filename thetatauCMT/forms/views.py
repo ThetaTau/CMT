@@ -29,11 +29,12 @@ from django.views.generic.edit import CreateView, FormView, ModelFormMixin
 from django_weasyprint import WeasyTemplateResponseMixin
 from easy_pdf.views import PDFTemplateResponseMixin
 from extra_views import FormSetView, ModelFormSetView
+from viewflow.activation import STATUS
 from viewflow.flow.views import CreateProcessView, UpdateProcessView
 from viewflow.frontend.viewset import FlowViewSet
 from viewflow.models import Task as FlowTask
 
-from core.flows import AutoAssignUpdateProcessView, FilterProcessListView
+from core.flows import AutoAssignUpdateProcessView, FilterProcessListView, cancel_process
 from core.forms import MultiFormsView
 from core.models import (
     CHAPTER_OFFICER,
@@ -1885,12 +1886,23 @@ class ConventionCreateView(LoginRequiredMixin, CreateProcessView, AssignOfficerF
         kwargs["request_user"] = self.request.user
         return kwargs
 
+    def _active_previous_processes(self, chapter):
+        """Return non-cancelled Convention processes for this chapter/year."""
+        return Convention.objects.filter(
+            chapter=chapter,
+            year=Convention.current_year(),
+        ).exclude(status=STATUS.CANCELED)
+
     def get(self, request, *args, **kwargs):
         officers = request.user.current_chapter.get_current_officers_council_specific()
         if not self.check_officers(officers):
             return redirect(reverse("forms:officer"))
         self.data, self.submitted, self.signers = get_sign_status(self.request.user)
-        if self.submitted and self.request.user in self.signers:
+        # An officer may explicitly request the create form (?resubmit=1) to
+        # supersede a previous submission — skip the auto-redirect to their
+        # own signing link so they can access the form again.
+        resubmit = request.GET.get("resubmit") == "1" and getattr(request.user, "is_officer", False)
+        if self.submitted and self.request.user in self.signers and not resubmit:
             for sign in self.data:
                 link = sign["link"]
                 if self.request.user == sign["owner"] and link != "#" and not isinstance(link, bool):
@@ -1912,6 +1924,39 @@ class ConventionCreateView(LoginRequiredMixin, CreateProcessView, AssignOfficerF
         del_alt = [form.instance.delegate, form.instance.alternate]
         officers = chapter.get_current_officers_council_specific()
         self.assign_officers_form(del_alt, form, officers)
+        # Supersede any prior Convention submission for this chapter/year:
+        # cancel the existing process (and any incomplete tasks) and notify
+        # the previous delegate/alternate/officer1/officer2 signers.
+        for previous in self._active_previous_processes(chapter):
+            previous_signers = [
+                previous.delegate,
+                previous.alternate,
+                previous.officer1,
+                previous.officer2,
+            ]
+            recipients = {u.email for u in previous_signers if u and u.email}
+            cancel_process(previous)
+            if recipients:
+                GenericEmail(
+                    emails=recipients,
+                    cc={"central.office@thetatau.org", chapter.region.email},
+                    addressee=f"{chapter.full_name} Convention Credential Signers",
+                    subject=f"[CMT] Convention Credential Form Superseded for {chapter}",
+                    message=(
+                        "This is a notification that the Convention Credential "
+                        f"Form previously submitted for {chapter} has been "
+                        "cancelled and replaced with a new submission by "
+                        f"{self.request.user}. Any pending signature tasks on "
+                        "the previous form have been cancelled and no further "
+                        "action is required on that submission."
+                    ),
+                ).send()
+            messages.add_message(
+                self.request,
+                messages.INFO,
+                f"Previous Convention Credential Form for {chapter} has been "
+                "cancelled and replaced. Previous signers have been notified.",
+            )
         Task.mark_complete(
             name="Credentials",
             chapter=chapter,
@@ -1924,6 +1969,11 @@ class ConventionCreateView(LoginRequiredMixin, CreateProcessView, AssignOfficerF
         context = super().get_context_data(**kwargs)
         context["submitted"] = self.submitted
         context["table"] = SignTable(data=self.data)
+        # When resubmitting, expose the flag to the template so it can render
+        # the form (with a warning) alongside the existing-submission status.
+        context["resubmit"] = self.request.GET.get("resubmit") == "1" and getattr(
+            self.request.user, "is_officer", False
+        )
         return context
 
 

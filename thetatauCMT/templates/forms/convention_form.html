@@ -15,8 +15,17 @@
     If you plan to represent the chapter, another member must submit this form.
   </div>
   <hr>
-  {% if not submitted %}
+  {% if not submitted or resubmit %}
     {% if request.user.is_officer  %}
+      {% if submitted and resubmit %}
+        <div class="alert alert-warning" role="alert">
+          <strong>Heads up:</strong> A Convention Credential Form has already
+          been submitted for this chapter this year. Submitting this form will
+          <strong>cancel the previous submission</strong> and any pending
+          signature tasks, and the previous delegate, alternate, and signing
+          officers will be notified by email.
+        </div>
+      {% endif %}
       <form method="POST" enctype="multipart/form-data">
         {{ form.media }}
         <link href="{% static 'css/project.css' %}" rel="stylesheet">
@@ -36,6 +45,16 @@
   <br>
     {% else %}
     <p>Convention Credential Form already submitted this year.</p>
+    {% if request.user.is_officer %}
+      <p>
+        As an officer, you can submit a new Convention Credential Form to
+        replace the current submission. The previous form and any pending
+        signature tasks will be cancelled, and previous signers will be
+        notified by email.
+      </p>
+      <a class="btn btn-warning" href="?resubmit=1">{% trans "Submit a New Convention Credential Form" %}</a>
+      <br><br>
+    {% endif %}
   <h3>Convention Form Status</h3>
     <p>
       See below for status of the form submission. <br>
