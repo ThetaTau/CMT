@@ -398,6 +398,15 @@ ROLLBAR = {
 }
 
 rollbar.init(**ROLLBAR)
+
+# Executive Director — username / email used to assign viewflow review tasks
+# (premature alumnus, disciplinary process, resignation, H&S education, etc.)
+# and as the fallback recipient for chapter-officer notifications that need to
+# reach a live person at the Central Office. Overridable via the
+# ``EXECUTIVE_DIRECTOR`` env var so a new ED can be swapped in without a code
+# change. Value must equal ``User.username`` for the ED account.
+EXECUTIVE_DIRECTOR = env("EXECUTIVE_DIRECTOR", default="Jim.Gaffney@thetatau.org")
+
 GOOGLE_API_KEY = env("GOOGLE_API_KEY", default="TESTING")
 if GOOGLE_API_KEY == "TESTING":
     # Try and load from secrets file

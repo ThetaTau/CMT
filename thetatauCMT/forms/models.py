@@ -636,6 +636,41 @@ class HSEducation(Process, TimeStampedModel, EmailSignalMixin):
         )
         return programs
 
+    # Fallback reviewer if the ``HSEducationReviewer`` :class:`Config` key is
+    # empty / missing OR does not resolve to a known user — falls back to
+    # :data:`settings.EXECUTIVE_DIRECTOR`, which itself defaults to Jim Gaffney
+    # but can be overridden via the ``EXECUTIVE_DIRECTOR`` env var.
+
+    @classmethod
+    def get_reviewer(cls):
+        """Return the ``User`` who should review new H&S Education programs.
+
+        Reads the ``HSEducationReviewer`` :class:`Config` key — value is a
+        username (or email address) of a national officer. Falls back to
+        :data:`settings.EXECUTIVE_DIRECTOR` so the flow keeps working when the
+        Config row hasn't been added yet OR the configured username no longer
+        matches a live account.
+
+        Called from :class:`~thetatauCMT.forms.flows.HSEducationFlow.review`
+        as ``.Assign(lambda act: act.process.get_reviewer())``.
+        """
+        # Local import to avoid a top-of-module User import (which would risk
+        # circular imports through auth backend / core.auth wiring).
+        from django.contrib.auth import get_user_model
+
+        User = get_user_model()
+        identifier = (Config.get_value("HSEducationReviewer") or "").strip()
+        if identifier:
+            reviewer = (
+                User.objects.filter(username__iexact=identifier).first()
+                or User.objects.filter(email__iexact=identifier).first()
+            )
+            if reviewer is not None:
+                return reviewer
+        # Fallback — the Executive Director (username configured via
+        # ``EXECUTIVE_DIRECTOR`` settings; defaults to the historic account).
+        return User.objects.get(username=settings.EXECUTIVE_DIRECTOR)
+
 
 class RiskManagement(YearTermModel):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="risk_form")

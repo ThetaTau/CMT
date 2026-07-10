@@ -263,6 +263,6 @@ class AssignOfficerFormMixin(object):
                     form.instance.officer2 = officer
                     break
         if not hasattr(form.instance, "officer1"):
-            form.instance.officer1 = User.objects.get(username="Jim.Gaffney@thetatau.org")
+            form.instance.officer1 = User.objects.get(username=settings.EXECUTIVE_DIRECTOR)
         if not hasattr(form.instance, "officer2"):
-            form.instance.officer2 = User.objects.get(username="Jim.Gaffney@thetatau.org")
+            form.instance.officer2 = User.objects.get(username=settings.EXECUTIVE_DIRECTOR)

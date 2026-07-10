@@ -107,8 +107,10 @@ class EmailAdvisorWelcome(EmailNotification):  # extend from EmailNotification f
     def __init__(self, user):
         self.to_emails = set([user.email])  # set list of emails to send to
         self.cc = ["central.office@thetatau.org"]
+        # Executive Director's address — pulled from settings so a swap of ED
+        # does not need a code change. Value happens to be the ED's email/username.
         self.reply_to = [
-            "jim.gaffney@thetatau.org",
+            settings.EXECUTIVE_DIRECTOR,
         ]
         chapter = user.current_chapter
         if not chapter.candidate_chapter:
@@ -424,7 +426,7 @@ class EmailProcessUpdate(EmailNotification):
                     process_title = "NO OFFICERS"
                     message = "THIS CHAPTER HAS NO OFFICERS, PLEASE REACH OUT TO THE CHAPTER ASAP TO FIX THIS!"
                     emails.add(chapter.region.email)
-                    user = User.objects.get(username="Jim.Gaffney@thetatau.org")
+                    user = User.objects.get(username=settings.EXECUTIVE_DIRECTOR)
             emails = chapter.council_emails()
             if user and user.email in emails:
                 emails.remove(user.email)
@@ -433,7 +435,7 @@ class EmailProcessUpdate(EmailNotification):
         if user is None:
             process_title = "NO OFFICERS"
             message = "THIS CHAPTER HAS NO OFFICERS, PLEASE REACH OUT TO THE CHAPTER ASAP TO FIX THIS!"
-            user = User.objects.get(username="Jim.Gaffney@thetatau.org")
+            user = User.objects.get(username=settings.EXECUTIVE_DIRECTOR)
             emails.add(chapter.region.email)
         self.to_emails = {user.email}  # set list of emails to send to
         self.cc = list(set({"central.office@thetatau.org"} | emails))
