@@ -13,6 +13,7 @@ from django_tables2.utils import A
 
 from core.views import LoginRequiredMixin, NatOfficerRequiredMixin, RequestConfig
 from thetatauCMT.chapters.models import Chapter
+from thetatauCMT.contact_sync.context import build_sync_modal_context
 from thetatauCMT.tasks.models import TaskDate
 from thetatauCMT.users.filters import AdvisorListFilter, UserRoleListFilter
 from thetatauCMT.users.forms import AdvisorListFormHelper, UserRoleListFormHelper
@@ -23,6 +24,15 @@ from .filters import RegionChapterTaskFilter
 from .forms import RegionChapterTaskFormHelper
 from .models import Region
 from .tables import RegionChapterTaskTable, TaskLinkColumn
+
+
+def _contact_sync_context(request, region_slug):
+    """Thin wrapper around :func:`contact_sync.context.build_sync_modal_context`.
+
+    Retained as an internal helper so downstream tests can monkey-patch the
+    context for a single region without touching the shared implementation.
+    """
+    return build_sync_modal_context(request, f"region:{region_slug}")
 
 
 class RegionOfficerView(LoginRequiredMixin, NatOfficerRequiredMixin, DetailView):
@@ -114,6 +124,7 @@ class RegionOfficerView(LoginRequiredMixin, NatOfficerRequiredMixin, DetailView)
         context["filter"] = self.filter
         context["email_list"] = email_list
         context["view_type"] = "Officers"
+        context.update(_contact_sync_context(self.request, self.object))
         return context
 
 

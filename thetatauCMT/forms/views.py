@@ -938,6 +938,12 @@ class RoleChangeNationalView(LoginRequiredMixin, NatOfficerRequiredMixin, ModelF
             formset = self.construct_formset()
         context["formset"] = formset
         context["input"] = Submit("action", "Submit")
+        # Contact-sync modal context — same template as the region officers
+        # page, but scoped to national officers. See docs/contact_sync_setup.md.
+        from thetatauCMT.contact_sync.context import build_sync_modal_context
+        from thetatauCMT.contact_sync.officers import NATIONAL_SCOPE
+
+        context.update(build_sync_modal_context(self.request, NATIONAL_SCOPE))
         return context
 
     def formset_valid(self, formset, delete_only=False):

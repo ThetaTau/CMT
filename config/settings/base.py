@@ -136,6 +136,7 @@ LOCAL_APPS = [
     "thetatauCMT.objectives.apps.ObjectivesConfig",
     "thetatauCMT.trainings.apps.TrainingsConfig",
     "thetatauCMT.configs.apps.ConfigsConfig",
+    "thetatauCMT.contact_sync.apps.ContactSyncConfig",
     "thetatauCMT.attendance.apps.AttendanceConfig",
     # Added after any apps which contain models for which to create signals
     "email_signals",
@@ -449,6 +450,22 @@ SOCIALACCOUNT_PROVIDERS = {
         },
     },
 }
+
+# ------------------------------------------------------------------------------
+# Contact-sync (region officer → Google / Microsoft Contacts).
+# ------------------------------------------------------------------------------
+# See docs/contact_sync_setup.md for step-by-step configuration.
+# Values default to empty strings so the feature "gracefully unavailable" —
+# each provider is only offered in the UI when both a client_id and a
+# client_secret are configured. The vCard-download path always works and does
+# not require any OAuth configuration.
+CONTACT_SYNC_GOOGLE_CLIENT_ID = env("CONTACT_SYNC_GOOGLE_CLIENT_ID", default="")
+CONTACT_SYNC_GOOGLE_CLIENT_SECRET = env("CONTACT_SYNC_GOOGLE_CLIENT_SECRET", default="")
+CONTACT_SYNC_MICROSOFT_CLIENT_ID = env("CONTACT_SYNC_MICROSOFT_CLIENT_ID", default="")
+CONTACT_SYNC_MICROSOFT_CLIENT_SECRET = env("CONTACT_SYNC_MICROSOFT_CLIENT_SECRET", default="")
+# Microsoft tenant: 'common' (personal+work), 'organizations' (work only),
+# 'consumers' (personal only), or a specific tenant GUID / verified domain.
+CONTACT_SYNC_MICROSOFT_TENANT = env("CONTACT_SYNC_MICROSOFT_TENANT", default="common")
 
 IMPORT_EXPORT_USE_TRANSACTIONS = True
 

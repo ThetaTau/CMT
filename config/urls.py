@@ -117,6 +117,7 @@ urlpatterns = [
     path("forms/", include("thetatauCMT.forms.urls", namespace="forms")),
     path("tasks/", include("thetatauCMT.tasks.urls", namespace="tasks")),
     path("ballots/", include("thetatauCMT.ballots.urls", namespace="ballots")),
+    path("contact-sync/", include("thetatauCMT.contact_sync.urls", namespace="contact_sync")),
     path(
         "rmp/",
         RedirectView.as_view(pattern_name="forms:rmp", permanent=True),
