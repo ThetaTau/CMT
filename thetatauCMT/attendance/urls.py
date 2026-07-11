@@ -20,6 +20,9 @@ urlpatterns = [
         views.NationalMemberAutocompleteView.as_view(),
         name="national-member-autocomplete",
     ),
+    # WI-8 — Member self-service attendance logging at existing events.
+    path("member-event-autocomplete/", views.MemberEventAutocomplete.as_view(), name="member-event-autocomplete"),
+    path("member/<str:username>/add/", views.MemberAttendanceAddView.as_view(), name="member_add"),
     path(_EVENT, views.AttendanceRosterView.as_view(), name="roster"),
     path(_EVENT + "save/", views.AttendanceBulkSaveView.as_view(), name="save"),
     path(_EVENT + "update/", views.AttendanceBulkUpdateView.as_view(), name="bulk_update"),

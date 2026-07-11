@@ -295,6 +295,185 @@
       </div>
     {% endif %}
 
+    {# ---------- Attendance (WI-8) ---------- #}
+    <div class="col-12" id="attendance">
+      <div class="card">
+        <div class="card-header bg-body-tertiary d-flex justify-content-between align-items-center">
+          <h5 class="mb-0"><i class="fa fa-clipboard-check me-2"></i>Attendance</h5>
+          <span class="text-body-secondary small">{{ attendance_records|length }} record{{ attendance_records|length|pluralize }}</span>
+        </div>
+        {% if attendance_records %}
+          <div class="card-body pb-0">
+            <div class="row g-2 align-items-end" id="attendance-filters">
+              <div class="col-sm-4">
+                <label class="form-label small mb-1" for="att-filter-period">Date range</label>
+                <select class="form-select form-select-sm" id="att-filter-period">
+                  <option value="">All time</option>
+                  <option value="this-semester">This semester</option>
+                  <option value="last-semester">Last semester</option>
+                  <option value="this-year">This academic year</option>
+                </select>
+              </div>
+              <div class="col-sm-4">
+                <label class="form-label small mb-1" for="att-filter-chapter">Chapter</label>
+                <select class="form-select form-select-sm" id="att-filter-chapter">
+                  <option value="">All chapters</option>
+                  {% if has_national_attendance %}<option value="__national__">National events</option>{% endif %}
+                  {% for slug, name in attendance_chapters %}<option value="{{ slug }}">{{ name }}</option>{% endfor %}
+                </select>
+              </div>
+              <div class="col-sm-4">
+                <label class="form-label small mb-1" for="att-filter-name">Event name</label>
+                <input type="text" class="form-control form-control-sm" id="att-filter-name" placeholder="Filter by event name…" autocomplete="off">
+              </div>
+            </div>
+          </div>
+        {% endif %}
+        <div class="card-body p-0">
+          {% if attendance_records %}
+            <div class="table-responsive">
+              <table class="table table-sm table-hover align-middle mb-0" id="attendance-table">
+                <thead>
+                  <tr>
+                    <th role="button" class="att-sortable">Date</th>
+                    <th role="button" class="att-sortable">Event</th>
+                    <th role="button" class="att-sortable">Chapter / National</th>
+                    <th role="button" class="att-sortable">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for rec in attendance_records %}
+                    <tr class="{% if rec.event.is_national %}national-attendance{% endif %}"
+                        data-name="{{ rec.event.name|lower }}"
+                        data-chapter="{{ rec.event.chapter.slug|default:'' }}"
+                        data-national="{% if rec.event.is_national %}1{% else %}0{% endif %}"
+                        data-periods="{{ rec.period_tokens }}">
+                      <td class="text-nowrap" data-order="{{ rec.event.date|date:'Y-m-d' }}">{{ rec.event.date|date:"M j, Y" }}</td>
+                      <td>
+                        <a href="{{ rec.event.get_absolute_url }}">{{ rec.event.name }}</a>
+                        {% if rec.event.parent_event %}
+                          <div class="small text-body-secondary">
+                            <i class="fa fa-level-up fa-rotate-90"></i> Sub-event of
+                            <a href="{{ rec.event.parent_event.get_absolute_url }}">{{ rec.event.parent_event.name }}</a>
+                          </div>
+                        {% endif %}
+                      </td>
+                      <td>
+                        {% if rec.event.is_national %}
+                          <span class="badge bg-primary">National</span>
+                        {% elif rec.event.chapter %}
+                          <a href="{% url 'chapters:detail' rec.event.chapter.slug %}">{{ rec.event.chapter.name }}</a>
+                        {% else %}
+                          &mdash;
+                        {% endif %}
+                      </td>
+                      <td>
+                        {% if rec.status == "attended" %}
+                          <span class="badge bg-success">{{ rec.get_status_display }}</span>
+                        {% elif rec.status == "signed_up" %}
+                          <span class="badge bg-secondary">{{ rec.get_status_display }}</span>
+                        {% else %}
+                          <span class="badge bg-warning text-dark">{{ rec.get_status_display }}</span>
+                        {% endif %}
+                      </td>
+                    </tr>
+                  {% endfor %}
+                  <tr id="attendance-no-results" class="d-none">
+                    <td colspan="4" class="text-center text-body-secondary py-3">No attendance matches the current filters.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          {% else %}
+            <p class="text-body-secondary p-3 mb-0">No attendance recorded yet.</p>
+          {% endif %}
+        </div>
+        {% if can_add_attendance %}
+          <div class="card-footer">
+            <h6 class="mb-2">Log missing attendance</h6>
+            <p class="text-body-secondary small mb-2">
+              You cannot create events — search an existing national event or one of
+              {% if is_owner %}your{% else %}{{ object.name }}'s{% endif %} chapter's events.
+            </p>
+            <form method="post" action="{{ attendance_add_url }}" class="row g-2 align-items-end">
+              {% csrf_token %}
+              <div class="col-md-7">
+                <label class="form-label small mb-1" for="{{ attendance_form.event.id_for_label }}">Event</label>
+                {{ attendance_form.event }}
+                {% for error in attendance_form.event.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+              </div>
+              <div class="col-md-3">
+                <label class="form-label small mb-1" for="{{ attendance_form.status.id_for_label }}">Status</label>
+                {{ attendance_form.status }}
+              </div>
+              <div class="col-md-2">
+                <button type="submit" class="btn btn-primary w-100">Log</button>
+              </div>
+            </form>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+    {% if can_add_attendance %}{{ attendance_form.media }}{% endif %}
+    {% if attendance_records %}
+      <script>
+      (function () {
+        var table = document.getElementById('attendance-table');
+        if (!table) return;
+        var tbody = table.querySelector('tbody');
+        var noResults = document.getElementById('attendance-no-results');
+        var periodSel = document.getElementById('att-filter-period');
+        var chapterSel = document.getElementById('att-filter-chapter');
+        var nameInput = document.getElementById('att-filter-name');
+
+        function dataRows() {
+          return Array.prototype.slice.call(tbody.querySelectorAll('tr[data-name]'));
+        }
+
+        function applyFilters() {
+          var period = periodSel ? periodSel.value : '';
+          var chapter = chapterSel ? chapterSel.value : '';
+          var name = nameInput ? nameInput.value.trim().toLowerCase() : '';
+          var visible = 0;
+          dataRows().forEach(function (row) {
+            var ok = true;
+            if (period && (' ' + row.dataset.periods + ' ').indexOf(' ' + period + ' ') === -1) ok = false;
+            if (ok && chapter) {
+              if (chapter === '__national__') { if (row.dataset.national !== '1') ok = false; }
+              else if (row.dataset.chapter !== chapter) ok = false;
+            }
+            if (ok && name && row.dataset.name.indexOf(name) === -1) ok = false;
+            row.classList.toggle('d-none', !ok);
+            if (ok) visible++;
+          });
+          if (noResults) noResults.classList.toggle('d-none', visible !== 0);
+        }
+
+        if (periodSel) periodSel.addEventListener('change', applyFilters);
+        if (chapterSel) chapterSel.addEventListener('change', applyFilters);
+        if (nameInput) nameInput.addEventListener('input', applyFilters);
+
+        table.querySelectorAll('thead th.att-sortable').forEach(function (th, idx) {
+          var asc = true;
+          th.addEventListener('click', function () {
+            var rows = dataRows();
+            rows.sort(function (a, b) {
+              var ac = a.children[idx], bc = b.children[idx];
+              var av = (ac.dataset.order || ac.textContent).trim().toLowerCase();
+              var bv = (bc.dataset.order || bc.textContent).trim().toLowerCase();
+              if (av < bv) return asc ? -1 : 1;
+              if (av > bv) return asc ? 1 : -1;
+              return 0;
+            });
+            asc = !asc;
+            rows.forEach(function (r) { tbody.appendChild(r); });
+            if (noResults) tbody.appendChild(noResults);
+          });
+        });
+      })();
+      </script>
+    {% endif %}
+
     {# ---------- National-officer-only sections ---------- #}
     {% if can_view_sensitive %}
       <div class="col-12">

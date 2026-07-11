@@ -535,6 +535,24 @@ select.form-control[multiple], select.form-control[size] {
 [data-bs-theme="dark"] .activity-badge-ballot     { --activity-bg: #8a63d2; --activity-fg: #ffffff; }
 [data-bs-theme="dark"] .activity-badge-training   { --activity-bg: #1ba57c; --activity-fg: #e6fbf3; }
 
+/* ===National-event attendance row highlight (theme-aware)===
+   Tints the row via Bootstrap's table background variable while keeping the
+   theme's own text colour, so it stays readable in both light and dark mode
+   (plain `table-primary` forces dark text that is hard to read on dark rows). */
+tr.national-attendance > * {
+  --bs-table-bg: rgba(13, 110, 253, 0.10);
+  --bs-table-color: var(--bs-body-color);
+  box-shadow: none;
+}
+tr.national-attendance > td:first-child {
+  border-left: 3px solid var(--bs-primary);
+}
+[data-bs-theme="dark"] tr.national-attendance > * {
+  --bs-table-bg: rgba(88, 166, 255, 0.16);
+  --bs-table-color: var(--bs-body-color);
+}
+
+
 /* ===Plotly Dash dashboards (chapter + region)=== */
 /* Panel wrapper — pairs with the `_PANEL_CLASS` used in dashboard.py.
    Backgrounds/borders come from `bg-body-tertiary` so both light and dark

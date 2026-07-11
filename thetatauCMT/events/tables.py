@@ -1,4 +1,5 @@
 import django_tables2 as tables
+from django.urls import reverse
 from django.utils.safestring import mark_safe
 
 from .models import Event
@@ -64,6 +65,13 @@ class EventTable(tables.Table):
         if not record.parent_event_id:
             return "—"
         url = record.parent_event.get_absolute_url()
+        return mark_safe(f'<a href="{url}">{value}</a>')
+
+    def render_chapter(self, value):
+        """Link the (natoff-only) chapter column to the chapter detail page."""
+        if not value:
+            return "—"
+        url = reverse("chapters:detail", kwargs={"slug": value.slug})
         return mark_safe(f'<a href="{url}">{value}</a>')
 
     def render_pictures(self, value):

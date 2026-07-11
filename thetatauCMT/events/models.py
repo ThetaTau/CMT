@@ -211,6 +211,18 @@ class Event(TimeStampedModel, EmailSignalMixin):
             },
         )
 
+    def get_attendance_rollup_url(self):
+        """Non-enumerable (date + slug) URL for this event's sub-event rollup."""
+        return reverse(
+            "attendance:rollup",
+            kwargs={
+                "year": self.date.year,
+                "month": self.date.month,
+                "day": self.date.day,
+                "event_slug": self.slug,
+            },
+        )
+
     # ------------------------------------------------------------------
     # Sub-event / context helpers (WI-1)
     # ------------------------------------------------------------------

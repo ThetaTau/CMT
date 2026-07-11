@@ -2,6 +2,7 @@
 
 from dal import autocomplete, forward
 from django import forms
+from django.db.models import Q
 
 from thetatauCMT.events.models import Event
 
@@ -50,3 +51,43 @@ class NationalAttendanceUploadForm(forms.Form):
         if getattr(uploaded, "size", 0) and uploaded.size > MAX_UPLOAD_BYTES:
             raise forms.ValidationError("File too large (max 5 MB).")
         return uploaded
+
+
+class MemberAttendanceForm(forms.Form):
+    """Log a member's attendance at an existing chapter or national event (WI-8).
+
+    Members cannot create events — they pick an existing national event or one of
+    their own chapter's events via a type-to-search autocomplete (the same widget
+    used elsewhere for event lookups). The event queryset is scoped to national +
+    the member's chapter so a tampered submission cannot record attendance for an
+    unrelated chapter's event.
+    """
+
+    event = forms.ModelChoiceField(
+        queryset=Event.objects.none(),
+        widget=autocomplete.ModelSelect2(
+            url="attendance:member-event-autocomplete",
+            attrs={
+                "data-placeholder": "Type to search your chapter or national events…",
+                "data-minimum-input-length": 0,
+            },
+        ),
+        help_text="Search an existing national event or one of your chapter's events.",
+    )
+    status = forms.ChoiceField(
+        choices=AttendanceRecord.STATUS.choices,
+        initial=AttendanceRecord.STATUS.ATTENDED,
+        widget=forms.Select(attrs={"class": "form-select"}),
+    )
+
+    def __init__(self, *args, member=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.member = member
+        scope = Q(is_national=True)
+        if member is not None and member.chapter_id:
+            scope |= Q(chapter_id=member.chapter_id)
+        # Setting ``queryset`` re-binds the widget's ModelChoiceIterator, so it
+        # must happen on the class-level widget (do not reassign the widget).
+        self.fields["event"].queryset = Event.objects.filter(scope).order_by("-date", "name")
+        if member is not None:
+            self.fields["event"].widget.forward = [forward.Const(member.pk, "member_pk")]

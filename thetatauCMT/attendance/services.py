@@ -70,3 +70,23 @@ def record_attendance(event, member, status, recorded_by, when=None):
     else:
         rec.save()
     return rec, created
+
+
+def member_attendance(member):
+    """All attendance records for ``member``, newest first, with parent context.
+
+    Used by the member profile page (WI-8). ``event__parent_event`` is
+    select-related so sub-events can be shown under/with their parent event, and
+    the queryset spans every chapter + national event the member attended.
+    """
+    return (
+        AttendanceRecord.objects.filter(user=member)
+        .select_related(
+            "event",
+            "event__chapter",
+            "event__type",
+            "event__parent_event",
+            "event__parent_event__chapter",
+        )
+        .order_by("-event__date", "event__parent_event_id", "event__name")
+    )

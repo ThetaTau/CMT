@@ -69,8 +69,8 @@
                 <input type="checkbox" class="attendee-check form-check-input"
                        name="attendees" value="{{ row.member.pk }}" {% if row.checked %}checked{% endif %}>
               </td>
-              <td>{{ row.member.first_name }}</td>
-              <td>{{ row.member.last_name }}</td>
+              <td><a href="{% url 'users:profile' row.member.username %}">{{ row.member.first_name }}</a></td>
+              <td><a href="{% url 'users:profile' row.member.username %}">{{ row.member.last_name }}</a></td>
               <td>{% if row.status_display %}<span class="badge bg-secondary">{{ row.status_display }}</span>{% endif %}</td>
             </tr>
           {% empty %}
@@ -171,7 +171,10 @@
         <h6>Guests recorded</h6>
         <ul class="mb-0">
           {% for g in guest_records %}
-            <li>{{ g.user.name }} ({{ g.chapter.name }}) — {{ g.get_status_display }}</li>
+            <li>
+              <a href="{% url 'users:profile' g.user.username %}">{{ g.user.name }}</a>
+              (<a href="{% url 'chapters:detail' g.chapter.slug %}">{{ g.chapter.name }}</a>) &mdash; {{ g.get_status_display }}
+            </li>
           {% endfor %}
         </ul>
       {% endif %}

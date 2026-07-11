@@ -1,5 +1,6 @@
 import logging
 
+from dal import autocomplete
 from django.conf import settings
 from django.contrib import messages
 from django.db import transaction
@@ -17,7 +18,7 @@ from core.views import LoginRequiredMixin
 from thetatauCMT.events.models import Event
 from thetatauCMT.users.models import User
 
-from .forms import NationalAttendanceUploadForm
+from .forms import MemberAttendanceForm, NationalAttendanceUploadForm
 from .models import AttendanceRecord, MatchQueueItem
 from .quorum import quorum_status
 from .services import active_roster_for_event, can_record_attendance, parent_attendee_roster, record_attendance
@@ -507,3 +508,81 @@ class NationalMemberAutocompleteView(NationalOfficerRequiredMixin, View):
             for member in members
         ]
         return JsonResponse({"results": results})
+
+
+# ===========================================================================
+# WI-8 — Member attendance: self-service logging at existing events
+# ===========================================================================
+
+
+def _member_can_log(actor, member):
+    """Only the member themselves or a National Officer may log the member's
+    attendance (any member may *view* another member's attendance)."""
+    return bool(
+        getattr(actor, "is_authenticated", False) and (actor.pk == member.pk or user_is_national_officer(actor))
+    )
+
+
+class MemberEventAutocomplete(autocomplete.Select2QuerySetView):
+    """Type-to-search over the events a member can log attendance at (WI-8).
+
+    Scope = national events + the member's own chapter events. Only the member
+    themselves or a National Officer may search (the member is forwarded as
+    ``member_pk``). Members cannot create events here — only pick existing ones.
+    """
+
+    def get_queryset(self):
+        actor = self.request.user
+        member = User.objects.filter(pk=self.forwarded.get("member_pk")).first()
+        if member is None or not _member_can_log(actor, member):
+            return Event.objects.none()
+        qs = Event.objects.filter(Q(is_national=True) | Q(chapter_id=member.chapter_id))
+        if self.q:
+            qs = qs.filter(name__icontains=self.q)
+        return qs.select_related("chapter", "type").order_by("-date", "name")
+
+    def get_result_label(self, event):
+        context = "National" if event.is_national else (event.chapter.name if event.chapter_id else "—")
+        return f"{event.name} — {context} ({event.date})"
+
+
+class MemberAttendanceAddView(LoginRequiredMixin, View):
+    """Log a member's attendance at an existing chapter/national event (WI-8).
+
+    Permitted for the member themselves or a National Officer. No new events are
+    created — the event must already exist and be national or the member's own
+    chapter's. Attendance is snapshotted via :func:`record_attendance`.
+    """
+
+    def post(self, request, *args, **kwargs):
+        member = User.objects.filter(username=kwargs.get("username")).select_related("chapter").first()
+        if member is None:
+            raise Http404("No member matches the given query.")
+        profile_url = reverse("users:profile", kwargs={"username": member.username})
+        if not _member_can_log(request.user, member):
+            messages.add_message(request, messages.ERROR, "You can only log your own attendance.")
+            return HttpResponseRedirect(profile_url)
+        form = MemberAttendanceForm(request.POST, member=member)
+        if not form.is_valid():
+            for field, errors in form.errors.items():
+                for err in errors:
+                    messages.add_message(request, messages.ERROR, f"{field}: {err}")
+            return HttpResponseRedirect(f"{profile_url}#attendance")
+        event = form.cleaned_data["event"]
+        status = form.cleaned_data["status"]
+        # Defence in depth: re-check scope server-side (national or own chapter).
+        if not (event.is_national or (member.chapter_id and event.chapter_id == member.chapter_id)):
+            messages.add_message(
+                request,
+                messages.ERROR,
+                "You can only log attendance for national events or your own chapter's events.",
+            )
+            return HttpResponseRedirect(f"{profile_url}#attendance")
+        record_attendance(event, member, status, request.user)
+        label = dict(AttendanceRecord.STATUS.choices).get(status, status)
+        messages.add_message(
+            request,
+            messages.SUCCESS,
+            f"Logged {member.name} as '{label}' at {event.name}.",
+        )
+        return HttpResponseRedirect(f"{profile_url}#attendance")

@@ -144,6 +144,11 @@
       <a href="{{ object.get_attendance_url }}" class="btn btn-outline-primary btn-sm">
         <i class="fas fa-clipboard-check"></i> Record / edit attendance
       </a>
+      {% if object.sub_events.exists %}
+        <a href="{{ object.get_attendance_rollup_url }}" class="btn btn-outline-secondary btn-sm">
+          <i class="fas fa-layer-group"></i> Sub-event rollup
+        </a>
+      {% endif %}
     {% endif %}
   </div>
   {% if attendance_records %}
@@ -162,12 +167,15 @@
         <tbody>
           {% for rec in attendance_records %}
             <tr>
-              <td>{{ rec.user.first_name }}</td>
-              <td>{{ rec.user.last_name }}</td>
+              <td><a href="{% url 'users:profile' rec.user.username %}">{{ rec.user.first_name }}</a></td>
+              <td><a href="{% url 'users:profile' rec.user.username %}">{{ rec.user.last_name }}</a></td>
               <td>{{ rec.get_status_display }}</td>
               <td>{{ rec.was_active|yesno:"Yes,No" }}</td>
-              <td>{{ rec.chapter.name }}{% if rec.is_guest %} <span class="badge bg-info text-dark">guest</span>{% endif %}</td>
-              <td>{{ rec.recorded_by.name|default:"—" }}</td>
+              <td>
+                {% if rec.chapter %}<a href="{% url 'chapters:detail' rec.chapter.slug %}">{{ rec.chapter.name }}</a>{% else %}—{% endif %}
+                {% if rec.is_guest %} <span class="badge bg-info text-dark">guest</span>{% endif %}
+              </td>
+              <td>{% if rec.recorded_by %}<a href="{% url 'users:profile' rec.recorded_by.username %}">{{ rec.recorded_by.name }}</a>{% else %}—{% endif %}</td>
             </tr>
           {% endfor %}
         </tbody>

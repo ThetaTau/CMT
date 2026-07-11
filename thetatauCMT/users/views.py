@@ -27,7 +27,12 @@ from watson import search as watson
 
 from core.address import isinradius
 from core.forms import MultiFormsView
-from core.models import BIENNIUM_YEARS, annotate_rmp_status
+from core.models import (
+    BIENNIUM_YEARS,
+    academic_encompass_start_end_date,
+    annotate_rmp_status,
+    semester_encompass_start_end_date,
+)
 from core.views import (
     LoginRequiredMixin,
     NatOfficerRequiredMixin,
@@ -257,6 +262,49 @@ class UserProfileView(LoginRequiredMixin, DetailView):
                 "role_labels": _role_labels(target.current_roles),
             }
         )
+
+        # WI-8 — member attendance (visible to any authenticated member). The
+        # add-missing-attendance form is only offered to the member themselves
+        # or a National Officer.
+        from thetatauCMT.attendance.forms import MemberAttendanceForm
+        from thetatauCMT.attendance.services import member_attendance
+
+        records = list(member_attendance(target))
+        # Classify each record into date buckets for the client-side filters
+        # (this semester / last semester / this academic year).
+        this_sem_start, this_sem_end = (d.date() for d in semester_encompass_start_end_date())
+        _last_ref = this_sem_start - datetime.timedelta(days=1)
+        last_sem_start, last_sem_end = (
+            d.date()
+            for d in semester_encompass_start_end_date(
+                given_date=datetime.datetime(_last_ref.year, _last_ref.month, _last_ref.day)
+            )
+        )
+        year_start, year_end = (d.date() for d in academic_encompass_start_end_date())
+        present_chapters = {}
+        has_national = False
+        for rec in records:
+            event_date = rec.event.date
+            tokens = []
+            if this_sem_start <= event_date < this_sem_end:
+                tokens.append("this-semester")
+            if last_sem_start <= event_date < last_sem_end:
+                tokens.append("last-semester")
+            if year_start <= event_date < year_end:
+                tokens.append("this-year")
+            rec.period_tokens = " ".join(tokens)
+            if rec.event.chapter_id:
+                present_chapters[rec.event.chapter.slug] = rec.event.chapter.name
+            if rec.event.is_national:
+                has_national = True
+
+        context["attendance_records"] = records
+        context["attendance_chapters"] = sorted(present_chapters.items(), key=lambda kv: kv[1])
+        context["has_national_attendance"] = has_national
+        context["can_add_attendance"] = is_owner or is_natoff or is_superuser
+        if context["can_add_attendance"]:
+            context["attendance_form"] = MemberAttendanceForm(member=target)
+            context["attendance_add_url"] = reverse("attendance:member_add", kwargs={"username": target.username})
 
         if is_natoff or is_superuser:
             note_table = UserNoteTable(target.notes.all())
