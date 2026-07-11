@@ -137,7 +137,25 @@
       </h2>
       <div id="chapter-public-events-collapse" class="accordion-collapse collapse" aria-labelledby="heading-public-events" data-bs-parent="#chapter-accordion">
         <div class="accordion-body">
-          <p class="text-body-secondary small">Upcoming public events any member may attend. RSVP to indicate your intent.</p>
+          <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+            <p class="text-body-secondary small mb-0">Upcoming public events any member may attend. RSVP to indicate your intent.</p>
+            {% if user.is_authenticated %}
+              <form method="post" action="{% url 'events:feed_subscribe_chapter' %}" class="ms-auto d-flex align-items-center gap-2">
+                {% csrf_token %}
+                <input type="hidden" name="chapter" value="{{ object.slug }}">
+                <label class="visually-hidden" for="chapter-feed-select">Add to feed</label>
+                <select class="form-select form-select-sm" id="chapter-feed-select" name="feed" style="width:auto;">
+                  {% for feed in user_calendar_feeds %}
+                    <option value="{{ feed.pk }}">Add to: {{ feed.name }}</option>
+                  {% endfor %}
+                  <option value="new"{% if not user_calendar_feeds %} selected{% endif %}>Create a new feed</option>
+                </select>
+                <button type="submit" class="btn btn-success btn-sm" title="Subscribe to this chapter's public events in your calendar app">
+                  <i class="fas fa-calendar-plus"></i> Subscribe to these events
+                </button>
+              </form>
+            {% endif %}
+          </div>
           {% if public_events %}
             <div class="table-responsive">
               <table class="table table-sm table-hover align-middle mb-0">

@@ -5,15 +5,20 @@
 <div class="container-fluid">
   <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
     <h2 class="page-title mb-0">Events Calendar</h2>
-    <div class="ms-auto btn-group" role="group" aria-label="View toggle">
-      <button type="button" id="view-btn-calendar" onclick="setEventsView('calendar', true)"
-              class="btn btn-sm {% if view_mode == 'calendar' %}btn-primary{% else %}btn-outline-primary{% endif %}">
-        <i class="fas fa-calendar"></i> Calendar
-      </button>
-      <button type="button" id="view-btn-table" onclick="setEventsView('table', true)"
-              class="btn btn-sm {% if view_mode == 'table' %}btn-primary{% else %}btn-outline-primary{% endif %}">
-        <i class="fas fa-table"></i> Table
-      </button>
+    <div class="ms-auto d-flex flex-wrap gap-2">
+      <a class="btn btn-sm btn-success" href="{% url 'events:feeds' %}">
+        <i class="fas fa-calendar-plus"></i> Subscribe
+      </a>
+      <div class="btn-group" role="group" aria-label="View toggle">
+        <button type="button" id="view-btn-calendar" onclick="setEventsView('calendar', true)"
+                class="btn btn-sm {% if view_mode == 'calendar' %}btn-primary{% else %}btn-outline-primary{% endif %}">
+          <i class="fas fa-calendar"></i> Calendar
+        </button>
+        <button type="button" id="view-btn-table" onclick="setEventsView('table', true)"
+                class="btn btn-sm {% if view_mode == 'table' %}btn-primary{% else %}btn-outline-primary{% endif %}">
+          <i class="fas fa-table"></i> Table
+        </button>
+      </div>
     </div>
   </div>
 

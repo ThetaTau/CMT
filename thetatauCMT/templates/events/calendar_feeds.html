@@ -1,0 +1,158 @@
+{% extends "base.html" %}
+{% block title %}Calendar Feeds{% endblock %}
+
+{% block content %}
+<div class="container">
+  <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+    <h2 class="page-title mb-0">Calendar Feeds</h2>
+    <a class="ms-auto btn btn-outline-secondary btn-sm" href="{% url 'events:calendar' %}">
+      <i class="fas fa-calendar"></i> Back to calendar
+    </a>
+  </div>
+
+  <p class="text-body-secondary">
+    Subscribe to Theta&nbsp;Tau events from your own calendar app (Google Calendar, Outlook,
+    Apple&nbsp;Calendar, &hellip;). Your custom feed links are <strong>private and unguessable</strong> &mdash;
+    only share them with people you trust, and delete a feed to revoke access. Feeds refresh
+    automatically and include the next several weeks of past events plus all upcoming events.
+  </p>
+
+  <div class="alert alert-info">
+    <p class="mb-1">
+      <i class="fas fa-circle-info"></i> To get events that <strong>stay up to date</strong>,
+      <em>subscribe</em> to a feed URL in your calendar app &mdash; don't just open the link.
+      Opening the URL in a browser only downloads a one-time snapshot; subscribing lets your
+      calendar re-check the URL and pick up new events automatically.
+    </p>
+    <details>
+      <summary class="small">How to subscribe (Google, Apple, Outlook)</summary>
+      <ul class="mb-0 mt-2 small">
+        <li><strong>Google Calendar:</strong> Other calendars &rarr; <em>+</em> &rarr; <em>From URL</em> &rarr; paste the copied feed URL.</li>
+        <li><strong>Apple Calendar:</strong> click <em>Add to calendar</em> below, or File &rarr; <em>New Calendar Subscription&hellip;</em> &rarr; paste the feed URL.</li>
+        <li><strong>Outlook:</strong> Add calendar &rarr; <em>Subscribe from web</em> &rarr; paste the feed URL.</li>
+      </ul>
+    </details>
+  </div>
+
+  {# ---------- Always-available national feed ---------- #}
+  <div class="card mb-4 border-primary">
+    <div class="card-header bg-primary text-white">
+      <i class="fas fa-flag"></i> National Events &mdash; always available
+    </div>
+    <div class="card-body">
+      <p class="small text-body-secondary mb-2">
+        Every member can subscribe to all Theta&nbsp;Tau national events with no setup. Want a
+        combined calendar? Add national events to a custom feed below instead.
+      </p>
+      <label class="form-label small mb-1">Feed URL</label>
+      <div class="input-group input-group-sm mb-2">
+        <input type="text" class="form-control" readonly
+               value="{{ request.scheme }}://{{ request.get_host }}{{ national_feed_path }}"
+               aria-label="National feed URL">
+        <button class="clipboard btn btn-outline-primary" type="button"
+                data-clipboard-text="{{ request.scheme }}://{{ request.get_host }}{{ national_feed_path }}"
+                title="Copy feed URL">
+          <i class="fas fa-copy"></i> Copy
+        </button>
+      </div>
+      <a class="btn btn-primary btn-sm" href="webcal://{{ request.get_host }}{{ national_feed_path }}">
+        <i class="fas fa-calendar-plus"></i> Add to calendar
+      </a>
+    </div>
+  </div>
+
+  {# ---------- To-do task reminders feed ---------- #}
+  <div class="card mb-4 border-info">
+    <div class="card-header">
+      <i class="fas fa-list-check"></i> Chapter To-do Reminders
+    </div>
+    <div class="card-body">
+      <p class="small text-body-secondary mb-3">
+        Create a calendar feed of your chapter's outstanding to-do tasks. Include every task, or
+        limit it to specific officers' tasks (Regent, Vice&nbsp;Regent, Scribe, Treasurer,
+        Corresponding&nbsp;Secretary).
+      </p>
+      <form method="post" action="{% url 'events:feed_tasks' %}">
+        {% csrf_token %}
+        {% if task_feed_form.non_field_errors %}
+          <div class="alert alert-danger">{{ task_feed_form.non_field_errors }}</div>
+        {% endif %}
+        <div class="mb-3">
+          <label class="form-label" for="{{ task_feed_form.name.id_for_label }}">Feed name</label>
+          {{ task_feed_form.name }}
+          {{ task_feed_form.name.errors }}
+        </div>
+        <div class="mb-3">
+          <label class="form-label" for="{{ task_feed_form.task_owner_roles.id_for_label }}">Tasks to include</label>
+          {{ task_feed_form.task_owner_roles }}
+          <div class="form-text">Leave empty for all tasks, or pick which officers' tasks to include.</div>
+          {{ task_feed_form.task_owner_roles.errors }}
+        </div>
+        <button type="submit" class="btn btn-info"><i class="fas fa-plus"></i> Create task feed</button>
+      </form>
+    </div>
+  </div>
+
+  {# ---------- My custom feeds (editable) ---------- #}
+  <h4 class="mb-3">My Feeds</h4>
+  {% if feed_forms %}
+    {% for feed, form in feed_forms %}
+      <div class="card mb-3" id="feed-{{ feed.pk }}">
+        <div class="card-header d-flex align-items-center gap-2">
+          <span class="fw-semibold">{{ feed.name }}</span>
+          <form method="post" action="{% url 'events:feed_delete' feed.pk %}" class="ms-auto"
+                onsubmit="return confirm('Delete this calendar feed? Anyone using its link will lose access.');">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-outline-danger btn-sm" title="Delete feed">
+              <i class="fas fa-trash"></i> Delete
+            </button>
+          </form>
+        </div>
+        <div class="card-body">
+          <label class="form-label small mb-1">Feed URL (private)</label>
+          <div class="input-group input-group-sm mb-2">
+            <input type="text" class="form-control" readonly
+                   value="{{ request.scheme }}://{{ request.get_host }}{{ feed.get_feed_path }}"
+                   aria-label="Feed URL">
+            <button class="clipboard btn btn-outline-primary" type="button"
+                    data-clipboard-text="{{ request.scheme }}://{{ request.get_host }}{{ feed.get_feed_path }}"
+                    title="Copy feed URL">
+              <i class="fas fa-copy"></i> Copy
+            </button>
+          </div>
+          <a class="btn btn-success btn-sm mb-3" href="webcal://{{ request.get_host }}{{ feed.get_feed_path }}">
+            <i class="fas fa-calendar-plus"></i> Add to calendar
+          </a>
+          <hr>
+          <form method="post" action="{% url 'events:feed_edit' feed.pk %}">
+            {% csrf_token %}
+            {% if form.non_field_errors %}
+              <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+            {% endif %}
+            {% include "events/_feed_form_fields.html" %}
+            <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-save"></i> Save changes</button>
+          </form>
+        </div>
+      </div>
+    {% endfor %}
+  {% else %}
+    <div class="alert alert-info">You have no custom feeds yet. Create one below.</div>
+  {% endif %}
+
+  {# ---------- Create a new feed ---------- #}
+  <div class="card mt-4">
+    <div class="card-header"><i class="fas fa-plus"></i> Create a new feed</div>
+    <div class="card-body">
+      <form method="post" action="{% url 'events:feeds' %}">
+        {% csrf_token %}
+        {% if create_form.non_field_errors %}
+          <div class="alert alert-danger">{{ create_form.non_field_errors }}</div>
+        {% endif %}
+        {% include "events/_feed_form_fields.html" with form=create_form %}
+        <button type="submit" class="btn btn-success"><i class="fas fa-plus"></i> Create feed</button>
+      </form>
+    </div>
+  </div>
+</div>
+{{ create_form.media }}
+{% endblock content %}

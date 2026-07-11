@@ -7,7 +7,7 @@ from django.db.utils import IntegrityError
 from django.forms.models import modelformset_factory
 from django.http import Http404
 from django.http.response import HttpResponseRedirect
-from django.shortcuts import get_object_or_404
+from django.shortcuts import get_object_or_404, render
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.http import url_has_allowed_host_and_scheme
@@ -19,8 +19,8 @@ from core.views import LoginRequiredMixin, NatOfficerRequiredMixin, PagedFiltere
 from thetatauCMT.scores.models import ScoreType
 
 from .filters import EventListFilter
-from .forms import EventForm, EventListFormHelper, PictureForm
-from .models import Event, Picture
+from .forms import CalendarFeedSubscriptionForm, EventForm, EventListFormHelper, PictureForm, TaskFeedForm
+from .models import CalendarFeedSubscription, Event, Picture
 from .tables import EventTable
 
 
@@ -565,3 +565,175 @@ class EventCalendarView(LoginRequiredMixin, TemplateView):
             }
         )
         return context
+
+
+# ===========================================================================
+# iCal calendar feed subscriptions
+# ===========================================================================
+
+
+class ChapterFeedAutocomplete(autocomplete.Select2QuerySetView):
+    """Type-to-search active chapters for the feed-subscription form."""
+
+    def get_queryset(self):
+        from thetatauCMT.chapters.models import Chapter
+
+        if not self.request.user.is_authenticated:
+            return Chapter.objects.none()
+        qs = Chapter.objects.filter(active=True)
+        if self.q:
+            qs = qs.filter(name__icontains=self.q)
+        return qs.order_by("name")
+
+
+class RegionFeedAutocomplete(autocomplete.Select2QuerySetView):
+    """Type-to-search regions for the feed-subscription form."""
+
+    def get_queryset(self):
+        from thetatauCMT.regions.models import Region
+
+        if not self.request.user.is_authenticated:
+            return Region.objects.none()
+        qs = Region.objects.all()
+        if self.q:
+            qs = qs.filter(name__icontains=self.q)
+        return qs.order_by("name")
+
+
+def _feed_prefix(feed):
+    """A per-feed form prefix so several edit forms can share one page."""
+    return f"feed{feed.pk}"
+
+
+class CalendarFeedListView(LoginRequiredMixin, View):
+    """Manage the member's iCal subscriptions — add, edit, and remove feeds."""
+
+    template_name = "events/calendar_feeds.html"
+
+    def get(self, request, *args, **kwargs):
+        return render(request, self.template_name, self._context(request))
+
+    def post(self, request, *args, **kwargs):
+        """Create a brand-new feed."""
+        form = CalendarFeedSubscriptionForm(request.POST, prefix="new")
+        if form.is_valid():
+            feed = form.save(commit=False)
+            feed.user = request.user
+            feed.save()
+            form.save_m2m()
+            messages.add_message(
+                request,
+                messages.SUCCESS,
+                f"Created calendar feed '{feed.name}'. Subscribe using the URL below.",
+            )
+            return HttpResponseRedirect(f"{reverse('events:feeds')}#feed-{feed.pk}")
+        return render(request, self.template_name, self._context(request, create_form=form))
+
+    def _context(self, request, create_form=None, edit_forms=None, task_feed_form=None):
+        edit_forms = edit_forms or {}
+        feeds = request.user.calendar_feeds.prefetch_related("chapters", "regions")
+        feed_forms = [
+            (
+                feed,
+                edit_forms.get(
+                    feed.pk,
+                    CalendarFeedSubscriptionForm(instance=feed, prefix=_feed_prefix(feed)),
+                ),
+            )
+            for feed in feeds
+        ]
+        return {
+            "feed_forms": feed_forms,
+            "create_form": create_form or CalendarFeedSubscriptionForm(prefix="new"),
+            "task_feed_form": task_feed_form or TaskFeedForm(prefix="tasks"),
+            "national_feed_path": reverse("events:ical_national"),
+        }
+
+
+class TaskFeedCreateView(LoginRequiredMixin, View):
+    """Create a to-dos-only feed of the member's chapter tasks, optionally
+    limited to specific officer roles."""
+
+    def post(self, request, *args, **kwargs):
+        form = TaskFeedForm(request.POST, prefix="tasks")
+        if form.is_valid():
+            feed = CalendarFeedSubscription.objects.create(
+                user=request.user,
+                name=form.cleaned_data["name"],
+                include_national=False,
+                include_todos=True,
+                task_owner_roles=form.cleaned_data["task_owner_roles"],
+            )
+            messages.add_message(
+                request,
+                messages.SUCCESS,
+                f"Created task feed '{feed.name}'. Subscribe using the URL below.",
+            )
+            return HttpResponseRedirect(f"{reverse('events:feeds')}#feed-{feed.pk}")
+        return render(
+            request,
+            CalendarFeedListView.template_name,
+            CalendarFeedListView()._context(request, task_feed_form=form),
+        )
+
+
+class CalendarFeedUpdateView(LoginRequiredMixin, View):
+    """Edit one of the member's own feeds (add/remove chapters, regions, flags)."""
+
+    def post(self, request, *args, **kwargs):
+        feed = get_object_or_404(CalendarFeedSubscription, pk=kwargs["pk"], user=request.user)
+        form = CalendarFeedSubscriptionForm(request.POST, instance=feed, prefix=_feed_prefix(feed))
+        if form.is_valid():
+            form.save()
+            messages.add_message(request, messages.SUCCESS, f"Updated calendar feed '{feed.name}'.")
+            return HttpResponseRedirect(f"{reverse('events:feeds')}#feed-{feed.pk}")
+        # Re-render the manage page with this feed's form showing its errors.
+        view = CalendarFeedListView()
+        context = view._context(request, edit_forms={feed.pk: form})
+        return render(request, CalendarFeedListView.template_name, context)
+
+
+class ChapterFeedSubscribeView(LoginRequiredMixin, View):
+    """Subscribe to a chapter's public events from the chapter detail page.
+
+    Adds the chapter to an existing feed when one is chosen, otherwise creates a
+    new feed — so members build up a combined calendar instead of accumulating a
+    separate feed per chapter.
+    """
+
+    def post(self, request, *args, **kwargs):
+        from thetatauCMT.chapters.models import Chapter
+
+        chapter = get_object_or_404(Chapter, slug=request.POST.get("chapter"))
+        target = request.POST.get("feed") or "new"
+        feed = None
+        if target != "new":
+            feed = CalendarFeedSubscription.objects.filter(pk=target, user=request.user).first()
+        if feed is None:
+            feed = CalendarFeedSubscription.objects.create(
+                user=request.user,
+                name=f"{chapter.name} public events",
+                include_national=False,
+                include_todos=False,
+            )
+            verb = "Created a new feed with"
+        else:
+            verb = f"Added {chapter.name} to '{feed.name}' —"
+        feed.chapters.add(chapter)
+        messages.add_message(
+            request,
+            messages.SUCCESS,
+            f"{verb} {chapter.name}'s public events. Copy the feed URL below into your calendar app.",
+        )
+        return HttpResponseRedirect(f"{reverse('events:feeds')}#feed-{feed.pk}")
+
+
+class CalendarFeedDeleteView(LoginRequiredMixin, View):
+    """Delete one of the member's own calendar feeds."""
+
+    def post(self, request, *args, **kwargs):
+        feed = CalendarFeedSubscription.objects.filter(pk=kwargs["pk"], user=request.user).first()
+        if feed is not None:
+            feed.delete()
+            messages.add_message(request, messages.SUCCESS, "Calendar feed removed.")
+        return HttpResponseRedirect(reverse("events:feeds"))

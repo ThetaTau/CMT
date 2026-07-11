@@ -1,6 +1,9 @@
+import datetime
 import os
+import uuid
 
 from django.conf import settings
+from django.contrib.postgres.fields import ArrayField
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.urls import reverse
@@ -12,6 +15,7 @@ from email_signals.models import EmailSignalMixin
 from core.models import (
     BIENNIUM_END_DATE,
     BIENNIUM_START_DATE,
+    CHAPTER_OFFICER_CHOICES,
     TimeStampedModel,
     semester_encompass_start_end_date,
     user_is_national_officer,
@@ -441,3 +445,107 @@ class Picture(TimeStampedModel):
         on_delete=models.CASCADE,
         related_name="pictures",
     )
+
+
+# How far back the iCal feed reaches; keeps the .ics payload small (WI iCal).
+ICAL_FEED_PAST_WEEKS = 4
+
+
+class CalendarFeedSubscription(TimeStampedModel):
+    """A member-configured, privately-tokenised iCalendar subscription.
+
+    The feed only ever exposes **cross-chapter-visible** content — approved
+    public events of the selected chapters/regions and national events — plus,
+    optionally, the member's own chapter's outstanding to-dos. The random
+    ``token`` makes the feed URL unguessable so it cannot be scraped.
+    """
+
+    token = models.UUIDField(default=uuid.uuid4, unique=True, editable=False, db_index=True)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="calendar_feeds",
+    )
+    name = models.CharField(max_length=100, default="My Theta Tau Calendar")
+    include_national = models.BooleanField(
+        default=True,
+        help_text="Include national (organization-wide) events.",
+    )
+    include_todos = models.BooleanField(
+        default=False,
+        help_text="Include your chapter's outstanding to-dos (as calendar tasks).",
+    )
+    task_owner_roles = ArrayField(
+        models.CharField(max_length=50, choices=CHAPTER_OFFICER_CHOICES),
+        blank=True,
+        default=list,
+        help_text="Limit to-dos to these officer roles' tasks (empty = every role's tasks).",
+    )
+    chapters = models.ManyToManyField(
+        Chapter,
+        blank=True,
+        related_name="calendar_feeds",
+        help_text="Public events from these chapters.",
+    )
+    regions = models.ManyToManyField(
+        "regions.Region",
+        blank=True,
+        related_name="calendar_feeds",
+        help_text="Public events from every chapter in these regions.",
+    )
+
+    class Meta:
+        ordering = ["-created"]
+
+    def __str__(self):
+        return f"{self.name} ({self.user})"
+
+    def get_feed_path(self):
+        return reverse("events:ical", kwargs={"token": self.token})
+
+    def events_queryset(self, start_date=None):
+        """Cross-chapter-visible events matching this subscription's scope.
+
+        Reuses the WI-2 rule (public + approved) — pending / rejected public
+        events are never exposed. National events are org-wide.
+        """
+        if start_date is None:
+            start_date = timezone.localdate() - datetime.timedelta(weeks=ICAL_FEED_PAST_WEEKS)
+        scope = models.Q(pk__in=[])  # start empty; OR in each enabled source
+        if self.include_national:
+            scope |= models.Q(is_national=True)
+        chapter_ids = list(self.chapters.values_list("pk", flat=True))
+        region_ids = list(self.regions.values_list("pk", flat=True))
+        approved_public = models.Q(is_public=True, approval_status=Event.ApprovalStatus.APPROVED)
+        if chapter_ids:
+            scope |= models.Q(chapter_id__in=chapter_ids) & approved_public
+        if region_ids:
+            scope |= models.Q(chapter__region_id__in=region_ids) & approved_public
+        return (
+            Event.objects.filter(scope)
+            .filter(date__gte=start_date)
+            .select_related("chapter", "type")
+            .order_by("date", "name")
+            .distinct()
+        )
+
+    def todos_queryset(self, start_date=None):
+        """The member's chapter's outstanding to-dos (empty unless opted in)."""
+        if not self.include_todos:
+            return None
+        chapter = getattr(self.user, "current_chapter", None)
+        if chapter is None:
+            return None
+        if start_date is None:
+            start_date = timezone.localdate() - datetime.timedelta(weeks=ICAL_FEED_PAST_WEEKS)
+        from thetatauCMT.tasks.models import TaskDate
+
+        todos = (
+            TaskDate.incomplete_dates_for_chapter(chapter)
+            .filter(date__gte=start_date)
+            .select_related("task")
+            .order_by("date")
+        )
+        if self.task_owner_roles:
+            todos = todos.filter(task__owner__in=self.task_owner_roles)
+        return todos

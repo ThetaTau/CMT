@@ -145,6 +145,7 @@ class ChapterDetailView(LoginRequiredMixin, MultiFormsView):
                 "event_id", "status"
             )
         )
+        context["user_calendar_feeds"] = self.request.user.calendar_feeds.all()
         return context
 
     def get_form_kwargs(self, form_name, bind_form=False):

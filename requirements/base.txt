@@ -58,6 +58,7 @@ django-filter==25.1  # https://django-filter.readthedocs.io/
 django-jquery-js==3.1.1  # https://bitbucket.org/tim_heap/django-jquery/src/master/
 django-tables2==2.7.5  # https://github.com/jieter/django-tables2/
 django-tempus-dominus==5.1.2.17  # https://github.com/FlipperPA/django-tempus-dominus
+django-ical==1.9.2  # https://github.com/jazzband/django-ical  (iCal calendar feed subscriptions)
 django-autocomplete-light==3.12.1  # https://github.com/yourlabs/django-autocomplete-light
 django-multiselectfield==1.0.1  # https://github.com/goinnn/django-multiselectfield
 django-celery-beat==2.8.1  # https://github.com/celery/django-celery-beat

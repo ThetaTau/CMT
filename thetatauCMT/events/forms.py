@@ -4,9 +4,29 @@ from crispy_forms.layout import Fieldset, Layout, Row, Submit
 from dal import autocomplete, forward
 from django import forms
 
-from core.models import user_is_national_officer
+from core.models import CHAPTER_OFFICER_CHOICES, user_is_national_officer
+from thetatauCMT.chapters.models import Chapter
+from thetatauCMT.regions.models import Region
 
-from .models import Event, Picture
+from .models import CalendarFeedSubscription, Event, Picture
+
+
+def task_owner_roles_field():
+    """A select2 multiselect of chapter-officer roles for to-do task feeds.
+
+    Empty selection means "every role's tasks". Shared by the tasks-only feed
+    form and the custom subscription form so both use the identical control.
+    """
+    return forms.MultipleChoiceField(
+        choices=CHAPTER_OFFICER_CHOICES,
+        required=False,
+        widget=autocomplete.Select2Multiple(
+            attrs={
+                "data-placeholder": "All tasks \u2014 or pick officer roles\u2026",
+                "data-minimum-input-length": 0,
+            },
+        ),
+    )
 
 
 class EventListFormHelper(FormHelper):
@@ -159,3 +179,51 @@ class EventForm(forms.ModelForm):
         if is_national and not user_is_national_officer(self.request_user):
             raise forms.ValidationError("Only National Officers can create national events.")
         return is_national
+
+
+class CalendarFeedSubscriptionForm(forms.ModelForm):
+    """Configure a private iCal subscription — public events of chosen
+    chapters/regions, national events, and optionally the member's to-dos."""
+
+    task_owner_roles = task_owner_roles_field()
+
+    class Meta:
+        model = CalendarFeedSubscription
+        fields = ["name", "include_national", "include_todos", "task_owner_roles", "regions", "chapters"]
+        widgets = {
+            "regions": autocomplete.ModelSelect2Multiple(
+                url="events:region-feed-autocomplete",
+                attrs={
+                    "data-placeholder": "Type to add regions\u2026",
+                    "data-minimum-input-length": 0,
+                },
+            ),
+            "chapters": autocomplete.ModelSelect2Multiple(
+                url="events:chapter-feed-autocomplete",
+                attrs={
+                    "data-placeholder": "Type to add chapters\u2026",
+                    "data-minimum-input-length": 0,
+                },
+            ),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["regions"].queryset = Region.objects.all().order_by("name")
+        self.fields["regions"].required = False
+        self.fields["chapters"].queryset = Chapter.objects.filter(active=True).order_by("name")
+        self.fields["chapters"].required = False
+        self.fields["name"].widget.attrs.setdefault("class", "form-control")
+        self.fields["include_national"].widget.attrs.setdefault("class", "form-check-input")
+        self.fields["include_todos"].widget.attrs.setdefault("class", "form-check-input")
+
+
+class TaskFeedForm(forms.Form):
+    """Create a to-dos-only calendar feed, optionally limited to officer roles."""
+
+    name = forms.CharField(
+        max_length=100,
+        initial="My Task Reminders",
+        widget=forms.TextInput(attrs={"class": "form-control"}),
+    )
+    task_owner_roles = task_owner_roles_field()
