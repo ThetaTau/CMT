@@ -155,6 +155,7 @@
                       {% endif %}
                       <li><a class="dropdown-item" href="{% url 'scores:list' %}">Scores</a></li>
                       <li><a class="dropdown-item" href="{% url 'events:list' %}">Events</a></li>
+                      <li><a class="dropdown-item" href="{% url 'events:calendar' %}">Events Calendar</a></li>
                       <li><a class="dropdown-item" href="{% url 'tasks:list' %}">Tasks</a></li>
                       <li><a class="dropdown-item" href="{% url 'objectives:list' %}">Goals</a></li>
                       <li><a class="dropdown-item" href="{% url 'trainings:list' %}">Training</a></li>
@@ -209,8 +210,12 @@
                       <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">{% trans "National" %}</a>
                       <ul class="dropdown-menu">
                         <li><a class="dropdown-item" href="{% url 'regions:detail' 'national' %}">{% trans "National Dashboard" %}</a></li>
+                        <li><a class="dropdown-item" href="{% url 'regions:event_attendance' %}">{% trans "Events &amp; Attendance Dashboard" %}</a></li>
                         <li><a class="dropdown-item" href="{% url 'scores:chapterlist' %}">{% trans "All Scores" %}</a></li>
                         <li><a class="dropdown-item" href="{% url 'events:list_all' %}">{% trans "All Events" %}</a></li>
+                        <li><a class="dropdown-item" href="{% url 'events:pending' %}">{% trans "Pending Event Reviews" %}</a></li>
+                        <li><a class="dropdown-item" href="{% url 'attendance:national_upload' %}">{% trans "Upload National Attendance" %}</a></li>
+                        <li><a class="dropdown-item" href="{% url 'attendance:match_queue' %}">{% trans "Attendance Match Queue" %}</a></li>
                         <li><a class="dropdown-item" href="{% url 'forms:natoff' %}">{% trans "Nat Officers" %}</a></li>
                         <li><hr class="dropdown-divider"></li>
                         <li><a class="dropdown-item" href="https://apps.ed.thetatau.org/authn/login?tpa_hint=oa2-cmt" target="_blank" rel="noopener noreferrer">{% trans "Training Portal" %}</a></li>
@@ -221,6 +226,14 @@
               </ul>
 
               <ul class="navbar-nav ms-auto">
+                {% if request.user.is_authenticated %}
+                  <li class="nav-item">
+                    <a id="calendar" class="nav-link" href="{% url 'events:calendar' %}" aria-label="{% trans 'Events Calendar' %}" title="{% trans 'Events Calendar' %}">
+                      <i class="fa-solid fa-calendar-days"></i>
+                      <span class="d-lg-none ms-2">{% trans "Calendar" %}</span>
+                    </a>
+                  </li>
+                {% endif %}
                 <li class="nav-item">
                   <a id="help" class="nav-link" href="{% url 'help' %}" aria-label="{% trans 'Help' %}" title="{% trans 'Help' %}">
                     <i class="fa-solid fa-circle-question"></i>

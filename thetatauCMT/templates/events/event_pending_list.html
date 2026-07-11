@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+{% load static i18n %}
+{% block title %}Pending Events — Open to Other Chapters{% endblock %}
+
+{% block content %}
+<div class="page-header d-flex flex-wrap align-items-center gap-2 mb-3">
+  <h2 class="page-title mb-0">Pending Events — Open to Other Chapters</h2>
+  <div class="page-actions">
+    <a href="{% url 'events:list_all' %}" class="btn btn-outline-secondary">
+      <i class="fas fa-calendar-alt"></i> All Events
+    </a>
+  </div>
+</div>
+
+<p class="text-body-secondary">
+  Events that chapter officers want open to other chapters require National
+  Officer approval before they become visible cross-chapter. Approve to make an
+  event visible to all chapters, or reject with an optional reason.
+</p>
+
+<div class="table-responsive">
+  <table class="table table-hover table-bordered table-striped">
+    <thead>
+      <tr>
+        <th>Event</th>
+        <th>Date</th>
+        <th>Chapter</th>
+        <th>Region</th>
+        <th>Type</th>
+        <th>Created By</th>
+        <th class="text-end">Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for event in events %}
+        <tr>
+          <td>
+            <a href="{{ event.get_absolute_url }}" target="_blank" rel="noopener">{{ event.name }}</a>
+            {% if event.is_national %}<span class="badge bg-primary">National</span>{% endif %}
+          </td>
+          <td>{{ event.date }}</td>
+          <td>{{ event.chapter.name|default:"National (org-wide)" }}</td>
+          <td>{{ event.effective_region|default:"—" }}</td>
+          <td>{{ event.type }}</td>
+          <td>{{ event.created_by.name|default:event.created_by }}</td>
+          <td class="text-end">
+            <div class="d-flex flex-wrap justify-content-end gap-2">
+              <form method="post" action="{% url 'events:approve' event.pk %}" class="d-inline">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-success btn-sm">
+                  <i class="fas fa-check"></i> Approve
+                </button>
+              </form>
+              <button type="button" class="btn btn-danger btn-sm"
+                      data-bs-toggle="collapse" data-bs-target="#reject-{{ event.pk }}"
+                      aria-expanded="false" aria-controls="reject-{{ event.pk }}">
+                <i class="fas fa-times"></i> Reject
+              </button>
+            </div>
+            <div class="collapse mt-2" id="reject-{{ event.pk }}">
+              <form method="post" action="{% url 'events:reject' event.pk %}"
+                    class="d-flex flex-column gap-2 align-items-end">
+                {% csrf_token %}
+                <textarea name="rejection_reason" rows="2"
+                          class="form-control form-control-sm"
+                          placeholder="Optional reason for rejection"></textarea>
+                <button type="submit" class="btn btn-danger btn-sm">
+                  <i class="fas fa-times"></i> Confirm Reject
+                </button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        <tr class="bg-body-tertiary">
+          <td colspan="7" class="small text-body-secondary">
+            <div class="row g-2">
+              <div class="col-md-6">
+                <strong>Description:</strong>
+                {{ event.description|default:"—" }}
+              </div>
+              <div class="col-md-3">
+                <strong>Attendance:</strong>
+                {{ event.members }} members, {{ event.pledges }} PNMs,
+                {{ event.alumni }} alumni, {{ event.guests }} guests
+              </div>
+              <div class="col-md-3">
+                <strong>Duration:</strong> {{ event.duration }} hr(s)
+                &middot; <strong>Virtual:</strong> {{ event.virtual|yesno:"Yes,No" }}
+                &middot; <strong>Hosted another chapter:</strong> {{ event.host|yesno:"Yes,No" }}
+              </div>
+              {% if event.parent_event %}
+                <div class="col-md-6">
+                  <strong>Sub-event of:</strong>
+                  <a href="{{ event.parent_event.get_absolute_url }}" target="_blank" rel="noopener">{{ event.parent_event.name }}</a>
+                </div>
+              {% endif %}
+              {% if event.raised %}
+                <div class="col-md-3">
+                  <strong>Funds raised:</strong> ${{ event.raised }}
+                </div>
+              {% endif %}
+              <div class="col-md-3">
+                <a href="{{ event.get_absolute_url }}" target="_blank" rel="noopener">
+                  <i class="fas fa-up-right-from-square"></i> Open full details
+                </a>
+              </div>
+            </div>
+          </td>
+        </tr>
+      {% empty %}
+        <tr>
+          <td colspan="7" class="text-center text-body-secondary">
+            There are no public events pending approval.
+          </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% if is_paginated %}
+  <nav aria-label="Pending events pagination">
+    <ul class="pagination">
+      {% if page_obj.has_previous %}
+        <li class="page-item">
+          <a class="page-link" href="?page={{ page_obj.previous_page_number }}">Previous</a>
+        </li>
+      {% endif %}
+      <li class="page-item disabled">
+        <span class="page-link">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+      </li>
+      {% if page_obj.has_next %}
+        <li class="page-item">
+          <a class="page-link" href="?page={{ page_obj.next_page_number }}">Next</a>
+        </li>
+      {% endif %}
+    </ul>
+  </nav>
+{% endif %}
+{% endblock %}

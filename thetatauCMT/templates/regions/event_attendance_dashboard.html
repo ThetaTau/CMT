@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Events &amp; Attendance Dashboard{% endblock %}
+
+{% block content %}
+<div class="container">
+  <h2 class="page-title">Events &amp; Attendance</h2>
+  <p class="text-body-secondary">
+    Review the most-attended events for a region (or national) and drill into any national
+    event's chapter-by-chapter attendance.
+  </p>
+
+  {# ---------- Scope selector ---------- #}
+  <form method="get" class="row g-2 align-items-end mb-3" id="scope-form">
+    <div class="col-sm-6 col-md-4">
+      <label class="form-label small mb-1" for="scope-select">Region / National</label>
+      <select class="form-select" id="scope-select" name="scope" onchange="document.getElementById('scope-form').submit();">
+        {% for value, label in scope_choices %}
+          <option value="{{ value }}"{% if value == scope %} selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-auto">
+      <button type="submit" class="btn btn-outline-primary">Show</button>
+    </div>
+  </form>
+
+  {# ---------- Top 15 attended events ---------- #}
+  <div class="card mb-4">
+    <div class="card-header bg-body-tertiary">
+      <h5 class="mb-0"><i class="fas fa-ranking-star me-2"></i>Top attended events</h5>
+    </div>
+    <div class="card-body p-0">
+      {% if top_events %}
+        <div class="table-responsive">
+          <table class="table table-sm table-hover align-middle mb-0">
+            <thead>
+              <tr>
+                <th style="width:3rem;">#</th>
+                <th>Date</th>
+                <th>Event</th>
+                <th>Chapter / National</th>
+                <th class="text-end">Attended</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for event in top_events %}
+                <tr>
+                  <td class="text-body-secondary">{{ forloop.counter }}</td>
+                  <td class="text-nowrap">{{ event.date|date:"M j, Y" }}</td>
+                  <td><a href="{{ event.get_absolute_url }}">{{ event.name }}</a></td>
+                  <td>
+                    {% if event.is_national %}
+                      <span class="badge bg-primary">National</span>
+                    {% elif event.chapter %}
+                      <a href="{% url 'chapters:detail' event.chapter.slug %}">{{ event.chapter.name }}</a>
+                    {% else %}
+                      &mdash;
+                    {% endif %}
+                  </td>
+                  <td class="text-end fw-semibold">{{ event.attended_count }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <p class="text-body-secondary p-3 mb-0">No attended events found for this scope.</p>
+      {% endif %}
+    </div>
+  </div>
+
+  {# ---------- National event chapter breakdown ---------- #}
+  <div class="card">
+    <div class="card-header bg-body-tertiary">
+      <h5 class="mb-0"><i class="fas fa-chart-bar me-2"></i>National event attendance by chapter</h5>
+    </div>
+    <div class="card-body">
+      <form method="get" class="row g-2 align-items-end mb-0">
+        {# Preserve the selected scope while looking up an event. #}
+        <input type="hidden" name="scope" value="{{ scope }}">
+        <div class="col-md-8">
+          <label class="form-label small mb-1" for="{{ lookup_form.event.id_for_label }}">National event</label>
+          {{ lookup_form.event }}
+          <div class="form-text">{{ lookup_form.event.help_text }}</div>
+          {% for error in lookup_form.event.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+        </div>
+        <div class="col-md-2">
+          <button type="submit" class="btn btn-primary w-100">Breakdown</button>
+        </div>
+      </form>
+
+      {% if breakdown_event %}
+        <hr>
+        <h6 class="mb-3">
+          <a href="{{ breakdown_event.get_absolute_url }}">{{ breakdown_event.name }}</a>
+          <span class="text-body-secondary">&middot; {{ breakdown_event.date|date:"M j, Y" }}</span>
+        </h6>
+        {% if chapter_breakdown %}
+          <div class="table-responsive">
+            <table class="table table-sm align-middle mb-0">
+              <thead>
+                <tr>
+                  <th>Chapter</th>
+                  <th class="text-end">Attended (active)</th>
+                  <th class="text-end">Active on roster</th>
+                  <th style="min-width:12rem;">Attendance %</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for row in chapter_breakdown %}
+                  <tr>
+                    <td>
+                      {% if row.chapter_slug %}
+                        <a href="{% url 'chapters:detail' row.chapter_slug %}">{{ row.chapter_name }}</a>
+                      {% else %}
+                        {{ row.chapter_name }}
+                      {% endif %}
+                    </td>
+                    <td class="text-end">{{ row.attended_active }}</td>
+                    <td class="text-end">{{ row.active_on_roster }}</td>
+                    <td>
+                      <div class="d-flex align-items-center gap-2">
+                        <div class="progress flex-grow-1" role="progressbar"
+                             aria-valuenow="{{ row.percentage }}" aria-valuemin="0" aria-valuemax="100" style="height:1rem;">
+                          <div class="progress-bar" style="width: {{ row.percentage }}%;"></div>
+                        </div>
+                        <span class="small fw-semibold" style="min-width:3.5rem;">{{ row.percentage }}%</span>
+                      </div>
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% else %}
+          <p class="text-body-secondary mb-0">No attendance has been recorded for this event yet.</p>
+        {% endif %}
+      {% endif %}
+    </div>
+  </div>
+</div>
+{{ lookup_form.media }}
+{% endblock content %}

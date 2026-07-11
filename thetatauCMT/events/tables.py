@@ -1,12 +1,14 @@
 import django_tables2 as tables
+from django.urls import reverse
 from django.utils.safestring import mark_safe
-from django_tables2.utils import A
 
 from .models import Event
 
 
 class EventTable(tables.Table):
-    name = tables.LinkColumn("events:update", args=[A("pk")])
+    name = tables.Column(linkify=lambda record: record.get_absolute_url())
+    is_public = tables.BooleanColumn(verbose_name="Open to Other Chapters")
+    parent_event = tables.Column(verbose_name="Parent Event")
 
     class Meta:
         model = Event
@@ -17,15 +19,8 @@ class EventTable(tables.Table):
             "type",
             "score",
             "description",
-            "members",
-            "pledges",
-            "alumni",
-            "duration",
-            "stem",
-            "host",
-            "virtual",
-            "miles",
-            "raised",
+            "is_public",
+            "parent_event",
         )
         attrs = {"class": "table table-striped table-bordered"}
         empty_text = "There are no events matching the search criteria..."
@@ -33,20 +28,11 @@ class EventTable(tables.Table):
     def __init__(self, natoff=False, *args, **kwargs):
         extra_columns = []
         if natoff:
-            remove = [
-                "score",
-                "members",
-                "pledges",
-                "alumni",
-                "duration",
-                "stem",
-                "host",
-                "virtual",
-                "miles",
-                "raised",
-            ]
+            # National Officers see chapter context instead of the score column.
+            remove = ["score"]
             for key in remove:
-                self.base_columns[key].visible = False
+                if key in self.base_columns:
+                    self.base_columns[key].visible = False
             extra_columns.extend(
                 [
                     ("chapter", tables.Column("Chapter")),
@@ -56,6 +42,19 @@ class EventTable(tables.Table):
             )
         kwargs["extra_columns"] = extra_columns
         super().__init__(*args, **kwargs)
+
+    def render_parent_event(self, value, record):
+        if not record.parent_event_id:
+            return "—"
+        url = record.parent_event.get_absolute_url()
+        return mark_safe(f'<a href="{url}">{value}</a>')
+
+    def render_chapter(self, value):
+        """Link the (natoff-only) chapter column to the chapter detail page."""
+        if not value:
+            return "—"
+        url = reverse("chapters:detail", kwargs={"slug": value.slug})
+        return mark_safe(f'<a href="{url}">{value}</a>')
 
     def render_pictures(self, value):
         out = ""

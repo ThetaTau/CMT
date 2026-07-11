@@ -200,6 +200,31 @@ ALL_ROLES_CHOICES = sorted([(role, role.title()) for role in ALL_ROLES], key=lam
 NAT_OFFICERS_CHOICES = sorted([(role, role.title()) for role in NAT_OFFICERS], key=lambda x: x[0])
 CHAPTER_ROLES_CHOICES = sorted([(role, role.title()) for role in CHAPTER_ROLES], key=lambda x: x[0])
 
+# Member statuses considered "active" for roster / quorum / active-member counts.
+# Shared by Chapter.get_actives_for_date, User.is_active_on, and the attendance app.
+ACTIVE_STATUSES = [
+    "active",
+    "activepend",
+    "alumnipend",
+    "pendexpul",
+    "activeCC",
+]
+
+
+def user_is_national_officer(user):
+    """Return True when ``user`` counts as a National Officer / Admin.
+
+    A user qualifies through any of the existing role mechanisms:
+    - is a Django superuser (Admin),
+    - belongs to the ``natoff`` group (``is_national_officer_group``), or
+    - currently holds a national-officer role (``is_national_officer``).
+
+    Safely handles ``None`` and unauthenticated users (returns ``False``).
+    """
+    if user is None or not getattr(user, "is_authenticated", False):
+        return False
+    return bool(user.is_superuser or user.is_national_officer_group or user.is_national_officer())
+
 
 def semester_encompass_start_end_date(given_date=None, term=None, year=None):
     """

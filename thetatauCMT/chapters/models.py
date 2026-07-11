@@ -23,6 +23,7 @@ from quickbooks.objects.customer import Customer
 
 from core.finances import create_line, get_quickbooks_client, invoice_search
 from core.models import (
+    ACTIVE_STATUSES,
     ADVISOR_ROLES,
     BIENNIUM_DATES,
     BIENNIUM_START,
@@ -356,13 +357,7 @@ class Chapter(models.Model, EmailSignalMixin):
     def get_actives_for_date(self, date):
         # Do not annotate, need the queryset not a list
         return self.members.filter(
-            status__status__in=[
-                "active",
-                "activepend",
-                "alumnipend",
-                "pendexpul",
-                "activeCC",
-            ],
+            status__status__in=ACTIVE_STATUSES,
             status__start__lte=date,
             status__end__gte=date,
         ).distinct()

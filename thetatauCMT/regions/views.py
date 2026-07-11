@@ -8,7 +8,7 @@ from django.db import models
 from django.http import HttpResponse
 from django.http.request import QueryDict
 from django.urls import reverse
-from django.views.generic import DetailView, ListView, RedirectView
+from django.views.generic import DetailView, ListView, RedirectView, TemplateView
 from django_tables2.utils import A
 
 from core.views import LoginRequiredMixin, NatOfficerRequiredMixin, RequestConfig
@@ -307,3 +307,39 @@ class RegionListView(LoginRequiredMixin, ListView):
     # These next two lines tell the view to index lookups by username
     slug_field = "slug"
     slug_url_kwarg = "slug"
+
+
+class EventAttendanceDashboardView(LoginRequiredMixin, NatOfficerRequiredMixin, TemplateView):
+    """WI-9 — regional & national events + attendance review dashboard.
+
+    Restricted to National Officers (same permission as the other region
+    dashboards). Offers a region/national scope selector with the top-15
+    attended events for that scope, plus a type-to-search national-event lookup
+    that renders a chapter-by-chapter attendance-percentage breakdown built from
+    the recorded snapshot values.
+    """
+
+    template_name = "regions/event_attendance_dashboard.html"
+
+    def get_context_data(self, **kwargs):
+        from thetatauCMT.attendance.forms import NationalEventLookupForm
+        from thetatauCMT.attendance.services import national_event_chapter_breakdown, top_attended_events
+
+        context = super().get_context_data(**kwargs)
+        scope = self.request.GET.get("scope") or "national"
+        valid_scopes = {"national", "candidate_chapter"} | set(Region.objects.values_list("slug", flat=True))
+        if scope not in valid_scopes:
+            scope = "national"
+        context["scope"] = scope
+        context["scope_choices"] = Region.region_choices()
+        context["top_events"] = top_attended_events(scope=scope, limit=15)
+
+        lookup_form = NationalEventLookupForm(self.request.GET or None)
+        context["lookup_form"] = lookup_form
+        breakdown_event = None
+        if lookup_form.is_bound and lookup_form.is_valid():
+            breakdown_event = lookup_form.cleaned_data.get("event")
+        if breakdown_event is not None:
+            context["breakdown_event"] = breakdown_event
+            context["chapter_breakdown"] = national_event_chapter_breakdown(breakdown_event)
+        return context

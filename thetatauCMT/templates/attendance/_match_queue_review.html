@@ -1,0 +1,131 @@
+{% comment %}
+Reusable manual attendance match-review list (WI-7).
+Expects in context:
+  review_items — iterable of pending MatchQueueItem
+  STATUS       — AttendanceRecord.STATUS choices
+A hidden ``next`` field returns the officer to the current page after resolving,
+so this partial works both on the dedicated queue page and inline on a national
+event's attendance page.
+{% endcomment %}
+{% for item in review_items %}
+  <div class="card mb-3">
+    <div class="card-header d-flex justify-content-between align-items-center bg-body-tertiary">
+      <div>
+        <strong>{{ item.display_label }}</strong>
+        <span class="text-body-secondary">&middot; {{ item.event.name }} ({{ item.event.date }})</span>
+      </div>
+      <span class="badge bg-secondary">best {{ item.best_score|floatformat:2 }}</span>
+    </div>
+    <div class="card-body">
+      <div class="row">
+        <div class="col-md-4">
+          <h6>Uploaded row</h6>
+          <dl class="row mb-0 small">
+            {% if item.raw_member_id %}<dt class="col-5">Member id</dt><dd class="col-7">{{ item.raw_member_id }}</dd>{% endif %}
+            {% if item.raw_badge_number %}<dt class="col-5">Badge</dt><dd class="col-7">{{ item.raw_badge_number }}</dd>{% endif %}
+            {% if item.raw_email %}<dt class="col-5">Email</dt><dd class="col-7">{{ item.raw_email }}</dd>{% endif %}
+            {% if item.raw_name %}<dt class="col-5">Name</dt><dd class="col-7">{{ item.raw_name }}</dd>{% endif %}
+            {% if item.raw_first_name %}<dt class="col-5">First</dt><dd class="col-7">{{ item.raw_first_name }}</dd>{% endif %}
+            {% if item.raw_last_name %}<dt class="col-5">Last</dt><dd class="col-7">{{ item.raw_last_name }}</dd>{% endif %}
+            {% if item.raw_chapter %}<dt class="col-5">Chapter</dt><dd class="col-7">{{ item.raw_chapter }}</dd>{% endif %}
+            {% if item.raw_graduation_year %}<dt class="col-5">Grad year</dt><dd class="col-7">{{ item.raw_graduation_year }}</dd>{% endif %}
+          </dl>
+        </div>
+        <div class="col-md-8">
+          <form method="post" action="{% url 'attendance:match_queue_resolve' %}">
+            {% csrf_token %}
+            <input type="hidden" name="item" value="{{ item.pk }}">
+            <input type="hidden" name="event" value="{{ item.event_id }}">
+            <input type="hidden" name="next" value="{{ request.get_full_path }}">
+            <h6>Candidate matches</h6>
+            {% if item.candidates %}
+              <div class="table-responsive">
+                <table class="table table-sm align-middle">
+                  <thead>
+                    <tr><th></th><th>Member</th><th>Chapter</th><th>Grad</th><th>Score</th><th>Why</th></tr>
+                  </thead>
+                  <tbody>
+                    {% for candidate in item.candidates %}
+                      <tr>
+                        <td><input class="form-check-input" type="radio" name="user_id" value="{{ candidate.user_id }}"{% if forloop.first %} checked{% endif %}></td>
+                        <td>{{ candidate.name }}<span class="text-body-secondary"> (badge {{ candidate.badge_number }})</span></td>
+                        <td>{{ candidate.chapter }}</td>
+                        <td>{{ candidate.graduation_year }}</td>
+                        <td>{{ candidate.score|floatformat:2 }}</td>
+                        <td class="small text-body-secondary">{{ candidate.reasons|join:", " }}</td>
+                      </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            {% else %}
+              <p class="text-body-secondary">No candidates were found. Search for a member below.</p>
+            {% endif %}
+
+            <div class="mb-2">
+              <label class="form-label small mb-1">Or search for a different member (any chapter)</label>
+              <input type="text" class="form-control form-control-sm member-search" data-target="results-{{ item.pk }}"
+                     placeholder="Type a name, badge, or email (min 2 chars)…" autocomplete="off">
+              <div id="results-{{ item.pk }}" class="list-group member-results mt-1"></div>
+            </div>
+
+            <div class="d-flex gap-2 align-items-center">
+              <select name="status" class="form-select form-select-sm" style="max-width: 12rem;">
+                {% for value, label in STATUS.choices %}
+                  <option value="{{ value }}"{% if value == item.target_status %} selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+              </select>
+              <button type="submit" name="action" value="resolve" class="btn btn-success btn-sm">Confirm &amp; record</button>
+              <button type="submit" name="action" value="skip" class="btn btn-outline-danger btn-sm">Skip</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endfor %}
+
+<script>
+(function () {
+  const url = "{% url 'attendance:national-member-autocomplete' %}";
+  let timer = null;
+  document.querySelectorAll(".member-search").forEach(function (input) {
+    if (input.dataset.wired) return;
+    input.dataset.wired = "1";
+    const results = document.getElementById(input.dataset.target);
+    input.addEventListener("input", function () {
+      const q = input.value.trim();
+      clearTimeout(timer);
+      if (q.length < 2) { results.innerHTML = ""; return; }
+      timer = setTimeout(function () {
+        fetch(url + "?q=" + encodeURIComponent(q))
+          .then(function (r) { return r.json(); })
+          .then(function (data) {
+            results.innerHTML = "";
+            (data.results || []).forEach(function (m) {
+              const btn = document.createElement("button");
+              btn.type = "button";
+              btn.className = "list-group-item list-group-item-action py-1 small";
+              btn.textContent = m.text;
+              btn.addEventListener("click", function () {
+                const form = input.closest("form");
+                let radio = form.querySelector('input[name="user_id"][value="' + m.id + '"]');
+                if (!radio) {
+                  radio = document.createElement("input");
+                  radio.type = "radio";
+                  radio.name = "user_id";
+                  radio.value = m.id;
+                  form.appendChild(radio);
+                }
+                radio.checked = true;
+                input.value = m.text;
+                results.innerHTML = "";
+              });
+              results.appendChild(btn);
+            });
+          });
+      }, 200);
+    });
+  });
+})();
+</script>

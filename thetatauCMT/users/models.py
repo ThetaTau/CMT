@@ -16,6 +16,7 @@ from simple_history.models import HistoricalRecords
 from viewflow.models import Process
 
 from core.models import (
+    ACTIVE_STATUSES,
     ALL_ROLES_CHOICES,
     CHAPTER_OFFICER,
     CHAPTER_OFFICER_CHOICES,
@@ -374,6 +375,18 @@ class User(AbstractUser, EmailSignalMixin):
     def get_officer_role_on_date(self, date):
         roles = self.get_roles_on_date(date)
         return roles.filter(role__in=CHAPTER_OFFICER).first()
+
+    def is_active_on(self, date):
+        """True if the member held an active-ish status covering ``date``.
+
+        Uses the shared ``core.models.ACTIVE_STATUSES`` set (same statuses as
+        ``Chapter.get_actives_for_date``).
+        """
+        return self.status.filter(
+            status__in=ACTIVE_STATUSES,
+            start__lte=date,
+            end__gte=date,
+        ).exists()
 
     def chapter_officer(self, altered=True):
         """

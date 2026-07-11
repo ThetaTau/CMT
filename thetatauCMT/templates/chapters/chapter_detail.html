@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% load static %}
 {% load crispy_forms_tags %}
+{% load custom_tags %}
 {% load render_table from django_tables2 %}
 {% block title %}Chapter: {{ object.name }}{% endblock %}
 
@@ -123,6 +124,39 @@
             </div>
           </div>
           {% render_table table %}
+        </div>
+      </div>
+    </div>
+    {# ---------- Public events (WI-10) ---------- #}
+    <div class="accordion-item" id="public-events">
+      <h2 class="accordion-header" id="heading-public-events">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#chapter-public-events-collapse" aria-expanded="false" aria-controls="chapter-public-events-collapse">
+          Public Events
+          {% if public_events %}<span class="badge bg-success ms-2">{{ public_events|length }} upcoming</span>{% endif %}
+        </button>
+      </h2>
+      <div id="chapter-public-events-collapse" class="accordion-collapse collapse" aria-labelledby="heading-public-events" data-bs-parent="#chapter-accordion">
+        <div class="accordion-body">
+          <p class="text-body-secondary small">Upcoming public events any member may attend. RSVP to indicate your intent.</p>
+          {% if public_events %}
+            <div class="table-responsive">
+              <table class="table table-sm table-hover align-middle mb-0">
+                <thead><tr><th>Date</th><th>Event</th><th>Type</th><th>RSVP</th></tr></thead>
+                <tbody>
+                  {% for event in public_events %}
+                    <tr>
+                      <td class="text-nowrap">{{ event.date|date:"M j, Y" }}</td>
+                      <td><a href="{{ event.get_absolute_url }}">{{ event.name }}</a></td>
+                      <td>{{ event.type }}</td>
+                      <td>{% include "events/_rsvp_control.html" with event=event my_status=my_rsvp_status|lookup:event.pk member_can_rsvp=True %}</td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          {% else %}
+            <p class="text-body-secondary mb-0">No upcoming public events.</p>
+          {% endif %}
         </div>
       </div>
     </div>

@@ -1,11 +1,11 @@
 {% extends "base.html" %}
 {% load crispy_forms_tags %}
 
-{% block title %}Update Event: {{ event.name }}{% endblock %}
+{% block title %}Update Ballot: {{ object.name }}{% endblock %}
 
 {% block content %}
-  <h1>Update Event: {{ event.name }}</h1>
-  <form class="form-horizontal" method="post" action="{% url 'events:update' event.id %}">
+  <h1>Update Ballot: {{ object.name }}</h1>
+  <form class="form-horizontal" method="post" action="">
     {% csrf_token %}
     {{ form|crispy }}
     <div class="control-group">

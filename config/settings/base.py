@@ -136,6 +136,7 @@ LOCAL_APPS = [
     "thetatauCMT.objectives.apps.ObjectivesConfig",
     "thetatauCMT.trainings.apps.TrainingsConfig",
     "thetatauCMT.configs.apps.ConfigsConfig",
+    "thetatauCMT.attendance.apps.AttendanceConfig",
     # Added after any apps which contain models for which to create signals
     "email_signals",
 ]
@@ -653,6 +654,29 @@ ED_SECRET = env("ED_SECRET", default=None)
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 EMAIL_SIGNAL_DEFAULT_SENDER = DEFAULT_FROM_EMAIL
+
+# EVENTS
+# ------------------------------------------------------------------------------
+# When a National Officer creates a public event, should it be auto-approved
+# (cross-chapter visible immediately) instead of entering the pending queue?
+# Configurable per-environment; defaults to auto-approved.
+EVENTS_AUTO_APPROVE_NATIONAL_PUBLIC = env.bool("EVENTS_AUTO_APPROVE_NATIONAL_PUBLIC", default=True)
+
+# ATTENDANCE
+# ------------------------------------------------------------------------------
+# Quorum rule used by the attendance module. Configurable per-environment.
+#   "majority"  -> floor(active/2) + 1  (default)
+#   "two_thirds" -> ceil(active * 2/3)
+#   a float 0<x<=1 -> ceil(active * x)
+ATTENDANCE_QUORUM_RULE = env("ATTENDANCE_QUORUM_RULE", default="majority")
+# Minimum query length for the privacy-safe cross-chapter guest autocomplete.
+ATTENDANCE_GUEST_SEARCH_MIN_LENGTH = env.int("ATTENDANCE_GUEST_SEARCH_MIN_LENGTH", default=2)
+# Maximum results returned by the guest autocomplete (never a full roster).
+ATTENDANCE_GUEST_SEARCH_MAX_RESULTS = env.int("ATTENDANCE_GUEST_SEARCH_MAX_RESULTS", default=20)
+# Minimum confidence (0..1) at which a national-event attendance upload row is
+# auto-matched to a member; anything at or below routes to the manual match
+# queue (WI-7). Match is auto-accepted only when strictly greater than this.
+ATTENDANCE_MATCH_AUTO_ACCEPT_THRESHOLD = env.float("ATTENDANCE_MATCH_AUTO_ACCEPT_THRESHOLD", default=0.60)
 
 # https://django-simple-history.readthedocs.io/en/latest/historical_model.html#filefield-as-a-charfield
 SIMPLE_HISTORY_FILEFIELD_TO_CHARFIELD = True

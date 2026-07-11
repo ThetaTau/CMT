@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Upload National Attendance{% endblock %}
+
+{% block content %}
+<div class="container">
+  <h2 class="page-title">Upload National Attendance</h2>
+  <p class="text-body-secondary">
+    Bulk-record attendance for a national event from a CSV export. Rows are matched to
+    members by <strong>member id &rarr; exact email &rarr; name</strong> (graduation year and
+    chapter raise confidence). Confident matches are recorded automatically; anything below the
+    auto-accept threshold is routed to the
+    <a href="{% url 'attendance:match_queue' %}">match queue</a> for manual review.
+  </p>
+
+  <div class="card card-body">
+    <form method="post" enctype="multipart/form-data">
+      {% csrf_token %}
+      {% for field in form %}
+        <div class="mb-3">
+          <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+          {{ field }}
+          {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
+          {% for error in field.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+        </div>
+      {% endfor %}
+      <button type="submit" class="btn btn-primary">
+        <i class="fas fa-upload"></i> Upload &amp; match
+      </button>
+      <a href="{% url 'attendance:match_queue' %}" class="btn btn-outline-secondary">View match queue</a>
+    </form>
+  </div>
+
+  <div class="mt-4">
+    <h5>Expected columns</h5>
+    <p class="text-body-secondary mb-1">
+      Any subset of these headers is accepted (case-insensitive, extra columns are ignored):
+    </p>
+    <code>member_id, badge, email, name, first_name, last_name, chapter, graduation_year</code>
+    <p class="mt-2 mb-0">
+      <a href="{% static 'attendance/sample_national_attendance.csv' %}" download>
+        <i class="fas fa-download"></i> Download a sample CSV
+      </a>
+    </p>
+  </div>
+</div>
+{{ form.media }}
+{% endblock %}
