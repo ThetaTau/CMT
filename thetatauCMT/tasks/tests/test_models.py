@@ -479,3 +479,119 @@ def test_mark_complete_osm_branch_creates_task_chapter(chapter):
 
     assert tc.submission_object is not None
     assert tc.submission_object.file.name == "osmform"
+
+
+# ---------------------------------------------------------------------------
+# Archiving ("no longer needed") TaskDates
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.django_db
+def test_taskdate_archive_and_unarchive(chapter):
+    """archive() sets the flag + timestamp + reason; unarchive() clears them."""
+    _, task_date = _make_task_with_date(school_type=chapter.school_type, days_offset=5)
+    assert task_date.archived is False
+    assert task_date.archived_on is None
+
+    task_date.archive(reason="Old term")
+    task_date.refresh_from_db()
+    assert task_date.archived is True
+    assert task_date.archived_on is not None
+    assert task_date.archived_reason == "Old term"
+
+    task_date.unarchive()
+    task_date.refresh_from_db()
+    assert task_date.archived is False
+    assert task_date.archived_on is None
+    assert task_date.archived_reason == ""
+
+
+@pytest.mark.django_db
+def test_archived_date_excluded_from_incomplete_for_task_chapter(chapter):
+    """An archived date is not returned by incomplete_dates_for_task_chapter."""
+    task, task_date = _make_task_with_date(school_type=chapter.school_type, days_offset=5)
+    assert task_date in task.incomplete_dates_for_task_chapter(chapter)
+    task_date.archive(reason="Retired")
+    assert task_date not in task.incomplete_dates_for_task_chapter(chapter)
+
+
+@pytest.mark.django_db
+def test_archived_date_excluded_from_all_dates_for_task_chapter(chapter):
+    """An archived date is not returned by all_dates_for_task_chapter."""
+    task, task_date = _make_task_with_date(school_type=chapter.school_type, days_offset=5)
+    assert task_date in task.all_dates_for_task_chapter(chapter)
+    task_date.archive()
+    assert task_date not in task.all_dates_for_task_chapter(chapter)
+
+
+@pytest.mark.django_db
+def test_archived_date_excluded_from_dates_for_chapter(chapter):
+    """dates_for_chapter hides archived by default but includes them on request."""
+    _, task_date = _make_task_with_date(school_type=chapter.school_type, days_offset=5)
+    task_date.archive()
+    assert task_date not in TaskDate.dates_for_chapter(chapter)
+    assert task_date in TaskDate.dates_for_chapter(chapter, include_archived=True)
+
+
+@pytest.mark.django_db
+def test_archived_date_excluded_from_incomplete_dates_for_chapter(chapter):
+    """The home/notification incomplete queryset excludes archived dates."""
+    _, task_date = _make_task_with_date(school_type=chapter.school_type, days_offset=5)
+    assert task_date in TaskDate.incomplete_dates_for_chapter(chapter)
+    task_date.archive()
+    assert task_date not in TaskDate.incomplete_dates_for_chapter(chapter)
+
+
+@pytest.mark.django_db
+def test_archived_date_excluded_from_next_month_and_past(chapter):
+    """Archived dates drop out of the upcoming and past incomplete querysets."""
+    from core.models import academic_encompass_start_end_date
+
+    school_type = chapter.school_type
+    _, upcoming = _make_task_with_date(school_type=school_type, days_offset=10)
+    # The "past" window is [academic_year_start, today]; use the academic year
+    # start itself so the date is in-window regardless of the current date.
+    academic_start, _ = academic_encompass_start_end_date()
+    past_task = Task.objects.create(name="Past Window Task", owner="regent", type="task", resource="", description="x")
+    past = TaskDate.objects.create(task=past_task, school_type=school_type, date=academic_start.date())
+    assert upcoming in TaskDate.incomplete_dates_for_chapter_next_month(chapter)
+    assert past in TaskDate.incomplete_dates_for_chapter_past(chapter)
+    upcoming.archive()
+    past.archive()
+    assert upcoming not in TaskDate.incomplete_dates_for_chapter_next_month(chapter)
+    assert past not in TaskDate.incomplete_dates_for_chapter_past(chapter)
+
+
+@pytest.mark.django_db
+def test_mark_complete_skips_archived_and_completes_current(chapter):
+    """mark_complete must not auto-complete an archived (old) date.
+
+    With an old lingering date archived, submitting completes the current one.
+    """
+    school_type = chapter.school_type
+    task, old_date = _make_task_with_date(school_type=school_type, days_offset=-30)
+    current_date = TaskDate.objects.create(
+        task=task,
+        school_type=school_type,
+        date=datetime.date.today() + datetime.timedelta(days=5),
+    )
+    # Retire the old date so it is "no longer needed".
+    old_date.archive(reason="Previous term")
+
+    Task.mark_complete(task.name, chapter)
+
+    # The current date is completed; the archived old date is left untouched.
+    assert TaskChapter.objects.filter(task=current_date, chapter=chapter).exists()
+    assert not TaskChapter.objects.filter(task=old_date, chapter=chapter).exists()
+
+
+@pytest.mark.django_db
+def test_mark_complete_ignores_task_with_only_archived_dates(chapter):
+    """When every date for a task is archived, mark_complete creates nothing."""
+    school_type = chapter.school_type
+    task, only_date = _make_task_with_date(school_type=school_type, days_offset=5)
+    only_date.archive()
+
+    Task.mark_complete(task.name, chapter)
+
+    assert not TaskChapter.objects.filter(task=only_date, chapter=chapter).exists()

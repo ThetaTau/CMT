@@ -328,3 +328,86 @@ def test_task_list_pagination_preserves_user_supplied_params(auto_login_user):
     # user-visible ?complete=0&date=today must round-trip.
     assert "complete=0" in body
     assert quote("date=today", safe="=") in body or "date=today" in body
+
+
+# ---------------------------------------------------------------------------
+# Archived ("no longer needed") TaskDates in the list + complete views
+# ---------------------------------------------------------------------------
+@pytest.mark.django_db
+def test_task_list_hides_archived_by_default(auto_login_user):
+    """An archived TaskDate must not appear in the list with default filters."""
+    client, user = auto_login_user()
+    chapter = user.current_chapter
+    _, archived = _make_task_with_date(school_type=chapter.school_type, days_offset=0)
+    _, active = _make_task_with_date(school_type=chapter.school_type, days_offset=0)
+    archived.archive(reason="Old")
+
+    url = reverse("tasks:list")
+    response = client.get(url, {"complete": "A", "date": "today"})
+    records = _list_table_records(response)
+    assert active in records
+    assert archived not in records
+
+
+@pytest.mark.django_db
+def test_task_list_shows_only_archived_with_filter(auto_login_user):
+    """?archived=1 surfaces only archived rows."""
+    client, user = auto_login_user()
+    chapter = user.current_chapter
+    _, archived = _make_task_with_date(school_type=chapter.school_type, days_offset=0)
+    _, active = _make_task_with_date(school_type=chapter.school_type, days_offset=0)
+    archived.archive()
+
+    url = reverse("tasks:list")
+    response = client.get(url, {"complete": "A", "date": "today", "archived": "1"})
+    records = _list_table_records(response)
+    assert archived in records
+    assert active not in records
+
+
+@pytest.mark.django_db
+def test_task_list_shows_all_with_archived_all_filter(auto_login_user):
+    """?archived=A returns both archived and active rows."""
+    client, user = auto_login_user()
+    chapter = user.current_chapter
+    _, archived = _make_task_with_date(school_type=chapter.school_type, days_offset=0)
+    _, active = _make_task_with_date(school_type=chapter.school_type, days_offset=0)
+    archived.archive()
+
+    url = reverse("tasks:list")
+    response = client.get(url, {"complete": "A", "date": "today", "archived": "A"})
+    records = _list_table_records(response)
+    assert archived in records
+    assert active in records
+
+
+@pytest.mark.django_db
+def test_task_complete_view_refuses_archived_date(auto_login_user):
+    """Posting a completion for an archived date is rejected, no TaskChapter made."""
+    client, user = auto_login_user(make_officer="regent")
+    _make_officer(user, client)
+    school_type = user.current_chapter.school_type
+    _, task_date = _make_task_with_date(school_type=school_type, days_offset=10)
+    task_date.archive(reason="Retired")
+
+    url = reverse("tasks:complete", kwargs={"pk": task_date.pk})
+    response = client.post(url, {})
+    # form_invalid re-renders the page (200), and no completion is recorded.
+    assert response.status_code == 200
+    assert not TaskChapter.objects.filter(task=task_date, chapter=user.current_chapter).exists()
+
+
+@pytest.mark.django_db
+def test_task_complete_view_archived_context_flag(auto_login_user):
+    """The complete page exposes is_archived so the template can warn officers."""
+    client, user = auto_login_user(make_officer="regent")
+    _make_officer(user, client)
+    school_type = user.current_chapter.school_type
+    _, task_date = _make_task_with_date(school_type=school_type, days_offset=10)
+    task_date.archive()
+
+    url = reverse("tasks:complete", kwargs={"pk": task_date.pk})
+    response = client.get(url)
+    assert response.status_code == 200
+    assert response.context["is_archived"] is True
+    assert "no longer needed" in response.content.decode("utf-8").lower()

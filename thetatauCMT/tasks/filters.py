@@ -19,6 +19,15 @@ class TaskListFilter(django_filters.FilterSet):
     )
     date = DateRangeFilter(field_name="date")
     task__owner = django_filters.MultipleChoiceFilter(choices=CHAPTER_OFFICER_CHOICES)
+    archived = django_filters.ChoiceFilter(
+        method="filter_archived",
+        label="Retired dates",
+        choices=(
+            ("0", "Hide no longer needed"),
+            ("1", "Only no longer needed"),
+            ("A", "Show all"),
+        ),
+    )
 
     class Meta:
         model = TaskDate
@@ -26,6 +35,7 @@ class TaskListFilter(django_filters.FilterSet):
             "task__owner",
             "complete",
             "date",
+            "archived",
         ]
         order_by = ["date"]
 
@@ -41,3 +51,12 @@ class TaskListFilter(django_filters.FilterSet):
             return queryset.filter(Exists(completed))
         # value == "0" → Incomplete for the current chapter
         return queryset.filter(~Exists(completed))
+
+    def filter_archived(self, queryset, field_name, value):
+        # Default (empty or "0") hides retired dates so chapters only see
+        # current, actionable work. "1" shows only retired dates, "A" shows all.
+        if value == "1":
+            return queryset.filter(archived=True)
+        if value == "A":
+            return queryset
+        return queryset.filter(archived=False)

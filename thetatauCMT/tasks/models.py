@@ -66,7 +66,10 @@ class Task(models.Model):
 
     def all_dates_for_task_chapter(self, chapter):
         school_type = chapter.school_type
-        dates = self.dates.filter(Q(school_type=school_type) | Q(school_type="all")).all()
+        dates = self.dates.filter(
+            Q(school_type=school_type) | Q(school_type="all"),
+            archived=False,
+        ).all()
         return dates
 
     def incomplete_dates_for_task_chapter(self, chapter):
@@ -77,11 +80,14 @@ class Task(models.Model):
         # if due date is April 15 then lte max_date and is a due date
         # You have this many days to submit the task
         min_date = TODAY_END - (timedelta(self.days_advance * 2))
+        # ``archived`` dates are retired ("no longer needed") and must never be
+        # surfaced as incomplete work nor auto-completed by ``mark_complete``.
         dates = self.dates.filter(
             Q(school_type=school_type) | Q(school_type="all"),
             ~Q(chapters__chapter=chapter),
             Q(date__lte=max_date),
             Q(date__gte=min_date),
+            archived=False,
         ).all()
         return dates
 
@@ -161,9 +167,32 @@ class TaskDate(models.Model):
     task = models.ForeignKey(Task, on_delete=models.CASCADE, related_name="dates")
     school_type = models.CharField(max_length=10, choices=TYPES)
     date = models.DateField("Due Date")
+    archived = models.BooleanField(
+        "No Longer Needed",
+        default=False,
+        db_index=True,
+        help_text="Archived (retired) dates are hidden from chapters and cannot be completed.",
+    )
+    archived_on = models.DateTimeField(blank=True, null=True)
+    archived_reason = models.CharField(max_length=200, blank=True)
 
     def __str__(self):
         return f"{self.task.name} for {self.task.owner} due on {self.date}"
+
+    def archive(self, reason=""):
+        """Retire this due date so it is no longer surfaced or completable."""
+        self.archived = True
+        self.archived_on = timezone.now()
+        if reason:
+            self.archived_reason = reason
+        self.save(update_fields=["archived", "archived_on", "archived_reason"])
+
+    def unarchive(self):
+        """Restore a previously retired due date."""
+        self.archived = False
+        self.archived_on = None
+        self.archived_reason = ""
+        self.save(update_fields=["archived", "archived_on", "archived_reason"])
 
     def complete(self, chapter):
         tasks = self.chapters.filter(chapter=chapter).all()
@@ -177,6 +206,7 @@ class TaskDate(models.Model):
             Q(school_type=school_type) | Q(school_type="all"),
             ~Q(chapters__chapter=chapter),
             Q(date__gte=min_date),
+            archived=False,
         ).all()
         return tasks
 
@@ -188,6 +218,7 @@ class TaskDate(models.Model):
             ~Q(chapters__chapter=chapter),
             Q(date__gte=TODAY_END),
             Q(date__lte=TODAY_END + timedelta(60)),
+            archived=False,
         ).all()
         return tasks
 
@@ -196,6 +227,7 @@ class TaskDate(models.Model):
         tasks = cls.objects.filter(
             Q(date__gte=TODAY_END),
             Q(date__lte=TODAY_END + timedelta(30)),
+            archived=False,
         ).all()
         return tasks
 
@@ -208,14 +240,17 @@ class TaskDate(models.Model):
             ~Q(chapters__chapter=chapter),
             Q(date__lte=TODAY_END),
             Q(date__gte=academic_start),
+            archived=False,
         ).all()
         return tasks
 
     @classmethod
-    def dates_for_chapter(cls, chapter):
+    def dates_for_chapter(cls, chapter, include_archived=False):
         school_type = chapter.school_type
-        tasks = cls.objects.filter(Q(school_type=school_type) | Q(school_type="all")).all()
-        return tasks
+        tasks = cls.objects.filter(Q(school_type=school_type) | Q(school_type="all"))
+        if not include_archived:
+            tasks = tasks.filter(archived=False)
+        return tasks.all()
 
 
 class TaskChapter(models.Model, EmailSignalMixin):

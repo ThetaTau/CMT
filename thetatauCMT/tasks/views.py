@@ -35,12 +35,20 @@ class TaskCompleteView(LoginRequiredMixin, OfficerRequiredMixin, CreateView):
         dates = task.incomplete_dates_for_task_chapter(chapter=self.request.user.current_chapter)
         context["due_date"] = task_date
         context["dates"] = dates
+        context["is_archived"] = task_date.archived
         return context
 
     def form_valid(self, form):
         task_date_id = self.kwargs.get("pk")
         task_date = TaskDate.objects.get(pk=task_date_id)
         task = task_date.task
+        if task_date.archived:
+            messages.add_message(
+                self.request,
+                messages.ERROR,
+                "This due date is marked as no longer needed and cannot be completed.",
+            )
+            return super().form_invalid(form)
         current_roles = self.request.user.chapter_officer()
         if not current_roles or current_roles == {""}:
             messages.add_message(
@@ -93,6 +101,8 @@ class TaskListView(LoginRequiredMixin, PagedFilteredTableView):
             request_get["date"] = current_year_term_slug()
         if request_get.get("complete", "") == "":
             request_get["complete"] = "0"
+        if request_get.get("archived", "") == "":
+            request_get["archived"] = "0"
         return request_get
 
     def get_queryset(self, **kwargs):
@@ -102,7 +112,9 @@ class TaskListView(LoginRequiredMixin, PagedFilteredTableView):
         # each TaskDate as a single row and prevents completions by other
         # chapters from polluting the annotation.
         completed = TaskChapter.objects.filter(task=OuterRef("pk"), chapter=chapter).order_by("-date")
-        qs = TaskDate.dates_for_chapter(chapter).annotate(
+        # Include archived rows in the base queryset so the ``archived`` filter
+        # can decide whether to surface them; it hides them by default.
+        qs = TaskDate.dates_for_chapter(chapter, include_archived=True).annotate(
             complete_link=Subquery(completed.values("pk")[:1]),
             is_complete=Exists(completed),
         )
