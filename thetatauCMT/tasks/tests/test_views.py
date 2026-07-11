@@ -7,6 +7,14 @@ from django.urls import reverse
 
 from thetatauCMT.tasks.models import Task, TaskChapter, TaskDate
 
+# Freeze to noon UTC on a fixed mid-spring day so that ``datetime.date.today``
+# (used to date the tasks) and django-filter's ``timezone.now()`` "today"
+# option (UTC-based) always agree. TIME_ZONE is America/Phoenix (UTC-7), so
+# without this a run during Phoenix evening lands on a different UTC calendar
+# day and the ``?date=today`` filter matches nothing. Noon UTC = 05:00
+# Phoenix, i.e. the same calendar date in both zones.
+FROZEN_NOON_UTC = "2026-05-15 12:00:00"
+
 
 def _make_officer(user, client):
     group, _ = Group.objects.get_or_create(name="officer")
@@ -33,6 +41,22 @@ def _make_task_with_date(school_type="semester", days_offset=0, name=None):
         date=due_date,
     )
     return task, task_date
+
+
+def _other_chapter(than_chapter):
+    """Return a Chapter guaranteed distinct from ``than_chapter``.
+
+    ``ChapterFactory`` draws ``name`` from the small ``GREEK_ABR`` pool with
+    ``django_get_or_create=("name",)`` and Faker is not seeded deterministically,
+    so a bare ``ChapterFactory()`` intermittently returns the caller's own
+    chapter and breaks "other chapter" assertions. Pick a different pool name
+    explicitly so the returned row is always distinct.
+    """
+    from thetatauCMT.chapters.models import GREEK_ABR
+    from thetatauCMT.chapters.tests.factories import ChapterFactory
+
+    other_name = next(name for name in GREEK_ABR.values() if name != than_chapter.name)
+    return ChapterFactory(name=other_name)
 
 
 @pytest.mark.django_db
@@ -131,6 +155,7 @@ def _list_table_records(response):
 
 
 @pytest.mark.django_db
+@pytest.mark.freeze_time(FROZEN_NOON_UTC)
 def test_task_list_incomplete_excludes_tasks_completed_by_this_chapter(auto_login_user):
     """A TaskDate this chapter has completed must not appear under Incomplete."""
     client, user = auto_login_user()
@@ -143,14 +168,13 @@ def test_task_list_incomplete_excludes_tasks_completed_by_this_chapter(auto_logi
 
 
 @pytest.mark.django_db
+@pytest.mark.freeze_time(FROZEN_NOON_UTC)
 def test_task_list_incomplete_includes_task_completed_only_by_other_chapter(auto_login_user):
     """A TaskDate completed by *another* chapter is still Incomplete for us."""
-    from thetatauCMT.chapters.tests.factories import ChapterFactory
-
     client, user = auto_login_user()
     chapter = user.current_chapter
     _, task_date = _make_task_with_date(school_type=chapter.school_type, days_offset=0)
-    other_chapter = ChapterFactory()
+    other_chapter = _other_chapter(chapter)
     TaskChapter.objects.create(task=task_date, chapter=other_chapter, date=datetime.date.today())
     url = reverse("tasks:list")
     response = client.get(url, {"complete": "0", "date": "today"})
@@ -161,16 +185,15 @@ def test_task_list_incomplete_includes_task_completed_only_by_other_chapter(auto
 
 
 @pytest.mark.django_db
+@pytest.mark.freeze_time(FROZEN_NOON_UTC)
 def test_task_list_complete_shows_only_this_chapter_completions(auto_login_user):
     """Complete filter returns TaskDates this chapter has completed exactly once."""
-    from thetatauCMT.chapters.tests.factories import ChapterFactory
-
     client, user = auto_login_user()
     chapter = user.current_chapter
     _, ours = _make_task_with_date(school_type=chapter.school_type, days_offset=0)
     _, other_only = _make_task_with_date(school_type=chapter.school_type, days_offset=0)
     TaskChapter.objects.create(task=ours, chapter=chapter, date=datetime.date.today())
-    TaskChapter.objects.create(task=other_only, chapter=ChapterFactory(), date=datetime.date.today())
+    TaskChapter.objects.create(task=other_only, chapter=_other_chapter(chapter), date=datetime.date.today())
     url = reverse("tasks:list")
     response = client.get(url, {"complete": "1", "date": "today"})
     records = _list_table_records(response)
@@ -180,15 +203,14 @@ def test_task_list_complete_shows_only_this_chapter_completions(auto_login_user)
 
 
 @pytest.mark.django_db
+@pytest.mark.freeze_time(FROZEN_NOON_UTC)
 def test_task_list_all_filter_does_not_duplicate(auto_login_user):
     """Complete=All returns each TaskDate at most once even with multi-chapter completions."""
-    from thetatauCMT.chapters.tests.factories import ChapterFactory
-
     client, user = auto_login_user()
     chapter = user.current_chapter
     _, task_date = _make_task_with_date(school_type=chapter.school_type, days_offset=0)
     TaskChapter.objects.create(task=task_date, chapter=chapter, date=datetime.date.today())
-    TaskChapter.objects.create(task=task_date, chapter=ChapterFactory(), date=datetime.date.today())
+    TaskChapter.objects.create(task=task_date, chapter=_other_chapter(chapter), date=datetime.date.today())
     url = reverse("tasks:list")
     response = client.get(url, {"complete": "A", "date": "today"})
     records = _list_table_records(response)
@@ -196,15 +218,14 @@ def test_task_list_all_filter_does_not_duplicate(auto_login_user):
 
 
 @pytest.mark.django_db
+@pytest.mark.freeze_time(FROZEN_NOON_UTC)
 def test_task_list_complete_link_annotation_points_to_this_chapter(auto_login_user):
     """The complete_link annotation must be the current chapter's TaskChapter pk."""
-    from thetatauCMT.chapters.tests.factories import ChapterFactory
-
     client, user = auto_login_user()
     chapter = user.current_chapter
     _, task_date = _make_task_with_date(school_type=chapter.school_type, days_offset=0)
     ours = TaskChapter.objects.create(task=task_date, chapter=chapter, date=datetime.date.today())
-    TaskChapter.objects.create(task=task_date, chapter=ChapterFactory(), date=datetime.date.today())
+    TaskChapter.objects.create(task=task_date, chapter=_other_chapter(chapter), date=datetime.date.today())
     url = reverse("tasks:list")
     response = client.get(url, {"complete": "1", "date": "today"})
     match = next(rec for rec in _list_table_records(response) if rec.pk == task_date.pk)
@@ -212,6 +233,7 @@ def test_task_list_complete_link_annotation_points_to_this_chapter(auto_login_us
 
 
 @pytest.mark.django_db
+@pytest.mark.freeze_time(FROZEN_NOON_UTC)
 def test_task_list_default_first_load_hides_completed_tasks(auto_login_user):
     """A bare `/tasks/` request should apply the Incomplete + current-term defaults."""
     from core.models import current_year_term_slug
@@ -253,6 +275,7 @@ def test_task_list_cancel_clears_all_filters(auto_login_user):
 
 
 @pytest.mark.django_db
+@pytest.mark.freeze_time(FROZEN_NOON_UTC)
 def test_task_list_task_owner_filter_narrows_results(auto_login_user):
     """The task__owner filter restricts rows to tasks with matching Task.owner."""
     client, user = auto_login_user()
@@ -281,6 +304,7 @@ def test_task_list_task_owner_filter_narrows_results(auto_login_user):
 
 
 @pytest.mark.django_db
+@pytest.mark.freeze_time(FROZEN_NOON_UTC)
 def test_task_list_complete_link_renders_in_html(auto_login_user):
     """The rendered HTML shows the 'Completed Task Information' link for the row."""
     client, user = auto_login_user()
@@ -297,6 +321,7 @@ def test_task_list_complete_link_renders_in_html(auto_login_user):
 
 
 @pytest.mark.django_db
+@pytest.mark.freeze_time(FROZEN_NOON_UTC)
 def test_task_list_incomplete_renders_none_placeholder_in_html(auto_login_user):
     """An incomplete row renders the '<i>None</i>' placeholder for complete_link."""
     client, user = auto_login_user()
@@ -311,6 +336,7 @@ def test_task_list_incomplete_renders_none_placeholder_in_html(auto_login_user):
 
 
 @pytest.mark.django_db
+@pytest.mark.freeze_time(FROZEN_NOON_UTC)
 def test_task_list_pagination_preserves_user_supplied_params(auto_login_user):
     """After filtering, the pagination link should keep the user's query params."""
     from urllib.parse import quote
@@ -334,6 +360,7 @@ def test_task_list_pagination_preserves_user_supplied_params(auto_login_user):
 # Archived ("no longer needed") TaskDates in the list + complete views
 # ---------------------------------------------------------------------------
 @pytest.mark.django_db
+@pytest.mark.freeze_time(FROZEN_NOON_UTC)
 def test_task_list_hides_archived_by_default(auto_login_user):
     """An archived TaskDate must not appear in the list with default filters."""
     client, user = auto_login_user()
@@ -350,6 +377,7 @@ def test_task_list_hides_archived_by_default(auto_login_user):
 
 
 @pytest.mark.django_db
+@pytest.mark.freeze_time(FROZEN_NOON_UTC)
 def test_task_list_shows_only_archived_with_filter(auto_login_user):
     """?archived=1 surfaces only archived rows."""
     client, user = auto_login_user()
@@ -366,6 +394,7 @@ def test_task_list_shows_only_archived_with_filter(auto_login_user):
 
 
 @pytest.mark.django_db
+@pytest.mark.freeze_time(FROZEN_NOON_UTC)
 def test_task_list_shows_all_with_archived_all_filter(auto_login_user):
     """?archived=A returns both archived and active rows."""
     client, user = auto_login_user()

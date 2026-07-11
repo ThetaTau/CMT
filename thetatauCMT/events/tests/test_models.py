@@ -100,6 +100,7 @@ def test_chapter_events(chapter, event_factory):
 
 
 @pytest.mark.django_db
+@pytest.mark.freeze_time("2026-04-15 12:00:00")
 def test_calculate_meeting_attendance(chapter, event_factory, user_status_change_factory):
     score_type = ScoreType.objects.get(name="Attendance at meetings")
     user_status_change_factory.create_batch(
