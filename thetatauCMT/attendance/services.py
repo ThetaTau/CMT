@@ -1,5 +1,6 @@
 """Permission, roster, and record-writing helpers for the attendance module."""
 
+from django.db.models import Count, Q
 from django.utils import timezone
 
 from .models import AttendanceRecord
@@ -90,3 +91,86 @@ def member_attendance(member):
         )
         .order_by("-event__date", "event__parent_event_id", "event__name")
     )
+
+
+# ===========================================================================
+# WI-9 — Regional / national events + attendance dashboard aggregations
+# ===========================================================================
+
+
+def top_attended_events(scope="national", limit=15):
+    """Top events by number of ``attended`` records for a dashboard scope (WI-9).
+
+    ``scope`` is one of:
+      * ``"national"``          — national (org-wide) events
+      * ``"candidate_chapter"`` — events hosted by candidate chapters
+      * any Region ``slug``     — events hosted by chapters in that region
+
+    Only events with at least one attendance record are returned, ordered by
+    attendance descending (ties broken by most recent date).
+    """
+    from thetatauCMT.events.models import Event
+
+    if scope == "national":
+        qs = Event.objects.filter(is_national=True)
+    elif scope == "candidate_chapter":
+        qs = Event.objects.filter(chapter__candidate_chapter=True)
+    else:
+        qs = Event.objects.filter(chapter__region__slug=scope)
+    return (
+        qs.annotate(
+            attended_count=Count(
+                "attendance_records",
+                filter=Q(attendance_records__status=AttendanceRecord.STATUS.ATTENDED),
+            )
+        )
+        .filter(attended_count__gt=0)
+        .select_related("chapter", "region", "type")
+        .order_by("-attended_count", "-date")[:limit]
+    )
+
+
+def national_event_chapter_breakdown(event):
+    """Per-chapter attendance percentage for ``event`` from snapshot values (WI-9).
+
+    Groups the event's attendance records by the snapshot ``chapter`` (the
+    member's home chapter at record time) and, using the ``was_active``
+    snapshot, computes for each chapter:
+
+      * ``active_on_roster`` — active members with a record for the event
+      * ``attended_active``  — active members whose record is ``attended``
+      * ``percentage``       — ``attended_active / active_on_roster`` as a percent
+                               (``0`` when a chapter has no active members on the
+                               roster, so there is never a divide-by-zero)
+
+    All counts come from the recorded snapshot, preserving historical accuracy.
+    """
+    rows = (
+        AttendanceRecord.objects.filter(event=event)
+        .values("chapter", "chapter__name", "chapter__slug")
+        .annotate(
+            active_on_roster=Count("pk", filter=Q(was_active=True)),
+            attended_active=Count(
+                "pk",
+                filter=Q(was_active=True, status=AttendanceRecord.STATUS.ATTENDED),
+            ),
+            total_records=Count("pk"),
+        )
+        .order_by("chapter__name")
+    )
+    breakdown = []
+    for row in rows:
+        denominator = row["active_on_roster"]
+        numerator = row["attended_active"]
+        breakdown.append(
+            {
+                "chapter_id": row["chapter"],
+                "chapter_name": row["chapter__name"],
+                "chapter_slug": row["chapter__slug"],
+                "attended_active": numerator,
+                "active_on_roster": denominator,
+                "total_records": row["total_records"],
+                "percentage": round(numerator / denominator * 100, 1) if denominator else 0.0,
+            }
+        )
+    return breakdown

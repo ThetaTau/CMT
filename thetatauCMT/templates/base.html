@@ -209,6 +209,7 @@
                       <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">{% trans "National" %}</a>
                       <ul class="dropdown-menu">
                         <li><a class="dropdown-item" href="{% url 'regions:detail' 'national' %}">{% trans "National Dashboard" %}</a></li>
+                        <li><a class="dropdown-item" href="{% url 'regions:event_attendance' %}">{% trans "Events &amp; Attendance Dashboard" %}</a></li>
                         <li><a class="dropdown-item" href="{% url 'scores:chapterlist' %}">{% trans "All Scores" %}</a></li>
                         <li><a class="dropdown-item" href="{% url 'events:list_all' %}">{% trans "All Events" %}</a></li>
                         <li><a class="dropdown-item" href="{% url 'events:pending' %}">{% trans "Pending Event Reviews" %}</a></li>

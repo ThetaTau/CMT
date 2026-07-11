@@ -91,3 +91,29 @@ class MemberAttendanceForm(forms.Form):
         self.fields["event"].queryset = Event.objects.filter(scope).order_by("-date", "name")
         if member is not None:
             self.fields["event"].widget.forward = [forward.Const(member.pk, "member_pk")]
+
+
+class NationalEventLookupForm(forms.Form):
+    """Type-to-search a national event for the attendance breakdown dashboard (WI-9).
+
+    Only national events are searchable/selectable — the autocomplete forwards
+    ``is_national`` and the field queryset is limited to ``Event.objects.national()``.
+    """
+
+    event = forms.ModelChoiceField(
+        queryset=Event.objects.none(),
+        required=False,
+        widget=autocomplete.ModelSelect2(
+            url="events:event-autocomplete",
+            forward=[forward.Const(True, "is_national")],
+            attrs={
+                "data-placeholder": "Type to search a national event…",
+                "data-minimum-input-length": 0,
+            },
+        ),
+        help_text="Search a national event to see its chapter-by-chapter attendance.",
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["event"].queryset = Event.objects.national().order_by("-date", "name")
