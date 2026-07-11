@@ -19,15 +19,6 @@ class EventTable(tables.Table):
             "type",
             "score",
             "description",
-            "members",
-            "pledges",
-            "alumni",
-            "duration",
-            "stem",
-            "host",
-            "virtual",
-            "miles",
-            "raised",
             "is_public",
             "parent_event",
         )
@@ -37,20 +28,11 @@ class EventTable(tables.Table):
     def __init__(self, natoff=False, *args, **kwargs):
         extra_columns = []
         if natoff:
-            remove = [
-                "score",
-                "members",
-                "pledges",
-                "alumni",
-                "duration",
-                "stem",
-                "host",
-                "virtual",
-                "miles",
-                "raised",
-            ]
+            # National Officers see chapter context instead of the score column.
+            remove = ["score"]
             for key in remove:
-                self.base_columns[key].visible = False
+                if key in self.base_columns:
+                    self.base_columns[key].visible = False
             extra_columns.extend(
                 [
                     ("chapter", tables.Column("Chapter")),

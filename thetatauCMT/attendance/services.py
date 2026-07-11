@@ -174,3 +174,51 @@ def national_event_chapter_breakdown(event):
             }
         )
     return breakdown
+
+
+def can_rsvp(user, event):
+    """Whether ``user`` may RSVP (sign up) for ``event``
+
+    Allowed only for an authenticated member, only for an **upcoming** event
+    (once the event date has passed no one may sign up — attendance can still be
+    recorded by an officer afterwards), and only for events visible to the
+    member's chapter (their own chapter's events or approved cross-chapter public
+    events — reuses the WI-2 :meth:`~EventQuerySet.visible_to_chapter` logic).
+    """
+    if not getattr(user, "is_authenticated", False):
+        return False
+    if event.date < timezone.localdate():
+        return False
+    from thetatauCMT.events.models import Event
+
+    chapter = user.current_chapter
+    if chapter is None:
+        return False
+    return Event.objects.visible_to_chapter(chapter).filter(pk=event.pk).exists()
+
+
+def rsvp_to_event(event, member):
+    """Record ``member``'s RSVP as a ``signed_up`` AttendanceRecord (WI-10).
+
+    Snapshot fields (active status, home chapter) come from
+    :func:`record_attendance`. An existing ``attended`` record is never
+    downgraded. Returns ``(record, created)``.
+    """
+    existing = AttendanceRecord.objects.filter(event=event, user=member).first()
+    if existing and existing.status == AttendanceRecord.STATUS.ATTENDED:
+        return existing, False
+    return record_attendance(event, member, AttendanceRecord.STATUS.SIGNED_UP, member)
+
+
+def cancel_rsvp(event, member):
+    """Remove a member's own RSVP (WI-10). Deletes the ``signed_up`` record only.
+
+    Attendance already marked ``attended`` / ``no_show`` by an officer is left
+    untouched — a member can only cancel their own outstanding sign-up. Returns
+    ``True`` if a sign-up was removed.
+    """
+    record = AttendanceRecord.objects.filter(event=event, user=member, status=AttendanceRecord.STATUS.SIGNED_UP).first()
+    if record is None:
+        return False
+    record.delete()
+    return True

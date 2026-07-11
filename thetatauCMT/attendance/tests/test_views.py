@@ -351,3 +351,20 @@ def test_guest_add_multiple_members_in_one_request(auto_login_user, chapter_fact
     assert AttendanceRecord.objects.filter(event=event, user=g1).exists()
     assert AttendanceRecord.objects.filter(event=event, user=g2).exists()
     assert AttendanceRecord.objects.get(event=event, user=g1).chapter_id == other.pk
+
+
+@pytest.mark.django_db
+def test_bulk_update_converts_guest_signed_up_to_attended(auto_login_user, chapter_factory):
+    """A signed-up guest can be marked attended via the bulk-update endpoint (WI-10 follow-up)."""
+    client, scribe, chapter, event, members = _setup(auto_login_user, chapter_factory, count=1)
+    other = chapter_factory.create()
+    guest = _active_member(other, name="Guest To Convert")
+    AttendanceRecordFactory.create(event=event, user=guest, chapter=other, status="signed_up", was_active=True)
+
+    response = client.post(_att_url(event, "bulk_update"), {"attended": [guest.pk]})
+
+    assert response.status_code == 302
+    record = AttendanceRecord.objects.get(event=event, user=guest)
+    assert record.status == AttendanceRecord.STATUS.ATTENDED
+    # History is preserved (append-only transition log).
+    assert record.transitions.filter(from_status="signed_up", to_status="attended").exists()

@@ -1,0 +1,27 @@
+{% comment %}
+Reusable RSVP / Cancel-RSVP control (WI-10). Parameters:
+  event            — the Event object
+  my_status        — the viewing member's status for this event
+                     ('', 'signed_up', 'attended', 'no_show')
+  member_can_rsvp  — bool; offer an RSVP button when the member hasn't signed up
+  size             — optional extra CSS classes for the button (e.g. "py-0 px-1")
+Once a member has signed up the control becomes a "Cancel RSVP" button (matching
+the event detail page); attended / no-show render a read-only badge.
+{% endcomment %}
+{% if my_status == 'signed_up' %}
+  <form method="post" action="{{ event.get_rsvp_url }}" class="d-inline">
+    {% csrf_token %}
+    <input type="hidden" name="next" value="{{ request.get_full_path }}">
+    <button type="submit" name="action" value="cancel" class="btn btn-outline-danger btn-sm {{ size }}">Cancel RSVP</button>
+  </form>
+{% elif my_status == 'attended' %}
+  <span class="badge bg-success">Attended</span>
+{% elif my_status == 'no_show' %}
+  <span class="badge bg-warning text-dark">No-show</span>
+{% elif member_can_rsvp %}
+  <form method="post" action="{{ event.get_rsvp_url }}" class="d-inline">
+    {% csrf_token %}
+    <input type="hidden" name="next" value="{{ request.get_full_path }}">
+    <button type="submit" class="btn btn-outline-success btn-sm {{ size }}">RSVP</button>
+  </form>
+{% endif %}

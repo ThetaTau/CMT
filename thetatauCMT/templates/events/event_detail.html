@@ -137,7 +137,7 @@
     </div>
   {% endif %}
 
-  {# ---- Attendance (WI-3..WI-6) ---- #}
+  {# ---- Attendance (WI-3..WI-6, RSVP WI-10) ---- #}
   <div class="d-flex flex-wrap align-items-center gap-2 mt-4">
     <h3 class="mb-0">Attendance</h3>
     {% if request.is_officer or request.is_nat_officer or user.is_superuser %}
@@ -150,7 +150,30 @@
         </a>
       {% endif %}
     {% endif %}
+    {% if my_rsvp_status == 'signed_up' %}
+      <span class="badge bg-success">You're signed up</span>
+      <form method="post" action="{{ object.get_rsvp_url }}" class="d-inline">
+        {% csrf_token %}
+        <input type="hidden" name="next" value="{{ request.get_full_path }}">
+        <button type="submit" name="action" value="cancel" class="btn btn-outline-danger btn-sm">
+          <i class="fas fa-calendar-xmark"></i> Cancel RSVP
+        </button>
+      </form>
+    {% elif my_rsvp_status == 'attended' %}
+      <span class="badge bg-success">You attended</span>
+    {% elif my_rsvp_status == 'no_show' %}
+      <span class="badge bg-warning text-dark">Marked no-show</span>
+    {% elif can_rsvp %}
+      <form method="post" action="{{ object.get_rsvp_url }}" class="d-inline">
+        {% csrf_token %}
+        <input type="hidden" name="next" value="{{ request.get_full_path }}">
+        <button type="submit" class="btn btn-success btn-sm">
+          <i class="fas fa-calendar-check"></i> RSVP / I'll attend
+        </button>
+      </form>
+    {% endif %}
   </div>
+  {% if can_view_attendance %}
   {% if attendance_records %}
     <div class="table-responsive mt-2">
       <table class="table table-striped table-bordered">
@@ -183,6 +206,11 @@
     </div>
   {% else %}
     <p class="text-body-secondary mt-2">No attendance recorded for this event.</p>
+  {% endif %}
+  {% else %}
+    <p class="text-body-secondary mt-2">
+      The attendance roster is only visible to this event's chapter officers.
+    </p>
   {% endif %}
 </div>
 {% endblock content %}

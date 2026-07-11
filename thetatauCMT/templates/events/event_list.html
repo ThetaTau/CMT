@@ -3,6 +3,7 @@
 {% load django_bootstrap5 %}
 {% load crispy_forms_tags %}
 {% load filter_tags %}
+{% load custom_tags %}
 {% load static i18n %}
 {% block title %}Events{% endblock %}
 
@@ -42,6 +43,7 @@
                     <th {{ column.attrs.th.as_html }}>{{ column.header }}</th>
                     {% endif %}
                 {% endfor %}
+                <th>RSVP</th>
               </tr>
             </thead>
             {% endblock table.thead %}
@@ -62,6 +64,7 @@
                             {{ cell }}
                           </td>
                       {% endfor %}
+                      <td>{% include "events/_rsvp_control.html" with event=row.record my_status=my_rsvp_status|lookup:row.record.pk member_can_rsvp=row.record.is_upcoming %}</td>
                   </tr>
                   {% endblock table.tbody.row %}
                 {% empty %}

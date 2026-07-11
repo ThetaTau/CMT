@@ -169,14 +169,32 @@
       {% if guest_records %}
         <hr>
         <h6>Guests recorded</h6>
-        <ul class="mb-0">
-          {% for g in guest_records %}
-            <li>
-              <a href="{% url 'users:profile' g.user.username %}">{{ g.user.name }}</a>
-              (<a href="{% url 'chapters:detail' g.chapter.slug %}">{{ g.chapter.name }}</a>) &mdash; {{ g.get_status_display }}
-            </li>
-          {% endfor %}
-        </ul>
+        <form method="post" action="{{ bulk_update_url }}">
+          {% csrf_token %}
+          <ul class="list-unstyled mb-2">
+            {% for g in guest_records %}
+              <li class="mb-1">
+                {% if g.status == 'signed_up' %}
+                  <label class="form-check-label">
+                    <input type="checkbox" class="form-check-input me-1" name="attended" value="{{ g.user.pk }}">
+                    <a href="{% url 'users:profile' g.user.username %}">{{ g.user.name }}</a>
+                    (<a href="{% url 'chapters:detail' g.chapter.slug %}">{{ g.chapter.name }}</a>)
+                    <span class="badge bg-secondary">{{ g.get_status_display }}</span>
+                  </label>
+                {% else %}
+                  <a href="{% url 'users:profile' g.user.username %}">{{ g.user.name }}</a>
+                  (<a href="{% url 'chapters:detail' g.chapter.slug %}">{{ g.chapter.name }}</a>)
+                  <span class="badge {% if g.status == 'attended' %}bg-success{% else %}bg-warning text-dark{% endif %}">{{ g.get_status_display }}</span>
+                {% endif %}
+              </li>
+            {% endfor %}
+          </ul>
+          {% if signed_up_count %}
+            <button type="submit" class="btn btn-success btn-sm">
+              <i class="fas fa-user-check"></i> Mark checked guests attended
+            </button>
+          {% endif %}
+        </form>
       {% endif %}
     </div>
   </div>

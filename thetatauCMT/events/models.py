@@ -223,6 +223,23 @@ class Event(TimeStampedModel, EmailSignalMixin):
             },
         )
 
+    def get_rsvp_url(self):
+        """Non-enumerable (date + slug) URL for a member RSVP (WI-10)."""
+        return reverse(
+            "attendance:rsvp",
+            kwargs={
+                "year": self.date.year,
+                "month": self.date.month,
+                "day": self.date.day,
+                "event_slug": self.slug,
+            },
+        )
+
+    @property
+    def is_upcoming(self):
+        """True when the event has not yet passed (RSVP is allowed, WI-10)."""
+        return self.date >= timezone.localdate()
+
     # ------------------------------------------------------------------
     # Sub-event / context helpers (WI-1)
     # ------------------------------------------------------------------

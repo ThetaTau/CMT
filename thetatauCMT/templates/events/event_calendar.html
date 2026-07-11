@@ -1,0 +1,180 @@
+{% extends "base.html" %}
+{% block title %}Events Calendar{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+    <h2 class="page-title mb-0">Events Calendar</h2>
+    <div class="ms-auto btn-group" role="group" aria-label="View toggle">
+      <button type="button" id="view-btn-calendar" onclick="setEventsView('calendar', true)"
+              class="btn btn-sm {% if view_mode == 'calendar' %}btn-primary{% else %}btn-outline-primary{% endif %}">
+        <i class="fas fa-calendar"></i> Calendar
+      </button>
+      <button type="button" id="view-btn-table" onclick="setEventsView('table', true)"
+              class="btn btn-sm {% if view_mode == 'table' %}btn-primary{% else %}btn-outline-primary{% endif %}">
+        <i class="fas fa-table"></i> Table
+      </button>
+    </div>
+  </div>
+
+  <p class="text-body-secondary">
+    Upcoming and past events you can see, your chapter's events, plus other chapters' approved
+    public events. RSVP to reserve your intent to attend an upcoming event.
+  </p>
+
+  {# ---------- Filters ---------- #}
+  <form method="get" class="row g-2 align-items-end mb-3">
+    <input type="hidden" name="month" value="{{ year }}-{{ month_padded }}">
+    <div class="col-sm-4 col-md-3">
+      <label class="form-label small mb-1" for="region-select">Region</label>
+      <select class="form-select form-select-sm" id="region-select" name="region" onchange="this.form.submit()">
+        <option value="">All regions</option>
+        {% for region in regions %}
+          <option value="{{ region.slug }}"{% if region.slug == selected_region %} selected{% endif %}>{{ region.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-sm-4 col-md-3">
+      <label class="form-label small mb-1" for="chapter-select">Chapter</label>
+      <select class="form-select form-select-sm" id="chapter-select" name="chapter" onchange="this.form.submit()">
+        <option value="">All chapters</option>
+        {% for chapter in chapters %}
+          <option value="{{ chapter.slug }}"{% if chapter.slug == selected_chapter %} selected{% endif %}>{{ chapter.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+  </form>
+
+  {# ---------- Month navigation + jump ---------- #}
+  <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
+    <a class="btn btn-outline-secondary btn-sm"
+       href="?month={{ prev_month }}&amp;region={{ selected_region }}&amp;chapter={{ selected_chapter }}">&laquo; Prev</a>
+    <div class="d-flex align-items-center gap-2">
+      <select id="jump-month-select" class="form-select form-select-sm" style="width:auto;" onchange="calendarJump()" aria-label="Month">
+        {% for val, label in month_choices %}
+          <option value="{{ val }}"{% if val == month_padded %} selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+      <select id="jump-year-select" class="form-select form-select-sm" style="width:auto;" onchange="calendarJump()" aria-label="Year">
+        {% for y in year_choices %}
+          <option value="{{ y }}"{% if y == year %} selected{% endif %}>{{ y }}</option>
+        {% endfor %}
+      </select>
+      <a class="btn btn-outline-primary btn-sm"
+         href="?month={{ today|date:'Y-m' }}&amp;region={{ selected_region }}&amp;chapter={{ selected_chapter }}">Today</a>
+    </div>
+    <a class="btn btn-outline-secondary btn-sm"
+       href="?month={{ next_month }}&amp;region={{ selected_region }}&amp;chapter={{ selected_chapter }}">Next &raquo;</a>
+  </div>
+
+  <div id="calendar-view"{% if view_mode == 'table' %} class="d-none"{% endif %}>
+    <div class="table-responsive">
+      <table class="table table-bordered mb-0" id="events-calendar" style="table-layout: fixed;">
+        <thead>
+          <tr class="text-center">
+            <th>Sun</th><th>Mon</th><th>Tue</th><th>Wed</th><th>Thu</th><th>Fri</th><th>Sat</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for week in weeks %}
+            <tr>
+              {% for cell in week %}
+                <td class="align-top {% if not cell.in_month %}bg-body-tertiary text-body-secondary{% endif %} {% if cell.is_today %}border-primary border-2{% endif %}"
+                    style="height:7rem;">
+                  <div class="small fw-semibold {% if cell.is_today %}text-primary{% endif %}">{{ cell.date.day }}</div>
+                  {% for event in cell.events %}
+                    <div class="mb-1">
+                      <a href="{{ event.get_absolute_url }}" class="d-block small text-break">
+                        {% if event.is_national %}<span class="badge bg-primary">Nat</span>{% endif %}{{ event.name }}
+                      </a>
+                      {% include "events/_rsvp_control.html" with event=event my_status=event.my_status member_can_rsvp=event.member_can_rsvp size="py-0 px-1" %}
+                    </div>
+                  {% endfor %}
+                </td>
+              {% endfor %}
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div id="table-view"{% if view_mode != 'table' %} class="d-none"{% endif %}>
+    <div class="card">
+      <div class="card-body p-0">
+        {% if events %}
+          <div class="table-responsive">
+            <table class="table table-sm table-hover align-middle mb-0" id="events-table">
+              <thead>
+                <tr><th>Date</th><th>Event</th><th>Chapter / National</th><th>RSVP</th></tr>
+              </thead>
+              <tbody>
+                {% for event in events %}
+                  <tr>
+                    <td class="text-nowrap">{{ event.date|date:"M j, Y" }}</td>
+                    <td><a href="{{ event.get_absolute_url }}">{{ event.name }}</a></td>
+                    <td>
+                      {% if event.is_national %}<span class="badge bg-primary">National</span>
+                      {% elif event.chapter %}<a href="{% url 'chapters:detail' event.chapter.slug %}">{{ event.chapter.name }}</a>
+                      {% else %}&mdash;{% endif %}
+                    </td>
+                    <td>{% include "events/_rsvp_control.html" with event=event my_status=event.my_status member_can_rsvp=event.member_can_rsvp %}</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% else %}
+          <p class="text-body-secondary p-3 mb-0">No events this month for the selected filters.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function setEventsView(view, persist) {
+  var cal = document.getElementById('calendar-view');
+  var tbl = document.getElementById('table-view');
+  if (!cal || !tbl) return;
+  var isTable = view === 'table';
+  cal.classList.toggle('d-none', isTable);
+  tbl.classList.toggle('d-none', !isTable);
+  var btnCal = document.getElementById('view-btn-calendar');
+  var btnTbl = document.getElementById('view-btn-table');
+  if (btnCal && btnTbl) {
+    btnCal.classList.toggle('btn-primary', !isTable);
+    btnCal.classList.toggle('btn-outline-primary', isTable);
+    btnTbl.classList.toggle('btn-primary', isTable);
+    btnTbl.classList.toggle('btn-outline-primary', !isTable);
+  }
+  if (persist) {
+    try { localStorage.setItem('eventsCalendarView', view); } catch (e) {}
+    try {
+      var p = new URLSearchParams(window.location.search);
+      p.set('view', view);
+      history.replaceState(null, '', window.location.pathname + '?' + p.toString());
+    } catch (e) {}
+  }
+}
+
+function calendarJump() {
+  var m = document.getElementById('jump-month-select').value;
+  var y = document.getElementById('jump-year-select').value;
+  var p = new URLSearchParams(window.location.search);
+  p.set('month', y + '-' + m);
+  window.location.search = p.toString();
+}
+
+(function () {
+  var p = new URLSearchParams(window.location.search);
+  var urlView = p.get('view');
+  var stored = null;
+  try { stored = localStorage.getItem('eventsCalendarView'); } catch (e) {}
+  var small = window.matchMedia('(max-width: 767.98px)').matches;
+  var view = urlView || stored || (small ? 'table' : 'calendar');
+  setEventsView(view, false);
+  if (urlView) { try { localStorage.setItem('eventsCalendarView', urlView); } catch (e) {} }
+})();
+</script>
+{% endblock content %}

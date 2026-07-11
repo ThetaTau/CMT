@@ -28,4 +28,6 @@ urlpatterns = [
     path(_EVENT + "update/", views.AttendanceBulkUpdateView.as_view(), name="bulk_update"),
     path(_EVENT + "rollup/", views.AttendanceRollupView.as_view(), name="rollup"),
     path(_EVENT + "guest/", views.AttendanceGuestAddView.as_view(), name="guest_add"),
+    # WI-10 — member RSVP (sign-up) for an upcoming event they can see.
+    path(_EVENT + "rsvp/", views.EventRSVPView.as_view(), name="rsvp"),
 ]

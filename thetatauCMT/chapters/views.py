@@ -130,6 +130,21 @@ class ChapterDetailView(LoginRequiredMixin, MultiFormsView):
         email_list += f", {chapter.region.email}"
         context["email_list"] = email_list
         context["group_tax_form_url"] = Config.get_value("GROUP_TAX_FORM")
+        from thetatauCMT.attendance.models import AttendanceRecord
+        from thetatauCMT.events.models import Event
+
+        public_events = (
+            Event.objects.cross_chapter_visible()
+            .filter(chapter=chapter, date__gte=timezone.localdate())
+            .select_related("type")
+            .order_by("date", "name")
+        )
+        context["public_events"] = public_events
+        context["my_rsvp_status"] = dict(
+            AttendanceRecord.objects.filter(user=self.request.user, event__in=public_events).values_list(
+                "event_id", "status"
+            )
+        )
         return context
 
     def get_form_kwargs(self, form_name, bind_form=False):

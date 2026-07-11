@@ -375,6 +375,11 @@
                         {% else %}
                           <span class="badge bg-warning text-dark">{{ rec.get_status_display }}</span>
                         {% endif %}
+                        {% if is_owner and rec.status == "signed_up" and rec.event.is_upcoming %}
+                          <div class="mt-1">
+                            {% include "events/_rsvp_control.html" with event=rec.event my_status="signed_up" member_can_rsvp=False %}
+                          </div>
+                        {% endif %}
                       </td>
                     </tr>
                   {% endfor %}

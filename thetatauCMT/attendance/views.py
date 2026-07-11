@@ -21,7 +21,15 @@ from thetatauCMT.users.models import User
 from .forms import MemberAttendanceForm, NationalAttendanceUploadForm
 from .models import AttendanceRecord, MatchQueueItem
 from .quorum import quorum_status
-from .services import active_roster_for_event, can_record_attendance, parent_attendee_roster, record_attendance
+from .services import (
+    active_roster_for_event,
+    can_record_attendance,
+    can_rsvp,
+    cancel_rsvp,
+    parent_attendee_roster,
+    record_attendance,
+    rsvp_to_event,
+)
 from .upload import ingest_attendance_csv
 
 logger = logging.getLogger(__name__)
@@ -586,3 +594,50 @@ class MemberAttendanceAddView(LoginRequiredMixin, View):
             f"Logged {member.name} as '{label}' at {event.name}.",
         )
         return HttpResponseRedirect(f"{profile_url}#attendance")
+
+
+# ===========================================================================
+# WI-10 — Cross-chapter RSVP (member intent to attend an upcoming event)
+# ===========================================================================
+
+
+class EventRSVPView(LoginRequiredMixin, View):
+    """Record a member's RSVP for an upcoming event they can see (WI-10).
+
+    Creates a ``signed_up`` AttendanceRecord (reuses WI-4 states). Respects WI-6
+    privacy — the member only ever creates their OWN record, never sees another
+    chapter's roster. Past events cannot be RSVP'd (``can_rsvp`` enforces it).
+    """
+
+    def post(self, request, *args, **kwargs):
+        event = _lookup_event(kwargs)
+        member = request.user
+        # Un-RSVP: remove the member's own outstanding sign-up.
+        if request.POST.get("action") == "cancel":
+            removed = cancel_rsvp(event, member)
+            if removed:
+                messages.add_message(request, messages.SUCCESS, f"Your RSVP for {event.name} was removed.")
+            else:
+                messages.add_message(request, messages.INFO, "You had no active RSVP to remove.")
+            return self._redirect(request, event)
+        if not can_rsvp(member, event):
+            messages.add_message(
+                request,
+                messages.ERROR,
+                "RSVP is only available for upcoming events you have access to.",
+            )
+            return self._redirect(request, event)
+        record, _ = rsvp_to_event(event, member)
+        if record.status == AttendanceRecord.STATUS.ATTENDED:
+            messages.add_message(request, messages.INFO, f"You are already recorded as attended for {event.name}.")
+        else:
+            messages.add_message(request, messages.SUCCESS, f"You're signed up for {event.name}.")
+        return self._redirect(request, event)
+
+    def _redirect(self, request, event):
+        nxt = request.POST.get("next")
+        if nxt and url_has_allowed_host_and_scheme(
+            nxt, allowed_hosts={request.get_host()}, require_https=request.is_secure()
+        ):
+            return HttpResponseRedirect(nxt)
+        return HttpResponseRedirect(event.get_absolute_url())

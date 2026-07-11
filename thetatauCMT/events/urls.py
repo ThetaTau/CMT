@@ -6,6 +6,8 @@ app_name = "events"
 urlpatterns = [
     path("", views.EventListView.as_view(), name="list"),
     path("all/", views.EventListAllView.as_view(), name="list_all"),
+    # WI-10 — cross-chapter public events calendar (any member).
+    path("calendar/", views.EventCalendarView.as_view(), name="calendar"),
     path("pending/", views.EventPendingListView.as_view(), name="pending"),
     path("approve/<int:pk>/", views.EventApproveView.as_view(), name="approve"),
     path("reject/<int:pk>/", views.EventRejectView.as_view(), name="reject"),

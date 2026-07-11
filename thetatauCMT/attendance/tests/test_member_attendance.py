@@ -336,7 +336,9 @@ def test_event_detail_attendance_links_member_and_chapter(auto_login_user, chapt
     event = _chapter_event(chapter, "Detail Link Event")
     member = UserFactory.create(chapter=chapter, name="Detail Attendee")
     _attend(event, member)
-    client, _ = auto_login_user(user=UserFactory.create(name="Detail Viewer"))
+    # The roster is only visible to the event's own chapter (WI-10 privacy), so
+    # the viewer must be a member of that chapter to see the linked table.
+    client, _ = auto_login_user(user=UserFactory.create(chapter=chapter, name="Detail Viewer"))
 
     response = client.get(event.get_absolute_url())
 
