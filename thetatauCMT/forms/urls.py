@@ -49,6 +49,11 @@ urlpatterns = [
         name="pledge_program_list",
     ),
     path(
+        "pledge-program-request-revision/<int:process_pk>/",
+        view=views.pledge_program_request_revision,
+        name="pledge_program_request_revision",
+    ),
+    path(
         "pledgeprogram-detail/<int:pk>/",
         view=views.PledgeProgramProcessDetailView.as_view(),
         name="pledge_program_detail",

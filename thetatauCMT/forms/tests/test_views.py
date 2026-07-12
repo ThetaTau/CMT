@@ -1013,6 +1013,114 @@ def test_pledge_program_list_region_candidate_chapter(auto_login_user):
     assert response.status_code == 200
 
 
+# ─── pledge_program_request_revision (natoff NME revise-and-resubmit email) ────
+
+
+@pytest.mark.django_db
+def test_pledge_program_request_revision_sends_email(auto_login_user):
+    """Natoff POST emails the chapter's executive board and redirects."""
+    from unittest.mock import MagicMock, patch
+
+    from thetatauCMT.forms.flows import PledgeProgramProcessFlow
+    from thetatauCMT.forms.models import PledgeProgramProcess
+
+    client, user = auto_login_user()
+    _add_to_group(user, "natoff")
+    process = PledgeProgramProcess.objects.create(
+        chapter=user.chapter,
+        flow_class=PledgeProgramProcessFlow,
+        approval_comments="Please add a schedule.",
+    )
+    url = reverse(
+        "forms:pledge_program_request_revision",
+        kwargs={"process_pk": process.pk},
+    )
+    with patch("thetatauCMT.forms.views.GenericEmail") as MockEmail:
+        MockEmail.return_value.send = MagicMock()
+        response = client.post(url, follow=True)
+    assert response.status_code == 200
+    MockEmail.assert_called_once()
+    _args, kwargs = MockEmail.call_args
+    # Executive-board recipients come from Chapter.council_emails(); the
+    # factory sets a generic chapter email so the set is non-empty.
+    assert user.chapter.email in kwargs["emails"]
+    assert "revise and resubmit" in kwargs["message"]
+    MockEmail.return_value.send.assert_called_once()
+
+
+@pytest.mark.django_db
+def test_pledge_program_request_revision_requires_natoff(auto_login_user):
+    """A non-natoff authenticated user is redirected and no email is sent."""
+    from unittest.mock import patch
+
+    from thetatauCMT.forms.flows import PledgeProgramProcessFlow
+    from thetatauCMT.forms.models import PledgeProgramProcess
+
+    client, user = auto_login_user()
+    process = PledgeProgramProcess.objects.create(
+        chapter=user.chapter,
+        flow_class=PledgeProgramProcessFlow,
+    )
+    url = reverse(
+        "forms:pledge_program_request_revision",
+        kwargs={"process_pk": process.pk},
+    )
+    with patch("thetatauCMT.forms.views.GenericEmail") as MockEmail:
+        response = client.post(url)
+    assert response.status_code == 302
+    MockEmail.assert_not_called()
+
+
+@pytest.mark.django_db
+def test_pledge_program_request_revision_get_not_allowed(auto_login_user):
+    """The endpoint is POST-only (require_POST → 405 for natoff GET)."""
+    from thetatauCMT.forms.flows import PledgeProgramProcessFlow
+    from thetatauCMT.forms.models import PledgeProgramProcess
+
+    client, user = auto_login_user()
+    _add_to_group(user, "natoff")
+    process = PledgeProgramProcess.objects.create(
+        chapter=user.chapter,
+        flow_class=PledgeProgramProcessFlow,
+    )
+    url = reverse(
+        "forms:pledge_program_request_revision",
+        kwargs={"process_pk": process.pk},
+    )
+    response = client.get(url)
+    assert response.status_code == 405
+
+
+@pytest.mark.django_db
+def test_pledge_program_list_renders_revision_button(auto_login_user):
+    """A submitted program (with a process) renders the first-column button
+    linking to its own revision-request URL."""
+    from thetatauCMT.forms.flows import PledgeProgramProcessFlow
+    from thetatauCMT.forms.models import PledgeProgramProcess
+    from thetatauCMT.forms.tests.factories import PledgeProgramFactory
+
+    client, user = auto_login_user()
+    _add_to_group(user, "natoff")
+    program = PledgeProgramFactory.create(chapter=user.current_chapter)
+    process = PledgeProgramProcess.objects.create(
+        chapter=user.current_chapter,
+        program=program,
+        flow_class=PledgeProgramProcessFlow,
+    )
+    url = reverse("forms:pledge_program_list")
+    response = client.get(url, {"year": program.year, "term": program.term})
+    assert response.status_code == 200
+    content = response.content.decode()
+    assert "Request Revisions" in content
+    assert (
+        reverse(
+            "forms:pledge_program_request_revision",
+            kwargs={"process_pk": process.pk},
+        )
+        in content
+    )
+
+
 # ─── cancel param tests (additional views) ────────────────────────────────────
 
 

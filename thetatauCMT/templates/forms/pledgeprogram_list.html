@@ -87,5 +87,27 @@
     {% endblock pagination %}
   </div>
 {% endif %}
+<form id="pledge-program-notify-form" method="post" class="d-none">
+  {% csrf_token %}
+</form>
+<script>
+  document.addEventListener("click", function (e) {
+    var btn = e.target.closest(".pledge-program-notify");
+    if (!btn) {
+      return;
+    }
+    var chapter = btn.dataset.chapter || "this chapter";
+    var confirmed = confirm(
+      "Email the " + chapter + " executive board that comments have been added to " +
+      "their NME program and it must be revised and resubmitted?"
+    );
+    if (!confirmed) {
+      return;
+    }
+    var form = document.getElementById("pledge-program-notify-form");
+    form.action = btn.dataset.notifyUrl;
+    form.submit();
+  });
+</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/1.5.10/clipboard.min.js"></script>
 {% endblock content %}

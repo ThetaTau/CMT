@@ -24,6 +24,7 @@ from django.urls import reverse
 from django.utils import timezone
 from django.utils.safestring import mark_safe
 from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_POST
 from django.views.generic import DetailView, TemplateView, UpdateView
 from django.views.generic.edit import CreateView, FormView, ModelFormMixin
 from django_weasyprint import WeasyTemplateResponseMixin
@@ -1456,6 +1457,56 @@ class PledgeProgramListView(LoginRequiredMixin, NatOfficerRequiredMixin, PagedFi
             [email for chapter_emails in chapter_officer_emails.values() for email in chapter_emails]
         )
         return context
+
+
+@group_required("natoff")
+@require_POST
+def pledge_program_request_revision(request, process_pk):
+    """Email a chapter's executive board that their NME (New Member Education)
+    program has review comments and must be revised and resubmitted.
+
+    The viewflow/Google-sheets notification is unreliable, so this gives a
+    national officer a one-click, on-demand reminder from the program list.
+    """
+    process = PledgeProgramProcess.objects.filter(pk=process_pk).select_related("chapter", "chapter__region").first()
+    redirect_to = request.META.get("HTTP_REFERER") or reverse("forms:pledge_program_list")
+    if process is None:
+        messages.add_message(request, messages.ERROR, "Requested pledge program could not be found.")
+        return HttpResponseRedirect(redirect_to)
+    chapter = process.chapter
+    recipients = chapter.council_emails()
+    if not recipients:
+        messages.add_message(
+            request,
+            messages.ERROR,
+            f"No executive board emails on file for {chapter}; email could not be sent.",
+        )
+        return HttpResponseRedirect(redirect_to)
+    if chapter.nme_file_id and chapter.nme_file_id != "none":
+        program_link = (
+            f"<a href='https://docs.google.com/document/d/{chapter.nme_file_id}/edit' "
+            "target='_blank'>New Member Education Program</a>"
+        )
+    else:
+        program_link = "your New Member Education program"
+    message = (
+        "Comments have been added to your NME program, please revise and resubmit.<br><br>" f"Program: {program_link}"
+    )
+    if process.approval_comments:
+        message += f"<br><br>Reviewer comments:<br>{process.approval_comments}"
+    GenericEmail(
+        emails=recipients,
+        cc={"central.office@thetatau.org", chapter.region.email},
+        addressee=f"{chapter.full_name} Officers",
+        subject=f"[CMT] NME Program Revisions Requested for {chapter}",
+        message=mark_safe(message),
+    ).send()
+    messages.add_message(
+        request,
+        messages.INFO,
+        f"Revision request emailed to the {chapter} executive board.",
+    )
+    return HttpResponseRedirect(redirect_to)
 
 
 class AuditFormView(LoginRequiredMixin, OfficerRequiredMixin, UpdateView):

@@ -103,6 +103,11 @@ class AuditTable(tables.Table):
 
 
 class PledgeProgramTable(tables.Table):
+    notify = tables.TemplateColumn(
+        template_name="forms/pledge_program_notify_button.html",
+        verbose_name="Revisions",
+        orderable=False,
+    )
     date_start = tables.DateColumn(verbose_name="Start Date")
     date_complete = tables.DateColumn(verbose_name="Complete Date")
     date_initiation = tables.DateColumn(verbose_name="Initiation Date")
@@ -119,6 +124,7 @@ class PledgeProgramTable(tables.Table):
         order_by = "chapter"
         attrs = {"class": "table table-striped table-bordered"}
         fields = [
+            "notify",
             "chapter_name",
             "region",
             "school",
