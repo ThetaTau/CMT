@@ -9,6 +9,26 @@
 {% block content %}
 <div class="page-header d-flex flex-wrap align-items-center gap-2 mb-3">
   <h2 class="page-title mb-0">Members</h2>
+  {% if request.user.is_officer %}
+    <div class="page-actions d-flex flex-wrap align-items-center gap-2 ms-auto">
+      {# Download CSV: re-submit the current filter querystring so the export matches what is on screen. #}
+      <form action="" method="GET" class="d-inline m-0">
+        {% for key, values in request.GET.lists %}{% if key != "csv" and key != "email" and key != "page" %}{% for v in values %}<input type="hidden" name="{{ key }}" value="{{ v }}">{% endfor %}{% endif %}{% endfor %}
+        <button type="submit" name="csv" value="Download CSV"
+                class="btn btn-outline-secondary"
+                data-bs-toggle="tooltip"
+                title="Download the members currently shown by your filter as a CSV spreadsheet.">
+          <i class="fa fa-download"></i> Download CSV
+        </button>
+      </form>
+      {# Email ALL: open a modal that spells out exactly which email is sent before anything goes out. #}
+      <button type="button" class="btn btn-danger"
+              data-bs-toggle="modal" data-bs-target="#emailAllModal"
+              title="Email every member in the current filter a request to complete their RMP and update their profile info.">
+        <i class="fa fa-envelope"></i> Email RMP &amp; Info Update to ALL
+      </button>
+    </div>
+  {% endif %}
 </div>
 {#  {% render_table table %}#}
 {% if table.page %}
@@ -83,28 +103,57 @@
     {% endblock pagination %}
   </div>
 {% endif %}
+{% if request.user.is_officer %}
+  {# Confirmation modal describing exactly what the "Email ALL" action does before it fires. #}
+  <div class="modal fade" id="emailAllModal" tabindex="-1" aria-labelledby="emailAllModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+      <form action="" method="GET">
+        {% for key, values in request.GET.lists %}{% if key != "csv" and key != "email" and key != "page" %}{% for v in values %}<input type="hidden" name="{{ key }}" value="{{ v }}">{% endfor %}{% endif %}{% endfor %}
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="emailAllModalLabel">
+              <i class="fa fa-envelope text-danger"></i> Email RMP &amp; Info Update to ALL
+            </h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <p>
+              This sends the standard
+              <strong>&ldquo;RMP &amp; Update Member Information&rdquo;</strong> email to
+              <strong>{{ object_list|length }}</strong> member{{ object_list|length|pluralize }}
+              currently shown by your filter. Members without an email on file are skipped.
+            </p>
+            <p class="mb-1">The email asks each member to log in to the CMT and:</p>
+            <ul class="mb-3">
+              <li>Complete the <strong>Risk Management Policies (RMP)</strong> agreement for this term.</li>
+              <li>Verify and update their contact info, GPA, service hours, and external organizations on their profile.</li>
+            </ul>
+            <p class="mb-0 text-muted">
+              Replies come back to your email address. This is <strong>not</strong> a task reminder and does not
+              include a custom message &mdash; it only sends the RMP &amp; member-info update request. If you want to
+              reach a smaller group, close this and narrow the filter first.
+            </p>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" name="email" value="Email ALL" class="btn btn-danger">
+              <i class="fa fa-envelope"></i> Send to {{ object_list|length }} member{{ object_list|length|pluralize }}
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+{% endif %}
 {% endblock content %}
 {% block javascript %}
 {{ block.super }}
   <script type="text/javascript">
     $(function () {
-      let officer = {{ request.user.is_officer|yesno:"true,false" }};
-      if (officer) {
-        document.getElementById("email-all").style.display = "inline-block";
-        document.getElementById("download-csv").style.display = "inline-block";
-      }
-      $("#email-all").click(function (event) {
-        let count = {{ object_list|length|slugify }};
-        var c = confirm("This will email " + count + " members, Do you want to continue?");
-        // Of course, the following could be shortened to "return c;"
-        if (c == true) {
-          return true;
-        } else {
-          return false;
-        }
+      // Bootstrap 5 tooltips are opt-in; enable them for the member-list action buttons.
+      document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(function (el) {
+        new bootstrap.Tooltip(el);
       });
-
-      ;
-    })
+    });
   </script>
 {% endblock %}
