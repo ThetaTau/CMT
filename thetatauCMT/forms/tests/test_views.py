@@ -2867,6 +2867,37 @@ def test_download_all_rollbook_officer_empty_roll_returns_zip(auto_login_user):
     assert "zip" in response.get("Content-Type", "").lower()
 
 
+# ─── RollBookPDFView template selection ───────────────────────────────────────
+
+
+@pytest.mark.django_db
+def test_rollbook_pdf_view_uses_chartered_template_for_chartered_chapter():
+    """Chartered (non-candidate) chapters roll members on the standard form."""
+    from thetatauCMT.forms.views import RollBookPDFView
+    from thetatauCMT.users.tests.factories import UserFactory
+
+    chapter = ChapterFactory(candidate_chapter=False)
+    user = UserFactory(chapter=chapter)
+    view = RollBookPDFView()
+    view.object = user
+
+    assert view.get_template_names() == ["forms/rollbook_pdf.html"]
+
+
+@pytest.mark.django_db
+def test_rollbook_pdf_view_uses_candidate_template_for_candidate_chapter():
+    """Candidate chapters automatically render the candidate roll template."""
+    from thetatauCMT.forms.views import RollBookPDFView
+    from thetatauCMT.users.tests.factories import UserFactory
+
+    chapter = ChapterFactory(candidate_chapter=True)
+    user = UserFactory(chapter=chapter)
+    view = RollBookPDFView()
+    view.object = user
+
+    assert view.get_template_names() == ["forms/rollbook_candidate_pdf.html"]
+
+
 # ─── DisciplinaryCreateView GET (lines 2756-2759) ─────────────────────────────
 
 

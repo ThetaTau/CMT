@@ -1197,6 +1197,15 @@ class BillOfRightsPDFView(PDFTemplateResponseMixin, BillOfRightsDetailView):
 class RollBookPDFView(LoginRequiredMixin, OfficerRequiredMixin, WeasyTemplateResponseMixin, DetailView):
     model = User
     template_name = "forms/rollbook_pdf.html"
+    candidate_template_name = "forms/rollbook_candidate_pdf.html"
+
+    def get_template_names(self):
+        # Candidate chapters roll their members on a different form than
+        # chartered chapters — pick the template from the member's chapter.
+        chapter = getattr(self.object, "chapter", None)
+        if chapter is not None and chapter.candidate_chapter:
+            return [self.candidate_template_name]
+        return [self.template_name]
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
