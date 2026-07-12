@@ -10,6 +10,19 @@ from thetatauCMT.chapters.models import Chapter
 from thetatauCMT.scores.models import ScoreChapter, ScoreType
 from thetatauCMT.users.models import UserOrgParticipate, UserSemesterGPA, UserSemesterServiceHours
 
+# Score types whose value this command computes directly (from membership /
+# service-hour / GPA / org data), rather than by summing Event/Submission rows.
+# They must be excluded from the end-of-year Event/Sub recompute below, otherwise
+# that recompute would overwrite them with 0 (e.g. "service-hours" is type Evt but
+# its events always score 0 because the real hours live on the membership tab).
+COMMAND_COMPUTED_SLUGS = [
+    "pledge-ratio",
+    "membership",
+    "service-hours",
+    "gpa",
+    "societies",
+]
+
 
 class Command(BaseCommand):
     # Show this when the user types help
@@ -160,5 +173,7 @@ class Command(BaseCommand):
                     # print("            ", obj.score)
 
                 # Only needs to be done once per year
-                for score_type in ScoreType.objects.filter(type__in=["Evt", "Sub"]):
+                for score_type in ScoreType.objects.filter(type__in=["Evt", "Sub"]).exclude(
+                    slug__in=COMMAND_COMPUTED_SLUGS
+                ):
                     score_type.update_chapter_score(chapter, date)

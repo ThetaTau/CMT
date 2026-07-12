@@ -17,6 +17,7 @@ from core.models import (
     BIENNIUM_START_DATE,
     CHAPTER_OFFICER_CHOICES,
     TimeStampedModel,
+    YearTermModel,
     semester_encompass_start_end_date,
     user_is_national_officer,
 )
@@ -370,12 +371,14 @@ class Event(TimeStampedModel, EmailSignalMixin):
     @classmethod
     def calculate_meeting_attendance(cls, chapter, date):
         meeting_type = ScoreType.objects.get(name="Attendance at meetings")
-        semester_start, semester_end = semester_encompass_start_end_date(date)
+        # Use the same half-open semester window as scoring (ScoreType.chapter_events)
+        # so a meeting is grouped into the same term it is scored in.
+        semester_start, semester_end = YearTermModel.date_range(date)
         events = cls.objects.filter(
             chapter=chapter,
             type=meeting_type,
-            date__lte=semester_end,
             date__gte=semester_start,
+            date__lt=semester_end,
         )
         total_percent = 0
         for event in events:

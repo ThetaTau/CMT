@@ -1,4 +1,5 @@
 import datetime
+from collections import defaultdict
 from enum import Enum
 
 from django.db import models
@@ -58,7 +59,9 @@ class ScoreType(models.Model):
             qs = self.events.filter(chapter=chapter).all()
         else:
             date_start, date_end = YearTermModel.date_range(date)
-            qs = self.events.filter(chapter=chapter, date__gt=date_start, date__lt=date_end).all()
+            # Half-open [start, end) so an event on the exact semester boundary
+            # (Jul 1 / Jan 1) is counted in exactly one semester, never dropped.
+            qs = self.events.filter(chapter=chapter, date__gte=date_start, date__lt=date_end).all()
         return qs
 
     def chapter_submissions(self, chapter, date=None):
@@ -66,7 +69,9 @@ class ScoreType(models.Model):
             qs = self.submissions.filter(chapter=chapter).all()
         else:
             date_start, date_end = YearTermModel.date_range(date)
-            qs = self.submissions.filter(chapter=chapter, date__gt=date_start, date__lt=date_end).all()
+            # Half-open [start, end) so a submission on the exact semester
+            # boundary is counted in exactly one semester, never dropped.
+            qs = self.submissions.filter(chapter=chapter, date__gte=date_start, date__lt=date_end).all()
         return qs
 
     def chapter_score(self, chapter, date=None):
@@ -96,36 +101,35 @@ class ScoreType(models.Model):
         if start_year is None:
             start_year = BIENNIUM_YEARS[0]
         start_year = int(start_year)
-        scores_values = qs.filter(
+        # A biennium has four scored terms; map each (year, term) to a column.
+        # Spring of the start year and Fall of the final year belong to the
+        # neighboring biennia and are intentionally left out.
+        biennium_slots = {
+            (start_year, "fa"): "score1",
+            (start_year + 1, "sp"): "score2",
+            (start_year + 1, "fa"): "score3",
+            (start_year + 2, "sp"): "score4",
+        }
+        # Pull every chapter score for this chapter in one query and bucket it
+        # by score type id and biennium column.
+        scores_by_type = defaultdict(dict)
+        chapter_scores = qs.filter(
             chapters__chapter=chapter,
             chapters__year__gte=start_year,
             chapters__year__lte=start_year + 2,
-        ).values("chapters__year", "chapters__score", "chapters__term", "id")
-        score_values_ids = set(scores_values.values_list("id", flat=True))
-        score_types = qs.all().values("type", "points", "section", "description", "name", "slug", "id")
+        ).values("id", "chapters__year", "chapters__term", "chapters__score")
+        for row in chapter_scores:
+            slot = biennium_slots.get((row["chapters__year"], row["chapters__term"]))
+            if slot is not None:
+                scores_by_type[row["id"]][slot] = row["chapters__score"]
         score_types_out = []
-        for score_info in score_types:
-            if score_info["id"] in score_values_ids:
-                for score_value in scores_values.filter(id=score_info["id"]):
-                    year = score_value["chapters__year"] - start_year
-                    term = score_value["chapters__term"]
-                    # if year = 0 or 2 continue
-                    offset = {0: 1, 2: 4}
-                    if year in offset:
-                        if year == 0 and term == "sp":
-                            continue
-                        elif year == 2 and term == "fa":
-                            continue
-                        offset = offset[year]
-                    else:
-                        offset = {"fa": 3, "sp": 2}[term]
-                    score_info[f"score{offset}"] = score_value["chapters__score"]
+        for score_info in qs.values("type", "points", "section", "description", "name", "slug", "id"):
+            slot_scores = scores_by_type.get(score_info["id"], {})
             total = 0.0
-            for key in ["score1", "score2", "score3", "score4"]:
-                if key not in score_info:
-                    score_info[key] = 0.0
-                else:
-                    total += score_info[key]
+            for slot in ("score1", "score2", "score3", "score4"):
+                value = slot_scores.get(slot, 0.0)
+                score_info[slot] = value
+                total += value
             score_info["total"] = total
             score_types_out.append(score_info)
         return score_types_out
@@ -219,24 +223,21 @@ class ScoreType(models.Model):
         score = self.chapter_score(chapter, date)
         date_opp = datetime.date(year_opp, month, 1)
         score_opp = self.chapter_score(chapter, date_opp)
-        # the score is the term score
-        #   max for year is the self.points
-        #   max for semester is self.term_points
-        total_points_year = score + score_opp
-        if total_points_year > self.points:
-            # Some scores allow all points to be earned in one semester
-            # should not go over max for year
-            # eg. if max is 100, 60 in fall and 80 in spring
-            #       will allow 60 in fall and sum-max
-            #           spring = max - fall
-            #           spring = 100 - 60 = 40
-            if term == "sp":
-                # the current spring semester will be limited
-                limited_points = self.points - score_opp
-                score = limited_points
-            else:
-                limited_points = self.points - score
-                score_opp = limited_points
+        # Each term is already capped at self.term_points by chapter_score.
+        # An academic year is a Fall term plus the following Spring term, and the
+        # two together may not exceed self.points. Fall keeps its full value and
+        # Spring is trimmed to whatever room is left (never below zero). This is
+        # symmetric, so the stored values are stable no matter which term is saved.
+        if term == "fa":
+            fall_score, spring_score = score, score_opp
+        else:
+            fall_score, spring_score = score_opp, score
+        if fall_score + spring_score > self.points:
+            spring_score = max(self.points - fall_score, 0)
+        if term == "fa":
+            score, score_opp = fall_score, spring_score
+        else:
+            score, score_opp = spring_score, fall_score
         try:
             score_chapter = self.chapters.get(chapter=chapter, year=year, term=term)
         except ScoreChapter.DoesNotExist:
@@ -290,7 +291,7 @@ class ScoreChapter(YearTermModel):
         return grouped_scores.values()
 
     def update_score(self):
-        date = self.get_date()
-        score_val = self.type.chapter_score(self.chapter, date)
-        self.score = score_val
-        self.save()
+        # Delegate to the single source of truth so the same term + year caps
+        # are applied everywhere a chapter score is (re)computed.
+        self.type.update_chapter_score(self.chapter, self.get_date())
+        self.refresh_from_db()
