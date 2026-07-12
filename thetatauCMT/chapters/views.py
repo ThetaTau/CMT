@@ -126,8 +126,18 @@ class ChapterDetailView(LoginRequiredMixin, MultiFormsView):
         majors = chapter.curricula.filter(approved=True).order_by("major")
         major_table = ChapterCurriculaTable(data=majors)
         context["majors"] = major_table
-        email_list = ", ".join([x.email for x in chapter_officers])
-        email_list += f", {chapter.region.email}"
+        # Personal officer emails + region email + the chapter's generic officer
+        # mailboxes (regent/vice regent/treasurer/scribe/corresponding secretary
+        # plus the general chapter address), deduped and blanks dropped.
+        email_parts = [officer.email for officer in chapter_officers]
+        email_parts.extend(chapter.get_generic_chapter_emails())
+        seen = set()
+        deduped_emails = []
+        for email in email_parts:
+            if email and email not in seen:
+                seen.add(email)
+                deduped_emails.append(email)
+        email_list = ", ".join(deduped_emails)
         context["email_list"] = email_list
         context["group_tax_form_url"] = Config.get_value("GROUP_TAX_FORM")
         from thetatauCMT.attendance.models import AttendanceRecord

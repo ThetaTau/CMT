@@ -85,6 +85,43 @@ def test_collect_picks_highest_priority_role_when_user_holds_multiple():
 
 
 @pytest.mark.django_db
+def test_collect_includes_chapter_generic_email_for_role():
+    chapter = ChapterFactory.create(greek="G", email_regent="regent@generic.example.com")
+    user = UserFactory.create(
+        chapter=chapter,
+        first_name="Gwen",
+        last_name="Officer",
+        email="gwen@example.com",
+    )
+    _assign_role(user, "regent")
+    contacts, _ = collect_region_officer_contacts(chapter.region.slug)
+    mine = next(c for c in contacts if c.user_pk == user.pk)
+    # The chapter's generic mailbox for the regent role is tied to the contact.
+    assert mine.generic_emails == ["regent@generic.example.com"]
+    # ``emails`` keeps the personal address first and appends the generic one.
+    assert mine.emails[0] == "gwen@example.com"
+    assert mine.emails[-1] == "regent@generic.example.com"
+
+
+@pytest.mark.django_db
+def test_collect_generic_emails_cover_all_synced_roles_held():
+    chapter = ChapterFactory.create(
+        greek="H",
+        email_regent="regent@h.example.com",
+        email_treasurer="treasurer@h.example.com",
+    )
+    user = UserFactory.create(chapter=chapter, first_name="Multi", last_name="Gen", email="multi@example.com")
+    _assign_role(user, "treasurer")
+    _assign_role(user, "regent")
+    contacts, _ = collect_region_officer_contacts(chapter.region.slug)
+    mine = next(c for c in contacts if c.user_pk == user.pk)
+    assert "regent@h.example.com" in mine.generic_emails
+    assert "treasurer@h.example.com" in mine.generic_emails
+    assert "regent@h.example.com" in mine.emails
+    assert "treasurer@h.example.com" in mine.emails
+
+
+@pytest.mark.django_db
 def test_collect_returns_empty_for_unknown_region_slug():
     contacts, name = collect_region_officer_contacts("does-not-exist")
     assert contacts == []

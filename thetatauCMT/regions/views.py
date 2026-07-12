@@ -53,11 +53,12 @@ class RegionOfficerView(LoginRequiredMixin, NatOfficerRequiredMixin, DetailView)
             response["Content-Disposition"] = f'attachment; filename="{filename}"'
             writer = csv.writer(response)
             emails = context["email_list"]
+            email_generic_map = context.get("email_generic_map", {})
             if emails != "":
-                writer.writerow(context["table"].columns.names())
+                writer.writerow(list(context["table"].columns.names()) + ["Generic Officer Email"])
                 for row in context["table"].as_values():
                     if row[4] and row[4] in emails:
-                        writer.writerow(row)
+                        writer.writerow(list(row) + [email_generic_map.get(row[4], "")])
                 return response
             else:
                 messages.add_message(
@@ -103,7 +104,34 @@ class RegionOfficerView(LoginRequiredMixin, NatOfficerRequiredMixin, DetailView)
             all_chapter_officers = chapter_officers | all_chapter_officers
         self.filter = self.filter_class(request_get, queryset=all_chapter_officers, request=self.request)
         self.filter.form.helper = self.formhelper_class()
-        email_list = ", ".join([x[0] for x in self.filter.qs.values_list("email").distinct()])
+        # Personal officer emails plus each officer's chapter generic mailbox(es)
+        # for the role(s) they hold (e.g. the regent contributes the chapter's
+        # ``email_regent``). ``email_generic_map`` keeps the association so the
+        # CSV export can render the generic address alongside each officer.
+        chapter_map = {chapter.pk: chapter for chapter in chapters}
+        personal_emails = []
+        generic_emails = []
+        email_generic_map = {}
+        for email, chapter_id, roles in self.filter.qs.values_list("email", "chapter_id", "current_roles").distinct():
+            if email:
+                personal_emails.append(email)
+            chapter_obj = chapter_map.get(chapter_id)
+            officer_generics = []
+            if chapter_obj and roles:
+                for role in roles:
+                    generic = chapter_obj.generic_email_for_role(role)
+                    if generic and generic not in officer_generics:
+                        officer_generics.append(generic)
+            generic_emails.extend(officer_generics)
+            if email and officer_generics:
+                email_generic_map[email] = "; ".join(officer_generics)
+        seen = set()
+        combined_emails = []
+        for email in personal_emails + generic_emails:
+            if email and email not in seen:
+                seen.add(email)
+                combined_emails.append(email)
+        email_list = ", ".join(combined_emails)
         self.filter.form.fields["chapter"].queryset = chapters
         admin = self.request.user.is_superuser
         table = UserTable(
@@ -123,6 +151,7 @@ class RegionOfficerView(LoginRequiredMixin, NatOfficerRequiredMixin, DetailView)
         context["table"] = table
         context["filter"] = self.filter
         context["email_list"] = email_list
+        context["email_generic_map"] = email_generic_map
         context["view_type"] = "Officers"
         context.update(_contact_sync_context(self.request, self.object))
         return context

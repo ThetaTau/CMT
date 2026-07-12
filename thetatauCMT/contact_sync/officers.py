@@ -112,6 +112,10 @@ class OfficerContact:
     phone: str = ""
     user_pk: int | None = None
     extra_roles: list[str] = field(default_factory=list)
+    # Generic chapter mailbox(es) tied to this officer's role(s), e.g. the
+    # chapter's ``email_regent`` address for the regent. Empty for national
+    # officers (they have no chapter-scoped generic mailbox).
+    generic_emails: list[str] = field(default_factory=list)
 
     @property
     def display_name(self) -> str:
@@ -127,14 +131,16 @@ class OfficerContact:
 
     @property
     def emails(self) -> list[str]:
-        """Return primary email + school email, in that order, deduped.
+        """Return primary email + school email + generic role mailbox(es), deduped.
 
-        Preserves both so the QA'ing officer can visually confirm we push
-        both the personal address and the ``.edu`` on file.
+        Preserves the member's personal address and the ``.edu`` on file, then
+        appends any chapter generic mailbox(es) associated with the officer's
+        role(s) (e.g. the chapter ``email_regent`` for the regent) so the sync
+        pushes those extra addresses onto the same contact card.
         """
         seen: set[str] = set()
         out: list[str] = []
-        for value in (self.email, self.email_school):
+        for value in (self.email, self.email_school, *self.generic_emails):
             value = (value or "").strip()
             if value and value.lower() not in seen:
                 seen.add(value.lower())
@@ -187,6 +193,13 @@ def _officers_for_chapter(chapter: Chapter) -> list[OfficerContact]:
         primary, extras = _pick_primary_role(user.current_roles, SYNCED_OFFICER_ROLES)
         if not primary:
             continue
+        # Collect the chapter's generic mailbox(es) for every synced role this
+        # officer holds (primary + extras) so the sync ties them to this card.
+        generic_emails: list[str] = []
+        for role in (primary, *extras):
+            generic = chapter.generic_email_for_role(role)
+            if generic and generic not in generic_emails:
+                generic_emails.append(generic)
         contacts.append(
             OfficerContact(
                 chapter_abbr=chapter_abbr,
@@ -203,6 +216,7 @@ def _officers_for_chapter(chapter: Chapter) -> list[OfficerContact]:
                 phone=(user.phone_number or "").strip(),
                 user_pk=user.pk,
                 extra_roles=extras,
+                generic_emails=generic_emails,
             )
         )
     return contacts

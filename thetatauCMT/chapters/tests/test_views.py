@@ -28,6 +28,24 @@ def test_chapter_detail_view(auto_login_user):
     assert f"{chapter.region} Region" in content
 
 
+@pytest.mark.django_db
+def test_chapter_detail_email_list_includes_generic_emails(auto_login_user):
+    """The "Copy emails" list also includes the chapter generic officer emails."""
+    client, user = auto_login_user()
+    chapter = ChapterFactory()
+    # Set explicitly (not via factory kwargs) so a ChapterFactory name collision
+    # returning an existing chapter can't drop the generic mailbox values.
+    chapter.email_regent = "regent@generic.example.com"
+    chapter.email_treasurer = "treasurer@generic.example.com"
+    chapter.save(update_fields=["email_regent", "email_treasurer"])
+    url = reverse("chapters:detail", kwargs={"slug": chapter.slug})
+    response = client.get(url, follow=True)
+    assert response.status_code == 200
+    email_list = response.context["email_list"]
+    assert "regent@generic.example.com" in email_list
+    assert "treasurer@generic.example.com" in email_list
+
+
 def test_chapter_list_view_denied(auto_login_user):
     client, user = auto_login_user()
     url = reverse("chapters:list")

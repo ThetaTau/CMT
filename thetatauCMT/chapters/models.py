@@ -589,6 +589,16 @@ class Chapter(models.Model, EmailSignalMixin):
             self.email,
         ]
 
+    def generic_email_for_role(self, role):
+        """Return the chapter's generic email for an officer ``role``.
+
+        Officer roles map to the ``email_<role>`` fields (spaces replaced with
+        underscores), e.g. ``"regent"`` -> :attr:`email_regent` and
+        ``"corresponding secretary"`` -> :attr:`email_corresponding_secretary`.
+        Roles without an associated generic email field return ``""``.
+        """
+        return getattr(self, f"email_{role.replace(' ', '_')}", "") or ""
+
     def get_current_and_future(self):
         # list all officers that currently hold an executive board position
         # current and future

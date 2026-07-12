@@ -354,6 +354,17 @@ def test_get_email_specific_with_roles(chapter):
     assert isinstance(result, set)
 
 
+@pytest.mark.django_db
+def test_generic_email_for_role(chapter):
+    chapter.email_regent = "regent@example.com"
+    chapter.email_corresponding_secretary = "corsec@example.com"
+    # Role names map to the ``email_<role>`` fields (spaces -> underscores).
+    assert chapter.generic_email_for_role("regent") == "regent@example.com"
+    assert chapter.generic_email_for_role("corresponding secretary") == "corsec@example.com"
+    # A role without a generic mailbox field returns an empty string.
+    assert chapter.generic_email_for_role("historian") == ""
+
+
 # ---------------------------------------------------------------------------
 # get_current_and_future / get_previous_officers
 # ---------------------------------------------------------------------------
