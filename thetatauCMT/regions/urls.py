@@ -10,6 +10,7 @@ urlpatterns = [
     # catch-all below, otherwise "event-attendance" is swallowed as a region slug.
     path("event-attendance/", views.EventAttendanceDashboardView.as_view(), name="event_attendance"),
     path("<slug:slug>/", views.RegionDetailView.as_view(), name="detail"),
+    path("<slug:slug>/dashboard/", views.RegionDashboardView.as_view(), name="dashboard"),
     path("<slug:slug>/officers/", views.RegionOfficerView.as_view(), name="officers"),
     path("<slug:slug>/advisors/", views.RegionAdvisorView.as_view(), name="advisors"),
     path("<slug:slug>/tasks/", views.RegionTaskView.as_view(), name="tasks"),

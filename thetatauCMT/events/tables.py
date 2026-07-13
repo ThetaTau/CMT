@@ -56,6 +56,13 @@ class EventTable(tables.Table):
         url = reverse("chapters:detail", kwargs={"slug": value.slug})
         return mark_safe(f'<a href="{url}">{value}</a>')
 
+    def render_chapter__region(self, value, record):
+        """Link the (natoff-only) region column to the region detail page."""
+        if not value or not record.chapter_id:
+            return value or "—"
+        url = reverse("regions:detail", kwargs={"slug": record.chapter.region.slug})
+        return mark_safe(f'<a href="{url}">{value}</a>')
+
     def render_pictures(self, value):
         out = ""
         pictures = value.all()

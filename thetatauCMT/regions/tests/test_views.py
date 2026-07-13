@@ -69,12 +69,62 @@ def test_region_detail_view_natoff(auto_login_user):
 
 
 @pytest.mark.django_db
-def test_region_detail_view_regular_user_redirected(auto_login_user):
+def test_region_detail_view_regular_user_can_view(auto_login_user):
+    """The region detail page is open to any authenticated member."""
     client, user = auto_login_user()
     region = user.current_chapter.region
     url = reverse("regions:detail", kwargs={"slug": region.slug})
     response = client.get(url)
-    # Non-natoff users are redirected to home
+    assert response.status_code == 200
+
+
+@pytest.mark.django_db
+def test_region_detail_shows_directors_and_chapters(auto_login_user):
+    """Detail page lists the regional director(s), chapters, and region info."""
+    from thetatauCMT.chapters.tests.factories import ChapterFactory
+    from thetatauCMT.regions.tests.factories import RegionFactory
+    from thetatauCMT.users.tests.factories import UserFactory
+
+    client, user = auto_login_user()
+    region = RegionFactory(name="Detailed Region")
+    director = UserFactory(first_name="Rita", last_name="Director")
+    region.directors.add(director)
+    # ChapterFactory uses django_get_or_create=("name",); set the region
+    # explicitly after creation so a name collision can't drop a region= kwarg.
+    chapter = ChapterFactory()
+    chapter.region = region
+    chapter.save(update_fields=["region"])
+
+    url = reverse("regions:detail", kwargs={"slug": region.slug})
+    response = client.get(url)
+    assert response.status_code == 200
+    content = response.content.decode("UTF-8")
+    assert "Detailed Region" in content
+    assert reverse("users:profile", kwargs={"username": director.username}) in content
+    assert director.name in content
+    assert reverse("chapters:detail", kwargs={"slug": chapter.slug}) in content
+    assert region.email in content  # generic region contact
+    assert list(response.context["directors"]) == [director]
+    assert chapter in list(response.context["chapters"])
+
+
+@pytest.mark.django_db
+def test_region_dashboard_view_natoff(auto_login_user):
+    client, user = auto_login_user(make_officer="national")
+    _make_natoff(user, client)
+    region = user.current_chapter.region
+    url = reverse("regions:dashboard", kwargs={"slug": region.slug})
+    response = client.get(url)
+    assert response.status_code == 200
+
+
+@pytest.mark.django_db
+def test_region_dashboard_view_regular_user_redirected(auto_login_user):
+    client, user = auto_login_user()
+    region = user.current_chapter.region
+    url = reverse("regions:dashboard", kwargs={"slug": region.slug})
+    response = client.get(url)
+    # Non-natoff users are redirected to home (dashboard stays natoff-only).
     assert response.status_code == 302
 
 

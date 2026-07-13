@@ -102,6 +102,7 @@ _URL_CASES = [
     ("regions:list", {}),
     ("regions:redirect", {}),
     ("regions:detail", {"slug": "test"}),
+    ("regions:dashboard", {"slug": "test"}),
     ("regions:officers", {"slug": "test"}),
     ("regions:advisors", {"slug": "test"}),
     ("regions:tasks", {"slug": "test"}),

@@ -32,7 +32,13 @@ class ChapterBalanceTable(tables.Table):
         accessor="name",
         linkify=lambda record: reverse("chapters:detail", kwargs={"slug": record.slug}),
     )
-    region = tables.Column(verbose_name="Region", accessor="region__name")
+    region = tables.Column(
+        verbose_name="Region",
+        accessor="region__name",
+        linkify=lambda record: (
+            reverse("regions:detail", kwargs={"slug": record.region.slug}) if record.region_id else None
+        ),
+    )
     actives_count = tables.Column(verbose_name="Actives")
     pnm_count = tables.Column(verbose_name="PNMs")
     open_balance = tables.Column(verbose_name="Balance")

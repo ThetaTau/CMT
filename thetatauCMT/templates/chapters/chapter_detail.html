@@ -19,9 +19,17 @@
               <span class="mx-2">&middot;</span>
               {{ object.region }} Region
             </p>
+            {% if region_directors %}
+              <p class="mb-1 small">
+                <span class="text-muted">Regional Director{{ region_directors|length|pluralize }}:</span>
+                {% for director in region_directors %}
+                  <a href="{% url 'users:profile' director.username %}">{{ director.name }}</a>{% if not forloop.last %},{% endif %}
+                {% endfor %}
+              </p>
+            {% endif %}
             {% if object.region.email %}
               <p class="mb-0 small">
-                <span class="text-muted">Regional Director:</span>
+                <span class="text-muted">Region email:</span>
                 <a href="mailto:{{ object.region.email }}">{{ object.region.email }}</a>
               </p>
             {% endif %}

@@ -143,7 +143,10 @@ class RegionOfficerView(LoginRequiredMixin, NatOfficerRequiredMixin, DetailView)
                     "chapter",
                     tables.LinkColumn("chapters:detail", args=[A("chapter__slug")]),
                 ),
-                ("chapter__region", tables.Column("Region")),
+                (
+                    "chapter__region",
+                    tables.LinkColumn("regions:detail", args=[A("chapter__region__slug")], verbose_name="Region"),
+                ),
                 ("chapter__school", tables.Column("School")),
             ],
         )
@@ -228,7 +231,10 @@ class RegionAdvisorView(LoginRequiredMixin, NatOfficerRequiredMixin, DetailView)
                     "chapter",
                     tables.LinkColumn("chapters:detail", args=[A("chapter__slug")]),
                 ),
-                ("chapter__region", tables.Column("Region")),
+                (
+                    "chapter__region",
+                    tables.LinkColumn("regions:detail", args=[A("chapter__region__slug")], verbose_name="Region"),
+                ),
                 ("chapter__school", tables.Column("School")),
             ],
         )
@@ -246,21 +252,64 @@ class RegionAdvisorView(LoginRequiredMixin, NatOfficerRequiredMixin, DetailView)
         return context
 
 
-class RegionDetailView(LoginRequiredMixin, NatOfficerRequiredMixin, DetailView):
+class RegionDashboardView(LoginRequiredMixin, NatOfficerRequiredMixin, DetailView):
+    """National-officer analytics dashboard (plotly) for a region."""
+
     model = Region
     slug_field = "slug"
     slug_url_kwarg = "slug"
+    template_name = "regions/region_dashboard.html"
 
     def get_object(self, queryset=None):
         # `candidate_chapter` isn't a real Region row — it's a synthetic
         # scope surfaced in `Region.region_choices()`. Fake a Region instance
-        # so the detail template can render (it only reads `.name`/`.slug`).
+        # so the dashboard template can render (it only reads `.name`/`.slug`).
         slug = self.kwargs.get(self.slug_url_kwarg)
         if slug == "candidate_chapter":
             region = Region(name="Candidate Chapters")
             region.slug = "candidate_chapter"
             return region
         return super().get_object(queryset)
+
+
+class RegionDetailView(LoginRequiredMixin, DetailView):
+    """Public-facing region detail page.
+
+    Shows the region's details, its regional director(s), and the chapters that
+    belong to the region. Visible to any authenticated member (linked from the
+    chapter and region tables). The national-officer analytics dashboard lives
+    at ``regions:dashboard``.
+    """
+
+    model = Region
+    slug_field = "slug"
+    slug_url_kwarg = "slug"
+    template_name = "regions/region_detail.html"
+
+    def get_object(self, queryset=None):
+        slug = self.kwargs.get(self.slug_url_kwarg)
+        if slug == "candidate_chapter":
+            region = Region(name="Candidate Chapters")
+            region.slug = "candidate_chapter"
+            return region
+        return super().get_object(queryset)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        region = self.object
+        if region.pk is None:
+            # Synthetic candidate_chapter scope — no real Region row/directors.
+            chapters = Chapter.objects.filter(candidate_chapter=True)
+            directors = User.objects.none()
+        else:
+            chapters = region.chapters.all()
+            directors = region.directors.all()
+        context["chapter_count"] = chapters.count()
+        context["active_chapter_count"] = chapters.filter(active=True).count()
+        context["chapters"] = chapters.select_related("region").order_by("name")
+        context["directors"] = directors.order_by("last_name", "name")
+        context["is_natoff"] = self.request.user.is_national_officer_group
+        return context
 
 
 class RegionTaskView(LoginRequiredMixin, NatOfficerRequiredMixin, DetailView):

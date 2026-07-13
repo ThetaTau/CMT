@@ -46,6 +46,32 @@ def test_chapter_detail_email_list_includes_generic_emails(auto_login_user):
     assert "treasurer@generic.example.com" in email_list
 
 
+@pytest.mark.django_db
+def test_chapter_detail_shows_regional_director_link(auto_login_user):
+    """The chapter detail page links to the region's Regional Director profile."""
+    from thetatauCMT.regions.tests.factories import RegionFactory
+    from thetatauCMT.users.tests.factories import UserFactory
+
+    client, user = auto_login_user()
+    region = RegionFactory(name="RD Link Region")
+    director = UserFactory(first_name="Dana", last_name="Director")
+    region.directors.add(director)
+    # Set the region explicitly after creation: ChapterFactory uses
+    # django_get_or_create=("name",) and may return an existing chapter,
+    # dropping a region= kwarg.
+    chapter = ChapterFactory()
+    chapter.region = region
+    chapter.save(update_fields=["region"])
+    url = reverse("chapters:detail", kwargs={"slug": chapter.slug})
+    response = client.get(url, follow=True)
+    assert response.status_code == 200
+    content = response.content.decode("UTF-8")
+    profile_url = reverse("users:profile", kwargs={"username": director.username})
+    assert profile_url in content
+    assert director.name in content
+    assert list(response.context["region_directors"]) == [director]
+
+
 def test_chapter_list_view_denied(auto_login_user):
     client, user = auto_login_user()
     url = reverse("chapters:list")

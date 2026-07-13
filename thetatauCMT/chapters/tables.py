@@ -14,6 +14,7 @@ class ChapterCurriculaTable(tables.Table):
 
 class ChapterTable(tables.Table):
     name = tables.LinkColumn("chapters:detail", args=[A("slug")])
+    region = tables.LinkColumn("regions:detail", args=[A("region__slug")])
 
     class Meta:
         model = Chapter

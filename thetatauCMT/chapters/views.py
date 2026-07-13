@@ -156,6 +156,10 @@ class ChapterDetailView(LoginRequiredMixin, MultiFormsView):
             )
         )
         context["user_calendar_feeds"] = self.request.user.calendar_feeds.all()
+        # Regional Director(s) for this chapter's region (Region.directors M2M),
+        # linked to their member profiles on the chapter detail page.
+        region = chapter.region
+        context["region_directors"] = region.directors.all().order_by("last_name", "name") if region else []
         return context
 
     def get_form_kwargs(self, form_name, bind_form=False):

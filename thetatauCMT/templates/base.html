@@ -209,7 +209,7 @@
                     <li class="nav-item dropdown">
                       <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">{% trans "National" %}</a>
                       <ul class="dropdown-menu">
-                        <li><a class="dropdown-item" href="{% url 'regions:detail' 'national' %}">{% trans "National Dashboard" %}</a></li>
+                        <li><a class="dropdown-item" href="{% url 'regions:dashboard' 'national' %}">{% trans "National Dashboard" %}</a></li>
                         <li><a class="dropdown-item" href="{% url 'regions:event_attendance' %}">{% trans "Events &amp; Attendance Dashboard" %}</a></li>
                         <li><a class="dropdown-item" href="{% url 'scores:chapterlist' %}">{% trans "All Scores" %}</a></li>
                         <li><a class="dropdown-item" href="{% url 'events:list_all' %}">{% trans "All Events" %}</a></li>
@@ -288,6 +288,7 @@
           <a class="navbar-brand mb-0 h6 me-3" href="{% url 'regions:detail' request.user.current_chapter.region.slug %}">
             {{ request.user.current_chapter.region.name }} Region
           </a>
+          <a class="btn btn-sm btn-outline-secondary" href="{% url 'regions:dashboard' request.user.current_chapter.region.slug %}">Dashboard</a>
           <a class="btn btn-sm btn-outline-secondary" href="{% url 'regions:officers' request.user.current_chapter.region.slug %}">Officers</a>
           <a class="btn btn-sm btn-outline-secondary" href="{% url 'events:list_all' %}?region={{ request.user.current_chapter.region.slug }}">Events</a>
           <a class="btn btn-sm btn-outline-secondary" href="{% url 'regions:tasks' request.user.current_chapter.region.slug %}">Tasks</a>

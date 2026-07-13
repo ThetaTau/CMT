@@ -1,32 +1,115 @@
 {% extends "base.html" %}
 {% load static i18n %}
-{% load plotly_dash %}
 
-{% block title %}Dashboard: {{ object.name }}{% endblock %}
-
-{% block css %}
-  {{ block.super }}
-  <style>
-    /* Give the dashboard the full page width — the default `.container`
-       is too narrow for the multi-chapter bar charts. */
-    .tt-dashboard-wrapper > .container { max-width: 100%; }
-  </style>
-{% endblock %}
+{% block title %}Region: {{ object.name }}{% endblock %}
 
 {% block content %}
-  <div class="tt-dashboard-wrapper">
-    <div class="d-flex align-items-baseline justify-content-between mb-3">
-      <h1 class="h3 mb-0">
-        {% if object.slug == "national" %}
-          {% trans "National Dashboard" %}
-        {% else %}
-          {{ object.name }} {% trans "Region Dashboard" %}
-        {% endif %}
-      </h1>
+<div class="container py-4">
+
+  {# ---------- Region header ---------- #}
+  <div class="card shadow-sm mb-4 border-0">
+    <div class="card-body">
+      <div class="d-flex flex-wrap justify-content-between align-items-start gap-3">
+        <div>
+          <h2 class="card-title mb-1">{{ object.name }} Region</h2>
+          <p class="text-body-secondary mb-0 small">
+            {{ chapter_count }} chapter{{ chapter_count|pluralize }}
+            {% if active_chapter_count %}<span class="mx-1">&middot;</span>{{ active_chapter_count }} active{% endif %}
+          </p>
+          {% if object.email %}
+            <p class="mb-0 mt-2 small">
+              <span class="text-body-secondary">Region email:</span>
+              <a href="mailto:{{ object.email }}">{{ object.email }}</a>
+            </p>
+          {% endif %}
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+          {% if object.website %}
+            <a href="{{ object.website }}" target="_blank" rel="noopener noreferrer" class="btn btn-outline-secondary btn-sm">Website</a>
+          {% endif %}
+          {% if object.facebook %}
+            <a href="{{ object.facebook }}" target="_blank" rel="noopener noreferrer" class="btn btn-outline-primary btn-sm">Facebook</a>
+          {% endif %}
+          {% if is_natoff and object.slug %}
+            <a href="{% url 'regions:dashboard' object.slug %}" class="btn btn-outline-dark btn-sm">Dashboard</a>
+            <a href="{% url 'regions:officers' object.slug %}" class="btn btn-outline-dark btn-sm">Officers</a>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3">
+
+    {# ---------- Regional Directors ---------- #}
+    <div class="col-md-4">
+      <div class="card h-100">
+        <div class="card-header bg-body-tertiary">
+          <h5 class="mb-0"><i class="fa fa-compass me-2"></i>Regional Director{{ directors|length|pluralize }}</h5>
+        </div>
+        <div class="card-body">
+          {% if directors %}
+            <ul class="list-unstyled mb-0">
+              {% for director in directors %}
+                <li class="{% if not forloop.last %}mb-2 pb-2 border-bottom{% endif %}">
+                  <a href="{% url 'users:profile' director.username %}">{{ director.name }}</a>
+                  {% if director.chapter %}
+                    <div class="small text-body-secondary">{{ director.chapter }}</div>
+                  {% endif %}
+                </li>
+              {% endfor %}
+            </ul>
+          {% else %}
+            <p class="text-body-secondary mb-0">No regional director on file.</p>
+          {% endif %}
+        </div>
+      </div>
     </div>
 
-    {% plotly_header %}
-    {% plotly_direct name="RegionDashboard" %}
-    {% plotly_footer %}
+    {# ---------- Chapters ---------- #}
+    <div class="col-md-8">
+      <div class="card h-100">
+        <div class="card-header bg-body-tertiary">
+          <h5 class="mb-0"><i class="fa fa-graduation-cap me-2"></i>Chapters</h5>
+        </div>
+        <div class="card-body">
+          {% if chapters %}
+            <div class="table-responsive">
+              <table class="table table-striped table-hover align-middle mb-0">
+                <thead>
+                  <tr>
+                    <th>Chapter</th>
+                    <th>School</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for chapter in chapters %}
+                    <tr>
+                      <td><a href="{% url 'chapters:detail' chapter.slug %}">{{ chapter.name }}</a></td>
+                      <td>{{ chapter.school }}</td>
+                      <td>
+                        {% if chapter.active %}
+                          <span class="badge bg-success">Active</span>
+                        {% else %}
+                          <span class="badge bg-secondary">Inactive</span>
+                        {% endif %}
+                        {% if chapter.candidate_chapter %}
+                          <span class="badge bg-info text-dark">Candidate</span>
+                        {% endif %}
+                      </td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          {% else %}
+            <p class="text-body-secondary mb-0">No chapters in this region.</p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
   </div>
+</div>
 {% endblock content %}
