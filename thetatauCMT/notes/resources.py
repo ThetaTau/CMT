@@ -12,7 +12,8 @@ class ChapterNoteResource(resources.ModelResource):
         force_init_instance = True
         fields = ("chapter__slug", "title", "note", "type", "restricted", "parent")
 
-    def __init__(self, created_by):
+    def __init__(self, created_by=None, **kwargs):
+        super().__init__(**kwargs)
         self.created_by = created_by
 
     def before_save_instance(self, instance, using_transactions, dry_run):
@@ -30,7 +31,8 @@ class UserNoteResource(resources.ModelResource):
         force_init_instance = True
         fields = ("user__id", "title", "note", "type", "restricted", "parent")
 
-    def __init__(self, created_by):
+    def __init__(self, created_by=None, **kwargs):
+        super().__init__(**kwargs)
         self.created_by = created_by
 
     def before_save_instance(self, instance, using_transactions, dry_run):
