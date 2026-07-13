@@ -1,0 +1,12 @@
+{% extends "herald/html/base_email.html" %}
+{% block title %}Volunteer appointment{% endblock %}
+{% block content %}
+<br>
+<p>
+  This is a notification that <strong>{{ nominee_display }}</strong> has been
+  appointed to serve Theta Tau{% if positions_display %} as {{ positions_display }}{% endif %}{% if level_display %}
+  at the {{ level_display }} level{% endif %}.
+</p>
+<p>Please welcome and support them in their new role.</p>
+<p>In H&amp;T,<br>Theta Tau</p>
+{% endblock content %}

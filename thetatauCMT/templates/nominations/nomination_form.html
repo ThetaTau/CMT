@@ -1,0 +1,31 @@
+{% extends "account/base.html" %}
+{% load i18n %}
+{% load static %}
+{% load crispy_forms_tags %}
+
+{% block head_title %}{% trans "Volunteer Recommendation" %}{% endblock %}
+{% block content %}
+  <h1>{% trans "Recommend a Volunteer" %}</h1>
+  <hr>
+  <p>
+    Recommend a member for a Chapter, Regional, or National volunteer position.
+    One submission starts one nomination. If the person you are recommending is
+    not yet a member, leave the member field blank and enter their name and
+    email instead.
+  </p>
+  <div class="alert alert-info" role="alert">
+    Please discuss the nomination with the nominee before submitting. The
+    nominee will be asked to confirm their interest via a private link.
+  </div>
+  <hr>
+  <form method="POST" enctype="multipart/form-data">
+    {{ form.media }}
+    <link href="{% static 'css/project.css' %}" rel="stylesheet">
+    {% csrf_token %}
+    {{ form|crispy }}
+    {{ activation.management_form }}
+    <button class="primaryAction btn btn-primary" type="submit">
+      {% trans "Submit Recommendation" %}
+    </button>
+  </form>
+{% endblock %}

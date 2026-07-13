@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}Volunteer Nominations{% endblock %}
+
+{% block content %}
+<div class="container" style="margin-top: 30px;">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h2 class="mb-0">Volunteer Nominations</h2>
+    <a href="{% url 'viewflow:nominations:nomination:start' %}" class="btn btn-primary">Nominate someone</a>
+  </div>
+
+  <table class="table table-striped align-middle">
+    <thead>
+      <tr>
+        <th>Nominee</th>
+        <th>Chapter</th>
+        <th>Nominated by</th>
+        <th>Level(s)</th>
+        <th>Current step</th>
+        <th>Consent</th>
+        <th>Submitted</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for nomination in nominations %}
+        <tr>
+          <td>
+            {% if nomination.nominee %}
+              <a href="{% url 'users:profile' nomination.nominee.username %}">{{ nomination.nominee_display }}</a>
+            {% else %}{{ nomination.nominee_display }}{% endif %}
+          </td>
+          <td>
+            {% if nomination.nominee and nomination.nominee.chapter %}
+              <a href="{% url 'chapters:detail' nomination.nominee.chapter.slug %}">{{ nomination.nominee.chapter }}</a>
+            {% else %}&mdash;{% endif %}
+          </td>
+          <td>
+            {% if nomination.nominator %}
+              <a href="{% url 'users:profile' nomination.nominator.username %}">{{ nomination.nominator }}</a>
+            {% endif %}
+          </td>
+          <td>{{ nomination.get_level_display }}</td>
+          <td>{{ nomination.current_step }}</td>
+          <td>{{ nomination.get_consent_status_display }}</td>
+          <td>{{ nomination.created|date:"M j, Y" }}</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="7" class="text-body-secondary">No nominations yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  {% if is_paginated %}
+    <nav>
+      <ul class="pagination">
+        {% if page_obj.has_previous %}<li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}">Previous</a></li>{% endif %}
+        <li class="page-item disabled"><span class="page-link">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span></li>
+        {% if page_obj.has_next %}<li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}">Next</a></li>{% endif %}
+      </ul>
+    </nav>
+  {% endif %}
+</div>
+{% endblock %}

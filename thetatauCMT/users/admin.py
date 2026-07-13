@@ -487,6 +487,7 @@ class MyUserAdmin(
         "current_status",
         "officer",
         "id",
+        "declined_nomination_display",
     )
     autocomplete_fields = ("tags",)
     inlines = [
@@ -583,6 +584,7 @@ class MyUserAdmin(
             },
         ),
         (_("Important dates"), {"fields": ("last_login", "date_joined")}),
+        (_("Volunteer nomination"), {"fields": ("declined_nomination_display",)}),
     )
     list_display = (
         "username",
@@ -594,6 +596,7 @@ class MyUserAdmin(
         "current_status",
         "current_roles",
         "officer",
+        "declined_nomination_display",
     )
     list_filter = (
         "is_superuser",
@@ -611,6 +614,19 @@ class MyUserAdmin(
         "email_school",
     ) + AuthUserAdmin.search_fields
     resource_class = UserResource
+
+    @admin.display(boolean=True, description="Declined nomination")
+    def declined_nomination_display(self, obj):
+        """Whether the member has declined a volunteer nomination (not interested)."""
+        return obj.declined_nomination if obj and obj.pk else False
+
+    def view_on_site(self, obj):
+        """Link the admin 'View on site' button to the member's public profile."""
+        from django.urls import reverse
+
+        if obj and obj.username:
+            return reverse("users:profile", kwargs={"username": obj.username})
+        return None
 
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
         if db_field.name == "major":

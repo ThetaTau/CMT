@@ -1,0 +1,15 @@
+{% extends "herald/html/base_email.html" %}
+{% block title %}Nomination update{% endblock %}
+{% block content %}
+<br>
+<p>Hello {{ nominee_display }},</p>
+<p>{{ headline }}</p>
+{% if message %}<p>{{ message }}</p>{% endif %}
+<p>
+  You were recommended{% if positions_display %} for {{ positions_display }}{% endif %}{% if level_display %}
+  at the {{ level_display }} level{% endif %}. We'll continue to keep you posted as your
+  nomination moves forward, and you can see the latest status on your member profile.
+</p>
+<p>Thank you for your willingness to serve.</p>
+<p>In H&amp;T,<br>Theta Tau</p>
+{% endblock content %}

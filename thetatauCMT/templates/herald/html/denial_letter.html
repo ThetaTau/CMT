@@ -1,0 +1,13 @@
+{% extends "herald/html/base_email.html" %}
+{% block title %}Regarding your nomination{% endblock %}
+{% block content %}
+<br>
+Dear {{ nominee_display }},
+<p>
+  Thank you for your willingness to serve Theta Tau. After review, your
+  nomination was not confirmed at this time.
+</p>
+{% if denial_reason %}<p>{{ denial_reason }}</p>{% endif %}
+<p>The formal denial letter is attached / on file with the Central Office.</p>
+<p>In H&amp;T,<br>Theta Tau Central Office</p>
+{% endblock content %}

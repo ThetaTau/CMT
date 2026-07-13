@@ -138,6 +138,7 @@ LOCAL_APPS = [
     "thetatauCMT.configs.apps.ConfigsConfig",
     "thetatauCMT.contact_sync.apps.ContactSyncConfig",
     "thetatauCMT.attendance.apps.AttendanceConfig",
+    "thetatauCMT.nominations.apps.NominationsConfig",
     # Added after any apps which contain models for which to create signals
     "email_signals",
 ]

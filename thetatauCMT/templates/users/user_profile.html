@@ -124,6 +124,23 @@
             <a class="btn btn-primary btn-sm" href="{% url 'users:detail' %}">
               <i class="fa fa-pencil"></i> Edit My Info
             </a>
+            {# The member can always put themselves forward -- overrides a prior decline. #}
+            <a class="btn btn-outline-success btn-sm" href="{{ nominate_url }}"
+               title="Put yourself forward to serve as a national officer.">
+              <i class="fa fa-hand-paper-o"></i> Express interest in serving
+            </a>
+          {% else %}
+            {% if target_declined_nomination %}
+              <button class="btn btn-outline-secondary btn-sm" type="button" disabled
+                      title="{{ object.name }} has indicated they are not interested.">
+                <i class="fa fa-user-plus"></i> Nominate
+              </button>
+            {% else %}
+              <a class="btn btn-outline-primary btn-sm" href="{{ nominate_url }}"
+                 title="Nominate {{ object.name }} for a national officer role.">
+                <i class="fa fa-user-plus"></i> Nominate for national officer
+              </a>
+            {% endif %}
           {% endif %}
           {% if is_superuser %}
             <a class="btn btn-outline-danger btn-sm" href="{% url 'admin:users_user_change' object.id %}">
@@ -375,6 +392,46 @@
         </div>
       </div>
     {% endif %}
+
+
+  {# ---------- Volunteer nomination status (owner + national officers) ---------- #}
+  {% if can_view_nomination_status and nominee_nominations %}
+    <div class="card shadow-sm mb-4 border-info">
+      <div class="card-header">
+        <i class="fa fa-user-plus me-2"></i>{% if is_owner %}Your volunteer nomination status{% else %}Volunteer nomination status{% endif %}
+      </div>
+      <div class="card-body">
+        {% if has_active_nomination %}
+          <p class="mb-2">
+            {% if is_owner %}You have been{% else %}{{ object.name }} has been{% endif %}
+            submitted for consideration for a volunteer role. Progress is tracked below and shared by email.
+          </p>
+        {% endif %}
+        {% if target_declined_nomination %}
+          <p class="text-body-secondary mb-2"><em>
+            {% if is_owner %}You{% else %}This member{% endif %} previously indicated they are not interested.
+            {% if is_owner %}You can put yourself forward again using the “Express interest” button above.{% endif %}
+          </em></p>
+        {% endif %}
+        <div class="table-responsive">
+          <table class="table table-sm mb-0">
+            <thead><tr><th>Level(s)</th><th>Position(s)</th><th>Current step</th><th>Response</th><th>Submitted</th></tr></thead>
+            <tbody>
+              {% for n in nominee_nominations %}
+                <tr>
+                  <td>{{ n.get_level_display }}</td>
+                  <td>{% for p in n.recommended_positions %}{{ p|title }}{% if not forloop.last %}, {% endif %}{% empty %}&mdash;{% endfor %}</td>
+                  <td>{{ n.current_step }}</td>
+                  <td>{{ n.get_consent_status_display }}</td>
+                  <td>{{ n.created|date:"M j, Y" }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  {% endif %}
 
     {# ---------- Attendance (WI-8) ---------- #}
     <div class="col-12" id="attendance">

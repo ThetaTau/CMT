@@ -499,6 +499,11 @@ class User(AbstractUser, EmailSignalMixin):
         """Regions where this member is listed as a Regional Director."""
         return self.regional_director.all()
 
+    @property
+    def declined_nomination(self):
+        """True if this member has declined a volunteer nomination (not interested)."""
+        return self.nominations.filter(not_interested=True).exists()
+
     @classmethod
     def fix_badge_numbers(cls, reader, test=False, sep="<br>"):
         updated_users = []

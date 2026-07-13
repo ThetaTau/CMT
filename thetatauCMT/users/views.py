@@ -283,6 +283,17 @@ class UserProfileView(LoginRequiredMixin, DetailView):
             }
         )
 
+        # Volunteer nominations (#2/#3/#9/#14). Anyone can nominate a member;
+        # the member (owner) and National Officers can see the status of the
+        # member's nominations. A member may nominate themselves, which
+        # overrides a previous "not interested" response.
+        target_nominations = list(target.nominations.select_related("nominator").order_by("-created"))
+        context["nominee_nominations"] = target_nominations
+        context["has_active_nomination"] = any(n.finished is None for n in target_nominations)
+        context["target_declined_nomination"] = target.declined_nomination
+        context["can_view_nomination_status"] = is_owner or is_natoff or is_superuser
+        context["nominate_url"] = reverse("viewflow:nominations:nomination:start") + f"?nominee={target.pk}"
+
         # WI-8 — member attendance (visible to any authenticated member). The
         # add-missing-attendance form is only offered to the member themselves
         # or a National Officer.
