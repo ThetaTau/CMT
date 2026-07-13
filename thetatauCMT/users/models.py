@@ -81,6 +81,22 @@ class UserTag(models.Model):
         return self.name
 
 
+# Who may see one of a member's contact fields (email / phone / address) on
+# their public profile. National Officers, superusers, and the member
+# themselves can always see the information regardless of this setting.
+CONTACT_VISIBILITY_NO_ONE = "no_one"
+CONTACT_VISIBILITY_OFFICERS = "officers"
+CONTACT_VISIBILITY_CHAPTER = "chapter"
+CONTACT_VISIBILITY_MEMBERS = "members"
+
+CONTACT_VISIBILITY_CHOICES = [
+    (CONTACT_VISIBILITY_NO_ONE, "No one (private)"),
+    (CONTACT_VISIBILITY_OFFICERS, "My chapter's officers only"),
+    (CONTACT_VISIBILITY_CHAPTER, "Members of my chapter"),
+    (CONTACT_VISIBILITY_MEMBERS, "Any member on the site"),
+]
+
+
 class User(AbstractUser, EmailSignalMixin):
     class EMERGENCY_RELATIONSHIP(EnumClass):
         parent = ("parent", "Parent")
@@ -259,6 +275,27 @@ class User(AbstractUser, EmailSignalMixin):
         null=True,
         help_text="Optional photo displayed on your public member profile.",
     )
+    email_visibility = models.CharField(
+        _("Email visibility"),
+        max_length=10,
+        choices=CONTACT_VISIBILITY_CHOICES,
+        default=CONTACT_VISIBILITY_NO_ONE,
+        help_text="Who may see your email addresses on your member profile. National Officers can always see them.",
+    )
+    phone_visibility = models.CharField(
+        _("Phone visibility"),
+        max_length=10,
+        choices=CONTACT_VISIBILITY_CHOICES,
+        default=CONTACT_VISIBILITY_NO_ONE,
+        help_text="Who may see your phone number on your member profile. National Officers can always see it.",
+    )
+    address_visibility = models.CharField(
+        _("Address visibility"),
+        max_length=10,
+        choices=CONTACT_VISIBILITY_CHOICES,
+        default=CONTACT_VISIBILITY_NO_ONE,
+        help_text="Who may see your mailing address on your member profile. National Officers can always see it.",
+    )
     ##### DENORMALIZED FIELDS #####  # noqa: E266
     current_status = models.CharField(max_length=10)
     current_roles = ArrayField(models.CharField(max_length=50), blank=True, null=True)
@@ -432,6 +469,35 @@ class User(AbstractUser, EmailSignalMixin):
     @property
     def is_advisor(self):
         return self.current_status == "advisor"
+
+    def contact_visible_to(self, viewer, visibility):
+        """Whether ``viewer`` may see one of this member's contact fields
+        (email / phone / address) given that field's ``visibility`` setting.
+
+        The member themselves, National Officers, and superusers can always
+        see the information; everyone else is limited by the chosen level:
+        ``members`` (any member), ``chapter`` (same chapter), ``officers``
+        (officers of the same chapter), or ``no_one`` (nobody else).
+        """
+        if viewer is None or not getattr(viewer, "is_authenticated", False):
+            return False
+        if viewer.pk == self.pk:
+            return True
+        if viewer.is_superuser or viewer.is_national_officer_group:
+            return True
+        if visibility == CONTACT_VISIBILITY_MEMBERS:
+            return True
+        same_chapter = viewer.chapter_id == self.chapter_id
+        if visibility == CONTACT_VISIBILITY_CHAPTER:
+            return same_chapter
+        if visibility == CONTACT_VISIBILITY_OFFICERS:
+            return same_chapter and viewer.is_chapter_officer_group
+        return False
+
+    @property
+    def director_regions(self):
+        """Regions where this member is listed as a Regional Director."""
+        return self.regional_director.all()
 
     @classmethod
     def fix_badge_numbers(cls, reader, test=False, sep="<br>"):

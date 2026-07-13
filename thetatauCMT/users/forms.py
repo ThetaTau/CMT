@@ -336,10 +336,18 @@ class UserForm(forms.ModelForm):
             "major",
             "graduation_year",
             "phone_number",
+            "phone_visibility",
             "address",
+            "address_visibility",
             "email",
+            "email_visibility",
             "birth_date",
         ]
+        labels = {
+            "phone_visibility": "Who can see my phone number?",
+            "address_visibility": "Who can see my address?",
+            "email_visibility": "Who can see my email?",
+        }
 
     def __init__(self, *args, **kwargs):
         verify = kwargs.pop("verify", False)

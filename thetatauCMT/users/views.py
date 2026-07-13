@@ -242,6 +242,19 @@ class UserProfileView(LoginRequiredMixin, DetailView):
         except Exception:
             initiation = None
 
+        # Per-field contact visibility. National Officers, superusers, and the
+        # member themselves always see the information; everyone else is subject
+        # to the member's chosen visibility level.
+        show_email = target.contact_visible_to(viewer, target.email_visibility)
+        show_phone = target.contact_visible_to(viewer, target.phone_visibility)
+        show_address = target.contact_visible_to(viewer, target.address_visibility)
+        has_email = bool(target.email) or bool(target.email_school)
+        has_hidden_contact = (
+            (has_email and not show_email)
+            or (bool(target.phone_number) and not show_phone)
+            or (bool(target.address_id) and not show_address)
+        )
+
         context.update(
             {
                 "is_owner": is_owner,
@@ -260,6 +273,13 @@ class UserProfileView(LoginRequiredMixin, DetailView):
                 "orgs": target.orgs.all().order_by("-start", "org_name"),
                 "ritual_records": target.ritual_proficiency.all().order_by("-date", "-level"),
                 "role_labels": _role_labels(target.current_roles),
+                "show_email": show_email,
+                "show_phone": show_phone,
+                "show_address": show_address,
+                "has_hidden_contact": has_hidden_contact,
+                # Regions this member directs (Region.directors M2M). Drives the
+                # prominent "Regional Director" card + generic region contact info.
+                "director_regions": (target.regional_director.all().prefetch_related("chapters").order_by("name")),
             }
         )
 

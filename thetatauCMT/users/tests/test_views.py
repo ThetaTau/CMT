@@ -347,6 +347,127 @@ def test_profile_picture_view_unauthenticated_redirects(client):
 
 
 # ---------------------------------------------------------------------------
+# UserProfileView — contact visibility
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.django_db
+def test_profile_hides_contact_from_other_member_by_default(auto_login_user, user_factory):
+    """Default visibility is 'no one': a plain member does not see the phone."""
+    client, user = auto_login_user()
+    target = user_factory.create(phone_number="5559990000")
+    url = reverse("users:profile", kwargs={"username": target.username})
+    response = client.get(url)
+    assert response.status_code == 200
+    assert response.context["show_phone"] is False
+    assert response.context["show_email"] is False
+    assert response.context["show_address"] is False
+    assert b"5559990000" not in response.content
+
+
+@pytest.mark.django_db
+def test_profile_shows_contact_when_visible_to_members(auto_login_user, user_factory):
+    """A member sees the phone when the owner opts into 'any member'."""
+    client, user = auto_login_user()
+    target = user_factory.create(phone_number="5559991111", phone_visibility="members")
+    url = reverse("users:profile", kwargs={"username": target.username})
+    response = client.get(url)
+    assert response.status_code == 200
+    assert response.context["show_phone"] is True
+    assert b"5559991111" in response.content
+
+
+@pytest.mark.django_db
+def test_profile_national_officer_always_sees_contact(auto_login_user, user_factory):
+    """National officers see contact info even when set to 'no one'."""
+    client, user = auto_login_user()
+    _make_natoff(user, client)
+    target = user_factory.create(phone_number="5559992222")  # default no_one
+    url = reverse("users:profile", kwargs={"username": target.username})
+    response = client.get(url)
+    assert response.status_code == 200
+    assert response.context["show_phone"] is True
+    assert b"5559992222" in response.content
+
+
+@pytest.mark.django_db
+def test_profile_owner_sees_own_contact_with_visibility_badge(auto_login_user):
+    """The member always sees their own contact plus the visibility label."""
+    client, user = auto_login_user()
+    user.phone_number = "5559993333"
+    user.save(update_fields=["phone_number"])
+    url = reverse("users:profile", kwargs={"username": user.username})
+    response = client.get(url)
+    assert response.status_code == 200
+    assert response.context["show_phone"] is True
+    content = response.content.decode("UTF-8")
+    assert "5559993333" in content
+    # The owner sees the current visibility level for the field.
+    assert "No one (private)" in content
+
+
+@pytest.mark.django_db
+def test_profile_chapter_visibility_only_same_chapter(auto_login_user, user_factory):
+    """'chapter' visibility hides the phone from a different-chapter member."""
+    from thetatauCMT.chapters.models import GREEK_ABR
+    from thetatauCMT.chapters.tests.factories import ChapterFactory
+
+    greek = list(GREEK_ABR.values())
+    client, user = auto_login_user()
+    other_chapter = ChapterFactory(name=next(n for n in greek if n != user.chapter.name))
+    target = user_factory.create(
+        chapter=other_chapter,
+        phone_number="5559994444",
+        phone_visibility="chapter",
+    )
+    url = reverse("users:profile", kwargs={"username": target.username})
+    response = client.get(url)
+    assert response.status_code == 200
+    assert response.context["show_phone"] is False
+    assert b"5559994444" not in response.content
+
+
+# ---------------------------------------------------------------------------
+# UserProfileView — Regional Director banner
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.django_db
+def test_profile_shows_regional_director_banner(auto_login_user, user_factory):
+    """A regional director's profile prominently shows the region + chapters."""
+    from thetatauCMT.chapters.tests.factories import ChapterFactory
+    from thetatauCMT.regions.tests.factories import RegionFactory
+
+    client, user = auto_login_user()
+    region = RegionFactory(name="Director Banner Region")
+    target = user_factory.create()
+    region.directors.add(target)
+    chapter = ChapterFactory()
+    chapter.region = region
+    chapter.save(update_fields=["region"])
+
+    url = reverse("users:profile", kwargs={"username": target.username})
+    response = client.get(url)
+    assert response.status_code == 200
+    content = response.content.decode("UTF-8")
+    assert "Regional Director" in content
+    assert "Director Banner Region" in content
+    assert list(response.context["director_regions"]) == [region]
+    # The region's chapters are linked from the banner.
+    assert reverse("chapters:detail", kwargs={"slug": chapter.slug}) in content
+
+
+@pytest.mark.django_db
+def test_profile_no_director_banner_for_regular_member(auto_login_user, user_factory):
+    client, user = auto_login_user()
+    target = user_factory.create()
+    url = reverse("users:profile", kwargs={"username": target.username})
+    response = client.get(url)
+    assert response.status_code == 200
+    assert list(response.context["director_regions"]) == []
+
+
+# ---------------------------------------------------------------------------
 # UserSearchView — with query
 # ---------------------------------------------------------------------------
 
@@ -560,6 +681,49 @@ def test_user_detail_post_user_form_redirects(auto_login_user):
         },
     )
     assert response.status_code in [200, 302]
+
+
+@pytest.mark.django_db
+def test_user_form_includes_contact_visibility_fields():
+    """Members get a control for each contact field's visibility."""
+    from thetatauCMT.users.forms import UserForm
+
+    form = UserForm()
+    for name in ("email_visibility", "phone_visibility", "address_visibility"):
+        assert name in form.fields
+    choices = dict(form.fields["phone_visibility"].choices)
+    assert "no_one" in choices
+    assert "members" in choices
+
+
+@pytest.mark.django_db
+def test_user_detail_post_saves_contact_visibility(auto_login_user):
+    """A member can update who sees their phone / email / address."""
+    client, user = auto_login_user()
+    url = reverse("users:detail")
+    response = client.post(
+        url,
+        {
+            "action": "user",
+            "graduation_year": user.graduation_year or 2025,
+            "phone_number": "5551234567",
+            "phone_visibility": "members",
+            "email_visibility": "chapter",
+            "address_visibility": "officers",
+            "email": user.email,
+            "birth_date": "01/01/1990",
+            "address_0": "123 Main St",
+            "address_1": "Phoenix",
+            "address_2": "AZ",
+            "address_3": "85001",
+            "address_4": "United States",
+        },
+    )
+    assert response.status_code == 302
+    user.refresh_from_db()
+    assert user.phone_visibility == "members"
+    assert user.email_visibility == "chapter"
+    assert user.address_visibility == "officers"
 
 
 @pytest.mark.django_db

@@ -110,6 +110,9 @@
                 {% endfor %}
               </div>
             {% endif %}
+            {% if director_regions %}
+              <div><span class="badge bg-primary"><i class="fa fa-compass me-1"></i>Regional Director</span></div>
+            {% endif %}
             {% if object.charter %}
               <div><span class="badge bg-info text-dark">Charter Member</span></div>
             {% endif %}
@@ -131,6 +134,64 @@
       </div>
     </div>
   </div>
+
+  {# ---------- Regional Director (prominent) ---------- #}
+  {% if director_regions %}
+    <div class="card shadow-sm mb-4 border-primary">
+      <div class="card-header bg-primary text-white">
+        <h5 class="mb-0"><i class="fa fa-compass me-2"></i>Regional Director</h5>
+      </div>
+      <div class="card-body">
+        <p class="mb-3">
+          {{ object.preferred_name|default:object.first_name|default:object.name }}
+          {% if director_regions|length > 1 %}
+            serves as Regional Director for {{ director_regions|length }} regions.
+          {% else %}
+            serves as the Regional Director for the region below.
+          {% endif %}
+        </p>
+        {% for region in director_regions %}
+          <div class="{% if not forloop.first %}mt-4 pt-3 border-top{% endif %}">
+            <h6 class="mb-2">
+              {{ region.name }} Region
+              <span class="badge bg-primary ms-1">Regional Director</span>
+            </h6>
+
+            {# Generic region contact information #}
+            <dl class="row mb-2 small">
+              {% if region.email %}
+                <dt class="col-sm-3 col-lg-2">Region email</dt>
+                <dd class="col-sm-9 col-lg-10"><a href="mailto:{{ region.email }}">{{ region.email }}</a></dd>
+              {% endif %}
+              {% if region.website %}
+                <dt class="col-sm-3 col-lg-2">Website</dt>
+                <dd class="col-sm-9 col-lg-10"><a href="{{ region.website }}" target="_blank" rel="noopener noreferrer">{{ region.website }}</a></dd>
+              {% endif %}
+              {% if region.facebook %}
+                <dt class="col-sm-3 col-lg-2">Facebook</dt>
+                <dd class="col-sm-9 col-lg-10"><a href="{{ region.facebook }}" target="_blank" rel="noopener noreferrer">{{ region.facebook }}</a></dd>
+              {% endif %}
+            </dl>
+
+            {# Chapters in the region #}
+            {% with region_chapters=region.chapters.all %}
+              {% if region_chapters %}
+                <div class="small">
+                  <span class="text-body-secondary">Chapters ({{ region_chapters|length }}):</span>
+                  <div class="d-flex flex-wrap gap-1 mt-1">
+                    {% for ch in region_chapters %}
+                      <a href="{% url 'chapters:detail' ch.slug %}"
+                         class="badge bg-body-tertiary text-body border text-decoration-none">{{ ch.name }}</a>
+                    {% endfor %}
+                  </div>
+                </div>
+              {% endif %}
+            {% endwith %}
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  {% endif %}
 
   <div class="row g-3">
 
@@ -185,26 +246,46 @@
     {# ---------- Contact ---------- #}
     <div class="col-md-6">
       <div class="card h-100">
-        <div class="card-header bg-body-tertiary">
+        <div class="card-header bg-body-tertiary d-flex flex-wrap align-items-center">
           <h5 class="mb-0"><i class="fa fa-envelope me-2"></i>Contact</h5>
+          {% if is_owner %}
+            <span class="badge bg-body-secondary text-body-secondary border ms-2"
+                  title="You choose who can see each contact detail. Change these under &quot;Edit My Info&quot;.">
+              <i class="fa fa-lock me-1"></i>You control who sees this
+            </span>
+          {% endif %}
         </div>
         <div class="card-body">
           <dl class="row mb-0">
-            {% if object.email %}
+            {% if show_email and object.email %}
               <dt class="col-sm-4">Email</dt>
-              <dd class="col-sm-8"><a href="mailto:{{ object.email }}">{{ object.email }}</a></dd>
+              <dd class="col-sm-8">
+                <a href="mailto:{{ object.email }}">{{ object.email }}</a>
+                {% if is_owner %}<span class="badge bg-body-secondary text-body-secondary border ms-1" title="Who can see your email">{{ object.get_email_visibility_display }}</span>{% endif %}
+              </dd>
             {% endif %}
-            {% if object.email_school %}
+            {% if show_email and object.email_school %}
               <dt class="col-sm-4">School email</dt>
               <dd class="col-sm-8"><a href="mailto:{{ object.email_school }}">{{ object.email_school }}</a></dd>
             {% endif %}
-            {% if object.phone_number %}
+            {% if show_phone and object.phone_number %}
               <dt class="col-sm-4">Phone</dt>
-              <dd class="col-sm-8">{{ object.phone_number }}</dd>
+              <dd class="col-sm-8">
+                {{ object.phone_number }}
+                {% if is_owner %}<span class="badge bg-body-secondary text-body-secondary border ms-1" title="Who can see your phone number">{{ object.get_phone_visibility_display }}</span>{% endif %}
+              </dd>
             {% endif %}
-            {% if object.address %}
+            {% if show_address and object.address %}
               <dt class="col-sm-4">Address</dt>
-              <dd class="col-sm-8">{{ object.address }}</dd>
+              <dd class="col-sm-8">
+                {{ object.address }}
+                {% if is_owner %}<span class="badge bg-body-secondary text-body-secondary border ms-1" title="Who can see your address">{{ object.get_address_visibility_display }}</span>{% endif %}
+              </dd>
+            {% endif %}
+            {% if has_hidden_contact %}
+              <dd class="col-12 text-body-secondary small mb-0">
+                <i class="fa fa-lock me-1"></i>Some contact details are private.
+              </dd>
             {% endif %}
             {% if not object.email and not object.email_school and not object.phone_number and not object.address %}
               <dd class="col-12 text-body-secondary mb-0">No contact information on file.</dd>
