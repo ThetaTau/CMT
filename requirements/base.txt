@@ -87,6 +87,7 @@ django-termsandconditions==2.0.12  # https://github.com/cyface/django-termsandco
 django-email-bandit==2.0  # https://github.com/caktus/django-email-bandit
 django-middleware-global-request==0.3.5  # https://github.com/appstore-zencore/django-middleware-global-request
 django-anymail[mailjet]==13.0  # https://github.com/anymail/django-anymail
+mailjet-rest==1.7.0  # https://github.com/mailjet/mailjet-apiv3-python  (admin message-history lookups)
 django-weasyprint==2.4.0  # https://github.com/fdemmer/django-weasyprint
 django-survey-and-report==1.4.12  # https://github.com/Pierre-Sassoulas/django-survey/
 django-bootstrap-form==3.4  # provides `bootstrapform` module; required by django-survey-and-report

@@ -27,6 +27,9 @@ def home_redirect(request):
 urlpatterns = [
     path("django_plotly_dash/", include("django_plotly_dash.urls")),
     path("o/", include(oauth2_urls)),
+    # Mailjet delivery/engagement tracking webhook (django-anymail). Secured via
+    # ANYMAIL["WEBHOOK_SECRET"]. Feeds thetatauCMT.email_tracking signal receivers.
+    path("anymail/", include("anymail.urls")),
     path(
         "zipcode-autocomplete/",
         ZipCodeAutocomplete.as_view(),
@@ -120,6 +123,10 @@ urlpatterns = [
     path("ballots/", include("thetatauCMT.ballots.urls", namespace="ballots")),
     path("contact-sync/", include("thetatauCMT.contact_sync.urls", namespace="contact_sync")),
     path(
+        "email-tracking/",
+        include("thetatauCMT.email_tracking.urls", namespace="email_tracking"),
+    ),
+    path(
         "rmp/",
         RedirectView.as_view(pattern_name="forms:rmp", permanent=True),
         name="rmp",
@@ -209,7 +216,7 @@ if settings.DEBUG:
             path("__debug__/", include(debug_toolbar.urls)),
         ] + urlpatterns
 
-if settings.DEBUG or "staging" in settings.SETTINGS_MODULE:
+if settings.DEBUG or "staging" in (settings.SETTINGS_MODULE or ""):
     urlpatterns += [
         path("herald/", include("herald.urls")),
     ]

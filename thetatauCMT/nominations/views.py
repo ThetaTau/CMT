@@ -1,7 +1,5 @@
-from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import PermissionDenied
-from django.http import HttpResponseRedirect
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
@@ -10,7 +8,7 @@ from django.views.generic import ListView
 from viewflow.flow.views import CreateProcessView, UpdateProcessView
 from viewflow.models import Task
 
-from core.models import user_is_national_officer
+from core.views import NationalOfficerRequiredMixin
 
 from .forms import NominationForm, NomineeConsentForm
 from .models import REVIEWER_APPOINTMENT, REVIEWER_CENTRAL_OFFICE, REVIEWER_TRAINING, Nomination, get_reviewer_for
@@ -340,17 +338,6 @@ class DenialCentralOfficeView(LoginRequiredMixin, View):
                 subject="Denial letter emailed",
                 recipient=nomination.nominee_email_address or "",
             )
-
-
-class NationalOfficerRequiredMixin(LoginRequiredMixin):
-    """Restrict a view to National Officers / Admins (redirect others home)."""
-
-    def dispatch(self, request, *args, **kwargs):
-        user = request.user
-        if user.is_authenticated and not user_is_national_officer(user):
-            messages.add_message(request, messages.ERROR, "Only National Officers can access this.")
-            return HttpResponseRedirect(reverse("home"))
-        return super().dispatch(request, *args, **kwargs)
 
 
 class NominationListView(NationalOfficerRequiredMixin, ListView):

@@ -15,7 +15,13 @@ from django.views.generic import CreateView, DetailView, ListView, RedirectView,
 
 from core.forms import MultiFormsView
 from core.models import user_is_national_officer
-from core.views import LoginRequiredMixin, NatOfficerRequiredMixin, PagedFilteredTableView, TypeFieldFilteredChapterAdd
+from core.views import (
+    LoginRequiredMixin,
+    NationalOfficerRequiredMixin,
+    NatOfficerRequiredMixin,
+    PagedFilteredTableView,
+    TypeFieldFilteredChapterAdd,
+)
 from thetatauCMT.scores.models import ScoreType
 
 from .filters import EventListFilter
@@ -105,24 +111,6 @@ class EventAutocomplete(autocomplete.Select2QuerySetView):
         if self.q:
             qs = qs.filter(name__icontains=self.q)
         return qs.select_related("chapter", "type").order_by("-date")
-
-
-class NationalOfficerRequiredMixin(LoginRequiredMixin):
-    """Restrict a view to National Officers / Admins.
-
-    A user qualifies as a National Officer through any existing mechanism
-    (superuser/Admin, the ``natoff`` group, or a current national-officer role),
-    as determined by :func:`~core.models.user_is_national_officer`.
-    Authenticated users who do not qualify are redirected home with an error;
-    unauthenticated users are sent to login by ``LoginRequiredMixin``.
-    """
-
-    def dispatch(self, request, *args, **kwargs):
-        user = request.user
-        if user.is_authenticated and not user_is_national_officer(user):
-            messages.add_message(request, messages.ERROR, "Only National Officers can access this.")
-            return HttpResponseRedirect(reverse("home"))
-        return super().dispatch(request, *args, **kwargs)
 
 
 class EventDetailView(LoginRequiredMixin, DetailView):

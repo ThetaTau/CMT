@@ -4,8 +4,10 @@ from braces.views import GroupRequiredMixin, LoginRequiredMixin
 from django.conf import settings
 from django.contrib import admin, messages
 from django.contrib.auth.decorators import login_required, user_passes_test
+from django.contrib.auth.mixins import LoginRequiredMixin as DjangoLoginRequiredMixin
 from django.db import transaction
 from django.db.utils import IntegrityError
+from django.http import HttpResponseRedirect
 from django.http.request import QueryDict
 from django.shortcuts import resolve_url
 from django.urls import reverse
@@ -16,6 +18,7 @@ from django_tables2 import SingleTableView
 from django_tables2.config import RequestConfig  # Imported by others
 from viewflow.frontend.views import AllTaskListView, DataTableMixin, FlowListMixin, TemplateResponseMixin, generic
 
+from core.models import user_is_national_officer
 from thetatauCMT.announcements.models import Announcement
 from thetatauCMT.scores.models import ScoreType
 from thetatauCMT.tasks.models import TaskChapter, TaskDate
@@ -70,6 +73,31 @@ AllTaskListView.__bases__ = (
     DataTableMixin,
     generic.View,
 )
+
+
+class NationalOfficerRequiredMixin(DjangoLoginRequiredMixin):
+    """Restrict a view to National Officers / Admins.
+
+    Unlike :class:`NatOfficerRequiredMixin` (which checks only the ``natoff``
+    Django group), qualification here is delegated to
+    :func:`core.models.user_is_national_officer` — a superuser, membership in the
+    ``natoff`` group, OR a current national-officer role. Authenticated users who
+    do not qualify are redirected (default: ``home``) with an error message;
+    unauthenticated users are handled by ``LoginRequiredMixin``.
+
+    Views may override ``national_officer_redirect_url`` (a URL name or path) and
+    ``national_officer_message``.
+    """
+
+    national_officer_redirect_url = "home"
+    national_officer_message = "Only National Officers can access this."
+
+    def dispatch(self, request, *args, **kwargs):
+        user = request.user
+        if user.is_authenticated and not user_is_national_officer(user):
+            messages.add_message(request, messages.ERROR, self.national_officer_message)
+            return HttpResponseRedirect(resolve_url(self.national_officer_redirect_url))
+        return super().dispatch(request, *args, **kwargs)
 
 
 class OfficerRequiredMixin(GroupRequiredMixin):

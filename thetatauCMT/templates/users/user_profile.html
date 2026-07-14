@@ -147,6 +147,13 @@
               <i class="fa fa-cog"></i> Admin
             </a>
           {% endif %}
+          {% if can_view_sensitive %}
+            <div class="w-100"></div>
+            <a class="btn btn-outline-primary btn-sm"
+               href="{% url 'email_tracking:member_communication' %}?member={{ object.id }}">
+              <i class="fa fa-envelope-open-text me-1"></i> View email communication
+            </a>
+          {% endif %}
         </div>
       </div>
     </div>

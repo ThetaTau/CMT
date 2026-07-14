@@ -139,6 +139,7 @@ LOCAL_APPS = [
     "thetatauCMT.contact_sync.apps.ContactSyncConfig",
     "thetatauCMT.attendance.apps.AttendanceConfig",
     "thetatauCMT.nominations.apps.NominationsConfig",
+    "thetatauCMT.email_tracking.apps.EmailTrackingConfig",
     # Added after any apps which contain models for which to create signals
     "email_signals",
 ]
@@ -324,6 +325,10 @@ EMAIL_BACKEND = env(
 )
 EMAIL_FILE_PATH = str(ROOT_DIR / "email_tests")
 EMAIL_TIMEOUT = 5
+# Email open/click tracking (Mailjet native, surfaced via django-anymail).
+# These toggle Mailjet's TrackOpens / TrackClicks on every outgoing message.
+EMAIL_TRACK_OPENS = env.bool("EMAIL_TRACK_OPENS", default=True)
+EMAIL_TRACK_CLICKS = env.bool("EMAIL_TRACK_CLICKS", default=True)
 # ADMIN
 # ------------------------------------------------------------------------------
 # Django Admin URL.

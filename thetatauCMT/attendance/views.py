@@ -14,7 +14,7 @@ from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.generic import View
 
 from core.models import user_is_national_officer
-from core.views import LoginRequiredMixin
+from core.views import LoginRequiredMixin, NationalOfficerRequiredMixin
 from thetatauCMT.events.models import Event
 from thetatauCMT.users.models import User
 
@@ -350,25 +350,6 @@ class AttendanceGuestAddView(AttendancePermissionMixin, View):
 # ===========================================================================
 # WI-7 — National event bulk attendance upload + matching queue
 # ===========================================================================
-
-
-class NationalOfficerRequiredMixin(LoginRequiredMixin):
-    """Restrict a view to National Officers / Admins (WI-7).
-
-    Qualification is delegated to :func:`core.models.user_is_national_officer`
-    (superuser, the ``natoff`` group, or a current national-officer role).
-    """
-
-    def dispatch(self, request, *args, **kwargs):
-        user = request.user
-        if user.is_authenticated and not user_is_national_officer(user):
-            messages.add_message(
-                request,
-                messages.ERROR,
-                "Only National Officers can upload or resolve national attendance.",
-            )
-            return HttpResponseRedirect(reverse("events:list"))
-        return super().dispatch(request, *args, **kwargs)
 
 
 class NationalAttendanceUploadView(NationalOfficerRequiredMixin, View):

@@ -20,7 +20,32 @@ else:
     from django.core.mail.backends.filebased import EmailBackend
 
 
-class MyHijackBackend(HijackBackendMixin, EmailBackend):
+class TrackingEmailBackendMixin:
+    """Force Mailjet's native open/click tracking on every outgoing message.
+
+    django-anymail reads ``message.track_opens`` / ``message.track_clicks`` and
+    maps them to Mailjet's ``TrackOpens`` / ``TrackClicks``. Setting them here — in
+    the backend rather than per-notification — guarantees that *all* email leaving
+    the application (herald notifications, allauth, plain ``send_mail``, ...) opts
+    in to Mailjet tracking. Existing per-message settings are respected.
+    """
+
+    def send_messages(self, email_messages):
+        track_opens = getattr(settings, "EMAIL_TRACK_OPENS", True)
+        track_clicks = getattr(settings, "EMAIL_TRACK_CLICKS", True)
+        for message in email_messages or []:
+            if not hasattr(message, "track_opens"):
+                message.track_opens = track_opens
+            if not hasattr(message, "track_clicks"):
+                message.track_clicks = track_clicks
+        return super().send_messages(email_messages)
+
+
+class TrackingMailjetBackend(TrackingEmailBackendMixin, EmailBackend):
+    """Live email backend (used as ``EMAIL_BACKEND``) with tracking forced on."""
+
+
+class MyHijackBackend(HijackBackendMixin, TrackingEmailBackendMixin, EmailBackend):
     """
     This backend intercepts outgoing messages drops them to a single email
     address, using the SendgridBackend

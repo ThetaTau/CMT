@@ -1,0 +1,149 @@
+{% comment %}
+Results fragment for the member-communication page, loaded asynchronously so the
+page shell isn't blocked on the (slower) Mailjet API. Rendered by
+MemberCommunicationResultsView.
+{% endcomment %}
+{% if lookup_error %}
+  <div class="alert alert-danger" role="alert">
+    <i class="fa fa-circle-exclamation me-2"></i>{{ lookup_error }}
+  </div>
+{% endif %}
+
+{% if searched %}
+  <div class="d-flex flex-wrap justify-content-between align-items-center mb-2 gap-2">
+    <h5 class="mb-0">
+      {% if selected_user %}
+        Messages for
+        <a href="{% url 'users:profile' selected_user.username %}">{{ selected_user.name }}</a>
+      {% else %}
+        Messages sent
+      {% endif %}
+      <small class="text-body-secondary">
+        &mdash; {{ emails_checked|join:", " }}
+      </small>
+    </h5>
+    <div class="d-flex align-items-center gap-2">
+      {% if source_label %}
+        <span class="badge bg-secondary-subtle text-body-emphasis border">{{ source_label }}</span>
+      {% endif %}
+      {% if total_known %}
+        <span class="badge text-bg-secondary">{{ total_count }} message{{ total_count|pluralize }} total</span>
+      {% else %}
+        <span class="badge text-bg-secondary">{{ page_row_count }} on this page</span>
+      {% endif %}
+    </div>
+  </div>
+
+  {% if is_search %}
+    <div class="mb-2 small text-body-secondary">
+      <i class="fa fa-filter me-1"></i>Filtered results
+      {% if selected_user %}
+        &mdash; <a href="?member={{ selected_user.id }}">clear filters</a>
+      {% elif emails_checked %}
+        &mdash; <a href="?email={{ emails_checked.0|urlencode }}">clear filters</a>
+      {% endif %}
+    </div>
+    {% if scan_capped %}
+      <div class="alert alert-info py-2 small" role="alert">
+        <i class="fa fa-circle-info me-1"></i>
+        Search scans up to the {{ search_scan_limit }} most recent messages per address
+        (within any date range selected). Older matches may not appear &mdash; narrow the
+        date range to look further back.
+      </div>
+    {% endif %}
+  {% endif %}
+
+  {% if email_rows %}
+    <div class="table-responsive">
+      <table class="table table-hover align-middle">
+        <thead class="bg-body-tertiary">
+          <tr>
+            <th>Sent</th>
+            <th>Subject</th>
+            <th>Recipient</th>
+            <th>Status</th>
+            <th>Opens / Clicks</th>
+            <th>Source</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for msg in email_rows %}
+            <tr>
+              <td class="text-nowrap">
+                {% if msg.sent_at %}{{ msg.sent_at|date:"Y-m-d H:i" }}{% else %}&mdash;{% endif %}
+              </td>
+              <td>
+                {{ msg.subject_display }}
+                {% if msg.tracked.sent_notification_id %}
+                  <a class="ms-1 small"
+                     href="{% url 'admin:herald_sentnotification_change' msg.tracked.sent_notification_id %}"
+                     title="View the full sent email content">
+                    <i class="fa fa-file-lines"></i>
+                  </a>
+                {% endif %}
+              </td>
+              <td class="text-nowrap">{{ msg.recipient_email }}</td>
+              <td><span class="badge text-bg-{{ msg.status_class }}">{{ msg.status }}</span></td>
+              <td>
+                {% if msg.has_tracking %}
+                  {{ msg.opens }} / {{ msg.clicks }}
+                {% else %}
+                  <span class="text-body-secondary">&mdash;</span>
+                {% endif %}
+              </td>
+              <td><span class="badge bg-secondary-subtle text-body-emphasis border">{{ msg.source }}</span></td>
+              <td class="text-end">
+                {% if msg.message_id %}
+                  <button type="button" class="btn btn-outline-secondary btn-sm js-history"
+                          data-history-url="{% url 'email_tracking:message_history' msg.message_id %}"
+                          data-target="history-{{ msg.message_id }}">
+                    <i class="fa fa-clock-rotate-left"></i> History
+                  </button>
+                {% endif %}
+              </td>
+            </tr>
+            {% if msg.message_id %}
+              <tr id="history-{{ msg.message_id }}" class="d-none">
+                <td colspan="7" class="bg-body-tertiary">
+                  <div class="js-history-body small">Loading&hellip;</div>
+                </td>
+              </tr>
+            {% endif %}
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+      <small class="text-body-secondary">
+        {% if total_known %}
+          Showing {{ showing_from }}&ndash;{{ showing_to }} of {{ total_count }}
+        {% else %}
+          Page {{ page }}
+        {% endif %}
+      </small>
+      {% if has_previous or has_next %}
+        <nav aria-label="Message pages">
+          <ul class="pagination pagination-sm mb-0">
+            <li class="page-item {% if not has_previous %}disabled{% endif %}">
+              <a class="page-link" href="?{{ base_query }}&amp;page={{ page|add:'-1' }}">
+                <i class="fa fa-chevron-left"></i> Previous
+              </a>
+            </li>
+            <li class="page-item disabled"><span class="page-link">Page {{ page }}</span></li>
+            <li class="page-item {% if not has_next %}disabled{% endif %}">
+              <a class="page-link" href="?{{ base_query }}&amp;page={{ page|add:'1' }}">
+                Next <i class="fa fa-chevron-right"></i>
+              </a>
+            </li>
+          </ul>
+        </nav>
+      {% endif %}
+    </div>
+  {% elif not lookup_error %}
+    <div class="alert alert-secondary" role="alert">
+      {% if is_search %}No messages match your search.{% else %}No messages found for {{ emails_checked|join:", " }}.{% endif %}
+    </div>
+  {% endif %}
+{% endif %}
