@@ -944,3 +944,47 @@ def test_alumni_exclusion_review_form_clean_veto_with_reason_passes():
         f.clean()
 
     assert "veto_reason" not in f._errors
+
+
+# ─── Treasurer term policy helper ─────────────────────────────────────────────
+
+
+def test_treasurer_term_violation_flags_non_january_dates():
+    """A Treasurer term with a start or end outside January is a violation."""
+    import datetime
+
+    from thetatauCMT.forms.forms import treasurer_term_violation
+
+    jan_start = datetime.date(2026, 1, 5)
+    jan_end = datetime.date(2027, 1, 4)
+    mar_start = datetime.date(2026, 3, 1)
+    mar_end = datetime.date(2027, 2, 28)
+
+    # Conforming January-to-January term.
+    assert treasurer_term_violation("treasurer", jan_start, jan_end) is False
+    # Non-January start and/or end.
+    assert treasurer_term_violation("treasurer", mar_start, mar_end) is True
+    assert treasurer_term_violation("treasurer", jan_start, mar_end) is True
+    assert treasurer_term_violation("treasurer", mar_start, jan_end) is True
+
+
+def test_treasurer_term_violation_only_applies_to_treasurer():
+    """Non-Treasurer roles never trigger the January term policy."""
+    import datetime
+
+    from thetatauCMT.forms.forms import treasurer_term_violation
+
+    mar_start = datetime.date(2026, 3, 1)
+    mar_end = datetime.date(2027, 2, 28)
+    assert treasurer_term_violation("scribe", mar_start, mar_end) is False
+    assert treasurer_term_violation("regent", mar_start, mar_end) is False
+
+
+def test_treasurer_term_violation_ignores_missing_dates():
+    """Missing dates are not treated as violations (other validation handles them)."""
+    import datetime
+
+    from thetatauCMT.forms.forms import treasurer_term_violation
+
+    assert treasurer_term_violation("treasurer", None, None) is False
+    assert treasurer_term_violation("treasurer", datetime.date(2026, 1, 5), None) is False

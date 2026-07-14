@@ -50,6 +50,33 @@ SELF_SUBMIT_FORBIDDEN_MSG = (
     "You cannot submit this form for yourself. " "Ask another chapter officer to submit it on your behalf."
 )
 
+# Theta Tau Policy and Procedure Manual: the Treasurer of every chapter is
+# elected to a one-year term that begins in January. The chapter officer
+# election report warns/blocks submissions where a Treasurer's term does not
+# start and end in January. Both strings are reused by the form validation and
+# the ``officer.html`` template/modal so the wording stays identical.
+TREASURER_TERM_POLICY_MSG = (
+    "In accordance with Theta Tau Policy and Procedure Manual, the Treasurer of all chapters "
+    "shall be elected to hold office for one year, beginning in January."
+)
+TREASURER_TERM_VIOLATION_MSG = TREASURER_TERM_POLICY_MSG + " Your submission is in violation of this policy."
+
+
+def treasurer_term_violation(role, start, end):
+    """Return ``True`` when a Treasurer term does not conform to policy.
+
+    A conforming term both begins and ends in January (a one-year term
+    beginning in January). Any Treasurer role whose start or end date falls
+    outside January is a violation. Missing dates are ignored (other required
+    validation handles them).
+    """
+    if role != "treasurer":
+        return False
+    for value in (start, end):
+        if value is not None and value.month != 1:
+            return True
+    return False
+
 
 def _reject_self(form, field_name, request_user, label=None):
     """Add a form error if ``field_name`` on ``form`` resolved to ``request_user``.
@@ -646,6 +673,15 @@ class RoleChangeSelectForm(forms.ModelForm):
         ),
         disabled=True,
     )
+    # Populated (client-side) when an officer acknowledges a Treasurer term that
+    # falls outside the January-to-January policy window and chooses to submit
+    # anyway. When present it both permits the submission and triggers the
+    # policy-exception notification email. The ``form-control`` class lets the
+    # dynamic-formset "add row" JS rename the field for cloned rows.
+    treasurer_term_exception_reason = forms.CharField(
+        required=False,
+        widget=forms.HiddenInput(attrs={"class": "form-control"}),
+    )
 
     class Meta:
         model = UserRoleChange
@@ -669,8 +705,22 @@ class RoleChangeSelectForm(forms.ModelForm):
             return self.cleaned_data.get("user")
         return _reject_self(self, "user", self.request_user, label="new officer")
 
+    def clean(self):
+        cleaned_data = super().clean()
+        # Existing (locked) rows are rendered disabled and are not being edited
+        # here, so do not enforce the Treasurer term policy on them — many
+        # legacy Treasurer records predate this rule.
+        if self.fields["role"].disabled:
+            return cleaned_data
+        role = cleaned_data.get("role")
+        start = cleaned_data.get("start")
+        end = cleaned_data.get("end")
+        if treasurer_term_violation(role, start, end):
+            reason = (cleaned_data.get("treasurer_term_exception_reason") or "").strip()
+            if not reason:
+                raise forms.ValidationError(TREASURER_TERM_VIOLATION_MSG)
+        return cleaned_data
 
-class RoleChangeSelectFormHelper(FormHelper):
     template = "bootstrap5/table_inline_formset.html"
     form_show_errors = True
     help_text_inline = False

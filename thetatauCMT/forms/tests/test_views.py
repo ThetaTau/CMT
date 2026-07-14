@@ -2485,6 +2485,111 @@ def test_role_change_view_post_with_valid_form(auto_login_user):
     assert response.status_code == 200
 
 
+# ─── Treasurer term policy (January-to-January) enforcement ──────────────────
+
+
+def _officer_treasurer_setup(auto_login_user):
+    """Log in an officer and return (client, user, new_treasurer, officer url)."""
+    from thetatauCMT.users.tests.factories import UserFactory
+
+    client, user = auto_login_user()
+    _add_to_group(user, "officer")
+    new_treasurer = UserFactory.create(chapter=user.chapter)
+    return client, user, new_treasurer, reverse("forms:officer")
+
+
+def _officer_formset_data(new_treasurer, start, end, reason=None):
+    data = {
+        "form-TOTAL_FORMS": "1",
+        "form-INITIAL_FORMS": "0",
+        "form-MIN_NUM_FORMS": "0",
+        "form-MAX_NUM_FORMS": "1000",
+        "form-0-user": str(new_treasurer.pk),
+        "form-0-role": "treasurer",
+        "form-0-start": start,
+        "form-0-end": end,
+    }
+    if reason is not None:
+        data["form-0-treasurer_term_exception_reason"] = reason
+    return data
+
+
+@pytest.mark.django_db
+def test_officer_page_shows_treasurer_policy_note(auto_login_user):
+    """The Officer Election Report page shows the Treasurer term policy note."""
+    client, user = auto_login_user()
+    _add_to_group(user, "officer")
+    response = client.get(reverse("forms:officer"))
+    assert response.status_code == 200
+    content = response.content.decode("UTF-8")
+    assert "shall be elected to hold office for one year, beginning in January" in content
+    # The policy-check JS targets the form by this id (NOT the first POST form,
+    # which can be the navbar chapter switcher for national officers).
+    assert 'id="officer-role-form"' in content
+
+
+@pytest.mark.django_db
+def test_treasurer_non_january_without_reason_is_blocked(auto_login_user, mailoutbox):
+    """A Treasurer term outside January is rejected when no reason is supplied."""
+    from thetatauCMT.users.models import UserRoleChange
+
+    client, user, new_treasurer, url = _officer_treasurer_setup(auto_login_user)
+    data = _officer_formset_data(new_treasurer, "2026-03-01", "2027-02-28")
+    response = client.post(url, data, follow=True)
+    assert response.status_code == 200
+    # Nothing saved and no notification emails sent.
+    assert not UserRoleChange.objects.filter(user=new_treasurer, role="treasurer").exists()
+    assert mailoutbox == []
+
+
+@pytest.mark.django_db
+def test_treasurer_non_january_with_reason_saves_and_emails(auto_login_user, mailoutbox):
+    """With a reason, an out-of-policy Treasurer term saves and notifies leadership."""
+    from thetatauCMT.regions.tests.factories import RegionFactory
+    from thetatauCMT.users.models import UserRoleChange
+    from thetatauCMT.users.tests.factories import UserFactory
+
+    client, user, new_treasurer, url = _officer_treasurer_setup(auto_login_user)
+    region = RegionFactory(name="Treasurer Policy Region", email="rd-region@example.com")
+    director = UserFactory(first_name="Dana", last_name="Director", email="director@example.com")
+    region.directors.add(director)
+    user.chapter.region = region
+    user.chapter.save(update_fields=["region"])
+
+    data = _officer_formset_data(
+        new_treasurer,
+        "2026-03-01",
+        "2027-02-28",
+        reason="Elected mid-year after the prior treasurer withdrew.",
+    )
+    response = client.post(url, data, follow=True)
+    assert response.status_code == 200
+    assert UserRoleChange.objects.filter(user=new_treasurer, role="treasurer").exists()
+
+    exception_emails = [m for m in mailoutbox if "Treasurer Term Policy Exception" in m.subject]
+    assert len(exception_emails) == 1
+    email = exception_emails[0]
+    assert "grand.treasurer@thetatau.org" in email.to
+    assert "director@example.com" in email.to
+    assert "rd-region@example.com" in email.to
+    assert "central.office@thetatau.org" in email.cc
+    body = " ".join([email.body] + [alt[0] for alt in email.alternatives])
+    assert "Elected mid-year after the prior treasurer withdrew." in body
+
+
+@pytest.mark.django_db
+def test_treasurer_january_dates_no_exception_email(auto_login_user, mailoutbox):
+    """A conforming (January) Treasurer term saves without a policy-exception email."""
+    from thetatauCMT.users.models import UserRoleChange
+
+    client, user, new_treasurer, url = _officer_treasurer_setup(auto_login_user)
+    data = _officer_formset_data(new_treasurer, "2026-01-05", "2027-01-04")
+    response = client.post(url, data, follow=True)
+    assert response.status_code == 200
+    assert UserRoleChange.objects.filter(user=new_treasurer, role="treasurer").exists()
+    assert [m for m in mailoutbox if "Treasurer Term Policy Exception" in m.subject] == []
+
+
 # ─── ReturnStudentCreateView GET with existing process (lines 3070-3094) ─────
 
 

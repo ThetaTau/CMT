@@ -59,7 +59,7 @@ from core.views import (
 )
 from thetatauCMT.chapters.models import Chapter, ChapterCurricula
 from thetatauCMT.configs.models import Config
-from thetatauCMT.forms.notifications import CentralOfficeGenericEmail
+from thetatauCMT.forms.notifications import CentralOfficeGenericEmail, TreasurerTermException
 from thetatauCMT.regions.models import Region
 from thetatauCMT.scores.models import ScoreType
 from thetatauCMT.submissions.models import Submission
@@ -121,6 +121,7 @@ from .forms import (
     RoleChangeSelectForm,
     StatusChangeSelectForm,
     StatusChangeSelectFormHelper,
+    treasurer_term_violation,
 )
 from .models import (
     OSM,
@@ -865,6 +866,21 @@ class RoleChangeView(LoginRequiredMixin, ModelFormSetView):
                         role_name = COL_OFFICER_ALIGN[role_name]
                     if role_name in CHAPTER_OFFICER:
                         officer_list.append(form.instance.user)
+                    # Treasurer terms must run January-to-January per policy.
+                    # When an officer acknowledged the exception and supplied a
+                    # reason, notify the Grand Treasurer, regional directors and
+                    # Central Office.
+                    exception_reason = (form.cleaned_data.get("treasurer_term_exception_reason") or "").strip()
+                    if exception_reason and treasurer_term_violation(
+                        form.instance.role,
+                        form.instance.start,
+                        form.instance.end,
+                    ):
+                        TreasurerTermException(
+                            role_change=form.instance,
+                            reason=exception_reason,
+                            submitted_by=self.request.user,
+                        ).send()
             Task.mark_complete(
                 name="Officer Election Report",
                 chapter=self.request.user.current_chapter,
