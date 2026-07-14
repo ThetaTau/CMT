@@ -75,7 +75,8 @@ python manage.py register_mailjet_webhook --list
 ## Looking up a member's communication (National Officers)
 
 Besides the passive webhook tracking above, National Officers / admins can pull
-a member's email history **live from Mailjet on demand** at:
+a member's email history **live on demand** — from Mailjet, from MailerLite, and
+from the application's own internal tracking — at:
 
 ```
 /email-tracking/communication/
@@ -96,6 +97,56 @@ reuses the same `MAILJET_API_KEY` / `MAILJET_SECRET_KEY` credentials Anymail
 sends mail with (falling back to the `MJ_APIKEY_PUBLIC` / `MJ_APIKEY_PRIVATE`
 env vars from Mailjet's own examples). No extra configuration is needed beyond
 the sending credentials; if they are missing the page shows a clear notice.
+
+### MailerLite subscriber activity (optional)
+
+Another part of the organization sends mail through
+[MailerLite](https://www.mailerlite.com/). When a `MAILERLITE_API_KEY` is
+configured, the same communication page also checks whether each of the member's
+email addresses is a MailerLite **subscriber** and, if so, merges that
+subscriber's **activity log** (opens, clicks, sends, bounces, unsubscribes, …)
+into the table, tagged with a **MailerLite** source badge.
+
+```bash
+# Optional — enables the MailerLite lookup. Leave unset to disable it entirely.
+export MAILERLITE_API_KEY='...'
+```
+
+Flow (see the
+[MailerLite subscribers API](https://developers.mailerlite.com/api/subscribers)):
+
+1. Look up the subscriber by email (`GET /api/subscribers/{email}`); a 404 means
+   the address is not a MailerLite subscriber and nothing is added for it.
+2. If found, fetch that subscriber's activity log
+   (`GET /api/subscribers/{id}/activity`) and merge those rows in.
+
+Members are usually in **one** system, so in practice a given address returns
+rows from Mailjet **or** MailerLite. When `MAILERLITE_API_KEY` is unset the
+lookup is skipped entirely (zero overhead); on any API/network error the page
+degrades gracefully to the remaining sources. There are no models or
+migrations — it is a live, read-only API lookup.
+
+### Keeping MailerLite in sync with member opt-outs
+
+When `MAILERLITE_API_KEY` is set, the app also *writes* to MailerLite in two
+places. Both are best-effort — a MailerLite outage or error never blocks the
+local action, it is only logged.
+
+* **Automatic unsubscribe.** When a member opts out of all optional email in
+  this system — via the email-footer unsubscribe page (the global "unsubscribe
+  from all optional Theta Tau email" toggle) or when staff set a member to
+  *no contact* — every one of that member's addresses that is already a
+  MailerLite subscriber is set to `unsubscribed`, keeping the two systems in
+  agreement. Addresses that are not MailerLite subscribers are left alone (no
+  record is ever created). Opting out of a single mailing category does **not**
+  touch MailerLite — only the global opt-out does.
+* **"Send selected users to MailerLite" (National Officers).** In the Django
+  admin member list, select members and choose **Send selected users to
+  MailerLite** from the actions menu. Each selected member is looked up in
+  MailerLite and added as an active subscriber **only if they are not already a
+  subscriber** — an existing (possibly unsubscribed) subscriber is never
+  resurrected. Members without an email address are skipped. A summary
+  (added / already subscribed / skipped / errors) is shown afterward.
 
 ## Notes
 

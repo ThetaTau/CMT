@@ -100,6 +100,11 @@ MemberCommunicationResultsView.
                           data-target="history-{{ msg.message_id }}">
                     <i class="fa fa-clock-rotate-left"></i> History
                   </button>
+                {% elif msg.history_events %}
+                  <button type="button" class="btn btn-outline-secondary btn-sm js-history"
+                          data-target="mlhist-{{ forloop.counter }}">
+                    <i class="fa fa-clock-rotate-left"></i> History
+                  </button>
                 {% endif %}
               </td>
             </tr>
@@ -107,6 +112,26 @@ MemberCommunicationResultsView.
               <tr id="history-{{ msg.message_id }}" class="d-none">
                 <td colspan="7" class="bg-body-tertiary">
                   <div class="js-history-body small">Loading&hellip;</div>
+                </td>
+              </tr>
+            {% elif msg.history_events %}
+              <tr id="mlhist-{{ forloop.counter }}" class="d-none" data-loaded="1">
+                <td colspan="7" class="bg-body-tertiary">
+                  <div class="small">
+                    <div class="fw-semibold mb-1">
+                      Activity history &mdash; {{ msg.history_events|length }} record{{ msg.history_events|length|pluralize }}
+                    </div>
+                    <ul class="list-unstyled mb-0">
+                      {% for ev in msg.history_events %}
+                        <li class="mb-1">
+                          <span class="badge text-bg-{{ ev.status_class }}">{{ ev.label }}</span>
+                          <span class="text-body-secondary">
+                            {% if ev.when %}{{ ev.when|date:"Y-m-d H:i" }}{% else %}&mdash;{% endif %}
+                          </span>
+                        </li>
+                      {% endfor %}
+                    </ul>
+                  </div>
                 </td>
               </tr>
             {% endif %}

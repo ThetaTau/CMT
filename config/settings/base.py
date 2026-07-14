@@ -329,6 +329,10 @@ EMAIL_TIMEOUT = 5
 # These toggle Mailjet's TrackOpens / TrackClicks on every outgoing message.
 EMAIL_TRACK_OPENS = env.bool("EMAIL_TRACK_OPENS", default=True)
 EMAIL_TRACK_CLICKS = env.bool("EMAIL_TRACK_CLICKS", default=True)
+# MailerLite API token (used by another part of the org). When set, the member
+# email-communication page also pulls each member's MailerLite subscriber
+# activity. https://developers.mailerlite.com/api/subscribers
+MAILERLITE_API_KEY = env("MAILERLITE_API_KEY", default="")
 # ADMIN
 # ------------------------------------------------------------------------------
 # Django Admin URL.

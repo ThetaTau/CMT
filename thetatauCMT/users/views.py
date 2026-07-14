@@ -182,6 +182,13 @@ class UnsubscribeConfirmView(TemplateView):
         if update_fields:
             user.save(update_fields=update_fields)
 
+        # When a member opts out of all optional email, mirror the opt-out to
+        # the other organization's MailerLite list (best-effort, never fatal).
+        if unsubscribe_all and "unsubscribe_email" in update_fields:
+            from thetatauCMT.email_tracking import mailerlite_sync
+
+            mailerlite_sync.unsubscribe_user(user)
+
         ctx = super().get_context_data(**kwargs)
         ctx["user_obj"] = user
         ctx["focus_slug"] = focus_slug

@@ -329,6 +329,10 @@ class User(AbstractUser, EmailSignalMixin):
         self.unsubscribe_paper_gear = True
         self.no_contact = True
         self.save()
+        # Mirror the opt-out to the other org's MailerLite list (best-effort).
+        from thetatauCMT.email_tracking import mailerlite_sync
+
+        mailerlite_sync.unsubscribe_user(self)
 
     def get_name_with_details(self):
         major = self.major if self.major else ""

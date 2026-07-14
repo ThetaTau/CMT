@@ -164,6 +164,17 @@ def test_set_no_contact(auto_login_user, user_factory):
     assert user.no_contact is True
 
 
+@pytest.mark.django_db
+def test_set_no_contact_syncs_to_mailerlite(auto_login_user):
+    from unittest.mock import patch
+
+    client, user = auto_login_user()
+    with patch("thetatauCMT.email_tracking.mailerlite_sync.unsubscribe_user") as ml:
+        user.set_no_contact()
+    ml.assert_called_once()
+    assert ml.call_args.args[0].pk == user.pk
+
+
 # ---------------------------------------------------------------------------
 # User model — get_name_with_details
 # ---------------------------------------------------------------------------
@@ -1825,6 +1836,37 @@ def test_unsubscribe_post_all_toggles_global_flag(client):
     assert response.status_code == 200
     user.refresh_from_db()
     assert user.unsubscribe_email is True
+
+
+@pytest.mark.django_db
+def test_unsubscribe_all_syncs_to_mailerlite(client):
+    from unittest.mock import patch
+
+    from thetatauCMT.users.tests.factories import UserFactory
+    from thetatauCMT.users.views import make_unsubscribe_token
+
+    user = UserFactory.create()
+    token = make_unsubscribe_token(user)
+    url = reverse("users:unsubscribe", kwargs={"token": token})
+    with patch("thetatauCMT.email_tracking.mailerlite_sync.unsubscribe_user") as ml:
+        client.post(url, {"categories": ["all"]})
+    ml.assert_called_once()
+    assert ml.call_args.args[0].pk == user.pk
+
+
+@pytest.mark.django_db
+def test_unsubscribe_single_category_does_not_sync_mailerlite(client):
+    from unittest.mock import patch
+
+    from thetatauCMT.users.tests.factories import UserFactory
+    from thetatauCMT.users.views import make_unsubscribe_token
+
+    user = UserFactory.create()
+    token = make_unsubscribe_token(user, category="grad_anniversary")
+    url = reverse("users:unsubscribe", kwargs={"token": token})
+    with patch("thetatauCMT.email_tracking.mailerlite_sync.unsubscribe_user") as ml:
+        client.post(url, {"categories": ["grad_anniversary"]})
+    ml.assert_not_called()
 
 
 @pytest.mark.django_db

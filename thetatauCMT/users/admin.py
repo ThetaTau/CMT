@@ -3,7 +3,7 @@ import datetime
 
 from address.admin import Address
 from django import forms
-from django.contrib import admin
+from django.contrib import admin, messages
 from django.contrib.admin.models import DELETION, LogEntry
 from django.contrib.auth.admin import UserAdmin as AuthUserAdmin
 from django.contrib.auth.forms import UserChangeForm
@@ -479,6 +479,7 @@ class MyUserAdmin(
         "watch_notification_remove",
         "update_status",
         "badge_fix",
+        "send_to_mailerlite",
     ]
     raw_id_fields = []
     readonly_fields = (
@@ -687,6 +688,32 @@ class MyUserAdmin(
             request,
             "admin/update_status.html",
             context={"form": form},
+        )
+
+    @admin.action(description="Send selected users to MailerLite")
+    def send_to_mailerlite(self, request, queryset):
+        """Add the selected members to the other org's MailerLite list.
+
+        Skips anyone who is already a subscriber (never resurrects an
+        unsubscribed record) and members without an email address.
+        """
+        from thetatauCMT.email_tracking import mailerlite_api, mailerlite_sync
+
+        if not mailerlite_api.is_configured():
+            self.message_user(
+                request,
+                "MailerLite is not configured on this server (set MAILERLITE_API_KEY).",
+                level=messages.ERROR,
+            )
+            return
+        summary = mailerlite_sync.send_users(queryset)
+        self.message_user(
+            request,
+            (
+                "MailerLite: added {added}, already subscribed {exists}, "
+                "skipped {skipped} (no email), errors {errors}."
+            ).format(**summary),
+            level=messages.WARNING if summary["errors"] else messages.INFO,
         )
 
 

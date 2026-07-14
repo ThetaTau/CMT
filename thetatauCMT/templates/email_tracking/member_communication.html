@@ -7,15 +7,21 @@
   <h2 class="page-title"><i class="fa fa-envelope-open-text me-2"></i>Member Email Communication</h2>
   <p class="text-body-secondary">
     Look up the emails sent to a member (or any address) and drill into the delivery /
-    open / click history of each message. Results combine a live Mailjet lookup with the
-    application's own internal tracking. Visible to National Officers and administrators only.
+    open / click history of each message. Results combine a live Mailjet lookup, MailerLite
+    subscriber activity and the application's own internal tracking. Visible to National
+    Officers and administrators only.
   </p>
 
-  {% if not mailjet_configured %}
+  {% if not mailjet_configured and not mailerlite_configured %}
     <div class="alert alert-warning" role="alert">
       <i class="fa fa-triangle-exclamation me-2"></i>
-      The Mailjet API is not configured on this server, so results are drawn from
-      internally-tracked emails only (opens/clicks recorded via webhooks).
+      The Mailjet and MailerLite APIs are not configured on this server, so results are
+      drawn from internally-tracked emails only (opens/clicks recorded via webhooks).
+    </div>
+  {% elif not mailjet_configured %}
+    <div class="alert alert-info" role="alert">
+      <i class="fa fa-circle-info me-2"></i>
+      The Mailjet API is not configured; results come from MailerLite and internal tracking.
     </div>
   {% endif %}
 

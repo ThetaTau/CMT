@@ -445,3 +445,164 @@ def test_results_endpoint_returns_fragment_only(auto_login_user):
     # It's a bare fragment: no base-page shell markup.
     assert b"Member Email Communication" not in resp.content
     assert b"<html" not in resp.content
+
+
+@pytest.mark.django_db
+@override_settings(ANYMAIL=_CREDS, MAILERLITE_API_KEY="ml-key")
+def test_communication_includes_mailerlite_activity(auto_login_user):
+    """When configured, a member's MailerLite subscriber activity is merged in."""
+    natoff = _make_natoff(UserFactory.create())
+    client, _ = auto_login_user(user=natoff)
+    ml_activity = [
+        {
+            "log_name": "email_open",
+            "created_at": "2023-05-01 00:00:00",
+            "properties": {"campaign_name": "MailerLite Campaign"},
+        }
+    ]
+    with (
+        mock.patch(
+            "thetatauCMT.email_tracking.mailjet_api.get_messages_for_email",
+            return_value={"data": [], "total": 0, "count": 0},
+        ),
+        mock.patch(
+            "thetatauCMT.email_tracking.mailerlite_api.get_activity_for_email",
+            return_value=ml_activity,
+        ) as ml,
+    ):
+        resp = client.get(
+            reverse("email_tracking:member_communication_results"),
+            {"email": "sub@example.com"},
+        )
+    assert resp.status_code == 200
+    ml.assert_called_once()
+    assert b"MailerLite Campaign" in resp.content
+    assert b"MailerLite" in resp.content
+
+
+@pytest.mark.django_db
+@override_settings(ANYMAIL=_CREDS, MAILERLITE_API_KEY="")
+def test_communication_skips_mailerlite_when_unconfigured(auto_login_user):
+    """No MAILERLITE_API_KEY -> the MailerLite API is never queried."""
+    natoff = _make_natoff(UserFactory.create())
+    client, _ = auto_login_user(user=natoff)
+    fake = {"data": [], "total": 0, "count": 0}
+    with (
+        mock.patch(
+            "thetatauCMT.email_tracking.mailjet_api.get_messages_for_email",
+            return_value=fake,
+        ),
+        mock.patch(
+            "thetatauCMT.email_tracking.mailjet_api.get_message_count",
+            return_value=0,
+        ),
+        mock.patch(
+            "thetatauCMT.email_tracking.mailerlite_api.get_activity_for_email",
+        ) as ml,
+    ):
+        resp = client.get(
+            reverse("email_tracking:member_communication_results"),
+            {"email": "x@example.com"},
+        )
+    assert resp.status_code == 200
+    ml.assert_not_called()
+
+
+@pytest.mark.django_db
+@override_settings(MAILERLITE_API_KEY="ml-key")
+def test_communication_typed_email_mailerlite_without_mailjet(auto_login_user):
+    """User scenario: Mailjet off + a typed email that is a MailerLite
+    subscriber -> the MailerLite activity is returned."""
+    natoff = _make_natoff(UserFactory.create())
+    client, _ = auto_login_user(user=natoff)
+    ml_activity = [
+        {
+            "log_name": "email_open",
+            "created_at": "2026-05-15 13:00:00",
+            "properties": {"campaign_name": "Alumni Newsletter"},
+        }
+    ]
+    with mock.patch(
+        "thetatauCMT.email_tracking.mailerlite_api.get_activity_for_email",
+        return_value=ml_activity,
+    ) as ml:
+        resp = client.get(
+            reverse("email_tracking:member_communication_results"),
+            {"email": "typed@example.com"},
+        )
+    assert resp.status_code == 200
+    ml.assert_called_once_with("typed@example.com", limit=mock.ANY)
+    assert b"Alumni Newsletter" in resp.content
+    assert b"MailerLite" in resp.content
+
+
+@pytest.mark.django_db
+@override_settings(MAILERLITE_API_KEY="ml-key")
+def test_communication_mailerlite_groups_by_campaign(auto_login_user):
+    """Multiple activity records for one campaign collapse to a single row
+    whose history carries the individual records."""
+    natoff = _make_natoff(UserFactory.create())
+    client, _ = auto_login_user(user=natoff)
+    ml_activity = [
+        {
+            "log_name": "email_open",
+            "created_at": "2026-05-15 13:00:00",
+            "properties": {"campaign_id": "99", "campaign_name": "Velocitas May"},
+        },
+        {
+            "log_name": "email_open",
+            "created_at": "2026-05-16 09:00:00",
+            "properties": {"campaign_id": "99", "campaign_name": "Velocitas May"},
+        },
+        {
+            "log_name": "campaign_send",
+            "created_at": "2026-05-15 08:00:00",
+            "properties": {"campaign_id": "99", "campaign_name": "Velocitas May"},
+        },
+    ]
+    with mock.patch(
+        "thetatauCMT.email_tracking.mailerlite_api.get_activity_for_email",
+        return_value=ml_activity,
+    ):
+        resp = client.get(
+            reverse("email_tracking:member_communication_results"),
+            {"email": "sub@example.com"},
+        )
+    assert resp.status_code == 200
+    content = resp.content
+    # One grouped row: the campaign name appears once (in the subject cell).
+    assert content.count(b"Velocitas May") == 1
+    # Opens counted across the group (2 opens, 0 clicks).
+    assert b"2 / 0" in content
+    # History control + the send record (only visible in the expandable history).
+    assert b"History" in content
+    assert b"Sent" in content
+
+
+@pytest.mark.django_db
+@override_settings(MAILERLITE_API_KEY="ml-key")
+def test_communication_mailerlite_checks_all_member_emails(auto_login_user):
+    """MailerLite is queried for every one of a member's addresses."""
+    natoff = _make_natoff(UserFactory.create())
+    member = UserFactory.create()
+    member.email = "primary@example.com"
+    member.email_school = "school@example.edu"
+    member.save(update_fields=["email", "email_school"])
+    client, _ = auto_login_user(user=natoff)
+    queried = []
+
+    def fake_activity(email, limit=100):
+        queried.append(email)
+        return []
+
+    with mock.patch(
+        "thetatauCMT.email_tracking.mailerlite_api.get_activity_for_email",
+        side_effect=fake_activity,
+    ):
+        resp = client.get(
+            reverse("email_tracking:member_communication_results"),
+            {"member": member.pk},
+        )
+    assert resp.status_code == 200
+    assert "primary@example.com" in queried
+    assert "school@example.edu" in queried

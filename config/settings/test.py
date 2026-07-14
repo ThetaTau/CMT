@@ -74,6 +74,8 @@ EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
 EMAIL_HOST = "localhost"
 # https://docs.djangoproject.com/en/dev/ref/settings/#email-port
 EMAIL_PORT = 1025
+# Never hit external mail APIs from the test suite (tests override/patch these).
+MAILERLITE_API_KEY = ""
 
 # SYSTEM CHECKS
 # ------------------------------------------------------------------------------

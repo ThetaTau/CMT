@@ -15,7 +15,7 @@ from django.views.generic import TemplateView, View
 
 from core.views import NationalOfficerRequiredMixin
 
-from . import mailjet_api
+from . import mailerlite_api, mailjet_api
 from .forms import MemberCommunicationForm
 from .models import EmailTrackingEvent, TrackedEmail
 
@@ -34,10 +34,45 @@ _STATUS_BADGE = {
     "bounce": "danger",
     "bounced": "danger",
     "hardbounced": "danger",
+    "hard_bounced": "danger",
     "softbounced": "warning",
+    "soft_bounced": "warning",
     "blocked": "danger",
     "spam": "warning",
+    "junk": "warning",
     "unsub": "dark",
+    "unsubscribed": "dark",
+    "forwarded": "info",
+    "opened_forward": "success",
+    "complaint": "warning",
+    # MailerLite activity-log names (GET /subscribers/{id}/activity-log)
+    "campaign_send": "info",
+    "automation_email_sent": "info",
+    "email_open": "success",
+    "link_click": "primary",
+    "email_bounce": "danger",
+    "spam_complaint": "warning",
+    "email_forward": "info",
+    "marketing_preferences_change": "secondary",
+    "preference_center": "secondary",
+    "added_to_group": "secondary",
+    "activated": "success",
+}
+
+# Human-friendly labels for MailerLite activity-log names.
+_MAILERLITE_LABELS = {
+    "campaign_send": "Sent",
+    "automation_email_sent": "Sent (automation)",
+    "email_open": "Opened",
+    "link_click": "Clicked",
+    "email_bounce": "Bounced",
+    "spam_complaint": "Spam complaint",
+    "unsubscribed": "Unsubscribed",
+    "email_forward": "Forwarded",
+    "marketing_preferences_change": "Preferences changed",
+    "preference_center": "Preference center",
+    "added_to_group": "Added to group",
+    "activated": "Activated",
 }
 
 
@@ -57,6 +92,8 @@ class MemberCommunicationView(NationalOfficerRequiredMixin, TemplateView):
     # When a date/subject search is active, scan up to this many messages per
     # address (Mailjet can't filter by subject, so we filter client-side).
     search_scan_limit = 200
+    # How many MailerLite activity records to pull per address.
+    mailerlite_scan_limit = 100
 
     def _parse(self):
         """Parse the request into (form, selected_user, emails, filters).
@@ -87,6 +124,7 @@ class MemberCommunicationView(NationalOfficerRequiredMixin, TemplateView):
         form, selected_user, emails, filters = self._parse()
         context["form"] = form
         context["mailjet_configured"] = mailjet_api.is_configured()
+        context["mailerlite_configured"] = mailerlite_api.is_configured()
         context["selected_user"] = selected_user
         context["emails_checked"] = emails
         context["searched"] = bool(emails)
@@ -125,6 +163,9 @@ class MemberCommunicationView(NationalOfficerRequiredMixin, TemplateView):
     def _lookup(self, emails, page, filters):
         offset = (page - 1) * self.page_size
         is_search = bool(filters.get("date_from") or filters.get("date_to") or filters.get("subject"))
+        # MailerLite subscriber activity (empty unless configured AND the member
+        # is a MailerLite subscriber). Merged into the table as an extra source.
+        mailerlite_rows = self._mailerlite_rows(emails)
         result = {
             "email_rows": [],
             "lookup_error": None,
@@ -138,25 +179,29 @@ class MemberCommunicationView(NationalOfficerRequiredMixin, TemplateView):
 
         if mailjet_api.is_configured():
             try:
-                if is_search:
-                    result.update(self._search_api(emails, page, filters))
+                # Any filter, OR MailerLite rows present, means we merge and
+                # paginate in memory; otherwise use Mailjet's server-side paging.
+                if is_search or mailerlite_rows:
+                    result.update(self._search_api(emails, page, filters, extra_rows=mailerlite_rows))
                 else:
                     rows, total, has_next = self._from_api(emails, offset)
                     result["email_rows"] = rows
                     result["total_count"] = total
                     result["has_next"] = has_next
+                base_label = "Mailjet"
             except (mailjet_api.MailjetConfigurationError, mailjet_api.MailjetAPIError):
                 logger.warning("Mailjet message lookup failed", exc_info=True)
-                result.update(self._from_local(emails, offset, filters))
+                result.update(self._from_local(emails, offset, filters, extra_rows=mailerlite_rows))
                 result["lookup_error"] = (
                     "Could not retrieve messages from Mailjet; showing " "internally-tracked messages instead."
                 )
-                result["source_label"] = "Internal tracking (Mailjet unavailable)"
+                base_label = "Internal tracking (Mailjet unavailable)"
+            result["source_label"] = f"{base_label} + MailerLite" if mailerlite_rows else base_label
             return result
 
-        # No Mailjet credentials -> serve the internally-tracked data.
-        result.update(self._from_local(emails, offset, filters))
-        result["source_label"] = "Internal tracking"
+        # No Mailjet credentials -> internally-tracked data (+ MailerLite).
+        result.update(self._from_local(emails, offset, filters, extra_rows=mailerlite_rows))
+        result["source_label"] = "MailerLite + Internal tracking" if mailerlite_rows else "Internal tracking"
         result["mailjet_unavailable"] = True
         return result
 
@@ -187,10 +232,10 @@ class MemberCommunicationView(NationalOfficerRequiredMixin, TemplateView):
         rows.sort(key=lambda r: r["sent_at"] or _MIN_DT, reverse=True)
         return rows, total, has_next
 
-    def _search_api(self, emails, page, filters):
-        """Date/subject search: Mailjet can't filter by subject, so scan a
-        bounded, date-narrowed window across every address, merge, filter and
-        paginate in memory."""
+    def _search_api(self, emails, page, filters, extra_rows=None):
+        """Merge/paginate in memory: Mailjet can't filter by subject, so scan a
+        bounded, date-narrowed window across every address, add any extra rows
+        (e.g. MailerLite activity), filter, sort and paginate in memory."""
         offset = (page - 1) * self.page_size
         collected = []
         scan_capped = False
@@ -207,7 +252,8 @@ class MemberCommunicationView(NationalOfficerRequiredMixin, TemplateView):
             for msg in resp["data"]:
                 collected.append((email, msg))
 
-        rows = self._apply_filters(self._build_rows(collected), filters)
+        rows = self._build_rows(collected) + list(extra_rows or [])
+        rows = self._apply_filters(rows, filters)
         rows.sort(key=lambda r: r["sent_at"] or _MIN_DT, reverse=True)
         total = len(rows)
         return {
@@ -242,7 +288,7 @@ class MemberCommunicationView(NationalOfficerRequiredMixin, TemplateView):
             result.append(row)
         return result
 
-    def _from_local(self, emails, offset, filters=None):
+    def _from_local(self, emails, offset, filters=None, extra_rows=None):
         filters = filters or {}
         query = Q()
         for email in emails:
@@ -255,6 +301,19 @@ class MemberCommunicationView(NationalOfficerRequiredMixin, TemplateView):
         if filters.get("subject"):
             qs = qs.filter(subject__icontains=filters["subject"])
         qs = qs.order_by("-sent_at")
+
+        if extra_rows:
+            # Merge with extra rows (e.g. MailerLite) -> paginate in memory.
+            rows = [self._local_row(t) for t in qs[: self.search_scan_limit]]
+            rows = self._apply_filters(rows + list(extra_rows), filters)
+            rows.sort(key=lambda r: r["sent_at"] or _MIN_DT, reverse=True)
+            total = len(rows)
+            return {
+                "email_rows": rows[offset : offset + self.page_size],
+                "total_count": total,
+                "has_next": offset + self.page_size < total,
+            }
+
         total = qs.count()
         rows = [self._local_row(t) for t in qs[offset : offset + self.page_size]]
         return {
@@ -294,6 +353,98 @@ class MemberCommunicationView(NationalOfficerRequiredMixin, TemplateView):
             "clicks": tracked.click_count,
             "tracked": tracked,
             "source": "Internal",
+        }
+
+    def _mailerlite_rows(self, emails):
+        """One normalized row per (address, MailerLite campaign).
+
+        MailerLite returns a flat activity log (one entry per open/click/send),
+        so we group by campaign: each campaign becomes a single row whose
+        ``history_events`` carries the individual records (shown like Mailjet's
+        per-message history). Empty unless MailerLite is configured AND the
+        address is a subscriber.
+        """
+        if not mailerlite_api.is_configured():
+            return []
+        rows = []
+        for email in emails:
+            try:
+                entries = mailerlite_api.get_activity_for_email(email, limit=self.mailerlite_scan_limit)
+            except (
+                mailerlite_api.MailerLiteConfigurationError,
+                mailerlite_api.MailerLiteAPIError,
+            ):
+                logger.warning("MailerLite lookup failed for %s", email, exc_info=True)
+                continue
+            groups = {}
+            order = []
+            for entry in entries:
+                subject = mailerlite_api.activity_subject(entry) or "MailerLite activity"
+                key = self._mailerlite_group_key(entry, subject)
+                if key not in groups:
+                    groups[key] = {"subject": subject, "entries": []}
+                    order.append(key)
+                groups[key]["entries"].append(entry)
+            for key in order:
+                rows.append(self._mailerlite_group_row(email, groups[key]["subject"], groups[key]["entries"]))
+        return rows
+
+    @staticmethod
+    def _mailerlite_group_key(entry, subject):
+        """Group activity by campaign id when available, else by subject."""
+        props = entry.get("properties")
+        if isinstance(props, dict):
+            campaign_id = props.get("campaign_id") or props.get("automation_id")
+            if campaign_id:
+                return f"c:{campaign_id}"
+        return f"s:{(subject or '').strip().lower()}"
+
+    @staticmethod
+    def _mailerlite_event(entry):
+        """Normalize one MailerLite activity entry into a history event."""
+        log_name = (entry.get("log_name") or entry.get("type") or "").strip()
+        label = _MAILERLITE_LABELS.get(log_name) or (log_name.replace("_", " ").title() if log_name else "Activity")
+        return {
+            "log_name": log_name,
+            "label": label,
+            "status_class": _status_class(log_name),
+            "when": mailerlite_api.parse_date(entry.get("created_at") or entry.get("date")),
+        }
+
+    @classmethod
+    def _mailerlite_group_row(cls, email, subject, entries):
+        events = [cls._mailerlite_event(e) for e in entries]
+        events.sort(key=lambda e: e["when"] or _MIN_DT, reverse=True)
+        opens = sum(1 for e in events if e["log_name"] == "email_open")
+        clicks = sum(1 for e in events if e["log_name"] == "link_click")
+        sent_dates = [
+            e["when"] for e in events if e["log_name"] in ("campaign_send", "automation_email_sent") and e["when"]
+        ]
+        all_dates = [e["when"] for e in events if e["when"]]
+        sent_at = min(sent_dates) if sent_dates else (min(all_dates) if all_dates else None)
+        if clicks:
+            status, status_class = "Clicked", _status_class("link_click")
+        elif opens:
+            status, status_class = "Opened", _status_class("email_open")
+        elif sent_dates:
+            status, status_class = "Sent", _status_class("campaign_send")
+        elif events:
+            status, status_class = events[0]["label"], events[0]["status_class"]
+        else:
+            status, status_class = "Activity", "secondary"
+        return {
+            "message_id": "",  # no Mailjet-style per-message drill-down
+            "sent_at": sent_at,
+            "subject_display": subject or "(no subject)",
+            "recipient_email": email,
+            "status": status,
+            "status_class": status_class,
+            "has_tracking": True,
+            "opens": opens,
+            "clicks": clicks,
+            "tracked": None,
+            "source": "MailerLite",
+            "history_events": events,
         }
 
 
