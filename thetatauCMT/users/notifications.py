@@ -273,7 +273,11 @@ class OfficerUpdateReminder(EmailNotification):  # extend from EmailNotification
         emails = {email for email in emails if email}
         format_officers = ", ".join(officers_to_update)
         self.to_emails = emails
-        self.cc = [chapter.region.email]
+        # The Regional Director is intentionally NOT cc'd on this daily reminder.
+        # RDs receive a single weekly roll-up instead (RegionalDirectorOfficerDigest,
+        # sent by the ``region_officer_reminder_digest`` command) so an unresponsive
+        # chapter no longer generates a daily email to the RD.
+        self.cc = []
         self.reply_to = [
             "central.office@thetatau.org",
         ]
@@ -297,6 +301,53 @@ class OfficerUpdateReminder(EmailNotification):  # extend from EmailNotification
             emails,
             officers_to_update,
         ]
+
+
+class RegionalDirectorOfficerDigest(EmailNotification):
+    """Weekly roll-up emailed to a region's Directors (and the region mailbox).
+
+    Replaces the per-chapter daily CC that used to land on the Regional
+    Director for every chapter with an expiring/missing officer. One email is
+    sent per region, summarizing every chapter in that region that still needs
+    an officer update, so an unresponsive chapter no longer bombards the RD
+    daily while the RD still gets a regular prompt to follow up.
+    """
+
+    render_types = ["html"]
+    template_name = "regional_director_officer_digest"
+    subject = "Regional officer update summary"
+
+    def __init__(self, region, chapter_updates):
+        # ``chapter_updates`` is a list of {"chapter": Chapter, "officers": str}.
+        director_emails = set()
+        for director in region.directors.all():
+            director_emails |= {email for email in director.emails if email}
+        if region.email:
+            director_emails.add(region.email)
+        self.to_emails = director_emails
+        self.cc = []
+        self.reply_to = [
+            "central.office@thetatau.org",
+        ]
+        self.subject = f"CMT Weekly Officer Update Summary — {region.name} Region"
+        self.context = {
+            "region": region,
+            "chapter_updates": chapter_updates,
+            "count": len(chapter_updates),
+            "host": settings.CURRENT_URL,
+        }
+
+    @staticmethod
+    def get_demo_args():  # define a static method to return list of args needed to initialize class for testing
+        from thetatauCMT.regions.models import Region
+
+        region = Region.objects.order_by("?")[0]
+        chapter_updates = []
+        for chapter in region.chapters.exclude(active=False):
+            _, officers_to_update = chapter.get_about_expired_coucil()
+            if officers_to_update:
+                chapter_updates.append({"chapter": chapter, "officers": ", ".join(officers_to_update)})
+        return [region, chapter_updates]
 
 
 @registry.register_decorator()

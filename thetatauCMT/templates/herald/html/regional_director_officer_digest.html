@@ -1,0 +1,46 @@
+{% extends "herald/html/base_email.html" %}
+{% block title %}Regional officer update summary{% endblock %}
+{% block content %}
+<h1 class="null" style="margin: 0;padding: 0;display: block;font-family: Helvetica;font-size: 40px;font-style: normal;font-weight: bold;line-height: 125%;letter-spacing: -1px;text-align: left;color: #606060 !important;">Weekly officer update summary</h1>
+Dear {{ region.name }} Regional Director,
+<p>
+You are receiving this weekly summary because you are listed as a Regional
+Director. The following <b>{{ count }}</b> chapter{{ count|pluralize }} in your
+region {{ count|pluralize:"has,have" }} officer position(s) that are set to
+expire soon or have already expired with no replacement identified on the CMT.
+</p>
+<p>
+The chapter officers themselves continue to receive their own reminders. This
+summary is here so you can follow up with any chapter that is not responding —
+you no longer receive a separate email for each chapter every day.
+</p>
+<table role="presentation" width="100%" cellpadding="8" cellspacing="0" style="border-collapse: collapse; font-family: Helvetica; font-size: 14px;">
+  <thead>
+    <tr>
+      <th align="left" style="border-bottom: 2px solid #606060; color: #404040;">Chapter</th>
+      <th align="left" style="border-bottom: 2px solid #606060; color: #404040;">Position(s) needing update</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for update in chapter_updates %}
+    <tr>
+      <td style="border-bottom: 1px solid #d0d0d0; vertical-align: top;">
+        {% if update.chapter.candidate_chapter %}{{ update.chapter.name }}{% else %}{{ update.chapter.name }} Chapter{% endif %}
+      </td>
+      <td style="border-bottom: 1px solid #d0d0d0; vertical-align: top;">{{ update.officers }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+<p>
+Chapters can update their officers on the CMT at the Officer Election Report
+<a href="{{ host }}{% url 'forms:officer' %}">{{ host }}{% url 'forms:officer' %}</a>.
+<br><br>
+If a chapter has no current officers with access to the CMT, they will need to
+reach out to
+<a href="mailto:central.office@thetatau.org">central.office@thetatau.org</a>
+with the name of an officer who can then add all of the other officers.
+</p>
+<br>
+  {% include "herald/html/rm_contact.html" %}
+{% endblock content %}
