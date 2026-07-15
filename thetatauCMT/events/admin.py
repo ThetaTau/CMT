@@ -41,13 +41,15 @@ class EventAdmin(admin.ModelAdmin):
         "is_public",
         "is_national",
         "approval_status",
+        "deleted",
         "parent_event",
         "description",
     )
-    list_filter = ["approval_status", "is_public", "is_national", "chapter", "type"]
+    list_filter = ["deleted", "approval_status", "is_public", "is_national", "chapter", "type"]
     search_fields = ("name",)
     autocomplete_fields = ("parent_event",)
     inlines = [SubEventInline, EventAttendanceInline]
+    actions = ["soft_delete_events", "restore_events"]
     ordering = [
         "date",
     ]
@@ -56,7 +58,29 @@ class EventAdmin(admin.ModelAdmin):
         "modified_by",
         "reviewed_by",
         "reviewed_at",
+        "deleted_at",
+        "deleted_by",
     )
+
+    def get_queryset(self, request):
+        # Show soft-deleted events in the admin so they can be reviewed/restored.
+        return self.model.all_objects.get_queryset()
+
+    @admin.action(description="Soft-delete selected events (remove from scoring)")
+    def soft_delete_events(self, request, queryset):
+        count = 0
+        for event in queryset.filter(deleted=False):
+            event.soft_delete(request.user)
+            count += 1
+        self.message_user(request, f"Soft-deleted {count} event(s).")
+
+    @admin.action(description="Restore selected soft-deleted events")
+    def restore_events(self, request, queryset):
+        count = 0
+        for event in queryset.filter(deleted=True):
+            event.restore(request.user)
+            count += 1
+        self.message_user(request, f"Restored {count} event(s).")
 
     def view_on_site(self, obj):
         # Return the relative URL so the admin "View on site" link resolves

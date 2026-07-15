@@ -21,6 +21,11 @@
           </a>
         {% endif %}
       {% endif %}
+      {% if can_delete %}
+        <a class="btn btn-outline-danger" href="{{ object.get_delete_url }}" role="button">
+          <i class="fas fa-trash"></i> Delete
+        </a>
+      {% endif %}
     </div>
   </div>
 

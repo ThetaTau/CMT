@@ -44,6 +44,12 @@ urlpatterns = [
         views.EventUpdateView.as_view(),
         name="update",
     ),
+    # Non-enumerable soft-delete confirmation URL (date + slug).
+    path(
+        "~<int:year>/<int:month>/<int:day>/<slug:event_slug>/delete/",
+        views.EventDeleteView.as_view(),
+        name="delete",
+    ),
     # Converted to path with int and slug converters
     path(
         "~<int:year>/<int:month>/<int:day>/<slug:slug>/",

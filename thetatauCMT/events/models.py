@@ -71,13 +71,58 @@ class EventQuerySet(models.QuerySet):
             models.Q(chapter=chapter) | models.Q(is_public=True, approval_status=Event.ApprovalStatus.APPROVED)
         ).distinct()
 
+    def alive(self):
+        """Events that have not been soft-deleted."""
+        return self.filter(deleted=False)
 
-EventManager = models.Manager.from_queryset(EventQuerySet)
+    def dead(self):
+        """Soft-deleted events."""
+        return self.filter(deleted=True)
+
+
+_EventQuerySetManager = models.Manager.from_queryset(EventQuerySet)
+
+
+class EventManager(_EventQuerySetManager):
+    """Default manager — hides soft-deleted events so they automatically drop
+    out of scoring, listings, calendars, and feeds everywhere ``Event.objects``
+    (and reverse relations like ``chapter.events`` / ``type.events``) are used.
+    """
+
+    def get_queryset(self):
+        return super().get_queryset().filter(deleted=False)
+
+
+class AllEventManager(_EventQuerySetManager):
+    """Unfiltered manager including soft-deleted events (admin / restore / audit)."""
+
+
+def can_delete_event(user, event):
+    """Whether ``user`` may soft-delete ``event``.
+
+    Only chapter officers of the event's own chapter may delete it (National
+    Officers and superusers may delete any event, including national ones).
+    """
+    if not getattr(user, "is_authenticated", False):
+        return False
+    if user.is_superuser or user.is_national_officer_group:
+        return True
+    if event.chapter_id and user.is_chapter_officer_group:
+        current = user.current_chapter
+        if current is not None and current.pk == event.chapter_id:
+            return True
+    return False
 
 
 class Event(TimeStampedModel, EmailSignalMixin):
     class Meta:
         unique_together = ("name", "date", "chapter")
+        # ``all_objects`` (unfiltered) is the base manager so cascade deletes and
+        # forward-related access still see soft-deleted rows; ``objects`` (which
+        # hides soft-deleted events) stays the default for queries and reverse
+        # relations such as ``chapter.events`` / ``type.events``.
+        base_manager_name = "all_objects"
+        default_manager_name = "objects"
 
     class ApprovalStatus(models.TextChoices):
         PENDING = "pending", "Pending"
@@ -85,6 +130,7 @@ class Event(TimeStampedModel, EmailSignalMixin):
         REJECTED = "rejected", "Rejected"
 
     objects = EventManager()
+    all_objects = AllEventManager()
 
     created_by = UserForeignKey(
         auto_user_add=True,
@@ -179,6 +225,24 @@ class Event(TimeStampedModel, EmailSignalMixin):
     )
     virtual = models.BooleanField(default=False, help_text="Was your event virtual?")
 
+    # Soft delete — chapter officers may remove an event without destroying the
+    # row. Soft-deleted events are excluded from scoring and every listing via
+    # the default manager, but kept for audit / restore.
+    deleted = models.BooleanField(
+        default=False,
+        db_index=True,
+        help_text="Soft-deleted events are hidden and excluded from scoring.",
+    )
+    deleted_at = models.DateTimeField(blank=True, null=True, verbose_name="Deleted at")
+    deleted_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        related_name="events_deleted",
+        blank=True,
+        null=True,
+        verbose_name="Deleted by",
+    )
+
     def __str__(self):
         return f"{self.name} on {self.date}"
 
@@ -239,6 +303,41 @@ class Event(TimeStampedModel, EmailSignalMixin):
                 "event_slug": self.slug,
             },
         )
+
+    def get_delete_url(self):
+        """Non-enumerable (date + slug) URL for the soft-delete confirmation."""
+        return reverse(
+            "events:delete",
+            kwargs={
+                "year": self.date.year,
+                "month": self.date.month,
+                "day": self.date.day,
+                "event_slug": self.slug,
+            },
+        )
+
+    def soft_delete(self, user=None):
+        """Mark the event deleted (kept for audit) and drop it from scoring.
+
+        The default manager hides it everywhere; re-running the chapter score
+        removes this event's points from the term aggregate.
+        """
+        self.deleted = True
+        self.deleted_at = timezone.now()
+        if user is not None and getattr(user, "pk", None):
+            self.deleted_by = user
+        self.save(calculate_score=False)
+        if self.chapter_id is not None:
+            self.type.update_chapter_score(self.chapter, self.date)
+
+    def restore(self, user=None):
+        """Undo a soft delete and restore the event's points to the aggregate."""
+        self.deleted = False
+        self.deleted_at = None
+        self.deleted_by = None
+        self.save(calculate_score=False)
+        if self.chapter_id is not None:
+            self.type.update_chapter_score(self.chapter, self.date)
 
     @property
     def is_upcoming(self):

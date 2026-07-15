@@ -18,6 +18,11 @@
           <i class="fas fa-clipboard-check"></i> Attendance
         </a>
       {% endif %}
+      {% if can_delete %}
+        <a class="btn btn-outline-danger" href="{{ event.get_delete_url }}">
+          <i class="fas fa-trash"></i> Delete
+        </a>
+      {% endif %}
     </div>
   </div>
   <h4>Created By: {{ event.created_by }} {{ event.created }}</h4>

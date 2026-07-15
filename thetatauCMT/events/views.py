@@ -26,7 +26,7 @@ from thetatauCMT.scores.models import ScoreType
 
 from .filters import EventListFilter
 from .forms import CalendarFeedSubscriptionForm, EventForm, EventListFormHelper, PictureForm, TaskFeedForm
-from .models import CalendarFeedSubscription, Event, Picture
+from .models import CalendarFeedSubscription, Event, Picture, can_delete_event
 from .tables import EventTable
 
 
@@ -158,6 +158,8 @@ class EventDetailView(LoginRequiredMixin, DetailView):
         context["can_rsvp"] = can_rsvp(user, self.object)
         my_record = self.object.attendance_records.filter(user=user).first()
         context["my_rsvp_status"] = my_record.status if my_record else ""
+        # Chapter officers of this event's chapter may soft-delete it.
+        context["can_delete"] = can_delete_event(user, self.object)
         return context
 
 
@@ -339,6 +341,7 @@ class EventUpdateView(
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["sub_events"] = self.object.sub_events.select_related("chapter", "type").order_by("-date")
+        context["can_delete"] = can_delete_event(self.request.user, self.object)
         return context
 
     def form_valid(self, form):
@@ -364,6 +367,55 @@ class EventUpdateView(
 
     def get_success_url(self):
         return reverse("events:list")
+
+
+class EventDeleteView(LoginRequiredMixin, View):
+    """Soft-delete an event.
+
+    Restricted to chapter officers of the event's own chapter (National Officers
+    and superusers may delete any event). A GET renders a confirmation page; the
+    actual delete only happens on the confirming POST.
+    """
+
+    template_name = "events/event_confirm_delete.html"
+
+    def _get_event(self):
+        obj = (
+            Event.objects.filter(
+                date__year=self.kwargs["year"],
+                date__month=self.kwargs["month"],
+                date__day=self.kwargs["day"],
+                slug=self.kwargs["event_slug"],
+            )
+            .order_by("pk")
+            .first()
+        )
+        if obj is None:
+            raise Http404("No event matches the given query.")
+        return obj
+
+    def dispatch(self, request, *args, **kwargs):
+        # Let LoginRequiredMixin handle unauthenticated users first.
+        if not request.user.is_authenticated:
+            return super().dispatch(request, *args, **kwargs)
+        self.event = self._get_event()
+        if not can_delete_event(request.user, self.event):
+            messages.add_message(
+                request,
+                messages.ERROR,
+                "Only officers of this event's chapter can delete it.",
+            )
+            return HttpResponseRedirect(self.event.get_absolute_url())
+        return super().dispatch(request, *args, **kwargs)
+
+    def get(self, request, *args, **kwargs):
+        return render(request, self.template_name, {"event": self.event})
+
+    def post(self, request, *args, **kwargs):
+        name = self.event.name
+        self.event.soft_delete(request.user)
+        messages.add_message(request, messages.SUCCESS, f"Event '{name}' was deleted.")
+        return HttpResponseRedirect(_safe_next(request, reverse("events:list")))
 
 
 class EventListView(LoginRequiredMixin, PagedFilteredTableView):
