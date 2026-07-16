@@ -343,7 +343,7 @@ class User(AbstractUser, EmailSignalMixin):
         # This allows for national officers to change their chapter
         # without actually changing their chapter
         chapter = self.chapter
-        if self.groups.filter(name="natoff").exists():
+        if self.in_national_officer_group:
             if self.altered.all():
                 chapter = self.altered.first().chapter
         return chapter
@@ -437,7 +437,10 @@ class User(AbstractUser, EmailSignalMixin):
         current_roles = set(self.current_roles) if self.current_roles else set()
         # officer = not current_roles.isdisjoint(CHAPTER_OFFICER)
         officer_roles = CHAPTER_OFFICER & current_roles
-        if self.is_national_officer_group:
+        # Use the *raw* natoff-group membership here (not ``is_national_officer_group``)
+        # so the UserAlter chapter/role impersonation keeps working even while a
+        # National Officer has hidden national-officer functionality.
+        if self.in_national_officer_group:
             if altered and self.altered.all():
                 new_role = self.altered.first().role
                 if new_role is not None and new_role != "":
@@ -445,8 +448,38 @@ class User(AbstractUser, EmailSignalMixin):
         return officer_roles
 
     @property
-    def is_national_officer_group(self):
+    def in_national_officer_group(self):
+        """Raw ``natoff`` group membership, ignoring the "view as member" toggle.
+
+        Use this for switch-back UI and for applying the ``UserAlter`` chapter/role
+        impersonation, which must keep working while national-officer functionality
+        is hidden. To ask "is this user *currently acting as* a National Officer"
+        use :attr:`is_national_officer_group` (which respects the toggle).
+        """
         return self.groups.filter(name="natoff").exists()
+
+    @property
+    def natoff_hidden(self):
+        """True when a National Officer has switched to "view as member" mode.
+
+        Toggled via the account menu / region bar, persisted on
+        ``UserAlter.hide_natoff``. Only meaningful for members of the ``natoff``
+        group; everyone else is always ``False``.
+        """
+        if not self.in_national_officer_group:
+            return False
+        alter = self.altered.first()
+        return bool(alter and alter.hide_natoff)
+
+    @property
+    def is_national_officer_group(self):
+        """Whether the user is *currently acting as* a National Officer.
+
+        True for members of the ``natoff`` group, unless they have toggled
+        "Hide national officer functionality" (:attr:`natoff_hidden`) to preview
+        the site as a regular member / chapter officer.
+        """
+        return self.in_national_officer_group and not self.natoff_hidden
 
     @property
     def is_chapter_officer_group(self):
@@ -676,6 +709,15 @@ class UserAlter(models.Model):
     chapter = models.ForeignKey(Chapter, on_delete=models.CASCADE, default=1, related_name="altered_member")
     ROLES = CHAPTER_OFFICER_CHOICES + [(None, "------------")]
     role = models.CharField(max_length=50, choices=ROLES, null=True)
+    hide_natoff = models.BooleanField(
+        "Hide national officer functionality",
+        default=False,
+        help_text=(
+            "When on, national-officer-only abilities are hidden so the site can "
+            "be previewed as a regular member (or, with a role selected above, as "
+            "that chapter officer)."
+        ),
+    )
 
 
 class UserSemesterServiceHours(YearTermModel):

@@ -433,7 +433,7 @@ class ReturnStudentInline(admin.TabularInline):
 
 class UserAlterInline(admin.StackedInline):
     model = UserAlter
-    fields = ["chapter", "role"]
+    fields = ["chapter", "role", "hide_natoff"]
     show_change_link = True
     extra = 0
 

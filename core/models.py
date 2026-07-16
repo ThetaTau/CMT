@@ -220,8 +220,13 @@ def user_is_national_officer(user):
     - currently holds a national-officer role (``is_national_officer``).
 
     Safely handles ``None`` and unauthenticated users (returns ``False``).
+
+    Returns ``False`` when a National Officer has toggled "Hide national officer
+    functionality" (``natoff_hidden``) to preview the site as a regular member.
     """
     if user is None or not getattr(user, "is_authenticated", False):
+        return False
+    if getattr(user, "natoff_hidden", False):
         return False
     return bool(user.is_superuser or user.is_national_officer_group or user.is_national_officer())
 

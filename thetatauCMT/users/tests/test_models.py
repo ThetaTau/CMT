@@ -121,3 +121,68 @@ def test_director_regions_lists_directed_regions():
     region.directors.add(director)
     assert list(director.director_regions) == [region]
     assert list(UserFactory().director_regions) == []
+
+
+# ---------------------------------------------------------------------------
+# Hide national officer functionality (natoff_hidden / view as member)
+# ---------------------------------------------------------------------------
+from core.models import user_is_national_officer  # noqa: E402
+from thetatauCMT.users.models import UserAlter  # noqa: E402
+
+
+@pytest.mark.django_db
+def test_natoff_hidden_false_for_non_natoff():
+    user = UserFactory()
+    assert user.in_national_officer_group is False
+    assert user.natoff_hidden is False
+    assert user.is_national_officer_group is False
+
+
+@pytest.mark.django_db
+def test_natoff_group_acts_as_national_officer_by_default():
+    user = _in_group(UserFactory(), "natoff")
+    assert user.in_national_officer_group is True
+    assert user.natoff_hidden is False
+    assert user.is_national_officer_group is True
+    assert user_is_national_officer(user) is True
+
+
+@pytest.mark.django_db
+def test_hide_natoff_makes_user_act_as_member():
+    user = _in_group(UserFactory(), "natoff")
+    UserAlter.objects.create(user=user, chapter=user.chapter, role=None, hide_natoff=True)
+    # Still a raw member of the group (so the switch-back UI stays available)...
+    assert user.in_national_officer_group is True
+    assert user.natoff_hidden is True
+    # ...but not currently *acting* as a National Officer.
+    assert user.is_national_officer_group is False
+    assert user_is_national_officer(user) is False
+
+
+@pytest.mark.django_db
+def test_hide_natoff_still_hides_for_superuser_natoff():
+    user = _in_group(UserFactory(is_superuser=True), "natoff")
+    UserAlter.objects.create(user=user, chapter=user.chapter, role=None, hide_natoff=True)
+    # Even a superuser previewing as a member is not treated as a National Officer.
+    assert user_is_national_officer(user) is False
+
+
+@pytest.mark.django_db
+def test_hide_natoff_with_role_still_acts_as_chapter_officer():
+    other = ChapterFactory(name=_GREEK_NAMES[3])
+    user = _in_group(UserFactory(), "natoff")
+    UserAlter.objects.create(user=user, chapter=other, role="scribe", hide_natoff=True)
+    # Altered chapter + role still apply while natoff functionality is hidden.
+    assert user.current_chapter == other
+    assert "scribe" in user.chapter_officer()
+    assert user.is_national_officer_group is False
+
+
+@pytest.mark.django_db
+def test_hide_natoff_without_role_is_plain_member():
+    other = ChapterFactory(name=_GREEK_NAMES[4])
+    user = _in_group(UserFactory(), "natoff")
+    UserAlter.objects.create(user=user, chapter=other, role=None, hide_natoff=True)
+    assert user.current_chapter == other
+    assert user.chapter_officer() == set()
+    assert user.is_national_officer_group is False

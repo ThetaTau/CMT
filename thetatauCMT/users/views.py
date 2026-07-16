@@ -21,7 +21,7 @@ from django.shortcuts import render
 from django.urls import reverse
 from django.utils.encoding import force_bytes
 from django.utils.http import url_has_allowed_host_and_scheme, urlsafe_base64_encode
-from django.views.generic import DetailView, FormView, RedirectView, TemplateView, UpdateView
+from django.views.generic import DetailView, FormView, RedirectView, TemplateView, UpdateView, View
 from extra_views import FormSetView, ModelFormSetView
 from watson import search as watson
 
@@ -610,7 +610,7 @@ class UserSearchView(LoginRequiredMixin, NatOfficerRequiredMixin, PagedFilteredT
         return {
             "chapter": True,
             "extra_info": True,
-            "natoff": self.request.user.is_national_officer(),
+            "natoff": self.request.user.is_national_officer() and not self.request.user.natoff_hidden,
             "admin": self.request.user.is_superuser,
         }
 
@@ -666,7 +666,7 @@ class UserListView(LoginRequiredMixin, PagedFilteredTableView):
     def get(self, request, *args, **kwargs):
         csv_action = request.GET.get("csv", "False").lower() == "download csv"
         email_action = request.GET.get("email", "False").lower() == "email all"
-        if (csv_action or email_action) and not request.user.is_officer:
+        if (csv_action or email_action) and not getattr(request, "is_officer", False):
             messages.add_message(
                 self.request,
                 messages.ERROR,
@@ -1220,6 +1220,13 @@ class UserAlterView(LoginRequiredMixin, NatOfficerRequiredMixin, FormView):
     form_class = UserAlterForm
     template_name = "users/lookup.html"  # dummy template should not be seen
 
+    def check_membership(self, groups):
+        # The chapter/role switcher must stay usable even while national-officer
+        # functionality is hidden (that is how a National Officer switches to
+        # viewing the site as a chapter officer), so gate on *raw* group
+        # membership rather than the hide-aware NatOfficerRequiredMixin check.
+        return self.request.user.in_national_officer_group
+
     def get_success_url(self):
         redirect_to = self.request.POST.get("next", "")
         url_is_safe = url_has_allowed_host_and_scheme(redirect_to, allowed_hosts=None)
@@ -1236,17 +1243,54 @@ class UserAlterView(LoginRequiredMixin, NatOfficerRequiredMixin, FormView):
             instance = UserAlter.objects.filter(user=user).first()
         except UserAlter.DoesNotExist:
             instance = None
-        if self.request.POST["alter-action"] == "Reset":
+        reset = self.request.POST.get("alter-action") == "Reset"
+        if reset:
             form.instance.chapter = self.request.user.chapter  # This should remain origin chapter
             form.instance.role = None
         form.is_valid()
         if instance:
             instance.chapter = form.instance.chapter
             instance.role = form.instance.role
+            if reset:
+                # Reset returns the National Officer to the full national view.
+                instance.hide_natoff = False
             instance.save()
         else:
             form.save()
         return super().form_valid(form)
+
+
+class ToggleNatoffView(LoginRequiredMixin, View):
+    """Flip the National Officer "view as member" toggle (``UserAlter.hide_natoff``).
+
+    Gated on *raw* ``natoff``-group membership (not :class:`NatOfficerRequiredMixin`,
+    which now treats hidden officers as non-members) so the National Officer can
+    always switch back while national-officer functionality is hidden.
+    """
+
+    http_method_names = ["post"]
+
+    def post(self, request, *args, **kwargs):
+        user = request.user
+        if not user.in_national_officer_group:
+            return HttpResponseRedirect(reverse("home"))
+        instance = UserAlter.objects.filter(user=user).first()
+        if instance is None:
+            instance = UserAlter(user=user, chapter=user.chapter, role=None)
+        instance.hide_natoff = not instance.hide_natoff
+        instance.save()
+        if instance.hide_natoff:
+            messages.info(
+                request,
+                "National officer functionality is now hidden — you are viewing the "
+                "site as a member. Use the account menu to show it again.",
+            )
+        else:
+            messages.info(request, "National officer functionality restored.")
+        redirect_to = request.POST.get("next", "")
+        if redirect_to and url_has_allowed_host_and_scheme(redirect_to, allowed_hosts=None):
+            return HttpResponseRedirect(redirect_to)
+        return HttpResponseRedirect(reverse("home"))
 
 
 class UserGPAFormSetView(LoginRequiredMixin, OfficerRequiredMixin, FormSetView):
