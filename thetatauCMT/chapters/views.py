@@ -116,7 +116,7 @@ class ChapterDetailView(LoginRequiredMixin, MultiFormsView):
         )
         chapter_officers = chapter.get_current_officers()
         natoff = False
-        if self.request.user.is_national_officer():
+        if self.request.user.is_national_officer() and not self.request.user.natoff_hidden:
             natoff = True
         admin = self.request.user.is_superuser
         table = UserTable(data=chapter_officers, natoff=natoff, admin=admin)

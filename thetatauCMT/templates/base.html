@@ -263,12 +263,25 @@
                           <span class="theme-label-light">{% trans "Switch to light mode" %}</span>
                         </button>
                       </li>
-                      {% if request.is_nat_officer %}
+                      {% if request.in_natoff_group %}
                         <li>
                           <button id="region-bar-toggle" type="button" class="dropdown-item">
                             <span class="region-bar-label-hide">{% trans "Hide region bar" %}</span>
                             <span class="region-bar-label-show">{% trans "Show region bar" %}</span>
                           </button>
+                        </li>
+                        <li>
+                          <form method="post" action="{% url 'users:toggle_natoff' %}" class="d-grid m-0">
+                            {% csrf_token %}
+                            <input type="hidden" name="next" value="{{ request.get_full_path }}"/>
+                            <button type="submit" class="dropdown-item" name="toggle-natoff" value="1">
+                              {% if request.is_nat_officer %}
+                                {% trans "Hide national officer functionality" %}
+                              {% else %}
+                                {% trans "Show national officer functionality" %}
+                              {% endif %}
+                            </button>
+                          </form>
                         </li>
                       {% endif %}
                       <li><hr class="dropdown-divider"></li>
@@ -288,16 +301,26 @@
           </div>
         </div>
       </nav>
-    {% if request.is_nat_officer %}
+    {% if request.in_natoff_group %}
       <nav class="navbar tt-region-bar border-bottom py-1">
         <div class="container-fluid d-flex flex-wrap align-items-center gap-2">
-          <a class="navbar-brand mb-0 h6 me-3" href="{% url 'regions:detail' request.user.current_chapter.region.slug %}">
-            {{ request.user.current_chapter.region.name }} Region
-          </a>
-          <a class="btn btn-sm btn-outline-secondary" href="{% url 'regions:dashboard' request.user.current_chapter.region.slug %}">Dashboard</a>
-          <a class="btn btn-sm btn-outline-secondary" href="{% url 'regions:officers' request.user.current_chapter.region.slug %}">Officers</a>
-          <a class="btn btn-sm btn-outline-secondary" href="{% url 'events:list_all' %}?region={{ request.user.current_chapter.region.slug }}">Events</a>
-          <a class="btn btn-sm btn-outline-secondary" href="{% url 'regions:tasks' request.user.current_chapter.region.slug %}">Tasks</a>
+          {% if request.is_nat_officer %}
+            <a class="navbar-brand mb-0 h6 me-3" href="{% url 'regions:detail' request.user.current_chapter.region.slug %}">
+              {{ request.user.current_chapter.region.name }} Region
+            </a>
+            <a class="btn btn-sm btn-outline-secondary" href="{% url 'regions:dashboard' request.user.current_chapter.region.slug %}">Dashboard</a>
+            <a class="btn btn-sm btn-outline-secondary" href="{% url 'regions:officers' request.user.current_chapter.region.slug %}">Officers</a>
+            <a class="btn btn-sm btn-outline-secondary" href="{% url 'events:list_all' %}?region={{ request.user.current_chapter.region.slug }}">Events</a>
+            <a class="btn btn-sm btn-outline-secondary" href="{% url 'regions:tasks' request.user.current_chapter.region.slug %}">Tasks</a>
+          {% else %}
+            <span class="navbar-brand mb-0 h6 me-3">
+              <i class="fa-solid fa-eye"></i>
+              {% if request.user.chapter_officer %}{% trans "Viewing as chapter officer" %}{% else %}{% trans "Viewing as member" %}{% endif %}
+            </span>
+            <span class="badge bg-secondary">
+              {{ request.user.current_chapter.name }}{% if request.user.chapter_officer %} — {{ request.user.chapter_officer|join:", " }}{% endif %}
+            </span>
+          {% endif %}
 
           <form class="d-flex flex-wrap align-items-center gap-2 ms-auto" action="{% url 'users:alterchapter' %}" method="post">
             {% csrf_token %}

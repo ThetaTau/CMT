@@ -16,7 +16,7 @@
   </div>
   <hr>
   {% if not submitted or resubmit %}
-    {% if request.user.is_officer  %}
+    {% if request.is_officer %}
       {% if submitted and resubmit %}
         <div class="alert alert-warning" role="alert">
           <strong>Heads up:</strong> A Convention Credential Form has already

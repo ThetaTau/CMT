@@ -658,6 +658,155 @@ def test_user_alter_view_natoff_returns_200(auto_login_user):
 
 
 # ---------------------------------------------------------------------------
+# Hide national officer functionality (ToggleNatoffView + view-as-member)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.django_db
+def test_toggle_natoff_view_hides_and_shows(auto_login_user):
+    """A National Officer can hide and then re-show natoff functionality."""
+    from thetatauCMT.users.models import UserAlter
+
+    client, user = auto_login_user()
+    _make_natoff(user, client)
+    url = reverse("users:toggle_natoff")
+
+    # First toggle hides -> creates a UserAlter with hide_natoff=True
+    response = client.post(url, {"next": "/"})
+    assert response.status_code == 302
+    alter = UserAlter.objects.get(user=user)
+    assert alter.hide_natoff is True
+    assert user.natoff_hidden is True
+    assert user.is_national_officer_group is False
+
+    # Second toggle shows national officer functionality again
+    response = client.post(url, {"next": "/"})
+    assert response.status_code == 302
+    alter.refresh_from_db()
+    assert alter.hide_natoff is False
+    assert user.natoff_hidden is False
+    assert user.is_national_officer_group is True
+
+
+@pytest.mark.django_db
+def test_toggle_natoff_view_denies_non_natoff(auto_login_user):
+    """A non-natoff cannot create a hide toggle (no UserAlter is created)."""
+    from thetatauCMT.users.models import UserAlter
+
+    client, user = auto_login_user()
+    url = reverse("users:toggle_natoff")
+    response = client.post(url, {"next": "/"})
+    assert response.status_code == 302
+    assert not UserAlter.objects.filter(user=user).exists()
+
+
+@pytest.mark.django_db
+def test_toggle_natoff_view_get_not_allowed(auto_login_user):
+    client, user = auto_login_user()
+    _make_natoff(user, client)
+    response = client.get(reverse("users:toggle_natoff"))
+    assert response.status_code == 405
+
+
+@pytest.mark.django_db
+def test_user_alter_view_accessible_when_hidden(auto_login_user):
+    """The chapter/role switcher stays usable while natoff functionality is hidden."""
+    from thetatauCMT.users.models import UserAlter
+
+    client, user = auto_login_user()
+    _make_natoff(user, client)
+    UserAlter.objects.create(user=user, chapter=user.chapter, role=None, hide_natoff=True)
+    response = client.get(reverse("users:alterchapter"))
+    assert response.status_code == 200
+
+
+@pytest.mark.django_db
+def test_user_alter_reset_clears_hide_natoff(auto_login_user):
+    """The region-bar Reset button returns the officer to the full national view."""
+    from thetatauCMT.users.models import UserAlter
+
+    client, user = auto_login_user()
+    _make_natoff(user, client)
+    UserAlter.objects.create(user=user, chapter=user.chapter, role="scribe", hide_natoff=True)
+    response = client.post(
+        reverse("users:alterchapter"),
+        {"chapter": user.chapter.slug, "role": "", "alter-action": "Reset", "next": "/"},
+    )
+    assert response.status_code == 302
+    alter = UserAlter.objects.get(user=user)
+    assert alter.hide_natoff is False
+    assert alter.role is None
+
+
+@pytest.mark.django_db
+def test_natoff_gated_view_blocks_hidden_officer(auto_login_user):
+    """A hidden National Officer is treated as a member on natoff-only pages."""
+    from thetatauCMT.users.models import UserAlter
+
+    client, user = auto_login_user()
+    _make_natoff(user, client)
+    url = reverse("forms:education_list")
+    # Visible while acting as a National Officer
+    assert client.get(url).status_code == 200
+    # Hidden -> redirected away like any non-officer
+    UserAlter.objects.create(user=user, chapter=user.chapter, role=None, hide_natoff=True)
+    assert client.get(url).status_code == 302
+
+
+@pytest.mark.django_db
+def test_base_template_natoff_toggle_and_region_bar(auto_login_user):
+    """Base template flips the toggle label + region bar between the two modes."""
+    from thetatauCMT.users.models import UserAlter
+
+    client, user = auto_login_user()
+    _make_natoff(user, client)
+    home = reverse("home")
+
+    # Acting as National Officer: full region nav + "Hide" toggle label
+    content = client.get(home).content.decode()
+    assert "Hide national officer functionality" in content
+    assert "Dashboard" in content
+
+    # Hidden: "Show" toggle label + "Viewing as member"; switcher still present
+    UserAlter.objects.create(user=user, chapter=user.chapter, role=None, hide_natoff=True)
+    content = client.get(home).content.decode()
+    assert "Show national officer functionality" in content
+    assert "Viewing as member" in content
+    assert reverse("users:alterchapter") in content
+
+
+@pytest.mark.django_db
+def test_user_list_officer_buttons_hidden_when_natoff_hidden(auto_login_user):
+    """Officer-only buttons on the member list disappear while previewing as a member."""
+    from thetatauCMT.users.models import UserAlter
+
+    client, user = auto_login_user()
+    _make_natoff(user, client)
+    url = reverse("users:list")
+
+    # Acting as National Officer: the officer action buttons are shown
+    assert "Download CSV" in client.get(url).content.decode()
+
+    # Hidden: the officer action buttons are gone
+    UserAlter.objects.create(user=user, chapter=user.chapter, role=None, hide_natoff=True)
+    assert "Download CSV" not in client.get(url).content.decode()
+
+
+@pytest.mark.django_db
+def test_user_list_csv_blocked_when_natoff_hidden(auto_login_user):
+    """The CSV export is refused for a National Officer previewing as a member."""
+    from thetatauCMT.users.models import UserAlter
+
+    client, user = auto_login_user()
+    _make_natoff(user, client)
+    UserAlter.objects.create(user=user, chapter=user.chapter, role=None, hide_natoff=True)
+    response = client.get(reverse("users:list"), {"csv": "download csv"})
+    # Guard falls through to the normal HTML list render instead of a CSV download.
+    assert response.status_code == 200
+    assert response["Content-Type"].startswith("text/html")
+
+
+# ---------------------------------------------------------------------------
 # UserOrgsFormSetView
 # ---------------------------------------------------------------------------
 

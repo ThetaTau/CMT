@@ -9,7 +9,7 @@
 {% block content %}
 <div class="page-header d-flex flex-wrap align-items-center gap-2 mb-3">
   <h2 class="page-title mb-0">Members</h2>
-  {% if request.user.is_officer %}
+  {% if request.is_officer %}
     <div class="page-actions d-flex flex-wrap align-items-center gap-2 ms-auto">
       {# Download CSV: re-submit the current filter querystring so the export matches what is on screen. #}
       <form action="" method="GET" class="d-inline m-0">
@@ -103,7 +103,7 @@
     {% endblock pagination %}
   </div>
 {% endif %}
-{% if request.user.is_officer %}
+{% if request.is_officer %}
   {# Confirmation modal describing exactly what the "Email ALL" action does before it fires. #}
   <div class="modal fade" id="emailAllModal" tabindex="-1" aria-labelledby="emailAllModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">

@@ -44,6 +44,13 @@ def group_required(*group_names):
 class NatOfficerRequiredMixin(GroupRequiredMixin):
     group_required = "natoff"
 
+    def check_membership(self, groups):
+        # A National Officer previewing the site as a member (natoff_hidden) is
+        # treated as a non-member so natoff-only pages become inaccessible too.
+        if getattr(self.request.user, "natoff_hidden", False):
+            return False
+        return super().check_membership(groups)
+
     def get_login_url(self):
         if self.request.user.is_authenticated:
             messages.add_message(self.request, messages.ERROR, "Only National officers can edit this.")

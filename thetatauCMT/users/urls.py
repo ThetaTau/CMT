@@ -33,6 +33,7 @@ urlpatterns = [
     path("verify-form/", views.user_verify, name="user_verify"),
     path("autocomplete/", views.UserAutocomplete.as_view(), name="autocomplete"),
     path("alterchapter/", views.UserAlterView.as_view(), name="alterchapter"),
+    path("toggle-natoff/", views.ToggleNatoffView.as_view(), name="toggle_natoff"),
     path(
         "sync_email_provider/<int:report_id>",
         sync_email_provider,

@@ -24,7 +24,7 @@
       Student Member. If you are being nominated, another officer must submit
       the form on your behalf.
     </div>
-    {% if request.user.is_officer  %}
+    {% if request.is_officer %}
       <form method="POST" enctype="multipart/form-data">
         {{ form.media }}
         <link href="{% static 'css/project.css' %}" rel="stylesheet">

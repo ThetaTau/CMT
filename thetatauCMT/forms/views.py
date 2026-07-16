@@ -1191,7 +1191,7 @@ class RiskManagementDetailView(LoginRequiredMixin, PDFTemplateResponseMixin, Upd
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["is_officer"] = self.request.user.is_officer
+        context["is_officer"] = getattr(self.request, "is_officer", False)
         return context
 
 
