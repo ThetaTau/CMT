@@ -1,69 +1,97 @@
 .PHONY: help build build-up up down restart logs shell test clean migrate makemigrations collectstatic setup-host
 
+# ------------------------------------------------------------------------------
+# Container engine configuration (Docker or Podman)
+# ------------------------------------------------------------------------------
+# Select the engine in the root .env file:
+#     CONTAINER_ENGINE=podman   # default
+#     CONTAINER_ENGINE=docker
+# It can also be overridden per invocation, e.g. `make up CONTAINER_ENGINE=docker`.
+# The compose command is derived from the engine but can be overridden too, e.g.
+# for the legacy Docker Compose v1 binary: `make up COMPOSE=docker-compose`.
+-include .env
+
+CONTAINER_ENGINE ?= docker
+CONTAINER_ENGINE := $(strip $(CONTAINER_ENGINE))
+
+ifeq ($(CONTAINER_ENGINE),docker)
+COMPOSE ?= docker compose
+else
+COMPOSE ?= podman-compose
+endif
+
+COMPOSE_FILE ?= docker-compose.local.yml
+
+# Engine-aware helpers used by the targets below.
+DC := $(COMPOSE) -f $(COMPOSE_FILE)
+EXEC := $(CONTAINER_ENGINE) exec -it
+
 help:
-	@echo "Available commands:"
-	@echo "  make build          - Build podman containers"
-	@echo "  make build-up       - Build and start podman containers"
-	@echo "  make up             - Start podman containers"
-	@echo "  make down           - Stop podman containers"
-	@echo "  make restart        - Restart podman containers"
-	@echo "  make logs           - View podman logs"
+	@echo "Available commands (engine: $(CONTAINER_ENGINE), compose: $(COMPOSE)):"
+	@echo "  make build          - Build containers"
+	@echo "  make build-up       - Build and start containers"
+	@echo "  make up             - Start containers"
+	@echo "  make down           - Stop containers"
+	@echo "  make restart        - Restart containers"
+	@echo "  make logs           - View container logs"
 	@echo "  make shell          - Connect to Django container shell"
 	@echo "  make test           - Run tests"
 	@echo "  make migrate        - Run database migrations"
 	@echo "  make makemigrations - Create new migrations"
 	@echo "  make collectstatic  - Collect static files"
-	@echo "  make clean          - Remove podman containers and volumes"
+	@echo "  make clean          - Remove containers and volumes"
 	@echo "  make setup-host     - Fix host.containers.internal -> Windows host (run once, or after WSL2 restart)"
+	@echo ""
+	@echo "  Switch engine in .env (CONTAINER_ENGINE=docker|podman) or per run, e.g.: make up CONTAINER_ENGINE=docker"
 
 build:
-	podman-compose -f docker-compose.local.yml build
+	$(DC) build
 
 build-up:
-	podman-compose -f docker-compose.local.yml up -d --build
+	$(DC) up -d --build
 up:
-	podman-compose -f docker-compose.local.yml up -d
+	$(DC) up -d
 
 down:
-	podman-compose -f docker-compose.local.yml down
+	$(DC) down
 
 restart: down up
 
 logs:
-	podman-compose -f docker-compose.local.yml logs -f
+	$(DC) logs -f
 
 shell:
-	podman exec -it thetataucmt_local_django bash
+	$(EXEC) thetataucmt_local_django bash
 
 shellworker:
-	podman exec -it thetataucmt_local_celeryworker bash
+	$(EXEC) thetataucmt_local_celeryworker bash
 
 shellpg:
-	podman exec -it thetataucmt_local_postgres bash
+	$(EXEC) thetataucmt_local_postgres bash
 
 test:
-	podman exec -it thetataucmt_local_django pytest
+	$(EXEC) thetataucmt_local_django pytest
 
 test-fresh:
-	podman exec -it thetataucmt_local_django pytest --create-db
+	$(EXEC) thetataucmt_local_django pytest --create-db
 
 test-fast:
-	podman exec -it thetataucmt_local_django pytest -x --no-header -q
+	$(EXEC) thetataucmt_local_django pytest -x --no-header -q
 
 test-path:
-	podman exec -it thetataucmt_local_django pytest $(path)
+	$(EXEC) thetataucmt_local_django pytest $(path)
 
 migrate:
-	podman exec -it thetataucmt_local_django python manage.py migrate
+	$(EXEC) thetataucmt_local_django python manage.py migrate
 
 makemigrations:
-	podman exec -it thetataucmt_local_django python manage.py makemigrations
+	$(EXEC) thetataucmt_local_django python manage.py makemigrations
 
 collectstatic:
-	podman exec -it thetataucmt_local_django python manage.py collectstatic --noinput
+	$(EXEC) thetataucmt_local_django python manage.py collectstatic --noinput
 
 clean:
-	podman-compose -f docker-compose.local.yml down -v
+	$(DC) down -v
 
 # Detect the Windows host IP as seen from the Podman WSL2 machine
 WINDOWS_HOST_IP := $(shell wsl -d podman-machine-default ip route show default 2>NUL | tr -s ' ' | cut -d' ' -f3)
