@@ -21,3 +21,11 @@
 - Baseline: ~1065 passing, ~18 skipped, 0 failing.
 - If a change should be verified, run the targeted pytest inside the container
   (see command above) — do not invoke pytest from the host venv.
+
+## Project memory / lessons learned
+- Detailed, dated engineering notes from past Copilot sessions live in
+  [.github/copilot-memory/](copilot-memory/). Start with
+  `copilot-memory/thetatauCMT-status.md` — it captures feature history, subtle
+  bugs/fixes, test patterns, and repo-specific gotchas not obvious from the code.
+  Consult it before implementing changes. Past per-session planning docs are under
+  `copilot-memory/sessions/`.
