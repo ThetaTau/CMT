@@ -213,8 +213,8 @@
     "model": "tasks.task",
     "pk": 40,
     "fields": {
-      "name": "Pledge Program",
-      "slug": "pledge-programvice-regent",
+      "name": "New Member Education Program",
+      "slug": "new-member-education-programvice-regent",
       "owner": "vice regent",
       "type": "form",
       "days_advance": 90,
@@ -409,14 +409,14 @@
     "model": "tasks.task",
     "pk": 54,
     "fields": {
-      "name": "Chapter Education Programs",
-      "slug": "chapter-education-programs",
+      "name": "H&S Education Programs",
+      "slug": "hs-education-programsregent",
       "owner": "regent",
       "type": "form",
       "days_advance": 30,
-      "resource": "forms:audit",
+      "resource": "viewflow:forms:hseducation:start",
       "description": "Chapter education programs",
-      "submission_type": 21
+      "submission_type": null
     }
   },
   {
@@ -445,6 +445,20 @@
       "resource": "forms:audit",
       "description": "Ye olde tightrope program",
       "submission_type": 21
+    }
+  },
+  {
+    "model": "tasks.task",
+    "pk": 57,
+    "fields": {
+      "name": "CommunityEdu",
+      "slug": "communityeduregent",
+      "owner": "regent",
+      "type": "task",
+      "days_advance": 90,
+      "resource": "",
+      "description": "Check your New Member's completion of the CommunityEdu program!  Reach out to the Central Office if you are unclear on how to access the reporting platform.",
+      "submission_type": 17
     }
   }
 ]
