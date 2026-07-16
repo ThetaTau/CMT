@@ -4,6 +4,9 @@ This folder rebrands the Tutor-managed Open edX site (LMS, Studio/CMS and every
 micro-frontend) to match Theta Tau's brand. It is the first step in tightening
 the Open edX ↔ CMT integration.
 
+> For the **connection** itself — single sign-on and the REST API CMT uses to
+> enroll members and sync training progress — see [CONNECTION.md](CONNECTION.md).
+
 > **Stack:** Tutor **v21** (Open edX *Ulmo*) with `tutor-indigo` and `tutor-mfe`
 > already installed in the `tutor/` venv. Everything Open edX runs in Docker
 > containers managed by Tutor; the CMT Django app runs in its own containers and
