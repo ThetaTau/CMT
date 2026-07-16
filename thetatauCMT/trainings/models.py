@@ -1,6 +1,7 @@
 import base64
 import datetime
 import json
+import re
 from time import sleep
 
 from django.conf import settings
@@ -9,6 +10,7 @@ from django.core.mail import send_mail
 from django.db import models
 from django.db.models import Q
 from django.http import Http404
+from django.utils import timezone
 
 import core.requests as requests
 from core.models import TimeStampedModel
@@ -76,7 +78,7 @@ class Training(TimeStampedModel):
             authenticate_header = Training.authenticate_header()
             if cursor:
                 cursor = f'after: "{cursor}"'
-            query = f"""
+            query = """
                 query
                 {{ People (first: 100 {cursor} active: "1")
                     {{ nodes
@@ -559,44 +561,245 @@ class Training(TimeStampedModel):
             messages.add_message(request, level, message)
 
     @staticmethod
-    def add_user_ed(user, request):
-        client_id = settings.ED_ID
-        client_secret = settings.ED_SECRET
-        credential = f"{client_id}:{client_secret}"
+    def _ed_authenticate_header():
+        """Return an ``Authorization`` header for the Open edX REST API.
+
+        Uses the OAuth2 ``client_credentials`` grant. The application owner
+        tied to ``ED_ID``/``ED_SECRET`` must be Open edX **global staff**
+        (``is_staff=True``); the bulk-enroll endpoint uses ``IsStaff`` and
+        otherwise responds ``403``.
+        """
+        credential = f"{settings.ED_ID}:{settings.ED_SECRET}"
         encoded_credential = base64.b64encode(credential.encode("utf-8")).decode("utf-8")
-        headers = {
-            "Authorization": f"Basic {encoded_credential}",
-            "Cache-Control": "no-cache",
+        token_response = requests.post(
+            f"{settings.ED_HOST}/oauth2/access_token",
+            headers={
+                "Authorization": f"Basic {encoded_credential}",
+                "Cache-Control": "no-cache",
+            },
+            data={"grant_type": "client_credentials", "token_type": "jwt"},
+        )
+        if token_response.status_code != 200:
+            raise Http404(f"Open edX authentication error: {token_response.reason}")
+        access_token = token_response.json()["access_token"]
+        return {
+            "Authorization": f"JWT {access_token}",
+            "Accept": "application/json",
+            "Content-Type": "application/json",
         }
-        data = {"grant_type": "client_credentials", "token_type": "jwt"}
 
-        token_request = requests.post("https://ed.thetatau.org/oauth2/access_token", headers=headers, data=data)
-        access_token = token_request.json()["access_token"]
-        headers = {"Authorization": f"JWT {access_token}"}
+    @staticmethod
+    def _interpret_enroll_result(identifier_results):
+        """Collapse bulk-enroll per-identifier results into ``(status, detail)``.
 
-        # response = requests.get(
-        #     "https://ed.thetatau.org/api/courses/v1/courses",
-        #     headers=headers,
-        # )
+        ``status`` is one of ``"enrolled"``, ``"pending"`` or ``"error"``.
+        Only one identifier is ever sent, so the first result is inspected.
+        """
+        if not identifier_results:
+            return "pending", "submitted (no confirmation returned)"
+        result = identifier_results[0]
+        if not isinstance(result, dict):
+            return "pending", "submitted"
+        if result.get("invalidIdentifier"):
+            return "error", "invalid identifier (email not accepted by Open edX)"
+        if result.get("error"):
+            return "error", str(result.get("message") or "enrollment error")
+        after = result.get("after") or {}
+        if after.get("enrollment"):
+            return "enrolled", "enrolled"
+        if after.get("allowed"):
+            return "pending", "pending — enrolls once the user logs in via SSO"
+        return "pending", "submitted"
 
-        data = {
+    @staticmethod
+    def enroll_user_ed(user, courses=None, header=None, request=None, _retried=False):
+        """Enroll ``user`` in the configured Open edX course run(s).
+
+        Returns a list of ``(course_id, status, message)`` tuples.
+
+        ``bulk_enroll`` always answers ``200 OK`` when the payload is valid; the
+        real outcome lives in the response body. With ``auto_enroll`` an account
+        that does not exist yet only gets a *pending* enrollment
+        (``CourseEnrollmentAllowed``) that becomes real once the person logs in
+        via SSO. The old code only checked the status code, so pending/failed
+        enrollments were silently reported as success — which is why "people
+        were still not enrolled". Here the per-identifier ``before``/``after``
+        states are parsed so each outcome is reported accurately.
+        """
+        if courses is None:
+            courses = settings.ED_COURSES
+        if header is None:
+            header = Training._ed_authenticate_header()
+
+        payload = {
             "auto_enroll": True,
             "email_students": False,
             "action": "enroll",
-            "courses": "course-v1:ThetaTau+TT101+intro",
+            "courses": ",".join(courses),
             "identifiers": user.email,
         }
-
         response = requests.post(
-            "https://ed.thetatau.org/api/bulk_enroll/v1/bulk_enroll",
-            headers=headers,
-            data=data,
+            f"{settings.ED_HOST}/api/bulk_enroll/v1/bulk_enroll",
+            headers=header,
+            json=payload,
         )
-        level = messages.INFO
-        message = f"{user} successfully added to training system"
-        if response.status_code != 200:
-            level = messages.ERROR
-            response_json = response.json()
-            message = f"{user} NOT added to training system, maybe an error. {response_json}"
 
-        messages.add_message(request, level, message)
+        results = []
+        if response.status_code == 429 and not _retried:
+            # EnrollmentUserThrottle — back off once then retry.
+            sleep(120)
+            return Training.enroll_user_ed(
+                user, courses=courses, header=header, request=request, _retried=True
+            )
+        if response.status_code == 403:
+            results.append(
+                (
+                    ",".join(courses),
+                    "error",
+                    f"{user} NOT enrolled: the Open edX API account is not global staff "
+                    "(bulk-enroll requires is_staff=True on the ED_ID application owner).",
+                )
+            )
+        elif response.status_code != 200:
+            results.append(
+                (
+                    ",".join(courses),
+                    "error",
+                    f"{user} NOT enrolled, HTTP {response.status_code} {response.reason}.",
+                )
+            )
+        else:
+            body = response.json()
+            course_results = body.get("courses") or {} if hasattr(body, "get") else {}
+            for course_id in courses:
+                course_block = course_results.get(course_id) or {}
+                status, detail = Training._interpret_enroll_result(course_block.get("results") or [])
+                results.append((course_id, status, f"{user}: {course_id} — {detail}"))
+
+        for _course_id, status, message in results:
+            level = messages.INFO if status in ("enrolled", "pending") else messages.ERROR
+            if request is None:
+                print(f"    {message}")
+            else:
+                messages.add_message(request, level, message)
+        return results
+
+    @staticmethod
+    def add_user_ed(user, request=None):
+        """Ensure ``user`` is enrolled in the configured Open edX course run(s).
+
+        Thin wrapper around :meth:`enroll_user_ed`, kept for the admin action
+        and other existing callers.
+        """
+        return Training.enroll_user_ed(user, request=request)
+
+    @staticmethod
+    def get_progress_all_users_ed(courses=None, header=None):
+        """Sync training progress from Open edX (ed.thetatau.org) into ``Training``.
+
+        For each configured course run this pages the Grades API
+        (``GET /api/grades/v1/courses/{course_id}/``) and upserts one
+        ``Training`` row per matched CMT user. The Grades API reports
+        ``passed`` / ``percent`` for every enrolled account; only accounts that
+        have actually logged in via SSO appear (a pending ``auto_enroll`` does
+        not), so this records real progress only.
+
+        The endpoint is JWT-authenticated and requires the ``ED_ID`` application
+        owner to be Open edX global staff (same requirement as bulk-enroll).
+        """
+        if courses is None:
+            courses = settings.ED_COURSES
+        if header is None:
+            header = Training._ed_authenticate_header()
+        user_index = Training._ed_user_index()
+        for course_id in courses:
+            course_title = Training._ed_course_title(course_id, header)
+            url = f"{settings.ED_HOST}/api/grades/v1/courses/{course_id}/"
+            while url:
+                response = requests.get(url, headers=header)
+                if response.status_code == 429:
+                    print("Delaying for rate limit Open edX grades sync...")
+                    sleep(120)
+                    continue
+                if response.status_code != 200:
+                    print(
+                        f"    Open edX grades sync error for {course_id}: "
+                        f"HTTP {response.status_code} {response.reason}"
+                    )
+                    break
+                body = response.json()
+                for grade in body.get("results") or []:
+                    Training._sync_ed_grade(course_id, course_title, grade, user_index)
+                # CourseEnrollmentPagination is a CursorPagination: follow
+                # ``next`` until it is null.
+                url = body.get("next")
+
+    @staticmethod
+    def _ed_course_title(course_id, header):
+        """Best-effort display name for a course run; falls back to the id."""
+        try:
+            response = requests.get(
+                f"{settings.ED_HOST}/api/courses/v1/courses/{course_id}/",
+                headers=header,
+            )
+            if response.status_code == 200:
+                return response.json().get("name") or course_id
+        except Exception:
+            pass
+        return course_id
+
+    @staticmethod
+    def _ed_normalize(value):
+        """Lowercase, alphanumeric-only form used to match Open edX accounts.
+
+        The SSO stores the Open edX ``username`` as the CMT ``name`` (which
+        Open edX strips of spaces/punctuation), and the grades API blanks the
+        email for non-masters enrollments, so matching is done on this
+        normalised form of the CMT name/username/email fields.
+        """
+        return re.sub(r"[^a-z0-9]", "", (value or "").lower())
+
+    @staticmethod
+    def _ed_user_index():
+        """Map ``normalised identifier -> CMT user id`` for account matching."""
+        index = {}
+        rows = User.objects.values_list("id", "name", "username", "email", "email_school")
+        for uid, name, username, email, email_school in rows:
+            for key in (name, username, email, email_school):
+                norm = Training._ed_normalize(key)
+                if norm:
+                    index.setdefault(norm, uid)
+        return index
+
+    @staticmethod
+    def _sync_ed_grade(course_id, course_title, grade, user_index):
+        """Upsert one ``Training`` row from a single Grades API record."""
+        username = grade.get("username")
+        email = grade.get("email")
+        user_id = user_index.get(Training._ed_normalize(username))
+        if not user_id and email:
+            user_id = user_index.get(Training._ed_normalize(email))
+        if not user_id:
+            print(f"    No CMT user match for Open edX account username={username!r} course={course_id}")
+            return
+        passed = bool(grade.get("passed"))
+        percent = grade.get("percent") or 0
+        existing = Training.objects.filter(user_id=user_id, course_id=course_id).order_by("-created").first()
+        if passed:
+            completed_time = existing.completed_time if existing and existing.completed_time else timezone.now()
+        else:
+            completed_time = None
+        values = dict(
+            progress_id="",
+            course_title=course_title,
+            completed=passed,
+            completed_time=completed_time,
+            max_quiz_score=round(float(percent) * 100, 2),
+        )
+        try:
+            Training.objects.update_or_create(user_id=user_id, course_id=course_id, defaults=values)
+        except Training.MultipleObjectsReturned:
+            duplicates = Training.objects.filter(user_id=user_id, course_id=course_id).order_by("-created")
+            for training in duplicates[1:]:
+                training.delete()
+            Training.objects.update_or_create(user_id=user_id, course_id=course_id, defaults=values)

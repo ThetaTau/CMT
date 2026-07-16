@@ -678,6 +678,10 @@ LMS_SECRET = env("LMS_SECRET", default=None)
 
 ED_ID = env("ED_ID", default=None)
 ED_SECRET = env("ED_SECRET", default=None)
+# Base URL of the Open edX (Tutor) instance and the course run(s) every user
+# should be enrolled in. Override per-environment via env vars if needed.
+ED_HOST = env("ED_HOST", default="https://ed.thetatau.org")
+ED_COURSES = env.list("ED_COURSES", default=["course-v1:ThetaTau+TT101+intro"])
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 EMAIL_SIGNAL_DEFAULT_SENDER = DEFAULT_FROM_EMAIL

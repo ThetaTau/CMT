@@ -1734,6 +1734,14 @@ class PledgeFormView(CreateView):
         except Exception as e:
             message = f"Error adding training {user=} {user.chapter=} {e}"
             CentralOfficeGenericEmail(message, subject="[CMT] Training Error").send()
+        try:
+            # Also enroll the new member in the Open edX (ed.thetatau.org)
+            # training. Their account is created on first SSO login, so this
+            # records a pending enrollment that activates when they log in.
+            Training.add_user_ed(user, request=self.request)
+        except Exception as e:
+            message = f"Error adding Open edX training {user=} {user.chapter=} {e}"
+            CentralOfficeGenericEmail(message, subject="[CMT] Training Error").send()
         messages.add_message(
             self.request,
             messages.INFO,
