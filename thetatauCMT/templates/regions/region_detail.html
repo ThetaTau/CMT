@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% load static i18n %}
+{% load award_tags %}
 
 {% block title %}Region: {{ object.name }}{% endblock %}
 
@@ -110,6 +111,11 @@
       </div>
     </div>
 
+  </div>
+
+  {# ---------- Awards ---------- #}
+  <div class="row">
+    <div class="col-12">{% awards_section object %}</div>
   </div>
 </div>
 {% endblock content %}

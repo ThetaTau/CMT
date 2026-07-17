@@ -80,20 +80,25 @@ class UploadResult:
         }
 
 
-def _canonical_header(raw_header):
+def _canonical_header(raw_header, aliases=None):
+    aliases = COLUMN_ALIASES if aliases is None else aliases
     key = re.sub(r"[^a-z0-9]+", "_", (raw_header or "").strip().lower()).strip("_")
-    for canonical, aliases in COLUMN_ALIASES.items():
-        if key == canonical or key in aliases:
+    for canonical, alias_set in aliases.items():
+        if key == canonical or key in alias_set:
             return canonical
     return None
 
 
-def parse_rows(file_bytes):
+def parse_rows(file_bytes, aliases=None):
     """Parse CSV ``bytes`` into ``(row, original)`` pairs.
 
-    ``row`` maps canonical keys to trimmed values; ``original`` preserves the raw
-    header/value pairs for audit. Blank lines are ignored.
+    ``row`` maps canonical keys to trimmed values (the first column that maps to a
+    given canonical key wins); ``original`` preserves the raw header/value pairs
+    for audit. Blank lines are ignored. Pass ``aliases`` to override the default
+    attendance column map so other importers (e.g. the awards legacy import) can
+    reuse this parser.
     """
+    aliases = COLUMN_ALIASES if aliases is None else aliases
     if isinstance(file_bytes, str):
         text = file_bytes
     else:
@@ -103,7 +108,7 @@ def parse_rows(file_bytes):
     if not all_rows:
         return []
     header = all_rows[0]
-    mapping = {i: _canonical_header(h) for i, h in enumerate(header)}
+    mapping = {i: _canonical_header(h, aliases) for i, h in enumerate(header)}
     parsed = []
     for raw in all_rows[1:]:
         if not any((cell or "").strip() for cell in raw):
@@ -114,7 +119,7 @@ def parse_rows(file_bytes):
             header_name = header[i] if i < len(header) else f"col{i}"
             original[header_name] = value
             canonical = mapping.get(i)
-            if canonical:
+            if canonical and canonical not in row:
                 row[canonical] = (value or "").strip()
         parsed.append((row, original))
     return parsed

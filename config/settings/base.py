@@ -139,6 +139,7 @@ LOCAL_APPS = [
     "thetatauCMT.contact_sync.apps.ContactSyncConfig",
     "thetatauCMT.attendance.apps.AttendanceConfig",
     "thetatauCMT.nominations.apps.NominationsConfig",
+    "thetatauCMT.awards.apps.AwardsConfig",
     "thetatauCMT.email_tracking.apps.EmailTrackingConfig",
     # Added after any apps which contain models for which to create signals
     "email_signals",
@@ -708,6 +709,11 @@ ATTENDANCE_GUEST_SEARCH_MAX_RESULTS = env.int("ATTENDANCE_GUEST_SEARCH_MAX_RESUL
 # auto-matched to a member; anything at or below routes to the manual match
 # queue (WI-7). Match is auto-accepted only when strictly greater than this.
 ATTENDANCE_MATCH_AUTO_ACCEPT_THRESHOLD = env.float("ATTENDANCE_MATCH_AUTO_ACCEPT_THRESHOLD", default=0.60)
+
+# AWARDS
+# ------------------------------------------------------------------------------
+# Whether revoked awards are shown (in a separate section) on public profiles.
+AWARDS_SHOW_REVOKED = env.bool("AWARDS_SHOW_REVOKED", default=False)
 
 # https://django-simple-history.readthedocs.io/en/latest/historical_model.html#filefield-as-a-charfield
 SIMPLE_HISTORY_FILEFIELD_TO_CHARFIELD = True

@@ -131,7 +131,7 @@ unsubscribe_user), users/test_admin +2 (action delegates when configured / guard
 MyUserAdmin(User,AdminSite()) + mock message_user + RequestFactory). NO models/migrations/anonymizer.
 Docs updated. flake8 clean. FULL SUITE 1857 pass / 17 skip / 0 fail (~141s). email_tracking 75.
 GOTCHA: image was STALE (missing django-ical + mailjet-rest); rebuilt via
-`podman-compose -f docker-compose.local.yml build django` (EXIT 0) -> then run/tests green.
+`docker-compose -f docker-compose.local.yml build django` (EXIT 0) -> then run/tests green.
 
 ## Follow-up 7 DONE (2026-07-14): MailerLite subscriber-activity source
 Another org uses mailerlite.com. NEW thetatauCMT/email_tracking/mailerlite_api.py (requests-based,
@@ -147,8 +147,8 @@ config/settings/test.py MAILERLITE_API_KEY="" (tests never hit real API). Templa
 GOTCHA: removed env fallback from _api_key so test.py override is authoritative.
 ENV BLOCKER: container thetataucmt_local_django NOT running (port 8000 held by vs_board_local_django);
 image was STALE (missing django-ical AND mailjet-rest that were added to requirements) -> ran
-`podman-compose build django` to rebuild. My 2 MailerLite view tests already PASSED in a partial run
+`docker-compose build django` to rebuild. My 2 MailerLite view tests already PASSED in a partial run
 (they were NOT in the failure list); the 11 failures were all pre-existing mailjet-rest-missing env issues.
 NEXT: after rebuild, run email_tracking suite + full suite via
-`podman-compose -f docker-compose.local.yml run --rm --no-deps -T django pytest ...` (redirect to file + grep;
+`docker-compose -f docker-compose.local.yml run --rm --no-deps -T django pytest ...` (redirect to file + grep;
 PowerShell mangles inline stderr). Then flake8 test files. Then finalize memory numbers.

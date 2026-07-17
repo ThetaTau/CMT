@@ -31,7 +31,7 @@ Per-WI workflow: (1) propose models/migrations FIRST + PAUSE, (2) flow nodes,
   CHAPTER_OFFICER, EnumClass, TimeStampedModel. `multiselectfield.MultiSelectField` used in codebase.
 - Tests: `core/factories.py TaskFactory` (create Task at a node, runs activation);
   forms/tests/test_flows.py (import/roundtrip). Factory `flow_class = XFlow`.
-- Run tests: `podman exec thetataucmt_local_django pytest <path> -v --tb=short`.
+- Run tests: `docker exec thetataucmt_local_django pytest <path> -v --tb=short`.
 - New local app: add to LOCAL_APPS in config/settings/base.py; add anonymizer/<app>.py
   or `anonymize_db --check_only` fails (only affects that cmd, not tests).
 

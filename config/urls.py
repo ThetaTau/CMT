@@ -122,6 +122,7 @@ urlpatterns = [
     path("tasks/", include("thetatauCMT.tasks.urls", namespace="tasks")),
     path("ballots/", include("thetatauCMT.ballots.urls", namespace="ballots")),
     path("contact-sync/", include("thetatauCMT.contact_sync.urls", namespace="contact_sync")),
+    path("awards/", include("thetatauCMT.awards.urls", namespace="awards")),
     path(
         "email-tracking/",
         include("thetatauCMT.email_tracking.urls", namespace="email_tracking"),

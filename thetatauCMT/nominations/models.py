@@ -7,9 +7,8 @@ from django.utils.translation import gettext_lazy as _
 from multiselectfield import MultiSelectField
 from viewflow.models import Process
 
-from core.models import NAT_OFFICERS, NAT_OFFICERS_CHOICES, EnumClass
+from core.models import NAT_OFFICERS_CHOICES, EnumClass, resolve_config_actor
 from thetatauCMT.configs.models import Config
-from thetatauCMT.users.models import User
 
 # ---------------------------------------------------------------------------
 # Config-driven reviewer assignment
@@ -37,29 +36,6 @@ REVIEWER_CONFIG_KEYS = [
 ]
 
 
-def _resolve_config_actor(value):
-    """Resolve a Config value to a ``User``.
-
-    ``value`` may be a username / email, or a ``core.models.NAT_OFFICERS`` role
-    name (in which case a current holder of that role is returned).  Returns
-    ``None`` when the value is empty or cannot be resolved.
-    """
-    if not value:
-        return None
-    value = value.strip()
-    if not value:
-        return None
-    user = User.objects.filter(models.Q(username__iexact=value) | models.Q(email__iexact=value)).first()
-    if user is not None:
-        return user
-    # Not a user reference -- treat the value as a national-officer role name.
-    role_lookup = {role.lower(): role for role in NAT_OFFICERS}
-    role = role_lookup.get(value.lower())
-    if role is not None:
-        return User.objects.filter(current_roles__contains=[role]).order_by("last_name", "name").first()
-    return None
-
-
 def get_reviewer_for(node_key):
     """Return the responsible reviewer ``User`` for a flow node, from config.
 
@@ -70,13 +46,13 @@ def get_reviewer_for(node_key):
     3. the Executive Director (``settings.EXECUTIVE_DIRECTOR``),
     4. ``None`` -- viewflow simply leaves the task unassigned.
     """
-    user = _resolve_config_actor(Config.get_value(node_key))
+    user = resolve_config_actor(Config.get_value(node_key))
     if user is None and node_key != REVIEWER_CENTRAL_OFFICE:
-        user = _resolve_config_actor(Config.get_value(REVIEWER_CENTRAL_OFFICE))
+        user = resolve_config_actor(Config.get_value(REVIEWER_CENTRAL_OFFICE))
     if user is None:
         executive_director = getattr(settings, "EXECUTIVE_DIRECTOR", None)
         if executive_director:
-            user = _resolve_config_actor(executive_director)
+            user = resolve_config_actor(executive_director)
     return user
 
 

@@ -1,18 +1,21 @@
 # thetatauCMT — Copilot instructions
 
 ## Runtime environment
-- **Everything runs in Podman containers.** Do NOT use the local virtualenv
+- **Everything runs in docker containers.** Do NOT use the local virtualenv
   (e.g. `c:\workspace\.virtualenvs\cmt-prod2025`) for `python`, `manage.py`,
   `pytest`, `pip`, `django-admin`, or `check`.
 - The Django service is the compose service `django`, container name
-  `thetataucmt_local_django` (Podman lowercases the project prefix).
-- Run commands with `podman exec`:
-  - Tests (full): `podman exec thetataucmt_local_django pytest --tb=no -q`
-  - Tests (targeted): `podman exec thetataucmt_local_django pytest <path> -v --tb=short`
-  - Django management: `podman exec thetataucmt_local_django python manage.py <cmd>`
-  - Shell: `podman exec -it thetataucmt_local_django bash`
+  `thetataucmt_local_django` (docker lowercases the project prefix).
+- Run commands with `docker exec`:
+  - Tests (full): `docker exec thetataucmt_local_django pytest --tb=no -q`
+  - Tests (targeted): `docker exec thetataucmt_local_django pytest <path> -v --tb=short`
+  - Django management: `docker exec thetataucmt_local_django python manage.py <cmd>`
+  - Shell: `docker exec -it thetataucmt_local_django bash`
 - Bring the stack up with `docker-compose -f docker-compose.local.yml up -d`
-  (podman-compose works too). Never `pip install` on the host.
+  (docker-compose works too). Never `pip install` on the host.
+  - **Stack:** Django + PostgreSQL in Docker containers. Reuse existing app patterns. Use Django Viewflow for any approval workflow — follow the SAME patterns used in the recently built Volunteer Nomination flow (config-driven task assignment, Process/Flow classes, node types, templates).
+- **Roles:** Member, Chapter Officer, RD (Regional Director), National Officer, Admin. Map all permissions to these existing roles. Reference positions from `core.models.NAT_OFFICERS` where relevant.
+- **Working style:** Prefer configuration over hard-coded rules. Establish migrations/models FIRST and pause for confirmation, then services/logic, then views/templates, then tests by acceptance criterion. Gate every capability by role/permission.
 
 ## Stack
 - Django 4.2.x, Python 3.13-slim, PostgreSQL 12, allauth 65.x, viewflow.

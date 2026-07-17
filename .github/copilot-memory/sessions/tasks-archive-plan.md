@@ -12,7 +12,7 @@
   → completes the OLDEST lingering incomplete date, NOT the current one.
 - No way to retire an old date. => archive feature fixes this.
 
-## Plan (all in container; podman exec thetataucmt_local_django ...)
+## Plan (all in container; docker exec thetataucmt_local_django ...)
 1. Model `TaskDate`: add `archived` (BooleanField default False, db_index),
    `archived_reason` (CharField blank), `archived_on` (DateTimeField null).
    + `archive(reason="")` / `unarchive()` helpers.

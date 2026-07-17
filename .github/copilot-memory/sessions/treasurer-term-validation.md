@@ -38,5 +38,5 @@ Violation adds: " Your submission is in violation of this policy."
 - region directors: `chapter.region.directors.all()` (User M2M); region generic: `chapter.region.email`.
 - Test: officer POST needs form-TOTAL_FORMS/INITIAL_FORMS/MIN_NUM_FORMS/MAX_NUM_FORMS + form-0-*.
   `_add_to_group(user, "officer")`. other_user = UserFactory(chapter=user.chapter).
-- Run tests: podman exec thetataucmt_local_django pytest <path> -v --tb=short
+- Run tests: docker exec thetataucmt_local_django pytest <path> -v --tb=short
 - Baseline full suite ~1819 pass / 17 skip / 0 fail.

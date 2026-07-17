@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{% trans "Award Import Queue" %}{% endblock %}
+
+{% block content %}
+<div class="page-header d-flex flex-wrap align-items-center gap-2 mb-3">
+  <h2 class="page-title mb-0">{% trans "Award Import Match Queue" %}</h2>
+  <div class="page-actions ms-auto">
+    <a href="{% url 'awards:import_upload' %}" class="btn btn-outline-primary">
+      <i class="fas fa-upload"></i> {% trans "Import CSV" %}
+    </a>
+  </div>
+</div>
+
+<p class="text-body-secondary">
+  {% trans "These rows could not be matched to a recipient with enough confidence. Confirm a candidate to create the backdated import grant, or skip the row." %}
+  <span class="ms-2">{% trans "Resolved:" %} {{ resolved_count }} &middot; {% trans "Skipped:" %} {{ skipped_count }}</span>
+</p>
+
+{% if not items %}
+  <div class="alert alert-success">{% trans "The match queue is empty — nothing to review." %}</div>
+{% else %}
+  <div class="table-responsive">
+    <table class="table table-bordered align-middle">
+      <thead>
+        <tr>
+          <th>{% trans "Recipient (as uploaded)" %}</th>
+          <th>{% trans "Award" %}</th>
+          <th>{% trans "Award Period" %}</th>
+          <th>{% trans "Effective" %}</th>
+          <th>{% trans "Candidates" %}</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in items %}
+          <tr>
+            <td>
+              <strong>{{ item.display_label }}</strong>
+              <div class="small text-body-secondary text-capitalize">{{ item.recipient_kind }}</div>
+            </td>
+            <td>{{ item.award_type }}</td>
+            <td>{{ item.cycle }}</td>
+            <td>{{ item.effective_date|default:"—" }}</td>
+            <td>
+              {% if item.candidate_matches %}
+                <ul class="list-unstyled mb-0">
+                  {% for cand in item.candidate_matches %}
+                    <li class="mb-1 d-flex align-items-center gap-2">
+                      <form method="post" action="{% url 'awards:import_resolve' %}" class="m-0">
+                        {% csrf_token %}
+                        <input type="hidden" name="item" value="{{ item.pk }}">
+                        <input type="hidden" name="recipient_id" value="{{ cand.id }}">
+                        <input type="hidden" name="action" value="resolve">
+                        <button type="submit" class="btn btn-sm btn-outline-success">
+                          <i class="fas fa-check"></i> {{ cand.name }}
+                        </button>
+                      </form>
+                      <span class="badge bg-secondary">{{ cand.score }}</span>
+                      {% if cand.reasons %}<span class="small text-body-secondary">{{ cand.reasons|join:", " }}</span>{% endif %}
+                    </li>
+                  {% endfor %}
+                </ul>
+              {% else %}
+                <span class="text-body-secondary small">{% trans "No candidates found." %}</span>
+              {% endif %}
+            </td>
+            <td>
+              <form method="post" action="{% url 'awards:import_resolve' %}" class="m-0">
+                {% csrf_token %}
+                <input type="hidden" name="item" value="{{ item.pk }}">
+                <input type="hidden" name="action" value="skip">
+                <button type="submit" class="btn btn-sm btn-outline-danger">
+                  <i class="fas fa-xmark"></i> {% trans "Skip" %}
+                </button>
+              </form>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% endif %}
+{% endblock content %}

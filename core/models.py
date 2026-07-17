@@ -112,6 +112,24 @@ def current_year_term_slug():
     return f"{term}_{current_year()}"
 
 
+def previous_month_period(today=None):
+    """(start, end) dates of the calendar month before ``today`` (default: today)."""
+    today = today or timezone.now().date()
+    period_end = today.replace(day=1) - datetime.timedelta(days=1)
+    period_start = period_end.replace(day=1)
+    return period_start, period_end
+
+
+def month_period(year, month):
+    """(start, end) dates of the given calendar month."""
+    period_start = datetime.date(year, month, 1)
+    if month == 12:
+        period_end = datetime.date(year, 12, 31)
+    else:
+        period_end = datetime.date(year, month + 1, 1) - datetime.timedelta(days=1)
+    return period_start, period_end
+
+
 CHAPTER_OFFICER = {
     "corresponding secretary",
     "regent",
@@ -229,6 +247,36 @@ def user_is_national_officer(user):
     if getattr(user, "natoff_hidden", False):
         return False
     return bool(user.is_superuser or user.is_national_officer_group or user.is_national_officer())
+
+
+def resolve_config_actor(value):
+    """Resolve a ``configs.Config`` value to a ``User``.
+
+    ``value`` may be a username / email, or a :data:`NAT_OFFICERS` role name (in
+    which case a current holder of that role is returned). Returns ``None`` when
+    the value is empty or cannot be resolved.
+
+    Shared by the config-driven approver resolution in the volunteer nomination
+    flow (``nominations.models.get_reviewer_for``) and the award nomination flow
+    (``awards.services.get_award_approver``).
+    """
+    from django.db.models import Q
+
+    from thetatauCMT.users.models import User
+
+    if not value:
+        return None
+    value = value.strip()
+    if not value:
+        return None
+    user = User.objects.filter(Q(username__iexact=value) | Q(email__iexact=value)).first()
+    if user is not None:
+        return user
+    role_lookup = {role.lower(): role for role in NAT_OFFICERS}
+    role = role_lookup.get(value.lower())
+    if role is not None:
+        return User.objects.filter(current_roles__contains=[role]).order_by("last_name", "name").first()
+    return None
 
 
 def semester_encompass_start_end_date(given_date=None, term=None, year=None):

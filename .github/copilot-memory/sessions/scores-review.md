@@ -24,7 +24,7 @@ Review scores app calc logic, fix bugs, ensure ScoreChapter created properly, si
 - eval() in calculate_special: admin-controlled DB formulas, existing behavior.
 
 ## Test cmds (CONTAINER ONLY)
-- podman exec thetataucmt_local_django pytest thetatauCMT/scores -v --tb=short
+- docker exec thetataucmt_local_django pytest thetatauCMT/scores -v --tb=short
 - events model test: thetatauCMT/events/tests/test_models.py::test_calculate_meeting_attendance (freezes 2026-04-15 mid-spring, dates -15d..-5d, avoids boundary -> my fix safe)
 
 ## BIG BUG #5 (fixed): score_calculate_extras wiped service-hours to 0

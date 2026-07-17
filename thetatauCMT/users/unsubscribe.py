@@ -40,6 +40,11 @@ UNSUBSCRIBE_CATEGORIES = [
         label="Birthday Celebrations",
         description="Birthday greetings from Theta Tau.",
     ),
+    UnsubscribeCategory(
+        slug="award_digest",
+        label="Awards Digest",
+        description="A monthly summary of awards granted across Theta Tau.",
+    ),
 ]
 
 CATEGORY_SLUGS = {c.slug for c in UNSUBSCRIBE_CATEGORIES}

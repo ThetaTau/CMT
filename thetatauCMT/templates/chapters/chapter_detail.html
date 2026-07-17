@@ -3,6 +3,7 @@
 {% load crispy_forms_tags %}
 {% load custom_tags %}
 {% load render_table from django_tables2 %}
+{% load award_tags %}
 {% block title %}Chapter: {{ object.name }}{% endblock %}
 
 {% block content %}
@@ -34,80 +35,75 @@
               </p>
             {% endif %}
           </div>
-          {% if object.website or object.facebook or object.instagram or object.tiktok or object.linkedin or object.youtube or object.twitter %}
-            <div class="d-flex flex-wrap gap-2">
-              {% if object.website %}
-                <a href="{{ object.website }}" target="_blank" rel="noopener noreferrer" class="btn btn-outline-secondary btn-sm">Website</a>
-              {% endif %}
-              {% if object.facebook %}
-                <a href="{{ object.facebook }}" target="_blank" rel="noopener noreferrer" class="btn btn-outline-primary btn-sm">Facebook</a>
-              {% endif %}
-              {% if object.instagram %}
-                <a href="{{ object.instagram }}" target="_blank" rel="noopener noreferrer" class="btn btn-outline-danger btn-sm">Instagram</a>
-              {% endif %}
-              {% if object.tiktok %}
-                <a href="{{ object.tiktok }}" target="_blank" rel="noopener noreferrer" class="btn btn-outline-dark btn-sm">TikTok</a>
-              {% endif %}
-              {% if object.linkedin %}
-                <a href="{{ object.linkedin }}" target="_blank" rel="noopener noreferrer" class="btn btn-outline-primary btn-sm">LinkedIn</a>
-              {% endif %}
-              {% if object.youtube %}
-                <a href="{{ object.youtube }}" target="_blank" rel="noopener noreferrer" class="btn btn-outline-danger btn-sm">YouTube</a>
-              {% endif %}
-              {% if object.twitter %}
-                <a href="{{ object.twitter }}" target="_blank" rel="noopener noreferrer" class="btn btn-outline-dark btn-sm">X / Twitter</a>
-              {% endif %}
-            </div>
-          {% endif %}
-        </div>
-      </div>
-    </div>
-
-    {# ---------- Stat cards ---------- #}
-    <div class="row g-3 mb-4">
-      <div class="col-6 col-md-3">
-        <div class="card h-100 border-0 shadow-sm text-center">
-          <div class="card-body">
-            <div class="text-muted small text-uppercase">Actives</div>
-            <div class="display-6 fw-bold text-primary">{{ object.actives|length }}</div>
-          </div>
-        </div>
-      </div>
-      <div class="col-6 col-md-3">
-        <div class="card h-100 border-0 shadow-sm text-center">
-          <div class="card-body">
-            <div class="text-muted small text-uppercase">Potential New Members</div>
-            <div class="display-6 fw-bold text-success">{{ object.pledges|length }}</div>
-          </div>
-        </div>
-      </div>
-      <div class="col-12 col-md-3">
-        <div class="card h-100 border-0 shadow-sm">
-          <div class="card-body">
-            <div class="text-muted small text-uppercase mb-1">Health &amp; Safety</div>
-            <div class="fw-semibold">{{ object.get_health_safety_surcharge_display }}</div>
-          </div>
-        </div>
-      </div>
-      <div class="col-12 col-md-3">
-        <div class="card h-100 border-0 shadow-sm">
-          <div class="card-body">
-            <div class="text-muted small text-uppercase mb-1">Tax ID</div>
-            {% if object.tax %}
-              <div class="fw-semibold">{{ object.tax }}</div>
-            {% else %}
-              <div class="small text-muted">
-                No group tax ID.
-                {% if group_tax_form_url %}
-                  <a href="{{ group_tax_form_url }}" target="_blank" rel="noopener noreferrer">Apply here</a>
-                  or
+          <div class="d-flex flex-column align-items-end gap-2">
+            <div class="d-flex flex-wrap gap-4 justify-content-end">
+              <div class="text-center">
+                <div class="h3 mb-0 fw-bold text-primary">{{ object.actives|length }}</div>
+                <div class="text-muted small text-uppercase">Actives</div>
+              </div>
+              <div class="text-center">
+                <div class="h3 mb-0 fw-bold text-success">{{ object.pledges|length }}</div>
+                <div class="text-muted small text-uppercase">Potential New Members</div>
+              </div>
+              <div class="text-center">
+                <div class="h6 mb-0">
+                  {% if object.health_safety_surcharge == "none" %}
+                    <span class="badge bg-success" title="{{ object.get_health_safety_surcharge_display }}">&gt;75%</span>
+                  {% elif object.health_safety_surcharge == "L1a" %}
+                    <span class="badge bg-warning text-dark" title="{{ object.get_health_safety_surcharge_display }}">51-75%</span>
+                  {% elif object.health_safety_surcharge == "L1b" %}
+                    <span class="badge bg-warning text-dark" title="{{ object.get_health_safety_surcharge_display }}">26-50%</span>
+                  {% else %}
+                    <span class="badge bg-danger" title="{{ object.get_health_safety_surcharge_display }}">0-25%</span>
+                  {% endif %}
+                </div>
+                <div class="text-muted small text-uppercase" title="Share of prior-year new members who completed online health &amp; safety programming">Health &amp; Safety</div>
+              </div>
+              <div class="text-center">
+                {% if object.tax %}
+                  <div class="h6 mb-0 fw-semibold">{{ object.tax }}</div>
+                {% else %}
+                  <div class="h6 mb-0 fw-semibold text-muted">&mdash;</div>
                 {% endif %}
-                contact the Central Office.
+                <div class="text-muted small text-uppercase">Tax ID</div>
+                {% if not object.tax and group_tax_form_url %}
+                  <a href="{{ group_tax_form_url }}" target="_blank" rel="noopener noreferrer" class="small">Apply for tax ID</a>
+                {% endif %}
+              </div>
+            </div>
+            {% if object.website or object.facebook or object.instagram or object.tiktok or object.linkedin or object.youtube or object.twitter %}
+              <div class="d-flex flex-wrap gap-2 justify-content-end">
+                {% if object.website %}
+                  <a href="{{ object.website }}" target="_blank" rel="noopener noreferrer" class="btn btn-outline-secondary btn-sm">Website</a>
+                {% endif %}
+                {% if object.facebook %}
+                  <a href="{{ object.facebook }}" target="_blank" rel="noopener noreferrer" class="btn btn-outline-primary btn-sm">Facebook</a>
+                {% endif %}
+                {% if object.instagram %}
+                  <a href="{{ object.instagram }}" target="_blank" rel="noopener noreferrer" class="btn btn-outline-danger btn-sm">Instagram</a>
+                {% endif %}
+                {% if object.tiktok %}
+                  <a href="{{ object.tiktok }}" target="_blank" rel="noopener noreferrer" class="btn btn-outline-dark btn-sm">TikTok</a>
+                {% endif %}
+                {% if object.linkedin %}
+                  <a href="{{ object.linkedin }}" target="_blank" rel="noopener noreferrer" class="btn btn-outline-primary btn-sm">LinkedIn</a>
+                {% endif %}
+                {% if object.youtube %}
+                  <a href="{{ object.youtube }}" target="_blank" rel="noopener noreferrer" class="btn btn-outline-danger btn-sm">YouTube</a>
+                {% endif %}
+                {% if object.twitter %}
+                  <a href="{{ object.twitter }}" target="_blank" rel="noopener noreferrer" class="btn btn-outline-dark btn-sm">X / Twitter</a>
+                {% endif %}
               </div>
             {% endif %}
           </div>
         </div>
       </div>
+    </div>
+
+    {# ---------- Awards (moved up from the bottom) ---------- #}
+    <div class="row g-3 mb-4">
+      <div class="col-12">{% awards_section object %}</div>
     </div>
 
     {# ---------- Current officers moved into the accordion below ---------- #}

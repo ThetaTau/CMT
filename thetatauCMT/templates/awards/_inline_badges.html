@@ -1,0 +1,14 @@
+{% for award in award_badges %}
+  <img src="{{ award.badge_image.url }}" alt="{{ award.name }}" title="{{ award.name }}"
+       class="award-badge-icon" style="height:1.2em;width:auto;vertical-align:middle;">
+{% endfor %}
+{% for badge in officer_badges %}
+  {% if badge.badge_image %}
+    <img src="{{ badge.badge_image.url }}" alt="{{ badge.display_label }}" title="{{ badge.display_label }}"
+         class="officer-badge-icon" style="height:1.2em;width:auto;vertical-align:middle;">
+  {% elif badge.icon_class %}
+    <i class="{{ badge.icon_class }}" title="{{ badge.display_label }}"></i>
+  {% else %}
+    <span class="badge bg-secondary" title="{{ badge.display_label }}">{{ badge.display_label }}</span>
+  {% endif %}
+{% endfor %}

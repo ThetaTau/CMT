@@ -12,7 +12,7 @@ Prevent exposing real PII on staging, but keep non-sensitive data for testing.
 
 ## Config
 - Only in local.py + staging.py INSTALLED_APPS (NOT production).
-- Runs in podman container `thetataucmt_local_django`.
+- Runs in docker container `thetataucmt_local_django`.
 
 ## Plan
 1. [ ] Enumerate all models (all apps incl NEW: contact_sync, attendance)
@@ -76,4 +76,4 @@ dev DB) — only --check_only, which is the safe validation backup.sh mirrors.
 - contact_sync.py NEW: clean UserContactSyncToken (encrypted OAuth secrets).
 - events.py: add CalendarFeedSubscription to skip.
 - TimeStampedModel = created + modified.
-- VALIDATE: podman exec thetataucmt_local_django python manage.py anonymize_db --check_only
+- VALIDATE: docker exec thetataucmt_local_django python manage.py anonymize_db --check_only

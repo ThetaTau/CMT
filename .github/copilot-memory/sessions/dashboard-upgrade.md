@@ -82,9 +82,9 @@ Documented these to the user; deferring the fix because it touches many files.
   which figure callbacks read to pick `plotly_white`/`plotly_dark` template
 
 ## Container commands
-- Test: `podman exec thetataucmt_local_django pytest thetatauCMT/chapters/tests/test_dashboard.py -v --tb=short`
+- Test: `docker exec thetataucmt_local_django pytest thetatauCMT/chapters/tests/test_dashboard.py -v --tb=short`
 - Install: pip is run at container build time; just update requirements file — but for testing
-  after updating we can `podman exec thetataucmt_local_django pip install -U <pkg>`
+  after updating we can `docker exec thetataucmt_local_django pip install -U <pkg>`
 
 ## Baseline (from repo memory)
 - 1203 pass, 19 skipped, 1 pre-existing failure (chapter_detail_view)

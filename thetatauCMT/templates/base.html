@@ -116,10 +116,14 @@
             <div class="offcanvas-body">
               <ul class="navbar-nav me-auto mb-2 mb-lg-0">
                 <li class="nav-item">
-                  <a class="nav-link" href="{% url 'home' %}">Home</a>
+                  <a class="nav-link" href="{% url 'home' %}"><i class="fa-solid fa-house"></i>
+                    <span class="d-lg-none ms-2">{% trans "Home" %}</span></a>
                 </li>
 
                 {% if not request.user.is_authenticated %}
+                  <li class="nav-item">
+                    <a class="nav-link" href="{% url 'awards:directory' %}">{% trans "Award Winners" %}</a>
+                  </li>
                   <li class="nav-item">
                     <a class="nav-link" href="{% url 'forms:pledgeform' %}">Pledge Form</a>
                   </li>
@@ -139,9 +143,27 @@
                       {% endif %}
                       <li><a class="dropdown-item" href="{% url 'users:service' %}">{% trans "Service Hours" %}</a></li>
                       <li><a class="dropdown-item" href="{% url 'users:orgs' %}">{% trans "External Orgs" %}</a></li>
+                      <li><a class="dropdown-item" href="{% url 'viewflow:nominations:nomination:start' %}">{% trans "Nominate for Office" %}</a></li>
                       {% if request.is_nat_officer %}
-                        <li><hr class="dropdown-divider"></li>
                         <li><a class="dropdown-item" href="{% url 'users:search' %}">{% trans "Member Search" %}</a></li>
+                      {% endif %}
+
+                      <li><hr class="dropdown-divider"></li>
+                      <li><h6 class="dropdown-header">{% trans "Awards" %}</h6></li>
+                      <li><a class="dropdown-item" href="{% url 'awards:directory' %}">{% trans "Award Winners" %}</a></li>
+                      <li><a class="dropdown-item" href="{% url 'viewflow:awards:awardnomination:start' %}">{% trans "Nominate for an Award" %}</a></li>
+                      {% if user.is_superuser %}
+                        <li><a class="dropdown-item" href="{% url 'awards:direct_grant' %}">{% trans "Grant an Award" %}</a></li>
+                        <li><a class="dropdown-item" href="{% url 'awards:import_upload' %}">{% trans "Import Awards" %}</a></li>
+                      {% endif %}
+
+                      <li><hr class="dropdown-divider"></li>
+                      <li><h6 class="dropdown-header">{% trans "Directory" %}</h6></li>
+                      <li><a class="dropdown-item" href="{% url 'chapters:list' %}">{% trans "Chapters" %}</a></li>
+                      {% if request.is_nat_officer %}
+                        <li><a class="dropdown-item" href="{% url 'regions:officers' 'national' %}">{% trans "All Officers" %}</a></li>
+                        <li><a class="dropdown-item" href="{% url 'regions:advisors' 'national' %}">{% trans "All Advisors" %}</a></li>
+                        <li><a class="dropdown-item" href="{% url 'ballots:list' %}">{% trans "Ballots" %}</a></li>
                       {% endif %}
                     </ul>
                   </li>
@@ -191,24 +213,6 @@
                     <a class="nav-link" href="{% url 'jobs:list' %}">{% trans "Job Board" %}</a>
                   </li>
 
-                  <li class="nav-item">
-                    <a class="nav-link" href="{% url 'viewflow:nominations:nomination:start' %}">{% trans "Nominate" %}</a>
-                  </li>
-
-                  <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">{% trans "Directory" %}</a>
-                    <ul class="dropdown-menu">
-                      <li><a class="dropdown-item" href="{% url 'chapters:list' %}">{% trans "Chapters" %}</a></li>
-                      {% if request.is_nat_officer %}
-                        <li><hr class="dropdown-divider"></li>
-                        <li><h6 class="dropdown-header">National</h6></li>
-                        <li><a class="dropdown-item" href="{% url 'regions:officers' 'national' %}">{% trans "All Officers" %}</a></li>
-                        <li><a class="dropdown-item" href="{% url 'regions:advisors' 'national' %}">{% trans "All Advisors" %}</a></li>
-                        <li><a class="dropdown-item" href="{% url 'ballots:list' %}">{% trans "Ballots" %}</a></li>
-                      {% endif %}
-                    </ul>
-                  </li>
-
                   {% if request.is_nat_officer %}
                     <li class="nav-item dropdown">
                       <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">{% trans "National" %}</a>
@@ -218,8 +222,10 @@
                         <li><a class="dropdown-item" href="{% url 'scores:chapterlist' %}">{% trans "All Scores" %}</a></li>
                         <li><a class="dropdown-item" href="{% url 'events:list_all' %}">{% trans "All Events" %}</a></li>
                         <li><a class="dropdown-item" href="{% url 'events:pending' %}">{% trans "Pending Event Reviews" %}</a></li>
-                        <li><a class="dropdown-item" href="{% url 'attendance:national_upload' %}">{% trans "Upload National Attendance" %}</a></li>
-                        <li><a class="dropdown-item" href="{% url 'attendance:match_queue' %}">{% trans "Attendance Match Queue" %}</a></li>
+                        {% if user.is_superuser %}
+                          <li><a class="dropdown-item" href="{% url 'attendance:national_upload' %}">{% trans "Upload National Attendance" %}</a></li>
+                          <li><a class="dropdown-item" href="{% url 'attendance:match_queue' %}">{% trans "Attendance Match Queue" %}</a></li>
+                        {% endif %}
                         <li><a class="dropdown-item" href="{% url 'forms:natoff' %}">{% trans "Nat Officers" %}</a></li>
                         <li><a class="dropdown-item" href="{% url 'nominations:list' %}">{% trans "Volunteer Nominations" %}</a></li>
                         <li><a class="dropdown-item" href="{% url 'email_tracking:member_communication' %}">{% trans "Member Email Communication" %}</a></li>
