@@ -1,0 +1,14 @@
+{% extends "herald/html/base_email.html" %}
+{% block title %}Award Granted{% endblock %}
+{% block content %}
+<br>
+<p>Congratulations!</p>
+<p>
+  <strong>{{ recipient }}</strong> has been granted the
+  <strong>{{ award }}</strong> award ({{ cycle }}).
+</p>
+{% if description %}<p><em>{{ description }}</em></p>{% endif %}
+<p>Effective {{ effective_date }}.</p>
+{% if reason %}<p><strong>Note:</strong> {{ reason }}</p>{% endif %}
+<p>In H&amp;T,<br>Theta Tau</p>
+{% endblock content %}

@@ -107,8 +107,10 @@ class EmailAdvisorWelcome(EmailNotification):  # extend from EmailNotification f
     def __init__(self, user):
         self.to_emails = set([user.email])  # set list of emails to send to
         self.cc = ["central.office@thetatau.org"]
+        # Executive Director's address — pulled from settings so a swap of ED
+        # does not need a code change. Value happens to be the ED's email/username.
         self.reply_to = [
-            "jim.gaffney@thetatau.org",
+            settings.EXECUTIVE_DIRECTOR,
         ]
         chapter = user.current_chapter
         if not chapter.candidate_chapter:
@@ -424,7 +426,7 @@ class EmailProcessUpdate(EmailNotification):
                     process_title = "NO OFFICERS"
                     message = "THIS CHAPTER HAS NO OFFICERS, PLEASE REACH OUT TO THE CHAPTER ASAP TO FIX THIS!"
                     emails.add(chapter.region.email)
-                    user = User.objects.get(username="Jim.Gaffney@thetatau.org")
+                    user = User.objects.get(username=settings.EXECUTIVE_DIRECTOR)
             emails = chapter.council_emails()
             if user and user.email in emails:
                 emails.remove(user.email)
@@ -433,7 +435,7 @@ class EmailProcessUpdate(EmailNotification):
         if user is None:
             process_title = "NO OFFICERS"
             message = "THIS CHAPTER HAS NO OFFICERS, PLEASE REACH OUT TO THE CHAPTER ASAP TO FIX THIS!"
-            user = User.objects.get(username="Jim.Gaffney@thetatau.org")
+            user = User.objects.get(username=settings.EXECUTIVE_DIRECTOR)
             emails.add(chapter.region.email)
         self.to_emails = {user.email}  # set list of emails to send to
         self.cc = list(set({"central.office@thetatau.org"} | emails))
@@ -742,3 +744,58 @@ class CentralOfficeGenericEmail(EmailNotification):
         )
 
         return ["This is a test message", [ContentFile(forms, name="Testfile.pdf")]]
+
+
+@registry.register_decorator()
+class TreasurerTermException(EmailNotification):
+    """Notify national leadership when a chapter elects a Treasurer to a term
+    that falls outside the Policy and Procedure Manual's one-year,
+    January-to-January window.
+
+    Recipients: the Grand Treasurer, the chapter's regional directors (and the
+    generic region mailbox), with the Central Office copied.
+    """
+
+    render_types = ["html"]
+    template_name = "treasurer_term_exception"
+    subject = "[CMT] Treasurer Term Policy Exception"
+
+    def __init__(self, role_change, reason, submitted_by=None):
+        member = role_change.user
+        chapter = member.current_chapter
+        region = chapter.region
+        director_emails = set()
+        if region is not None:
+            for director in region.directors.all():
+                director_emails |= {email for email in director.emails if email}
+            if region.email:
+                director_emails.add(region.email)
+        self.to_emails = {"grand.treasurer@thetatau.org"} | director_emails
+        self.cc = ["central.office@thetatau.org"]
+        self.reply_to = ["central.office@thetatau.org"]
+        if not chapter.candidate_chapter:
+            chapter_name = chapter.name + " Chapter"
+        else:
+            chapter_name = chapter.name
+        self.subject = f"[CMT] Treasurer Term Policy Exception — {chapter_name}"
+        self.context = {
+            "member": member,
+            "chapter": chapter_name,
+            "region": region.name if region is not None else "",
+            "start": role_change.start,
+            "end": role_change.end,
+            "reason": reason,
+            "submitted_by": submitted_by,
+            "policy": (
+                "In accordance with Theta Tau Policy and Procedure Manual, the Treasurer of all "
+                "chapters shall be elected to hold office for one year, beginning in January."
+            ),
+            "host": settings.CURRENT_URL,
+        }
+
+    @staticmethod
+    def get_demo_args():
+        from thetatauCMT.users.models import UserRoleChange
+
+        role_change = UserRoleChange.objects.filter(role="treasurer").order_by("?")[0]
+        return [role_change, "Elected mid-year after the prior treasurer withdrew."]

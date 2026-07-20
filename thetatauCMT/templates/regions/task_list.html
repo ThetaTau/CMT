@@ -2,6 +2,7 @@
 {% load querystring from django_tables2 %}
 {% load django_bootstrap5 %}
 {% load crispy_forms_tags %}
+{% load filter_tags %}
 {% load static i18n %}
 {% block title %}Region: {{ object.name }}{% endblock %}
 
@@ -9,7 +10,9 @@
   <div class="container">
   <div class="row">
     <div class="col-sm-12">
-      <h2>{{ object.name }} Region Tasks:</h2>
+      <div class="page-header d-flex flex-wrap align-items-center gap-2 mb-3">
+        <h2 class="page-title mb-0">{{ object.name }} Region Tasks</h2>
+      </div>
 {% if table.page %}
   <div class="table-container">
 {% endif %}
@@ -21,10 +24,7 @@
             <thead>
                 <tr>
                     <th colspan="12">
-                        <form method="get" class="form-inline form-search pull-right">
-                          {% csrf_token %}
-                          {% crispy filter.form filter.form.helper %}
-                        </form>
+                        {% collapsible_filter filter label="Filter Tasks" collapse_id="regionTaskFilter" %}
                     </th>
                 </tr>
 

@@ -3,7 +3,7 @@ import datetime
 
 from address.admin import Address
 from django import forms
-from django.contrib import admin
+from django.contrib import admin, messages
 from django.contrib.admin.models import DELETION, LogEntry
 from django.contrib.auth.admin import UserAdmin as AuthUserAdmin
 from django.contrib.auth.forms import UserChangeForm
@@ -21,6 +21,7 @@ from simple_history.admin import SimpleHistoryAdmin
 from watson.admin import SearchAdmin
 
 from core.admin import AddressAdmin, ReportAdminSync, SentNotificationAdminUpdate, user_chapter
+from core.forms import ComponentAddressField
 from core.models import forever
 from core.signals import SignalWatchMixin
 from thetatauCMT.forms.models import (
@@ -51,8 +52,9 @@ from .models import (
     UserSemesterGPA,
     UserSemesterServiceHours,
     UserStatusChange,
+    UserTag,
 )
-from .resources import UserResource, UserRoleChangeResource, UserStatusChangeResource
+from .resources import UserResource, UserRoleChangeResource, UserStatusChangeResource, UserTagResource
 from .views import ExportActiveMixin
 
 admin.site.register(Permission)
@@ -69,6 +71,30 @@ def status(obj):
     if "CC" in obj.status:
         status += " CC"
     return status
+
+
+@admin.register(UserTag)
+class UserTagAdmin(ImportExportActionModelAdmin):
+    list_display = ("name", "user_count")
+    search_fields = ("name",)
+    ordering = ("name",)
+    resource_class = UserTagResource
+
+    class UserTagUserInline(admin.TabularInline):
+        # Auto-created through table for the User.tags M2M. Lets admins
+        # see every user carrying this tag and add more via autocomplete.
+        model = User.tags.through
+        extra = 1
+        verbose_name = "Tagged user"
+        verbose_name_plural = "Tagged users"
+        autocomplete_fields = ("user",)
+        fk_name = "usertag"
+
+    inlines = [UserTagUserInline]
+
+    @admin.display(description="Users", ordering="users__count")
+    def user_count(self, obj):
+        return obj.users.count()
 
 
 class StatusListFilter(admin.SimpleListFilter):
@@ -205,6 +231,8 @@ class UserRoleChangeAdmin(ImportExportActionModelAdmin):
 
 
 class MyUserChangeForm(UserChangeForm):
+    address = ComponentAddressField(required=False)
+
     class Meta(UserChangeForm.Meta):
         model = User
 
@@ -405,7 +433,7 @@ class ReturnStudentInline(admin.TabularInline):
 
 class UserAlterInline(admin.StackedInline):
     model = UserAlter
-    fields = ["chapter", "role"]
+    fields = ["chapter", "role", "hide_natoff"]
     show_change_link = True
     extra = 0
 
@@ -451,15 +479,18 @@ class MyUserAdmin(
         "watch_notification_remove",
         "update_status",
         "badge_fix",
+        "send_to_mailerlite",
     ]
-    raw_id_fields = ["address"]
+    raw_id_fields = []
     readonly_fields = (
         "deceased_changed",
         "current_roles",
         "current_status",
         "officer",
         "id",
+        "declined_nomination_display",
     )
+    autocomplete_fields = ("tags",)
     inlines = [
         UserNoteInline,
         UserAlterInline,
@@ -512,14 +543,17 @@ class MyUserAdmin(
                     "current_status",
                     "current_roles",
                     "officer",
+                    "tags",
                     "charter",
                     "no_contact",
                     "address",
+                    "address_visibility",
                     "deceased",
                     "deceased_date",
                     "deceased_changed",
                     "unsubscribe_paper_gear",
                     "unsubscribe_email",
+                    "unsubscribe_categories",
                     "suffix",
                     "nickname",
                     "preferred_pronouns",
@@ -527,7 +561,9 @@ class MyUserAdmin(
                     "birth_date",
                     "email",
                     "email_school",
+                    "email_visibility",
                     "phone_number",
+                    "phone_visibility",
                     "major",
                     "employer",
                     "employer_position",
@@ -549,6 +585,7 @@ class MyUserAdmin(
             },
         ),
         (_("Important dates"), {"fields": ("last_login", "date_joined")}),
+        (_("Volunteer nomination"), {"fields": ("declined_nomination_display",)}),
     )
     list_display = (
         "username",
@@ -560,6 +597,7 @@ class MyUserAdmin(
         "current_status",
         "current_roles",
         "officer",
+        "declined_nomination_display",
     )
     list_filter = (
         "is_superuser",
@@ -577,6 +615,19 @@ class MyUserAdmin(
         "email_school",
     ) + AuthUserAdmin.search_fields
     resource_class = UserResource
+
+    @admin.display(boolean=True, description="Declined nomination")
+    def declined_nomination_display(self, obj):
+        """Whether the member has declined a volunteer nomination (not interested)."""
+        return obj.declined_nomination if obj and obj.pk else False
+
+    def view_on_site(self, obj):
+        """Link the admin 'View on site' button to the member's public profile."""
+        from django.urls import reverse
+
+        if obj and obj.username:
+            return reverse("users:profile", kwargs={"username": obj.username})
+        return None
 
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
         if db_field.name == "major":
@@ -637,6 +688,32 @@ class MyUserAdmin(
             request,
             "admin/update_status.html",
             context={"form": form},
+        )
+
+    @admin.action(description="Send selected users to MailerLite")
+    def send_to_mailerlite(self, request, queryset):
+        """Add the selected members to the other org's MailerLite list.
+
+        Skips anyone who is already a subscriber (never resurrects an
+        unsubscribed record) and members without an email address.
+        """
+        from thetatauCMT.email_tracking import mailerlite_api, mailerlite_sync
+
+        if not mailerlite_api.is_configured():
+            self.message_user(
+                request,
+                "MailerLite is not configured on this server (set MAILERLITE_API_KEY).",
+                level=messages.ERROR,
+            )
+            return
+        summary = mailerlite_sync.send_users(queryset)
+        self.message_user(
+            request,
+            (
+                "MailerLite: added {added}, already subscribed {exists}, "
+                "skipped {skipped} (no email), errors {errors}."
+            ).format(**summary),
+            level=messages.WARNING if summary["errors"] else messages.INFO,
         )
 
 

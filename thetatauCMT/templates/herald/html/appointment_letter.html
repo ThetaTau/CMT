@@ -1,0 +1,13 @@
+{% extends "herald/html/base_email.html" %}
+{% block title %}Your Theta Tau appointment{% endblock %}
+{% block content %}
+<br>
+Congratulations {{ nominee_display }},
+<p>
+  You have been appointed to serve Theta Tau{% if positions_display %} as
+  <strong>{{ positions_display }}</strong>{% endif %}{% if level_display %} at the
+  {{ level_display }} level{% endif %}.
+</p>
+<p>Your official appointment letter is on file with the Central Office.</p>
+<p>In H&amp;T,<br>Theta Tau</p>
+{% endblock content %}

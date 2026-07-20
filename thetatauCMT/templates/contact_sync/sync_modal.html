@@ -1,0 +1,366 @@
+{% comment %}
+Contact-sync modal — included on the region officers page and on the
+national-officer form page. Context supplied via
+:func:`thetatauCMT.contact_sync.context.build_sync_modal_context`.
+
+Context expected:
+  - contact_sync_scope         canonical scope ("region:<slug>" or "national")
+  - contact_sync_scope_display human-friendly display name
+  - officer_count              int
+  - contact_sync_status        dict {provider_key: {label, configured, connected, ...}}
+  - contact_sync_vcard_url     URL — vCard download endpoint (already reversed)
+  - contact_sync_status_url    URL — status JSON endpoint (already reversed)
+{% endcomment %}
+{% load static %}
+<div class="modal fade" id="contactSyncModal" tabindex="-1" aria-labelledby="contactSyncModalTitle" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="contactSyncModalTitle">
+          <i class="fas fa-address-book"></i> Sync officer contacts
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p class="text-body-secondary mb-3">
+          Sync <strong>{{ officer_count }}</strong> officer{{ officer_count|pluralize }}
+          from <strong>{{ contact_sync_scope_display }}</strong> to your personal address book.
+          Contacts are named
+          <code>Prefix-Pos First Last</code>
+          — chapter Greek letters (<code>X-R Franklin Ventura</code>) for chapter
+          officers, or <code>NAT-RD Jane Doe</code> for national officers.
+        </p>
+        <div id="contactSyncFeedback" class="d-none alert" role="status" aria-live="polite"></div>
+
+        <ul class="nav nav-tabs" id="contactSyncTabs" role="tablist">
+          <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="tab-google" data-bs-toggle="tab" data-bs-target="#pane-google"
+                    type="button" role="tab" aria-controls="pane-google" aria-selected="true">
+              <i class="fab fa-google"></i> Google
+            </button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link" id="tab-microsoft" data-bs-toggle="tab" data-bs-target="#pane-microsoft"
+                    type="button" role="tab" aria-controls="pane-microsoft" aria-selected="false">
+              <i class="fab fa-microsoft"></i> Microsoft / Outlook
+            </button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link" id="tab-apple" data-bs-toggle="tab" data-bs-target="#pane-apple"
+                    type="button" role="tab" aria-controls="pane-apple" aria-selected="false">
+              <i class="fab fa-apple"></i> Apple / iCloud
+            </button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link" id="tab-other" data-bs-toggle="tab" data-bs-target="#pane-other"
+                    type="button" role="tab" aria-controls="pane-other" aria-selected="false">
+              <i class="fas fa-file-download"></i> Other / vCard
+            </button>
+          </li>
+        </ul>
+        <div class="tab-content border border-top-0 p-3">
+          {% for provider_key, provider in contact_sync_status.items %}
+          <div class="tab-pane fade{% if provider_key == 'google' %} show active{% endif %}" id="pane-{{ provider_key }}"
+               role="tabpanel" aria-labelledby="tab-{{ provider_key }}"
+               data-provider-pane="{{ provider_key }}"
+               data-authorize-url="{{ provider.authorize_url }}"
+               data-sync-url="{{ provider.sync_url }}"
+               data-disconnect-url="{{ provider.disconnect_url }}"
+               data-auto-sync-url="{{ provider.auto_sync_url }}"
+               data-configured="{{ provider.configured|yesno:'1,0' }}">
+            {% if not provider.configured %}
+              <div class="alert alert-warning mb-0">
+                <h6 class="alert-heading"><i class="fas fa-exclamation-triangle"></i> {{ provider.label }} is not configured on this server.</h6>
+                <p class="mb-1">
+                  An administrator needs to register a {{ provider.label }} OAuth client and set the client ID /
+                  secret in Django settings. See
+                  <code>docs/contact_sync_setup.md</code> in the repository for step-by-step instructions.
+                </p>
+                <p class="mb-0">
+                  In the meantime, use the <strong>Other / vCard</strong> tab to download a vCard file that
+                  you can import into any {{ provider.label }} account.
+                </p>
+              </div>
+            {% else %}
+              <div class="d-flex flex-wrap align-items-center gap-2">
+                <div class="me-auto">
+                  <div class="text-body-secondary small text-uppercase">Status</div>
+                  <div data-connection-status>
+                    {% if provider.connected %}
+                      <span class="badge text-bg-success">Connected</span>
+                      {% if provider.account_email %}<span class="text-body-secondary">as {{ provider.account_email }}</span>{% endif %}
+                    {% else %}
+                      <span class="badge text-bg-secondary">Not connected</span>
+                    {% endif %}
+                  </div>
+                  {% if provider.last_synced_at %}
+                    <div class="small text-body-secondary" data-last-synced>
+                      Last synced {{ provider.last_synced_at }}
+                      ({{ provider.last_sync_count }} contact{{ provider.last_sync_count|pluralize }})
+                    </div>
+                  {% endif %}
+                  {% if provider.last_error %}
+                    <div class="small text-danger mt-1" data-last-error>{{ provider.last_error }}</div>
+                  {% endif %}
+                </div>
+                <div class="d-flex gap-2">
+                  <button type="button" class="btn btn-outline-secondary btn-sm"
+                          data-action="connect" {% if not provider.configured %}disabled{% endif %}>
+                    <i class="fas fa-plug"></i> {% if provider.connected %}Reconnect{% else %}Connect{% endif %}
+                  </button>
+                  {% if provider.connected %}
+                    <button type="button" class="btn btn-outline-danger btn-sm" data-action="disconnect">
+                      <i class="fas fa-unlink"></i> Disconnect
+                    </button>
+                  {% endif %}
+                  <button type="button" class="btn btn-primary btn-sm" data-action="sync"
+                          {% if not provider.connected %}disabled{% endif %}>
+                    <i class="fas fa-sync"></i> Sync {{ officer_count }} contact{{ officer_count|pluralize }}
+                  </button>
+                </div>
+              </div>
+              <div class="form-check form-switch mt-3 mb-0" data-auto-sync-toggle
+                   {% if not provider.connected %}hidden{% endif %}>
+                <input class="form-check-input" type="checkbox" role="switch"
+                       id="autoSync-{{ provider_key }}-{{ contact_sync_scope|slugify }}"
+                       data-auto-sync-checkbox
+                       {% if provider.auto_sync_enabled %}checked{% endif %}
+                       {% if not provider.connected %}disabled{% endif %}>
+                <label class="form-check-label" for="autoSync-{{ provider_key }}-{{ contact_sync_scope|slugify }}">
+                  Keep <strong>{{ contact_sync_scope_display }}</strong> in sync automatically
+                  <span class="text-body-secondary small">
+                    — runs once a week via the <code>weekly_contact_sync</code> management command.
+                  </span>
+                </label>
+              </div>
+              <p class="text-body-secondary small mt-3 mb-0">
+                {% if provider_key == 'google' %}
+                  You'll be redirected to Google to authorize access to your Contacts.
+                  We only request scopes needed to create / update contacts.
+                  You can revoke at any time from
+                  <a href="https://myaccount.google.com/permissions" target="_blank" rel="noopener">
+                    your Google account permissions
+                  </a>.
+                {% elif provider_key == 'microsoft' %}
+                  You'll be redirected to sign in with your Microsoft account
+                  (personal, work, or school). Contacts are written into your Outlook / Microsoft 365 Contacts.
+                {% endif %}
+              </p>
+            {% endif %}
+          </div>
+          {% endfor %}
+
+          <div class="tab-pane fade" id="pane-apple" role="tabpanel" aria-labelledby="tab-apple">
+            <p>
+              Apple does not offer a public OAuth API for iCloud Contacts, so we cannot push
+              contacts directly to iCloud. Download the vCard file below and import it:
+            </p>
+            <ol class="mb-3">
+              <li>Click <strong>Download vCard</strong>.</li>
+              <li>
+                On <strong>macOS</strong>: double-click the <code>.vcf</code> file — Contacts.app will prompt you
+                to add all cards.<br>
+                On <strong>iOS</strong>: open the <code>.vcf</code> attachment from Mail or Files, tap
+                <em>Share</em> → <em>Contacts</em> → <em>Add All Contacts</em>.
+              </li>
+              <li>Anything you add on any Apple device automatically syncs to your other iCloud devices.</li>
+            </ol>
+            <p>
+              <a href="{{ contact_sync_vcard_url }}" class="btn btn-primary">
+                <i class="fas fa-download"></i> Download vCard for Apple
+              </a>
+            </p>
+          </div>
+
+          <div class="tab-pane fade" id="pane-other" role="tabpanel" aria-labelledby="tab-other">
+            <p>
+              The vCard 3.0 (<code>.vcf</code>) file works with virtually every contacts app —
+              Google Contacts (Import), Outlook (Import), Fastmail, Nextcloud, CardDAV clients,
+              Thunderbird, etc.
+            </p>
+            <p>
+              <a href="{{ contact_sync_vcard_url }}" class="btn btn-primary">
+                <i class="fas fa-download"></i> Download vCard file
+              </a>
+            </p>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <small class="text-body-secondary me-auto">
+          Only National Officers can sync. Contacts include name, both emails, phone and role.
+        </small>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  var modalEl = document.getElementById("contactSyncModal");
+  if (!modalEl) return;
+
+  var csrfInput = document.querySelector("input[name=csrfmiddlewaretoken]");
+  var csrf = csrfInput ? csrfInput.value : "";
+  var scope = "{{ contact_sync_scope|escapejs }}";
+  var statusUrl = "{{ contact_sync_status_url|escapejs }}";
+  var feedbackEl = document.getElementById("contactSyncFeedback");
+
+  function setFeedback(kind, message) {
+    if (!feedbackEl) return;
+    feedbackEl.className = "alert alert-" + kind;
+    feedbackEl.textContent = message;
+    feedbackEl.classList.remove("d-none");
+  }
+
+  function clearFeedback() {
+    if (feedbackEl) { feedbackEl.classList.add("d-none"); feedbackEl.textContent = ""; }
+  }
+
+  function providerPanes() {
+    return modalEl.querySelectorAll("[data-provider-pane]");
+  }
+
+  function refreshStatus() {
+    return fetch(statusUrl, { credentials: "same-origin", headers: { "X-Requested-With": "XMLHttpRequest" } })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (data) {
+        if (!data || !data.providers) return;
+        providerPanes().forEach(function (pane) {
+          var key = pane.getAttribute("data-provider-pane");
+          var info = data.providers[key];
+          if (!info) return;
+          var statusBox = pane.querySelector("[data-connection-status]");
+          if (statusBox) {
+            statusBox.innerHTML = info.connected
+              ? '<span class="badge text-bg-success">Connected</span>'
+                + (info.account_email ? ' <span class="text-body-secondary">as ' + info.account_email + '</span>' : '')
+              : '<span class="badge text-bg-secondary">Not connected</span>';
+          }
+          var syncBtn = pane.querySelector('[data-action="sync"]');
+          if (syncBtn) { syncBtn.disabled = !info.connected; }
+          var autoToggle = pane.querySelector("[data-auto-sync-toggle]");
+          var autoCheckbox = pane.querySelector("[data-auto-sync-checkbox]");
+          if (autoToggle) {
+            if (info.connected) { autoToggle.removeAttribute("hidden"); }
+            else { autoToggle.setAttribute("hidden", ""); }
+          }
+          if (autoCheckbox) {
+            autoCheckbox.disabled = !info.connected;
+            var scopes = info.auto_sync_scopes || [];
+            autoCheckbox.checked = scopes.indexOf(scope) !== -1;
+          }
+        });
+      })
+      .catch(function () { /* silent */ });
+  }
+
+  modalEl.addEventListener("shown.bs.modal", function () {
+    clearFeedback();
+    refreshStatus();
+  });
+
+  window.addEventListener("message", function (event) {
+    if (event.origin !== window.location.origin) return;
+    if (event.data && event.data.contactSync) {
+      refreshStatus();
+    }
+  });
+
+  providerPanes().forEach(function (pane) {
+    pane.querySelectorAll("[data-action]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var action = btn.getAttribute("data-action");
+        var authorizeUrl = pane.getAttribute("data-authorize-url");
+        var syncUrl = pane.getAttribute("data-sync-url");
+        var disconnectUrl = pane.getAttribute("data-disconnect-url");
+        if (action === "connect") {
+          var w = window.open(authorizeUrl, "cmt_contact_sync_oauth", "width=520,height=680");
+          if (!w) {
+            window.location.href = authorizeUrl;
+          }
+        } else if (action === "sync") {
+          btn.disabled = true;
+          setFeedback("info", "Syncing contacts…");
+          var body = new FormData();
+          body.append("scope", scope);
+          body.append("csrfmiddlewaretoken", csrf);
+          fetch(syncUrl, {
+            method: "POST",
+            credentials: "same-origin",
+            headers: { "X-Requested-With": "XMLHttpRequest", "X-CSRFToken": csrf },
+            body: body,
+          })
+            .then(function (r) { return r.json().then(function (data) { return { data: data, ok: r.ok }; }); })
+            .then(function (res) {
+              btn.disabled = false;
+              if (!res.ok || res.data.error) {
+                setFeedback("danger", res.data.error || "Sync failed.");
+                return;
+              }
+              var parts = [];
+              if (res.data.created) parts.push(res.data.created + " created");
+              if (res.data.updated) parts.push(res.data.updated + " updated");
+              if (res.data.failed) parts.push(res.data.failed + " failed");
+              setFeedback(res.data.failed ? "warning" : "success",
+                (parts.length ? parts.join(", ") : "No changes needed") + " for " + res.data.scope_display + ".");
+              refreshStatus();
+            })
+            .catch(function (err) { btn.disabled = false; setFeedback("danger", "Sync failed: " + err); });
+        } else if (action === "disconnect") {
+          if (!window.confirm("Disconnect this provider? You'll need to reconnect to sync again.")) return;
+          var body2 = new FormData();
+          body2.append("format", "json");
+          body2.append("csrfmiddlewaretoken", csrf);
+          fetch(disconnectUrl, {
+            method: "POST",
+            credentials: "same-origin",
+            headers: { "X-Requested-With": "XMLHttpRequest", "X-CSRFToken": csrf },
+            body: body2,
+          }).then(function () { setFeedback("info", "Disconnected."); refreshStatus(); });
+        }
+      });
+    });
+
+    // Auto-sync toggle — POST on change.
+    var autoCheckbox = pane.querySelector("[data-auto-sync-checkbox]");
+    if (autoCheckbox) {
+      autoCheckbox.addEventListener("change", function () {
+        var autoSyncUrl = pane.getAttribute("data-auto-sync-url");
+        var body = new FormData();
+        body.append("scope", scope);
+        body.append("enabled", autoCheckbox.checked ? "1" : "0");
+        body.append("csrfmiddlewaretoken", csrf);
+        autoCheckbox.disabled = true;
+        fetch(autoSyncUrl, {
+          method: "POST",
+          credentials: "same-origin",
+          headers: { "X-Requested-With": "XMLHttpRequest", "X-CSRFToken": csrf },
+          body: body,
+        })
+          .then(function (r) { return r.json().then(function (data) { return { data: data, ok: r.ok }; }); })
+          .then(function (res) {
+            autoCheckbox.disabled = false;
+            if (!res.ok || res.data.error) {
+              setFeedback("danger", res.data.error || "Could not update auto-sync setting.");
+              autoCheckbox.checked = !autoCheckbox.checked;
+              return;
+            }
+            setFeedback(
+              res.data.enabled ? "success" : "info",
+              res.data.enabled
+                ? "Auto-sync ON — will run weekly."
+                : "Auto-sync OFF — manual only."
+            );
+          })
+          .catch(function (err) {
+            autoCheckbox.disabled = false;
+            autoCheckbox.checked = !autoCheckbox.checked;
+            setFeedback("danger", "Could not update auto-sync: " + err);
+          });
+      });
+    }
+  });
+})();
+</script>

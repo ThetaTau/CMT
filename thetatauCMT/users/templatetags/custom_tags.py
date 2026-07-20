@@ -10,7 +10,9 @@ def user_alter_form(context):
     request = context.get("request", None)
     if request:
         user = context["request"].user
-        if not user.is_anonymous and user.is_national_officer_group:
+        # Use *raw* natoff-group membership so the chapter/role switcher stays
+        # available even while national-officer functionality is hidden.
+        if not user.is_anonymous and user.in_national_officer_group:
             new_role = None
             if user.altered.all():
                 new_role = user.altered.first().role

@@ -30,18 +30,17 @@ class UserTable(tables.Table):
 
     def __init__(self, chapter=False, natoff=False, admin=False, extra_info=False, rmp=False, *args, **kwargs):
         extra_columns = kwargs.get("extra_columns", [])
+        # Everyone (chapter member, officer, natoff, admin) links through the
+        # public member profile page. Admins still see the backend admin link
+        # rendered on the profile page itself.
+        self.base_columns["name"] = tables.LinkColumn("users:profile", kwargs={"username": A("username")})
         if admin:
-            self.base_columns["name"] = tables.LinkColumn("admin:users_user_change", kwargs={"object_id": A("id")})
             extra_columns.extend(
                 [
                     ("full_address", tables.Column(accessor="address")),
                     ("id", tables.Column()),
                 ]
             )
-        elif natoff:
-            self.base_columns["name"] = tables.LinkColumn("users:info", kwargs={"username": A("username")})
-        else:
-            self.base_columns["name"] = tables.Column()
         if not rmp:
             self.base_columns["rmp_complete"].visible = False
         else:

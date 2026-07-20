@@ -1,0 +1,336 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Attendance: {{ event.name }}{% endblock %}
+
+{% block content %}
+<div class="container">
+  <div class="page-header d-flex flex-wrap align-items-center gap-2 mb-2">
+    <h2 class="page-title mb-0">Attendance — {{ event.name }}</h2>
+    <div class="page-actions d-flex gap-2">
+      <a href="{{ event.get_absolute_url }}" class="btn btn-outline-secondary btn-sm">
+        <i class="fas fa-circle-info"></i> Event details
+      </a>
+      {% if sub_events %}
+        <a href="{{ rollup_url }}" class="btn btn-outline-secondary btn-sm">
+          <i class="fas fa-layer-group"></i> Sub-event rollup
+        </a>
+      {% endif %}
+      {% if is_national_event %}
+        <a href="{{ upload_url }}" class="btn btn-outline-primary btn-sm">
+          <i class="fas fa-upload"></i> Upload attendance
+        </a>
+      {% endif %}
+    </div>
+  </div>
+  <p class="text-body-secondary">{{ event.date }} &middot; {{ event.chapter|default:"National (org-wide)" }} &middot; {{ event.type }}</p>
+
+  {# Quorum note — quorum is not required for every event. #}
+  <div class="alert alert-secondary">
+    <strong>If quorum is needed:</strong>
+    {{ quorum.attended_active }} of {{ quorum.active_count }} active members attended
+    (a majority would require {{ quorum.required }}) —
+    {% if quorum.met %}<span class="text-success fw-semibold">quorum met</span>{% else %}<span class="text-warning-emphasis fw-semibold">quorum not met</span>{% endif %}.
+  </div>
+
+  {% if event.parent_event_id %}
+    <div class="alert alert-info">
+      Sub-event of <strong>{{ event.parent_event.name }}</strong>.
+      Showing {% if roster_source == 'parent' %}<strong>parent-event attendees</strong>{% else %}<strong>the full active roster</strong>{% endif %}.
+      {% if roster_source == 'parent' %}
+        <a href="?roster=full">Show full active roster</a>
+      {% else %}
+        <a href="{{ event.get_attendance_url }}">Show parent attendees only</a>
+      {% endif %}
+    </div>
+  {% endif %}
+
+  {# ---- Form A: record attendance / sign-ups ---- #}
+  <form method="post" action="{{ save_url }}" id="attendance-form">
+    {% csrf_token %}
+    <input type="hidden" name="status" id="save-status" value="attended">
+    <div class="mb-2 d-flex gap-2">
+      <button type="button" class="btn btn-sm btn-outline-primary" id="check-all">Check All</button>
+      <button type="button" class="btn btn-sm btn-outline-secondary" id="uncheck-all">Uncheck All</button>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-striped table-bordered" id="roster-table">
+        <thead>
+          <tr>
+            <th style="width:3rem;" class="no-sort">Present</th>
+            <th role="button" class="sortable">First Name</th>
+            <th role="button" class="sortable">Last Name</th>
+            <th role="button" class="sortable">Current status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in roster %}
+            <tr>
+              <td>
+                <input type="checkbox" class="attendee-check form-check-input"
+                       name="attendees" value="{{ row.member.pk }}" {% if row.checked %}checked{% endif %}>
+              </td>
+              <td><a href="{% url 'users:profile' row.member.username %}">{{ row.member.first_name }}</a></td>
+              <td><a href="{% url 'users:profile' row.member.username %}">{{ row.member.last_name }}</a></td>
+              <td>{% if row.status_display %}<span class="badge bg-secondary">{{ row.status_display }}</span>{% endif %}</td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="4" class="text-center text-body-secondary">
+                No active members found for this event's chapter.
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <button type="submit" class="btn btn-primary"
+            onclick="document.getElementById('save-status').value='attended';">Save Attendance</button>
+    <button type="submit" class="btn btn-outline-primary"
+            onclick="document.getElementById('save-status').value='signed_up';">Save as Sign-ups</button>
+  </form>
+
+  {# ---- Form B: post-event lifecycle update (WI-4) ---- #}
+  {% if signed_up_count %}
+    <hr>
+    <h4>Post-event update</h4>
+    <p class="text-body-secondary">{{ signed_up_count }} member(s) signed up. Mark them all attended, or flag no-shows.</p>
+    <form method="post" action="{{ bulk_update_url }}">
+      {% csrf_token %}
+      <div class="table-responsive">
+        <table class="table table-sm table-bordered">
+          <thead><tr><th>Signed-up member</th><th style="width:6rem;">No-show</th></tr></thead>
+          <tbody>
+            {% for row in roster %}
+              {% if row.signed_up %}
+                <tr>
+                  <td>{{ row.member.name }}</td>
+                  <td><input type="checkbox" class="form-check-input" name="no_show" value="{{ row.member.pk }}"></td>
+                </tr>
+              {% endif %}
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <button type="submit" name="convert_all" value="1" class="btn btn-success">
+        Mark all signed-up as attended
+      </button>
+    </form>
+  {% endif %}
+
+  {# ---- Form C: cross-chapter guest attendance (WI-6, collapsed, multi-row) ---- #}
+  <hr>
+  <button class="btn btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#guest-section"
+          aria-expanded="false" aria-controls="guest-section">
+    <i class="fas fa-user-plus"></i> Record guest (another chapter) attendance
+  </button>
+  <div class="collapse mt-3" id="guest-section">
+    <div class="card card-body">
+      <p class="text-body-secondary">
+        Add a row per guest: first pick a chapter, then search for the member within that chapter.
+        Add as many as you need, then submit them all at once.
+      </p>
+      <form method="post" action="{{ guest_add_url }}" id="guest-form">
+        {% csrf_token %}
+        <div id="guest-rows"></div>
+        <div class="d-flex gap-2 mt-2">
+          <button type="button" class="btn btn-outline-primary btn-sm" id="add-guest-row">
+            <i class="fas fa-plus"></i> Add guest
+          </button>
+          <button type="submit" class="btn btn-primary" id="submit-guests" disabled>Submit Guests</button>
+        </div>
+      </form>
+
+      <template id="guest-row-template">
+        <div class="guest-row row g-2 mb-2 align-items-end">
+          <div class="col-md-4">
+            <label class="form-label">Chapter</label>
+            <select class="form-select guest-chapter">
+              <option value="">Select a chapter…</option>
+              {% for ch in guest_chapters %}
+                <option value="{{ ch.pk }}">{{ ch.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-md-5 position-relative">
+            <label class="form-label">Member (type at least {{ guest_min_length }} characters)</label>
+            <input type="text" class="form-control guest-search" placeholder="Search member…" autocomplete="off" disabled>
+            <div class="list-group position-absolute w-100 guest-results" style="z-index:1050;"></div>
+            <input type="hidden" name="member" class="guest-member-id">
+            <div class="form-text guest-selected"></div>
+          </div>
+          <div class="col-md-3 d-flex align-items-end">
+            <button type="button" class="btn btn-outline-danger btn-sm remove-guest-row">
+              <i class="fas fa-times"></i> Remove
+            </button>
+          </div>
+        </div>
+      </template>
+
+      {% if guest_records %}
+        <hr>
+        <h6>Guests recorded</h6>
+        <form method="post" action="{{ bulk_update_url }}">
+          {% csrf_token %}
+          <ul class="list-unstyled mb-2">
+            {% for g in guest_records %}
+              <li class="mb-1">
+                {% if g.status == 'signed_up' %}
+                  <label class="form-check-label">
+                    <input type="checkbox" class="form-check-input me-1" name="attended" value="{{ g.user.pk }}">
+                    <a href="{% url 'users:profile' g.user.username %}">{{ g.user.name }}</a>
+                    (<a href="{% url 'chapters:detail' g.chapter.slug %}">{{ g.chapter.name }}</a>)
+                    <span class="badge bg-secondary">{{ g.get_status_display }}</span>
+                  </label>
+                {% else %}
+                  <a href="{% url 'users:profile' g.user.username %}">{{ g.user.name }}</a>
+                  (<a href="{% url 'chapters:detail' g.chapter.slug %}">{{ g.chapter.name }}</a>)
+                  <span class="badge {% if g.status == 'attended' %}bg-success{% else %}bg-warning text-dark{% endif %}">{{ g.get_status_display }}</span>
+                {% endif %}
+              </li>
+            {% endfor %}
+          </ul>
+          {% if signed_up_count %}
+            <button type="submit" class="btn btn-success btn-sm">
+              <i class="fas fa-user-check"></i> Mark checked guests attended
+            </button>
+          {% endif %}
+        </form>
+      {% endif %}
+    </div>
+  </div>
+
+  {# ---- Manual attendance to review (WI-7, national bulk uploads) ---- #}
+  {% if match_queue_items %}
+    <hr>
+    <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+      <h4 class="mb-0">Manual attendance to review</h4>
+      <span class="badge bg-warning text-dark">{{ match_queue_items|length }} pending</span>
+      {% if is_national_event %}
+        <a href="{{ upload_url }}" class="btn btn-outline-primary btn-sm ms-auto">
+          <i class="fas fa-upload"></i> Upload more
+        </a>
+      {% endif %}
+    </div>
+    <p class="text-body-secondary">
+      These uploaded rows could not be auto-matched with sufficient confidence. Confirm a suggested
+      candidate, search for a different member, or skip the row. Confirming records attendance.
+    </p>
+    {% include "attendance/_match_queue_review.html" with review_items=match_queue_items %}
+  {% endif %}
+</div>
+
+<script>
+(function () {
+  // Check All / Uncheck All
+  var checkAll = document.getElementById('check-all');
+  var uncheckAll = document.getElementById('uncheck-all');
+  if (checkAll) checkAll.addEventListener('click', function () {
+    document.querySelectorAll('.attendee-check').forEach(function (cb) { cb.checked = true; });
+  });
+  if (uncheckAll) uncheckAll.addEventListener('click', function () {
+    document.querySelectorAll('.attendee-check').forEach(function (cb) { cb.checked = false; });
+  });
+
+  // Client-side sortable roster table (skips the checkbox column).
+  var rosterTable = document.getElementById('roster-table');
+  if (rosterTable) {
+    rosterTable.querySelectorAll('thead th').forEach(function (th, idx) {
+      if (th.classList.contains('no-sort')) return;
+      var asc = true;
+      th.addEventListener('click', function () {
+        var tbody = rosterTable.querySelector('tbody');
+        var rows = Array.prototype.slice.call(tbody.querySelectorAll('tr'));
+        rows.sort(function (a, b) {
+          var av = (a.children[idx] ? a.children[idx].textContent : '').trim().toLowerCase();
+          var bv = (b.children[idx] ? b.children[idx].textContent : '').trim().toLowerCase();
+          if (av < bv) return asc ? -1 : 1;
+          if (av > bv) return asc ? 1 : -1;
+          return 0;
+        });
+        asc = !asc;
+        rows.forEach(function (r) { tbody.appendChild(r); });
+      });
+    });
+  }
+
+  // Multi-row, privacy-safe guest autocomplete (chapter prefilter + min length).
+  var minLen = {{ guest_min_length }};
+  var acUrl = "{% url 'attendance:guest-autocomplete' %}";
+  var rowsContainer = document.getElementById('guest-rows');
+  var addRowBtn = document.getElementById('add-guest-row');
+  var submitBtn = document.getElementById('submit-guests');
+  var rowTemplate = document.getElementById('guest-row-template');
+  if (!rowsContainer || !rowTemplate) return;
+
+  function updateSubmitState() {
+    var any = Array.prototype.slice
+      .call(rowsContainer.querySelectorAll('.guest-member-id'))
+      .some(function (i) { return i.value; });
+    submitBtn.disabled = !any;
+  }
+
+  function wireRow(row) {
+    var chapterSel = row.querySelector('.guest-chapter');
+    var searchInput = row.querySelector('.guest-search');
+    var results = row.querySelector('.guest-results');
+    var memberId = row.querySelector('.guest-member-id');
+    var selected = row.querySelector('.guest-selected');
+    var removeBtn = row.querySelector('.remove-guest-row');
+    var timer = null;
+
+    chapterSel.addEventListener('change', function () {
+      searchInput.disabled = !chapterSel.value;
+      searchInput.value = '';
+      results.innerHTML = '';
+      memberId.value = '';
+      selected.textContent = '';
+      updateSubmitState();
+    });
+
+    searchInput.addEventListener('input', function () {
+      clearTimeout(timer);
+      var q = searchInput.value.trim();
+      memberId.value = '';
+      updateSubmitState();
+      if (!chapterSel.value || q.length < minLen) { results.innerHTML = ''; return; }
+      timer = setTimeout(function () {
+        fetch(acUrl + "?chapter=" + encodeURIComponent(chapterSel.value) + "&q=" + encodeURIComponent(q))
+          .then(function (r) { return r.json(); })
+          .then(function (data) {
+            results.innerHTML = '';
+            (data.results || []).forEach(function (m) {
+              var btn = document.createElement('button');
+              btn.type = 'button';
+              btn.className = 'list-group-item list-group-item-action';
+              btn.textContent = m.text;
+              btn.addEventListener('click', function () {
+                memberId.value = m.id;
+                selected.textContent = 'Selected: ' + m.text;
+                searchInput.value = m.name;
+                results.innerHTML = '';
+                updateSubmitState();
+              });
+              results.appendChild(btn);
+            });
+          });
+      }, 250);
+    });
+
+    removeBtn.addEventListener('click', function () {
+      row.remove();
+      updateSubmitState();
+    });
+  }
+
+  function addRow() {
+    var clone = rowTemplate.content.firstElementChild.cloneNode(true);
+    rowsContainer.appendChild(clone);
+    wireRow(clone);
+    updateSubmitState();
+  }
+
+  addRowBtn.addEventListener('click', addRow);
+  addRow();  // start with one row
+})();
+</script>
+{% endblock %}

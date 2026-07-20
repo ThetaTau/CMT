@@ -1,5 +1,7 @@
+from django import forms
 from django.contrib import admin
 
+from core.forms import ComponentAddressField
 from core.signals import SignalWatchMixin
 from thetatauCMT.chapters.models import Chapter, ChapterCurricula
 from thetatauCMT.notes.admin import ChapterNote, ChapterNoteInline
@@ -14,9 +16,18 @@ class ChapterCurriculaInline(admin.TabularInline):
     show_change_link = True
 
 
+class ChapterAdminForm(forms.ModelForm):
+    address = ComponentAddressField(required=False)
+
+    class Meta:
+        model = Chapter
+        fields = "__all__"
+
+
 @admin.register(Chapter)
 class ChapterAdmin(admin.ModelAdmin, DuesSyncMixin, SignalWatchMixin):
     object_type = "chapter"
+    form = ChapterAdminForm
     actions = [
         "sync_dues",
         "reminder_dues",

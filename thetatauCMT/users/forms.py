@@ -1,6 +1,5 @@
 import logging
 
-from address.widgets import AddressWidget
 from allauth.account.forms import LoginForm
 from crispy_forms.bootstrap import Field, FormActions, InlineField, StrictButton
 from crispy_forms.helper import FormHelper
@@ -12,8 +11,7 @@ from django.utils import timezone
 from django_recaptcha.fields import ReCaptchaField
 from django_recaptcha.widgets import ReCaptchaV3
 
-from core.address import fix_address
-from core.forms import DatePicker, DuplicateAddressField, SchoolModelChoiceField
+from core.forms import ComponentAddressField, DatePicker, SchoolModelChoiceField
 from core.models import BIENNIUM_YEARS, forever
 from thetatauCMT.chapters.models import Chapter, ChapterCurricula
 
@@ -26,6 +24,7 @@ from .models import (
     UserSemesterServiceHours,
     UserStatusChange,
 )
+from .unsubscribe import CATEGORY_SLUGS, UNSUBSCRIBE_CATEGORIES
 
 logger = logging.getLogger(__name__)
 
@@ -77,24 +76,6 @@ class UserListFormHelper(FormHelper):
                             css_class="btn-primary",
                         ),
                         Submit("cancel", "Clear", css_class="btn-primary"),
-                        StrictButton(
-                            '<i class="fa fa-download"></i> Download CSV',
-                            type="submit",
-                            value="Download CSV",
-                            name="csv",
-                            id="download-csv",
-                            css_class="btn-secondary",
-                            style="display: none;",
-                        ),
-                        StrictButton(
-                            '<i class="fa fa-envelope-square"></i> Email ALL',
-                            type="submit",
-                            value="Email ALL",
-                            name="email",
-                            css_class="btn-danger",
-                            id="email-all",
-                            style="display: none;",
-                        ),
                     ),
                 ),
                 Row(
@@ -318,11 +299,18 @@ class UserLookupSearchForm(forms.ModelForm):
 
 class UserAlterForm(forms.ModelForm):
     role = forms.ChoiceField(choices=UserAlter.ROLES, required=False)
-    chapter = forms.ChoiceField(choices=Chapter.chapter_choices(), required=True)
+    # Choices are populated per-instance in __init__ so newly-added chapters
+    # (e.g. from the `seed_dashboard_data` command) show up without needing
+    # to restart the Django worker.
+    chapter = forms.ChoiceField(choices=[], required=True)
 
     class Meta:
         model = UserAlter
         fields = ["chapter", "role"]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["chapter"].choices = Chapter.chapter_choices()
 
     def clean_chapter(self):
         data = self.cleaned_data["chapter"]
@@ -331,7 +319,7 @@ class UserAlterForm(forms.ModelForm):
 
 
 class UserForm(forms.ModelForm):
-    address = DuplicateAddressField(widget=AddressWidget)
+    address = ComponentAddressField(required=True)
     birth_date = forms.DateField(
         label="Birth Date",
         widget=DatePicker(
@@ -348,10 +336,18 @@ class UserForm(forms.ModelForm):
             "major",
             "graduation_year",
             "phone_number",
+            "phone_visibility",
             "address",
+            "address_visibility",
             "email",
+            "email_visibility",
             "birth_date",
         ]
+        labels = {
+            "phone_visibility": "Who can see my phone number?",
+            "address_visibility": "Who can see my address?",
+            "email_visibility": "Who can see my email?",
+        }
 
     def __init__(self, *args, **kwargs):
         verify = kwargs.pop("verify", False)
@@ -362,15 +358,59 @@ class UserForm(forms.ModelForm):
         else:
             self.fields["email"].widget = forms.HiddenInput()
 
-    def clean_address(self):
-        address = self.cleaned_data["address"]
-        if address.raw == "None" or address.raw == "":
-            raise forms.ValidationError("Address should not be None or blank")
-        if not address.locality:
-            address = fix_address(address)
-        if address is None:
-            raise forms.ValidationError("Invalid Address")
-        return address
+
+class EmailPreferencesForm(forms.ModelForm):
+    """Member-facing controls for opting out of optional mailings.
+
+    Renders one checkbox per registered ``UNSUBSCRIBE_CATEGORIES`` entry
+    (Graduation Anniversary, Velocitas, Birthday, ...) plus the global
+    "unsubscribe from all optional email" toggle and the paper-GEAR toggle.
+    """
+
+    unsubscribe_categories = forms.MultipleChoiceField(
+        required=False,
+        widget=forms.CheckboxSelectMultiple,
+        choices=[(c.slug, c.label) for c in UNSUBSCRIBE_CATEGORIES],
+        label="Unsubscribe from specific mailings",
+        help_text="Check any mailings you no longer wish to receive.",
+    )
+
+    class Meta:
+        model = User
+        fields = [
+            "unsubscribe_email",
+            "unsubscribe_paper_gear",
+            "unsubscribe_categories",
+        ]
+        labels = {
+            "unsubscribe_email": "Unsubscribe from all optional Theta Tau email",
+            "unsubscribe_paper_gear": "Unsubscribe from paper copies of The GEAR",
+        }
+        help_texts = {
+            "unsubscribe_email": (
+                "Turns off every optional mailing list. You&rsquo;ll still receive "
+                "essential account and chapter business messages."
+            ),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance and self.instance.pk:
+            existing = list(self.instance.unsubscribe_categories or [])
+            self.fields["unsubscribe_categories"].initial = [slug for slug in existing if slug in CATEGORY_SLUGS]
+            # Snapshot legacy/unknown slugs here; ModelForm._post_clean will
+            # overwrite ``instance.unsubscribe_categories`` with the cleaned
+            # value before ``save()`` runs, so we can't recover them there.
+            self._preserved_slugs = [slug for slug in existing if slug not in CATEGORY_SLUGS]
+        else:
+            self._preserved_slugs = []
+
+    def save(self, commit=True):
+        selected = set(self.cleaned_data.get("unsubscribe_categories") or [])
+        self.instance.unsubscribe_categories = [c.slug for c in UNSUBSCRIBE_CATEGORIES if c.slug in selected] + list(
+            self._preserved_slugs
+        )
+        return super().save(commit=commit)
 
 
 class UserGPAForm(forms.Form):

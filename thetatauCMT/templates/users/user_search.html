@@ -6,8 +6,10 @@
 {% block title %}Search Members{% endblock %}
 
 {% block content %}
-  <h1>Search all Members</h1>
-  <h5>Search for member by name, badge number, email, and/or chapter with any combination. <br>Partial/Full matches. For example name and chapter</h5>
+  <div class="page-header d-flex flex-wrap align-items-center gap-2 mb-3">
+    <h2 class="page-title mb-0">Search all Members</h2>
+  </div>
+  <p class="text-muted">Search for member by name, badge number, email, and/or chapter with any combination. Partial/Full matches. For example name and chapter.</p>
 {% if table.page %}
   <div class="table-container">
 {% endif %}
@@ -20,20 +22,57 @@
 
                 <tr>
                     <th colspan="12">
-                      <form method="get" class="form-inline form-search pull-right">
-                          <input name="q" value="{{ request.GET.q }}">
-                          <input name="zip" value="{{ request.GET.zip }}" placeholder="zipcode" maxlength="5"
-                                 size="6">
-                          <input name="dist" value="{{ request.GET.dist }}" placeholder="distance" maxlength="3"
-                                 size="4">
-                          <button type="submit" class="btn btn-small btn-primary">
-                            <i class="fas fa-search"></i> Search
-                          </button>
-                        {% csrf_token %}
-                        <input type='hidden'>
-                        <input type='submit' class="btn btn-primary" name="csv" value="Download CSV"
-                               style="float: right;">
-                      </form>
+                      {% with q=request.GET.q zip=request.GET.zip dist=request.GET.dist %}
+                      <div class="filter-toolbar d-flex flex-wrap align-items-center gap-2 mb-2">
+                        <button class="btn btn-sm btn-outline-primary"
+                                type="button"
+                                data-bs-toggle="collapse"
+                                data-bs-target="#memberSearchFilter"
+                                aria-expanded="false"
+                                aria-controls="memberSearchFilter"
+                                title="Show/Hide Search">
+                          <i class="fas fa-search"></i>
+                          <span class="ms-1">Search Members</span>
+                          {% if q or zip or dist %}<span class="badge bg-primary ms-1">active</span>{% endif %}
+                          <i class="fas fa-caret-down ms-1"></i>
+                        </button>
+                        {% if q or zip or dist %}
+                          <a href="{{ request.path }}" class="btn btn-sm btn-outline-secondary" title="Clear all filters">
+                            <i class="fas fa-eraser"></i> Clear Filter
+                          </a>
+                          <div class="filter-summary d-flex flex-wrap align-items-center gap-1">
+                            <span class="text-muted small me-1">Filtered by:</span>
+                            {% if q %}<span class="filter-chip"><span class="filter-chip-label">Query:</span> <span class="filter-chip-value">{{ q }}</span></span>{% endif %}
+                            {% if zip %}<span class="filter-chip"><span class="filter-chip-label">Zip:</span> <span class="filter-chip-value">{{ zip }}</span></span>{% endif %}
+                            {% if dist %}<span class="filter-chip"><span class="filter-chip-label">Distance:</span> <span class="filter-chip-value">{{ dist }}</span></span>{% endif %}
+                          </div>
+                        {% endif %}
+                      </div>
+                      <div class="collapse mb-2" id="memberSearchFilter">
+                        <div class="card card-body bg-body-tertiary text-body p-3 filter-panel">
+                          <form method="get" class="filter-form d-flex flex-wrap align-items-end gap-2">
+                            <div class="form-group">
+                              <label for="member-search-q" class="form-label">Name / Badge / Email / Chapter</label>
+                              <input id="member-search-q" name="q" value="{{ q|default:'' }}" class="form-control">
+                            </div>
+                            <div class="form-group">
+                              <label for="member-search-zip" class="form-label">Zip code</label>
+                              <input id="member-search-zip" name="zip" value="{{ zip|default:'' }}" maxlength="5" size="6" class="form-control">
+                            </div>
+                            <div class="form-group">
+                              <label for="member-search-dist" class="form-label">Distance (mi)</label>
+                              <input id="member-search-dist" name="dist" value="{{ dist|default:'' }}" maxlength="3" size="4" class="form-control">
+                            </div>
+                            <button type="submit" class="btn btn-primary">
+                              <i class="fas fa-search"></i> Search
+                            </button>
+                            <button type="submit" name="csv" value="Download CSV" class="btn btn-outline-primary">
+                              <i class="fas fa-file-csv"></i> Download CSV
+                            </button>
+                          </form>
+                        </div>
+                      </div>
+                      {% endwith %}
                     </th>
                 </tr>
               <tr>

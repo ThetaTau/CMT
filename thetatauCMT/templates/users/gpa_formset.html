@@ -1,16 +1,14 @@
 {% extends "base.html" %}
 {% load static %}
 {% load crispy_forms_tags %}
+{% load filter_tags %}
 {% block title %}GPAs Update{% endblock %}
 
 {% block content %}
-  <h1>Member GPAs</h1>
-  <div class="d-flex justify-content-center">
-    <form method="get" class="form-inline form-search pull-right">
-      {% csrf_token %}
-      {% crispy filter.form filter.form.helper %}
-    </form>
+  <div class="page-header d-flex flex-wrap align-items-center gap-2 mb-3">
+    <h2 class="page-title mb-0">Member GPAs</h2>
   </div>
+  {% collapsible_filter filter label="Filter Members" collapse_id="gpaFilter" %}
   <form method="post">
   {% csrf_token %}
   <input type="hidden" id="chapter" name="chapter" value="{{ user.current_chapter }}">

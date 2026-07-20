@@ -1,0 +1,205 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Member Email Communication{% endblock %}
+
+{% block content %}
+<div class="container">
+  <h2 class="page-title"><i class="fa fa-envelope-open-text me-2"></i>Member Email Communication</h2>
+  <p class="text-body-secondary">
+    Look up the emails sent to a member (or any address) and drill into the delivery /
+    open / click history of each message. Results combine a live Mailjet lookup, MailerLite
+    subscriber activity and the application's own internal tracking. Visible to National
+    Officers and administrators only.
+  </p>
+
+  {% if not mailjet_configured and not mailerlite_configured %}
+    <div class="alert alert-warning" role="alert">
+      <i class="fa fa-triangle-exclamation me-2"></i>
+      The Mailjet and MailerLite APIs are not configured on this server, so results are
+      drawn from internally-tracked emails only (opens/clicks recorded via webhooks).
+    </div>
+  {% elif not mailjet_configured %}
+    <div class="alert alert-info" role="alert">
+      <i class="fa fa-circle-info me-2"></i>
+      The Mailjet API is not configured; results come from MailerLite and internal tracking.
+    </div>
+  {% endif %}
+
+  <div class="card card-body mb-3">
+    <form method="get" id="comm-search-form" class="row g-3 align-items-end">
+      <div class="col-md-5">
+        <label class="form-label" for="{{ form.member.id_for_label }}">{{ form.member.label }}</label>
+        {{ form.member }}
+        {% for error in form.member.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+      </div>
+      <div class="col-md-1 text-center text-body-secondary d-none d-md-block pb-2">or</div>
+      <div class="col-md-6">
+        <label class="form-label" for="{{ form.email.id_for_label }}">{{ form.email.label }}</label>
+        {{ form.email }}
+        {% for error in form.email.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+      </div>
+
+      <div class="col-md-3">
+        <label class="form-label" for="{{ form.date_from.id_for_label }}">{{ form.date_from.label }}</label>
+        {{ form.date_from }}
+        {% for error in form.date_from.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+      </div>
+      <div class="col-md-3">
+        <label class="form-label" for="{{ form.date_to.id_for_label }}">{{ form.date_to.label }}</label>
+        {{ form.date_to }}
+        {% for error in form.date_to.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+      </div>
+      <div class="col-md-4">
+        <label class="form-label" for="{{ form.subject.id_for_label }}">{{ form.subject.label }}</label>
+        {{ form.subject }}
+        {% for error in form.subject.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+      </div>
+      <div class="col-md-2 d-grid">
+        <button type="submit" class="btn btn-primary">
+          <i class="fa fa-magnifying-glass"></i> Look up
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <div id="comm-results"
+       data-results-url="{% url 'email_tracking:member_communication_results' %}"
+       data-page-url="{% url 'email_tracking:member_communication' %}"
+       data-searched="{{ searched|yesno:'1,' }}">
+    {% if searched %}
+      <div class="text-center text-body-secondary py-5">
+        <div class="spinner-border" role="status" aria-hidden="true"></div>
+        <div class="mt-2">Loading results&hellip;</div>
+      </div>
+    {% endif %}
+  </div>
+</div>
+{{ form.media }}
+{% endblock content %}
+
+{% block javascript %}{{ block.super }}
+<script>
+(function () {
+  var container = document.getElementById("comm-results");
+  if (!container) return;
+  var resultsUrl = container.dataset.resultsUrl;
+  var pageUrl = container.dataset.pageUrl;
+  var form = document.getElementById("comm-search-form");
+
+  function fmt(iso) {
+    if (!iso) return "";
+    var d = new Date(iso);
+    return isNaN(d.getTime()) ? iso : d.toLocaleString();
+  }
+
+  function spinner() {
+    return '<div class="text-center text-body-secondary py-5">' +
+      '<div class="spinner-border" role="status" aria-hidden="true"></div>' +
+      '<div class="mt-2">Loading results&hellip;</div></div>';
+  }
+
+  function loadResults(search) {
+    container.innerHTML = spinner();
+    fetch(resultsUrl + (search || ""), {headers: {"X-Requested-With": "XMLHttpRequest"}})
+      .then(function (r) { return r.text().then(function (t) { return {ok: r.ok, t: t}; }); })
+      .then(function (res) {
+        container.innerHTML = res.ok
+          ? res.t
+          : '<div class="alert alert-danger">Could not load results.</div>';
+      })
+      .catch(function () {
+        container.innerHTML = '<div class="alert alert-danger">Could not load results.</div>';
+      });
+  }
+
+  function serialize() {
+    var params = new URLSearchParams();
+    if (form) {
+      new FormData(form).forEach(function (value, key) {
+        if (value !== null && value !== "") params.append(key, value);
+      });
+    }
+    var qs = params.toString();
+    return qs ? "?" + qs : "";
+  }
+
+  // Submit the search form via AJAX (resets to page 1 -- no page field).
+  if (form) {
+    form.addEventListener("submit", function (e) {
+      e.preventDefault();
+      var search = serialize();
+      history.pushState({}, "", pageUrl + search);
+      loadResults(search);
+    });
+  }
+
+  // Delegated handlers, since the results fragment is replaced on each load.
+  container.addEventListener("click", function (e) {
+    // Pagination links.
+    var link = e.target.closest("a.page-link");
+    if (link) {
+      var li = link.closest(".page-item");
+      e.preventDefault();
+      if (li && li.classList.contains("disabled")) return;
+      var u = new URL(link.getAttribute("href"), window.location.href);
+      history.pushState({}, "", pageUrl + u.search);
+      loadResults(u.search);
+      return;
+    }
+
+    // Message-history expand/collapse.
+    var btn = e.target.closest(".js-history");
+    if (!btn) return;
+    var row = document.getElementById(btn.dataset.target);
+    if (!row) return;
+    var body = row.querySelector(".js-history-body");
+    if (!row.classList.contains("d-none")) { row.classList.add("d-none"); return; }
+    row.classList.remove("d-none");
+    if (row.dataset.loaded === "1") return;
+    body.textContent = "Loading…";
+    fetch(btn.dataset.historyUrl, {headers: {"X-Requested-With": "XMLHttpRequest"}})
+      .then(function (r) { return r.json().then(function (j) { return {ok: r.ok, j: j}; }); })
+      .then(function (res) {
+        if (!res.ok || res.j.error) {
+          body.innerHTML = '<span class="text-danger">' +
+            (res.j.error || "Could not load history.") + '</span>';
+          return;
+        }
+        var events = res.j.events || [];
+        if (!events.length) {
+          body.innerHTML = '<span class="text-body-secondary">No history recorded.</span>';
+          return;
+        }
+        var html = '<ul class="list-unstyled mb-0">';
+        events.forEach(function (ev) {
+          html += '<li><strong>' + (ev.event_type || "event") + '</strong> ' +
+            '<span class="text-body-secondary">' + fmt(ev.event_at) + '</span>' +
+            (ev.source ? ' <span class="badge bg-secondary-subtle text-body-emphasis border">' + ev.source + '</span>' : '') +
+            (ev.useragent ? ' <span class="text-body-secondary">— ' + ev.useragent + '</span>' : '') +
+            '</li>';
+        });
+        html += '</ul>';
+        body.innerHTML = html;
+        row.dataset.loaded = "1";
+      })
+      .catch(function () {
+        body.innerHTML = '<span class="text-danger">Could not load history.</span>';
+      });
+  });
+
+  // Browser back/forward.
+  window.addEventListener("popstate", function () {
+    if (window.location.search) {
+      loadResults(window.location.search);
+    } else {
+      container.innerHTML = "";
+    }
+  });
+
+  // Initial async load when the page is opened with an active lookup.
+  if (container.dataset.searched === "1") {
+    loadResults(window.location.search);
+  }
+})();
+</script>
+{% endblock javascript %}

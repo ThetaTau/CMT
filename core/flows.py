@@ -117,6 +117,8 @@ class FilterProcessListView(ProcessListView, FlowListMixin):
             chapter = process.chapter
         elif hasattr(process, "user"):
             chapter = process.user.chapter
+        elif getattr(process, "nominee_id", None):
+            chapter = process.nominee.chapter
         return chapter
 
     chapter.short_description = "Chapter"
@@ -125,6 +127,8 @@ class FilterProcessListView(ProcessListView, FlowListMixin):
         user = "N/A"
         if hasattr(process, "user"):
             user = process.user
+        elif hasattr(process, "nominee_display"):
+            user = process.nominee_display
         elif hasattr(process, "nominate"):
             user = process.nominate
         elif hasattr(process, "delegate"):

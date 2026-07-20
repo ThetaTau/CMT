@@ -1,0 +1,37 @@
+{% extends "herald/html/base_email.html" %}
+{% block title %}Treasurer Term Policy Exception{% endblock %}
+{% block content %}
+<br>
+Dear Grand Treasurer and Regional Directors,
+<p>A chapter has submitted an Officer Election Report electing a Treasurer to a
+term that does not conform to Theta Tau policy.</p>
+<p><em>{{ policy }}</em></p>
+<h3 class="null" style="margin: 0;padding: 0;display: block;font-family: Helvetica;font-size: 18px;font-style: normal;font-weight: bold;line-height: 125%;letter-spacing: -.75px;text-align: left;color: #404040 !important;">
+    Details
+</h3>
+<ul>
+  <li style="-ms-text-size-adjust: 100%;-webkit-text-size-adjust: 100%;">
+    Chapter: {{ chapter }}{% if region %} ({{ region }} Region){% endif %}
+  </li>
+  <li style="-ms-text-size-adjust: 100%;-webkit-text-size-adjust: 100%;">
+    Treasurer: {{ member }}
+  </li>
+  <li style="-ms-text-size-adjust: 100%;-webkit-text-size-adjust: 100%;">
+    Term start: {{ start|date:"F j, Y" }}
+  </li>
+  <li style="-ms-text-size-adjust: 100%;-webkit-text-size-adjust: 100%;">
+    Term end: {{ end|date:"F j, Y" }}
+  </li>
+  {% if submitted_by %}
+  <li style="-ms-text-size-adjust: 100%;-webkit-text-size-adjust: 100%;">
+    Submitted by: {{ submitted_by }}
+  </li>
+  {% endif %}
+</ul>
+<h3 class="null" style="margin: 0;padding: 0;display: block;font-family: Helvetica;font-size: 18px;font-style: normal;font-weight: bold;line-height: 125%;letter-spacing: -.75px;text-align: left;color: #404040 !important;">
+    Reason provided for this exception
+</h3>
+<p>{{ reason }}</p>
+<p>Please review this exception and follow up with the chapter as appropriate.</p>
+<p>In H&T,<br>Chapter Management Tool</p>
+{% endblock content %}

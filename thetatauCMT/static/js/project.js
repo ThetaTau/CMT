@@ -20,37 +20,50 @@ Issues with the above approach:
 */
 $('.form-group').removeClass('row');
 
-$('.clipboard').tooltip({
-  trigger: 'click',
-  placement: 'bottom'
-});
-
-function setTooltip(message) {
-  $('.clipboard').tooltip('hide')
-    .attr('data-original-title', message)
-    .tooltip('show');
-}
-
-function hideTooltip() {
-  setTimeout(function() {
-    $('.clipboard').tooltip('hide');
-  }, 1000);
-}
-
-// Clipboard
-
-var clipboard = new Clipboard('.clipboard', {
-  target: function (trigger) {
-    return trigger;
+// Clipboard copy buttons (elements with class .clipboard).
+// Copies the element's data-clipboard-text (falling back to its own text) using
+// the browser's native async Clipboard API, with a document.execCommand fallback
+// for non-secure contexts. This avoids depending on the clipboard.js library
+// (which is not loaded on every page) and the "Illegal constructor" clash between
+// that library's global `Clipboard` and the browser's built-in Clipboard class.
+function copyTextToClipboard(text) {
+  if (navigator.clipboard && window.isSecureContext) {
+    return navigator.clipboard.writeText(text);
   }
-});
+  return new Promise(function (resolve, reject) {
+    var ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.left = '-9999px';
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    var ok = false;
+    try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+    document.body.removeChild(ta);
+    if (ok) { resolve(); } else { reject(); }
+  });
+}
 
-clipboard.on('success', function(e) {
-  setTooltip('Copied!');
-  hideTooltip();
-});
+function flashClipboardTooltip(el, tip, message) {
+  el.setAttribute('data-bs-original-title', message);
+  tip.setContent({ '.tooltip-inner': message });
+  tip.show();
+  setTimeout(function () { tip.hide(); }, 1000);
+}
 
-clipboard.on('error', function(e) {
-  setTooltip('Failed!');
-  hideTooltip();
+// Bootstrap 5: tooltips are opt-in and must be initialized per element.
+$('.clipboard').each(function () {
+  var el = this;
+  var tip = new bootstrap.Tooltip(el, { trigger: 'manual', placement: 'bottom' });
+  el.addEventListener('click', function (event) {
+    event.preventDefault();
+    var text = el.getAttribute('data-clipboard-text');
+    if (text === null) { text = el.textContent; }
+    copyTextToClipboard(text).then(function () {
+      flashClipboardTooltip(el, tip, 'Copied!');
+    }).catch(function () {
+      flashClipboardTooltip(el, tip, 'Failed!');
+    });
+  });
 });

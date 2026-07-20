@@ -2,14 +2,14 @@
 import django_filters
 from django.forms.widgets import NumberInput
 
-from core.filters import DateRangeFilter
+from core.filters import DateRangeFilter, DynamicScopeFilterSetMixin
 from thetatauCMT.chapters.models import Chapter
 from thetatauCMT.regions.models import Region
 
 from .models import AlumniExclusion, Audit, Bylaws, HSEducation, PledgeProgram
 
 
-class AuditListFilter(django_filters.FilterSet):
+class AuditListFilter(DynamicScopeFilterSetMixin, django_filters.FilterSet):
     modified = DateRangeFilter()
     chapter = django_filters.ChoiceFilter(
         label="Chapter",
@@ -33,7 +33,7 @@ class AuditListFilter(django_filters.FilterSet):
         return queryset
 
 
-class CompleteListFilter(django_filters.FilterSet):
+class CompleteListFilter(DynamicScopeFilterSetMixin, django_filters.FilterSet):
     complete = django_filters.ChoiceFilter(
         label="Complete",
         method="filter_complete",
@@ -70,7 +70,7 @@ class PledgeProgramListFilter(CompleteListFilter):
         order_by = ["chapter"]
 
 
-class AlumniExclusionListFilter(django_filters.FilterSet):
+class AlumniExclusionListFilter(DynamicScopeFilterSetMixin, django_filters.FilterSet):
     user = django_filters.CharFilter(label="Excluded Alumni", field_name="user__name", lookup_expr="icontains")
     region = django_filters.ChoiceFilter(label="Region", choices=Region.region_choices(), method="filter_region")
     regional_director_veto = django_filters.ChoiceFilter(
@@ -102,7 +102,7 @@ class AlumniExclusionListFilter(django_filters.FilterSet):
         return queryset
 
 
-class RiskListFilter(django_filters.FilterSet):
+class RiskListFilter(DynamicScopeFilterSetMixin, django_filters.FilterSet):
     year = django_filters.NumberFilter(
         min_value=1990,
         max_value=2050,
@@ -123,7 +123,7 @@ class RiskListFilter(django_filters.FilterSet):
         order_by = ["chapter"]
 
 
-class EducationListFilter(django_filters.FilterSet):
+class EducationListFilter(DynamicScopeFilterSetMixin, django_filters.FilterSet):
     region = django_filters.ChoiceFilter(label="Region", choices=Region.region_choices(), method="filter_region")
     program_date = DateRangeFilter()
 
@@ -142,7 +142,7 @@ class EducationListFilter(django_filters.FilterSet):
         return queryset
 
 
-class BylawsListFilter(django_filters.FilterSet):
+class BylawsListFilter(DynamicScopeFilterSetMixin, django_filters.FilterSet):
     region = django_filters.ChoiceFilter(label="Region", choices=Region.region_choices(), method="filter_region")
 
     class Meta:

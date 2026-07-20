@@ -1,0 +1,8 @@
+{% if record.pk %}
+<button type="button" class="btn btn-sm btn-warning text-nowrap pledge-program-notify"
+        data-notify-url="{% url 'forms:pledge_program_request_revision' record.pk %}"
+        data-chapter="{{ record.chapter_name }}"
+        title="Email the chapter executive board to revise and resubmit their NME program">
+  <i class="fas fa-envelope"></i> Request Revisions
+</button>
+{% endif %}

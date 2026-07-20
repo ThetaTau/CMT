@@ -1,4 +1,3 @@
-from address.forms import AddressWidget
 from betterforms.multiform import MultiModelForm
 from crispy_forms.bootstrap import Accordion, AccordionGroup, Field, FormActions, InlineField, StrictButton
 from crispy_forms.helper import FormHelper
@@ -14,8 +13,7 @@ from hcaptcha.fields import hCaptchaField
 from tempus_dominus.widgets import DatePicker as TempusDominusDatePicker  # noqa: F401
 from upload_validator import FileTypeValidator
 
-from core.address import fix_address
-from core.forms import DatePicker, DuplicateAddressField, SchoolModelChoiceField
+from core.forms import ComponentAddressField, DatePicker, SchoolModelChoiceField
 from core.models import CHAPTER_ROLES_CHOICES, NAT_OFFICERS_CHOICES
 from thetatauCMT.chapters.forms import ChapterForm
 from thetatauCMT.chapters.models import Chapter, ChapterCurricula
@@ -30,8 +28,10 @@ from .models import (
     Convention,
     Depledge,
     DisciplinaryProcess,
+    Employer,
     HSEducation,
     Initiation,
+    OtherSchool,
     Pledge,
     PledgeProgram,
     PrematureAlumnus,
@@ -41,6 +41,54 @@ from .models import (
     RitualProficiency,
     StatusChange,
 )
+
+# Message shown when an officer tries to submit a form about themselves for a
+# process that must be initiated by someone else (peer review, nomination,
+# audit, disciplinary, etc.). Reused by both form validation and templates so
+# the wording stays consistent.
+SELF_SUBMIT_FORBIDDEN_MSG = (
+    "You cannot submit this form for yourself. " "Ask another chapter officer to submit it on your behalf."
+)
+
+# Theta Tau Policy and Procedure Manual: the Treasurer of every chapter is
+# elected to a one-year term that begins in January. The chapter officer
+# election report warns/blocks submissions where a Treasurer's term does not
+# start and end in January. Both strings are reused by the form validation and
+# the ``officer.html`` template/modal so the wording stays identical.
+TREASURER_TERM_POLICY_MSG = (
+    "In accordance with Theta Tau Policy and Procedure Manual, the Treasurer of all chapters "
+    "shall be elected to hold office for one year, beginning in January."
+)
+TREASURER_TERM_VIOLATION_MSG = TREASURER_TERM_POLICY_MSG + " Your submission is in violation of this policy."
+
+
+def treasurer_term_violation(role, start, end):
+    """Return ``True`` when a Treasurer term does not conform to policy.
+
+    A conforming term both begins and ends in January (a one-year term
+    beginning in January). Any Treasurer role whose start or end date falls
+    outside January is a violation. Missing dates are ignored (other required
+    validation handles them).
+    """
+    if role != "treasurer":
+        return False
+    for value in (start, end):
+        if value is not None and value.month != 1:
+            return True
+    return False
+
+
+def _reject_self(form, field_name, request_user, label=None):
+    """Add a form error if ``field_name`` on ``form`` resolved to ``request_user``.
+
+    Returns the field's cleaned value untouched so it can be used as a
+    ``clean_<field>`` return value.
+    """
+    value = form.cleaned_data.get(field_name)
+    if request_user is not None and value == request_user:
+        display = label or field_name
+        raise forms.ValidationError(f"You cannot list yourself as the {display}. {SELF_SUBMIT_FORBIDDEN_MSG}")
+    return value
 
 
 class SetNoValidateField(forms.CharField):
@@ -285,11 +333,20 @@ class StatusChangeSelectForm(forms.Form):
 
     def __init__(self, *args, **kwargs):
         colony = kwargs.pop("colony", False)
+        self.request_user = kwargs.pop("request_user", None)
         super().__init__(*args, **kwargs)
         exclude = ["covid"]
         if not colony:
             exclude.append("resignedCC")
         self.fields["state"].choices = [x.value for x in StatusChange.REASONS if x.name not in exclude]
+
+    def clean_user(self):
+        user = self.cleaned_data.get("user")
+        if self.request_user is not None and user == self.request_user:
+            raise forms.ValidationError(
+                f"You cannot report a status change for yourself. " f"{SELF_SUBMIT_FORBIDDEN_MSG}"
+            )
+        return user
 
 
 class StatusChangeSelectFormHelper(FormHelper):
@@ -313,7 +370,13 @@ class GraduateForm(forms.ModelForm):
     )
     email_personal = forms.EmailField()
     email_work = forms.EmailField(required=False)
-    employer = forms.CharField(required=False)
+    employer = forms.ModelChoiceField(
+        label="Employer / School / Location",
+        queryset=Employer.objects.all(),
+        required=False,
+        widget=autocomplete.ModelSelect2(url="forms:employer-autocomplete"),
+        help_text="Start typing to search; if not listed, press Enter to add it.",
+    )
 
     class Meta:
         model = StatusChange
@@ -361,6 +424,28 @@ class CSMTForm(forms.ModelForm):
 
     user = SetNoValidateField(disabled=True)
     reason = SetNoValidateField(disabled=True)
+    new_school = SchoolModelChoiceField(
+        label="New School",
+        queryset=Chapter.objects.exclude(active=False).order_by("school"),
+        required=False,
+    )
+    new_school_other = forms.ModelChoiceField(
+        label="Other School",
+        queryset=OtherSchool.objects.all(),
+        required=False,
+        widget=autocomplete.ModelSelect2(url="forms:otherschool-autocomplete"),
+        help_text=(
+            "Only for transfers to a school without a Theta Tau chapter. "
+            "Start typing to search; if the school is not listed, press Enter to add it."
+        ),
+    )
+    employer = forms.ModelChoiceField(
+        label="Employer",
+        queryset=Employer.objects.all(),
+        required=False,
+        widget=autocomplete.ModelSelect2(url="forms:employer-autocomplete"),
+        help_text="Start typing to search; if not listed, press Enter to add it.",
+    )
     date_start = forms.DateField(
         label="Start Date",
         widget=DatePicker(
@@ -383,6 +468,7 @@ class CSMTForm(forms.ModelForm):
             "reason",  # Set selected
             "employer",  # If Coop only
             "new_school",  # If transfer
+            "new_school_other",  # If transfer and school not in list
             "date_start",
             "date_end",
             "miles",
@@ -390,9 +476,16 @@ class CSMTForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.fields["new_school"].required = False
+        self.fields["new_school"].help_text = "Leave blank if the school is not listed and use 'Other School' instead."
+        self.fields["new_school_other"].required = False
+        self.fields["new_school_other"].help_text = (
+            "Fill in only if transferring to a school without a Theta Tau chapter."
+        )
         reason = self.initial.get("reason", None)
         if reason == "coop":
             self.fields["new_school"].widget = forms.HiddenInput()
+            self.fields["new_school_other"].widget.attrs["disabled"] = "true"
         if reason == "military":
             self.fields["miles"].widget.attrs["disabled"] = "true"
             self.fields["miles"].required = False
@@ -400,6 +493,7 @@ class CSMTForm(forms.ModelForm):
             self.fields["employer"].required = False
             self.fields["new_school"].widget = forms.HiddenInput()
             self.fields["new_school"].required = False
+            self.fields["new_school_other"].widget.attrs["disabled"] = "true"
         if reason == "withdraw" or reason == "resignedCC":
             self.fields["miles"].widget.attrs["disabled"] = "true"
             self.fields["miles"].required = False
@@ -409,6 +503,7 @@ class CSMTForm(forms.ModelForm):
             self.fields["employer"].required = False
             self.fields["new_school"].widget = forms.HiddenInput()
             self.fields["new_school"].required = False
+            self.fields["new_school_other"].widget.attrs["disabled"] = "true"
         if reason == "transfer":
             self.fields["miles"].widget.attrs["disabled"] = "true"
             self.fields["miles"].required = False
@@ -427,6 +522,7 @@ class CSMTForm(forms.ModelForm):
             self.fields["employer"].required = False
             self.fields["new_school"].widget = forms.HiddenInput()
             self.fields["new_school"].required = False
+            self.fields["new_school_other"].widget = forms.HiddenInput()
 
     def clean_user(self):
         data = self.cleaned_data["user"]
@@ -448,6 +544,29 @@ class CSMTForm(forms.ModelForm):
                     forms.ValidationError("End date must be greater than the start date."),
                 )
                 raise forms.ValidationError("End date must be greater than the start date.")
+        if self.cleaned_data.get("reason") == "transfer":
+            new_school = self.cleaned_data.get("new_school")
+            new_school_other = self.cleaned_data.get("new_school_other")
+            if not new_school and not new_school_other:
+                self.add_error(
+                    "new_school",
+                    forms.ValidationError(
+                        "Select the new school from the list, or fill in 'Other School' if it is not listed."
+                    ),
+                )
+            elif new_school and new_school_other:
+                self.add_error(
+                    "new_school_other",
+                    forms.ValidationError("Provide either a listed chapter or an 'Other School' name, not both."),
+                )
+            elif new_school_other and Chapter.objects.filter(school__iexact=new_school_other.name).exists():
+                self.add_error(
+                    "new_school_other",
+                    forms.ValidationError(
+                        f"'{new_school_other.name}' is already a Theta Tau chapter school; "
+                        "select it from the New School dropdown instead."
+                    ),
+                )
 
 
 CSMTFormSet = forms.formset_factory(CSMTForm, extra=0)
@@ -461,6 +580,7 @@ class CSMTFormHelper(FormHelper):
         "reason",  # Set selected
         "employer",
         "new_school",  # If transfer
+        "new_school_other",  # If transfer and not in list
         "date_start",
         "date_end",
         "miles",
@@ -470,7 +590,13 @@ class CSMTFormHelper(FormHelper):
 class RoleChangeNationalSelectForm(forms.ModelForm):
     user = forms.ModelChoiceField(
         queryset=User.objects.all(),
-        widget=autocomplete.ModelSelect2(url="users:autocomplete", forward=(forward.Const("false", "chapter"),)),
+        widget=autocomplete.ModelSelect2(
+            url="users:autocomplete",
+            forward=(
+                forward.Const("false", "chapter"),
+                forward.Const("true", "exclude_self"),
+            ),
+        ),
         disabled=True,
     )
     role = forms.ChoiceField(choices=[("", "---------")] + NAT_OFFICERS_CHOICES, disabled=True)
@@ -503,11 +629,29 @@ class RoleChangeNationalSelectForm(forms.ModelForm):
         ]
         exclude = ["id"]
 
+    def __init__(self, *args, **kwargs):
+        self.request_user = kwargs.pop("request_user", None)
+        super().__init__(*args, **kwargs)
+
+    def clean_user(self):
+        # Existing role rows are rendered with ``disabled=True`` and cannot be
+        # modified; skip the self-check for them so the officer can still edit
+        # other rows on the page when their own name is already listed.
+        if self.fields["user"].disabled:
+            return self.cleaned_data.get("user")
+        return _reject_self(self, "user", self.request_user, label="national officer")
+
 
 class RoleChangeSelectForm(forms.ModelForm):
     user = forms.ModelChoiceField(
         queryset=User.objects.all(),
-        widget=autocomplete.ModelSelect2(url="users:autocomplete", forward=(forward.Const("true", "chapter"),)),
+        widget=autocomplete.ModelSelect2(
+            url="users:autocomplete",
+            forward=(
+                forward.Const("true", "chapter"),
+                forward.Const("true", "exclude_self"),
+            ),
+        ),
         disabled=True,
     )
     role = forms.ChoiceField(choices=[("", "---------")] + CHAPTER_ROLES_CHOICES, disabled=True)
@@ -529,6 +673,15 @@ class RoleChangeSelectForm(forms.ModelForm):
         ),
         disabled=True,
     )
+    # Populated (client-side) when an officer acknowledges a Treasurer term that
+    # falls outside the January-to-January policy window and chooses to submit
+    # anyway. When present it both permits the submission and triggers the
+    # policy-exception notification email. The ``form-control`` class lets the
+    # dynamic-formset "add row" JS rename the field for cloned rows.
+    treasurer_term_exception_reason = forms.CharField(
+        required=False,
+        widget=forms.HiddenInput(attrs={"class": "form-control"}),
+    )
 
     class Meta:
         model = UserRoleChange
@@ -540,8 +693,34 @@ class RoleChangeSelectForm(forms.ModelForm):
         ]
         exclude = ["id"]
 
+    def __init__(self, *args, **kwargs):
+        self.request_user = kwargs.pop("request_user", None)
+        super().__init__(*args, **kwargs)
 
-class RoleChangeSelectFormHelper(FormHelper):
+    def clean_user(self):
+        # Existing role rows are rendered with ``disabled=True`` and cannot be
+        # modified; skip the self-check for them so the officer can still edit
+        # other rows on the page when their own name is already listed.
+        if self.fields["user"].disabled:
+            return self.cleaned_data.get("user")
+        return _reject_self(self, "user", self.request_user, label="new officer")
+
+    def clean(self):
+        cleaned_data = super().clean()
+        # Existing (locked) rows are rendered disabled and are not being edited
+        # here, so do not enforce the Treasurer term policy on them — many
+        # legacy Treasurer records predate this rule.
+        if self.fields["role"].disabled:
+            return cleaned_data
+        role = cleaned_data.get("role")
+        start = cleaned_data.get("start")
+        end = cleaned_data.get("end")
+        if treasurer_term_violation(role, start, end):
+            reason = (cleaned_data.get("treasurer_term_exception_reason") or "").strip()
+            if not reason:
+                raise forms.ValidationError(TREASURER_TERM_VIOLATION_MSG)
+        return cleaned_data
+
     template = "bootstrap5/table_inline_formset.html"
     form_show_errors = True
     help_text_inline = False
@@ -618,6 +797,13 @@ class HSEducationForm(forms.ModelForm):
         required=True,
         help_text="Only PDF format accepted",
         validators=[FileTypeValidator(allowed_types=["application/pdf"])],
+    )
+    program_date = forms.DateField(
+        label="Program Date",
+        widget=DatePicker(
+            options={"format": "M/DD/YYYY"},
+            attrs={"autocomplete": "off"},
+        ),
     )
 
     class Meta:
@@ -1080,7 +1266,7 @@ class PledgeUserBase(forms.ModelForm):
             attrs={"autocomplete": "off"},
         ),
     )
-    address = DuplicateAddressField(widget=AddressWidget)
+    address = ComponentAddressField(required=True)
     email = forms.EmailField(label="Email Address", help_text="Non school email, does NOT end in .edu")
 
     class Meta:
@@ -1117,16 +1303,6 @@ class PledgeUserBase(forms.ModelForm):
                 self.fields[field].widget = forms.TextInput(attrs={"placeholder": "If None, leave blank"})
                 if field == "middle_name":
                     self.fields[field].help_text = "If None, leave blank"
-
-    def clean_address(self):
-        address = self.cleaned_data["address"]
-        if address.raw == "None" or address.raw == "":
-            raise forms.ValidationError("Address should not be None or blank")
-        if not address.locality:
-            address = fix_address(address)
-        if address is None:
-            raise forms.ValidationError("Invalid Address")
-        return address
 
     def clean_email(self):
         email = self.cleaned_data.get("email")
@@ -1364,7 +1540,12 @@ class PrematureAlumnusForm(forms.ModelForm):
             forward=(
                 forward.Const("true", "chapter"),
                 forward.Const("true", "actives"),
+                forward.Const("true", "exclude_self"),
             ),
+        ),
+        help_text=(
+            "Officers cannot request premature alumnus status for themselves; "
+            "ask another chapter officer to submit this form on your behalf."
         ),
     )
     form = forms.FileField(
@@ -1385,6 +1566,13 @@ class PrematureAlumnusForm(forms.ModelForm):
             "prealumn_type",
             "vote",
         ]
+
+    def __init__(self, *args, **kwargs):
+        self.request_user = kwargs.pop("request_user", None)
+        super().__init__(*args, **kwargs)
+
+    def clean_user(self):
+        return _reject_self(self, "user", self.request_user, label="requesting member")
 
     def clean(self):
         cleaned_data = super().clean()
@@ -1414,7 +1602,12 @@ class ConventionForm(forms.ModelForm):
             forward=(
                 forward.Const("true", "chapter"),
                 forward.Const("true", "actives"),
+                forward.Const("true", "exclude_self"),
             ),
+        ),
+        help_text=(
+            "You cannot nominate yourself as delegate — a different member "
+            "must submit this form if you plan to represent the chapter."
         ),
     )
     alternate = forms.ModelChoiceField(
@@ -1424,7 +1617,12 @@ class ConventionForm(forms.ModelForm):
             forward=(
                 forward.Const("true", "chapter"),
                 forward.Const("true", "actives"),
+                forward.Const("true", "exclude_self"),
             ),
+        ),
+        help_text=(
+            "You cannot nominate yourself as alternate — a different member "
+            "must submit this form if you plan to represent the chapter."
         ),
     )
     meeting_date = forms.DateField(
@@ -1443,13 +1641,30 @@ class ConventionForm(forms.ModelForm):
             "alternate",
         ]
 
+    def __init__(self, *args, **kwargs):
+        self.request_user = kwargs.pop("request_user", None)
+        super().__init__(*args, **kwargs)
+
+    def clean_delegate(self):
+        return _reject_self(self, "delegate", self.request_user, label="delegate")
+
+    def clean_alternate(self):
+        return _reject_self(self, "alternate", self.request_user, label="alternate")
+
 
 class OSMForm(forms.ModelForm):
     nominate = forms.ModelChoiceField(
         queryset=User.objects.all(),
         widget=autocomplete.ModelSelect2(
             url="users:autocomplete",
-            forward=(forward.Const("true", "chapter"),),
+            forward=(
+                forward.Const("true", "chapter"),
+                forward.Const("true", "exclude_self"),
+            ),
+        ),
+        help_text=(
+            "You cannot nominate yourself for Outstanding Student Member — "
+            "another officer must submit the nomination on your behalf."
         ),
     )
     meeting_date = forms.DateField(
@@ -1468,6 +1683,13 @@ class OSMForm(forms.ModelForm):
             "selection_process",
         ]
 
+    def __init__(self, *args, **kwargs):
+        self.request_user = kwargs.pop("request_user", None)
+        super().__init__(*args, **kwargs)
+
+    def clean_nominate(self):
+        return _reject_self(self, "nominate", self.request_user, label="nominee")
+
 
 class DisciplinaryForm1(forms.ModelForm):
     user = forms.ModelChoiceField(
@@ -1478,7 +1700,13 @@ class DisciplinaryForm1(forms.ModelForm):
             forward=(
                 forward.Const("true", "chapter"),
                 forward.Const("true", "actives"),
+                forward.Const("true", "exclude_self"),
             ),
+        ),
+        help_text=(
+            "Officers cannot file a disciplinary charge against themselves. "
+            "If disciplinary action is being taken against you, another "
+            "officer must submit this form."
         ),
     )
     notify_date = forms.DateField(
@@ -1510,7 +1738,7 @@ class DisciplinaryForm1(forms.ModelForm):
         help_text="Only PDF format accepted",
         validators=[FileTypeValidator(allowed_types=["application/pdf"])],
     )
-    address = DuplicateAddressField(widget=AddressWidget)
+    address = ComponentAddressField(required=True)
 
     class Meta:
         model = DisciplinaryProcess
@@ -1531,6 +1759,13 @@ class DisciplinaryForm1(forms.ModelForm):
             "charging_letter",
         ]
 
+    def __init__(self, *args, **kwargs):
+        self.request_user = kwargs.pop("request_user", None)
+        super().__init__(*args, **kwargs)
+
+    def clean_user(self):
+        return _reject_self(self, "user", self.request_user, label="accused member")
+
     def clean(self):
         cleaned_data = super().clean()
         advisor = cleaned_data.get("advisor")
@@ -1542,16 +1777,6 @@ class DisciplinaryForm1(forms.ModelForm):
         if faculty and faculty_name is None:
             raise forms.ValidationError("Please provide the campus/faculty adviser name")
         return cleaned_data
-
-    def clean_address(self):
-        address = self.cleaned_data["address"]
-        if address.raw == "None" or address.raw == "":
-            raise forms.ValidationError("Address should not be None or blank")
-        if not address.locality:
-            address = fix_address(address)
-        if address is None:
-            raise forms.ValidationError("Invalid Address")
-        return address
 
 
 class DisciplinaryForm2(forms.ModelForm):
@@ -1603,12 +1828,33 @@ class DisciplinaryForm2(forms.ModelForm):
             "results_letter",
         ]
 
+    # Fields that describe the outcome of the trial. When the trial did not
+    # take place (take == "False"), these are N/A and must not be required —
+    # otherwise the template hides them while they remain required, and submit
+    # silently fails HTML5 / server-side validation.
+    TRIAL_OUTCOME_FIELDS = (
+        "attend",
+        "guilty",
+        "notify_results",
+        "notify_results_date",
+        "punishment",
+        "suspension_end",
+        "collect_items",
+        "rescheduled_date",
+    )
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         for field in self.fields:
             if field in ["punishment_other", "minutes", "results_letter", "why_take"]:
                 continue
             self.fields[field].required = True
+        if self.is_bound and self.data.get("take") == "False":
+            for field in self.TRIAL_OUTCOME_FIELDS:
+                self.fields[field].required = False
+            self.fields["why_take"].required = True
+            if self.data.get("why_take") == "rescheduled":
+                self.fields["rescheduled_date"].required = True
 
     def clean(self):
         cleaned_data = super().clean()
@@ -1632,8 +1878,10 @@ class CollectionReferralForm(forms.ModelForm):
             forward=(
                 forward.Const("true", "chapter"),
                 forward.Const("true", "actives"),
+                forward.Const("true", "exclude_self"),
             ),
         ),
+        help_text=("You cannot refer yourself to collections. " "Another chapter officer must submit this form."),
     )
     balance_due = MoneyField(currency_widget=forms.HiddenInput(), default_currency="USD")
     ledger_sheet = forms.FileField(
@@ -1648,6 +1896,13 @@ class CollectionReferralForm(forms.ModelForm):
             "balance_due",
             "ledger_sheet",
         ]
+
+    def __init__(self, *args, **kwargs):
+        self.request_user = kwargs.pop("request_user", None)
+        super().__init__(*args, **kwargs)
+
+    def clean_user(self):
+        return _reject_self(self, "user", self.request_user, label="indebted member")
 
 
 class ResignationForm(forms.ModelForm):
@@ -1682,7 +1937,12 @@ class ReturnStudentForm(forms.ModelForm):
             forward=(
                 forward.Const("true", "chapter"),
                 forward.Const("true", "alumni"),
+                forward.Const("true", "exclude_self"),
             ),
+        ),
+        help_text=(
+            "Officers cannot request return to student member status for "
+            "themselves; another chapter officer must submit this form."
         ),
     )
 
@@ -1695,8 +1955,16 @@ class ReturnStudentForm(forms.ModelForm):
             "debt",
         ]
 
+    def __init__(self, *args, **kwargs):
+        self.request_user = kwargs.pop("request_user", None)
+        super().__init__(*args, **kwargs)
+
     def clean_user(self):
         user = self.cleaned_data["user"]
+        if self.request_user is not None and user == self.request_user:
+            raise forms.ValidationError(
+                f"You cannot request return to student status for yourself. " f"{SELF_SUBMIT_FORBIDDEN_MSG}"
+            )
         prealumn = user.prealumn_form.all()
         if prealumn:
             raise forms.ValidationError(
@@ -1717,7 +1985,12 @@ class AlumniExclusionForm(forms.ModelForm):
             forward=(
                 forward.Const("true", "chapter"),
                 forward.Const("true", "alumni"),
+                forward.Const("true", "exclude_self"),
             ),
+        ),
+        help_text=(
+            "Officers cannot submit an alumni exclusion against themselves. "
+            "Another chapter officer must file this form."
         ),
     )
     minutes = forms.FileField(
@@ -1760,6 +2033,13 @@ class AlumniExclusionForm(forms.ModelForm):
             "reason",
             "minutes",
         ]
+
+    def __init__(self, *args, **kwargs):
+        self.request_user = kwargs.pop("request_user", None)
+        super().__init__(*args, **kwargs)
+
+    def clean_user(self):
+        return _reject_self(self, "user", self.request_user, label="excluded alumni")
 
     def clean(self):
         super().clean()
@@ -1814,7 +2094,13 @@ class RitualProficiencyForm(forms.ModelForm):
         queryset=User.objects.all(),
         widget=autocomplete.ModelSelect2(
             url="users:autocomplete",
-            forward=(forward.Const("false", "chapter"),),
+            forward=(
+                forward.Const("false", "chapter"),
+                forward.Const("true", "exclude_self"),
+            ),
+        ),
+        help_text=(
+            "You cannot record ritual proficiency for yourself; " "another officer must record and verify your test."
         ),
     )
     memorization = forms.ChoiceField(
@@ -1852,3 +2138,10 @@ class RitualProficiencyForm(forms.ModelForm):
             "performance",
             "notes",
         ]
+
+    def __init__(self, *args, **kwargs):
+        self.request_user = kwargs.pop("request_user", None)
+        super().__init__(*args, **kwargs)
+
+    def clean_user(self):
+        return _reject_self(self, "user", self.request_user, label="member being tested")

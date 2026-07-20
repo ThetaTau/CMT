@@ -1,7 +1,7 @@
 # filters.py
 import django_filters
 
-from core.filters import DateRangeFilter
+from core.filters import DateRangeFilter, DynamicScopeFilterSetMixin
 from thetatauCMT.chapters.models import Chapter
 from thetatauCMT.regions.models import Region
 from thetatauCMT.scores.models import ScoreType
@@ -24,7 +24,7 @@ class SubmissionListFilter(django_filters.FilterSet):
         order_by = ["date"]
 
 
-class GearArticleListFilter(django_filters.FilterSet):
+class GearArticleListFilter(DynamicScopeFilterSetMixin, django_filters.FilterSet):
     region = django_filters.ChoiceFilter(label="Region", choices=Region.region_choices(), method="filter_region")
     chapter = django_filters.ChoiceFilter(label="Chapter", choices=Chapter.chapter_choices(), method="filter_chapter")
     date = DateRangeFilter(label="Submit Date")

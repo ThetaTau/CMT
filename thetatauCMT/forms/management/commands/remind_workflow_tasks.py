@@ -240,7 +240,7 @@ class Command(BaseCommand):
                 )
             else:
                 print(f"{process.flow_class.process_title} Type not accounted for")
-            excluded = [User.objects.get(username="Jim.Gaffney@thetatau.org")]
+            excluded = [User.objects.get(username=settings.EXECUTIVE_DIRECTOR)]
             if owner in excluded:
                 continue
             print(

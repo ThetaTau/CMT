@@ -14,10 +14,12 @@ from thetatauCMT.forms.models import (
     Depledge,
     DisciplinaryAttachment,
     DisciplinaryProcess,
+    Employer,
     Guard,
     HSEducation,
     Initiation,
     InitiationProcess,
+    OtherSchool,
     Pledge,
     PledgeProcess,
     PledgeProgram,
@@ -26,6 +28,7 @@ from thetatauCMT.forms.models import (
     ResignationProcess,
     ReturnStudent,
     RiskManagement,
+    RitualProficiency,
     StatusChange,
 )
 
@@ -43,9 +46,11 @@ register_skip(
         Badge,
         ChapterReport,
         Depledge,
+        Employer,
         Guard,
         InitiationProcess,
         OSM,
+        OtherSchool,
         PledgeProcess,
         PledgeProgram,
         ReturnStudent,
@@ -57,7 +62,6 @@ register_skip(
 
 class StatusChangeAnonym(AnonymBase):
     email_work = fields.string("{seq}@work.com")
-    employer = fields.function(fake.company)
 
     class Meta:
         exclude_fields = [
@@ -364,6 +368,21 @@ class HSEducationAnonym(AnonymBase):
         ]
 
 
+class RitualProficiencyAnonym(AnonymBase):
+    notes = fields.function(fake.sentence)
+
+    class Meta:
+        exclude_fields = [
+            "level",
+            "date",
+            "memorization",
+            "directions",
+            "performance",
+            "created",
+            "modified",
+        ]
+
+
 register_anonym(
     [
         (DisciplinaryProcess, DisciplinaryProcessAnonym),
@@ -378,5 +397,6 @@ register_anonym(
         (PrematureAlumnus, PrematureAlumnusAnonym),
         (StatusChange, StatusChangeAnonym),
         (HSEducation, HSEducationAnonym),
+        (RitualProficiency, RitualProficiencyAnonym),
     ]
 )

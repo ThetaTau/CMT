@@ -2,10 +2,13 @@
 {% load querystring render_table from django_tables2 %}
 {% load django_bootstrap5 %}
 {% load crispy_forms_tags %}
+{% load filter_tags %}
 {% load static i18n %}
 {% block title %}Tasks{% endblock %}
 {% block content %}
-<h1>Chapter Process Reminders</h1>
+<div class="page-header d-flex flex-wrap align-items-center gap-2 mb-3">
+  <h2 class="page-title mb-0">Chapter Process Reminders</h2>
+</div>
 <p>Below are a list of process that chapter officers need to complete.</p>
 <p>Only the assigned member will have a visible link to complete the process.</p>
   {% render_table task_table %}
@@ -13,7 +16,9 @@
 {% if table.page %}
   <div class="table-container">
 {% endif %}
-<h1>Chapter Task Reminders</h1>
+<div class="page-header d-flex flex-wrap align-items-center gap-2 mb-3 mt-4">
+  <h2 class="page-title mb-0">Chapter Task Reminders</h2>
+</div>
   <p>Below are a list of tasks to remind the chapter officers to complete.</p>
   <p>To complete a task either click on the link to the form and complete the form,
     or click on the task link directly and click "Mark Complete" on that page.</p>
@@ -26,10 +31,7 @@
             <thead>
                 <tr>
                     <th colspan="11">
-                        <form method="get" class="form-inline form-search pull-right">
-                          {% csrf_token %}
-                          {% crispy filter.form filter.form.helper %}
-                        </form>
+                        {% collapsible_filter filter label="Filter Tasks" collapse_id="taskFilter" %}
                     </th>
                 </tr>
 

@@ -13,6 +13,7 @@ class Command(BaseCommand):
         {"app": "chapters", "file": "chapters"},
         {"app": "users", "file": "groups"},
         {"app": "jobs", "file": "country"},
+        {"app": "configs", "file": "feature_flags"},
     ]
 
     def handle(self, *args, **kwargs):

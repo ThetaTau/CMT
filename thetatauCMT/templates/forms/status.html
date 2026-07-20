@@ -15,7 +15,30 @@ function update_dates() {
   }
 }
 </script>
-  {{ form.media }}
+  {{ combined_media }}
+  <div id="otherschool-autocomplete-alert" class="alert alert-danger d-none" role="alert"></div>
+  <script>
+    // Surface JSON errors from the OtherSchool autocomplete's create endpoint
+    // (dal-select2 swallows non-2xx responses silently otherwise).
+    $(document).on("ajaxError", function (event, jqXHR, ajaxSettings) {
+      if (!ajaxSettings || !ajaxSettings.url) { return; }
+      var isSchool = ajaxSettings.url.indexOf("otherschool-autocomplete") !== -1;
+      var isEmployer = ajaxSettings.url.indexOf("employer-autocomplete") !== -1;
+      if (!isSchool && !isEmployer) { return; }
+      var fallback = isEmployer ? "Could not add that employer." : "Could not add that school.";
+      var msg = fallback;
+      if (jqXHR && jqXHR.responseJSON && jqXHR.responseJSON.error) {
+        msg = jqXHR.responseJSON.error;
+      }
+      var $alert = $("#otherschool-autocomplete-alert");
+      $alert.text(msg).removeClass("d-none");
+      $("html, body").animate({ scrollTop: $alert.offset().top - 20 }, 200);
+    });
+    // Clear the alert as soon as the officer edits either school field again.
+    $(document).on("change", "[name$='-new_school'], [name$='-new_school_other'], [name$='-employer']", function () {
+      $("#otherschool-autocomplete-alert").addClass("d-none").text("");
+    });
+  </script>
 {% specialspaceless %}
   <form action="" method="post">
     {% csrf_token %}
@@ -113,7 +136,8 @@ function update_dates() {
                 <tr>
                   <th class="requiredField" style="width: 10%">Member<span class="asteriskField">*</span></th>
                   <th class="requiredField" style="width: 10%">Status<span class="asteriskField">*</span></th>
-                  <th class="requiredField" style="width: 20%">Employer/New School<span class="asteriskField">*</span></th>
+                  <th class="requiredField" style="width: 15%">Employer/New School<span class="asteriskField">*</span></th>
+                  <th style="width: 15%">Other School<br><small>(no Theta Tau chapter)</small></th>
                   <th class="requiredField" style="width: 8%">Status Start<span class="asteriskField">*</span></th>
                   <th class="requiredField" style="width: 8%">Status End<span class="asteriskField">*</span></th>
                   <th class="requiredField" style="width: 8%">Miles<span class="asteriskField">*</span></th>

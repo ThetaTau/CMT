@@ -164,6 +164,17 @@ def test_set_no_contact(auto_login_user, user_factory):
     assert user.no_contact is True
 
 
+@pytest.mark.django_db
+def test_set_no_contact_syncs_to_mailerlite(auto_login_user):
+    from unittest.mock import patch
+
+    client, user = auto_login_user()
+    with patch("thetatauCMT.email_tracking.mailerlite_sync.unsubscribe_user") as ml:
+        user.set_no_contact()
+    ml.assert_called_once()
+    assert ml.call_args.args[0].pk == user.pk
+
+
 # ---------------------------------------------------------------------------
 # User model — get_name_with_details
 # ---------------------------------------------------------------------------
@@ -259,7 +270,8 @@ def test_user_verify_view_denied_no_officer(auto_login_user, user_factory):
 
 
 # ---------------------------------------------------------------------------
-# UserDetailView (memberinfo/<username>) — natoff only
+# UserProfileView (memberinfo/<username> and profile/<username>) — public to
+# any authenticated member, with natoff-only sensitive sections.
 # ---------------------------------------------------------------------------
 
 
@@ -274,12 +286,196 @@ def test_user_detail_view_natoff(auto_login_user, user_factory):
 
 
 @pytest.mark.django_db
-def test_user_detail_view_denied_regular_user(auto_login_user, user_factory):
+def test_user_profile_view_regular_user_can_view(auto_login_user, user_factory):
+    """Any authenticated member can view another member's profile page."""
     client, user = auto_login_user()
     target = user_factory.create()
-    url = reverse("users:info", kwargs={"username": target.username})
+    url = reverse("users:profile", kwargs={"username": target.username})
     response = client.get(url)
-    assert response.status_code == 302  # redirect (not natoff)
+    assert response.status_code == 200
+    # Non-natoff viewers should NOT see the sensitive sections.
+    assert b"Notes" not in response.content or b"Add Note" not in response.content
+
+
+@pytest.mark.django_db
+def test_user_profile_view_natoff_sees_sensitive_sections(auto_login_user, user_factory):
+    """Natoff sees the Notes / Submissions section headers."""
+    client, user = auto_login_user()
+    _make_natoff(user, client)
+    target = user_factory.create()
+    url = reverse("users:profile", kwargs={"username": target.username})
+    response = client.get(url)
+    assert response.status_code == 200
+    assert b"Add Note" in response.content
+
+
+@pytest.mark.django_db
+def test_user_profile_view_unauthenticated_redirects(client, user_factory):
+    target = user_factory.create()
+    url = reverse("users:profile", kwargs={"username": target.username})
+    response = client.get(url)
+    assert response.status_code == 302  # login required
+
+
+@pytest.mark.django_db
+def test_user_profile_view_owner_sees_edit_button(auto_login_user):
+    client, user = auto_login_user()
+    url = reverse("users:profile", kwargs={"username": user.username})
+    response = client.get(url)
+    assert response.status_code == 200
+    assert b"Edit My Info" in response.content
+
+
+@pytest.mark.django_db
+def test_user_profile_view_superuser_sees_admin_link(auto_login_user, user_factory):
+    from django.test import override_settings
+
+    client, user = auto_login_user()
+    user.is_superuser = True
+    user.save()
+    client.force_login(user)
+    target = user_factory.create()
+    url = reverse("users:profile", kwargs={"username": target.username})
+    with override_settings(DEBUG=True):
+        response = client.get(url)
+    assert response.status_code == 200
+    assert b"users_user_change" in response.content or b"Admin" in response.content
+
+
+@pytest.mark.django_db
+def test_profile_picture_view_owner_returns_200(auto_login_user):
+    client, user = auto_login_user()
+    url = reverse("users:profile_picture")
+    response = client.get(url)
+    assert response.status_code == 200
+
+
+@pytest.mark.django_db
+def test_profile_picture_view_unauthenticated_redirects(client):
+    url = reverse("users:profile_picture")
+    response = client.get(url)
+    assert response.status_code == 302
+
+
+# ---------------------------------------------------------------------------
+# UserProfileView — contact visibility
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.django_db
+def test_profile_hides_contact_from_other_member_by_default(auto_login_user, user_factory):
+    """Default visibility is 'no one': a plain member does not see the phone."""
+    client, user = auto_login_user()
+    target = user_factory.create(phone_number="5559990000")
+    url = reverse("users:profile", kwargs={"username": target.username})
+    response = client.get(url)
+    assert response.status_code == 200
+    assert response.context["show_phone"] is False
+    assert response.context["show_email"] is False
+    assert response.context["show_address"] is False
+    assert b"5559990000" not in response.content
+
+
+@pytest.mark.django_db
+def test_profile_shows_contact_when_visible_to_members(auto_login_user, user_factory):
+    """A member sees the phone when the owner opts into 'any member'."""
+    client, user = auto_login_user()
+    target = user_factory.create(phone_number="5559991111", phone_visibility="members")
+    url = reverse("users:profile", kwargs={"username": target.username})
+    response = client.get(url)
+    assert response.status_code == 200
+    assert response.context["show_phone"] is True
+    assert b"5559991111" in response.content
+
+
+@pytest.mark.django_db
+def test_profile_national_officer_always_sees_contact(auto_login_user, user_factory):
+    """National officers see contact info even when set to 'no one'."""
+    client, user = auto_login_user()
+    _make_natoff(user, client)
+    target = user_factory.create(phone_number="5559992222")  # default no_one
+    url = reverse("users:profile", kwargs={"username": target.username})
+    response = client.get(url)
+    assert response.status_code == 200
+    assert response.context["show_phone"] is True
+    assert b"5559992222" in response.content
+
+
+@pytest.mark.django_db
+def test_profile_owner_sees_own_contact_with_visibility_badge(auto_login_user):
+    """The member always sees their own contact plus the visibility label."""
+    client, user = auto_login_user()
+    user.phone_number = "5559993333"
+    user.save(update_fields=["phone_number"])
+    url = reverse("users:profile", kwargs={"username": user.username})
+    response = client.get(url)
+    assert response.status_code == 200
+    assert response.context["show_phone"] is True
+    content = response.content.decode("UTF-8")
+    assert "5559993333" in content
+    # The owner sees the current visibility level for the field.
+    assert "No one (private)" in content
+
+
+@pytest.mark.django_db
+def test_profile_chapter_visibility_only_same_chapter(auto_login_user, user_factory):
+    """'chapter' visibility hides the phone from a different-chapter member."""
+    from thetatauCMT.chapters.models import GREEK_ABR
+    from thetatauCMT.chapters.tests.factories import ChapterFactory
+
+    greek = list(GREEK_ABR.values())
+    client, user = auto_login_user()
+    other_chapter = ChapterFactory(name=next(n for n in greek if n != user.chapter.name))
+    target = user_factory.create(
+        chapter=other_chapter,
+        phone_number="5559994444",
+        phone_visibility="chapter",
+    )
+    url = reverse("users:profile", kwargs={"username": target.username})
+    response = client.get(url)
+    assert response.status_code == 200
+    assert response.context["show_phone"] is False
+    assert b"5559994444" not in response.content
+
+
+# ---------------------------------------------------------------------------
+# UserProfileView — Regional Director banner
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.django_db
+def test_profile_shows_regional_director_banner(auto_login_user, user_factory):
+    """A regional director's profile prominently shows the region + chapters."""
+    from thetatauCMT.chapters.tests.factories import ChapterFactory
+    from thetatauCMT.regions.tests.factories import RegionFactory
+
+    client, user = auto_login_user()
+    region = RegionFactory(name="Director Banner Region")
+    target = user_factory.create()
+    region.directors.add(target)
+    chapter = ChapterFactory()
+    chapter.region = region
+    chapter.save(update_fields=["region"])
+
+    url = reverse("users:profile", kwargs={"username": target.username})
+    response = client.get(url)
+    assert response.status_code == 200
+    content = response.content.decode("UTF-8")
+    assert "Regional Director" in content
+    assert "Director Banner Region" in content
+    assert list(response.context["director_regions"]) == [region]
+    # The region's chapters are linked from the banner.
+    assert reverse("chapters:detail", kwargs={"slug": chapter.slug}) in content
+
+
+@pytest.mark.django_db
+def test_profile_no_director_banner_for_regular_member(auto_login_user, user_factory):
+    client, user = auto_login_user()
+    target = user_factory.create()
+    url = reverse("users:profile", kwargs={"username": target.username})
+    response = client.get(url)
+    assert response.status_code == 200
+    assert list(response.context["director_regions"]) == []
 
 
 # ---------------------------------------------------------------------------
@@ -462,6 +658,155 @@ def test_user_alter_view_natoff_returns_200(auto_login_user):
 
 
 # ---------------------------------------------------------------------------
+# Hide national officer functionality (ToggleNatoffView + view-as-member)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.django_db
+def test_toggle_natoff_view_hides_and_shows(auto_login_user):
+    """A National Officer can hide and then re-show natoff functionality."""
+    from thetatauCMT.users.models import UserAlter
+
+    client, user = auto_login_user()
+    _make_natoff(user, client)
+    url = reverse("users:toggle_natoff")
+
+    # First toggle hides -> creates a UserAlter with hide_natoff=True
+    response = client.post(url, {"next": "/"})
+    assert response.status_code == 302
+    alter = UserAlter.objects.get(user=user)
+    assert alter.hide_natoff is True
+    assert user.natoff_hidden is True
+    assert user.is_national_officer_group is False
+
+    # Second toggle shows national officer functionality again
+    response = client.post(url, {"next": "/"})
+    assert response.status_code == 302
+    alter.refresh_from_db()
+    assert alter.hide_natoff is False
+    assert user.natoff_hidden is False
+    assert user.is_national_officer_group is True
+
+
+@pytest.mark.django_db
+def test_toggle_natoff_view_denies_non_natoff(auto_login_user):
+    """A non-natoff cannot create a hide toggle (no UserAlter is created)."""
+    from thetatauCMT.users.models import UserAlter
+
+    client, user = auto_login_user()
+    url = reverse("users:toggle_natoff")
+    response = client.post(url, {"next": "/"})
+    assert response.status_code == 302
+    assert not UserAlter.objects.filter(user=user).exists()
+
+
+@pytest.mark.django_db
+def test_toggle_natoff_view_get_not_allowed(auto_login_user):
+    client, user = auto_login_user()
+    _make_natoff(user, client)
+    response = client.get(reverse("users:toggle_natoff"))
+    assert response.status_code == 405
+
+
+@pytest.mark.django_db
+def test_user_alter_view_accessible_when_hidden(auto_login_user):
+    """The chapter/role switcher stays usable while natoff functionality is hidden."""
+    from thetatauCMT.users.models import UserAlter
+
+    client, user = auto_login_user()
+    _make_natoff(user, client)
+    UserAlter.objects.create(user=user, chapter=user.chapter, role=None, hide_natoff=True)
+    response = client.get(reverse("users:alterchapter"))
+    assert response.status_code == 200
+
+
+@pytest.mark.django_db
+def test_user_alter_reset_clears_hide_natoff(auto_login_user):
+    """The region-bar Reset button returns the officer to the full national view."""
+    from thetatauCMT.users.models import UserAlter
+
+    client, user = auto_login_user()
+    _make_natoff(user, client)
+    UserAlter.objects.create(user=user, chapter=user.chapter, role="scribe", hide_natoff=True)
+    response = client.post(
+        reverse("users:alterchapter"),
+        {"chapter": user.chapter.slug, "role": "", "alter-action": "Reset", "next": "/"},
+    )
+    assert response.status_code == 302
+    alter = UserAlter.objects.get(user=user)
+    assert alter.hide_natoff is False
+    assert alter.role is None
+
+
+@pytest.mark.django_db
+def test_natoff_gated_view_blocks_hidden_officer(auto_login_user):
+    """A hidden National Officer is treated as a member on natoff-only pages."""
+    from thetatauCMT.users.models import UserAlter
+
+    client, user = auto_login_user()
+    _make_natoff(user, client)
+    url = reverse("forms:education_list")
+    # Visible while acting as a National Officer
+    assert client.get(url).status_code == 200
+    # Hidden -> redirected away like any non-officer
+    UserAlter.objects.create(user=user, chapter=user.chapter, role=None, hide_natoff=True)
+    assert client.get(url).status_code == 302
+
+
+@pytest.mark.django_db
+def test_base_template_natoff_toggle_and_region_bar(auto_login_user):
+    """Base template flips the toggle label + region bar between the two modes."""
+    from thetatauCMT.users.models import UserAlter
+
+    client, user = auto_login_user()
+    _make_natoff(user, client)
+    home = reverse("home")
+
+    # Acting as National Officer: full region nav + "Hide" toggle label
+    content = client.get(home).content.decode()
+    assert "Hide national officer functionality" in content
+    assert "Dashboard" in content
+
+    # Hidden: "Show" toggle label + "Viewing as member"; switcher still present
+    UserAlter.objects.create(user=user, chapter=user.chapter, role=None, hide_natoff=True)
+    content = client.get(home).content.decode()
+    assert "Show national officer functionality" in content
+    assert "Viewing as member" in content
+    assert reverse("users:alterchapter") in content
+
+
+@pytest.mark.django_db
+def test_user_list_officer_buttons_hidden_when_natoff_hidden(auto_login_user):
+    """Officer-only buttons on the member list disappear while previewing as a member."""
+    from thetatauCMT.users.models import UserAlter
+
+    client, user = auto_login_user()
+    _make_natoff(user, client)
+    url = reverse("users:list")
+
+    # Acting as National Officer: the officer action buttons are shown
+    assert "Download CSV" in client.get(url).content.decode()
+
+    # Hidden: the officer action buttons are gone
+    UserAlter.objects.create(user=user, chapter=user.chapter, role=None, hide_natoff=True)
+    assert "Download CSV" not in client.get(url).content.decode()
+
+
+@pytest.mark.django_db
+def test_user_list_csv_blocked_when_natoff_hidden(auto_login_user):
+    """The CSV export is refused for a National Officer previewing as a member."""
+    from thetatauCMT.users.models import UserAlter
+
+    client, user = auto_login_user()
+    _make_natoff(user, client)
+    UserAlter.objects.create(user=user, chapter=user.chapter, role=None, hide_natoff=True)
+    response = client.get(reverse("users:list"), {"csv": "download csv"})
+    # Guard falls through to the normal HTML list render instead of a CSV download.
+    assert response.status_code == 200
+    assert response["Content-Type"].startswith("text/html")
+
+
+# ---------------------------------------------------------------------------
 # UserOrgsFormSetView
 # ---------------------------------------------------------------------------
 
@@ -496,6 +841,49 @@ def test_user_detail_post_user_form_redirects(auto_login_user):
         },
     )
     assert response.status_code in [200, 302]
+
+
+@pytest.mark.django_db
+def test_user_form_includes_contact_visibility_fields():
+    """Members get a control for each contact field's visibility."""
+    from thetatauCMT.users.forms import UserForm
+
+    form = UserForm()
+    for name in ("email_visibility", "phone_visibility", "address_visibility"):
+        assert name in form.fields
+    choices = dict(form.fields["phone_visibility"].choices)
+    assert "no_one" in choices
+    assert "members" in choices
+
+
+@pytest.mark.django_db
+def test_user_detail_post_saves_contact_visibility(auto_login_user):
+    """A member can update who sees their phone / email / address."""
+    client, user = auto_login_user()
+    url = reverse("users:detail")
+    response = client.post(
+        url,
+        {
+            "action": "user",
+            "graduation_year": user.graduation_year or 2025,
+            "phone_number": "5551234567",
+            "phone_visibility": "members",
+            "email_visibility": "chapter",
+            "address_visibility": "officers",
+            "email": user.email,
+            "birth_date": "01/01/1990",
+            "address_0": "123 Main St",
+            "address_1": "Phoenix",
+            "address_2": "AZ",
+            "address_3": "85001",
+            "address_4": "United States",
+        },
+    )
+    assert response.status_code == 302
+    user.refresh_from_db()
+    assert user.phone_visibility == "members"
+    assert user.email_visibility == "chapter"
+    assert user.address_visibility == "officers"
 
 
 @pytest.mark.django_db
@@ -1531,3 +1919,266 @@ def test_user_lookup_search_prospective_user_not_filtered_by_view(auto_login_use
 
     assert response.status_code == 302
     assert pnm_user.pk in client.session["users"]
+
+
+# ---------------------------------------------------------------------------
+# UnsubscribeConfirmView – categorized unsubscribe flow
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.django_db
+def test_unsubscribe_get_bad_token_shows_invalid(client):
+    url = reverse("users:unsubscribe", kwargs={"token": "garbage"})
+    response = client.get(url)
+    assert response.status_code == 200
+    assert b"Invalid or expired link" in response.content
+
+
+@pytest.mark.django_db
+def test_unsubscribe_get_preselects_focus_category(client):
+    from thetatauCMT.users.tests.factories import UserFactory
+    from thetatauCMT.users.views import make_unsubscribe_token
+
+    user = UserFactory.create()
+    token = make_unsubscribe_token(user, category="grad_anniversary")
+    url = reverse("users:unsubscribe", kwargs={"token": token})
+    response = client.get(url)
+    assert response.status_code == 200
+    assert b"Graduation Anniversary" in response.content
+    assert b"Velocitas Newsletter" in response.content
+    assert b"Birthday Celebrations" in response.content
+    # Focused category is checked
+    assert b'value="grad_anniversary"' in response.content
+    assert b"from this email" in response.content
+    # Global toggle available but not checked for a fresh user
+    assert b'value="all"' in response.content
+
+
+@pytest.mark.django_db
+def test_unsubscribe_post_single_category(client):
+    from thetatauCMT.users.tests.factories import UserFactory
+    from thetatauCMT.users.views import make_unsubscribe_token
+
+    user = UserFactory.create()
+    assert user.unsubscribe_categories == []
+    token = make_unsubscribe_token(user, category="grad_anniversary")
+    url = reverse("users:unsubscribe", kwargs={"token": token})
+    # Simulate the one-click confirm: pre-checked box is submitted.
+    response = client.post(url, {"categories": ["grad_anniversary"]})
+    assert response.status_code == 200
+    assert b"preferences are saved" in response.content
+    user.refresh_from_db()
+    assert user.unsubscribe_email is False
+    assert "grad_anniversary" in user.unsubscribe_categories
+    assert "velocitas" not in user.unsubscribe_categories
+
+
+@pytest.mark.django_db
+def test_unsubscribe_post_all_toggles_global_flag(client):
+    from thetatauCMT.users.tests.factories import UserFactory
+    from thetatauCMT.users.views import make_unsubscribe_token
+
+    user = UserFactory.create()
+    token = make_unsubscribe_token(user)
+    url = reverse("users:unsubscribe", kwargs={"token": token})
+    response = client.post(url, {"categories": ["all"]})
+    assert response.status_code == 200
+    user.refresh_from_db()
+    assert user.unsubscribe_email is True
+
+
+@pytest.mark.django_db
+def test_unsubscribe_all_syncs_to_mailerlite(client):
+    from unittest.mock import patch
+
+    from thetatauCMT.users.tests.factories import UserFactory
+    from thetatauCMT.users.views import make_unsubscribe_token
+
+    user = UserFactory.create()
+    token = make_unsubscribe_token(user)
+    url = reverse("users:unsubscribe", kwargs={"token": token})
+    with patch("thetatauCMT.email_tracking.mailerlite_sync.unsubscribe_user") as ml:
+        client.post(url, {"categories": ["all"]})
+    ml.assert_called_once()
+    assert ml.call_args.args[0].pk == user.pk
+
+
+@pytest.mark.django_db
+def test_unsubscribe_single_category_does_not_sync_mailerlite(client):
+    from unittest.mock import patch
+
+    from thetatauCMT.users.tests.factories import UserFactory
+    from thetatauCMT.users.views import make_unsubscribe_token
+
+    user = UserFactory.create()
+    token = make_unsubscribe_token(user, category="grad_anniversary")
+    url = reverse("users:unsubscribe", kwargs={"token": token})
+    with patch("thetatauCMT.email_tracking.mailerlite_sync.unsubscribe_user") as ml:
+        client.post(url, {"categories": ["grad_anniversary"]})
+    ml.assert_not_called()
+
+
+@pytest.mark.django_db
+def test_unsubscribe_post_clears_previously_set_category(client):
+    from thetatauCMT.users.tests.factories import UserFactory
+    from thetatauCMT.users.views import make_unsubscribe_token
+
+    user = UserFactory.create()
+    user.unsubscribe_categories = ["velocitas", "birthday"]
+    user.save(update_fields=["unsubscribe_categories"])
+    token = make_unsubscribe_token(user)
+    url = reverse("users:unsubscribe", kwargs={"token": token})
+    # Re-submit with only birthday checked → velocitas is cleared.
+    response = client.post(url, {"categories": ["birthday"]})
+    assert response.status_code == 200
+    user.refresh_from_db()
+    assert "velocitas" not in user.unsubscribe_categories
+    assert "birthday" in user.unsubscribe_categories
+
+
+@pytest.mark.django_db
+def test_unsubscribe_post_preserves_unknown_slugs(client):
+    """Unknown slugs already on the user must survive an unrelated save."""
+    from thetatauCMT.users.tests.factories import UserFactory
+    from thetatauCMT.users.views import make_unsubscribe_token
+
+    user = UserFactory.create()
+    user.unsubscribe_categories = ["legacy_slug", "velocitas"]
+    user.save(update_fields=["unsubscribe_categories"])
+    token = make_unsubscribe_token(user)
+    url = reverse("users:unsubscribe", kwargs={"token": token})
+    client.post(url, {"categories": ["velocitas"]})
+    user.refresh_from_db()
+    assert "legacy_slug" in user.unsubscribe_categories
+    assert "velocitas" in user.unsubscribe_categories
+
+
+@pytest.mark.django_db
+def test_unsubscribe_helpers_is_unsubscribed():
+    from thetatauCMT.users.tests.factories import UserFactory
+    from thetatauCMT.users.unsubscribe import is_unsubscribed, set_category_unsubscribed
+
+    user = UserFactory.create()
+    assert is_unsubscribed(user, "grad_anniversary") is False
+
+    changed = set_category_unsubscribed(user, "grad_anniversary", True)
+    assert changed is True
+    assert is_unsubscribed(user, "grad_anniversary") is True
+    assert is_unsubscribed(user, "velocitas") is False
+
+    # Global unsubscribe wins
+    user.unsubscribe_email = True
+    assert is_unsubscribed(user, "velocitas") is True
+
+
+@pytest.mark.django_db
+def test_unsubscribe_token_ignores_unknown_category():
+    from django.core import signing
+
+    from thetatauCMT.users.tests.factories import UserFactory
+    from thetatauCMT.users.views import UNSUBSCRIBE_SALT, make_unsubscribe_token
+
+    user = UserFactory.create()
+    token = make_unsubscribe_token(user, category="not_a_real_slug")
+    payload = signing.loads(token, salt=UNSUBSCRIBE_SALT)
+    assert "category" not in payload
+
+
+@pytest.mark.django_db
+def test_grad_anniversary_queryset_excludes_category_opt_out():
+    """grad_anniversary queryset must skip users who opted out of that category."""
+    import datetime
+
+    from thetatauCMT.forms.tests.factories import StatusChangeFactory
+    from thetatauCMT.users.management.commands.grad_anniversary_email import _grad_queryset
+    from thetatauCMT.users.tests.factories import UserFactory
+
+    target_year = datetime.date.today().year - 5
+    subscribed = UserFactory.create()
+    opted_out = UserFactory.create(unsubscribe_categories=["grad_anniversary"])
+    globally_off = UserFactory.create(unsubscribe_email=True)
+
+    for user in (subscribed, opted_out, globally_off):
+        StatusChangeFactory.create(
+            user=user,
+            reason="graduate",
+            date_start=datetime.date(target_year, 5, 15),
+        )
+
+    qs = _grad_queryset(target_year, range(1, 8))
+    recipients = {sc.user_id for sc in qs}
+    assert subscribed.pk in recipients
+    assert opted_out.pk not in recipients
+    assert globally_off.pk not in recipients
+
+
+# ---------------------------------------------------------------------------
+# UserDetailUpdateView – prefs (Email Preferences) accordion form
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.django_db
+def test_user_detail_prefs_form_sets_category(auto_login_user):
+    """POST action=prefs sets unsubscribe_categories on the user."""
+    client, user = auto_login_user()
+    url = reverse("users:detail")
+    response = client.post(
+        url,
+        {
+            "action": "prefs",
+            "unsubscribe_categories": ["grad_anniversary", "velocitas"],
+        },
+    )
+    assert response.status_code in [200, 302]
+    user.refresh_from_db()
+    assert "grad_anniversary" in user.unsubscribe_categories
+    assert "velocitas" in user.unsubscribe_categories
+    assert user.unsubscribe_email is False
+
+
+@pytest.mark.django_db
+def test_user_detail_prefs_form_toggles_global_flag(auto_login_user):
+    """POST action=prefs with unsubscribe_email checked flips the global flag."""
+    client, user = auto_login_user()
+    url = reverse("users:detail")
+    response = client.post(
+        url,
+        {
+            "action": "prefs",
+            "unsubscribe_email": "on",
+        },
+    )
+    assert response.status_code in [200, 302]
+    user.refresh_from_db()
+    assert user.unsubscribe_email is True
+
+
+@pytest.mark.django_db
+def test_user_detail_prefs_form_preserves_unknown_slugs(auto_login_user):
+    """A profile save must not silently discard legacy/unknown slugs."""
+    client, user = auto_login_user()
+    user.unsubscribe_categories = ["legacy_slug", "velocitas"]
+    user.save(update_fields=["unsubscribe_categories"])
+    url = reverse("users:detail")
+    client.post(
+        url,
+        {
+            "action": "prefs",
+            "unsubscribe_categories": ["birthday"],
+        },
+    )
+    user.refresh_from_db()
+    assert "legacy_slug" in user.unsubscribe_categories
+    assert "birthday" in user.unsubscribe_categories
+    assert "velocitas" not in user.unsubscribe_categories
+
+
+@pytest.mark.django_db
+def test_user_detail_page_renders_prefs_section(auto_login_user):
+    """GET /myinfo/ includes the new Email Preferences accordion section."""
+    client, user = auto_login_user()
+    url = reverse("users:detail")
+    response = client.get(url)
+    assert response.status_code == 200
+    assert b"Email Preferences" in response.content
+    assert b"unsubscribe_categories" in response.content

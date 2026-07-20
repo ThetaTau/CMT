@@ -1,0 +1,24 @@
+** Treasurer Term Policy Exception
+------------------------------------------------------------
+Dear Grand Treasurer and Regional Directors,
+
+A chapter has submitted an Officer Election Report electing a Treasurer to a
+term that does not conform to Theta Tau policy.
+
+{{ policy }}
+
+** Details
+------------------------------------------------------------
+* Chapter: {{ chapter }}{% if region %} ({{ region }} Region){% endif %}
+* Treasurer: {{ member }}
+* Term start: {{ start|date:"F j, Y" }}
+* Term end: {{ end|date:"F j, Y" }}
+{% if submitted_by %}* Submitted by: {{ submitted_by }}{% endif %}
+
+** Reason provided for this exception
+------------------------------------------------------------
+{{ reason }}
+
+Please review this exception and follow up with the chapter as appropriate.
+
+{% include "herald/text/footer.txt" %}

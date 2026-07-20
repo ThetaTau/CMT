@@ -40,6 +40,18 @@ PASSWORD_HASHERS = [
     "django.contrib.auth.hashers.MD5PasswordHasher",
 ]
 
+# STATIC FILES / MIDDLEWARE
+# ------------------------------------------------------------------------------
+# WhiteNoise walks the entire STATIC_ROOT tree (~1k files) whenever its
+# middleware is instantiated. Django's test client rebuilds the middleware
+# stack for every request, so WhiteNoise re-scanned the tree on essentially
+# every request-issuing test. Profiling the suite with cProfile showed this
+# dominated the run (~43% of total time was ``posix.stat`` under
+# ``whitenoise.scantree``, plus the wsgiref/email header machinery it drives).
+# Tests use the default ``StaticFilesStorage`` so ``{% static %}`` still
+# resolves to plain ``/static/...`` URLs without WhiteNoise. Drop it here.
+MIDDLEWARE = [mw for mw in MIDDLEWARE if "whitenoise" not in mw]  # noqa F405
+
 # TEMPLATES
 # ------------------------------------------------------------------------------
 # https://docs.djangoproject.com/en/dev/ref/settings/#templates
@@ -62,6 +74,8 @@ EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
 EMAIL_HOST = "localhost"
 # https://docs.djangoproject.com/en/dev/ref/settings/#email-port
 EMAIL_PORT = 1025
+# Never hit external mail APIs from the test suite (tests override/patch these).
+MAILERLITE_API_KEY = ""
 
 # SYSTEM CHECKS
 # ------------------------------------------------------------------------------

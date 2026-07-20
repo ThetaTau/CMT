@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% load crispy_forms_tags %}
+{% block title %}Confirmation Review{% endblock %}
+
+{% block content %}
+<div class="container nomination-review" style="max-width: 760px; margin-top: 30px;">
+  <h3>Confirmation review</h3>
+
+  <h5>Nominee</h5>
+  <p>
+    {% if nomination.nominee %}
+      <a href="{% url 'users:profile' nomination.nominee.username %}">{{ nomination.nominee_display }}</a>
+    {% else %}
+      {{ nomination.nominee_display }} ({{ nomination.nominee_email }})
+    {% endif %}
+  </p>
+
+  <h5>Nominated by</h5>
+  <p>
+    <a href="{% url 'users:profile' nomination.nominator.username %}">{{ nomination.nominator }}</a>
+  </p>
+
+  <h5>Recommendation</h5>
+  <ul>
+    <li>Level: {{ nomination.get_level_display }}</li>
+    <li>Recommended positions:
+      {% for position in nomination.recommended_positions %}{{ position|title }}{% if not forloop.last %}, {% endif %}{% empty %}&mdash;{% endfor %}
+    </li>
+    <li>Reason: {{ nomination.reason }}</li>
+  </ul>
+
+  <h5>Vetting</h5>
+  <ul>
+    <li>Reference / background check: {{ nomination.reference_check|yesno:"Yes,No" }}</li>
+    <li>Outcome: {{ nomination.vetting_passed|yesno:"Passed,Failed,Pending" }}</li>
+    {% if nomination.vetting_notes %}<li>Notes: {{ nomination.vetting_notes }}</li>{% endif %}
+  </ul>
+
+  <h5>Interview</h5>
+  <ul>
+    <li>Conducted: {{ nomination.interview_conducted|yesno:"Yes,No" }}{% if nomination.interview_date %} on {{ nomination.interview_date }}{% endif %}</li>
+    <li>Outcome: {{ nomination.interview_passed|yesno:"Continue,Stop,Pending" }}</li>
+    {% if nomination.interview_notes %}<li>Notes: {{ nomination.interview_notes }}</li>{% endif %}
+  </ul>
+
+  <h5>Training</h5>
+  <ul>
+    <li>CMT LMS Volunteer Training: {{ nomination.training_cmt_complete|yesno:"Complete,Incomplete" }}</li>
+    <li>Vector CommunityEdu H&amp;S Training: {{ nomination.training_vector_complete|yesno:"Complete,Incomplete" }}</li>
+  </ul>
+
+  <h5>Process history</h5>
+  <ul>
+    {% for task in history_tasks %}
+      <li>{{ task.flow_task.task_title|default:task.flow_task.name }} &mdash; {{ task.status }} ({{ task.created }})</li>
+    {% endfor %}
+  </ul>
+
+  {% if form %}
+    <hr>
+    <h5>Confirm or deny</h5>
+    <form method="POST">
+      {% csrf_token %}
+      {{ form|crispy }}
+      {{ activation.management_form }}
+      <button type="submit" class="btn btn-primary">Submit decision</button>
+    </form>
+  {% endif %}
+</div>
+{% endblock %}

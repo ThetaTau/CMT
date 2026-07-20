@@ -17,10 +17,12 @@ from .models import (
     Depledge,
     DisciplinaryAttachment,
     DisciplinaryProcess,
+    Employer,
     Guard,
     HSEducation,
     Initiation,
     InitiationProcess,
+    OtherSchool,
     Pledge,
     PledgeProcess,
     PledgeProgram,
@@ -44,6 +46,20 @@ from .resources import (
 
 admin.site.register(Badge)
 admin.site.register(Guard)
+
+
+@admin.register(OtherSchool)
+class OtherSchoolAdmin(admin.ModelAdmin):
+    list_display = ("name", "created", "modified")
+    search_fields = ("name",)
+    ordering = ("name",)
+
+
+@admin.register(Employer)
+class EmployerAdmin(admin.ModelAdmin):
+    list_display = ("name", "created", "modified")
+    search_fields = ("name",)
+    ordering = ("name",)
 
 
 @admin.register(ChapterReport)

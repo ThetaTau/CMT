@@ -19,7 +19,12 @@
       national OSM award.<br>*Depending on who submits the form and who is nominated
       officers that did not submit the form and are not nominated will be asked to verify.
     </p>
-    {% if request.user.is_officer  %}
+    <div class="alert alert-info" role="alert">
+      <strong>Note:</strong> You cannot nominate yourself for Outstanding
+      Student Member. If you are being nominated, another officer must submit
+      the form on your behalf.
+    </div>
+    {% if request.is_officer %}
       <form method="POST" enctype="multipart/form-data">
         {{ form.media }}
         <link href="{% static 'css/project.css' %}" rel="stylesheet">

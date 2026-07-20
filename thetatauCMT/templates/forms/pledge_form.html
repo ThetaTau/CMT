@@ -151,27 +151,29 @@ $("#id_user-school_name").change(function () {
         $("#div_id_demographics-ability_write").hide();
       }
     });
-    {# https://stackoverflow.com/a/35992958/3166424 #}
-    $('.collapse').on('show.bs.collapse', function (e) {
-      var $card = $(this).closest('.card');
-      var $open = $($(this).data('parent')).find('.collapse.show');
-      var additionalOffset = 0;
-      if ($card.prevAll().filter($open.closest('.card')).length !== 0) {
-        additionalOffset = $open.height();
-      }
-      $('html,body').animate({
-        scrollTop: $card.offset().top - additionalOffset
-      }, 500);
+    // Scroll the opened accordion item into view (Bootstrap 5 native event).
+    document.querySelectorAll('.accordion .accordion-collapse').forEach(function (el) {
+      el.addEventListener('shown.bs.collapse', function () {
+        var item = el.closest('.accordion-item');
+        if (item) {
+          item.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      });
     });
     $('form').validate({
-      invalidHandler: function(event, validator) {
+      invalidHandler: function (event, validator) {
         if (validator.numberOfInvalids() > 0) {
           validator.showErrors();
-          // Open accordion tab with errors
-          var index = $(".has-error")
-              .closest(".ui-accordion-content")
-              .index(".ui-accordion-content");
-          $(".accordion").accordion("option", "active", index);
+          // Open the first accordion section that contains an invalid field.
+          var firstInvalid = validator.errorList && validator.errorList[0]
+            ? validator.errorList[0].element
+            : null;
+          if (firstInvalid) {
+            var pane = firstInvalid.closest('.accordion-collapse');
+            if (pane && typeof bootstrap !== 'undefined' && bootstrap.Collapse) {
+              bootstrap.Collapse.getOrCreateInstance(pane).show();
+            }
+          }
         }
       },
       ignore: [],

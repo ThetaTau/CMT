@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+
+{% block content %}
+<div class="container my-4">
+  <h1>Grant an award</h1>
+  <p class="text-muted">
+    Grant a direct award to an eligible recipient. Awards that require a nomination
+    workflow are not shown here. Recipients you are not authorized to grant to are
+    rejected on submit.
+  </p>
+  <form method="post" novalidate>
+    {% csrf_token %}
+    {{ form.media }}
+    {{ form|crispy }}
+    <button type="submit" class="btn btn-primary">Grant award</button>
+  </form>
+</div>
+{% endblock content %}

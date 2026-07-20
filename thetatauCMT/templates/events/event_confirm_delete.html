@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}Delete Event: {{ event.name }}{% endblock %}
+
+{% block content %}
+<div class="container">
+  <h2 class="page-title mb-3">Delete event</h2>
+
+  <div class="card border-danger">
+    <div class="card-header bg-danger text-white">
+      <i class="fas fa-triangle-exclamation"></i> Confirm deletion
+    </div>
+    <div class="card-body">
+      <p>
+        Are you sure you want to delete this event? It will be
+        <strong>removed from scoring</strong> and hidden from calendars, event lists, and
+        feeds. This can be undone by an administrator.
+      </p>
+      <dl class="row mb-3">
+        <dt class="col-sm-3">Name</dt><dd class="col-sm-9">{{ event.name }}</dd>
+        <dt class="col-sm-3">Date</dt><dd class="col-sm-9">{{ event.date }}</dd>
+        <dt class="col-sm-3">Type</dt><dd class="col-sm-9">{{ event.type }}</dd>
+        {% if event.chapter %}
+          <dt class="col-sm-3">Chapter</dt><dd class="col-sm-9">{{ event.chapter.name }}</dd>
+        {% endif %}
+      </dl>
+      <form method="post" action="{{ event.get_delete_url }}">
+        {% csrf_token %}
+        <input type="hidden" name="next" value="{{ request.GET.next }}">
+        <button type="submit" class="btn btn-danger">
+          <i class="fas fa-trash"></i> Yes, delete this event
+        </button>
+        <a class="btn btn-outline-secondary" href="{{ event.get_absolute_url }}">Cancel</a>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock content %}

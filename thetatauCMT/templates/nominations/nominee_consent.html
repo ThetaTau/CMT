@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+{% block title %}Volunteer Recommendation{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width: 640px; margin-top: 40px;">
+
+  {% if state == "invalid" %}
+    <h2>This link is not valid</h2>
+    <p>
+      We couldn't find a recommendation for this link. If you believe this is a
+      mistake, please email
+      <a href="mailto:central.office@thetatau.org">central.office@thetatau.org</a>.
+    </p>
+
+  {% elif state == "expired" %}
+    <h2>This link has expired</h2>
+    <p>
+      This recommendation link is no longer valid. If you would still like to
+      respond, please email
+      <a href="mailto:central.office@thetatau.org">central.office@thetatau.org</a>
+      and we can send you a new link.
+    </p>
+
+  {% elif state == "responded" %}
+    <h2>Thank you</h2>
+    <p>You have already responded to this recommendation. No further action is needed.</p>
+
+  {% elif state == "done" %}
+    <h2>Thank you for your response</h2>
+    {% if response == "interested" %}
+      <p>Great! We've recorded your interest and will be in touch about next steps.</p>
+    {% elif response == "follow_up_later" %}
+      <p>No problem &mdash; we'll follow up with you later.</p>
+    {% else %}
+      <p>Thank you for letting us know. We won't reach out about this again.</p>
+    {% endif %}
+
+  {% else %}
+    <h2>You've been recommended to serve Theta Tau</h2>
+    <p>
+      {{ nomination.nominator }} recommended you
+      {% if nomination.recommended_positions %}
+        for a volunteer position with Theta Tau.
+      {% else %}
+        to serve Theta Tau.
+      {% endif %}
+      Would you like to serve?
+    </p>
+    <div class="alert alert-info">
+      <strong>You were recommended for:</strong>
+      {% if nomination.recommended_positions %}
+        {% for position in nomination.recommended_positions %}{{ position|title }}{% if not forloop.last %}, {% endif %}{% endfor %}
+      {% else %}
+        a national-officer role
+      {% endif %}
+      {% if nomination.level %}<br><strong>Level(s):</strong> {{ nomination.get_level_display }}{% endif %}
+    </div>
+    {% if nomination.reason %}
+      <p class="text-body-secondary"><strong>Why they recommended you:</strong> <em>"{{ nomination.reason }}"</em></p>
+    {% endif %}
+    <hr>
+    <form method="POST">
+      {% csrf_token %}
+      {{ form|crispy }}
+      <button type="submit" class="btn btn-primary">Submit response</button>
+    </form>
+  {% endif %}
+
+</div>
+{% endblock %}

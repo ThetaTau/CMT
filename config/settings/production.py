@@ -108,11 +108,17 @@ ADMIN_URL = env("DJANGO_ADMIN_URL")
 # https://anymail.readthedocs.io/en/stable/installation/#installing-anymail
 INSTALLED_APPS += ["anymail"]  # noqa F405
 if DJANGO_EMAIL_LIVE:
-    EMAIL_BACKEND = "anymail.backends.mailjet.EmailBackend"
+    EMAIL_BACKEND = "core.email.TrackingMailjetBackend"
 ANYMAIL = {
     "MAILJET_API_KEY": env("MAILJET_API_KEY"),
     "MAILJET_SECRET_KEY": env("MAILJET_SECRET_KEY"),
 }
+# Secures the Mailjet tracking webhook (HTTP basic auth "user:pass"). Set the
+# ANYMAIL_WEBHOOK_SECRET env var and use the same credentials in the webhook URL
+# registered with Mailjet, e.g. https://user:pass@host/anymail/mailjet/tracking/
+_anymail_webhook_secret = env("ANYMAIL_WEBHOOK_SECRET", default="")
+if _anymail_webhook_secret:
+    ANYMAIL["WEBHOOK_SECRET"] = _anymail_webhook_secret
 
 
 # LOGGING

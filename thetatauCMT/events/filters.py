@@ -13,6 +13,11 @@ class EventListFilter(django_filters.FilterSet):
     name = django_filters.CharFilter(lookup_expr="icontains")
     date = DateRangeFilter(field_name="date")
     type = django_filters.ModelChoiceFilter(queryset=ScoreType.objects.filter(type="Evt").all())
+    is_public = django_filters.ChoiceFilter(
+        label="Open to Other Chapters",
+        choices=((True, "Open to other chapters"), (False, "Chapter only")),
+        method="filter_is_public",
+    )
 
     class Meta:
         model = Event
@@ -28,12 +33,19 @@ class EventListFilter(django_filters.FilterSet):
         if natoff:
             kwargs.pop("natoff")
             self.base_filters["region"] = django_filters.ChoiceFilter(
-                choices=Region.region_choices(), method="filter_region"
+                label="Region",
+                choices=Region.region_choices(),
+                method="filter_region",
             )
             self.base_filters["chapter"] = django_filters.ChoiceFilter(
                 label="Chapter",
                 choices=Chapter.chapter_choices(),
                 method="filter_chapter",
+            )
+            self.base_filters["is_national"] = django_filters.ChoiceFilter(
+                label="National",
+                choices=((True, "National"), (False, "Not national")),
+                method="filter_is_national",
             )
             self.base_filters["pictures"] = django_filters.ChoiceFilter(
                 label="Pictures",
@@ -54,6 +66,20 @@ class EventListFilter(django_filters.FilterSet):
     def filter_chapter(self, queryset, field_name, value):
         if value:
             queryset = queryset.filter(chapter__slug=value)
+        return queryset
+
+    def filter_is_public(self, queryset, field_name, value):
+        if value == "True":
+            queryset = queryset.filter(is_public=True)
+        elif value == "False":
+            queryset = queryset.filter(is_public=False)
+        return queryset
+
+    def filter_is_national(self, queryset, field_name, value):
+        if value == "True":
+            queryset = queryset.filter(is_national=True)
+        elif value == "False":
+            queryset = queryset.filter(is_national=False)
         return queryset
 
     def filter_pictures(self, queryset, field_name, value):

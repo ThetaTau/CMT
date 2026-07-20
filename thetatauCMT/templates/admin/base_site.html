@@ -1,0 +1,69 @@
+{% extends "admin/base.html" %}
+{% load i18n %}
+
+{% block title %}{{ title }} | {{ site_title|default:_('Django site admin') }}{% endblock %}
+
+{% block branding %}
+<div id="site-name"><a href="{% url 'admin:index' %}">{{ site_header|default:_('Django administration') }}</a></div>
+{% if user.is_anonymous %}
+  {% include "admin/color_theme_toggle.html" %}
+{% endif %}
+{% endblock %}
+
+{% block nav-global %}{% endblock %}
+
+{% block extrastyle %}{{ block.super }}
+<style>
+  /* Pin the admin breadcrumbs to the top of the viewport on every admin
+     page so users can jump back to any parent scope from anywhere on
+     the page.
+
+     Why position: fixed and not sticky?
+     Django admin wraps the breadcrumbs in a <nav aria-label="Breadcrumbs">
+     inside a flex-column #container. Sticky positioning depends on the
+     containing block having available scroll room, but Django's flex
+     layout collapses #container's effective scroll range in some
+     configurations, so sticky "works for a bit and then disappears."
+     Fixed positioning attaches directly to the viewport and is
+     unaffected by ancestor layout. */
+
+  :root {
+    /* Actual breadcrumb bar height. Django admin's .breadcrumbs uses
+       10px vertical padding on a ~1rem line; 2.5rem covers it in both
+       light and dark themes. */
+    --admin-breadcrumb-height: 2.5rem;
+  }
+
+  nav[aria-label="Breadcrumbs"] {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    min-height: var(--admin-breadcrumb-height);
+    /* Django admin's .breadcrumbs child already paints its own bg via
+       var(--breadcrumbs-bg); this is a fallback for the wrapper edges. */
+    background: var(--breadcrumbs-bg, var(--body-bg, #fff));
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+  }
+
+  /* Reserve vertical space so the fixed bar does not overlap the page
+     header. :has() scopes this to pages that actually render breadcrumbs
+     (e.g. skip the login screen, which has none). */
+  #container:has(nav[aria-label="Breadcrumbs"]) {
+    padding-top: var(--admin-breadcrumb-height);
+  }
+
+  /* The nav sidebar is also sticky (top: 0 by default in nav_sidebar.css).
+     Push it below the fixed breadcrumbs so it does not slide underneath. */
+  #nav-sidebar.sticky,
+  #toggle-nav-sidebar.sticky {
+    top: var(--admin-breadcrumb-height);
+  }
+
+  /* Ensure hash / anchor jumps (e.g. #result_list) land below the bar. */
+  :target {
+    scroll-margin-top: calc(var(--admin-breadcrumb-height) + 0.5rem);
+  }
+</style>
+{% endblock %}

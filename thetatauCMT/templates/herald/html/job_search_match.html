@@ -1,0 +1,40 @@
+{% extends "herald/html/base_email.html" %}
+{% block title %}New Jobs Matching Your Search{% endblock %}
+{% block content %}
+<br>
+Hi{% if user %} {{ user.first_name|default:user.get_username }}{% endif %},
+<p>
+  {% if job_count == 1 %}
+    A new job matches your saved search
+  {% else %}
+    {{ job_count }} new jobs match your saved search
+  {% endif %}
+  &ldquo;<strong>{{ job_search.search_title }}</strong>&rdquo;
+  ({{ frequency_label|lower }} notifications).
+</p>
+{% if job_search.search_description %}
+<p><em>{{ job_search.search_description }}</em></p>
+{% endif %}
+
+<ul>
+  {% for row in job_rows %}
+    <li>
+      <a href="{{ row.url }}"><strong>{{ row.job.title }}</strong></a>
+      &mdash; {{ row.job.company }}
+      {% if row.job.publish_start %}<br><small>Posted {{ row.job.publish_start|date:"M j, Y" }}</small>{% endif %}
+    </li>
+  {% endfor %}
+</ul>
+
+<p>
+  <a href="{{ job_search_url }}">Open this search in CMT</a>
+  to see all matching postings or edit the filters.
+</p>
+
+<p>
+  You can change how often you receive these updates (or turn them off) by
+  editing the &ldquo;Notification&rdquo; setting on your saved search.
+</p>
+
+<p>In H&amp;T,<br>Chapter Management Tool</p>
+{% endblock content %}

@@ -1,0 +1,33 @@
+{% comment %}
+Renders the editable fields of a CalendarFeedSubscriptionForm.
+Expects `form` in context (pass `with form=... ` when the outer name differs).
+{% endcomment %}
+<div class="mb-3">
+  <label class="form-label" for="{{ form.name.id_for_label }}">Feed name</label>
+  {{ form.name }}
+  {{ form.name.errors }}
+</div>
+<div class="form-check">
+  {{ form.include_national }}
+  <label class="form-check-label" for="{{ form.include_national.id_for_label }}">Include national events</label>
+</div>
+<div class="form-check mb-3">
+  {{ form.include_todos }}
+  <label class="form-check-label" for="{{ form.include_todos.id_for_label }}">Include my chapter's to-do reminders</label>
+</div>
+<div class="mb-3">
+  <label class="form-label" for="{{ form.task_owner_roles.id_for_label }}">To-do tasks to include</label>
+  {{ form.task_owner_roles }}
+  <div class="form-text">Only applies when to-dos are included. Leave empty for all tasks, or pick officers' roles.</div>
+  {{ form.task_owner_roles.errors }}
+</div>
+<div class="mb-3">
+  <label class="form-label" for="{{ form.chapters.id_for_label }}">Chapters' public events</label>
+  {{ form.chapters }}
+  {{ form.chapters.errors }}
+</div>
+<div class="mb-3">
+  <label class="form-label" for="{{ form.regions.id_for_label }}">Regions' public events</label>
+  {{ form.regions }}
+  {{ form.regions.errors }}
+</div>

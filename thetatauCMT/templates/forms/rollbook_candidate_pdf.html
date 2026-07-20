@@ -1,0 +1,126 @@
+{% extends "easy_pdf/base.html" %}
+{% load static i18n %}
+{% load humanize %}
+{% load forms_custom_tags %}
+{% block style_base %}
+  <style type="text/css">
+    @page {
+      size: {{ pagesize|default:"letter" }};
+      margin: 0.75in 1.0in;
+    }
+    body {
+      font-family: "Times New Roman", "Liberation Serif", serif;
+      color: #000;
+      font-size: 11pt;
+    }
+    h1.roll-title {
+      text-align: center;
+      font-size: 18pt;
+      font-weight: normal;
+      margin: 0 0 0.55in 0;
+    }
+    .chapter-header {
+      margin-bottom: 0.6in;
+    }
+    .chapter-header .line {
+      display: inline-block;
+      min-width: 3.0in;
+      border-bottom: 1px solid #000;
+      padding: 0 6px 2px 6px;
+      font-size: 12pt;
+    }
+    .chapter-header .caption {
+      font-size: 10pt;
+      padding-top: 3px;
+    }
+    table.roll-entry {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+    }
+    table.roll-entry td {
+      width: 50%;
+      vertical-align: bottom;
+      padding: 0 0.4in 0.5in 0;
+    }
+    table.roll-entry td.right {
+      padding-right: 0;
+      padding-left: 0.4in;
+    }
+    .field .value {
+      border-bottom: 1px solid #000;
+      min-height: 20px;
+      padding: 0 4px 2px 4px;
+      font-size: 12pt;
+    }
+    .field .caption {
+      font-size: 10pt;
+      padding-top: 3px;
+    }
+  </style>
+{% endblock %}
+{% block content %}
+  <h1 class="roll-title">Candidate Chapter Membership Roll</h1>
+  <div class="chapter-header">
+    <div class="line">{{ object.chapter.name }}</div>
+    <div class="caption">Candidate Chapter of Theta Tau</div>
+  </div>
+  <table class="roll-entry">
+    <tr>
+      <td class="left">
+        <div class="field">
+          <div class="value">{{ object.name }}</div>
+          <div class="caption">Full Name</div>
+        </div>
+      </td>
+      <td class="right">
+        <div class="field">
+          <div class="value">&nbsp;</div>
+          <div class="caption">Signature</div>
+        </div>
+      </td>
+    </tr>
+    <tr>
+      <td class="left">
+        <div class="field">
+          <div class="value">{{ object.address.street_number }} {{ object.address.route }}</div>
+          <div class="caption">Permanent Home Address</div>
+        </div>
+      </td>
+      <td class="right">
+        <div class="field">
+          <div class="value">{{ init_date|date:"m/d/Y" }}</div>
+          <div class="caption">Initiation Date</div>
+        </div>
+      </td>
+    </tr>
+    <tr>
+      <td class="left">
+        <div class="field">
+          <div class="value">{{ object.address.locality }}</div>
+          <div class="caption">City, State, Zip</div>
+        </div>
+      </td>
+      <td class="right">
+        <div class="field">
+          <div class="value">{% if object.graduation_year %}Class of {{ object.graduation_year }}{% endif %}</div>
+          <div class="caption">Class</div>
+        </div>
+      </td>
+    </tr>
+    <tr>
+      <td class="left">
+        <div class="field">
+          <div class="value">{{ object.birth_date|date:"m/d/Y" }}</div>
+          <div class="caption">Date of Birth</div>
+        </div>
+      </td>
+      <td class="right">
+        <div class="field">
+          <div class="value">{{ object.major.major }}</div>
+          <div class="caption">Major</div>
+        </div>
+      </td>
+    </tr>
+  </table>
+{% endblock %}

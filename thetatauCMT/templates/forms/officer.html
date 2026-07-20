@@ -16,7 +16,16 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@eonasdan/tempus-dominus@6.9.4/dist/css/tempus-dominus.min.css" crossorigin="anonymous">
 {% specialspaceless %}
   <h1>Please select members to update role:</h1>
-  <form action="" method="post">
+  <div class="alert alert-warning" role="alert">
+    <strong>Treasurer term policy:</strong>
+    In accordance with Theta Tau Policy and Procedure Manual, the Treasurer of all chapters
+    shall be elected to hold office for one year, beginning in January.
+  </div>
+  <div class="alert alert-info" role="alert">
+    <strong>Note:</strong> Officers cannot assign a chapter officer role to themselves.
+    Another officer must record the role change on your behalf.
+  </div>
+  <form action="" method="post" id="officer-role-form">
     {% csrf_token %}
     <link href="{% static 'css/project.css' %}" rel="stylesheet">
     <div>{{ formset.management_form|crispy }}</div>
@@ -49,7 +58,11 @@
                   <tr class="row_form">
                   <div class="input-group">
                       {% for field in form %}
-                        {% if field.label == "Delete" %}
+                        {% if field.name == "treasurer_term_exception_reason" %}
+                          <td class="hidden" style="display: none;">
+                              {{ field }}
+                          </td>
+                        {% elif field.label == "Delete" %}
                           <td class="hidden" style="display: none;">
                               {{ field }}
                           </td>
@@ -74,9 +87,7 @@
                       {% endfor %}
                   <td>
                     {% if request.is_officer %}
-                  <div class="input-group-append">
                       <button class="btn btn-success add-row_form">+</button>
-                  </div>
                     {% endif %}
                   </td>
                   </div>
@@ -98,6 +109,40 @@
       <h3>Only officers can submit this form.</h3>
     {% endif %}
   </form>
+
+  <!-- Treasurer term policy exception modal -->
+  <div class="modal fade" id="treasurerPolicyModal" tabindex="-1" aria-labelledby="treasurerPolicyModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="treasurerPolicyModalLabel">Treasurer Term Policy</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p>
+            In accordance with Theta Tau Policy and Procedure Manual, the Treasurer of all chapters
+            shall be elected to hold office for one year, beginning in January.
+            <strong>Your submission is in violation of this policy.</strong>
+          </p>
+          <p>
+            If this is a legitimate exception (for example, a member elected mid-year after a trial
+            or a withdrawal), please provide a reason below. This should not be a planned exception.
+          </p>
+          <label for="treasurer-exception-reason" class="form-label">
+            Reason for this exception <span class="asteriskField">*</span>
+          </label>
+          <textarea id="treasurer-exception-reason" class="form-control" rows="3"></textarea>
+          <div id="treasurer-reason-error" class="text-danger mt-1" style="display: none;">
+            A reason is required in order to submit anyway.
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Go back and fix the dates</button>
+          <button type="button" class="btn btn-danger" id="treasurer-submit-anyway">Submit anyway</button>
+        </div>
+      </div>
+    </div>
+  </div>
 {% endspecialspaceless %}
 {% endblock content %}
 {% block javascript %}
@@ -133,5 +178,113 @@ function cloneMore(selector, prefix) {
     updateConditionRow();
     return false;
 }
+</script>
+<script>
+// Treasurer term policy: a Treasurer's term must begin and end in January.
+// When an officer submits the election report with a Treasurer whose start or
+// end date falls outside January, warn them, require a reason, and only then
+// allow the submission (which also triggers a policy-exception email).
+(function () {
+    var form = document.getElementById('officer-role-form');
+    if (!form) { return; }
+    var modalEl = document.getElementById('treasurerPolicyModal');
+    var reasonInput = document.getElementById('treasurer-exception-reason');
+    var reasonError = document.getElementById('treasurer-reason-error');
+    var submitAnywayBtn = document.getElementById('treasurer-submit-anyway');
+    var bsModal = null;
+    var pendingSubmitter = null;
+    var confirmed = false;
+
+    function parseMonth(value) {
+        // Accept both the M/D/YYYY picker format and ISO YYYY-MM-DD.
+        if (!value) { return null; }
+        value = ('' + value).trim();
+        var iso = value.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+        if (iso) { return parseInt(iso[2], 10); }
+        var us = value.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})/);
+        if (us) { return parseInt(us[1], 10); }
+        return null;
+    }
+
+    function findViolatingRows() {
+        // NOTE: the row markup nests a <div> directly inside <tr>, which the
+        // browser foster-parents out of the table, so ``closest('tr')`` is
+        // unreliable here. Look fields up form-wide by their prefixed name
+        // instead (derived from each role <select>'s name: "form-<i>-role").
+        var reasonFields = [];
+        var roleSelects = form.querySelectorAll('select[name$="-role"]');
+        Array.prototype.forEach.call(roleSelects, function (sel) {
+            if (sel.disabled || sel.value !== 'treasurer') { return; }
+            var name = sel.getAttribute('name') || '';
+            var prefix = name.replace(/-role$/, '');
+            if (!prefix) { return; }
+            var startEl = form.querySelector('[name="' + prefix + '-start"]');
+            var endEl = form.querySelector('[name="' + prefix + '-end"]');
+            var startMonth = startEl ? parseMonth(startEl.value) : null;
+            var endMonth = endEl ? parseMonth(endEl.value) : null;
+            var violates = (startMonth !== null && startMonth !== 1) ||
+                           (endMonth !== null && endMonth !== 1);
+            if (violates) {
+                reasonFields.push(
+                    form.querySelector('[name="' + prefix + '-treasurer_term_exception_reason"]')
+                );
+            }
+        });
+        return reasonFields;
+    }
+
+    form.addEventListener('submit', function (e) {
+        if (confirmed) { return; }
+        var reasonFields = findViolatingRows();
+        if (!reasonFields.length) { return; }
+        e.preventDefault();
+        pendingSubmitter = e.submitter || null;
+        if (modalEl && window.bootstrap && bootstrap.Modal) {
+            reasonError.style.display = 'none';
+            reasonInput.value = '';
+            bsModal = bootstrap.Modal.getOrCreateInstance(modalEl);
+            bsModal.show();
+        } else {
+            // Fallback when Bootstrap's modal is unavailable.
+            var typed = window.prompt(
+                'The Treasurer term must begin and end in January. ' +
+                'Provide a reason to submit anyway:'
+            );
+            if (typed && typed.trim()) {
+                fillReasons(reasonFields, typed.trim());
+                confirmed = true;
+                form.submit();
+            }
+        }
+    });
+
+    function fillReasons(reasonFields, reason) {
+        Array.prototype.forEach.call(reasonFields, function (el) {
+            if (el) { el.value = reason; }
+        });
+    }
+
+    if (submitAnywayBtn) {
+        submitAnywayBtn.addEventListener('click', function () {
+            var reason = reasonInput.value.trim();
+            if (!reason) {
+                reasonError.style.display = 'block';
+                return;
+            }
+            fillReasons(findViolatingRows(), reason);
+            confirmed = true;
+            if (bsModal) { bsModal.hide(); }
+            if (form.requestSubmit) {
+                if (pendingSubmitter) {
+                    form.requestSubmit(pendingSubmitter);
+                } else {
+                    form.requestSubmit();
+                }
+            } else {
+                form.submit();
+            }
+        });
+    }
+})();
 </script>
 {% endblock %}

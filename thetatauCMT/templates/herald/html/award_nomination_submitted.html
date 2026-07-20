@@ -1,0 +1,14 @@
+{% extends "herald/html/base_email.html" %}
+{% block title %}Award Nomination to Review{% endblock %}
+{% block content %}
+<br>
+<p>A new award nomination is waiting for your review.</p>
+<p>
+  <strong>{{ nominator }}</strong> nominated <strong>{{ recipient }}</strong>
+  for the <strong>{{ award }}</strong> award.
+</p>
+{% if description %}<p><em>{{ description }}</em></p>{% endif %}
+{% if justification %}<p><strong>Justification:</strong> {{ justification }}</p>{% endif %}
+<p><a href="{{ review_url }}">Review this nomination</a> in the CMT workflow.</p>
+<p>In H&amp;T,<br>Theta Tau</p>
+{% endblock content %}

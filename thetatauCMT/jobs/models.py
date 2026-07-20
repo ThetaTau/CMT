@@ -174,6 +174,48 @@ class Job(TimeStampedModel):
     )
     country = models.ForeignKey(Country, null=True, related_name="jobs", on_delete=models.CASCADE)
     attachment = models.FileField(upload_to=get_job_attachment_upload_path, null=True, blank=True)
+    deleted = models.BooleanField(
+        _("Deleted"),
+        default=False,
+        help_text="Soft-delete flag. Hidden from all listings and detail views when True.",
+    )
+    deleted_at = models.DateTimeField(_("Deleted At"), null=True, blank=True)
+    deleted_by = models.ForeignKey(
+        "users.User",
+        null=True,
+        blank=True,
+        related_name="jobs_deleted",
+        on_delete=models.SET_NULL,
+    )
+    deleted_reason = models.TextField(_("Delete Reason"), blank=True, default="")
+    reported = models.BooleanField(
+        _("Reported"),
+        default=False,
+        help_text="Set to True when a member has reported this posting for review.",
+    )
+    reported_at = models.DateTimeField(_("Reported At"), null=True, blank=True)
+    reported_by = models.ForeignKey(
+        "users.User",
+        null=True,
+        blank=True,
+        related_name="jobs_reported",
+        on_delete=models.SET_NULL,
+    )
+    reported_reason = models.TextField(_("Report Reason"), blank=True, default="")
+    approved = models.BooleanField(
+        _("Approved"),
+        default=False,
+        help_text="Set to True by a National Officer to mark a posting as reviewed and legitimate.",
+    )
+    approved_at = models.DateTimeField(_("Approved At"), null=True, blank=True)
+    approved_by = models.ForeignKey(
+        "users.User",
+        null=True,
+        blank=True,
+        related_name="jobs_approved",
+        on_delete=models.SET_NULL,
+    )
+    approved_reason = models.TextField(_("Approve Reason"), blank=True, default="")
 
     class Meta:
         ordering = ["priority", "-publish_start"]
@@ -187,13 +229,29 @@ class Job(TimeStampedModel):
             self.slug = slug = slugify(self.title)
             counter = 1
             while self.__class__.objects.filter(slug=self.slug).exists():
-                self.slug = "{0}-{1}".format(slug, counter)
+                self.slug = f"{0}-{1}".format(slug, counter)
             counter += 1
         return super().save(*args, **kwargs)
 
+    @property
+    def is_pending_report_review(self):
+        """A reported job that has not yet been approved by a National Officer."""
+        return self.reported and not self.approved
+
     @classmethod
     def get_live_jobs(cls, request=None):
-        return (cls.objects.filter(publish_start__lte=timezone.now(), publish_end__gte=timezone.now())).distinct()
+        qs = cls.objects.filter(
+            publish_start__lte=timezone.now(),
+            publish_end__gte=timezone.now(),
+            deleted=False,
+        )
+        is_natoff = False
+        if request is not None and getattr(request, "user", None) and request.user.is_authenticated:
+            is_natoff = bool(getattr(request, "is_nat_officer", False)) or request.user.is_superuser
+        if not is_natoff:
+            # Hide postings that have been reported but not yet approved by a National Officer
+            qs = qs.exclude(reported=True, approved=False)
+        return qs.distinct()
 
 
 class JobSearch(TimeStampedModel):
@@ -486,3 +544,37 @@ class JobSearch(TimeStampedModel):
             search_description_ors,
             search_description_nots,
         )
+
+
+class JobPostingBan(TimeStampedModel):
+    """A member who is barred from creating new job postings.
+
+    A row here indicates an active ban. Delete the row to lift the ban.
+    """
+
+    user = models.OneToOneField(
+        "users.User",
+        on_delete=models.CASCADE,
+        related_name="job_posting_ban",
+    )
+    banned_at = models.DateTimeField(_("Banned At"), default=timezone.now)
+    banned_by = models.ForeignKey(
+        "users.User",
+        null=True,
+        blank=True,
+        related_name="job_bans_issued",
+        on_delete=models.SET_NULL,
+    )
+    reason = models.TextField(_("Reason"), default="")
+
+    class Meta:
+        verbose_name = "Job Posting Ban"
+
+    def __str__(self):
+        return f"JobPostingBan: {self.user}"
+
+    @classmethod
+    def is_banned(cls, user):
+        if user is None or not getattr(user, "is_authenticated", False):
+            return False
+        return cls.objects.filter(user=user).exists()

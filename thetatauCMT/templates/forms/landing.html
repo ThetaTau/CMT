@@ -30,6 +30,17 @@
       {% endif %}
       <td>To submit an audit of the chapter finances.</td>
     </tr>
+    {% if feature_awards_enabled %}
+    <tr>
+      <td><a href="{% url 'viewflow:awards:awardnomination:start' %}">{% trans "Award Nomination" %}</a></td>
+      {% if request.is_nat_officer %}
+      <td>
+        <a href="{% url 'awards:directory' %}">{% trans "Award Winners" %}</a>
+      </td>
+      {% endif %}
+      <td>To nominate a member, chapter, or region for an award.</td>
+    </tr>
+    {% endif %}
     <tr>
       <td><a href="{% url 'ballots:votelist' %}">{% trans "Ballots" %}</a></td>
       {% if request.is_nat_officer %}

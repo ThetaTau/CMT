@@ -1,8 +1,10 @@
 import math
+import re
 
 from address.models import Address, Country, InconsistentDictError, Locality, State
 from dal import autocomplete
 from django.conf import settings
+from django.db import transaction
 from django.db.models import Q
 from haversine import haversine
 from pygeocoder import Geocoder, GeocoderError
@@ -14,6 +16,102 @@ from thetatauCMT.users.models import User
 
 def xstr(s):
     return s or ""
+
+
+_STREET_SPLIT_RE = re.compile(r"^\s*(\d+[A-Za-z\-/]*)\s+(.+?)\s*$")
+
+
+def split_street(street):
+    """Split "123 Main St" -> ("123", "Main St"). Returns ("", street) if no
+    leading number is present."""
+    if not street:
+        return "", ""
+    m = _STREET_SPLIT_RE.match(street)
+    if m:
+        return m.group(1), m.group(2)
+    return "", street.strip()
+
+
+def _country_defaults(country_name):
+    """Best-effort ISO-3166 alpha-2 code for common country names.
+    Only used when creating a new `Country` row; existing rows are reused as-is."""
+    return {
+        "United States": "US",
+        "Canada": "CA",
+        "Mexico": "MX",
+        "United Kingdom": "GB",
+        "Australia": "AU",
+        "Germany": "DE",
+        "France": "FR",
+        "India": "IN",
+        "China": "CN",
+        "Japan": "JP",
+    }.get(country_name, "")
+
+
+@transaction.atomic
+def get_or_create_address(street, city, state, postal_code, country, state_code=""):
+    """Get or create an `Address` row from typed-in components.
+
+    Returns the oldest matching `Address` when duplicates already exist (no
+    merging is performed here — that's the job of the `merge_duplicate_addresses`
+    management command).  Returns ``None`` if every component is empty.
+    """
+    street = (street or "").strip()
+    city = (city or "").strip()
+    state = (state or "").strip()
+    postal_code = (postal_code or "").strip()
+    country = (country or "").strip()
+
+    if not any([street, city, state, postal_code, country]):
+        return None
+
+    country_obj = None
+    if country:
+        country_obj, _ = Country.objects.get_or_create(
+            name=country,
+            defaults={"code": _country_defaults(country)},
+        )
+
+    state_obj = None
+    if state:
+        state_obj, _ = State.objects.get_or_create(
+            name=state,
+            country=country_obj,
+            defaults={"code": state_code or ""},
+        )
+
+    locality_obj = None
+    if city or postal_code:
+        locality_obj, _ = Locality.objects.get_or_create(
+            name=city,
+            postal_code=postal_code,
+            state=state_obj,
+        )
+
+    street_number, route = split_street(street)
+
+    raw_parts = [p for p in [street, ", ".join(p for p in [city, state] if p), postal_code, country] if p]
+    raw = ", ".join(raw_parts)[:200]
+
+    existing = Address.objects.filter(
+        street_number=street_number,
+        route=route,
+        locality=locality_obj,
+    ).order_by("id")
+    address_obj = existing.first()
+    if address_obj is not None:
+        return address_obj
+
+    address_obj = Address(
+        street_number=street_number,
+        route=route,
+        locality=locality_obj,
+        raw=raw or route or city or "unknown",
+    )
+    address_obj.formatted = str(address_obj) if not address_obj.formatted else address_obj.formatted
+    address_obj.save()
+    return address_obj
 
 
 def process_value(value):

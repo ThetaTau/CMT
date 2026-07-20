@@ -112,6 +112,24 @@ def current_year_term_slug():
     return f"{term}_{current_year()}"
 
 
+def previous_month_period(today=None):
+    """(start, end) dates of the calendar month before ``today`` (default: today)."""
+    today = today or timezone.now().date()
+    period_end = today.replace(day=1) - datetime.timedelta(days=1)
+    period_start = period_end.replace(day=1)
+    return period_start, period_end
+
+
+def month_period(year, month):
+    """(start, end) dates of the given calendar month."""
+    period_start = datetime.date(year, month, 1)
+    if month == 12:
+        period_end = datetime.date(year, 12, 31)
+    else:
+        period_end = datetime.date(year, month + 1, 1) - datetime.timedelta(days=1)
+    return period_start, period_end
+
+
 CHAPTER_OFFICER = {
     "corresponding secretary",
     "regent",
@@ -199,6 +217,66 @@ CHAPTER_OFFICER_CHOICES = sorted([(officer, officer.title()) for officer in CHAP
 ALL_ROLES_CHOICES = sorted([(role, role.title()) for role in ALL_ROLES], key=lambda x: x[0])
 NAT_OFFICERS_CHOICES = sorted([(role, role.title()) for role in NAT_OFFICERS], key=lambda x: x[0])
 CHAPTER_ROLES_CHOICES = sorted([(role, role.title()) for role in CHAPTER_ROLES], key=lambda x: x[0])
+
+# Member statuses considered "active" for roster / quorum / active-member counts.
+# Shared by Chapter.get_actives_for_date, User.is_active_on, and the attendance app.
+ACTIVE_STATUSES = [
+    "active",
+    "activepend",
+    "alumnipend",
+    "pendexpul",
+    "activeCC",
+]
+
+
+def user_is_national_officer(user):
+    """Return True when ``user`` counts as a National Officer / Admin.
+
+    A user qualifies through any of the existing role mechanisms:
+    - is a Django superuser (Admin),
+    - belongs to the ``natoff`` group (``is_national_officer_group``), or
+    - currently holds a national-officer role (``is_national_officer``).
+
+    Safely handles ``None`` and unauthenticated users (returns ``False``).
+
+    Returns ``False`` when a National Officer has toggled "Hide national officer
+    functionality" (``natoff_hidden``) to preview the site as a regular member.
+    """
+    if user is None or not getattr(user, "is_authenticated", False):
+        return False
+    if getattr(user, "natoff_hidden", False):
+        return False
+    return bool(user.is_superuser or user.is_national_officer_group or user.is_national_officer())
+
+
+def resolve_config_actor(value):
+    """Resolve a ``configs.Config`` value to a ``User``.
+
+    ``value`` may be a username / email, or a :data:`NAT_OFFICERS` role name (in
+    which case a current holder of that role is returned). Returns ``None`` when
+    the value is empty or cannot be resolved.
+
+    Shared by the config-driven approver resolution in the volunteer nomination
+    flow (``nominations.models.get_reviewer_for``) and the award nomination flow
+    (``awards.services.get_award_approver``).
+    """
+    from django.db.models import Q
+
+    from thetatauCMT.users.models import User
+
+    if not value:
+        return None
+    value = value.strip()
+    if not value:
+        return None
+    user = User.objects.filter(Q(username__iexact=value) | Q(email__iexact=value)).first()
+    if user is not None:
+        return user
+    role_lookup = {role.lower(): role for role in NAT_OFFICERS}
+    role = role_lookup.get(value.lower())
+    if role is not None:
+        return User.objects.filter(current_roles__contains=[role]).order_by("last_name", "name").first()
+    return None
 
 
 def semester_encompass_start_end_date(given_date=None, term=None, year=None):

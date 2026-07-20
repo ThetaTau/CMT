@@ -18,6 +18,10 @@
   <p>
   Your chapter will be charged $20 for each member referred for collection.
   </p>
+  <div class="alert alert-info" role="alert">
+    <strong>Note:</strong> Officers cannot refer themselves to collections. If
+    you owe your chapter money, another chapter officer must submit this form.
+  </div>
   <form class="collection_referral" enctype="multipart/form-data" method="POST">
     {% csrf_token %}
       {{ forms.collection.media }}

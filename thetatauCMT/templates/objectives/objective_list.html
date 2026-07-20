@@ -2,10 +2,21 @@
 {% load querystring from django_tables2 %}
 {% load django_bootstrap5 %}
 {% load crispy_forms_tags %}
+{% load filter_tags %}
 {% load static i18n %}
 {% block title %}Goals{% endblock %}
 
 {% block content %}
+<div class="page-header d-flex flex-wrap align-items-center gap-2 mb-3">
+  <h2 class="page-title mb-0">Goals</h2>
+  {% if request.is_officer %}
+    <div class="page-actions">
+      <a href="{% url 'objectives:create' %}" class="btn btn-primary">
+        <i class="fas fa-calendar-alt"></i> Add Goal
+      </a>
+    </div>
+  {% endif %}
+</div>
 {#  {% render_table table %}#}
 {% if table.page %}
   <div class="table-container">
@@ -17,26 +28,8 @@
             {% block table.thead %}
             <thead>
                 <tr>
-                  {% if request.is_officer %}
-                    <th>
-                      <a href="{% url "objectives:create" %}" class="btn btn-small btn-primary dark">
-{#                        <span class="hidden-phone">#}
-                          <i class="fas fa-calendar-alt"></i>
-                          Add Goal
-{#                        </span>#}
-                      </a>
-                    </th>
-                  {% endif %}
                     <th colspan="11">
-                        <form method="get" class="form-inline form-search pull-right">
-{#                          {% csrf_token %}#}
-{#                            <div>#}
-                          {% crispy filter.form filter.form.helper %}
-{#                              <input id="search_form_id" name="search" type="text" class="form-control col-md-3" placeholder="Name, Date, Type"{% if search %} value="{{ search }}"{% endif %}>#}
-{#                              <button type="submit" class="btn btn-small btn-dark">#}
-{#                                <i class="fas fa-search"></i> Search</button>#}
-{#                            </div>#}
-                        </form>
+                        {% collapsible_filter filter label="Filter Goals" collapse_id="goalsFilter" %}
                     </th>
                 </tr>
 

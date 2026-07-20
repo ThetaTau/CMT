@@ -2,10 +2,14 @@
 {% load querystring from django_tables2 %}
 {% load django_bootstrap5 %}
 {% load crispy_forms_tags %}
+{% load filter_tags %}
 {% load static i18n %}
 {% block title %}Alumni Exclusions{% endblock %}
 
 {% block content %}
+<div class="page-header d-flex flex-wrap align-items-center gap-2 mb-3">
+  <h2 class="page-title mb-0">Alumni Exclusions</h2>
+</div>
 {% if table.page %}
   <div class="table-container">
 {% endif %}
@@ -16,17 +20,8 @@
             {% block table.thead %}
             <thead>
                 <tr>
-                  <td colspan="5"><h3><i class="fas fa-search"></i> Filter Alumni Exclusions</h3></td>
-                  <td colspan="2">
-                    <form action='' method='GET'>
-                    {% csrf_token %}
-                    <input type='hidden'>
-                  </td>
-                </tr>
-                <tr>
                     <th colspan="9">
-                          {% crispy filter.form filter.form.helper %}
-                        </form>
+                        {% collapsible_filter filter label="Filter Alumni Exclusions" collapse_id="alumniExclusionFilter" %}
                     </th>
                 </tr>
 

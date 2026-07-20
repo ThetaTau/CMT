@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}Volunteer Training{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width: 720px; margin-top: 40px;">
+  <h2>Volunteer Training</h2>
+  <p>
+    Nominee: <strong>{{ nomination.nominee_display }}</strong>
+    {% if nomination.nominee %}
+      (<a href="{% url 'users:profile' nomination.nominee.username %}">profile</a>)
+    {% endif %}
+  </p>
+
+  {% if not at_training and all_complete %}
+    <div class="alert alert-success">All required trainings are complete. This nomination has moved on to confirmation.</div>
+  {% elif not at_training %}
+    <div class="alert alert-secondary">This nomination is not currently at the training step.</div>
+  {% endif %}
+
+  <table class="table">
+    <thead><tr><th>Required training</th><th>Status</th><th></th></tr></thead>
+    <tbody>
+      {% for training in trainings %}
+        <tr>
+          <td>{{ training.label }}</td>
+          <td>
+            {% if training.complete %}
+              <span class="badge bg-success">Complete</span>
+            {% else %}
+              <span class="badge bg-secondary">Not complete</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if at_training and not training.complete %}
+              <form method="POST">
+                {% csrf_token %}
+                <input type="hidden" name="training_key" value="{{ training.key }}">
+                <button type="submit" class="btn btn-sm btn-primary">Mark complete</button>
+              </form>
+            {% endif %}
+          </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <p class="text-body-secondary">
+    Both trainings must be complete before the nomination advances to
+    confirmation. Completion can also arrive automatically from the LMS / Vector
+    integration.
+  </p>
+</div>
+{% endblock %}

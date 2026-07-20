@@ -8,7 +8,13 @@ No emails are actually sent — we only assert that attributes are set correctly
 import pytest
 
 from thetatauCMT.chapters.tests.factories import ChapterFactory
-from thetatauCMT.users.notifications import MemberEmail, MemberInfoUpdate, NewOfficers, OfficerUpdateReminder
+from thetatauCMT.users.notifications import (
+    MemberEmail,
+    MemberInfoUpdate,
+    NewOfficers,
+    OfficerUpdateReminder,
+    RegionalDirectorOfficerDigest,
+)
 from thetatauCMT.users.tests.factories import UserFactory
 
 # ─── MemberInfoUpdate ─────────────────────────────────────────────────────────
@@ -98,10 +104,69 @@ def test_officer_update_reminder_context_has_officers():
 
 
 @pytest.mark.django_db
-def test_officer_update_reminder_cc_contains_region_email():
+def test_officer_update_reminder_cc_omits_region_email():
+    """The daily reminder no longer cc's the Regional Director.
+
+    RDs receive a weekly ``RegionalDirectorOfficerDigest`` instead, so an
+    unresponsive chapter can't email the RD every day.
+    """
     chapter = ChapterFactory.create()
     notif = OfficerUpdateReminder(chapter, {"officer@example.com"}, ["scribe"])
-    assert chapter.region.email in notif.cc
+    assert chapter.region.email not in notif.cc
+    assert notif.cc == []
+
+
+# ─── RegionalDirectorOfficerDigest ────────────────────────────────────────────
+
+
+@pytest.mark.django_db
+def test_regional_director_digest_to_emails_include_region_and_directors():
+    chapter = ChapterFactory.create()
+    region = chapter.region
+    region.email = "region-mailbox@example.com"
+    region.save()
+    director = UserFactory.create(email="director@example.com")
+    region.directors.add(director)
+    updates = [{"chapter": chapter, "officers": "regent, scribe"}]
+
+    notif = RegionalDirectorOfficerDigest(region, updates)
+
+    assert "region-mailbox@example.com" in notif.to_emails
+    assert "director@example.com" in notif.to_emails
+
+
+@pytest.mark.django_db
+def test_regional_director_digest_subject_names_region():
+    chapter = ChapterFactory.create()
+    region = chapter.region
+    notif = RegionalDirectorOfficerDigest(region, [{"chapter": chapter, "officers": "regent"}])
+    assert region.name in notif.subject
+    assert "Weekly" in notif.subject
+
+
+@pytest.mark.django_db
+def test_regional_director_digest_context_has_updates_and_count():
+    chapter = ChapterFactory.create()
+    region = chapter.region
+    updates = [{"chapter": chapter, "officers": "regent, treasurer"}]
+    notif = RegionalDirectorOfficerDigest(region, updates)
+    assert notif.context["chapter_updates"] == updates
+    assert notif.context["count"] == 1
+    assert notif.context["region"] == region
+
+
+@pytest.mark.django_db
+def test_regional_director_digest_filters_blank_emails():
+    """A director with no school email must not add an empty string recipient."""
+    chapter = ChapterFactory.create()
+    region = chapter.region
+    region.email = ""
+    region.save()
+    director = UserFactory.create(email="only@example.com", email_school="")
+    region.directors.add(director)
+    notif = RegionalDirectorOfficerDigest(region, [{"chapter": chapter, "officers": "regent"}])
+    assert "" not in notif.to_emails
+    assert notif.to_emails == {"only@example.com"}
 
 
 # ─── MemberEmail ──────────────────────────────────────────────────────────────

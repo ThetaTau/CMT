@@ -1,8 +1,9 @@
 from core.views import LoginRequiredMixin, PagedFilteredTableView
+from thetatauCMT.chapters.models import Chapter
 
 from .filters import ChapterBalanceListFilter, InvoiceListFilter
 from .forms import ChapterBalanceListFormHelper, InvoiceListFormHelper
-from .models import Invoice
+from .models import Invoice, chapter_balance_overview
 from .tables import ChapterBalanceTable, InvoiceTable
 
 
@@ -22,9 +23,9 @@ class InvoiceListView(LoginRequiredMixin, PagedFilteredTableView):
 
 
 class ChapterBalancesListView(LoginRequiredMixin, PagedFilteredTableView):
-    model = Invoice
-    context_object_name = "Invoice"
-    ordering = ["chapter"]
+    model = Chapter
+    context_object_name = "chapters"
+    ordering = ["name"]
     template_name = "finances/chapter_balances.html"
     table_class = ChapterBalanceTable
     filter_class = ChapterBalanceListFilter
@@ -32,6 +33,6 @@ class ChapterBalancesListView(LoginRequiredMixin, PagedFilteredTableView):
     table_pagination = {"per_page": 100}
 
     def get_queryset(self, **kwargs):
-        qs = Invoice.open_balances_all().order_by("chapter")
+        qs = chapter_balance_overview().order_by("name")
         qs = super().get_queryset(other_qs=qs)
-        return qs.filter(chapter__active=True)
+        return qs

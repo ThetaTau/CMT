@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% load static i18n %}
+{% load plotly_dash %}
+
+{% block title %}Dashboard: {{ object.name }}{% endblock %}
+
+{% block css %}
+  {{ block.super }}
+  <style>
+    /* Give the dashboard the full page width — the default `.container`
+       is too narrow for the multi-chapter bar charts. */
+    .tt-dashboard-wrapper > .container { max-width: 100%; }
+  </style>
+{% endblock %}
+
+{% block content %}
+  <div class="tt-dashboard-wrapper">
+    <div class="d-flex align-items-baseline justify-content-between mb-3">
+      <h1 class="h3 mb-0">
+        {% if object.slug == "national" %}
+          {% trans "National Dashboard" %}
+        {% else %}
+          {{ object.name }} {% trans "Region Dashboard" %}
+        {% endif %}
+      </h1>
+      {% if object.slug != "national" and object.slug != "candidate_chapter" %}
+        <a class="btn btn-outline-secondary btn-sm" href="{% url 'regions:detail' object.slug %}">
+          {% trans "Region details" %}
+        </a>
+      {% endif %}
+    </div>
+
+    {% plotly_header %}
+    {% plotly_direct name="RegionDashboard" %}
+    {% plotly_footer %}
+  </div>
+{% endblock content %}

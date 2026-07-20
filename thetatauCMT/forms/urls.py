@@ -49,6 +49,11 @@ urlpatterns = [
         name="pledge_program_list",
     ),
     path(
+        "pledge-program-request-revision/<int:process_pk>/",
+        view=views.pledge_program_request_revision,
+        name="pledge_program_request_revision",
+    ),
+    path(
         "pledgeprogram-detail/<int:pk>/",
         view=views.PledgeProgramProcessDetailView.as_view(),
         name="pledge_program_detail",
@@ -104,6 +109,16 @@ urlpatterns = [
         "status-selection/",
         view=views.StatusChangeSelectView.as_view(),
         name="status_selection",
+    ),
+    path(
+        "otherschool-autocomplete/",
+        view=views.OtherSchoolAutocomplete.as_view(create_field="name"),
+        name="otherschool-autocomplete",
+    ),
+    path(
+        "employer-autocomplete/",
+        view=views.EmployerAutocomplete.as_view(create_field="name"),
+        name="employer-autocomplete",
     ),
     path("officer/", view=views.RoleChangeView.as_view(), name="officer"),
     path(

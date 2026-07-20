@@ -1,7 +1,8 @@
 # filters.py
 import django_filters
 
-from core.filters import DateRangeFilter
+from core.filters import DateRangeFilter, DynamicScopeFilterSetMixin
+from thetatauCMT.chapters.models import Chapter
 from thetatauCMT.regions.models import Region
 
 from .models import Invoice
@@ -18,11 +19,11 @@ class InvoiceListFilter(django_filters.FilterSet):
         order_by = ["-due_date"]
 
 
-class ChapterBalanceListFilter(django_filters.FilterSet):
+class ChapterBalanceListFilter(DynamicScopeFilterSetMixin, django_filters.FilterSet):
     region = django_filters.ChoiceFilter(label="Region", choices=Region.region_choices(), method="filter_region")
 
     class Meta:
-        model = Invoice
+        model = Chapter
         fields = [
             "region",
         ]
@@ -31,7 +32,7 @@ class ChapterBalanceListFilter(django_filters.FilterSet):
         if value == "national":
             return queryset
         elif value == "candidate_chapter":
-            queryset = queryset.filter(chapter__candidate_chapter=True)
+            queryset = queryset.filter(candidate_chapter=True)
         else:
-            queryset = queryset.filter(chapter__region__slug=value)
+            queryset = queryset.filter(region__slug=value)
         return queryset

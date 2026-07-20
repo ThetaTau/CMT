@@ -12,7 +12,7 @@
           <dt>Chapter:</dt>
             <dd>{{ process.chapter }}</dd>
           <dt>Name of Member:</dt>
-          <dd><a href="{% url 'admin:users_user_change' process.user.id %}">{{ process.user }}</a></dd>
+          <dd><a href="{% url 'users:profile' username=process.user.username %}">{{ process.user }}</a></dd>
             {% for name, value in fields %}
             <dt>{{ name }}:</dt>
             <dd>

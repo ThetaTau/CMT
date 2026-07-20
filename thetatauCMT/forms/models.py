@@ -12,6 +12,7 @@ import requests
 from address.models import AddressField
 from django.conf import settings
 from django.contrib import messages
+from django.core.exceptions import ValidationError
 from django.core.validators import MaxValueValidator, RegexValidator
 from django.db import models, transaction
 from django.db.utils import IntegrityError
@@ -355,6 +356,66 @@ class Depledge(TimeStampedModel, EmailSignalMixin):
         )
 
 
+class OtherSchool(TimeStampedModel):
+    """Free-form school write-in for transfers to a school without a Theta Tau chapter.
+
+    A record is stored here so the same school can be re-selected later; it is
+    kept distinct from `Chapter.school`. Names duplicating an existing chapter
+    school are rejected (use the chapter dropdown instead).
+    """
+
+    name = models.CharField(max_length=200, unique=True)
+
+    class Meta:
+        ordering = ["name"]
+        verbose_name = "Other School (no Theta Tau chapter)"
+        verbose_name_plural = "Other Schools (no Theta Tau chapter)"
+
+    def __str__(self):
+        return self.name
+
+    def clean(self):
+        super().clean()
+        cleaned = (self.name or "").strip()
+        self.name = cleaned
+        if not cleaned:
+            raise ValidationError({"name": "School name is required."})
+        if Chapter.objects.filter(school__iexact=cleaned).exists():
+            raise ValidationError(
+                {
+                    "name": (
+                        f"'{cleaned}' is already a Theta Tau chapter school. "
+                        "Select it from the New School dropdown instead."
+                    )
+                }
+            )
+
+
+class Employer(TimeStampedModel):
+    """Shared registry of employer names used on member status changes.
+
+    Kept as a normalized model so the same employer can be re-selected across
+    reports; new entries can be created inline via the autocomplete widget.
+    """
+
+    name = models.CharField(max_length=200, unique=True)
+
+    class Meta:
+        ordering = ["name"]
+        verbose_name = "Employer"
+        verbose_name_plural = "Employers"
+
+    def __str__(self):
+        return self.name
+
+    def clean(self):
+        super().clean()
+        cleaned = (self.name or "").strip()
+        self.name = cleaned
+        if not cleaned:
+            raise ValidationError({"name": "Employer name is required."})
+
+
 class StatusChange(TimeStampedModel):
     class REASONS(EnumClass):
         graduate = ("graduate", "Member is graduating")  # Graduated from school
@@ -401,7 +462,13 @@ class StatusChange(TimeStampedModel):
     degree = models.CharField(max_length=4, choices=[x.value for x in DEGREES])
     date_start = models.DateField("Start Date", default=timezone.now)
     date_end = models.DateField("End Date", default=forever, blank=True)
-    employer = models.CharField(max_length=200)
+    employer = models.ForeignKey(
+        Employer,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="status_changes",
+    )
     miles = models.PositiveIntegerField(default=0, help_text="Miles from campus.")
     email_work = models.EmailField(_("email address"), blank=True)
     new_school = models.ForeignKey(
@@ -411,6 +478,14 @@ class StatusChange(TimeStampedModel):
         related_name="transfers",
         null=True,
         blank=True,
+    )
+    new_school_other = models.ForeignKey(
+        OtherSchool,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="transfers",
+        verbose_name="Other School (no Theta Tau chapter)",
     )
 
     # task = GenericRelation(TaskChapter)
@@ -560,6 +635,41 @@ class HSEducation(Process, TimeStampedModel, EmailSignalMixin):
             created__lt=end,
         )
         return programs
+
+    # Fallback reviewer if the ``HSEducationReviewer`` :class:`Config` key is
+    # empty / missing OR does not resolve to a known user — falls back to
+    # :data:`settings.EXECUTIVE_DIRECTOR`, which itself defaults to Jim Gaffney
+    # but can be overridden via the ``EXECUTIVE_DIRECTOR`` env var.
+
+    @classmethod
+    def get_reviewer(cls):
+        """Return the ``User`` who should review new H&S Education programs.
+
+        Reads the ``HSEducationReviewer`` :class:`Config` key — value is a
+        username (or email address) of a national officer. Falls back to
+        :data:`settings.EXECUTIVE_DIRECTOR` so the flow keeps working when the
+        Config row hasn't been added yet OR the configured username no longer
+        matches a live account.
+
+        Called from :class:`~thetatauCMT.forms.flows.HSEducationFlow.review`
+        as ``.Assign(lambda act: act.process.get_reviewer())``.
+        """
+        # Local import to avoid a top-of-module User import (which would risk
+        # circular imports through auth backend / core.auth wiring).
+        from django.contrib.auth import get_user_model
+
+        User = get_user_model()
+        identifier = (Config.get_value("HSEducationReviewer") or "").strip()
+        if identifier:
+            reviewer = (
+                User.objects.filter(username__iexact=identifier).first()
+                or User.objects.filter(email__iexact=identifier).first()
+            )
+            if reviewer is not None:
+                return reviewer
+        # Fallback — the Executive Director (username configured via
+        # ``EXECUTIVE_DIRECTOR`` settings; defaults to the historic account).
+        return User.objects.get(username=settings.EXECUTIVE_DIRECTOR)
 
 
 class RiskManagement(YearTermModel):

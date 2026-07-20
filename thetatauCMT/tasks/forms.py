@@ -20,6 +20,7 @@ class TaskListFormHelper(FormHelper):
                 InlineField("task__owner"),
                 InlineField("date"),
                 InlineField("complete"),
+                InlineField("archived"),
                 FormActions(
                     StrictButton(
                         '<i class="fa fa-search"></i> Filter',

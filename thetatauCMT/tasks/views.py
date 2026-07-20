@@ -1,7 +1,8 @@
 import datetime
 
 from django.contrib import messages
-from django.db import models, transaction
+from django.db import transaction
+from django.db.models import Exists, OuterRef, Subquery
 from django.db.utils import IntegrityError
 from django.http.request import QueryDict
 from django.shortcuts import reverse
@@ -34,12 +35,20 @@ class TaskCompleteView(LoginRequiredMixin, OfficerRequiredMixin, CreateView):
         dates = task.incomplete_dates_for_task_chapter(chapter=self.request.user.current_chapter)
         context["due_date"] = task_date
         context["dates"] = dates
+        context["is_archived"] = task_date.archived
         return context
 
     def form_valid(self, form):
         task_date_id = self.kwargs.get("pk")
         task_date = TaskDate.objects.get(pk=task_date_id)
         task = task_date.task
+        if task_date.archived:
+            messages.add_message(
+                self.request,
+                messages.ERROR,
+                "This due date is marked as no longer needed and cannot be completed.",
+            )
+            return super().form_invalid(form)
         current_roles = self.request.user.chapter_officer()
         if not current_roles or current_roles == {""}:
             messages.add_message(
@@ -76,24 +85,40 @@ class TaskListView(LoginRequiredMixin, PagedFilteredTableView):
     table_class = TaskTable
     filter_class = TaskListFilter
     formhelper_class = TaskListFormHelper
+    table_pagination = {"per_page": 40}
+
+    def _build_request_get(self):
+        """Return a QueryDict of filter params with sensible defaults.
+
+        Empty ``date`` and ``complete`` params get first-load defaults
+        (current term and Incomplete). ``?cancel=`` clears every filter.
+        """
+        if self.request.GET.get("cancel"):
+            return QueryDict(mutable=True)
+        request_get = self.request.GET.copy()
+        request_get._mutable = True
+        if request_get.get("date", "") == "":
+            request_get["date"] = current_year_term_slug()
+        if request_get.get("complete", "") == "":
+            request_get["complete"] = "0"
+        if request_get.get("archived", "") == "":
+            request_get["archived"] = "0"
+        return request_get
 
     def get_queryset(self, **kwargs):
-        qs = TaskDate.dates_for_chapter(self.request.user.current_chapter)
-        qs = super().get_queryset(other_qs=qs)
-        cancel = self.request.GET.get("cancel", False)
-        request_get = self.request.GET.copy()
-        if cancel:
-            request_get = QueryDict()
-        if not request_get:
-            # Create a mutable QueryDict object, default is immutable
-            request_get = QueryDict(mutable=True)
-            request_get.setlist("date", [""])
-            request_get.setlist("complete", [""])
-        if not cancel:
-            if request_get.get("date", "") == "":
-                request_get["date"] = current_year_term_slug()
-            if request_get.get("complete", "") == "":
-                request_get["complete"] = "0"
+        chapter = self.request.user.current_chapter
+        # Correlated subquery: the current chapter's completion for this
+        # TaskDate (if any). Using Subquery/Exists instead of a JOIN keeps
+        # each TaskDate as a single row and prevents completions by other
+        # chapters from polluting the annotation.
+        completed = TaskChapter.objects.filter(task=OuterRef("pk"), chapter=chapter).order_by("-date")
+        # Include archived rows in the base queryset so the ``archived`` filter
+        # can decide whether to surface them; it hides them by default.
+        qs = TaskDate.dates_for_chapter(chapter, include_archived=True).annotate(
+            complete_link=Subquery(completed.values("pk")[:1]),
+            is_complete=Exists(completed),
+        )
+        request_get = self._build_request_get()
         self.filter = self.filter_class(request_get, queryset=qs)
         self.filter.request = self.request
         self.filter.form.helper = self.formhelper_class()
@@ -101,24 +126,6 @@ class TaskListView(LoginRequiredMixin, PagedFilteredTableView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        chapter = self.request.user.current_chapter
-        qs = self.get_queryset()
-        qs = qs.annotate(
-            complete_link=models.Case(
-                models.When(models.Q(chapters__chapter=chapter), models.F("chapters__pk")),
-                default=models.Value(0),
-            )
-        )
-        # Annotate is duplicating things
-        qs = qs.distinct()
-        # Distinct sees incomplete/complete as different, so need to combine
-        complete = qs.exclude(complete_link=0)
-        incomplete = qs.filter(complete_link=0)
-        all_tasks = complete | incomplete
-        table = TaskTable(data=all_tasks)
-        table.request = self.request
-        RequestConfig(self.request, paginate={"per_page": 40}).configure(table)
-        context["table"] = table
         discipline_tasks = get_sign_status_discipline(self.request.user, name=True, complete=False)
         convention_tasks = get_sign_status(self.request.user, type_sign="creds", name=True, complete=False)
         resign_tasks = get_sign_status(self.request.user, type_sign="resign", name=True, complete=False)

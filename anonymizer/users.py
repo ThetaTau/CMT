@@ -14,6 +14,7 @@ from thetatauCMT.users.models import (
     UserSemesterGPA,
     UserSemesterServiceHours,
     UserStatusChange,
+    UserTag,
 )
 
 fake = Factory.create()
@@ -25,6 +26,7 @@ register_skip(
         UserSemesterServiceHours,
         UserDemographic,
         UserSemesterGPA,
+        UserTag,
         Signal,
         SignalConstraint,
     ]
@@ -65,6 +67,7 @@ class UserAnonym(AnonymBase):
     emergency_last_name = fields.function(fake.last_name)
     employer = fields.function(fake.company)
     employer_position = fields.function(fake.job)
+    profile_picture = fields.function(fake.file_path)
 
     class Meta:
         queryset = User.objects.exclude(is_superuser=True)
@@ -81,12 +84,16 @@ class UserAnonym(AnonymBase):
             "deceased",
             "unsubscribe_paper_gear",
             "unsubscribe_email",
+            "unsubscribe_categories",
             "modified",
             "date_joined",
             "employer_changed",
             "is_active",
             "no_contact",
             "charter",
+            "email_visibility",
+            "phone_visibility",
+            "address_visibility",
             "current_status",
             "current_roles",
             "officer",

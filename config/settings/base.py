@@ -136,6 +136,11 @@ LOCAL_APPS = [
     "thetatauCMT.objectives.apps.ObjectivesConfig",
     "thetatauCMT.trainings.apps.TrainingsConfig",
     "thetatauCMT.configs.apps.ConfigsConfig",
+    "thetatauCMT.contact_sync.apps.ContactSyncConfig",
+    "thetatauCMT.attendance.apps.AttendanceConfig",
+    "thetatauCMT.nominations.apps.NominationsConfig",
+    "thetatauCMT.awards.apps.AwardsConfig",
+    "thetatauCMT.email_tracking.apps.EmailTrackingConfig",
     # Added after any apps which contain models for which to create signals
     "email_signals",
 ]
@@ -284,6 +289,7 @@ TEMPLATES = [
                 "django.template.context_processors.tz",
                 "django.contrib.messages.context_processors.messages",
                 "thetatauCMT.utils.context_processors.settings_context",
+                "thetatauCMT.utils.context_processors.feature_flags",
             ],
         },
     }
@@ -321,6 +327,14 @@ EMAIL_BACKEND = env(
 )
 EMAIL_FILE_PATH = str(ROOT_DIR / "email_tests")
 EMAIL_TIMEOUT = 5
+# Email open/click tracking (Mailjet native, surfaced via django-anymail).
+# These toggle Mailjet's TrackOpens / TrackClicks on every outgoing message.
+EMAIL_TRACK_OPENS = env.bool("EMAIL_TRACK_OPENS", default=True)
+EMAIL_TRACK_CLICKS = env.bool("EMAIL_TRACK_CLICKS", default=True)
+# MailerLite API token (used by another part of the org). When set, the member
+# email-communication page also pulls each member's MailerLite subscriber
+# activity. https://developers.mailerlite.com/api/subscribers
+MAILERLITE_API_KEY = env("MAILERLITE_API_KEY", default="")
 # ADMIN
 # ------------------------------------------------------------------------------
 # Django Admin URL.
@@ -398,6 +412,15 @@ ROLLBAR = {
 }
 
 rollbar.init(**ROLLBAR)
+
+# Executive Director — username / email used to assign viewflow review tasks
+# (premature alumnus, disciplinary process, resignation, H&S education, etc.)
+# and as the fallback recipient for chapter-officer notifications that need to
+# reach a live person at the Central Office. Overridable via the
+# ``EXECUTIVE_DIRECTOR`` env var so a new ED can be swapped in without a code
+# change. Value must equal ``User.username`` for the ED account.
+EXECUTIVE_DIRECTOR = env("EXECUTIVE_DIRECTOR", default="Jim.Gaffney@thetatau.org")
+
 GOOGLE_API_KEY = env("GOOGLE_API_KEY", default="TESTING")
 if GOOGLE_API_KEY == "TESTING":
     # Try and load from secrets file
@@ -439,6 +462,22 @@ SOCIALACCOUNT_PROVIDERS = {
         },
     },
 }
+
+# ------------------------------------------------------------------------------
+# Contact-sync (region officer → Google / Microsoft Contacts).
+# ------------------------------------------------------------------------------
+# See docs/contact_sync_setup.md for step-by-step configuration.
+# Values default to empty strings so the feature "gracefully unavailable" —
+# each provider is only offered in the UI when both a client_id and a
+# client_secret are configured. The vCard-download path always works and does
+# not require any OAuth configuration.
+CONTACT_SYNC_GOOGLE_CLIENT_ID = env("CONTACT_SYNC_GOOGLE_CLIENT_ID", default="")
+CONTACT_SYNC_GOOGLE_CLIENT_SECRET = env("CONTACT_SYNC_GOOGLE_CLIENT_SECRET", default="")
+CONTACT_SYNC_MICROSOFT_CLIENT_ID = env("CONTACT_SYNC_MICROSOFT_CLIENT_ID", default="")
+CONTACT_SYNC_MICROSOFT_CLIENT_SECRET = env("CONTACT_SYNC_MICROSOFT_CLIENT_SECRET", default="")
+# Microsoft tenant: 'common' (personal+work), 'organizations' (work only),
+# 'consumers' (personal only), or a specific tenant GUID / verified domain.
+CONTACT_SYNC_MICROSOFT_TENANT = env("CONTACT_SYNC_MICROSOFT_TENANT", default="common")
 
 IMPORT_EXPORT_USE_TRANSACTIONS = True
 
@@ -641,9 +680,41 @@ LMS_SECRET = env("LMS_SECRET", default=None)
 
 ED_ID = env("ED_ID", default=None)
 ED_SECRET = env("ED_SECRET", default=None)
+# Base URL of the Open edX (Tutor) instance and the course run(s) every user
+# should be enrolled in. Override per-environment via env vars if needed.
+ED_HOST = env("ED_HOST", default="https://ed.thetatau.org")
+ED_COURSES = env.list("ED_COURSES", default=["course-v1:ThetaTau+TT101+intro"])
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 EMAIL_SIGNAL_DEFAULT_SENDER = DEFAULT_FROM_EMAIL
+
+# EVENTS
+# ------------------------------------------------------------------------------
+# When a National Officer creates a public event, should it be auto-approved
+# (cross-chapter visible immediately) instead of entering the pending queue?
+# Configurable per-environment; defaults to auto-approved.
+EVENTS_AUTO_APPROVE_NATIONAL_PUBLIC = env.bool("EVENTS_AUTO_APPROVE_NATIONAL_PUBLIC", default=True)
+
+# ATTENDANCE
+# ------------------------------------------------------------------------------
+# Quorum rule used by the attendance module. Configurable per-environment.
+#   "majority"  -> floor(active/2) + 1  (default)
+#   "two_thirds" -> ceil(active * 2/3)
+#   a float 0<x<=1 -> ceil(active * x)
+ATTENDANCE_QUORUM_RULE = env("ATTENDANCE_QUORUM_RULE", default="majority")
+# Minimum query length for the privacy-safe cross-chapter guest autocomplete.
+ATTENDANCE_GUEST_SEARCH_MIN_LENGTH = env.int("ATTENDANCE_GUEST_SEARCH_MIN_LENGTH", default=2)
+# Maximum results returned by the guest autocomplete (never a full roster).
+ATTENDANCE_GUEST_SEARCH_MAX_RESULTS = env.int("ATTENDANCE_GUEST_SEARCH_MAX_RESULTS", default=20)
+# Minimum confidence (0..1) at which a national-event attendance upload row is
+# auto-matched to a member; anything at or below routes to the manual match
+# queue (WI-7). Match is auto-accepted only when strictly greater than this.
+ATTENDANCE_MATCH_AUTO_ACCEPT_THRESHOLD = env.float("ATTENDANCE_MATCH_AUTO_ACCEPT_THRESHOLD", default=0.60)
+
+# AWARDS
+# ------------------------------------------------------------------------------
+# Whether revoked awards are shown (in a separate section) on public profiles.
+AWARDS_SHOW_REVOKED = env.bool("AWARDS_SHOW_REVOKED", default=False)
 
 # https://django-simple-history.readthedocs.io/en/latest/historical_model.html#filefield-as-a-charfield
 SIMPLE_HISTORY_FILEFIELD_TO_CHARFIELD = True

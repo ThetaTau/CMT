@@ -2,8 +2,30 @@ from django.core.exceptions import ValidationError
 from django.db.models import Q
 from import_export import resources
 from import_export.fields import Field
+from import_export.widgets import ManyToManyWidget
 
-from .models import User, UserRoleChange, UserStatusChange
+from .models import User, UserRoleChange, UserStatusChange, UserTag
+
+
+class UserTagResource(resources.ModelResource):
+    # Semicolon-separated list of user PKs. On import the users listed here
+    # are ADDED to the tag (m2m_add=True) — existing tagged users are kept,
+    # so re-importing is idempotent. Tags are matched by their unique name
+    # via ``import_id_fields``, so re-importing a row with an existing name
+    # updates that tag instead of creating a duplicate.
+    user_ids = Field(
+        column_name="user_ids",
+        attribute="users",
+        widget=ManyToManyWidget(User, field="pk", separator=";"),
+        m2m_add=True,
+    )
+
+    class Meta:
+        model = UserTag
+        fields = ("id", "name", "user_ids")
+        export_order = ("id", "name", "user_ids")
+        import_id_fields = ("name",)
+        skip_unchanged = True
 
 
 class UserRoleChangeResource(resources.ModelResource):

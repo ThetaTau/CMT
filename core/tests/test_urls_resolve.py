@@ -102,6 +102,7 @@ _URL_CASES = [
     ("regions:list", {}),
     ("regions:redirect", {}),
     ("regions:detail", {"slug": "test"}),
+    ("regions:dashboard", {"slug": "test"}),
     ("regions:officers", {"slug": "test"}),
     ("regions:advisors", {"slug": "test"}),
     ("regions:tasks", {"slug": "test"}),
@@ -111,7 +112,7 @@ _URL_CASES = [
     ("events:add", {}),
     ("events:copy", {"pk": 1}),
     ("events:redirect", {}),
-    ("events:update", {"pk": 1}),
+    ("events:update", {"year": 2023, "month": 1, "day": 1, "event_slug": "test"}),
     ("events:detail", {"year": 2023, "month": 1, "day": 1, "slug": "test"}),
     # ── jobs ───────────────────────────────────────────────────────────────
     ("jobs:list", {}),

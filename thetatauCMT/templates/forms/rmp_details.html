@@ -1,6 +1,6 @@
 {% load i18n %}
 {% load crispy_forms_tags %}
-<div class="jumbotron">
+<div class="p-4 p-md-5 mb-4 bg-body-tertiary text-body rounded-3 border">
   <div class="container">
 <h1>{% trans "Risk Management Policies and Agreements of Theta Tau" %}</h1>
   <h4><i>Revised Fall 2020</i></h4>
@@ -382,7 +382,7 @@ By signing this document, I agree that I will do everything in my power to cause
   {% endif %}
 {% endif %}
 <hr />
-<div class="jumbotron">
+<div class="p-4 p-md-5 mb-4 bg-body-tertiary text-body rounded-3 border">
 {% if request.is_officer or is_officer %}
   <p>
     <h5>

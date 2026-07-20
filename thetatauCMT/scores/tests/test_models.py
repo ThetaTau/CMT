@@ -213,3 +213,127 @@ def test_score_chapter_update_score(chapter):
     score_type = ScoreType.objects.first()
     sc = ScoreChapter.objects.create(chapter=chapter, type=score_type, score=5.0, year=2025, term="fa")
     sc.update_score()  # should not raise
+
+
+# ---------------------------------------------------------------------------
+# Semester boundary handling (half-open [start, end) window)
+# ---------------------------------------------------------------------------
+
+
+def _clean_type(chapter, score_type):
+    """Isolate a chapter/type from any rows leaked by --reuse-db."""
+    score_type.events.filter(chapter=chapter).delete()
+    ScoreChapter.objects.filter(chapter=chapter, type=score_type).delete()
+
+
+@pytest.mark.django_db
+def test_chapter_score_counts_january_boundary_in_spring(chapter, event_factory):
+    """An event on Jan 1 (a semester boundary) is counted in spring, not dropped."""
+    score_type = ScoreType.objects.get(slug="alumni-active")  # term_points = 40
+    _clean_type(chapter, score_type)
+    event_factory.create(
+        chapter=chapter,
+        type=score_type,
+        score=10,
+        calculate_score=False,
+        date=datetime.date(2025, 1, 1),
+    )
+    assert score_type.chapter_score(chapter, date=datetime.date(2025, 1, 1)) == 10
+
+
+@pytest.mark.django_db
+def test_chapter_score_counts_july_boundary_in_fall(chapter, event_factory):
+    """An event on Jul 1 (a semester boundary) is counted in fall, not dropped."""
+    score_type = ScoreType.objects.get(slug="alumni-active")
+    _clean_type(chapter, score_type)
+    event_factory.create(
+        chapter=chapter,
+        type=score_type,
+        score=7,
+        calculate_score=False,
+        date=datetime.date(2024, 7, 1),
+    )
+    assert score_type.chapter_score(chapter, date=datetime.date(2024, 7, 1)) == 7
+
+
+# ---------------------------------------------------------------------------
+# Academic-year cap (Fall + following Spring <= points, Fall kept whole)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.django_db
+def test_update_chapter_score_year_cap_keeps_fall_whole(chapter, event_factory):
+    """Fall + Spring of an academic year are capped at points, Fall kept whole."""
+    # alumni-active: points == term_points == 40, so a full Fall + full Spring
+    # (40 + 40) exceeds the 40 year cap and Spring must be trimmed to 0.
+    score_type = ScoreType.objects.get(slug="alumni-active")
+    _clean_type(chapter, score_type)
+    event_factory.create(
+        chapter=chapter, type=score_type, score=40, calculate_score=False, date=datetime.date(2024, 10, 1)
+    )
+    event_factory.create(
+        chapter=chapter, type=score_type, score=40, calculate_score=False, date=datetime.date(2025, 3, 1)
+    )
+    score_type.update_chapter_score(chapter, datetime.date(2024, 10, 1))
+    fall = ScoreChapter.objects.get(chapter=chapter, type=score_type, year=2024, term="fa")
+    spring = ScoreChapter.objects.get(chapter=chapter, type=score_type, year=2025, term="sp")
+    assert fall.score == 40
+    assert spring.score == 0
+    assert fall.score + spring.score == score_type.points
+
+
+@pytest.mark.django_db
+def test_update_chapter_score_year_cap_stable_from_either_term(chapter, event_factory):
+    """Saving from the Spring side stores the same capped values as the Fall side."""
+    score_type = ScoreType.objects.get(slug="alumni-active")
+    _clean_type(chapter, score_type)
+    event_factory.create(
+        chapter=chapter, type=score_type, score=40, calculate_score=False, date=datetime.date(2024, 10, 1)
+    )
+    event_factory.create(
+        chapter=chapter, type=score_type, score=40, calculate_score=False, date=datetime.date(2025, 3, 1)
+    )
+    score_type.update_chapter_score(chapter, datetime.date(2025, 3, 1))
+    fall = ScoreChapter.objects.get(chapter=chapter, type=score_type, year=2024, term="fa")
+    spring = ScoreChapter.objects.get(chapter=chapter, type=score_type, year=2025, term="sp")
+    assert fall.score == 40
+    assert spring.score == 0
+
+
+# ---------------------------------------------------------------------------
+# annotate_chapter_score biennium slot mapping
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.django_db
+def test_annotate_chapter_score_maps_biennium_slots(chapter):
+    """Scores land in the right column: Fall Y0, Spring Y1, Fall Y1, Spring Y2."""
+    score_type = ScoreType.objects.get(slug="alumni-active")
+    _clean_type(chapter, score_type)
+    ScoreChapter.objects.create(chapter=chapter, type=score_type, year=2024, term="fa", score=1)
+    ScoreChapter.objects.create(chapter=chapter, type=score_type, year=2025, term="sp", score=2)
+    ScoreChapter.objects.create(chapter=chapter, type=score_type, year=2025, term="fa", score=3)
+    ScoreChapter.objects.create(chapter=chapter, type=score_type, year=2026, term="sp", score=4)
+    result = ScoreType.annotate_chapter_score(chapter, start_year=2024)
+    row = next(r for r in result if r["id"] == score_type.id)
+    assert row["score1"] == 1
+    assert row["score2"] == 2
+    assert row["score3"] == 3
+    assert row["score4"] == 4
+    assert row["total"] == 10
+
+
+@pytest.mark.django_db
+def test_annotate_chapter_score_ignores_neighboring_biennia(chapter):
+    """Spring of the start year and Fall of the final year are not in this biennium."""
+    score_type = ScoreType.objects.get(slug="alumni-active")
+    _clean_type(chapter, score_type)
+    ScoreChapter.objects.create(chapter=chapter, type=score_type, year=2024, term="sp", score=99)
+    ScoreChapter.objects.create(chapter=chapter, type=score_type, year=2026, term="fa", score=88)
+    result = ScoreType.annotate_chapter_score(chapter, start_year=2024)
+    row = next(r for r in result if r["id"] == score_type.id)
+    assert row["score1"] == 0.0
+    assert row["score2"] == 0.0
+    assert row["score3"] == 0.0
+    assert row["score4"] == 0.0
+    assert row["total"] == 0.0

@@ -2,10 +2,14 @@
 {% load querystring from django_tables2 %}
 {% load django_bootstrap5 %}
 {% load crispy_forms_tags %}
+{% load filter_tags %}
 {% load static i18n %}
 {% block title %}Chapter Scores{% endblock %}
 
 {% block content %}
+<div class="page-header d-flex flex-wrap align-items-center gap-2 mb-3">
+  <h2 class="page-title mb-0">Chapter Scores</h2>
+</div>
 {% if table.page %}
   <div class="table-container">
 {% endif %}
@@ -17,10 +21,7 @@
             <thead>
                 <tr>
                     <th colspan="8">
-                        <form method="get" class="form-inline form-search pull-right">
-                          {% csrf_token %}
-                          {% crispy filter.form filter.form.helper %}
-                        </form>
+                        {% collapsible_filter filter label="Filter Scores" collapse_id="chapterScoreFilter" %}
                     </th>
                 </tr>
 

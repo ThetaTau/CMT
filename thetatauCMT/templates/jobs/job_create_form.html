@@ -12,13 +12,28 @@ Thank you for contributing to our brotherhood and professional development by
     but rather a way for active members, alumni, and other alumni to connect
     with potential career opportunities.
 
-If you or your company have a job opening that could benefit a fellow brother, please share the essential details here. Keep it concise—include key information like the job title, company, location, and a brief description—but make sure to link directly to the official job application page.
+If you or your company have a job opening that could benefit a fellow brother, please share the essential details here. Keep it concise. Include key information like the job title, company, location, and a brief description, but make sure to link directly to the official job application page.
 
-By sharing opportunities, we strengthen our network and support each other’s professional growth. Whether you’re looking for a job or hiring, let’s continue building a community of success!
+By sharing opportunities, we strengthen our network and support each other's professional growth. Whether you're looking for a job or hiring, let's continue building a community of success!
 
   </p><p><strong>To Post a Job Link: </strong><i>Fill out the form below with the necessary details and provide the official application link.</i></p>
 
 <p><h5>Together, we can help each other take the next step in our careers!</h5></p>
+  <div class="alert alert-info" role="alert">
+    <strong>Tip:</strong> For the <em>Keywords</em>, <em>Majors</em>, and <em>Location</em>
+    fields, start typing to search existing entries. You do <strong>not</strong> have to
+    pick something from the dropdown if what you want isn't listed, just type it
+    in and press <kbd>Enter</kbd> (or <kbd>Tab</kbd>) to add it as a new entry. Ignore any
+    "No results found" message; that just means nothing matched what you typed so far.
+  </div>
+  {% if user_is_natoff_or_superuser %}
+    <div class="alert alert-success" role="alert">
+      <i class="fas fa-check-circle"></i>
+      <strong>Note:</strong> Because you are signed in as a National Officer or superuser, this posting will be
+      <strong>automatically approved</strong> when you submit it. Approved postings skip the report/delete
+      review workflow and are visible to all members immediately.
+    </div>
+  {% endif %}
   <form class="form-horizontal" enctype="multipart/form-data" method="post" novalidate>
     {% csrf_token %}
     {{ form.media }}

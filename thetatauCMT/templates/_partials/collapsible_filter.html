@@ -1,0 +1,33 @@
+{% load crispy_forms_tags %}
+<div class="filter-toolbar d-flex flex-wrap align-items-center gap-2 mb-2">
+  <button class="btn btn-sm btn-outline-primary"
+          type="button"
+          data-bs-toggle="collapse"
+          data-bs-target="#{{ collapse_id }}"
+          aria-expanded="false"
+          aria-controls="{{ collapse_id }}"
+          title="Show/Hide {{ label }}">
+    <i class="fas fa-filter"></i>
+    <span class="ms-1">{{ label }}</span>
+    {% if active %}<span class="badge bg-primary ms-1">active</span>{% endif %}
+    <i class="fas fa-caret-down ms-1"></i>
+  </button>
+  {% if active and reset_url %}
+    <a href="{{ reset_url }}" class="btn btn-sm btn-outline-secondary" title="Clear all filters">
+      <i class="fas fa-eraser"></i> Clear Filter
+    </a>
+  {% endif %}
+  {% if active and summary %}
+    <div class="filter-summary d-flex flex-wrap align-items-center gap-1">
+      <span class="text-muted small me-1">Filtered by:</span>
+      {{ summary }}
+    </div>
+  {% endif %}
+</div>
+<div class="collapse mb-2" id="{{ collapse_id }}">
+  <div class="card card-body bg-body-tertiary text-body p-3 filter-panel">
+    <form method="get" class="filter-form">
+      {% crispy filterset.form filterset.form.helper %}
+    </form>
+  </div>
+</div>

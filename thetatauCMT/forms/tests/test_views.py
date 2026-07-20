@@ -9,6 +9,7 @@ Tests cover:
 """
 
 import pytest
+from django import forms
 from django.contrib.auth.models import Group
 from django.http import HttpResponse
 from django.urls import reverse
@@ -1010,6 +1011,114 @@ def test_pledge_program_list_region_candidate_chapter(auto_login_user):
     url = reverse("forms:pledge_program_list")
     response = client.get(url, {"region": "candidate_chapter"}, follow=True)
     assert response.status_code == 200
+
+
+# ─── pledge_program_request_revision (natoff NME revise-and-resubmit email) ────
+
+
+@pytest.mark.django_db
+def test_pledge_program_request_revision_sends_email(auto_login_user):
+    """Natoff POST emails the chapter's executive board and redirects."""
+    from unittest.mock import MagicMock, patch
+
+    from thetatauCMT.forms.flows import PledgeProgramProcessFlow
+    from thetatauCMT.forms.models import PledgeProgramProcess
+
+    client, user = auto_login_user()
+    _add_to_group(user, "natoff")
+    process = PledgeProgramProcess.objects.create(
+        chapter=user.chapter,
+        flow_class=PledgeProgramProcessFlow,
+        approval_comments="Please add a schedule.",
+    )
+    url = reverse(
+        "forms:pledge_program_request_revision",
+        kwargs={"process_pk": process.pk},
+    )
+    with patch("thetatauCMT.forms.views.GenericEmail") as MockEmail:
+        MockEmail.return_value.send = MagicMock()
+        response = client.post(url, follow=True)
+    assert response.status_code == 200
+    MockEmail.assert_called_once()
+    _args, kwargs = MockEmail.call_args
+    # Executive-board recipients come from Chapter.council_emails(); the
+    # factory sets a generic chapter email so the set is non-empty.
+    assert user.chapter.email in kwargs["emails"]
+    assert "revise and resubmit" in kwargs["message"]
+    MockEmail.return_value.send.assert_called_once()
+
+
+@pytest.mark.django_db
+def test_pledge_program_request_revision_requires_natoff(auto_login_user):
+    """A non-natoff authenticated user is redirected and no email is sent."""
+    from unittest.mock import patch
+
+    from thetatauCMT.forms.flows import PledgeProgramProcessFlow
+    from thetatauCMT.forms.models import PledgeProgramProcess
+
+    client, user = auto_login_user()
+    process = PledgeProgramProcess.objects.create(
+        chapter=user.chapter,
+        flow_class=PledgeProgramProcessFlow,
+    )
+    url = reverse(
+        "forms:pledge_program_request_revision",
+        kwargs={"process_pk": process.pk},
+    )
+    with patch("thetatauCMT.forms.views.GenericEmail") as MockEmail:
+        response = client.post(url)
+    assert response.status_code == 302
+    MockEmail.assert_not_called()
+
+
+@pytest.mark.django_db
+def test_pledge_program_request_revision_get_not_allowed(auto_login_user):
+    """The endpoint is POST-only (require_POST → 405 for natoff GET)."""
+    from thetatauCMT.forms.flows import PledgeProgramProcessFlow
+    from thetatauCMT.forms.models import PledgeProgramProcess
+
+    client, user = auto_login_user()
+    _add_to_group(user, "natoff")
+    process = PledgeProgramProcess.objects.create(
+        chapter=user.chapter,
+        flow_class=PledgeProgramProcessFlow,
+    )
+    url = reverse(
+        "forms:pledge_program_request_revision",
+        kwargs={"process_pk": process.pk},
+    )
+    response = client.get(url)
+    assert response.status_code == 405
+
+
+@pytest.mark.django_db
+def test_pledge_program_list_renders_revision_button(auto_login_user):
+    """A submitted program (with a process) renders the first-column button
+    linking to its own revision-request URL."""
+    from thetatauCMT.forms.flows import PledgeProgramProcessFlow
+    from thetatauCMT.forms.models import PledgeProgramProcess
+    from thetatauCMT.forms.tests.factories import PledgeProgramFactory
+
+    client, user = auto_login_user()
+    _add_to_group(user, "natoff")
+    program = PledgeProgramFactory.create(chapter=user.current_chapter)
+    process = PledgeProgramProcess.objects.create(
+        chapter=user.current_chapter,
+        program=program,
+        flow_class=PledgeProgramProcessFlow,
+    )
+    url = reverse("forms:pledge_program_list")
+    response = client.get(url, {"year": program.year, "term": program.term})
+    assert response.status_code == 200
+    content = response.content.decode()
+    assert "Request Revisions" in content
+    assert (
+        reverse(
+            "forms:pledge_program_request_revision",
+            kwargs={"process_pk": process.pk},
+        )
+        in content
+    )
 
 
 # ─── cancel param tests (additional views) ────────────────────────────────────
@@ -2239,7 +2348,7 @@ def test_rmp_list_with_active_user(auto_login_user):
 @pytest.mark.django_db
 def test_audit_form_view_get_with_pk(auto_login_user):
     """AuditFormView GET with existing pk triggers get_object pk-branch and
-    get_context_data 'object in context' branch at lines 1546-1571."""
+    renders the 'Audit complete' banner."""
     from thetatauCMT.forms.tests.factories import AuditFactory
     from thetatauCMT.users.tests.factories import UserRoleChangeFactory
 
@@ -2250,6 +2359,46 @@ def test_audit_form_view_get_with_pk(auto_login_user):
     url = reverse("forms:audit_complete", kwargs={"pk": audit.pk})
     response = client.get(url, follow=True)
     assert response.status_code == 200
+    assert "Audit complete" in response.content.decode()
+
+
+@pytest.mark.django_db
+def test_audit_form_view_get_with_pk_non_exec_officer(auto_login_user):
+    """A user in the 'officer' group without a current executive role should
+    still be able to VIEW a completed audit for their own chapter — they must
+    not be bounced to a blank submit form."""
+    from thetatauCMT.forms.tests.factories import AuditFactory
+
+    client, user = auto_login_user()
+    _add_to_group(user, "officer")
+    # No UserRoleChangeFactory: user has no current CHAPTER_OFFICER role.
+    audit = AuditFactory.create(user=user)
+    url = reverse("forms:audit_complete", kwargs={"pk": audit.pk})
+    response = client.get(url, follow=True)
+    assert response.status_code == 200
+    assert "Audit complete" in response.content.decode()
+
+
+@pytest.mark.django_db
+def test_audit_form_view_get_with_pk_wrong_chapter(auto_login_user):
+    """An officer requesting an audit belonging to a different chapter must
+    NOT see the completed-audit page for that chapter."""
+    from thetatauCMT.chapters.tests.factories import ChapterFactory
+    from thetatauCMT.forms.tests.factories import AuditFactory
+    from thetatauCMT.users.tests.factories import UserFactory, UserRoleChangeFactory
+
+    client, user = auto_login_user()
+    _add_to_group(user, "officer")
+    UserRoleChangeFactory.create(user=user, current=True, role="treasurer")
+    other_chapter = ChapterFactory()
+    other_user = UserFactory(chapter=other_chapter)
+    audit = AuditFactory.create(user=other_user)
+
+    url = reverse("forms:audit_complete", kwargs={"pk": audit.pk})
+    response = client.get(url, follow=True)
+    assert response.status_code == 200
+    # The view falls back to the empty (submission) form — no completed banner.
+    assert "Audit complete" not in response.content.decode()
 
 
 # ─── AuditFormView POST as officer – form_valid (lines 1590-1616) ────────────
@@ -2334,6 +2483,111 @@ def test_role_change_view_post_with_valid_form(auto_login_user):
     }
     response = client.post(url, data, follow=True)
     assert response.status_code == 200
+
+
+# ─── Treasurer term policy (January-to-January) enforcement ──────────────────
+
+
+def _officer_treasurer_setup(auto_login_user):
+    """Log in an officer and return (client, user, new_treasurer, officer url)."""
+    from thetatauCMT.users.tests.factories import UserFactory
+
+    client, user = auto_login_user()
+    _add_to_group(user, "officer")
+    new_treasurer = UserFactory.create(chapter=user.chapter)
+    return client, user, new_treasurer, reverse("forms:officer")
+
+
+def _officer_formset_data(new_treasurer, start, end, reason=None):
+    data = {
+        "form-TOTAL_FORMS": "1",
+        "form-INITIAL_FORMS": "0",
+        "form-MIN_NUM_FORMS": "0",
+        "form-MAX_NUM_FORMS": "1000",
+        "form-0-user": str(new_treasurer.pk),
+        "form-0-role": "treasurer",
+        "form-0-start": start,
+        "form-0-end": end,
+    }
+    if reason is not None:
+        data["form-0-treasurer_term_exception_reason"] = reason
+    return data
+
+
+@pytest.mark.django_db
+def test_officer_page_shows_treasurer_policy_note(auto_login_user):
+    """The Officer Election Report page shows the Treasurer term policy note."""
+    client, user = auto_login_user()
+    _add_to_group(user, "officer")
+    response = client.get(reverse("forms:officer"))
+    assert response.status_code == 200
+    content = response.content.decode("UTF-8")
+    assert "shall be elected to hold office for one year, beginning in January" in content
+    # The policy-check JS targets the form by this id (NOT the first POST form,
+    # which can be the navbar chapter switcher for national officers).
+    assert 'id="officer-role-form"' in content
+
+
+@pytest.mark.django_db
+def test_treasurer_non_january_without_reason_is_blocked(auto_login_user, mailoutbox):
+    """A Treasurer term outside January is rejected when no reason is supplied."""
+    from thetatauCMT.users.models import UserRoleChange
+
+    client, user, new_treasurer, url = _officer_treasurer_setup(auto_login_user)
+    data = _officer_formset_data(new_treasurer, "2026-03-01", "2027-02-28")
+    response = client.post(url, data, follow=True)
+    assert response.status_code == 200
+    # Nothing saved and no notification emails sent.
+    assert not UserRoleChange.objects.filter(user=new_treasurer, role="treasurer").exists()
+    assert mailoutbox == []
+
+
+@pytest.mark.django_db
+def test_treasurer_non_january_with_reason_saves_and_emails(auto_login_user, mailoutbox):
+    """With a reason, an out-of-policy Treasurer term saves and notifies leadership."""
+    from thetatauCMT.regions.tests.factories import RegionFactory
+    from thetatauCMT.users.models import UserRoleChange
+    from thetatauCMT.users.tests.factories import UserFactory
+
+    client, user, new_treasurer, url = _officer_treasurer_setup(auto_login_user)
+    region = RegionFactory(name="Treasurer Policy Region", email="rd-region@example.com")
+    director = UserFactory(first_name="Dana", last_name="Director", email="director@example.com")
+    region.directors.add(director)
+    user.chapter.region = region
+    user.chapter.save(update_fields=["region"])
+
+    data = _officer_formset_data(
+        new_treasurer,
+        "2026-03-01",
+        "2027-02-28",
+        reason="Elected mid-year after the prior treasurer withdrew.",
+    )
+    response = client.post(url, data, follow=True)
+    assert response.status_code == 200
+    assert UserRoleChange.objects.filter(user=new_treasurer, role="treasurer").exists()
+
+    exception_emails = [m for m in mailoutbox if "Treasurer Term Policy Exception" in m.subject]
+    assert len(exception_emails) == 1
+    email = exception_emails[0]
+    assert "grand.treasurer@thetatau.org" in email.to
+    assert "director@example.com" in email.to
+    assert "rd-region@example.com" in email.to
+    assert "central.office@thetatau.org" in email.cc
+    body = " ".join([email.body] + [alt[0] for alt in email.alternatives])
+    assert "Elected mid-year after the prior treasurer withdrew." in body
+
+
+@pytest.mark.django_db
+def test_treasurer_january_dates_no_exception_email(auto_login_user, mailoutbox):
+    """A conforming (January) Treasurer term saves without a policy-exception email."""
+    from thetatauCMT.users.models import UserRoleChange
+
+    client, user, new_treasurer, url = _officer_treasurer_setup(auto_login_user)
+    data = _officer_formset_data(new_treasurer, "2026-01-05", "2027-01-04")
+    response = client.post(url, data, follow=True)
+    assert response.status_code == 200
+    assert UserRoleChange.objects.filter(user=new_treasurer, role="treasurer").exists()
+    assert [m for m in mailoutbox if "Treasurer Term Policy Exception" in m.subject] == []
 
 
 # ─── ReturnStudentCreateView GET with existing process (lines 3070-3094) ─────
@@ -2826,6 +3080,37 @@ def test_download_all_rollbook_officer_empty_roll_returns_zip(auto_login_user):
     assert "zip" in response.get("Content-Type", "").lower()
 
 
+# ─── RollBookPDFView template selection ───────────────────────────────────────
+
+
+@pytest.mark.django_db
+def test_rollbook_pdf_view_uses_chartered_template_for_chartered_chapter():
+    """Chartered (non-candidate) chapters roll members on the standard form."""
+    from thetatauCMT.forms.views import RollBookPDFView
+    from thetatauCMT.users.tests.factories import UserFactory
+
+    chapter = ChapterFactory(candidate_chapter=False)
+    user = UserFactory(chapter=chapter)
+    view = RollBookPDFView()
+    view.object = user
+
+    assert view.get_template_names() == ["forms/rollbook_pdf.html"]
+
+
+@pytest.mark.django_db
+def test_rollbook_pdf_view_uses_candidate_template_for_candidate_chapter():
+    """Candidate chapters automatically render the candidate roll template."""
+    from thetatauCMT.forms.views import RollBookPDFView
+    from thetatauCMT.users.tests.factories import UserFactory
+
+    chapter = ChapterFactory(candidate_chapter=True)
+    user = UserFactory(chapter=chapter)
+    view = RollBookPDFView()
+    view.object = user
+
+    assert view.get_template_names() == ["forms/rollbook_candidate_pdf.html"]
+
+
 # ─── DisciplinaryCreateView GET (lines 2756-2759) ─────────────────────────────
 
 
@@ -3081,3 +3366,318 @@ def test_alumni_exclusion_detail_view_get(auto_login_user):
     url = reverse("forms:alumniexclusion_detail", kwargs={"pk": ae.pk})
     response = client.get(url, follow=True)
     assert response.status_code == 200
+
+
+# ─── Self-submission blocking for peer-review forms ───────────────────────────
+#
+# Officers must not be able to submit these forms about themselves. Each form
+# rejects the requesting user via a ``clean_<field>`` method on the form (with
+# the requesting user injected through ``request_user`` via ``get_form_kwargs``
+# on the view). The ``UserAutocomplete`` also filters out the requesting user
+# from the picker via ``exclude_self=true`` in the forward config.
+
+
+@pytest.mark.django_db
+def test_user_autocomplete_exclude_self_flag_hides_requesting_user(auto_login_user):
+    """UserAutocomplete honors ``exclude_self=true`` in forwarded config."""
+    import json
+
+    from thetatauCMT.users.tests.factories import UserFactory
+
+    client, user = auto_login_user()
+    _add_to_group(user, "officer")
+    other = UserFactory.create(chapter=user.chapter)
+    other.set_current_status(status="active")
+    user.set_current_status(status="active")
+    url = reverse("users:autocomplete")
+    forward = json.dumps({"chapter": "true", "actives": "true", "exclude_self": "true"})
+    response = client.get(url, {"forward": forward})
+    assert response.status_code == 200
+    payload = response.json()
+    ids = {int(item["id"]) for item in payload.get("results", [])}
+    assert user.pk not in ids
+    # The other active chapter member should still be present
+    assert other.pk in ids
+
+
+@pytest.mark.django_db
+def test_premature_alumnus_form_rejects_self():
+    """PrematureAlumnusForm.clean_user rejects the requesting user."""
+    from django.forms.renderers import get_default_renderer
+    from django.forms.utils import ErrorDict
+
+    from thetatauCMT.forms.forms import PrematureAlumnusForm
+    from thetatauCMT.users.tests.factories import UserFactory
+
+    user = UserFactory.create()
+    f = PrematureAlumnusForm.__new__(PrematureAlumnusForm)
+    f._errors = ErrorDict()
+    f.renderer = get_default_renderer()
+    f.fields = {}
+    f.cleaned_data = {"user": user}
+    f.request_user = user
+    with pytest.raises(forms.ValidationError, match="cannot list yourself"):
+        f.clean_user()
+
+
+@pytest.mark.django_db
+def test_convention_form_rejects_self_delegate_and_alternate():
+    """ConventionForm.clean_delegate/alternate reject the requesting user."""
+    from django.forms.renderers import get_default_renderer
+    from django.forms.utils import ErrorDict
+
+    from thetatauCMT.forms.forms import ConventionForm
+    from thetatauCMT.users.tests.factories import UserFactory
+
+    user = UserFactory.create()
+    other = UserFactory.create()
+
+    f = ConventionForm.__new__(ConventionForm)
+    f._errors = ErrorDict()
+    f.renderer = get_default_renderer()
+    f.fields = {}
+    f.request_user = user
+
+    # Self as delegate
+    f.cleaned_data = {"delegate": user}
+    with pytest.raises(forms.ValidationError, match="cannot list yourself"):
+        f.clean_delegate()
+
+    # Self as alternate
+    f.cleaned_data = {"alternate": user}
+    with pytest.raises(forms.ValidationError, match="cannot list yourself"):
+        f.clean_alternate()
+
+    # Other user should pass both
+    f.cleaned_data = {"delegate": other}
+    assert f.clean_delegate() is other
+    f.cleaned_data = {"alternate": other}
+    assert f.clean_alternate() is other
+
+
+@pytest.mark.django_db
+def test_osm_form_rejects_self_nominee():
+    """OSMForm.clean_nominate rejects the requesting user."""
+    from django.forms.renderers import get_default_renderer
+    from django.forms.utils import ErrorDict
+
+    from thetatauCMT.forms.forms import OSMForm
+    from thetatauCMT.users.tests.factories import UserFactory
+
+    user = UserFactory.create()
+    f = OSMForm.__new__(OSMForm)
+    f._errors = ErrorDict()
+    f.renderer = get_default_renderer()
+    f.fields = {}
+    f.cleaned_data = {"nominate": user}
+    f.request_user = user
+    with pytest.raises(forms.ValidationError, match="cannot list yourself"):
+        f.clean_nominate()
+
+
+@pytest.mark.django_db
+def test_disciplinary_form1_rejects_self():
+    """DisciplinaryForm1.clean_user rejects the requesting user."""
+    from django.forms.renderers import get_default_renderer
+    from django.forms.utils import ErrorDict
+
+    from thetatauCMT.forms.forms import DisciplinaryForm1
+    from thetatauCMT.users.tests.factories import UserFactory
+
+    user = UserFactory.create()
+    f = DisciplinaryForm1.__new__(DisciplinaryForm1)
+    f._errors = ErrorDict()
+    f.renderer = get_default_renderer()
+    f.fields = {}
+    f.cleaned_data = {"user": user}
+    f.request_user = user
+    with pytest.raises(forms.ValidationError, match="cannot list yourself"):
+        f.clean_user()
+
+
+@pytest.mark.django_db
+def test_alumni_exclusion_form_rejects_self():
+    """AlumniExclusionForm.clean_user rejects the requesting user."""
+    from django.forms.renderers import get_default_renderer
+    from django.forms.utils import ErrorDict
+
+    from thetatauCMT.forms.forms import AlumniExclusionForm
+    from thetatauCMT.users.tests.factories import UserFactory
+
+    user = UserFactory.create()
+    f = AlumniExclusionForm.__new__(AlumniExclusionForm)
+    f._errors = ErrorDict()
+    f.renderer = get_default_renderer()
+    f.fields = {}
+    f.cleaned_data = {"user": user}
+    f.request_user = user
+    with pytest.raises(forms.ValidationError, match="cannot list yourself"):
+        f.clean_user()
+
+
+@pytest.mark.django_db
+def test_collection_referral_form_rejects_self():
+    """CollectionReferralForm.clean_user rejects the requesting user."""
+    from django.forms.renderers import get_default_renderer
+    from django.forms.utils import ErrorDict
+
+    from thetatauCMT.forms.forms import CollectionReferralForm
+    from thetatauCMT.users.tests.factories import UserFactory
+
+    user = UserFactory.create()
+    f = CollectionReferralForm.__new__(CollectionReferralForm)
+    f._errors = ErrorDict()
+    f.renderer = get_default_renderer()
+    f.fields = {}
+    f.cleaned_data = {"user": user}
+    f.request_user = user
+    with pytest.raises(forms.ValidationError, match="cannot list yourself"):
+        f.clean_user()
+
+
+@pytest.mark.django_db
+def test_return_student_form_rejects_self():
+    """ReturnStudentForm.clean_user rejects the requesting user even when the
+    user has no prealumn form."""
+    from unittest.mock import MagicMock
+
+    from django.forms.renderers import get_default_renderer
+    from django.forms.utils import ErrorDict
+
+    from thetatauCMT.forms.forms import ReturnStudentForm
+
+    user = MagicMock()
+    prealumn_qs = MagicMock()
+    prealumn_qs.__bool__ = lambda self: False
+    user.prealumn_form.all.return_value = prealumn_qs
+
+    f = ReturnStudentForm.__new__(ReturnStudentForm)
+    f._errors = ErrorDict()
+    f.renderer = get_default_renderer()
+    f.fields = {}
+    f.cleaned_data = {"user": user}
+    f.request_user = user
+    with pytest.raises(forms.ValidationError, match="cannot request return"):
+        f.clean_user()
+
+
+@pytest.mark.django_db
+def test_ritual_proficiency_form_rejects_self():
+    """RitualProficiencyForm.clean_user rejects the requesting user."""
+    from django.forms.renderers import get_default_renderer
+    from django.forms.utils import ErrorDict
+
+    from thetatauCMT.forms.forms import RitualProficiencyForm
+    from thetatauCMT.users.tests.factories import UserFactory
+
+    user = UserFactory.create()
+    f = RitualProficiencyForm.__new__(RitualProficiencyForm)
+    f._errors = ErrorDict()
+    f.renderer = get_default_renderer()
+    f.fields = {}
+    f.cleaned_data = {"user": user}
+    f.request_user = user
+    with pytest.raises(forms.ValidationError, match="cannot list yourself"):
+        f.clean_user()
+
+
+@pytest.mark.django_db
+def test_status_change_select_form_rejects_self():
+    """StatusChangeSelectForm.clean_user rejects the requesting user."""
+    from django.forms.renderers import get_default_renderer
+    from django.forms.utils import ErrorDict
+
+    from thetatauCMT.forms.forms import StatusChangeSelectForm
+    from thetatauCMT.users.tests.factories import UserFactory
+
+    user = UserFactory.create()
+    f = StatusChangeSelectForm.__new__(StatusChangeSelectForm)
+    f._errors = ErrorDict()
+    f.renderer = get_default_renderer()
+    f.fields = {}
+    f.cleaned_data = {"user": user}
+    f.request_user = user
+    with pytest.raises(forms.ValidationError, match="cannot report a status change"):
+        f.clean_user()
+
+
+@pytest.mark.django_db
+def test_role_change_select_form_rejects_self_when_field_enabled():
+    """RoleChangeSelectForm.clean_user rejects self only when the user field
+    is editable (extra/new row); existing disabled rows must pass through so
+    the officer can still edit other rows on the page."""
+    from django.forms.renderers import get_default_renderer
+    from django.forms.utils import ErrorDict
+
+    from thetatauCMT.forms.forms import RoleChangeSelectForm
+    from thetatauCMT.users.tests.factories import UserFactory
+
+    user = UserFactory.create()
+
+    # Enabled (extra/new row): rejects self
+    f = RoleChangeSelectForm.__new__(RoleChangeSelectForm)
+    f._errors = ErrorDict()
+    f.renderer = get_default_renderer()
+    enabled_field = forms.ModelChoiceField(queryset=type(user).objects.all())
+    enabled_field.disabled = False
+    f.fields = {"user": enabled_field}
+    f.cleaned_data = {"user": user}
+    f.request_user = user
+    with pytest.raises(forms.ValidationError, match="cannot list yourself"):
+        f.clean_user()
+
+    # Disabled (existing row): allowed even if the same user
+    disabled_field = forms.ModelChoiceField(queryset=type(user).objects.all())
+    disabled_field.disabled = True
+    f.fields = {"user": disabled_field}
+    assert f.clean_user() == user
+
+
+@pytest.mark.django_db
+def test_role_change_national_select_form_rejects_self_when_field_enabled():
+    """RoleChangeNationalSelectForm.clean_user follows the same enabled/disabled
+    rule as the chapter-level form."""
+    from django.forms.renderers import get_default_renderer
+    from django.forms.utils import ErrorDict
+
+    from thetatauCMT.forms.forms import RoleChangeNationalSelectForm
+    from thetatauCMT.users.tests.factories import UserFactory
+
+    user = UserFactory.create()
+
+    f = RoleChangeNationalSelectForm.__new__(RoleChangeNationalSelectForm)
+    f._errors = ErrorDict()
+    f.renderer = get_default_renderer()
+    enabled_field = forms.ModelChoiceField(queryset=type(user).objects.all())
+    enabled_field.disabled = False
+    f.fields = {"user": enabled_field}
+    f.cleaned_data = {"user": user}
+    f.request_user = user
+    with pytest.raises(forms.ValidationError, match="cannot list yourself"):
+        f.clean_user()
+
+    disabled_field = forms.ModelChoiceField(queryset=type(user).objects.all())
+    disabled_field.disabled = True
+    f.fields = {"user": disabled_field}
+    assert f.clean_user() == user
+
+
+@pytest.mark.django_db
+def test_status_change_select_view_excludes_self_from_actives(auto_login_user):
+    """StatusChangeSelectView must NOT include the requesting officer in the
+    user field queryset — the picker should only surface other chapter members."""
+    from thetatauCMT.users.tests.factories import UserFactory
+
+    client, user = auto_login_user()
+    _add_to_group(user, "officer")
+    other = UserFactory.create(chapter=user.chapter)
+    user.set_current_status(status="active")
+    other.set_current_status(status="active")
+    url = reverse("forms:status_selection")
+    response = client.get(url)
+    assert response.status_code == 200
+    formset = response.context["formset"]
+    user_qs = formset.form.base_fields["user"].queryset
+    pks = set(user_qs.values_list("pk", flat=True))
+    assert user.pk not in pks
+    assert other.pk in pks

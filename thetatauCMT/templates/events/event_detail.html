@@ -5,42 +5,217 @@
 
 {% block content %}
 <div class="container">
-
-  <div class="row">
-    <div class="col-sm-12">
-
-      <h2>{{ object.name }}</h2>
-      {% if object.name %}
-        <h4>Created By: {{ object.created_by }} {{ object.created }}</h4>
-        <h4>Last Modified By: {{ object.modified_by }} {{ object.modified }}</h4>
-        <p>{{ object.name }}</p>
-        <p>{{ object.date }}</p>
-        <p>{{ object.type }}</p>
-        <p>{{ object.chapter }}</p>
-        <p>{{ object.score }}</p>
-        <p>{{ object.description }}</p>
-        <p>{{ object.duration }}</p>
-        <p>{{ object.stem }}</p>
-        <p>{{ object.host }}</p>
-        <p>{{ object.miles }}</p>
+  <div class="page-header d-flex flex-wrap align-items-center gap-2 mb-3">
+    <h2 class="page-title mb-0">{{ object.name }}</h2>
+    <div class="page-actions">
+      <a class="btn btn-primary" href="{{ object.get_update_url }}" role="button">Edit</a>
+      {% if request.is_officer or request.is_nat_officer or user.is_superuser %}
+        <a class="btn btn-outline-primary" href="{{ object.get_attendance_url }}" role="button">
+          <i class="fas fa-clipboard-check"></i> Attendance
+        </a>
+      {% endif %}
+      {% if object.is_national %}
+        {% if request.is_nat_officer or user.is_superuser %}
+          <a class="btn btn-outline-primary" href="{% url 'attendance:national_upload' %}?event={{ object.pk }}" role="button">
+            <i class="fas fa-upload"></i> Upload Attendance
+          </a>
+        {% endif %}
+      {% endif %}
+      {% if can_delete %}
+        <a class="btn btn-outline-danger" href="{{ object.get_delete_url }}" role="button">
+          <i class="fas fa-trash"></i> Delete
+        </a>
       {% endif %}
     </div>
   </div>
 
-{% if object == request.user %}
-<!-- Action buttons -->
-<div class="row">
-
-  <div class="col-sm-12">
-    <a class="btn btn-primary" href="{% url 'users:update' %}" role="button">Update My Info</a>
-    <a class="btn btn-primary" href="{% url 'account_email' %}" role="button">Update E-Mail</a>
-    <!-- Your Stuff: Custom user template urls -->
+  <div class="d-flex flex-wrap gap-2 mb-3">
+    {% if object.is_national %}<span class="badge bg-primary">National</span>{% endif %}
+    {% if object.is_public %}<span class="badge bg-info text-dark">Open to Other Chapters</span>{% endif %}
+    <span class="badge bg-secondary">{{ object.get_approval_status_display }}</span>
   </div>
 
-</div>
-<!-- End Action buttons -->
-{% endif %}
+  {% if can_review %}
+    <div class="card border-warning mb-3">
+      <div class="card-body">
+        <h5 class="card-title">Review this event</h5>
+        <p class="card-text text-body-secondary mb-2">
+          This event is pending approval to be opened to other chapters.
+          Approve to make it visible to all chapters, or reject with an optional reason.
+        </p>
+        <div class="d-flex flex-wrap gap-3 align-items-start">
+          <form method="post" action="{% url 'events:approve' object.pk %}">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{{ request.get_full_path }}">
+            <button type="submit" class="btn btn-success">
+              <i class="fas fa-check"></i> Approve
+            </button>
+          </form>
+          <form method="post" action="{% url 'events:reject' object.pk %}"
+                class="d-flex flex-column gap-2" style="min-width: 18rem;">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{{ request.get_full_path }}">
+            <textarea name="rejection_reason" rows="2" class="form-control form-control-sm"
+                      placeholder="Optional reason for rejection"></textarea>
+            <button type="submit" class="btn btn-danger">
+              <i class="fas fa-times"></i> Reject
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  {% endif %}
 
+  {% if object.approval_status == "rejected" %}
+    <div class="alert alert-danger">
+      <strong>Public request rejected.</strong>
+      This event was denied cross-chapter visibility and cannot be made public again.
+      {% if object.rejection_reason %}
+        <div class="mt-1"><strong>Reason:</strong> {{ object.rejection_reason }}</div>
+      {% endif %}
+      {% if object.reviewed_by %}
+        <div class="mt-1 small text-body-secondary">
+          Reviewed by {{ object.reviewed_by }}{% if object.reviewed_at %} on {{ object.reviewed_at }}{% endif %}.
+        </div>
+      {% endif %}
+    </div>
+  {% endif %}
 
+  {% if object.parent_event %}
+    <div class="alert alert-info">
+      This is a sub-event of
+      <a href="{{ object.parent_event.get_absolute_url }}">{{ object.parent_event.name }}</a>.
+    </div>
+  {% endif %}
+
+  <table class="table table-striped table-bordered">
+    <tbody>
+      <tr><th scope="row">Date</th><td>{{ object.date }}</td></tr>
+      <tr><th scope="row">Type</th><td>{{ object.type }}</td></tr>
+      <tr><th scope="row">Chapter</th><td>{{ object.chapter|default:"National (org-wide)" }}</td></tr>
+      <tr><th scope="row">Region</th><td>{{ object.effective_region|default:"—" }}</td></tr>
+      <tr><th scope="row">Open to Other Chapters</th><td>{{ object.is_public|yesno:"Yes,No" }}</td></tr>
+      <tr><th scope="row">Approval status</th><td>{{ object.get_approval_status_display }}</td></tr>
+      {% if object.reviewed_by %}
+        <tr><th scope="row">Reviewed by</th><td>{{ object.reviewed_by }} on {{ object.reviewed_at }}</td></tr>
+      {% endif %}
+      {% if object.rejection_reason %}
+        <tr><th scope="row">Rejection reason</th><td>{{ object.rejection_reason }}</td></tr>
+      {% endif %}
+      <tr><th scope="row">Score</th><td>{{ object.score }}</td></tr>
+      <tr><th scope="row">Description</th><td>{{ object.description }}</td></tr>
+      <tr><th scope="row">Duration</th><td>{{ object.duration }}</td></tr>
+      <tr><th scope="row">STEM</th><td>{{ object.stem|yesno:"Yes,No" }}</td></tr>
+      <tr><th scope="row">Hosted another chapter</th><td>{{ object.host|yesno:"Yes,No" }}</td></tr>
+      <tr><th scope="row">Miles</th><td>{{ object.miles }}</td></tr>
+      <tr><th scope="row">Created by</th><td>{{ object.created_by }} {{ object.created }}</td></tr>
+    </tbody>
+  </table>
+
+  {% if sub_events %}
+    <h3>Sub-events</h3>
+    <div class="table-responsive">
+      <table class="table table-striped table-bordered">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Date</th>
+            <th>Type</th>
+            <th>Chapter</th>
+            <th>Public</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for child in sub_events %}
+            <tr>
+              <td><a href="{{ child.get_absolute_url }}">{{ child.name }}</a></td>
+              <td>{{ child.date }}</td>
+              <td>{{ child.type }}</td>
+              <td>{{ child.chapter|default:"National" }}</td>
+              <td>{{ child.is_public|yesno:"Yes,No" }}</td>
+              <td>{{ child.get_approval_status_display }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% endif %}
+
+  {# ---- Attendance (WI-3..WI-6, RSVP WI-10) ---- #}
+  <div class="d-flex flex-wrap align-items-center gap-2 mt-4">
+    <h3 class="mb-0">Attendance</h3>
+    {% if request.is_officer or request.is_nat_officer or user.is_superuser %}
+      <a href="{{ object.get_attendance_url }}" class="btn btn-outline-primary btn-sm">
+        <i class="fas fa-clipboard-check"></i> Record / edit attendance
+      </a>
+      {% if object.sub_events.exists %}
+        <a href="{{ object.get_attendance_rollup_url }}" class="btn btn-outline-secondary btn-sm">
+          <i class="fas fa-layer-group"></i> Sub-event rollup
+        </a>
+      {% endif %}
+    {% endif %}
+    {% if my_rsvp_status == 'signed_up' %}
+      <span class="badge bg-success">You're signed up</span>
+      <form method="post" action="{{ object.get_rsvp_url }}" class="d-inline">
+        {% csrf_token %}
+        <input type="hidden" name="next" value="{{ request.get_full_path }}">
+        <button type="submit" name="action" value="cancel" class="btn btn-outline-danger btn-sm">
+          <i class="fas fa-calendar-xmark"></i> Cancel RSVP
+        </button>
+      </form>
+    {% elif my_rsvp_status == 'attended' %}
+      <span class="badge bg-success">You attended</span>
+    {% elif my_rsvp_status == 'no_show' %}
+      <span class="badge bg-warning text-dark">Marked no-show</span>
+    {% elif can_rsvp %}
+      <form method="post" action="{{ object.get_rsvp_url }}" class="d-inline">
+        {% csrf_token %}
+        <input type="hidden" name="next" value="{{ request.get_full_path }}">
+        <button type="submit" class="btn btn-success btn-sm">
+          <i class="fas fa-calendar-check"></i> RSVP / I'll attend
+        </button>
+      </form>
+    {% endif %}
+  </div>
+  {% if can_view_attendance %}
+  {% if attendance_records %}
+    <div class="table-responsive mt-2">
+      <table class="table table-striped table-bordered">
+        <thead>
+          <tr>
+            <th>First Name</th>
+            <th>Last Name</th>
+            <th>Status</th>
+            <th>Active</th>
+            <th>Chapter</th>
+            <th>Recorded by</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for rec in attendance_records %}
+            <tr>
+              <td><a href="{% url 'users:profile' rec.user.username %}">{{ rec.user.first_name }}</a></td>
+              <td><a href="{% url 'users:profile' rec.user.username %}">{{ rec.user.last_name }}</a></td>
+              <td>{{ rec.get_status_display }}</td>
+              <td>{{ rec.was_active|yesno:"Yes,No" }}</td>
+              <td>
+                {% if rec.chapter %}<a href="{% url 'chapters:detail' rec.chapter.slug %}">{{ rec.chapter.name }}</a>{% else %}—{% endif %}
+                {% if rec.is_guest %} <span class="badge bg-info text-dark">guest</span>{% endif %}
+              </td>
+              <td>{% if rec.recorded_by %}<a href="{% url 'users:profile' rec.recorded_by.username %}">{{ rec.recorded_by.name }}</a>{% else %}—{% endif %}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <p class="text-body-secondary mt-2">No attendance recorded for this event.</p>
+  {% endif %}
+  {% else %}
+    <p class="text-body-secondary mt-2">
+      The attendance roster is only visible to this event's chapter officers.
+    </p>
+  {% endif %}
 </div>
 {% endblock content %}

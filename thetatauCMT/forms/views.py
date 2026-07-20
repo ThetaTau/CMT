@@ -8,6 +8,7 @@ from pathlib import Path
 
 from allauth.account.models import EmailAddress
 from crispy_forms.layout import Submit
+from dal import autocomplete
 from django import forms
 from django.conf import settings
 from django.contrib import messages
@@ -23,16 +24,18 @@ from django.urls import reverse
 from django.utils import timezone
 from django.utils.safestring import mark_safe
 from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_POST
 from django.views.generic import DetailView, TemplateView, UpdateView
 from django.views.generic.edit import CreateView, FormView, ModelFormMixin
 from django_weasyprint import WeasyTemplateResponseMixin
 from easy_pdf.views import PDFTemplateResponseMixin
 from extra_views import FormSetView, ModelFormSetView
+from viewflow.activation import STATUS
 from viewflow.flow.views import CreateProcessView, UpdateProcessView
 from viewflow.frontend.viewset import FlowViewSet
 from viewflow.models import Task as FlowTask
 
-from core.flows import AutoAssignUpdateProcessView, FilterProcessListView
+from core.flows import AutoAssignUpdateProcessView, FilterProcessListView, cancel_process
 from core.forms import MultiFormsView
 from core.models import (
     CHAPTER_OFFICER,
@@ -56,7 +59,7 @@ from core.views import (
 )
 from thetatauCMT.chapters.models import Chapter, ChapterCurricula
 from thetatauCMT.configs.models import Config
-from thetatauCMT.forms.notifications import CentralOfficeGenericEmail
+from thetatauCMT.forms.notifications import CentralOfficeGenericEmail, TreasurerTermException
 from thetatauCMT.regions.models import Region
 from thetatauCMT.scores.models import ScoreType
 from thetatauCMT.submissions.models import Submission
@@ -118,6 +121,7 @@ from .forms import (
     RoleChangeSelectForm,
     StatusChangeSelectForm,
     StatusChangeSelectFormHelper,
+    treasurer_term_violation,
 )
 from .models import (
     OSM,
@@ -129,8 +133,10 @@ from .models import (
     Convention,
     Depledge,
     DisciplinaryProcess,
+    Employer,
     HSEducation,
     InitiationProcess,
+    OtherSchool,
     PledgeProcess,
     PledgeProgram,
     PledgeProgramProcess,
@@ -435,7 +441,10 @@ class StatusChangeSelectView(LoginRequiredMixin, FormSetView):
         kwargs = super().get_formset_kwargs()
         kwargs.update(
             {
-                "form_kwargs": {"colony": self.request.user.current_chapter.candidate_chapter},
+                "form_kwargs": {
+                    "colony": self.request.user.current_chapter.candidate_chapter,
+                    "request_user": self.request.user,
+                },
             }
         )
         return kwargs
@@ -464,11 +473,15 @@ class StatusChangeSelectView(LoginRequiredMixin, FormSetView):
                             "selected": "",
                         }
                     )
+        form_kwargs = {
+            "colony": self.request.user.current_chapter.candidate_chapter,
+            "request_user": self.request.user,
+        }
         if action in ["Add Row", "Delete Selected"]:
             formset = formset(
                 prefix="selection",
                 initial=initial,
-                form_kwargs={"colony": self.request.user.current_chapter.candidate_chapter},
+                form_kwargs=form_kwargs,
             )
         else:
             post_data = deepcopy(request.POST)
@@ -478,7 +491,7 @@ class StatusChangeSelectView(LoginRequiredMixin, FormSetView):
                 request.FILES,
                 initial=initial,
                 prefix="selection",
-                form_kwargs={"colony": self.request.user.current_chapter.candidate_chapter},
+                form_kwargs=form_kwargs,
             )
         return formset
 
@@ -490,7 +503,10 @@ class StatusChangeSelectView(LoginRequiredMixin, FormSetView):
             return self.formset_valid(formset)
 
     def get_formset(self):
-        actives = self.request.user.current_chapter.actives()
+        # Exclude the requesting officer — officers must not report status
+        # changes for themselves (except for the resignation form, which is
+        # a separate view).
+        actives = self.request.user.current_chapter.actives().exclude(pk=self.request.user.pk)
         formset = super().get_formset()
         formset.form.base_fields["user"].queryset = actives.order_by("name")
         return formset
@@ -500,7 +516,7 @@ class StatusChangeSelectView(LoginRequiredMixin, FormSetView):
         formset = kwargs.get("formset", None)
         if formset is None:
             formset = self.construct_formset()
-        actives = self.request.user.current_chapter.actives()
+        actives = self.request.user.current_chapter.actives().exclude(pk=self.request.user.pk)
         formset.form.base_fields["user"].queryset = actives.order_by("name")
         context["formset"] = formset
         helper = StatusChangeSelectFormHelper()
@@ -549,7 +565,9 @@ class StatusChangeView(LoginRequiredMixin, OfficerRequiredMixin, FormView):
 
     def initial_info(self, status_change):
         chapter = self.request.user.current_chapter
-        actives = chapter.actives()
+        # Officers must not report status changes for themselves — matches the
+        # exclusion applied at the selection step.
+        actives = chapter.actives().exclude(pk=self.request.user.pk)
         self.to_graduate = actives.filter(pk__in=status_change["graduate"])
         self.to_coop = actives.filter(pk__in=status_change["coop"])
         self.to_covid = actives.filter(pk__in=status_change["covid"])
@@ -608,6 +626,10 @@ class StatusChangeView(LoginRequiredMixin, OfficerRequiredMixin, FormView):
             )
         context["csmt_formset"] = csmt_formset
         context["csmt_helper"] = CSMTFormHelper()
+        # Merge form + csmt formset media so tempus-dominus/moment aren't loaded
+        # twice — a duplicate load resets $.fn.datetimepicker and breaks the
+        # date pickers on this page.
+        context["combined_media"] = formset.media + csmt_formset.media
         context["form_show_errors"] = True
         context["error_text_inline"] = True
         context["help_text_inline"] = True
@@ -725,6 +747,14 @@ class RoleChangeView(LoginRequiredMixin, ModelFormSetView):
     officer_edit = "member roles"
     model = UserRoleChange
 
+    def get_form_kwargs(self):
+        # Injected into every form in the formset via
+        # ``extra_views.ModelFormSetView`` — used by ``RoleChangeSelectForm``
+        # to reject the requesting officer as their own role recipient.
+        kwargs = super().get_form_kwargs()
+        kwargs["request_user"] = self.request.user
+        return kwargs
+
     def construct_formset(self, initial=False):
         formset = super().construct_formset()
         for field_name in formset.forms[-1].fields:
@@ -836,6 +866,21 @@ class RoleChangeView(LoginRequiredMixin, ModelFormSetView):
                         role_name = COL_OFFICER_ALIGN[role_name]
                     if role_name in CHAPTER_OFFICER:
                         officer_list.append(form.instance.user)
+                    # Treasurer terms must run January-to-January per policy.
+                    # When an officer acknowledged the exception and supplied a
+                    # reason, notify the Grand Treasurer, regional directors and
+                    # Central Office.
+                    exception_reason = (form.cleaned_data.get("treasurer_term_exception_reason") or "").strip()
+                    if exception_reason and treasurer_term_violation(
+                        form.instance.role,
+                        form.instance.start,
+                        form.instance.end,
+                    ):
+                        TreasurerTermException(
+                            role_change=form.instance,
+                            reason=exception_reason,
+                            submitted_by=self.request.user,
+                        ).send()
             Task.mark_complete(
                 name="Officer Election Report",
                 chapter=self.request.user.current_chapter,
@@ -860,6 +905,14 @@ class RoleChangeNationalView(LoginRequiredMixin, NatOfficerRequiredMixin, ModelF
     template_name = "forms/officer_national.html"
     factory_kwargs = {"extra": 1, "can_delete": True}
     model = UserRoleChange
+
+    def get_form_kwargs(self):
+        # Injected into every form in the formset — used by
+        # ``RoleChangeNationalSelectForm`` to reject the requesting officer as
+        # their own national officer role recipient.
+        kwargs = super().get_form_kwargs()
+        kwargs["request_user"] = self.request.user
+        return kwargs
 
     def construct_formset(self, initial=False):
         formset = super().construct_formset()
@@ -902,6 +955,12 @@ class RoleChangeNationalView(LoginRequiredMixin, NatOfficerRequiredMixin, ModelF
             formset = self.construct_formset()
         context["formset"] = formset
         context["input"] = Submit("action", "Submit")
+        # Contact-sync modal context — same template as the region officers
+        # page, but scoped to national officers. See docs/contact_sync_setup.md.
+        from thetatauCMT.contact_sync.context import build_sync_modal_context
+        from thetatauCMT.contact_sync.officers import NATIONAL_SCOPE
+
+        context.update(build_sync_modal_context(self.request, NATIONAL_SCOPE))
         return context
 
     def formset_valid(self, formset, delete_only=False):
@@ -1132,7 +1191,7 @@ class RiskManagementDetailView(LoginRequiredMixin, PDFTemplateResponseMixin, Upd
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["is_officer"] = self.request.user.is_officer
+        context["is_officer"] = getattr(self.request, "is_officer", False)
         return context
 
 
@@ -1155,6 +1214,15 @@ class BillOfRightsPDFView(PDFTemplateResponseMixin, BillOfRightsDetailView):
 class RollBookPDFView(LoginRequiredMixin, OfficerRequiredMixin, WeasyTemplateResponseMixin, DetailView):
     model = User
     template_name = "forms/rollbook_pdf.html"
+    candidate_template_name = "forms/rollbook_candidate_pdf.html"
+
+    def get_template_names(self):
+        # Candidate chapters roll their members on a different form than
+        # chartered chapters — pick the template from the member's chapter.
+        chapter = getattr(self.object, "chapter", None)
+        if chapter is not None and chapter.candidate_chapter:
+            return [self.candidate_template_name]
+        return [self.template_name]
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -1407,6 +1475,56 @@ class PledgeProgramListView(LoginRequiredMixin, NatOfficerRequiredMixin, PagedFi
         return context
 
 
+@group_required("natoff")
+@require_POST
+def pledge_program_request_revision(request, process_pk):
+    """Email a chapter's executive board that their NME (New Member Education)
+    program has review comments and must be revised and resubmitted.
+
+    The viewflow/Google-sheets notification is unreliable, so this gives a
+    national officer a one-click, on-demand reminder from the program list.
+    """
+    process = PledgeProgramProcess.objects.filter(pk=process_pk).select_related("chapter", "chapter__region").first()
+    redirect_to = request.META.get("HTTP_REFERER") or reverse("forms:pledge_program_list")
+    if process is None:
+        messages.add_message(request, messages.ERROR, "Requested pledge program could not be found.")
+        return HttpResponseRedirect(redirect_to)
+    chapter = process.chapter
+    recipients = chapter.council_emails()
+    if not recipients:
+        messages.add_message(
+            request,
+            messages.ERROR,
+            f"No executive board emails on file for {chapter}; email could not be sent.",
+        )
+        return HttpResponseRedirect(redirect_to)
+    if chapter.nme_file_id and chapter.nme_file_id != "none":
+        program_link = (
+            f"<a href='https://docs.google.com/document/d/{chapter.nme_file_id}/edit' "
+            "target='_blank'>New Member Education Program</a>"
+        )
+    else:
+        program_link = "your New Member Education program"
+    message = (
+        "Comments have been added to your NME program, please revise and resubmit.<br><br>" f"Program: {program_link}"
+    )
+    if process.approval_comments:
+        message += f"<br><br>Reviewer comments:<br>{process.approval_comments}"
+    GenericEmail(
+        emails=recipients,
+        cc={"central.office@thetatau.org", chapter.region.email},
+        addressee=f"{chapter.full_name} Officers",
+        subject=f"[CMT] NME Program Revisions Requested for {chapter}",
+        message=mark_safe(message),
+    ).send()
+    messages.add_message(
+        request,
+        messages.INFO,
+        f"Revision request emailed to the {chapter} executive board.",
+    )
+    return HttpResponseRedirect(redirect_to)
+
+
 class AuditFormView(LoginRequiredMixin, OfficerRequiredMixin, UpdateView):
     form_class = AuditForm
     template_name = "forms/audit.html"
@@ -1417,7 +1535,7 @@ class AuditFormView(LoginRequiredMixin, OfficerRequiredMixin, UpdateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         complete = False
-        if "object" in context:
+        if context.get("object") is not None:
             form = context["form"]
             for field_name, field in form.fields.items():
                 field.disabled = True
@@ -1426,6 +1544,33 @@ class AuditFormView(LoginRequiredMixin, OfficerRequiredMixin, UpdateView):
         return context
 
     def get_object(self, queryset=None):
+        # Viewing an existing audit by pk: read-only access is scoped to the
+        # audit's chapter (plus national officers / superusers). This path does
+        # NOT require the viewer to currently hold an executive-officer role —
+        # otherwise a former officer or a chapter member navigating to a
+        # completed audit is bounced to a blank submission form.
+        if "pk" in self.kwargs:
+            try:
+                audit = Audit.objects.get(pk=self.kwargs["pk"])
+            except Audit.DoesNotExist:
+                messages.add_message(
+                    self.request,
+                    messages.ERROR,
+                    "Requested audit could not be found.",
+                )
+                return None
+            audit_chapter = audit.user.chapter
+            user = self.request.user
+            if audit_chapter == user.current_chapter or user.is_national_officer_group or user.is_superuser:
+                return audit
+            messages.add_message(
+                self.request,
+                messages.ERROR,
+                f"Requested audit is for {audit_chapter} Chapter not your chapter.",
+            )
+            return None
+
+        # No pk: submission flow. Only executive officers can submit.
         current_roles = self.request.user.chapter_officer()
         if not current_roles or current_roles == {""}:
             messages.add_message(
@@ -1435,29 +1580,15 @@ class AuditFormView(LoginRequiredMixin, OfficerRequiredMixin, UpdateView):
                 f"Your current roles are: {*current_roles,}",
             )
             return None
-        else:
-            if "pk" in self.kwargs:
-                try:
-                    audit = Audit.objects.get(pk=self.kwargs["pk"])
-                except Audit.DoesNotExist:
-                    return Audit.objects.last()
-                audit_chapter = audit.user.chapter
-                if audit_chapter == self.request.user.current_chapter:
-                    return audit
-                else:
-                    messages.add_message(
-                        self.request,
-                        messages.ERROR,
-                        f"Requested audit is for {audit_chapter} Chapter not your chapter.",
-                    )
-            task = Task.objects.filter(name="Audit", owner__in=current_roles).first()
-            chapter = self.request.user.current_chapter
+        task = Task.objects.filter(name="Audit", owner__in=current_roles).first()
+        chapter = self.request.user.current_chapter
+        next_date = None
+        if task is not None:
             next_date = task.incomplete_dates_for_task_chapter(chapter).first()
-            if next_date:
-                messages.add_message(self.request, messages.INFO, "You must submit an updated audit.")
-                return None
-            else:
-                return self.request.user.audit_form.last()
+        if next_date:
+            messages.add_message(self.request, messages.INFO, "You must submit an updated audit.")
+            return None
+        return self.request.user.audit_form.last()
 
     def form_valid(self, form):
         form.instance.year = datetime.datetime.now().year
@@ -1489,7 +1620,7 @@ class AuditFormView(LoginRequiredMixin, OfficerRequiredMixin, UpdateView):
 
     def get_success_url(self):
         if self.request.user.is_authenticated:
-            return reverse("chapters:detail", kwargs={"slug": self.request.user.chapter.slug}) + "#audit"
+            return reverse("chapters:audit", kwargs={"slug": self.request.user.chapter.slug})
         else:
             return reverse("home")
 
@@ -1603,6 +1734,14 @@ class PledgeFormView(CreateView):
         except Exception as e:
             message = f"Error adding training {user=} {user.chapter=} {e}"
             CentralOfficeGenericEmail(message, subject="[CMT] Training Error").send()
+        try:
+            # Also enroll the new member in the Open edX (ed.thetatau.org)
+            # training. Their account is created on first SSO login, so this
+            # records a pending enrollment that activates when they log in.
+            Training.add_user_ed(user, request=self.request)
+        except Exception as e:
+            message = f"Error adding Open edX training {user=} {user.chapter=} {e}"
+            CentralOfficeGenericEmail(message, subject="[CMT] Training Error").send()
         messages.add_message(
             self.request,
             messages.INFO,
@@ -1619,6 +1758,11 @@ class PrematureAlumnusCreateView(LoginRequiredMixin, CreateProcessView):
     template_name = "forms/prematurealumnus_form.html"
     model = PrematureAlumnus
     form_class = PrematureAlumnusForm
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs["request_user"] = self.request.user
+        return kwargs
 
     def activation_done(self, *args, **kwargs):
         """Finish task activation."""
@@ -1827,12 +1971,28 @@ class ConventionCreateView(LoginRequiredMixin, CreateProcessView, AssignOfficerF
     submitted = False
     data = {}
 
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs["request_user"] = self.request.user
+        return kwargs
+
+    def _active_previous_processes(self, chapter):
+        """Return non-cancelled Convention processes for this chapter/year."""
+        return Convention.objects.filter(
+            chapter=chapter,
+            year=Convention.current_year(),
+        ).exclude(status=STATUS.CANCELED)
+
     def get(self, request, *args, **kwargs):
         officers = request.user.current_chapter.get_current_officers_council_specific()
         if not self.check_officers(officers):
             return redirect(reverse("forms:officer"))
         self.data, self.submitted, self.signers = get_sign_status(self.request.user)
-        if self.submitted and self.request.user in self.signers:
+        # An officer may explicitly request the create form (?resubmit=1) to
+        # supersede a previous submission — skip the auto-redirect to their
+        # own signing link so they can access the form again.
+        resubmit = request.GET.get("resubmit") == "1" and getattr(request.user, "is_officer", False)
+        if self.submitted and self.request.user in self.signers and not resubmit:
             for sign in self.data:
                 link = sign["link"]
                 if self.request.user == sign["owner"] and link != "#" and not isinstance(link, bool):
@@ -1854,6 +2014,39 @@ class ConventionCreateView(LoginRequiredMixin, CreateProcessView, AssignOfficerF
         del_alt = [form.instance.delegate, form.instance.alternate]
         officers = chapter.get_current_officers_council_specific()
         self.assign_officers_form(del_alt, form, officers)
+        # Supersede any prior Convention submission for this chapter/year:
+        # cancel the existing process (and any incomplete tasks) and notify
+        # the previous delegate/alternate/officer1/officer2 signers.
+        for previous in self._active_previous_processes(chapter):
+            previous_signers = [
+                previous.delegate,
+                previous.alternate,
+                previous.officer1,
+                previous.officer2,
+            ]
+            recipients = {u.email for u in previous_signers if u and u.email}
+            cancel_process(previous)
+            if recipients:
+                GenericEmail(
+                    emails=recipients,
+                    cc={"central.office@thetatau.org", chapter.region.email},
+                    addressee=f"{chapter.full_name} Convention Credential Signers",
+                    subject=f"[CMT] Convention Credential Form Superseded for {chapter}",
+                    message=(
+                        "This is a notification that the Convention Credential "
+                        f"Form previously submitted for {chapter} has been "
+                        "cancelled and replaced with a new submission by "
+                        f"{self.request.user}. Any pending signature tasks on "
+                        "the previous form have been cancelled and no further "
+                        "action is required on that submission."
+                    ),
+                ).send()
+            messages.add_message(
+                self.request,
+                messages.INFO,
+                f"Previous Convention Credential Form for {chapter} has been "
+                "cancelled and replaced. Previous signers have been notified.",
+            )
         Task.mark_complete(
             name="Credentials",
             chapter=chapter,
@@ -1866,6 +2059,11 @@ class ConventionCreateView(LoginRequiredMixin, CreateProcessView, AssignOfficerF
         context = super().get_context_data(**kwargs)
         context["submitted"] = self.submitted
         context["table"] = SignTable(data=self.data)
+        # When resubmitting, expose the flag to the template so it can render
+        # the form (with a warning) alongside the existing-submission status.
+        context["resubmit"] = self.request.GET.get("resubmit") == "1" and getattr(
+            self.request.user, "is_officer", False
+        )
         return context
 
 
@@ -2184,6 +2382,11 @@ class AlumniExclusionCreateView(LoginRequiredMixin, CreateProcessView, AssignOff
     submitted = False
     data = {}
 
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs["request_user"] = self.request.user
+        return kwargs
+
     def get(self, request, *args, **kwargs):
         officers = request.user.current_chapter.get_current_officers_council_specific()
         if not self.check_officers(officers):
@@ -2308,6 +2511,11 @@ class OSMCreateView(LoginRequiredMixin, CreateProcessView, AssignOfficerFormMixi
     form_class = OSMForm
     submitted = False
     data = {}
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs["request_user"] = self.request.user
+        return kwargs
 
     def get(self, request, *args, **kwargs):
         officers = request.user.current_chapter.get_current_officers_council_specific()
@@ -2532,6 +2740,11 @@ class DisciplinaryCreateView(LoginRequiredMixin, OfficerRequiredMixin, CreatePro
     officer_edit = "disciplinary forms"
     officer_edit_type = "submit or view"
 
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs["request_user"] = self.request.user
+        return kwargs
+
     def get_success_url(self):
         url = reverse("forms:landing")
         if self.request.user.is_authenticated and self.request.user.is_officer_group:
@@ -2695,6 +2908,9 @@ class CollectionReferralFormView(LoginRequiredMixin, OfficerRequiredMixin, Multi
         if form.has_changed():
             form.save()
 
+    def get_collection_kwargs(self):
+        return {"request_user": self.request.user}
+
     def get_user_kwargs(self):
         kwargs = {"verify": True}
         if self.request.method == "POST":
@@ -2837,6 +3053,11 @@ class ReturnStudentCreateView(LoginRequiredMixin, CreateProcessView):
     template_name = "forms/returnstudent_form.html"
     model = ReturnStudent
     form_class = ReturnStudentForm
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs["request_user"] = self.request.user
+        return kwargs
 
     def get_success_url(self):
         return reverse("viewflow:forms:returnstudent:start")
@@ -3071,6 +3292,11 @@ class RitualProficiencyCreateView(LoginRequiredMixin, NatOfficerRequiredMixin, C
     form_class = RitualProficiencyForm
     template_name = "forms/ritual_proficiency_form.html"
 
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs["request_user"] = self.request.user
+        return kwargs
+
     def form_valid(self, form):
         response = super().form_valid(form)
         messages.add_message(
@@ -3095,3 +3321,81 @@ class RitualProficiencyUserTableView(LoginRequiredMixin, NatOfficerRequiredMixin
             qs = RitualProficiency.objects.none()
         table = RitualProficiencyTable(data=qs)
         return render(request, self.template_name, {"table": table})
+
+
+class OtherSchoolAutocomplete(autocomplete.Select2QuerySetView):
+    """Autocomplete for `StatusChange.new_school_other`.
+
+    Officers may search existing entries or type a new school name to create
+    one on the fly. Names that duplicate an existing `Chapter.school` are
+    hidden from search results and refused at create-time.
+    """
+
+    def _is_authorized(self):
+        user = self.request.user
+        return user.is_authenticated and (user.is_officer_group or user.is_superuser)
+
+    def get_queryset(self):
+        if not self._is_authorized():
+            return OtherSchool.objects.none()
+        chapter_schools = Chapter.objects.values_list("school", flat=True)
+        qs = OtherSchool.objects.exclude(name__in=chapter_schools)
+        if self.q:
+            qs = qs.filter(name__icontains=self.q)
+        return qs.order_by("name")
+
+    def has_add_permission(self, request):
+        user = request.user
+        return user.is_authenticated and (user.is_officer_group or user.is_superuser)
+
+    def post(self, request, *args, **kwargs):
+        if not self.has_add_permission(request):
+            return HttpResponse(status=403)
+        text = (request.POST.get("text") or "").strip()
+        if not text:
+            return JsonResponse({"error": "School name is required."}, status=400)
+        if Chapter.objects.filter(school__iexact=text).exists():
+            return JsonResponse(
+                {
+                    "error": (
+                        f"'{text}' is already a Theta Tau chapter school; "
+                        "select it from the New School dropdown instead."
+                    )
+                },
+                status=400,
+            )
+        obj, _ = OtherSchool.objects.get_or_create(name=text)
+        return JsonResponse({"id": obj.pk, "text": str(obj)})
+
+
+class EmployerAutocomplete(autocomplete.Select2QuerySetView):
+    """Autocomplete for `StatusChange.employer`.
+
+    Officers may search existing employer names or type a new one to create
+    it inline.
+    """
+
+    def _is_authorized(self):
+        user = self.request.user
+        return user.is_authenticated and (user.is_officer_group or user.is_superuser)
+
+    def get_queryset(self):
+        if not self._is_authorized():
+            return Employer.objects.none()
+        qs = Employer.objects.all()
+        if self.q:
+            qs = qs.filter(name__icontains=self.q)
+        return qs.order_by("name")
+
+    def has_add_permission(self, request):
+        user = request.user
+        return user.is_authenticated and (user.is_officer_group or user.is_superuser)
+
+    def post(self, request, *args, **kwargs):
+        if not self.has_add_permission(request):
+            return HttpResponse(status=403)
+        text = (request.POST.get("text") or "").strip()
+        if not text:
+            return JsonResponse({"error": "Employer name is required."}, status=400)
+        obj, _ = Employer.objects.get_or_create(name=text)
+        return JsonResponse({"id": obj.pk, "text": str(obj)})

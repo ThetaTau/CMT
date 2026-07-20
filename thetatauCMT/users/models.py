@@ -16,6 +16,7 @@ from simple_history.models import HistoricalRecords
 from viewflow.models import Process
 
 from core.models import (
+    ACTIVE_STATUSES,
     ALL_ROLES_CHOICES,
     CHAPTER_OFFICER,
     CHAPTER_OFFICER_CHOICES,
@@ -68,6 +69,32 @@ class CustomUserManager(UserManager):
         nat_group, _ = Group.objects.get_or_create(name="natoff")
         off_group.user_set.add(superuser)
         nat_group.user_set.add(superuser)
+
+
+class UserTag(models.Model):
+    name = models.CharField(max_length=100, unique=True)
+
+    class Meta:
+        ordering = ["name"]
+
+    def __str__(self):
+        return self.name
+
+
+# Who may see one of a member's contact fields (email / phone / address) on
+# their public profile. National Officers, superusers, and the member
+# themselves can always see the information regardless of this setting.
+CONTACT_VISIBILITY_NO_ONE = "no_one"
+CONTACT_VISIBILITY_OFFICERS = "officers"
+CONTACT_VISIBILITY_CHAPTER = "chapter"
+CONTACT_VISIBILITY_MEMBERS = "members"
+
+CONTACT_VISIBILITY_CHOICES = [
+    (CONTACT_VISIBILITY_NO_ONE, "No one (private)"),
+    (CONTACT_VISIBILITY_OFFICERS, "My chapter's officers only"),
+    (CONTACT_VISIBILITY_CHAPTER, "Members of my chapter"),
+    (CONTACT_VISIBILITY_MEMBERS, "Any member on the site"),
+]
 
 
 class User(AbstractUser, EmailSignalMixin):
@@ -230,12 +257,58 @@ class User(AbstractUser, EmailSignalMixin):
         default=False,
         help_text="Select if you no longer wish to receive email from Theta Tau",
     )
+    unsubscribe_categories = ArrayField(
+        models.CharField(max_length=64),
+        default=list,
+        blank=True,
+        help_text=(
+            "Per-mailing opt-outs (e.g. birthday, velocitas). "
+            "See users.unsubscribe.UNSUBSCRIBE_CATEGORIES for valid slugs."
+        ),
+    )
     no_contact = models.BooleanField(default=False)
     charter = models.BooleanField(default=False, help_text="Charter member")
+    profile_picture = models.ImageField(
+        _("Profile Picture"),
+        upload_to="profile_pictures/%Y/%m/",
+        blank=True,
+        null=True,
+        help_text="Optional photo displayed on your public member profile.",
+    )
+    email_visibility = models.CharField(
+        _("Email visibility"),
+        max_length=10,
+        choices=CONTACT_VISIBILITY_CHOICES,
+        default=CONTACT_VISIBILITY_NO_ONE,
+        help_text="Who may see your email addresses on your member profile. National Officers can always see them.",
+    )
+    phone_visibility = models.CharField(
+        _("Phone visibility"),
+        max_length=10,
+        choices=CONTACT_VISIBILITY_CHOICES,
+        default=CONTACT_VISIBILITY_NO_ONE,
+        help_text="Who may see your phone number on your member profile. National Officers can always see it.",
+    )
+    address_visibility = models.CharField(
+        _("Address visibility"),
+        max_length=10,
+        choices=CONTACT_VISIBILITY_CHOICES,
+        default=CONTACT_VISIBILITY_NO_ONE,
+        help_text="Who may see your mailing address on your member profile. National Officers can always see it.",
+    )
     ##### DENORMALIZED FIELDS #####  # noqa: E266
     current_status = models.CharField(max_length=10)
     current_roles = ArrayField(models.CharField(max_length=50), blank=True, null=True)
     officer = models.BooleanField(default=False)
+    tags = models.ManyToManyField(
+        UserTag,
+        related_name="users",
+        blank=True,
+        help_text=(
+            "Admin-only tags for record-keeping (e.g. trustee at a chapter, "
+            "non-regional national director). Not shown on member profiles."
+        ),
+    )
     history = HistoricalRecords()
 
     def save(self, *args, **kwargs):
@@ -256,6 +329,10 @@ class User(AbstractUser, EmailSignalMixin):
         self.unsubscribe_paper_gear = True
         self.no_contact = True
         self.save()
+        # Mirror the opt-out to the other org's MailerLite list (best-effort).
+        from thetatauCMT.email_tracking import mailerlite_sync
+
+        mailerlite_sync.unsubscribe_user(self)
 
     def get_name_with_details(self):
         major = self.major if self.major else ""
@@ -266,7 +343,7 @@ class User(AbstractUser, EmailSignalMixin):
         # This allows for national officers to change their chapter
         # without actually changing their chapter
         chapter = self.chapter
-        if self.groups.filter(name="natoff").exists():
+        if self.in_national_officer_group:
             if self.altered.all():
                 chapter = self.altered.first().chapter
         return chapter
@@ -340,6 +417,18 @@ class User(AbstractUser, EmailSignalMixin):
         roles = self.get_roles_on_date(date)
         return roles.filter(role__in=CHAPTER_OFFICER).first()
 
+    def is_active_on(self, date):
+        """True if the member held an active-ish status covering ``date``.
+
+        Uses the shared ``core.models.ACTIVE_STATUSES`` set (same statuses as
+        ``Chapter.get_actives_for_date``).
+        """
+        return self.status.filter(
+            status__in=ACTIVE_STATUSES,
+            start__lte=date,
+            end__gte=date,
+        ).exists()
+
     def chapter_officer(self, altered=True):
         """
         An member can have multiple roles need to see if any are officer
@@ -348,7 +437,10 @@ class User(AbstractUser, EmailSignalMixin):
         current_roles = set(self.current_roles) if self.current_roles else set()
         # officer = not current_roles.isdisjoint(CHAPTER_OFFICER)
         officer_roles = CHAPTER_OFFICER & current_roles
-        if self.is_national_officer_group:
+        # Use the *raw* natoff-group membership here (not ``is_national_officer_group``)
+        # so the UserAlter chapter/role impersonation keeps working even while a
+        # National Officer has hidden national-officer functionality.
+        if self.in_national_officer_group:
             if altered and self.altered.all():
                 new_role = self.altered.first().role
                 if new_role is not None and new_role != "":
@@ -356,8 +448,38 @@ class User(AbstractUser, EmailSignalMixin):
         return officer_roles
 
     @property
-    def is_national_officer_group(self):
+    def in_national_officer_group(self):
+        """Raw ``natoff`` group membership, ignoring the "view as member" toggle.
+
+        Use this for switch-back UI and for applying the ``UserAlter`` chapter/role
+        impersonation, which must keep working while national-officer functionality
+        is hidden. To ask "is this user *currently acting as* a National Officer"
+        use :attr:`is_national_officer_group` (which respects the toggle).
+        """
         return self.groups.filter(name="natoff").exists()
+
+    @property
+    def natoff_hidden(self):
+        """True when a National Officer has switched to "view as member" mode.
+
+        Toggled via the account menu / region bar, persisted on
+        ``UserAlter.hide_natoff``. Only meaningful for members of the ``natoff``
+        group; everyone else is always ``False``.
+        """
+        if not self.in_national_officer_group:
+            return False
+        alter = self.altered.first()
+        return bool(alter and alter.hide_natoff)
+
+    @property
+    def is_national_officer_group(self):
+        """Whether the user is *currently acting as* a National Officer.
+
+        True for members of the ``natoff`` group, unless they have toggled
+        "Hide national officer functionality" (:attr:`natoff_hidden`) to preview
+        the site as a regular member / chapter officer.
+        """
+        return self.in_national_officer_group and not self.natoff_hidden
 
     @property
     def is_chapter_officer_group(self):
@@ -384,6 +506,40 @@ class User(AbstractUser, EmailSignalMixin):
     @property
     def is_advisor(self):
         return self.current_status == "advisor"
+
+    def contact_visible_to(self, viewer, visibility):
+        """Whether ``viewer`` may see one of this member's contact fields
+        (email / phone / address) given that field's ``visibility`` setting.
+
+        The member themselves, National Officers, and superusers can always
+        see the information; everyone else is limited by the chosen level:
+        ``members`` (any member), ``chapter`` (same chapter), ``officers``
+        (officers of the same chapter), or ``no_one`` (nobody else).
+        """
+        if viewer is None or not getattr(viewer, "is_authenticated", False):
+            return False
+        if viewer.pk == self.pk:
+            return True
+        if viewer.is_superuser or viewer.is_national_officer_group:
+            return True
+        if visibility == CONTACT_VISIBILITY_MEMBERS:
+            return True
+        same_chapter = viewer.chapter_id == self.chapter_id
+        if visibility == CONTACT_VISIBILITY_CHAPTER:
+            return same_chapter
+        if visibility == CONTACT_VISIBILITY_OFFICERS:
+            return same_chapter and viewer.is_chapter_officer_group
+        return False
+
+    @property
+    def director_regions(self):
+        """Regions where this member is listed as a Regional Director."""
+        return self.regional_director.all()
+
+    @property
+    def declined_nomination(self):
+        """True if this member has declined a volunteer nomination (not interested)."""
+        return self.nominations.filter(not_interested=True).exists()
 
     @classmethod
     def fix_badge_numbers(cls, reader, test=False, sep="<br>"):
@@ -553,6 +709,15 @@ class UserAlter(models.Model):
     chapter = models.ForeignKey(Chapter, on_delete=models.CASCADE, default=1, related_name="altered_member")
     ROLES = CHAPTER_OFFICER_CHOICES + [(None, "------------")]
     role = models.CharField(max_length=50, choices=ROLES, null=True)
+    hide_natoff = models.BooleanField(
+        "Hide national officer functionality",
+        default=False,
+        help_text=(
+            "When on, national-officer-only abilities are hidden so the site can "
+            "be previewed as a regular member (or, with a role selected above, as "
+            "that chapter officer)."
+        ),
+    )
 
 
 class UserSemesterServiceHours(YearTermModel):

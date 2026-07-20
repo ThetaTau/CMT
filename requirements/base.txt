@@ -58,6 +58,7 @@ django-filter==25.1  # https://django-filter.readthedocs.io/
 django-jquery-js==3.1.1  # https://bitbucket.org/tim_heap/django-jquery/src/master/
 django-tables2==2.7.5  # https://github.com/jieter/django-tables2/
 django-tempus-dominus==5.1.2.17  # https://github.com/FlipperPA/django-tempus-dominus
+django-ical==1.9.2  # https://github.com/jazzband/django-ical  (iCal calendar feed subscriptions)
 django-autocomplete-light==3.12.1  # https://github.com/yourlabs/django-autocomplete-light
 django-multiselectfield==1.0.1  # https://github.com/goinnn/django-multiselectfield
 django-celery-beat==2.8.1  # https://github.com/celery/django-celery-beat
@@ -86,6 +87,7 @@ django-termsandconditions==2.0.12  # https://github.com/cyface/django-termsandco
 django-email-bandit==2.0  # https://github.com/caktus/django-email-bandit
 django-middleware-global-request==0.3.5  # https://github.com/appstore-zencore/django-middleware-global-request
 django-anymail[mailjet]==13.0  # https://github.com/anymail/django-anymail
+mailjet-rest==1.7.0  # https://github.com/mailjet/mailjet-apiv3-python  (admin message-history lookups)
 django-weasyprint==2.4.0  # https://github.com/fdemmer/django-weasyprint
 django-survey-and-report==1.4.12  # https://github.com/Pierre-Sassoulas/django-survey/
 django-bootstrap-form==3.4  # provides `bootstrapform` module; required by django-survey-and-report
@@ -101,9 +103,9 @@ djangorestframework==3.16.0  # https://github.com/encode/django-rest-framework
 coreapi==2.3.3  # https://github.com/core-api/python-client
 
 # Django Plotly Dash
-dash==3.1.1
+dash==4.4.0
 # dash-renderer and dash-html-components were merged into dash in Dash 2.0; removed
 pandas==2.3.1
-plotly==6.2.0
-django-plotly-dash==2.5.0
+plotly==6.8.0
+django-plotly-dash==2.5.1
 django-pandas==0.6.7

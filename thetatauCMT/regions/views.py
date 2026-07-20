@@ -1,21 +1,19 @@
 import csv
 import datetime
-import time
 from collections import defaultdict
 
 import django_tables2 as tables
-import jwt
-from django.conf import settings
 from django.contrib import messages
 from django.db import models
 from django.http import HttpResponse
 from django.http.request import QueryDict
 from django.urls import reverse
-from django.views.generic import DetailView, ListView, RedirectView
+from django.views.generic import DetailView, ListView, RedirectView, TemplateView
 from django_tables2.utils import A
 
 from core.views import LoginRequiredMixin, NatOfficerRequiredMixin, RequestConfig
 from thetatauCMT.chapters.models import Chapter
+from thetatauCMT.contact_sync.context import build_sync_modal_context
 from thetatauCMT.tasks.models import TaskDate
 from thetatauCMT.users.filters import AdvisorListFilter, UserRoleListFilter
 from thetatauCMT.users.forms import AdvisorListFormHelper, UserRoleListFormHelper
@@ -26,6 +24,15 @@ from .filters import RegionChapterTaskFilter
 from .forms import RegionChapterTaskFormHelper
 from .models import Region
 from .tables import RegionChapterTaskTable, TaskLinkColumn
+
+
+def _contact_sync_context(request, region_slug):
+    """Thin wrapper around :func:`contact_sync.context.build_sync_modal_context`.
+
+    Retained as an internal helper so downstream tests can monkey-patch the
+    context for a single region without touching the shared implementation.
+    """
+    return build_sync_modal_context(request, f"region:{region_slug}")
 
 
 class RegionOfficerView(LoginRequiredMixin, NatOfficerRequiredMixin, DetailView):
@@ -46,11 +53,12 @@ class RegionOfficerView(LoginRequiredMixin, NatOfficerRequiredMixin, DetailView)
             response["Content-Disposition"] = f'attachment; filename="{filename}"'
             writer = csv.writer(response)
             emails = context["email_list"]
+            email_generic_map = context.get("email_generic_map", {})
             if emails != "":
-                writer.writerow(context["table"].columns.names())
+                writer.writerow(list(context["table"].columns.names()) + ["Generic Officer Email"])
                 for row in context["table"].as_values():
                     if row[4] and row[4] in emails:
-                        writer.writerow(row)
+                        writer.writerow(list(row) + [email_generic_map.get(row[4], "")])
                 return response
             else:
                 messages.add_message(
@@ -96,7 +104,34 @@ class RegionOfficerView(LoginRequiredMixin, NatOfficerRequiredMixin, DetailView)
             all_chapter_officers = chapter_officers | all_chapter_officers
         self.filter = self.filter_class(request_get, queryset=all_chapter_officers, request=self.request)
         self.filter.form.helper = self.formhelper_class()
-        email_list = ", ".join([x[0] for x in self.filter.qs.values_list("email").distinct()])
+        # Personal officer emails plus each officer's chapter generic mailbox(es)
+        # for the role(s) they hold (e.g. the regent contributes the chapter's
+        # ``email_regent``). ``email_generic_map`` keeps the association so the
+        # CSV export can render the generic address alongside each officer.
+        chapter_map = {chapter.pk: chapter for chapter in chapters}
+        personal_emails = []
+        generic_emails = []
+        email_generic_map = {}
+        for email, chapter_id, roles in self.filter.qs.values_list("email", "chapter_id", "current_roles").distinct():
+            if email:
+                personal_emails.append(email)
+            chapter_obj = chapter_map.get(chapter_id)
+            officer_generics = []
+            if chapter_obj and roles:
+                for role in roles:
+                    generic = chapter_obj.generic_email_for_role(role)
+                    if generic and generic not in officer_generics:
+                        officer_generics.append(generic)
+            generic_emails.extend(officer_generics)
+            if email and officer_generics:
+                email_generic_map[email] = "; ".join(officer_generics)
+        seen = set()
+        combined_emails = []
+        for email in personal_emails + generic_emails:
+            if email and email not in seen:
+                seen.add(email)
+                combined_emails.append(email)
+        email_list = ", ".join(combined_emails)
         self.filter.form.fields["chapter"].queryset = chapters
         admin = self.request.user.is_superuser
         table = UserTable(
@@ -108,7 +143,10 @@ class RegionOfficerView(LoginRequiredMixin, NatOfficerRequiredMixin, DetailView)
                     "chapter",
                     tables.LinkColumn("chapters:detail", args=[A("chapter__slug")]),
                 ),
-                ("chapter__region", tables.Column("Region")),
+                (
+                    "chapter__region",
+                    tables.LinkColumn("regions:detail", args=[A("chapter__region__slug")], verbose_name="Region"),
+                ),
                 ("chapter__school", tables.Column("School")),
             ],
         )
@@ -116,7 +154,9 @@ class RegionOfficerView(LoginRequiredMixin, NatOfficerRequiredMixin, DetailView)
         context["table"] = table
         context["filter"] = self.filter
         context["email_list"] = email_list
+        context["email_generic_map"] = email_generic_map
         context["view_type"] = "Officers"
+        context.update(_contact_sync_context(self.request, self.object))
         return context
 
 
@@ -191,7 +231,10 @@ class RegionAdvisorView(LoginRequiredMixin, NatOfficerRequiredMixin, DetailView)
                     "chapter",
                     tables.LinkColumn("chapters:detail", args=[A("chapter__slug")]),
                 ),
-                ("chapter__region", tables.Column("Region")),
+                (
+                    "chapter__region",
+                    tables.LinkColumn("regions:detail", args=[A("chapter__region__slug")], verbose_name="Region"),
+                ),
                 ("chapter__school", tables.Column("School")),
             ],
         )
@@ -209,27 +252,63 @@ class RegionAdvisorView(LoginRequiredMixin, NatOfficerRequiredMixin, DetailView)
         return context
 
 
-class RegionDetailView(LoginRequiredMixin, NatOfficerRequiredMixin, DetailView):
+class RegionDashboardView(LoginRequiredMixin, NatOfficerRequiredMixin, DetailView):
+    """National-officer analytics dashboard (plotly) for a region."""
+
     model = Region
     slug_field = "slug"
     slug_url_kwarg = "slug"
+    template_name = "regions/region_dashboard.html"
+
+    def get_object(self, queryset=None):
+        # `candidate_chapter` isn't a real Region row — it's a synthetic
+        # scope surfaced in `Region.region_choices()`. Fake a Region instance
+        # so the dashboard template can render (it only reads `.name`/`.slug`).
+        slug = self.kwargs.get(self.slug_url_kwarg)
+        if slug == "candidate_chapter":
+            region = Region(name="Candidate Chapters")
+            region.slug = "candidate_chapter"
+            return region
+        return super().get_object(queryset)
+
+
+class RegionDetailView(LoginRequiredMixin, DetailView):
+    """Public-facing region detail page.
+
+    Shows the region's details, its regional director(s), and the chapters that
+    belong to the region. Visible to any authenticated member (linked from the
+    chapter and region tables). The national-officer analytics dashboard lives
+    at ``regions:dashboard``.
+    """
+
+    model = Region
+    slug_field = "slug"
+    slug_url_kwarg = "slug"
+    template_name = "regions/region_detail.html"
+
+    def get_object(self, queryset=None):
+        slug = self.kwargs.get(self.slug_url_kwarg)
+        if slug == "candidate_chapter":
+            region = Region(name="Candidate Chapters")
+            region.slug = "candidate_chapter"
+            return region
+        return super().get_object(queryset)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        params = {"region": self.object.name}
-        if self.object.slug == "national":
-            params = {}
-        payload = {
-            "resource": {"dashboard": 2},
-            "params": params,
-            "exp": round(time.time()) + (60 * 10),  # 10 min expiration
-        }
-        secret = settings.METABASE_SECRET_KEY
-        iframeUrl = "about:blank"
-        if secret:
-            token = jwt.encode(payload, secret, algorithm="HS256")
-            iframeUrl = "https://thetatau.metabaseapp.com" + "/embed/dashboard/" + token + "#bordered=true&titled=true"
-        context["iframeUrl"] = iframeUrl
+        region = self.object
+        if region.pk is None:
+            # Synthetic candidate_chapter scope — no real Region row/directors.
+            chapters = Chapter.objects.filter(candidate_chapter=True)
+            directors = User.objects.none()
+        else:
+            chapters = region.chapters.all()
+            directors = region.directors.all()
+        context["chapter_count"] = chapters.count()
+        context["active_chapter_count"] = chapters.filter(active=True).count()
+        context["chapters"] = chapters.select_related("region").order_by("name")
+        context["directors"] = directors.order_by("last_name", "name")
+        context["is_natoff"] = self.request.user.is_national_officer_group
         return context
 
 
@@ -243,7 +322,7 @@ class RegionTaskView(LoginRequiredMixin, NatOfficerRequiredMixin, DetailView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        qs = TaskDate.objects.all()
+        qs = TaskDate.objects.filter(archived=False)
         cancel = self.request.GET.get("cancel", False)
         request_get = self.request.GET.copy()
         if cancel:
@@ -317,3 +396,39 @@ class RegionListView(LoginRequiredMixin, ListView):
     # These next two lines tell the view to index lookups by username
     slug_field = "slug"
     slug_url_kwarg = "slug"
+
+
+class EventAttendanceDashboardView(LoginRequiredMixin, NatOfficerRequiredMixin, TemplateView):
+    """WI-9 — regional & national events + attendance review dashboard.
+
+    Restricted to National Officers (same permission as the other region
+    dashboards). Offers a region/national scope selector with the top-15
+    attended events for that scope, plus a type-to-search national-event lookup
+    that renders a chapter-by-chapter attendance-percentage breakdown built from
+    the recorded snapshot values.
+    """
+
+    template_name = "regions/event_attendance_dashboard.html"
+
+    def get_context_data(self, **kwargs):
+        from thetatauCMT.attendance.forms import NationalEventLookupForm
+        from thetatauCMT.attendance.services import national_event_chapter_breakdown, top_attended_events
+
+        context = super().get_context_data(**kwargs)
+        scope = self.request.GET.get("scope") or "national"
+        valid_scopes = {"national", "candidate_chapter"} | set(Region.objects.values_list("slug", flat=True))
+        if scope not in valid_scopes:
+            scope = "national"
+        context["scope"] = scope
+        context["scope_choices"] = Region.region_choices()
+        context["top_events"] = top_attended_events(scope=scope, limit=15)
+
+        lookup_form = NationalEventLookupForm(self.request.GET or None)
+        context["lookup_form"] = lookup_form
+        breakdown_event = None
+        if lookup_form.is_bound and lookup_form.is_valid():
+            breakdown_event = lookup_form.cleaned_data.get("event")
+        if breakdown_event is not None:
+            context["breakdown_event"] = breakdown_event
+            context["chapter_breakdown"] = national_event_chapter_breakdown(breakdown_event)
+        return context

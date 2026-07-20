@@ -32,9 +32,16 @@ class Command(BaseCommand):
                 continue
             print(chapter)
             emails, officers_to_update = chapter.get_about_expired_coucil()
-            if officers_to_update:
+            if officers_to_update and emails:
+                # Only send the daily reminder when there is at least one chapter
+                # recipient. Previously an unresponsive chapter with no current or
+                # past officers still sent a daily email whose only recipient was
+                # the cc'd Regional Director; the RD now gets a weekly digest
+                # instead (region_officer_reminder_digest).
                 print(f"Sending message to: {chapter}\n")
                 result = OfficerUpdateReminder(chapter, emails, officers_to_update).send()
                 print("    ", result)
+            elif officers_to_update:
+                print(f"{chapter} needs updates but has no chapter recipients; deferring to the weekly RD digest\n")
             else:
                 print(f"{chapter} does not need to update CMT\n")

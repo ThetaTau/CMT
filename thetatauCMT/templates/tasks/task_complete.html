@@ -5,6 +5,12 @@
 
 {% block content %}
   <h1>Mark Task As Complete</h1>
+  {% if is_archived %}
+  <div class="alert alert-warning" role="alert">
+    This due date has been marked <strong>no longer needed</strong> and can no longer be completed.
+    Only current due dates for this task need to be completed.
+  </div>
+  {% endif %}
   <p>This task is to help the officers of the chapter to remember to complete
   tasks in a timely manner. Some tasks have forms/submissions associated with them.
   You should try to complete the form or submit the appropriate document before marking the task complete.

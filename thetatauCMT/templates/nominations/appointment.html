@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}Appointment Processing{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width: 720px; margin-top: 40px;">
+  <h2>Appointment processing</h2>
+  <p>Nominee: <strong>{{ nomination.nominee_display }}</strong></p>
+
+  {% if not at_appointment %}
+    <div class="alert alert-success">All appointment steps are complete &mdash; the nominee is appointed.</div>
+  {% endif %}
+
+  <ol class="list-group list-group-numbered">
+    <li class="list-group-item d-flex justify-content-between align-items-start">
+      <div>
+        <div class="fw-bold">Upload appointment letter</div>
+        {% if checklist.letter_uploaded %}
+          <span class="badge bg-success">Uploaded</span>
+          {% if nomination.appointment_letter %}<a href="{{ nomination.appointment_letter.url }}">view</a>{% endif %}
+        {% else %}
+          <form method="POST" enctype="multipart/form-data">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="upload_letter">
+            <input type="file" name="appointment_letter" required>
+            <button type="submit" class="btn btn-sm btn-primary">Upload</button>
+          </form>
+        {% endif %}
+      </div>
+    </li>
+    <li class="list-group-item">
+      <div class="fw-bold">Email appointment letter to nominee</div>
+      {% if checklist.letter_emailed %}
+        <span class="badge bg-success">Sent {{ nomination.appointment_letter_sent_at }}</span>
+      {% else %}
+        <form method="POST">{% csrf_token %}<input type="hidden" name="action" value="email_letter">
+          <button type="submit" class="btn btn-sm btn-primary">Send letter</button></form>
+      {% endif %}
+    </li>
+    <li class="list-group-item">
+      <div class="fw-bold">Notify affected chapter(s) / region</div>
+      {% if checklist.chapters_notified %}<span class="badge bg-success">Notified</span>
+      {% else %}<form method="POST">{% csrf_token %}<input type="hidden" name="action" value="notify_chapters">
+        <button type="submit" class="btn btn-sm btn-primary">Notify</button></form>{% endif %}
+    </li>
+    <li class="list-group-item">
+      <div class="fw-bold">Order PPM</div>
+      {% if checklist.ppm_ordered %}<span class="badge bg-success">Ordered</span>
+      {% else %}<form method="POST">{% csrf_token %}<input type="hidden" name="action" value="order_ppm">
+        <button type="submit" class="btn btn-sm btn-primary">Mark ordered</button></form>{% endif %}
+    </li>
+    <li class="list-group-item">
+      <div class="fw-bold">Add appointee to natoff lists</div>
+      {% if checklist.added_to_natoff_lists %}<span class="badge bg-success">Added</span>
+      {% else %}<form method="POST">{% csrf_token %}<input type="hidden" name="action" value="add_natoff">
+        <button type="submit" class="btn btn-sm btn-primary">Add to lists</button></form>{% endif %}
+    </li>
+  </ol>
+</div>
+{% endblock %}

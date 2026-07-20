@@ -23,7 +23,53 @@ def test_chapter_detail_view(auto_login_user):
     url = reverse("chapters:detail", kwargs={"slug": chapter.slug})
     response = client.get(url, follow=True)
     assert response.status_code == 200
-    assert f"{chapter.name} in the {chapter.region} Region" in response.content.decode("UTF-8")
+    content = response.content.decode("UTF-8")
+    assert chapter.name in content
+    assert f"{chapter.region} Region" in content
+
+
+@pytest.mark.django_db
+def test_chapter_detail_email_list_includes_generic_emails(auto_login_user):
+    """The "Copy emails" list also includes the chapter generic officer emails."""
+    client, user = auto_login_user()
+    chapter = ChapterFactory()
+    # Set explicitly (not via factory kwargs) so a ChapterFactory name collision
+    # returning an existing chapter can't drop the generic mailbox values.
+    chapter.email_regent = "regent@generic.example.com"
+    chapter.email_treasurer = "treasurer@generic.example.com"
+    chapter.save(update_fields=["email_regent", "email_treasurer"])
+    url = reverse("chapters:detail", kwargs={"slug": chapter.slug})
+    response = client.get(url, follow=True)
+    assert response.status_code == 200
+    email_list = response.context["email_list"]
+    assert "regent@generic.example.com" in email_list
+    assert "treasurer@generic.example.com" in email_list
+
+
+@pytest.mark.django_db
+def test_chapter_detail_shows_regional_director_link(auto_login_user):
+    """The chapter detail page links to the region's Regional Director profile."""
+    from thetatauCMT.regions.tests.factories import RegionFactory
+    from thetatauCMT.users.tests.factories import UserFactory
+
+    client, user = auto_login_user()
+    region = RegionFactory(name="RD Link Region")
+    director = UserFactory(first_name="Dana", last_name="Director")
+    region.directors.add(director)
+    # Set the region explicitly after creation: ChapterFactory uses
+    # django_get_or_create=("name",) and may return an existing chapter,
+    # dropping a region= kwarg.
+    chapter = ChapterFactory()
+    chapter.region = region
+    chapter.save(update_fields=["region"])
+    url = reverse("chapters:detail", kwargs={"slug": chapter.slug})
+    response = client.get(url, follow=True)
+    assert response.status_code == 200
+    content = response.content.decode("UTF-8")
+    profile_url = reverse("users:profile", kwargs={"username": director.username})
+    assert profile_url in content
+    assert director.name in content
+    assert list(response.context["region_directors"]) == [director]
 
 
 def test_chapter_list_view_denied(auto_login_user):
@@ -34,14 +80,8 @@ def test_chapter_list_view_denied(auto_login_user):
     assert "Filter Chapters" in response.content.decode("UTF-8")
 
 
-@pytest.mark.skip(
-    reason=(
-        "Flaky: UserRoleChangeFactory generates random start/end dates; when "
-        "end==TOMORROW the role is not counted as current, current_roles stays "
-        "empty, and RMPSignMiddleware redirects to the RMP page (which returns "
-        "200 but has no 'Filter Chapters'). Fix by pinning factory dates."
-    )
-)
+@pytest.mark.django_db
+@pytest.mark.freeze_time("2026-05-15 12:00:00")
 def test_chapter_list_view_chapter_officer(auto_login_user):
     client, user = auto_login_user(make_officer="chapter")
     url = reverse("chapters:list")
@@ -50,13 +90,8 @@ def test_chapter_list_view_chapter_officer(auto_login_user):
     assert "Filter Chapters" in response.content.decode("UTF-8")
 
 
-@pytest.mark.skip(
-    reason=(
-        "Flaky: same root cause as test_chapter_list_view_chapter_officer — "
-        "random UserRoleChange end date can equal TOMORROW, making the role "
-        "inactive and triggering an RMP middleware redirect."
-    )
-)
+@pytest.mark.django_db
+@pytest.mark.freeze_time("2026-05-15 12:00:00")
 def test_chapter_list_view_natoff(auto_login_user):
     client, user = auto_login_user(make_officer="national")
     url = reverse("chapters:list")
@@ -271,5 +306,79 @@ def test_chapter_detail_view_with_national_officer_role(auto_login_user):
     user.save()
     chapter = user.current_chapter
     url = reverse("chapters:detail", kwargs={"slug": chapter.slug})
+    response = client.get(url)
+    assert response.status_code == 200
+
+
+# ─── ChapterAuditView / ChapterAuditRedirectView ─────────────────────────────
+
+
+@pytest.mark.django_db
+def test_chapter_audit_redirect_view(auto_login_user):
+    """The Finances nav link at /chapters/audit/ sends the user to their own
+    chapter's audit page."""
+    client, user = auto_login_user()
+    chapter = user.current_chapter
+    url = reverse("chapters:audit_redirect")
+    response = client.get(url, follow=False)
+    assert response.status_code == 302
+    assert response["Location"] == reverse("chapters:audit", kwargs={"slug": chapter.slug})
+
+
+@pytest.mark.django_db
+def test_chapter_audit_view_own_chapter(auto_login_user):
+    """A logged-in chapter member can view their own chapter's audit summary."""
+    from django.utils import timezone
+
+    from thetatauCMT.forms.models import Audit
+
+    client, user = auto_login_user()
+    chapter = user.current_chapter
+    Audit.objects.create(
+        user=user,
+        year=2023,
+        term="fa",
+        modified=timezone.now(),
+        dues_member=100.0,
+        dues_pledge=50.0,
+        frequency="month",
+        payment_plan=True,
+        cash_book=True,
+        cash_register=True,
+        member_account=True,
+        cash_book_reviewed=True,
+        cash_register_reviewed=True,
+        member_account_reviewed=True,
+        balance_checking=1000.0,
+        balance_savings=500.0,
+        debit_card=True,
+        debit_card_access="regent",
+        agreement=True,
+    )
+    url = reverse("chapters:audit", kwargs={"slug": chapter.slug})
+    response = client.get(url)
+    assert response.status_code == 200
+    body = response.content.decode()
+    assert "Chapter Audit" in body
+
+
+@pytest.mark.django_db
+def test_chapter_audit_view_other_chapter_denied(auto_login_user):
+    """A regular chapter member cannot view another chapter's audit."""
+    client, user = auto_login_user()
+    other_chapter = ChapterFactory()
+    url = reverse("chapters:audit", kwargs={"slug": other_chapter.slug})
+    response = client.get(url, follow=False)
+    assert response.status_code == 302
+    assert response["Location"] == reverse("home")
+
+
+@pytest.mark.django_db
+def test_chapter_audit_view_natoff_can_view_any(auto_login_user):
+    """National officers can view any chapter's audit."""
+    client, user = auto_login_user()
+    _add_to_group(user, "natoff")
+    other_chapter = ChapterFactory()
+    url = reverse("chapters:audit", kwargs={"slug": other_chapter.slug})
     response = client.get(url)
     assert response.status_code == 200

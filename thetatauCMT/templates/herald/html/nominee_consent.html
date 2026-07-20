@@ -1,0 +1,20 @@
+{% extends "herald/html/base_email.html" %}
+{% block title %}You have been recommended to serve{% endblock %}
+{% block content %}
+<br>
+Hello {{ nominee_display }},
+<p>
+  {{ nominator }} has recommended you to serve Theta Tau{% if positions_display %} as
+  <strong>{{ positions_display }}</strong>{% endif %}{% if level_display %} at the
+  {{ level_display }} level{% endif %}.
+</p>
+{% if reason %}<p><strong>Why they recommended you:</strong> {{ reason }}</p>{% endif %}
+<p>Would you like to serve? Please respond using your private link below:</p>
+<p><a href="{{ consent_link }}">{{ consent_link }}</a></p>
+<p>
+  You can let us know that you are interested, ask us to follow up with you
+  later, or decline. There is nothing to log in to &mdash; the link is unique
+  to you.
+</p>
+<p>In H&amp;T,<br>Theta Tau</p>
+{% endblock content %}

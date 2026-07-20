@@ -12,6 +12,7 @@ from django.contrib import messages
 from django.contrib.auth.forms import PasswordResetForm
 from django.contrib.auth.tokens import default_token_generator
 from django.contrib.sites.shortcuts import get_current_site
+from django.core import signing
 from django.forms.models import modelformset_factory
 from django.http import HttpResponse
 from django.http.request import QueryDict
@@ -20,13 +21,18 @@ from django.shortcuts import render
 from django.urls import reverse
 from django.utils.encoding import force_bytes
 from django.utils.http import url_has_allowed_host_and_scheme, urlsafe_base64_encode
-from django.views.generic import DetailView, FormView, RedirectView, UpdateView
+from django.views.generic import DetailView, FormView, RedirectView, TemplateView, UpdateView, View
 from extra_views import FormSetView, ModelFormSetView
 from watson import search as watson
 
 from core.address import isinradius
 from core.forms import MultiFormsView
-from core.models import BIENNIUM_YEARS, annotate_rmp_status
+from core.models import (
+    BIENNIUM_YEARS,
+    academic_encompass_start_end_date,
+    annotate_rmp_status,
+    semester_encompass_start_end_date,
+)
 from core.views import (
     LoginRequiredMixin,
     NatOfficerRequiredMixin,
@@ -43,6 +49,7 @@ from thetatauCMT.submissions.tables import SubmissionTable
 from .filters import UserListFilter, UserListFilterBase
 from .forms import (
     CaptchaLoginForm,
+    EmailPreferencesForm,
     UserAlterForm,
     UserForm,
     UserGPAForm,
@@ -62,9 +69,11 @@ from .models import (
     UserOrgParticipate,
     UserSemesterGPA,
     UserSemesterServiceHours,
+    UserStatusChange,
 )
 from .notifications import MemberInfoUpdate
 from .tables import UserTable
+from .unsubscribe import CATEGORY_ALL, UNSUBSCRIBE_CATEGORIES, get_category, is_unsubscribed
 
 
 class UserRedirectView(LoginRequiredMixin, RedirectView):
@@ -72,6 +81,123 @@ class UserRedirectView(LoginRequiredMixin, RedirectView):
 
     def get_redirect_url(self):
         return reverse("users:detail")
+
+
+UNSUBSCRIBE_SALT = "users.unsubscribe.v1"
+
+
+def make_unsubscribe_token(user, category=None):
+    """Return a signed, tamper-resistant token that identifies ``user``.
+
+    When ``category`` is provided it is embedded in the token so the
+    confirmation page can pre-select that mailing list. Unknown category
+    slugs are silently dropped so a mis-typed slug in an email footer does
+    not blow up the recipient's unsubscribe page.
+    """
+    payload = {"user_pk": user.pk}
+    if category and get_category(category) is not None:
+        payload["category"] = category
+    return signing.dumps(payload, salt=UNSUBSCRIBE_SALT)
+
+
+class UnsubscribeConfirmView(TemplateView):
+    """Public unsubscribe manager.
+
+    GET renders one checkbox per registered category plus an "unsubscribe
+    from all optional email" toggle. When the token embeds a category, that
+    box is pre-checked so the one-click flow (from the email footer) still
+    just needs a single form submission to opt out of that mailing list.
+    POST persists the choices. Requiring a POST prevents mail-scanner
+    prefetch (Gmail/Outlook/etc.) from silently unsubscribing users.
+    """
+
+    template_name = "users/unsubscribe_confirm.html"
+    http_method_names = ["get", "post"]
+
+    def _load_payload(self):
+        token = self.kwargs.get("token", "")
+        try:
+            data = signing.loads(token, salt=UNSUBSCRIBE_SALT)
+        except signing.BadSignature:
+            return None, None
+        user = User.objects.filter(pk=data.get("user_pk")).first()
+        category_slug = data.get("category")
+        return user, category_slug
+
+    def _category_rows(self, user, focus_slug, *, preselect_focus):
+        rows = []
+        for category in UNSUBSCRIBE_CATEGORIES:
+            unsubscribed = is_unsubscribed(user, category.slug) if user else False
+            focused = category.slug == focus_slug
+            checked = unsubscribed or (preselect_focus and focused)
+            rows.append(
+                {
+                    "slug": category.slug,
+                    "label": category.label,
+                    "description": category.description,
+                    "checked": checked,
+                    "focused": focused,
+                }
+            )
+        return rows
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        user, focus_slug = self._load_payload()
+        ctx["user_obj"] = user
+        ctx["focus_slug"] = focus_slug
+        ctx["focus_category"] = get_category(focus_slug) if focus_slug else None
+        ctx["categories"] = self._category_rows(user, focus_slug, preselect_focus=True)
+        ctx["all_checked"] = bool(user and user.unsubscribe_email)
+        ctx["category_all"] = CATEGORY_ALL
+        ctx["done"] = False
+        return ctx
+
+    def post(self, request, *args, **kwargs):
+        user, focus_slug = self._load_payload()
+        if user is None:
+            ctx = super().get_context_data(**kwargs)
+            ctx["user_obj"] = None
+            ctx["done"] = False
+            return self.render_to_response(ctx)
+
+        selected = set(request.POST.getlist("categories"))
+        unsubscribe_all = CATEGORY_ALL in selected
+        update_fields = []
+
+        if unsubscribe_all != user.unsubscribe_email:
+            user.unsubscribe_email = unsubscribe_all
+            update_fields.append("unsubscribe_email")
+
+        current = list(user.unsubscribe_categories or [])
+        new_list = [c.slug for c in UNSUBSCRIBE_CATEGORIES if c.slug in selected]
+        # Keep any legacy/unknown slugs the model may already hold instead
+        # of silently discarding them on an unrelated save.
+        preserved = [slug for slug in current if slug not in {c.slug for c in UNSUBSCRIBE_CATEGORIES}]
+        new_list.extend(preserved)
+        if set(new_list) != set(current):
+            user.unsubscribe_categories = new_list
+            update_fields.append("unsubscribe_categories")
+
+        if update_fields:
+            user.save(update_fields=update_fields)
+
+        # When a member opts out of all optional email, mirror the opt-out to
+        # the other organization's MailerLite list (best-effort, never fatal).
+        if unsubscribe_all and "unsubscribe_email" in update_fields:
+            from thetatauCMT.email_tracking import mailerlite_sync
+
+            mailerlite_sync.unsubscribe_user(user)
+
+        ctx = super().get_context_data(**kwargs)
+        ctx["user_obj"] = user
+        ctx["focus_slug"] = focus_slug
+        ctx["focus_category"] = get_category(focus_slug) if focus_slug else None
+        ctx["categories"] = self._category_rows(user, focus_slug, preselect_focus=False)
+        ctx["all_checked"] = user.unsubscribe_email
+        ctx["category_all"] = CATEGORY_ALL
+        ctx["done"] = True
+        return self.render_to_response(ctx)
 
 
 @group_required(["officer", "natoff"])
@@ -82,18 +208,205 @@ def user_verify(request):
     return render(request, "users/user_verify_form.html", {"form": form})
 
 
-class UserDetailView(LoginRequiredMixin, NatOfficerRequiredMixin, DetailView):
+RESIGNED_STATUSES = {"resigned", "resignedCC"}
+EXPELLED_STATUSES = {"expelled", "pendexpul"}
+DISCIPLINE_STATUSES = {"suspended", "probation"}
+
+
+class UserProfileView(LoginRequiredMixin, DetailView):
+    """Public member profile visible to any authenticated Theta Tau member.
+
+    Sensitive natoff-only content (notes, submissions, job postings, task
+    completions) is added to the context only for national officers. Owner
+    and superuser get edit shortcuts in the template.
+    """
+
     slug_field = "username"
     slug_url_kwarg = "username"
-    template_name = "users/user_info.html"
+    template_name = "users/user_profile.html"
     model = User
+
+    def get_queryset(self):
+        return (
+            super()
+            .get_queryset()
+            .select_related("chapter", "major", "address__locality__state__country")
+            .prefetch_related("roles", "orgs", "ritual_proficiency")
+        )
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        table = UserNoteTable(self.object.notes.all())
-        RequestConfig(self.request).configure(table)
-        context["note_table"] = table
+        target = self.object
+        viewer = self.request.user
+
+        is_owner = viewer.is_authenticated and viewer.pk == target.pk
+        is_natoff = viewer.is_national_officer_group
+        is_officer = viewer.is_officer_group
+        is_superuser = viewer.is_superuser
+
+        try:
+            initiation = target.initiation
+        except Exception:
+            initiation = None
+
+        # Per-field contact visibility. National Officers, superusers, and the
+        # member themselves always see the information; everyone else is subject
+        # to the member's chosen visibility level.
+        show_email = target.contact_visible_to(viewer, target.email_visibility)
+        show_phone = target.contact_visible_to(viewer, target.phone_visibility)
+        show_address = target.contact_visible_to(viewer, target.address_visibility)
+        has_email = bool(target.email) or bool(target.email_school)
+        has_hidden_contact = (
+            (has_email and not show_email)
+            or (bool(target.phone_number) and not show_phone)
+            or (bool(target.address_id) and not show_address)
+        )
+
+        context.update(
+            {
+                "is_owner": is_owner,
+                "is_natoff": is_natoff,
+                "is_officer": is_officer,
+                "is_superuser": is_superuser,
+                "can_view_sensitive": is_natoff or is_superuser,
+                "current_status_label": (
+                    UserStatusChange.STATUS.get_value(target.current_status) if target.current_status else ""
+                ),
+                "is_resigned": target.current_status in RESIGNED_STATUSES,
+                "is_expelled": target.current_status in EXPELLED_STATUSES,
+                "is_discipline": target.current_status in DISCIPLINE_STATUSES,
+                "initiation": initiation,
+                "roles_history": target.roles.all().order_by("-end", "-start"),
+                "orgs": target.orgs.all().order_by("-start", "org_name"),
+                "ritual_records": target.ritual_proficiency.all().order_by("-date", "-level"),
+                "role_labels": _role_labels(target.current_roles),
+                "show_email": show_email,
+                "show_phone": show_phone,
+                "show_address": show_address,
+                "has_hidden_contact": has_hidden_contact,
+                # Regions this member directs (Region.directors M2M). Drives the
+                # prominent "Regional Director" card + generic region contact info.
+                "director_regions": (target.regional_director.all().prefetch_related("chapters").order_by("name")),
+            }
+        )
+
+        # Volunteer nominations (#2/#3/#9/#14). Anyone can nominate a member;
+        # the member (owner) and National Officers can see the status of the
+        # member's nominations. A member may nominate themselves, which
+        # overrides a previous "not interested" response.
+        target_nominations = list(target.nominations.select_related("nominator").order_by("-created"))
+        context["nominee_nominations"] = target_nominations
+        context["has_active_nomination"] = any(n.finished is None for n in target_nominations)
+        context["target_declined_nomination"] = target.declined_nomination
+        context["can_view_nomination_status"] = is_owner or is_natoff or is_superuser
+        context["nominate_url"] = reverse("viewflow:nominations:nomination:start") + f"?nominee={target.pk}"
+
+        # WI-8 — member attendance (visible to any authenticated member). The
+        # add-missing-attendance form is only offered to the member themselves
+        # or a National Officer.
+        from thetatauCMT.attendance.forms import MemberAttendanceForm
+        from thetatauCMT.attendance.services import member_attendance
+
+        records = list(member_attendance(target))
+        # Classify each record into date buckets for the client-side filters
+        # (this semester / last semester / this academic year).
+        this_sem_start, this_sem_end = (d.date() for d in semester_encompass_start_end_date())
+        _last_ref = this_sem_start - datetime.timedelta(days=1)
+        last_sem_start, last_sem_end = (
+            d.date()
+            for d in semester_encompass_start_end_date(
+                given_date=datetime.datetime(_last_ref.year, _last_ref.month, _last_ref.day)
+            )
+        )
+        year_start, year_end = (d.date() for d in academic_encompass_start_end_date())
+        present_chapters = {}
+        has_national = False
+        for rec in records:
+            event_date = rec.event.date
+            tokens = []
+            if this_sem_start <= event_date < this_sem_end:
+                tokens.append("this-semester")
+            if last_sem_start <= event_date < last_sem_end:
+                tokens.append("last-semester")
+            if year_start <= event_date < year_end:
+                tokens.append("this-year")
+            rec.period_tokens = " ".join(tokens)
+            if rec.event.chapter_id:
+                present_chapters[rec.event.chapter.slug] = rec.event.chapter.name
+            if rec.event.is_national:
+                has_national = True
+
+        context["attendance_records"] = records
+        context["attendance_chapters"] = sorted(present_chapters.items(), key=lambda kv: kv[1])
+        context["has_national_attendance"] = has_national
+        context["can_add_attendance"] = is_owner or is_natoff or is_superuser
+        if context["can_add_attendance"]:
+            context["attendance_form"] = MemberAttendanceForm(member=target)
+            context["attendance_add_url"] = reverse("attendance:member_add", kwargs={"username": target.username})
+
+        if is_natoff or is_superuser:
+            note_table = UserNoteTable(target.notes.all())
+            RequestConfig(self.request, paginate={"per_page": 15}).configure(note_table)
+            context["note_table"] = note_table
+
+            submission_table = SubmissionTable(target.submissions.all())
+            RequestConfig(self.request, paginate={"per_page": 15}).configure(submission_table)
+            context["submission_table"] = submission_table
+
+            from thetatauCMT.jobs.models import Job
+            from thetatauCMT.jobs.tables import JobTable
+
+            job_qs = Job.objects.filter(created_by=target).order_by("-publish_start")
+            job_table = JobTable(job_qs)
+            RequestConfig(self.request, paginate={"per_page": 15}).configure(job_table)
+            context["job_table"] = job_table
+
+            from thetatauCMT.tasks.models import TaskChapter
+
+            context["task_completions"] = (
+                TaskChapter.objects.filter(created_by=target)
+                .select_related("task__task", "chapter")
+                .order_by("-date")[:100]
+            )
+
         return context
+
+
+# Backward-compat alias so any external imports keep working.
+UserDetailView = UserProfileView
+
+
+def _role_labels(current_roles):
+    """Return a list of ``(slug, label)`` pairs for the user's current roles."""
+    if not current_roles:
+        return []
+    return [(slug, slug.title()) for slug in current_roles]
+
+
+class ProfilePictureUpdateView(LoginRequiredMixin, UpdateView):
+    """Owner-only view for uploading / clearing a profile picture."""
+
+    model = User
+    template_name = "users/profile_picture_form.html"
+    fields = ("profile_picture",)
+
+    def get_object(self, queryset=None):
+        return self.request.user
+
+    def get_success_url(self):
+        return reverse("users:profile", kwargs={"username": self.request.user.username})
+
+    def form_valid(self, form):
+        if self.request.POST.get("clear") == "1":
+            if form.instance.profile_picture:
+                form.instance.profile_picture.delete(save=False)
+            form.instance.profile_picture = None
+            form.instance.save(update_fields=["profile_picture"])
+            messages.success(self.request, "Profile picture removed.")
+            return HttpResponseRedirect(self.get_success_url())
+        response = super().form_valid(form)
+        messages.success(self.request, "Profile picture updated.")
+        return response
 
 
 class UserDetailUpdateView(LoginRequiredMixin, MultiFormsView):
@@ -103,6 +416,7 @@ class UserDetailUpdateView(LoginRequiredMixin, MultiFormsView):
         "service": UserServiceForm,
         "user": UserForm,
         "demo": PledgeDemographicsForm,
+        "prefs": EmailPreferencesForm,
         "orgs": None,
     }
 
@@ -138,6 +452,11 @@ class UserDetailUpdateView(LoginRequiredMixin, MultiFormsView):
         if form.has_changed():
             form.save()
         return HttpResponseRedirect(self.get_success_url() + "#user")
+
+    def prefs_form_valid(self, form):
+        if form.has_changed():
+            form.save()
+        return HttpResponseRedirect(self.get_success_url() + "#email_prefs")
 
     def demo_form_valid(self, form):
         if form.has_changed():
@@ -222,6 +541,12 @@ class UserDetailUpdateView(LoginRequiredMixin, MultiFormsView):
                     "instance": self.get_object(),
                 }
             )
+        if form_name == "prefs":
+            kwargs.update(
+                {
+                    "instance": self.get_object(),
+                }
+            )
         if form_name == "demo":
             instance = UserDemographic.objects.filter(user=self.request.user).first()
             if instance:
@@ -285,7 +610,7 @@ class UserSearchView(LoginRequiredMixin, NatOfficerRequiredMixin, PagedFilteredT
         return {
             "chapter": True,
             "extra_info": True,
-            "natoff": self.request.user.is_national_officer(),
+            "natoff": self.request.user.is_national_officer() and not self.request.user.natoff_hidden,
             "admin": self.request.user.is_superuser,
         }
 
@@ -341,7 +666,7 @@ class UserListView(LoginRequiredMixin, PagedFilteredTableView):
     def get(self, request, *args, **kwargs):
         csv_action = request.GET.get("csv", "False").lower() == "download csv"
         email_action = request.GET.get("email", "False").lower() == "email all"
-        if (csv_action or email_action) and not request.user.is_officer:
+        if (csv_action or email_action) and not getattr(request, "is_officer", False):
             messages.add_message(
                 self.request,
                 messages.ERROR,
@@ -873,6 +1198,7 @@ class UserAutocomplete(autocomplete.Select2QuerySetView):
         chapter = self.forwarded.get("chapter", "true")
         actives = self.forwarded.get("actives", "false")
         alumni = self.forwarded.get("alumni", "false")
+        exclude_self = self.forwarded.get("exclude_self", "false")
         qs = User.objects.all()
         if chapter == "true":
             chapter = self.request.user.current_chapter
@@ -882,6 +1208,8 @@ class UserAutocomplete(autocomplete.Select2QuerySetView):
                 qs = chapter.alumni()
             else:
                 qs = qs.filter(chapter=chapter)
+        if exclude_self == "true":
+            qs = qs.exclude(pk=self.request.user.pk)
         if self.q:
             qs = qs.filter(name__icontains=self.q)
         return qs.order_by("name")
@@ -891,6 +1219,13 @@ class UserAlterView(LoginRequiredMixin, NatOfficerRequiredMixin, FormView):
     model = UserAlter
     form_class = UserAlterForm
     template_name = "users/lookup.html"  # dummy template should not be seen
+
+    def check_membership(self, groups):
+        # The chapter/role switcher must stay usable even while national-officer
+        # functionality is hidden (that is how a National Officer switches to
+        # viewing the site as a chapter officer), so gate on *raw* group
+        # membership rather than the hide-aware NatOfficerRequiredMixin check.
+        return self.request.user.in_national_officer_group
 
     def get_success_url(self):
         redirect_to = self.request.POST.get("next", "")
@@ -908,17 +1243,54 @@ class UserAlterView(LoginRequiredMixin, NatOfficerRequiredMixin, FormView):
             instance = UserAlter.objects.filter(user=user).first()
         except UserAlter.DoesNotExist:
             instance = None
-        if self.request.POST["alter-action"] == "Reset":
+        reset = self.request.POST.get("alter-action") == "Reset"
+        if reset:
             form.instance.chapter = self.request.user.chapter  # This should remain origin chapter
             form.instance.role = None
         form.is_valid()
         if instance:
             instance.chapter = form.instance.chapter
             instance.role = form.instance.role
+            if reset:
+                # Reset returns the National Officer to the full national view.
+                instance.hide_natoff = False
             instance.save()
         else:
             form.save()
         return super().form_valid(form)
+
+
+class ToggleNatoffView(LoginRequiredMixin, View):
+    """Flip the National Officer "view as member" toggle (``UserAlter.hide_natoff``).
+
+    Gated on *raw* ``natoff``-group membership (not :class:`NatOfficerRequiredMixin`,
+    which now treats hidden officers as non-members) so the National Officer can
+    always switch back while national-officer functionality is hidden.
+    """
+
+    http_method_names = ["post"]
+
+    def post(self, request, *args, **kwargs):
+        user = request.user
+        if not user.in_national_officer_group:
+            return HttpResponseRedirect(reverse("home"))
+        instance = UserAlter.objects.filter(user=user).first()
+        if instance is None:
+            instance = UserAlter(user=user, chapter=user.chapter, role=None)
+        instance.hide_natoff = not instance.hide_natoff
+        instance.save()
+        if instance.hide_natoff:
+            messages.info(
+                request,
+                "National officer functionality is now hidden — you are viewing the "
+                "site as a member. Use the account menu to show it again.",
+            )
+        else:
+            messages.info(request, "National officer functionality restored.")
+        redirect_to = request.POST.get("next", "")
+        if redirect_to and url_has_allowed_host_and_scheme(redirect_to, allowed_hosts=None):
+            return HttpResponseRedirect(redirect_to)
+        return HttpResponseRedirect(reverse("home"))
 
 
 class UserGPAFormSetView(LoginRequiredMixin, OfficerRequiredMixin, FormSetView):

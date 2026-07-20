@@ -2,6 +2,7 @@
 {% load querystring from django_tables2 %}
 {% load django_bootstrap5 %}
 {% load crispy_forms_tags %}
+{% load filter_tags %}
 {% load static i18n %}
 {% block title %}{{ view_type }}{% endblock %}
 
@@ -9,23 +10,26 @@
 <div class="container">
   <div class="row">
     <div class="col-sm-12">
-      <table>
-      <tr>
-        <td><h2>{{ view_type }}:</h2></td>
-        <td>
-          <button class="clipboard button btn btn-primary"
-            data-clipboard-text="{{ email_list }}">
-            Copy emails to clipboard
+      <div class="page-header d-flex flex-wrap align-items-center gap-2 mb-3">
+        <h2 class="page-title mb-0">{{ view_type }}</h2>
+        <div class="page-actions">
+          <button class="clipboard btn btn-outline-primary" data-clipboard-text="{{ email_list }}">
+            <i class="fas fa-envelope"></i> Copy emails to clipboard
           </button>
-        </td>
-        <td>
-          <form action='' method='GET'>
-          {% csrf_token %}
-          <input type='hidden'>
-          <input type='submit' class="btn btn-primary" name="csv" value="Download CSV" style="float: right;">
-        </td>
-      </tr>
-    </table>
+          {% if contact_sync_available %}
+            <button type="button" class="btn btn-outline-primary"
+                    data-bs-toggle="modal" data-bs-target="#contactSyncModal">
+              <i class="fas fa-address-book"></i> Sync to Contacts
+            </button>
+          {% endif %}
+          <form action="" method="GET">
+            {% for key, values in request.GET.lists %}{% if key != "csv" %}{% for v in values %}<input type="hidden" name="{{ key }}" value="{{ v }}">{% endfor %}{% endif %}{% endfor %}
+            <button type="submit" class="btn btn-primary" name="csv" value="Download CSV">
+              <i class="fas fa-file-csv"></i> Download CSV
+            </button>
+          </form>
+        </div>
+      </div>
 {% if table.page %}
   <div class="table-container">
 {% endif %}
@@ -37,8 +41,7 @@
             <thead>
                 <tr>
                     <th colspan="9">
-                          {% crispy filter.form filter.form.helper %}
-                        </form>
+                        {% collapsible_filter filter label="Filter Officers" collapse_id="officerFilter" %}
                     </th>
                 </tr>
 
@@ -95,5 +98,10 @@
     </div>
   </div>
 </div>
+{% if contact_sync_available %}
+  {# Modal + hidden CSRF token so contact_sync/sync_modal.html's fetch() calls can POST safely. #}
+  <form style="display:none">{% csrf_token %}</form>
+  {% include "contact_sync/sync_modal.html" %}
+{% endif %}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/1.5.10/clipboard.min.js"></script>
 {% endblock content %}

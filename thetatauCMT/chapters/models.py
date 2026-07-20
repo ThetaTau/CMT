@@ -23,6 +23,7 @@ from quickbooks.objects.customer import Customer
 
 from core.finances import create_line, get_quickbooks_client, invoice_search
 from core.models import (
+    ACTIVE_STATUSES,
     ADVISOR_ROLES,
     BIENNIUM_DATES,
     BIENNIUM_START,
@@ -356,13 +357,7 @@ class Chapter(models.Model, EmailSignalMixin):
     def get_actives_for_date(self, date):
         # Do not annotate, need the queryset not a list
         return self.members.filter(
-            status__status__in=[
-                "active",
-                "activepend",
-                "alumnipend",
-                "pendexpul",
-                "activeCC",
-            ],
+            status__status__in=ACTIVE_STATUSES,
             status__start__lte=date,
             status__end__gte=date,
         ).distinct()
@@ -593,6 +588,16 @@ class Chapter(models.Model, EmailSignalMixin):
             self.email_corresponding_secretary,
             self.email,
         ]
+
+    def generic_email_for_role(self, role):
+        """Return the chapter's generic email for an officer ``role``.
+
+        Officer roles map to the ``email_<role>`` fields (spaces replaced with
+        underscores), e.g. ``"regent"`` -> :attr:`email_regent` and
+        ``"corresponding secretary"`` -> :attr:`email_corresponding_secretary`.
+        Roles without an associated generic email field return ``""``.
+        """
+        return getattr(self, f"email_{role.replace(' ', '_')}", "") or ""
 
     def get_current_and_future(self):
         # list all officers that currently hold an executive board position

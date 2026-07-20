@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.urls import reverse
 from django.utils.safestring import mark_safe
-from import_export.admin import ImportMixin
+from import_export.admin import ImportExportActionModelAdmin
 
 from .models import ChapterNote, UserNote
 from .resources import ChapterNoteResource, UserNoteResource
@@ -13,7 +13,7 @@ class ChapterSubNoteInline(admin.TabularInline):
     fields = ["title", "type", "note", "restricted", "file"]
     ordering = ["-created"]
     show_change_link = True
-    extra = 1
+    extra = 0
     fk_name = "parent"
 
 
@@ -23,12 +23,12 @@ class UserSubNoteInline(admin.TabularInline):
     fields = ["title", "type", "note", "restricted", "file"]
     ordering = ["-created"]
     show_change_link = True
-    extra = 1
+    extra = 0
     fk_name = "parent"
 
 
 @admin.register(UserNote)
-class UserNoteAdmin(ImportMixin, admin.ModelAdmin):
+class UserNoteAdmin(ImportExportActionModelAdmin, admin.ModelAdmin):
     inlines = [UserSubNoteInline]
     raw_id_fields = ["user", "parent"]
     readonly_fields = ("created_by", "modified_by", "created", "modified")
@@ -83,7 +83,7 @@ class UserNoteAdmin(ImportMixin, admin.ModelAdmin):
 
 
 @admin.register(ChapterNote)
-class ChapterNoteAdmin(ImportMixin, admin.ModelAdmin):
+class ChapterNoteAdmin(ImportExportActionModelAdmin, admin.ModelAdmin):
     inlines = [ChapterSubNoteInline]
     raw_id_fields = ["parent"]
     readonly_fields = (
@@ -148,7 +148,7 @@ class ChapterNoteInline(admin.TabularInline):
     fields = ["title", "type", "note", "restricted", "parent", "file"]
     ordering = ["-created"]
     show_change_link = True
-    extra = 1
+    extra = 0
 
 
 class UserNoteInline(admin.TabularInline):
@@ -157,5 +157,5 @@ class UserNoteInline(admin.TabularInline):
     fields = ["title", "type", "note", "restricted", "parent", "file"]
     ordering = ["-created"]
     show_change_link = True
-    extra = 1
+    extra = 0
     fk_name = "user"

@@ -1,0 +1,32 @@
+[
+{
+    "model": "configs.config",
+    "pk": null,
+    "fields": {
+        "key": "FEATURE_AWARDS",
+        "value": "on",
+        "description": "Feature flag for the Awards functionality (Award Winners directory, award nominations, and award cards/badges on member, chapter and region pages). Set value to \"off\" to hide all Awards links and cards. Any other value (e.g. \"on\") keeps Awards enabled.",
+        "modified": "2026-07-20T00:00:00Z"
+    }
+},
+{
+    "model": "configs.config",
+    "pk": null,
+    "fields": {
+        "key": "FEATURE_JOBS",
+        "value": "on",
+        "description": "Feature flag for the Job Board. Set value to \"off\" to hide the Job Board link. Any other value (e.g. \"on\") keeps the Job Board enabled.",
+        "modified": "2026-07-20T00:00:00Z"
+    }
+},
+{
+    "model": "configs.config",
+    "pk": null,
+    "fields": {
+        "key": "FEATURE_EVENTS_CALENDAR",
+        "value": "on",
+        "description": "Feature flag for the Events Calendar. Set value to \"off\" to hide the Events Calendar links (menu item and calendar icon). Any other value (e.g. \"on\") keeps the Events Calendar enabled.",
+        "modified": "2026-07-20T00:00:00Z"
+    }
+}
+]

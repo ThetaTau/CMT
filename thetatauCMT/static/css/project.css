@@ -35,68 +35,288 @@ td[complete='True'] {
 	margin-left: -10px;
 }
 
-/* ===Navigation=== */
-#NAV, .navbar,  .navbar a:hover, .dropdown-item.active,
-.dropdown-item:active, .dropdown, .dropdown-item, dropdown-toggle, .nav-link{
-    background: linear-gradient( #8B0000, #A00000 10%, #8B0000 90%);
+/* ===Theta Tau brand palette (Bootstrap 5 CSS variable overrides)=== */
+/* Colors match the main thetatau.org site */
+:root {
+  --tt-dark-red: #a00e11;
+  --tt-dark-red-hover: #ce1215;
+  --tt-dark-red-dark: #7a0a0d;
+  --tt-gold: #f4c046;
+  --tt-gold-dark: #ae882e;
+  --tt-gold-rgb: 244, 192, 70;
+  --tt-off-white: #fdf9f8;
+  --tt-charcoal: #252b33;
+  --tt-near-black: #0d0e10;
+
+  /* Point Bootstrap's primary at the brand red */
+  --bs-primary: var(--tt-dark-red);
+  --bs-primary-rgb: 160, 14, 17;
+  --bs-link-color: var(--tt-dark-red);
+  --bs-link-hover-color: var(--tt-dark-red-hover);
 }
 
-.dropdown-item, .navbar-light .navbar-brand,
-.navbar-light .navbar-nav >.nav-link,
-.navbar-light .navbar-nav .nav-link, .nav-link {
-    color: #FFCC33;
-  font-weight: bold;
+.btn-primary {
+  --bs-btn-bg: var(--tt-dark-red);
+  --bs-btn-border-color: var(--tt-dark-red);
+  --bs-btn-hover-bg: var(--tt-dark-red-hover);
+  --bs-btn-hover-border-color: var(--tt-dark-red-hover);
+  --bs-btn-active-bg: var(--tt-dark-red-dark);
+  --bs-btn-active-border-color: var(--tt-dark-red-dark);
+  --bs-btn-disabled-bg: var(--tt-dark-red);
+  --bs-btn-disabled-border-color: var(--tt-dark-red);
+}
+.btn-outline-primary {
+  --bs-btn-color: var(--tt-dark-red);
+  --bs-btn-border-color: var(--tt-dark-red);
+  --bs-btn-hover-bg: var(--tt-dark-red);
+  --bs-btn-hover-border-color: var(--tt-dark-red);
+  --bs-btn-active-bg: var(--tt-dark-red);
+  --bs-btn-active-border-color: var(--tt-dark-red);
+}
+.accordion {
+  --bs-accordion-active-color: var(--tt-dark-red);
+  --bs-accordion-active-bg: rgba(160, 14, 17, 0.08);
+  --bs-accordion-btn-focus-border-color: var(--tt-dark-red);
+  --bs-accordion-btn-focus-box-shadow: 0 0 0 0.25rem rgba(160, 14, 17, 0.2);
 }
 
-a.nav-link:focus, a.nav-link:hover, .dropdown-header,
-.dropdown-item:focus, .dropdown-item:hover {
-    color: rgba(0,0,0,.9);
-    font-weight: bold;
+/* ===Site chrome & layout=== */
+body {
+  background-color: var(--tt-off-white);
+  color: var(--tt-charcoal);
+}
+main,
+.fusion-row {
+  background-color: transparent;
+}
+.container > .alert {
+  margin-top: 1rem;
+}
+#MPOuterHeader {
+  background-color: #ffffff;
+}
+.est {
+  background: url('../images/established.png') no-repeat top left;
+}
+.gear > li {
+  list-style-image: url('../images/gear.png');
+  padding-bottom: 5px;
 }
 
-.navbar, #NAV{
-    border: none;
+/* ===Header banner=== */
+.SloganText {
+  color: var(--tt-dark-red);
+  margin-left: 15px;
+  vertical-align: middle;
+  font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-weight: 600;
 }
-.breadcrumb{
-    background-color: rgba(255,255,255,0.25);
-    margin-bottom: 0px;
+.SloganText a {
+  color: inherit;
+  text-decoration: none;
 }
-@media screen and (max-width: 768px){
-  .header{
-    position: fixed;
-    left: -240px;
-    top: 0;
-    bottom: 0;
-    width: 240px;
-    height: 100%;
-    overflow: auto;
-    border-bottom: 0;
-    padding-top: 0;
-    z-index: 99;
-    background: #A11019;
-    }
-  .hidden-title {
-    display: inline;
-    color: #FFCC33;
-    }
-  .dropdown-menu {
-  position: absolute;
-  top: 100%; /* Bottom of button */
-  right: 0;
-  background: linear-gradient( #8B0000, #A00000 10%, #8B0000 90%);
-    }
+.SloganText a:hover {
+  color: var(--tt-dark-red-hover);
 }
-@media screen and (min-width: 768px){
-  .hidden-title {
-    display: none;
-    }
-  .dropdown-menu {
-  position: absolute;
-  top: 100%; /* Bottom of button */
-  right: 0;
-  margin-left: -100px; /* More to the left */
-  background: linear-gradient( #8B0000, #A00000 10%, #8B0000 90%);
-    }
+
+/* ===Main navigation (white bar, dark uppercase Montserrat, matches thetatau.org)=== */
+.tt-navbar {
+  background: #ffffff;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+.tt-navbar .navbar-brand,
+.tt-navbar .nav-link {
+  color: var(--tt-charcoal);
+  font-weight: 500;
+  font-size: 0.9375rem;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+.tt-navbar .nav-link:hover,
+.tt-navbar .nav-link:focus,
+.tt-navbar .nav-link.active,
+.tt-navbar .show > .nav-link {
+  color: var(--tt-dark-red-hover);
+}
+.tt-navbar .nav-link .fa-solid,
+.tt-navbar .nav-link .fa-brands,
+.tt-navbar .nav-link .fa-regular {
+  color: var(--tt-dark-red);
+  transition: color 150ms ease;
+}
+.tt-navbar .nav-link:hover .fa-solid,
+.tt-navbar .nav-link:hover .fa-brands,
+.tt-navbar .nav-link:hover .fa-regular {
+  color: var(--tt-dark-red-hover);
+}
+.tt-navbar .navbar-toggler {
+  color: var(--tt-charcoal);
+  border-color: rgba(0, 0, 0, 0.15);
+}
+
+/* Off-canvas mobile drawer matches the white navbar */
+.tt-offcanvas {
+  background: #ffffff;
+  color: var(--tt-charcoal);
+  font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+.tt-offcanvas .offcanvas-title {
+  color: var(--tt-charcoal);
+  font-weight: 600;
+}
+.tt-offcanvas .nav-link {
+  color: var(--tt-charcoal);
+  font-weight: 500;
+  text-transform: uppercase;
+  font-size: 0.9375rem;
+  letter-spacing: 0.02em;
+}
+.tt-offcanvas .nav-link:hover,
+.tt-offcanvas .nav-link:focus,
+.tt-offcanvas .nav-link.active,
+.tt-offcanvas .show > .nav-link {
+  color: var(--tt-dark-red-hover);
+}
+.tt-offcanvas .nav-link .fa-solid,
+.tt-offcanvas .nav-link .fa-brands,
+.tt-offcanvas .nav-link .fa-regular {
+  color: var(--tt-dark-red);
+}
+
+/* Dropdown menus - clean light surface with brand hover */
+.tt-navbar .dropdown-menu,
+.tt-offcanvas .dropdown-menu {
+  --bs-dropdown-link-hover-bg: rgba(160, 14, 17, 0.08);
+  --bs-dropdown-link-hover-color: var(--tt-dark-red-hover);
+  --bs-dropdown-link-active-bg: var(--tt-dark-red);
+  --bs-dropdown-link-active-color: #fff;
+  --bs-dropdown-color: var(--tt-charcoal);
+  --bs-dropdown-header-color: var(--tt-dark-red);
+  background: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  font-size: 0.9375rem;
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+/* Secondary regional bar */
+.tt-region-bar {
+  background-color: var(--tt-off-white);
+  font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+.tt-region-bar .navbar-brand {
+  color: var(--tt-dark-red);
+  font-weight: 600;
+}
+
+.breadcrumb {
+  background-color: rgba(255,255,255,0.25);
+  margin-bottom: 0;
+}
+@media screen and (max-width: 768px) {
+  .header {
+    background: #ffffff;
+  }
+}
+
+/* ===User-preference toggles=== */
+/* Theme toggle labels — show the label matching the action, not the current state */
+.theme-label-light { display: none; }
+[data-bs-theme="dark"] .theme-label-dark { display: none; }
+[data-bs-theme="dark"] .theme-label-light { display: inline; }
+
+/* Region-bar toggle labels + hide state */
+.region-bar-label-show { display: none; }
+body.region-bar-hidden .region-bar-label-hide { display: none; }
+body.region-bar-hidden .region-bar-label-show { display: inline; }
+body.region-bar-hidden .tt-region-bar { display: none !important; }
+
+/* ===Dark mode (brand-consistent overrides)=== */
+[data-bs-theme="dark"] body {
+  background-color: #16181c;
+  color: #e8eaed;
+}
+[data-bs-theme="dark"] #MPOuterHeader {
+  background-color: #16181c;
+}
+[data-bs-theme="dark"] .SloganText,
+[data-bs-theme="dark"] .SloganText a {
+  color: var(--tt-gold);
+}
+
+/* Navbar */
+[data-bs-theme="dark"] .tt-navbar {
+  background: #1e2126;
+  border-bottom-color: rgba(255, 255, 255, 0.08);
+}
+[data-bs-theme="dark"] .tt-navbar .navbar-brand,
+[data-bs-theme="dark"] .tt-navbar .nav-link {
+  color: #e8eaed;
+}
+[data-bs-theme="dark"] .tt-navbar .nav-link:hover,
+[data-bs-theme="dark"] .tt-navbar .nav-link:focus,
+[data-bs-theme="dark"] .tt-navbar .nav-link.active,
+[data-bs-theme="dark"] .tt-navbar .show > .nav-link {
+  color: var(--tt-gold);
+}
+[data-bs-theme="dark"] .tt-navbar .navbar-toggler {
+  color: #e8eaed;
+  border-color: rgba(255, 255, 255, 0.2);
+}
+[data-bs-theme="dark"] .tt-navbar .navbar-toggler-icon {
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='%23e8eaed' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");
+}
+
+/* Offcanvas drawer */
+[data-bs-theme="dark"] .tt-offcanvas {
+  background: #1e2126;
+  color: #e8eaed;
+}
+[data-bs-theme="dark"] .tt-offcanvas .offcanvas-title,
+[data-bs-theme="dark"] .tt-offcanvas .nav-link {
+  color: #e8eaed;
+}
+[data-bs-theme="dark"] .tt-offcanvas .nav-link:hover,
+[data-bs-theme="dark"] .tt-offcanvas .nav-link:focus,
+[data-bs-theme="dark"] .tt-offcanvas .nav-link.active,
+[data-bs-theme="dark"] .tt-offcanvas .show > .nav-link {
+  color: var(--tt-gold);
+}
+[data-bs-theme="dark"] .tt-offcanvas .btn-close {
+  filter: invert(1);
+}
+
+/* Dropdowns */
+[data-bs-theme="dark"] .tt-navbar .dropdown-menu,
+[data-bs-theme="dark"] .tt-offcanvas .dropdown-menu {
+  --bs-dropdown-bg: #2b2f36;
+  --bs-dropdown-color: #e8eaed;
+  --bs-dropdown-link-color: #e8eaed;
+  --bs-dropdown-link-hover-bg: rgba(244, 192, 70, 0.12);
+  --bs-dropdown-link-hover-color: var(--tt-gold);
+  --bs-dropdown-link-active-bg: var(--tt-dark-red);
+  --bs-dropdown-link-active-color: #fff;
+  --bs-dropdown-header-color: var(--tt-gold);
+  --bs-dropdown-divider-bg: rgba(255, 255, 255, 0.1);
+  background: #2b2f36;
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Region bar */
+[data-bs-theme="dark"] .tt-region-bar {
+  background-color: #212529;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+[data-bs-theme="dark"] .tt-region-bar .navbar-brand {
+  color: var(--tt-gold);
+}
+
+/* Accordion brand accents in dark mode */
+[data-bs-theme="dark"] .accordion {
+  --bs-accordion-active-color: var(--tt-gold);
+  --bs-accordion-active-bg: rgba(244, 192, 70, 0.1);
 }
 
 /* ===Page Title=== */
@@ -144,4 +364,490 @@ a.nav-link:focus, a.nav-link:hover, .dropdown-header,
 
 select.form-control[multiple], select.form-control[size] {
   height: min-content;
+}
+
+/* ===Collapsible list-view filter panel=== */
+.filter-toolbar .btn i.fa-caret-down {
+  transition: transform 0.2s ease-in-out;
+}
+.filter-toolbar .btn[aria-expanded="true"] i.fa-caret-down {
+  transform: rotate(180deg);
+}
+.filter-panel {
+  border: 1px solid var(--bs-border-color, rgba(0, 0, 0, 0.08));
+  border-radius: 0.5rem;
+}
+.filter-panel .filter-form fieldset > legend {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--tt-dark-red, #8B0000);
+  border-bottom: 1px solid var(--bs-border-color, rgba(0, 0, 0, 0.08));
+  padding-bottom: 0.35rem;
+  margin-bottom: 0.75rem;
+}
+/* Reveal labels inside the filter panel even when the crispy inline layout hides them */
+.filter-panel label {
+  display: inline-block;
+  font-weight: 500;
+  font-size: 0.85rem;
+  margin-bottom: 0.15rem;
+  color: var(--bs-secondary-color, #495057);
+}
+/* Dark-mode adjustments for the filter panel */
+[data-bs-theme="dark"] .filter-panel .filter-form fieldset > legend {
+  color: var(--tt-light-red, #ff8a8a);
+}
+[data-bs-theme="dark"] .filter-panel label {
+  color: var(--bs-body-color, #dee2e6);
+}
+.filter-panel .visually-hidden,
+.filter-panel .sr-only {
+  position: static !important;
+  width: auto !important;
+  height: auto !important;
+  padding: 0 !important;
+  margin: 0 0 0.15rem 0 !important;
+  overflow: visible !important;
+  clip: auto !important;
+  white-space: normal !important;
+  clip-path: none !important;
+}
+/* Space out inline fields so filters don't crowd each other */
+.filter-panel .form-inline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.75rem 1rem;
+}
+.filter-panel .form-inline .form-group {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-width: 12rem;
+  margin: 0;
+}
+.filter-panel .form-actions {
+  align-self: flex-end;
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-top: 0.5rem;
+}
+.filter-panel .form-inline .form-control,
+.filter-panel .form-inline .form-select,
+.filter-panel .form-inline .select2-container {
+  min-width: 12rem;
+}
+/* When crispy uses a Bootstrap grid Row/Column layout (e.g. Officers filter),
+   let the columns wrap and keep each one wide enough to be usable. */
+.filter-panel .row {
+  --bs-gutter-y: 0.75rem;
+  row-gap: 0.75rem;
+}
+.filter-panel .row > [class*="col"] {
+  flex: 0 0 auto;
+  width: auto;
+  min-width: 14rem;
+}
+.filter-panel .row > [class*="col"] .form-control,
+.filter-panel .row > [class*="col"] .form-select,
+.filter-panel .row > [class*="col"] .select2-container {
+  width: 100% !important;
+  min-width: 12rem;
+}
+.filter-panel .row > [class*="col"] .form-actions {
+  margin-top: 0;
+}
+
+/* Active-filter summary chips shown next to the toolbar buttons */
+.filter-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.15rem 0.55rem;
+  background: var(--bs-secondary-bg, #e9ecef);
+  color: var(--bs-body-color, #212529);
+  border: 1px solid var(--bs-border-color, rgba(0, 0, 0, 0.08));
+  border-radius: 1rem;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  white-space: nowrap;
+  max-width: 22rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.filter-chip .filter-chip-label {
+  font-weight: 600;
+  margin-right: 0.25rem;
+  opacity: 0.75;
+}
+.filter-summary {
+  min-width: 0;
+}
+[data-bs-theme="dark"] .filter-chip {
+  background: var(--bs-tertiary-bg, #2b3035);
+  color: var(--bs-body-color, #dee2e6);
+}
+
+/* ===Consistent list page header (title + inline action buttons)=== */
+.page-header {
+  border-bottom: 1px solid var(--bs-border-color, rgba(0, 0, 0, 0.1));
+  padding-bottom: 0.5rem;
+}
+.page-header .page-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--tt-dark-red, #8B0000);
+  margin-right: 0.5rem;
+}
+[data-bs-theme="dark"] .page-header .page-title {
+  color: var(--tt-light-red, #ff8a8a);
+}
+.page-header .page-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-left: auto;
+}
+.page-header .page-actions form {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+}
+
+/* ===Chapter Activity feed category badges (theme-aware)=== */
+.activity-badge {
+  background-color: var(--activity-bg, var(--bs-secondary-bg));
+  color: var(--activity-fg, var(--bs-body-color));
+}
+.activity-badge-event      { --activity-bg: #0dcaf0; --activity-fg: #0b3a44; }  /* info */
+.activity-badge-task       { --activity-bg: #198754; --activity-fg: #ffffff; }  /* success */
+.activity-badge-form       { --activity-bg: #ffc107; --activity-fg: #4a3a00; }  /* warning */
+.activity-badge-submission { --activity-bg: var(--tt-dark-red, #a00e11); --activity-fg: #ffffff; }
+.activity-badge-ballot     { --activity-bg: #6f42c1; --activity-fg: #ffffff; }  /* purple */
+.activity-badge-training   { --activity-bg: #20c997; --activity-fg: #05392a; }  /* teal */
+
+[data-bs-theme="dark"] .activity-badge-event      { --activity-bg: #0aa1c2; --activity-fg: #e5f8ff; }
+[data-bs-theme="dark"] .activity-badge-task       { --activity-bg: #15774a; --activity-fg: #e6f8ee; }
+[data-bs-theme="dark"] .activity-badge-form       { --activity-bg: #d9a406; --activity-fg: #1c1600; }
+[data-bs-theme="dark"] .activity-badge-submission { --activity-bg: #c73a3d; --activity-fg: #ffffff; }
+[data-bs-theme="dark"] .activity-badge-ballot     { --activity-bg: #8a63d2; --activity-fg: #ffffff; }
+[data-bs-theme="dark"] .activity-badge-training   { --activity-bg: #1ba57c; --activity-fg: #e6fbf3; }
+
+/* ===National-event attendance row highlight (theme-aware)===
+   Tints the row via Bootstrap's table background variable while keeping the
+   theme's own text colour, so it stays readable in both light and dark mode
+   (plain `table-primary` forces dark text that is hard to read on dark rows). */
+tr.national-attendance > * {
+  --bs-table-bg: rgba(13, 110, 253, 0.10);
+  --bs-table-color: var(--bs-body-color);
+  box-shadow: none;
+}
+tr.national-attendance > td:first-child {
+  border-left: 3px solid var(--bs-primary);
+}
+[data-bs-theme="dark"] tr.national-attendance > * {
+  --bs-table-bg: rgba(88, 166, 255, 0.16);
+  --bs-table-color: var(--bs-body-color);
+}
+
+
+/* ===Plotly Dash dashboards (chapter + region)=== */
+/* Panel wrapper — pairs with the `_PANEL_CLASS` used in dashboard.py.
+   Backgrounds/borders come from `bg-body-tertiary` so both light and dark
+   Bootstrap themes apply automatically. */
+.tt-dashboard-panel { border-radius: 0.5rem; }
+
+/* Region dashboard tabs — theme-aware overrides for dcc.Tabs. */
+.tt-dashboard-tabs .tab {
+  background-color: transparent !important;
+  color: var(--bs-body-color) !important;
+  border-color: var(--bs-border-color) !important;
+}
+.tt-dashboard-tabs .tab--selected {
+  background-color: var(--bs-body-tertiary-bg) !important;
+  color: var(--bs-body-color) !important;
+  border-top: 2px solid var(--tt-red, #a00e11) !important;
+  font-weight: 600;
+}
+.tt-dashboard-tabs .tt-dashboard-tab {
+  background-color: transparent !important;
+  color: var(--bs-body-color) !important;
+}
+.tt-dashboard-tabs .tt-dashboard-tab--active {
+  background-color: var(--bs-tertiary-bg) !important;
+  color: var(--bs-body-color) !important;
+  border-top: 2px solid var(--tt-red, #a00e11) !important;
+}
+
+/* Dash 4.x ships its own CSS custom properties (`--Dash-*`) that its form
+   controls (dropdowns, sliders, checklists, inputs, etc.) read at runtime.
+   The defaults are hard-coded to a LIGHT palette in `:root`, so in dark mode
+   dropdowns render with a white background and dark-blue text on our dark
+   panels. Override them here to track Bootstrap's dark theme. */
+[data-bs-theme="dark"] {
+  --Dash-Fill-Inverse-Strong: var(--bs-body-bg);
+  --Dash-Fill-Interactive-Weak: rgba(255, 255, 255, 0.06);
+  --Dash-Text-Primary: var(--bs-body-color);
+  --Dash-Text-Strong: var(--bs-body-color);
+  --Dash-Text-Weak: var(--bs-secondary-color, rgba(248, 249, 250, 0.7));
+  --Dash-Text-Disabled: rgba(248, 249, 250, 0.4);
+  --Dash-Stroke-Strong: rgba(248, 249, 250, 0.35);
+  --Dash-Stroke-Weak: rgba(248, 249, 250, 0.15);
+  --Dash-Fill-Disabled: rgba(255, 255, 255, 0.1);
+  --Dash-Fill-Primary-Hover: rgba(255, 255, 255, 0.06);
+  --Dash-Fill-Primary-Active: rgba(255, 255, 255, 0.12);
+}
+/* Dash's Dropdown option popover renders in a portal outside the theme scope,
+   so target it explicitly too. */
+[data-bs-theme="dark"] .dash-dropdown-content,
+[data-bs-theme="dark"] .dash-dropdown-options,
+[data-bs-theme="dark"] .dash-dropdown-option {
+  background-color: var(--bs-body-bg) !important;
+  color: var(--bs-body-color) !important;
+}
+[data-bs-theme="dark"] .dash-dropdown-option:hover {
+  background-color: var(--bs-tertiary-bg) !important;
+}
+/* RangeSlider mark labels default to `#c0392b` inline; that's illegible on
+   dark bg. Force the mark text to use the current body color. */
+[data-bs-theme="dark"] .dash-slider-mark,
+[data-bs-theme="dark"] .rc-slider-mark-text {
+  color: var(--bs-body-color) !important;
+}
+
+/* ===Dark-mode safeguards for hard-coded highlight colors=== */
+/* Inline yellow/green/red highlights on notices, process-data cells, and status
+   markers force a light background; ensure text stays legible in dark mode. */
+[data-bs-theme="dark"] [style*="background-color: #FFFF00"],
+[data-bs-theme="dark"] [style*="background-color:#FFFF00"],
+[data-bs-theme="dark"] [style*="background-color: #00FF00"],
+[data-bs-theme="dark"] [style*="background-color:#00FF00"],
+[data-bs-theme="dark"] td[complete="True"],
+[data-bs-theme="dark"] td[complete="False"],
+[data-bs-theme="dark"] td[complete="N/A"] {
+  color: #16181c !important;
+}
+/* Bootstrap contextual backgrounds (bg-warning / bg-info / bg-success) render
+   the same light color in both themes; force dark text on top for contrast. */
+[data-bs-theme="dark"] .bg-warning:not(.text-white):not(.text-light),
+[data-bs-theme="dark"] .bg-info:not(.text-white):not(.text-light),
+[data-bs-theme="dark"] .bg-success:not(.text-white):not(.text-light) {
+  color: #16181c;
+}
+
+/* ===Select2 (django-autocomplete-light) dark-mode overrides===
+   Select2 ships a light theme with white/gray backgrounds; wire it to the
+   Bootstrap CSS variables so the widget matches the current theme. */
+[data-bs-theme="dark"] .select2-container--default .select2-selection--single,
+[data-bs-theme="dark"] .select2-container--default .select2-selection--multiple {
+  background-color: var(--bs-body-bg);
+  border-color: var(--bs-border-color);
+  color: var(--bs-body-color);
+}
+[data-bs-theme="dark"] .select2-container--default .select2-selection--single .select2-selection__rendered,
+[data-bs-theme="dark"] .select2-container--default .select2-selection--multiple .select2-selection__rendered {
+  color: var(--bs-body-color);
+}
+[data-bs-theme="dark"] .select2-container--default .select2-selection--single .select2-selection__placeholder,
+[data-bs-theme="dark"] .select2-container--default .select2-search__field::placeholder {
+  color: var(--bs-secondary-color, #adb5bd);
+}
+[data-bs-theme="dark"] .select2-container--default .select2-selection--single .select2-selection__arrow b {
+  border-color: var(--bs-body-color) transparent transparent transparent;
+}
+[data-bs-theme="dark"] .select2-container--default.select2-container--open .select2-selection--single .select2-selection__arrow b {
+  border-color: transparent transparent var(--bs-body-color) transparent;
+}
+/* Dropdown panel */
+[data-bs-theme="dark"] .select2-dropdown,
+[data-bs-theme="dark"] .select2-container--default .select2-dropdown {
+  background-color: var(--bs-body-bg) !important;
+  border-color: var(--bs-border-color) !important;
+  color: var(--bs-body-color) !important;
+}
+/* Search input inside the dropdown (the box you type in) */
+[data-bs-theme="dark"] .select2-search--dropdown,
+[data-bs-theme="dark"] .select2-container--default .select2-search--dropdown {
+  background-color: var(--bs-body-bg) !important;
+}
+[data-bs-theme="dark"] .select2-search--dropdown .select2-search__field,
+[data-bs-theme="dark"] .select2-container--default .select2-search--dropdown .select2-search__field {
+  background-color: var(--bs-body-bg) !important;
+  border-color: var(--bs-border-color) !important;
+  color: var(--bs-body-color) !important;
+}
+[data-bs-theme="dark"] .select2-search--dropdown .select2-search__field:focus,
+[data-bs-theme="dark"] .select2-container--default .select2-search--dropdown .select2-search__field:focus {
+  border-color: var(--tt-dark-red, #a00e11) !important;
+  outline: none !important;
+  box-shadow: 0 0 0 0.15rem rgba(160, 14, 17, 0.35) !important;
+}
+/* Results list container (the <ul> that holds each option) */
+[data-bs-theme="dark"] .select2-results,
+[data-bs-theme="dark"] .select2-results__options,
+[data-bs-theme="dark"] .select2-container--default .select2-results > .select2-results__options {
+  background-color: var(--bs-body-bg) !important;
+  color: var(--bs-body-color) !important;
+}
+[data-bs-theme="dark"] .select2-results__option,
+[data-bs-theme="dark"] .select2-container--default .select2-results__option {
+  background-color: var(--bs-body-bg) !important;
+  color: var(--bs-body-color) !important;
+}
+[data-bs-theme="dark"] .select2-container--default .select2-results__option--highlighted[aria-selected],
+[data-bs-theme="dark"] .select2-container--default .select2-results__option--highlighted.select2-results__option--selectable {
+  background-color: var(--tt-dark-red, #a00e11) !important;
+  color: #fff !important;
+}
+[data-bs-theme="dark"] .select2-container--default .select2-results__option[aria-selected="true"],
+[data-bs-theme="dark"] .select2-container--default .select2-results__option--selected {
+  background-color: rgba(244, 192, 70, 0.15) !important;
+  color: var(--bs-body-color) !important;
+}
+[data-bs-theme="dark"] .select2-container--default .select2-results__option[aria-disabled="true"] {
+  color: var(--bs-secondary-color, #6c757d) !important;
+  background-color: var(--bs-body-bg) !important;
+}
+/* No results / loading / searching messages */
+[data-bs-theme="dark"] .select2-container--default .select2-results__option[role="alert"],
+[data-bs-theme="dark"] .select2-results__message {
+  background-color: var(--bs-body-bg) !important;
+  color: var(--bs-secondary-color, #adb5bd) !important;
+}
+/* Group headings inside the results list */
+[data-bs-theme="dark"] .select2-container--default .select2-results__group {
+  background-color: var(--bs-tertiary-bg, #2b2f36) !important;
+  color: var(--bs-body-color) !important;
+}
+/* Multi-select chips */
+[data-bs-theme="dark"] .select2-container--default .select2-selection--multiple .select2-selection__choice {
+  background-color: #2b2f36;
+  border-color: var(--bs-border-color);
+  color: var(--bs-body-color);
+}
+[data-bs-theme="dark"] .select2-container--default .select2-selection--multiple .select2-selection__choice__remove {
+  color: var(--bs-body-color);
+  border-color: var(--bs-border-color);
+}
+[data-bs-theme="dark"] .select2-container--default .select2-selection--multiple .select2-selection__choice__remove:hover {
+  background-color: var(--tt-dark-red, #a00e11);
+  color: #fff;
+}
+/* Disabled state */
+[data-bs-theme="dark"] .select2-container--default.select2-container--disabled .select2-selection--single,
+[data-bs-theme="dark"] .select2-container--default.select2-container--disabled .select2-selection--multiple {
+  background-color: var(--bs-tertiary-bg, #2b2f36);
+  color: var(--bs-secondary-color, #adb5bd);
+}
+/* Focus ring to match Bootstrap form controls */
+[data-bs-theme="dark"] .select2-container--default.select2-container--focus .select2-selection--single,
+[data-bs-theme="dark"] .select2-container--default.select2-container--focus .select2-selection--multiple {
+  border-color: var(--tt-dark-red, #a00e11);
+  box-shadow: 0 0 0 0.25rem rgba(160, 14, 17, 0.25);
+}
+
+/* ===CKEditor 5 (django-ckeditor-5) dark-mode overrides===
+   CKEditor 5 exposes its color palette via CSS custom properties on the
+   .ck root class. Re-point the relevant tokens at the Bootstrap theme
+   variables so the editable area, toolbar, dropdowns, and input widgets
+   render with the same dark palette as the rest of the page. */
+[data-bs-theme="dark"] .ck.ck-editor,
+[data-bs-theme="dark"] .ck.ck-content,
+[data-bs-theme="dark"] .ck.ck-toolbar,
+[data-bs-theme="dark"] .ck-body-wrapper .ck,
+[data-bs-theme="dark"] .ck-balloon-panel {
+  --ck-color-base-background: var(--bs-body-bg);
+  --ck-color-base-foreground: var(--bs-tertiary-bg, #2b2f36);
+  --ck-color-base-border: var(--bs-border-color);
+  --ck-color-base-text: var(--bs-body-color);
+  --ck-color-base-active: var(--tt-dark-red, #a00e11);
+  --ck-color-base-active-focus: var(--tt-dark-red, #a00e11);
+  --ck-color-focus-border: var(--tt-dark-red, #a00e11);
+  --ck-color-focus-outer-shadow: rgba(160, 14, 17, 0.25);
+  --ck-color-shadow-drop: rgba(0, 0, 0, 0.35);
+  --ck-color-shadow-inner: rgba(0, 0, 0, 0.2);
+
+  --ck-color-toolbar-background: var(--bs-tertiary-bg, #2b2f36);
+  --ck-color-toolbar-border: var(--bs-border-color);
+
+  --ck-color-button-default-background: transparent;
+  --ck-color-button-default-hover-background: rgba(255, 255, 255, 0.08);
+  --ck-color-button-default-active-background: rgba(255, 255, 255, 0.12);
+  --ck-color-button-default-disabled-background: transparent;
+  --ck-color-button-on-background: rgba(244, 192, 70, 0.15);
+  --ck-color-button-on-hover-background: rgba(244, 192, 70, 0.22);
+  --ck-color-button-on-active-background: rgba(244, 192, 70, 0.28);
+  --ck-color-button-on-color: var(--tt-gold, #f4c046);
+  --ck-color-button-action-background: var(--tt-dark-red, #a00e11);
+  --ck-color-button-action-hover-background: #b0161a;
+  --ck-color-button-action-active-background: #8b0d10;
+  --ck-color-button-save: #3fbf7a;
+  --ck-color-button-cancel: #d9534f;
+
+  --ck-color-input-background: var(--bs-body-bg);
+  --ck-color-input-border: var(--bs-border-color);
+  --ck-color-input-text: var(--bs-body-color);
+  --ck-color-input-disabled-background: var(--bs-tertiary-bg, #2b2f36);
+  --ck-color-input-disabled-border: var(--bs-border-color);
+  --ck-color-input-disabled-text: var(--bs-secondary-color, #adb5bd);
+
+  --ck-color-panel-background: var(--bs-tertiary-bg, #2b2f36);
+  --ck-color-panel-border: var(--bs-border-color);
+  --ck-color-dropdown-panel-background: var(--bs-tertiary-bg, #2b2f36);
+  --ck-color-dropdown-panel-border: var(--bs-border-color);
+
+  --ck-color-list-background: var(--bs-tertiary-bg, #2b2f36);
+  --ck-color-list-button-hover-background: rgba(255, 255, 255, 0.08);
+  --ck-color-list-button-on-background: var(--tt-dark-red, #a00e11);
+  --ck-color-list-button-on-background-focus: #8b0d10;
+  --ck-color-list-button-on-text: #fff;
+
+  --ck-color-tooltip-background: #16181c;
+  --ck-color-tooltip-text: #e8eaed;
+
+  --ck-color-widget-blurred-border: var(--bs-border-color);
+  --ck-color-widget-hover-border: var(--tt-gold, #f4c046);
+  --ck-color-widget-editable-focus-background: var(--bs-body-bg);
+  --ck-color-widget-drag-handler-icon-color: var(--bs-body-color);
+
+  --ck-color-image-caption-background: var(--bs-tertiary-bg, #2b2f36);
+  --ck-color-image-caption-text: var(--bs-body-color);
+
+  --ck-color-table-caption-background: var(--bs-tertiary-bg, #2b2f36);
+  --ck-color-table-caption-text: var(--bs-body-color);
+  --ck-color-table-focused-cell-background: rgba(244, 192, 70, 0.12);
+
+  --ck-color-link-default: #6ea8fe;
+  --ck-color-link-selected-background: rgba(110, 168, 254, 0.15);
+}
+/* The editable region has its own background/text tokens that fall back to
+   white if not set explicitly. */
+[data-bs-theme="dark"] .ck.ck-editor__main > .ck-editor__editable,
+[data-bs-theme="dark"] .ck.ck-content {
+  background-color: var(--bs-body-bg) !important;
+  color: var(--bs-body-color) !important;
+}
+[data-bs-theme="dark"] .ck.ck-editor__main > .ck-editor__editable.ck-blurred {
+  background-color: var(--bs-body-bg) !important;
+}
+[data-bs-theme="dark"] .ck.ck-editor__main > .ck-editor__editable.ck-focused {
+  border-color: var(--tt-dark-red, #a00e11) !important;
+  box-shadow: 0 0 0 0.25rem rgba(160, 14, 17, 0.25) !important;
+}
+/* Toolbar buttons/icons need explicit color to render on the dark surface. */
+[data-bs-theme="dark"] .ck.ck-toolbar .ck-button,
+[data-bs-theme="dark"] .ck.ck-toolbar .ck-button .ck-icon,
+[data-bs-theme="dark"] .ck.ck-toolbar .ck-button .ck-button__label,
+[data-bs-theme="dark"] .ck.ck-dropdown__panel .ck-button,
+[data-bs-theme="dark"] .ck.ck-dropdown__panel .ck-button .ck-icon,
+[data-bs-theme="dark"] .ck.ck-dropdown__panel .ck-button .ck-button__label {
+  color: var(--bs-body-color);
+}
+/* Balloon panels (link edit, table settings, etc.) */
+[data-bs-theme="dark"] .ck.ck-balloon-panel {
+  background-color: var(--bs-tertiary-bg, #2b2f36) !important;
+  border-color: var(--bs-border-color) !important;
+  color: var(--bs-body-color);
 }

@@ -6,7 +6,9 @@
 {% block title %}Chapter Resignations{% endblock %}
 
 {% block content %}
-  <h1>Chapter Resignations</h1>
+  <div class="page-header d-flex flex-wrap align-items-center gap-2 mb-3">
+    <h2 class="page-title mb-0">Chapter Resignations</h2>
+  </div>
   <p>Below is a list of resignations for the chapter and their status.</p>
   <p>Only the member themself can submit their own resignation by going to
     <a href="{% url 'users:detail' %}">"My Profile"</a> and selecting "Resign Membership"</p>
@@ -22,7 +24,7 @@
             <thead>
 {#                <tr>#}
 {#                    <th colspan="11">#}
-{#                        <form method="get" class="form-inline form-search pull-right">#}
+{#                        <form method="get" class="form-search d-flex flex-wrap align-items-center ms-md-auto">#}
 {#                          {% crispy filter filter.helper %}#}
 {#                        </form>#}
 {#                    </th>#}

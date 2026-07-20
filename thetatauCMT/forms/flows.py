@@ -163,7 +163,7 @@ class PrematureAlumnusFlow(Flow):
             task_description=_("Pre Alumn Executive Director Review"),
             task_result_summary=_("Messsage was {{ process.approved_exec|yesno:'Approved,Rejected' }}"),
         )
-        .Assign(lambda act: User.objects.get(username="Jim.Gaffney@thetatau.org"))
+        .Assign(lambda act: User.objects.get(username=settings.EXECUTIVE_DIRECTOR))
         .Next(this.check_approve)
     )
 
@@ -832,16 +832,14 @@ class DisciplinaryProcessFlow(Flow):
     submit_form2 = (
         ReassignView(DisciplinaryForm2View, task_title=_("Submit Form 2"))
         .Assign(lambda act: act.process.chapter.get_current_officers_council_specific()[0])
-        .Next(this.check_reschedule)
+        .Next(this.check_officer)
     )
 
-    check_reschedule = (
-        flow.If(
-            cond=lambda act: act.process.why_take == "rescheduled",
-            task_title=_("Reschedule check"),
-        )
-        .Then(this.reschedule)
-        .Else(this.exec_approve)
+    check_officer = (
+        flow.Switch()
+        .Case(this.reschedule, cond=lambda act: act.process.why_take == "rescheduled")
+        .Case(this.end, cond=lambda act: act.process.guilty is False)
+        .Default(this.exec_approve)
     )
 
     reschedule = flow.Handler(
@@ -862,7 +860,7 @@ class DisciplinaryProcessFlow(Flow):
             task_description=_("Disciplinary Executive Director Review"),
             task_result_summary=_("Message was {{ process.ed_process }}"),
         )
-        .Assign(lambda act: User.objects.get(username="Jim.Gaffney@thetatau.org"))
+        .Assign(lambda act: User.objects.get(username=settings.EXECUTIVE_DIRECTOR))
         .Next(this.check_approve)
     )
 
@@ -900,7 +898,7 @@ class DisciplinaryProcessFlow(Flow):
             task_title=_("Send to EC"),
             task_description=_("Send to EC for review"),
         )
-        .Assign(lambda act: User.objects.get(username="Jim.Gaffney@thetatau.org"))
+        .Assign(lambda act: User.objects.get(username=settings.EXECUTIVE_DIRECTOR))
         .Next(this.ec_review)
     )
 
@@ -914,7 +912,7 @@ class DisciplinaryProcessFlow(Flow):
                 "Process was {{ process.ec_approval|yesno:'Outcome approved by EC,Outcome Rejected by EC' }}"
             ),
         )
-        .Assign(lambda act: User.objects.get(username="Jim.Gaffney@thetatau.org"))
+        .Assign(lambda act: User.objects.get(username=settings.EXECUTIVE_DIRECTOR))
         .Next(this.email_final)
     )
 
@@ -1069,7 +1067,7 @@ class DisciplinaryProcessFlow(Flow):
             email_officers=True,
             extra_emails={
                 activation.process.chapter.region.email,
-                "Jim.Gaffney@thetatau.org",
+                settings.EXECUTIVE_DIRECTOR,
                 "riskchair@thetatau.org",
             },
         ).send()
@@ -1230,7 +1228,7 @@ class ResignationFlow(Flow):
             task_description=_("Resignation Executive Director Review"),
             task_result_summary=_("Messsage was {{ process.approved_exec|yesno:'Approved,Rejected' }}"),
         )
-        .Assign(lambda act: User.objects.get(username="Jim.Gaffney@thetatau.org"))
+        .Assign(lambda act: User.objects.get(username=settings.EXECUTIVE_DIRECTOR))
         .Next(this.check_approve)
     )
 
@@ -1531,15 +1529,17 @@ class HSEducationFlow(Flow):
     ).Next(this.review)
 
     review = (
-        NoAssignView(
-            AutoAssignUpdateProcessView,
+        flow.View(
+            flow_views.UpdateProcessView,
             fields=["approval", "approval_comments"],
             task_title=_("Central Office Review"),
             task_description=_("Review of H&S Education Program by Central Office"),
             task_result_summary=_("Program was: {{ process.get_approval_display  }}"),
         )
-        .Permission("auth.central_office")
-        .Next(this.check_approve)
+        # Reviewer is resolved via ``HSEducation.get_reviewer()`` which reads
+        # the ``HSEducationReviewer`` Config key (falls back to the historic
+        # default if unset). See :meth:`HSEducation.get_reviewer` for details.
+        .Assign(lambda act: act.process.get_reviewer()).Next(this.check_approve)
     )
 
     check_approve = (

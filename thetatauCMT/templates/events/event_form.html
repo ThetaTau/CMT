@@ -7,12 +7,69 @@
 {% block title %}Update Event: {{ event.name }}{% endblock %}
 
 {% block content %}
-  <h1>Update Event: {{ event.name }}</h1>
+  <div class="page-header d-flex flex-wrap align-items-center gap-2 mb-2">
+    <h1 class="mb-0">Update Event: {{ event.name }}</h1>
+    <div class="page-actions d-flex gap-2">
+      <a class="btn btn-outline-secondary" href="{{ event.get_absolute_url }}">
+        <i class="fas fa-circle-info"></i> Event details
+      </a>
+      {% if request.is_officer or request.is_nat_officer or user.is_superuser %}
+        <a class="btn btn-outline-primary" href="{{ event.get_attendance_url }}">
+          <i class="fas fa-clipboard-check"></i> Attendance
+        </a>
+      {% endif %}
+      {% if can_delete %}
+        <a class="btn btn-outline-danger" href="{{ event.get_delete_url }}">
+          <i class="fas fa-trash"></i> Delete
+        </a>
+      {% endif %}
+    </div>
+  </div>
   <h4>Created By: {{ event.created_by }} {{ event.created }}</h4>
   <h4>Last Modified By: {{ event.modified_by }} {{ event.modified }}</h4>
-  <form class="form-horizontal" method="post" action="{% url 'events:update' event.id %}">
+
+  {% if event.parent_event %}
+    <div class="alert alert-info">
+      This is a sub-event of
+      <a href="{{ event.parent_event.get_update_url }}">{{ event.parent_event.name }}</a>.
+    </div>
+  {% endif %}
+
+  <form class="form-horizontal" method="post" action="{{ event.get_update_url }}">
     {% csrf_token %}
+    {{ form.media }}
     {{ form|crispy }}
+
+    {% if sub_events %}
+      <h2>Sub-events</h2>
+      <div class="table-responsive">
+        <table class="table table-striped table-bordered">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Date</th>
+              <th>Type</th>
+              <th>Chapter</th>
+              <th>Public</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for child in sub_events %}
+              <tr>
+                <td><a href="{{ child.get_absolute_url }}">{{ child.name }}</a></td>
+                <td>{{ child.date }}</td>
+                <td>{{ child.type }}</td>
+                <td>{{ child.chapter|default:"National" }}</td>
+                <td>{{ child.is_public|yesno:"Yes,No" }}</td>
+                <td>{{ child.get_approval_status_display }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% endif %}
+
     <h2>Pictures</h2>
     <link href="{% static 'css/project.css' %}" rel="stylesheet">
     {{ forms.gear|crispy }}

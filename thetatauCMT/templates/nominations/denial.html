@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Central Office Denial{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width: 700px; margin-top: 40px;">
+  <h2>Central Office denial</h2>
+  <p>Nominee: <strong>{{ nomination.nominee_display }}</strong></p>
+
+  {% if not at_denial %}
+    <div class="alert alert-secondary">This denial has been completed. The record is retained for possible future re-review.</div>
+  {% endif %}
+
+  <div class="mb-3">
+    <div class="fw-bold">1. Upload denial letter</div>
+    {% if letter_uploaded %}
+      <span class="badge bg-success">Uploaded</span>
+    {% elif at_denial %}
+      <form method="POST" enctype="multipart/form-data">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="upload_letter">
+        <textarea name="denial_reason" class="form-control mb-2" placeholder="Reason / notes">{{ nomination.denial_reason }}</textarea>
+        <input type="file" name="denial_letter" required>
+        <button type="submit" class="btn btn-sm btn-primary">Upload</button>
+      </form>
+    {% endif %}
+  </div>
+
+  <div class="mb-3">
+    <div class="fw-bold">2. Email denial letter to nominee</div>
+    {% if letter_emailed %}
+      <span class="badge bg-success">Sent {{ nomination.denial_letter_sent_at }}</span>
+    {% elif at_denial %}
+      <form method="POST">{% csrf_token %}<input type="hidden" name="action" value="email_letter">
+        <button type="submit" class="btn btn-sm btn-primary">Send letter</button></form>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
