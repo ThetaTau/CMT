@@ -121,9 +121,11 @@
                 </li>
 
                 {% if not request.user.is_authenticated %}
-                  <li class="nav-item">
-                    <a class="nav-link" href="{% url 'awards:directory' %}">{% trans "Award Winners" %}</a>
-                  </li>
+                  {% if feature_awards_enabled %}
+                    <li class="nav-item">
+                      <a class="nav-link" href="{% url 'awards:directory' %}">{% trans "Award Winners" %}</a>
+                    </li>
+                  {% endif %}
                   <li class="nav-item">
                     <a class="nav-link" href="{% url 'forms:pledgeform' %}">Pledge Form</a>
                   </li>
@@ -148,13 +150,15 @@
                         <li><a class="dropdown-item" href="{% url 'users:search' %}">{% trans "Member Search" %}</a></li>
                       {% endif %}
 
-                      <li><hr class="dropdown-divider"></li>
-                      <li><h6 class="dropdown-header">{% trans "Awards" %}</h6></li>
-                      <li><a class="dropdown-item" href="{% url 'awards:directory' %}">{% trans "Award Winners" %}</a></li>
-                      <li><a class="dropdown-item" href="{% url 'viewflow:awards:awardnomination:start' %}">{% trans "Nominate for an Award" %}</a></li>
-                      {% if user.is_superuser %}
-                        <li><a class="dropdown-item" href="{% url 'awards:direct_grant' %}">{% trans "Grant an Award" %}</a></li>
-                        <li><a class="dropdown-item" href="{% url 'awards:import_upload' %}">{% trans "Import Awards" %}</a></li>
+                      {% if feature_awards_enabled %}
+                        <li><hr class="dropdown-divider"></li>
+                        <li><h6 class="dropdown-header">{% trans "Awards" %}</h6></li>
+                        <li><a class="dropdown-item" href="{% url 'awards:directory' %}">{% trans "Award Winners" %}</a></li>
+                        <li><a class="dropdown-item" href="{% url 'viewflow:awards:awardnomination:start' %}">{% trans "Nominate for an Award" %}</a></li>
+                        {% if user.is_superuser %}
+                          <li><a class="dropdown-item" href="{% url 'awards:direct_grant' %}">{% trans "Grant an Award" %}</a></li>
+                          <li><a class="dropdown-item" href="{% url 'awards:import_upload' %}">{% trans "Import Awards" %}</a></li>
+                        {% endif %}
                       {% endif %}
 
                       <li><hr class="dropdown-divider"></li>
@@ -177,7 +181,9 @@
                       {% endif %}
                       <li><a class="dropdown-item" href="{% url 'scores:list' %}">Scores</a></li>
                       <li><a class="dropdown-item" href="{% url 'events:list' %}">Events</a></li>
-                      <li><a class="dropdown-item" href="{% url 'events:calendar' %}">Events Calendar</a></li>
+                      {% if feature_events_calendar_enabled %}
+                        <li><a class="dropdown-item" href="{% url 'events:calendar' %}">Events Calendar</a></li>
+                      {% endif %}
                       <li><a class="dropdown-item" href="{% url 'tasks:list' %}">Tasks</a></li>
                       <li><a class="dropdown-item" href="{% url 'objectives:list' %}">Goals</a></li>
                       <li><a class="dropdown-item" href="{% url 'trainings:list' %}">Training</a></li>
@@ -209,9 +215,11 @@
                     <a class="nav-link" href="{% url 'forms:landing' %}">{% trans "Forms" %}</a>
                   </li>
 
-                  <li class="nav-item">
-                    <a class="nav-link" href="{% url 'jobs:list' %}">{% trans "Job Board" %}</a>
-                  </li>
+                  {% if feature_jobs_enabled %}
+                    <li class="nav-item">
+                      <a class="nav-link" href="{% url 'jobs:list' %}">{% trans "Job Board" %}</a>
+                    </li>
+                  {% endif %}
 
                   {% if request.is_nat_officer %}
                     <li class="nav-item dropdown">
@@ -238,7 +246,7 @@
               </ul>
 
               <ul class="navbar-nav ms-auto">
-                {% if request.user.is_authenticated %}
+                {% if request.user.is_authenticated and feature_events_calendar_enabled %}
                   <li class="nav-item">
                     <a id="calendar" class="nav-link" href="{% url 'events:calendar' %}" aria-label="{% trans 'Events Calendar' %}" title="{% trans 'Events Calendar' %}">
                       <i class="fa-solid fa-calendar-days"></i>

@@ -289,6 +289,7 @@ TEMPLATES = [
                 "django.template.context_processors.tz",
                 "django.contrib.messages.context_processors.messages",
                 "thetatauCMT.utils.context_processors.settings_context",
+                "thetatauCMT.utils.context_processors.feature_flags",
             ],
         },
     }

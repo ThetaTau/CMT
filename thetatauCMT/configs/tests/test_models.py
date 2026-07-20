@@ -62,3 +62,55 @@ def test_config_str_creation(make_config):
     assert config.pk is not None
     assert config.key == "my_key"
     assert config.description == "A description"
+
+
+@pytest.mark.django_db
+def test_feature_enabled_defaults_true_when_missing():
+    """A feature with no Config row is enabled by default."""
+    assert Config.feature_enabled("FEATURE_MISSING") is True
+
+
+@pytest.mark.django_db
+def test_feature_enabled_respects_default_arg():
+    """The default is used when no Config row exists."""
+    assert Config.feature_enabled("FEATURE_MISSING", default=False) is False
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    "value",
+    ["off", "OFF", "Off", "0", "false", "no", "disabled", "hide", "hidden", "<p>off</p>"],
+)
+def test_feature_enabled_off_values_disable(make_config, value):
+    """Any recognized off token (case/HTML-insensitive) disables the feature."""
+    make_config("FEATURE_X", value)
+    assert Config.feature_enabled("FEATURE_X") is False
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("value", ["on", "ON", "yes", "enabled", "<p>on</p>", "1", "true"])
+def test_feature_enabled_on_values_enable(make_config, value):
+    """Non-off values keep the feature enabled."""
+    make_config("FEATURE_X", value)
+    assert Config.feature_enabled("FEATURE_X") is True
+
+
+@pytest.mark.django_db
+def test_feature_enabled_uses_latest_created(make_config):
+    """The most recently created row for a key wins (toggle mechanism)."""
+    make_config("FEATURE_X", "on")
+    make_config("FEATURE_X", "off")
+    assert Config.feature_enabled("FEATURE_X") is False
+
+
+@pytest.mark.django_db
+def test_feature_flags_fixture_loads_all_enabled():
+    """The feature_flags fixture creates the three flags (auto pk), all enabled."""
+    from django.core.management import call_command
+
+    call_command("loaddata", "feature_flags", verbosity=0)
+    for key in ("FEATURE_AWARDS", "FEATURE_JOBS", "FEATURE_EVENTS_CALENDAR"):
+        row = Config.objects.filter(key=key).order_by("created").last()
+        assert row is not None
+        assert row.pk is not None
+        assert Config.feature_enabled(key) is True

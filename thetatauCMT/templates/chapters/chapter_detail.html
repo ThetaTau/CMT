@@ -102,9 +102,11 @@
     </div>
 
     {# ---------- Awards (moved up from the bottom) ---------- #}
-    <div class="row g-3 mb-4">
-      <div class="col-12">{% awards_section object %}</div>
-    </div>
+    {% if feature_awards_enabled %}
+      <div class="row g-3 mb-4">
+        <div class="col-12">{% awards_section object %}</div>
+      </div>
+    {% endif %}
 
     {# ---------- Current officers moved into the accordion below ---------- #}
   {% endif %}

@@ -114,8 +114,10 @@
   </div>
 
   {# ---------- Awards ---------- #}
-  <div class="row">
-    <div class="col-12">{% awards_section object %}</div>
-  </div>
+  {% if feature_awards_enabled %}
+    <div class="row">
+      <div class="col-12">{% awards_section object %}</div>
+    </div>
+  {% endif %}
 </div>
 {% endblock content %}

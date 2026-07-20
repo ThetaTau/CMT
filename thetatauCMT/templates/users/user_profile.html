@@ -72,7 +72,7 @@
           <h2 class="card-title mb-1">
             {% if object.title and object.title != 'none' %}{{ object.get_title_display }} {% endif %}{{ object.name }}{% if object.suffix %}, {{ object.suffix }}{% endif %}
           </h2>
-          <div class="mb-2">{% inline_badges object %}</div>
+          <div class="mb-2">{% if feature_awards_enabled %}{% inline_badges object %}{% endif %}</div>
           <div class="text-body-secondary mb-2 small">
             {% if object.preferred_name and object.preferred_name != object.first_name %}
               <span class="me-2"><strong>Preferred name:</strong> {{ object.preferred_name }}</span>
@@ -145,10 +145,12 @@
             {% endif %}
           {% endif %}
           {# Awards -- available on every member profile (owner and visitors alike) #}
-          <a class="btn btn-outline-primary btn-sm" href="{% url 'viewflow:awards:awardnomination:start' %}?recipient_member={{ object.pk }}"
-             title="Nominate {{ object.name }} for an award.">
-            <i class="fa fa-trophy"></i> Nominate for an award
-          </a>
+          {% if feature_awards_enabled %}
+            <a class="btn btn-outline-primary btn-sm" href="{% url 'viewflow:awards:awardnomination:start' %}?recipient_member={{ object.pk }}"
+               title="Nominate {{ object.name }} for an award.">
+              <i class="fa fa-trophy"></i> Nominate for an award
+            </a>
+          {% endif %}
           {% if is_superuser %}
             <a class="btn btn-outline-danger btn-sm" href="{% url 'admin:users_user_change' object.id %}">
               <i class="fa fa-cog"></i> Admin
@@ -348,9 +350,11 @@
     {% endif %}
 
     {# ---------- Awards ---------- #}
-    <div class="col-md-6">
-      {% awards_section object %}
-    </div>
+    {% if feature_awards_enabled %}
+      <div class="col-md-6">
+        {% awards_section object %}
+      </div>
+    {% endif %}
 
     {# ---------- External organizations ---------- #}
     {% if orgs %}
