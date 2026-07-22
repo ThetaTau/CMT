@@ -27,6 +27,18 @@ def test_nomination_starts_and_parks_at_review():
     assert active_task(process, AwardNominationFlow.review) is not None
 
 
+def test_review_view_success_url_is_safe():
+    """The review task is assigned to a config-driven approver who may not hold
+    the natoff-only ``awards.view_awardnominationprocess`` permission, so the
+    post-review redirect must go to a page any user can reach (``home``) rather
+    than the viewflow default process ``:detail`` page."""
+    from django.urls import reverse
+
+    from thetatauCMT.awards.views import AwardNominationReviewView
+
+    assert AwardNominationReviewView().get_success_url() == reverse("home")
+
+
 # ---------------------------------------------------------------------------
 # Acceptance: approver resolved from config
 # ---------------------------------------------------------------------------

@@ -1764,6 +1764,14 @@ class PrematureAlumnusCreateView(LoginRequiredMixin, CreateProcessView):
         kwargs["request_user"] = self.request.user
         return kwargs
 
+    def get_success_url(self):
+        # Return the submitting member/officer to the Premature Alumnus form,
+        # which shows their submission in the status table. The viewflow default
+        # would redirect to the process ``:detail`` page, which requires the
+        # ``forms.view_prematurealumnus`` permission (national officers/staff
+        # only) and 403s the member who just submitted.
+        return reverse("viewflow:forms:prematurealumnus:start")
+
     def activation_done(self, *args, **kwargs):
         """Finish task activation."""
         self.activation.done()

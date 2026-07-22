@@ -28,6 +28,18 @@ def test_confirm_routes_to_appointment():
     assert active_task(process, NominationFlow.appointment) is not None
 
 
+def test_confirmation_view_success_url_is_safe():
+    """The confirmation task is assigned to a config-driven Confirmer who may not
+    hold the natoff-only ``nominations.view_nomination`` permission, so the
+    post-decision redirect must go to a page any user can reach (``home``)
+    rather than the natoff review list or the viewflow default ``:detail`` page."""
+    from django.urls import reverse
+
+    from thetatauCMT.nominations.views import ConfirmationView
+
+    assert ConfirmationView().get_success_url() == reverse("home")
+
+
 def test_deny_routes_to_denial():
     process = _at_confirmation()
     complete_view(process, NominationFlow.confirmation, confirmed=False)

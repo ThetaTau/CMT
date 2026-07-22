@@ -199,6 +199,14 @@ class ConfirmationView(UpdateProcessView):
 
     template_name = "nominations/confirmation.html"
 
+    def get_success_url(self):
+        # The confirmation task is assigned to a config-driven Confirmer who may
+        # not be a national officer, so the natoff-only review list and the
+        # viewflow default ``:detail`` page (requires ``nominations.view_nomination``)
+        # would both 403 them. Send them home, matching the safe landing used by
+        # the nomination entry view.
+        return reverse("home")
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         process = self.activation.process

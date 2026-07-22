@@ -2062,6 +2062,19 @@ def test_premature_alumnus_create_view_get(auto_login_user):
     assert response.status_code == 200
 
 
+@pytest.mark.django_db
+def test_premature_alumnus_create_view_success_url_is_start():
+    """The submitting member/officer must land back on the Premature Alumnus
+    form (accessible to any member) rather than the viewflow ``:detail`` page,
+    which requires the natoff-only ``forms.view_prematurealumnus`` permission
+    and would 403 the person who just submitted the form.
+    """
+    from thetatauCMT.forms.views import PrematureAlumnusCreateView
+
+    view = PrematureAlumnusCreateView()
+    assert view.get_success_url() == reverse("viewflow:forms:prematurealumnus:start")
+
+
 # ─── HSEducationCreateView GET (context_data) ────────────────────────────────
 
 

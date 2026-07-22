@@ -175,6 +175,14 @@ class AwardNominationReviewView(UpdateProcessView):
         form.instance.reviewed_at = timezone.now()
         return super().form_valid(form, *args, **kwargs)
 
+    def get_success_url(self):
+        # The review task is assigned to a config-driven approver who may not be
+        # a national officer. The viewflow default would redirect to the process
+        # ``:detail`` page, which requires ``awards.view_awardnominationprocess``
+        # (national officers/staff only) and 403s that approver. Send them home,
+        # matching the safe landing used by the award nomination entry view.
+        return reverse("home")
+
 
 class GrantArtifactView(LoginRequiredMixin, View):
     """Manage certificates / letters for a grant: generate or upload (officers)."""
