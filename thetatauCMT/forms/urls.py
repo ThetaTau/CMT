@@ -127,6 +127,11 @@ urlpatterns = [
         name="natoff",
     ),
     path(
+        "national-officer/contacts/",
+        view=views.NationalOfficerContactsView.as_view(),
+        name="national_officer_contacts",
+    ),
+    path(
         "bill-of-rights-pdf/<int:pk>/",
         view=views.BillOfRightsPDFView.as_view(),
         name="bill_of_rights_pdf",

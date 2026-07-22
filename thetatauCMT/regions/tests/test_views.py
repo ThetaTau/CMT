@@ -119,6 +119,20 @@ def test_region_dashboard_view_natoff(auto_login_user):
 
 
 @pytest.mark.django_db
+def test_region_dashboard_view_national_without_region_row(auto_login_user):
+    """`/regions/national/dashboard/` renders for natoffs even when no National
+    Region row exists (national is a synthetic all-chapters scope, not a filter)."""
+    from thetatauCMT.regions.models import Region
+
+    Region.objects.filter(slug="national").delete()
+    client, user = auto_login_user(make_officer="national")
+    _make_natoff(user, client)
+    url = reverse("regions:dashboard", kwargs={"slug": "national"})
+    response = client.get(url)
+    assert response.status_code == 200
+
+
+@pytest.mark.django_db
 def test_region_dashboard_view_regular_user_redirected(auto_login_user):
     client, user = auto_login_user()
     region = user.current_chapter.region

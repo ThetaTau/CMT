@@ -261,13 +261,21 @@ class RegionDashboardView(LoginRequiredMixin, NatOfficerRequiredMixin, DetailVie
     template_name = "regions/region_dashboard.html"
 
     def get_object(self, queryset=None):
-        # `candidate_chapter` isn't a real Region row — it's a synthetic
-        # scope surfaced in `Region.region_choices()`. Fake a Region instance
-        # so the dashboard template can render (it only reads `.name`/`.slug`).
+        # `candidate_chapter` and `national` are synthetic scopes surfaced in
+        # `Region.region_choices()` (national == ALL chapters, not a per-region
+        # filter). Neither is guaranteed to have a backing Region row, so fall
+        # back to a synthetic instance (the dashboard template only reads
+        # `.name`/`.slug`) instead of 404ing when the row is absent.
         slug = self.kwargs.get(self.slug_url_kwarg)
         if slug == "candidate_chapter":
             region = Region(name="Candidate Chapters")
             region.slug = "candidate_chapter"
+            return region
+        if slug == "national":
+            region = Region.objects.filter(slug="national").first()
+            if region is None:
+                region = Region(name="National")
+                region.slug = "national"
             return region
         return super().get_object(queryset)
 

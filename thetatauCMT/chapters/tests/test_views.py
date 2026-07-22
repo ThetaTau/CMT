@@ -187,6 +187,7 @@ def test_chapter_detail_view_post_chapter_form_redirects(auto_login_user):
         "council": chapter.council or "",
         "house": False,
         "recognition": chapter.recognition or "",
+        "recognition_url": "",
         "email_regent": "",
         "email_vice_regent": "",
         "email_scribe": "",
@@ -196,6 +197,26 @@ def test_chapter_detail_view_post_chapter_form_redirects(auto_login_user):
     response = client.post(url, post_data)
     # Should redirect (302) or render 200 with errors
     assert response.status_code in [200, 302]
+
+
+@pytest.mark.django_db
+def test_chapter_form_has_optional_recognition_url_field():
+    """The campus-recognition form exposes an optional 'recognition_url' question."""
+    from thetatauCMT.chapters.forms import ChapterForm
+
+    form = ChapterForm()
+    assert "recognition_url" in form.fields
+    assert form.fields["recognition_url"].required is False
+
+
+@pytest.mark.django_db
+def test_chapter_recognition_url_persists():
+    """recognition_url is saved on the Chapter model."""
+    chapter = ChapterFactory()
+    chapter.recognition_url = "https://finaid.example.edu/recognition"
+    chapter.save(update_fields=["recognition_url"])
+    chapter.refresh_from_db()
+    assert chapter.recognition_url == "https://finaid.example.edu/recognition"
 
 
 @pytest.mark.django_db

@@ -42,6 +42,11 @@ app = DjangoDash(
 
 ACTIVE_STATUSES = ["active", "activepend", "alumnipend", "activeCC", "pendexpul"]
 
+# The "member" count shown on member-facing charts includes PNMs (prospective
+# new members) per org preference: the headline member metric = active members
+# + PNMs. Use this (not ACTIVE_STATUSES) anywhere a chart reports "members".
+MEMBER_STATUSES = ACTIVE_STATUSES + ["pnm"]
+
 # Distinct qualitative palette; falls back to Plotly D3 for extra regions.
 REGION_PALETTE = px.colors.qualitative.Bold + px.colors.qualitative.D3
 
@@ -87,6 +92,7 @@ def get_scope_chapters(region_slug):
 
     * `national` — all active chapters
     * `candidate_chapter` — all active candidate chapters
+    * `chapter_<slug>` — the single chapter with that slug (member home page)
     * any other slug — chapters whose region slug matches
     """
     qs = Chapter.objects.exclude(active=False).select_related("region")
@@ -94,6 +100,8 @@ def get_scope_chapters(region_slug):
         return qs
     if region_slug == "candidate_chapter":
         return qs.filter(candidate_chapter=True)
+    if region_slug.startswith("chapter_"):
+        return qs.filter(slug=region_slug[len("chapter_"):])
     return qs.filter(region__slug=region_slug)
 
 
@@ -181,11 +189,17 @@ app.layout = html.Div(
         dcc.Store(id="theme-store", data="light"),
         dcc.Store(id="region-slug-store", data="national"),
         dcc.Store(id="ay-store", data=None),
+        # Optional forced scope. When set (e.g. the member home page embeds this
+        # app scoped to the viewer's own chapter via a hidden ``#cmt-dashboard-scope``
+        # element read client-side), ``store_region`` locks the dashboard to it and
+        # the region selector is hidden. ``None`` on the region/national pages.
+        dcc.Store(id="scope-override-store", data=None),
         # Header row — region selector + academic-year selector.
         html.Div(
             className="d-flex flex-wrap align-items-end justify-content-between mb-3 gap-3",
             children=[
                 html.Div(
+                    id="region-scope-col",
                     style={"minWidth": "260px", "flex": "1 1 260px"},
                     children=[
                         html.Label(
@@ -225,7 +239,7 @@ app.layout = html.Div(
         html.Div(
             className="row g-2 mb-2",
             children=[
-                _kpi_card("kpi-total-members", "Student members today", "current active + activepend"),
+                _kpi_card("kpi-total-members", "Student members today", "active + activepend + PNMs"),
                 _kpi_card("kpi-pnms", "PNMs", "prospective status started"),
                 _kpi_card("kpi-initiations", "Initiations", "date within academic year"),
                 _kpi_card("kpi-prealums", "Prealumni", "approved by exec"),
@@ -355,9 +369,58 @@ def sync_region_from_url(pathname):
     return options, slug
 
 
-@app.callback(Output("region-slug-store", "data"), Input("region-selector", "value"))
-def store_region(value):
+@app.callback(
+    Output("region-slug-store", "data"),
+    Input("region-selector", "value"),
+    Input("scope-override-store", "data"),
+)
+def store_region(value, override):
+    # A forced scope (member home page, locked to the viewer's own chapter)
+    # always wins over the region selector.
+    if override:
+        return override
     return value or "national"
+
+
+# When embedded on the member home page, the template renders a hidden
+# ``#cmt-dashboard-scope`` element carrying the viewer's own chapter scope
+# (``chapter_<slug>``). Read it on load and push it into the override store so
+# ``store_region`` locks every figure to that chapter. On the region/national
+# pages the element is absent, so the store stays ``None`` (URL-driven scope).
+app.clientside_callback(
+    """
+    function(_pathname) {
+        try {
+            var doc = (window.parent && window.parent.document)
+                ? window.parent.document
+                : document;
+            var el = doc.getElementById('cmt-dashboard-scope');
+            if (el) {
+                var scope = el.getAttribute('data-scope');
+                if (scope) {
+                    return scope;
+                }
+            }
+            return window.dash_clientside.no_update;
+        } catch (e) {
+            return window.dash_clientside.no_update;
+        }
+    }
+    """,
+    Output("scope-override-store", "data"),
+    Input("region-url", "pathname"),
+)
+
+
+@app.callback(
+    Output("region-scope-col", "style"),
+    Input("scope-override-store", "data"),
+)
+def toggle_region_selector(override):
+    # Hide the region selector entirely when the scope is forced (home page).
+    if override:
+        return {"display": "none"}
+    return {"minWidth": "260px", "flex": "1 1 260px"}
 
 
 # ---------------------------------------------------------------------------
@@ -447,7 +510,7 @@ def update_kpis(region_slug, ay_start_year):
     ay_start, ay_end = ay_dates(ay_start_year)
     ay_start_date, ay_end_date = ay_start.date(), ay_end.date()
 
-    total_members = User.objects.filter(chapter__in=chapters, current_status__in=ACTIVE_STATUSES).count()
+    total_members = User.objects.filter(chapter__in=chapters, current_status__in=MEMBER_STATUSES).count()
 
     pnms = (
         UserStatusChange.objects.filter(
@@ -648,7 +711,7 @@ def members_by_chapter(region_slug, theme):
 
     chapters = get_scope_chapters(region_slug)
     rows = list(
-        User.objects.filter(chapter__in=chapters, current_status__in=ACTIVE_STATUSES)
+        User.objects.filter(chapter__in=chapters, current_status__in=MEMBER_STATUSES)
         .values("chapter__name", "chapter__region__name")
         .annotate(count=Count("id"))
     )
@@ -914,7 +977,7 @@ def majors_breakdown(region_slug, theme):
     rows = list(
         User.objects.filter(
             chapter__in=chapters,
-            current_status__in=ACTIVE_STATUSES,
+            current_status__in=MEMBER_STATUSES,
             major__isnull=False,
         )
         .values("major__major")

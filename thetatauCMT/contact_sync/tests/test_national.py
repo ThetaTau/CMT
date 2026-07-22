@@ -329,14 +329,29 @@ def test_seed_contact_sync_examples_national_scope_creates_all_roles():
         assert role in seeded_roles, f"national role {role!r} not seeded"
 
 
-# --------------------------------------------------------------------- natoff form page
+# --------------------------------------------------------------------- natoff contacts page
 @pytest.mark.django_db
-def test_national_officer_form_page_includes_sync_button(auto_login_user):
+def test_national_officer_contacts_page_includes_sync_button(auto_login_user):
     client, user = auto_login_user(make_officer="national")
     _make_natoff(user, client)
-    response = client.get(reverse("forms:natoff"))
+    response = client.get(reverse("forms:national_officer_contacts"))
     assert response.status_code == 200
     body = response.content.decode("utf-8")
     assert "Sync National Officers to Contacts" in body
     assert 'id="contactSyncModal"' in body
     assert reverse("contact_sync:national_vcard") in body
+
+
+@pytest.mark.django_db
+@override_settings(DEBUG=True)  # superuser bypasses RequireSuperuser2FAMiddleware only when DEBUG
+def test_national_officer_form_page_has_no_sync_button(auto_login_user):
+    """The superuser-only assignment form no longer carries the contact-sync modal."""
+    client, user = auto_login_user(make_officer="national")
+    _make_natoff(user, client)
+    user.is_superuser = True
+    user.save(update_fields=["is_superuser"])
+    response = client.get(reverse("forms:natoff"))
+    assert response.status_code == 200
+    body = response.content.decode("utf-8")
+    assert "Sync National Officers to Contacts" not in body
+    assert 'id="contactSyncModal"' not in body

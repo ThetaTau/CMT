@@ -107,6 +107,25 @@ class NationalOfficerRequiredMixin(DjangoLoginRequiredMixin):
         return super().dispatch(request, *args, **kwargs)
 
 
+class SuperuserRequiredMixin(DjangoLoginRequiredMixin):
+    """Restrict a view to superusers (administrators) only.
+
+    Authenticated non-superusers are redirected (default: ``home``) with an
+    error message; unauthenticated users are handled by ``LoginRequiredMixin``.
+    Views may override ``superuser_redirect_url`` and ``superuser_message``.
+    """
+
+    superuser_redirect_url = "home"
+    superuser_message = "Only administrators can access this."
+
+    def dispatch(self, request, *args, **kwargs):
+        user = request.user
+        if user.is_authenticated and not user.is_superuser:
+            messages.add_message(request, messages.ERROR, self.superuser_message)
+            return HttpResponseRedirect(resolve_url(self.superuser_redirect_url))
+        return super().dispatch(request, *args, **kwargs)
+
+
 class OfficerRequiredMixin(GroupRequiredMixin):
     group_required = ["officer", "natoff"]
     officer_edit = "this"
@@ -263,6 +282,14 @@ class HomeView(LoginRequiredMixin, TemplateView):
             publish_end__gt=timezone.now(),
         )
         context["announcements"] = announcements
+        # Scope the embedded RegionDashboard to the viewer's own chapter so the
+        # home page shows the same dashboard as the regional/national views, but
+        # auto-filtered. The template renders this into a hidden element that the
+        # dashboard reads client-side; a user without a chapter falls back to
+        # the national scope.
+        chapter = self.request.user.current_chapter
+        if chapter is not None and getattr(chapter, "slug", None):
+            context["dashboard_scope"] = f"chapter_{chapter.slug}"
         return context
 
 

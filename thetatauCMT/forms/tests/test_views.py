@@ -12,6 +12,7 @@ import pytest
 from django import forms
 from django.contrib.auth.models import Group
 from django.http import HttpResponse
+from django.test import override_settings
 from django.urls import reverse
 
 from thetatauCMT.chapters.tests.factories import ChapterFactory
@@ -37,6 +38,45 @@ def test_form_landing_authenticated_returns_200(auto_login_user):
     client, _user = auto_login_user()
     response = client.get(reverse("forms:landing"))
     assert response.status_code == 200
+
+
+@pytest.mark.django_db
+@override_settings(DEBUG=True)  # superuser bypasses RequireSuperuser2FAMiddleware only when DEBUG
+def test_form_landing_superuser_shows_moved_admin_links(auto_login_user):
+    """Nav cleanup moved these member/national/admin actions onto the Forms landing."""
+    client, user = auto_login_user()
+    _add_to_group(user, "natoff")
+    user.is_superuser = True
+    user.save()
+    response = client.get(reverse("forms:landing"))
+    assert response.status_code == 200
+    body = response.content.decode("utf-8")
+    # Member nomination + national volunteer-nomination list.
+    assert "Nominate for Office" in body
+    assert reverse("nominations:list") in body
+    # Award admin actions (superuser).
+    assert "Grant an Award" in body
+    assert "Import Awards" in body
+    # National officers: view (natoff) + assign (superuser).
+    assert reverse("forms:national_officer_contacts") in body
+    assert "Assign National Officers" in body
+    # National attendance upload (superuser).
+    assert "Upload National Attendance" in body
+
+
+@pytest.mark.django_db
+def test_form_landing_natoff_hides_superuser_only_links(auto_login_user):
+    """A natoff sees the national-officer view + volunteer list, but not superuser actions."""
+    client, user = auto_login_user()
+    _add_to_group(user, "natoff")
+    response = client.get(reverse("forms:landing"))
+    assert response.status_code == 200
+    body = response.content.decode("utf-8")
+    assert reverse("forms:national_officer_contacts") in body
+    assert reverse("nominations:list") in body
+    assert "Assign National Officers" not in body
+    assert "Upload National Attendance" not in body
+    assert "Grant an Award" not in body
 
 
 # ─── PledgeFormView (no auth required, CreateView) ────────────────────────────
@@ -215,7 +255,7 @@ def test_natoff_list_view_natoff_returns_200(auto_login_user, view_name):
     assert response.status_code == 200
 
 
-# ─── RoleChangeNationalView (LoginRequired + NatOfficerRequired) ──────────────
+# ─── RoleChangeNationalView (LoginRequired + SuperuserRequired) ─────────────
 
 
 def test_natoff_officer_form_unauthenticated_redirects(client, db):
@@ -224,11 +264,45 @@ def test_natoff_officer_form_unauthenticated_redirects(client, db):
 
 
 @pytest.mark.django_db
-def test_natoff_officer_form_natoff_returns_200(auto_login_user):
+@override_settings(DEBUG=True)  # superusers bypass RequireSuperuser2FAMiddleware only when DEBUG
+def test_natoff_officer_form_superuser_returns_200(auto_login_user):
     client, user = auto_login_user()
-    _add_to_group(user, "natoff")
+    user.is_superuser = True
+    user.save()
     response = client.get(reverse("forms:natoff"))
     assert response.status_code == 200
+
+
+@pytest.mark.django_db
+def test_natoff_officer_form_natoff_denied(auto_login_user):
+    """A natoff who is NOT a superuser is redirected: assignment is superuser-only."""
+    client, user = auto_login_user()
+    _add_to_group(user, "natoff")
+    response = client.get(reverse("forms:natoff"), follow=False)
+    assert response.status_code == 302
+    assert "login" not in response["Location"]
+
+
+@pytest.mark.django_db
+def test_national_officer_contacts_natoff_returns_200(auto_login_user):
+    """National officers see the roster AND the contact-sync button."""
+    client, user = auto_login_user()
+    _add_to_group(user, "natoff")
+    response = client.get(reverse("forms:national_officer_contacts"), follow=True)
+    assert response.status_code == 200
+    body = response.content.decode("utf-8")
+    assert "Sync National Officers to Contacts" in body
+
+
+@pytest.mark.django_db
+def test_national_officer_contacts_non_natoff_can_view_without_sync(auto_login_user):
+    """Any logged-in member can view the roster; only natoffs get the sync button."""
+    client, user = auto_login_user()
+    response = client.get(reverse("forms:national_officer_contacts"))
+    assert response.status_code == 200
+    body = response.content.decode("utf-8")
+    assert "Sync National Officers to Contacts" not in body
+    assert 'id="contactSyncModal"' not in body
 
 
 # ─── InitiationView (OfficerRequiredMixin) ────────────────────────────────────
@@ -539,10 +613,12 @@ def test_role_change_national_view_unauthenticated_redirects(client, db):
 
 
 @pytest.mark.django_db
-def test_role_change_national_view_natoff_returns_200(auto_login_user):
-    """NatOff can access the national officer role assignment view."""
+@override_settings(DEBUG=True)  # superusers bypass RequireSuperuser2FAMiddleware only when DEBUG
+def test_role_change_national_view_superuser_returns_200(auto_login_user):
+    """Superusers can access the national officer role assignment view."""
     client, user = auto_login_user()
-    _add_to_group(user, "natoff")
+    user.is_superuser = True
+    user.save()
     url = reverse("forms:natoff")
     response = client.get(url, follow=True)
     assert response.status_code == 200
@@ -1356,10 +1432,12 @@ def test_role_change_view_context_has_formset(auto_login_user):
 
 
 @pytest.mark.django_db
+@override_settings(DEBUG=True)  # superusers bypass RequireSuperuser2FAMiddleware only when DEBUG
 def test_role_change_national_view_context_has_formset(auto_login_user):
     """RoleChangeNationalView provides a 'formset' in context."""
     client, user = auto_login_user()
-    _add_to_group(user, "natoff")
+    user.is_superuser = True
+    user.save()
     response = client.get(reverse("forms:natoff"), follow=True)
     assert "formset" in response.context
 
@@ -1878,10 +1956,12 @@ def test_pledge_program_list_complete_filter_all(auto_login_user):
 
 
 @pytest.mark.django_db
+@override_settings(DEBUG=True)  # superusers bypass RequireSuperuser2FAMiddleware only when DEBUG
 def test_role_change_national_view_officer_returns_200(auto_login_user):
-    """RoleChangeNationalView GET returns 200 for natoff users."""
+    """RoleChangeNationalView GET returns 200 for superusers."""
     client, user = auto_login_user()
-    _add_to_group(user, "natoff")
+    user.is_superuser = True
+    user.save()
     url = reverse("forms:natoff")
     response = client.get(url, follow=True)
     assert response.status_code == 200
@@ -2002,10 +2082,12 @@ def test_role_change_view_post_empty_formset(auto_login_user):
 
 
 @pytest.mark.django_db
+@override_settings(DEBUG=True)  # superusers bypass RequireSuperuser2FAMiddleware only when DEBUG
 def test_role_change_national_view_post_empty_formset(auto_login_user):
     """RoleChangeNationalView.post covers the POST handler with empty formset data."""
     client, user = auto_login_user()
-    _add_to_group(user, "natoff")
+    user.is_superuser = True
+    user.save()
     url = reverse("forms:natoff")
     data = {
         "form-TOTAL_FORMS": "1",

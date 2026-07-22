@@ -306,6 +306,13 @@ class Chapter(models.Model, EmailSignalMixin):
         max_length=10,
         choices=[x.value for x in RECOGNITION],
     )
+    recognition_url = models.URLField(
+        verbose_name=_("Recognizing Office Website"),
+        help_text="Please insert the URL to that office's website here.",
+        blank=True,
+        default="",
+        max_length=255,
+    )
     health_safety_surcharge = models.CharField(
         help_text="Surcharge for chapters not completing X% online health and safety programming",
         max_length=10,

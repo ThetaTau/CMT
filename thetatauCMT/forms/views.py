@@ -55,6 +55,7 @@ from core.views import (
     OfficerRequiredMixin,
     PagedFilteredTableView,
     RequestConfig,
+    SuperuserRequiredMixin,
     group_required,
 )
 from thetatauCMT.chapters.models import Chapter, ChapterCurricula
@@ -900,7 +901,7 @@ class RoleChangeView(LoginRequiredMixin, ModelFormSetView):
         return reverse("forms:officer")
 
 
-class RoleChangeNationalView(LoginRequiredMixin, NatOfficerRequiredMixin, ModelFormSetView):
+class RoleChangeNationalView(LoginRequiredMixin, SuperuserRequiredMixin, ModelFormSetView):
     form_class = RoleChangeNationalSelectForm
     template_name = "forms/officer_national.html"
     factory_kwargs = {"extra": 1, "can_delete": True}
@@ -955,12 +956,6 @@ class RoleChangeNationalView(LoginRequiredMixin, NatOfficerRequiredMixin, ModelF
             formset = self.construct_formset()
         context["formset"] = formset
         context["input"] = Submit("action", "Submit")
-        # Contact-sync modal context — same template as the region officers
-        # page, but scoped to national officers. See docs/contact_sync_setup.md.
-        from thetatauCMT.contact_sync.context import build_sync_modal_context
-        from thetatauCMT.contact_sync.officers import NATIONAL_SCOPE
-
-        context.update(build_sync_modal_context(self.request, NATIONAL_SCOPE))
         return context
 
     def formset_valid(self, formset, delete_only=False):
@@ -998,6 +993,54 @@ class RoleChangeNationalView(LoginRequiredMixin, NatOfficerRequiredMixin, ModelF
                     "You successfully updated the officers:\n" f"{update_list}",
                 )
         return HttpResponseRedirect(self.get_success_url())
+
+
+class NationalOfficerContactsView(LoginRequiredMixin, TemplateView):
+    """National-officer roster, viewable by any logged-in member.
+
+    The roster (names, roles, emails) is public; only national officers get the
+    contact-sync button/modal. The editable assignment form (``forms:natoff``)
+    is superuser-only.
+    """
+
+    template_name = "forms/national_officer_contacts.html"
+
+    def get_context_data(self, **kwargs):
+        from thetatauCMT.contact_sync.context import build_sync_modal_context
+        from thetatauCMT.contact_sync.officers import (
+            NATIONAL_SCOPE,
+            collect_national_officer_contacts,
+        )
+
+        context = super().get_context_data(**kwargs)
+        officers, _ = collect_national_officer_contacts()
+        pks = [officer.user_pk for officer in officers if officer.user_pk]
+        usernames = dict(User.objects.filter(pk__in=pks).values_list("pk", "username"))
+        rows = []
+        emails = []
+        seen = set()
+        for officer in officers:
+            for email in officer.emails:
+                if email.lower() not in seen:
+                    seen.add(email.lower())
+                    emails.append(email)
+            given = (officer.preferred_name or officer.first_name).strip()
+            rows.append(
+                {
+                    "name": f"{given} {officer.last_name}".strip(),
+                    "username": usernames.get(officer.user_pk, ""),
+                    "role": officer.role,
+                    "extra_roles": ", ".join(officer.extra_roles),
+                    "email": officer.email or officer.email_school,
+                    "phone": officer.phone,
+                }
+            )
+        context["national_officers"] = rows
+        context["email_list"] = ", ".join(emails)
+        # The roster is public; only national officers get the sync button/modal.
+        if getattr(self.request, "is_nat_officer", False):
+            context.update(build_sync_modal_context(self.request, NATIONAL_SCOPE))
+        return context
 
 
 class HSEducationListView(LoginRequiredMixin, NatOfficerRequiredMixin, PagedFilteredTableView):

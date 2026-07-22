@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% load static i18n %}
+
+{% block title %}National Officers{% endblock %}
+
+{% block content %}
+<div class="container">
+  <div class="page-header d-flex flex-wrap align-items-center gap-2 mb-3">
+    <h2 class="page-title mb-0">{% trans "National Officers" %}</h2>
+    <div class="page-actions d-flex flex-wrap align-items-center gap-2 ms-auto">
+      <button class="clipboard btn btn-outline-primary" data-clipboard-text="{{ email_list }}">
+        <i class="fas fa-envelope"></i> {% trans "Copy emails to clipboard" %}
+      </button>
+      {% if contact_sync_available %}
+        <button type="button" class="btn btn-outline-primary"
+                data-bs-toggle="modal" data-bs-target="#contactSyncModal">
+          <i class="fas fa-address-book"></i> {% trans "Sync National Officers to Contacts" %}
+        </button>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="alert alert-info" role="alert">
+    {% trans "These are the current national officers. To change national officer assignments, contact an administrator." %}
+  </div>
+
+  <div class="table-responsive">
+    <table class="table table-hover table-bordered table-striped">
+      <thead>
+        <tr>
+          <th>{% trans "Name" %}</th>
+          <th>{% trans "Role" %}</th>
+          <th>{% trans "Additional Roles" %}</th>
+          <th>{% trans "Email" %}</th>
+          <th>{% trans "Phone" %}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for officer in national_officers %}
+          <tr>
+            <td>
+              {% if officer.username %}
+                <a href="{% url 'users:profile' officer.username %}">{{ officer.name }}</a>
+              {% else %}
+                {{ officer.name }}
+              {% endif %}
+            </td>
+            <td>{{ officer.role|title }}</td>
+            <td>{{ officer.extra_roles|title }}</td>
+            <td>{% if officer.email %}<a href="mailto:{{ officer.email }}">{{ officer.email }}</a>{% endif %}</td>
+            <td>{{ officer.phone }}</td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="5">{% trans "No current national officers." %}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% if contact_sync_available %}
+  {# Hidden CSRF token so contact_sync/sync_modal.html's fetch() calls can POST safely. #}
+  <form style="display:none">{% csrf_token %}</form>
+  {% include "contact_sync/sync_modal.html" %}
+{% endif %}
+{% endblock content %}
