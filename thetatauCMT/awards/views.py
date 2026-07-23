@@ -25,14 +25,7 @@ from .exports import grants_export_response
 from .filters import AwardGrantFilter
 from .forms import AwardDirectoryFilterHelper, AwardNominationForm, AwardNominationReviewForm, DirectGrantForm
 from .importer import ingest_award_csv
-from .models import (
-    AwardCycle,
-    AwardGrant,
-    AwardImportMatchQueueItem,
-    AwardNominationProcess,
-    AwardType,
-    GrantArtifact,
-)
+from .models import AwardCycle, AwardGrant, AwardImportMatchQueueItem, AwardNominationProcess, AwardType, GrantArtifact
 from .services import can_grant_awards, direct_grant
 from .tables import AwardGrantTable
 
@@ -284,7 +277,7 @@ class AwardDirectoryView(PagedFilteredTableView):
 
 
 class AwardTypeWinnersView(AwardDirectoryView):
-    """"All winners of X" -- the public directory scoped to one award type."""
+    """ "All winners of X" -- the public directory scoped to one award type."""
 
     def get_base_queryset(self):
         self.award_type = get_object_or_404(AwardType, pk=self.kwargs["pk"])
@@ -296,13 +289,15 @@ class AwardTypeWinnersView(AwardDirectoryView):
         context["heading"] = f"Winners of {self.award_type}"
         context["export_url"] = f"{reverse('awards:export')}?award_type={self.award_type.pk}"
         if self.award_type.grant_method == AwardType.GrantMethod.NOMINATION_WORKFLOW:
-            context["nominate_url"] = f"{reverse('viewflow:awards:awardnomination:start')}?award_type={self.award_type.pk}"
+            context["nominate_url"] = (
+                f"{reverse('viewflow:awards:awardnomination:start')}?award_type={self.award_type.pk}"
+            )
             context["nominate_award_label"] = str(self.award_type)
         return context
 
 
 class AwardCycleWinnersView(AwardDirectoryView):
-    """"Winners in cycle Y" -- the public directory scoped to one cycle."""
+    """ "Winners in cycle Y" -- the public directory scoped to one cycle."""
 
     def get_base_queryset(self):
         self.cycle = get_object_or_404(AwardCycle, pk=self.kwargs["pk"])
@@ -396,9 +391,7 @@ class MemberAwardHistoryView(_AwardHistoryView):
 
     def get_queryset(self):
         self.member = get_object_or_404(User, username=self.kwargs["username"])
-        return reports.member_award_history(
-            self.member, include_revoked=user_is_national_officer(self.request.user)
-        )
+        return reports.member_award_history(self.member, include_revoked=user_is_national_officer(self.request.user))
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -413,9 +406,7 @@ class ChapterAwardHistoryView(_AwardHistoryView):
 
     def get_queryset(self):
         self.chapter = get_object_or_404(Chapter, slug=self.kwargs["slug"])
-        return reports.chapter_award_history(
-            self.chapter, include_revoked=user_is_national_officer(self.request.user)
-        )
+        return reports.chapter_award_history(self.chapter, include_revoked=user_is_national_officer(self.request.user))
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)

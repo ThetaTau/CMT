@@ -13,7 +13,9 @@ urlpatterns = [
         name="recipient_member_autocomplete",
     ),
     path("grant/<int:grant_pk>/certificates/", views.GrantArtifactView.as_view(), name="grant_artifacts"),
-    path("certificate/<int:artifact_pk>/download/", views.GrantArtifactDownloadView.as_view(), name="artifact_download"),
+    path(
+        "certificate/<int:artifact_pk>/download/", views.GrantArtifactDownloadView.as_view(), name="artifact_download"
+    ),
     # Public awards dashboard / directory (AWI-11)
     path("directory/", views.AwardDirectoryView.as_view(), name="directory"),
     path("directory/type/<int:pk>/", views.AwardTypeWinnersView.as_view(), name="type_winners"),

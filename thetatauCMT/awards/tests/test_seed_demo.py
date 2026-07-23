@@ -141,7 +141,9 @@ def test_rerun_without_flush_no_duplicates():
 def test_flush_reseed_is_consistent():
     _seed(scale="small", seed=3)
     before = _demo_counts()
-    member_names = sorted(User.objects.filter(username__startswith="demo-awards-member-").values_list("name", flat=True))
+    member_names = sorted(
+        User.objects.filter(username__startswith="demo-awards-member-").values_list("name", flat=True)
+    )
     _seed(scale="small", seed=3, flush_awards=True)
     assert _demo_counts() == before  # identical structure, nothing duplicated
     after_names = sorted(User.objects.filter(username__startswith="demo-awards-member-").values_list("name", flat=True))

@@ -53,9 +53,7 @@ class AwardGrantFilter(DynamicScopeFilterSetMixin, django_filters.FilterSet):
     def filter_chapter(self, queryset, name, value):
         if not value:
             return queryset
-        return queryset.filter(
-            Q(recipient_chapter__slug=value) | Q(recipient_member__chapter__slug=value)
-        )
+        return queryset.filter(Q(recipient_chapter__slug=value) | Q(recipient_member__chapter__slug=value))
 
     def filter_region(self, queryset, name, value):
         # "national" is a cross-region pseudo-choice: don't narrow (mirrors the
@@ -64,8 +62,7 @@ class AwardGrantFilter(DynamicScopeFilterSetMixin, django_filters.FilterSet):
             return queryset
         if value == "candidate_chapter":
             return queryset.filter(
-                Q(recipient_chapter__candidate_chapter=True)
-                | Q(recipient_member__chapter__candidate_chapter=True)
+                Q(recipient_chapter__candidate_chapter=True) | Q(recipient_member__chapter__candidate_chapter=True)
             )
         return queryset.filter(
             Q(recipient_region__slug=value)

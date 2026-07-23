@@ -351,9 +351,7 @@ def grant_osm_award(osm_process, granted_by=None):
     recipient = osm_process.nominate
     granted_by = granted_by or osm_process.officer1 or osm_process.officer2
     cycle = resolve_or_create_year_cycle(osm_process.year)
-    existing = AwardGrant.objects.filter(
-        award_type=award_type, cycle=cycle, recipient_member=recipient
-    ).first()
+    existing = AwardGrant.objects.filter(award_type=award_type, cycle=cycle, recipient_member=recipient).first()
     if existing is not None:
         return existing
     grant = grant_award(

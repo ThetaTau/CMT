@@ -22,7 +22,5 @@ def feature_flags(_request):
     return {
         "feature_awards_enabled": Config.feature_enabled("FEATURE_AWARDS"),
         "feature_jobs_enabled": Config.feature_enabled("FEATURE_JOBS"),
-        "feature_events_calendar_enabled": Config.feature_enabled(
-            "FEATURE_EVENTS_CALENDAR"
-        ),
+        "feature_events_calendar_enabled": Config.feature_enabled("FEATURE_EVENTS_CALENDAR"),
     }

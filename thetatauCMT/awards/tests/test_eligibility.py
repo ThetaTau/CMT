@@ -1,10 +1,6 @@
 import pytest
 
-from thetatauCMT.awards.eligibility import (
-    get_eligible_recipients,
-    is_eligible,
-    register_eligibility_hook,
-)
+from thetatauCMT.awards.eligibility import get_eligible_recipients, is_eligible, register_eligibility_hook
 from thetatauCMT.awards.models import AwardType
 from thetatauCMT.awards.tests.factories import AwardTypeFactory, EligibilityRuleFactory
 from thetatauCMT.chapters.models import GREEK_ABR

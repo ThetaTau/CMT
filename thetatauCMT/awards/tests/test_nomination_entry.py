@@ -9,13 +9,13 @@ from django.utils import timezone
 from thetatauCMT.awards.forms import ALREADY_NOMINATED_MSG, NOT_ELIGIBLE_NOM_MSG, AwardNominationForm
 from thetatauCMT.awards.models import AwardNominationProcess
 from thetatauCMT.awards.services import nominatable_award_types
+from thetatauCMT.awards.tests._helpers import sign_rmp as _sign_rmp
 from thetatauCMT.awards.tests.factories import (
     AwardCycleFactory,
     AwardNominationProcessFactory,
     AwardTypeFactory,
     EligibilityRuleFactory,
 )
-from thetatauCMT.awards.tests._helpers import sign_rmp as _sign_rmp
 from thetatauCMT.users.tests.factories import UserFactory
 
 pytestmark = pytest.mark.django_db

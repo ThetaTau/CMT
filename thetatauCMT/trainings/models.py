@@ -648,9 +648,7 @@ class Training(TimeStampedModel):
         if response.status_code == 429 and not _retried:
             # EnrollmentUserThrottle — back off once then retry.
             sleep(120)
-            return Training.enroll_user_ed(
-                user, courses=courses, header=header, request=request, _retried=True
-            )
+            return Training.enroll_user_ed(user, courses=courses, header=header, request=request, _retried=True)
         if response.status_code == 403:
             results.append(
                 (

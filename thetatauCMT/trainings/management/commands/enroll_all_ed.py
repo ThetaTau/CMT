@@ -19,9 +19,7 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         # One token for the whole run; the app owner must be Open edX global staff.
         header = Training._ed_authenticate_header()
-        users = list(
-            User.objects.filter(is_active=True).exclude(email="").order_by("id")
-        )
+        users = list(User.objects.filter(is_active=True).exclude(email="").order_by("id"))
         limit = options.get("limit")
         if limit:
             users = users[:limit]
@@ -38,7 +36,5 @@ class Command(BaseCommand):
                 pending += 1
             self.stdout.write(f"[{index}/{total}] {user.email}: {', '.join(sorted(statuses))}")
         self.stdout.write(
-            self.style.SUCCESS(
-                f"Done. enrolled={enrolled} pending={pending} errored={errored} total={total}"
-            )
+            self.style.SUCCESS(f"Done. enrolled={enrolled} pending={pending} errored={errored} total={total}")
         )

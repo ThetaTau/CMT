@@ -101,7 +101,7 @@ def get_scope_chapters(region_slug):
     if region_slug == "candidate_chapter":
         return qs.filter(candidate_chapter=True)
     if region_slug.startswith("chapter_"):
-        return qs.filter(slug=region_slug[len("chapter_"):])
+        return qs.filter(slug=region_slug[len("chapter_") :])
     return qs.filter(region__slug=region_slug)
 
 

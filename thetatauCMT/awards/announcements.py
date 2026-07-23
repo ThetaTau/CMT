@@ -14,8 +14,7 @@ def create_grant_announcement(grant, days_visible=ANNOUNCEMENT_DAYS_VISIBLE):
     now = timezone.now()
     title = f"Award: {grant.award_type} \u2014 {grant.recipient_display}"
     content = (
-        f"<p>{grant.recipient_display} received the <strong>{grant.award_type}</strong> "
-        f"award ({grant.cycle}).</p>"
+        f"<p>{grant.recipient_display} received the <strong>{grant.award_type}</strong> " f"award ({grant.cycle}).</p>"
     )
     if grant.reason:
         content += f"<p>{grant.reason}</p>"

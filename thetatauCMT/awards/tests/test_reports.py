@@ -151,9 +151,7 @@ def test_csv_export_excludes_revoked_by_default_and_includes_on_request(client):
     client.force_login(_officer())
     default_rows = _csv_rows(client.get(reverse("awards:export"), {"cycle": cycle.pk}))
     assert {r[0] for r in default_rows[1:]} == {"Active Row Award"}
-    with_revoked = _csv_rows(
-        client.get(reverse("awards:export"), {"cycle": cycle.pk, "include_revoked": "1"})
-    )
+    with_revoked = _csv_rows(client.get(reverse("awards:export"), {"cycle": cycle.pk, "include_revoked": "1"}))
     assert {r[0] for r in with_revoked[1:]} == {"Active Row Award", "Revoked Row Award"}
 
 
@@ -244,7 +242,9 @@ def test_member_history_hides_revoked_from_non_national_officer(client):
 
 def test_chapter_history_view_public(client):
     chapter = ChapterFactory(name=_NAMES[0])
-    AwardGrantFactory(award_type=AwardTypeFactory(name="Chapter History Award"), recipient_member=None, recipient_chapter=chapter)
+    AwardGrantFactory(
+        award_type=AwardTypeFactory(name="Chapter History Award"), recipient_member=None, recipient_chapter=chapter
+    )
     response = client.get(reverse("awards:chapter_history", kwargs={"slug": chapter.slug}))
     assert response.status_code == 200
     assert "Chapter History Award" in response.content.decode()

@@ -1007,10 +1007,7 @@ class NationalOfficerContactsView(LoginRequiredMixin, TemplateView):
 
     def get_context_data(self, **kwargs):
         from thetatauCMT.contact_sync.context import build_sync_modal_context
-        from thetatauCMT.contact_sync.officers import (
-            NATIONAL_SCOPE,
-            collect_national_officer_contacts,
-        )
+        from thetatauCMT.contact_sync.officers import NATIONAL_SCOPE, collect_national_officer_contacts
 
         context = super().get_context_data(**kwargs)
         officers, _ = collect_national_officer_contacts()

@@ -48,16 +48,12 @@ def awards_by_award_type(award_type, *, include_revoked=False):
 
 
 def awards_by_chapter(chapter, *, include_revoked=False):
-    return _base(include_revoked).filter(
-        Q(recipient_chapter=chapter) | Q(recipient_member__chapter=chapter)
-    )
+    return _base(include_revoked).filter(Q(recipient_chapter=chapter) | Q(recipient_member__chapter=chapter))
 
 
 def awards_by_region(region, *, include_revoked=False):
     return _base(include_revoked).filter(
-        Q(recipient_region=region)
-        | Q(recipient_chapter__region=region)
-        | Q(recipient_member__chapter__region=region)
+        Q(recipient_region=region) | Q(recipient_chapter__region=region) | Q(recipient_member__chapter__region=region)
     )
 
 

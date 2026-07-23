@@ -83,7 +83,9 @@ def _apply_rules(queryset, kind, rules):
     allowed_kinds = {
         r.params.get("kind")
         for r in rules
-        if r.rule_type == EligibilityRule.RuleType.RECIPIENT_KIND and isinstance(r.params, dict) and r.params.get("kind")
+        if r.rule_type == EligibilityRule.RuleType.RECIPIENT_KIND
+        and isinstance(r.params, dict)
+        and r.params.get("kind")
     }
     if allowed_kinds and kind not in allowed_kinds:
         return queryset.none()
