@@ -1,5 +1,6 @@
 import base64
 import datetime
+import logging
 import os
 from io import BytesIO
 
@@ -64,6 +65,8 @@ from .views import (
     ReturnStudentCreateView,
     get_signature,
 )
+
+logger = logging.getLogger(__name__)
 
 
 def link_callback(uri, rel):
@@ -718,6 +721,20 @@ class OSMFlow(Flow):
             user,
             "Outstanding Student Member Nomination",
         ).send()
+        # Record the Outstanding Student Member award grant for the verified
+        # nominee. This award is granted only through the OSM flow -- it is
+        # intentionally excluded from the awards nomination process (see
+        # awards.services.nominatable_award_types). Best-effort: a failure here
+        # must never break OSM processing.
+        from thetatauCMT.awards.services import grant_osm_award
+
+        try:
+            grant_osm_award(activation.process)
+        except Exception:
+            logger.exception(
+                "Failed to grant OSM award for OSM process %s",
+                activation.process.pk,
+            )
 
 
 @register_factory(viewset_class=FilterableFlowViewSet)

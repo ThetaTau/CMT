@@ -7,6 +7,9 @@ are supplied by the caller; they are wired to real ``AwardGrant`` counts once
 grants land in AWI-3.
 """
 
+import datetime
+import logging
+
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import transaction
@@ -17,6 +20,13 @@ from core.models import resolve_config_actor, user_is_national_officer
 from .eligibility import is_eligible
 from .models import AwardCycle, AwardGrant, AwardNominationProcess, AwardType, GrantAudit
 from .signals import award_granted
+
+logger = logging.getLogger(__name__)
+
+# The Outstanding Student Member award is granted only through the forms-app OSM
+# verification flow (``OSMFlow``); it is intentionally excluded from the awards
+# nomination process. The name must match the ``award_types`` fixture entry.
+OSM_AWARD_NAME = "Robert E. Pope Outstanding Student Member Award"
 
 SINGLE_WINNER_MSG = "This award allows only one winner per cycle; a winner already exists for this cycle."
 MULTIPLE_NOMINATION_MSG = "This award does not allow multiple nominations for the same recipient in a cycle."
@@ -215,11 +225,15 @@ def allowed_nominator_scopes(actor):
 def nominatable_award_types(actor):
     """Active nomination-workflow awards whose ``nominator_scope`` overlaps the
     scopes ``actor``'s role may use (drives the per-role nomination award list).
+
+    The Outstanding Student Member award (:data:`OSM_AWARD_NAME`) is always
+    excluded: it is granted exclusively through the forms-app OSM flow, never the
+    awards nomination process.
     """
     scopes = allowed_nominator_scopes(actor)
     base = AwardType.objects.active().filter(grant_method=AwardType.GrantMethod.NOMINATION_WORKFLOW)
     ids = [award.pk for award in base if set(award.nominator_scope) & scopes]
-    return AwardType.objects.filter(pk__in=ids)
+    return AwardType.objects.filter(pk__in=ids).exclude(name__iexact=OSM_AWARD_NAME)
 
 
 def count_nominations_for(award_type, cycle, recipient):
@@ -286,4 +300,69 @@ def grant_from_nomination(nomination, approver):
         source=AwardGrant.Source.NOMINATION,
     )
     award_granted.send(sender=AwardGrant, grant=grant, actor=approver)
+    return grant
+
+
+def get_osm_award_type():
+    """Return the Outstanding Student Member :class:`AwardType`, or ``None``.
+
+    Looked up by :data:`OSM_AWARD_NAME`; returns ``None`` when the awards fixture
+    has not been loaded so callers can degrade gracefully.
+    """
+    return AwardType.objects.filter(name__iexact=OSM_AWARD_NAME).first()
+
+
+def resolve_or_create_year_cycle(year):
+    """Resolve (or create) the calendar-year :class:`AwardCycle` for ``year``.
+
+    Uses the same ``"<year>"`` naming as the legacy importer so grants created by
+    the OSM flow and by historical imports share one cycle per year.
+    """
+    label = str(year)
+    existing = AwardCycle.objects.filter(name__iexact=label).first()
+    if existing is not None:
+        return existing
+    return AwardCycle.objects.create(
+        name=label,
+        period_type=AwardCycle.PeriodType.YEAR,
+        start_date=datetime.date(int(year), 1, 1),
+        end_date=datetime.date(int(year), 12, 31),
+    )
+
+
+def grant_osm_award(osm_process, granted_by=None):
+    """Grant the Outstanding Student Member award for a completed OSM flow.
+
+    Called from ``OSMFlow.email_nomination`` (the flow's final step) so a
+    chapter's verified OSM nominee is recorded as a winner. Idempotent: returns
+    any existing grant for the same award / cycle / nominee instead of creating a
+    duplicate. Fires the :data:`award_granted` signal so certificates,
+    notifications and announcements behave like every other grant. Returns the
+    grant, or ``None`` when the OSM award type is not present.
+    """
+    award_type = get_osm_award_type()
+    if award_type is None:
+        logger.warning(
+            "OSM award type '%s' not found; no award granted for OSM process %s",
+            OSM_AWARD_NAME,
+            getattr(osm_process, "pk", None),
+        )
+        return None
+    recipient = osm_process.nominate
+    granted_by = granted_by or osm_process.officer1 or osm_process.officer2
+    cycle = resolve_or_create_year_cycle(osm_process.year)
+    existing = AwardGrant.objects.filter(
+        award_type=award_type, cycle=cycle, recipient_member=recipient
+    ).first()
+    if existing is not None:
+        return existing
+    grant = grant_award(
+        award_type,
+        cycle,
+        recipient,
+        granted_by,
+        reason=f"Chapter Outstanding Student Member for {osm_process.chapter}.",
+        source=AwardGrant.Source.NOMINATION,
+    )
+    award_granted.send(sender=AwardGrant, grant=grant, actor=granted_by)
     return grant

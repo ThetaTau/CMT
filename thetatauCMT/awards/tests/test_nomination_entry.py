@@ -303,3 +303,14 @@ def test_nomination_form_exposes_award_recipient_kinds(client):
     kinds = resp.context["award_kinds"]
     assert kinds[str(member_award.pk)] == "member"
     assert kinds[str(chapter_award.pk)] == "chapter"
+
+
+def test_osm_award_excluded_from_nominatable():
+    # The Outstanding Student Member award is granted only through the forms-app
+    # OSM flow; it must never appear in the awards nomination list, even when
+    # configured as a nomination-workflow award with the widest nominator scope.
+    from thetatauCMT.awards.services import OSM_AWARD_NAME
+
+    osm_award = _nom_award(name=OSM_AWARD_NAME, nominator_scope=["member", "officer", "national"])
+    ids = set(nominatable_award_types(_superuser()).values_list("pk", flat=True))
+    assert osm_award.pk not in ids

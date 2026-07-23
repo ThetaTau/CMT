@@ -313,6 +313,33 @@ def test_osm_flow_handler_sets_status():
 
 
 @pytest.mark.django_db
+def test_osm_flow_email_nomination_grants_award():
+    """Completing the OSM flow grants the Outstanding Student Member award to the nominee."""
+    from unittest.mock import MagicMock, patch
+
+    from thetatauCMT.awards.models import AwardGrant
+    from thetatauCMT.awards.services import OSM_AWARD_NAME
+    from thetatauCMT.awards.tests.factories import AwardTypeFactory
+    from thetatauCMT.forms.flows import OSMFlow
+    from thetatauCMT.forms.tests.factories import OSMFactory
+
+    AwardTypeFactory.create(name=OSM_AWARD_NAME, level="active", grant_method="direct")
+    osm = OSMFactory.create()
+    activation = MagicMock()
+    activation.process = osm
+
+    flow_instance = OSMFlow()
+    with patch("thetatauCMT.forms.flows.EmailOSMUpdate") as MockEmail:
+        MockEmail.return_value.send = MagicMock()
+        flow_instance.email_nomination(activation)
+
+    assert MockEmail.call_count == 1
+    grant = AwardGrant.objects.get(recipient_member=osm.nominate)
+    assert grant.award_type.name == OSM_AWARD_NAME
+    assert grant.cycle.name == str(osm.year)
+
+
+@pytest.mark.django_db
 def test_initiation_process_flow_send_invoice_func():
     """InitiationProcessFlow.send_invoice_func calls generate_blackbaud_update."""
     from unittest.mock import MagicMock, patch
