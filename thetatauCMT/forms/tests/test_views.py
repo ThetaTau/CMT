@@ -2401,6 +2401,32 @@ def test_badge_shingle_init_csv_invoice(auto_login_user):
     assert response.status_code == 200
 
 
+# ─── Missing-process 404 (GitHub issue #1082) ───────────────────────────────
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    "url_name, kwargs",
+    [
+        ("forms:init_csv", {"process_pk": 999999, "csv_type": "crm"}),
+        ("forms:shingle_post", {"process_pk": 999999}),
+        ("forms:init_sync", {"process_pk": 999999, "invoice_number": 1}),
+        ("forms:pledge_csv", {"process_pk": 999999, "csv_type": "invoice"}),
+        ("forms:pledge_sync", {"process_pk": 999999, "invoice_number": 1}),
+        ("forms:discipline_download", {"process_pk": 999999}),
+    ],
+)
+def test_process_lookup_view_missing_process_returns_404(auto_login_user, url_name, kwargs):
+    """A natoff hitting a process download/sync URL for a nonexistent process
+    should get a 404 (get_object_or_404) instead of an unhandled DoesNotExist
+    500. Regression test for GitHub issue #1082."""
+    client, user = auto_login_user()
+    _add_to_group(user, "natoff")
+    url = reverse(url_name, kwargs=kwargs)
+    response = client.get(url)
+    assert response.status_code == 404
+
+
 # ─── PrematureAlumnusCreateView GET with existing processes ──────────────────
 
 

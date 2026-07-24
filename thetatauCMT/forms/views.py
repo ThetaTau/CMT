@@ -20,7 +20,7 @@ from django.db.models import Case, CharField, Count, Exists, F, OuterRef, Q, Sma
 from django.forms import models as model_forms
 from django.http import HttpRequest, HttpResponse, HttpResponseRedirect, JsonResponse
 from django.http.request import QueryDict
-from django.shortcuts import redirect, render
+from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.safestring import mark_safe
@@ -1875,7 +1875,7 @@ class PrematureAlumnusCreateView(LoginRequiredMixin, CreateProcessView):
 @group_required("natoff")
 @csrf_exempt
 def badge_shingle_init_csv(request, csv_type, process_pk, response_type="csv"):
-    process = InitiationProcess.objects.get(pk=process_pk)
+    process = get_object_or_404(InitiationProcess, pk=process_pk)
     content_type = "application/json" if response_type == "json" else "text/csv"
     response = HttpResponse(content_type=content_type)
     if csv_type in ["badge", "shingle"]:
@@ -1891,7 +1891,7 @@ def badge_shingle_init_csv(request, csv_type, process_pk, response_type="csv"):
 @group_required("natoff")
 @csrf_exempt
 def badge_shingle_post(request, process_pk):
-    process = InitiationProcess.objects.get(pk=process_pk)
+    process = get_object_or_404(InitiationProcess, pk=process_pk)
     process.post_shingle_to_webhook(request)
     return HttpResponseRedirect(request.META.get("HTTP_REFERER", "/"))
 
@@ -1899,7 +1899,7 @@ def badge_shingle_post(request, process_pk):
 @group_required("natoff")
 @csrf_exempt
 def badge_shingle_init_sync(request, process_pk, invoice_number):
-    process = InitiationProcess.objects.get(pk=process_pk)
+    process = get_object_or_404(InitiationProcess, pk=process_pk)
     new_invoice_number = process.sync_badge_shingle_invoice(request, invoice_number)
     return JsonResponse({"invoice_number": new_invoice_number})
 
@@ -2379,7 +2379,7 @@ class FilterableInvoiceFlowViewSet(FlowViewSet):
 @group_required("natoff")
 @csrf_exempt
 def pledge_process_csvs(request, csv_type, process_pk):
-    process = PledgeProcess.objects.get(pk=process_pk)
+    process = get_object_or_404(PledgeProcess, pk=process_pk)
     response = HttpResponse(content_type="text/csv")
     if csv_type == "crm":
         process.generate_blackbaud_update(response=response)
@@ -2392,7 +2392,7 @@ def pledge_process_csvs(request, csv_type, process_pk):
 @group_required("natoff")
 @csrf_exempt
 def pledge_process_sync(request, process_pk, invoice_number):
-    process = PledgeProcess.objects.get(pk=process_pk)
+    process = get_object_or_404(PledgeProcess, pk=process_pk)
     new_invoice_number = process.sync_invoice(request, invoice_number)
     return JsonResponse({"invoice_number": new_invoice_number})
 
@@ -2900,7 +2900,7 @@ class DisciplinaryPDFTest(NatOfficerRequiredMixin, PDFTemplateResponseMixin, Det
 @group_required("natoff")
 @csrf_exempt
 def disciplinary_process_files(request, process_pk):
-    process = DisciplinaryProcess.objects.get(pk=process_pk)
+    process = get_object_or_404(DisciplinaryProcess, pk=process_pk)
     zip_filename = f"{process.chapter.slug}_{process.user.id}.zip"
     zip_io = BytesIO()
     files = process.get_all_files()
