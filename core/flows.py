@@ -41,7 +41,20 @@ class NoAssignActivation(flow.nodes.ManagedViewActivation):
         pass
 
     def has_perm(self, user):
-        return user.has_perm(self.task.owner_permission)
+        owner_permission = self.task.owner_permission
+        if not owner_permission:
+            # No task-level permission is configured for this node (e.g.
+            # ``AlumniExclusionFlow.review`` — the "RD Review" node, which,
+            # unlike the central-office invoice/review nodes, has no
+            # ``.Permission()``). Defer to the view's own access control
+            # (``LoginRequiredMixin``/``NatOfficerRequiredMixin``) instead of
+            # calling ``user.has_perm(None)``, which returns False for every
+            # non-superuser and raised an uncaught ``PermissionDenied``
+            # (issue #1075) even though ``NoAssignView.can_execute`` shows the
+            # task link to them. Mirrors viewflow's ``View.can_execute``, where
+            # a task with no ``owner_permission`` and no owner is executable.
+            return True
+        return user.has_perm(owner_permission)
 
     @Activation.status.transition(source=STATUS.NEW, target=STATUS.PREPARED)
     def prepare(self, data=None, user=None):

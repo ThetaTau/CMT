@@ -94,3 +94,56 @@ def test_get_object_list_status_search_survives_none_task_title(rf, monkeypatch)
 
     # No crash, and the node name ("nominee_consent") satisfies the status search.
     assert nomination.pk in list(result.values_list("pk", flat=True))
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("owner_permission", [None, ""])
+def test_noassign_activation_has_perm_allows_when_no_task_permission(owner_permission):
+    """Regression for #1075.
+
+    ``AlumniExclusionFlow.review`` (the "RD Review" node) is a ``NoAssignView``
+    declared WITHOUT a ``.Permission()``, so its task ``owner_permission`` is
+    empty.  ``NoAssignActivation.has_perm`` used to call
+    ``user.has_perm(None)``, which returns ``False`` for every non-superuser —
+    so a regional director / national officer clicking the review link (shown to
+    them, because ``can_execute`` returns ``True``) hit an uncaught
+    ``PermissionDenied``.  With no task permission configured, ``has_perm`` must
+    now defer to the view's own access control and return ``True``.
+    """
+    from types import SimpleNamespace
+
+    from core.flows import NoAssignActivation
+    from thetatauCMT.users.tests.factories import UserFactory
+
+    user = UserFactory.create()  # non-superuser
+    assert user.is_superuser is False
+    # Sanity check that this is exactly the branch that used to fail.
+    assert user.has_perm(owner_permission) is False
+
+    activation = NoAssignActivation()
+    activation.task = SimpleNamespace(owner_permission=owner_permission)
+    assert activation.has_perm(user) is True
+
+
+@pytest.mark.django_db
+def test_noassign_activation_has_perm_enforces_configured_permission():
+    """A configured task permission is still enforced (central-office nodes).
+
+    The invoice/review nodes on the initiation, pledge, and pledge-program
+    flows declare ``.Permission("auth.central_office")``; the #1075 fix must not
+    relax those — ``has_perm`` still delegates to ``user.has_perm`` when an
+    ``owner_permission`` is set.
+    """
+    from types import SimpleNamespace
+
+    from core.flows import NoAssignActivation
+    from thetatauCMT.users.tests.factories import UserFactory
+
+    activation = NoAssignActivation()
+    activation.task = SimpleNamespace(owner_permission="auth.central_office")
+
+    without_perm = UserFactory.create()  # non-superuser, lacks the permission
+    assert activation.has_perm(without_perm) is False
+
+    superuser = UserFactory.create(is_superuser=True)  # has every permission
+    assert activation.has_perm(superuser) is True
