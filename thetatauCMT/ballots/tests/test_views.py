@@ -45,6 +45,20 @@ def test_ballot_user_list_view_authenticated(auto_login_user):
 
 
 @pytest.mark.django_db
+def test_ballot_user_list_view_no_roles(auto_login_user):
+    """A user with no current_roles can load the vote list without an IndexError.
+
+    Regression test for GH #1069: Ballot.user_ballots() indexed roles[0] which
+    raised IndexError when the user had no current_roles.
+    """
+    client, user = auto_login_user()  # no make_officer -> current_roles is None
+    assert not user.current_roles
+    url = reverse("ballots:votelist")
+    response = client.get(url)
+    assert response.status_code == 200
+
+
+@pytest.mark.django_db
 def test_ballot_user_list_view_unauthenticated(client):
     url = reverse("ballots:votelist")
     response = client.get(url)
