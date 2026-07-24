@@ -417,26 +417,44 @@ class Training(TimeStampedModel):
                 level = messages.ERROR
 
             def add_extra_group(extra_group, location, person_id):
-                location_id, position_id = Training.get_location_position_ids(extra_group, location)
-                query = f"""
-                    mutation  JobMutation {{
-                        Person (personId: "{person_id}") {{
-                            addJob(locationId:"{location_id}", positionId:"{position_id}"){{
-                                jobId
-                            }}
-                      }}
-                    }}
-                    """
-                response = requests.post(url, json={"query": query}, headers=authenticate_header)
-                json_response = response.json()
-                print(json_response)
+                try:
+                    location_id, position_id = Training.get_location_position_ids(extra_group, location)
+                    query = f"""
+                        mutation  JobMutation {{
+                            Person (personId: "{person_id}") {{
+                                addJob(locationId:"{location_id}", positionId:"{position_id}"){{
+                                    jobId
+                                }}
+                          }}
+                        }}
+                        """
+                    response = requests.post(url, json={"query": query}, headers=authenticate_header)
+                    json_response = response.json()
+                    print(json_response)
+                    return True
+                except (requests.RequestException, ValueError) as error:
+                    # The Vector LMS endpoint intermittently returns an empty body or an
+                    # HTML gateway error (5xx), which makes ``response.json()`` raise
+                    # ``JSONDecodeError`` (a ``ValueError``). Treat any such failure as a
+                    # soft failure so the officer-update POST is not turned into a 500
+                    # (see issue #1086).
+                    print(f"Training add_extra_group failed for {person_id=} {extra_group=}: {error}")
+                    return False
 
             if person_id and user.is_national_officer():
-                add_extra_group("natoff", "Theta Tau", person_id)
-                message += f" Added {user} to extra_group=natoff and location=Theta Tau"
+                if add_extra_group("natoff", "Theta Tau", person_id):
+                    message += f" Added {user} to extra_group=natoff and location=Theta Tau"
+                else:
+                    message += f" Could NOT add {user} to extra_group=natoff; training system unavailable, please try again later."
+                    level = max(level, messages.WARNING)
             if person_id and extra_group:
-                add_extra_group(extra_group, user.chapter.name, person_id)
-                message += f" Added {user} to {extra_group=} and location={user.chapter.name}"
+                if add_extra_group(extra_group, user.chapter.name, person_id):
+                    message += f" Added {user} to {extra_group=} and location={user.chapter.name}"
+                else:
+                    message += (
+                        f" Could NOT add {user} to {extra_group=}; training system unavailable, please try again later."
+                    )
+                    level = max(level, messages.WARNING)
         elif response.status_code == 429:
             # 150 requests per rolling 300 seconds
             sleep(120)

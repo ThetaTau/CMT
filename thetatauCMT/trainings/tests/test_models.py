@@ -1,4 +1,5 @@
 import datetime
+import json
 
 import pytest
 from django.utils import timezone
@@ -286,3 +287,46 @@ def test_get_progress_all_users_ed_pages_and_upserts(auto_login_user, settings, 
     assert training.course_title == "Paged Intro"
     # grade2 matched no CMT user, so only the one row exists.
     assert Training.objects.filter(course_id=course_id).count() == 1
+
+
+@pytest.mark.django_db
+def test_add_user_survives_non_json_addjob_response(auto_login_user, monkeypatch):
+    """A non-JSON ``addJob`` response must not turn officer sync into a 500 (issue #1086).
+
+    The Vector LMS ``addJob`` endpoint intermittently answers with an empty body or an
+    HTML gateway error, so ``response.json()`` raises ``JSONDecodeError`` (a
+    ``ValueError``). ``add_user`` must treat that as a soft failure instead of letting
+    it propagate out of the officer-update POST.
+    """
+    _, user = auto_login_user()
+
+    monkeypatch.setattr(Training, "authenticate_header", staticmethod(lambda: {"Authorization": "x"}))
+    monkeypatch.setattr(
+        Training,
+        "get_location_position_ids",
+        staticmethod(lambda *args, **kwargs: ("loc-1", "pos-1")),
+    )
+
+    class _AddPersonResponse:
+        status_code = 200
+
+        def json(self):
+            return {"data": {"addPerson": {"personId": "PID-1"}}}
+
+    class _BadJsonResponse:
+        status_code = 200
+
+        def json(self):
+            raise json.JSONDecodeError("Expecting value", "", 0)
+
+    def fake_post(*args, **kwargs):
+        query = (kwargs.get("json") or {}).get("query", "")
+        if "addJob" in query:
+            return _BadJsonResponse()
+        return _AddPersonResponse()
+
+    monkeypatch.setattr("thetatauCMT.trainings.models.requests.post", fake_post)
+
+    # Must not raise even though the addJob response body is not valid JSON.
+    response = Training.add_user(user, extra_group="risk management chair")
+    assert response.status_code == 200

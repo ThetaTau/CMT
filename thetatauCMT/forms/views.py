@@ -1,6 +1,7 @@
 import base64
 import csv
 import datetime
+import logging
 import zipfile
 from copy import deepcopy
 from io import BytesIO
@@ -173,6 +174,8 @@ from .tables import (
     SignTable,
     StatusChangeTable,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class FormLanding(LoginRequiredMixin, TemplateView):
@@ -858,11 +861,28 @@ class RoleChangeView(LoginRequiredMixin, ModelFormSetView):
                         "pledge/new member educator",
                         "risk management chair",
                     ]:
-                        Training.add_user(
-                            form.instance.user,
-                            extra_group=role_name,
-                            request=self.request,
-                        )
+                        # Syncing to the external Vector LMS is a best-effort side
+                        # effect; the officer role change above is already saved. A
+                        # training-system outage must never turn this into a 500
+                        # (see issue #1086), so surface a retry message instead.
+                        try:
+                            Training.add_user(
+                                form.instance.user,
+                                extra_group=role_name,
+                                request=self.request,
+                            )
+                        except Exception:
+                            logger.exception(
+                                "Training sync failed during officer update for %s",
+                                form.instance.user,
+                            )
+                            messages.add_message(
+                                self.request,
+                                messages.WARNING,
+                                "The officer role was saved, but the training system "
+                                f"could not be updated for {form.instance.user}. "
+                                "Please try again later.",
+                            )
                     if role_name in COL_OFFICER_ALIGN:
                         role_name = COL_OFFICER_ALIGN[role_name]
                     if role_name in CHAPTER_OFFICER:
