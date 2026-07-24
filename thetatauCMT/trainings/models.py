@@ -1,6 +1,7 @@
 import base64
 import datetime
 import json
+import logging
 import re
 from time import sleep
 
@@ -15,6 +16,17 @@ from django.utils import timezone
 import core.requests as requests
 from core.models import TimeStampedModel
 from thetatauCMT.users.models import User
+
+logger = logging.getLogger(__name__)
+
+
+def _log_level_for(message_level):
+    """Map a Django ``messages`` level to a stdlib ``logging`` level."""
+    if message_level >= messages.ERROR:
+        return logging.ERROR
+    if message_level >= messages.WARNING:
+        return logging.WARNING
+    return logging.INFO
 
 
 class Training(TimeStampedModel):
@@ -114,7 +126,7 @@ class Training(TimeStampedModel):
                 json_response = response.json()
             except Exception:
                 if response.status_code == 429:
-                    print("Delay for 300...")
+                    logger.warning("Delay for 300...")
                     sleep(300)
                     authenticate_header = Training.authenticate_header()
                     continue
@@ -125,7 +137,7 @@ class Training(TimeStampedModel):
             total = json_response["data"]["People"]["pageInfo"]["totalCount"]
             batch_num += 1
             for count, user_info in enumerate(users):
-                print(f"Working on {count + 1 + (100 * batch_num)}/{total} batch has more {has_next}")
+                logger.info(f"Working on {count + 1 + (100 * batch_num)}/{total} batch has more {has_next}")
                 progresses = user_info["progress"]
                 username = user_info["username"]
                 user_pk = user_info["externalUniqueId"]
@@ -159,7 +171,7 @@ class Training(TimeStampedModel):
                     | Q(email_school__iexact=username)
                 ).first()
                 if not user:
-                    print(f"USER DOES NOT EXIST {user_info}")
+                    logger.warning(f"USER DOES NOT EXIST {user_info}")
                     continue
                 values = dict(
                     user=user,
@@ -170,7 +182,7 @@ class Training(TimeStampedModel):
                     completed_time=completed_at,
                     max_quiz_score=max_quiz_score,
                 )
-                print(values)
+                logger.debug("Training upsert values: %s", values)
                 try:
                     obj, created = Training.objects.update_or_create(user=user, course_id=course_id, defaults=values)
                 except Training.MultipleObjectsReturned:
@@ -237,7 +249,11 @@ class Training(TimeStampedModel):
                 """
         response = requests.post(url, json={"query": query_locations}, headers=authenticate_header)
         all_locations = response.json()
-        location_id = all_locations["data"]["Locations"]["nodes"][0]["locationId"]
+        # An empty ``nodes`` list means the location does not exist yet in the training
+        # system. Return ``None`` so ``add_user`` creates it via its ``addLocation``
+        # fallback instead of raising ``IndexError`` (issue #1085).
+        location_nodes = all_locations["data"]["Locations"]["nodes"]
+        location_id = location_nodes[0]["locationId"] if location_nodes else None
         # Frontend will let you add position as long as you want,
         # but the graphql will only return and match on the first 8 characters
         query_positions = f"""
@@ -325,7 +341,9 @@ class Training(TimeStampedModel):
                     ["cmt@thetatau.org", "central.office@thetatau.org"],
                     fail_silently=True,
                 )
-                messages.add_message(request, messages.ERROR, message)
+                logger.error(message)
+                if request is not None:
+                    messages.add_message(request, messages.ERROR, message)
                 return
         first_name = user.preferred_name if user.preferred_name else user.first_name
         add_user_mutation = f"""
@@ -430,15 +448,19 @@ class Training(TimeStampedModel):
                         """
                     response = requests.post(url, json={"query": query}, headers=authenticate_header)
                     json_response = response.json()
-                    print(json_response)
+                    logger.debug("Training add_extra_group response: %s", json_response)
                     return True
-                except (requests.RequestException, ValueError) as error:
+                except (requests.RequestException, ValueError):
                     # The Vector LMS endpoint intermittently returns an empty body or an
                     # HTML gateway error (5xx), which makes ``response.json()`` raise
                     # ``JSONDecodeError`` (a ``ValueError``). Treat any such failure as a
                     # soft failure so the officer-update POST is not turned into a 500
                     # (see issue #1086).
-                    print(f"Training add_extra_group failed for {person_id=} {extra_group=}: {error}")
+                    logger.exception(
+                        "Training add_extra_group failed for person_id=%s extra_group=%s",
+                        person_id,
+                        extra_group,
+                    )
                     return False
 
             if person_id and user.is_national_officer():
@@ -458,15 +480,14 @@ class Training(TimeStampedModel):
         elif response.status_code == 429:
             # 150 requests per rolling 300 seconds
             sleep(120)
-            print("Delaying for rate limit add training user")
+            logger.warning("Delaying for rate limit add training user")
             Training.add_user(user, request=request)
             return
         else:
             message = f"{user} NOT added to training system, maybe an error. {response}"
             level = messages.ERROR
-        if request is None:
-            print(message)
-        else:
+        logger.log(_log_level_for(level), message)
+        if request is not None:
             messages.add_message(request, level, message)
         return response
 
@@ -497,15 +518,14 @@ class Training(TimeStampedModel):
         person_id = None
         if response.status_code == 429:
             # 150 requests per rolling 300 seconds
-            print("Delaying for rate limit deactivate training user")
+            logger.warning("Delaying for rate limit deactivate training user")
             sleep(120)
             return Training.get_person_id(user, id_type=id_type, request=request)
         elif response.status_code != 200:
             message = f"    {user} NOT deactivated from training system, ERROR getting ID maybe an error. {response.reason} {find_id_query}"
             level = messages.ERROR
-            if request is None:
-                print(message)
-            else:
+            logger.log(_log_level_for(level), message)
+            if request is not None:
                 messages.add_message(request, level, message)
         else:
             response_json = response.json()
@@ -515,10 +535,10 @@ class Training(TimeStampedModel):
                 if nodes:
                     person_id = nodes[0]["personId"]
                 elif id_type == "id":
-                    print(f"    No id found for type {id_type} for {user} {response_json}")
+                    logger.info(f"    No id found for type {id_type} for {user} {response_json}")
                     person_id, message, level = Training.get_person_id(user, id_type="username", request=request)
                 else:
-                    print(f"    No id found for type {id_type} for {user} {response_json}")
+                    logger.info(f"    No id found for type {id_type} for {user} {response_json}")
             else:
                 message = (
                     f"    {user} NOT deactivated from training system, ERROR getting ID maybe an error. {response_json}"
@@ -532,7 +552,7 @@ class Training(TimeStampedModel):
         url = "https://thetatau-tx.vectorlmsedu.com/graphql/"
         authenticate_header = Training.authenticate_header()
         # https://thetatau-tx.vectorlmsedu.com/login
-        print(f"Deactivating user {user}")
+        logger.info(f"Deactivating user {user}")
         person_id, message, level = Training.get_person_id(user, request=request)
         if person_id:
             deactivate_user_mutation = f"""
@@ -567,15 +587,14 @@ class Training(TimeStampedModel):
             elif response.status_code == 429:
                 # 150 requests per rolling 300 seconds
                 sleep(120)
-                print("Delaying for rate limit deactivate training user")
+                logger.warning("Delaying for rate limit deactivate training user")
                 Training.deactivate_user(user, request=request)
                 return
             else:
                 message = f"    {user} NOT deactivated from training system, maybe an error. {response.reason}"
                 level = messages.ERROR
-        if request is None:
-            print(f"    {message}")
-        else:
+        logger.log(_log_level_for(level), message)
+        if request is not None:
             messages.add_message(request, level, message)
 
     @staticmethod
@@ -694,9 +713,8 @@ class Training(TimeStampedModel):
 
         for _course_id, status, message in results:
             level = messages.INFO if status in ("enrolled", "pending") else messages.ERROR
-            if request is None:
-                print(f"    {message}")
-            else:
+            logger.log(_log_level_for(level), message)
+            if request is not None:
                 messages.add_message(request, level, message)
         return results
 
@@ -734,11 +752,11 @@ class Training(TimeStampedModel):
             while url:
                 response = requests.get(url, headers=header)
                 if response.status_code == 429:
-                    print("Delaying for rate limit Open edX grades sync...")
+                    logger.warning("Delaying for rate limit Open edX grades sync...")
                     sleep(120)
                     continue
                 if response.status_code != 200:
-                    print(
+                    logger.error(
                         f"    Open edX grades sync error for {course_id}: "
                         f"HTTP {response.status_code} {response.reason}"
                     )
@@ -796,7 +814,7 @@ class Training(TimeStampedModel):
         if not user_id and email:
             user_id = user_index.get(Training._ed_normalize(email))
         if not user_id:
-            print(f"    No CMT user match for Open edX account username={username!r} course={course_id}")
+            logger.debug(f"    No CMT user match for Open edX account username={username!r} course={course_id}")
             return
         passed = bool(grade.get("passed"))
         percent = grade.get("percent") or 0

@@ -1792,6 +1792,7 @@ class PledgeFormView(CreateView):
         try:
             Training.add_user(user, request=self.request)
         except Exception as e:
+            logger.exception("Error adding training for %s %s", user, user.chapter)
             message = f"Error adding training {user=} {user.chapter=} {e}"
             CentralOfficeGenericEmail(message, subject="[CMT] Training Error").send()
         try:
@@ -1800,6 +1801,7 @@ class PledgeFormView(CreateView):
             # records a pending enrollment that activates when they log in.
             Training.add_user_ed(user, request=self.request)
         except Exception as e:
+            logger.exception("Error adding Open edX training for %s %s", user, user.chapter)
             message = f"Error adding Open edX training {user=} {user.chapter=} {e}"
             CentralOfficeGenericEmail(message, subject="[CMT] Training Error").send()
         messages.add_message(

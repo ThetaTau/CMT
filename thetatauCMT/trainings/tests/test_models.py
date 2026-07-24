@@ -330,3 +330,34 @@ def test_add_user_survives_non_json_addjob_response(auto_login_user, monkeypatch
     # Must not raise even though the addJob response body is not valid JSON.
     response = Training.add_user(user, extra_group="risk management chair")
     assert response.status_code == 200
+
+
+def test_get_location_position_ids_missing_location_returns_none(monkeypatch):
+    """An unknown location yields ``location_id=None`` instead of ``IndexError`` (issue #1085).
+
+    ``add_user`` relies on a ``None`` location id to trigger its ``addLocation``
+    fallback; previously an empty ``Locations`` ``nodes`` list raised ``IndexError``
+    and turned the officer-update POST into a 500.
+    """
+    monkeypatch.setattr(Training, "authenticate_header", staticmethod(lambda: {"Authorization": "x"}))
+
+    class _Resp:
+        status_code = 200
+
+        def __init__(self, body):
+            self._body = body
+
+        def json(self):
+            return self._body
+
+    def fake_post(*args, **kwargs):
+        query = (kwargs.get("json") or {}).get("query", "")
+        if "Locations" in query:
+            return _Resp({"data": {"Locations": {"nodes": []}}})
+        return _Resp({"data": {"Positions": {"nodes": [{"positionId": "pos-1"}]}}})
+
+    monkeypatch.setattr("thetatauCMT.trainings.models.requests.post", fake_post)
+
+    location_id, position_id = Training.get_location_position_ids("active", "Nonexistent Chapter")
+    assert location_id is None
+    assert position_id == "pos-1"
