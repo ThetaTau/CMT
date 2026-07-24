@@ -1,19 +1,23 @@
-"""Regression tests for GitHub issue #854.
+"""Regression tests for the address form/field stack.
 
-    AttributeError: 'dict' object has no attribute 'raw'
+Covers two historical Rollbar crashes:
 
-The legacy user/pledge/chapter forms defined a ``clean_address`` method that did
-``if address.raw == "None" or address.raw == "":`` against the value cleaned by
-the old ``django-address`` ``AddressField``. That field could hand back a plain
-``dict`` (of address components) instead of an ``Address`` instance, so the
-``.raw`` attribute access blew up during form validation.
+* Issue #854 -- ``AttributeError: 'dict' object has no attribute 'raw'``.
+  The legacy ``clean_address`` did ``address.raw == "None"`` against the value
+  cleaned by the old ``django-address`` ``AddressField``, which could hand back a
+  plain ``dict`` instead of an ``Address`` instance.
 
-The address handling was later reworked to a typed-components
-``ComponentAddressField``/``ComponentAddressWidget`` whose ``compress()`` funnels
-through ``get_or_create_address()`` and only ever returns an ``Address`` instance
-or ``None`` -- never a ``dict`` -- and the ``clean_address`` methods were removed.
+* Issue #815 -- ``MultipleObjectsReturned: get() returned more than one Address``.
+  The same old field resolved a submitted address to a row via
+  ``Address.objects.get(...)`` (``_to_python``), which raised whenever duplicate
+  ``Address`` rows existed -- surfaced most often through a Django admin change
+  form.
 
-These tests lock that contract in so the crash cannot come back.
+Both were reworked to a typed-components ``ComponentAddressField`` /
+``ComponentAddressWidget`` whose ``compress()`` funnels through
+``get_or_create_address()`` and only ever returns an ``Address`` instance or
+``None`` (never a ``dict``), returning the OLDEST matching row instead of raising
+on duplicates. These tests lock that contract in so neither crash can come back.
 """
 
 import pytest
@@ -114,3 +118,99 @@ class TestComponentAddressFieldNeverReturnsDict:
         cleaned = form.cleaned_data["address"]
         assert isinstance(cleaned, Address)
         assert not isinstance(cleaned, dict)
+
+
+def _make_duplicate_addresses(n=3):
+    """Create ``n`` `Address` rows sharing the same street/route/locality -- the
+    exact condition that made django-address's ``Address.objects.get(...)`` raise
+    ``MultipleObjectsReturned`` in issue #815."""
+    from address.models import Country, Locality, State
+
+    country = Country.objects.create(name="United States", code="US")
+    state = State.objects.create(name="Texas", code="TX", country=country)
+    locality = Locality.objects.create(name="Austin", postal_code="78701", state=state)
+    return [
+        Address.objects.create(
+            street_number="123",
+            route="Main St",
+            locality=locality,
+            raw=f"123 Main St #{i}",
+        )
+        for i in range(n)
+    ]
+
+
+class TestDuplicateAddressesDoNotCrash:
+    """Regression for issue #815 -- ``MultipleObjectsReturned: get() returned
+    more than one Address``.
+
+    The legacy django-address form field resolved a submitted address to a row
+    via ``Address.objects.get(...)`` (in ``_to_python``), which raised whenever
+    duplicate rows existed -- surfaced most often through a Django admin change
+    form. The current stack resolves via ``get_or_create_address`` /
+    ``ComponentAddressField``, which returns the OLDEST matching row instead of
+    raising.
+    """
+
+    def test_get_or_create_address_returns_oldest_when_duplicates_exist(self):
+        addrs = _make_duplicate_addresses(3)
+        # Must not raise MultipleObjectsReturned.
+        result = get_or_create_address(
+            street="123 Main St",
+            city="Austin",
+            state="Texas",
+            postal_code="78701",
+            country="United States",
+            state_code="TX",
+        )
+        assert result.pk == addrs[0].pk
+
+    def test_bound_form_with_duplicate_addresses_does_not_raise(self):
+        addrs = _make_duplicate_addresses(3)
+        form = AddressOnlyForm(
+            data={
+                "address_0": "123 Main St",
+                "address_1": "Austin",
+                "address_2": "Texas",
+                "address_3": "78701",
+                "address_4": "United States",
+            }
+        )
+        # Previously this raised MultipleObjectsReturned inside field cleaning.
+        assert form.is_valid() is True
+        assert form.cleaned_data["address"].pk == addrs[0].pk
+
+
+class TestPreviouslyVulnerableFormsUseComponentAddressField:
+    """Every form/admin that edits an ``address.models.AddressField`` must route
+    through ``ComponentAddressField`` rather than django-address's default
+    (crashing) field, so the #815 traceback cannot recur."""
+
+    def test_user_update_form_address_fields_are_component(self):
+        from thetatauCMT.users.forms import UserUpdateForm
+
+        assert isinstance(UserUpdateForm.base_fields["address"], ComponentAddressField)
+        assert isinstance(UserUpdateForm.base_fields["employer_address"], ComponentAddressField)
+
+    def test_disciplinary_process_admin_uses_component_address_field(self):
+        from django.contrib.admin.sites import AdminSite
+
+        from thetatauCMT.forms.admin import DisciplinaryProcessAdmin
+        from thetatauCMT.forms.models import DisciplinaryProcess
+
+        admin_obj = DisciplinaryProcessAdmin(DisciplinaryProcess, AdminSite())
+        db_field = DisciplinaryProcess._meta.get_field("address")
+        formfield = admin_obj.formfield_for_dbfield(db_field, request=None)
+        assert isinstance(formfield, ComponentAddressField)
+
+    def test_member_update_admin_uses_component_address_field(self):
+        from django.contrib.admin.sites import AdminSite
+
+        from thetatauCMT.users.admin import MemberUpdateAdmin
+        from thetatauCMT.users.models import MemberUpdate
+
+        admin_obj = MemberUpdateAdmin(MemberUpdate, AdminSite())
+        for field_name in ("address", "employer_address"):
+            db_field = MemberUpdate._meta.get_field(field_name)
+            formfield = admin_obj.formfield_for_dbfield(db_field, request=None)
+            assert isinstance(formfield, ComponentAddressField), field_name

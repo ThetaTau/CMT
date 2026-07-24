@@ -178,6 +178,8 @@ class UserUpdateForm(forms.ModelForm):
         "if your major is not listed please select other and then fill out your major in the box below",
     )
     major_other = forms.CharField(label="Other Major")
+    address = ComponentAddressField(required=False)
+    employer_address = ComponentAddressField(required=False)
     birth_date = forms.DateField(
         label="Birth Date",
         widget=DatePicker(

@@ -1,8 +1,10 @@
 from address.admin import UnidentifiedListFilter
+from address.models import AddressField
 from django.conf import settings
 from django.contrib import admin
 from django.urls import reverse
 from django.utils.safestring import mark_safe
+from django.utils.text import capfirst
 from herald.admin import SentNotificationAdmin
 from report_builder.admin import ReportAdmin
 
@@ -90,6 +92,30 @@ class ChapterPresenceListFilter(admin.SimpleListFilter):
             return queryset.filter(chapter__isnull=True)
         if self.value() == "withchapter":
             return queryset.filter(chapter__isnull=False).distinct()
+
+
+class ComponentAddressAdminMixin:
+    """Render ``address.models.AddressField`` columns with ``ComponentAddressField``.
+
+    django-address's default form field resolves the submitted value to an
+    ``Address`` via ``Address.objects.get(...)`` inside its ``to_python`` /
+    ``_to_python``.  When duplicate ``Address`` rows exist that lookup raises
+    ``MultipleObjectsReturned`` and the admin change form 500s (issue #815).
+    ``ComponentAddressField`` funnels through ``get_or_create_address``, which
+    returns the oldest matching row instead of raising, so any admin editing an
+    address stays crash-safe even with duplicate rows already in the table.
+    """
+
+    def formfield_for_dbfield(self, db_field, request, **kwargs):
+        if isinstance(db_field, AddressField):
+            from core.forms import ComponentAddressField
+
+            return ComponentAddressField(
+                required=not db_field.blank,
+                label=capfirst(db_field.verbose_name),
+                help_text=db_field.help_text,
+            )
+        return super().formfield_for_dbfield(db_field, request, **kwargs)
 
 
 class AddressAdmin(admin.ModelAdmin):

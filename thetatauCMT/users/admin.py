@@ -20,7 +20,13 @@ from report_builder.admin import Report
 from simple_history.admin import SimpleHistoryAdmin
 from watson.admin import SearchAdmin
 
-from core.admin import AddressAdmin, ReportAdminSync, SentNotificationAdminUpdate, user_chapter
+from core.admin import (
+    AddressAdmin,
+    ComponentAddressAdminMixin,
+    ReportAdminSync,
+    SentNotificationAdminUpdate,
+    user_chapter,
+)
 from core.forms import ComponentAddressField
 from core.models import forever
 from core.signals import SignalWatchMixin
@@ -765,7 +771,7 @@ class LogEntryAdmin(admin.ModelAdmin):
 
 
 @admin.register(MemberUpdate)
-class MemberUpdateAdmin(SearchAdmin, admin.ModelAdmin):
+class MemberUpdateAdmin(ComponentAddressAdminMixin, SearchAdmin, admin.ModelAdmin):
     raw_id_fields = ["user"]
     list_display = (
         "user",

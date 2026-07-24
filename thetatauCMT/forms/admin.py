@@ -4,7 +4,7 @@ from django.urls import reverse
 from django.utils.safestring import mark_safe
 from import_export.admin import ImportExportActionModelAdmin
 
-from core.admin import user_chapter
+from core.admin import ComponentAddressAdminMixin, user_chapter
 
 from .models import (
     OSM,
@@ -275,7 +275,7 @@ class DisciplinaryAttachmentInline(admin.TabularInline):
 
 
 @admin.register(DisciplinaryProcess)
-class DisciplinaryProcessAdmin(admin.ModelAdmin):
+class DisciplinaryProcessAdmin(ComponentAddressAdminMixin, admin.ModelAdmin):
     inlines = [DisciplinaryAttachmentInline]
     raw_id_fields = [
         "user",
