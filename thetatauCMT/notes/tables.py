@@ -21,7 +21,7 @@ class ChapterNoteTable(tables.Table):
 
 
 class UserNoteTable(tables.Table):
-    note = tables.TemplateColumn("{{ value|safe }}")
+    note = tables.TemplateColumn("{% load custom_tags %}{{ value|sanitize_html }}")
 
     class Meta:
         model = UserNote

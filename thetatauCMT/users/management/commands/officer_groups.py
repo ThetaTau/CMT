@@ -54,12 +54,12 @@ class Command(BaseCommand):
                 except User.MultipleObjectsReturned:
                     user = None
                     users = User.objects.filter(last_name=row["Last Name"])
-                    print(users)
+                    self.stdout.write(str(users))
                 if user is not None:
                     off_group.user_set.add(user)
                     nat_group.user_set.add(user)
                     continue
-                print("User not found", row)
+                self.stdout.write(f"User not found {row}")
         all_users = User.objects.all()
         for user in all_users:
             if user.is_chapter_officer():

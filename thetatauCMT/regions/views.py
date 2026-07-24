@@ -11,6 +11,7 @@ from django.urls import reverse
 from django.views.generic import DetailView, ListView, RedirectView, TemplateView
 from django_tables2.utils import A
 
+from core.csv_utils import escape_csv_row
 from core.views import LoginRequiredMixin, NatOfficerRequiredMixin, RequestConfig
 from thetatauCMT.chapters.models import Chapter
 from thetatauCMT.contact_sync.context import build_sync_modal_context
@@ -58,7 +59,7 @@ class RegionOfficerView(LoginRequiredMixin, NatOfficerRequiredMixin, DetailView)
                 writer.writerow(list(context["table"].columns.names()) + ["Generic Officer Email"])
                 for row in context["table"].as_values():
                     if row[4] and row[4] in emails:
-                        writer.writerow(list(row) + [email_generic_map.get(row[4], "")])
+                        writer.writerow(escape_csv_row(list(row) + [email_generic_map.get(row[4], "")]))
                 return response
             else:
                 messages.add_message(

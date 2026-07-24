@@ -10,6 +10,8 @@ import datetime
 
 from django.http import HttpResponse
 
+from core.csv_utils import escape_csv_row
+
 from .tables import _context_chapter, _context_region
 
 EXPORT_HEADERS = [
@@ -72,7 +74,7 @@ def grants_csv_response(queryset, filename_stem="awards_export"):
     writer = csv.writer(response)
     writer.writerow(EXPORT_HEADERS)
     for grant in queryset:
-        writer.writerow(grant_row(grant))
+        writer.writerow(escape_csv_row(grant_row(grant)))
     return response
 
 

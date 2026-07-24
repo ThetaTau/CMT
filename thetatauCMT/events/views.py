@@ -618,11 +618,10 @@ class ChapterFeedAutocomplete(autocomplete.Select2QuerySetView):
     def get_queryset(self):
         from thetatauCMT.chapters.models import Chapter
 
-        if not self.request.user.is_authenticated:
+        # Require >= 2 chars so the endpoint can't enumerate all chapter names.
+        if not self.request.user.is_authenticated or len(self.q) < 2:
             return Chapter.objects.none()
-        qs = Chapter.objects.filter(active=True)
-        if self.q:
-            qs = qs.filter(name__icontains=self.q)
+        qs = Chapter.objects.filter(active=True, name__icontains=self.q)
         return qs.order_by("name")
 
 
@@ -632,11 +631,10 @@ class RegionFeedAutocomplete(autocomplete.Select2QuerySetView):
     def get_queryset(self):
         from thetatauCMT.regions.models import Region
 
-        if not self.request.user.is_authenticated:
+        # Require >= 2 chars so the endpoint can't enumerate all region names.
+        if not self.request.user.is_authenticated or len(self.q) < 2:
             return Region.objects.none()
-        qs = Region.objects.all()
-        if self.q:
-            qs = qs.filter(name__icontains=self.q)
+        qs = Region.objects.filter(name__icontains=self.q)
         return qs.order_by("name")
 
 

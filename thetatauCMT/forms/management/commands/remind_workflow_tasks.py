@@ -26,16 +26,16 @@ class Command(BaseCommand):
         chapter_only = options.get("chapter", None)
         if chapter_only is not None:
             chapter_only = chapter_only[0]
-            print(f"Process tasks for chapter {chapter_only}")
+            self.stdout.write(f"Process tasks for chapter {chapter_only}")
         date = datetime.datetime.today()
         if date_str:
             date_str = date_str[0]
             date = datetime.datetime.strptime(date_str, "%Y%m%d")
-        print(f"Process tasks for date <= {date}")
+        self.stdout.write(f"Process tasks for date <= {date}")
         host = settings.CURRENT_URL
         # We look for tasks assigned but not handled
         function_tasks = Task.objects.filter(status=STATUS.ASSIGNED, flow_task_type="HUMAN")
-        print(f"Assigned Tasks found {function_tasks.count()}")
+        self.stdout.write(f"Assigned Tasks found {function_tasks.count()}")
         cancelled = []
         for function_task in function_tasks.all():
             process = function_task.flow_process
@@ -239,11 +239,11 @@ class Command(BaseCommand):
                     "at central.office@thetatau.org // 512-472-1904."
                 )
             else:
-                print(f"{process.flow_class.process_title} Type not accounted for")
+                self.stdout.write(f"{process.flow_class.process_title} Type not accounted for")
             excluded = [User.objects.get(username=settings.EXECUTIVE_DIRECTOR)]
             if owner in excluded:
                 continue
-            print(
+            self.stdout.write(
                 f"Send update for: {days} {process} for {owner} at {chapter} created {created} {function_task.status}"
             )
             EmailProcessUpdate(

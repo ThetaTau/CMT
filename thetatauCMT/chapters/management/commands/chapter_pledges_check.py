@@ -29,7 +29,7 @@ class Command(BaseCommand):
         today = datetime.date.today().strftime("%A")
         override = options.get("override", False)
         if today != "Monday" and not override:
-            print(f"Not today {today}")
+            self.stdout.write(f"Not today {today}")
             return
         if chapters_only is not None:
             chapters = Chapter.objects.filter(slug__in=chapters_only)
@@ -38,7 +38,7 @@ class Command(BaseCommand):
         for chapter in chapters:
             if not chapter.active:
                 continue
-            print(chapter)
+            self.stdout.write(str(chapter))
             pledges = chapter.pledges_with_no_init_last_x_months()
             message = ""
             subject = "CMT "
@@ -53,7 +53,7 @@ class Command(BaseCommand):
                 subject += "Pledge"
             if not chapter.pledges_last_x_months():
                 # Once a semester? chapter, RD, CO
-                print("    No pledges last 8 months")
+                self.stdout.write("    No pledges last 8 months")
                 already_notified_pledges = SentNotification.objects.filter(
                     notification_class="core.notifications.GenericEmail",
                     html_content__icontains="potential new members in the last 8 months",
@@ -72,10 +72,10 @@ class Command(BaseCommand):
                     )
 
                 else:
-                    print("    Already notified")
+                    self.stdout.write("    Already notified")
             subject += " Reminder"
             if message:
-                print(f"    Sending message to: {chapter}\n")
+                self.stdout.write(f"    Sending message to: {chapter}\n")
                 officer_list, _ = chapter.get_current_officers_council()
                 # set list of emails to send to
                 emails = set([officer.email for officer in officer_list]) | set(chapter.get_generic_chapter_emails())
@@ -93,6 +93,6 @@ class Command(BaseCommand):
                     cc=cc,
                     addressee=f"{chapter_name} officers",
                 ).send()
-                print("    ", result)
+                self.stdout.write(f"    {result}")
             else:
-                print(f"    {chapter} does not need to update CMT\n")
+                self.stdout.write(f"    {chapter} does not need to update CMT\n")

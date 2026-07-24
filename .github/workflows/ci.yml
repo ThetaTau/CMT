@@ -55,6 +55,12 @@ jobs:
         # -n auto parallelizes across all available CPUs (GitHub runners have 4 vCPUs).
         run:  docker compose -f docker-compose.local.yml run --rm django pytest -p no:randomly -n auto --dist loadgroup
 
+      - name: Audit dependencies for known CVEs (pip-audit)
+        # Non-blocking for now so a freshly published advisory doesn't red-wall
+        # CI; review the report and tighten to blocking once the backlog is triaged.
+        continue-on-error: true
+        run:  docker compose -f docker-compose.local.yml run --rm django sh -c "pip install --quiet pip-audit && pip-audit"
+
       - name: Tear down the Stack
         if: always()
         run:  docker compose -f docker-compose.local.yml down

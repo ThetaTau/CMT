@@ -284,6 +284,7 @@ def test_seed_contact_sync_examples_is_idempotent():
     ChapterFactory.create()  # ensure at least one active chapter
     call_command(
         "seed_contact_sync_examples",
+        "--force",
         "--chapters",
         "1",
         "--skip-national",
@@ -297,6 +298,7 @@ def test_seed_contact_sync_examples_is_idempotent():
     # Re-run — must not create duplicates.
     call_command(
         "seed_contact_sync_examples",
+        "--force",
         "--chapters",
         "1",
         "--skip-national",
@@ -319,6 +321,7 @@ def test_seed_contact_sync_examples_national_scope_creates_all_roles():
     ChapterFactory.create()
     call_command(
         "seed_contact_sync_examples",
+        "--force",
         "--skip-chapters",
         stdout=StringIO(),
     )

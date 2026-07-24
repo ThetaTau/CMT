@@ -6,7 +6,7 @@ from .models import Objective
 
 class ObjectiveTable(tables.Table):
     title = tables.LinkColumn("objectives:detail", args=[A("pk")])
-    description = tables.TemplateColumn("{{ value|safe }}")
+    description = tables.TemplateColumn("{% load custom_tags %}{{ value|sanitize_html }}")
     actions_count = tables.Column(verbose_name="Incomplete Actions")
 
     class Meta:

@@ -23,7 +23,7 @@ class Command(BaseCommand):
     # A command must define handle()
     def handle(self, *args, **options):
         live = options.get("live", False)
-        print("This is LIVE:", live)
+        self.stdout.write(f"This is LIVE: {live}")
         Invoice.objects.all().delete()
         query = dict(
             process__flow_class=InitiationProcessFlow,
@@ -41,7 +41,7 @@ class Command(BaseCommand):
         outstanding_invoice_tasks = {
             str(task.flow_process.invoice): task for task in function_tasks if task.flow_process.invoice != "999999999"
         }
-        print(f"Found {len(outstanding_invoice_tasks)} outstanding_invoice_tasks")
+        self.stdout.write(f"Found {len(outstanding_invoice_tasks)} outstanding_invoice_tasks")
         client = get_quickbooks_client()
         customers = Customer.all(qb=client, max_results=1000)
         for customer in customers:
@@ -67,17 +67,17 @@ class Command(BaseCommand):
                 else:
                     # Maybe not chapter/candidate chapter, but other?
                     continue
-                print("Syncing:", chapter_name)
+                self.stdout.write(f"Syncing: {chapter_name}")
                 try:
                     chapter = Chapter.objects.get(name=chapter_name)
                 except Chapter.DoesNotExist:
-                    print(f"    Chapter matching {chapter_name} does not exist")
+                    self.stdout.write(f"    Chapter matching {chapter_name} does not exist")
                     continue
                 if not chapter.active:
-                    print("    Chapter not active")
+                    self.stdout.write("    Chapter not active")
                     continue
                 balance = customer.Balance
-                print("    New balance: ", balance)
+                self.stdout.write(f"    New balance: {balance}")
                 if live:
                     chapter.balance = balance
                     chapter.balance_date = timezone.now()
@@ -107,7 +107,7 @@ class Command(BaseCommand):
                 ]
                 emails = [email for email in emails if email]
                 if not emails:
-                    print("    NO EMAILS")
+                    self.stdout.write("    NO EMAILS")
                 email_str = ""
                 for email in emails:
                     if not isinstance(email, str):
@@ -120,21 +120,21 @@ class Command(BaseCommand):
                         break
                 email_str = email_str[:-1]
                 if customer.PrimaryEmailAddr is None:
-                    print("    No current email")
-                    print("    New Email: ", email_str)
+                    self.stdout.write("    No current email")
+                    self.stdout.write(f"    New Email: {email_str}")
                     if live:
                         customer.PrimaryEmailAddr = EmailAddress()
                         customer.PrimaryEmailAddr.Address = email_str
                         customer.save(qb=client)
                 elif customer.PrimaryEmailAddr.Address != email_str:
-                    print("    Current Email: ", customer.PrimaryEmailAddr.Address)
-                    print("    New Email: ", email_str)
+                    self.stdout.write(f"    Current Email: {customer.PrimaryEmailAddr.Address}")
+                    self.stdout.write(f"    New Email: {email_str}")
                     if live:
                         customer.PrimaryEmailAddr.Address = email_str
                         customer.save(qb=client)
                 else:
-                    print("    Current Email: ", customer.PrimaryEmailAddr.Address)
-                    print("    No new emails")
+                    self.stdout.write(f"    Current Email: {customer.PrimaryEmailAddr.Address}")
+                    self.stdout.write("    No new emails")
                 invoices = QBInvoice.query(
                     select=f"select * from Invoice where "
                     # f"balance > '0' AND "
@@ -143,11 +143,11 @@ class Command(BaseCommand):
                 )
                 total = len(invoices)
                 for count, invoice_res in enumerate(invoices):
-                    print(f"    Invoice {count+1}/{total}")
+                    self.stdout.write(f"    Invoice {count+1}/{total}")
                     try:
                         invoice = QBInvoice.get(invoice_res.Id, qb=client)
                     except Exception as e:
-                        print(f"    Error getting invoice {e}")
+                        self.stdout.write(f"    Error getting invoice {e}")
                         continue
                     invoice_number = invoice.DocNumber
                     invoice_balance = invoice.Balance
@@ -165,17 +165,17 @@ class Command(BaseCommand):
                         total=invoice_balance,
                         chapter=chapter,
                     ).save()
-                    print(f"        {invoice_number=} {invoice_balance=}")
+                    self.stdout.write(f"        {invoice_number=} {invoice_balance=}")
                     if invoice_number in outstanding_invoice_tasks:
                         if invoice_balance == 0:
-                            print(f"        Invoice {invoice_number} has been paid!")
+                            self.stdout.write(f"        Invoice {invoice_number} has been paid!")
                             function_task = outstanding_invoice_tasks[invoice_number]
                             activation = function_task.activate()
                             activation.prepare()
                             activation.done()
             except Exception as e:
                 message = f"Error processing customer {customer=} {customer.Id} {e}"
-                print(message)
+                self.stdout.write(message)
                 CentralOfficeGenericEmail(message, subject="[CMT] Quickbooks Sync Error").send()
 
 

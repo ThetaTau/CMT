@@ -270,10 +270,10 @@ class KeywordAutocomplete(autocomplete.Select2QuerySetView):
 
     def get_queryset(self):
         qs = Keyword.objects.none()
-        if self.request.user.is_authenticated:
-            if self.q:
-                qs = Keyword.objects.all()
-                qs = qs.filter(Q(name__icontains=self.q))
+        # Require >= 2 chars so the endpoint can't be used to enumerate the
+        # full keyword list with a single character.
+        if self.request.user.is_authenticated and self.q and len(self.q) >= 2:
+            qs = Keyword.objects.filter(Q(name__icontains=self.q))
         return qs.order_by("name")
 
 
@@ -283,10 +283,10 @@ class MajorAutocomplete(autocomplete.Select2QuerySetView):
 
     def get_queryset(self):
         qs = Major.objects.none()
-        if self.request.user.is_authenticated:
-            if self.q:
-                qs = Major.objects.all()
-                qs = qs.filter(Q(name__icontains=self.q))
+        # Require >= 2 chars so the endpoint can't be used to enumerate the
+        # full major list with a single character.
+        if self.request.user.is_authenticated and self.q and len(self.q) >= 2:
+            qs = Major.objects.filter(Q(name__icontains=self.q))
         return qs.order_by("name")
 
 

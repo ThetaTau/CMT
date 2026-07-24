@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% load render_table from django_tables2 %}
+{% load custom_tags %}
 {% block content %}
   <style>
     hr {
@@ -13,7 +14,7 @@
     <div class="card bg-body-tertiary text-body">
       <div class="card-body">
         <h5 class="card-title">{{ announcement.title }}</h5>
-        {{ announcement.content|safe }}
+        {{ announcement.content|sanitize_html }}
       </div>
       <div class="card-footer bg-transparent text-muted">Published: {{ announcement.publish_start }}</div>
     </div>

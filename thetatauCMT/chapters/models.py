@@ -21,6 +21,7 @@ from herald.models import SentNotification
 from quickbooks.objects.attachable import Attachable, AttachableRef
 from quickbooks.objects.customer import Customer
 
+from core.csv_utils import escape_csv_row
 from core.finances import create_line, get_quickbooks_client, invoice_search
 from core.models import (
     ACTIVE_STATUSES,
@@ -816,7 +817,7 @@ class Chapter(models.Model, EmailSignalMixin):
             dues_mail.add_header("Content-Disposition", "attachment", filename=filename)
         table = UserTable(data=self.active_actives())
         writer = csv.writer(dues_file)
-        writer.writerows(table.as_values())
+        writer.writerows(escape_csv_row(row) for row in table.as_values())
         if response is None and not file_obj:
             dues_mail.set_payload(dues_file.getvalue())
             out = dues_mail

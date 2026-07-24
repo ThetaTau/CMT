@@ -12,7 +12,7 @@ class InvoiceTable(tables.Table):
     link = tables.TemplateColumn(
         '{%if record.link %}<a href="{{record.link}}" target="_blank">Invoice Link</a>{% endif %}'
     )
-    description = tables.TemplateColumn("{{ value|safe }}")
+    description = tables.TemplateColumn("{% load custom_tags %}{{ value|sanitize_html }}")
 
     class Meta:
         model = Invoice

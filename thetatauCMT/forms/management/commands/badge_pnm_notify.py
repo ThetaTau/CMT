@@ -23,7 +23,7 @@ class Command(BaseCommand):
 
     # A command must define handle()
     def handle(self, *args, **options):
-        print("Starting badge notify")
+        self.stdout.write("Starting badge notify")
         today = datetime.date.today()
         chapters_only = options.get("chapter", None)
         if chapters_only is not None:
@@ -38,13 +38,13 @@ class Command(BaseCommand):
                 status__start__lte=today - datetime.timedelta(weeks=4),
                 status__end__gte=today,
             ).distinct()
-            print(f"Found {pledges.count()} for {chapter}")
+            self.stdout.write(f"Found {pledges.count()} for {chapter}")
             for pledge in pledges:
                 already_notified = SentNotification.objects.filter(
                     notification_class="forms.notifications.BadgePNMNotify",
                     recipients__icontains=pledge.email,
                 )
                 if not already_notified:
-                    print(f"Send badge info to {chapter} {pledge}")
+                    self.stdout.write(f"Send badge info to {chapter} {pledge}")
                     BadgePNMNotify(pledge).send()
-        print("Finish badge notify")
+        self.stdout.write("Finish badge notify")

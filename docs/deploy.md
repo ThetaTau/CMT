@@ -85,3 +85,55 @@ Need to add files to secrets folder
 #### Renew:
     cd ~/letsencrypt
     ~/dehydrated/dehydrated --cron --domain cmt.thetatau.org --out . --challenge http-01
+
+Production runbook & pre-deploy checklist
+-----------------------------------------
+
+**1. Confirm the settings module.** The live PythonAnywhere WSGI file and the
+virtualenv `postactivate` MUST set `DJANGO_SETTINGS_MODULE='config.settings.production'`
+(never `staging`, which hijacks all outgoing email via django-email-bandit).
+Verify with:
+
+    python -c "import os; print(os.environ.get('DJANGO_SETTINGS_MODULE'))"
+
+**2. New / notable environment variables** (see `.env.example` for the full list):
+
+    DJANGO_CSRF_TRUSTED_ORIGINS='https://cmt.thetatau.org,https://cmt.thetatau.info'
+    DJANGO_SECURE_HSTS_SECONDS='31536000'   # 1 year (preload-eligible)
+
+After setting these, run the deployment check and resolve anything reported:
+
+    python manage.py check --deploy
+
+**3. Migrations.** Apply pending migrations as part of every deploy; they are
+additive/safe. Review first, then apply:
+
+    python manage.py showmigrations | grep '\[ \]'
+    python manage.py migrate
+
+**4. Static files.**
+
+    python manage.py collectstatic --noinput
+
+**5. Backups — and a tested RESTORE.** Backups run via django-dbbackup
+(`backup.sh`). A backup is only useful if a restore has been proven, so verify
+restore into a THROWAWAY database (never the live DB):
+
+    # Create a fresh backup
+    python manage.py dbbackup
+    # List available backups
+    python manage.py listbackups
+    # Restore the latest backup into a scratch database (set DATABASE_URL to a
+    # temporary DB first), then sanity-check row counts / a login:
+    python manage.py dbrestore
+
+Record the date of the last successful restore test in the deploy log.
+
+**6. Seed/demo commands are guarded.** `seed_awards_demo`, `seed_rollbook_qa`,
+`seed_contact_sync_examples`, `seed_dashboard_data`, and
+`seed_pending_national_events` refuse to run when `DEBUG` is off unless `--force`
+is passed. Do **not** wire any `seed_*` command into a production scheduled task.
+
+**7. Dependency audit.** CI runs `pip-audit` (non-blocking). Before a release,
+review its output and patch any high/critical advisories.
+

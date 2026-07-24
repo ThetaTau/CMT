@@ -26,6 +26,7 @@ from django.utils import timezone
 from faker import Faker
 
 from core.models import academic_encompass_start_end_date
+from core.seed_guard import ensure_seeding_allowed
 from thetatauCMT.chapters.models import Chapter, ChapterCurricula
 from thetatauCMT.events.models import Event
 from thetatauCMT.forms.models import Badge, Depledge, Guard, Initiation, PrematureAlumnus, ResignationProcess
@@ -141,12 +142,18 @@ class Command(BaseCommand):
             help="Completed trainings per active user this AY (default 1).",
         )
         parser.add_argument("--seed", type=int, default=None, help="Random seed for reproducible output.")
+        parser.add_argument(
+            "--force",
+            action="store_true",
+            help="Required to run when settings.DEBUG is off (production-like).",
+        )
 
     # ------------------------------------------------------------------
     # Main entry
     # ------------------------------------------------------------------
 
     def handle(self, *args, **opts):
+        ensure_seeding_allowed(opts["force"])
         if opts["seed"] is not None:
             random.seed(opts["seed"])
 
