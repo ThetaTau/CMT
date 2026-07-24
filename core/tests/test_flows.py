@@ -51,3 +51,46 @@ def test_process_and_task_models_accessible():
     # Just calling .none() exercises the model manager without touching data
     assert Process.objects.none().count() == 0
     assert Task.objects.none().count() == 0
+
+
+@pytest.mark.django_db
+def test_get_object_list_status_search_survives_none_task_title(rf, monkeypatch):
+    """Regression for #1081.
+
+    Some viewflow nodes (gateways, or views declared without a title) expose
+    ``task_title = None``.  ``FilterProcessListView.get_object_list`` used to
+    call ``.lower()`` on it directly during a status search, raising
+    ``AttributeError: 'NoneType' object has no attribute 'lower'``.  It must now
+    fall back to the node ``name`` instead of crashing.
+    """
+    from types import SimpleNamespace
+
+    from core.flows import FilterProcessListView
+    from thetatauCMT.nominations.flows import NominationFlow
+    from thetatauCMT.nominations.models import Nomination
+    from thetatauCMT.nominations.tests.factories import NominationFactory
+
+    nomination = NominationFactory.create()
+
+    class _ActiveTasks:
+        """Stand-in for a non-empty active-task queryset."""
+
+        def __bool__(self):
+            return True
+
+        def first(self):
+            # flow_task with NO task_title, mimicking a titleless node.
+            return SimpleNamespace(flow_task=SimpleNamespace(task_title=None, name="nominee_consent"))
+
+    monkeypatch.setattr(Nomination, "active_tasks", lambda self: _ActiveTasks())
+
+    view = FilterProcessListView()
+    view.flow_class = NominationFlow
+    view.get_queryset = lambda: Nomination.objects.all()
+    # "<chapter>, <status>" search syntax; empty chapter, status="consent".
+    view.request = rf.get("/", {"datatable-search[value]": ", consent"})
+
+    result = view.get_object_list()
+
+    # No crash, and the node name ("nominee_consent") satisfies the status search.
+    assert nomination.pk in list(result.values_list("pk", flat=True))

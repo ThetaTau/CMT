@@ -179,7 +179,9 @@ class FilterProcessListView(ProcessListView, FlowListMixin):
                     if active_tasks:
                         flow_task = active_tasks.first().flow_task
                         if flow_task:
-                            title = flow_task.task_title.lower()
+                            # Some flow nodes (gateways, or views defined without a
+                            # title) have task_title=None; fall back to the node name.
+                            title = (flow_task.task_title or flow_task.name or "n/a").lower()
                         else:
                             title = "n/a"
                     if search_status in title:
@@ -194,7 +196,7 @@ class FilterProcessListView(ProcessListView, FlowListMixin):
                 flow_task = task.flow_task
                 summary = "n/a"
                 if flow_task:
-                    summary = flow_task.task_title
+                    summary = flow_task.task_title or flow_task.name
                 task_url = frontend_url(self.request, self.get_task_url(task), back_link="here")
                 return mark_safe('<a href="{}">{}</a>'.format(task_url, summary))
         process_url = self.get_process_url(process)
