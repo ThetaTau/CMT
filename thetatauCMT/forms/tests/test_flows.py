@@ -463,3 +463,67 @@ def test_alumni_exclusion_flow_email_region_func():
     MockEmail.assert_called_once()
     call_kwargs = MockEmail.call_args[1]
     assert call_kwargs.get("review") is True
+
+
+# ---------------------------------------------------------------------------
+# PledgeProgramProcessFlow.approve_func — transient Google API resilience (#944)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.django_db
+def test_pledge_program_approve_func_survives_drive_failure():
+    """A transient Google Drive export failure must not 500 the approver.
+
+    Google Drive intermittently returns HTTP 500 for PDF exports (issue #944).
+    ``approve_func`` runs inside a viewflow handler, so an uncaught error would
+    500 the approving officer and wedge the process. The handler now retries
+    the export/upload and, on ultimate failure, records the approval and still
+    emails the chapter (without the attached PDF).
+    """
+    from unittest.mock import MagicMock, patch
+
+    from viewflow.activation import STATUS
+    from viewflow.models import Task as FlowTask
+
+    from thetatauCMT.forms.flows import PledgeProgramProcessFlow
+    from thetatauCMT.forms.models import PledgeProgramProcess
+    from thetatauCMT.forms.tests.factories import PledgeProgramFactory
+    from thetatauCMT.users.tests.factories import UserFactory
+
+    program = PledgeProgramFactory.create()
+    process = PledgeProgramProcess.objects.create(
+        chapter=program.chapter,
+        program=program,
+        flow_class=PledgeProgramProcessFlow,
+    )
+    # viewflow resolves ``process.created_by`` from the owner of the START task,
+    # so give the process a completed start task (mirrors a real submission).
+    creator = UserFactory.create(chapter=program.chapter)
+    FlowTask.objects.create(
+        flow_task=PledgeProgramProcessFlow.start,
+        process=process,
+        status=STATUS.DONE,
+        owner=creator,
+    )
+    activation = MagicMock()
+    activation.process = process
+
+    class _DriveApiError(Exception):
+        # Mirrors pydrive2.files.ApiRequestError (transient HTTP 500).
+        error = {"code": 500}
+
+    flow_instance = PledgeProgramProcessFlow()
+    with (
+        patch("thetatauCMT.forms.flows.login_with_service_account", side_effect=_DriveApiError()),
+        patch("core.utils.time.sleep"),  # skip backoff delays
+        patch("thetatauCMT.forms.flows.EmailProcessUpdate") as MockEmail,
+    ):
+        MockEmail.return_value.send = MagicMock()
+        # Must NOT raise despite every Drive export attempt failing.
+        flow_instance.approve_func(activation)
+
+    # Approval email is still sent so the process completes.
+    MockEmail.assert_called_once()
+    # No PDF was attached because the export never succeeded.
+    program.refresh_from_db()
+    assert not program.other_manual

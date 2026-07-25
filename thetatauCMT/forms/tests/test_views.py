@@ -148,6 +148,59 @@ def test_rmp_form_not_yet_signed_returns_200(db, client, user_factory, test_pass
     assert response.status_code == 200
 
 
+# A fully valid RiskManagementForm POST: every acknowledgement box checked.
+_RMP_VALID_FORM_DATA = {
+    field: "on"
+    for field in [
+        "alcohol",
+        "hosting",
+        "monitoring",
+        "member",
+        "officer",
+        "abusive",
+        "hazing",
+        "substances",
+        "high_risk",
+        "transportation",
+        "property_management",
+        "guns",
+        "trademark",
+        "social",
+        "indemnification",
+        "agreement",
+        "electronic_agreement",
+        "photo_release",
+        "arbitration",
+        "fines",
+        "dues",
+        "terms_agreement",
+    ]
+}
+
+
+@pytest.mark.django_db
+def test_rmp_form_post_when_already_signed_skips_duplicate_upload(auto_login_user):
+    """A duplicate RMP submit (e.g. a double-click) must not write a second copy.
+
+    The archived RMP is stored under a deterministic per-user object name, so a
+    second write within a second triggers a Google Cloud Storage 429 (issue
+    #957). ``form_valid`` now short-circuits when the user already signed this
+    term — before touching cloud storage — so no duplicate row and no second
+    upload occur.
+    """
+    from thetatauCMT.forms.models import RiskManagement
+
+    client, user = auto_login_user()  # fixture already records an RMP for this term
+    before = RiskManagement.objects.filter(user=user).count()
+    data = dict(_RMP_VALID_FORM_DATA)
+    data["typed_name"] = str(user)
+    response = client.post(reverse("forms:rmp"), data=data)
+    assert response.status_code == 302
+    assert "submissions" in response["Location"]
+    # No second RiskManagement row -> no second cloud-storage mutation.
+    assert RiskManagement.objects.filter(user=user).count() == before
+
+
 # ─── BylawsCreateView (LoginRequired, CreateView) ─────────────────────────────
 
 

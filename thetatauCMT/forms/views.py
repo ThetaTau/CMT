@@ -49,6 +49,7 @@ from core.models import (
     semester_encompass_start_end_date,
 )
 from core.notifications import GenericEmail
+from core.utils import retry_google_api
 from core.views import (
     AssignOfficerFormMixin,
     LoginRequiredMixin,
@@ -1198,6 +1199,20 @@ class RiskManagementFormView(LoginRequiredMixin, FormView):
         return super().get(request, *args, **kwargs)
 
     def form_valid(self, form):
+        # Guard against a duplicate submission (e.g. a double-click or a browser
+        # retry). The archived RMP copy is written to cloud storage under a
+        # deterministic per-user object name, so Google Cloud Storage rejects a
+        # second write to the same object within a second with HTTP 429
+        # ("rate limit for object mutation operations", issue #957). The
+        # signature for this term is already on file, so treat the repeat as a
+        # no-op and send the user to their existing submissions.
+        if RiskManagement.user_signed_this_semester(self.request.user):
+            messages.add_message(
+                self.request,
+                messages.INFO,
+                "RMP Previously signed this year, see previous submissions.",
+            )
+            return redirect(reverse("users:detail") + "#submissions")
         current_role = self.request.user.current_roles
         if not current_role:
             # We will use the status as the role
@@ -1220,9 +1235,30 @@ class RiskManagementFormView(LoginRequiredMixin, FormView):
             type=score_type,
             chapter=self.request.user.current_chapter,
         )
-        submit_obj.file.save(f"{file_name}.pdf", ContentFile(risk_file.content))
-        submit_obj.save()
-        form.instance.submission = submit_obj
+        try:
+            retry_google_api(
+                lambda: submit_obj.file.save(f"{file_name}.pdf", ContentFile(risk_file.content)),
+                description=f"RMP submission upload for {self.request.user}",
+            )
+        except Exception:
+            # The signature itself is already saved above; only the archived PDF
+            # copy in cloud storage failed. A storage hiccup must never become a
+            # 500 for the signer (issue #957) — keep the signature, skip the
+            # attachment, and tell them the copy could not be stored.
+            logger.exception(
+                "RMP submission upload failed for %s",
+                self.request.user,
+            )
+            submit_obj = None
+            messages.add_message(
+                self.request,
+                messages.WARNING,
+                "Your RMP signature was saved, but the archived PDF copy could "
+                "not be stored right now. This does not affect your signature.",
+            )
+        if submit_obj is not None:
+            submit_obj.save()
+            form.instance.submission = submit_obj
         obj = form.save()
         Task.mark_complete(
             name="Risk Management Form",
