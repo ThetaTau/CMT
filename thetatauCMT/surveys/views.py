@@ -55,6 +55,11 @@ class DepledgeSurveyCreateView(CreateView):
                 f'<a href="{settings.CURRENT_URL}{link}">See link here.</a>'
             )
             SurveyFollowUpEmail(user.id, message).send()
+        messages.add_message(
+            self.request,
+            messages.SUCCESS,
+            "Thank you. Your depledge survey was submitted.",
+        )
         return super().form_valid(form)
 
     def get_context_data(self, **kwargs):

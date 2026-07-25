@@ -40,11 +40,6 @@ class ObjectiveDetailView(LoginRequiredMixin, MultiFormsView):
         return super().post(request, *args, **kwargs)
 
     def get_success_url(self):
-        messages.add_message(
-            self.request,
-            messages.INFO,
-            "Goal successfully update:",
-        )
         return reverse("objectives:detail", kwargs={"pk": self.object.pk})
 
     def _get_form_kwargs(self, form_name, bind_form=False):
@@ -62,6 +57,13 @@ class ObjectiveDetailView(LoginRequiredMixin, MultiFormsView):
     def objective_form_valid(self, form):
         if form.has_changed():
             form.save()
+            messages.add_message(
+                self.request,
+                messages.SUCCESS,
+                f"The goal '{self.object.title}' was updated.",
+            )
+        else:
+            messages.add_message(self.request, messages.INFO, "No changes were made to the goal.")
         return HttpResponseRedirect(self.get_success_url())
 
     def actions_form_valid(self, formset):
@@ -70,6 +72,11 @@ class ObjectiveDetailView(LoginRequiredMixin, MultiFormsView):
             instance.objective = self.object
             instance.save()
         formset.save()
+        messages.add_message(
+            self.request,
+            messages.SUCCESS,
+            f"The action items for '{self.object.title}' were saved.",
+        )
         return HttpResponseRedirect(self.get_success_url())
 
     def get_object(self):
@@ -121,6 +128,11 @@ class ObjectiveCreateView(LoginRequiredMixin, CreateView):
         instance = form.save(commit=False)
         instance.chapter = user.current_chapter
         instance.save()
+        messages.add_message(
+            self.request,
+            messages.SUCCESS,
+            f"Goal '{instance.title}' was created.",
+        )
         return super().form_valid(form)
 
 

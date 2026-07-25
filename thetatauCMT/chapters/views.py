@@ -33,6 +33,8 @@ class ChapterDetailView(LoginRequiredMixin, MultiFormsView):
 
     def faculty_form_valid(self, formset):
         if formset.has_changed():
+            added = []
+            removed = []
             for form in formset.forms:
                 if form.changed_data and "DELETE" not in form.changed_data:
                     chapter = self.request.user.current_chapter
@@ -47,6 +49,7 @@ class ChapterDetailView(LoginRequiredMixin, MultiFormsView):
                     if not user.is_advisor:
                         user.set_current_status(status="advisor")
                         EmailAdvisorWelcome(user).send()
+                        added.append(user.name)
                     else:
                         messages.add_message(
                             self.request,
@@ -56,6 +59,19 @@ class ChapterDetailView(LoginRequiredMixin, MultiFormsView):
                 elif form.changed_data and "DELETE" in form.changed_data:
                     user = form.instance
                     user.set_current_status(None)
+                    removed.append(user.name)
+            if added:
+                messages.add_message(
+                    self.request,
+                    messages.SUCCESS,
+                    f"Added chapter advisor(s): {', '.join(added)}.",
+                )
+            if removed:
+                messages.add_message(
+                    self.request,
+                    messages.SUCCESS,
+                    f"Removed chapter advisor(s): {', '.join(removed)}.",
+                )
         return HttpResponseRedirect(self.get_success_url())
 
     def create_faculty_form(self, **kwargs):
@@ -101,6 +117,17 @@ class ChapterDetailView(LoginRequiredMixin, MultiFormsView):
     def chapter_form_valid(self, form):
         if form.has_changed():
             form.save()
+            messages.add_message(
+                self.request,
+                messages.SUCCESS,
+                f"Chapter information for {form.instance} was updated.",
+            )
+        else:
+            messages.add_message(
+                self.request,
+                messages.INFO,
+                "No changes were made to the chapter information.",
+            )
         return HttpResponseRedirect(self.get_success_url())
 
     def get_context_data(self, **kwargs):

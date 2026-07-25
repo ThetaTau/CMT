@@ -200,6 +200,10 @@ class PagedFilteredTableView(SingleTableView):
 
 class TypeFieldFilteredChapterAdd(FormMixin):
     score_type = "Evt"
+    # Opt-in confirmation shown after a successful save. Subclasses set this to
+    # a specific string (supports ``%(name)s`` / ``%(object)s`` placeholders
+    # filled from the saved instance) so the user is told exactly what happened.
+    success_message = ""
 
     def get_form(self, form_class=None):
         form = super().get_form(form_class)
@@ -255,7 +259,28 @@ class TypeFieldFilteredChapterAdd(FormMixin):
                     ).save()
                 else:
                     messages.add_message(self.request, messages.ERROR, f"Duplicate {self.officer_edit}!")
+        success_message = self.get_success_message()
+        if success_message:
+            messages.add_message(self.request, messages.SUCCESS, success_message)
         return response
+
+    def get_success_message(self):
+        """Return the confirmation message shown after a successful save.
+
+        Opt-in: returns ``""`` unless the subclass sets ``success_message`` (so
+        views that manage their own messaging are unaffected). ``%(name)s`` and
+        ``%(object)s`` placeholders are filled from the saved instance.
+        """
+        if not self.success_message:
+            return ""
+        obj = getattr(self, "object", None)
+        try:
+            return self.success_message % {
+                "name": getattr(obj, "name", "") or str(obj or ""),
+                "object": str(obj or ""),
+            }
+        except (KeyError, TypeError, ValueError):
+            return self.success_message
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)

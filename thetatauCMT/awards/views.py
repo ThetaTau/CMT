@@ -166,7 +166,12 @@ class AwardNominationReviewView(UpdateProcessView):
     def form_valid(self, form, *args, **kwargs):
         form.instance.reviewed_by = self.request.user
         form.instance.reviewed_at = timezone.now()
-        return super().form_valid(form, *args, **kwargs)
+        response = super().form_valid(form, *args, **kwargs)
+        messages.success(
+            self.request,
+            f"Nomination review saved — the nomination was {form.instance.get_result_display().lower()}.",
+        )
+        return response
 
     def get_success_url(self):
         # The review task is assigned to a config-driven approver who may not be

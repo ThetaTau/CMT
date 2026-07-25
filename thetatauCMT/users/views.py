@@ -446,16 +446,25 @@ class UserDetailUpdateView(LoginRequiredMixin, MultiFormsView):
     def gpa_form_valid(self, form):
         if form.has_changed():
             form.save()
+            messages.success(self.request, "Your GPA and service hours were updated.")
+        else:
+            messages.info(self.request, "No changes were made.")
         return HttpResponseRedirect(self.get_success_url() + "#member_gpaservice")
 
     def user_form_valid(self, form):
         if form.has_changed():
             form.save()
+            messages.success(self.request, "Your member information was updated.")
+        else:
+            messages.info(self.request, "No changes were made.")
         return HttpResponseRedirect(self.get_success_url() + "#user")
 
     def prefs_form_valid(self, form):
         if form.has_changed():
             form.save()
+            messages.success(self.request, "Your email preferences were updated.")
+        else:
+            messages.info(self.request, "No changes were made.")
         return HttpResponseRedirect(self.get_success_url() + "#email_prefs")
 
     def demo_form_valid(self, form):
@@ -463,11 +472,17 @@ class UserDetailUpdateView(LoginRequiredMixin, MultiFormsView):
             user = self.request.user
             form.instance.user = user
             form.save()
+            messages.success(self.request, "Your demographic information was updated.")
+        else:
+            messages.info(self.request, "No changes were made.")
         return HttpResponseRedirect(self.get_success_url() + "#demo")
 
     def orgs_form_valid(self, formset):
         if formset.has_changed():
             formset.save()
+            messages.success(self.request, "Your external organizations were updated.")
+        else:
+            messages.info(self.request, "No changes were made.")
         return HttpResponseRedirect(self.get_success_url() + "#member_orgs")
 
     def create_orgs_form(self, **kwargs):

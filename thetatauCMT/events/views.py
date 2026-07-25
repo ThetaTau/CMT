@@ -228,6 +228,11 @@ class EventCreateView(
             if picture_form.is_valid() and picture_form.instance.image.name != "":
                 picture_form.instance.event = event_form.instance
                 picture_form.save()
+        messages.add_message(
+            self.request,
+            messages.SUCCESS,
+            f"Event '{event.name}' on {event.date} was created.",
+        )
         # "Save & Add Attendance" jumps straight to the new event's roster.
         if self.request.POST.get("add_attendance"):
             return HttpResponseRedirect(event.get_attendance_url())
@@ -363,6 +368,11 @@ class EventUpdateView(
             form.add_error("name", message)
             form.add_error("date", message)
             return self.render_to_response(self.get_context_data(form=form))
+        messages.add_message(
+            self.request,
+            messages.SUCCESS,
+            f"Event '{self.object.name}' was updated.",
+        )
         return HttpResponseRedirect(self.get_success_url())
 
     def get_success_url(self):
@@ -772,6 +782,7 @@ class CalendarFeedDeleteView(LoginRequiredMixin, View):
     def post(self, request, *args, **kwargs):
         feed = CalendarFeedSubscription.objects.filter(pk=kwargs["pk"], user=request.user).first()
         if feed is not None:
+            name = feed.name
             feed.delete()
-            messages.add_message(request, messages.SUCCESS, "Calendar feed removed.")
+            messages.add_message(request, messages.SUCCESS, f"Calendar feed '{name}' was removed.")
         return HttpResponseRedirect(reverse("events:feeds"))

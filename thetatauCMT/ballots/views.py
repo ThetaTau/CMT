@@ -1,4 +1,5 @@
 from django.contrib import messages
+from django.contrib.messages.views import SuccessMessageMixin
 from django.db import models
 from django.http.request import QueryDict
 from django.urls import reverse
@@ -127,11 +128,12 @@ class BallotDetailView(
         return context
 
 
-class BallotCreateView(LoginRequiredMixin, NatOfficerRequiredMixin, CreateView):
+class BallotCreateView(LoginRequiredMixin, NatOfficerRequiredMixin, SuccessMessageMixin, CreateView):
     model = Ballot
     template_name_suffix = "_create_form"
     officer_edit = "ballots"
     officer_edit_type = "create"
+    success_message = "Ballot '%(name)s' was created and is now open for voting."
     fields = [
         "sender",
         "name",
@@ -175,6 +177,7 @@ class BallotUpdateView(
 ):
     officer_edit = "ballot"
     officer_edit_type = "edit"
+    success_message = "Ballot '%(name)s' was updated."
     fields = [
         "sender",
         "name",
