@@ -10,6 +10,16 @@ from .models import Invoice
 
 class InvoiceListFilter(django_filters.FilterSet):
     due_date = DateRangeFilter(field_name="due_date")
+    total__gte = django_filters.NumberFilter(
+        field_name="total",
+        lookup_expr="gte",
+        label="Total \u2265",
+    )
+    total__lte = django_filters.NumberFilter(
+        field_name="total",
+        lookup_expr="lte",
+        label="Total \u2264",
+    )
 
     class Meta:
         model = Invoice

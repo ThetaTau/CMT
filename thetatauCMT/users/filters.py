@@ -29,13 +29,19 @@ class UserListFilterBase(django_filters.FilterSet):
         fields = {
             "name": ["icontains"],
             "major": ["exact"],
-            "graduation_year": ["icontains"],
+            "graduation_year": ["icontains", "gte", "lte"],
+            "badge_number": ["gte", "lte"],
         }
         order_by = ["name"]
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.filters["major"].queryset = ChapterCurricula.objects.filter(chapter=self.request.user.current_chapter)
+        self.filters["graduation_year__icontains"].label = "Grad Year"
+        self.filters["graduation_year__gte"].label = "Grad Year \u2265"
+        self.filters["graduation_year__lte"].label = "Grad Year \u2264"
+        self.filters["badge_number__gte"].label = "Badge # \u2265"
+        self.filters["badge_number__lte"].label = "Badge # \u2264"
         if self.request.user.chapter_officer():
             self.filters["current_status"].field.choices.choices.extend(
                 [
@@ -108,7 +114,8 @@ class UserRoleListFilter(DynamicScopeFilterSetMixin, django_filters.FilterSet):
         fields = {
             "name": ["icontains"],
             "major": ["exact"],
-            "graduation_year": ["icontains"],
+            "graduation_year": ["icontains", "gte", "lte"],
+            "badge_number": ["gte", "lte"],
             "chapter": ["exact"],
         }
         order_by = ["name"]
@@ -119,6 +126,11 @@ class UserRoleListFilter(DynamicScopeFilterSetMixin, django_filters.FilterSet):
             "major",
             flat=True,
         ).distinct()
+        self.filters["graduation_year__icontains"].label = "Grad Year"
+        self.filters["graduation_year__gte"].label = "Grad Year \u2265"
+        self.filters["graduation_year__lte"].label = "Grad Year \u2264"
+        self.filters["badge_number__gte"].label = "Badge # \u2265"
+        self.filters["badge_number__lte"].label = "Badge # \u2264"
 
     def filter_current_status(self, queryset, field_name, value):
         if value:

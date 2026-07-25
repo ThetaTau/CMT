@@ -51,6 +51,8 @@ class ChapterScoreListFormHelper(FormHelper):
                 InlineField("region"),
                 InlineField("year"),
                 InlineField("term"),
+                InlineField("score_min"),
+                InlineField("score_max"),
                 FormActions(
                     StrictButton(
                         '<i class="fa fa-search"></i> Filter',

@@ -18,6 +18,8 @@ class InvoiceListFormHelper(FormHelper):
             '<i class="fas fa-search"></i> Filter Invoices',
             Row(
                 Field("due_date"),
+                Field("total__gte"),
+                Field("total__lte"),
                 FormActions(
                     StrictButton(
                         '<i class="fa fa-search"></i> Filter',

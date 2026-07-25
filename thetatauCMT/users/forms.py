@@ -69,6 +69,10 @@ class UserListFormHelper(FormHelper):
                     *extra,
                     InlineField("major"),
                     InlineField("graduation_year__icontains"),
+                    InlineField("graduation_year__gte"),
+                    InlineField("graduation_year__lte"),
+                    InlineField("badge_number__gte"),
+                    InlineField("badge_number__lte"),
                     FormActions(
                         StrictButton(
                             '<i class="fa fa-search"></i> Filter',
@@ -104,6 +108,10 @@ class UserRoleListFormHelper(FormHelper):
                 Column(InlineField("current_status")),
                 Column(InlineField("major")),
                 Column(InlineField("graduation_year__icontains")),
+                Column(InlineField("graduation_year__gte")),
+                Column(InlineField("graduation_year__lte")),
+                Column(InlineField("badge_number__gte")),
+                Column(InlineField("badge_number__lte")),
                 Column(InlineField("region")),
                 Column(InlineField("chapter")),
                 Column(InlineField("current_roles", style="width:250px")),

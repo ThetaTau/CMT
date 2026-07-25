@@ -162,3 +162,138 @@ def test_advisor_list_filter_filter_region_by_slug():
     f = AdvisorListFilter(queryset=qs)
     result = f.filter_region(qs, "region", region.slug)
     assert user in result
+
+
+def _grad_year_users():
+    """Create three users in one chapter with distinct graduation years."""
+    from thetatauCMT.users.models import User
+
+    chapter = ChapterFactory.create()
+    early = UserFactory.create(chapter=chapter, graduation_year=2020)
+    mid = UserFactory.create(chapter=chapter, graduation_year=2024)
+    late = UserFactory.create(chapter=chapter, graduation_year=2028)
+    qs = User.objects.filter(pk__in=[early.pk, mid.pk, late.pk])
+    return qs, early, mid, late
+
+
+@pytest.mark.django_db
+def test_user_role_list_filter_graduation_year_gte():
+    """graduation_year__gte returns members graduating in that year or later."""
+    from django.http import QueryDict
+
+    from thetatauCMT.users.filters import UserRoleListFilter
+
+    qs, early, mid, late = _grad_year_users()
+    f = UserRoleListFilter(QueryDict("graduation_year__gte=2024"), queryset=qs)
+    result = list(f.qs)
+    assert early not in result
+    assert mid in result
+    assert late in result
+
+
+@pytest.mark.django_db
+def test_user_role_list_filter_graduation_year_lte():
+    """graduation_year__lte returns members graduating in that year or earlier."""
+    from django.http import QueryDict
+
+    from thetatauCMT.users.filters import UserRoleListFilter
+
+    qs, early, mid, late = _grad_year_users()
+    f = UserRoleListFilter(QueryDict("graduation_year__lte=2024"), queryset=qs)
+    result = list(f.qs)
+    assert early in result
+    assert mid in result
+    assert late not in result
+
+
+@pytest.mark.django_db
+def test_user_role_list_filter_graduation_year_range():
+    """Combining gte and lte bounds members to a graduation-year window."""
+    from django.http import QueryDict
+
+    from thetatauCMT.users.filters import UserRoleListFilter
+
+    qs, early, mid, late = _grad_year_users()
+    f = UserRoleListFilter(
+        QueryDict("graduation_year__gte=2022&graduation_year__lte=2026"),
+        queryset=qs,
+    )
+    result = list(f.qs)
+    assert early not in result
+    assert mid in result
+    assert late not in result
+
+
+@pytest.mark.django_db
+def test_user_role_list_filter_graduation_year_icontains_preserved():
+    """The original graduation_year__icontains lookup still filters by substring."""
+    from django.http import QueryDict
+
+    from thetatauCMT.users.filters import UserRoleListFilter
+
+    qs, early, mid, late = _grad_year_users()
+    f = UserRoleListFilter(QueryDict("graduation_year__icontains=2028"), queryset=qs)
+    result = list(f.qs)
+    assert early not in result
+    assert mid not in result
+    assert late in result
+
+
+def _badge_number_users():
+    """Create three users in one chapter with distinct badge numbers."""
+    from thetatauCMT.users.models import User
+
+    chapter = ChapterFactory.create()
+    low = UserFactory.create(chapter=chapter, badge_number=100)
+    mid = UserFactory.create(chapter=chapter, badge_number=500)
+    high = UserFactory.create(chapter=chapter, badge_number=900)
+    qs = User.objects.filter(pk__in=[low.pk, mid.pk, high.pk])
+    return qs, low, mid, high
+
+
+@pytest.mark.django_db
+def test_user_role_list_filter_badge_number_gte():
+    """badge_number__gte returns members with that badge number or higher."""
+    from django.http import QueryDict
+
+    from thetatauCMT.users.filters import UserRoleListFilter
+
+    qs, low, mid, high = _badge_number_users()
+    f = UserRoleListFilter(QueryDict("badge_number__gte=500"), queryset=qs)
+    result = list(f.qs)
+    assert low not in result
+    assert mid in result
+    assert high in result
+
+
+@pytest.mark.django_db
+def test_user_role_list_filter_badge_number_lte():
+    """badge_number__lte returns members with that badge number or lower."""
+    from django.http import QueryDict
+
+    from thetatauCMT.users.filters import UserRoleListFilter
+
+    qs, low, mid, high = _badge_number_users()
+    f = UserRoleListFilter(QueryDict("badge_number__lte=500"), queryset=qs)
+    result = list(f.qs)
+    assert low in result
+    assert mid in result
+    assert high not in result
+
+
+@pytest.mark.django_db
+def test_user_role_list_filter_badge_number_range():
+    """Combining gte and lte bounds members to a badge-number window."""
+    from django.http import QueryDict
+
+    from thetatauCMT.users.filters import UserRoleListFilter
+
+    qs, low, mid, high = _badge_number_users()
+    f = UserRoleListFilter(
+        QueryDict("badge_number__gte=200&badge_number__lte=700"),
+        queryset=qs,
+    )
+    result = list(f.qs)
+    assert low not in result
+    assert mid in result
+    assert high not in result
