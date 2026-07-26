@@ -14,6 +14,11 @@
     <a href="{% url 'events:add' %}" class="btn btn-primary">
       <i class="fas fa-calendar-alt"></i> Add Event
     </a>
+    {% if feature_events_calendar_enabled %}
+      <a href="{% url 'events:calendar' %}" class="btn btn-outline-primary">
+        <i class="fa-solid fa-calendar-days"></i> Events Calendar
+      </a>
+    {% endif %}
   </div>
 </div>
 {#  {% render_table table %}#}
