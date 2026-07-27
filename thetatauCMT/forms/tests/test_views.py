@@ -231,19 +231,193 @@ def test_init_selection_authenticated_returns_200(auto_login_user):
     assert response.status_code == 200
 
 
-# ─── StatusChangeSelectView (LoginRequired, FormSetView) ──────────────────────
+# ─── Split member status-change views ─────────────────────────────────────────
+
+SINGLE_STATUS_REASONS = ["coop", "military", "withdraw", "transfer"]
 
 
-def test_status_selection_unauthenticated_redirects(client, db):
-    response = client.get(reverse("forms:status_selection"))
+def test_status_history_unauthenticated_redirects(client, db):
+    response = client.get(reverse("forms:status_history", kwargs={"reason": "coop"}))
     assert response.status_code == 302
 
 
 @pytest.mark.django_db
-def test_status_selection_authenticated_returns_200(auto_login_user):
-    client, _user = auto_login_user()
-    response = client.get(reverse("forms:status_selection"))
+@pytest.mark.parametrize("reason", SINGLE_STATUS_REASONS + ["graduate"])
+def test_status_history_officer_returns_200(auto_login_user, reason):
+    client, user = auto_login_user()
+    _add_to_group(user, "officer")
+    response = client.get(reverse("forms:status_history", kwargs={"reason": reason}))
     assert response.status_code == 200
+
+
+@pytest.mark.django_db
+def test_status_history_non_officer_redirects(auto_login_user):
+    client, user = auto_login_user()
+    response = client.get(reverse("forms:status_history", kwargs={"reason": "coop"}), follow=False)
+    assert response.status_code == 302
+
+
+@pytest.mark.django_db
+def test_status_history_unknown_reason_404(auto_login_user):
+    client, user = auto_login_user()
+    _add_to_group(user, "officer")
+    response = client.get(reverse("forms:status_history", kwargs={"reason": "bogus"}))
+    assert response.status_code == 404
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("reason", SINGLE_STATUS_REASONS)
+def test_status_new_officer_returns_200(auto_login_user, reason):
+    client, user = auto_login_user()
+    _add_to_group(user, "officer")
+    response = client.get(reverse("forms:status_new", kwargs={"reason": reason}))
+    assert response.status_code == 200
+
+
+@pytest.mark.django_db
+def test_status_new_graduate_redirects_to_select(auto_login_user):
+    """The single-member create view bounces graduation to its multi-member select step."""
+    client, user = auto_login_user()
+    _add_to_group(user, "officer")
+    response = client.get(reverse("forms:status_new", kwargs={"reason": "graduate"}), follow=False)
+    assert response.status_code == 302
+    assert reverse("forms:status_graduate_select") in response["Location"]
+
+
+@pytest.mark.django_db
+def test_status_new_non_officer_redirects(auto_login_user):
+    client, user = auto_login_user()
+    response = client.get(reverse("forms:status_new", kwargs={"reason": "coop"}), follow=False)
+    assert response.status_code == 302
+
+
+@pytest.mark.django_db
+def test_resignedcc_hidden_for_chartered_chapter(auto_login_user):
+    """resignedCC is candidate-chapter-only; a chartered chapter is sent to the landing."""
+    client, user = auto_login_user()
+    _add_to_group(user, "officer")
+    user.chapter.candidate_chapter = False
+    user.chapter.save()
+    response = client.get(reverse("forms:status_history", kwargs={"reason": "resignedCC"}), follow=False)
+    assert response.status_code == 302
+    assert reverse("forms:landing") in response["Location"]
+
+
+@pytest.mark.django_db
+def test_resignedcc_available_for_candidate_chapter(auto_login_user):
+    client, user = auto_login_user()
+    _add_to_group(user, "officer")
+    user.chapter.candidate_chapter = True
+    user.chapter.save()
+    response = client.get(reverse("forms:status_history", kwargs={"reason": "resignedCC"}))
+    assert response.status_code == 200
+
+
+@pytest.mark.django_db
+def test_graduate_select_officer_returns_200(auto_login_user):
+    client, user = auto_login_user()
+    _add_to_group(user, "officer")
+    response = client.get(reverse("forms:status_graduate_select"))
+    assert response.status_code == 200
+    # Members are chosen with the searchable member autocomplete.
+    assert reverse("users:autocomplete") in response.content.decode("utf-8")
+
+
+@pytest.mark.django_db
+def test_status_history_collapsible_filter_shows_active(auto_login_user):
+    """The history table uses the collapsible filter accordion and flags an
+    applied filter as active (issue #1)."""
+    client, user = auto_login_user()
+    _add_to_group(user, "officer")
+    response = client.get(reverse("forms:status_history", kwargs={"reason": "coop"}), {"user": "Nobody"})
+    assert response.status_code == 200
+    body = response.content.decode("utf-8")
+    # Accordion collapse target is rendered.
+    assert "statusChangeFilter" in body
+    # An applied filter surfaces the active indicator + clear control.
+    assert "Clear Filter" in body
+    # The filter submit button renders (not an empty crispy input).
+    assert 'value="Filter"' in body
+
+
+@pytest.mark.django_db
+def test_status_history_links_member_to_profile(auto_login_user, user_factory):
+    """Member names in the history table link to their profile page."""
+    import datetime
+
+    from thetatauCMT.forms.models import StatusChange
+
+    client, user = auto_login_user()
+    _add_to_group(user, "officer")
+    member = user_factory.create(chapter=user.chapter)
+    StatusChange.objects.create(user=member, created_by=user, reason="withdraw", date_start=datetime.date(2026, 5, 15))
+    response = client.get(reverse("forms:status_history", kwargs={"reason": "withdraw"}))
+    assert response.status_code == 200
+    body = response.content.decode("utf-8")
+    assert reverse("users:profile", kwargs={"username": member.username}) in body
+
+
+@pytest.mark.django_db
+def test_graduate_fill_without_selection_redirects(auto_login_user):
+    client, user = auto_login_user()
+    _add_to_group(user, "officer")
+    response = client.get(reverse("forms:status_graduate"), follow=False)
+    assert response.status_code == 302
+    assert reverse("forms:status_graduate_select") in response["Location"]
+
+
+@pytest.mark.django_db
+def test_status_change_landing_lists_split_forms(auto_login_user):
+    client, user = auto_login_user()
+    response = client.get(reverse("forms:landing"))
+    body = response.content.decode("utf-8")
+    assert "Co-op / Study Abroad" in body
+    assert "Military Deployment" in body
+    assert "Graduation" in body
+    # Candidate-only reason is hidden for a chartered chapter.
+    assert "Resign from Candidate Chapter" not in body
+
+
+@pytest.mark.django_db
+def test_withdraw_submit_creates_status_change(auto_login_user, user_factory):
+    """Submitting the single-member form creates a StatusChange and redirects to history."""
+    from thetatauCMT.forms.models import StatusChange
+
+    client, user = auto_login_user()
+    _add_to_group(user, "officer")
+    member = user_factory.create(chapter=user.chapter)
+    member.set_current_status(status="active")
+    response = client.post(
+        reverse("forms:status_new", kwargs={"reason": "withdraw"}),
+        data={"user": member.pk, "date_start": "2026-05-15"},
+        follow=False,
+    )
+    assert response.status_code == 302
+    assert reverse("forms:status_history", kwargs={"reason": "withdraw"}) in response["Location"]
+    change = StatusChange.objects.filter(user=member, reason="withdraw").first()
+    assert change is not None
+
+
+@pytest.mark.django_db
+def test_status_new_form_renders_autocomplete_and_datepicker(auto_login_user):
+    """The single-member form uses a member autocomplete + a working datepicker,
+    and omits fields that are not relevant to the reason (issues #2/#3/#4)."""
+    client, user = auto_login_user()
+    _add_to_group(user, "officer")
+    response = client.get(reverse("forms:status_new", kwargs={"reason": "withdraw"}))
+    assert response.status_code == 200
+    body = response.content.decode("utf-8")
+    # Member picker is a Select2 autocomplete sourced from users:autocomplete.
+    assert reverse("users:autocomplete") in body
+    # Tempus-dominus datepicker init/assets are present.
+    assert "datetimepicker" in body
+    assert "moment" in body.lower()
+    # The tempus input-group id must be unique — a duplicate div_id_date_start
+    # (crispy field wrapper + widget input-group) breaks the datepicker popup.
+    assert body.count('id="div_id_date_start"') == 1
+    # Unneeded fields are not rendered on the withdraw form.
+    assert 'name="employer"' not in body
+    assert 'name="new_school"' not in body
 
 
 # ─── RoleChangeView (LoginRequired, ModelFormSetView) ─────────────────────────
@@ -379,24 +553,23 @@ def test_initiation_view_non_officer_redirects(auto_login_user):
     assert response.status_code == 302
 
 
-# ─── StatusChangeView (OfficerRequiredMixin) ─────────────────────────────────
+# ─── Legacy status URLs now redirect to the forms landing ─────────────────────
 
 
 @pytest.mark.django_db
-def test_status_change_view_officer_no_session_redirects(auto_login_user):
-    """Without 'status-selection' in session, redirects to status_selection."""
+def test_legacy_status_selection_redirects_to_landing(auto_login_user):
     client, user = auto_login_user()
-    _add_to_group(user, "officer")
-    response = client.get(reverse("forms:status"), follow=False)
+    response = client.get(reverse("forms:status_selection"), follow=False)
     assert response.status_code == 302
-    assert "status" in response["Location"]
+    assert reverse("forms:landing") in response["Location"]
 
 
 @pytest.mark.django_db
-def test_status_change_view_non_officer_redirects(auto_login_user):
+def test_legacy_status_redirects_to_landing(auto_login_user):
     client, user = auto_login_user()
     response = client.get(reverse("forms:status"), follow=False)
     assert response.status_code == 302
+    assert reverse("forms:landing") in response["Location"]
 
 
 # ─── AuditFormView (OfficerRequiredMixin) ─────────────────────────────────────
@@ -855,63 +1028,6 @@ def test_role_change_view_officer_returns_200(auto_login_user):
     _add_to_group(user, "officer")
     url = reverse("forms:officer")
     response = client.get(url, follow=True)
-    assert response.status_code == 200
-
-
-# ─── StatusChangeSelectView ───────────────────────────────────────────────────
-
-
-@pytest.mark.django_db
-def test_status_change_select_view_unauthenticated_redirects(client, db):
-    url = reverse("forms:status_selection")
-    response = client.get(url)
-    assert response.status_code == 302
-
-
-@pytest.mark.django_db
-def test_status_change_select_view_officer_returns_200(auto_login_user):
-    """Officer can access the status change selection view."""
-    client, user = auto_login_user()
-    _add_to_group(user, "officer")
-    url = reverse("forms:status_selection")
-    response = client.get(url, follow=True)
-    assert response.status_code == 200
-
-
-# ─── StatusChangeSelectView POST ─────────────────────────────────────────────
-
-
-@pytest.mark.django_db
-def test_status_change_select_post_add_row(auto_login_user):
-    """POST with action='Add Row' returns the formset page (200)."""
-    client, user = auto_login_user()
-    _add_to_group(user, "officer")
-    url = reverse("forms:status_selection")
-    data = {
-        "selection-TOTAL_FORMS": "0",
-        "selection-INITIAL_FORMS": "0",
-        "selection-MIN_NUM_FORMS": "0",
-        "selection-MAX_NUM_FORMS": "1000",
-        "action": "Add Row",
-    }
-    response = client.post(url, data)
-    assert response.status_code == 200
-
-
-@pytest.mark.django_db
-def test_status_change_select_post_delete_selected(auto_login_user):
-    """POST with action='Delete Selected' returns the formset page (200)."""
-    client, user = auto_login_user()
-    _add_to_group(user, "officer")
-    url = reverse("forms:status_selection")
-    data = {
-        "selection-TOTAL_FORMS": "0",
-        "selection-INITIAL_FORMS": "0",
-        "selection-MIN_NUM_FORMS": "0",
-        "selection-MAX_NUM_FORMS": "1000",
-        "action": "Delete Selected",
-    }
-    response = client.post(url, data)
     assert response.status_code == 200
 
 
@@ -1469,14 +1585,6 @@ def test_init_selection_context_has_helper(auto_login_user):
 
 
 @pytest.mark.django_db
-def test_status_selection_context_has_formset(auto_login_user):
-    """StatusChangeSelectView provides a 'formset' in context."""
-    client, user = auto_login_user()
-    response = client.get(reverse("forms:status_selection"))
-    assert "formset" in response.context
-
-
-@pytest.mark.django_db
 def test_role_change_view_context_has_formset(auto_login_user):
     """RoleChangeView provides a 'formset' in context."""
     client, user = auto_login_user()
@@ -1532,41 +1640,6 @@ def test_resignation_list_view_officer_explicit_returns_200(auto_login_user):
     url = reverse("forms:resign_list")
     response = client.get(url, follow=True)
     assert response.status_code == 200
-
-
-# ─── StatusChangeView with session data ──────────────────────────────────────
-
-
-@pytest.mark.django_db
-def test_status_change_view_get_with_session(auto_login_user):
-    """StatusChangeView.get renders the form when status-selection is in session."""
-    client, user = auto_login_user()
-    _add_to_group(user, "officer")
-    session = client.session
-    session["status-selection"] = {
-        "graduate": [],
-        "coop": [],
-        "covid": [],
-        "military": [],
-        "withdraw": [],
-        "transfer": [],
-        "resignedCC": [],
-    }
-    session.save()
-    url = reverse("forms:status")
-    response = client.get(url, follow=True)
-    assert response.status_code == 200
-
-
-@pytest.mark.django_db
-def test_status_change_view_no_session_redirects(auto_login_user):
-    """StatusChangeView.get redirects to status_selection when session is absent."""
-    client, user = auto_login_user()
-    _add_to_group(user, "officer")
-    url = reverse("forms:status")
-    response = client.get(url)
-    # Should redirect to status_selection
-    assert response.status_code in (200, 302)
 
 
 # ─── InitiationView with init-selection session ───────────────────────────────
@@ -1805,28 +1878,6 @@ def test_pledge_form_alt_get_with_description_returns_200(client):
     """PledgeFormView alt form GET returns 200."""
     url = reverse("forms:pledgeform-alt")
     response = client.get(url)
-    assert response.status_code == 200
-
-
-# ─── StatusChangeSelectView context (existing tests cover GET, add POST branch) ─
-
-
-@pytest.mark.django_db
-def test_status_change_select_view_post_empty(auto_login_user):
-    """StatusChangeSelectView POST with minimal data returns 200."""
-    client, user = auto_login_user()
-    _add_to_group(user, "officer")
-    url = reverse("forms:status_selection")
-    data = {
-        "action": "submit",
-        "selection-TOTAL_FORMS": "1",
-        "selection-INITIAL_FORMS": "0",
-        "selection-MIN_NUM_FORMS": "0",
-        "selection-MAX_NUM_FORMS": "1000",
-        "selection-0-user": "",
-        "selection-0-state": "",
-    }
-    response = client.post(url, data, follow=True)
     assert response.status_code == 200
 
 
@@ -2074,40 +2125,6 @@ def test_bill_of_rights_detail_with_chapter(client):
     chapter = ChapterFactory()
     url = reverse("forms:bill_of_rights", kwargs={"pk": chapter.pk})
     response = client.get(url)
-    assert response.status_code == 200
-
-
-# ─── StatusChangeView POST with session ──────────────────────────────────────
-
-
-@pytest.mark.django_db
-def test_status_change_view_post_empty_formsets(auto_login_user):
-    """StatusChangeView.post covers the POST handler with empty formsets."""
-    client, user = auto_login_user()
-    _add_to_group(user, "officer")
-    session = client.session
-    session["status-selection"] = {
-        "graduate": [],
-        "coop": [],
-        "covid": [],
-        "military": [],
-        "withdraw": [],
-        "transfer": [],
-        "resignedCC": [],
-    }
-    session.save()
-    url = reverse("forms:status")
-    data = {
-        "graduates-TOTAL_FORMS": "0",
-        "graduates-INITIAL_FORMS": "0",
-        "graduates-MIN_NUM_FORMS": "0",
-        "graduates-MAX_NUM_FORMS": "1000",
-        "csmt-TOTAL_FORMS": "0",
-        "csmt-INITIAL_FORMS": "0",
-        "csmt-MIN_NUM_FORMS": "0",
-        "csmt-MAX_NUM_FORMS": "1000",
-    }
-    response = client.post(url, data, follow=True)
     assert response.status_code == 200
 
 
@@ -2401,19 +2418,6 @@ def test_init_depl_select_view_post_empty_formset(auto_login_user):
         "form-MAX_NUM_FORMS": "1000",
     }
     response = client.post(url, data, follow=True)
-    assert response.status_code == 200
-
-
-# ─── StatusChangeSelectView GET (line 552) ───────────────────────────────────
-
-
-@pytest.mark.django_db
-def test_status_change_select_view_get(auto_login_user):
-    """StatusChangeSelectView GET covers construct_formset call at line 552."""
-    client, user = auto_login_user()
-    _add_to_group(user, "officer")
-    url = reverse("forms:status_selection")
-    response = client.get(url, follow=True)
     assert response.status_code == 200
 
 
@@ -3329,32 +3333,6 @@ def test_resignation_create_view_get_no_prior_submission(auto_login_user):
     assert response.status_code == 200
 
 
-# ─── StatusChangeView GET with session data (lines 626, 629, 647-693) ─────────
-
-
-@pytest.mark.django_db
-def test_status_change_view_get_with_empty_session(auto_login_user):
-    """StatusChangeView GET when 'status-selection' session key is present
-    (but all lists empty) covers initial_info, get_context_data (lines
-    621-647, 649-693)."""
-    client, user = auto_login_user()
-    _add_to_group(user, "officer")
-    session = client.session
-    session["status-selection"] = {
-        "graduate": [],
-        "coop": [],
-        "covid": [],
-        "military": [],
-        "withdraw": [],
-        "transfer": [],
-        "resignedCC": [],
-    }
-    session.save()
-    url = reverse("forms:status")
-    response = client.get(url, follow=True)
-    assert response.status_code == 200
-
-
 # ─── AlumniExclusionCreateView GET – no officers (line 2367) ─────────────────
 
 
@@ -3834,24 +3812,3 @@ def test_role_change_national_select_form_rejects_self_when_field_enabled():
     disabled_field.disabled = True
     f.fields = {"user": disabled_field}
     assert f.clean_user() == user
-
-
-@pytest.mark.django_db
-def test_status_change_select_view_excludes_self_from_actives(auto_login_user):
-    """StatusChangeSelectView must NOT include the requesting officer in the
-    user field queryset — the picker should only surface other chapter members."""
-    from thetatauCMT.users.tests.factories import UserFactory
-
-    client, user = auto_login_user()
-    _add_to_group(user, "officer")
-    other = UserFactory.create(chapter=user.chapter)
-    user.set_current_status(status="active")
-    other.set_current_status(status="active")
-    url = reverse("forms:status_selection")
-    response = client.get(url)
-    assert response.status_code == 200
-    formset = response.context["formset"]
-    user_qs = formset.form.base_fields["user"].queryset
-    pks = set(user_qs.values_list("pk", flat=True))
-    assert user.pk not in pks
-    assert other.pk in pks

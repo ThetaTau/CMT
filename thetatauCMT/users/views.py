@@ -243,6 +243,8 @@ class UserProfileView(LoginRequiredMixin, DetailView):
         is_natoff = viewer.is_national_officer_group
         is_officer = viewer.is_officer_group
         is_superuser = viewer.is_superuser
+        # A chapter officer currently serving in the target member's chapter.
+        is_target_chapter_officer = is_officer and viewer.current_chapter == target.chapter
 
         try:
             initiation = target.initiation
@@ -267,6 +269,7 @@ class UserProfileView(LoginRequiredMixin, DetailView):
                 "is_owner": is_owner,
                 "is_natoff": is_natoff,
                 "is_officer": is_officer,
+                "is_target_chapter_officer": is_target_chapter_officer,
                 "is_superuser": is_superuser,
                 "can_view_sensitive": is_natoff or is_superuser,
                 "current_status_label": (
@@ -339,10 +342,19 @@ class UserProfileView(LoginRequiredMixin, DetailView):
         context["attendance_records"] = records
         context["attendance_chapters"] = sorted(present_chapters.items(), key=lambda kv: kv[1])
         context["has_national_attendance"] = has_national
-        context["can_add_attendance"] = is_owner or is_natoff or is_superuser
+        context["can_add_attendance"] = is_owner or is_target_chapter_officer or is_natoff or is_superuser
         if context["can_add_attendance"]:
             context["attendance_form"] = MemberAttendanceForm(member=target)
             context["attendance_add_url"] = reverse("attendance:member_add", kwargs={"username": target.username})
+
+        # Member status changes (graduation, co-op, transfer, etc.) — visible to
+        # the member, a chapter officer of their chapter, and National Officers.
+        can_view_status_changes = is_owner or is_target_chapter_officer or is_natoff or is_superuser
+        context["can_view_status_changes"] = can_view_status_changes
+        if can_view_status_changes:
+            context["member_status_changes"] = target.status_changes.select_related(
+                "new_school", "new_school_other", "employer"
+            ).order_by("-created")
 
         if is_natoff or is_superuser:
             note_table = UserNoteTable(target.notes.all())

@@ -122,6 +122,86 @@ def test_csmt_form_init_transfer_reason():
     assert form.fields["new_school_other"].required is False
 
 
+# ─── SingleStatusChangeForm / GraduateSelectForm ─────────────────────────────
+
+
+@pytest.mark.django_db
+def test_single_status_change_form_hides_reason_and_limits_members(user_factory):
+    from dal import autocomplete
+
+    from thetatauCMT.forms.forms import SingleStatusChangeForm
+    from thetatauCMT.users.models import User
+
+    officer = user_factory.create()
+    member = user_factory.create(chapter=officer.chapter)
+    actives = User.objects.filter(pk=member.pk)
+    form = SingleStatusChangeForm(request_user=officer, actives=actives, reason="coop")
+    # The reason is fixed by the page and hidden from the officer.
+    assert isinstance(form.fields["reason"].widget, forms.HiddenInput)
+    # The member picker is a searchable Select2 autocomplete limited to actives.
+    assert isinstance(form.fields["user"].widget, autocomplete.ModelSelect2)
+    assert list(form.fields["user"].queryset) == [member]
+    # coop keeps employer/dates/miles; the transfer-only school fields are removed.
+    assert "employer" in form.fields
+    assert "new_school" not in form.fields
+    assert "new_school_other" not in form.fields
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    "reason,removed",
+    [
+        ("withdraw", ["employer", "new_school", "new_school_other", "date_end", "miles"]),
+        ("military", ["employer", "new_school", "new_school_other", "miles"]),
+        ("transfer", ["employer", "date_end", "miles"]),
+        ("resignedCC", ["employer", "new_school", "new_school_other", "date_end", "miles"]),
+    ],
+)
+def test_single_status_change_form_removes_unneeded_fields(user_factory, reason, removed):
+    from thetatauCMT.forms.forms import SingleStatusChangeForm
+    from thetatauCMT.users.models import User
+
+    officer = user_factory.create()
+    actives = User.objects.filter(pk=officer.pk)
+    form = SingleStatusChangeForm(request_user=officer, actives=actives, reason=reason)
+    for name in removed:
+        assert name not in form.fields, f"{name} should be removed for {reason}"
+    # The change date is always present.
+    assert "date_start" in form.fields
+
+
+@pytest.mark.django_db
+def test_single_status_change_form_rejects_self(user_factory):
+    from thetatauCMT.forms.forms import SingleStatusChangeForm
+    from thetatauCMT.users.models import User
+
+    officer = user_factory.create()
+    actives = User.objects.filter(pk=officer.pk)
+    form = SingleStatusChangeForm(
+        data={"user": officer.pk, "date_start": "2026-05-15"},
+        request_user=officer,
+        actives=actives,
+        reason="withdraw",
+    )
+    assert not form.is_valid()
+    assert "user" in form.errors
+
+
+@pytest.mark.django_db
+def test_graduate_select_form_limits_members(user_factory):
+    from dal import autocomplete
+
+    from thetatauCMT.forms.forms import GraduateSelectForm
+    from thetatauCMT.users.models import User
+
+    officer = user_factory.create()
+    member = user_factory.create(chapter=officer.chapter)
+    actives = User.objects.filter(pk=member.pk)
+    form = GraduateSelectForm(actives=actives)
+    assert isinstance(form.fields["members"].widget, autocomplete.ModelSelect2Multiple)
+    assert list(form.fields["members"].queryset) == [member]
+
+
 @pytest.mark.django_db
 def test_csmt_form_init_covid_reason():
     """reason='covid' disables miles, date_end, date_start, employer, new_school."""

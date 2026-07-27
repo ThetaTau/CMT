@@ -295,20 +295,17 @@
       {% endif %}
     {% endif %}
     {% endif %}
+    {% for change in status_change_types %}
     <tr>
       <td>
-        <a href="{% url 'forms:status_selection' %}"
-          >{% trans "Status Change" %}</a
-        >
+        <a href="{% url 'forms:status_history' reason=change.reason %}">{{ change.label }}</a>
       </td>
       {% if request.is_nat_officer %}
       <td></td>
       {% endif %}
-      <td>
-        To update the status of a member. Graduation, Coop, study abroad,
-        deployment, withdrawing from school, or transferring schools.
-      </td>
+      <td>{{ change.description }}</td>
     </tr>
+    {% endfor %}
     <tr>
       <td><a href="{% url 'forms:pledgeform' %}">{% trans "Prospective New Member / Pledge Form" %}</a></td>
       {% if request.is_nat_officer %}

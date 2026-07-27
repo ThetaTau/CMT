@@ -10,7 +10,6 @@ from pathlib import Path
 from allauth.account.models import EmailAddress
 from crispy_forms.layout import Submit
 from dal import autocomplete
-from django import forms
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.postgres.aggregates import StringAgg
@@ -18,7 +17,7 @@ from django.core.files.base import ContentFile
 from django.db import IntegrityError, transaction
 from django.db.models import Case, CharField, Count, Exists, F, OuterRef, Q, SmallIntegerField, Subquery, Value, When
 from django.forms import models as model_forms
-from django.http import HttpRequest, HttpResponse, HttpResponseRedirect, JsonResponse
+from django.http import Http404, HttpRequest, HttpResponse, HttpResponseRedirect, JsonResponse
 from django.http.request import QueryDict
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -80,8 +79,10 @@ from .filters import (
     BylawsListFilter,
     CompleteListFilter,
     EducationListFilter,
+    GraduationListFilter,
     PledgeProgramListFilter,
     RiskListFilter,
+    StatusChangeListFilter,
 )
 from .forms import (
     AlumniExclusionForm,
@@ -94,15 +95,13 @@ from .forms import (
     CollectionReferralForm,
     CompleteFormHelper,
     ConventionForm,
-    CSMTFormHelper,
-    CSMTFormSet,
     DepledgeFormHelper,
     DepledgeFormSet,
     DisciplinaryForm1,
     DisciplinaryForm2,
-    GraduateForm,
     GraduateFormHelper,
     GraduateFormSet,
+    GraduateSelectForm,
     HSEducationForm,
     HSEducationListFormHelper,
     InitDeplSelectForm,
@@ -122,8 +121,9 @@ from .forms import (
     RitualProficiencyForm,
     RoleChangeNationalSelectForm,
     RoleChangeSelectForm,
-    StatusChangeSelectForm,
-    StatusChangeSelectFormHelper,
+    SingleStatusChangeForm,
+    SingleStatusChangeFormHelper,
+    StatusChangeListFormHelper,
     treasurer_term_violation,
 )
 from .models import (
@@ -158,29 +158,106 @@ from .tables import (
     BylawsListTable,
     CollectionReferralTable,
     ConventionListTable,
+    CoopStatusChangeTable,
     DepledgeTable,
     DisciplinaryStatusTable,
+    GraduateStatusChangeTable,
     HSEducationListTable,
     HSEducationTable,
     InitiationTable,
+    MilitaryStatusChangeTable,
     OSMListTable,
     PledgeFormTable,
     PledgeProgramStatusTable,
     PledgeProgramTable,
     PrematureAlumnusStatusTable,
     ResignationStatusTable,
+    ResignedCCStatusChangeTable,
     ReturnStudentStatusTable,
     RiskFormTable,
     RitualProficiencyTable,
     SignTable,
-    StatusChangeTable,
+    TransferStatusChangeTable,
+    WithdrawStatusChangeTable,
 )
 
 logger = logging.getLogger(__name__)
 
 
+# Registry of the per-reason member status-change forms. Each split form has its
+# own landing row, a chapter-scoped filterable history table, and a submission
+# page — all driven from this one place (configuration over hard-coded per-reason
+# branching). ``multi`` marks graduation (select several members, fill one row
+# each); ``candidate_only`` marks reasons offered only to candidate chapters.
+STATUS_CHANGE_TYPES = {
+    "graduate": {
+        "label": "Graduation",
+        "description": (
+            "Report members who are graduating. Select several at once and fill " "one graduation row for each."
+        ),
+        "table": GraduateStatusChangeTable,
+        "filter": GraduationListFilter,
+        "multi": True,
+        "candidate_only": False,
+    },
+    "coop": {
+        "label": "Co-op / Study Abroad",
+        "description": "Report a member leaving temporarily for a co-op, internship, or study abroad.",
+        "table": CoopStatusChangeTable,
+        "filter": StatusChangeListFilter,
+        "multi": False,
+        "candidate_only": False,
+    },
+    "military": {
+        "label": "Military Deployment",
+        "description": "Report a member being deployed on active or reserve military duty.",
+        "table": MilitaryStatusChangeTable,
+        "filter": StatusChangeListFilter,
+        "multi": False,
+        "candidate_only": False,
+    },
+    "withdraw": {
+        "label": "Withdraw from School",
+        "description": "Report a member withdrawing from school.",
+        "table": WithdrawStatusChangeTable,
+        "filter": StatusChangeListFilter,
+        "multi": False,
+        "candidate_only": False,
+    },
+    "transfer": {
+        "label": "Transfer to Another School",
+        "description": "Report a member transferring to another school.",
+        "table": TransferStatusChangeTable,
+        "filter": StatusChangeListFilter,
+        "multi": False,
+        "candidate_only": False,
+    },
+    "resignedCC": {
+        "label": "Resign from Candidate Chapter",
+        "description": "Report a candidate-chapter member resigning from the candidate chapter.",
+        "table": ResignedCCStatusChangeTable,
+        "filter": StatusChangeListFilter,
+        "multi": False,
+        "candidate_only": True,
+    },
+}
+
+
 class FormLanding(LoginRequiredMixin, TemplateView):
     template_name = "forms/landing.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        candidate = False
+        if self.request.user.is_authenticated:
+            chapter = self.request.user.current_chapter
+            candidate = bool(chapter and chapter.candidate_chapter)
+        context["status_change_types"] = [
+            {"reason": reason, "label": info["label"], "description": info["description"]}
+            for reason, info in STATUS_CHANGE_TYPES.items()
+            if not info["candidate_only"] or candidate
+        ]
+        return context
 
 
 class PledgePinsView(LoginRequiredMixin, TemplateView):
@@ -435,269 +512,233 @@ class InitiationView(LoginRequiredMixin, OfficerRequiredMixin, FormView):
         return reverse("forms:init_selection")
 
 
-class StatusChangeSelectView(LoginRequiredMixin, FormSetView):
-    form_class = StatusChangeSelectForm
-    template_name = "forms/status-select.html"
-    factory_kwargs = {"extra": 1}
-    prefix = "selection"
+class StatusChangeTypeMixin:
+    """Shared per-reason setup for the split member status-change views.
+
+    Reads the ``reason`` URL kwarg, resolves it against ``STATUS_CHANGE_TYPES``
+    (404 on an unknown reason), and keeps candidate-chapter-only reasons off
+    chartered chapters.
+    """
+
     officer_edit = "member status"
 
-    def get_formset_kwargs(self):
-        kwargs = super().get_formset_kwargs()
-        kwargs.update(
-            {
-                "form_kwargs": {
-                    "colony": self.request.user.current_chapter.candidate_chapter,
-                    "request_user": self.request.user,
-                },
-            }
+    def setup(self, request, *args, **kwargs):
+        # Resolve the reason in setup() — before the OfficerRequired group check
+        # runs in dispatch — so ``get_success_url`` still works on a
+        # permission-denied redirect for a non-officer.
+        super().setup(request, *args, **kwargs)
+        self.reason = kwargs.get("reason")
+        self.type_info = STATUS_CHANGE_TYPES.get(self.reason)
+
+    def dispatch(self, request, *args, **kwargs):
+        if self.type_info is None:
+            raise Http404("Unknown member status change type.")
+        if request.user.is_authenticated and self.type_info["candidate_only"]:
+            chapter = request.user.current_chapter
+            if not (chapter and chapter.candidate_chapter):
+                messages.add_message(
+                    request,
+                    messages.ERROR,
+                    f"The {self.type_info['label']} form is only for candidate chapters.",
+                )
+                return redirect("forms:landing")
+        return super().dispatch(request, *args, **kwargs)
+
+
+class StatusChangeHistoryListView(
+    LoginRequiredMixin, OfficerRequiredMixin, StatusChangeTypeMixin, PagedFilteredTableView
+):
+    """Chapter-scoped history of submitted status changes for one reason, with a
+    button to submit a new one."""
+
+    model = StatusChange
+    context_object_name = "status_changes"
+    template_name = "forms/statuschange_list.html"
+    filter_user_chapter = True
+    formhelper_class = StatusChangeListFormHelper
+
+    @property
+    def filter_class(self):
+        return self.type_info["filter"]
+
+    @property
+    def table_class(self):
+        return self.type_info["table"]
+
+    def get_queryset(self, **kwargs):
+        qs = super().get_queryset(**kwargs)
+        return qs.filter(reason=self.reason).order_by("-created")
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["type_label"] = self.type_info["label"]
+        context["reason"] = self.reason
+        context["is_multi"] = self.type_info["multi"]
+        if self.type_info["multi"]:
+            context["create_url"] = reverse("forms:status_graduate_select")
+        else:
+            context["create_url"] = reverse("forms:status_new", kwargs={"reason": self.reason})
+        return context
+
+
+class StatusChangeCreateView(LoginRequiredMixin, OfficerRequiredMixin, StatusChangeTypeMixin, CreateView):
+    """Submit a single-member status change (co-op, military, withdraw, transfer,
+    resign-from-candidate-chapter). Graduation uses its own multi-member flow."""
+
+    model = StatusChange
+    form_class = SingleStatusChangeForm
+    template_name = "forms/statuschange_form.html"
+
+    def dispatch(self, request, *args, **kwargs):
+        info = STATUS_CHANGE_TYPES.get(self.kwargs.get("reason"))
+        if info is not None and info["multi"]:
+            # Graduation is multi-member; send the officer to its select step.
+            return redirect("forms:status_graduate_select")
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_actives(self):
+        return self.request.user.current_chapter.actives().exclude(pk=self.request.user.pk).order_by("name")
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs["request_user"] = self.request.user
+        kwargs["reason"] = self.reason
+        kwargs["actives"] = self.get_actives()
+        return kwargs
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["helper"] = SingleStatusChangeFormHelper()
+        context["type_label"] = self.type_info["label"]
+        context["reason"] = self.reason
+        context["history_url"] = reverse("forms:status_history", kwargs={"reason": self.reason})
+        return context
+
+    def form_valid(self, form):
+        chapter = self.request.user.current_chapter
+        form.instance.reason = self.reason
+        if self.reason == "coop":
+            # Preserve the prior rule: a COOP (away) status must not overlap a
+            # member's current officer term.
+            member = form.cleaned_data.get("user")
+            officers = chapter.get_current_officers_council()[0]
+            if member in officers:
+                date_start = form.cleaned_data.get("date_start")
+                date_end = form.cleaned_data.get("date_end")
+                role_info = member.roles.filter(
+                    role__in=member.current_roles + list(CHAPTER_OFFICER),
+                ).values("role", "start", "end")
+                for role in role_info:
+                    latest_start = max(date_start, role["start"])
+                    earliest_end = min(date_end, role["end"])
+                    delta = (earliest_end - latest_start).days + 1
+                    if max(0, delta) > 0:
+                        role_message = f"{role['role'].title()}:  start: {role['start']} end: {role['end']}"
+                        messages.add_message(
+                            self.request,
+                            messages.ERROR,
+                            mark_safe(
+                                f"{member} is a current officer. COOP status must not overlap "
+                                f"with officer term.<br>{role_message}"
+                            ),
+                        )
+                        return self.form_invalid(form)
+        response = super().form_valid(form)
+        Task.mark_complete(name="Member Updates", chapter=chapter)
+        messages.add_message(
+            self.request,
+            messages.INFO,
+            f"You successfully submitted the {self.type_info['label']} status change for {form.instance.user}.",
+        )
+        return response
+
+    def get_success_url(self):
+        return reverse("forms:status_history", kwargs={"reason": self.reason})
+
+
+class GraduateSelectView(LoginRequiredMixin, OfficerRequiredMixin, FormView):
+    """Step 1 of graduation: pick the graduating members."""
+
+    form_class = GraduateSelectForm
+    template_name = "forms/graduate_select.html"
+    officer_edit = "member status"
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs["actives"] = (
+            self.request.user.current_chapter.actives().exclude(pk=self.request.user.pk).order_by("name")
         )
         return kwargs
 
-    def get_formset_request(self, request, action):
-        formset = forms.formset_factory(StatusChangeSelectForm, extra=1)
-        info = request.POST.copy()
-        initial = []
-        for info_name in info:
-            if "__prefix__" not in info_name and info_name.endswith("-user"):
-                split = info_name.split("-")[0:2]
-                selected_split = deepcopy(split)
-                selected_split.append("selected")
-                selected_name = "-".join(selected_split)
-                selected = info.get(selected_name, None)
-                if selected == "on":
-                    continue
-                state_split = deepcopy(split)
-                state_split.append("state")
-                state_name = "-".join(state_split)
-                if info[info_name] != "":
-                    initial.append(
-                        {
-                            "user": info[info_name],
-                            "state": info[state_name],
-                            "selected": "",
-                        }
-                    )
-        form_kwargs = {
-            "colony": self.request.user.current_chapter.candidate_chapter,
-            "request_user": self.request.user,
-        }
-        if action in ["Add Row", "Delete Selected"]:
-            formset = formset(
-                prefix="selection",
-                initial=initial,
-                form_kwargs=form_kwargs,
-            )
-        else:
-            post_data = deepcopy(request.POST)
-            post_data["selection-INITIAL_FORMS"] = str(int(post_data["selection-INITIAL_FORMS"]) + 1)
-            formset = formset(
-                post_data,
-                request.FILES,
-                initial=initial,
-                prefix="selection",
-                form_kwargs=form_kwargs,
-            )
-        return formset
+    def form_valid(self, form):
+        members = form.cleaned_data["members"]
+        self.request.session["graduate-selection"] = [member.pk for member in members]
+        return super().form_valid(form)
 
-    def post(self, request, *args, **kwargs):
-        formset = self.get_formset_request(request, request.POST["action"])
-        if request.POST["action"] in ["Add Row", "Delete Selected"] or not formset.is_valid():
-            return self.render_to_response(self.get_context_data(formset=formset))
-        else:
-            return self.formset_valid(formset)
-
-    def get_formset(self):
-        # Exclude the requesting officer — officers must not report status
-        # changes for themselves (except for the resignation form, which is
-        # a separate view).
-        actives = self.request.user.current_chapter.actives().exclude(pk=self.request.user.pk)
-        formset = super().get_formset()
-        formset.form.base_fields["user"].queryset = actives.order_by("name")
-        return formset
+    def get_success_url(self):
+        return reverse("forms:status_graduate")
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        formset = kwargs.get("formset", None)
-        if formset is None:
-            formset = self.construct_formset()
-        actives = self.request.user.current_chapter.actives().exclude(pk=self.request.user.pk)
-        formset.form.base_fields["user"].queryset = actives.order_by("name")
-        context["formset"] = formset
-        helper = StatusChangeSelectFormHelper()
-        context["helper"] = helper
-        context["input"] = Submit("action", "Next")
-        status = StatusChangeTable(
-            StatusChange.objects.filter(user__chapter=self.request.user.current_chapter).order_by("-created")
-        )
-        RequestConfig(self.request).configure(status)
-        context["status_table"] = status
+        context["history_url"] = reverse("forms:status_history", kwargs={"reason": "graduate"})
         return context
 
-    def formset_valid(self, formset):
-        cleaned_data = deepcopy(formset.cleaned_data)
-        selections = {
-            "graduate": [],
-            "coop": [],
-            "covid": [],
-            "military": [],
-            "withdraw": [],
-            "transfer": [],
-            "resignedCC": [],
-        }
-        for info in cleaned_data:
-            user = info["user"]
-            selections[info["state"]].append(user.pk)
-        self.request.session["status-selection"] = selections
-        return super().formset_valid(formset)
 
-    def get_success_url(self):
-        # This needs to redirect to the next step
-        return reverse("forms:status")
+class GraduateFillView(LoginRequiredMixin, OfficerRequiredMixin, TemplateView):
+    """Step 2 of graduation: fill one graduation row per selected member."""
 
-
-class StatusChangeView(LoginRequiredMixin, OfficerRequiredMixin, FormView):
-    form_class = GraduateForm
+    template_name = "forms/graduate_fill.html"
     officer_edit = "member status"
-    template_name = "forms/status.html"
-    to_graduate = []
-    to_coop = []
-    to_military = []
-    to_withdraw = []
-    to_transfer = []
-    to_csmt = []
-    resignedCC = []
 
-    def initial_info(self, status_change):
-        chapter = self.request.user.current_chapter
-        # Officers must not report status changes for themselves — matches the
-        # exclusion applied at the selection step.
-        actives = chapter.actives().exclude(pk=self.request.user.pk)
-        self.to_graduate = actives.filter(pk__in=status_change["graduate"])
-        self.to_coop = actives.filter(pk__in=status_change["coop"])
-        self.to_covid = actives.filter(pk__in=status_change["covid"])
-        self.to_military = actives.filter(pk__in=status_change["military"])
-        self.to_withdraw = actives.filter(pk__in=status_change["withdraw"])
-        self.to_transfer = actives.filter(pk__in=status_change["transfer"])
-        self.resignedCC = actives.filter(pk__in=status_change["resignedCC"])
-        self.to_csmt = (
-            self.to_coop | self.to_military | self.to_withdraw | self.to_transfer | self.to_covid | self.resignedCC
+    def selected_members(self):
+        pks = self.request.session.get("graduate-selection", None)
+        if not pks:
+            return None
+        return (
+            self.request.user.current_chapter.actives()
+            .exclude(pk=self.request.user.pk)
+            .filter(pk__in=pks)
+            .order_by("name")
         )
 
     def get(self, request, *args, **kwargs):
-        status_change = request.session.get("status-selection", None)
-        if status_change is None:
-            return redirect("forms:status_selection")
-        else:
-            self.initial_info(status_change)
-            chapter = self.request.user.current_chapter
-            officers = chapter.get_current_officers_council()[0]
-            for member in self.to_coop:
-                if member in officers:
-                    role_info = member.roles.filter(role__in=member.current_roles).values("role", "start", "end")
-                    role_message = "<br>".join(
-                        [f"{role['role'].title()}:  start: {role['start']} end: {role['end']}" for role in role_info]
-                    )
-                    messages.add_message(
-                        self.request,
-                        messages.WARNING,
-                        mark_safe(
-                            f"{member} is a current officer. COOP status must not overlap with officer term.<br>{role_message}"
-                        ),
-                    )
-            return super().get(request, *args, **kwargs)
+        if not self.selected_members():
+            return redirect("forms:status_graduate_select")
+        return super().get(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        members = self.selected_members() or []
         formset = kwargs.get("formset", None)
         if formset is None:
             formset = GraduateFormSet(prefix="graduates")
         formset.initial = [
-            {"user": user.name, "email_personal": user.email, "reason": "graduate"} for user in self.to_graduate
+            {"user": member.name, "email_personal": member.email, "reason": "graduate"} for member in members
         ]
         context["formset"] = formset
         context["helper"] = GraduateFormHelper()
-        csmt_formset = kwargs.get("csmt_formset", None)
-        if csmt_formset is None:
-            csmt_formset = CSMTFormSet(prefix="csmt")
-            next_semester = semester_encompass_start_end_date()[1]
-            csmt_formset.initial = (
-                [{"user": user.name, "reason": "covid", "date_end": next_semester} for user in self.to_covid]
-                + [{"user": user.name, "reason": "coop"} for user in self.to_coop]
-                + [{"user": user.name, "reason": "military"} for user in self.to_military]
-                + [{"user": user.name, "reason": "withdraw"} for user in self.to_withdraw]
-                + [{"user": user.name, "reason": "transfer"} for user in self.to_transfer]
-                + [{"user": user.name, "reason": "resignedCC"} for user in self.resignedCC]
-            )
-        context["csmt_formset"] = csmt_formset
-        context["csmt_helper"] = CSMTFormHelper()
-        # Merge form + csmt formset media so tempus-dominus/moment aren't loaded
-        # twice — a duplicate load resets $.fn.datetimepicker and breaks the
-        # date pickers on this page.
-        context["combined_media"] = formset.media + csmt_formset.media
+        context["combined_media"] = formset.media
         context["form_show_errors"] = True
         context["error_text_inline"] = True
         context["help_text_inline"] = True
-        # context['html5_required'] = True  #  If on errors do not show up
+        context["history_url"] = reverse("forms:status_history", kwargs={"reason": "graduate"})
         return context
 
     def post(self, request, *args, **kwargs):
-        status_change = request.session.get("status-selection", None)
-        self.initial_info(status_change)
+        members = self.selected_members()
+        if not members:
+            return redirect("forms:status_graduate_select")
         formset = GraduateFormSet(request.POST, request.FILES, prefix="graduates")
         formset.initial = [
-            {"user": user.name, "email_personal": user.email, "reason": "graduate"} for user in self.to_graduate
+            {"user": member.name, "email_personal": member.email, "reason": "graduate"} for member in members
         ]
-        csmt_formset = CSMTFormSet(request.POST, request.FILES, prefix="csmt")
-        next_semester = semester_encompass_start_end_date()[1]
-        csmt_formset.initial = (
-            [{"user": user.name, "reason": "covid", "date_end": next_semester} for user in self.to_covid]
-            + [{"user": user.name, "reason": "coop"} for user in self.to_coop]
-            + [{"user": user.name, "reason": "military"} for user in self.to_military]
-            + [{"user": user.name, "reason": "withdraw"} for user in self.to_withdraw]
-            + [{"user": user.name, "reason": "transfer"} for user in self.to_transfer]
-            + [{"user": user.name, "reason": "resignedCC"} for user in self.resignedCC]
-        )
-        if not formset.is_valid() or not csmt_formset.is_valid():
-            return self.render_to_response(self.get_context_data(formset=formset, csmt_formset=csmt_formset))
-        chapter = self.request.user.current_chapter
-        error = False
-        officers = chapter.get_current_officers_council()[0]
-        for form in csmt_formset:
-            if form.instance.reason == "coop":
-                member = form.instance.user
-                if member in officers:
-                    role_info = member.roles.filter(
-                        role__in=member.current_roles + list(CHAPTER_OFFICER),
-                    ).values("role", "start", "end")
-                    for role in role_info:
-                        latest_start = max(form.instance.date_start, role["start"])
-                        earliest_end = min(form.instance.date_end, role["end"])
-                        delta = (earliest_end - latest_start).days + 1
-                        overlap = max(0, delta)
-                        if overlap > 0:
-                            error = True
-                            role_message = f"{role['role'].title()}:  start: {role['start']} end: {role['end']}"
-                            messages.add_message(
-                                self.request,
-                                messages.ERROR,
-                                mark_safe(
-                                    f"{member} is a current officer. COOP status must not overlap with officer term.<br>{role_message}"
-                                ),
-                            )
-        if error:
-            return self.render_to_response(self.get_context_data(formset=formset, csmt_formset=csmt_formset))
-        update_list = []
+        if not formset.is_valid():
+            return self.render_to_response(self.get_context_data(formset=formset))
+        chapter = request.user.current_chapter
         graduates_list = []
         for form in formset:
             form.save()
             graduates_list.append(form.instance.user)
-        for form in csmt_formset:
-            if form.instance.reason == "covid":
-                # Because the form field is disabled the value will not carry through
-                form.instance.date_end = next_semester
-            form.save()
-            update_list.append(form.instance.user)
         Task.mark_complete(name="Member Updates", chapter=chapter)
         slug = Config.get_value("GraduationSurvey")
         for user in graduates_list:
@@ -720,15 +761,16 @@ class StatusChangeView(LoginRequiredMixin, OfficerRequiredMixin, FormView):
                 "We would like to get your thoughts on your Theta Tau experience "
                 "so that we can make the Fraternity better for everybody.",
             ).send()
+        request.session.pop("graduate-selection", None)
         messages.add_message(
-            self.request,
+            request,
             messages.INFO,
-            "You successfully updated the status of members:\n" f"{update_list + graduates_list}",
+            "You successfully submitted graduation for members:\n" f"{graduates_list}",
         )
         return HttpResponseRedirect(self.get_success_url())
 
     def get_success_url(self):
-        return reverse("forms:status_selection")
+        return reverse("forms:status_history", kwargs={"reason": "graduate"})
 
 
 def remove_extra_form(formset, **kwargs):

@@ -456,6 +456,55 @@
     </div>
   {% endif %}
 
+    {# ---------- Status changes (member / chapter officers / natoff) ---------- #}
+    {% if can_view_status_changes %}
+    <div class="col-12" id="status-changes">
+      <div class="accordion" id="statusChangesAccordion">
+        <div class="accordion-item">
+          <h2 class="accordion-header">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                    data-bs-target="#statusChangesCollapse" aria-expanded="false" aria-controls="statusChangesCollapse">
+              <i class="fa fa-exchange-alt me-2"></i>Status Changes
+              <span class="badge bg-secondary ms-2">{{ member_status_changes|length }}</span>
+            </button>
+          </h2>
+          <div id="statusChangesCollapse" class="accordion-collapse collapse" data-bs-parent="#statusChangesAccordion">
+            <div class="accordion-body p-0">
+              {% if member_status_changes %}
+                <div class="table-responsive">
+                  <table class="table table-sm table-hover align-middle mb-0">
+                    <thead>
+                      <tr>
+                        <th>Type</th>
+                        <th>Change Date</th>
+                        <th>End Date</th>
+                        <th>Submitted</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {% for change in member_status_changes %}
+                        <tr>
+                          <td>{{ change.get_reason_display }}</td>
+                          <td class="text-nowrap">{{ change.date_start|date:"M j, Y" }}</td>
+                          <td class="text-nowrap">
+                            {% if change.date_end and change.date_end.year < 3000 %}{{ change.date_end|date:"M j, Y" }}{% else %}&mdash;{% endif %}
+                          </td>
+                          <td class="text-nowrap">{{ change.created|date:"M j, Y" }}</td>
+                        </tr>
+                      {% endfor %}
+                    </tbody>
+                  </table>
+                </div>
+              {% else %}
+                <p class="text-body-secondary p-3 mb-0">No status changes recorded.</p>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
     {# ---------- Attendance (WI-8) ---------- #}
     <div class="col-12" id="attendance">
       <div class="card">

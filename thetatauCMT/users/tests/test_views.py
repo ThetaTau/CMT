@@ -59,6 +59,45 @@ def test_user_detail_view_unauthenticated(client):
 
 
 # ---------------------------------------------------------------------------
+# Member status changes accordion on the public profile
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.django_db
+def test_profile_status_changes_visible_to_chapter_officer(auto_login_user, user_factory):
+    import datetime
+
+    from thetatauCMT.forms.models import StatusChange
+
+    client, officer = auto_login_user()
+    member = user_factory.create(chapter=officer.chapter)
+    StatusChange.objects.create(
+        user=member, created_by=officer, reason="withdraw", date_start=datetime.date(2026, 5, 15)
+    )
+    _make_officer(officer, client)
+    response = client.get(reverse("users:profile", kwargs={"username": member.username}))
+    assert response.status_code == 200
+    assert response.context["can_view_status_changes"] is True
+    assert b"Status Changes" in response.content
+
+
+@pytest.mark.django_db
+def test_profile_status_changes_hidden_from_other_chapter_member(auto_login_user, user_factory):
+    import datetime
+
+    from thetatauCMT.forms.models import StatusChange
+
+    client, viewer = auto_login_user()  # plain member, different chapter
+    member = user_factory.create()
+    StatusChange.objects.create(
+        user=member, created_by=member, reason="withdraw", date_start=datetime.date(2026, 5, 15)
+    )
+    response = client.get(reverse("users:profile", kwargs={"username": member.username}))
+    assert response.status_code == 200
+    assert response.context["can_view_status_changes"] is False
+
+
+# ---------------------------------------------------------------------------
 # UserListView — national officer only
 # ---------------------------------------------------------------------------
 

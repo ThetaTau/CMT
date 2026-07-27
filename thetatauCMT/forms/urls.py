@@ -104,11 +104,35 @@ urlpatterns = [
         view=views.pledge_process_sync,
         name="pledge_sync",
     ),
-    path("status/", view=views.StatusChangeView.as_view(), name="status"),
+    path(
+        "status/",
+        view=RedirectView.as_view(pattern_name="forms:landing", permanent=False),
+        name="status",
+    ),
     path(
         "status-selection/",
-        view=views.StatusChangeSelectView.as_view(),
+        view=RedirectView.as_view(pattern_name="forms:landing", permanent=False),
         name="status_selection",
+    ),
+    path(
+        "status/history/<str:reason>/",
+        view=views.StatusChangeHistoryListView.as_view(),
+        name="status_history",
+    ),
+    path(
+        "status/new/<str:reason>/",
+        view=views.StatusChangeCreateView.as_view(),
+        name="status_new",
+    ),
+    path(
+        "status/graduate/select/",
+        view=views.GraduateSelectView.as_view(),
+        name="status_graduate_select",
+    ),
+    path(
+        "status/graduate/fill/",
+        view=views.GraduateFillView.as_view(),
+        name="status_graduate",
     ),
     path(
         "otherschool-autocomplete/",

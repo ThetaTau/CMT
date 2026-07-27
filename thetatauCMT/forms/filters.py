@@ -6,7 +6,7 @@ from core.filters import DateRangeFilter, DynamicScopeFilterSetMixin
 from thetatauCMT.chapters.models import Chapter
 from thetatauCMT.regions.models import Region
 
-from .models import AlumniExclusion, Audit, Bylaws, HSEducation, PledgeProgram
+from .models import AlumniExclusion, Audit, Bylaws, HSEducation, PledgeProgram, StatusChange
 
 
 class AuditListFilter(DynamicScopeFilterSetMixin, django_filters.FilterSet):
@@ -140,6 +140,30 @@ class EducationListFilter(DynamicScopeFilterSetMixin, django_filters.FilterSet):
         else:
             queryset = queryset.filter(chapter__region__slug=value)
         return queryset
+
+
+class StatusChangeListFilter(django_filters.FilterSet):
+    """Chapter-scoped history of member status changes for one reason.
+
+    Chapter scoping is applied by the view (``filter_user_chapter``); this only
+    exposes member-name search and a change-date bucket. The reason is fixed by
+    the page, so it is not a filter field.
+    """
+
+    user = django_filters.CharFilter(label="Member", field_name="user__name", lookup_expr="icontains")
+    date_start = DateRangeFilter(label="Change Date")
+
+    class Meta:
+        model = StatusChange
+        fields = ["user", "date_start"]
+
+
+class GraduationListFilter(StatusChangeListFilter):
+    degree = django_filters.ChoiceFilter(label="Degree", choices=[x.value for x in StatusChange.DEGREES])
+
+    class Meta:
+        model = StatusChange
+        fields = ["user", "date_start", "degree"]
 
 
 class BylawsListFilter(DynamicScopeFilterSetMixin, django_filters.FilterSet):

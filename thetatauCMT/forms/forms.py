@@ -587,6 +587,115 @@ class CSMTFormHelper(FormHelper):
     )
 
 
+class SingleStatusChangeForm(CSMTForm):
+    """One-member status change (co-op, military, withdraw, transfer, resignedCC).
+
+    Reuses ``CSMTForm``'s per-reason field logic but (1) swaps the disabled,
+    name-lookup ``user`` field for a searchable member autocomplete and (2)
+    removes every optional field that is not relevant to the reason so unneeded
+    inputs (e.g. employer / other school on a withdraw) are hidden entirely
+    rather than shown disabled.
+    """
+
+    # Optional StatusChange fields kept visible per reason; all others removed.
+    VISIBLE_FIELDS = {
+        "coop": ["employer", "date_start", "date_end", "miles"],
+        "military": ["date_start", "date_end"],
+        "withdraw": ["date_start"],
+        "transfer": ["new_school", "new_school_other", "date_start"],
+        "resignedCC": ["date_start"],
+    }
+    _OPTIONAL_FIELDS = ["employer", "new_school", "new_school_other", "date_start", "date_end", "miles"]
+
+    user = forms.ModelChoiceField(
+        label="Member",
+        queryset=User.objects.none(),
+        widget=autocomplete.ModelSelect2(
+            url="users:autocomplete",
+            forward=(
+                forward.Const("true", "chapter"),
+                forward.Const("true", "actives"),
+                forward.Const("true", "exclude_self"),
+            ),
+            attrs={"data-placeholder": "Start typing a member name\u2026"},
+        ),
+    )
+
+    def __init__(self, *args, request_user=None, actives=None, reason=None, **kwargs):
+        self.request_user = request_user
+        if reason is not None:
+            # ``CSMTForm.__init__`` reads ``self.initial['reason']`` to decide
+            # which fields to hide/disable, so seed it before calling super().
+            initial = kwargs.setdefault("initial", {})
+            initial.setdefault("reason", reason)
+        super().__init__(*args, **kwargs)
+        if actives is not None:
+            self.fields["user"].queryset = actives
+        # The reason is fixed by the page; keep it on the instance but hidden.
+        self.fields["reason"].widget = forms.HiddenInput()
+        # Drop every optional field not relevant to this reason so it is hidden
+        # entirely (unset fields fall back to their model defaults on save).
+        visible = self.VISIBLE_FIELDS.get(reason, ["date_start"])
+        for name in self._OPTIONAL_FIELDS:
+            if name not in visible and name in self.fields:
+                del self.fields[name]
+
+    def clean_user(self):
+        # Replaces CSMTForm.clean_user (a name lookup): the member picker already
+        # yields a User. Only guard against an officer reporting on themselves.
+        user = self.cleaned_data.get("user")
+        if self.request_user is not None and user == self.request_user:
+            raise forms.ValidationError(f"You cannot report a status change for yourself. {SELF_SUBMIT_FORBIDDEN_MSG}")
+        return user
+
+
+class SingleStatusChangeFormHelper(FormHelper):
+    form_method = "post"
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.add_input(Submit("submit", "Submit"))
+
+
+class GraduateSelectForm(forms.Form):
+    """Pick the graduating members before filling one graduation row each."""
+
+    members = forms.ModelMultipleChoiceField(
+        label="Graduating members",
+        queryset=User.objects.none(),
+        widget=autocomplete.ModelSelect2Multiple(
+            url="users:autocomplete",
+            forward=(
+                forward.Const("true", "chapter"),
+                forward.Const("true", "actives"),
+                forward.Const("true", "exclude_self"),
+            ),
+            attrs={"data-placeholder": "Start typing member names\u2026"},
+        ),
+    )
+
+    def __init__(self, *args, actives=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        if actives is not None:
+            self.fields["members"].queryset = actives
+
+
+class StatusChangeListFormHelper(FormHelper):
+    form_method = "GET"
+    # The ``collapsible_filter`` partial already wraps the fields in a
+    # ``<form method="get">``; keep crispy from emitting a nested <form>.
+    form_tag = False
+    form_class = "form-inline"
+    field_template = "bootstrap5/layout/inline_field.html"
+    form_show_errors = True
+    help_text_inline = False
+    html5_required = True
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.add_input(Submit("submit", "Filter"))
+
+
 class RoleChangeNationalSelectForm(forms.ModelForm):
     user = forms.ModelChoiceField(
         queryset=User.objects.all(),
