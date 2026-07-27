@@ -113,8 +113,15 @@ class Task(models.Model):
         next_date = task.incomplete_dates_for_task_chapter(chapter).first()
         if not next_date:
             return
-        task_obj = TaskChapter(task=next_date, chapter=chapter, date=timezone.now())
-        if obj:
+        # ``get_or_create`` guards against duplicate rows when the same task is
+        # marked complete twice in quick succession (e.g. a double form submit).
+        # Both requests can pass the ``incomplete_dates_for_task_chapter`` check
+        # before either commits; the unique_together ("task", "date", "chapter")
+        # constraint would then raise an IntegrityError on the second insert
+        # (issues #868, #1019). get_or_create catches that race and returns the
+        # existing row instead of crashing.
+        task_obj, created = TaskChapter.objects.get_or_create(task=next_date, chapter=chapter, date=timezone.now())
+        if created and obj:
             from thetatauCMT.submissions.models import Submission
 
             extra_info = None
@@ -148,7 +155,8 @@ class Task(models.Model):
                 )
                 submit_obj.save(extra_info=extra_info)
             task_obj.submission_object = submit_obj
-        task_obj.save()
+            task_obj.save(update_fields=["submission_type", "submission_id"])
+        return task_obj
 
 
 class TaskDate(models.Model):

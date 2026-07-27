@@ -1,4 +1,5 @@
 import datetime
+from unittest import mock
 
 import pytest
 from django.utils import timezone
@@ -242,6 +243,33 @@ def test_mark_complete_creates_task_chapter(chapter):
     Task.mark_complete(task.name, chapter)
     after = TaskChapter.objects.filter(task=task_date, chapter=chapter).count()
     assert after == before + 1
+
+
+@pytest.mark.django_db
+def test_mark_complete_double_submit_does_not_duplicate(chapter):
+    """A duplicate mark_complete (e.g. a double form submit) must not raise an
+    IntegrityError on the unique_together ("task", "date", "chapter") constraint
+    nor create a second TaskChapter. Regression for #868 and #1019.
+    """
+    school_type = chapter.school_type
+    task, task_date = _make_task_with_date(school_type=school_type, days_offset=5)
+
+    # First submit creates the TaskChapter normally.
+    Task.mark_complete(task.name, chapter)
+    assert TaskChapter.objects.filter(task=task_date, chapter=chapter).count() == 1
+
+    # Simulate the race: a second, near-simultaneous request still sees the same
+    # due date as "incomplete" (its just-created TaskChapter hasn't been observed
+    # yet) and tries to complete it again. get_or_create must swallow the
+    # duplicate instead of raising IntegrityError.
+    with mock.patch.object(
+        Task,
+        "incomplete_dates_for_task_chapter",
+        return_value=TaskDate.objects.filter(pk=task_date.pk),
+    ):
+        Task.mark_complete(task.name, chapter)
+
+    assert TaskChapter.objects.filter(task=task_date, chapter=chapter).count() == 1
 
 
 # ---------------------------------------------------------------------------
