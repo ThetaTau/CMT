@@ -341,7 +341,18 @@ app.layout = html.Div(
                                 md_cols=6,
                             ),
                             _panel("Majors of study (current members)", "majors-breakdown"),
-                            _panel("Graduate employers (sized by hires)", "graduation-employer-cloud"),
+                            _panel(
+                                "Graduate employers (sized by hires)",
+                                "graduation-employer-cloud",
+                                sm_cols=12,
+                                md_cols=6,
+                            ),
+                            _panel(
+                                "Member organizations (sized by participants)",
+                                "member-organization-cloud",
+                                sm_cols=12,
+                                md_cols=6,
+                            ),
                         ],
                     ),
                 ),
@@ -672,7 +683,7 @@ def _horizontal_bar_top_n(rows, label_key, value_key, x_label, theme, top_n=10, 
     return _apply_theme(fig, theme)
 
 
-def _treemap_from_rows(rows, label_key, value_key, theme):
+def _treemap_from_rows(rows, label_key, value_key, theme, value_label="Graduates"):
     """Render a treemap where each rectangle's area is proportional to its
     value. Used in place of a word cloud (plotly ships no wordcloud trace)
     so the tag-cloud "biggest is most common" affordance survives.
@@ -694,7 +705,7 @@ def _treemap_from_rows(rows, label_key, value_key, theme):
             parents=[""] * len(df),
             values=df[value_key].tolist(),
             textinfo="label+value",
-            hovertemplate="%{label}<br>Graduates=%{value}<extra></extra>",
+            hovertemplate=f"%{{label}}<br>{value_label}=%{{value}}<extra></extra>",
             marker=dict(colors=[REGION_PALETTE[i % len(REGION_PALETTE)] for i in range(len(df))]),
         )
     )
@@ -1149,3 +1160,37 @@ def graduation_employer_cloud(region_slug, ay_start_year, theme):
     for row in rows:
         row["Employer"] = row.pop("employer__name")
     return _treemap_from_rows(rows, label_key="Employer", value_key="count", theme=theme)
+
+
+@app.callback(
+    Output("member-organization-cloud", "figure"),
+    [
+        Input("region-slug-store", "data"),
+        Input("ay-store", "data"),
+        Input("theme-store", "data"),
+    ],
+)
+def member_organization_cloud(region_slug, ay_start_year, theme):
+    """Treemap of external organizations members participated in during the AY.
+
+    Rectangle area is proportional to the number of members who reported
+    participation in that organization — mirroring the graduate-employer
+    treemap.
+    """
+    from thetatauCMT.users.models import UserOrgParticipate
+
+    chapters = get_scope_chapters(region_slug)
+    ay_start, ay_end = ay_dates(ay_start_year)
+    rows = list(
+        UserOrgParticipate.objects.filter(
+            user__chapter__in=chapters,
+            organization__isnull=False,
+            start__lt=ay_end.date(),
+            end__gte=ay_start.date(),
+        )
+        .values("organization__name")
+        .annotate(count=Count("user", distinct=True))
+    )
+    for row in rows:
+        row["Organization"] = row.pop("organization__name")
+    return _treemap_from_rows(rows, label_key="Organization", value_key="count", theme=theme, value_label="Members")

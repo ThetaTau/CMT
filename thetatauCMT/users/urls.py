@@ -9,7 +9,14 @@ urlpatterns = [
     path("", views.UserListView.as_view(), name="list"),
     path("gpas/", views.UserGPAFormSetView.as_view(), name="gpas"),
     path("service/", views.UserServiceFormSetView.as_view(), name="service"),
-    path("orgs/", views.UserOrgsFormSetView.as_view(), name="orgs"),
+    path("orgs/", views.UserOrgListView.as_view(), name="orgs"),
+    path("orgs/add/", views.UserOrgCreateView.as_view(), name="orgs_add"),
+    path(
+        "orgs/autocomplete/",
+        views.OrganizationAutocomplete.as_view(create_field="name"),
+        name="org-autocomplete",
+    ),
+    path("orgs/<int:pk>/delete/", views.UserOrgDeleteView.as_view(), name="orgs_delete"),
     path("redirect/", views.UserRedirectView.as_view(), name="redirect"),
     path(
         "unsubscribe/<str:token>/",

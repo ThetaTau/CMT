@@ -1,7 +1,10 @@
 from address.admin import UnidentifiedListFilter
 from address.models import AddressField
 from django.conf import settings
-from django.contrib import admin
+from django.contrib import admin, messages
+from django.contrib.admin.helpers import ACTION_CHECKBOX_NAME
+from django.db import transaction
+from django.template.response import TemplateResponse
 from django.urls import reverse
 from django.utils.safestring import mark_safe
 from django.utils.text import capfirst
@@ -36,7 +39,7 @@ class ReportAdminSync(ReportAdmin):
     def sync_mail(self, model_object):
         return mark_safe(
             f'<a href="{reverse("users:sync_email_provider", kwargs={"report_id": model_object.id})}"'
-            f" onclick=\"alert('Start sync with email provider, limit is 2000 every 10 seconds, this may take some time...');\">"
+            " onclick=\"alert('Start sync with email provider, limit is 2000 every 10 seconds, this may take some time...');\">"
             '<img style="width: 26px; margin: -6px" src="'
             f'{getattr(settings, "STATIC_URL", "/static/")}report_builder/img/reorder.svg"/></a>'
         )
@@ -129,3 +132,71 @@ class AddressAdmin(admin.ModelAdmin):
         "user__chapter",
         "chapter",
     )
+
+
+class MergeableAdminMixin:
+    """Admin mixin that adds a "merge selected records into one" action.
+
+    Repoints every related row (reverse foreign keys and reverse many-to-many
+    relations) from the merged duplicates onto a chosen canonical record, then
+    deletes the duplicates. Intended for de-duplicating registry / lookup
+    models whose values are created inline (Organization, Employer,
+    OtherSchool, Keyword, Major, UserTag).
+    """
+
+    merge_confirmation_template = "admin/merge_selected_confirmation.html"
+
+    def get_actions(self, request):
+        actions = super().get_actions(request)
+        actions["merge_selected_records"] = (
+            MergeableAdminMixin.merge_selected_records,
+            "merge_selected_records",
+            "Merge selected records into one",
+        )
+        return actions
+
+    @staticmethod
+    def _repoint_related(canonical, duplicate):
+        """Move every relation pointing at ``duplicate`` onto ``canonical``."""
+        for rel in duplicate._meta.related_objects:
+            field_name = rel.field.name
+            if rel.many_to_many:
+                accessor = rel.get_accessor_name()
+                for obj in getattr(duplicate, accessor).all():
+                    getattr(obj, field_name).remove(duplicate)
+                    getattr(obj, field_name).add(canonical)
+            else:
+                rel.related_model._base_manager.filter(**{field_name: duplicate}).update(**{field_name: canonical})
+
+    def merge_selected_records(self, request, queryset):
+        opts = self.model._meta
+        if queryset.count() < 2:
+            self.message_user(request, "Select at least two records to merge.", level=messages.WARNING)
+            return None
+        if request.POST.get("merge"):
+            canonical = queryset.filter(pk=request.POST.get("canonical")).first()
+            if canonical is None:
+                self.message_user(request, "Choose which record to keep.", level=messages.ERROR)
+                return None
+            duplicates = list(queryset.exclude(pk=canonical.pk))
+            with transaction.atomic():
+                for duplicate in duplicates:
+                    self._repoint_related(canonical, duplicate)
+                    duplicate.delete()
+            self.message_user(
+                request,
+                f"Merged {len(duplicates)} record(s) into “{canonical}”.",
+                level=messages.SUCCESS,
+            )
+            return None
+        context = {
+            **self.admin_site.each_context(request),
+            "title": f"Merge selected {opts.verbose_name_plural}",
+            "opts": opts,
+            "objects": queryset,
+            "action_checkbox_name": ACTION_CHECKBOX_NAME,
+            "media": self.media,
+        }
+        return TemplateResponse(request, self.merge_confirmation_template, context)
+
+    merge_selected_records.short_description = "Merge selected records into one"

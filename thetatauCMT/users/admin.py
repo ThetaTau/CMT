@@ -23,6 +23,7 @@ from watson.admin import SearchAdmin
 from core.admin import (
     AddressAdmin,
     ComponentAddressAdminMixin,
+    MergeableAdminMixin,
     ReportAdminSync,
     SentNotificationAdminUpdate,
     user_chapter,
@@ -50,6 +51,7 @@ from .forms import UserAdminBadgeFixForm, UserAdminStatusForm, UserStatusForm, s
 from .models import (
     ChapterCurricula,
     MemberUpdate,
+    Organization,
     User,
     UserAlter,
     UserDemographic,
@@ -80,7 +82,7 @@ def status(obj):
 
 
 @admin.register(UserTag)
-class UserTagAdmin(ImportExportActionModelAdmin):
+class UserTagAdmin(MergeableAdminMixin, ImportExportActionModelAdmin):
     list_display = ("name", "user_count")
     search_fields = ("name",)
     ordering = ("name",)
@@ -174,7 +176,7 @@ class UserDemographicAdmin(admin.ModelAdmin):
 @admin.register(UserOrgParticipate)
 class UserOrgParticipateAdmin(admin.ModelAdmin):
     raw_id_fields = ["user"]
-    list_display = ("user", "org_name", "type", "officer", "start", "end")
+    list_display = ("user", "org_name", "organization", "type", "officer", "start", "end")
     list_filter = ["start", "end", "officer", "type"]
     ordering = [
         "-start",
@@ -183,6 +185,13 @@ class UserOrgParticipateAdmin(admin.ModelAdmin):
         "created_by",
         "modified_by",
     )
+
+
+@admin.register(Organization)
+class OrganizationAdmin(MergeableAdminMixin, admin.ModelAdmin):
+    list_display = ("name",)
+    search_fields = ["name"]
+    ordering = ["name"]
 
 
 @admin.register(UserSemesterGPA)

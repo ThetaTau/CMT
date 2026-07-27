@@ -193,6 +193,18 @@ def test_treemap_from_rows_renders_labels_and_values():
     assert sum(fig.data[0].values) == 8
 
 
+def test_treemap_from_rows_uses_custom_value_label():
+    from thetatauCMT.regions.dashboard import _treemap_from_rows
+
+    rows = [
+        {"Organization": "IEEE", "count": 4},
+        {"Organization": "Tau Beta Pi", "count": 2},
+    ]
+    fig = _treemap_from_rows(rows, label_key="Organization", value_key="count", theme="light", value_label="Members")
+    assert set(fig.data[0].labels) == {"IEEE", "Tau Beta Pi"}
+    assert "Members=" in fig.data[0].hovertemplate
+
+
 # ---------------------------------------------------------------------------
 # region_options + get_scope_chapters — need DB
 # ---------------------------------------------------------------------------
@@ -285,6 +297,7 @@ def test_ay_dates_none_defaults_to_current():
         "top_recruiting_chapters",
         "retention_by_chapter",
         "graduation_employer_cloud",
+        "member_organization_cloud",
     ],
 )
 def test_ay_dependent_graph_callbacks_return_figure(callback_name):

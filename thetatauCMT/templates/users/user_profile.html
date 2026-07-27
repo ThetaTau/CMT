@@ -367,7 +367,7 @@
             <ul class="list-unstyled mb-0">
               {% for org in orgs %}
                 <li class="mb-1">
-                  <span class="fw-semibold">{{ org.org_name }}</span>
+                  <span class="fw-semibold">{{ org.organization|default:org.org_name }}</span>
                   <span class="badge bg-secondary">{{ org.get_type_display }}</span>
                   {% if org.officer %}<span class="badge bg-primary">Officer</span>{% endif %}
                   <span class="text-body-secondary small">{{ org.start|date:"M Y" }} &ndash; {{ org.end|date:"M Y" }}</span>

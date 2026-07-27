@@ -155,7 +155,9 @@
                         <li><a class="dropdown-item" href="{% url 'users:gpas' %}">{% trans "GPAs" %}</a></li>
                       {% endif %}
                       <li><a class="dropdown-item" href="{% url 'users:service' %}">{% trans "Service Hours" %}</a></li>
-                      <li><a class="dropdown-item" href="{% url 'users:orgs' %}">{% trans "External Orgs" %}</a></li>
+                      {% if request.is_officer or request.is_nat_officer %}
+                        <li><a class="dropdown-item" href="{% url 'users:orgs' %}">{% trans "External Orgs" %}</a></li>
+                      {% endif %}
                       {% if feature_awards_enabled %}
                         <li><hr class="dropdown-divider"></li>
                         <li><h6 class="dropdown-header">{% trans "Awards" %}</h6></li>

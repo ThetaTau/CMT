@@ -1,11 +1,12 @@
 # filters.py
 import django_filters
 
-from core.filters import DynamicScopeFilterSetMixin
+from core.filters import DateRangeFilter, DynamicScopeFilterSetMixin
+from core.models import ACTIVE_STATUSES
 from thetatauCMT.chapters.models import Chapter, ChapterCurricula
 from thetatauCMT.regions.models import Region
 
-from .models import User, UserRoleChange
+from .models import User, UserOrgParticipate, UserRoleChange
 
 
 class UserListFilterBase(django_filters.FilterSet):
@@ -189,4 +190,49 @@ class AdvisorListFilter(DynamicScopeFilterSetMixin, django_filters.FilterSet):
             queryset = queryset.filter(chapter__candidate_chapter=True)
         else:
             queryset = queryset.filter(chapter__region__slug=value)
+        return queryset
+
+
+ALUMNI_STATUSES = ["alumni", "alumniCC"]
+
+
+class UserOrgListFilter(django_filters.FilterSet):
+    """Filter the chapter external-organization table.
+
+    Mirrors the events list filter: a member-status toggle (defaulting to
+    active members), an organization-name search, and start/end date ranges.
+    """
+
+    status = django_filters.ChoiceFilter(
+        label="Member Status",
+        choices=(("active", "Active"), ("alumni", "Alumni"), ("all", "All")),
+        method="filter_status",
+        empty_label=None,
+    )
+    organization = django_filters.CharFilter(
+        field_name="organization__name",
+        lookup_expr="icontains",
+        label="Organization",
+    )
+    start = DateRangeFilter(field_name="start", label="Start")
+    end = DateRangeFilter(field_name="end", label="End")
+
+    class Meta:
+        model = UserOrgParticipate
+        fields = ["status", "organization", "start", "end"]
+        order_by = ["-start"]
+
+    def __init__(self, data=None, *args, **kwargs):
+        # Default to showing active members' participation when the page loads
+        # with no explicit status choice (including after "Clear").
+        if data is not None:
+            data = data.copy()
+            data.setdefault("status", "active")
+        super().__init__(data, *args, **kwargs)
+
+    def filter_status(self, queryset, field_name, value):
+        if value == "active":
+            return queryset.filter(user__current_status__in=ACTIVE_STATUSES)
+        if value == "alumni":
+            return queryset.filter(user__current_status__in=ALUMNI_STATUSES)
         return queryset

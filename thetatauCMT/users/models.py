@@ -4,6 +4,7 @@ from address.models import AddressField
 from django.conf import settings
 from django.contrib.auth.models import AbstractUser, Group, UserManager
 from django.contrib.postgres.fields import ArrayField
+from django.core.exceptions import ValidationError
 from django.core.validators import MaxValueValidator, MinValueValidator, RegexValidator
 from django.db import IntegrityError, models
 from django.urls import reverse
@@ -902,6 +903,32 @@ class UserRoleChange(StartEndModel, TimeStampedModel, EmailSignalMixin):
         )
 
 
+class Organization(TimeStampedModel):
+    """Shared registry of external organization names used on member participation.
+
+    Kept as a normalized model (mirroring :class:`forms.models.Employer`) so the
+    same organization can be re-selected across members; new entries can be
+    created inline via the autocomplete widget.
+    """
+
+    name = models.CharField(max_length=200, unique=True)
+
+    class Meta:
+        ordering = ["name"]
+        verbose_name = "Organization"
+        verbose_name_plural = "Organizations"
+
+    def __str__(self):
+        return self.name
+
+    def clean(self):
+        super().clean()
+        cleaned = (self.name or "").strip()
+        self.name = cleaned
+        if not cleaned:
+            raise ValidationError({"name": "Organization name is required."})
+
+
 class UserOrgParticipate(StartEndModel):
     TYPES = [
         ("pro", "Professional"),
@@ -922,8 +949,31 @@ class UserOrgParticipate(StartEndModel):
         related_name="org_modified",
     )
     org_name = models.CharField(max_length=50)
+    organization = models.ForeignKey(
+        Organization,
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True,
+        related_name="participations",
+    )
     type = models.CharField(max_length=3, choices=TYPES)
     officer = models.BooleanField(default=False)
+
+    def save(self, *args, **kwargs):
+        # Transitional two-way sync between the legacy free-text ``org_name``
+        # and the new ``Organization`` FK so both stay correct regardless of
+        # which entry form created the row. Removed once ``org_name`` is
+        # dropped in a later migration.
+        if self.organization_id and not self.org_name:
+            self.org_name = (self.organization.name or "")[:50]
+        elif self.org_name and not self.organization_id:
+            name = self.org_name.strip()
+            if name:
+                self.organization = (
+                    Organization.objects.filter(name__iexact=name).first()
+                    or Organization.objects.get_or_create(name=name)[0]
+                )
+        super().save(*args, **kwargs)
 
 
 class MemberUpdate(Process, EmailSignalMixin):

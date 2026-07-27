@@ -1,0 +1,29 @@
+{% extends "admin/base_site.html" %}
+{% load i18n %}
+
+{% block content %}
+  <p>
+    {% blocktranslate with name=opts.verbose_name_plural %}Choose the {{ name }} record to
+    keep. Every associated record from the other selected items will be repointed to it,
+    and the others will be permanently deleted. This cannot be undone.{% endblocktranslate %}
+  </p>
+  <form method="post">{% csrf_token %}
+    <ul style="list-style: none; padding-left: 0;">
+      {% for obj in objects %}
+        <li style="margin-bottom: .3rem;">
+          <label>
+            <input type="radio" name="canonical" value="{{ obj.pk }}"{% if forloop.first %} checked{% endif %}>
+            {{ obj }}
+          </label>
+          <input type="hidden" name="{{ action_checkbox_name }}" value="{{ obj.pk }}">
+        </li>
+      {% endfor %}
+    </ul>
+    <input type="hidden" name="action" value="merge_selected_records">
+    <input type="hidden" name="merge" value="1">
+    <div class="submit-row">
+      <input type="submit" class="default" value="{% translate 'Merge records' %}">
+      <a href="#" class="button cancel-link" onclick="history.back(); return false;">{% translate 'Cancel' %}</a>
+    </div>
+  </form>
+{% endblock %}

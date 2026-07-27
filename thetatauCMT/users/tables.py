@@ -1,7 +1,7 @@
 import django_tables2 as tables
 from django_tables2.utils import A
 
-from .models import User, UserStatusChange
+from .models import User, UserOrgParticipate, UserStatusChange
 
 
 class UserTable(tables.Table):
@@ -107,3 +107,32 @@ class RollBookTable(tables.Table):
             "other_degrees",
         )
         attrs = {"class": "table table-striped table-bordered"}
+
+
+class UserOrgTable(tables.Table):
+    user = tables.LinkColumn(
+        "users:profile",
+        kwargs={"username": A("user__username")},
+        accessor="user__name",
+        verbose_name="Member",
+    )
+    organization = tables.Column(verbose_name="Organization", accessor="organization__name")
+    officer = tables.BooleanColumn(verbose_name="Officer")
+    remove = tables.TemplateColumn(
+        template_name="users/org_remove_button.html",
+        orderable=False,
+        verbose_name="",
+    )
+
+    class Meta:
+        model = UserOrgParticipate
+        fields = (
+            "user",
+            "organization",
+            "type",
+            "officer",
+            "start",
+            "end",
+        )
+        attrs = {"class": "table table-striped table-bordered"}
+        empty_text = "No external organization participation has been submitted for this chapter yet."
