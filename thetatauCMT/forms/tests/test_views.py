@@ -2239,6 +2239,126 @@ def test_initiation_view_post_empty_formsets(auto_login_user):
     assert response.status_code == 200
 
 
+@pytest.mark.django_db
+def test_initiation_view_post_depledge_duplicate_does_not_500(auto_login_user):
+    """A depledge whose ``Depledge`` INSERT loses a concurrent double-submit race
+    raises ``IntegrityError: forms_depledge_user_id_key`` at save time (#782).
+    ``Depledge.user`` is a OneToOneField, but ModelForm ``validate_unique`` only
+    guards the already-committed case, so the report must skip the racing
+    duplicate with a warning instead of returning a 500."""
+    from unittest import mock
+
+    from django.contrib.messages import get_messages
+    from django.db import IntegrityError
+
+    from thetatauCMT.users.tests.factories import UserFactory
+
+    client, user = auto_login_user()
+    _add_to_group(user, "officer")
+    pnm = UserFactory.create(chapter=user.chapter)
+    pnm.set_current_status(status="pnm")
+
+    session = client.session
+    session["init-selection"] = {
+        "Initiate": [],
+        "Depledge": [pnm.pk],
+        "Defer": [],
+        "Roll": [],
+    }
+    session.save()
+
+    data = {
+        "chapter": user.current_chapter.name,
+        "initiates-TOTAL_FORMS": "0",
+        "initiates-INITIAL_FORMS": "0",
+        "initiates-MIN_NUM_FORMS": "0",
+        "initiates-MAX_NUM_FORMS": "1000",
+        "depledges-TOTAL_FORMS": "1",
+        "depledges-INITIAL_FORMS": "1",
+        "depledges-MIN_NUM_FORMS": "0",
+        "depledges-MAX_NUM_FORMS": "1000",
+        "depledges-0-reason": "grades",
+        "depledges-0-date": "2020-02-01",
+        "depledges-0-meeting_held": "na",
+        "depledges-0-meeting_not": "No meeting was required.",
+        "depledges-0-informed": "Informed by chapter officer via email.",
+        "depledges-0-returned_items": "na",
+    }
+    url = reverse("forms:initiation")
+    # Force the INSERT to fail the way the second of two concurrent submits would.
+    with mock.patch(
+        "thetatauCMT.forms.models.Depledge.save",
+        side_effect=IntegrityError("duplicate key value violates unique constraint"),
+    ):
+        response = client.post(url, data)
+    # The whole initiation report still completes (redirects) rather than 500-ing.
+    assert response.status_code == 302
+    stored = [str(m) for m in get_messages(response.wsgi_request)]
+    assert any("already depledged" in m for m in stored)
+
+
+@pytest.mark.django_db
+def test_initiation_view_post_initiate_duplicate_does_not_500(auto_login_user):
+    """An initiation whose ``Initiation`` INSERT loses a concurrent double-submit
+    race raises ``IntegrityError: forms_initiation_user_id_key`` at save time.
+    ``Initiation.user`` is a OneToOneField, so the report must skip the racing
+    duplicate with a warning instead of returning a 500 (same class as #782;
+    mirrors the depledge guard in the same view)."""
+    from unittest import mock
+
+    from django.contrib.messages import get_messages
+    from django.db import IntegrityError
+
+    from thetatauCMT.forms.tests.factories import BadgeFactory
+    from thetatauCMT.users.tests.factories import UserFactory
+
+    client, user = auto_login_user()
+    _add_to_group(user, "officer")
+    pnm = UserFactory.create(chapter=user.chapter)
+    pnm.set_current_status(status="pnm")
+    badge = BadgeFactory.create()
+    next_badge = user.current_chapter.next_badge_number()
+
+    session = client.session
+    session["init-selection"] = {
+        "Initiate": [pnm.pk],
+        "Depledge": [],
+        "Defer": [],
+        "Roll": [],
+    }
+    session.save()
+
+    data = {
+        "chapter": user.current_chapter.name,
+        "initiates-TOTAL_FORMS": "1",
+        "initiates-INITIAL_FORMS": "1",
+        "initiates-MIN_NUM_FORMS": "0",
+        "initiates-MAX_NUM_FORMS": "1000",
+        "initiates-0-date": "2020-02-01",
+        "initiates-0-date_graduation": "2024-05-01",
+        "initiates-0-roll": str(next_badge),
+        "initiates-0-gpa": "3.5",
+        "initiates-0-test_a": "90",
+        "initiates-0-test_b": "90",
+        "initiates-0-badge": str(badge.pk),
+        "depledges-TOTAL_FORMS": "0",
+        "depledges-INITIAL_FORMS": "0",
+        "depledges-MIN_NUM_FORMS": "0",
+        "depledges-MAX_NUM_FORMS": "1000",
+    }
+    url = reverse("forms:initiation")
+    # Force the INSERT to fail the way the second of two concurrent submits would.
+    with mock.patch(
+        "thetatauCMT.forms.models.Initiation.save",
+        side_effect=IntegrityError("duplicate key value violates unique constraint"),
+    ):
+        response = client.post(url, data)
+    # The whole initiation report still completes (redirects) rather than 500-ing.
+    assert response.status_code == 302
+    stored = [str(m) for m in get_messages(response.wsgi_request)]
+    assert any("already initiated" in m for m in stored)
+
+
 # ─── PrematureAlumnusCreateView GET (context_data) ────────────────────────────
 
 
@@ -3070,6 +3190,88 @@ def test_resignation_create_view_get_with_submitted_process(auto_login_user):
     url = reverse("viewflow:forms:resignation:start")
     response = client.get(url, follow=True)
     assert response.status_code == 200
+
+
+def _valid_resignation_post_data():
+    """Minimal valid ResignationForm POST payload (PDF letter + agreements).
+
+    ``b"%PDF-1.4 ..."`` passes ``upload_validator.FileTypeValidator`` (same trick
+    as ``test_bylaws_create_view_form_valid``); ``_viewflow_activation-started``
+    is the viewflow Start-view management form (ActivationDataForm), required so
+    the flow reaches ``form_valid`` (same trick as the nominations Start tests).
+    """
+    import io
+
+    from django.utils import timezone
+
+    letter = io.BytesIO(b"%PDF-1.4 fake pdf content")
+    letter.name = "letter.pdf"
+    return {
+        "letter": letter,
+        "resign": "True",
+        "secrets": "True",
+        "expel": "True",
+        "return_evidence": "True",
+        "obligation": "True",
+        "fee": "True",
+        "signature": "Test Member",
+        "_viewflow_activation-started": timezone.now().strftime("%Y-%m-%d %H:%M:%S"),
+    }
+
+
+@pytest.mark.django_db
+def test_resignation_create_view_duplicate_submit_blocked(auto_login_user):
+    """Re-submitting the resignation start form when the member already has a
+    ResignationProcess re-renders (200) with an error and writes no second row
+    (#833, ``exists`` pre-check path)."""
+    from thetatauCMT.forms.flows import ResignationFlow
+    from thetatauCMT.forms.models import ResignationProcess
+    from thetatauCMT.users.tests.factories import UserFactory
+
+    client, user = auto_login_user()
+    off1 = UserFactory.create(chapter=user.chapter)
+    off2 = UserFactory.create(chapter=user.chapter)
+    ResignationProcess.objects.create(
+        user=user,
+        chapter=user.chapter,
+        flow_class=ResignationFlow,
+        officer1=off1,
+        officer2=off2,
+    )
+    assert ResignationProcess.objects.filter(user=user).count() == 1
+
+    url = reverse("viewflow:forms:resignation:start")
+    response = client.post(url, _valid_resignation_post_data())
+    assert response.status_code == 200  # re-rendered, not a 302 success redirect
+    assert ResignationProcess.objects.filter(user=user).count() == 1  # no duplicate row
+    # The existing submission is recognized (its status is shown) instead of a
+    # second ResignationProcess being created.
+    assert "status of the form submission" in response.content.decode()
+
+
+@pytest.mark.django_db
+def test_resignation_create_view_integrityerror_is_caught(auto_login_user):
+    """A rapid double submit can slip past the ``exists`` pre-check (both requests
+    read no row, then both insert); the loser hits
+    ``IntegrityError: forms_resignationprocess_user_id_key``. The view must catch
+    it and re-render (200) instead of returning a 500 (#833 race path)."""
+    from unittest import mock
+
+    from django.db import IntegrityError
+
+    from thetatauCMT.forms.models import ResignationProcess
+
+    client, user = auto_login_user()
+    _create_all_chapter_officers(user.chapter)
+    url = reverse("viewflow:forms:resignation:start")
+    with mock.patch(
+        "thetatauCMT.forms.views.CreateProcessView.form_valid",
+        side_effect=IntegrityError("duplicate key value violates unique constraint"),
+    ):
+        response = client.post(url, _valid_resignation_post_data())
+    assert response.status_code == 200
+    assert "already exists" in response.content.decode()
+    assert ResignationProcess.objects.filter(user=user).count() == 0
 
 
 # ─── PledgeProgramListView CSV with officers (lines 1403-1406) ───────────────

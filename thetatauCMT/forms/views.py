@@ -476,13 +476,44 @@ class InitiationView(LoginRequiredMixin, OfficerRequiredMixin, FormView):
         depledge_list = []
         initiations = []
         for form in formset:
+            # ``Initiation.user`` is a OneToOneField, so a concurrent double
+            # submit of the initiation report (two requests processing the same
+            # selection) makes the second INSERT violate
+            # ``forms_initiation_user_id_key``. Skip the already-initiated member
+            # instead of 500-ing the whole report (mirrors the depledge guard
+            # below; same double-submit class as #782).
             form.instance.chapter = self.request.user.current_chapter
-            form.save()
-            update_list.append(form.instance.user)
+            member = form.instance.user
+            try:
+                with transaction.atomic():
+                    form.save()
+            except IntegrityError:
+                messages.add_message(
+                    request,
+                    messages.WARNING,
+                    f"{member} was already initiated; skipped the duplicate initiation.",
+                )
+                continue
+            update_list.append(member)
             initiations.append(form.instance)
         for form in depledge_formset:
-            form.save()
-            depledge_list.append(form.instance.user)
+            # ``Depledge.user`` is a OneToOneField. A rapid double submit (or
+            # re-depledging a PNM who was re-added after a prior depledge) tries
+            # to insert a second Depledge for the same member and raises
+            # ``IntegrityError: forms_depledge_user_id_key`` (#782). Skip the
+            # duplicate instead of 500-ing the whole initiation report.
+            member = form.instance.user
+            try:
+                with transaction.atomic():
+                    form.save()
+            except IntegrityError:
+                messages.add_message(
+                    request,
+                    messages.WARNING,
+                    f"{member} was already depledged; skipped the duplicate depledge.",
+                )
+                continue
+            depledge_list.append(member)
         Task.mark_complete(name="Initiation Report", chapter=self.request.user.current_chapter)
         if update_list:
             messages.add_message(
@@ -3146,7 +3177,17 @@ class ResignationCreateView(LoginRequiredMixin, CreateProcessView, AssignOfficer
         chapter = user.current_chapter
         officers = chapter.get_current_officers_council_specific()
         self.assign_officers_form([user], form, officers)
-        return super().form_valid(form)
+        try:
+            with transaction.atomic():
+                return super().form_valid(form)
+        except IntegrityError:
+            # ``user`` is a OneToOneField, so the ``exists`` check above is a
+            # check-then-create that a rapid double submit can slip past (both
+            # requests read no row, then both insert). The loser of that race
+            # violates ``forms_resignationprocess_user_id_key`` (#833); treat it
+            # as an already-submitted resignation instead of returning a 500.
+            form.add_error(None, f"Resignation already exists for user {user}")
+            return self.render_to_response(self.get_context_data(form=form))
 
     def get_context_data(self, *args, **kwargs):
         context = super().get_context_data(**kwargs)
