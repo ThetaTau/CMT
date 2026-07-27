@@ -2148,6 +2148,43 @@ def test_role_change_view_post_empty_formset(auto_login_user):
     assert response.status_code == 200
 
 
+@pytest.mark.django_db
+def test_role_change_view_post_creates_officer_role(auto_login_user, user_factory):
+    """A valid officer-election submit still creates the role and updates
+    ``current_roles`` after the deadlock hardening (issues #825/#858/#859/#982):
+    the save runs inside ``retry_on_deadlock`` with a deterministic
+    ``select_for_update().order_by("pk")`` lock, and this is the happy path."""
+    from django.utils import timezone
+
+    from thetatauCMT.users.models import UserRoleChange
+
+    client, user = auto_login_user()
+    member = user_factory.create(chapter=user.chapter)
+    # Deterministic starting point regardless of any reused-DB chapter officers.
+    UserRoleChange.objects.filter(user__chapter=user.chapter).delete()
+    start = timezone.now().date()
+    end = start + timezone.timedelta(days=365)
+    url = reverse("forms:officer")
+    data = {
+        "form-TOTAL_FORMS": "1",
+        "form-INITIAL_FORMS": "0",
+        "form-MIN_NUM_FORMS": "0",
+        "form-MAX_NUM_FORMS": "1000",
+        # A committee-chair role avoids the treasurer-term policy, the Vector
+        # LMS sync, and the New Officer email, keeping the test focused on the
+        # role save path itself.
+        "form-0-user": str(member.pk),
+        "form-0-role": "events chair",
+        "form-0-start": start.strftime("%m/%d/%Y"),
+        "form-0-end": end.strftime("%m/%d/%Y"),
+    }
+    response = client.post(url, data, follow=True)
+    assert response.status_code == 200
+    assert UserRoleChange.objects.filter(user=member, role="events chair").exists()
+    member.refresh_from_db()
+    assert "events chair" in (member.current_roles or [])
+
+
 # ─── RoleChangeNationalView POST with empty formset ──────────────────────────
 
 

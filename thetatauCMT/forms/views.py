@@ -48,7 +48,7 @@ from core.models import (
     semester_encompass_start_end_date,
 )
 from core.notifications import GenericEmail
-from core.utils import retry_google_api
+from core.utils import retry_google_api, retry_on_deadlock
 from core.views import (
     AssignOfficerFormMixin,
     LoginRequiredMixin,
@@ -872,19 +872,47 @@ class RoleChangeView(LoginRequiredMixin, ModelFormSetView):
         return context
 
     def formset_valid(self, formset, delete_only=False):
-        delete_list = []
+        # Concurrent officer-election submissions used to update the same
+        # ``users_user`` rows (via ``UserRoleChange.save`` -> ``User.save``) in
+        # opposite order and deadlock (issues #825/#858/#859/#982). Acquire the
+        # affected member rows up front in a deterministic primary-key order so
+        # two requests can never grab them in opposite order, and retry the
+        # whole write once if PostgreSQL still reports a deadlock. Side effects
+        # below (Vector LMS sync, emails, messages) run AFTER the retried write
+        # so a retry can never duplicate them.
+        delete_instances = []
         for obj in formset.deleted_forms:
             # We don't want to delete the value, just make them not current
             # We also do not care about form, just get obj
-            instance = None
             try:
                 instance = obj.clean()["id"]
             except KeyError:
                 continue
             if instance:
+                delete_instances.append(instance)
+        forms_to_save = []
+        if not delete_only:
+            forms_to_save = [f for f in formset.forms if f.changed_data and "DELETE" not in f.changed_data]
+        affected_user_ids = sorted(
+            {i.user_id for i in delete_instances if i.user_id}
+            | {f.instance.user_id for f in forms_to_save if f.instance.user_id}
+        )
+
+        def _persist():
+            if affected_user_ids:
+                # Force-evaluate to lock every affected member row now, in pk
+                # order — the deterministic ordering that prevents the deadlock.
+                list(User.objects.select_for_update().filter(pk__in=affected_user_ids).order_by("pk"))
+            removed = []
+            for instance in delete_instances:
                 instance.end = timezone.now() - timezone.timedelta(days=2)
                 instance.save()
-                delete_list.append(instance.user)
+                removed.append(instance.user)
+            for form in forms_to_save:
+                form.save()
+            return removed
+
+        delete_list = retry_on_deadlock(_persist, description="officer role update")
         if delete_list:
             messages.add_message(
                 self.request,
@@ -892,59 +920,56 @@ class RoleChangeView(LoginRequiredMixin, ModelFormSetView):
                 "You successfully removed the officers:\n" f"{delete_list}",
             )
         if not delete_only:
-            # instances = formset.save(commit=False)
             update_list = []
             officer_list = []
-            for form in formset.forms:
-                if form.changed_data and "DELETE" not in form.changed_data:
-                    form.save()
-                    update_list.append(form.instance.user)
-                    role_name = form.instance.role
-                    if role_name in [
-                        "pledge/new member educator",
-                        "risk management chair",
-                    ]:
-                        # Syncing to the external Vector LMS is a best-effort side
-                        # effect; the officer role change above is already saved. A
-                        # training-system outage must never turn this into a 500
-                        # (see issue #1086), so surface a retry message instead.
-                        try:
-                            Training.add_user(
-                                form.instance.user,
-                                extra_group=role_name,
-                                request=self.request,
-                            )
-                        except Exception:
-                            logger.exception(
-                                "Training sync failed during officer update for %s",
-                                form.instance.user,
-                            )
-                            messages.add_message(
-                                self.request,
-                                messages.WARNING,
-                                "The officer role was saved, but the training system "
-                                f"could not be updated for {form.instance.user}. "
-                                "Please try again later.",
-                            )
-                    if role_name in COL_OFFICER_ALIGN:
-                        role_name = COL_OFFICER_ALIGN[role_name]
-                    if role_name in CHAPTER_OFFICER:
-                        officer_list.append(form.instance.user)
-                    # Treasurer terms must run January-to-January per policy.
-                    # When an officer acknowledged the exception and supplied a
-                    # reason, notify the Grand Treasurer, regional directors and
-                    # Central Office.
-                    exception_reason = (form.cleaned_data.get("treasurer_term_exception_reason") or "").strip()
-                    if exception_reason and treasurer_term_violation(
-                        form.instance.role,
-                        form.instance.start,
-                        form.instance.end,
-                    ):
-                        TreasurerTermException(
-                            role_change=form.instance,
-                            reason=exception_reason,
-                            submitted_by=self.request.user,
-                        ).send()
+            for form in forms_to_save:
+                update_list.append(form.instance.user)
+                role_name = form.instance.role
+                if role_name in [
+                    "pledge/new member educator",
+                    "risk management chair",
+                ]:
+                    # Syncing to the external Vector LMS is a best-effort side
+                    # effect; the officer role change above is already saved. A
+                    # training-system outage must never turn this into a 500
+                    # (see issue #1086), so surface a retry message instead.
+                    try:
+                        Training.add_user(
+                            form.instance.user,
+                            extra_group=role_name,
+                            request=self.request,
+                        )
+                    except Exception:
+                        logger.exception(
+                            "Training sync failed during officer update for %s",
+                            form.instance.user,
+                        )
+                        messages.add_message(
+                            self.request,
+                            messages.WARNING,
+                            "The officer role was saved, but the training system "
+                            f"could not be updated for {form.instance.user}. "
+                            "Please try again later.",
+                        )
+                if role_name in COL_OFFICER_ALIGN:
+                    role_name = COL_OFFICER_ALIGN[role_name]
+                if role_name in CHAPTER_OFFICER:
+                    officer_list.append(form.instance.user)
+                # Treasurer terms must run January-to-January per policy.
+                # When an officer acknowledged the exception and supplied a
+                # reason, notify the Grand Treasurer, regional directors and
+                # Central Office.
+                exception_reason = (form.cleaned_data.get("treasurer_term_exception_reason") or "").strip()
+                if exception_reason and treasurer_term_violation(
+                    form.instance.role,
+                    form.instance.start,
+                    form.instance.end,
+                ):
+                    TreasurerTermException(
+                        role_change=form.instance,
+                        reason=exception_reason,
+                        submitted_by=self.request.user,
+                    ).send()
             Task.mark_complete(
                 name="Officer Election Report",
                 chapter=self.request.user.current_chapter,
@@ -1022,39 +1047,58 @@ class RoleChangeNationalView(LoginRequiredMixin, SuperuserRequiredMixin, ModelFo
         return context
 
     def formset_valid(self, formset, delete_only=False):
-        delete_list = []
+        # Same deadlock hardening as ``RoleChangeView.formset_valid`` — see that
+        # method for the full rationale (issues #825/#858/#859/#982). Lock the
+        # affected member rows in a deterministic pk order and retry the write
+        # once on deadlock; the Vector LMS sync and messages run afterwards so a
+        # retry cannot duplicate them.
+        delete_instances = []
         for obj in formset.deleted_forms:
             # We don't want to delete the value, just make them not current
             # We also do not care about form, just get obj
-            instance = None
             try:
                 instance = obj.clean()["id"]
             except KeyError:
                 continue
             if instance:
+                delete_instances.append(instance)
+        forms_to_save = []
+        if not delete_only:
+            forms_to_save = [f for f in formset.forms if f.changed_data and "DELETE" not in f.changed_data]
+        affected_user_ids = sorted(
+            {i.user_id for i in delete_instances if i.user_id}
+            | {f.instance.user_id for f in forms_to_save if f.instance.user_id}
+        )
+
+        def _persist():
+            if affected_user_ids:
+                list(User.objects.select_for_update().filter(pk__in=affected_user_ids).order_by("pk"))
+            removed = []
+            for instance in delete_instances:
                 instance.end = timezone.now() - timezone.timedelta(days=2)
                 instance.save()
-                delete_list.append(instance.user)
+                removed.append(instance.user)
+            saved_users = []
+            for form in forms_to_save:
+                form.save()
+                saved_users.append(form.instance.user)
+            return removed, saved_users
+
+        delete_list, update_list = retry_on_deadlock(_persist, description="national officer role update")
         if delete_list:
             messages.add_message(
                 self.request,
                 messages.INFO,
                 "You successfully removed the officers:\n" f"{delete_list}",
             )
-        if not delete_only:
-            update_list = []
-            for form in formset.forms:
-                if form.changed_data and "DELETE" not in form.changed_data:
-                    form.save()
-                    update_list.append(form.instance.user)
-            if update_list:
-                for user in update_list:
-                    Training.add_user_ed(user, self.request)
-                messages.add_message(
-                    self.request,
-                    messages.INFO,
-                    "You successfully updated the officers:\n" f"{update_list}",
-                )
+        if not delete_only and update_list:
+            for user in update_list:
+                Training.add_user_ed(user, self.request)
+            messages.add_message(
+                self.request,
+                messages.INFO,
+                "You successfully updated the officers:\n" f"{update_list}",
+            )
         return HttpResponseRedirect(self.get_success_url())
 
 
