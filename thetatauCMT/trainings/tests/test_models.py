@@ -2,9 +2,11 @@ import datetime
 import json
 
 import pytest
+from django.contrib import messages
 from django.utils import timezone
 
-from thetatauCMT.trainings.models import Training
+import core.requests as core_requests
+from thetatauCMT.trainings.models import Training, TrainingSystemUnavailable, _lms_response_json, _post_lms_json
 
 
 @pytest.mark.django_db
@@ -361,3 +363,175 @@ def test_get_location_position_ids_missing_location_returns_none(monkeypatch):
     location_id, position_id = Training.get_location_position_ids("active", "Nonexistent Chapter")
     assert location_id is None
     assert position_id == "pos-1"
+
+
+# ---------------------------------------------------------------------------
+# Cluster A — Vector LMS client hardening (issues #840 #862 #877 #879 #917
+# #918 #979 #1004). One shared helper POSTs, retries transient 5xx, and turns
+# an unreachable / empty / non-JSON response into a friendly message instead of
+# a JSONDecodeError / IndexError 500.
+# ---------------------------------------------------------------------------
+
+
+class _LMSResponse:
+    """Configurable ``requests``-style stand-in for Vector LMS responses."""
+
+    def __init__(self, status_code=200, reason="OK", body=None, raise_json=False):
+        self.status_code = status_code
+        self.reason = reason
+        self._body = body if body is not None else {}
+        self._raise_json = raise_json
+
+    def json(self):
+        if self._raise_json:
+            raise json.JSONDecodeError("Expecting value", "", 0)
+        return self._body
+
+
+def _raise_unavailable(*args, **kwargs):
+    raise TrainingSystemUnavailable("training system down")
+
+
+def test_post_lms_json_retries_transient_5xx_then_succeeds(monkeypatch):
+    """A transient 502 is retried with backoff and the eventual JSON is returned."""
+    calls = []
+
+    def fake_post(url, **kwargs):
+        calls.append(url)
+        if len(calls) < 3:
+            return _LMSResponse(status_code=502, reason="Bad Gateway")
+        return _LMSResponse(body={"data": {"ok": True}})
+
+    monkeypatch.setattr("thetatauCMT.trainings.models.requests.post", fake_post)
+    monkeypatch.setattr("thetatauCMT.trainings.models.sleep", lambda *a, **k: None)
+
+    result = _post_lms_json("https://lms/graphql/", json={"query": "x"})
+    assert result == {"data": {"ok": True}}
+    assert len(calls) == 3  # two 502s then success
+
+
+def test_post_lms_json_raises_after_persistent_5xx(monkeypatch):
+    """A 5xx that never clears surfaces as TrainingSystemUnavailable, not a 500."""
+    monkeypatch.setattr(
+        "thetatauCMT.trainings.models.requests.post",
+        lambda url, **kwargs: _LMSResponse(status_code=503, reason="Service Unavailable"),
+    )
+    monkeypatch.setattr("thetatauCMT.trainings.models.sleep", lambda *a, **k: None)
+
+    with pytest.raises(TrainingSystemUnavailable):
+        _post_lms_json("https://lms/graphql/", json={"query": "x"}, attempts=3)
+
+
+def test_post_lms_json_raises_on_non_json_body(monkeypatch):
+    """An empty / HTML (non-JSON) 200 body raises TrainingSystemUnavailable."""
+    monkeypatch.setattr(
+        "thetatauCMT.trainings.models.requests.post",
+        lambda url, **kwargs: _LMSResponse(status_code=200, raise_json=True),
+    )
+    with pytest.raises(TrainingSystemUnavailable):
+        _post_lms_json("https://lms/graphql/", json={"query": "x"})
+
+
+def test_post_lms_json_raises_on_connection_error(monkeypatch):
+    """A connection error is retried then raised as TrainingSystemUnavailable."""
+
+    def boom(url, **kwargs):
+        raise core_requests.RequestException("no route to host")
+
+    monkeypatch.setattr("thetatauCMT.trainings.models.requests.post", boom)
+    monkeypatch.setattr("thetatauCMT.trainings.models.sleep", lambda *a, **k: None)
+
+    with pytest.raises(TrainingSystemUnavailable):
+        _post_lms_json("https://lms/graphql/", json={"query": "x"}, attempts=2)
+
+
+def test_lms_response_json_raises_on_error_status():
+    """A non-2xx status is treated as an outage even when a body is present."""
+    with pytest.raises(TrainingSystemUnavailable):
+        _lms_response_json(_LMSResponse(status_code=502, reason="Bad Gateway"), "test")
+
+
+def test_get_location_position_ids_gateway_error_raises(monkeypatch):
+    """A gateway / non-JSON Locations response raises TrainingSystemUnavailable
+    instead of the old JSONDecodeError 500 (Cluster A: #840 #862 #879 #917)."""
+    monkeypatch.setattr(Training, "authenticate_header", staticmethod(lambda: {"Authorization": "x"}))
+    monkeypatch.setattr("thetatauCMT.trainings.models.sleep", lambda *a, **k: None)
+    monkeypatch.setattr(
+        "thetatauCMT.trainings.models.requests.post",
+        lambda url, **kwargs: _LMSResponse(status_code=200, raise_json=True),
+    )
+    with pytest.raises(TrainingSystemUnavailable):
+        Training.get_location_position_ids("active", "Some Chapter")
+
+
+def test_get_extra_groups_raises_on_outage(monkeypatch):
+    """get_extra_groups surfaces an outage as TrainingSystemUnavailable so the admin
+    'Assign Member Training' action falls back to the NONE group (#840)."""
+    monkeypatch.setattr(Training, "authenticate_header", staticmethod(lambda: {"Authorization": "x"}))
+    monkeypatch.setattr("thetatauCMT.trainings.models.sleep", lambda *a, **k: None)
+    monkeypatch.setattr(
+        "thetatauCMT.trainings.models.requests.post",
+        lambda url, **kwargs: _LMSResponse(status_code=500, reason="Server Error"),
+    )
+    with pytest.raises(TrainingSystemUnavailable):
+        Training.get_extra_groups()
+
+
+def test_authenticate_header_non_json_token_raises(monkeypatch, settings, tmp_path):
+    """A non-JSON token response raises TrainingSystemUnavailable, not JSONDecodeError (#1004)."""
+    # Point ROOT_DIR at an empty tmp dir so the (missing) cached key forces a refresh.
+    settings.ROOT_DIR = tmp_path
+    settings.LMS_ID = "id"
+    settings.LMS_SECRET = "secret"
+    monkeypatch.setattr("thetatauCMT.trainings.models.sleep", lambda *a, **k: None)
+    monkeypatch.setattr(
+        "thetatauCMT.trainings.models.requests.post",
+        lambda url, **kwargs: _LMSResponse(status_code=200, raise_json=True),
+    )
+    with pytest.raises(TrainingSystemUnavailable):
+        Training.authenticate_header()
+
+
+@pytest.mark.django_db
+def test_add_user_soft_fails_when_lms_unavailable(auto_login_user, rf, monkeypatch):
+    """When the LMS is unreachable, add_user degrades to a WARNING message and
+    returns None instead of 500ing the officer/admin/form POST (#840 #979)."""
+    _, user = auto_login_user()
+    monkeypatch.setattr(Training, "authenticate_header", staticmethod(lambda: {"Authorization": "x"}))
+    monkeypatch.setattr(Training, "get_location_position_ids", staticmethod(_raise_unavailable))
+
+    recorded = []
+    monkeypatch.setattr(
+        "thetatauCMT.trainings.models.messages.add_message",
+        lambda request, level, message, *a, **k: recorded.append((level, message)),
+    )
+
+    result = Training.add_user(user, request=rf.post("/"))
+
+    assert result is None
+    assert len(recorded) == 1
+    level, msg = recorded[0]
+    assert level == messages.WARNING
+    assert "unavailable" in msg.lower()
+
+
+@pytest.mark.django_db
+def test_deactivate_user_soft_fails_when_lms_unavailable(auto_login_user, rf, monkeypatch):
+    """A Vector LMS outage during depledge / resignation deactivation must not 500."""
+    _, user = auto_login_user()
+    # authenticate_header is the first LMS call inside _deactivate_user.
+    monkeypatch.setattr(Training, "authenticate_header", staticmethod(_raise_unavailable))
+
+    recorded = []
+    monkeypatch.setattr(
+        "thetatauCMT.trainings.models.messages.add_message",
+        lambda request, level, message, *a, **k: recorded.append((level, message)),
+    )
+
+    result = Training.deactivate_user(user, request=rf.post("/"))
+
+    assert result is None
+    assert len(recorded) == 1
+    level, msg = recorded[0]
+    assert level == messages.WARNING
+    assert "unavailable" in msg.lower()
