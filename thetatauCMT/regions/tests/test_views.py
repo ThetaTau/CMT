@@ -173,6 +173,39 @@ def test_region_task_view_natoff(auto_login_user):
 
 
 @pytest.mark.django_db
+def test_region_task_view_excludes_deactivated_chapters(auto_login_user):
+    """Deactivated chapters must not appear as columns on the region tasks page."""
+    from thetatauCMT.chapters.tests.factories import ChapterFactory
+
+    client, user = auto_login_user(make_officer="national")
+    _make_natoff(user, client)
+    region = user.current_chapter.region
+
+    # Set region/active explicitly after creation because ChapterFactory uses
+    # django_get_or_create=("name",); a name collision would otherwise drop the
+    # region= / active= kwargs and return an existing row.
+    active_chapter = ChapterFactory(name="alpha", region=region)
+    active_chapter.region = region
+    active_chapter.active = True
+    active_chapter.save(update_fields=["region", "active"])
+
+    deactivated_chapter = ChapterFactory(name="beta", region=region)
+    deactivated_chapter.region = region
+    deactivated_chapter.active = False
+    deactivated_chapter.save(update_fields=["region", "active"])
+
+    url = reverse("regions:tasks", kwargs={"slug": region.slug})
+    response = client.get(url)
+    assert response.status_code == 200
+
+    column_names = [column.name for column in response.context["table"].columns]
+    active_col = f"{active_chapter.name.replace(' ', '_')}_complete_link"
+    deactivated_col = f"{deactivated_chapter.name.replace(' ', '_')}_complete_link"
+    assert active_col in column_names
+    assert deactivated_col not in column_names
+
+
+@pytest.mark.django_db
 def test_region_officer_view_email_list_includes_generic(auto_login_user):
     """Region officers "Copy emails" includes each officer's generic chapter mailbox."""
     from thetatauCMT.chapters.tests.factories import ChapterFactory

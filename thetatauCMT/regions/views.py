@@ -351,7 +351,7 @@ class RegionTaskView(LoginRequiredMixin, NatOfficerRequiredMixin, DetailView):
             for task in self.filter.qs
         ]
         extra_columns = []
-        for chapter in self.object.chapters.all():
+        for chapter in self.object.chapters.exclude(active=False):
             qs = TaskDate.dates_for_chapter(chapter)
             chapter_name = chapter.name.replace(" ", "_")
             column_link = f"{chapter_name}_complete_link"
