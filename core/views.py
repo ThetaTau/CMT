@@ -208,11 +208,14 @@ class TypeFieldFilteredChapterAdd(FormMixin):
     def get_form(self, form_class=None):
         form = super().get_form(form_class)
         slug = self.kwargs.get("slug")
-        if slug:
-            score_obj = ScoreType.objects.filter(slug=slug)
+        score_obj = ScoreType.objects.filter(slug=slug) if slug else ScoreType.objects.none()
+        if score_obj:
             form.initial = {"type": score_obj[0].pk}
             form.fields["type"].queryset = score_obj
         else:
+            # A stale/unknown ScoreType slug (the row was renamed or deleted)
+            # used to IndexError on ``score_obj[0]`` (issue #1033); fall back to
+            # the default type dropdown instead of 500-ing.
             form.fields["type"].queryset = ScoreType.objects.filter(type=self.score_type).all().exclude(slug="article")
         return form
 

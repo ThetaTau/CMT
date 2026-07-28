@@ -114,4 +114,10 @@ def invoice_search(invoice_number, customer, client=None):
         invoice.CustomerMemo = CustomerMemo()
     else:
         linenumber_count = len(invoice.Line)
+        # An existing QuickBooks invoice can come back with no CustomerMemo
+        # (it is None). Callers then read/write ``invoice.CustomerMemo.value``,
+        # which raised ``AttributeError: 'NoneType' ...`` (issue #973).
+        # Materialise an empty memo here so every caller is safe.
+        if invoice.CustomerMemo is None:
+            invoice.CustomerMemo = CustomerMemo()
     return invoice, linenumber_count

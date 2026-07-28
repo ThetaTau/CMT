@@ -73,7 +73,10 @@ class ChapterNoteDetailView(LoginRequiredMixin, MultiFormsView):
         for instance in instances:
             instance.parent = self.object
             instance.chapter = self.object.chapter
-            if instance.created_by is None:
+            # ``created_by`` is a non-null FK, so reading ``instance.created_by``
+            # on an unsaved sub-note raised RelatedObjectDoesNotExist (issue
+            # #888). Check the id column, which is simply None when unset.
+            if instance.created_by_id is None:
                 instance.created_by = self.request.user
             instance.modified_by = self.request.user
             instance.save()

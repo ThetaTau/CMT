@@ -163,3 +163,31 @@ def test_chapter_note_create_view_post_form_valid(auto_login_user):
         from thetatauCMT.notes.models import ChapterNote
 
         assert ChapterNote.objects.filter(title="New Note Title").exists()
+
+
+@pytest.mark.django_db
+def test_chapter_note_subnotes_post_sets_created_by(auto_login_user):
+    """Adding a sub-note sets ``created_by`` instead of raising.
+
+    ``subnotes_form_valid`` read ``instance.created_by`` (a non-null FK) on an
+    unsaved sub-note, which raised RelatedObjectDoesNotExist (issue #888).
+    """
+    client, user = auto_login_user()
+    note = _create_chapter_note(user)
+    url = reverse("notes:detail", kwargs={"pk": note.pk})
+    post_data = {
+        "action": "subnotes",
+        "form-TOTAL_FORMS": "1",
+        "form-INITIAL_FORMS": "0",
+        "form-MIN_NUM_FORMS": "0",
+        "form-MAX_NUM_FORMS": "1000",
+        "form-0-title": "Child sub-note",
+        "form-0-type": "note",
+        "form-0-note": "<p>child</p>",
+        "form-0-restricted": "",
+    }
+    response = client.post(url, post_data)
+    assert response.status_code in (200, 302)
+    child = ChapterNote.objects.filter(title="Child sub-note", parent=note).first()
+    assert child is not None
+    assert child.created_by_id == user.id

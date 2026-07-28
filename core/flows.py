@@ -2,7 +2,7 @@ import datetime
 import re
 
 from django.db.models import Q
-from django.urls import reverse
+from django.urls import NoReverseMatch, reverse
 from django.utils.safestring import mark_safe
 from material.frontend import frontend_url
 from viewflow import flow, frontend
@@ -12,6 +12,30 @@ from viewflow.flow import views as flow_views
 from viewflow.flow.views.mixins import FlowListMixin
 from viewflow.frontend.views import ProcessListView
 from viewflow.frontend.viewset import FlowViewSet
+from viewflow.fsm import TransitionNotAllowed
+
+
+def complete_activation(activation):
+    """Complete a viewflow task/start activation, tolerating a task that was
+    already completed by a concurrent or duplicate submit.
+
+    ``Activation.done()`` marks the task finished and then calls
+    ``activate_next()``, whose ``all_leading_canceled`` condition raises
+    ``TransitionNotAllowed`` when the following task already exists -- i.e. the
+    same task node was submitted twice and a first (possibly concurrent) request
+    already advanced the process (#980, disciplinary "Submit Form 2"). viewflow's
+    task dispatch already redirects gracefully for a *sequential* re-submit
+    (``prepare.can_proceed()`` is False once the task is DONE); this guards the
+    *concurrent* race that slips past that check.
+
+    Returns ``True`` when this call advanced the process, ``False`` when the task
+    had already been completed.
+    """
+    try:
+        activation.done()
+    except TransitionNotAllowed:
+        return False
+    return True
 
 
 class AutoAssignUpdateProcessView(flow_views.UpdateProcessView):
@@ -224,12 +248,23 @@ class FilterProcessListView(ProcessListView, FlowListMixin):
     def get_task_url(self, task, url_type=None):
         namespace = self.request.resolver_match.namespace
         if task.flow_task:
-            return task.flow_task.get_task_url(
-                task,
-                url_type=url_type if url_type else "guess",
-                user=self.request.user,
-                namespace=namespace,
-            )
+            try:
+                return task.flow_task.get_task_url(
+                    task,
+                    url_type=url_type if url_type else "guess",
+                    user=self.request.user,
+                    namespace=namespace,
+                )
+            except (AttributeError, NoReverseMatch):
+                # A stale task can reference viewflow node state that no longer
+                # matches the current flow definition -- e.g. the DB task has an
+                # ``owner_permission`` but the node was later redefined without a
+                # ``.Permission()``, so viewflow's ``View.can_assign`` reads an
+                # unset ``self._owner_permission_obj`` (#952) -- or a task URL
+                # name was renamed (NoReverseMatch). This method only builds the
+                # process-list link, so degrade to no link instead of 500ing the
+                # whole listing.
+                return ""
         else:
             return ""
 

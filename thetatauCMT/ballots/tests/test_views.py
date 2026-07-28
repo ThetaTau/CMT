@@ -216,3 +216,18 @@ def test_ballot_vote_view_user_without_role_gets_error(auto_login_user):
     response = client.get(url)
     # Could be 200 or 302 depending on mixin
     assert response.status_code in (200, 302)
+
+
+@pytest.mark.django_db
+def test_ballot_vote_view_missing_ballot_returns_404(auto_login_user):
+    """Voting on a non-existent ballot slug returns 404, not a 500.
+
+    ``BallotCompleteCreateView.get_context_data`` did
+    ``Ballot.objects.get(slug=...)`` which raised Ballot.DoesNotExist (issue
+    #922); it now uses ``get_object_or_404``.
+    """
+    client, user = auto_login_user(make_officer="regent")
+    _make_officer(user, client)
+    url = reverse("ballots:vote", kwargs={"slug": "this-ballot-does-not-exist"})
+    response = client.get(url)
+    assert response.status_code == 404

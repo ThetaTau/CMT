@@ -290,3 +290,30 @@ def test_update_func_no_email_when_user_is_none():
             flow_instance.update_func(activation)
 
     MockEmail.assert_not_called()
+
+
+# ---------------------------------------------------------------------------
+# continue_process — missing / already-advanced delay task (#975)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.django_db
+def test_continue_process_no_op_when_delay_task_missing():
+    """Regression for #975.
+
+    ``MemberUpdateFlow.continue_process`` looks up the parked ``delay`` task via
+    ``process.get_task(cls.delay)``, which raises ``Task.DoesNotExist`` when no
+    active delay task exists -- the member clicked the emailed approve/deny link
+    twice, the scheduled command already ran the delay, or the process took the
+    manual-match branch and never parked at ``delay``.  It must no-op instead of
+    500ing.
+    """
+    from thetatauCMT.users.flows import MemberUpdateFlow
+    from thetatauCMT.users.models import MemberUpdate
+
+    process = MemberUpdate.objects.create(flow_class=MemberUpdateFlow)
+
+    # No active ``delay`` task exists for this process, so the internal
+    # get_task() lookup raises Task.DoesNotExist -- which continue_process must
+    # swallow and return None rather than propagate.
+    assert MemberUpdateFlow.continue_process(process.pk) is None

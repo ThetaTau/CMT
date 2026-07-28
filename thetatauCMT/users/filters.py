@@ -192,6 +192,14 @@ class AdvisorListFilter(DynamicScopeFilterSetMixin, django_filters.FilterSet):
             queryset = queryset.filter(chapter__region__slug=value)
         return queryset
 
+    def filter_chapter(self, queryset, field_name, value):
+        # The declared ``chapter`` ChoiceFilter references this method; without
+        # it django-filter raised AssertionError when the advisor list rendered
+        # (issue #827).
+        if value:
+            queryset = queryset.filter(chapter__slug=value)
+        return queryset
+
 
 ALUMNI_STATUSES = ["alumni", "alumniCC"]
 

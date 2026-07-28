@@ -527,3 +527,50 @@ def test_pledge_program_approve_func_survives_drive_failure():
     # No PDF was attached because the export never succeeded.
     program.refresh_from_db()
     assert not program.other_manual
+
+
+@pytest.mark.django_db
+def test_email_process_update_skips_empty_other_manual():
+    """Approving a pledge program whose ``other_manual`` is empty must not raise
+    "attribute has no file associated with it" (issue #883).
+
+    The original crash accessed ``program.other_manual.file`` directly. The
+    process-update email's attachment resolver skips FileFields with no file via
+    ``if file.name``; this locks that in for an empty ``other_manual``.
+    """
+    from viewflow.activation import STATUS
+    from viewflow.models import Task as FlowTask
+
+    from thetatauCMT.forms.flows import PledgeProgramProcessFlow
+    from thetatauCMT.forms.models import PledgeProgramProcess
+    from thetatauCMT.forms.notifications import EmailProcessUpdate
+    from thetatauCMT.forms.tests.factories import PledgeProgramFactory
+    from thetatauCMT.users.tests.factories import UserFactory
+
+    program = PledgeProgramFactory.create()
+    assert not program.other_manual  # no uploaded file
+    process = PledgeProgramProcess.objects.create(
+        chapter=program.chapter,
+        program=program,
+        flow_class=PledgeProgramProcessFlow,
+    )
+    creator = UserFactory.create(chapter=program.chapter)
+    FlowTask.objects.create(
+        flow_task=PledgeProgramProcessFlow.start,
+        process=process,
+        status=STATUS.DONE,
+        owner=creator,
+    )
+
+    notif = EmailProcessUpdate(
+        process,
+        complete_step="Pledge Program Reviewed",
+        next_step="Complete",
+        state="Approved",
+        message="Approved",
+        fields=["approval"],
+        attachments=["program.other_manual"],
+        direct_user=creator,
+    )
+    # The empty other_manual was skipped: no attachment and no ValueError.
+    assert notif.attachments == []

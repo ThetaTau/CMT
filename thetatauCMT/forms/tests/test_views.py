@@ -3528,6 +3528,57 @@ def test_rollbook_pdf_view_uses_candidate_template_for_candidate_chapter():
     assert view.get_template_names() == ["forms/rollbook_candidate_pdf.html"]
 
 
+@pytest.mark.django_db
+def test_rollbook_pdf_view_blank_init_date_falls_back_to_today():
+    """A blank session ``init_date`` must not 500 the roll book.
+
+    ``set_init_date`` stores the raw POST value, so an empty submission left
+    ``""`` in the session; ``strptime("", "%m/%d/%Y")`` then raised ValueError
+    on both the single-page and download-all paths (issues #984/#985).
+    """
+    import datetime
+    from unittest.mock import mock_open, patch
+
+    from django.test import RequestFactory
+
+    from thetatauCMT.forms.views import RollBookPDFView
+    from thetatauCMT.users.tests.factories import UserFactory
+
+    user = UserFactory()
+    view = RollBookPDFView()
+    view.object = user
+    view.kwargs = {"pk": user.pk}
+    request = RequestFactory().get("/")
+    request.session = {"init_date": ""}
+    view.request = request
+
+    # The oath text file lives in secrets/ (absent in the test image); the
+    # crash under test happens on the strptime line before it is read.
+    with patch("builtins.open", mock_open(read_data="short oath")):
+        context = view.get_context_data()
+    assert context["init_date"] == datetime.datetime.today().date()
+
+
+@pytest.mark.django_db
+def test_role_change_view_blank_extra_row_does_not_crash(auto_login_user):
+    """Submitting the officer role formset with a blank extra row (no user)
+    must not 500 with RelatedObjectDoesNotExist (issue #899).
+
+    A completely empty trailing row is valid, so the post loop reached
+    ``form.instance.user`` on a userless instance; it is now guarded.
+    """
+    client, user = auto_login_user()
+    url = reverse("forms:officer")
+    post_data = {
+        "form-TOTAL_FORMS": "1",
+        "form-INITIAL_FORMS": "0",
+        "form-MIN_NUM_FORMS": "0",
+        "form-MAX_NUM_FORMS": "1000",
+    }
+    response = client.post(url, post_data)
+    assert response.status_code in (200, 302)
+
+
 # ─── DisciplinaryCreateView GET (lines 2756-2759) ─────────────────────────────
 
 
@@ -4051,3 +4102,121 @@ def test_role_change_national_select_form_rejects_self_when_field_enabled():
     disabled_field.disabled = True
     f.fields = {"user": disabled_field}
     assert f.clean_user() == user
+
+
+# ─── get_sign_status_discipline robustness (#901 / #902) ─────────────────────
+
+
+@pytest.mark.django_db
+def test_get_sign_status_discipline_process_without_tasks_is_skipped(auto_login_user):
+    """Regression for #901.
+
+    A disciplinary process with no tasks at all (e.g. it errored right after the
+    start view created the process) has no ``task_set.first()`` to read a status
+    from.  ``get_sign_status_discipline`` must skip it rather than crash with
+    ``AttributeError: 'NoneType' object has no attribute 'owner'``.
+    """
+    from thetatauCMT.forms.flows import DisciplinaryProcessFlow
+    from thetatauCMT.forms.models import DisciplinaryProcess
+    from thetatauCMT.forms.views import get_sign_status_discipline
+
+    _, user = auto_login_user()
+    DisciplinaryProcess.objects.create(
+        chapter=user.current_chapter,
+        user=user,
+        flow_class=DisciplinaryProcessFlow,
+    )
+
+    # complete=True forces the "no active task" branch to fall through to
+    # task_set, which is also empty -> the process must be skipped.
+    data = get_sign_status_discipline(user, complete=True)
+    assert data == []
+
+
+@pytest.mark.django_db
+def test_get_sign_status_discipline_survives_none_flow_task(auto_login_user, monkeypatch):
+    """Regression for #902.
+
+    An active task whose flow node was removed/renamed exposes ``flow_task=None``.
+    ``get_sign_status_discipline`` must fall back to the raw task status instead
+    of raising ``AttributeError: 'NoneType' object has no attribute 'flow_task'``.
+    """
+    from types import SimpleNamespace
+
+    from thetatauCMT.forms.flows import DisciplinaryProcessFlow
+    from thetatauCMT.forms.models import DisciplinaryProcess
+    from thetatauCMT.forms.views import get_sign_status_discipline
+
+    _, user = auto_login_user()
+    DisciplinaryProcess.objects.create(
+        chapter=user.current_chapter,
+        user=user,
+        flow_class=DisciplinaryProcessFlow,
+    )
+
+    class _ActiveTasks:
+        def first(self):
+            return SimpleNamespace(flow_task=None, owner=None, status="NEW", pk=1)
+
+    monkeypatch.setattr(DisciplinaryProcess, "active_tasks", lambda self: _ActiveTasks())
+
+    data = get_sign_status_discipline(user, complete=True)
+    assert len(data) == 1
+    assert data[0]["status"] == "NEW"  # fell back to task.status
+
+
+# ─── PledgeProgramProcessCreateView saves program before process (#971) ──────
+
+
+@pytest.mark.django_db
+def test_pledge_program_create_view_saves_program_before_process():
+    """Regression for #971.
+
+    ``PledgeProgramProcessCreateView.form_valid`` must persist the
+    ``PledgeProgram`` BEFORE attaching it to ``activation.process.program`` --
+    otherwise ``activation.done()`` -> ``process.save()`` raises "save()
+    prohibited to prevent data loss due to unsaved related object 'program'".
+    """
+    from unittest.mock import MagicMock, patch
+
+    from thetatauCMT.forms.flows import PledgeProgramProcessFlow
+    from thetatauCMT.forms.forms import PledgeProgramForm
+    from thetatauCMT.forms.models import PledgeProgramProcess
+    from thetatauCMT.forms.views import PledgeProgramProcessCreateView
+
+    chapter = ChapterFactory.create()
+
+    form = PledgeProgramForm(
+        data={
+            "weeks": 6,
+            "date_start": "06/01/2026",
+            "date_complete": "08/01/2026",
+            "date_initiation": "09/01/2026",
+            "dues": 100,
+            "manual": "basic",
+        }
+    )
+    assert form.is_valid(), form.errors
+
+    view = PledgeProgramProcessCreateView()
+    request = MagicMock()
+    request.user.current_chapter = chapter
+    request.user.chapter_officer.return_value = {"regent"}
+    view.request = request
+
+    # A real, still-unsaved process — the object activation.done() would save.
+    process = PledgeProgramProcess(flow_class=PledgeProgramProcessFlow)
+    view.activation = MagicMock()
+    view.activation.process = process
+
+    with patch("thetatauCMT.forms.views.CreateProcessView.form_valid", return_value=HttpResponse()) as mock_super:
+        with patch("thetatauCMT.forms.views.Task.mark_complete"):
+            view.form_valid(form)
+
+    mock_super.assert_called_once()
+    # The program was saved (has a PK) before being attached to the process...
+    assert process.program is not None
+    assert process.program.pk is not None
+    # ...so persisting the process no longer raises the #971 ValueError.
+    process.save()
+    assert PledgeProgramProcess.objects.filter(pk=process.pk).exists()

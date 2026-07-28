@@ -164,6 +164,41 @@ def test_advisor_list_filter_filter_region_by_slug():
     assert user in result
 
 
+@pytest.mark.django_db
+def test_advisor_list_filter_filter_chapter_narrows_by_slug():
+    """AdvisorListFilter.filter_chapter narrows to the given chapter slug.
+
+    The declared ``chapter`` ChoiceFilter referenced ``method="filter_chapter"``
+    but the method did not exist, so rendering the advisor list raised an
+    AssertionError at filter time (issue #827).
+    """
+    from thetatauCMT.users.filters import AdvisorListFilter
+    from thetatauCMT.users.models import User
+
+    chapter = ChapterFactory.create()
+    user = UserFactory.create(chapter=chapter)
+    qs = User.objects.all()
+    f = AdvisorListFilter(queryset=qs)
+    assert user in f.filter_chapter(qs, "chapter", chapter.slug)
+    assert user not in f.filter_chapter(qs, "chapter", "a-different-chapter-slug")
+
+
+@pytest.mark.django_db
+def test_advisor_list_filter_chapter_choice_applies_via_qs():
+    """Selecting a chapter filters ``.qs`` without raising.
+
+    Exercises the real django-filter method-resolution path that crashed before
+    ``filter_chapter`` existed (issue #827).
+    """
+    from thetatauCMT.users.filters import AdvisorListFilter
+    from thetatauCMT.users.models import User
+
+    chapter = ChapterFactory.create()
+    user = UserFactory.create(chapter=chapter)
+    f = AdvisorListFilter({"chapter": chapter.slug}, queryset=User.objects.all())
+    assert user in list(f.qs)
+
+
 def _grad_year_users():
     """Create three users in one chapter with distinct graduation years."""
     from thetatauCMT.users.models import User

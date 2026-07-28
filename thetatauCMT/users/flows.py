@@ -282,4 +282,13 @@ class MemberUpdateFlow(Flow):
     def continue_process(cls, pk):
         # This will cause the delay step to process and then check_approval
         process = MemberUpdate.objects.get(pk=pk)
-        cls.delay.run(process.get_task(cls.delay))
+        try:
+            task = process.get_task(cls.delay)
+        except cls.task_class.DoesNotExist:
+            # No ``delay`` task is waiting to be continued: the process was
+            # already advanced -- the member clicked the emailed approve/deny
+            # link twice, the scheduled command already ran the delay, or the
+            # process took the manual-match branch and never parked at ``delay``
+            # (#975). Nothing left to continue.
+            return
+        cls.delay.run(task)

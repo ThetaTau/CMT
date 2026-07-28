@@ -147,3 +147,100 @@ def test_noassign_activation_has_perm_enforces_configured_permission():
 
     superuser = UserFactory.create(is_superuser=True)  # has every permission
     assert activation.has_perm(superuser) is True
+
+
+# ---------------------------------------------------------------------------
+# get_task_url — stale viewflow node state (#952)
+# ---------------------------------------------------------------------------
+
+
+def test_get_task_url_survives_missing_owner_permission_obj(rf):
+    """Regression for #952.
+
+    A stale DB task can carry an ``owner_permission`` while its flow node was
+    later redefined WITHOUT a ``.Permission()``.  viewflow's ``PermissionMixin``
+    only sets ``self._owner_permission_obj`` inside ``.Permission()``, so
+    ``View.can_assign`` then reads an unset attribute and raises
+    ``AttributeError: 'View' object has no attribute '_owner_permission_obj'``.
+    ``FilterProcessListView.get_task_url`` only builds a process-list link, so it
+    must degrade to an empty string instead of 500ing the whole listing.
+    """
+    from types import SimpleNamespace
+
+    from core.flows import FilterProcessListView
+
+    class _StaleFlowTask:
+        def get_task_url(self, *args, **kwargs):
+            raise AttributeError("'View' object has no attribute '_owner_permission_obj'")
+
+    task = SimpleNamespace(flow_task=_StaleFlowTask())
+
+    view = FilterProcessListView()
+    request = rf.get("/")
+    request.user = SimpleNamespace()
+    request.resolver_match = SimpleNamespace(namespace="viewflow:forms:disciplinaryprocess")
+    view.request = request
+
+    assert view.get_task_url(task) == ""
+
+
+def test_get_task_url_survives_noreversematch(rf):
+    """A renamed/removed task URL (NoReverseMatch) also degrades to no link (#952)."""
+    from types import SimpleNamespace
+
+    from django.urls import NoReverseMatch
+
+    from core.flows import FilterProcessListView
+
+    class _StaleFlowTask:
+        def get_task_url(self, *args, **kwargs):
+            raise NoReverseMatch("reverse for a renamed task node failed")
+
+    task = SimpleNamespace(flow_task=_StaleFlowTask())
+
+    view = FilterProcessListView()
+    request = rf.get("/")
+    request.user = SimpleNamespace()
+    request.resolver_match = SimpleNamespace(namespace="viewflow:forms:disciplinaryprocess")
+    view.request = request
+
+    assert view.get_task_url(task) == ""
+
+
+# ---------------------------------------------------------------------------
+# complete_activation — concurrent/duplicate submit (#980)
+# ---------------------------------------------------------------------------
+
+
+def test_complete_activation_returns_true_on_success():
+    """complete_activation completes the task and reports success."""
+    from types import SimpleNamespace
+
+    from core.flows import complete_activation
+
+    calls = []
+    activation = SimpleNamespace(done=lambda: calls.append("done"))
+    assert complete_activation(activation) is True
+    assert calls == ["done"]
+
+
+def test_complete_activation_swallows_transition_not_allowed():
+    """Regression for #980.
+
+    A concurrent/duplicate submit of the same task node makes
+    ``Activation.done()`` -> ``activate_next()`` raise ``TransitionNotAllowed``
+    (the following task already exists, so ``all_leading_canceled`` is False).
+    ``complete_activation`` must swallow it and report the task was already
+    completed instead of 500ing.
+    """
+    from types import SimpleNamespace
+
+    from viewflow.fsm import TransitionNotAllowed
+
+    from core.flows import complete_activation
+
+    def _raise():
+        raise TransitionNotAllowed("Transition conditions have not been met for method 'activate_next'")
+
+    activation = SimpleNamespace(done=_raise)
+    assert complete_activation(activation) is False

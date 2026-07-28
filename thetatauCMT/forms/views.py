@@ -35,7 +35,7 @@ from viewflow.flow.views import CreateProcessView, UpdateProcessView
 from viewflow.frontend.viewset import FlowViewSet
 from viewflow.models import Task as FlowTask
 
-from core.flows import AutoAssignUpdateProcessView, FilterProcessListView, cancel_process
+from core.flows import AutoAssignUpdateProcessView, FilterProcessListView, cancel_process, complete_activation
 from core.forms import MultiFormsView
 from core.models import (
     CHAPTER_OFFICER,
@@ -1441,7 +1441,13 @@ class RollBookPDFView(LoginRequiredMixin, OfficerRequiredMixin, WeasyTemplateRes
         context = super().get_context_data(**kwargs)
         init_date = self.request.session.get("init_date", datetime.datetime.today().date())
         if isinstance(init_date, str):
-            init_date = datetime.datetime.strptime(init_date, "%m/%d/%Y")
+            try:
+                init_date = datetime.datetime.strptime(init_date, "%m/%d/%Y")
+            except ValueError:
+                # A blank or malformed session value (e.g. the officer submitted
+                # the initiation-date form empty) must not 500 the roll book
+                # download (issues #984/#985); fall back to today.
+                init_date = datetime.datetime.today().date()
         with open(r"secrets/short_oath.txt", "r") as file:
             context["short_oath"] = file.read()
         context["init_date"] = init_date
@@ -2070,19 +2076,29 @@ def get_sign_status_discipline(user, name=False, complete=True):
                 if not complete:
                     continue
                 task = process.task_set.first()
+                if task is None:
+                    # A process with no tasks at all (e.g. a start view errored
+                    # after creating the process) has nothing to display (#901).
+                    continue
                 status = task.status
                 approved = False
             else:
-                status = task.flow_task.task_title
+                flow_task = task.flow_task
+                # ``task.flow_task`` is None when the DB task references a node
+                # that no longer exists in the current flow definition (#902);
+                # fall back to the raw task status instead of crashing.
+                status = flow_task.task_title if flow_task else task.status
                 owner = task.owner
                 approved = "Pending"
-                if "Submit Form 2" in status and task.owner == user:
+                if status and "Submit Form 2" in status and task.owner == user:
                     link = reverse(
                         "viewflow:forms:disciplinaryprocess:submit_form2",
                         kwargs={"process_pk": process.pk, "task_pk": task.pk},
                     )
         elif complete:
-            status = process.task_set.first().flow_task.task_title
+            task = process.task_set.first()
+            flow_task = task.flow_task if task else None
+            status = flow_task.task_title if flow_task else "Complete"
             approved = process.ec_approval
         else:
             continue
@@ -3006,8 +3022,11 @@ class DisciplinaryForm2View(LoginRequiredMixin, UpdateProcessView, ModelFormMixi
 
     def activation_done(self, *args, **kwargs):
         """Finish task activation."""
-        self.activation.done()
-        self.success("Disciplinary form 2 submitted successfully.")
+        if complete_activation(self.activation):
+            self.success("Disciplinary form 2 submitted successfully.")
+        else:
+            # A concurrent/duplicate submit already advanced this task (#980).
+            self.success("Disciplinary form 2 was already submitted.")
 
     def form_valid(self, form, *args, **kwargs):
         return super().form_valid(form)
