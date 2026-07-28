@@ -72,6 +72,42 @@ def test_chapter_detail_shows_regional_director_link(auto_login_user):
     assert list(response.context["region_directors"]) == [director]
 
 
+@pytest.mark.django_db
+def test_chapter_detail_shows_size_target(auto_login_user):
+    """The chapter detail page displays the membership Size Target."""
+    client, user = auto_login_user()
+    chapter = ChapterFactory()
+    # Set explicitly (not via factory kwargs) so a ChapterFactory name collision
+    # returning an existing chapter can't drop the value.
+    chapter.size_target = 137
+    chapter.save(update_fields=["size_target"])
+    url = reverse("chapters:detail", kwargs={"slug": chapter.slug})
+    response = client.get(url, follow=True)
+    assert response.status_code == 200
+    content = response.content.decode("UTF-8")
+    assert "Size Target" in content
+    # The value renders in its own info-colored stat block.
+    assert 'text-info">137</div>' in content
+
+
+@pytest.mark.django_db
+def test_chapter_detail_shows_support_specialist(auto_login_user):
+    """The Support Specialist rich text renders (sanitized) on the detail page."""
+    client, user = auto_login_user()
+    chapter = ChapterFactory()
+    chapter.support_specialist = "<p>Contact <strong>Jamie Support</strong></p><script>alert(1)</script>"
+    chapter.save(update_fields=["support_specialist"])
+    url = reverse("chapters:detail", kwargs={"slug": chapter.slug})
+    response = client.get(url, follow=True)
+    assert response.status_code == 200
+    content = response.content.decode("UTF-8")
+    assert "Support Specialist" in content
+    # Allowed rich-text markup is preserved through the sanitizer.
+    assert "<strong>Jamie Support</strong>" in content
+    # Dangerous markup is stripped (stored-XSS mitigation).
+    assert "<script>alert(1)</script>" not in content
+
+
 def test_chapter_list_view_denied(auto_login_user):
     client, user = auto_login_user()
     url = reverse("chapters:list")

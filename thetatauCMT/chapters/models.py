@@ -16,6 +16,7 @@ from django.db.utils import ProgrammingError
 from django.utils.text import slugify
 from django.utils.timezone import make_aware
 from django.utils.translation import gettext_lazy as _
+from django_ckeditor_5.fields import CKEditor5Field
 from email_signals.models import EmailSignalMixin
 from herald.models import SentNotification
 from quickbooks.objects.attachable import Attachable, AttachableRef
@@ -328,6 +329,18 @@ class Chapter(models.Model, EmailSignalMixin):
     )
     founding_date = models.DateField(blank=True, null=True)
     recharter_date = models.DateField(blank=True, null=True)
+    size_target = models.PositiveIntegerField(
+        verbose_name=_("Membership Size Target"),
+        help_text="The target membership size for the chapter to strive for.",
+        blank=True,
+        null=True,
+    )
+    support_specialist = CKEditor5Field(
+        verbose_name=_("Support Specialist"),
+        help_text="The staff member(s) who support this chapter. Rich text is supported.",
+        blank=True,
+        default="",
+    )
     misc_data = models.JSONField(default=dict, blank=True)
 
     def __str__(self):
