@@ -260,15 +260,11 @@
     </tr>
     {% endif %}
     <tr>
-      <td><a href="{% url 'forms:national_officer_contacts' %}">{% trans "National Officers" %}</a></td>
+      <td><a href="{% url 'forms:natoff' %}">{% trans "National Officers" %}</a></td>
       {% if request.is_nat_officer %}
-      <td>
-        {% if user.is_superuser %}
-        <a href="{% url 'forms:natoff' %}">{% trans "Assign National Officers" %}</a>
-        {% endif %}
-      </td>
+      <td></td>
       {% endif %}
-      <td>View the current national officers.</td>
+      <td>View national officers{% if user.is_superuser %}; administrators can add or edit assignments{% endif %}.</td>
     </tr>
       {% if user.is_superuser %}
     <tr>

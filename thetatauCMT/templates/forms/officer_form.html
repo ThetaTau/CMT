@@ -1,0 +1,178 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+{% load crispy_forms_field %}
+{% block title %}Add Officer{% endblock %}
+
+{% block content %}
+  {{ form.media }}
+  {% comment %}Give the member type-to-search dropdown the full field width so its results panel lines up under the box.{% endcomment %}
+  <style>
+    #officer-add-form .select2-container { width: 100% !important; }
+  </style>
+
+  <div class="page-header d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+    <h2 class="page-title mb-0">Add Officer</h2>
+    <a class="btn btn-outline-secondary" href="{% url 'forms:officer' %}">
+      <i class="fas fa-arrow-left"></i> Back to officers
+    </a>
+  </div>
+
+  <div class="alert alert-warning" role="alert">
+    <strong>Treasurer term policy:</strong>
+    In accordance with Theta Tau Policy and Procedure Manual, the Treasurer of all chapters
+    shall be elected to hold office for one year, beginning in January.
+  </div>
+  <div class="alert alert-info" role="alert">
+    <strong>Note:</strong> Officers cannot assign a chapter officer role to themselves.
+    Another officer must record the role change on their behalf.
+  </div>
+
+  <form id="officer-add-form" method="post">
+    {% csrf_token %}
+    {% for field in form.hidden_fields %}{{ field }}{% endfor %}
+    {% if form.non_field_errors %}
+      <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+    {% endif %}
+    {% for field in form.visible_fields %}
+      {% if field.name == "start" or field.name == "end" %}
+        {% comment %}
+          Tempus-dominus date fields: render only the widget's own input-group
+          (via crispy_field) inside a position:relative wrapper. The full crispy
+          field wrapper would emit a second id="div_id_<name>" that collides with
+          the widget's input-group id and stops the datepicker popup from opening.
+        {% endcomment %}
+        <div class="mb-3">
+          <label for="{{ field.id_for_label }}" class="form-label{% if field.field.required %} requiredField{% endif %}">
+            {{ field.label }}{% if field.field.required %}<span class="asteriskField">*</span>{% endif %}
+          </label>
+          <div style="position: relative">
+            {% crispy_field field %}
+          </div>
+          {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
+          {% for error in field.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+        </div>
+      {% else %}
+        {{ field|as_crispy_field }}
+      {% endif %}
+    {% endfor %}
+    <button type="submit" class="btn btn-primary">Add officer</button>
+  </form>
+
+  <!-- Treasurer term policy exception modal -->
+  <div class="modal fade" id="treasurerPolicyModal" tabindex="-1" aria-labelledby="treasurerPolicyModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="treasurerPolicyModalLabel">Treasurer Term Policy</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p>
+            In accordance with Theta Tau Policy and Procedure Manual, the Treasurer of all chapters
+            shall be elected to hold office for one year, beginning in January.
+            <strong>Your submission is in violation of this policy.</strong>
+          </p>
+          <p>
+            If this is a legitimate exception (for example, a member elected mid-year after a trial
+            or a withdrawal), please provide a reason below. This should not be a planned exception.
+          </p>
+          <label for="treasurer-exception-reason" class="form-label">
+            Reason for this exception <span class="asteriskField">*</span>
+          </label>
+          <textarea id="treasurer-exception-reason" class="form-control" rows="3"></textarea>
+          <div id="treasurer-reason-error" class="text-danger mt-1" style="display: none;">
+            A reason is required in order to submit anyway.
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Go back and fix the dates</button>
+          <button type="button" class="btn btn-danger" id="treasurer-submit-anyway">Submit anyway</button>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock content %}
+
+{% block javascript %}
+{{ block.super }}
+<script>
+// Treasurer term policy: a Treasurer's term must begin and end in January.
+// When an officer adds a Treasurer whose start or end date falls outside
+// January, warn them, require a reason, and only then allow the submission
+// (which also triggers a policy-exception email).
+(function () {
+    var form = document.getElementById('officer-add-form');
+    if (!form) { return; }
+    var modalEl = document.getElementById('treasurerPolicyModal');
+    var reasonInput = document.getElementById('treasurer-exception-reason');
+    var reasonError = document.getElementById('treasurer-reason-error');
+    var submitAnywayBtn = document.getElementById('treasurer-submit-anyway');
+    var roleSelect = form.querySelector('[name="role"]');
+    var startEl = form.querySelector('[name="start"]');
+    var endEl = form.querySelector('[name="end"]');
+    var hiddenReason = form.querySelector('[name="treasurer_term_exception_reason"]');
+    var bsModal = null;
+    var confirmed = false;
+
+    function parseMonth(value) {
+        // Accept both the M/D/YYYY picker format and ISO YYYY-MM-DD.
+        if (!value) { return null; }
+        value = ('' + value).trim();
+        var iso = value.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+        if (iso) { return parseInt(iso[2], 10); }
+        var us = value.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})/);
+        if (us) { return parseInt(us[1], 10); }
+        return null;
+    }
+
+    function violatesPolicy() {
+        if (!roleSelect || roleSelect.value !== 'treasurer') { return false; }
+        var startMonth = startEl ? parseMonth(startEl.value) : null;
+        var endMonth = endEl ? parseMonth(endEl.value) : null;
+        return (startMonth !== null && startMonth !== 1) ||
+               (endMonth !== null && endMonth !== 1);
+    }
+
+    form.addEventListener('submit', function (e) {
+        if (confirmed) { return; }
+        if (!violatesPolicy()) { return; }
+        e.preventDefault();
+        if (modalEl && window.bootstrap && bootstrap.Modal) {
+            reasonError.style.display = 'none';
+            reasonInput.value = '';
+            bsModal = bootstrap.Modal.getOrCreateInstance(modalEl);
+            bsModal.show();
+        } else {
+            // Fallback when Bootstrap's modal is unavailable.
+            var typed = window.prompt(
+                'The Treasurer term must begin and end in January. ' +
+                'Provide a reason to submit anyway:'
+            );
+            if (typed && typed.trim()) {
+                if (hiddenReason) { hiddenReason.value = typed.trim(); }
+                confirmed = true;
+                form.submit();
+            }
+        }
+    });
+
+    if (submitAnywayBtn) {
+        submitAnywayBtn.addEventListener('click', function () {
+            var reason = reasonInput.value.trim();
+            if (!reason) {
+                reasonError.style.display = 'block';
+                return;
+            }
+            if (hiddenReason) { hiddenReason.value = reason; }
+            confirmed = true;
+            if (bsModal) { bsModal.hide(); }
+            if (form.requestSubmit) {
+                form.requestSubmit();
+            } else {
+                form.submit();
+            }
+        });
+    }
+})();
+</script>
+{% endblock %}

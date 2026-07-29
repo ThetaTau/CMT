@@ -21,7 +21,6 @@ from django.http import Http404, HttpRequest, HttpResponse, HttpResponseRedirect
 from django.http.request import QueryDict
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
-from django.utils import timezone
 from django.utils.safestring import mark_safe
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
@@ -29,7 +28,7 @@ from django.views.generic import DetailView, TemplateView, UpdateView
 from django.views.generic.edit import CreateView, FormView, ModelFormMixin
 from django_weasyprint import WeasyTemplateResponseMixin
 from easy_pdf.views import PDFTemplateResponseMixin
-from extra_views import FormSetView, ModelFormSetView
+from extra_views import FormSetView
 from viewflow.activation import STATUS
 from viewflow.flow.views import CreateProcessView, UpdateProcessView
 from viewflow.frontend.viewset import FlowViewSet
@@ -39,7 +38,9 @@ from core.flows import AutoAssignUpdateProcessView, FilterProcessListView, cance
 from core.forms import MultiFormsView
 from core.models import (
     CHAPTER_OFFICER,
+    CHAPTER_ROLES,
     COL_OFFICER_ALIGN,
+    NAT_OFFICERS,
     SEMESTER,
     TODAY_END,
     current_term,
@@ -82,6 +83,8 @@ from .filters import (
     GraduationListFilter,
     PledgeProgramListFilter,
     RiskListFilter,
+    RoleChangeListFilter,
+    RoleChangeNationalListFilter,
     StatusChangeListFilter,
 )
 from .forms import (
@@ -109,6 +112,9 @@ from .forms import (
     InitiationForm,
     InitiationFormHelper,
     InitiationFormSet,
+    NationalOfficerAddForm,
+    OfficerAddForm,
+    OfficerRoleEditForm,
     OSMForm,
     PledgeFormFull,
     PledgeProgramForm,
@@ -119,8 +125,8 @@ from .forms import (
     RiskListFormHelper,
     RiskManagementForm,
     RitualProficiencyForm,
-    RoleChangeNationalSelectForm,
-    RoleChangeSelectForm,
+    RoleChangeListFormHelper,
+    RoleChangeNationalListFormHelper,
     SingleStatusChangeForm,
     SingleStatusChangeFormHelper,
     StatusChangeListFormHelper,
@@ -166,6 +172,8 @@ from .tables import (
     HSEducationTable,
     InitiationTable,
     MilitaryStatusChangeTable,
+    NationalOfficerRoleTable,
+    OfficerRoleTable,
     OSMListTable,
     PledgeFormTable,
     PledgeProgramStatusTable,
@@ -818,364 +826,363 @@ def remove_extra_form(formset, **kwargs):
     return formset
 
 
-class RoleChangeView(LoginRequiredMixin, ModelFormSetView):
-    form_class = RoleChangeSelectForm
-    template_name = "forms/officer.html"
-    factory_kwargs = {"extra": 1, "can_delete": True}
-    officer_edit = "member roles"
+def _officer_status_overlap_errors(request, member, role, start, end):
+    """Add an ERROR message for each away/alumni status overlapping a
+    chapter-officer term; return True if any overlap was found.
+
+    No-op for non-chapter-officer roles. Shared by the add and edit views so
+    both enforce the same "status must not overlap an officer term" rule.
+    """
+    if role not in CHAPTER_OFFICER:
+        return False
+    error = False
+    for status in member.status.filter(status__in=["away", "alumni"]).values("status", "start", "end"):
+        latest_start = max(start, status["start"])
+        earliest_end = min(end, status["end"])
+        overlap = max(0, (earliest_end - latest_start).days + 1)
+        if overlap > 0:
+            error = True
+            role_message = f"Status {status['status']} start: {status['start']} end: {status['end']}"
+            messages.add_message(
+                request,
+                messages.ERROR,
+                mark_safe(
+                    f"For member {member}. {status['status'].capitalize()} status (eg. COOP or alumni status) must not overlap with officer term.<br>{role_message}"
+                ),
+            )
+    return error
+
+
+def _current_officer_emails(user):
+    """Comma-joined, de-duplicated emails of the current chapter officers/roles
+    for ``user``'s chapter (for the roster's "Copy emails" button)."""
+    emails = []
+    seen = set()
+    for role_change in UserRoleChange.get_current_roles(user).select_related("user"):
+        email = role_change.user.email or role_change.user.email_school
+        if email and email.lower() not in seen:
+            seen.add(email.lower())
+            emails.append(email)
+    return ", ".join(emails)
+
+
+def _term_is_in_past(start, end):
+    """True when both a role's start and end dates are before today — a purely
+    historical backfill rather than a new appointment."""
+    today = datetime.date.today()
+    return start < today and end < today
+
+
+class DefaultCurrentPeriodMixin:
+    """Default the officer roster to *current* on an unfiltered initial load,
+    while letting the filter's "Clear" button (which submits ``cancel``) reset
+    to showing all.
+
+    The filter no longer defaults ``period`` itself (its empty choice means
+    "all"), so this injects ``period=current`` only when the request carries no
+    ``period`` and is not a "Clear".
+    """
+
+    def get_queryset(self, **kwargs):
+        cancel = self.request.GET.get("cancel", False)
+        request_get = self.request.GET.copy()
+        if not cancel and "period" not in request_get:
+            request_get["period"] = "current"
+        return super().get_queryset(request_get=request_get, **kwargs)
+
+
+class RoleChangeListView(DefaultCurrentPeriodMixin, LoginRequiredMixin, PagedFilteredTableView):
+    """Chapter officer / role roster.
+
+    Replaces the old "+1 extra row then submit" election formset with a table of
+    current and past officers plus an "Add Officer" button (mirroring the
+    External Organizations table). Any member may view it; it defaults to the
+    *current* officers and is filterable by member, role, and start/end date
+    buckets. Officers see the add button; each row's Edit control is gated by
+    ``UserRoleChange.can_be_edited_by``.
+    """
+
     model = UserRoleChange
+    queryset = UserRoleChange.objects.filter(role__in=CHAPTER_ROLES).select_related("user", "user__chapter")
+    template_name = "forms/officer_list.html"
+    table_class = OfficerRoleTable
+    filter_class = RoleChangeListFilter
+    formhelper_class = RoleChangeListFormHelper
+    filter_user_chapter = True
+    ordering = ["user__last_name", "-start"]
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["email_list"] = _current_officer_emails(self.request.user)
+        return context
+
+
+class RoleChangeCreateView(LoginRequiredMixin, OfficerRequiredMixin, CreateView):
+    """Add a single chapter officer / role (officers only).
+
+    Preserves every safeguard and side effect of the old election formset: the
+    self-assignment block and Treasurer January-term policy (in the form), the
+    away/alumni term-overlap block, the deadlock-safe write, the best-effort
+    Vector LMS sync for educator / risk-management roles, the Treasurer
+    policy-exception notification, ``Task`` completion, and the ``NewOfficers``
+    email. Those new-officer side effects are skipped when the recorded term is
+    entirely in the past (a historical backfill).
+    """
+
+    officer_edit = "member roles"
+    template_name = "forms/officer_form.html"
+    model = UserRoleChange
+    form_class = OfficerAddForm
+
+    def get_success_url(self):
+        return reverse("forms:officer")
 
     def get_form_kwargs(self):
-        # Injected into every form in the formset via
-        # ``extra_views.ModelFormSetView`` — used by ``RoleChangeSelectForm``
-        # to reject the requesting officer as their own role recipient.
+        # Used by ``OfficerAddForm`` to reject the requesting officer as their
+        # own role recipient.
         kwargs = super().get_form_kwargs()
         kwargs["request_user"] = self.request.user
         return kwargs
 
-    def construct_formset(self, initial=False):
-        formset = super().construct_formset()
-        for field_name in formset.forms[-1].fields:
-            formset.forms[-1].fields[field_name].disabled = False
-        return formset
+    def form_valid(self, form):
+        member = form.instance.user
+        role = form.instance.role
+        # Away/alumni status (e.g. COOP or alumni) must not overlap a
+        # chapter-officer term. Message per overlapping status, then re-render
+        # without saving.
+        if _officer_status_overlap_errors(self.request, member, role, form.instance.start, form.instance.end):
+            return self.form_invalid(form)
 
-    def post(self, request, *args, **kwargs):
-        """
-        Handles POST requests, instantiating a formset instance with the passed
-        POST variables and then checked for validity.
-        """
-        formset = self.construct_formset()
-        for idx, form in enumerate(formset.forms):
-            if "user" not in form.initial:
-                for field_name in form.fields:
-                    formset.forms[idx].fields[field_name].disabled = False
-        if not formset.is_valid():
-            # Need to check if last extra form is causing issues
-            if "user" in formset.extra_forms[-1].errors:
-                # We should remove this form
-                formset = remove_extra_form(formset)
-        if formset.is_valid():
-            error = False
-            for form in formset:
-                try:
-                    member = form.instance.user
-                except User.DoesNotExist:
-                    continue
-                role = form.instance.role
-                if role in CHAPTER_OFFICER:
-                    status_info = member.status.filter(
-                        status__in=["away", "alumni"],
-                    ).values("status", "start", "end")
-                    for status in status_info:
-                        latest_start = max(form.instance.start, status["start"])
-                        earliest_end = min(form.instance.end, status["end"])
-                        delta = (earliest_end - latest_start).days + 1
-                        overlap = max(0, delta)
-                        if overlap > 0:
-                            error = True
-                            role_message = f"Status {status['status']} start: {status['start']} end: {status['end']}"
-                            messages.add_message(
-                                self.request,
-                                messages.ERROR,
-                                mark_safe(
-                                    f"For member {member}. {status['status'].capitalize()} status (eg. COOP or alumni status) must not overlap with officer term.<br>{role_message}"
-                                ),
-                            )
-            if error:
-                self.object_list = self.get_queryset()
-                return self.formset_invalid(formset)
-            else:
-                return self.formset_valid(formset)
-        else:
-            self.object_list = self.get_queryset()
-            return self.formset_invalid(formset)
-
-    def get_queryset(self):
-        return UserRoleChange.get_current_roles(self.request.user)
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        formset = kwargs.get("formset", None)
-        if formset is None:
-            formset = self.construct_formset()
-        context["formset"] = formset
-        context["input"] = Submit("action", "Submit")
-        return context
-
-    def formset_valid(self, formset, delete_only=False):
-        # Concurrent officer-election submissions used to update the same
-        # ``users_user`` rows (via ``UserRoleChange.save`` -> ``User.save``) in
-        # opposite order and deadlock (issues #825/#858/#859/#982). Acquire the
-        # affected member rows up front in a deterministic primary-key order so
-        # two requests can never grab them in opposite order, and retry the
-        # whole write once if PostgreSQL still reports a deadlock. Side effects
-        # below (Vector LMS sync, emails, messages) run AFTER the retried write
-        # so a retry can never duplicate them.
-        delete_instances = []
-        for obj in formset.deleted_forms:
-            # We don't want to delete the value, just make them not current
-            # We also do not care about form, just get obj
-            try:
-                instance = obj.clean()["id"]
-            except KeyError:
-                continue
-            if instance:
-                delete_instances.append(instance)
-        forms_to_save = []
-        if not delete_only:
-            forms_to_save = [f for f in formset.forms if f.changed_data and "DELETE" not in f.changed_data]
-        affected_user_ids = sorted(
-            {i.user_id for i in delete_instances if i.user_id}
-            | {f.instance.user_id for f in forms_to_save if f.instance.user_id}
-        )
-
+        # Deadlock-safe write: lock the affected member row before saving so
+        # concurrent officer updates can never grab member rows in opposite
+        # order (issues #825/#858/#859/#982). Side effects below run AFTER the
+        # retried write so a retry can never duplicate them.
         def _persist():
-            if affected_user_ids:
-                # Force-evaluate to lock every affected member row now, in pk
-                # order — the deterministic ordering that prevents the deadlock.
-                list(User.objects.select_for_update().filter(pk__in=affected_user_ids).order_by("pk"))
-            removed = []
-            for instance in delete_instances:
-                instance.end = timezone.now() - timezone.timedelta(days=2)
-                instance.save()
-                removed.append(instance.user)
-            for form in forms_to_save:
-                form.save()
-            return removed
+            list(User.objects.select_for_update().filter(pk=member.pk))
+            form.save()
 
-        delete_list = retry_on_deadlock(_persist, description="officer role update")
-        if delete_list:
-            messages.add_message(
-                self.request,
-                messages.INFO,
-                "You successfully removed the officers:\n" f"{delete_list}",
-            )
-        if not delete_only:
-            update_list = []
-            officer_list = []
-            for form in forms_to_save:
-                update_list.append(form.instance.user)
-                role_name = form.instance.role
-                if role_name in [
-                    "pledge/new member educator",
-                    "risk management chair",
-                ]:
-                    # Syncing to the external Vector LMS is a best-effort side
-                    # effect; the officer role change above is already saved. A
-                    # training-system outage must never turn this into a 500
-                    # (see issue #1086), so surface a retry message instead.
-                    try:
-                        Training.add_user(
-                            form.instance.user,
-                            extra_group=role_name,
-                            request=self.request,
-                        )
-                    except Exception:
-                        logger.exception(
-                            "Training sync failed during officer update for %s",
-                            form.instance.user,
-                        )
-                        messages.add_message(
-                            self.request,
-                            messages.WARNING,
-                            "The officer role was saved, but the training system "
-                            f"could not be updated for {form.instance.user}. "
-                            "Please try again later.",
-                        )
-                if role_name in COL_OFFICER_ALIGN:
-                    role_name = COL_OFFICER_ALIGN[role_name]
-                if role_name in CHAPTER_OFFICER:
-                    officer_list.append(form.instance.user)
-                # Treasurer terms must run January-to-January per policy.
-                # When an officer acknowledged the exception and supplied a
-                # reason, notify the Grand Treasurer, regional directors and
-                # Central Office.
-                exception_reason = (form.cleaned_data.get("treasurer_term_exception_reason") or "").strip()
-                if exception_reason and treasurer_term_violation(
-                    form.instance.role,
-                    form.instance.start,
-                    form.instance.end,
-                ):
-                    TreasurerTermException(
-                        role_change=form.instance,
-                        reason=exception_reason,
-                        submitted_by=self.request.user,
-                    ).send()
+        retry_on_deadlock(_persist, description="officer role add")
+
+        # A role recorded entirely in the past (both dates before today) is a
+        # historical backfill, not a new appointment, so skip the new-officer
+        # side effects (Vector LMS sync, Treasurer-policy email, task
+        # completion, and the New Officers email).
+        if not _term_is_in_past(form.instance.start, form.instance.end):
+            role_name = role
+            if role_name in [
+                "pledge/new member educator",
+                "risk management chair",
+            ]:
+                # Syncing to the external Vector LMS is a best-effort side
+                # effect; the officer role change above is already saved. A
+                # training-system outage must never turn this into a 500 (see
+                # issue #1086), so surface a retry message instead.
+                try:
+                    Training.add_user(
+                        member,
+                        extra_group=role_name,
+                        request=self.request,
+                    )
+                except Exception:
+                    logger.exception(
+                        "Training sync failed during officer add for %s",
+                        member,
+                    )
+                    messages.add_message(
+                        self.request,
+                        messages.WARNING,
+                        "The officer role was saved, but the training system "
+                        f"could not be updated for {member}. "
+                        "Please try again later.",
+                    )
+            if role_name in COL_OFFICER_ALIGN:
+                role_name = COL_OFFICER_ALIGN[role_name]
+
+            # Treasurer terms must run January-to-January per policy. When an
+            # officer acknowledged the exception and supplied a reason, notify
+            # the Grand Treasurer, regional directors and Central Office.
+            exception_reason = (form.cleaned_data.get("treasurer_term_exception_reason") or "").strip()
+            if exception_reason and treasurer_term_violation(
+                form.instance.role,
+                form.instance.start,
+                form.instance.end,
+            ):
+                TreasurerTermException(
+                    role_change=form.instance,
+                    reason=exception_reason,
+                    submitted_by=self.request.user,
+                ).send()
+
             Task.mark_complete(
                 name="Officer Election Report",
                 chapter=self.request.user.current_chapter,
             )
-            if officer_list:
-                NewOfficers(new_officers=officer_list).send()
-            if update_list:
-                messages.add_message(
-                    self.request,
-                    messages.INFO,
-                    "You successfully updated the officers:\n" f"{update_list}",
-                )
+            if role_name in CHAPTER_OFFICER:
+                NewOfficers(new_officers=[member]).send()
+        messages.success(self.request, f"{member} was added as {form.instance.role.title()}.")
         return HttpResponseRedirect(self.get_success_url())
 
-    def get_success_url(self):
-        # If this is the same view, login redirect loops
+
+class RoleChangeEditView(LoginRequiredMixin, UpdateView):
+    """Edit a single officer / role term's start and end dates.
+
+    Replaces the old "Remove" action: a role is never deleted, only its dates
+    are adjusted (validated so the term stays meaningful and cannot be
+    "effectively deleted"). Serves BOTH the chapter and national tables —
+    permission and the return page are derived from the role itself via
+    ``UserRoleChange.can_be_edited_by`` (member-self for non-chapter-officer
+    roles; otherwise an officer serving the chapter, or a superuser for
+    national roles).
+    """
+
+    model = UserRoleChange
+    form_class = OfficerRoleEditForm
+    template_name = "forms/officer_edit_form.html"
+
+    def _list_url(self):
+        if getattr(self, "role_change", None) and self.role_change.role in NAT_OFFICERS:
+            return reverse("forms:natoff")
         return reverse("forms:officer")
 
+    def setup(self, request, *args, **kwargs):
+        # Set the target row in setup() (before any dispatch/permission mixin)
+        # so ``get_success_url``/``_list_url`` can safely read it.
+        super().setup(request, *args, **kwargs)
+        self.role_change = get_object_or_404(UserRoleChange, pk=kwargs["pk"])
 
-class RoleChangeNationalView(LoginRequiredMixin, SuperuserRequiredMixin, ModelFormSetView):
-    form_class = RoleChangeNationalSelectForm
-    template_name = "forms/officer_national.html"
-    factory_kwargs = {"extra": 1, "can_delete": True}
-    model = UserRoleChange
+    def dispatch(self, request, *args, **kwargs):
+        if request.user.is_authenticated and not self.role_change.can_be_edited_by(request.user):
+            messages.error(
+                request,
+                "You cannot edit this role — either it is no longer current or "
+                "you do not have permission to change it.",
+            )
+            return HttpResponseRedirect(self._list_url())
+        return super().dispatch(request, *args, **kwargs)
 
-    def get_form_kwargs(self):
-        # Injected into every form in the formset — used by
-        # ``RoleChangeNationalSelectForm`` to reject the requesting officer as
-        # their own national officer role recipient.
-        kwargs = super().get_form_kwargs()
-        kwargs["request_user"] = self.request.user
-        return kwargs
-
-    def construct_formset(self, initial=False):
-        formset = super().construct_formset()
-        for field_name in formset.forms[-1].fields:
-            formset.forms[-1].fields[field_name].disabled = False
-        return formset
+    def get_object(self, queryset=None):
+        return self.role_change
 
     def get_success_url(self):
-        return reverse("forms:natoff")
-
-    def post(self, request, *args, **kwargs):
-        """
-        Handles POST requests, instantiating a formset instance with the passed
-        POST variables and then checked for validity.
-        """
-        formset = self.construct_formset()
-        for idx, form in enumerate(formset.forms):
-            if "user" not in form.initial:
-                for field_name in form.fields:
-                    formset.forms[idx].fields[field_name].disabled = False
-        if not formset.is_valid():
-            # Need to check if last extra form is causing issues
-            if "user" in formset.extra_forms[-1].errors:
-                # We should remove this form
-                formset = remove_extra_form(formset)
-        if formset.is_valid():
-            return self.formset_valid(formset)
-        else:
-            self.object_list = self.get_queryset()
-            return self.formset_invalid(formset)
-
-    def get_queryset(self):
-        nat_offs = UserRoleChange.get_current_natoff()
-        return nat_offs
+        return self._list_url()
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        formset = kwargs.get("formset", None)
-        if formset is None:
-            formset = self.construct_formset()
-        context["formset"] = formset
-        context["input"] = Submit("action", "Submit")
+        context["role_change"] = self.role_change
+        context["back_url"] = self._list_url()
         return context
 
-    def formset_valid(self, formset, delete_only=False):
-        # Same deadlock hardening as ``RoleChangeView.formset_valid`` — see that
-        # method for the full rationale (issues #825/#858/#859/#982). Lock the
-        # affected member rows in a deterministic pk order and retry the write
-        # once on deadlock; the Vector LMS sync and messages run afterwards so a
-        # retry cannot duplicate them.
-        delete_instances = []
-        for obj in formset.deleted_forms:
-            # We don't want to delete the value, just make them not current
-            # We also do not care about form, just get obj
-            try:
-                instance = obj.clean()["id"]
-            except KeyError:
-                continue
-            if instance:
-                delete_instances.append(instance)
-        forms_to_save = []
-        if not delete_only:
-            forms_to_save = [f for f in formset.forms if f.changed_data and "DELETE" not in f.changed_data]
-        affected_user_ids = sorted(
-            {i.user_id for i in delete_instances if i.user_id}
-            | {f.instance.user_id for f in forms_to_save if f.instance.user_id}
-        )
+    def form_valid(self, form):
+        member = self.role_change.user
+        role = self.role_change.role
+        # Same away/alumni status-overlap block as the add view.
+        if _officer_status_overlap_errors(self.request, member, role, form.instance.start, form.instance.end):
+            return self.form_invalid(form)
 
+        # Deadlock-safe write — same rationale as the add views
+        # (issues #825/#858/#859/#982).
         def _persist():
-            if affected_user_ids:
-                list(User.objects.select_for_update().filter(pk__in=affected_user_ids).order_by("pk"))
-            removed = []
-            for instance in delete_instances:
-                instance.end = timezone.now() - timezone.timedelta(days=2)
-                instance.save()
-                removed.append(instance.user)
-            saved_users = []
-            for form in forms_to_save:
-                form.save()
-                saved_users.append(form.instance.user)
-            return removed, saved_users
+            list(User.objects.select_for_update().filter(pk=member.pk))
+            form.save()
 
-        delete_list, update_list = retry_on_deadlock(_persist, description="national officer role update")
-        if delete_list:
-            messages.add_message(
-                self.request,
-                messages.INFO,
-                "You successfully removed the officers:\n" f"{delete_list}",
-            )
-        if not delete_only and update_list:
-            for user in update_list:
-                Training.add_user_ed(user, self.request)
-            messages.add_message(
-                self.request,
-                messages.INFO,
-                "You successfully updated the officers:\n" f"{update_list}",
-            )
+        retry_on_deadlock(_persist, description="officer role edit")
+
+        # Treasurer terms must run January-to-January; when an officer
+        # acknowledged the exception and supplied a reason, notify leadership
+        # (parity with the add view).
+        exception_reason = (form.cleaned_data.get("treasurer_term_exception_reason") or "").strip()
+        if exception_reason and treasurer_term_violation(role, form.instance.start, form.instance.end):
+            TreasurerTermException(
+                role_change=form.instance,
+                reason=exception_reason,
+                submitted_by=self.request.user,
+            ).send()
+        messages.success(
+            self.request,
+            f"Updated {member}'s {role.title()} term dates.",
+        )
         return HttpResponseRedirect(self.get_success_url())
 
 
-class NationalOfficerContactsView(LoginRequiredMixin, TemplateView):
-    """National-officer roster, viewable by any logged-in member.
+class RoleChangeNationalListView(DefaultCurrentPeriodMixin, LoginRequiredMixin, PagedFilteredTableView):
+    """National officer roster — the single national-officer page.
 
-    The roster (names, roles, emails) is public; only national officers get the
-    contact-sync button/modal. The editable assignment form (``forms:natoff``)
-    is superuser-only.
+    Consolidates the old assignment table and the separate contacts roster into
+    one page: any logged-in member can view the current (and, via the filter,
+    past) national officers and copy their emails; national officers also get
+    the contact-sync button; and superusers get the "Add" control. Defaults to
+    the *current* national officers, filterable by member, role, and start/end
+    date buckets.
     """
 
-    template_name = "forms/national_officer_contacts.html"
+    model = UserRoleChange
+    queryset = UserRoleChange.objects.filter(role__in=NAT_OFFICERS).select_related("user", "user__chapter")
+    template_name = "forms/officer_national_list.html"
+    table_class = NationalOfficerRoleTable
+    filter_class = RoleChangeNationalListFilter
+    formhelper_class = RoleChangeNationalListFormHelper
+    ordering = ["user__last_name", "-start"]
 
     def get_context_data(self, **kwargs):
         from thetatauCMT.contact_sync.context import build_sync_modal_context
         from thetatauCMT.contact_sync.officers import NATIONAL_SCOPE, collect_national_officer_contacts
 
         context = super().get_context_data(**kwargs)
+        # Bulk "copy emails" of the current national officers (mirrors the old
+        # contacts page); the roster table itself is driven by the filter above.
         officers, _ = collect_national_officer_contacts()
-        pks = [officer.user_pk for officer in officers if officer.user_pk]
-        usernames = dict(User.objects.filter(pk__in=pks).values_list("pk", "username"))
-        rows = []
         emails = []
         seen = set()
         for officer in officers:
             for email in officer.emails:
-                if email.lower() not in seen:
+                if email and email.lower() not in seen:
                     seen.add(email.lower())
                     emails.append(email)
-            given = (officer.preferred_name or officer.first_name).strip()
-            rows.append(
-                {
-                    "name": f"{given} {officer.last_name}".strip(),
-                    "username": usernames.get(officer.user_pk, ""),
-                    "role": officer.role,
-                    "extra_roles": ", ".join(officer.extra_roles),
-                    "email": officer.email or officer.email_school,
-                    "phone": officer.phone,
-                }
-            )
-        context["national_officers"] = rows
         context["email_list"] = ", ".join(emails)
-        # The roster is public; only national officers get the sync button/modal.
+        # Only national officers get the contact-sync button/modal.
         if getattr(self.request, "is_nat_officer", False):
             context.update(build_sync_modal_context(self.request, NATIONAL_SCOPE))
         return context
+
+
+class RoleChangeNationalCreateView(LoginRequiredMixin, SuperuserRequiredMixin, CreateView):
+    """Add a single national officer / role (superuser only).
+
+    Preserves the self-assignment block (in the form), the deadlock-safe write,
+    and the Vector LMS education-group sync of the old national election
+    formset.
+    """
+
+    template_name = "forms/officer_national_form.html"
+    model = UserRoleChange
+    form_class = NationalOfficerAddForm
+
+    def get_success_url(self):
+        return reverse("forms:natoff")
+
+    def get_form_kwargs(self):
+        # Used by ``NationalOfficerAddForm`` to reject the requesting officer as
+        # their own national officer role recipient.
+        kwargs = super().get_form_kwargs()
+        kwargs["request_user"] = self.request.user
+        return kwargs
+
+    def form_valid(self, form):
+        member = form.instance.user
+
+        # Deadlock-safe write — same rationale as the chapter view
+        # (issues #825/#858/#859/#982). The Vector LMS sync runs afterwards so a
+        # retry cannot duplicate it.
+        def _persist():
+            list(User.objects.select_for_update().filter(pk=member.pk))
+            form.save()
+
+        retry_on_deadlock(_persist, description="national officer role add")
+        # Skip the Vector LMS enrollment for a purely historical (past) term.
+        if not _term_is_in_past(form.instance.start, form.instance.end):
+            Training.add_user_ed(member, self.request)
+        messages.success(self.request, f"{member} was added as {form.instance.role.title()}.")
+        return HttpResponseRedirect(self.get_success_url())
 
 
 class HSEducationListView(LoginRequiredMixin, NatOfficerRequiredMixin, PagedFilteredTableView):

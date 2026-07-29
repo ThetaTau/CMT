@@ -822,6 +822,42 @@ class UserRoleChange(StartEndModel, TimeStampedModel, EmailSignalMixin):
     def __str__(self):
         return self.role
 
+    @property
+    def is_current(self):
+        """True while the role term is still active (its end date has not passed).
+
+        Used by the officer table views to decide whether to show the per-row
+        "Remove" control — only current terms can be ended.
+        """
+        if not self.end:
+            return False
+        end = self.end
+        if hasattr(end, "date"):
+            end = end.date()
+        return end >= datetime.datetime.now().date()
+
+    def can_be_edited_by(self, user):
+        """Whether ``user`` may edit this (current) role's term dates.
+
+        Only *current* terms are editable — history is immutable. Editing one's
+        OWN role is allowed only when it is not a chapter-officer position (those
+        must be changed by another officer, mirroring "you cannot assign
+        yourself a chapter officer role"). Editing someone ELSE's role requires
+        an officer serving that member's chapter, or a superuser for national
+        roles.
+        """
+        if not getattr(user, "is_authenticated", False):
+            return False
+        if not self.is_current:
+            return False
+        if user.pk == self.user_id:
+            # The member themselves — never for their own chapter-officer role.
+            return self.role not in CHAPTER_OFFICER
+        if self.role in NAT_OFFICERS:
+            return bool(user.is_superuser)
+        current_chapter = getattr(user, "current_chapter", None)
+        return bool(user.is_officer_group and self.user.chapter_id == getattr(current_chapter, "id", None))
+
     def save(self, *args, **kwargs):
         off_group, _ = Group.objects.get_or_create(name="officer")
         nat_group, _ = Group.objects.get_or_create(name="natoff")

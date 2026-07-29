@@ -72,13 +72,32 @@ def _filter_has_active_values(filterset):
 
 
 @register.inclusion_tag("_partials/collapsible_filter.html", takes_context=True)
-def collapsible_filter(context, filterset, label="Filter", collapse_id="filterCollapse"):
+def collapsible_filter(context, filterset, label="Filter", collapse_id="filterCollapse", reset_url=None):
     request = context.get("request")
+    if reset_url is None:
+        # Default: reload the page with no query string. Callers whose list has a
+        # view-injected default filter (e.g. the officer roster's "current")
+        # pass an explicit reset_url (like "?cancel=1") so "Clear Filter" truly
+        # clears every filter, including that default.
+        reset_url = request.path if request is not None else ""
     return {
         "filterset": filterset,
         "label": label,
         "collapse_id": collapse_id,
         "active": _filter_has_active_values(filterset),
         "summary": _active_summary(filterset),
-        "reset_url": request.path if request is not None else "",
+        "reset_url": reset_url,
     }
+
+
+@register.filter
+def can_edit_role(record, user):
+    """Template helper: ``True`` if ``user`` may edit ``record``'s term dates.
+
+    Wraps :meth:`UserRoleChange.can_be_edited_by` so officer tables can gate the
+    per-row Edit control.
+    """
+    try:
+        return record.can_be_edited_by(user)
+    except AttributeError:
+        return False

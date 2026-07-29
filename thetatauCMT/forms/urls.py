@@ -144,15 +144,26 @@ urlpatterns = [
         view=views.EmployerAutocomplete.as_view(create_field="name"),
         name="employer-autocomplete",
     ),
-    path("officer/", view=views.RoleChangeView.as_view(), name="officer"),
+    path("officer/", view=views.RoleChangeListView.as_view(), name="officer"),
+    path("officer/add/", view=views.RoleChangeCreateView.as_view(), name="officer_add"),
+    path(
+        "role/<int:pk>/edit/",
+        view=views.RoleChangeEditView.as_view(),
+        name="role_edit",
+    ),
     path(
         "national-officer/",
-        view=views.RoleChangeNationalView.as_view(),
+        view=views.RoleChangeNationalListView.as_view(),
         name="natoff",
     ),
     path(
+        "national-officer/add/",
+        view=views.RoleChangeNationalCreateView.as_view(),
+        name="natoff_add",
+    ),
+    path(
         "national-officer/contacts/",
-        view=views.NationalOfficerContactsView.as_view(),
+        view=RedirectView.as_view(pattern_name="forms:natoff", permanent=False),
         name="national_officer_contacts",
     ),
     path(

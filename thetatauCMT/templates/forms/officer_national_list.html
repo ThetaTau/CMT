@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% load render_table from django_tables2 %}
+{% load filter_tags i18n %}
+{% block title %}National Officers{% endblock %}
+
+{% block content %}
+  <div class="page-header d-flex flex-wrap align-items-center gap-2 mb-3">
+    <h2 class="page-title mb-0">National Officers</h2>
+    <div class="page-actions d-flex flex-wrap align-items-center gap-2 ms-auto">
+      <button class="clipboard btn btn-outline-primary" data-clipboard-text="{{ email_list }}">
+        <i class="fas fa-envelope"></i> {% trans "Copy emails to clipboard" %}
+      </button>
+      {% if contact_sync_available %}
+        <button type="button" class="btn btn-outline-primary"
+                data-bs-toggle="modal" data-bs-target="#contactSyncModal">
+          <i class="fas fa-address-book"></i> {% trans "Sync National Officers to Contacts" %}
+        </button>
+      {% endif %}
+      {% if user.is_superuser %}
+        <a href="{% url 'forms:natoff_add' %}" class="btn btn-primary">
+          <i class="fas fa-plus"></i> {% trans "Add National Officer" %}
+        </a>
+      {% endif %}
+    </div>
+  </div>
+  <p class="text-body-secondary">
+    Current and past national officers. The roster defaults to current officers &mdash;
+    use the filter to show past officers, or search by member, role, or dates.
+    {% if user.is_superuser %}Administrators can add or edit assignments.{% endif %}
+  </p>
+  {% collapsible_filter filter label="Filter National Officers" collapse_id="natoffFilter" reset_url="?cancel=1" %}
+  <div class="table-responsive">
+    {% render_table table %}
+  </div>
+  {% if contact_sync_available %}
+    {# Hidden CSRF token so contact_sync/sync_modal.html's fetch() calls can POST safely. #}
+    <form style="display:none">{% csrf_token %}</form>
+    {% include "contact_sync/sync_modal.html" %}
+  {% endif %}
+{% endblock content %}

@@ -3,8 +3,10 @@ import django_filters
 from django.forms.widgets import NumberInput
 
 from core.filters import DateRangeFilter, DynamicScopeFilterSetMixin
+from core.models import CHAPTER_ROLES_CHOICES, NAT_OFFICERS_CHOICES, TODAY_END
 from thetatauCMT.chapters.models import Chapter
 from thetatauCMT.regions.models import Region
+from thetatauCMT.users.models import UserRoleChange
 
 from .models import AlumniExclusion, Audit, Bylaws, HSEducation, PledgeProgram, StatusChange
 
@@ -181,4 +183,53 @@ class BylawsListFilter(DynamicScopeFilterSetMixin, django_filters.FilterSet):
             queryset = queryset.filter(chapter__candidate_chapter=True)
         else:
             queryset = queryset.filter(chapter__region__slug=value)
+        return queryset
+
+
+class RoleChangeListFilter(django_filters.FilterSet):
+    """Filter the chapter officer / role table.
+
+    Chapter scoping is applied by the view (``filter_user_chapter``). Exposes a
+    "Current Officers"/"All" toggle, a member-name search, a role multi-select,
+    and start/end date-range buckets. The empty choice means "all (incl. past)";
+    the view injects ``period=current`` on an unfiltered initial load, so the
+    filter's "Clear" button truly clears it and shows all. "Current" mirrors
+    ``UserRoleChange.get_current_roles`` (the term has not yet ended:
+    ``end >= TODAY_END``).
+    """
+
+    period = django_filters.ChoiceFilter(
+        label="Show",
+        choices=(("current", "Current Officers"),),
+        empty_label="All (incl. past)",
+        method="filter_period",
+    )
+    user = django_filters.CharFilter(label="Member", field_name="user__name", lookup_expr="icontains")
+    role = django_filters.MultipleChoiceFilter(label="Role", choices=CHAPTER_ROLES_CHOICES)
+    start = DateRangeFilter(label="Start")
+    end = DateRangeFilter(label="End")
+
+    class Meta:
+        model = UserRoleChange
+        fields = ["period", "user", "role", "start", "end"]
+        order_by = ["user__last_name", "-start"]
+
+    def filter_period(self, queryset, field_name, value):
+        if value == "current":
+            return queryset.filter(end__gte=TODAY_END)
+        return queryset
+
+
+class RoleChangeNationalListFilter(RoleChangeListFilter):
+    """National-officer variant: national role choices and a stricter "current".
+
+    "Current" mirrors ``UserRoleChange.get_current_natoff`` — the term is active
+    today (``start <= TODAY_END <= end``).
+    """
+
+    role = django_filters.MultipleChoiceFilter(label="Role", choices=NAT_OFFICERS_CHOICES)
+
+    def filter_period(self, queryset, field_name, value):
+        if value == "current":
+            return queryset.filter(start__lte=TODAY_END, end__gte=TODAY_END)
         return queryset

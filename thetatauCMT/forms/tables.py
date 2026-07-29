@@ -3,6 +3,8 @@ from django.urls import reverse
 from django.utils.safestring import mark_safe
 from django_tables2.utils import A
 
+from thetatauCMT.users.models import UserRoleChange
+
 from .models import (
     OSM,
     AlumniExclusion,
@@ -18,6 +20,48 @@ from .models import (
     RitualProficiency,
     StatusChange,
 )
+
+
+class OfficerRoleTable(tables.Table):
+    """Current + past chapter officers/roles, with a per-row edit control."""
+
+    user = tables.LinkColumn(
+        "users:profile",
+        kwargs={"username": A("user__username")},
+        accessor="user__name",
+        verbose_name="Member",
+    )
+    role = tables.Column(verbose_name="Role")
+    edit = tables.TemplateColumn(
+        template_name="forms/_officer_edit_button.html",
+        orderable=False,
+        verbose_name="",
+    )
+
+    class Meta:
+        model = UserRoleChange
+        fields = ("user", "role", "start", "end")
+        attrs = {"class": "table table-striped table-bordered"}
+        empty_text = "No officers or roles have been recorded for this chapter yet."
+
+    def render_role(self, value):
+        return value.title()
+
+
+class NationalOfficerRoleTable(OfficerRoleTable):
+    """National-officer variant: adds the member's chapter and email columns."""
+
+    chapter = tables.Column(verbose_name="Chapter", accessor="user__chapter")
+    email = tables.Column(verbose_name="Email", accessor="user__email", orderable=False)
+
+    class Meta:
+        model = UserRoleChange
+        fields = ("user", "chapter", "role", "email", "start", "end")
+        attrs = {"class": "table table-striped table-bordered"}
+        empty_text = "No national officers have been recorded yet."
+
+    def render_email(self, value, record):
+        return value or record.user.email_school or ""
 
 
 class BadgeTable(tables.Table):

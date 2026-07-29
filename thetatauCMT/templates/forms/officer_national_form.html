@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+{% load crispy_forms_field %}
+{% block title %}Add National Officer{% endblock %}
+
+{% block content %}
+  {{ form.media }}
+  {% comment %}Give the member type-to-search dropdown the full field width so its results panel lines up under the box.{% endcomment %}
+  <style>
+    #national-officer-add-form .select2-container { width: 100% !important; }
+  </style>
+
+  <div class="page-header d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+    <h2 class="page-title mb-0">Add National Officer</h2>
+    <a class="btn btn-outline-secondary" href="{% url 'forms:natoff' %}">
+      <i class="fas fa-arrow-left"></i> Back to national officers
+    </a>
+  </div>
+
+  <div class="alert alert-info" role="alert">
+    <strong>Note:</strong> National officers cannot assign a national officer role
+    to themselves. Another national officer must record the assignment.
+  </div>
+
+  <form id="national-officer-add-form" method="post">
+    {% csrf_token %}
+    {% for field in form.hidden_fields %}{{ field }}{% endfor %}
+    {% if form.non_field_errors %}
+      <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+    {% endif %}
+    {% for field in form.visible_fields %}
+      {% if field.name == "start" or field.name == "end" %}
+        {% comment %}
+          Tempus-dominus date fields: render only the widget's own input-group
+          (via crispy_field) inside a position:relative wrapper. The full crispy
+          field wrapper would emit a second id="div_id_<name>" that collides with
+          the widget's input-group id and stops the datepicker popup from opening.
+        {% endcomment %}
+        <div class="mb-3">
+          <label for="{{ field.id_for_label }}" class="form-label{% if field.field.required %} requiredField{% endif %}">
+            {{ field.label }}{% if field.field.required %}<span class="asteriskField">*</span>{% endif %}
+          </label>
+          <div style="position: relative">
+            {% crispy_field field %}
+          </div>
+          {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
+          {% for error in field.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+        </div>
+      {% else %}
+        {{ field|as_crispy_field }}
+      {% endif %}
+    {% endfor %}
+    <button type="submit" class="btn btn-primary">Add national officer</button>
+  </form>
+{% endblock content %}
