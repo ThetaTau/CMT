@@ -8,20 +8,11 @@ CURRENT_URL = "https://venturafranklin.pythonanywhere.com"
 
 # PERFORMANCE PROFILING (staging-only)
 # ------------------------------------------------------------------------------
-# PythonAnywhere has no Redis, so the inherited django-redis CACHES (production.py)
-# only produced dead-connection attempts masked by IGNORE_EXCEPTIONS. Swap in an
-# in-process cache: the sole cache consumer is cache_page on the iCal feeds, so
-# per-process caching is correct and dependency-free.
-CACHES = {
-    "default": {
-        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
-    }
-}
-
 # django-silk request/SQL profiler + a lightweight timing middleware that stamps
 # every response with X-Perf-* headers. QueryTimingMiddleware is outermost so it
 # measures the full stack (silk included); silk records SQL + cProfile detail at
-# /silk/ (restricted to superusers below).
+# /silk/ (restricted to superusers below). CACHES (LocMemCache) is inherited from
+# production.py.
 INSTALLED_APPS += ["silk"]
 MIDDLEWARE = [
     "core.middleware.QueryTimingMiddleware",
