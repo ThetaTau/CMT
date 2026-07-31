@@ -6,6 +6,32 @@ INSTALLED_APPS += ["bandit", "django_middleware_global_request"]
 MIDDLEWARE += ["django_middleware_global_request.middleware.GlobalRequestMiddleware"]
 CURRENT_URL = "https://venturafranklin.pythonanywhere.com"
 
+# PERFORMANCE PROFILING (staging-only)
+# ------------------------------------------------------------------------------
+# django-silk request/SQL profiler + a lightweight timing middleware that stamps
+# every response with X-Perf-* headers. QueryTimingMiddleware is outermost so it
+# measures the full stack (silk included); silk records SQL + cProfile detail at
+# /silk/ (restricted to superusers below). CACHES (LocMemCache) is inherited from
+# production.py.
+INSTALLED_APPS += ["silk"]
+MIDDLEWARE = [
+    "core.middleware.QueryTimingMiddleware",
+    "silk.middleware.SilkyMiddleware",
+] + MIDDLEWARE
+
+
+def _silk_superuser_only(user):
+    return user.is_superuser
+
+
+SILKY_AUTHENTICATION = True  # must be logged in to view /silk/
+SILKY_AUTHORISATION = True  # ...and pass SILKY_PERMISSIONS
+SILKY_PERMISSIONS = _silk_superuser_only
+SILKY_PYTHON_PROFILER = True
+SILKY_INTERCEPT_PERCENT = 100
+SILKY_MAX_RECORDED_REQUESTS = 10**4
+SILKY_MAX_RECORDED_REQUESTS_CHECK_PERCENT = 10
+
 # HOST / HTTPS overrides for the shared *.pythonanywhere.com staging host.
 # ------------------------------------------------------------------------------
 # Production defaults ALLOWED_HOSTS / CSRF_TRUSTED_ORIGINS to the cmt.thetatau.*

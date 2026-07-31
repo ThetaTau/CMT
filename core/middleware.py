@@ -1,6 +1,10 @@
+import logging
+import time
+
 from allauth_2fa.middleware import BaseRequire2FAMiddleware
 from django.conf import settings
 from django.contrib import messages
+from django.db import connection, reset_queries
 from django.shortcuts import redirect
 from django.urls import reverse
 from django.utils.deprecation import MiddlewareMixin
@@ -9,6 +13,8 @@ from django.utils.safestring import mark_safe
 from core.models import current_month, current_term
 from core.utils import check_nat_officer, check_officer
 from thetatauCMT.forms.models import PledgeProgram, RiskManagement
+
+perf_logger = logging.getLogger("perf")
 
 
 class RequireSuperuser2FAMiddleware(BaseRequire2FAMiddleware):
@@ -64,3 +70,33 @@ class OfficerMiddleware(MiddlewareMixin):
         if request.user.is_authenticated:
             check_nat_officer(request)
             check_officer(request)
+
+
+class QueryTimingMiddleware:
+    """Staging-only profiler: log per-request wall time + SQL stats and expose
+    them as X-Perf-* response headers (visible in browser DevTools). Forces the
+    debug cursor so query timings are captured even when DEBUG is False."""
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        connection.force_debug_cursor = True
+        reset_queries()
+        start = time.perf_counter()
+        response = self.get_response(request)
+        elapsed = time.perf_counter() - start
+        queries = connection.queries
+        sql_time = sum(float(query["time"]) for query in queries)
+        response["X-Perf-Total"] = f"{elapsed:.3f}s"
+        response["X-Perf-Queries"] = str(len(queries))
+        response["X-Perf-SQL"] = f"{sql_time:.3f}s"
+        perf_logger.warning(
+            "PERF %s %s -> %.3fs total, %d queries, %.3fs SQL",
+            request.method,
+            request.path,
+            elapsed,
+            len(queries),
+            sql_time,
+        )
+        return response
