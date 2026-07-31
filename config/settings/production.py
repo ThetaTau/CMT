@@ -17,16 +17,12 @@ DATABASES["default"]["CONN_MAX_AGE"] = env.int("CONN_MAX_AGE", default=60)  # no
 
 # CACHES
 # ------------------------------------------------------------------------------
+# This deployment (PythonAnywhere) has no Redis, so use an in-process cache. The
+# only cache consumer is cache_page on the iCal feeds, so per-process caching is
+# correct and keeps the app free of a cache-server dependency.
 CACHES = {
     "default": {
-        "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": f'{env("REDIS_URL", default="redis://127.0.0.1:6379")}/{0}',
-        "OPTIONS": {
-            "CLIENT_CLASS": "django_redis.client.DefaultClient",
-            # Mimicing memcache behavior.
-            # https://github.com/jazzband/django-redis#memcached-exceptions-behavior
-            "IGNORE_EXCEPTIONS": True,
-        },
+        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
     }
 }
 
@@ -83,6 +79,9 @@ CONTENT_SECURITY_POLICY_REPORT_ONLY = {
             "https://hcaptcha.com",
             "https://*.hcaptcha.com",
             "https://maps.googleapis.com",
+            "https://unpkg.com",  # django-plotly-dash component bundles
+            "https://cdn.plot.ly",  # Plotly.js
+            "https://app.posthog.com",  # PostHog analytics (array.js)
         ],
         "style-src": [
             "'self'",
@@ -92,7 +91,13 @@ CONTENT_SECURITY_POLICY_REPORT_ONLY = {
             "https://fonts.googleapis.com",
         ],
         "img-src": ["'self'", "data:", "https:"],
-        "font-src": ["'self'", "data:", "https://cdn.jsdelivr.net", "https://fonts.gstatic.com"],
+        "font-src": [
+            "'self'",
+            "data:",
+            "https://cdn.jsdelivr.net",
+            "https://fonts.gstatic.com",
+            "https://cdnjs.cloudflare.com",  # Font Awesome 6 webfonts
+        ],
         "connect-src": ["'self'", "https:"],
         "frame-src": ["'self'", "https://www.google.com", "https://hcaptcha.com", "https://*.hcaptcha.com"],
         "frame-ancestors": ["'none'"],

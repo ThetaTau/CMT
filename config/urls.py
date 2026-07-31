@@ -221,3 +221,8 @@ if settings.DEBUG or "staging" in (settings.SETTINGS_MODULE or ""):
     urlpatterns += [
         path("herald/", include("herald.urls")),
     ]
+
+if "silk" in settings.INSTALLED_APPS:
+    urlpatterns += [
+        path("silk/", include("silk.urls", namespace="silk")),
+    ]
