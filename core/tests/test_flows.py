@@ -208,6 +208,60 @@ def test_get_task_url_survives_noreversematch(rf):
 
 
 # ---------------------------------------------------------------------------
+# Site-wide /workflow/ listings — stale viewflow node state (#952)
+# ---------------------------------------------------------------------------
+
+
+def _stale_queue_view(rf, exc):
+    """Build a GuardedAllQueueListView whose single task raises ``exc`` from
+    ``flow_task.get_task_url`` (the ``can_assign`` stale-node crash)."""
+    from types import SimpleNamespace
+
+    from core.flows import GuardedAllQueueListView
+
+    flow_class = object()  # opaque registry key
+
+    class _StaleFlowTask:
+        def get_task_url(self, *args, **kwargs):
+            raise exc
+
+    task = SimpleNamespace(
+        flow_task=_StaleFlowTask(),
+        process=SimpleNamespace(flow_class=flow_class),
+    )
+
+    view = GuardedAllQueueListView()
+    view.ns_map = {flow_class: "disciplinaryprocess"}
+    request = rf.get("/")
+    request.user = SimpleNamespace(is_anonymous=False)
+    request.resolver_match = SimpleNamespace(namespace="viewflow")
+    view.request = request
+    return view, task
+
+
+def test_queue_get_task_url_survives_missing_owner_permission_obj(rf):
+    """Regression for the ``/workflow/queue/`` 500 (same root cause as #952).
+
+    The site-wide queue (``GuardedAllQueueListView``) iterates NEW unassigned
+    tasks across every flow and reaches ``View.can_assign``, which reads the
+    node's ``_owner_permission_obj``.  A stale task whose node lost its
+    ``.Permission()`` makes that read raise ``AttributeError``.  The queue must
+    degrade the bad row to no link instead of 500ing the whole page.
+    """
+    exc = AttributeError("'View' object has no attribute '_owner_permission_obj'")
+    view, task = _stale_queue_view(rf, exc)
+    assert view.get_task_url(task) == ""
+
+
+def test_queue_get_task_url_survives_noreversematch(rf):
+    """A renamed/removed task URL (NoReverseMatch) also degrades to no link."""
+    from django.urls import NoReverseMatch
+
+    view, task = _stale_queue_view(rf, NoReverseMatch("reverse for a renamed task node failed"))
+    assert view.get_task_url(task) == ""
+
+
+# ---------------------------------------------------------------------------
 # complete_activation — concurrent/duplicate submit (#980)
 # ---------------------------------------------------------------------------
 

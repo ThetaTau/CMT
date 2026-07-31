@@ -10,8 +10,8 @@ from viewflow.activation import STATUS, Activation, now
 from viewflow.compat import _
 from viewflow.flow import views as flow_views
 from viewflow.flow.views.mixins import FlowListMixin
-from viewflow.frontend.views import ProcessListView
-from viewflow.frontend.viewset import FlowViewSet
+from viewflow.frontend.views import AllArchiveListView, AllQueueListView, AllTaskListView, ProcessListView
+from viewflow.frontend.viewset import FlowViewSet, FrontendViewSet
 from viewflow.fsm import TransitionNotAllowed
 
 
@@ -271,6 +271,53 @@ class FilterProcessListView(ProcessListView, FlowListMixin):
 
 class FilterableFlowViewSet(FlowViewSet):
     process_list_view = [r"^$", FilterProcessListView.as_view(), "index"]
+
+
+class _ResilientTaskUrlMixin:
+    """Degrade a task link to no link instead of 500ing the whole listing when a
+    stale DB task references viewflow node state that no longer matches the flow
+    definition.
+
+    The site-wide ``/workflow/`` listings iterate every registered flow's tasks
+    and call ``FlowListMixin.get_task_url`` -> ``View.can_assign``, which reads
+    ``self._owner_permission_obj``.  ``PermissionMixin`` only sets that attribute
+    inside ``.Permission()``; a task whose ``owner_permission`` column was
+    persisted while its node still had a ``.Permission()`` -- but whose node was
+    later redefined without one -- makes ``can_assign`` read an unset attribute
+    and raise ``AttributeError`` (a renamed task url raises ``NoReverseMatch``).
+    Mirrors ``FilterProcessListView.get_task_url`` (#952) for the queue/inbox/
+    archive views (``/workflow/queue/`` lists NEW unassigned tasks and is the
+    one that actually reaches ``can_assign``).
+    """
+
+    def get_task_url(self, task, url_type=None):
+        try:
+            return super().get_task_url(task, url_type=url_type)
+        except (AttributeError, NoReverseMatch):
+            return ""
+
+
+class GuardedAllTaskListView(_ResilientTaskUrlMixin, AllTaskListView):
+    pass
+
+
+class GuardedAllQueueListView(_ResilientTaskUrlMixin, AllQueueListView):
+    pass
+
+
+class GuardedAllArchiveListView(_ResilientTaskUrlMixin, AllArchiveListView):
+    pass
+
+
+class GuardedFrontendViewSet(FrontendViewSet):
+    """Frontend site viewset wired to the resilient list views so the workflow
+    queue (``/workflow/queue/``) survives stale task rows (#952).  Selected via
+    ``core.apps.GuardedViewflowFrontendConfig`` in ``INSTALLED_APPS``.
+    """
+
+    inbox_view_class = GuardedAllTaskListView
+    queue_view_class = GuardedAllQueueListView
+    archive_view_class = GuardedAllArchiveListView
 
 
 def cancel_process(process):

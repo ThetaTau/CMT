@@ -72,7 +72,10 @@ DJANGO_APPS = [
     "django.contrib.humanize",  # Handy template tags
     "dal",
     "dal_select2",
-    "viewflow.frontend",
+    # core.apps.GuardedViewflowFrontendConfig subclasses viewflow.frontend's
+    # AppConfig (same name/label) to swap in queue/inbox/archive list views that
+    # tolerate stale task rows (#952) -- see core/flows.py GuardedFrontendViewSet.
+    "core.apps.GuardedViewflowFrontendConfig",
     "oauth2_provider",
     "corsheaders",
     "django.contrib.admin",
