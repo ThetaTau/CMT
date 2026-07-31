@@ -16,11 +16,13 @@ from django.db.utils import ProgrammingError
 from django.utils.text import slugify
 from django.utils.timezone import make_aware
 from django.utils.translation import gettext_lazy as _
+from django_ckeditor_5.fields import CKEditor5Field
 from email_signals.models import EmailSignalMixin
 from herald.models import SentNotification
 from quickbooks.objects.attachable import Attachable, AttachableRef
 from quickbooks.objects.customer import Customer
 
+from core.csv_utils import escape_csv_row
 from core.finances import create_line, get_quickbooks_client, invoice_search
 from core.models import (
     ACTIVE_STATUSES,
@@ -306,6 +308,13 @@ class Chapter(models.Model, EmailSignalMixin):
         max_length=10,
         choices=[x.value for x in RECOGNITION],
     )
+    recognition_url = models.URLField(
+        verbose_name=_("Recognizing Office Website"),
+        help_text="Please insert the URL to that office's website here.",
+        blank=True,
+        default="",
+        max_length=255,
+    )
     health_safety_surcharge = models.CharField(
         help_text="Surcharge for chapters not completing X% online health and safety programming",
         max_length=10,
@@ -320,6 +329,18 @@ class Chapter(models.Model, EmailSignalMixin):
     )
     founding_date = models.DateField(blank=True, null=True)
     recharter_date = models.DateField(blank=True, null=True)
+    size_target = models.PositiveIntegerField(
+        verbose_name=_("Membership Size Target"),
+        help_text="The target membership size for the chapter to strive for.",
+        blank=True,
+        null=True,
+    )
+    support_specialist = CKEditor5Field(
+        verbose_name=_("Support Specialist"),
+        help_text="The staff member(s) who support this chapter. Rich text is supported.",
+        blank=True,
+        default="",
+    )
     misc_data = models.JSONField(default=dict, blank=True)
 
     def __str__(self):
@@ -809,7 +830,7 @@ class Chapter(models.Model, EmailSignalMixin):
             dues_mail.add_header("Content-Disposition", "attachment", filename=filename)
         table = UserTable(data=self.active_actives())
         writer = csv.writer(dues_file)
-        writer.writerows(table.as_values())
+        writer.writerows(escape_csv_row(row) for row in table.as_values())
         if response is None and not file_obj:
             dues_mail.set_payload(dues_file.getvalue())
             out = dues_mail

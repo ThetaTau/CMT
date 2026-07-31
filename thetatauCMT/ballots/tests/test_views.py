@@ -45,6 +45,20 @@ def test_ballot_user_list_view_authenticated(auto_login_user):
 
 
 @pytest.mark.django_db
+def test_ballot_user_list_view_no_roles(auto_login_user):
+    """A user with no current_roles can load the vote list without an IndexError.
+
+    Regression test for GH #1069: Ballot.user_ballots() indexed roles[0] which
+    raised IndexError when the user had no current_roles.
+    """
+    client, user = auto_login_user()  # no make_officer -> current_roles is None
+    assert not user.current_roles
+    url = reverse("ballots:votelist")
+    response = client.get(url)
+    assert response.status_code == 200
+
+
+@pytest.mark.django_db
 def test_ballot_user_list_view_unauthenticated(client):
     url = reverse("ballots:votelist")
     response = client.get(url)
@@ -202,3 +216,18 @@ def test_ballot_vote_view_user_without_role_gets_error(auto_login_user):
     response = client.get(url)
     # Could be 200 or 302 depending on mixin
     assert response.status_code in (200, 302)
+
+
+@pytest.mark.django_db
+def test_ballot_vote_view_missing_ballot_returns_404(auto_login_user):
+    """Voting on a non-existent ballot slug returns 404, not a 500.
+
+    ``BallotCompleteCreateView.get_context_data`` did
+    ``Ballot.objects.get(slug=...)`` which raised Ballot.DoesNotExist (issue
+    #922); it now uses ``get_object_or_404``.
+    """
+    client, user = auto_login_user(make_officer="regent")
+    _make_officer(user, client)
+    url = reverse("ballots:vote", kwargs={"slug": "this-ballot-does-not-exist"})
+    response = client.get(url)
+    assert response.status_code == 404

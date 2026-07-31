@@ -228,6 +228,11 @@ class EventCreateView(
             if picture_form.is_valid() and picture_form.instance.image.name != "":
                 picture_form.instance.event = event_form.instance
                 picture_form.save()
+        messages.add_message(
+            self.request,
+            messages.SUCCESS,
+            f"Event '{event.name}' on {event.date} was created.",
+        )
         # "Save & Add Attendance" jumps straight to the new event's roster.
         if self.request.POST.get("add_attendance"):
             return HttpResponseRedirect(event.get_attendance_url())
@@ -363,6 +368,11 @@ class EventUpdateView(
             form.add_error("name", message)
             form.add_error("date", message)
             return self.render_to_response(self.get_context_data(form=form))
+        messages.add_message(
+            self.request,
+            messages.SUCCESS,
+            f"Event '{self.object.name}' was updated.",
+        )
         return HttpResponseRedirect(self.get_success_url())
 
     def get_success_url(self):
@@ -618,11 +628,10 @@ class ChapterFeedAutocomplete(autocomplete.Select2QuerySetView):
     def get_queryset(self):
         from thetatauCMT.chapters.models import Chapter
 
-        if not self.request.user.is_authenticated:
+        # Require >= 2 chars so the endpoint can't enumerate all chapter names.
+        if not self.request.user.is_authenticated or len(self.q) < 2:
             return Chapter.objects.none()
-        qs = Chapter.objects.filter(active=True)
-        if self.q:
-            qs = qs.filter(name__icontains=self.q)
+        qs = Chapter.objects.filter(active=True, name__icontains=self.q)
         return qs.order_by("name")
 
 
@@ -632,11 +641,10 @@ class RegionFeedAutocomplete(autocomplete.Select2QuerySetView):
     def get_queryset(self):
         from thetatauCMT.regions.models import Region
 
-        if not self.request.user.is_authenticated:
+        # Require >= 2 chars so the endpoint can't enumerate all region names.
+        if not self.request.user.is_authenticated or len(self.q) < 2:
             return Region.objects.none()
-        qs = Region.objects.all()
-        if self.q:
-            qs = qs.filter(name__icontains=self.q)
+        qs = Region.objects.filter(name__icontains=self.q)
         return qs.order_by("name")
 
 
@@ -774,6 +782,7 @@ class CalendarFeedDeleteView(LoginRequiredMixin, View):
     def post(self, request, *args, **kwargs):
         feed = CalendarFeedSubscription.objects.filter(pk=kwargs["pk"], user=request.user).first()
         if feed is not None:
+            name = feed.name
             feed.delete()
-            messages.add_message(request, messages.SUCCESS, "Calendar feed removed.")
+            messages.add_message(request, messages.SUCCESS, f"Calendar feed '{name}' was removed.")
         return HttpResponseRedirect(reverse("events:feeds"))

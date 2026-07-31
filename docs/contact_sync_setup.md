@@ -302,6 +302,6 @@ Command options:
   — sample data for QA.
 - `thetatauCMT/templates/contact_sync/sync_modal.html` — the modal dialog.
 - `thetatauCMT/templates/regions/officer_list.html` — button on region page.
-- `thetatauCMT/templates/forms/officer_national.html` — button on the natoff
-  form page.
+- `thetatauCMT/templates/forms/officer_national_list.html` — button on the
+  national officers page.
 - Tests: `thetatauCMT/contact_sync/tests/`.

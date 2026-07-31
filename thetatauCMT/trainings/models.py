@@ -1,6 +1,7 @@
 import base64
 import datetime
 import json
+import logging
 import re
 from time import sleep
 
@@ -15,6 +16,99 @@ from django.utils import timezone
 import core.requests as requests
 from core.models import TimeStampedModel
 from thetatauCMT.users.models import User
+
+logger = logging.getLogger(__name__)
+
+
+def _log_level_for(message_level):
+    """Map a Django ``messages`` level to a stdlib ``logging`` level."""
+    if message_level >= messages.ERROR:
+        return logging.ERROR
+    if message_level >= messages.WARNING:
+        return logging.WARNING
+    return logging.INFO
+
+
+class TrainingSystemUnavailable(Exception):
+    """The Vector LMS API is unreachable or returned an unusable response.
+
+    Raised by the Vector LMS request helpers when the endpoint cannot be reached,
+    answers with a non-success status after retries, or returns an empty / non-JSON
+    body (an HTML gateway page, for example, makes ``response.json()`` raise
+    ``JSONDecodeError``). Callers catch it to surface a friendly "training system
+    unavailable, please try again later" message instead of returning a 500
+    (issues #840, #862, #877, #879, #917, #918, #979, #1004).
+    """
+
+
+# HTTP statuses the Vector LMS returns transiently and that typically succeed on a
+# retry: 429 (rate limit) and the 5xx gateway family.
+_TRANSIENT_LMS_STATUSES = frozenset({429, 500, 502, 503, 504})
+
+
+def _lms_response_json(response, description):
+    """Return parsed JSON from a Vector LMS ``response`` or raise ``TrainingSystemUnavailable``.
+
+    Guards the two production failure modes: a non-success status (an HTML gateway
+    or 5xx error page) and an empty / non-JSON body, both of which otherwise make
+    ``response.json()`` raise ``JSONDecodeError`` (a ``ValueError``) and bubble up as
+    a 500.
+    """
+    # ``requests.Response.ok`` is ``status_code < 400``; derive it from the status
+    # code so lightweight test doubles only need to expose ``status_code``/``json``.
+    status_code = getattr(response, "status_code", None)
+    if status_code is not None and status_code >= 400:
+        reason = getattr(response, "reason", "") or ""
+        raise TrainingSystemUnavailable(f"{description}: training system returned HTTP {status_code} {reason}".strip())
+    try:
+        return response.json()
+    except ValueError as exc:  # JSONDecodeError is a subclass of ValueError
+        raise TrainingSystemUnavailable(
+            f"{description}: training system returned an empty or non-JSON response."
+        ) from exc
+
+
+def _post_lms_json(url, *, description="Vector LMS request", attempts=3, initial_delay=1.0, backoff=2.0, **post_kwargs):
+    """POST to the Vector LMS, retrying transient failures, and return parsed JSON.
+
+    Mirrors :func:`core.utils.retry_google_api` for the retry/backoff shape but
+    understands ``requests``-style responses: connection errors and transient
+    statuses (429 / 5xx) are retried with exponential backoff, while a persistent
+    failure, a non-success status, or an empty / non-JSON body raises
+    ``TrainingSystemUnavailable`` so the caller can surface a friendly message
+    instead of a 500.
+    """
+    delay = initial_delay
+    for attempt in range(1, attempts + 1):
+        try:
+            response = requests.post(url, **post_kwargs)
+        except requests.RequestException as exc:
+            if attempt == attempts:
+                raise TrainingSystemUnavailable(f"{description}: could not reach the training system.") from exc
+            logger.warning(
+                "%s could not connect (attempt %s/%s); retrying in %.1fs",
+                description,
+                attempt,
+                attempts,
+                delay,
+            )
+            sleep(delay)
+            delay *= backoff
+            continue
+        status_code = getattr(response, "status_code", None)
+        if status_code in _TRANSIENT_LMS_STATUSES and attempt < attempts:
+            logger.warning(
+                "%s got transient HTTP %s (attempt %s/%s); retrying in %.1fs",
+                description,
+                status_code,
+                attempt,
+                attempts,
+                delay,
+            )
+            sleep(delay)
+            delay *= backoff
+            continue
+        return _lms_response_json(response, description)
 
 
 class Training(TimeStampedModel):
@@ -53,19 +147,28 @@ class Training(TimeStampedModel):
                 client_secret=settings.LMS_SECRET,
             )
             headers = {"Accept": "application/json", "Content-Type": "application/json"}
-            response = requests.post(url, params=params, headers=headers)
-            if response.status_code == 200:
-                response_json = response.json()
-                with open(auth_file, "w") as file_obj:
-                    json.dump(response_json, file_obj)
-            else:
-                # There was an error
-                raise Http404(f"Training System authentication error: {response.reason}")
-        authenticate_header = {
-            "Accept": "application/json",
-            "Content-Type": "application/json",
-            "Authorization": f"{response_json['token_type']} {response_json['access_token']}",
-        }
+            # A gateway/5xx error or empty body used to make ``response.json()`` raise
+            # ``JSONDecodeError`` here and 500 the caller (issue #1004); route the token
+            # request through the shared helper so an outage raises
+            # ``TrainingSystemUnavailable`` (retried for transient 5xx) instead.
+            response_json = _post_lms_json(
+                url,
+                params=params,
+                headers=headers,
+                description="Training system authentication",
+            )
+            with open(auth_file, "w") as file_obj:
+                json.dump(response_json, file_obj)
+        try:
+            authenticate_header = {
+                "Accept": "application/json",
+                "Content-Type": "application/json",
+                "Authorization": f"{response_json['token_type']} {response_json['access_token']}",
+            }
+        except KeyError as exc:
+            raise TrainingSystemUnavailable(
+                "Training system authentication returned an unexpected response (missing token)."
+            ) from exc
         return authenticate_header
 
     @staticmethod
@@ -114,7 +217,7 @@ class Training(TimeStampedModel):
                 json_response = response.json()
             except Exception:
                 if response.status_code == 429:
-                    print("Delay for 300...")
+                    logger.warning("Delay for 300...")
                     sleep(300)
                     authenticate_header = Training.authenticate_header()
                     continue
@@ -125,7 +228,7 @@ class Training(TimeStampedModel):
             total = json_response["data"]["People"]["pageInfo"]["totalCount"]
             batch_num += 1
             for count, user_info in enumerate(users):
-                print(f"Working on {count + 1 + (100 * batch_num)}/{total} batch has more {has_next}")
+                logger.info(f"Working on {count + 1 + (100 * batch_num)}/{total} batch has more {has_next}")
                 progresses = user_info["progress"]
                 username = user_info["username"]
                 user_pk = user_info["externalUniqueId"]
@@ -159,7 +262,7 @@ class Training(TimeStampedModel):
                     | Q(email_school__iexact=username)
                 ).first()
                 if not user:
-                    print(f"USER DOES NOT EXIST {user_info}")
+                    logger.warning(f"USER DOES NOT EXIST {user_info}")
                     continue
                 values = dict(
                     user=user,
@@ -170,7 +273,7 @@ class Training(TimeStampedModel):
                     completed_time=completed_at,
                     max_quiz_score=max_quiz_score,
                 )
-                print(values)
+                logger.debug("Training upsert values: %s", values)
                 try:
                     obj, created = Training.objects.update_or_create(user=user, course_id=course_id, defaults=values)
                 except Training.MultipleObjectsReturned:
@@ -209,14 +312,18 @@ class Training(TimeStampedModel):
                     }}
                 }}
                 """
-            response = requests.post(url, json={"query": query_positions}, headers=authenticate_header)
-            json_response = response.json()
-            extra_groups = [
-                (node["code"], node["name"]) for node in json_response["data"]["Positions"]["nodes"] if node["code"]
-            ]
+            json_response = _post_lms_json(
+                url,
+                json={"query": query_positions},
+                headers=authenticate_header,
+                description="Training system positions lookup",
+            )
+            positions = (json_response.get("data") or {}).get("Positions") or {}
+            extra_groups = [(node["code"], node["name"]) for node in (positions.get("nodes") or []) if node["code"]]
             extra_groups_total.extend(extra_groups)
-            has_next = json_response["data"]["Positions"]["pageInfo"]["hasNextPage"]
-            cursor = json_response["data"]["Positions"]["pageInfo"]["endCursor"]
+            page_info = positions.get("pageInfo") or {}
+            has_next = page_info.get("hasNextPage", False)
+            cursor = page_info.get("endCursor", "")
         extra_groups_total = sorted(extra_groups_total, key=lambda x: x[1].lower())
         return extra_groups_total
 
@@ -235,9 +342,18 @@ class Training(TimeStampedModel):
                     }}
                 }}
                 """
-        response = requests.post(url, json={"query": query_locations}, headers=authenticate_header)
-        all_locations = response.json()
-        location_id = all_locations["data"]["Locations"]["nodes"][0]["locationId"]
+        all_locations = _post_lms_json(
+            url,
+            json={"query": query_locations},
+            headers=authenticate_header,
+            description="Training system location lookup",
+        )
+        # An empty ``nodes`` list means the location does not exist yet in the training
+        # system. Return ``None`` so ``add_user`` creates it via its ``addLocation``
+        # fallback instead of raising ``IndexError`` (issue #1085). A gateway/non-JSON
+        # response now raises ``TrainingSystemUnavailable`` instead of a 500 (Cluster A).
+        location_nodes = ((all_locations.get("data") or {}).get("Locations") or {}).get("nodes") or []
+        location_id = location_nodes[0]["locationId"] if location_nodes else None
         # Frontend will let you add position as long as you want,
         # but the graphql will only return and match on the first 8 characters
         query_positions = f"""
@@ -251,9 +367,13 @@ class Training(TimeStampedModel):
                     }}
                 }}
                 """
-        response = requests.post(url, json={"query": query_positions}, headers=authenticate_header)
-        all_positions = response.json()
-        position_id_nodes = all_positions["data"]["Positions"]["nodes"]
+        all_positions = _post_lms_json(
+            url,
+            json={"query": query_positions},
+            headers=authenticate_header,
+            description="Training system position lookup",
+        )
+        position_id_nodes = ((all_positions.get("data") or {}).get("Positions") or {}).get("nodes") or []
         if position_id_nodes:
             position_id = position_id_nodes[0]["positionId"]
         else:
@@ -271,13 +391,39 @@ class Training(TimeStampedModel):
                     }}
                 }}
                 """
-            response = requests.post(url, json={"query": add_position}, headers=authenticate_header)
-            new_positions = response.json()
-            position_id = new_positions["data"]["addPosition"]["positionId"]
+            new_positions = _post_lms_json(
+                url,
+                json={"query": add_position},
+                headers=authenticate_header,
+                description="Training system add position",
+            )
+            position_id = ((new_positions.get("data") or {}).get("addPosition") or {}).get("positionId")
         return location_id, position_id
 
     @staticmethod
     def add_user(user, extra_group=None, request=None):
+        """Add ``user`` to the Vector LMS, degrading gracefully when it is down.
+
+        Wraps :meth:`_add_user` so a Vector LMS outage surfaces a friendly
+        "training system unavailable, please try again later" message (and the
+        calling officer/admin/form POST still succeeds) instead of a 500
+        (issues #840, #862, #877, #879, #917, #979).
+        """
+        try:
+            return Training._add_user(user, extra_group=extra_group, request=request)
+        except (TrainingSystemUnavailable, requests.RequestException):
+            logger.exception("Training add_user failed for %s: training system unavailable", user)
+            if request is not None:
+                messages.add_message(
+                    request,
+                    messages.WARNING,
+                    f"{user} could not be added to the training system because it is unavailable. "
+                    "Please try again later.",
+                )
+            return None
+
+    @staticmethod
+    def _add_user(user, extra_group=None, request=None):
         message = ""
         level = messages.INFO
         authenticate_header = Training.authenticate_header()
@@ -309,9 +455,15 @@ class Training(TimeStampedModel):
                 }}
                 """
                 authenticate_header = Training.authenticate_header()
-                response = requests.post(url, json={"query": location_add}, headers=authenticate_header)
-                response_json_location_add = response.json()
-                location_id = response_json_location_add["data"]["addLocation"]["locationId"]
+                response_json_location_add = _post_lms_json(
+                    url,
+                    json={"query": location_add},
+                    headers=authenticate_header,
+                    description="Training system add location",
+                )
+                location_id = ((response_json_location_add.get("data") or {}).get("addLocation") or {}).get(
+                    "locationId"
+                )
             if not location_id or not position_id:
                 message = (
                     f"Sync training is missing:<br>{location_id=} {position_id=} for {user=} should be "
@@ -325,7 +477,9 @@ class Training(TimeStampedModel):
                     ["cmt@thetatau.org", "central.office@thetatau.org"],
                     fail_silently=True,
                 )
-                messages.add_message(request, messages.ERROR, message)
+                logger.error(message)
+                if request is not None:
+                    messages.add_message(request, messages.ERROR, message)
                 return
         first_name = user.preferred_name if user.preferred_name else user.first_name
         add_user_mutation = f"""
@@ -346,7 +500,7 @@ class Training(TimeStampedModel):
         """
         response = requests.post(url, headers=authenticate_header, json={"query": add_user_mutation})
         if response.status_code == 200:
-            response_json = response.json()
+            response_json = _lms_response_json(response, "Training system add person")
             """
             {'data': {'addPerson': {'personId': 'C3F57814-96CF-11ED-98EA-B8B2786A17CA',
                 'username': 'Jim.Gaffney@thetatau.org'}}}
@@ -390,16 +544,21 @@ class Training(TimeStampedModel):
                     }}
                 }}
                 """
-                response = requests.post(url, headers=authenticate_header, json={"query": query})
-                response_json = response.json()
+                response_json = _post_lms_json(
+                    url,
+                    headers=authenticate_header,
+                    json={"query": query},
+                    description="Training system person lookup",
+                )
                 people_nodes = []
+                response_data = response_json.get("data") or {}
                 for node_name in [
                     "username",
                     "email",
                     "email_school",
                     "externalUniqueId",
                 ]:
-                    nodes = response_json["data"][node_name]["nodes"]
+                    nodes = (response_data.get(node_name) or {}).get("nodes") or []
                     people_nodes.extend(nodes)
                 if people_nodes:
                     person_id = people_nodes[0]["personId"]
@@ -417,38 +576,63 @@ class Training(TimeStampedModel):
                 level = messages.ERROR
 
             def add_extra_group(extra_group, location, person_id):
-                location_id, position_id = Training.get_location_position_ids(extra_group, location)
-                query = f"""
-                    mutation  JobMutation {{
-                        Person (personId: "{person_id}") {{
-                            addJob(locationId:"{location_id}", positionId:"{position_id}"){{
-                                jobId
-                            }}
-                      }}
-                    }}
-                    """
-                response = requests.post(url, json={"query": query}, headers=authenticate_header)
-                json_response = response.json()
-                print(json_response)
+                try:
+                    location_id, position_id = Training.get_location_position_ids(extra_group, location)
+                    query = f"""
+                        mutation  JobMutation {{
+                            Person (personId: "{person_id}") {{
+                                addJob(locationId:"{location_id}", positionId:"{position_id}"){{
+                                    jobId
+                                }}
+                          }}
+                        }}
+                        """
+                    json_response = _post_lms_json(
+                        url,
+                        json={"query": query},
+                        headers=authenticate_header,
+                        description="Training system add job",
+                    )
+                    logger.debug("Training add_extra_group response: %s", json_response)
+                    return True
+                except (requests.RequestException, ValueError, TrainingSystemUnavailable):
+                    # The Vector LMS endpoint intermittently returns an empty body or an
+                    # HTML gateway error (5xx), which makes ``response.json()`` raise
+                    # ``JSONDecodeError`` (a ``ValueError``). Treat any such failure as a
+                    # soft failure so the officer-update POST is not turned into a 500
+                    # (see issue #1086).
+                    logger.exception(
+                        "Training add_extra_group failed for person_id=%s extra_group=%s",
+                        person_id,
+                        extra_group,
+                    )
+                    return False
 
             if person_id and user.is_national_officer():
-                add_extra_group("natoff", "Theta Tau", person_id)
-                message += f" Added {user} to extra_group=natoff and location=Theta Tau"
+                if add_extra_group("natoff", "Theta Tau", person_id):
+                    message += f" Added {user} to extra_group=natoff and location=Theta Tau"
+                else:
+                    message += f" Could NOT add {user} to extra_group=natoff; training system unavailable, please try again later."
+                    level = max(level, messages.WARNING)
             if person_id and extra_group:
-                add_extra_group(extra_group, user.chapter.name, person_id)
-                message += f" Added {user} to {extra_group=} and location={user.chapter.name}"
+                if add_extra_group(extra_group, user.chapter.name, person_id):
+                    message += f" Added {user} to {extra_group=} and location={user.chapter.name}"
+                else:
+                    message += (
+                        f" Could NOT add {user} to {extra_group=}; training system unavailable, please try again later."
+                    )
+                    level = max(level, messages.WARNING)
         elif response.status_code == 429:
             # 150 requests per rolling 300 seconds
             sleep(120)
-            print("Delaying for rate limit add training user")
+            logger.warning("Delaying for rate limit add training user")
             Training.add_user(user, request=request)
             return
         else:
             message = f"{user} NOT added to training system, maybe an error. {response}"
             level = messages.ERROR
-        if request is None:
-            print(message)
-        else:
+        logger.log(_log_level_for(level), message)
+        if request is not None:
             messages.add_message(request, level, message)
         return response
 
@@ -479,28 +663,27 @@ class Training(TimeStampedModel):
         person_id = None
         if response.status_code == 429:
             # 150 requests per rolling 300 seconds
-            print("Delaying for rate limit deactivate training user")
+            logger.warning("Delaying for rate limit deactivate training user")
             sleep(120)
             return Training.get_person_id(user, id_type=id_type, request=request)
         elif response.status_code != 200:
             message = f"    {user} NOT deactivated from training system, ERROR getting ID maybe an error. {response.reason} {find_id_query}"
             level = messages.ERROR
-            if request is None:
-                print(message)
-            else:
+            logger.log(_log_level_for(level), message)
+            if request is not None:
                 messages.add_message(request, level, message)
         else:
-            response_json = response.json()
+            response_json = _lms_response_json(response, "Training system person id lookup")
             if "errors" not in response_json:
                 # {'data': {'People': {'nodes': []}}}
                 nodes = response_json["data"]["People"]["nodes"]
                 if nodes:
                     person_id = nodes[0]["personId"]
                 elif id_type == "id":
-                    print(f"    No id found for type {id_type} for {user} {response_json}")
+                    logger.info(f"    No id found for type {id_type} for {user} {response_json}")
                     person_id, message, level = Training.get_person_id(user, id_type="username", request=request)
                 else:
-                    print(f"    No id found for type {id_type} for {user} {response_json}")
+                    logger.info(f"    No id found for type {id_type} for {user} {response_json}")
             else:
                 message = (
                     f"    {user} NOT deactivated from training system, ERROR getting ID maybe an error. {response_json}"
@@ -510,11 +693,32 @@ class Training(TimeStampedModel):
 
     @staticmethod
     def deactivate_user(user, request=None):
+        """Deactivate ``user`` in the Vector LMS, degrading gracefully when it is down.
+
+        Wraps :meth:`_deactivate_user` so a Vector LMS outage does not 500 the
+        depledge / resignation / disciplinary paths that call it; the status change
+        is already saved and the deactivation is a best-effort side effect.
+        """
+        try:
+            return Training._deactivate_user(user, request=request)
+        except (TrainingSystemUnavailable, requests.RequestException):
+            logger.exception("Training deactivate_user failed for %s: training system unavailable", user)
+            if request is not None:
+                messages.add_message(
+                    request,
+                    messages.WARNING,
+                    f"{user} could not be deactivated in the training system because it is unavailable. "
+                    "Please try again later.",
+                )
+            return None
+
+    @staticmethod
+    def _deactivate_user(user, request=None):
         response_json = None
         url = "https://thetatau-tx.vectorlmsedu.com/graphql/"
         authenticate_header = Training.authenticate_header()
         # https://thetatau-tx.vectorlmsedu.com/login
-        print(f"Deactivating user {user}")
+        logger.info(f"Deactivating user {user}")
         person_id, message, level = Training.get_person_id(user, request=request)
         if person_id:
             deactivate_user_mutation = f"""
@@ -534,7 +738,7 @@ class Training(TimeStampedModel):
                 json={"query": deactivate_user_mutation},
             )
             if response.status_code == 200:
-                response_json = response.json()
+                response_json = _lms_response_json(response, "Training system deactivate person")
                 """
                 {'data': {'Person': {'deactivate': {'personId': '0C235BDE-7314-11EF-8C2B-FB441EDB9904',
                     'externalUniqueId': '93697',
@@ -549,15 +753,14 @@ class Training(TimeStampedModel):
             elif response.status_code == 429:
                 # 150 requests per rolling 300 seconds
                 sleep(120)
-                print("Delaying for rate limit deactivate training user")
+                logger.warning("Delaying for rate limit deactivate training user")
                 Training.deactivate_user(user, request=request)
                 return
             else:
                 message = f"    {user} NOT deactivated from training system, maybe an error. {response.reason}"
                 level = messages.ERROR
-        if request is None:
-            print(f"    {message}")
-        else:
+        logger.log(_log_level_for(level), message)
+        if request is not None:
             messages.add_message(request, level, message)
 
     @staticmethod
@@ -648,9 +851,7 @@ class Training(TimeStampedModel):
         if response.status_code == 429 and not _retried:
             # EnrollmentUserThrottle — back off once then retry.
             sleep(120)
-            return Training.enroll_user_ed(
-                user, courses=courses, header=header, request=request, _retried=True
-            )
+            return Training.enroll_user_ed(user, courses=courses, header=header, request=request, _retried=True)
         if response.status_code == 403:
             results.append(
                 (
@@ -678,9 +879,8 @@ class Training(TimeStampedModel):
 
         for _course_id, status, message in results:
             level = messages.INFO if status in ("enrolled", "pending") else messages.ERROR
-            if request is None:
-                print(f"    {message}")
-            else:
+            logger.log(_log_level_for(level), message)
+            if request is not None:
                 messages.add_message(request, level, message)
         return results
 
@@ -718,11 +918,11 @@ class Training(TimeStampedModel):
             while url:
                 response = requests.get(url, headers=header)
                 if response.status_code == 429:
-                    print("Delaying for rate limit Open edX grades sync...")
+                    logger.warning("Delaying for rate limit Open edX grades sync...")
                     sleep(120)
                     continue
                 if response.status_code != 200:
-                    print(
+                    logger.error(
                         f"    Open edX grades sync error for {course_id}: "
                         f"HTTP {response.status_code} {response.reason}"
                     )
@@ -780,7 +980,7 @@ class Training(TimeStampedModel):
         if not user_id and email:
             user_id = user_index.get(Training._ed_normalize(email))
         if not user_id:
-            print(f"    No CMT user match for Open edX account username={username!r} course={course_id}")
+            logger.debug(f"    No CMT user match for Open edX account username={username!r} course={course_id}")
             return
         passed = bool(grade.get("passed"))
         percent = grade.get("percent") or 0

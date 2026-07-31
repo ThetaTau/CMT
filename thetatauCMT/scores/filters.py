@@ -47,12 +47,26 @@ class ChapterScoreListFilter(ChapterListFilter):
         choices=(("fa", "Fall"), ("sp", "Spring")),
         method="filter_pass",
     )
+    score_min = django_filters.NumberFilter(
+        min_value=0,
+        widget=NumberInput(attrs={"placeholder": "Min Total Score"}),
+        method="filter_pass",
+        label="",
+    )
+    score_max = django_filters.NumberFilter(
+        min_value=0,
+        widget=NumberInput(attrs={"placeholder": "Max Total Score"}),
+        method="filter_pass",
+        label="",
+    )
 
     class Meta:
         fields = {
             "region",
             "year",
             "term",
+            "score_min",
+            "score_max",
         }
 
     def filter_pass(self, queryset, *args, **kwargs):

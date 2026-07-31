@@ -103,13 +103,12 @@ class Ballot(TimeStampedModel):
     def user_ballots(cls, user):
         voted = BallotComplete.objects.filter(ballot=models.OuterRef("pk"), user=user)
         completed = BallotComplete.objects.filter(user=user).values_list("ballot__pk", flat=True)
-        roles = user.current_roles
-        roles = roles if roles is not None else []
+        roles = list(user.current_roles) if user.current_roles else []
         chapter_officer = list(set(roles) & set(CHAPTER_OFFICER))
         if chapter_officer:
             roles.append("all_chapters")
-        condition = models.Q(voters__contains=roles[0])
-        for role in roles[1:]:
+        condition = models.Q(pk__in=[])
+        for role in roles:
             condition |= models.Q(voters__contains=role)
         ballot_query_current = (
             cls.objects.values("name", "type", "due_date", "voters", "slug", "pk")

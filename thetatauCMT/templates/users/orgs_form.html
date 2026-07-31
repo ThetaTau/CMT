@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+{% block title %}Add External Organization{% endblock %}
+
+{% block content %}
+  {{ form.media }}
+  {% comment %}Give the type-to-search dropdowns the full field width so the results panel lines up under the box instead of appearing offset.{% endcomment %}
+  <style>
+    #orgs-add-form .select2-container { width: 100% !important; }
+  </style>
+
+  <div class="page-header d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+    <h2 class="page-title mb-0">Add External Organization</h2>
+    <a class="btn btn-outline-secondary" href="{% url 'users:orgs' %}">
+      <i class="fas fa-arrow-left"></i> Back to list
+    </a>
+  </div>
+  <p>
+    Log participation in an external organization{% if can_pick_member %} for a member of
+    {{ request.user.current_chapter }}{% endif %}. Start typing an organization name to
+    search; if it isn't listed yet, type its name and choose "Create" to add it.
+  </p>
+
+  <form id="orgs-add-form" method="post">
+    {% csrf_token %}
+    {{ form|crispy }}
+    <button class="btn btn-primary" type="submit">Add participation</button>
+  </form>
+{% endblock content %}

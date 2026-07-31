@@ -23,11 +23,11 @@ class Command(BaseCommand):
         off = options.get("off", True)
         logger.info(f"Maintenance mode will be turned on: {on}; off: {off}")
         if on:
-            print("create a file that will mean maintenance mode is active")
+            self.stdout.write("create a file that will mean maintenance mode is active")
             open(MAINTENANCE_FILE, "w").close()
             logger.info("Maintenance mode started")
         if off:
-            print("remove maintenance mode file")
+            self.stdout.write("remove maintenance mode file")
             if os.path.isfile(MAINTENANCE_FILE):
                 os.remove(MAINTENANCE_FILE)
                 logger.info("Maintenance mode stop")

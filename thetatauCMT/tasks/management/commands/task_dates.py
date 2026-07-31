@@ -24,24 +24,24 @@ class Command(BaseCommand):
     # A command must define handle()
     def handle(self, *args, **options):
         base_year = self._target_academic_year(options["current_year"])
-        print(f"Adding tasks for the {base_year}-{base_year + 1} academic year")
+        self.stdout.write(f"Adding tasks for the {base_year}-{base_year + 1} academic year")
 
         with open(file_path, "r") as csv_file:
             reader = DictReader(csv_file)
             for row in reader:
-                print(row)
+                self.stdout.write(str(row))
                 task_obj = Task.objects.get(name=row["task"], owner=row["owner"])
                 date = datetime.strptime(row["date"], "%m/%d")
                 year = base_year
                 if self._is_spring_month(date.month):
                     year += 1
                 date = date.replace(year=year)
-                print("    ", task_obj, row["school_type"], date)
+                self.stdout.write(f"    {task_obj} {row['school_type']} {date}")
                 try:
                     task_date_obj = TaskDate(task=task_obj, school_type=row["school_type"], date=date)
                     task_date_obj.save()
                 except IntegrityError:
-                    print(f"    Task {task_obj} date already exists {date}")
+                    self.stdout.write(f"    Task {task_obj} date already exists {date}")
 
     def _target_academic_year(self, use_current_year):
         target_year = datetime.now().year

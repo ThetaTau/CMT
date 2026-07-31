@@ -14,6 +14,36 @@ from .models import ScoreChapter, ScoreType
 from .tables import ChapterScoreTable, ScoreTable
 
 
+def filter_score_rows_by_total(rows, score_min_raw, score_max_raw):
+    """Filter computed chapter-score rows by their ``total`` value.
+
+    ``rows`` is the iterable of per-chapter score dicts returned by
+    :meth:`ScoreChapter.type_score_biennium`. ``score_min_raw`` /
+    ``score_max_raw`` are the raw query-param bounds; blank or non-numeric
+    values are ignored. Returns a list.
+    """
+
+    def _parse(raw):
+        try:
+            return float(raw) if raw not in (None, "") else None
+        except (TypeError, ValueError):
+            return None
+
+    score_min = _parse(score_min_raw)
+    score_max = _parse(score_max_raw)
+    if score_min is None and score_max is None:
+        return list(rows)
+    result = []
+    for row in rows:
+        total = row.get("total", 0)
+        if score_min is not None and total < score_min:
+            continue
+        if score_max is not None and total > score_max:
+            continue
+        result.append(row)
+    return result
+
+
 class ScoreDetailView(LoginRequiredMixin, DetailView):
     model = ScoreType
     # These next two lines tell the view to index lookups by chapter
@@ -103,4 +133,10 @@ class ChapterScoreListView(LoginRequiredMixin, PagedFilteredTableView):
         qs = qs.exclude(active=False)
 
         data = ScoreChapter.type_score_biennium(date=date, chapters=qs)
+        if not cancel:
+            data = filter_score_rows_by_total(
+                data,
+                request_get.get("score_min"),
+                request_get.get("score_max"),
+            )
         return data

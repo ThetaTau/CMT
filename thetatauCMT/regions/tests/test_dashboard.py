@@ -193,6 +193,18 @@ def test_treemap_from_rows_renders_labels_and_values():
     assert sum(fig.data[0].values) == 8
 
 
+def test_treemap_from_rows_uses_custom_value_label():
+    from thetatauCMT.regions.dashboard import _treemap_from_rows
+
+    rows = [
+        {"Organization": "IEEE", "count": 4},
+        {"Organization": "Tau Beta Pi", "count": 2},
+    ]
+    fig = _treemap_from_rows(rows, label_key="Organization", value_key="count", theme="light", value_label="Members")
+    assert set(fig.data[0].labels) == {"IEEE", "Tau Beta Pi"}
+    assert "Members=" in fig.data[0].hovertemplate
+
+
 # ---------------------------------------------------------------------------
 # region_options + get_scope_chapters — need DB
 # ---------------------------------------------------------------------------
@@ -285,6 +297,7 @@ def test_ay_dates_none_defaults_to_current():
         "top_recruiting_chapters",
         "retention_by_chapter",
         "graduation_employer_cloud",
+        "member_organization_cloud",
     ],
 )
 def test_ay_dependent_graph_callbacks_return_figure(callback_name):
@@ -333,6 +346,48 @@ def test_sync_region_from_url_falls_back_when_slug_unknown():
 def test_store_region_uses_national_as_fallback():
     from thetatauCMT.regions.dashboard import store_region
 
-    assert store_region("") == "national"
-    assert store_region(None) == "national"
-    assert store_region("west") == "west"
+    assert store_region("", None) == "national"
+    assert store_region(None, None) == "national"
+    assert store_region("west", None) == "west"
+
+
+def test_store_region_prefers_override():
+    """A forced scope override wins over the region selector value."""
+    from thetatauCMT.regions.dashboard import store_region
+
+    assert store_region("national", "chapter_alpha") == "chapter_alpha"
+    assert store_region("west", None) == "west"
+    assert store_region(None, None) == "national"
+
+
+@pytest.mark.django_db
+def test_get_scope_chapters_single_chapter_scope():
+    """A `chapter_<slug>` scope returns only that chapter."""
+    from thetatauCMT.chapters.tests.factories import ChapterFactory
+    from thetatauCMT.regions.dashboard import get_scope_chapters
+
+    chapter = ChapterFactory()
+    scoped = list(get_scope_chapters(f"chapter_{chapter.slug}"))
+    assert [c.pk for c in scoped] == [chapter.pk]
+
+
+@pytest.mark.django_db
+def test_member_count_includes_pnms():
+    """The 'member' KPI counts active members + PNMs together."""
+    from thetatauCMT.chapters.tests.factories import ChapterFactory
+    from thetatauCMT.regions.dashboard import MEMBER_STATUSES, update_kpis
+    from thetatauCMT.regions.tests.factories import RegionFactory
+    from thetatauCMT.users.tests.factories import UserFactory
+
+    assert "pnm" in MEMBER_STATUSES
+
+    region = RegionFactory(name="Member Count Region")
+    chapter = ChapterFactory()
+    chapter.region = region
+    chapter.save(update_fields=["region"])
+    UserFactory(chapter=chapter, current_status="active")
+    UserFactory(chapter=chapter, current_status="pnm")
+
+    # kpi-total-members is the first returned value; it must include the PNM.
+    total_members = update_kpis(region.slug, None)[0]
+    assert total_members == "2"

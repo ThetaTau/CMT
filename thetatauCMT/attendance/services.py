@@ -44,25 +44,37 @@ def record_attendance(event, member, status, recorded_by, when=None):
 
     Snapshots the member's active status (as of the event date), home chapter,
     recorder, and time; logs any status transition. Returns ``(record, created)``.
+
+    ``AttendanceRecord`` is unique per ``(event, user)``. ``get_or_create`` keeps
+    the create path race-safe: a concurrent double submit (e.g. a double-clicked
+    "log attendance") can no longer make the second INSERT violate that
+    constraint and 500 — the loser of the race falls through to the update
+    branch instead.
     """
     when = when or timezone.now()
     was_active = member.is_active_on(event.date)
-    try:
-        rec = AttendanceRecord.objects.get(event=event, user=member)
-        created = False
-    except AttendanceRecord.DoesNotExist:
-        rec = AttendanceRecord(event=event, user=member, status=status)
-        created = True
-    old_status = "" if created else rec.status
+    rec, created = AttendanceRecord.objects.get_or_create(
+        event=event,
+        user=member,
+        defaults=dict(
+            status=status,
+            was_active=was_active,
+            chapter=member.chapter,
+            recorded_by=recorded_by,
+            recorded_at=when,
+        ),
+    )
+    if created:
+        rec.log_transition("", status, changed_by=recorded_by)
+        return rec, True
+    # Existing record — refresh the snapshot and log a status transition only if
+    # the status actually changed (preserves the prior get-then-update flow).
+    old_status = rec.status
     rec.was_active = was_active
     rec.chapter = member.chapter
     rec.recorded_by = recorded_by
     rec.recorded_at = when
-    if created:
-        rec.status = status
-        rec.save()
-        rec.log_transition("", status, changed_by=recorded_by)
-    elif old_status != status:
+    if old_status != status:
         rec.previous_status = old_status
         rec.status = status
         rec.transitioned_at = when
@@ -70,7 +82,7 @@ def record_attendance(event, member, status, recorded_by, when=None):
         rec.log_transition(old_status, status, changed_by=recorded_by)
     else:
         rec.save()
-    return rec, created
+    return rec, False
 
 
 def member_attendance(member):

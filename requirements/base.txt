@@ -4,6 +4,7 @@ requests==2.33.0
 python-slugify==8.0.4  # https://github.com/un33k/python-slugify
 Pillow==11.3.0  # https://github.com/python-pillow/Pillow
 argon2-cffi==25.1.0  # https://github.com/hynek/argon2_cffi
+nh3==0.3.6  # https://github.com/messense/nh3  HTML sanitizer for user rich text (stored-XSS mitigation)
 whitenoise==6.9.0  # https://github.com/evansd/whitenoise
 redis==6.2.0  # https://github.com/antirez/redis
 celery==5.5.3  # pyup: < 5.0  # https://github.com/celery/celery
@@ -96,6 +97,7 @@ django-simple-history==3.10.1  # https://django-simple-history.readthedocs.io/en
 django-userforeignkey==0.5.0  # https://github.com/beachmachine/django-userforeignkey
 django-oauth-toolkit==3.0.1  # https://github.com/jazzband/django-oauth-toolkit
 django-cors-headers==4.7.0  # https://github.com/adamchainz/django-cors-headers
+django-csp==4.0  # https://github.com/mozilla/django-csp  Content-Security-Policy header
 django-appconf==1.1.0  # https://django-appconf.readthedocs.io/en/latest/
 
 # Django REST Framework

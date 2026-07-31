@@ -104,11 +104,35 @@ urlpatterns = [
         view=views.pledge_process_sync,
         name="pledge_sync",
     ),
-    path("status/", view=views.StatusChangeView.as_view(), name="status"),
+    path(
+        "status/",
+        view=RedirectView.as_view(pattern_name="forms:landing", permanent=False),
+        name="status",
+    ),
     path(
         "status-selection/",
-        view=views.StatusChangeSelectView.as_view(),
+        view=RedirectView.as_view(pattern_name="forms:landing", permanent=False),
         name="status_selection",
+    ),
+    path(
+        "status/history/<str:reason>/",
+        view=views.StatusChangeHistoryListView.as_view(),
+        name="status_history",
+    ),
+    path(
+        "status/new/<str:reason>/",
+        view=views.StatusChangeCreateView.as_view(),
+        name="status_new",
+    ),
+    path(
+        "status/graduate/select/",
+        view=views.GraduateSelectView.as_view(),
+        name="status_graduate_select",
+    ),
+    path(
+        "status/graduate/fill/",
+        view=views.GraduateFillView.as_view(),
+        name="status_graduate",
     ),
     path(
         "otherschool-autocomplete/",
@@ -120,11 +144,27 @@ urlpatterns = [
         view=views.EmployerAutocomplete.as_view(create_field="name"),
         name="employer-autocomplete",
     ),
-    path("officer/", view=views.RoleChangeView.as_view(), name="officer"),
+    path("officer/", view=views.RoleChangeListView.as_view(), name="officer"),
+    path("officer/add/", view=views.RoleChangeCreateView.as_view(), name="officer_add"),
+    path(
+        "role/<int:pk>/edit/",
+        view=views.RoleChangeEditView.as_view(),
+        name="role_edit",
+    ),
     path(
         "national-officer/",
-        view=views.RoleChangeNationalView.as_view(),
+        view=views.RoleChangeNationalListView.as_view(),
         name="natoff",
+    ),
+    path(
+        "national-officer/add/",
+        view=views.RoleChangeNationalCreateView.as_view(),
+        name="natoff_add",
+    ),
+    path(
+        "national-officer/contacts/",
+        view=RedirectView.as_view(pattern_name="forms:natoff", permanent=False),
+        name="national_officer_contacts",
     ),
     path(
         "bill-of-rights-pdf/<int:pk>/",

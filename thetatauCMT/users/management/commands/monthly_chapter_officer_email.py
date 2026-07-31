@@ -45,14 +45,14 @@ class Command(BaseCommand):
             for chapter in chapters:
                 if not chapter.active:
                     continue
-                print(f"Sending message to: {chapter}")
+                self.stdout.write(f"Sending message to: {chapter}")
                 result = OfficerMonthly(chapter).send()
                 change_messages.append(f"{result}: {chapter}")
                 if month in [1, 2, 3, 4, 10, 11, 12]:
                     # Avoiding the summer months
                     actives = chapter.actives().count()
                     if actives <= 30:
-                        print(f"    Chapter has under 30 members: {actives} actives")
+                        self.stdout.write(f"    Chapter has under 30 members: {actives} actives")
                         GenericEmail(
                             emails={
                                 "council@thetatau.org",
@@ -74,7 +74,7 @@ class Command(BaseCommand):
                 for region in Region.objects.all():
                     if region.slug == "test":
                         continue
-                    print(f"Sending message to: {region}")
+                    self.stdout.write(f"Sending message to: {region}")
                     result = RDMonthly(region).send()
                     change_messages.append(f"{result}: {region}")
                 result = RDMonthly(region="candidate_chapter").send()
@@ -88,4 +88,4 @@ class Command(BaseCommand):
                 fail_silently=True,
             )
         else:
-            print("Not Today")
+            self.stdout.write("Not Today")

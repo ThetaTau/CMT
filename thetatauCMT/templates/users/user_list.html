@@ -36,7 +36,10 @@
 {% endif %}
 
 {% block table %}
-    <div class="table-responsive">
+    <div class="table-responsive-top js-table-scroll-top" style="overflow-x: auto; overflow-y: hidden;">
+        <div class="js-table-scroll-top-inner" style="height: 1px;"></div>
+    </div>
+    <div class="table-responsive js-table-scroll-bottom">
         <table class="table table-hover table-bordered table-striped"{% if table.attrs %} {{ table.attrs.as_html }}{% endif %}>
             {% block table.thead %}
             <thead>
@@ -87,7 +90,7 @@
             <tfoot>
             <tr>
               <td colspan="100%">
-              Alumni Pending: <a href="{% url 'forms:status_selection' %}">graduation form</a> is waiting to be processed.<br>
+              Alumni Pending: <a href="{% url 'forms:status_history' reason='graduate' %}">graduation form</a> is waiting to be processed.<br>
               Active Pending <a href="{% url 'forms:init_selection' %}">initiation form</a> is waiting to be processed.<br>
               </td>
             </tr>
@@ -155,5 +158,41 @@
         new bootstrap.Tooltip(el);
       });
     });
+  </script>
+  <script type="text/javascript">
+    // Dual horizontal scrollbars: a second scrollbar above the members table
+    // mirrors the native one below so a wide table can be scrolled from the top
+    // without first scrolling to the bottom. The top scroller's inner spacer is
+    // sized to the table's rendered width and the two scroll positions stay in sync.
+    (function () {
+      var top = document.querySelector('.js-table-scroll-top');
+      var topInner = document.querySelector('.js-table-scroll-top-inner');
+      var bottom = document.querySelector('.js-table-scroll-bottom');
+      if (!top || !topInner || !bottom) {
+        return;
+      }
+      var table = bottom.querySelector('table');
+      if (!table) {
+        return;
+      }
+      function syncWidth() {
+        topInner.style.width = table.scrollWidth + 'px';
+      }
+      syncWidth();
+      window.addEventListener('resize', syncWidth);
+      var syncing = false;
+      top.addEventListener('scroll', function () {
+        if (syncing) { return; }
+        syncing = true;
+        bottom.scrollLeft = top.scrollLeft;
+        syncing = false;
+      });
+      bottom.addEventListener('scroll', function () {
+        if (syncing) { return; }
+        syncing = true;
+        top.scrollLeft = bottom.scrollLeft;
+        syncing = false;
+      });
+    })();
   </script>
 {% endblock %}

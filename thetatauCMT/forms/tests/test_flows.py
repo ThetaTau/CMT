@@ -313,6 +313,33 @@ def test_osm_flow_handler_sets_status():
 
 
 @pytest.mark.django_db
+def test_osm_flow_email_nomination_grants_award():
+    """Completing the OSM flow grants the Outstanding Student Member award to the nominee."""
+    from unittest.mock import MagicMock, patch
+
+    from thetatauCMT.awards.models import AwardGrant
+    from thetatauCMT.awards.services import OSM_AWARD_NAME
+    from thetatauCMT.awards.tests.factories import AwardTypeFactory
+    from thetatauCMT.forms.flows import OSMFlow
+    from thetatauCMT.forms.tests.factories import OSMFactory
+
+    AwardTypeFactory.create(name=OSM_AWARD_NAME, level="active", grant_method="direct")
+    osm = OSMFactory.create()
+    activation = MagicMock()
+    activation.process = osm
+
+    flow_instance = OSMFlow()
+    with patch("thetatauCMT.forms.flows.EmailOSMUpdate") as MockEmail:
+        MockEmail.return_value.send = MagicMock()
+        flow_instance.email_nomination(activation)
+
+    assert MockEmail.call_count == 1
+    grant = AwardGrant.objects.get(recipient_member=osm.nominate)
+    assert grant.award_type.name == OSM_AWARD_NAME
+    assert grant.cycle.name == str(osm.year)
+
+
+@pytest.mark.django_db
 def test_initiation_process_flow_send_invoice_func():
     """InitiationProcessFlow.send_invoice_func calls generate_blackbaud_update."""
     from unittest.mock import MagicMock, patch
@@ -436,3 +463,114 @@ def test_alumni_exclusion_flow_email_region_func():
     MockEmail.assert_called_once()
     call_kwargs = MockEmail.call_args[1]
     assert call_kwargs.get("review") is True
+
+
+# ---------------------------------------------------------------------------
+# PledgeProgramProcessFlow.approve_func — transient Google API resilience (#944)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.django_db
+def test_pledge_program_approve_func_survives_drive_failure():
+    """A transient Google Drive export failure must not 500 the approver.
+
+    Google Drive intermittently returns HTTP 500 for PDF exports (issue #944).
+    ``approve_func`` runs inside a viewflow handler, so an uncaught error would
+    500 the approving officer and wedge the process. The handler now retries
+    the export/upload and, on ultimate failure, records the approval and still
+    emails the chapter (without the attached PDF).
+    """
+    from unittest.mock import MagicMock, patch
+
+    from viewflow.activation import STATUS
+    from viewflow.models import Task as FlowTask
+
+    from thetatauCMT.forms.flows import PledgeProgramProcessFlow
+    from thetatauCMT.forms.models import PledgeProgramProcess
+    from thetatauCMT.forms.tests.factories import PledgeProgramFactory
+    from thetatauCMT.users.tests.factories import UserFactory
+
+    program = PledgeProgramFactory.create()
+    process = PledgeProgramProcess.objects.create(
+        chapter=program.chapter,
+        program=program,
+        flow_class=PledgeProgramProcessFlow,
+    )
+    # viewflow resolves ``process.created_by`` from the owner of the START task,
+    # so give the process a completed start task (mirrors a real submission).
+    creator = UserFactory.create(chapter=program.chapter)
+    FlowTask.objects.create(
+        flow_task=PledgeProgramProcessFlow.start,
+        process=process,
+        status=STATUS.DONE,
+        owner=creator,
+    )
+    activation = MagicMock()
+    activation.process = process
+
+    class _DriveApiError(Exception):
+        # Mirrors pydrive2.files.ApiRequestError (transient HTTP 500).
+        error = {"code": 500}
+
+    flow_instance = PledgeProgramProcessFlow()
+    with (
+        patch("thetatauCMT.forms.flows.login_with_service_account", side_effect=_DriveApiError()),
+        patch("core.utils.time.sleep"),  # skip backoff delays
+        patch("thetatauCMT.forms.flows.EmailProcessUpdate") as MockEmail,
+    ):
+        MockEmail.return_value.send = MagicMock()
+        # Must NOT raise despite every Drive export attempt failing.
+        flow_instance.approve_func(activation)
+
+    # Approval email is still sent so the process completes.
+    MockEmail.assert_called_once()
+    # No PDF was attached because the export never succeeded.
+    program.refresh_from_db()
+    assert not program.other_manual
+
+
+@pytest.mark.django_db
+def test_email_process_update_skips_empty_other_manual():
+    """Approving a pledge program whose ``other_manual`` is empty must not raise
+    "attribute has no file associated with it" (issue #883).
+
+    The original crash accessed ``program.other_manual.file`` directly. The
+    process-update email's attachment resolver skips FileFields with no file via
+    ``if file.name``; this locks that in for an empty ``other_manual``.
+    """
+    from viewflow.activation import STATUS
+    from viewflow.models import Task as FlowTask
+
+    from thetatauCMT.forms.flows import PledgeProgramProcessFlow
+    from thetatauCMT.forms.models import PledgeProgramProcess
+    from thetatauCMT.forms.notifications import EmailProcessUpdate
+    from thetatauCMT.forms.tests.factories import PledgeProgramFactory
+    from thetatauCMT.users.tests.factories import UserFactory
+
+    program = PledgeProgramFactory.create()
+    assert not program.other_manual  # no uploaded file
+    process = PledgeProgramProcess.objects.create(
+        chapter=program.chapter,
+        program=program,
+        flow_class=PledgeProgramProcessFlow,
+    )
+    creator = UserFactory.create(chapter=program.chapter)
+    FlowTask.objects.create(
+        flow_task=PledgeProgramProcessFlow.start,
+        process=process,
+        status=STATUS.DONE,
+        owner=creator,
+    )
+
+    notif = EmailProcessUpdate(
+        process,
+        complete_step="Pledge Program Reviewed",
+        next_step="Complete",
+        state="Approved",
+        message="Approved",
+        fields=["approval"],
+        attachments=["program.other_manual"],
+        direct_user=creator,
+    )
+    # The empty other_manual was skipped: no attachment and no ValueError.
+    assert notif.attachments == []

@@ -148,3 +148,13 @@ def test_submission_update_view_get_forms_file_redirects(auto_login_user):
     response = client.get(url, follow=False)
     # Accessing a "forms:" submission should redirect to that form URL
     assert response.status_code == 302
+
+
+@pytest.mark.django_db
+def test_submission_create_view_unknown_slug_does_not_crash(auto_login_user):
+    """A stale/unknown ScoreType slug must fall back to the default type list,
+    not IndexError on ``score_obj[0]`` (issue #1033)."""
+    client, user = auto_login_user()
+    url = reverse("submissions:add-direct", kwargs={"slug": "no-such-scoretype-slug"})
+    response = client.get(url)
+    assert response.status_code == 200

@@ -27,7 +27,7 @@ class Command(BaseCommand):
         today = datetime.date.today().strftime("%A")
         override = options.get("override", False)
         if today != "Tuesday" and not override:
-            print(f"Not today {today}")
+            self.stdout.write(f"Not today {today}")
             return
         guardian_fields = [
             "STUDENT_NUMBER",
@@ -165,7 +165,7 @@ class Command(BaseCommand):
                 ],
             )
         total = users.count()
-        print("Number of users", total)
+        self.stdout.write(f"Number of users {total}")
         students = users.values(
             STUDENT_NUMBER=Coalesce(Cast("id", CharField()), Value("")),
             FIRST_NAME=Coalesce(F("first_name"), Value("")),
@@ -208,7 +208,7 @@ class Command(BaseCommand):
         debug = options.get("debug", False)
         if debug:
             # Save binary CSV to file (optional, for debugging)
-            print("Debug mode: saving CSV to file")
+            self.stdout.write("Debug mode: saving CSV to file")
             with open(f"exports/{file_name}", "wb") as f:
                 f.write(csv_bytes)
             return
@@ -229,10 +229,10 @@ class Command(BaseCommand):
 
         if response.status_code == 200:
             response_data = response.json()
-            print(f"Login successful {response_data}\n\n")
+            self.stdout.write(f"Login successful {response_data}\n\n")
         else:
-            print(f"Login failed: {response.status_code}")
-            print(response.text)
+            self.stdout.write(f"Login failed: {response.status_code}")
+            self.stdout.write(response.text)
             return
         access_token = response_data.get("access_token")
         upload_url = f"{url}/api/file/upload"
@@ -247,10 +247,10 @@ class Command(BaseCommand):
 
         if upload_response.status_code == 200:
             upload_result = upload_response.json()
-            print(f"File upload successful {upload_result}\n\n")
+            self.stdout.write(f"File upload successful {upload_result}\n\n")
         else:
-            print(f"File upload failed: {upload_response.status_code}")
-            print(upload_response.text, upload_response.reason)
+            self.stdout.write(f"File upload failed: {upload_response.status_code}")
+            self.stdout.write(f"{upload_response.text} {upload_response.reason}")
             return
 
         data_import_url = f"{url}/api/data-import"
@@ -262,8 +262,8 @@ class Command(BaseCommand):
         import_response = requests.post(data_import_url, headers=headers, json=data_import_payload)
 
         if import_response.status_code == 200:
-            print("Data import successful")
-            print(import_response.json())
+            self.stdout.write("Data import successful")
+            self.stdout.write(str(import_response.json()))
         else:
-            print(f"Data import failed: {import_response.status_code}")
-            print(import_response.text)
+            self.stdout.write(f"Data import failed: {import_response.status_code}")
+            self.stdout.write(import_response.text)

@@ -263,3 +263,44 @@ def test_count_active_winners_is_scoped_to_award_and_cycle():
     grant_award(other_award, cycle, UserFactory.create(), granter)
     grant_award(award, other_cycle, UserFactory.create(), granter)
     assert count_active_winners(award, cycle) == 1
+
+
+# ---------------------------------------------------------------------------
+# Outstanding Student Member award: granted by the forms-app OSM flow
+# ---------------------------------------------------------------------------
+def test_grant_osm_award_creates_grant_for_nominee():
+    from thetatauCMT.awards.services import OSM_AWARD_NAME, grant_osm_award
+    from thetatauCMT.forms.tests.factories import OSMFactory
+
+    award = AwardTypeFactory.create(name=OSM_AWARD_NAME, level="active", grant_method="direct")
+    osm = OSMFactory.create()
+    grant = grant_osm_award(osm)
+    assert grant is not None
+    assert grant.award_type_id == award.pk
+    assert grant.recipient_member_id == osm.nominate_id
+    assert grant.recipient_kind == "member"
+    assert grant.cycle.name == str(osm.year)
+    assert grant.source == AwardGrant.Source.NOMINATION
+    # granted_by defaults to the verifying officer
+    assert grant.granted_by_id == osm.officer1_id
+
+
+def test_grant_osm_award_is_idempotent():
+    from thetatauCMT.awards.services import OSM_AWARD_NAME, grant_osm_award
+    from thetatauCMT.forms.tests.factories import OSMFactory
+
+    AwardTypeFactory.create(name=OSM_AWARD_NAME, level="active", grant_method="direct")
+    osm = OSMFactory.create()
+    first = grant_osm_award(osm)
+    second = grant_osm_award(osm)
+    assert first.pk == second.pk
+    assert AwardGrant.objects.filter(recipient_member=osm.nominate).count() == 1
+
+
+def test_grant_osm_award_missing_award_type_returns_none():
+    from thetatauCMT.awards.services import grant_osm_award
+    from thetatauCMT.forms.tests.factories import OSMFactory
+
+    osm = OSMFactory.create()
+    assert grant_osm_award(osm) is None
+    assert not AwardGrant.objects.filter(recipient_member=osm.nominate).exists()

@@ -114,3 +114,13 @@ def test_render_complete_link_with_zero_value():
     table = TaskTable(data=[], complete=True)
     result = table.render_complete_link(0)
     assert "None" in str(result)
+
+
+def test_task_table_complete_link_is_not_orderable():
+    """complete_link is a per-chapter Subquery link, not a real model field, so
+    it must be non-orderable; ``?sort=complete_link`` raised FieldError
+    otherwise (issue #1028)."""
+    from thetatauCMT.tasks.tables import TaskTable
+
+    table = TaskTable(data=[], complete=True)
+    assert table.columns["complete_link"].orderable is False

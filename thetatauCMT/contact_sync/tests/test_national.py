@@ -284,6 +284,7 @@ def test_seed_contact_sync_examples_is_idempotent():
     ChapterFactory.create()  # ensure at least one active chapter
     call_command(
         "seed_contact_sync_examples",
+        "--force",
         "--chapters",
         "1",
         "--skip-national",
@@ -297,6 +298,7 @@ def test_seed_contact_sync_examples_is_idempotent():
     # Re-run — must not create duplicates.
     call_command(
         "seed_contact_sync_examples",
+        "--force",
         "--chapters",
         "1",
         "--skip-national",
@@ -319,6 +321,7 @@ def test_seed_contact_sync_examples_national_scope_creates_all_roles():
     ChapterFactory.create()
     call_command(
         "seed_contact_sync_examples",
+        "--force",
         "--skip-chapters",
         stdout=StringIO(),
     )
@@ -329,9 +332,9 @@ def test_seed_contact_sync_examples_national_scope_creates_all_roles():
         assert role in seeded_roles, f"national role {role!r} not seeded"
 
 
-# --------------------------------------------------------------------- natoff form page
+# --------------------------------------------------------------------- natoff contacts page
 @pytest.mark.django_db
-def test_national_officer_form_page_includes_sync_button(auto_login_user):
+def test_national_officer_contacts_page_includes_sync_button(auto_login_user):
     client, user = auto_login_user(make_officer="national")
     _make_natoff(user, client)
     response = client.get(reverse("forms:natoff"))

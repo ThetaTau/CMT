@@ -32,7 +32,12 @@ class TaskTable(tables.Table):
             # empty_values=() ensures render_complete_link is called even when
             # the annotation is None (no completion for this chapter), so we
             # emit the "None" placeholder instead of the default em-dash.
-            extra_columns.extend([("complete_link", tables.Column(verbose_name="Complete Link", empty_values=()))])
+            # orderable=False: ``complete_link`` is a per-chapter Subquery link,
+            # not a real model field, so ``?sort=complete_link`` must never
+            # reach the ORM (it raised FieldError otherwise — issue #1028).
+            extra_columns.extend(
+                [("complete_link", tables.Column(verbose_name="Complete Link", empty_values=(), orderable=False))]
+            )
         kwargs["extra_columns"] = extra_columns
         super().__init__(*args, **kwargs)
 

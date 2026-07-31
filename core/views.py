@@ -107,6 +107,25 @@ class NationalOfficerRequiredMixin(DjangoLoginRequiredMixin):
         return super().dispatch(request, *args, **kwargs)
 
 
+class SuperuserRequiredMixin(DjangoLoginRequiredMixin):
+    """Restrict a view to superusers (administrators) only.
+
+    Authenticated non-superusers are redirected (default: ``home``) with an
+    error message; unauthenticated users are handled by ``LoginRequiredMixin``.
+    Views may override ``superuser_redirect_url`` and ``superuser_message``.
+    """
+
+    superuser_redirect_url = "home"
+    superuser_message = "Only administrators can access this."
+
+    def dispatch(self, request, *args, **kwargs):
+        user = request.user
+        if user.is_authenticated and not user.is_superuser:
+            messages.add_message(request, messages.ERROR, self.superuser_message)
+            return HttpResponseRedirect(resolve_url(self.superuser_redirect_url))
+        return super().dispatch(request, *args, **kwargs)
+
+
 class OfficerRequiredMixin(GroupRequiredMixin):
     group_required = ["officer", "natoff"]
     officer_edit = "this"
@@ -181,15 +200,22 @@ class PagedFilteredTableView(SingleTableView):
 
 class TypeFieldFilteredChapterAdd(FormMixin):
     score_type = "Evt"
+    # Opt-in confirmation shown after a successful save. Subclasses set this to
+    # a specific string (supports ``%(name)s`` / ``%(object)s`` placeholders
+    # filled from the saved instance) so the user is told exactly what happened.
+    success_message = ""
 
     def get_form(self, form_class=None):
         form = super().get_form(form_class)
         slug = self.kwargs.get("slug")
-        if slug:
-            score_obj = ScoreType.objects.filter(slug=slug)
+        score_obj = ScoreType.objects.filter(slug=slug) if slug else ScoreType.objects.none()
+        if score_obj:
             form.initial = {"type": score_obj[0].pk}
             form.fields["type"].queryset = score_obj
         else:
+            # A stale/unknown ScoreType slug (the row was renamed or deleted)
+            # used to IndexError on ``score_obj[0]`` (issue #1033); fall back to
+            # the default type dropdown instead of 500-ing.
             form.fields["type"].queryset = ScoreType.objects.filter(type=self.score_type).all().exclude(slug="article")
         return form
 
@@ -236,7 +262,28 @@ class TypeFieldFilteredChapterAdd(FormMixin):
                     ).save()
                 else:
                     messages.add_message(self.request, messages.ERROR, f"Duplicate {self.officer_edit}!")
+        success_message = self.get_success_message()
+        if success_message:
+            messages.add_message(self.request, messages.SUCCESS, success_message)
         return response
+
+    def get_success_message(self):
+        """Return the confirmation message shown after a successful save.
+
+        Opt-in: returns ``""`` unless the subclass sets ``success_message`` (so
+        views that manage their own messaging are unaffected). ``%(name)s`` and
+        ``%(object)s`` placeholders are filled from the saved instance.
+        """
+        if not self.success_message:
+            return ""
+        obj = getattr(self, "object", None)
+        try:
+            return self.success_message % {
+                "name": getattr(obj, "name", "") or str(obj or ""),
+                "object": str(obj or ""),
+            }
+        except (KeyError, TypeError, ValueError):
+            return self.success_message
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -263,6 +310,14 @@ class HomeView(LoginRequiredMixin, TemplateView):
             publish_end__gt=timezone.now(),
         )
         context["announcements"] = announcements
+        # Scope the embedded RegionDashboard to the viewer's own chapter so the
+        # home page shows the same dashboard as the regional/national views, but
+        # auto-filtered. The template renders this into a hidden element that the
+        # dashboard reads client-side; a user without a chapter falls back to
+        # the national scope.
+        chapter = self.request.user.current_chapter
+        if chapter is not None and getattr(chapter, "slug", None):
+            context["dashboard_scope"] = f"chapter_{chapter.slug}"
         return context
 
 

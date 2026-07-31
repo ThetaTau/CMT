@@ -1,5 +1,7 @@
 from django.contrib import admin
 
+from core.admin import MergeableAdminMixin
+
 from .models import Job, JobPostingBan, JobSearch, Keyword, Major
 
 # ``UserForeignKey(auto_user_add=True)`` sets ``editable=False`` on the model
@@ -11,14 +13,14 @@ Job._meta.get_field("created_by").editable = True
 
 
 @admin.register(Keyword)
-class KeywordAdmin(admin.ModelAdmin):
+class KeywordAdmin(MergeableAdminMixin, admin.ModelAdmin):
     list_display = ("name",)
     search_fields = ("name",)
     ordering = ("name",)
 
 
 @admin.register(Major)
-class MajorAdmin(admin.ModelAdmin):
+class MajorAdmin(MergeableAdminMixin, admin.ModelAdmin):
     list_display = ("name",)
     search_fields = ("name",)
     ordering = ("name",)

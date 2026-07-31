@@ -11,6 +11,7 @@ from django.urls import reverse
 from django.views.generic import DetailView, ListView, RedirectView, TemplateView
 from django_tables2.utils import A
 
+from core.csv_utils import escape_csv_row
 from core.views import LoginRequiredMixin, NatOfficerRequiredMixin, RequestConfig
 from thetatauCMT.chapters.models import Chapter
 from thetatauCMT.contact_sync.context import build_sync_modal_context
@@ -58,7 +59,7 @@ class RegionOfficerView(LoginRequiredMixin, NatOfficerRequiredMixin, DetailView)
                 writer.writerow(list(context["table"].columns.names()) + ["Generic Officer Email"])
                 for row in context["table"].as_values():
                     if row[4] and row[4] in emails:
-                        writer.writerow(list(row) + [email_generic_map.get(row[4], "")])
+                        writer.writerow(escape_csv_row(list(row) + [email_generic_map.get(row[4], "")]))
                 return response
             else:
                 messages.add_message(
@@ -261,13 +262,21 @@ class RegionDashboardView(LoginRequiredMixin, NatOfficerRequiredMixin, DetailVie
     template_name = "regions/region_dashboard.html"
 
     def get_object(self, queryset=None):
-        # `candidate_chapter` isn't a real Region row — it's a synthetic
-        # scope surfaced in `Region.region_choices()`. Fake a Region instance
-        # so the dashboard template can render (it only reads `.name`/`.slug`).
+        # `candidate_chapter` and `national` are synthetic scopes surfaced in
+        # `Region.region_choices()` (national == ALL chapters, not a per-region
+        # filter). Neither is guaranteed to have a backing Region row, so fall
+        # back to a synthetic instance (the dashboard template only reads
+        # `.name`/`.slug`) instead of 404ing when the row is absent.
         slug = self.kwargs.get(self.slug_url_kwarg)
         if slug == "candidate_chapter":
             region = Region(name="Candidate Chapters")
             region.slug = "candidate_chapter"
+            return region
+        if slug == "national":
+            region = Region.objects.filter(slug="national").first()
+            if region is None:
+                region = Region(name="National")
+                region.slug = "national"
             return region
         return super().get_object(queryset)
 
@@ -342,7 +351,7 @@ class RegionTaskView(LoginRequiredMixin, NatOfficerRequiredMixin, DetailView):
             for task in self.filter.qs
         ]
         extra_columns = []
-        for chapter in self.object.chapters.all():
+        for chapter in self.object.chapters.exclude(active=False):
             qs = TaskDate.dates_for_chapter(chapter)
             chapter_name = chapter.name.replace(" ", "_")
             column_link = f"{chapter_name}_complete_link"

@@ -59,6 +59,45 @@ def test_user_detail_view_unauthenticated(client):
 
 
 # ---------------------------------------------------------------------------
+# Member status changes accordion on the public profile
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.django_db
+def test_profile_status_changes_visible_to_chapter_officer(auto_login_user, user_factory):
+    import datetime
+
+    from thetatauCMT.forms.models import StatusChange
+
+    client, officer = auto_login_user()
+    member = user_factory.create(chapter=officer.chapter)
+    StatusChange.objects.create(
+        user=member, created_by=officer, reason="withdraw", date_start=datetime.date(2026, 5, 15)
+    )
+    _make_officer(officer, client)
+    response = client.get(reverse("users:profile", kwargs={"username": member.username}))
+    assert response.status_code == 200
+    assert response.context["can_view_status_changes"] is True
+    assert b"Status Changes" in response.content
+
+
+@pytest.mark.django_db
+def test_profile_status_changes_hidden_from_other_chapter_member(auto_login_user, user_factory):
+    import datetime
+
+    from thetatauCMT.forms.models import StatusChange
+
+    client, viewer = auto_login_user()  # plain member, different chapter
+    member = user_factory.create()
+    StatusChange.objects.create(
+        user=member, created_by=member, reason="withdraw", date_start=datetime.date(2026, 5, 15)
+    )
+    response = client.get(reverse("users:profile", kwargs={"username": member.username}))
+    assert response.status_code == 200
+    assert response.context["can_view_status_changes"] is False
+
+
+# ---------------------------------------------------------------------------
 # UserListView — national officer only
 # ---------------------------------------------------------------------------
 
@@ -123,16 +162,177 @@ def test_user_service_view_returns_200(auto_login_user):
 
 
 # ---------------------------------------------------------------------------
-# UserOrgsFormSetView
+# External organizations — list / add / delete / autocomplete
 # ---------------------------------------------------------------------------
 
 
 @pytest.mark.django_db
 def test_user_orgs_view_returns_200(auto_login_user):
     client, user = auto_login_user()
+    _make_officer(user, client)
     url = reverse("users:orgs")
     response = client.get(url)
     assert response.status_code == 200
+
+
+@pytest.mark.django_db
+def test_user_orgs_view_any_member_can_view(auto_login_user):
+    """Any logged-in member may view the chapter organizations list."""
+    client, user = auto_login_user()
+    url = reverse("users:orgs")
+    response = client.get(url)
+    assert response.status_code == 200
+
+
+@pytest.mark.django_db
+def test_user_orgs_add_page_returns_200(auto_login_user):
+    """The dedicated add page renders for an officer."""
+    client, user = auto_login_user()
+    _make_officer(user, client)
+    url = reverse("users:orgs_add")
+    response = client.get(url)
+    assert response.status_code == 200
+
+
+@pytest.mark.django_db
+def test_user_orgs_add_prefills_current_member(auto_login_user):
+    """Opening the add form defaults the selected member to the current user."""
+    client, user = auto_login_user()
+    _make_officer(user, client)
+    url = reverse("users:orgs_add")
+    response = client.get(url)
+    assert response.status_code == 200
+    assert response.context["form"].initial.get("user") == user
+    # The member select2 should render the current user as a selected option.
+    assert f'value="{user.pk}" selected' in response.content.decode()
+
+
+@pytest.mark.django_db
+def test_user_orgs_add_any_member_can_add_for_self(auto_login_user):
+    """A regular member may open the add page and add their own participation."""
+    from thetatauCMT.users.models import UserOrgParticipate
+    from thetatauCMT.users.tests.factories import OrganizationFactory
+
+    client, user = auto_login_user()
+    org = OrganizationFactory.create(name="ASME")
+    url = reverse("users:orgs_add")
+    assert client.get(url).status_code == 200
+    response = client.post(
+        url,
+        {
+            "user": user.pk,
+            "organization": org.pk,
+            "type": "pro",
+            "officer": "False",
+            "start": "01/01/2026",
+            "end": "01/01/2027",
+        },
+    )
+    assert response.status_code == 302
+    assert UserOrgParticipate.objects.filter(user=user, organization=org).exists()
+
+
+@pytest.mark.django_db
+def test_user_orgs_view_officer_can_add(auto_login_user):
+    """An officer submits participation for a single member and it is saved."""
+    from thetatauCMT.users.models import UserOrgParticipate
+    from thetatauCMT.users.tests.factories import OrganizationFactory, UserFactory
+
+    client, user = auto_login_user()
+    _make_officer(user, client)
+    member = UserFactory.create(chapter=user.chapter, status="active")
+    org = OrganizationFactory.create(name="IEEE")
+    url = reverse("users:orgs_add")
+    response = client.post(
+        url,
+        {
+            "user": member.pk,
+            "organization": org.pk,
+            "type": "pro",
+            "officer": "True",
+            "start": "01/01/2026",
+            "end": "01/01/2027",
+        },
+    )
+    assert response.status_code == 302
+    assert UserOrgParticipate.objects.filter(user=member, organization=org).exists()
+
+
+@pytest.mark.django_db
+def test_org_autocomplete_creates_organization(auto_login_user):
+    """Officers can create a new Organization inline from the autocomplete."""
+    from thetatauCMT.users.models import Organization
+
+    client, user = auto_login_user()
+    _make_officer(user, client)
+    url = reverse("users:org-autocomplete")
+    response = client.post(url, {"text": "National Society of Black Engineers"})
+    assert response.status_code == 200
+    assert Organization.objects.filter(name="National Society of Black Engineers").exists()
+
+
+@pytest.mark.django_db
+def test_org_autocomplete_any_member_creates_organization(auto_login_user):
+    """Any logged-in member can create an Organization inline from the autocomplete."""
+    from thetatauCMT.users.models import Organization
+
+    client, user = auto_login_user()
+    url = reverse("users:org-autocomplete")
+    response = client.post(url, {"text": "Society of Women Engineers"})
+    assert response.status_code == 200
+    assert Organization.objects.filter(name="Society of Women Engineers").exists()
+
+
+@pytest.mark.django_db
+def test_user_org_delete_view_officer(auto_login_user):
+    """An officer can remove a single participation row for their chapter."""
+    from thetatauCMT.users.models import UserOrgParticipate
+    from thetatauCMT.users.tests.factories import UserFactory, UserOrgParticipateFactory
+
+    client, user = auto_login_user()
+    _make_officer(user, client)
+    member = UserFactory.create(chapter=user.chapter, status="active")
+    org = UserOrgParticipateFactory.create(user=member)
+    url = reverse("users:orgs_delete", kwargs={"pk": org.pk})
+    response = client.post(url)
+    assert response.status_code == 302
+    assert not UserOrgParticipate.objects.filter(pk=org.pk).exists()
+
+
+@pytest.mark.django_db
+def test_user_org_delete_view_non_officer_forbidden(auto_login_user):
+    """A non-officer cannot remove participation rows (endpoint is officer-only)."""
+    from thetatauCMT.users.models import UserOrgParticipate
+    from thetatauCMT.users.tests.factories import UserOrgParticipateFactory
+
+    client, user = auto_login_user()
+    org = UserOrgParticipateFactory.create(user=user)
+    url = reverse("users:orgs_delete", kwargs={"pk": org.pk})
+    response = client.post(url)
+    assert response.status_code == 302
+    assert UserOrgParticipate.objects.filter(pk=org.pk).exists()
+
+
+@pytest.mark.django_db
+def test_user_orgs_list_defaults_to_active_members(auto_login_user):
+    """The list defaults to active members; alumni rows appear only when filtered."""
+    import datetime
+
+    from thetatauCMT.users.tests.factories import OrganizationFactory, UserFactory, UserOrgParticipateFactory
+
+    client, user = auto_login_user()
+    _make_officer(user, client)
+    alum = UserFactory.create(chapter=user.chapter, status="alumni")
+    UserOrgParticipateFactory.create(
+        user=alum,
+        organization=OrganizationFactory.create(name="Alumni Society"),
+        start=datetime.date(2024, 1, 1),
+        end=datetime.date(2099, 1, 1),
+    )
+    url = reverse("users:orgs")
+    assert b"Alumni Society" not in client.get(url).content
+    assert b"Alumni Society" in client.get(url, {"status": "alumni"}).content
+    assert b"Alumni Society" in client.get(url, {"status": "all"}).content
 
 
 # ---------------------------------------------------------------------------
@@ -807,17 +1007,30 @@ def test_user_list_csv_blocked_when_natoff_hidden(auto_login_user):
 
 
 # ---------------------------------------------------------------------------
-# UserOrgsFormSetView
+# External organizations — list page contents
 # ---------------------------------------------------------------------------
 
 
 @pytest.mark.django_db
-def test_user_orgs_view_cancel(auto_login_user):
-    """Orgs view with cancel param returns 200."""
+def test_user_orgs_view_lists_submitted(auto_login_user):
+    """The orgs page lists participation already submitted for the chapter."""
+    import datetime
+
+    from thetatauCMT.users.tests.factories import OrganizationFactory, UserFactory, UserOrgParticipateFactory
+
     client, user = auto_login_user()
+    _make_officer(user, client)
+    member = UserFactory.create(chapter=user.chapter, status="active")
+    UserOrgParticipateFactory.create(
+        user=member,
+        organization=OrganizationFactory.create(name="Tau Beta Pi"),
+        start=datetime.date(2024, 1, 1),
+        end=datetime.date(2099, 1, 1),
+    )
     url = reverse("users:orgs")
     response = client.get(url)
     assert response.status_code == 200
+    assert b"Tau Beta Pi" in response.content
 
 
 # ---------------------------------------------------------------------------
@@ -1178,26 +1391,22 @@ def test_user_detail_view_with_demographic_record(auto_login_user):
 
 
 # ---------------------------------------------------------------------------
-# UserDetailUpdateView – orgs form POST
+# UserDetailUpdateView – orgs table + add link
 # ---------------------------------------------------------------------------
 
 
 @pytest.mark.django_db
-def test_user_detail_post_orgs_form(auto_login_user):
-    """POST action=orgs to myinfo covers orgs formset path."""
+def test_user_detail_orgs_section_shows_table_and_add_link(auto_login_user):
+    """My Info shows the member's external-orgs table and a link to the add page."""
+    from thetatauCMT.users.tests.factories import OrganizationFactory, UserOrgParticipateFactory
+
     client, user = auto_login_user()
+    UserOrgParticipateFactory.create(user=user, organization=OrganizationFactory.create(name="Order of the Engineer"))
     url = reverse("users:detail")
-    response = client.post(
-        url,
-        {
-            "action": "orgs",
-            "form-TOTAL_FORMS": "0",
-            "form-INITIAL_FORMS": "0",
-            "form-MIN_NUM_FORMS": "0",
-            "form-MAX_NUM_FORMS": "1000",
-        },
-    )
-    assert response.status_code in [200, 302]
+    response = client.get(url)
+    assert response.status_code == 200
+    assert reverse("users:orgs_add").encode() in response.content
+    assert b"Order of the Engineer" in response.content
 
 
 # ---------------------------------------------------------------------------
@@ -1568,7 +1777,6 @@ def test_user_detail_post_user_form_valid_patched(auto_login_user):
         "service": UserServiceForm,
         "user": _ValidMockUserForm,
         "demo": PledgeDemographicsForm,
-        "orgs": None,
     }
     with patch.object(UserDetailUpdateView, "form_classes", patched_classes):
         response = client.post(url, {"action": "user"})
@@ -1684,32 +1892,18 @@ def test_user_autocomplete_alumni(auto_login_user):
 
 
 # ---------------------------------------------------------------------------
-# UserDetailUpdateView – orgs formset with changed data (line 150)
+# UserDetailUpdateView – orgs section empty state
 # ---------------------------------------------------------------------------
 
 
 @pytest.mark.django_db
-def test_user_detail_post_orgs_form_with_data(auto_login_user):
-    """POST action=orgs with org data triggers formset.save() (line 150)."""
+def test_user_detail_orgs_section_empty_state(auto_login_user):
+    """My Info orgs section renders an empty-state message when there are none."""
     client, user = auto_login_user()
     url = reverse("users:detail")
-    response = client.post(
-        url,
-        {
-            "action": "orgs",
-            "form-TOTAL_FORMS": "1",
-            "form-INITIAL_FORMS": "0",
-            "form-MIN_NUM_FORMS": "0",
-            "form-MAX_NUM_FORMS": "1000",
-            "form-0-user": user.pk,
-            "form-0-org_name": "Test Engineering Society",
-            "form-0-type": "pro",
-            "form-0-officer": "False",
-            "form-0-start": "01/01/2023",
-            "form-0-end": "01/01/2024",
-        },
-    )
-    assert response.status_code in [200, 302]
+    response = client.get(url)
+    assert response.status_code == 200
+    assert b"have not added any external organizations" in response.content
 
 
 # ---------------------------------------------------------------------------

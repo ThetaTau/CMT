@@ -76,3 +76,61 @@ def test_chapter_balance_filter_region_slug():
     pks = list(result.values_list("pk", flat=True))
     assert chapter.pk in pks
     assert other_chapter.pk not in pks
+
+
+def _invoices_by_total():
+    """Create three invoices in one chapter with distinct totals (50/250/500)."""
+    from decimal import Decimal
+
+    from djmoney.money import Money
+
+    from thetatauCMT.finances.tests.factories import InvoiceFactory
+
+    chapter = ChapterFactory()
+    low = InvoiceFactory(chapter=chapter, total=Money(Decimal("50.00"), "USD"))
+    mid = InvoiceFactory(chapter=chapter, total=Money(Decimal("250.00"), "USD"))
+    high = InvoiceFactory(chapter=chapter, total=Money(Decimal("500.00"), "USD"))
+    qs = Invoice.objects.filter(pk__in=[low.pk, mid.pk, high.pk])
+    return qs, low, mid, high
+
+
+@pytest.mark.django_db
+def test_invoice_list_filter_total_gte():
+    """total__gte returns invoices at or above the amount."""
+    from thetatauCMT.finances.filters import InvoiceListFilter
+
+    qs, low, mid, high = _invoices_by_total()
+    f = InvoiceListFilter(data={"total__gte": "250"}, queryset=qs)
+    pks = list(f.qs.values_list("pk", flat=True))
+    assert low.pk not in pks
+    assert mid.pk in pks
+    assert high.pk in pks
+
+
+@pytest.mark.django_db
+def test_invoice_list_filter_total_lte():
+    """total__lte returns invoices at or below the amount."""
+    from thetatauCMT.finances.filters import InvoiceListFilter
+
+    qs, low, mid, high = _invoices_by_total()
+    f = InvoiceListFilter(data={"total__lte": "250"}, queryset=qs)
+    pks = list(f.qs.values_list("pk", flat=True))
+    assert low.pk in pks
+    assert mid.pk in pks
+    assert high.pk not in pks
+
+
+@pytest.mark.django_db
+def test_invoice_list_filter_total_range():
+    """Combining total__gte and total__lte bounds invoices to an amount window."""
+    from thetatauCMT.finances.filters import InvoiceListFilter
+
+    qs, low, mid, high = _invoices_by_total()
+    f = InvoiceListFilter(
+        data={"total__gte": "100", "total__lte": "400"},
+        queryset=qs,
+    )
+    pks = list(f.qs.values_list("pk", flat=True))
+    assert low.pk not in pks
+    assert mid.pk in pks
+    assert high.pk not in pks

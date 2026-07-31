@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% load render_table from django_tables2 %}
+{% load custom_tags %}
 {% block content %}
   <style>
     hr {
@@ -13,15 +14,12 @@
     <div class="card bg-body-tertiary text-body">
       <div class="card-body">
         <h5 class="card-title">{{ announcement.title }}</h5>
-        {{ announcement.content|safe }}
+        {{ announcement.content|sanitize_html }}
       </div>
       <div class="card-footer bg-transparent text-muted">Published: {{ announcement.publish_start }}</div>
     </div>
     <hr>
   {% endfor %}
-{% plotly_header %}
-{% plotly_direct name="Dashboard" %}
-{% plotly_footer %}
 <h2>Incomplete Tasks:</h2>
   <p>Tasks are to help the officers of the chapter to remember to complete tasks in a timely manner. Some tasks have
     forms/submissions associated with them. You should try to complete the form or submit the appropriate document
@@ -31,4 +29,11 @@
     pre-alumn form or "Our chapter does not do lock-ins"). In those cases, simply click the "Mark Complete" button in the task page,
       as you acknowledge the task no longer needs to be completed.</p>
 {% render_table table %}
+<h2>Chapter Dashboard:</h2>
+{% if dashboard_scope %}<div id="cmt-dashboard-scope" data-scope="{{ dashboard_scope }}" hidden></div>{% endif %}
+<div class="tt-dashboard-wrapper">
+{% plotly_header %}
+{% plotly_direct name="RegionDashboard" %}
+{% plotly_footer %}
+</div>
 {% endblock %}

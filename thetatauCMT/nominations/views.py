@@ -1,3 +1,4 @@
+from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import PermissionDenied
 from django.shortcuts import get_object_or_404, redirect, render
@@ -186,6 +187,8 @@ class TrainingView(LoginRequiredMixin, View):
         key = request.POST.get("training_key")
         if key in REQUIRED_TRAINING_KEYS and has_active_training_task(nomination):
             mark_training_complete(nomination, key, completed_by=request.user)
+            label = dict(TRAININGS).get(key, key)
+            messages.success(request, f"Marked '{label}' complete for {nomination.nominee_display}.")
         return redirect("nominations:training", process_pk=process_pk)
 
 
@@ -198,6 +201,14 @@ class ConfirmationView(UpdateProcessView):
     """
 
     template_name = "nominations/confirmation.html"
+
+    def get_success_url(self):
+        # The confirmation task is assigned to a config-driven Confirmer who may
+        # not be a national officer, so the natoff-only review list and the
+        # viewflow default ``:detail`` page (requires ``nominations.view_nomination``)
+        # would both 403 them. Send them home, matching the safe landing used by
+        # the nomination entry view.
+        return reverse("home")
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -254,6 +265,7 @@ class AppointmentView(LoginRequiredMixin, View):
         if action == "upload_letter" and request.FILES.get("appointment_letter"):
             nomination.appointment_letter = request.FILES["appointment_letter"]
             nomination.save(update_fields=["appointment_letter"])
+            messages.success(request, "Appointment letter uploaded.")
         elif action == "email_letter":
             AppointmentLetterNotification(nomination).send()
             nomination.appointment_letter_sent_at = timezone.now()
@@ -263,6 +275,7 @@ class AppointmentView(LoginRequiredMixin, View):
                 subject="Appointment letter emailed",
                 recipient=nomination.nominee_email_address or "",
             )
+            messages.success(request, f"Appointment letter emailed to {nomination.nominee_display}.")
         elif action == "notify_chapters":
             recipients = chapter_notification_recipients(nomination)
             if recipients:
@@ -274,11 +287,14 @@ class AppointmentView(LoginRequiredMixin, View):
                 subject="Chapter/region notified of appointment",
                 recipient=", ".join(recipients),
             )
+            messages.success(request, "Chapter/region notified of the appointment.")
         elif action == "order_ppm":
             nomination.ppm_ordered = True
             nomination.save(update_fields=["ppm_ordered"])
+            messages.success(request, "Marked the PPM as ordered.")
         elif action == "add_natoff":
             add_to_natoff_lists(nomination)
+            messages.success(request, f"Added {nomination.nominee_display} to the national officer lists.")
 
 
 class DenialCentralOfficeView(LoginRequiredMixin, View):
@@ -329,6 +345,7 @@ class DenialCentralOfficeView(LoginRequiredMixin, View):
             nomination.denial_letter = request.FILES["denial_letter"]
             nomination.denial_reason = request.POST.get("denial_reason", nomination.denial_reason)
             nomination.save(update_fields=["denial_letter", "denial_reason"])
+            messages.success(request, "Denial letter uploaded.")
         elif action == "email_letter":
             DenialLetterNotification(nomination).send()
             nomination.denial_letter_sent_at = timezone.now()
@@ -338,6 +355,7 @@ class DenialCentralOfficeView(LoginRequiredMixin, View):
                 subject="Denial letter emailed",
                 recipient=nomination.nominee_email_address or "",
             )
+            messages.success(request, f"Denial letter emailed to {nomination.nominee_display}.")
 
 
 class NominationListView(NationalOfficerRequiredMixin, ListView):

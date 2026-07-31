@@ -28,15 +28,15 @@ class Command(BaseCommand):
         today = datetime.date.today().strftime("%A")
         override = options.get("override", False)
         if today != "Tuesday" and not override:
-            print(f"Not today {today}")
+            self.stdout.write(f"Not today {today}")
             return
         users = User.objects.all().prefetch_related("status", "roles")
         total = users.count()
-        print("Number of users", total)
+        self.stdout.write(f"Number of users {total}")
         update_users = []
         for count, user in enumerate(users):
             if not ((count + 1) % 5000):
-                print(f"Working on user {count+1}/{total}")
+                self.stdout.write(f"Working on user {count+1}/{total}")
             status_update = False
             roles_update = False
             current_status = user.status.filter(start__lte=TODAY_END, end__gte=TODAY_END).order_by("-start")
@@ -49,7 +49,7 @@ class Command(BaseCommand):
             else:
                 status = status.status
             if user.current_status != status:
-                print(
+                self.stdout.write(
                     f"User {user} {count+1}/{total} updated previous status {user.current_status} new status {status}"
                 )
                 user.current_status = status
@@ -67,12 +67,12 @@ class Command(BaseCommand):
             if current_roles:
                 roles = set(current_roles)
             if roles != set_roles:
-                print(f"User {user} {count+1}/{total} updated previous roles {set_roles} new roles {roles}")
+                self.stdout.write(f"User {user} {count+1}/{total} updated previous roles {set_roles} new roles {roles}")
                 user.current_roles = list(roles)
                 roles_update = True
             if roles_update or status_update:
                 update_users.append(user)
-        print(f"Updating {len(update_users)}: {update_users}")
+        self.stdout.write(f"Updating {len(update_users)}: {update_users}")
         if update_users:
             User.objects.bulk_update(update_users, ["current_status", "current_roles"])
         off_group, _ = Group.objects.get_or_create(name="officer")

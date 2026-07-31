@@ -6,6 +6,7 @@ from faker import Factory
 from thetatauCMT.users.models import (
     HistoricalUser,
     MemberUpdate,
+    Organization,
     User,
     UserAlter,
     UserDemographic,
@@ -27,6 +28,7 @@ register_skip(
         UserDemographic,
         UserSemesterGPA,
         UserTag,
+        Organization,
         Signal,
         SignalConstraint,
     ]

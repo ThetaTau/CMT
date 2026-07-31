@@ -39,6 +39,7 @@ from django.core.management.base import BaseCommand
 from django.db import transaction
 
 from core.models import COUNCIL, NATIONAL_OFFICER
+from core.seed_guard import ensure_seeding_allowed
 from thetatauCMT.chapters.models import Chapter
 from thetatauCMT.contact_sync.officers import SYNCED_OFFICER_ROLES
 from thetatauCMT.users.models import User, UserRoleChange, UserStatusChange
@@ -107,9 +108,15 @@ class Command(BaseCommand):
         )
         parser.add_argument("--skip-chapters", action="store_true", help="Skip chapter officer seeding.")
         parser.add_argument("--skip-national", action="store_true", help="Skip national officer seeding.")
+        parser.add_argument(
+            "--force",
+            action="store_true",
+            help="Required to run when settings.DEBUG is off (production-like).",
+        )
 
     # ------------------------------------------------------------------ entry
     def handle(self, *args, **options) -> None:  # noqa: ANN401
+        ensure_seeding_allowed(options["force"])
         stats = {"chapter_users_created": 0, "chapter_users_updated": 0, "nat_users_created": 0, "nat_users_updated": 0}
         with transaction.atomic():
             if not options["skip_chapters"]:

@@ -8,6 +8,7 @@ from core.models import ADVISOR_ROLES, CHAPTER_OFFICER, NAT_OFFICERS  # noqa: E4
 from thetatauCMT.chapters.tests.factories import ChapterCurriculaFactory, ChapterFactory  # noqa: E402
 
 from ..models import (  # noqa: E402
+    Organization,
     UserAlter,
     UserOrgParticipate,
     UserRoleChange,
@@ -185,11 +186,19 @@ class UserRoleChangeFactory(factory.django.DjangoModelFactory):
                 self.user.save(update_fields=["current_roles"])
 
 
+class OrganizationFactory(factory.django.DjangoModelFactory):
+    name = factory.Sequence(lambda n: f"Organization {n}")
+
+    class Meta:
+        model = Organization
+        django_get_or_create = ("name",)
+
+
 class UserOrgParticipateFactory(factory.django.DjangoModelFactory):
     start = factory.Faker("date_between", start_date="-4y", end_date="+4y")
     end = factory.Faker("date_between", start_date="-4y", end_date="+4y")
     user = factory.SubFactory(UserFactory)
-    org_name = factory.Faker("sentence", nb_words=3)
+    organization = factory.SubFactory(OrganizationFactory)
     type = factory.Faker("random_element", elements=[item[0] for item in UserOrgParticipate.TYPES])
     officer = factory.Faker("boolean")
 

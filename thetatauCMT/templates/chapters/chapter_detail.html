@@ -34,6 +34,12 @@
                 <a href="mailto:{{ object.region.email }}">{{ object.region.email }}</a>
               </p>
             {% endif %}
+            {% if object.support_specialist %}
+              <div class="mt-2 small">
+                <span class="text-muted d-block">Chapter Support Specialist:</span>
+                <div class="chapter-support-specialist">{{ object.support_specialist|sanitize_html }}</div>
+              </div>
+            {% endif %}
           </div>
           <div class="d-flex flex-column align-items-end gap-2">
             <div class="d-flex flex-wrap gap-4 justify-content-end">
@@ -43,10 +49,17 @@
               </div>
               <div class="text-center">
                 <div class="h3 mb-0 fw-bold text-success">{{ object.pledges|length }}</div>
-                <div class="text-muted small text-uppercase">Potential New Members</div>
+                <div class="text-muted small text-uppercase">PNMs</div>
               </div>
+
+                {% if object.size_target %}
+                <div class="text-center">
+                  <div class="h3 mb-0 fw-bold text-info">{{ object.size_target }}</div>
+                <div class="text-muted small text-uppercase">Size Target</div>
+                </div>
+                {% endif %}
               <div class="text-center">
-                <div class="h6 mb-0">
+                <div class="h4 mb-0">
                   {% if object.health_safety_surcharge == "none" %}
                     <span class="badge bg-success" title="{{ object.get_health_safety_surcharge_display }}">&gt;75%</span>
                   {% elif object.health_safety_surcharge == "L1a" %}
@@ -61,7 +74,7 @@
               </div>
               <div class="text-center">
                 {% if object.tax %}
-                  <div class="h6 mb-0 fw-semibold">{{ object.tax }}</div>
+                  <div class="h4 mb-0 fw-semibold">{{ object.tax }}</div>
                 {% else %}
                   <div class="h6 mb-0 fw-semibold text-muted">&mdash;</div>
                 {% endif %}

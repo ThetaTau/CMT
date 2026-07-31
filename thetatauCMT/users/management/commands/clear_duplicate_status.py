@@ -30,7 +30,7 @@ class Command(BaseCommand):
 
         # Users with no current status
         users = User.objects.exclude(status__start__lte=TODAY_END, status__end__gte=TODAY_END)
-        print(f"{users} with no current status")
+        self.stdout.write(f"{users} with no current status")
 
         # Users with duplicate current statuss
         dup_status = (
@@ -43,14 +43,14 @@ class Command(BaseCommand):
             .filter(id__count__gt=1)
         )
         total = len(dup_status)
-        print(f"{total} duplicate status")
+        self.stdout.write(f"{total} duplicate status")
         for count, user in enumerate(dup_status):
             current_status = None
             other_statuss = []
             current_statuss = user.status.filter(start__lte=TODAY_END, end__gte=TODAY_END).values_list(
                 "status", flat=True
             )
-            print(f"{count + 1}/{total} {user} Current duplicates: {current_statuss}")
+            self.stdout.write(f"{count + 1}/{total} {user} Current duplicates: {current_statuss}")
             status_check = [
                 "deceased",
                 "expelled",
@@ -75,7 +75,7 @@ class Command(BaseCommand):
                             end__gte=TODAY_END,
                         )
                     )
-                    print(f"    This is the current status {current_status}")
+                    self.stdout.write(f"    This is the current status {current_status}")
                     other_statuss = list(
                         user.status.filter(
                             ~models.Q(status=status),
@@ -83,14 +83,14 @@ class Command(BaseCommand):
                             end__gte=TODAY_END,
                         )
                     )
-                    print(f"    This is the other status {other_statuss}")
+                    self.stdout.write(f"    This is the other status {other_statuss}")
                     if len(current_status) > 1:
                         # If there are multiple of the same current status delete the others
-                        print(f"        Current status same status! {current_status}")
+                        self.stdout.write(f"        Current status same status! {current_status}")
                         remaining_statuss = current_status[1:]
-                        print(f"        Remaining status {remaining_statuss}")
+                        self.stdout.write(f"        Remaining status {remaining_statuss}")
                         for remaining_status in remaining_statuss:
-                            print("        Deleting extras")
+                            self.stdout.write("        Deleting extras")
                             remaining_status.delete()
                     current_status = current_status[0]
                     break
@@ -98,6 +98,6 @@ class Command(BaseCommand):
                 current_status.end = forever()
                 current_status.save()
                 for other_status in other_statuss:
-                    print(f"        Setting other status to end {current_status.start}")
+                    self.stdout.write(f"        Setting other status to end {current_status.start}")
                     other_status.end = current_status.start - datetime.timedelta(days=1)
                     other_status.save()

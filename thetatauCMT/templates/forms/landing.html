@@ -42,6 +42,15 @@
     </tr>
     {% endif %}
     <tr>
+      <td><a href="{% url 'viewflow:nominations:nomination:start' %}">{% trans "Nominate for Office" %}</a></td>
+      {% if request.is_nat_officer %}
+      <td>
+        <a href="{% url 'nominations:list' %}">{% trans "Volunteer Nominations" %}</a>
+      </td>
+      {% endif %}
+      <td>To recommend a member for a national volunteer position and shepherd the nomination through consent, vetting, interview, training, confirmation, and appointment.</td>
+    </tr>
+    <tr>
       <td><a href="{% url 'ballots:votelist' %}">{% trans "Ballots" %}</a></td>
       {% if request.is_nat_officer %}
       <td></td>
@@ -251,19 +260,48 @@
     </tr>
     {% endif %}
     <tr>
+      <td><a href="{% url 'forms:natoff' %}">{% trans "National Officers" %}</a></td>
+      {% if request.is_nat_officer %}
+      <td></td>
+      {% endif %}
+      <td>View national officers{% if user.is_superuser %}; administrators can add or edit assignments{% endif %}.</td>
+    </tr>
+      {% if user.is_superuser %}
+    <tr>
       <td>
-        <a href="{% url 'forms:status_selection' %}"
-          >{% trans "Status Change" %}</a
-        >
+        <a href="{% url 'attendance:national_upload' %}">{% trans "Upload National Attendance" %}</a></td>
+      {% if request.is_nat_officer %}
+        <td>{% if user.is_superuser %}
+              <a href="{% url 'attendance:match_queue' %}">
+                {% trans "Attendance Match Queue" %}</a>
+            {% endif %}
+        </td>
+      {% endif %}
+      <td>Bulk-upload attendance for a national event (administrators only).</td>
+    </tr>
+    {% if feature_awards_enabled %}
+      {% if user.is_superuser %}
+      <tr>
+        <td><a href="{% url 'awards:direct_grant' %}">{% trans "Grant an Award" %}</a></td>
+        {% if request.is_nat_officer %}
+        <td><a href="{% url 'awards:import_upload' %}">{% trans "Import Awards" %}</a></td>
+        {% endif %}
+        <td>Directly grant an award to a member (administrators only).</td>
+      </tr>
+      {% endif %}
+    {% endif %}
+    {% endif %}
+    {% for change in status_change_types %}
+    <tr>
+      <td>
+        <a href="{% url 'forms:status_history' reason=change.reason %}">{{ change.label }}</a>
       </td>
       {% if request.is_nat_officer %}
       <td></td>
       {% endif %}
-      <td>
-        To update the status of a member. Graduation, Coop, study abroad,
-        deployment, withdrawing from school, or transferring schools.
-      </td>
+      <td>{{ change.description }}</td>
     </tr>
+    {% endfor %}
     <tr>
       <td><a href="{% url 'forms:pledgeform' %}">{% trans "Prospective New Member / Pledge Form" %}</a></td>
       {% if request.is_nat_officer %}

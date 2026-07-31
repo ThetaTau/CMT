@@ -1,5 +1,6 @@
 import base64
 import datetime
+import logging
 import os
 from io import BytesIO
 
@@ -18,7 +19,7 @@ from viewflow.templatetags.viewflow import flowurl as old_flowurl
 from viewflow.templatetags.viewflow import register
 
 from core.flows import AutoAssignUpdateProcessView, FilterableFlowViewSet, NoAssignView, register_factory
-from core.utils import login_with_service_account
+from core.utils import login_with_service_account, retry_google_api
 from thetatauCMT.configs.models import Config
 from thetatauCMT.surveys.notifications import SurveyEmail
 from thetatauCMT.trainings.models import Training
@@ -64,6 +65,8 @@ from .views import (
     ReturnStudentCreateView,
     get_signature,
 )
+
+logger = logging.getLogger(__name__)
 
 
 def link_callback(uri, rel):
@@ -718,6 +721,20 @@ class OSMFlow(Flow):
             user,
             "Outstanding Student Member Nomination",
         ).send()
+        # Record the Outstanding Student Member award grant for the verified
+        # nominee. This award is granted only through the OSM flow -- it is
+        # intentionally excluded from the awards nomination process (see
+        # awards.services.nominatable_award_types). Best-effort: a failure here
+        # must never break OSM processing.
+        from thetatauCMT.awards.services import grant_osm_award
+
+        try:
+            grant_osm_award(activation.process)
+        except Exception:
+            logger.exception(
+                "Failed to grant OSM award for OSM process %s",
+                activation.process.pk,
+            )
 
 
 @register_factory(viewset_class=FilterableFlowViewSet)
@@ -1475,20 +1492,44 @@ class PledgeProgramProcessFlow(Flow):
     def approve_func(self, activation):
         model_obj = activation.process.program
         chapter = model_obj.chapter
-        gauth = login_with_service_account()
-        drive = GoogleDrive(gauth)
-        doc_file = drive.CreateFile({"id": chapter.nme_file_id})
-        with BytesIO() as buffer:
-            for chunk in doc_file.GetContentIOBuffer(mimetype="application/pdf"):
-                buffer.write(chunk)
-            content = buffer.getvalue()
-        # Year and term are added when uploaded to the final storage
-        file_name = f"NME-{chapter.name}".upper().replace(" ", "_")
-        model_obj.other_manual.save(
-            file_name + ".pdf",
-            ContentFile(content),
-            save=True,
-        )
+
+        def _download_pdf():
+            gauth = login_with_service_account()
+            drive = GoogleDrive(gauth)
+            doc_file = drive.CreateFile({"id": chapter.nme_file_id})
+            with BytesIO() as buffer:
+                for chunk in doc_file.GetContentIOBuffer(mimetype="application/pdf"):
+                    buffer.write(chunk)
+                return buffer.getvalue()
+
+        # Exporting the Google Doc to PDF and uploading it are best-effort. Google
+        # Drive intermittently returns HTTP 500 for exports (issue #944) and Cloud
+        # Storage returns HTTP 429 for rapid object mutations; both are transient
+        # and are retried below. This runs inside a viewflow handler, so an
+        # uncaught error would 500 the approver and leave the process stuck.
+        # Degrade gracefully instead: record the approval and send the email
+        # without the attached PDF when the export/upload cannot be completed.
+        try:
+            content = retry_google_api(
+                _download_pdf,
+                description=f"Pledge program PDF export for {chapter}",
+            )
+            file_name = f"NME-{chapter.name}".upper().replace(" ", "_")
+            retry_google_api(
+                lambda: model_obj.other_manual.save(
+                    file_name + ".pdf",
+                    ContentFile(content),
+                    save=True,
+                ),
+                description=f"Pledge program PDF upload for {chapter}",
+            )
+        except Exception:
+            logger.exception(
+                "Pledge program PDF could not be generated for chapter %s (file %s); "
+                "approval recorded without the attached PDF.",
+                chapter,
+                chapter.nme_file_id,
+            )
         EmailProcessUpdate(
             activation,
             complete_step="Pledge Program Reviewed",

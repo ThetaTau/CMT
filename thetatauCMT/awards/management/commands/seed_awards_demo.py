@@ -68,13 +68,57 @@ SCALE_PRESETS = {
 # name, level, grant_method, recurrence, single_winner, allow_multiple_winners,
 # allow_multiple_nominations, is_active, auto_generate_certificate, nominator_scope
 AWARD_TYPE_SPECS = [
-    ("Distinguished Service Award", "member", "nomination_workflow", "recurring", False, True, True, True, True, ["officer", "national"]),
-    ("Outstanding Alumni Award", "alumni", "nomination_workflow", "recurring", False, True, True, True, False, ["officer", "national"]),
+    (
+        "Distinguished Service Award",
+        "member",
+        "nomination_workflow",
+        "recurring",
+        False,
+        True,
+        True,
+        True,
+        True,
+        ["officer", "national"],
+    ),
+    (
+        "Outstanding Alumni Award",
+        "alumni",
+        "nomination_workflow",
+        "recurring",
+        False,
+        True,
+        True,
+        True,
+        False,
+        ["officer", "national"],
+    ),
     ("Active of the Year", "active", "direct", "recurring", False, True, False, True, False, []),
     ("PNM Scholarship", "pnm", "direct", "one_time", False, True, True, True, False, ["officer"]),
-    ("Chapter of the Year", "chapter", "nomination_workflow", "recurring", True, False, False, True, False, ["national"]),
+    (
+        "Chapter of the Year",
+        "chapter",
+        "nomination_workflow",
+        "recurring",
+        True,
+        False,
+        False,
+        True,
+        False,
+        ["national"],
+    ),
     ("Region of the Year", "region", "direct", "recurring", True, False, False, True, False, []),
-    ("National Merit Award", "national", "nomination_workflow", "recurring", False, True, False, True, True, ["national"]),
+    (
+        "National Merit Award",
+        "national",
+        "nomination_workflow",
+        "recurring",
+        False,
+        True,
+        False,
+        True,
+        True,
+        ["national"],
+    ),
     ("Legacy Founders Medal (Retired)", "member", "direct", "one_time", True, False, False, False, False, []),
 ]
 
@@ -151,7 +195,9 @@ class Command(BaseCommand):
         demo_cycles = AwardCycle.objects.filter(name__startswith=DEMO)
         AwardGrant.objects.filter(models.Q(award_type__in=demo_types) | models.Q(cycle__in=demo_cycles)).delete()
         AwardImportMatchQueueItem.objects.filter(award_type__in=demo_types).delete()
-        demo_nom_ids = list(AwardNominationProcess.objects.filter(award_type__in=demo_types).values_list("pk", flat=True))
+        demo_nom_ids = list(
+            AwardNominationProcess.objects.filter(award_type__in=demo_types).values_list("pk", flat=True)
+        )
         if demo_nom_ids:
             Task.objects.filter(process_id__in=demo_nom_ids).delete()
             AwardNominationProcess.objects.filter(pk__in=demo_nom_ids).delete()
@@ -169,7 +215,9 @@ class Command(BaseCommand):
             return regions
         created = []
         for i in range(2):
-            created.append(Region.objects.create(name=f"{DEMO}Region {i + 1}", email=f"demo-region-{i}@{DEMO_EMAIL_DOMAIN}"))
+            created.append(
+                Region.objects.create(name=f"{DEMO}Region {i + 1}", email=f"demo-region-{i}@{DEMO_EMAIL_DOMAIN}")
+            )
             self.counts["regions_created"] += 1
         return created
 
@@ -258,7 +306,7 @@ class Command(BaseCommand):
     def _ensure_award_types(self):
         awards = {}
         for spec in AWARD_TYPE_SPECS:
-            (name, level, method, recur, single, multi_win, multi_nom, active, autocert, scopes) = spec
+            name, level, method, recur, single, multi_win, multi_nom, active, autocert, scopes = spec
             obj, created = AwardType.objects.get_or_create(
                 name=f"{DEMO}{name}",
                 defaults=dict(
@@ -359,7 +407,12 @@ class Command(BaseCommand):
         chapter_award = awards["Chapter of the Year"]
         region_award = awards["Region of the Year"]
         pnm_award = awards["PNM Scholarship"]
-        c2019, c2023, ccurrent, cterm = cycles["2019"], cycles["2023"], cycles[str(self._year)], cycles[f"Fall {self._year}"]
+        c2019, c2023, ccurrent, cterm = (
+            cycles["2019"],
+            cycles["2023"],
+            cycles[str(self._year)],
+            cycles[f"Fall {self._year}"],
+        )
 
         # Direct-source member grants spread across two cycles + chapters/regions.
         for i in range(scale["member_grants"]):
@@ -378,8 +431,13 @@ class Command(BaseCommand):
 
         # Backdated grant (historical effective_date).
         self._grant_once(
-            service_award, c2019, members[0], officer, source="direct",
-            effective_date=datetime.date(2019, 5, 1), reason=f"{DEMO}backdated historical grant",
+            service_award,
+            c2019,
+            members[0],
+            officer,
+            source="direct",
+            effective_date=datetime.date(2019, 5, 1),
+            reason=f"{DEMO}backdated historical grant",
         )
         # Revoked grant.
         revoked = self._grant_once(service_award, c2019, members[1 % len(members)], officer, source="direct")

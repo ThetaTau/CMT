@@ -21,27 +21,27 @@ class Command(BaseCommand):
         """
         python manage.py recalculate meetings -chapter zeta
         """
-        print(options)
+        self.stdout.write(str(options))
         chapter_only = options.get("chapter", None)
         score_type = options.get("score_type", [None])[0]
         year = int(options.get("year", [BIENNIUM_START])[0])
-        print(f"Recalculating for score_type {score_type}")
+        self.stdout.write(f"Recalculating for score_type {score_type}")
         if score_type is None:
-            print("You must supply score_type")
+            self.stdout.write("You must supply score_type")
             return
         if chapter_only:
             chapter_only = chapter_only[0]
             chapters = Chapter.objects.filter(slug=chapter_only)
-            print(f"Recalculating for chapter {chapters}")
+            self.stdout.write(f"Recalculating for chapter {chapters}")
         else:
             chapters = Chapter.objects.filter(active=True)
         score_type = ScoreType.objects.get(slug=score_type)
         for chapter in chapters:
-            print(chapter)
+            self.stdout.write(str(chapter))
             if score_type.type == "Evt":
                 objects = chapter.events.filter(date__gte=datetime.date(year, 8, 1), type=score_type)
             elif score_type.type == "Sub":
                 objects = chapter.submissions.filter(date__gte=datetime.date(year, 8, 1), type=score_type)
-            print(f"    Found {objects.count()} to recalculate")
+            self.stdout.write(f"    Found {objects.count()} to recalculate")
             for obj in objects:
                 obj.save(calculate_score=True)

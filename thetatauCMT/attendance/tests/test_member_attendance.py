@@ -51,6 +51,13 @@ def _natoff(chapter):
     return user
 
 
+def _chapter_officer(chapter):
+    user = UserFactory.create(chapter=chapter)
+    group, _ = Group.objects.get_or_create(name="officer")
+    user.groups.add(group)
+    return user
+
+
 def _distinct_chapter(chapter_factory, other_than):
     for value in GREEK_ABR.values():
         if value != other_than.name:
@@ -228,6 +235,36 @@ def test_non_owner_non_natoff_cannot_add_attendance(auto_login_user, chapter_fac
     nat = _national_event("Denied Summit")
     other = UserFactory.create(chapter=chapter, name="Sneaky Member")
     client, _ = auto_login_user(user=other)
+
+    response = client.post(_add_url(member), {"event": nat.pk, "status": "attended"})
+
+    assert response.status_code == 302
+    assert not AttendanceRecord.objects.filter(event=nat, user=member).exists()
+
+
+@pytest.mark.django_db
+def test_chapter_officer_can_add_attendance_for_member(auto_login_user, chapter_factory):
+    """A chapter officer of the member's chapter may log the member's attendance."""
+    chapter = chapter_factory.create()
+    member = UserFactory.create(chapter=chapter, name="Officer Logged Member")
+    nat_event = _national_event("Chapter Officer Summit")
+    officer = _chapter_officer(chapter)
+    client, _ = auto_login_user(user=officer)
+
+    response = client.post(_add_url(member), {"event": nat_event.pk, "status": "attended"})
+
+    assert response.status_code == 302
+    assert AttendanceRecord.objects.filter(event=nat_event, user=member).exists()
+
+
+@pytest.mark.django_db
+def test_chapter_officer_other_chapter_cannot_add_attendance(auto_login_user, chapter_factory):
+    """An officer of a DIFFERENT chapter may not log the member's attendance."""
+    chapter = chapter_factory.create()
+    member = UserFactory.create(chapter=chapter, name="Protected Member 2")
+    nat = _national_event("Other Chapter Denied Summit")
+    officer = _chapter_officer(_distinct_chapter(chapter_factory, chapter))
+    client, _ = auto_login_user(user=officer)
 
     response = client.post(_add_url(member), {"event": nat.pk, "status": "attended"})
 

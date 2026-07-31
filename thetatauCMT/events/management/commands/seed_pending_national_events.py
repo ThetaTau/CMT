@@ -22,6 +22,7 @@ from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 from django.utils import timezone
 
+from core.seed_guard import ensure_seeding_allowed
 from thetatauCMT.events.models import Event
 from thetatauCMT.scores.models import ScoreType
 from thetatauCMT.users.models import User
@@ -78,9 +79,15 @@ class Command(BaseCommand):
             action="store_true",
             help="Delete previously seeded ([SEED]) events before creating new ones.",
         )
+        parser.add_argument(
+            "--force",
+            action="store_true",
+            help="Required to run when settings.DEBUG is off (production-like).",
+        )
 
     @transaction.atomic
     def handle(self, *args, **options):
+        ensure_seeding_allowed(options["force"])
         count = options["count"]
         approved = options["approved"]
         chapter_pending = options["chapter_pending"]

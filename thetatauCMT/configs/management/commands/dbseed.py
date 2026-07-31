@@ -14,6 +14,7 @@ class Command(BaseCommand):
         {"app": "users", "file": "groups"},
         {"app": "jobs", "file": "country"},
         {"app": "configs", "file": "feature_flags"},
+        {"app": "configs", "file": "default_configs"},
     ]
 
     def handle(self, *args, **kwargs):

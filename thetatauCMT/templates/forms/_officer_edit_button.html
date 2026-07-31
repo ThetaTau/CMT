@@ -1,0 +1,4 @@
+{% load filter_tags %}
+{% if record|can_edit_role:request.user %}
+  <a href="{% url 'forms:role_edit' record.pk %}" class="btn btn-sm btn-outline-primary">Edit dates</a>
+{% endif %}

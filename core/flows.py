@@ -2,7 +2,7 @@ import datetime
 import re
 
 from django.db.models import Q
-from django.urls import reverse
+from django.urls import NoReverseMatch, reverse
 from django.utils.safestring import mark_safe
 from material.frontend import frontend_url
 from viewflow import flow, frontend
@@ -12,6 +12,30 @@ from viewflow.flow import views as flow_views
 from viewflow.flow.views.mixins import FlowListMixin
 from viewflow.frontend.views import ProcessListView
 from viewflow.frontend.viewset import FlowViewSet
+from viewflow.fsm import TransitionNotAllowed
+
+
+def complete_activation(activation):
+    """Complete a viewflow task/start activation, tolerating a task that was
+    already completed by a concurrent or duplicate submit.
+
+    ``Activation.done()`` marks the task finished and then calls
+    ``activate_next()``, whose ``all_leading_canceled`` condition raises
+    ``TransitionNotAllowed`` when the following task already exists -- i.e. the
+    same task node was submitted twice and a first (possibly concurrent) request
+    already advanced the process (#980, disciplinary "Submit Form 2"). viewflow's
+    task dispatch already redirects gracefully for a *sequential* re-submit
+    (``prepare.can_proceed()`` is False once the task is DONE); this guards the
+    *concurrent* race that slips past that check.
+
+    Returns ``True`` when this call advanced the process, ``False`` when the task
+    had already been completed.
+    """
+    try:
+        activation.done()
+    except TransitionNotAllowed:
+        return False
+    return True
 
 
 class AutoAssignUpdateProcessView(flow_views.UpdateProcessView):
@@ -41,7 +65,20 @@ class NoAssignActivation(flow.nodes.ManagedViewActivation):
         pass
 
     def has_perm(self, user):
-        return user.has_perm(self.task.owner_permission)
+        owner_permission = self.task.owner_permission
+        if not owner_permission:
+            # No task-level permission is configured for this node (e.g.
+            # ``AlumniExclusionFlow.review`` — the "RD Review" node, which,
+            # unlike the central-office invoice/review nodes, has no
+            # ``.Permission()``). Defer to the view's own access control
+            # (``LoginRequiredMixin``/``NatOfficerRequiredMixin``) instead of
+            # calling ``user.has_perm(None)``, which returns False for every
+            # non-superuser and raised an uncaught ``PermissionDenied``
+            # (issue #1075) even though ``NoAssignView.can_execute`` shows the
+            # task link to them. Mirrors viewflow's ``View.can_execute``, where
+            # a task with no ``owner_permission`` and no owner is executable.
+            return True
+        return user.has_perm(owner_permission)
 
     @Activation.status.transition(source=STATUS.NEW, target=STATUS.PREPARED)
     def prepare(self, data=None, user=None):
@@ -179,7 +216,9 @@ class FilterProcessListView(ProcessListView, FlowListMixin):
                     if active_tasks:
                         flow_task = active_tasks.first().flow_task
                         if flow_task:
-                            title = flow_task.task_title.lower()
+                            # Some flow nodes (gateways, or views defined without a
+                            # title) have task_title=None; fall back to the node name.
+                            title = (flow_task.task_title or flow_task.name or "n/a").lower()
                         else:
                             title = "n/a"
                     if search_status in title:
@@ -194,7 +233,7 @@ class FilterProcessListView(ProcessListView, FlowListMixin):
                 flow_task = task.flow_task
                 summary = "n/a"
                 if flow_task:
-                    summary = flow_task.task_title
+                    summary = flow_task.task_title or flow_task.name
                 task_url = frontend_url(self.request, self.get_task_url(task), back_link="here")
                 return mark_safe('<a href="{}">{}</a>'.format(task_url, summary))
         process_url = self.get_process_url(process)
@@ -209,12 +248,23 @@ class FilterProcessListView(ProcessListView, FlowListMixin):
     def get_task_url(self, task, url_type=None):
         namespace = self.request.resolver_match.namespace
         if task.flow_task:
-            return task.flow_task.get_task_url(
-                task,
-                url_type=url_type if url_type else "guess",
-                user=self.request.user,
-                namespace=namespace,
-            )
+            try:
+                return task.flow_task.get_task_url(
+                    task,
+                    url_type=url_type if url_type else "guess",
+                    user=self.request.user,
+                    namespace=namespace,
+                )
+            except (AttributeError, NoReverseMatch):
+                # A stale task can reference viewflow node state that no longer
+                # matches the current flow definition -- e.g. the DB task has an
+                # ``owner_permission`` but the node was later redefined without a
+                # ``.Permission()``, so viewflow's ``View.can_assign`` reads an
+                # unset ``self._owner_permission_obj`` (#952) -- or a task URL
+                # name was renamed (NoReverseMatch). This method only builds the
+                # process-list link, so degrade to no link instead of 500ing the
+                # whole listing.
+                return ""
         else:
             return ""
 

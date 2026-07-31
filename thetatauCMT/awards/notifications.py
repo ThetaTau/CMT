@@ -114,6 +114,7 @@ class AwardNominationSubmittedNotification(EmailNotification):
     @staticmethod
     def get_demo_args():
         from thetatauCMT.users.models import User
+
         from .models import AwardNominationProcess
 
         nomination = AwardNominationProcess.objects.order_by("-id").first()
@@ -147,6 +148,7 @@ class AwardDigestNotification(EmailNotification):
     def get_demo_args():
         from core.models import previous_month_period
         from thetatauCMT.users.models import User
+
         from .models import AwardGrant
 
         start, end = previous_month_period()

@@ -1,9 +1,13 @@
-from django.contrib import admin
+import logging
+
+from django.contrib import admin, messages
 from django.http import HttpResponseRedirect
 from django.shortcuts import render
 
 from .forms import UserAdminTrainingForm
 from .models import Training
+
+logger = logging.getLogger(__name__)
 
 
 class AssignTrainingMixin:
@@ -31,10 +35,21 @@ class AssignTrainingMixin:
                 extra_group = form.cleaned_data["extra_group"]
                 training_system = form.cleaned_data["training_system"]
                 for user in queryset:
-                    if training_system == "Vector":
-                        Training.add_user(user, extra_group=extra_group, request=request)
-                    elif training_system == "ED.thetatau":
-                        Training.add_user_ed(user, request=request)
+                    # A training-system outage must not abort the whole bulk
+                    # action or return a 500; log it, tell the admin, and keep
+                    # processing the remaining users.
+                    try:
+                        if training_system == "Vector":
+                            Training.add_user(user, extra_group=extra_group, request=request)
+                        elif training_system == "ED.thetatau":
+                            Training.add_user_ed(user, request=request)
+                    except Exception:
+                        logger.exception("Training assignment failed for %s", user)
+                        self.message_user(
+                            request,
+                            f"Training assignment failed for {user}; it was skipped. See logs for details.",
+                            level=messages.ERROR,
+                        )
                 return HttpResponseRedirect(request.get_full_path())
         return render(
             request,

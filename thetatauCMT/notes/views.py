@@ -44,11 +44,6 @@ class ChapterNoteDetailView(LoginRequiredMixin, MultiFormsView):
         return super().post(request, *args, **kwargs)
 
     def get_success_url(self):
-        messages.add_message(
-            self.request,
-            messages.INFO,
-            "Note successfully updated",
-        )
         return reverse("notes:detail", kwargs={"pk": self.object.pk})
 
     def _get_form_kwargs(self, form_name, bind_form=False):
@@ -64,6 +59,13 @@ class ChapterNoteDetailView(LoginRequiredMixin, MultiFormsView):
     def note_form_valid(self, form):
         if form.has_changed():
             form.save()
+            messages.add_message(
+                self.request,
+                messages.SUCCESS,
+                f"The note '{self.object.title}' was updated.",
+            )
+        else:
+            messages.add_message(self.request, messages.INFO, "No changes were made to the note.")
         return HttpResponseRedirect(self.get_success_url())
 
     def subnotes_form_valid(self, formset):
@@ -71,11 +73,19 @@ class ChapterNoteDetailView(LoginRequiredMixin, MultiFormsView):
         for instance in instances:
             instance.parent = self.object
             instance.chapter = self.object.chapter
-            if instance.created_by is None:
+            # ``created_by`` is a non-null FK, so reading ``instance.created_by``
+            # on an unsaved sub-note raised RelatedObjectDoesNotExist (issue
+            # #888). Check the id column, which is simply None when unset.
+            if instance.created_by_id is None:
                 instance.created_by = self.request.user
             instance.modified_by = self.request.user
             instance.save()
         formset.save()
+        messages.add_message(
+            self.request,
+            messages.SUCCESS,
+            f"The sub-notes for '{self.object.title}' were saved.",
+        )
         return HttpResponseRedirect(self.get_success_url())
 
     def get_object(self):
@@ -148,6 +158,11 @@ class ChapterNoteCreateView(
         instance.modified_by = user
         instance.save()
         form.save_m2m()
+        messages.add_message(
+            self.request,
+            messages.SUCCESS,
+            f"Note '{instance.title}' was added to {instance.chapter}.",
+        )
         return super().form_valid(form)
 
 
@@ -178,4 +193,9 @@ class UserNoteCreateView(
         instance.modified_by = user
         instance.save()
         form.save_m2m()
+        messages.add_message(
+            self.request,
+            messages.SUCCESS,
+            f"Note '{instance.title}' was added for {form_user}.",
+        )
         return super().form_valid(form)

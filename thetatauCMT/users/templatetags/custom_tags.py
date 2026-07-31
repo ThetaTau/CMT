@@ -1,8 +1,21 @@
 from django import template
+from django.utils.safestring import mark_safe
+
+from core.sanitize import sanitize_html as _sanitize_html
 
 from ..forms import UserAlterForm
 
 register = template.Library()
+
+
+@register.filter(name="sanitize_html")
+def sanitize_html(value):
+    """Allow-list-sanitize user-authored rich text, then mark it safe.
+
+    Use in place of ``|safe`` for any CKEditor / rich-text field so stored XSS
+    payloads are stripped at render time.
+    """
+    return mark_safe(_sanitize_html(value or ""))
 
 
 @register.simple_tag(takes_context=True)

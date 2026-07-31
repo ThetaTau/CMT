@@ -13,6 +13,7 @@ from thetatauCMT.scores.tests.factories import ScoreChapterFactory
 from thetatauCMT.submissions.tests.factories import SubmissionFactory
 from thetatauCMT.tasks.tests.factories import TaskChapterFactory
 from thetatauCMT.users.tests.factories import (
+    OrganizationFactory,
     UserAlterFactory,
     UserFactory,
     UserOrgParticipateFactory,
@@ -115,6 +116,7 @@ register(SubmissionFactory)
 register(TaskChapterFactory)
 register(UserFactory)
 register(UserAlterFactory)
+register(OrganizationFactory)
 register(UserOrgParticipateFactory)
 register(UserSemesterGPAFactory)
 register(UserSemesterServiceHoursFactory)

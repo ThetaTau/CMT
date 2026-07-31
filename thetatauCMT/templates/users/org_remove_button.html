@@ -1,0 +1,7 @@
+{% if record.pk and request.user.is_officer_group %}
+  <form method="post" action="{% url 'users:orgs_delete' record.pk %}" class="d-inline"
+        onsubmit="return confirm('Remove {{ record.user }} from {{ record.organization|default:record.org_name|escapejs }}?');">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-sm btn-outline-danger">Remove</button>
+  </form>
+{% endif %}

@@ -1,5 +1,6 @@
 from dal import autocomplete
 from django.contrib import messages
+from django.contrib.messages.views import SuccessMessageMixin
 from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse
@@ -86,6 +87,7 @@ class JobCreateView(
             form.instance.approved_reason = "Auto-approved: posted by National Officer or superuser."
         response = super().form_valid(form)
         notify_job_created(self.object)
+        messages.success(self.request, f"Your job posting '{self.object.title}' was created.")
         return response
 
     def get_success_url(self):
@@ -94,6 +96,7 @@ class JobCreateView(
 
 class JobSearchCreateView(
     LoginRequiredMixin,
+    SuccessMessageMixin,
     CreateView,
 ):
     model = JobSearch
@@ -101,6 +104,7 @@ class JobSearchCreateView(
     officer_edit = "jobs"
     officer_edit_type = "create"
     form_class = JobSearchForm
+    success_message = "Your job search was saved."
 
     def get_success_url(self):
         return reverse("jobs:search")
@@ -169,10 +173,11 @@ class JobRedirectView(LoginRequiredMixin, RedirectView):
         return reverse("jobs:list")
 
 
-class JobSearchUpdateView(LoginRequiredMixin, UpdateView):
+class JobSearchUpdateView(LoginRequiredMixin, SuccessMessageMixin, UpdateView):
     model = JobSearch
     form_class = JobSearchForm
     template_name = "jobs/jobsearch_create_form.html"
+    success_message = "Your job search was updated."
 
     def get_success_url(self):
         return reverse("jobs:search")
@@ -180,10 +185,12 @@ class JobSearchUpdateView(LoginRequiredMixin, UpdateView):
 
 class JobUpdateView(
     LoginRequiredMixin,
+    SuccessMessageMixin,
     UpdateView,
 ):
     form_class = JobForm
     model = Job
+    success_message = "Job posting '%(title)s' was updated."
 
     def get_success_url(self):
         return reverse("jobs:list")
@@ -270,10 +277,10 @@ class KeywordAutocomplete(autocomplete.Select2QuerySetView):
 
     def get_queryset(self):
         qs = Keyword.objects.none()
-        if self.request.user.is_authenticated:
-            if self.q:
-                qs = Keyword.objects.all()
-                qs = qs.filter(Q(name__icontains=self.q))
+        # Require >= 2 chars so the endpoint can't be used to enumerate the
+        # full keyword list with a single character.
+        if self.request.user.is_authenticated and self.q and len(self.q) >= 2:
+            qs = Keyword.objects.filter(Q(name__icontains=self.q))
         return qs.order_by("name")
 
 
@@ -283,10 +290,10 @@ class MajorAutocomplete(autocomplete.Select2QuerySetView):
 
     def get_queryset(self):
         qs = Major.objects.none()
-        if self.request.user.is_authenticated:
-            if self.q:
-                qs = Major.objects.all()
-                qs = qs.filter(Q(name__icontains=self.q))
+        # Require >= 2 chars so the endpoint can't be used to enumerate the
+        # full major list with a single character.
+        if self.request.user.is_authenticated and self.q and len(self.q) >= 2:
+            qs = Major.objects.filter(Q(name__icontains=self.q))
         return qs.order_by("name")
 
 

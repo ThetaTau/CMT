@@ -118,7 +118,7 @@ hooks.Filters.ENV_PATCHES.add_item(
     (
         "mfe-lms-common-settings",
         'MFE_CONFIG["FAVICON_URL"] = '
-        f"\"{{ 'https' if ENABLE_HTTPS else 'http' }}://{{ LMS_HOST }}"
+        "\"{{ 'https' if ENABLE_HTTPS else 'http' }}://{{ LMS_HOST }}"
         '/static/indigo/images/favicon.ico"',
     )
 )

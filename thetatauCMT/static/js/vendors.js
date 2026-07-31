@@ -10786,7 +10786,6 @@ Popper.Defaults = Defaults;
 return Popper;
 
 })));
-//# sourceMappingURL=popper.js.map
 
 /*!
   * Bootstrap v4.0.0 (https://getbootstrap.com)
@@ -14681,4 +14680,3 @@ exports.Tooltip = Tooltip;
 Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
-//# sourceMappingURL=bootstrap.js.map

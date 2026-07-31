@@ -132,33 +132,36 @@
                 {% endif %}
 
                 {% if request.user.is_authenticated %}
-                  <li class="nav-item">
-                    <a class="nav-link" href="{% url 'chapters:detail' request.user.current_chapter.slug %}">Chapter</a>
+                  <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">{% trans "Chapter" %}</a>
+                    <ul class="dropdown-menu">
+                      <li><a class="dropdown-item" href="{% url 'chapters:detail' request.user.current_chapter.slug %}">{% trans "Chapter Home" %}</a></li>
+                      <li><hr class="dropdown-divider"></li>
+                      <li><a class="dropdown-item" href="{% url 'scores:list' %}">{% trans "Scores" %}</a></li>
+                      <li><a class="dropdown-item" href="{% url 'trainings:list' %}">{% trans "Training" %}</a></li>
+                      <li><a class="dropdown-item" href="https://thetatau-tx.vectorlmsedu.com" target="_blank" rel="noopener noreferrer">{% trans "Vector" %}</a></li>
+                      <li><a class="dropdown-item" href="{% url 'finances:list' %}">{% trans "Invoices" %}</a></li>
+                    </ul>
                   </li>
 
                   <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">{% trans "Members" %}</a>
                     <ul class="dropdown-menu">
-                      <li><a class="dropdown-item" href="{% url 'users:list' %}">{% trans "Member List" %}</a></li>
+                      <li><a class="dropdown-item" href="{% url 'users:list' %}">{% trans "Roster" %}</a></li>
+                      {% if request.is_nat_officer %}
+                        <li><a class="dropdown-item" href="{% url 'users:search' %}">{% trans "Search" %}</a></li>
+                      {% endif %}
                       {% if request.is_officer %}
                         <li><a class="dropdown-item" href="{% url 'users:gpas' %}">{% trans "GPAs" %}</a></li>
                       {% endif %}
                       <li><a class="dropdown-item" href="{% url 'users:service' %}">{% trans "Service Hours" %}</a></li>
-                      <li><a class="dropdown-item" href="{% url 'users:orgs' %}">{% trans "External Orgs" %}</a></li>
-                      <li><a class="dropdown-item" href="{% url 'viewflow:nominations:nomination:start' %}">{% trans "Nominate for Office" %}</a></li>
-                      {% if request.is_nat_officer %}
-                        <li><a class="dropdown-item" href="{% url 'users:search' %}">{% trans "Member Search" %}</a></li>
+                      {% if request.is_officer or request.is_nat_officer %}
+                        <li><a class="dropdown-item" href="{% url 'users:orgs' %}">{% trans "External Orgs" %}</a></li>
                       {% endif %}
-
                       {% if feature_awards_enabled %}
                         <li><hr class="dropdown-divider"></li>
                         <li><h6 class="dropdown-header">{% trans "Awards" %}</h6></li>
                         <li><a class="dropdown-item" href="{% url 'awards:directory' %}">{% trans "Award Winners" %}</a></li>
-                        <li><a class="dropdown-item" href="{% url 'viewflow:awards:awardnomination:start' %}">{% trans "Nominate for an Award" %}</a></li>
-                        {% if user.is_superuser %}
-                          <li><a class="dropdown-item" href="{% url 'awards:direct_grant' %}">{% trans "Grant an Award" %}</a></li>
-                          <li><a class="dropdown-item" href="{% url 'awards:import_upload' %}">{% trans "Import Awards" %}</a></li>
-                        {% endif %}
                       {% endif %}
 
                       <li><hr class="dropdown-divider"></li>
@@ -179,35 +182,10 @@
                         <li><a class="dropdown-item" href="{% url 'chapters:activity_redirect' %}">{% trans "All Activities" %}</a></li>
                         <li><hr class="dropdown-divider"></li>
                       {% endif %}
-                      <li><a class="dropdown-item" href="{% url 'scores:list' %}">Scores</a></li>
                       <li><a class="dropdown-item" href="{% url 'events:list' %}">Events</a></li>
-                      {% if feature_events_calendar_enabled %}
-                        <li><a class="dropdown-item" href="{% url 'events:calendar' %}">Events Calendar</a></li>
-                      {% endif %}
                       <li><a class="dropdown-item" href="{% url 'tasks:list' %}">Tasks</a></li>
                       <li><a class="dropdown-item" href="{% url 'objectives:list' %}">Goals</a></li>
-                      <li><a class="dropdown-item" href="{% url 'trainings:list' %}">Training</a></li>
-                    </ul>
-                  </li>
-
-                  <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">{% trans "Submissions" %}</a>
-                    <ul class="dropdown-menu">
-                      <li><a class="dropdown-item" href="{% url 'submissions:list' %}">List</a></li>
-                      <li><a class="dropdown-item" href="{% url 'submissions:add' %}">Add Submission</a></li>
-                      <li><a class="dropdown-item" href="{% url 'gear' %}">Gear Article</a></li>
-                    </ul>
-                  </li>
-
-                  <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">{% trans "Finances" %}</a>
-                    <ul class="dropdown-menu">
-                      <li><a class="dropdown-item" href="{% url 'finances:list' %}">{% trans "Invoices" %}</a></li>
-                      <li><a class="dropdown-item" href="{% url 'chapters:audit_redirect' %}">{% trans "Audit" %}</a></li>
-                      {% if request.is_nat_officer %}
-                        <li><hr class="dropdown-divider"></li>
-                        <li><a class="dropdown-item" href="{% url 'finances:chapters' %}">{% trans "All Balances" %}</a></li>
-                      {% endif %}
+                      <li><a class="dropdown-item" href="{% url 'submissions:list' %}">Submissions</a></li>
                     </ul>
                   </li>
 
@@ -228,14 +206,9 @@
                         <li><a class="dropdown-item" href="{% url 'regions:dashboard' 'national' %}">{% trans "National Dashboard" %}</a></li>
                         <li><a class="dropdown-item" href="{% url 'regions:event_attendance' %}">{% trans "Events &amp; Attendance Dashboard" %}</a></li>
                         <li><a class="dropdown-item" href="{% url 'scores:chapterlist' %}">{% trans "All Scores" %}</a></li>
+                        <li><a class="dropdown-item" href="{% url 'finances:chapters' %}">{% trans "All Balances" %}</a></li>
                         <li><a class="dropdown-item" href="{% url 'events:list_all' %}">{% trans "All Events" %}</a></li>
                         <li><a class="dropdown-item" href="{% url 'events:pending' %}">{% trans "Pending Event Reviews" %}</a></li>
-                        {% if user.is_superuser %}
-                          <li><a class="dropdown-item" href="{% url 'attendance:national_upload' %}">{% trans "Upload National Attendance" %}</a></li>
-                          <li><a class="dropdown-item" href="{% url 'attendance:match_queue' %}">{% trans "Attendance Match Queue" %}</a></li>
-                        {% endif %}
-                        <li><a class="dropdown-item" href="{% url 'forms:natoff' %}">{% trans "Nat Officers" %}</a></li>
-                        <li><a class="dropdown-item" href="{% url 'nominations:list' %}">{% trans "Volunteer Nominations" %}</a></li>
                         <li><a class="dropdown-item" href="{% url 'email_tracking:member_communication' %}">{% trans "Member Email Communication" %}</a></li>
                         <li><hr class="dropdown-divider"></li>
                         <li><a class="dropdown-item" href="https://apps.ed.thetatau.org/authn/login?tpa_hint=oa2-cmt" target="_blank" rel="noopener noreferrer">{% trans "Training Portal" %}</a></li>

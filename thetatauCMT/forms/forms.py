@@ -51,10 +51,10 @@ SELF_SUBMIT_FORBIDDEN_MSG = (
 )
 
 # Theta Tau Policy and Procedure Manual: the Treasurer of every chapter is
-# elected to a one-year term that begins in January. The chapter officer
-# election report warns/blocks submissions where a Treasurer's term does not
-# start and end in January. Both strings are reused by the form validation and
-# the ``officer.html`` template/modal so the wording stays identical.
+# elected to a one-year term that begins in January. The add-officer form
+# warns/blocks submissions where a Treasurer's term does not start and end in
+# January. Both strings are reused by the form validation and the
+# ``officer_form.html`` template/modal so the wording stays identical.
 TREASURER_TERM_POLICY_MSG = (
     "In accordance with Theta Tau Policy and Procedure Manual, the Treasurer of all chapters "
     "shall be elected to hold office for one year, beginning in January."
@@ -587,6 +587,115 @@ class CSMTFormHelper(FormHelper):
     )
 
 
+class SingleStatusChangeForm(CSMTForm):
+    """One-member status change (co-op, military, withdraw, transfer, resignedCC).
+
+    Reuses ``CSMTForm``'s per-reason field logic but (1) swaps the disabled,
+    name-lookup ``user`` field for a searchable member autocomplete and (2)
+    removes every optional field that is not relevant to the reason so unneeded
+    inputs (e.g. employer / other school on a withdraw) are hidden entirely
+    rather than shown disabled.
+    """
+
+    # Optional StatusChange fields kept visible per reason; all others removed.
+    VISIBLE_FIELDS = {
+        "coop": ["employer", "date_start", "date_end", "miles"],
+        "military": ["date_start", "date_end"],
+        "withdraw": ["date_start"],
+        "transfer": ["new_school", "new_school_other", "date_start"],
+        "resignedCC": ["date_start"],
+    }
+    _OPTIONAL_FIELDS = ["employer", "new_school", "new_school_other", "date_start", "date_end", "miles"]
+
+    user = forms.ModelChoiceField(
+        label="Member",
+        queryset=User.objects.none(),
+        widget=autocomplete.ModelSelect2(
+            url="users:autocomplete",
+            forward=(
+                forward.Const("true", "chapter"),
+                forward.Const("true", "actives"),
+                forward.Const("true", "exclude_self"),
+            ),
+            attrs={"data-placeholder": "Start typing a member name\u2026"},
+        ),
+    )
+
+    def __init__(self, *args, request_user=None, actives=None, reason=None, **kwargs):
+        self.request_user = request_user
+        if reason is not None:
+            # ``CSMTForm.__init__`` reads ``self.initial['reason']`` to decide
+            # which fields to hide/disable, so seed it before calling super().
+            initial = kwargs.setdefault("initial", {})
+            initial.setdefault("reason", reason)
+        super().__init__(*args, **kwargs)
+        if actives is not None:
+            self.fields["user"].queryset = actives
+        # The reason is fixed by the page; keep it on the instance but hidden.
+        self.fields["reason"].widget = forms.HiddenInput()
+        # Drop every optional field not relevant to this reason so it is hidden
+        # entirely (unset fields fall back to their model defaults on save).
+        visible = self.VISIBLE_FIELDS.get(reason, ["date_start"])
+        for name in self._OPTIONAL_FIELDS:
+            if name not in visible and name in self.fields:
+                del self.fields[name]
+
+    def clean_user(self):
+        # Replaces CSMTForm.clean_user (a name lookup): the member picker already
+        # yields a User. Only guard against an officer reporting on themselves.
+        user = self.cleaned_data.get("user")
+        if self.request_user is not None and user == self.request_user:
+            raise forms.ValidationError(f"You cannot report a status change for yourself. {SELF_SUBMIT_FORBIDDEN_MSG}")
+        return user
+
+
+class SingleStatusChangeFormHelper(FormHelper):
+    form_method = "post"
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.add_input(Submit("submit", "Submit"))
+
+
+class GraduateSelectForm(forms.Form):
+    """Pick the graduating members before filling one graduation row each."""
+
+    members = forms.ModelMultipleChoiceField(
+        label="Graduating members",
+        queryset=User.objects.none(),
+        widget=autocomplete.ModelSelect2Multiple(
+            url="users:autocomplete",
+            forward=(
+                forward.Const("true", "chapter"),
+                forward.Const("true", "actives"),
+                forward.Const("true", "exclude_self"),
+            ),
+            attrs={"data-placeholder": "Start typing member names\u2026"},
+        ),
+    )
+
+    def __init__(self, *args, actives=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        if actives is not None:
+            self.fields["members"].queryset = actives
+
+
+class StatusChangeListFormHelper(FormHelper):
+    form_method = "GET"
+    # The ``collapsible_filter`` partial already wraps the fields in a
+    # ``<form method="get">``; keep crispy from emitting a nested <form>.
+    form_tag = False
+    form_class = "form-inline"
+    field_template = "bootstrap5/layout/inline_field.html"
+    form_show_errors = True
+    help_text_inline = False
+    html5_required = True
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.add_input(Submit("submit", "Filter"))
+
+
 class RoleChangeNationalSelectForm(forms.ModelForm):
     user = forms.ModelChoiceField(
         queryset=User.objects.all(),
@@ -732,6 +841,221 @@ class RoleChangeSelectForm(forms.ModelForm):
         "start",
         "end",
     )
+
+
+class OfficerAddForm(forms.ModelForm):
+    """Add a single chapter officer / role.
+
+    Replaces the old "+1 extra row then submit" formset flow with a focused
+    single-add form (mirroring the External Organizations add form). Preserves
+    the self-assignment block and the Treasurer January-term policy; the
+    away/alumni term-overlap check and all side effects (Vector LMS sync,
+    ``NewOfficers`` email, task completion) live in the create view.
+    """
+
+    user = forms.ModelChoiceField(
+        queryset=User.objects.all(),
+        label="Member",
+        widget=autocomplete.ModelSelect2(
+            url="users:autocomplete",
+            forward=(
+                forward.Const("true", "chapter"),
+                forward.Const("true", "exclude_self"),
+            ),
+            attrs={"data-placeholder": "Type a member's name to search…"},
+        ),
+    )
+    role = forms.ChoiceField(choices=[("", "---------")] + CHAPTER_ROLES_CHOICES, label="Role")
+    start = forms.DateField(
+        initial=timezone.now().date(),
+        label="Start Date",
+        widget=DatePicker(
+            options={"format": "M/DD/YYYY"},
+            attrs={"autocomplete": "off"},
+        ),
+    )
+    end = forms.DateField(
+        initial=timezone.now().date() + timezone.timedelta(days=365),
+        label="End Date",
+        widget=DatePicker(
+            options={"format": "M/DD/YYYY"},
+            attrs={"autocomplete": "off"},
+        ),
+    )
+    # Populated (client-side) when an officer acknowledges a Treasurer term that
+    # falls outside the January-to-January policy window and chooses to submit
+    # anyway. When present it both permits the submission and triggers the
+    # policy-exception notification email.
+    treasurer_term_exception_reason = forms.CharField(
+        required=False,
+        widget=forms.HiddenInput(attrs={"class": "form-control"}),
+    )
+
+    class Meta:
+        model = UserRoleChange
+        fields = ["user", "role", "start", "end"]
+
+    def __init__(self, *args, request_user=None, **kwargs):
+        self.request_user = request_user
+        super().__init__(*args, **kwargs)
+
+    def clean_user(self):
+        return _reject_self(self, "user", self.request_user, label="new officer")
+
+    def clean(self):
+        cleaned_data = super().clean()
+        role = cleaned_data.get("role")
+        start = cleaned_data.get("start")
+        end = cleaned_data.get("end")
+        if treasurer_term_violation(role, start, end):
+            reason = (cleaned_data.get("treasurer_term_exception_reason") or "").strip()
+            if not reason:
+                raise forms.ValidationError(TREASURER_TERM_VIOLATION_MSG)
+        return cleaned_data
+
+
+class NationalOfficerAddForm(forms.ModelForm):
+    """Add a single national officer / role (superuser only)."""
+
+    user = forms.ModelChoiceField(
+        queryset=User.objects.all(),
+        label="Member",
+        widget=autocomplete.ModelSelect2(
+            url="users:autocomplete",
+            forward=(
+                forward.Const("false", "chapter"),
+                forward.Const("true", "exclude_self"),
+            ),
+            attrs={"data-placeholder": "Type a member's name to search…"},
+        ),
+    )
+    role = forms.ChoiceField(choices=[("", "---------")] + NAT_OFFICERS_CHOICES, label="Role")
+    start = forms.DateField(
+        initial=timezone.now().date(),
+        label="Start Date",
+        widget=DatePicker(
+            options={"format": "M/DD/YYYY"},
+            attrs={"autocomplete": "off"},
+        ),
+    )
+    end = forms.DateField(
+        initial=timezone.now().date() + timezone.timedelta(days=365),
+        label="End Date",
+        widget=DatePicker(
+            options={"format": "M/DD/YYYY"},
+            attrs={"autocomplete": "off"},
+        ),
+    )
+
+    class Meta:
+        model = UserRoleChange
+        fields = ["user", "role", "start", "end"]
+
+    def __init__(self, *args, request_user=None, **kwargs):
+        self.request_user = request_user
+        super().__init__(*args, **kwargs)
+
+    def clean_user(self):
+        return _reject_self(self, "user", self.request_user, label="national officer")
+
+
+class OfficerRoleEditForm(forms.ModelForm):
+    """Edit only the start/end dates of an existing officer / role term.
+
+    A role is never deleted — its dates are adjusted. The dates must make sense
+    (start before end) and the term must be longer than one week so a role
+    cannot be "effectively deleted" by collapsing its window to nothing. The
+    same Treasurer January-term policy as the add form is enforced (the
+    away/alumni term-overlap block lives in the edit view, like the add view).
+    """
+
+    start = forms.DateField(
+        label="Start Date",
+        widget=DatePicker(
+            options={"format": "M/DD/YYYY"},
+            attrs={"autocomplete": "off"},
+        ),
+    )
+    end = forms.DateField(
+        label="End Date",
+        widget=DatePicker(
+            options={"format": "M/DD/YYYY"},
+            attrs={"autocomplete": "off"},
+        ),
+    )
+    # Populated (client-side) when an officer acknowledges a Treasurer term that
+    # falls outside the January-to-January policy window and edits it anyway.
+    treasurer_term_exception_reason = forms.CharField(
+        required=False,
+        widget=forms.HiddenInput(attrs={"class": "form-control"}),
+    )
+
+    class Meta:
+        model = UserRoleChange
+        fields = ["start", "end"]
+
+    def clean(self):
+        cleaned_data = super().clean()
+        start = cleaned_data.get("start")
+        end = cleaned_data.get("end")
+        if start and end:
+            if start >= end:
+                raise forms.ValidationError("The start date must be before the end date.")
+            if (end - start) <= timezone.timedelta(weeks=1):
+                raise forms.ValidationError("An officer term must be longer than one week.")
+        # Treasurer terms must run January-to-January (same policy as the add
+        # form); the role is fixed on the instance being edited.
+        if treasurer_term_violation(self.instance.role, start, end):
+            reason = (cleaned_data.get("treasurer_term_exception_reason") or "").strip()
+            if not reason:
+                raise forms.ValidationError(TREASURER_TERM_VIOLATION_MSG)
+        return cleaned_data
+
+
+class RoleChangeListFormHelper(FormHelper):
+    """Crispy helper for the chapter officer table filter.
+
+    ``form_tag = False`` because ``_partials/collapsible_filter.html`` supplies
+    its own ``<form method="get">`` wrapper.
+    """
+
+    form_method = "GET"
+    form_id = "officer-search-form"
+    form_class = "form-inline"
+    field_template = "bootstrap5/layout/inline_field.html"
+    field_class = "col-xs-3"
+    label_class = "col-xs-3"
+    form_show_errors = True
+    help_text_inline = False
+    html5_required = True
+    form_tag = False
+
+    def __init__(self, form=None):
+        self.layout = Layout(
+            Fieldset(
+                '<i class="fas fa-search"></i> Filter Officers',
+                Row(
+                    InlineField("period"),
+                    InlineField("user"),
+                    InlineField("role", style="width:250px"),
+                    InlineField("start"),
+                    InlineField("end"),
+                    FormActions(
+                        StrictButton(
+                            '<i class="fa fa-search"></i> Filter',
+                            type="submit",
+                            css_class="btn-primary",
+                        ),
+                        Submit("cancel", "Clear", css_class="btn-primary"),
+                    ),
+                ),
+            ),
+        )
+        super().__init__(form=form)
+
+
+class RoleChangeNationalListFormHelper(RoleChangeListFormHelper):
+    form_id = "national-officer-search-form"
 
 
 class HSEducationListFormHelper(FormHelper):

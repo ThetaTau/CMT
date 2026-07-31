@@ -5,7 +5,6 @@ from io import BytesIO, StringIO
 
 import viewflow
 from allauth.account.views import LoginView
-from crispy_forms.layout import Submit
 from dal import autocomplete
 from django import forms
 from django.contrib import messages
@@ -13,16 +12,15 @@ from django.contrib.auth.forms import PasswordResetForm
 from django.contrib.auth.tokens import default_token_generator
 from django.contrib.sites.shortcuts import get_current_site
 from django.core import signing
-from django.forms.models import modelformset_factory
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from django.http.request import QueryDict
 from django.http.response import HttpResponseRedirect
-from django.shortcuts import render
+from django.shortcuts import get_object_or_404, render
 from django.urls import reverse
 from django.utils.encoding import force_bytes
 from django.utils.http import url_has_allowed_host_and_scheme, urlsafe_base64_encode
-from django.views.generic import DetailView, FormView, RedirectView, TemplateView, UpdateView, View
-from extra_views import FormSetView, ModelFormSetView
+from django.views.generic import CreateView, DetailView, FormView, RedirectView, TemplateView, UpdateView, View
+from extra_views import FormSetView
 from watson import search as watson
 
 from core.address import isinradius
@@ -46,7 +44,7 @@ from thetatauCMT.forms.forms import PledgeDemographicsForm
 from thetatauCMT.notes.tables import UserNoteTable
 from thetatauCMT.submissions.tables import SubmissionTable
 
-from .filters import UserListFilter, UserListFilterBase
+from .filters import UserListFilter, UserListFilterBase, UserOrgListFilter
 from .forms import (
     CaptchaLoginForm,
     EmailPreferencesForm,
@@ -57,12 +55,14 @@ from .forms import (
     UserLookupForm,
     UserLookupSearchForm,
     UserLookupSelectForm,
-    UserOrgForm,
+    UserOrgChapterForm,
+    UserOrgListFormHelper,
     UserServiceForm,
     UserUpdateForm,
 )
 from .models import (
     MemberUpdate,
+    Organization,
     User,
     UserAlter,
     UserDemographic,
@@ -72,7 +72,7 @@ from .models import (
     UserStatusChange,
 )
 from .notifications import MemberInfoUpdate
-from .tables import UserTable
+from .tables import UserOrgTable, UserTable
 from .unsubscribe import CATEGORY_ALL, UNSUBSCRIBE_CATEGORIES, get_category, is_unsubscribed
 
 
@@ -243,6 +243,8 @@ class UserProfileView(LoginRequiredMixin, DetailView):
         is_natoff = viewer.is_national_officer_group
         is_officer = viewer.is_officer_group
         is_superuser = viewer.is_superuser
+        # A chapter officer currently serving in the target member's chapter.
+        is_target_chapter_officer = is_officer and viewer.current_chapter == target.chapter
 
         try:
             initiation = target.initiation
@@ -267,6 +269,7 @@ class UserProfileView(LoginRequiredMixin, DetailView):
                 "is_owner": is_owner,
                 "is_natoff": is_natoff,
                 "is_officer": is_officer,
+                "is_target_chapter_officer": is_target_chapter_officer,
                 "is_superuser": is_superuser,
                 "can_view_sensitive": is_natoff or is_superuser,
                 "current_status_label": (
@@ -277,7 +280,7 @@ class UserProfileView(LoginRequiredMixin, DetailView):
                 "is_discipline": target.current_status in DISCIPLINE_STATUSES,
                 "initiation": initiation,
                 "roles_history": target.roles.all().order_by("-end", "-start"),
-                "orgs": target.orgs.all().order_by("-start", "org_name"),
+                "orgs": target.orgs.all().order_by("-start", "organization__name"),
                 "ritual_records": target.ritual_proficiency.all().order_by("-date", "-level"),
                 "role_labels": _role_labels(target.current_roles),
                 "show_email": show_email,
@@ -339,10 +342,19 @@ class UserProfileView(LoginRequiredMixin, DetailView):
         context["attendance_records"] = records
         context["attendance_chapters"] = sorted(present_chapters.items(), key=lambda kv: kv[1])
         context["has_national_attendance"] = has_national
-        context["can_add_attendance"] = is_owner or is_natoff or is_superuser
+        context["can_add_attendance"] = is_owner or is_target_chapter_officer or is_natoff or is_superuser
         if context["can_add_attendance"]:
             context["attendance_form"] = MemberAttendanceForm(member=target)
             context["attendance_add_url"] = reverse("attendance:member_add", kwargs={"username": target.username})
+
+        # Member status changes (graduation, co-op, transfer, etc.) — visible to
+        # the member, a chapter officer of their chapter, and National Officers.
+        can_view_status_changes = is_owner or is_target_chapter_officer or is_natoff or is_superuser
+        context["can_view_status_changes"] = can_view_status_changes
+        if can_view_status_changes:
+            context["member_status_changes"] = target.status_changes.select_related(
+                "new_school", "new_school_other", "employer"
+            ).order_by("-created")
 
         if is_natoff or is_superuser:
             note_table = UserNoteTable(target.notes.all())
@@ -417,7 +429,6 @@ class UserDetailUpdateView(LoginRequiredMixin, MultiFormsView):
         "user": UserForm,
         "demo": PledgeDemographicsForm,
         "prefs": EmailPreferencesForm,
-        "orgs": None,
     }
 
     # send the user back to their own page after a successful update
@@ -446,16 +457,25 @@ class UserDetailUpdateView(LoginRequiredMixin, MultiFormsView):
     def gpa_form_valid(self, form):
         if form.has_changed():
             form.save()
+            messages.success(self.request, "Your GPA and service hours were updated.")
+        else:
+            messages.info(self.request, "No changes were made.")
         return HttpResponseRedirect(self.get_success_url() + "#member_gpaservice")
 
     def user_form_valid(self, form):
         if form.has_changed():
             form.save()
+            messages.success(self.request, "Your member information was updated.")
+        else:
+            messages.info(self.request, "No changes were made.")
         return HttpResponseRedirect(self.get_success_url() + "#user")
 
     def prefs_form_valid(self, form):
         if form.has_changed():
             form.save()
+            messages.success(self.request, "Your email preferences were updated.")
+        else:
+            messages.info(self.request, "No changes were made.")
         return HttpResponseRedirect(self.get_success_url() + "#email_prefs")
 
     def demo_form_valid(self, form):
@@ -463,32 +483,10 @@ class UserDetailUpdateView(LoginRequiredMixin, MultiFormsView):
             user = self.request.user
             form.instance.user = user
             form.save()
+            messages.success(self.request, "Your demographic information was updated.")
+        else:
+            messages.info(self.request, "No changes were made.")
         return HttpResponseRedirect(self.get_success_url() + "#demo")
-
-    def orgs_form_valid(self, formset):
-        if formset.has_changed():
-            formset.save()
-        return HttpResponseRedirect(self.get_success_url() + "#member_orgs")
-
-    def create_orgs_form(self, **kwargs):
-        orgs = self.request.user.orgs.all()
-        extra = 0
-        if not orgs:
-            extra = 1
-        factory = modelformset_factory(UserOrgParticipate, form=UserOrgForm, **{"can_delete": True, "extra": extra})
-        factory.form.base_fields["user"].queryset = User.objects.filter(pk=self.request.user.pk)
-        formset_kwargs = {
-            "queryset": orgs,
-            "form_kwargs": {"hide_user": True, "initial": {"user": self.request.user}},
-        }
-        if self.request.method in ("POST", "PUT"):
-            if self.request.POST.get("action") == "orgs":
-                formset_kwargs.update(
-                    {
-                        "data": self.request.POST.copy(),
-                    }
-                )
-        return factory(**formset_kwargs)
 
     def get_service_initial(self):
         user = self.request.user
@@ -531,6 +529,7 @@ class UserDetailUpdateView(LoginRequiredMixin, MultiFormsView):
         table = SubmissionTable(submissions)
         RequestConfig(self.request, paginate={"per_page": 30}).configure(table)
         context["submission_table"] = table
+        context["member_orgs"] = self.request.user.orgs.select_related("organization").order_by("-start")
         return context
 
     def _get_form_kwargs(self, form_name, bind_form=False):
@@ -1419,53 +1418,108 @@ class UserServiceFormSetView(LoginRequiredMixin, FormSetView):
         return super().formset_valid(formset)
 
 
-class UserOrgsFormSetView(LoginRequiredMixin, ModelFormSetView):
-    template_name = "users/orgs_formset.html"
-    model = UserOrgParticipate
-    form_class = UserOrgForm
-    factory_kwargs = {"extra": 0, "can_delete": True}
+class OrganizationAutocomplete(autocomplete.Select2QuerySetView):
+    """Autocomplete for :class:`Organization`.
 
-    def get_success_url(self):
-        return self.request.get_full_path()
-
-    def get_factory_kwargs(self):
-        kwargs = super().get_factory_kwargs()
-        if self.get_queryset():
-            kwargs["extra"] = 0
-        else:
-            kwargs["extra"] = 1
-        return kwargs
-
-    def post(self, request, *args, **kwargs):
-        """
-        Handles POST requests, instantiating a formset instance with the passed
-        POST variables and then checked for validity.
-        """
-        self.object_list = self.get_queryset()
-        formset = self.construct_formset()
-        if formset.is_valid():
-            return self.formset_valid(formset)
-        else:
-            return self.formset_invalid(formset)
-
-    def get_formset(self):
-        actives = self.request.user.current_chapter.actives()
-        formset = super().get_formset()
-        formset.form.base_fields["user"].queryset = actives
-        return formset
+    Any member may search existing organization names or type a new one to
+    create it inline (mirrors ``forms.EmployerAutocomplete``).
+    """
 
     def get_queryset(self):
-        users_with_orgs = self.request.user.current_chapter.orgs()
-        orgs = UserOrgParticipate.objects.filter(user__in=users_with_orgs)
-        return orgs
+        if not self.request.user.is_authenticated:
+            return Organization.objects.none()
+        qs = Organization.objects.all()
+        if self.q:
+            qs = qs.filter(name__icontains=self.q)
+        return qs.order_by("name")
+
+    def has_add_permission(self, request):
+        return request.user.is_authenticated
+
+    def post(self, request, *args, **kwargs):
+        if not self.has_add_permission(request):
+            return HttpResponse(status=403)
+        text = (request.POST.get("text") or "").strip()
+        if not text:
+            return JsonResponse({"error": "Organization name is required."}, status=400)
+        obj, _ = Organization.objects.get_or_create(name=text)
+        return JsonResponse({"id": obj.pk, "text": str(obj)})
+
+
+class UserOrgListView(LoginRequiredMixin, PagedFilteredTableView):
+    """Chapter external-organization participation.
+
+    Any member may view the table; it is filterable like the events list
+    (member status / organization / dates) and defaults to active members.
+    Only officers see the per-row remove control.
+    """
+
+    model = UserOrgParticipate
+    template_name = "users/orgs_list.html"
+    table_class = UserOrgTable
+    filter_class = UserOrgListFilter
+    formhelper_class = UserOrgListFormHelper
+    filter_user_chapter = True
+    ordering = ["user__last_name", "-start"]
+
+
+class UserOrgCreateView(LoginRequiredMixin, CreateView):
+    """Add external-organization participation.
+
+    Any member may add their own participation; officers may additionally log
+    it on behalf of any member of their chapter (including alumni).
+    """
+
+    template_name = "users/orgs_form.html"
+    model = UserOrgParticipate
+    form_class = UserOrgChapterForm
+
+    def get_success_url(self):
+        return reverse("users:orgs")
+
+    def get_initial(self):
+        # Default the member to whoever is adding participation so opening the
+        # form from your own profile pre-selects you. Officers can still change
+        # it to another member of their chapter.
+        initial = super().get_initial()
+        initial["user"] = self.request.user
+        return initial
+
+    def get_form(self, form_class=None):
+        form = super().get_form(form_class)
+        user = self.request.user
+        if user.is_officer_group:
+            form.fields["user"].queryset = User.objects.filter(chapter=user.current_chapter)
+        else:
+            # Regular members may only add their own participation.
+            form.fields["user"].queryset = User.objects.filter(pk=user.pk)
+            form.fields["user"].widget = forms.HiddenInput()
+        return form
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        formset = kwargs.get("formset", None)
-        if formset is None:
-            formset = self.construct_formset()
-        actives = self.request.user.current_chapter.actives()
-        formset.form.base_fields["user"].queryset = actives
-        context["formset"] = formset
-        context["input"] = Submit("action", "Submit")
+        context["can_pick_member"] = self.request.user.is_officer_group
         return context
+
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        messages.success(
+            self.request,
+            f"{self.object.user} was added to {self.object.organization}.",
+        )
+        return response
+
+
+class UserOrgDeleteView(LoginRequiredMixin, OfficerRequiredMixin, View):
+    """Remove a single external-organization participation row (officers only)."""
+
+    def post(self, request, *args, **kwargs):
+        org = get_object_or_404(UserOrgParticipate, pk=kwargs["pk"])
+        if org.user.chapter_id != request.user.current_chapter.id:
+            messages.error(request, "You can only remove participation for members of your own chapter.")
+            return HttpResponseRedirect(reverse("users:orgs"))
+        member = org.user
+        org_label = org.organization or org.org_name
+        org.delete()
+        messages.success(request, f"{member} was removed from {org_label}.")
+        return HttpResponseRedirect(reverse("users:orgs"))

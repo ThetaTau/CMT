@@ -58,10 +58,10 @@ class Command(BaseCommand):
             year_start, year_end = years
             year_start = int(year_start)
             year_end = int(year_end)
-        print(f"Found years {year_start}-{year_end}")
+        self.stdout.write(f"Found years {year_start}-{year_end}")
         chapters = Chapter.objects.all()
         for chapter in chapters:
-            print(chapter)
+            self.stdout.write(str(chapter))
             for year in range(year_start, year_end + 1):
                 for semester in ["sp", "fa"]:
                     # print("    ", year, ":", semester)

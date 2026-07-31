@@ -505,11 +505,15 @@ class NationalMemberAutocompleteView(NationalOfficerRequiredMixin, View):
 
 
 def _member_can_log(actor, member):
-    """Only the member themselves or a National Officer may log the member's
-    attendance (any member may *view* another member's attendance)."""
-    return bool(
-        getattr(actor, "is_authenticated", False) and (actor.pk == member.pk or user_is_national_officer(actor))
-    )
+    """The member themselves, a chapter officer serving in the member's chapter,
+    or a National Officer may log the member's attendance (any member may
+    *view* another member's attendance)."""
+    if not getattr(actor, "is_authenticated", False):
+        return False
+    if actor.pk == member.pk or user_is_national_officer(actor):
+        return True
+    # A chapter officer currently serving in the member's chapter.
+    return bool(getattr(actor, "is_officer_group", False) and actor.current_chapter == member.chapter)
 
 
 class MemberEventAutocomplete(autocomplete.Select2QuerySetView):
@@ -538,9 +542,10 @@ class MemberEventAutocomplete(autocomplete.Select2QuerySetView):
 class MemberAttendanceAddView(LoginRequiredMixin, View):
     """Log a member's attendance at an existing chapter/national event (WI-8).
 
-    Permitted for the member themselves or a National Officer. No new events are
-    created — the event must already exist and be national or the member's own
-    chapter's. Attendance is snapshotted via :func:`record_attendance`.
+    Permitted for the member themselves, a chapter officer of the member's
+    chapter, or a National Officer. No new events are created — the event must
+    already exist and be national or the member's own chapter's. Attendance is
+    snapshotted via :func:`record_attendance`.
     """
 
     def post(self, request, *args, **kwargs):

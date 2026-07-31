@@ -27,7 +27,8 @@ from dataclasses import dataclass, field
 from django.utils import timezone
 from django.utils.dateparse import parse_date
 
-from thetatauCMT.attendance.upload import COLUMN_ALIASES as _MEMBER_ALIASES, parse_rows
+from thetatauCMT.attendance.upload import COLUMN_ALIASES as _MEMBER_ALIASES
+from thetatauCMT.attendance.upload import parse_rows
 
 from .import_matching import match_recipient
 from .models import AwardCycle, AwardGrant, AwardImportMatchQueueItem, AwardType

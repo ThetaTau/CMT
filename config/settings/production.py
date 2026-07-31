@@ -42,8 +42,9 @@ SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
 # https://docs.djangoproject.com/en/dev/topics/security/#ssl-https
 # https://docs.djangoproject.com/en/dev/ref/settings/#secure-hsts-seconds
-# TODO: set this to 60 seconds first and then to 518400 once you prove the former works
-SECURE_HSTS_SECONDS = 60
+# 1 year so the domain is eligible for the HSTS preload list. Env-overridable in
+# case a shorter max-age is needed during an HTTPS rollout.
+SECURE_HSTS_SECONDS = env.int("DJANGO_SECURE_HSTS_SECONDS", default=31536000)
 # https://docs.djangoproject.com/en/dev/ref/settings/#secure-hsts-include-subdomains
 SECURE_HSTS_INCLUDE_SUBDOMAINS = env.bool("DJANGO_SECURE_HSTS_INCLUDE_SUBDOMAINS", default=True)
 # https://docs.djangoproject.com/en/dev/ref/settings/#secure-hsts-preload
@@ -52,6 +53,53 @@ SECURE_HSTS_PRELOAD = env.bool("DJANGO_SECURE_HSTS_PRELOAD", default=True)
 SECURE_CONTENT_TYPE_NOSNIFF = env.bool("DJANGO_SECURE_CONTENT_TYPE_NOSNIFF", default=True)
 # https://docs.djangoproject.com/en/dev/ref/settings/#x-frame-options
 X_FRAME_OPTIONS = "DENY"
+# https://docs.djangoproject.com/en/dev/ref/settings/#csrf-trusted-origins
+# Required by Django 4.x for cross-origin POSTs / proxied requests.
+CSRF_TRUSTED_ORIGINS = env.list(
+    "DJANGO_CSRF_TRUSTED_ORIGINS",
+    default=["https://cmt.thetatau.org", "https://cmt.thetatau.info"],
+)
+
+# CONTENT SECURITY POLICY (django-csp)
+# ------------------------------------------------------------------------------
+# Rolled out in REPORT-ONLY mode first: it surfaces violations without breaking
+# the app. Flip ``CONTENT_SECURITY_POLICY_REPORT_ONLY`` -> ``CONTENT_SECURITY_POLICY``
+# once the report stream is clean. The primary stored-XSS mitigation is
+# server-side sanitization (core.sanitize); this header is defense-in-depth.
+MIDDLEWARE = MIDDLEWARE + ["csp.middleware.CSPMiddleware"]  # noqa F405
+
+CONTENT_SECURITY_POLICY_REPORT_ONLY = {
+    "DIRECTIVES": {
+        "default-src": ["'self'"],
+        "script-src": [
+            "'self'",
+            "'unsafe-inline'",
+            "'unsafe-eval'",  # Plotly/Dash + some inline handlers
+            "https://cdn.jsdelivr.net",
+            "https://cdnjs.cloudflare.com",
+            "https://code.jquery.com",
+            "https://www.google.com",
+            "https://www.gstatic.com",
+            "https://hcaptcha.com",
+            "https://*.hcaptcha.com",
+            "https://maps.googleapis.com",
+        ],
+        "style-src": [
+            "'self'",
+            "'unsafe-inline'",
+            "https://cdn.jsdelivr.net",
+            "https://cdnjs.cloudflare.com",
+            "https://fonts.googleapis.com",
+        ],
+        "img-src": ["'self'", "data:", "https:"],
+        "font-src": ["'self'", "data:", "https://cdn.jsdelivr.net", "https://fonts.gstatic.com"],
+        "connect-src": ["'self'", "https:"],
+        "frame-src": ["'self'", "https://www.google.com", "https://hcaptcha.com", "https://*.hcaptcha.com"],
+        "frame-ancestors": ["'none'"],
+        "object-src": ["'none'"],
+        "base-uri": ["'self'"],
+    },
+}
 
 # STORAGES
 # ------------------------------------------------------------------------------

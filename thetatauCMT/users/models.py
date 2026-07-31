@@ -4,6 +4,7 @@ from address.models import AddressField
 from django.conf import settings
 from django.contrib.auth.models import AbstractUser, Group, UserManager
 from django.contrib.postgres.fields import ArrayField
+from django.core.exceptions import ValidationError
 from django.core.validators import MaxValueValidator, MinValueValidator, RegexValidator
 from django.db import IntegrityError, models
 from django.urls import reverse
@@ -821,6 +822,42 @@ class UserRoleChange(StartEndModel, TimeStampedModel, EmailSignalMixin):
     def __str__(self):
         return self.role
 
+    @property
+    def is_current(self):
+        """True while the role term is still active (its end date has not passed).
+
+        Used by the officer table views to decide whether to show the per-row
+        "Remove" control — only current terms can be ended.
+        """
+        if not self.end:
+            return False
+        end = self.end
+        if hasattr(end, "date"):
+            end = end.date()
+        return end >= datetime.datetime.now().date()
+
+    def can_be_edited_by(self, user):
+        """Whether ``user`` may edit this (current) role's term dates.
+
+        Only *current* terms are editable — history is immutable. Editing one's
+        OWN role is allowed only when it is not a chapter-officer position (those
+        must be changed by another officer, mirroring "you cannot assign
+        yourself a chapter officer role"). Editing someone ELSE's role requires
+        an officer serving that member's chapter, or a superuser for national
+        roles.
+        """
+        if not getattr(user, "is_authenticated", False):
+            return False
+        if not self.is_current:
+            return False
+        if user.pk == self.user_id:
+            # The member themselves — never for their own chapter-officer role.
+            return self.role not in CHAPTER_OFFICER
+        if self.role in NAT_OFFICERS:
+            return bool(user.is_superuser)
+        current_chapter = getattr(user, "current_chapter", None)
+        return bool(user.is_officer_group and self.user.chapter_id == getattr(current_chapter, "id", None))
+
     def save(self, *args, **kwargs):
         off_group, _ = Group.objects.get_or_create(name="officer")
         nat_group, _ = Group.objects.get_or_create(name="natoff")
@@ -902,6 +939,32 @@ class UserRoleChange(StartEndModel, TimeStampedModel, EmailSignalMixin):
         )
 
 
+class Organization(TimeStampedModel):
+    """Shared registry of external organization names used on member participation.
+
+    Kept as a normalized model (mirroring :class:`forms.models.Employer`) so the
+    same organization can be re-selected across members; new entries can be
+    created inline via the autocomplete widget.
+    """
+
+    name = models.CharField(max_length=200, unique=True)
+
+    class Meta:
+        ordering = ["name"]
+        verbose_name = "Organization"
+        verbose_name_plural = "Organizations"
+
+    def __str__(self):
+        return self.name
+
+    def clean(self):
+        super().clean()
+        cleaned = (self.name or "").strip()
+        self.name = cleaned
+        if not cleaned:
+            raise ValidationError({"name": "Organization name is required."})
+
+
 class UserOrgParticipate(StartEndModel):
     TYPES = [
         ("pro", "Professional"),
@@ -922,8 +985,31 @@ class UserOrgParticipate(StartEndModel):
         related_name="org_modified",
     )
     org_name = models.CharField(max_length=50)
+    organization = models.ForeignKey(
+        Organization,
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True,
+        related_name="participations",
+    )
     type = models.CharField(max_length=3, choices=TYPES)
     officer = models.BooleanField(default=False)
+
+    def save(self, *args, **kwargs):
+        # Transitional two-way sync between the legacy free-text ``org_name``
+        # and the new ``Organization`` FK so both stay correct regardless of
+        # which entry form created the row. Removed once ``org_name`` is
+        # dropped in a later migration.
+        if self.organization_id and not self.org_name:
+            self.org_name = (self.organization.name or "")[:50]
+        elif self.org_name and not self.organization_id:
+            name = self.org_name.strip()
+            if name:
+                self.organization = (
+                    Organization.objects.filter(name__iexact=name).first()
+                    or Organization.objects.get_or_create(name=name)[0]
+                )
+        super().save(*args, **kwargs)
 
 
 class MemberUpdate(Process, EmailSignalMixin):

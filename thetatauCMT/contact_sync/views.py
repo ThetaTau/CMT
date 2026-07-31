@@ -263,7 +263,7 @@ def oauth_disconnect(request: HttpRequest, provider_key: str) -> HttpResponse:
     UserContactSyncToken.objects.filter(user=request.user, provider=provider_key).delete()
     if _wants_json(request):
         return JsonResponse({"ok": True, "provider": provider_key, "connected": False})
-    messages.info(request, f"Disconnected {PROVIDERS[provider_key].label}.")
+    messages.success(request, f"Disconnected your {PROVIDERS[provider_key].label} account.")
     return redirect(_safe_next(request, "home"))
 
 

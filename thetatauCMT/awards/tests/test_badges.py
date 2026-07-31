@@ -4,11 +4,7 @@ from django.template import Context, Template
 
 from thetatauCMT.awards.models import OfficerBadge
 from thetatauCMT.awards.services import revoke_grant
-from thetatauCMT.awards.templatetags.award_tags import (
-    award_badge_types_for,
-    award_grants_for,
-    officer_badges_for,
-)
+from thetatauCMT.awards.templatetags.award_tags import award_badge_types_for, award_grants_for, officer_badges_for
 from thetatauCMT.awards.tests.factories import AwardCycleFactory, AwardGrantFactory, AwardTypeFactory
 from thetatauCMT.chapters.tests.factories import ChapterFactory
 from thetatauCMT.regions.tests.factories import RegionFactory

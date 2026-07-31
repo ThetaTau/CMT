@@ -255,7 +255,7 @@
                 <div class="mt-4">
                     <h5>Description</h5>
                     <div class="job-description">
-                        {{ job.description|safe }}
+                        {{ job.description|sanitize_html }}
                     </div>
                 </div>
 

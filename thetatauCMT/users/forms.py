@@ -17,6 +17,7 @@ from thetatauCMT.chapters.models import Chapter, ChapterCurricula
 
 from .models import (
     MemberUpdate,
+    Organization,
     User,
     UserAlter,
     UserOrgParticipate,
@@ -69,6 +70,10 @@ class UserListFormHelper(FormHelper):
                     *extra,
                     InlineField("major"),
                     InlineField("graduation_year__icontains"),
+                    InlineField("graduation_year__gte"),
+                    InlineField("graduation_year__lte"),
+                    InlineField("badge_number__gte"),
+                    InlineField("badge_number__lte"),
                     FormActions(
                         StrictButton(
                             '<i class="fa fa-search"></i> Filter',
@@ -104,6 +109,10 @@ class UserRoleListFormHelper(FormHelper):
                 Column(InlineField("current_status")),
                 Column(InlineField("major")),
                 Column(InlineField("graduation_year__icontains")),
+                Column(InlineField("graduation_year__gte")),
+                Column(InlineField("graduation_year__lte")),
+                Column(InlineField("badge_number__gte")),
+                Column(InlineField("badge_number__lte")),
                 Column(InlineField("region")),
                 Column(InlineField("chapter")),
                 Column(InlineField("current_roles", style="width:250px")),
@@ -178,6 +187,8 @@ class UserUpdateForm(forms.ModelForm):
         "if your major is not listed please select other and then fill out your major in the box below",
     )
     major_other = forms.CharField(label="Other Major")
+    address = ComponentAddressField(required=False)
+    employer_address = ComponentAddressField(required=False)
     birth_date = forms.DateField(
         label="Birth Date",
         widget=DatePicker(
@@ -489,8 +500,66 @@ class UserServiceForm(forms.Form):
             obj.save()
 
 
-class UserOrgForm(forms.ModelForm):
-    user = forms.ModelChoiceField(queryset=User.objects.none())
+class UserOrgListFormHelper(FormHelper):
+    form_method = "GET"
+    form_id = "org-search-form"
+    form_class = "form-inline"
+    field_template = "bootstrap5/layout/inline_field.html"
+    field_class = "col-xs-3"
+    label_class = "col-xs-3"
+    form_show_errors = True
+    help_text_inline = False
+    html5_required = True
+
+    def __init__(self, form=None):
+        self.layout = Layout(
+            Fieldset(
+                '<i class="fas fa-search"></i> Filter Organizations',
+                Row(
+                    InlineField("status"),
+                    InlineField("organization"),
+                    InlineField("start"),
+                    InlineField("end"),
+                    FormActions(
+                        StrictButton(
+                            '<i class="fa fa-search"></i> Filter',
+                            type="submit",
+                            css_class="btn-primary",
+                        ),
+                        Submit("cancel", "Clear", css_class="btn-primary"),
+                    ),
+                ),
+            ),
+        )
+        super().__init__(form=form)
+
+
+class UserOrgChapterForm(forms.ModelForm):
+    """Form to log one member's participation in an external organization.
+
+    Any member may add their own participation; officers may pick any member
+    of their chapter. Both the member and the organization are chosen from
+    type-to-search dropdowns; a brand-new organization can be created inline
+    from the organization field (mirroring the ``Employer`` selector on status
+    changes).
+    """
+
+    user = forms.ModelChoiceField(
+        queryset=User.objects.none(),
+        label="Member",
+        widget=autocomplete.ModelSelect2(
+            url="users:autocomplete",
+            attrs={"data-placeholder": "Type a member's name to search…"},
+        ),
+    )
+    organization = forms.ModelChoiceField(
+        queryset=Organization.objects.all(),
+        label="Organization",
+        widget=autocomplete.ModelSelect2(
+            url="users:org-autocomplete",
+            attrs={"data-placeholder": "Type to search or add an organization…"},
+        ),
+    )
     start = forms.DateField(
         initial=timezone.now(),
         label="Start Date",
@@ -511,13 +580,7 @@ class UserOrgForm(forms.ModelForm):
 
     class Meta:
         model = UserOrgParticipate
-        fields = ["user", "org_name", "type", "officer", "start", "end"]
-
-    def __init__(self, *args, **kwargs):
-        hide_user = kwargs.pop("hide_user", False)
-        super().__init__(*args, **kwargs)
-        if hide_user:
-            self.fields["user"].widget = forms.HiddenInput()
+        fields = ["user", "organization", "type", "officer", "start", "end"]
 
 
 class ExternalUserForm(forms.ModelForm):

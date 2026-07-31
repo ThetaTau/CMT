@@ -8,9 +8,7 @@ from core.models import TimeStampedModel
 # Values (case-insensitive) that DISABLE a feature flag. A feature is enabled by
 # default; set a flag Config's value to one of these to turn it off. Toggling is
 # read live from the DB, so it takes effect on the next request (no redeploy).
-FEATURE_FLAG_OFF_VALUES = frozenset(
-    {"0", "false", "no", "off", "disabled", "hide", "hidden"}
-)
+FEATURE_FLAG_OFF_VALUES = frozenset({"0", "false", "no", "off", "disabled", "hide", "hidden"})
 
 
 class Config(TimeStampedModel):

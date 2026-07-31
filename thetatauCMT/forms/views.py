@@ -1,6 +1,7 @@
 import base64
 import csv
 import datetime
+import logging
 import zipfile
 from copy import deepcopy
 from io import BytesIO
@@ -9,7 +10,6 @@ from pathlib import Path
 from allauth.account.models import EmailAddress
 from crispy_forms.layout import Submit
 from dal import autocomplete
-from django import forms
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.postgres.aggregates import StringAgg
@@ -17,11 +17,10 @@ from django.core.files.base import ContentFile
 from django.db import IntegrityError, transaction
 from django.db.models import Case, CharField, Count, Exists, F, OuterRef, Q, SmallIntegerField, Subquery, Value, When
 from django.forms import models as model_forms
-from django.http import HttpRequest, HttpResponse, HttpResponseRedirect, JsonResponse
+from django.http import Http404, HttpRequest, HttpResponse, HttpResponseRedirect, JsonResponse
 from django.http.request import QueryDict
-from django.shortcuts import redirect, render
+from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
-from django.utils import timezone
 from django.utils.safestring import mark_safe
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
@@ -29,17 +28,19 @@ from django.views.generic import DetailView, TemplateView, UpdateView
 from django.views.generic.edit import CreateView, FormView, ModelFormMixin
 from django_weasyprint import WeasyTemplateResponseMixin
 from easy_pdf.views import PDFTemplateResponseMixin
-from extra_views import FormSetView, ModelFormSetView
+from extra_views import FormSetView
 from viewflow.activation import STATUS
 from viewflow.flow.views import CreateProcessView, UpdateProcessView
 from viewflow.frontend.viewset import FlowViewSet
 from viewflow.models import Task as FlowTask
 
-from core.flows import AutoAssignUpdateProcessView, FilterProcessListView, cancel_process
+from core.flows import AutoAssignUpdateProcessView, FilterProcessListView, cancel_process, complete_activation
 from core.forms import MultiFormsView
 from core.models import (
     CHAPTER_OFFICER,
+    CHAPTER_ROLES,
     COL_OFFICER_ALIGN,
+    NAT_OFFICERS,
     SEMESTER,
     TODAY_END,
     current_term,
@@ -48,6 +49,7 @@ from core.models import (
     semester_encompass_start_end_date,
 )
 from core.notifications import GenericEmail
+from core.utils import retry_google_api, retry_on_deadlock
 from core.views import (
     AssignOfficerFormMixin,
     LoginRequiredMixin,
@@ -55,6 +57,7 @@ from core.views import (
     OfficerRequiredMixin,
     PagedFilteredTableView,
     RequestConfig,
+    SuperuserRequiredMixin,
     group_required,
 )
 from thetatauCMT.chapters.models import Chapter, ChapterCurricula
@@ -77,8 +80,12 @@ from .filters import (
     BylawsListFilter,
     CompleteListFilter,
     EducationListFilter,
+    GraduationListFilter,
     PledgeProgramListFilter,
     RiskListFilter,
+    RoleChangeListFilter,
+    RoleChangeNationalListFilter,
+    StatusChangeListFilter,
 )
 from .forms import (
     AlumniExclusionForm,
@@ -91,15 +98,13 @@ from .forms import (
     CollectionReferralForm,
     CompleteFormHelper,
     ConventionForm,
-    CSMTFormHelper,
-    CSMTFormSet,
     DepledgeFormHelper,
     DepledgeFormSet,
     DisciplinaryForm1,
     DisciplinaryForm2,
-    GraduateForm,
     GraduateFormHelper,
     GraduateFormSet,
+    GraduateSelectForm,
     HSEducationForm,
     HSEducationListFormHelper,
     InitDeplSelectForm,
@@ -107,6 +112,9 @@ from .forms import (
     InitiationForm,
     InitiationFormHelper,
     InitiationFormSet,
+    NationalOfficerAddForm,
+    OfficerAddForm,
+    OfficerRoleEditForm,
     OSMForm,
     PledgeFormFull,
     PledgeProgramForm,
@@ -117,10 +125,11 @@ from .forms import (
     RiskListFormHelper,
     RiskManagementForm,
     RitualProficiencyForm,
-    RoleChangeNationalSelectForm,
-    RoleChangeSelectForm,
-    StatusChangeSelectForm,
-    StatusChangeSelectFormHelper,
+    RoleChangeListFormHelper,
+    RoleChangeNationalListFormHelper,
+    SingleStatusChangeForm,
+    SingleStatusChangeFormHelper,
+    StatusChangeListFormHelper,
     treasurer_term_violation,
 )
 from .models import (
@@ -155,27 +164,108 @@ from .tables import (
     BylawsListTable,
     CollectionReferralTable,
     ConventionListTable,
+    CoopStatusChangeTable,
     DepledgeTable,
     DisciplinaryStatusTable,
+    GraduateStatusChangeTable,
     HSEducationListTable,
     HSEducationTable,
     InitiationTable,
+    MilitaryStatusChangeTable,
+    NationalOfficerRoleTable,
+    OfficerRoleTable,
     OSMListTable,
     PledgeFormTable,
     PledgeProgramStatusTable,
     PledgeProgramTable,
     PrematureAlumnusStatusTable,
     ResignationStatusTable,
+    ResignedCCStatusChangeTable,
     ReturnStudentStatusTable,
     RiskFormTable,
     RitualProficiencyTable,
     SignTable,
-    StatusChangeTable,
+    TransferStatusChangeTable,
+    WithdrawStatusChangeTable,
 )
+
+logger = logging.getLogger(__name__)
+
+
+# Registry of the per-reason member status-change forms. Each split form has its
+# own landing row, a chapter-scoped filterable history table, and a submission
+# page — all driven from this one place (configuration over hard-coded per-reason
+# branching). ``multi`` marks graduation (select several members, fill one row
+# each); ``candidate_only`` marks reasons offered only to candidate chapters.
+STATUS_CHANGE_TYPES = {
+    "graduate": {
+        "label": "Graduation",
+        "description": (
+            "Report members who are graduating. Select several at once and fill " "one graduation row for each."
+        ),
+        "table": GraduateStatusChangeTable,
+        "filter": GraduationListFilter,
+        "multi": True,
+        "candidate_only": False,
+    },
+    "coop": {
+        "label": "Co-op / Study Abroad",
+        "description": "Report a member leaving temporarily for a co-op, internship, or study abroad.",
+        "table": CoopStatusChangeTable,
+        "filter": StatusChangeListFilter,
+        "multi": False,
+        "candidate_only": False,
+    },
+    "military": {
+        "label": "Military Deployment",
+        "description": "Report a member being deployed on active or reserve military duty.",
+        "table": MilitaryStatusChangeTable,
+        "filter": StatusChangeListFilter,
+        "multi": False,
+        "candidate_only": False,
+    },
+    "withdraw": {
+        "label": "Withdraw from School",
+        "description": "Report a member withdrawing from school.",
+        "table": WithdrawStatusChangeTable,
+        "filter": StatusChangeListFilter,
+        "multi": False,
+        "candidate_only": False,
+    },
+    "transfer": {
+        "label": "Transfer to Another School",
+        "description": "Report a member transferring to another school.",
+        "table": TransferStatusChangeTable,
+        "filter": StatusChangeListFilter,
+        "multi": False,
+        "candidate_only": False,
+    },
+    "resignedCC": {
+        "label": "Resign from Candidate Chapter",
+        "description": "Report a candidate-chapter member resigning from the candidate chapter.",
+        "table": ResignedCCStatusChangeTable,
+        "filter": StatusChangeListFilter,
+        "multi": False,
+        "candidate_only": True,
+    },
+}
 
 
 class FormLanding(LoginRequiredMixin, TemplateView):
     template_name = "forms/landing.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        candidate = False
+        if self.request.user.is_authenticated:
+            chapter = self.request.user.current_chapter
+            candidate = bool(chapter and chapter.candidate_chapter)
+        context["status_change_types"] = [
+            {"reason": reason, "label": info["label"], "description": info["description"]}
+            for reason, info in STATUS_CHANGE_TYPES.items()
+            if not info["candidate_only"] or candidate
+        ]
+        return context
 
 
 class PledgePinsView(LoginRequiredMixin, TemplateView):
@@ -394,13 +484,44 @@ class InitiationView(LoginRequiredMixin, OfficerRequiredMixin, FormView):
         depledge_list = []
         initiations = []
         for form in formset:
+            # ``Initiation.user`` is a OneToOneField, so a concurrent double
+            # submit of the initiation report (two requests processing the same
+            # selection) makes the second INSERT violate
+            # ``forms_initiation_user_id_key``. Skip the already-initiated member
+            # instead of 500-ing the whole report (mirrors the depledge guard
+            # below; same double-submit class as #782).
             form.instance.chapter = self.request.user.current_chapter
-            form.save()
-            update_list.append(form.instance.user)
+            member = form.instance.user
+            try:
+                with transaction.atomic():
+                    form.save()
+            except IntegrityError:
+                messages.add_message(
+                    request,
+                    messages.WARNING,
+                    f"{member} was already initiated; skipped the duplicate initiation.",
+                )
+                continue
+            update_list.append(member)
             initiations.append(form.instance)
         for form in depledge_formset:
-            form.save()
-            depledge_list.append(form.instance.user)
+            # ``Depledge.user`` is a OneToOneField. A rapid double submit (or
+            # re-depledging a PNM who was re-added after a prior depledge) tries
+            # to insert a second Depledge for the same member and raises
+            # ``IntegrityError: forms_depledge_user_id_key`` (#782). Skip the
+            # duplicate instead of 500-ing the whole initiation report.
+            member = form.instance.user
+            try:
+                with transaction.atomic():
+                    form.save()
+            except IntegrityError:
+                messages.add_message(
+                    request,
+                    messages.WARNING,
+                    f"{member} was already depledged; skipped the duplicate depledge.",
+                )
+                continue
+            depledge_list.append(member)
         Task.mark_complete(name="Initiation Report", chapter=self.request.user.current_chapter)
         if update_list:
             messages.add_message(
@@ -430,269 +551,233 @@ class InitiationView(LoginRequiredMixin, OfficerRequiredMixin, FormView):
         return reverse("forms:init_selection")
 
 
-class StatusChangeSelectView(LoginRequiredMixin, FormSetView):
-    form_class = StatusChangeSelectForm
-    template_name = "forms/status-select.html"
-    factory_kwargs = {"extra": 1}
-    prefix = "selection"
+class StatusChangeTypeMixin:
+    """Shared per-reason setup for the split member status-change views.
+
+    Reads the ``reason`` URL kwarg, resolves it against ``STATUS_CHANGE_TYPES``
+    (404 on an unknown reason), and keeps candidate-chapter-only reasons off
+    chartered chapters.
+    """
+
     officer_edit = "member status"
 
-    def get_formset_kwargs(self):
-        kwargs = super().get_formset_kwargs()
-        kwargs.update(
-            {
-                "form_kwargs": {
-                    "colony": self.request.user.current_chapter.candidate_chapter,
-                    "request_user": self.request.user,
-                },
-            }
+    def setup(self, request, *args, **kwargs):
+        # Resolve the reason in setup() — before the OfficerRequired group check
+        # runs in dispatch — so ``get_success_url`` still works on a
+        # permission-denied redirect for a non-officer.
+        super().setup(request, *args, **kwargs)
+        self.reason = kwargs.get("reason")
+        self.type_info = STATUS_CHANGE_TYPES.get(self.reason)
+
+    def dispatch(self, request, *args, **kwargs):
+        if self.type_info is None:
+            raise Http404("Unknown member status change type.")
+        if request.user.is_authenticated and self.type_info["candidate_only"]:
+            chapter = request.user.current_chapter
+            if not (chapter and chapter.candidate_chapter):
+                messages.add_message(
+                    request,
+                    messages.ERROR,
+                    f"The {self.type_info['label']} form is only for candidate chapters.",
+                )
+                return redirect("forms:landing")
+        return super().dispatch(request, *args, **kwargs)
+
+
+class StatusChangeHistoryListView(
+    LoginRequiredMixin, OfficerRequiredMixin, StatusChangeTypeMixin, PagedFilteredTableView
+):
+    """Chapter-scoped history of submitted status changes for one reason, with a
+    button to submit a new one."""
+
+    model = StatusChange
+    context_object_name = "status_changes"
+    template_name = "forms/statuschange_list.html"
+    filter_user_chapter = True
+    formhelper_class = StatusChangeListFormHelper
+
+    @property
+    def filter_class(self):
+        return self.type_info["filter"]
+
+    @property
+    def table_class(self):
+        return self.type_info["table"]
+
+    def get_queryset(self, **kwargs):
+        qs = super().get_queryset(**kwargs)
+        return qs.filter(reason=self.reason).order_by("-created")
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["type_label"] = self.type_info["label"]
+        context["reason"] = self.reason
+        context["is_multi"] = self.type_info["multi"]
+        if self.type_info["multi"]:
+            context["create_url"] = reverse("forms:status_graduate_select")
+        else:
+            context["create_url"] = reverse("forms:status_new", kwargs={"reason": self.reason})
+        return context
+
+
+class StatusChangeCreateView(LoginRequiredMixin, OfficerRequiredMixin, StatusChangeTypeMixin, CreateView):
+    """Submit a single-member status change (co-op, military, withdraw, transfer,
+    resign-from-candidate-chapter). Graduation uses its own multi-member flow."""
+
+    model = StatusChange
+    form_class = SingleStatusChangeForm
+    template_name = "forms/statuschange_form.html"
+
+    def dispatch(self, request, *args, **kwargs):
+        info = STATUS_CHANGE_TYPES.get(self.kwargs.get("reason"))
+        if info is not None and info["multi"]:
+            # Graduation is multi-member; send the officer to its select step.
+            return redirect("forms:status_graduate_select")
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_actives(self):
+        return self.request.user.current_chapter.actives().exclude(pk=self.request.user.pk).order_by("name")
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs["request_user"] = self.request.user
+        kwargs["reason"] = self.reason
+        kwargs["actives"] = self.get_actives()
+        return kwargs
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["helper"] = SingleStatusChangeFormHelper()
+        context["type_label"] = self.type_info["label"]
+        context["reason"] = self.reason
+        context["history_url"] = reverse("forms:status_history", kwargs={"reason": self.reason})
+        return context
+
+    def form_valid(self, form):
+        chapter = self.request.user.current_chapter
+        form.instance.reason = self.reason
+        if self.reason == "coop":
+            # Preserve the prior rule: a COOP (away) status must not overlap a
+            # member's current officer term.
+            member = form.cleaned_data.get("user")
+            officers = chapter.get_current_officers_council()[0]
+            if member in officers:
+                date_start = form.cleaned_data.get("date_start")
+                date_end = form.cleaned_data.get("date_end")
+                role_info = member.roles.filter(
+                    role__in=member.current_roles + list(CHAPTER_OFFICER),
+                ).values("role", "start", "end")
+                for role in role_info:
+                    latest_start = max(date_start, role["start"])
+                    earliest_end = min(date_end, role["end"])
+                    delta = (earliest_end - latest_start).days + 1
+                    if max(0, delta) > 0:
+                        role_message = f"{role['role'].title()}:  start: {role['start']} end: {role['end']}"
+                        messages.add_message(
+                            self.request,
+                            messages.ERROR,
+                            mark_safe(
+                                f"{member} is a current officer. COOP status must not overlap "
+                                f"with officer term.<br>{role_message}"
+                            ),
+                        )
+                        return self.form_invalid(form)
+        response = super().form_valid(form)
+        Task.mark_complete(name="Member Updates", chapter=chapter)
+        messages.add_message(
+            self.request,
+            messages.INFO,
+            f"You successfully submitted the {self.type_info['label']} status change for {form.instance.user}.",
+        )
+        return response
+
+    def get_success_url(self):
+        return reverse("forms:status_history", kwargs={"reason": self.reason})
+
+
+class GraduateSelectView(LoginRequiredMixin, OfficerRequiredMixin, FormView):
+    """Step 1 of graduation: pick the graduating members."""
+
+    form_class = GraduateSelectForm
+    template_name = "forms/graduate_select.html"
+    officer_edit = "member status"
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs["actives"] = (
+            self.request.user.current_chapter.actives().exclude(pk=self.request.user.pk).order_by("name")
         )
         return kwargs
 
-    def get_formset_request(self, request, action):
-        formset = forms.formset_factory(StatusChangeSelectForm, extra=1)
-        info = request.POST.copy()
-        initial = []
-        for info_name in info:
-            if "__prefix__" not in info_name and info_name.endswith("-user"):
-                split = info_name.split("-")[0:2]
-                selected_split = deepcopy(split)
-                selected_split.append("selected")
-                selected_name = "-".join(selected_split)
-                selected = info.get(selected_name, None)
-                if selected == "on":
-                    continue
-                state_split = deepcopy(split)
-                state_split.append("state")
-                state_name = "-".join(state_split)
-                if info[info_name] != "":
-                    initial.append(
-                        {
-                            "user": info[info_name],
-                            "state": info[state_name],
-                            "selected": "",
-                        }
-                    )
-        form_kwargs = {
-            "colony": self.request.user.current_chapter.candidate_chapter,
-            "request_user": self.request.user,
-        }
-        if action in ["Add Row", "Delete Selected"]:
-            formset = formset(
-                prefix="selection",
-                initial=initial,
-                form_kwargs=form_kwargs,
-            )
-        else:
-            post_data = deepcopy(request.POST)
-            post_data["selection-INITIAL_FORMS"] = str(int(post_data["selection-INITIAL_FORMS"]) + 1)
-            formset = formset(
-                post_data,
-                request.FILES,
-                initial=initial,
-                prefix="selection",
-                form_kwargs=form_kwargs,
-            )
-        return formset
+    def form_valid(self, form):
+        members = form.cleaned_data["members"]
+        self.request.session["graduate-selection"] = [member.pk for member in members]
+        return super().form_valid(form)
 
-    def post(self, request, *args, **kwargs):
-        formset = self.get_formset_request(request, request.POST["action"])
-        if request.POST["action"] in ["Add Row", "Delete Selected"] or not formset.is_valid():
-            return self.render_to_response(self.get_context_data(formset=formset))
-        else:
-            return self.formset_valid(formset)
-
-    def get_formset(self):
-        # Exclude the requesting officer — officers must not report status
-        # changes for themselves (except for the resignation form, which is
-        # a separate view).
-        actives = self.request.user.current_chapter.actives().exclude(pk=self.request.user.pk)
-        formset = super().get_formset()
-        formset.form.base_fields["user"].queryset = actives.order_by("name")
-        return formset
+    def get_success_url(self):
+        return reverse("forms:status_graduate")
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        formset = kwargs.get("formset", None)
-        if formset is None:
-            formset = self.construct_formset()
-        actives = self.request.user.current_chapter.actives().exclude(pk=self.request.user.pk)
-        formset.form.base_fields["user"].queryset = actives.order_by("name")
-        context["formset"] = formset
-        helper = StatusChangeSelectFormHelper()
-        context["helper"] = helper
-        context["input"] = Submit("action", "Next")
-        status = StatusChangeTable(
-            StatusChange.objects.filter(user__chapter=self.request.user.current_chapter).order_by("-created")
-        )
-        RequestConfig(self.request).configure(status)
-        context["status_table"] = status
+        context["history_url"] = reverse("forms:status_history", kwargs={"reason": "graduate"})
         return context
 
-    def formset_valid(self, formset):
-        cleaned_data = deepcopy(formset.cleaned_data)
-        selections = {
-            "graduate": [],
-            "coop": [],
-            "covid": [],
-            "military": [],
-            "withdraw": [],
-            "transfer": [],
-            "resignedCC": [],
-        }
-        for info in cleaned_data:
-            user = info["user"]
-            selections[info["state"]].append(user.pk)
-        self.request.session["status-selection"] = selections
-        return super().formset_valid(formset)
 
-    def get_success_url(self):
-        # This needs to redirect to the next step
-        return reverse("forms:status")
+class GraduateFillView(LoginRequiredMixin, OfficerRequiredMixin, TemplateView):
+    """Step 2 of graduation: fill one graduation row per selected member."""
 
-
-class StatusChangeView(LoginRequiredMixin, OfficerRequiredMixin, FormView):
-    form_class = GraduateForm
+    template_name = "forms/graduate_fill.html"
     officer_edit = "member status"
-    template_name = "forms/status.html"
-    to_graduate = []
-    to_coop = []
-    to_military = []
-    to_withdraw = []
-    to_transfer = []
-    to_csmt = []
-    resignedCC = []
 
-    def initial_info(self, status_change):
-        chapter = self.request.user.current_chapter
-        # Officers must not report status changes for themselves — matches the
-        # exclusion applied at the selection step.
-        actives = chapter.actives().exclude(pk=self.request.user.pk)
-        self.to_graduate = actives.filter(pk__in=status_change["graduate"])
-        self.to_coop = actives.filter(pk__in=status_change["coop"])
-        self.to_covid = actives.filter(pk__in=status_change["covid"])
-        self.to_military = actives.filter(pk__in=status_change["military"])
-        self.to_withdraw = actives.filter(pk__in=status_change["withdraw"])
-        self.to_transfer = actives.filter(pk__in=status_change["transfer"])
-        self.resignedCC = actives.filter(pk__in=status_change["resignedCC"])
-        self.to_csmt = (
-            self.to_coop | self.to_military | self.to_withdraw | self.to_transfer | self.to_covid | self.resignedCC
+    def selected_members(self):
+        pks = self.request.session.get("graduate-selection", None)
+        if not pks:
+            return None
+        return (
+            self.request.user.current_chapter.actives()
+            .exclude(pk=self.request.user.pk)
+            .filter(pk__in=pks)
+            .order_by("name")
         )
 
     def get(self, request, *args, **kwargs):
-        status_change = request.session.get("status-selection", None)
-        if status_change is None:
-            return redirect("forms:status_selection")
-        else:
-            self.initial_info(status_change)
-            chapter = self.request.user.current_chapter
-            officers = chapter.get_current_officers_council()[0]
-            for member in self.to_coop:
-                if member in officers:
-                    role_info = member.roles.filter(role__in=member.current_roles).values("role", "start", "end")
-                    role_message = "<br>".join(
-                        [f"{role['role'].title()}:  start: {role['start']} end: {role['end']}" for role in role_info]
-                    )
-                    messages.add_message(
-                        self.request,
-                        messages.WARNING,
-                        mark_safe(
-                            f"{member} is a current officer. COOP status must not overlap with officer term.<br>{role_message}"
-                        ),
-                    )
-            return super().get(request, *args, **kwargs)
+        if not self.selected_members():
+            return redirect("forms:status_graduate_select")
+        return super().get(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        members = self.selected_members() or []
         formset = kwargs.get("formset", None)
         if formset is None:
             formset = GraduateFormSet(prefix="graduates")
         formset.initial = [
-            {"user": user.name, "email_personal": user.email, "reason": "graduate"} for user in self.to_graduate
+            {"user": member.name, "email_personal": member.email, "reason": "graduate"} for member in members
         ]
         context["formset"] = formset
         context["helper"] = GraduateFormHelper()
-        csmt_formset = kwargs.get("csmt_formset", None)
-        if csmt_formset is None:
-            csmt_formset = CSMTFormSet(prefix="csmt")
-            next_semester = semester_encompass_start_end_date()[1]
-            csmt_formset.initial = (
-                [{"user": user.name, "reason": "covid", "date_end": next_semester} for user in self.to_covid]
-                + [{"user": user.name, "reason": "coop"} for user in self.to_coop]
-                + [{"user": user.name, "reason": "military"} for user in self.to_military]
-                + [{"user": user.name, "reason": "withdraw"} for user in self.to_withdraw]
-                + [{"user": user.name, "reason": "transfer"} for user in self.to_transfer]
-                + [{"user": user.name, "reason": "resignedCC"} for user in self.resignedCC]
-            )
-        context["csmt_formset"] = csmt_formset
-        context["csmt_helper"] = CSMTFormHelper()
-        # Merge form + csmt formset media so tempus-dominus/moment aren't loaded
-        # twice — a duplicate load resets $.fn.datetimepicker and breaks the
-        # date pickers on this page.
-        context["combined_media"] = formset.media + csmt_formset.media
+        context["combined_media"] = formset.media
         context["form_show_errors"] = True
         context["error_text_inline"] = True
         context["help_text_inline"] = True
-        # context['html5_required'] = True  #  If on errors do not show up
+        context["history_url"] = reverse("forms:status_history", kwargs={"reason": "graduate"})
         return context
 
     def post(self, request, *args, **kwargs):
-        status_change = request.session.get("status-selection", None)
-        self.initial_info(status_change)
+        members = self.selected_members()
+        if not members:
+            return redirect("forms:status_graduate_select")
         formset = GraduateFormSet(request.POST, request.FILES, prefix="graduates")
         formset.initial = [
-            {"user": user.name, "email_personal": user.email, "reason": "graduate"} for user in self.to_graduate
+            {"user": member.name, "email_personal": member.email, "reason": "graduate"} for member in members
         ]
-        csmt_formset = CSMTFormSet(request.POST, request.FILES, prefix="csmt")
-        next_semester = semester_encompass_start_end_date()[1]
-        csmt_formset.initial = (
-            [{"user": user.name, "reason": "covid", "date_end": next_semester} for user in self.to_covid]
-            + [{"user": user.name, "reason": "coop"} for user in self.to_coop]
-            + [{"user": user.name, "reason": "military"} for user in self.to_military]
-            + [{"user": user.name, "reason": "withdraw"} for user in self.to_withdraw]
-            + [{"user": user.name, "reason": "transfer"} for user in self.to_transfer]
-            + [{"user": user.name, "reason": "resignedCC"} for user in self.resignedCC]
-        )
-        if not formset.is_valid() or not csmt_formset.is_valid():
-            return self.render_to_response(self.get_context_data(formset=formset, csmt_formset=csmt_formset))
-        chapter = self.request.user.current_chapter
-        error = False
-        officers = chapter.get_current_officers_council()[0]
-        for form in csmt_formset:
-            if form.instance.reason == "coop":
-                member = form.instance.user
-                if member in officers:
-                    role_info = member.roles.filter(
-                        role__in=member.current_roles + list(CHAPTER_OFFICER),
-                    ).values("role", "start", "end")
-                    for role in role_info:
-                        latest_start = max(form.instance.date_start, role["start"])
-                        earliest_end = min(form.instance.date_end, role["end"])
-                        delta = (earliest_end - latest_start).days + 1
-                        overlap = max(0, delta)
-                        if overlap > 0:
-                            error = True
-                            role_message = f"{role['role'].title()}:  start: {role['start']} end: {role['end']}"
-                            messages.add_message(
-                                self.request,
-                                messages.ERROR,
-                                mark_safe(
-                                    f"{member} is a current officer. COOP status must not overlap with officer term.<br>{role_message}"
-                                ),
-                            )
-        if error:
-            return self.render_to_response(self.get_context_data(formset=formset, csmt_formset=csmt_formset))
-        update_list = []
+        if not formset.is_valid():
+            return self.render_to_response(self.get_context_data(formset=formset))
+        chapter = request.user.current_chapter
         graduates_list = []
         for form in formset:
             form.save()
             graduates_list.append(form.instance.user)
-        for form in csmt_formset:
-            if form.instance.reason == "covid":
-                # Because the form field is disabled the value will not carry through
-                form.instance.date_end = next_semester
-            form.save()
-            update_list.append(form.instance.user)
         Task.mark_complete(name="Member Updates", chapter=chapter)
         slug = Config.get_value("GraduationSurvey")
         for user in graduates_list:
@@ -715,15 +800,16 @@ class StatusChangeView(LoginRequiredMixin, OfficerRequiredMixin, FormView):
                 "We would like to get your thoughts on your Theta Tau experience "
                 "so that we can make the Fraternity better for everybody.",
             ).send()
+        request.session.pop("graduate-selection", None)
         messages.add_message(
-            self.request,
+            request,
             messages.INFO,
-            "You successfully updated the status of members:\n" f"{update_list + graduates_list}",
+            "You successfully submitted graduation for members:\n" f"{graduates_list}",
         )
         return HttpResponseRedirect(self.get_success_url())
 
     def get_success_url(self):
-        return reverse("forms:status_selection")
+        return reverse("forms:status_history", kwargs={"reason": "graduate"})
 
 
 def remove_extra_form(formset, **kwargs):
@@ -740,263 +826,362 @@ def remove_extra_form(formset, **kwargs):
     return formset
 
 
-class RoleChangeView(LoginRequiredMixin, ModelFormSetView):
-    form_class = RoleChangeSelectForm
-    template_name = "forms/officer.html"
-    factory_kwargs = {"extra": 1, "can_delete": True}
-    officer_edit = "member roles"
+def _officer_status_overlap_errors(request, member, role, start, end):
+    """Add an ERROR message for each away/alumni status overlapping a
+    chapter-officer term; return True if any overlap was found.
+
+    No-op for non-chapter-officer roles. Shared by the add and edit views so
+    both enforce the same "status must not overlap an officer term" rule.
+    """
+    if role not in CHAPTER_OFFICER:
+        return False
+    error = False
+    for status in member.status.filter(status__in=["away", "alumni"]).values("status", "start", "end"):
+        latest_start = max(start, status["start"])
+        earliest_end = min(end, status["end"])
+        overlap = max(0, (earliest_end - latest_start).days + 1)
+        if overlap > 0:
+            error = True
+            role_message = f"Status {status['status']} start: {status['start']} end: {status['end']}"
+            messages.add_message(
+                request,
+                messages.ERROR,
+                mark_safe(
+                    f"For member {member}. {status['status'].capitalize()} status (eg. COOP or alumni status) must not overlap with officer term.<br>{role_message}"
+                ),
+            )
+    return error
+
+
+def _current_officer_emails(user):
+    """Comma-joined, de-duplicated emails of the current chapter officers/roles
+    for ``user``'s chapter (for the roster's "Copy emails" button)."""
+    emails = []
+    seen = set()
+    for role_change in UserRoleChange.get_current_roles(user).select_related("user"):
+        email = role_change.user.email or role_change.user.email_school
+        if email and email.lower() not in seen:
+            seen.add(email.lower())
+            emails.append(email)
+    return ", ".join(emails)
+
+
+def _term_is_in_past(start, end):
+    """True when both a role's start and end dates are before today — a purely
+    historical backfill rather than a new appointment."""
+    today = datetime.date.today()
+    return start < today and end < today
+
+
+class DefaultCurrentPeriodMixin:
+    """Default the officer roster to *current* on an unfiltered initial load,
+    while letting the filter's "Clear" button (which submits ``cancel``) reset
+    to showing all.
+
+    The filter no longer defaults ``period`` itself (its empty choice means
+    "all"), so this injects ``period=current`` only when the request carries no
+    ``period`` and is not a "Clear".
+    """
+
+    def get_queryset(self, **kwargs):
+        cancel = self.request.GET.get("cancel", False)
+        request_get = self.request.GET.copy()
+        if not cancel and "period" not in request_get:
+            request_get["period"] = "current"
+        return super().get_queryset(request_get=request_get, **kwargs)
+
+
+class RoleChangeListView(DefaultCurrentPeriodMixin, LoginRequiredMixin, PagedFilteredTableView):
+    """Chapter officer / role roster.
+
+    Replaces the old "+1 extra row then submit" election formset with a table of
+    current and past officers plus an "Add Officer" button (mirroring the
+    External Organizations table). Any member may view it; it defaults to the
+    *current* officers and is filterable by member, role, and start/end date
+    buckets. Officers see the add button; each row's Edit control is gated by
+    ``UserRoleChange.can_be_edited_by``.
+    """
+
     model = UserRoleChange
+    queryset = UserRoleChange.objects.filter(role__in=CHAPTER_ROLES).select_related("user", "user__chapter")
+    template_name = "forms/officer_list.html"
+    table_class = OfficerRoleTable
+    filter_class = RoleChangeListFilter
+    formhelper_class = RoleChangeListFormHelper
+    filter_user_chapter = True
+    ordering = ["user__last_name", "-start"]
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["email_list"] = _current_officer_emails(self.request.user)
+        return context
+
+
+class RoleChangeCreateView(LoginRequiredMixin, OfficerRequiredMixin, CreateView):
+    """Add a single chapter officer / role (officers only).
+
+    Preserves every safeguard and side effect of the old election formset: the
+    self-assignment block and Treasurer January-term policy (in the form), the
+    away/alumni term-overlap block, the deadlock-safe write, the best-effort
+    Vector LMS sync for educator / risk-management roles, the Treasurer
+    policy-exception notification, ``Task`` completion, and the ``NewOfficers``
+    email. Those new-officer side effects are skipped when the recorded term is
+    entirely in the past (a historical backfill).
+    """
+
+    officer_edit = "member roles"
+    template_name = "forms/officer_form.html"
+    model = UserRoleChange
+    form_class = OfficerAddForm
+
+    def get_success_url(self):
+        return reverse("forms:officer")
 
     def get_form_kwargs(self):
-        # Injected into every form in the formset via
-        # ``extra_views.ModelFormSetView`` — used by ``RoleChangeSelectForm``
-        # to reject the requesting officer as their own role recipient.
+        # Used by ``OfficerAddForm`` to reject the requesting officer as their
+        # own role recipient.
         kwargs = super().get_form_kwargs()
         kwargs["request_user"] = self.request.user
         return kwargs
 
-    def construct_formset(self, initial=False):
-        formset = super().construct_formset()
-        for field_name in formset.forms[-1].fields:
-            formset.forms[-1].fields[field_name].disabled = False
-        return formset
+    def form_valid(self, form):
+        member = form.instance.user
+        role = form.instance.role
+        # Away/alumni status (e.g. COOP or alumni) must not overlap a
+        # chapter-officer term. Message per overlapping status, then re-render
+        # without saving.
+        if _officer_status_overlap_errors(self.request, member, role, form.instance.start, form.instance.end):
+            return self.form_invalid(form)
 
-    def post(self, request, *args, **kwargs):
-        """
-        Handles POST requests, instantiating a formset instance with the passed
-        POST variables and then checked for validity.
-        """
-        formset = self.construct_formset()
-        for idx, form in enumerate(formset.forms):
-            if "user" not in form.initial:
-                for field_name in form.fields:
-                    formset.forms[idx].fields[field_name].disabled = False
-        if not formset.is_valid():
-            # Need to check if last extra form is causing issues
-            if "user" in formset.extra_forms[-1].errors:
-                # We should remove this form
-                formset = remove_extra_form(formset)
-        if formset.is_valid():
-            error = False
-            for form in formset:
+        # Deadlock-safe write: lock the affected member row before saving so
+        # concurrent officer updates can never grab member rows in opposite
+        # order (issues #825/#858/#859/#982). Side effects below run AFTER the
+        # retried write so a retry can never duplicate them.
+        def _persist():
+            list(User.objects.select_for_update().filter(pk=member.pk))
+            form.save()
+
+        retry_on_deadlock(_persist, description="officer role add")
+
+        # A role recorded entirely in the past (both dates before today) is a
+        # historical backfill, not a new appointment, so skip the new-officer
+        # side effects (Vector LMS sync, Treasurer-policy email, task
+        # completion, and the New Officers email).
+        if not _term_is_in_past(form.instance.start, form.instance.end):
+            role_name = role
+            if role_name in [
+                "pledge/new member educator",
+                "risk management chair",
+            ]:
+                # Syncing to the external Vector LMS is a best-effort side
+                # effect; the officer role change above is already saved. A
+                # training-system outage must never turn this into a 500 (see
+                # issue #1086), so surface a retry message instead.
                 try:
-                    member = form.instance.user
-                except User.DoesNotExist:
-                    continue
-                role = form.instance.role
-                if role in CHAPTER_OFFICER:
-                    status_info = member.status.filter(
-                        status__in=["away", "alumni"],
-                    ).values("status", "start", "end")
-                    for status in status_info:
-                        latest_start = max(form.instance.start, status["start"])
-                        earliest_end = min(form.instance.end, status["end"])
-                        delta = (earliest_end - latest_start).days + 1
-                        overlap = max(0, delta)
-                        if overlap > 0:
-                            error = True
-                            role_message = f"Status {status['status']} start: {status['start']} end: {status['end']}"
-                            messages.add_message(
-                                self.request,
-                                messages.ERROR,
-                                mark_safe(
-                                    f"For member {member}. {status['status'].capitalize()} status (eg. COOP or alumni status) must not overlap with officer term.<br>{role_message}"
-                                ),
-                            )
-            if error:
-                self.object_list = self.get_queryset()
-                return self.formset_invalid(formset)
-            else:
-                return self.formset_valid(formset)
-        else:
-            self.object_list = self.get_queryset()
-            return self.formset_invalid(formset)
+                    Training.add_user(
+                        member,
+                        extra_group=role_name,
+                        request=self.request,
+                    )
+                except Exception:
+                    logger.exception(
+                        "Training sync failed during officer add for %s",
+                        member,
+                    )
+                    messages.add_message(
+                        self.request,
+                        messages.WARNING,
+                        "The officer role was saved, but the training system "
+                        f"could not be updated for {member}. "
+                        "Please try again later.",
+                    )
+            if role_name in COL_OFFICER_ALIGN:
+                role_name = COL_OFFICER_ALIGN[role_name]
 
-    def get_queryset(self):
-        return UserRoleChange.get_current_roles(self.request.user)
+            # Treasurer terms must run January-to-January per policy. When an
+            # officer acknowledged the exception and supplied a reason, notify
+            # the Grand Treasurer, regional directors and Central Office.
+            exception_reason = (form.cleaned_data.get("treasurer_term_exception_reason") or "").strip()
+            if exception_reason and treasurer_term_violation(
+                form.instance.role,
+                form.instance.start,
+                form.instance.end,
+            ):
+                TreasurerTermException(
+                    role_change=form.instance,
+                    reason=exception_reason,
+                    submitted_by=self.request.user,
+                ).send()
 
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        formset = kwargs.get("formset", None)
-        if formset is None:
-            formset = self.construct_formset()
-        context["formset"] = formset
-        context["input"] = Submit("action", "Submit")
-        return context
-
-    def formset_valid(self, formset, delete_only=False):
-        delete_list = []
-        for obj in formset.deleted_forms:
-            # We don't want to delete the value, just make them not current
-            # We also do not care about form, just get obj
-            instance = None
-            try:
-                instance = obj.clean()["id"]
-            except KeyError:
-                continue
-            if instance:
-                instance.end = timezone.now() - timezone.timedelta(days=2)
-                instance.save()
-                delete_list.append(instance.user)
-        if delete_list:
-            messages.add_message(
-                self.request,
-                messages.INFO,
-                "You successfully removed the officers:\n" f"{delete_list}",
-            )
-        if not delete_only:
-            # instances = formset.save(commit=False)
-            update_list = []
-            officer_list = []
-            for form in formset.forms:
-                if form.changed_data and "DELETE" not in form.changed_data:
-                    form.save()
-                    update_list.append(form.instance.user)
-                    role_name = form.instance.role
-                    if role_name in [
-                        "pledge/new member educator",
-                        "risk management chair",
-                    ]:
-                        Training.add_user(
-                            form.instance.user,
-                            extra_group=role_name,
-                            request=self.request,
-                        )
-                    if role_name in COL_OFFICER_ALIGN:
-                        role_name = COL_OFFICER_ALIGN[role_name]
-                    if role_name in CHAPTER_OFFICER:
-                        officer_list.append(form.instance.user)
-                    # Treasurer terms must run January-to-January per policy.
-                    # When an officer acknowledged the exception and supplied a
-                    # reason, notify the Grand Treasurer, regional directors and
-                    # Central Office.
-                    exception_reason = (form.cleaned_data.get("treasurer_term_exception_reason") or "").strip()
-                    if exception_reason and treasurer_term_violation(
-                        form.instance.role,
-                        form.instance.start,
-                        form.instance.end,
-                    ):
-                        TreasurerTermException(
-                            role_change=form.instance,
-                            reason=exception_reason,
-                            submitted_by=self.request.user,
-                        ).send()
             Task.mark_complete(
                 name="Officer Election Report",
                 chapter=self.request.user.current_chapter,
             )
-            if officer_list:
-                NewOfficers(new_officers=officer_list).send()
-            if update_list:
-                messages.add_message(
-                    self.request,
-                    messages.INFO,
-                    "You successfully updated the officers:\n" f"{update_list}",
-                )
+            if role_name in CHAPTER_OFFICER:
+                NewOfficers(new_officers=[member]).send()
+        messages.success(self.request, f"{member} was added as {form.instance.role.title()}.")
         return HttpResponseRedirect(self.get_success_url())
 
-    def get_success_url(self):
-        # If this is the same view, login redirect loops
+
+class RoleChangeEditView(LoginRequiredMixin, UpdateView):
+    """Edit a single officer / role term's start and end dates.
+
+    Replaces the old "Remove" action: a role is never deleted, only its dates
+    are adjusted (validated so the term stays meaningful and cannot be
+    "effectively deleted"). Serves BOTH the chapter and national tables —
+    permission and the return page are derived from the role itself via
+    ``UserRoleChange.can_be_edited_by`` (member-self for non-chapter-officer
+    roles; otherwise an officer serving the chapter, or a superuser for
+    national roles).
+    """
+
+    model = UserRoleChange
+    form_class = OfficerRoleEditForm
+    template_name = "forms/officer_edit_form.html"
+
+    def _list_url(self):
+        if getattr(self, "role_change", None) and self.role_change.role in NAT_OFFICERS:
+            return reverse("forms:natoff")
         return reverse("forms:officer")
 
+    def setup(self, request, *args, **kwargs):
+        # Set the target row in setup() (before any dispatch/permission mixin)
+        # so ``get_success_url``/``_list_url`` can safely read it.
+        super().setup(request, *args, **kwargs)
+        self.role_change = get_object_or_404(UserRoleChange, pk=kwargs["pk"])
 
-class RoleChangeNationalView(LoginRequiredMixin, NatOfficerRequiredMixin, ModelFormSetView):
-    form_class = RoleChangeNationalSelectForm
-    template_name = "forms/officer_national.html"
-    factory_kwargs = {"extra": 1, "can_delete": True}
+    def dispatch(self, request, *args, **kwargs):
+        if request.user.is_authenticated and not self.role_change.can_be_edited_by(request.user):
+            messages.error(
+                request,
+                "You cannot edit this role — either it is no longer current or "
+                "you do not have permission to change it.",
+            )
+            return HttpResponseRedirect(self._list_url())
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_object(self, queryset=None):
+        return self.role_change
+
+    def get_success_url(self):
+        return self._list_url()
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["role_change"] = self.role_change
+        context["back_url"] = self._list_url()
+        return context
+
+    def form_valid(self, form):
+        member = self.role_change.user
+        role = self.role_change.role
+        # Same away/alumni status-overlap block as the add view.
+        if _officer_status_overlap_errors(self.request, member, role, form.instance.start, form.instance.end):
+            return self.form_invalid(form)
+
+        # Deadlock-safe write — same rationale as the add views
+        # (issues #825/#858/#859/#982).
+        def _persist():
+            list(User.objects.select_for_update().filter(pk=member.pk))
+            form.save()
+
+        retry_on_deadlock(_persist, description="officer role edit")
+
+        # Treasurer terms must run January-to-January; when an officer
+        # acknowledged the exception and supplied a reason, notify leadership
+        # (parity with the add view).
+        exception_reason = (form.cleaned_data.get("treasurer_term_exception_reason") or "").strip()
+        if exception_reason and treasurer_term_violation(role, form.instance.start, form.instance.end):
+            TreasurerTermException(
+                role_change=form.instance,
+                reason=exception_reason,
+                submitted_by=self.request.user,
+            ).send()
+        messages.success(
+            self.request,
+            f"Updated {member}'s {role.title()} term dates.",
+        )
+        return HttpResponseRedirect(self.get_success_url())
+
+
+class RoleChangeNationalListView(DefaultCurrentPeriodMixin, LoginRequiredMixin, PagedFilteredTableView):
+    """National officer roster — the single national-officer page.
+
+    Consolidates the old assignment table and the separate contacts roster into
+    one page: any logged-in member can view the current (and, via the filter,
+    past) national officers and copy their emails; national officers also get
+    the contact-sync button; and superusers get the "Add" control. Defaults to
+    the *current* national officers, filterable by member, role, and start/end
+    date buckets.
+    """
+
     model = UserRoleChange
+    queryset = UserRoleChange.objects.filter(role__in=NAT_OFFICERS).select_related("user", "user__chapter")
+    template_name = "forms/officer_national_list.html"
+    table_class = NationalOfficerRoleTable
+    filter_class = RoleChangeNationalListFilter
+    formhelper_class = RoleChangeNationalListFormHelper
+    ordering = ["user__last_name", "-start"]
+
+    def get_context_data(self, **kwargs):
+        from thetatauCMT.contact_sync.context import build_sync_modal_context
+        from thetatauCMT.contact_sync.officers import NATIONAL_SCOPE, collect_national_officer_contacts
+
+        context = super().get_context_data(**kwargs)
+        # Bulk "copy emails" of the current national officers (mirrors the old
+        # contacts page); the roster table itself is driven by the filter above.
+        officers, _ = collect_national_officer_contacts()
+        emails = []
+        seen = set()
+        for officer in officers:
+            for email in officer.emails:
+                if email and email.lower() not in seen:
+                    seen.add(email.lower())
+                    emails.append(email)
+        context["email_list"] = ", ".join(emails)
+        # Only national officers get the contact-sync button/modal.
+        if getattr(self.request, "is_nat_officer", False):
+            context.update(build_sync_modal_context(self.request, NATIONAL_SCOPE))
+        return context
+
+
+class RoleChangeNationalCreateView(LoginRequiredMixin, SuperuserRequiredMixin, CreateView):
+    """Add a single national officer / role (superuser only).
+
+    Preserves the self-assignment block (in the form), the deadlock-safe write,
+    and the Vector LMS education-group sync of the old national election
+    formset.
+    """
+
+    template_name = "forms/officer_national_form.html"
+    model = UserRoleChange
+    form_class = NationalOfficerAddForm
+
+    def get_success_url(self):
+        return reverse("forms:natoff")
 
     def get_form_kwargs(self):
-        # Injected into every form in the formset — used by
-        # ``RoleChangeNationalSelectForm`` to reject the requesting officer as
+        # Used by ``NationalOfficerAddForm`` to reject the requesting officer as
         # their own national officer role recipient.
         kwargs = super().get_form_kwargs()
         kwargs["request_user"] = self.request.user
         return kwargs
 
-    def construct_formset(self, initial=False):
-        formset = super().construct_formset()
-        for field_name in formset.forms[-1].fields:
-            formset.forms[-1].fields[field_name].disabled = False
-        return formset
+    def form_valid(self, form):
+        member = form.instance.user
 
-    def get_success_url(self):
-        return reverse("forms:natoff")
+        # Deadlock-safe write — same rationale as the chapter view
+        # (issues #825/#858/#859/#982). The Vector LMS sync runs afterwards so a
+        # retry cannot duplicate it.
+        def _persist():
+            list(User.objects.select_for_update().filter(pk=member.pk))
+            form.save()
 
-    def post(self, request, *args, **kwargs):
-        """
-        Handles POST requests, instantiating a formset instance with the passed
-        POST variables and then checked for validity.
-        """
-        formset = self.construct_formset()
-        for idx, form in enumerate(formset.forms):
-            if "user" not in form.initial:
-                for field_name in form.fields:
-                    formset.forms[idx].fields[field_name].disabled = False
-        if not formset.is_valid():
-            # Need to check if last extra form is causing issues
-            if "user" in formset.extra_forms[-1].errors:
-                # We should remove this form
-                formset = remove_extra_form(formset)
-        if formset.is_valid():
-            return self.formset_valid(formset)
-        else:
-            self.object_list = self.get_queryset()
-            return self.formset_invalid(formset)
-
-    def get_queryset(self):
-        nat_offs = UserRoleChange.get_current_natoff()
-        return nat_offs
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        formset = kwargs.get("formset", None)
-        if formset is None:
-            formset = self.construct_formset()
-        context["formset"] = formset
-        context["input"] = Submit("action", "Submit")
-        # Contact-sync modal context — same template as the region officers
-        # page, but scoped to national officers. See docs/contact_sync_setup.md.
-        from thetatauCMT.contact_sync.context import build_sync_modal_context
-        from thetatauCMT.contact_sync.officers import NATIONAL_SCOPE
-
-        context.update(build_sync_modal_context(self.request, NATIONAL_SCOPE))
-        return context
-
-    def formset_valid(self, formset, delete_only=False):
-        delete_list = []
-        for obj in formset.deleted_forms:
-            # We don't want to delete the value, just make them not current
-            # We also do not care about form, just get obj
-            instance = None
-            try:
-                instance = obj.clean()["id"]
-            except KeyError:
-                continue
-            if instance:
-                instance.end = timezone.now() - timezone.timedelta(days=2)
-                instance.save()
-                delete_list.append(instance.user)
-        if delete_list:
-            messages.add_message(
-                self.request,
-                messages.INFO,
-                "You successfully removed the officers:\n" f"{delete_list}",
-            )
-        if not delete_only:
-            update_list = []
-            for form in formset.forms:
-                if form.changed_data and "DELETE" not in form.changed_data:
-                    form.save()
-                    update_list.append(form.instance.user)
-            if update_list:
-                for user in update_list:
-                    Training.add_user_ed(user, self.request)
-                messages.add_message(
-                    self.request,
-                    messages.INFO,
-                    "You successfully updated the officers:\n" f"{update_list}",
-                )
+        retry_on_deadlock(_persist, description="national officer role add")
+        # Skip the Vector LMS enrollment for a purely historical (past) term.
+        if not _term_is_in_past(form.instance.start, form.instance.end):
+            Training.add_user_ed(member, self.request)
+        messages.success(self.request, f"{member} was added as {form.instance.role.title()}.")
         return HttpResponseRedirect(self.get_success_url())
 
 
@@ -1138,6 +1323,20 @@ class RiskManagementFormView(LoginRequiredMixin, FormView):
         return super().get(request, *args, **kwargs)
 
     def form_valid(self, form):
+        # Guard against a duplicate submission (e.g. a double-click or a browser
+        # retry). The archived RMP copy is written to cloud storage under a
+        # deterministic per-user object name, so Google Cloud Storage rejects a
+        # second write to the same object within a second with HTTP 429
+        # ("rate limit for object mutation operations", issue #957). The
+        # signature for this term is already on file, so treat the repeat as a
+        # no-op and send the user to their existing submissions.
+        if RiskManagement.user_signed_this_semester(self.request.user):
+            messages.add_message(
+                self.request,
+                messages.INFO,
+                "RMP Previously signed this year, see previous submissions.",
+            )
+            return redirect(reverse("users:detail") + "#submissions")
         current_role = self.request.user.current_roles
         if not current_role:
             # We will use the status as the role
@@ -1160,9 +1359,30 @@ class RiskManagementFormView(LoginRequiredMixin, FormView):
             type=score_type,
             chapter=self.request.user.current_chapter,
         )
-        submit_obj.file.save(f"{file_name}.pdf", ContentFile(risk_file.content))
-        submit_obj.save()
-        form.instance.submission = submit_obj
+        try:
+            retry_google_api(
+                lambda: submit_obj.file.save(f"{file_name}.pdf", ContentFile(risk_file.content)),
+                description=f"RMP submission upload for {self.request.user}",
+            )
+        except Exception:
+            # The signature itself is already saved above; only the archived PDF
+            # copy in cloud storage failed. A storage hiccup must never become a
+            # 500 for the signer (issue #957) — keep the signature, skip the
+            # attachment, and tell them the copy could not be stored.
+            logger.exception(
+                "RMP submission upload failed for %s",
+                self.request.user,
+            )
+            submit_obj = None
+            messages.add_message(
+                self.request,
+                messages.WARNING,
+                "Your RMP signature was saved, but the archived PDF copy could "
+                "not be stored right now. This does not affect your signature.",
+            )
+        if submit_obj is not None:
+            submit_obj.save()
+            form.instance.submission = submit_obj
         obj = form.save()
         Task.mark_complete(
             name="Risk Management Form",
@@ -1228,7 +1448,13 @@ class RollBookPDFView(LoginRequiredMixin, OfficerRequiredMixin, WeasyTemplateRes
         context = super().get_context_data(**kwargs)
         init_date = self.request.session.get("init_date", datetime.datetime.today().date())
         if isinstance(init_date, str):
-            init_date = datetime.datetime.strptime(init_date, "%m/%d/%Y")
+            try:
+                init_date = datetime.datetime.strptime(init_date, "%m/%d/%Y")
+            except ValueError:
+                # A blank or malformed session value (e.g. the officer submitted
+                # the initiation-date form empty) must not 500 the roll book
+                # download (issues #984/#985); fall back to today.
+                init_date = datetime.datetime.today().date()
         with open(r"secrets/short_oath.txt", "r") as file:
             context["short_oath"] = file.read()
         context["init_date"] = init_date
@@ -1732,6 +1958,7 @@ class PledgeFormView(CreateView):
         try:
             Training.add_user(user, request=self.request)
         except Exception as e:
+            logger.exception("Error adding training for %s %s", user, user.chapter)
             message = f"Error adding training {user=} {user.chapter=} {e}"
             CentralOfficeGenericEmail(message, subject="[CMT] Training Error").send()
         try:
@@ -1740,6 +1967,7 @@ class PledgeFormView(CreateView):
             # records a pending enrollment that activates when they log in.
             Training.add_user_ed(user, request=self.request)
         except Exception as e:
+            logger.exception("Error adding Open edX training for %s %s", user, user.chapter)
             message = f"Error adding Open edX training {user=} {user.chapter=} {e}"
             CentralOfficeGenericEmail(message, subject="[CMT] Training Error").send()
         messages.add_message(
@@ -1763,6 +1991,14 @@ class PrematureAlumnusCreateView(LoginRequiredMixin, CreateProcessView):
         kwargs = super().get_form_kwargs()
         kwargs["request_user"] = self.request.user
         return kwargs
+
+    def get_success_url(self):
+        # Return the submitting member/officer to the Premature Alumnus form,
+        # which shows their submission in the status table. The viewflow default
+        # would redirect to the process ``:detail`` page, which requires the
+        # ``forms.view_prematurealumnus`` permission (national officers/staff
+        # only) and 403s the member who just submitted.
+        return reverse("viewflow:forms:prematurealumnus:start")
 
     def activation_done(self, *args, **kwargs):
         """Finish task activation."""
@@ -1805,7 +2041,7 @@ class PrematureAlumnusCreateView(LoginRequiredMixin, CreateProcessView):
 @group_required("natoff")
 @csrf_exempt
 def badge_shingle_init_csv(request, csv_type, process_pk, response_type="csv"):
-    process = InitiationProcess.objects.get(pk=process_pk)
+    process = get_object_or_404(InitiationProcess, pk=process_pk)
     content_type = "application/json" if response_type == "json" else "text/csv"
     response = HttpResponse(content_type=content_type)
     if csv_type in ["badge", "shingle"]:
@@ -1821,7 +2057,7 @@ def badge_shingle_init_csv(request, csv_type, process_pk, response_type="csv"):
 @group_required("natoff")
 @csrf_exempt
 def badge_shingle_post(request, process_pk):
-    process = InitiationProcess.objects.get(pk=process_pk)
+    process = get_object_or_404(InitiationProcess, pk=process_pk)
     process.post_shingle_to_webhook(request)
     return HttpResponseRedirect(request.META.get("HTTP_REFERER", "/"))
 
@@ -1829,7 +2065,7 @@ def badge_shingle_post(request, process_pk):
 @group_required("natoff")
 @csrf_exempt
 def badge_shingle_init_sync(request, process_pk, invoice_number):
-    process = InitiationProcess.objects.get(pk=process_pk)
+    process = get_object_or_404(InitiationProcess, pk=process_pk)
     new_invoice_number = process.sync_badge_shingle_invoice(request, invoice_number)
     return JsonResponse({"invoice_number": new_invoice_number})
 
@@ -1847,19 +2083,29 @@ def get_sign_status_discipline(user, name=False, complete=True):
                 if not complete:
                     continue
                 task = process.task_set.first()
+                if task is None:
+                    # A process with no tasks at all (e.g. a start view errored
+                    # after creating the process) has nothing to display (#901).
+                    continue
                 status = task.status
                 approved = False
             else:
-                status = task.flow_task.task_title
+                flow_task = task.flow_task
+                # ``task.flow_task`` is None when the DB task references a node
+                # that no longer exists in the current flow definition (#902);
+                # fall back to the raw task status instead of crashing.
+                status = flow_task.task_title if flow_task else task.status
                 owner = task.owner
                 approved = "Pending"
-                if "Submit Form 2" in status and task.owner == user:
+                if status and "Submit Form 2" in status and task.owner == user:
                     link = reverse(
                         "viewflow:forms:disciplinaryprocess:submit_form2",
                         kwargs={"process_pk": process.pk, "task_pk": task.pk},
                     )
         elif complete:
-            status = process.task_set.first().flow_task.task_title
+            task = process.task_set.first()
+            flow_task = task.flow_task if task else None
+            status = flow_task.task_title if flow_task else "Complete"
             approved = process.ec_approval
         else:
             continue
@@ -2309,7 +2555,7 @@ class FilterableInvoiceFlowViewSet(FlowViewSet):
 @group_required("natoff")
 @csrf_exempt
 def pledge_process_csvs(request, csv_type, process_pk):
-    process = PledgeProcess.objects.get(pk=process_pk)
+    process = get_object_or_404(PledgeProcess, pk=process_pk)
     response = HttpResponse(content_type="text/csv")
     if csv_type == "crm":
         process.generate_blackbaud_update(response=response)
@@ -2322,7 +2568,7 @@ def pledge_process_csvs(request, csv_type, process_pk):
 @group_required("natoff")
 @csrf_exempt
 def pledge_process_sync(request, process_pk, invoice_number):
-    process = PledgeProcess.objects.get(pk=process_pk)
+    process = get_object_or_404(PledgeProcess, pk=process_pk)
     new_invoice_number = process.sync_invoice(request, invoice_number)
     return JsonResponse({"invoice_number": new_invoice_number})
 
@@ -2783,8 +3029,11 @@ class DisciplinaryForm2View(LoginRequiredMixin, UpdateProcessView, ModelFormMixi
 
     def activation_done(self, *args, **kwargs):
         """Finish task activation."""
-        self.activation.done()
-        self.success("Disciplinary form 2 submitted successfully.")
+        if complete_activation(self.activation):
+            self.success("Disciplinary form 2 submitted successfully.")
+        else:
+            # A concurrent/duplicate submit already advanced this task (#980).
+            self.success("Disciplinary form 2 was already submitted.")
 
     def form_valid(self, form, *args, **kwargs):
         return super().form_valid(form)
@@ -2830,7 +3079,7 @@ class DisciplinaryPDFTest(NatOfficerRequiredMixin, PDFTemplateResponseMixin, Det
 @group_required("natoff")
 @csrf_exempt
 def disciplinary_process_files(request, process_pk):
-    process = DisciplinaryProcess.objects.get(pk=process_pk)
+    process = get_object_or_404(DisciplinaryProcess, pk=process_pk)
     zip_filename = f"{process.chapter.slug}_{process.user.id}.zip"
     zip_io = BytesIO()
     files = process.get_all_files()
@@ -2954,7 +3203,17 @@ class ResignationCreateView(LoginRequiredMixin, CreateProcessView, AssignOfficer
         chapter = user.current_chapter
         officers = chapter.get_current_officers_council_specific()
         self.assign_officers_form([user], form, officers)
-        return super().form_valid(form)
+        try:
+            with transaction.atomic():
+                return super().form_valid(form)
+        except IntegrityError:
+            # ``user`` is a OneToOneField, so the ``exists`` check above is a
+            # check-then-create that a rapid double submit can slip past (both
+            # requests read no row, then both insert). The loser of that race
+            # violates ``forms_resignationprocess_user_id_key`` (#833); treat it
+            # as an already-submitted resignation instead of returning a 500.
+            form.add_error(None, f"Resignation already exists for user {user}")
+            return self.render_to_response(self.get_context_data(form=form))
 
     def get_context_data(self, *args, **kwargs):
         context = super().get_context_data(**kwargs)

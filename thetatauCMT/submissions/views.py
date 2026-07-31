@@ -3,6 +3,7 @@ import datetime
 
 from django.conf import settings
 from django.contrib import messages
+from django.contrib.messages.views import SuccessMessageMixin
 from django.db.models import Count, F
 from django.forms.models import modelformset_factory
 from django.http.request import QueryDict
@@ -52,6 +53,7 @@ class SubmissionCreateView(
     ]
     officer_edit = "submissions"
     officer_edit_type = "create"
+    success_message = "Submission '%(name)s' was submitted."
 
     def get_success_url(self):
         name = None
@@ -89,6 +91,7 @@ class SubmissionUpdateView(LoginRequiredMixin, TypeFieldFilteredChapterAdd, Upda
     score_type = "Sub"
     officer_edit = "submissions"
     officer_edit_type = "edit"
+    success_message = "Submission '%(name)s' was updated."
 
     def get(self, request, *args, **kwargs):
         submission_id = self.kwargs.get("pk")
@@ -195,6 +198,11 @@ class GearArticleFormView(LoginRequiredMixin, MultiFormsView):
             reply="cmt@thetatau.org",
             addressee="Dear Gear Editor",
         ).send()
+        messages.add_message(
+            self.request,
+            messages.SUCCESS,
+            f"Your Gear article '{submission.name}' was submitted to the Gear editor.",
+        )
         return HttpResponseRedirect(self.get_success_url())
 
     def create_picture_form(self, **kwargs):
@@ -205,12 +213,13 @@ class GearArticleFormView(LoginRequiredMixin, MultiFormsView):
         return factory(**formset_kwargs)
 
 
-class GearArticleDetailView(LoginRequiredMixin, UpdateView):
+class GearArticleDetailView(LoginRequiredMixin, SuccessMessageMixin, UpdateView):
     model = GearArticle
     fields = [
         "reviewed",
         "notes",
     ]
+    success_message = "Gear article review was saved."
 
     def get_success_url(self):
         return reverse("submissions:gearlist")

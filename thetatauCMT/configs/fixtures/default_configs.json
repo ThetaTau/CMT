@@ -1,0 +1,162 @@
+[
+{
+    "model": "configs.config",
+    "pk": null,
+    "fields": {
+        "key": "VolunteerReviewer",
+        "value": "",
+        "description": "Volunteer Nomination flow: who reviews an incoming volunteer nomination. Set to a username, email address, OR a national-officer role name (e.g. \"grand regent\"). Leave blank to fall back to the CentralOffice config, then settings.EXECUTIVE_DIRECTOR.",
+        "modified": "2026-07-22T00:00:00Z"
+    }
+},
+{
+    "model": "configs.config",
+    "pk": null,
+    "fields": {
+        "key": "VettingReviewer",
+        "value": "",
+        "description": "Volunteer Nomination flow: who performs the vetting / reference check. Set to a username, email address, OR a national-officer role name. Blank falls back to CentralOffice, then settings.EXECUTIVE_DIRECTOR.",
+        "modified": "2026-07-22T00:00:00Z"
+    }
+},
+{
+    "model": "configs.config",
+    "pk": null,
+    "fields": {
+        "key": "Interviewer",
+        "value": "",
+        "description": "Volunteer Nomination flow: who conducts the nominee interview. Set to a username, email address, OR a national-officer role name. Blank falls back to CentralOffice, then settings.EXECUTIVE_DIRECTOR.",
+        "modified": "2026-07-22T00:00:00Z"
+    }
+},
+{
+    "model": "configs.config",
+    "pk": null,
+    "fields": {
+        "key": "TrainingAdministrator",
+        "value": "",
+        "description": "Volunteer Nomination flow: who administers/marks required training (CMT LMS + Vector). Set to a username, email address, OR a national-officer role name. Blank falls back to CentralOffice, then settings.EXECUTIVE_DIRECTOR.",
+        "modified": "2026-07-22T00:00:00Z"
+    }
+},
+{
+    "model": "configs.config",
+    "pk": null,
+    "fields": {
+        "key": "Confirmer",
+        "value": "",
+        "description": "Volunteer Nomination flow: who confirms the nominee before appointment. Set to a username, email address, OR a national-officer role name. Blank falls back to CentralOffice, then settings.EXECUTIVE_DIRECTOR.",
+        "modified": "2026-07-22T00:00:00Z"
+    }
+},
+{
+    "model": "configs.config",
+    "pk": null,
+    "fields": {
+        "key": "AppointmentProcessor",
+        "value": "",
+        "description": "Volunteer Nomination flow: who processes the final appointment (letter + chapter notification). Set to a username, email address, OR a national-officer role name. Blank falls back to CentralOffice, then settings.EXECUTIVE_DIRECTOR.",
+        "modified": "2026-07-22T00:00:00Z"
+    }
+},
+{
+    "model": "configs.config",
+    "pk": null,
+    "fields": {
+        "key": "CentralOffice",
+        "value": "",
+        "description": "Central Office contact used as the default reviewer/denial actor for the Volunteer Nomination flow when a specific reviewer config is blank. Set to a username, email address, OR a national-officer role name. Blank falls back to settings.EXECUTIVE_DIRECTOR.",
+        "modified": "2026-07-22T00:00:00Z"
+    }
+},
+{
+    "model": "configs.config",
+    "pk": null,
+    "fields": {
+        "key": "AwardApprover",
+        "value": "",
+        "description": "Award nomination flow: who approves award nominations. Set to a username, email address, OR a national-officer role name. Blank falls back to settings.EXECUTIVE_DIRECTOR.",
+        "modified": "2026-07-22T00:00:00Z"
+    }
+},
+{
+    "model": "configs.config",
+    "pk": null,
+    "fields": {
+        "key": "HSEducationReviewer",
+        "value": "",
+        "description": "Health & Safety education submission reviewer. Set to a username, email address, OR a national-officer role name. Blank falls back to the built-in default reviewer.",
+        "modified": "2026-07-22T00:00:00Z"
+    }
+},
+{
+    "model": "configs.config",
+    "pk": null,
+    "fields": {
+        "key": "GraduationSurvey",
+        "value": "",
+        "description": "Slug of the Survey sent to graduating members. Set to the matching surveys.Survey slug.",
+        "modified": "2026-07-22T00:00:00Z"
+    }
+},
+{
+    "model": "configs.config",
+    "pk": null,
+    "fields": {
+        "key": "PreAlumnSurvey",
+        "value": "",
+        "description": "Slug of the Survey sent to premature-alumnus / pre-alumn members. Set to the matching surveys.Survey slug.",
+        "modified": "2026-07-22T00:00:00Z"
+    }
+},
+{
+    "model": "configs.config",
+    "pk": null,
+    "fields": {
+        "key": "ChapterMinimum",
+        "value": "",
+        "description": "Minimum active member count used in chapter status calculations. Set to a whole number (e.g. \"10\"). Blank keeps the built-in behavior.",
+        "modified": "2026-07-22T00:00:00Z"
+    }
+},
+{
+    "model": "configs.config",
+    "pk": null,
+    "fields": {
+        "key": "GROUP_TAX_FORM",
+        "value": "",
+        "description": "URL to the group tax exemption form shown on the chapter detail page for chapters without a tax record. Set to the document URL.",
+        "modified": "2026-07-22T00:00:00Z"
+    }
+},
+{
+    "model": "configs.config",
+    "pk": null,
+    "fields": {
+        "key": "PledgeWelcome",
+        "value": "",
+        "description": "HTML welcome message included in the pledge welcome email (rendered as HTML, not stripped). Set the rich-text welcome copy here.",
+        "modified": "2026-07-22T00:00:00Z"
+    }
+},
+{
+    "model": "configs.config",
+    "pk": null,
+    "fields": {
+        "key": "JOBS_CREATION_EMAIL",
+        "value": "",
+        "description": "Recipient list notified when a new job posting is created. Enter one or more email addresses separated by whitespace, comma, or semicolon.",
+        "modified": "2026-07-22T00:00:00Z"
+    }
+},
+{
+    "model": "configs.config",
+    "pk": null,
+    "fields": {
+        "key": "follow_up_interval_months",
+        "value": "6",
+        "description": "Volunteer Nomination follow-up cadence: how many months to wait before re-contacting a nominee who asked to be contacted later. Whole number of months (default 6).",
+        "modified": "2026-07-22T00:00:00Z"
+    }
+}
+]

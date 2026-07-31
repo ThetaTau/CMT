@@ -12,6 +12,7 @@ import pytest
 from django import forms
 from django.contrib.auth.models import Group
 from django.http import HttpResponse
+from django.test import override_settings
 from django.urls import reverse
 
 from thetatauCMT.chapters.tests.factories import ChapterFactory
@@ -37,6 +38,43 @@ def test_form_landing_authenticated_returns_200(auto_login_user):
     client, _user = auto_login_user()
     response = client.get(reverse("forms:landing"))
     assert response.status_code == 200
+
+
+@pytest.mark.django_db
+@override_settings(DEBUG=True)  # superuser bypasses RequireSuperuser2FAMiddleware only when DEBUG
+def test_form_landing_superuser_shows_moved_admin_links(auto_login_user):
+    """Nav cleanup moved these member/national/admin actions onto the Forms landing."""
+    client, user = auto_login_user()
+    _add_to_group(user, "natoff")
+    user.is_superuser = True
+    user.save()
+    response = client.get(reverse("forms:landing"))
+    assert response.status_code == 200
+    body = response.content.decode("utf-8")
+    # Member nomination + national volunteer-nomination list.
+    assert "Nominate for Office" in body
+    assert reverse("nominations:list") in body
+    # Award admin actions (superuser).
+    assert "Grant an Award" in body
+    assert "Import Awards" in body
+    # National officers: one consolidated page (add gated to superusers on the page).
+    assert reverse("forms:natoff") in body
+    # National attendance upload (superuser).
+    assert "Upload National Attendance" in body
+
+
+@pytest.mark.django_db
+def test_form_landing_natoff_hides_superuser_only_links(auto_login_user):
+    """A natoff sees the national-officer view + volunteer list, but not superuser actions."""
+    client, user = auto_login_user()
+    _add_to_group(user, "natoff")
+    response = client.get(reverse("forms:landing"))
+    assert response.status_code == 200
+    body = response.content.decode("utf-8")
+    assert reverse("forms:natoff") in body
+    assert reverse("nominations:list") in body
+    assert "Upload National Attendance" not in body
+    assert "Grant an Award" not in body
 
 
 # ─── PledgeFormView (no auth required, CreateView) ────────────────────────────
@@ -108,6 +146,59 @@ def test_rmp_form_not_yet_signed_returns_200(db, client, user_factory, test_pass
     assert response.status_code == 200
 
 
+# A fully valid RiskManagementForm POST: every acknowledgement box checked.
+_RMP_VALID_FORM_DATA = {
+    field: "on"
+    for field in [
+        "alcohol",
+        "hosting",
+        "monitoring",
+        "member",
+        "officer",
+        "abusive",
+        "hazing",
+        "substances",
+        "high_risk",
+        "transportation",
+        "property_management",
+        "guns",
+        "trademark",
+        "social",
+        "indemnification",
+        "agreement",
+        "electronic_agreement",
+        "photo_release",
+        "arbitration",
+        "fines",
+        "dues",
+        "terms_agreement",
+    ]
+}
+
+
+@pytest.mark.django_db
+def test_rmp_form_post_when_already_signed_skips_duplicate_upload(auto_login_user):
+    """A duplicate RMP submit (e.g. a double-click) must not write a second copy.
+
+    The archived RMP is stored under a deterministic per-user object name, so a
+    second write within a second triggers a Google Cloud Storage 429 (issue
+    #957). ``form_valid`` now short-circuits when the user already signed this
+    term — before touching cloud storage — so no duplicate row and no second
+    upload occur.
+    """
+    from thetatauCMT.forms.models import RiskManagement
+
+    client, user = auto_login_user()  # fixture already records an RMP for this term
+    before = RiskManagement.objects.filter(user=user).count()
+    data = dict(_RMP_VALID_FORM_DATA)
+    data["typed_name"] = str(user)
+    response = client.post(reverse("forms:rmp"), data=data)
+    assert response.status_code == 302
+    assert "submissions" in response["Location"]
+    # No second RiskManagement row -> no second cloud-storage mutation.
+    assert RiskManagement.objects.filter(user=user).count() == before
+
+
 # ─── BylawsCreateView (LoginRequired, CreateView) ─────────────────────────────
 
 
@@ -138,19 +229,193 @@ def test_init_selection_authenticated_returns_200(auto_login_user):
     assert response.status_code == 200
 
 
-# ─── StatusChangeSelectView (LoginRequired, FormSetView) ──────────────────────
+# ─── Split member status-change views ─────────────────────────────────────────
+
+SINGLE_STATUS_REASONS = ["coop", "military", "withdraw", "transfer"]
 
 
-def test_status_selection_unauthenticated_redirects(client, db):
-    response = client.get(reverse("forms:status_selection"))
+def test_status_history_unauthenticated_redirects(client, db):
+    response = client.get(reverse("forms:status_history", kwargs={"reason": "coop"}))
     assert response.status_code == 302
 
 
 @pytest.mark.django_db
-def test_status_selection_authenticated_returns_200(auto_login_user):
-    client, _user = auto_login_user()
-    response = client.get(reverse("forms:status_selection"))
+@pytest.mark.parametrize("reason", SINGLE_STATUS_REASONS + ["graduate"])
+def test_status_history_officer_returns_200(auto_login_user, reason):
+    client, user = auto_login_user()
+    _add_to_group(user, "officer")
+    response = client.get(reverse("forms:status_history", kwargs={"reason": reason}))
     assert response.status_code == 200
+
+
+@pytest.mark.django_db
+def test_status_history_non_officer_redirects(auto_login_user):
+    client, user = auto_login_user()
+    response = client.get(reverse("forms:status_history", kwargs={"reason": "coop"}), follow=False)
+    assert response.status_code == 302
+
+
+@pytest.mark.django_db
+def test_status_history_unknown_reason_404(auto_login_user):
+    client, user = auto_login_user()
+    _add_to_group(user, "officer")
+    response = client.get(reverse("forms:status_history", kwargs={"reason": "bogus"}))
+    assert response.status_code == 404
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("reason", SINGLE_STATUS_REASONS)
+def test_status_new_officer_returns_200(auto_login_user, reason):
+    client, user = auto_login_user()
+    _add_to_group(user, "officer")
+    response = client.get(reverse("forms:status_new", kwargs={"reason": reason}))
+    assert response.status_code == 200
+
+
+@pytest.mark.django_db
+def test_status_new_graduate_redirects_to_select(auto_login_user):
+    """The single-member create view bounces graduation to its multi-member select step."""
+    client, user = auto_login_user()
+    _add_to_group(user, "officer")
+    response = client.get(reverse("forms:status_new", kwargs={"reason": "graduate"}), follow=False)
+    assert response.status_code == 302
+    assert reverse("forms:status_graduate_select") in response["Location"]
+
+
+@pytest.mark.django_db
+def test_status_new_non_officer_redirects(auto_login_user):
+    client, user = auto_login_user()
+    response = client.get(reverse("forms:status_new", kwargs={"reason": "coop"}), follow=False)
+    assert response.status_code == 302
+
+
+@pytest.mark.django_db
+def test_resignedcc_hidden_for_chartered_chapter(auto_login_user):
+    """resignedCC is candidate-chapter-only; a chartered chapter is sent to the landing."""
+    client, user = auto_login_user()
+    _add_to_group(user, "officer")
+    user.chapter.candidate_chapter = False
+    user.chapter.save()
+    response = client.get(reverse("forms:status_history", kwargs={"reason": "resignedCC"}), follow=False)
+    assert response.status_code == 302
+    assert reverse("forms:landing") in response["Location"]
+
+
+@pytest.mark.django_db
+def test_resignedcc_available_for_candidate_chapter(auto_login_user):
+    client, user = auto_login_user()
+    _add_to_group(user, "officer")
+    user.chapter.candidate_chapter = True
+    user.chapter.save()
+    response = client.get(reverse("forms:status_history", kwargs={"reason": "resignedCC"}))
+    assert response.status_code == 200
+
+
+@pytest.mark.django_db
+def test_graduate_select_officer_returns_200(auto_login_user):
+    client, user = auto_login_user()
+    _add_to_group(user, "officer")
+    response = client.get(reverse("forms:status_graduate_select"))
+    assert response.status_code == 200
+    # Members are chosen with the searchable member autocomplete.
+    assert reverse("users:autocomplete") in response.content.decode("utf-8")
+
+
+@pytest.mark.django_db
+def test_status_history_collapsible_filter_shows_active(auto_login_user):
+    """The history table uses the collapsible filter accordion and flags an
+    applied filter as active (issue #1)."""
+    client, user = auto_login_user()
+    _add_to_group(user, "officer")
+    response = client.get(reverse("forms:status_history", kwargs={"reason": "coop"}), {"user": "Nobody"})
+    assert response.status_code == 200
+    body = response.content.decode("utf-8")
+    # Accordion collapse target is rendered.
+    assert "statusChangeFilter" in body
+    # An applied filter surfaces the active indicator + clear control.
+    assert "Clear Filter" in body
+    # The filter submit button renders (not an empty crispy input).
+    assert 'value="Filter"' in body
+
+
+@pytest.mark.django_db
+def test_status_history_links_member_to_profile(auto_login_user, user_factory):
+    """Member names in the history table link to their profile page."""
+    import datetime
+
+    from thetatauCMT.forms.models import StatusChange
+
+    client, user = auto_login_user()
+    _add_to_group(user, "officer")
+    member = user_factory.create(chapter=user.chapter)
+    StatusChange.objects.create(user=member, created_by=user, reason="withdraw", date_start=datetime.date(2026, 5, 15))
+    response = client.get(reverse("forms:status_history", kwargs={"reason": "withdraw"}))
+    assert response.status_code == 200
+    body = response.content.decode("utf-8")
+    assert reverse("users:profile", kwargs={"username": member.username}) in body
+
+
+@pytest.mark.django_db
+def test_graduate_fill_without_selection_redirects(auto_login_user):
+    client, user = auto_login_user()
+    _add_to_group(user, "officer")
+    response = client.get(reverse("forms:status_graduate"), follow=False)
+    assert response.status_code == 302
+    assert reverse("forms:status_graduate_select") in response["Location"]
+
+
+@pytest.mark.django_db
+def test_status_change_landing_lists_split_forms(auto_login_user):
+    client, user = auto_login_user()
+    response = client.get(reverse("forms:landing"))
+    body = response.content.decode("utf-8")
+    assert "Co-op / Study Abroad" in body
+    assert "Military Deployment" in body
+    assert "Graduation" in body
+    # Candidate-only reason is hidden for a chartered chapter.
+    assert "Resign from Candidate Chapter" not in body
+
+
+@pytest.mark.django_db
+def test_withdraw_submit_creates_status_change(auto_login_user, user_factory):
+    """Submitting the single-member form creates a StatusChange and redirects to history."""
+    from thetatauCMT.forms.models import StatusChange
+
+    client, user = auto_login_user()
+    _add_to_group(user, "officer")
+    member = user_factory.create(chapter=user.chapter)
+    member.set_current_status(status="active")
+    response = client.post(
+        reverse("forms:status_new", kwargs={"reason": "withdraw"}),
+        data={"user": member.pk, "date_start": "2026-05-15"},
+        follow=False,
+    )
+    assert response.status_code == 302
+    assert reverse("forms:status_history", kwargs={"reason": "withdraw"}) in response["Location"]
+    change = StatusChange.objects.filter(user=member, reason="withdraw").first()
+    assert change is not None
+
+
+@pytest.mark.django_db
+def test_status_new_form_renders_autocomplete_and_datepicker(auto_login_user):
+    """The single-member form uses a member autocomplete + a working datepicker,
+    and omits fields that are not relevant to the reason (issues #2/#3/#4)."""
+    client, user = auto_login_user()
+    _add_to_group(user, "officer")
+    response = client.get(reverse("forms:status_new", kwargs={"reason": "withdraw"}))
+    assert response.status_code == 200
+    body = response.content.decode("utf-8")
+    # Member picker is a Select2 autocomplete sourced from users:autocomplete.
+    assert reverse("users:autocomplete") in body
+    # Tempus-dominus datepicker init/assets are present.
+    assert "datetimepicker" in body
+    assert "moment" in body.lower()
+    # The tempus input-group id must be unique — a duplicate div_id_date_start
+    # (crispy field wrapper + widget input-group) breaks the datepicker popup.
+    assert body.count('id="div_id_date_start"') == 1
+    # Unneeded fields are not rendered on the withdraw form.
+    assert 'name="employer"' not in body
+    assert 'name="new_school"' not in body
 
 
 # ─── RoleChangeView (LoginRequired, ModelFormSetView) ─────────────────────────
@@ -215,7 +480,7 @@ def test_natoff_list_view_natoff_returns_200(auto_login_user, view_name):
     assert response.status_code == 200
 
 
-# ─── RoleChangeNationalView (LoginRequired + NatOfficerRequired) ──────────────
+# ─── RoleChangeNationalListView (single national officers page, LoginRequired) ─
 
 
 def test_natoff_officer_form_unauthenticated_redirects(client, db):
@@ -224,11 +489,56 @@ def test_natoff_officer_form_unauthenticated_redirects(client, db):
 
 
 @pytest.mark.django_db
-def test_natoff_officer_form_natoff_returns_200(auto_login_user):
+@override_settings(DEBUG=True)  # superusers bypass RequireSuperuser2FAMiddleware only when DEBUG
+def test_natoff_officer_form_superuser_returns_200(auto_login_user):
+    client, user = auto_login_user()
+    user.is_superuser = True
+    user.save()
+    response = client.get(reverse("forms:natoff"))
+    assert response.status_code == 200
+
+
+@pytest.mark.django_db
+def test_natoff_page_natoff_can_view_without_add(auto_login_user):
+    """The national officers page is now viewable by any member; only superusers
+    get the Add button."""
     client, user = auto_login_user()
     _add_to_group(user, "natoff")
     response = client.get(reverse("forms:natoff"))
     assert response.status_code == 200
+    body = response.content.decode("utf-8")
+    assert reverse("forms:natoff_add") not in body
+
+
+@pytest.mark.django_db
+def test_natoff_page_natoff_sees_sync_button(auto_login_user):
+    """National officers see the roster AND the contact-sync button."""
+    client, user = auto_login_user()
+    _add_to_group(user, "natoff")
+    response = client.get(reverse("forms:natoff"), follow=True)
+    assert response.status_code == 200
+    body = response.content.decode("utf-8")
+    assert "Sync National Officers to Contacts" in body
+
+
+@pytest.mark.django_db
+def test_natoff_page_non_natoff_can_view_without_sync(auto_login_user):
+    """Any logged-in member can view the roster; only natoffs get the sync button."""
+    client, user = auto_login_user()
+    response = client.get(reverse("forms:natoff"))
+    assert response.status_code == 200
+    body = response.content.decode("utf-8")
+    assert "Sync National Officers to Contacts" not in body
+    assert 'id="contactSyncModal"' not in body
+
+
+@pytest.mark.django_db
+def test_national_officer_contacts_redirects_to_natoff(auto_login_user):
+    """The old contacts URL now redirects to the consolidated national page."""
+    client, user = auto_login_user()
+    response = client.get(reverse("forms:national_officer_contacts"), follow=False)
+    assert response.status_code == 302
+    assert reverse("forms:natoff") in response["Location"]
 
 
 # ─── InitiationView (OfficerRequiredMixin) ────────────────────────────────────
@@ -252,24 +562,23 @@ def test_initiation_view_non_officer_redirects(auto_login_user):
     assert response.status_code == 302
 
 
-# ─── StatusChangeView (OfficerRequiredMixin) ─────────────────────────────────
+# ─── Legacy status URLs now redirect to the forms landing ─────────────────────
 
 
 @pytest.mark.django_db
-def test_status_change_view_officer_no_session_redirects(auto_login_user):
-    """Without 'status-selection' in session, redirects to status_selection."""
+def test_legacy_status_selection_redirects_to_landing(auto_login_user):
     client, user = auto_login_user()
-    _add_to_group(user, "officer")
-    response = client.get(reverse("forms:status"), follow=False)
+    response = client.get(reverse("forms:status_selection"), follow=False)
     assert response.status_code == 302
-    assert "status" in response["Location"]
+    assert reverse("forms:landing") in response["Location"]
 
 
 @pytest.mark.django_db
-def test_status_change_view_non_officer_redirects(auto_login_user):
+def test_legacy_status_redirects_to_landing(auto_login_user):
     client, user = auto_login_user()
     response = client.get(reverse("forms:status"), follow=False)
     assert response.status_code == 302
+    assert reverse("forms:landing") in response["Location"]
 
 
 # ─── AuditFormView (OfficerRequiredMixin) ─────────────────────────────────────
@@ -539,10 +848,12 @@ def test_role_change_national_view_unauthenticated_redirects(client, db):
 
 
 @pytest.mark.django_db
-def test_role_change_national_view_natoff_returns_200(auto_login_user):
-    """NatOff can access the national officer role assignment view."""
+@override_settings(DEBUG=True)  # superusers bypass RequireSuperuser2FAMiddleware only when DEBUG
+def test_role_change_national_view_superuser_returns_200(auto_login_user):
+    """Superusers can access the national officer role assignment view."""
     client, user = auto_login_user()
-    _add_to_group(user, "natoff")
+    user.is_superuser = True
+    user.save()
     url = reverse("forms:natoff")
     response = client.get(url, follow=True)
     assert response.status_code == 200
@@ -726,63 +1037,6 @@ def test_role_change_view_officer_returns_200(auto_login_user):
     _add_to_group(user, "officer")
     url = reverse("forms:officer")
     response = client.get(url, follow=True)
-    assert response.status_code == 200
-
-
-# ─── StatusChangeSelectView ───────────────────────────────────────────────────
-
-
-@pytest.mark.django_db
-def test_status_change_select_view_unauthenticated_redirects(client, db):
-    url = reverse("forms:status_selection")
-    response = client.get(url)
-    assert response.status_code == 302
-
-
-@pytest.mark.django_db
-def test_status_change_select_view_officer_returns_200(auto_login_user):
-    """Officer can access the status change selection view."""
-    client, user = auto_login_user()
-    _add_to_group(user, "officer")
-    url = reverse("forms:status_selection")
-    response = client.get(url, follow=True)
-    assert response.status_code == 200
-
-
-# ─── StatusChangeSelectView POST ─────────────────────────────────────────────
-
-
-@pytest.mark.django_db
-def test_status_change_select_post_add_row(auto_login_user):
-    """POST with action='Add Row' returns the formset page (200)."""
-    client, user = auto_login_user()
-    _add_to_group(user, "officer")
-    url = reverse("forms:status_selection")
-    data = {
-        "selection-TOTAL_FORMS": "0",
-        "selection-INITIAL_FORMS": "0",
-        "selection-MIN_NUM_FORMS": "0",
-        "selection-MAX_NUM_FORMS": "1000",
-        "action": "Add Row",
-    }
-    response = client.post(url, data)
-    assert response.status_code == 200
-
-
-@pytest.mark.django_db
-def test_status_change_select_post_delete_selected(auto_login_user):
-    """POST with action='Delete Selected' returns the formset page (200)."""
-    client, user = auto_login_user()
-    _add_to_group(user, "officer")
-    url = reverse("forms:status_selection")
-    data = {
-        "selection-TOTAL_FORMS": "0",
-        "selection-INITIAL_FORMS": "0",
-        "selection-MIN_NUM_FORMS": "0",
-        "selection-MAX_NUM_FORMS": "1000",
-        "action": "Delete Selected",
-    }
-    response = client.post(url, data)
     assert response.status_code == 200
 
 
@@ -1340,28 +1594,24 @@ def test_init_selection_context_has_helper(auto_login_user):
 
 
 @pytest.mark.django_db
-def test_status_selection_context_has_formset(auto_login_user):
-    """StatusChangeSelectView provides a 'formset' in context."""
-    client, user = auto_login_user()
-    response = client.get(reverse("forms:status_selection"))
-    assert "formset" in response.context
-
-
-@pytest.mark.django_db
-def test_role_change_view_context_has_formset(auto_login_user):
-    """RoleChangeView provides a 'formset' in context."""
+def test_role_change_view_context_has_table(auto_login_user):
+    """RoleChangeListView provides a filterable 'table' in context."""
     client, user = auto_login_user()
     response = client.get(reverse("forms:officer"))
-    assert "formset" in response.context
+    assert "table" in response.context
+    assert "filter" in response.context
 
 
 @pytest.mark.django_db
-def test_role_change_national_view_context_has_formset(auto_login_user):
-    """RoleChangeNationalView provides a 'formset' in context."""
+@override_settings(DEBUG=True)  # superusers bypass RequireSuperuser2FAMiddleware only when DEBUG
+def test_role_change_national_view_context_has_table(auto_login_user):
+    """RoleChangeNationalListView provides a filterable 'table' in context."""
     client, user = auto_login_user()
-    _add_to_group(user, "natoff")
+    user.is_superuser = True
+    user.save()
     response = client.get(reverse("forms:natoff"), follow=True)
-    assert "formset" in response.context
+    assert "table" in response.context
+    assert "filter" in response.context
 
 
 @pytest.mark.django_db
@@ -1401,41 +1651,6 @@ def test_resignation_list_view_officer_explicit_returns_200(auto_login_user):
     url = reverse("forms:resign_list")
     response = client.get(url, follow=True)
     assert response.status_code == 200
-
-
-# ─── StatusChangeView with session data ──────────────────────────────────────
-
-
-@pytest.mark.django_db
-def test_status_change_view_get_with_session(auto_login_user):
-    """StatusChangeView.get renders the form when status-selection is in session."""
-    client, user = auto_login_user()
-    _add_to_group(user, "officer")
-    session = client.session
-    session["status-selection"] = {
-        "graduate": [],
-        "coop": [],
-        "covid": [],
-        "military": [],
-        "withdraw": [],
-        "transfer": [],
-        "resignedCC": [],
-    }
-    session.save()
-    url = reverse("forms:status")
-    response = client.get(url, follow=True)
-    assert response.status_code == 200
-
-
-@pytest.mark.django_db
-def test_status_change_view_no_session_redirects(auto_login_user):
-    """StatusChangeView.get redirects to status_selection when session is absent."""
-    client, user = auto_login_user()
-    _add_to_group(user, "officer")
-    url = reverse("forms:status")
-    response = client.get(url)
-    # Should redirect to status_selection
-    assert response.status_code in (200, 302)
 
 
 # ─── InitiationView with init-selection session ───────────────────────────────
@@ -1677,28 +1892,6 @@ def test_pledge_form_alt_get_with_description_returns_200(client):
     assert response.status_code == 200
 
 
-# ─── StatusChangeSelectView context (existing tests cover GET, add POST branch) ─
-
-
-@pytest.mark.django_db
-def test_status_change_select_view_post_empty(auto_login_user):
-    """StatusChangeSelectView POST with minimal data returns 200."""
-    client, user = auto_login_user()
-    _add_to_group(user, "officer")
-    url = reverse("forms:status_selection")
-    data = {
-        "action": "submit",
-        "selection-TOTAL_FORMS": "1",
-        "selection-INITIAL_FORMS": "0",
-        "selection-MIN_NUM_FORMS": "0",
-        "selection-MAX_NUM_FORMS": "1000",
-        "selection-0-user": "",
-        "selection-0-state": "",
-    }
-    response = client.post(url, data, follow=True)
-    assert response.status_code == 200
-
-
 # ─── RoleChangeView GET with officer (already covered unauthenticated) ────────
 
 
@@ -1878,10 +2071,12 @@ def test_pledge_program_list_complete_filter_all(auto_login_user):
 
 
 @pytest.mark.django_db
+@override_settings(DEBUG=True)  # superusers bypass RequireSuperuser2FAMiddleware only when DEBUG
 def test_role_change_national_view_officer_returns_200(auto_login_user):
-    """RoleChangeNationalView GET returns 200 for natoff users."""
+    """RoleChangeNationalView GET returns 200 for superusers."""
     client, user = auto_login_user()
-    _add_to_group(user, "natoff")
+    user.is_superuser = True
+    user.save()
     url = reverse("forms:natoff")
     response = client.get(url, follow=True)
     assert response.status_code == 200
@@ -1944,79 +2139,465 @@ def test_bill_of_rights_detail_with_chapter(client):
     assert response.status_code == 200
 
 
-# ─── StatusChangeView POST with session ──────────────────────────────────────
+# ─── RoleChangeCreateView POST (add officer) ─────────────────────────────────
 
 
 @pytest.mark.django_db
-def test_status_change_view_post_empty_formsets(auto_login_user):
-    """StatusChangeView.post covers the POST handler with empty formsets."""
+def test_officer_add_view_post_invalid_returns_200(auto_login_user):
+    """RoleChangeCreateView POST with empty data re-renders the form (form_invalid)."""
     client, user = auto_login_user()
     _add_to_group(user, "officer")
-    session = client.session
-    session["status-selection"] = {
-        "graduate": [],
-        "coop": [],
-        "covid": [],
-        "military": [],
-        "withdraw": [],
-        "transfer": [],
-        "resignedCC": [],
-    }
-    session.save()
-    url = reverse("forms:status")
-    data = {
-        "graduates-TOTAL_FORMS": "0",
-        "graduates-INITIAL_FORMS": "0",
-        "graduates-MIN_NUM_FORMS": "0",
-        "graduates-MAX_NUM_FORMS": "1000",
-        "csmt-TOTAL_FORMS": "0",
-        "csmt-INITIAL_FORMS": "0",
-        "csmt-MIN_NUM_FORMS": "0",
-        "csmt-MAX_NUM_FORMS": "1000",
-    }
-    response = client.post(url, data, follow=True)
+    url = reverse("forms:officer_add")
+    response = client.post(url, {"user": "", "role": ""}, follow=True)
     assert response.status_code == 200
 
 
-# ─── RoleChangeView POST with empty formset ──────────────────────────────────
+@pytest.mark.django_db
+def test_officer_add_view_creates_officer_role(auto_login_user, user_factory):
+    """A valid add still creates the role and updates ``current_roles`` after the
+    deadlock hardening (issues #825/#858/#859/#982): the save runs inside
+    ``retry_on_deadlock`` with a ``select_for_update`` lock, and this is the
+    happy path."""
+    from django.utils import timezone
+
+    from thetatauCMT.users.models import UserRoleChange
+
+    client, user = auto_login_user()
+    _add_to_group(user, "officer")
+    member = user_factory.create(chapter=user.chapter)
+    # Deterministic starting point regardless of any reused-DB chapter officers.
+    UserRoleChange.objects.filter(user__chapter=user.chapter).delete()
+    start = timezone.now().date()
+    end = start + timezone.timedelta(days=365)
+    url = reverse("forms:officer_add")
+    data = {
+        # A committee-chair role avoids the treasurer-term policy, the Vector
+        # LMS sync, and the New Officer email, keeping the test focused on the
+        # role save path itself.
+        "user": str(member.pk),
+        "role": "events chair",
+        "start": start.strftime("%m/%d/%Y"),
+        "end": end.strftime("%m/%d/%Y"),
+    }
+    response = client.post(url, data, follow=True)
+    assert response.status_code == 200
+    assert UserRoleChange.objects.filter(user=member, role="events chair").exists()
+    member.refresh_from_db()
+    assert "events chair" in (member.current_roles or [])
+
+
+# ─── RoleChangeNationalCreateView POST (add national officer) ─────────────────
 
 
 @pytest.mark.django_db
-def test_role_change_view_post_empty_formset(auto_login_user):
-    """RoleChangeView.post covers the POST handler with empty formset data."""
+@override_settings(DEBUG=True)  # superusers bypass RequireSuperuser2FAMiddleware only when DEBUG
+def test_national_officer_add_view_post_invalid_returns_200(auto_login_user):
+    """RoleChangeNationalCreateView POST with empty data re-renders (form_invalid)."""
     client, user = auto_login_user()
+    user.is_superuser = True
+    user.save()
+    url = reverse("forms:natoff_add")
+    response = client.post(url, {"user": "", "role": ""}, follow=True)
+    assert response.status_code == 200
+
+
+# ─── Officer table: filtering, remove, and permissions ───────────────────────
+
+
+@pytest.mark.django_db
+def test_officer_list_defaults_to_current_and_all_shows_past(auto_login_user, user_factory):
+    """The officer table defaults to current officers; the empty/Clear choice reveals past ones."""
+    from django.utils import timezone
+
+    from thetatauCMT.users.models import UserRoleChange
+
+    client, user = auto_login_user()
+    chapter = user.chapter
+    UserRoleChange.objects.filter(user__chapter=chapter).delete()
+    today = timezone.now().date()
+    current_member = user_factory.create(chapter=chapter, name="Current Scribe")
+    past_member = user_factory.create(chapter=chapter, name="Past Scribe")
+    UserRoleChange.objects.create(
+        user=current_member,
+        role="scribe",
+        start=today - timezone.timedelta(days=10),
+        end=today + timezone.timedelta(days=300),
+    )
+    UserRoleChange.objects.create(
+        user=past_member,
+        role="scribe",
+        start=today - timezone.timedelta(days=800),
+        end=today - timezone.timedelta(days=400),
+    )
     url = reverse("forms:officer")
-    data = {
-        "form-TOTAL_FORMS": "1",
-        "form-INITIAL_FORMS": "0",
-        "form-MIN_NUM_FORMS": "0",
-        "form-MAX_NUM_FORMS": "1000",
-        "form-0-user": "",
-        "form-0-role": "",
-    }
-    response = client.post(url, data, follow=True)
-    assert response.status_code == 200
-
-
-# ─── RoleChangeNationalView POST with empty formset ──────────────────────────
+    # Default (current) shows only the current officer.
+    body = client.get(url).content.decode("utf-8")
+    assert "Current Scribe" in body
+    assert "Past Scribe" not in body
+    # The empty period choice ("All (incl. past)") reveals the past officer too.
+    body_all = client.get(url, {"period": ""}).content.decode("utf-8")
+    assert "Current Scribe" in body_all
+    assert "Past Scribe" in body_all
+    # "Clear" (cancel) also clears the Current-Officers default → shows all.
+    body_clear = client.get(url, {"cancel": "Clear"}).content.decode("utf-8")
+    assert "Current Scribe" in body_clear
+    assert "Past Scribe" in body_clear
 
 
 @pytest.mark.django_db
-def test_role_change_national_view_post_empty_formset(auto_login_user):
-    """RoleChangeNationalView.post covers the POST handler with empty formset data."""
+def test_officer_list_page_has_copy_emails(auto_login_user, user_factory):
+    """The chapter officer roster carries a Copy-emails button with current officers' emails."""
+    from django.utils import timezone
+
+    from thetatauCMT.users.models import UserRoleChange
+
     client, user = auto_login_user()
-    _add_to_group(user, "natoff")
-    url = reverse("forms:natoff")
+    chapter = user.chapter
+    UserRoleChange.objects.filter(user__chapter=chapter).delete()
+    today = timezone.now().date()
+    member = user_factory.create(chapter=chapter, email="scribe-copy@example.com")
+    UserRoleChange.objects.create(
+        user=member,
+        role="scribe",
+        start=today - timezone.timedelta(days=10),
+        end=today + timezone.timedelta(days=300),
+    )
+    response = client.get(reverse("forms:officer"))
+    assert response.status_code == 200
+    body = response.content.decode("utf-8")
+    assert "Copy emails to clipboard" in body
+    assert "scribe-copy@example.com" in response.context["email_list"]
+
+
+@pytest.mark.django_db
+def test_officer_edit_view_updates_dates(auto_login_user, user_factory):
+    """An officer can edit a chapter role's term dates (Edit replaces Remove)."""
+    from django.utils import timezone
+
+    from thetatauCMT.users.models import UserRoleChange
+
+    client, user = auto_login_user()
+    _add_to_group(user, "officer")
+    member = user_factory.create(chapter=user.chapter)
+    role = UserRoleChange.objects.create(
+        user=member,
+        role="scribe",
+        start=timezone.now().date() - timezone.timedelta(days=10),
+        end=timezone.now().date() + timezone.timedelta(days=300),
+    )
+    assert role.can_be_edited_by(user)
+    new_start = timezone.now().date()
+    new_end = new_start + timezone.timedelta(days=200)
+    url = reverse("forms:role_edit", kwargs={"pk": role.pk})
+    data = {"start": new_start.strftime("%Y-%m-%d"), "end": new_end.strftime("%Y-%m-%d")}
+    response = client.post(url, data, follow=True)
+    assert response.status_code == 200
+    role.refresh_from_db()
+    assert role.start == new_start
+    assert role.end == new_end
+
+
+@pytest.mark.django_db
+def test_officer_edit_rejects_short_term(auto_login_user, user_factory):
+    """A term of one week or less is rejected — a role cannot be effectively deleted."""
+    from django.utils import timezone
+
+    from thetatauCMT.users.models import UserRoleChange
+
+    client, user = auto_login_user()
+    _add_to_group(user, "officer")
+    member = user_factory.create(chapter=user.chapter)
+    role = UserRoleChange.objects.create(
+        user=member,
+        role="scribe",
+        start=timezone.now().date() - timezone.timedelta(days=10),
+        end=timezone.now().date() + timezone.timedelta(days=300),
+    )
+    original_end = role.end
+    start = timezone.now().date()
+    url = reverse("forms:role_edit", kwargs={"pk": role.pk})
     data = {
-        "form-TOTAL_FORMS": "1",
-        "form-INITIAL_FORMS": "0",
-        "form-MIN_NUM_FORMS": "0",
-        "form-MAX_NUM_FORMS": "1000",
-        "form-0-user": "",
-        "form-0-role": "",
+        "start": start.strftime("%Y-%m-%d"),
+        "end": (start + timezone.timedelta(days=5)).strftime("%Y-%m-%d"),
+    }
+    response = client.post(url, data)
+    assert response.status_code == 200  # form re-rendered (invalid)
+    assert b"longer than one week" in response.content
+    role.refresh_from_db()
+    assert role.end == original_end  # unchanged
+
+
+@pytest.mark.django_db
+def test_officer_edit_rejects_start_after_end(auto_login_user, user_factory):
+    """The start date must be before the end date."""
+    from django.utils import timezone
+
+    from thetatauCMT.users.models import UserRoleChange
+
+    client, user = auto_login_user()
+    _add_to_group(user, "officer")
+    member = user_factory.create(chapter=user.chapter)
+    role = UserRoleChange.objects.create(
+        user=member,
+        role="scribe",
+        start=timezone.now().date() - timezone.timedelta(days=10),
+        end=timezone.now().date() + timezone.timedelta(days=300),
+    )
+    start = timezone.now().date()
+    url = reverse("forms:role_edit", kwargs={"pk": role.pk})
+    data = {
+        "start": start.strftime("%Y-%m-%d"),
+        "end": (start - timezone.timedelta(days=1)).strftime("%Y-%m-%d"),
+    }
+    response = client.post(url, data)
+    assert response.status_code == 200
+    assert b"start date must be before the end date" in response.content
+
+
+@pytest.mark.django_db
+def test_officer_edit_other_chapter_blocked(auto_login_user, user_factory):
+    """An officer cannot edit a role for a member of a different chapter."""
+    from django.utils import timezone
+
+    from thetatauCMT.users.models import UserRoleChange
+
+    client, user = auto_login_user()
+    _add_to_group(user, "officer")
+    other_member = user_factory.create()  # its own SubFactory chapter
+    role = UserRoleChange.objects.create(
+        user=other_member,
+        role="scribe",
+        start=timezone.now().date() - timezone.timedelta(days=10),
+        end=timezone.now().date() + timezone.timedelta(days=300),
+    )
+    url = reverse("forms:role_edit", kwargs={"pk": role.pk})
+    response = client.get(url, follow=False)
+    assert response.status_code == 302  # permission denied → redirected to the list
+
+
+@pytest.mark.django_db
+def test_member_can_edit_own_non_chapter_officer_role(auto_login_user):
+    """A member may edit their OWN non-chapter-officer role (e.g. a committee chair)."""
+    from django.utils import timezone
+
+    from thetatauCMT.users.models import UserRoleChange
+
+    client, user = auto_login_user()  # a regular member, not an officer
+    role = UserRoleChange.objects.create(
+        user=user,
+        role="events chair",
+        start=timezone.now().date() - timezone.timedelta(days=10),
+        end=timezone.now().date() + timezone.timedelta(days=300),
+    )
+    assert role.can_be_edited_by(user)
+    new_start = timezone.now().date()
+    new_end = new_start + timezone.timedelta(days=150)
+    url = reverse("forms:role_edit", kwargs={"pk": role.pk})
+    data = {"start": new_start.strftime("%Y-%m-%d"), "end": new_end.strftime("%Y-%m-%d")}
+    response = client.post(url, data, follow=True)
+    assert response.status_code == 200
+    role.refresh_from_db()
+    assert role.end == new_end
+
+
+@pytest.mark.django_db
+def test_member_cannot_edit_own_chapter_officer_role(auto_login_user):
+    """A member cannot edit their OWN chapter-officer role — another officer must."""
+    from django.utils import timezone
+
+    from thetatauCMT.users.models import UserRoleChange
+
+    client, user = auto_login_user()
+    role = UserRoleChange.objects.create(
+        user=user,
+        role="scribe",  # a chapter-officer position
+        start=timezone.now().date() - timezone.timedelta(days=10),
+        end=timezone.now().date() + timezone.timedelta(days=300),
+    )
+    # Holding scribe put the user in the officer group, but self-editing a
+    # chapter-officer role is still denied.
+    assert not role.can_be_edited_by(user)
+    url = reverse("forms:role_edit", kwargs={"pk": role.pk})
+    response = client.get(url, follow=False)
+    assert response.status_code == 302
+
+
+@pytest.mark.django_db
+def test_edit_past_role_denied(auto_login_user, user_factory):
+    """Only current terms are editable — a past role cannot be edited."""
+    from django.utils import timezone
+
+    from thetatauCMT.users.models import UserRoleChange
+
+    client, user = auto_login_user()
+    _add_to_group(user, "officer")
+    member = user_factory.create(chapter=user.chapter)
+    role = UserRoleChange.objects.create(
+        user=member,
+        role="scribe",
+        start=timezone.now().date() - timezone.timedelta(days=800),
+        end=timezone.now().date() - timezone.timedelta(days=400),
+    )
+    assert not role.is_current
+    assert not role.can_be_edited_by(user)
+    url = reverse("forms:role_edit", kwargs={"pk": role.pk})
+    response = client.get(url, follow=False)
+    assert response.status_code == 302
+
+
+@pytest.mark.django_db
+@override_settings(DEBUG=True)  # superusers bypass RequireSuperuser2FAMiddleware only when DEBUG
+def test_national_officer_edit_superuser_updates_dates(auto_login_user, user_factory):
+    """A superuser can edit a national officer's term dates."""
+    from django.utils import timezone
+
+    from thetatauCMT.users.models import UserRoleChange
+
+    client, user = auto_login_user()
+    user.is_superuser = True
+    user.save()
+    member = user_factory.create()
+    role = UserRoleChange.objects.create(
+        user=member,
+        role="grand regent",
+        start=timezone.now().date() - timezone.timedelta(days=10),
+        end=timezone.now().date() + timezone.timedelta(days=300),
+    )
+    new_start = timezone.now().date()
+    new_end = new_start + timezone.timedelta(days=200)
+    url = reverse("forms:role_edit", kwargs={"pk": role.pk})
+    data = {"start": new_start.strftime("%Y-%m-%d"), "end": new_end.strftime("%Y-%m-%d")}
+    response = client.post(url, data, follow=True)
+    assert response.status_code == 200
+    role.refresh_from_db()
+    assert role.end == new_end
+
+
+@pytest.mark.django_db
+def test_edit_treasurer_non_january_without_reason_blocked(auto_login_user, user_factory):
+    """Editing a Treasurer term to non-January dates is blocked without a reason (parity with add)."""
+    import datetime
+
+    from thetatauCMT.users.models import UserRoleChange
+
+    client, user = auto_login_user()
+    _add_to_group(user, "officer")
+    member = user_factory.create(chapter=user.chapter)
+    role = UserRoleChange.objects.create(
+        user=member,
+        role="treasurer",
+        start=datetime.date(2026, 1, 1),
+        end=datetime.date(2027, 1, 1),
+    )
+    url = reverse("forms:role_edit", kwargs={"pk": role.pk})
+    data = {"start": "2026-03-01", "end": "2027-02-28"}  # non-January, valid length
+    response = client.post(url, data)
+    assert response.status_code == 200  # form re-rendered (invalid)
+    assert b"beginning in January" in response.content
+    role.refresh_from_db()
+    assert role.start == datetime.date(2026, 1, 1)  # unchanged
+
+
+@pytest.mark.django_db
+def test_edit_treasurer_non_january_with_reason_saves_and_emails(auto_login_user, user_factory, mailoutbox):
+    """With a reason, an out-of-policy Treasurer edit saves and notifies leadership."""
+    import datetime
+
+    from thetatauCMT.users.models import UserRoleChange
+
+    client, user = auto_login_user()
+    _add_to_group(user, "officer")
+    member = user_factory.create(chapter=user.chapter)
+    role = UserRoleChange.objects.create(
+        user=member,
+        role="treasurer",
+        start=datetime.date(2026, 1, 1),
+        end=datetime.date(2027, 1, 1),
+    )
+    url = reverse("forms:role_edit", kwargs={"pk": role.pk})
+    data = {
+        "start": "2026-03-01",
+        "end": "2027-02-28",
+        "treasurer_term_exception_reason": "Mid-year replacement after a resignation.",
     }
     response = client.post(url, data, follow=True)
     assert response.status_code == 200
+    role.refresh_from_db()
+    assert role.start == datetime.date(2026, 3, 1)  # saved
+    exception_emails = [m for m in mailoutbox if "Treasurer Term Policy Exception" in m.subject]
+    assert len(exception_emails) == 1
+
+
+@pytest.mark.django_db
+def test_edit_status_overlap_blocked(auto_login_user, user_factory):
+    """Editing a chapter-officer term to overlap an away/alumni status is blocked (parity with add)."""
+    import datetime
+
+    from django.contrib.messages import get_messages
+
+    from thetatauCMT.users.models import UserRoleChange, UserStatusChange
+
+    client, user = auto_login_user()
+    _add_to_group(user, "officer")
+    member = user_factory.create(chapter=user.chapter)
+    role = UserRoleChange.objects.create(
+        user=member,
+        role="scribe",
+        start=datetime.date(2026, 1, 1),
+        end=datetime.date(2027, 1, 1),
+    )
+    UserStatusChange.objects.create(
+        user=member,
+        status="alumni",
+        start=datetime.date(2026, 6, 1),
+        end=datetime.date(2026, 12, 1),
+    )
+    url = reverse("forms:role_edit", kwargs={"pk": role.pk})
+    data = {"start": "2026-05-01", "end": "2026-11-01"}  # overlaps the alumni window
+    response = client.post(url, data)
+    assert response.status_code == 200  # form re-rendered (invalid)
+    msgs = [str(m) for m in get_messages(response.wsgi_request)]
+    assert any("must not overlap with officer term" in m for m in msgs)
+    role.refresh_from_db()
+    assert role.start == datetime.date(2026, 1, 1)  # unchanged
+
+
+@pytest.mark.django_db
+def test_officer_add_view_non_officer_redirected(auto_login_user):
+    """A non-officer cannot open the Add Officer form (OfficerRequiredMixin)."""
+    client, user = auto_login_user()
+    response = client.get(reverse("forms:officer_add"), follow=False)
+    assert response.status_code == 302
+
+
+@pytest.mark.django_db
+@override_settings(DEBUG=True)  # superusers bypass RequireSuperuser2FAMiddleware only when DEBUG
+def test_national_officer_add_creates_role(auto_login_user, user_factory):
+    """A superuser can add a national officer; the education-LMS sync is stubbed."""
+    from unittest import mock
+
+    from django.utils import timezone
+
+    from thetatauCMT.users.models import UserRoleChange
+
+    client, user = auto_login_user()
+    user.is_superuser = True
+    user.save()
+    member = user_factory.create()
+    start = timezone.now().date()
+    end = start + timezone.timedelta(days=365)
+    url = reverse("forms:natoff_add")
+    data = {
+        "user": str(member.pk),
+        "role": "grand regent",
+        "start": start.strftime("%m/%d/%Y"),
+        "end": end.strftime("%m/%d/%Y"),
+    }
+    with mock.patch("thetatauCMT.forms.views.Training.add_user_ed") as add_ed:
+        response = client.post(url, data, follow=True)
+    assert response.status_code == 200
+    assert UserRoleChange.objects.filter(user=member, role="grand regent").exists()
+    add_ed.assert_called_once()
 
 
 # ─── InitiationView POST with session and empty formsets ─────────────────────
@@ -2050,6 +2631,126 @@ def test_initiation_view_post_empty_formsets(auto_login_user):
     assert response.status_code == 200
 
 
+@pytest.mark.django_db
+def test_initiation_view_post_depledge_duplicate_does_not_500(auto_login_user):
+    """A depledge whose ``Depledge`` INSERT loses a concurrent double-submit race
+    raises ``IntegrityError: forms_depledge_user_id_key`` at save time (#782).
+    ``Depledge.user`` is a OneToOneField, but ModelForm ``validate_unique`` only
+    guards the already-committed case, so the report must skip the racing
+    duplicate with a warning instead of returning a 500."""
+    from unittest import mock
+
+    from django.contrib.messages import get_messages
+    from django.db import IntegrityError
+
+    from thetatauCMT.users.tests.factories import UserFactory
+
+    client, user = auto_login_user()
+    _add_to_group(user, "officer")
+    pnm = UserFactory.create(chapter=user.chapter)
+    pnm.set_current_status(status="pnm")
+
+    session = client.session
+    session["init-selection"] = {
+        "Initiate": [],
+        "Depledge": [pnm.pk],
+        "Defer": [],
+        "Roll": [],
+    }
+    session.save()
+
+    data = {
+        "chapter": user.current_chapter.name,
+        "initiates-TOTAL_FORMS": "0",
+        "initiates-INITIAL_FORMS": "0",
+        "initiates-MIN_NUM_FORMS": "0",
+        "initiates-MAX_NUM_FORMS": "1000",
+        "depledges-TOTAL_FORMS": "1",
+        "depledges-INITIAL_FORMS": "1",
+        "depledges-MIN_NUM_FORMS": "0",
+        "depledges-MAX_NUM_FORMS": "1000",
+        "depledges-0-reason": "grades",
+        "depledges-0-date": "2020-02-01",
+        "depledges-0-meeting_held": "na",
+        "depledges-0-meeting_not": "No meeting was required.",
+        "depledges-0-informed": "Informed by chapter officer via email.",
+        "depledges-0-returned_items": "na",
+    }
+    url = reverse("forms:initiation")
+    # Force the INSERT to fail the way the second of two concurrent submits would.
+    with mock.patch(
+        "thetatauCMT.forms.models.Depledge.save",
+        side_effect=IntegrityError("duplicate key value violates unique constraint"),
+    ):
+        response = client.post(url, data)
+    # The whole initiation report still completes (redirects) rather than 500-ing.
+    assert response.status_code == 302
+    stored = [str(m) for m in get_messages(response.wsgi_request)]
+    assert any("already depledged" in m for m in stored)
+
+
+@pytest.mark.django_db
+def test_initiation_view_post_initiate_duplicate_does_not_500(auto_login_user):
+    """An initiation whose ``Initiation`` INSERT loses a concurrent double-submit
+    race raises ``IntegrityError: forms_initiation_user_id_key`` at save time.
+    ``Initiation.user`` is a OneToOneField, so the report must skip the racing
+    duplicate with a warning instead of returning a 500 (same class as #782;
+    mirrors the depledge guard in the same view)."""
+    from unittest import mock
+
+    from django.contrib.messages import get_messages
+    from django.db import IntegrityError
+
+    from thetatauCMT.forms.tests.factories import BadgeFactory
+    from thetatauCMT.users.tests.factories import UserFactory
+
+    client, user = auto_login_user()
+    _add_to_group(user, "officer")
+    pnm = UserFactory.create(chapter=user.chapter)
+    pnm.set_current_status(status="pnm")
+    badge = BadgeFactory.create()
+    next_badge = user.current_chapter.next_badge_number()
+
+    session = client.session
+    session["init-selection"] = {
+        "Initiate": [pnm.pk],
+        "Depledge": [],
+        "Defer": [],
+        "Roll": [],
+    }
+    session.save()
+
+    data = {
+        "chapter": user.current_chapter.name,
+        "initiates-TOTAL_FORMS": "1",
+        "initiates-INITIAL_FORMS": "1",
+        "initiates-MIN_NUM_FORMS": "0",
+        "initiates-MAX_NUM_FORMS": "1000",
+        "initiates-0-date": "2020-02-01",
+        "initiates-0-date_graduation": "2024-05-01",
+        "initiates-0-roll": str(next_badge),
+        "initiates-0-gpa": "3.5",
+        "initiates-0-test_a": "90",
+        "initiates-0-test_b": "90",
+        "initiates-0-badge": str(badge.pk),
+        "depledges-TOTAL_FORMS": "0",
+        "depledges-INITIAL_FORMS": "0",
+        "depledges-MIN_NUM_FORMS": "0",
+        "depledges-MAX_NUM_FORMS": "1000",
+    }
+    url = reverse("forms:initiation")
+    # Force the INSERT to fail the way the second of two concurrent submits would.
+    with mock.patch(
+        "thetatauCMT.forms.models.Initiation.save",
+        side_effect=IntegrityError("duplicate key value violates unique constraint"),
+    ):
+        response = client.post(url, data)
+    # The whole initiation report still completes (redirects) rather than 500-ing.
+    assert response.status_code == 302
+    stored = [str(m) for m in get_messages(response.wsgi_request)]
+    assert any("already initiated" in m for m in stored)
+
+
 # ─── PrematureAlumnusCreateView GET (context_data) ────────────────────────────
 
 
@@ -2060,6 +2761,19 @@ def test_premature_alumnus_create_view_get(auto_login_user):
     url = reverse("viewflow:forms:prematurealumnus:start")
     response = client.get(url, follow=True)
     assert response.status_code == 200
+
+
+@pytest.mark.django_db
+def test_premature_alumnus_create_view_success_url_is_start():
+    """The submitting member/officer must land back on the Premature Alumnus
+    form (accessible to any member) rather than the viewflow ``:detail`` page,
+    which requires the natoff-only ``forms.view_prematurealumnus`` permission
+    and would 403 the person who just submitted the form.
+    """
+    from thetatauCMT.forms.views import PrematureAlumnusCreateView
+
+    view = PrematureAlumnusCreateView()
+    assert view.get_success_url() == reverse("viewflow:forms:prematurealumnus:start")
 
 
 # ─── HSEducationCreateView GET (context_data) ────────────────────────────────
@@ -2256,19 +2970,6 @@ def test_init_depl_select_view_post_empty_formset(auto_login_user):
     assert response.status_code == 200
 
 
-# ─── StatusChangeSelectView GET (line 552) ───────────────────────────────────
-
-
-@pytest.mark.django_db
-def test_status_change_select_view_get(auto_login_user):
-    """StatusChangeSelectView GET covers construct_formset call at line 552."""
-    client, user = auto_login_user()
-    _add_to_group(user, "officer")
-    url = reverse("forms:status_selection")
-    response = client.get(url, follow=True)
-    assert response.status_code == 200
-
-
 # ─── badge_shingle_init_csv (lines 1817-1827) ────────────────────────────────
 
 
@@ -2304,6 +3005,32 @@ def test_badge_shingle_init_csv_invoice(auto_login_user):
     )
     response = client.get(url, follow=True)
     assert response.status_code == 200
+
+
+# ─── Missing-process 404 (GitHub issue #1082) ───────────────────────────────
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    "url_name, kwargs",
+    [
+        ("forms:init_csv", {"process_pk": 999999, "csv_type": "crm"}),
+        ("forms:shingle_post", {"process_pk": 999999}),
+        ("forms:init_sync", {"process_pk": 999999, "invoice_number": 1}),
+        ("forms:pledge_csv", {"process_pk": 999999, "csv_type": "invoice"}),
+        ("forms:pledge_sync", {"process_pk": 999999, "invoice_number": 1}),
+        ("forms:discipline_download", {"process_pk": 999999}),
+    ],
+)
+def test_process_lookup_view_missing_process_returns_404(auto_login_user, url_name, kwargs):
+    """A natoff hitting a process download/sync URL for a nonexistent process
+    should get a 404 (get_object_or_404) instead of an unhandled DoesNotExist
+    500. Regression test for GitHub issue #1082."""
+    client, user = auto_login_user()
+    _add_to_group(user, "natoff")
+    url = reverse(url_name, kwargs=kwargs)
+    response = client.get(url)
+    assert response.status_code == 404
 
 
 # ─── PrematureAlumnusCreateView GET with existing processes ──────────────────
@@ -2454,78 +3181,116 @@ def test_pledge_process_csvs_download(auto_login_user):
     assert response.status_code == 200
 
 
-# ─── RoleChangeView POST with one form (lines 839-848) ───────────────────────
+# ─── RoleChangeCreateView POST with a chapter-officer role ────────────────────
 
 
 @pytest.mark.django_db
-def test_role_change_view_post_with_valid_form(auto_login_user):
-    """RoleChangeView POST with a new role form covers the loop body at
-    lines 839-848 (try/except and officer status check)."""
+def test_officer_add_view_post_with_chapter_officer_role(auto_login_user):
+    """RoleChangeCreateView POST with a new chapter-officer role saves and redirects
+    (covers the away/alumni overlap check and the NewOfficers path)."""
     from thetatauCMT.users.tests.factories import UserFactory
 
     client, user = auto_login_user()
     _add_to_group(user, "officer")
     other_user = UserFactory.create(chapter=user.chapter)
-    url = reverse("forms:officer")
+    url = reverse("forms:officer_add")
     import datetime
 
     today = datetime.date.today()
     end = today + datetime.timedelta(days=365)
     data = {
-        "form-TOTAL_FORMS": "1",
-        "form-INITIAL_FORMS": "0",
-        "form-MIN_NUM_FORMS": "0",
-        "form-MAX_NUM_FORMS": "1000",
-        "form-0-user": str(other_user.pk),
-        "form-0-role": "scribe",
-        "form-0-start": today.strftime("%Y-%m-%d"),
-        "form-0-end": end.strftime("%Y-%m-%d"),
+        "user": str(other_user.pk),
+        "role": "scribe",
+        "start": today.strftime("%Y-%m-%d"),
+        "end": end.strftime("%Y-%m-%d"),
     }
     response = client.post(url, data, follow=True)
     assert response.status_code == 200
+
+
+@pytest.mark.django_db
+def test_officer_add_past_term_skips_new_officer_email(auto_login_user, user_factory, mailoutbox):
+    """A chapter officer recorded with a fully past term is a historical backfill
+    — the New Officers email (and the other new-officer side effects) are skipped."""
+    from thetatauCMT.users.models import UserRoleChange
+
+    client, user = auto_login_user()
+    _add_to_group(user, "officer")
+    member = user_factory.create(chapter=user.chapter)
+    url = reverse("forms:officer_add")
+    data = {
+        "user": str(member.pk),
+        "role": "scribe",
+        "start": "2020-01-05",
+        "end": "2021-01-04",
+    }
+    response = client.post(url, data, follow=True)
+    assert response.status_code == 200
+    assert UserRoleChange.objects.filter(user=member, role="scribe").exists()
+    assert [m for m in mailoutbox if "Welcome New Theta Tau Officers" in m.subject] == []
+
+
+@pytest.mark.django_db
+def test_officer_add_current_term_sends_new_officer_email(auto_login_user, user_factory, mailoutbox):
+    """A chapter officer with a current/future term is a real appointment — the
+    New Officers email is sent (positive control for the past-term skip)."""
+    import datetime
+
+    from thetatauCMT.users.models import UserRoleChange
+
+    client, user = auto_login_user()
+    _add_to_group(user, "officer")
+    member = user_factory.create(chapter=user.chapter)
+    today = datetime.date.today()
+    url = reverse("forms:officer_add")
+    data = {
+        "user": str(member.pk),
+        "role": "scribe",
+        "start": today.strftime("%Y-%m-%d"),
+        "end": (today + datetime.timedelta(days=365)).strftime("%Y-%m-%d"),
+    }
+    response = client.post(url, data, follow=True)
+    assert response.status_code == 200
+    assert UserRoleChange.objects.filter(user=member, role="scribe").exists()
+    assert [m for m in mailoutbox if "Welcome New Theta Tau Officers" in m.subject]
 
 
 # ─── Treasurer term policy (January-to-January) enforcement ──────────────────
 
 
 def _officer_treasurer_setup(auto_login_user):
-    """Log in an officer and return (client, user, new_treasurer, officer url)."""
+    """Log in an officer and return (client, user, new_treasurer, add-officer url)."""
     from thetatauCMT.users.tests.factories import UserFactory
 
     client, user = auto_login_user()
     _add_to_group(user, "officer")
     new_treasurer = UserFactory.create(chapter=user.chapter)
-    return client, user, new_treasurer, reverse("forms:officer")
+    return client, user, new_treasurer, reverse("forms:officer_add")
 
 
-def _officer_formset_data(new_treasurer, start, end, reason=None):
+def _officer_add_data(new_treasurer, start, end, reason=None):
     data = {
-        "form-TOTAL_FORMS": "1",
-        "form-INITIAL_FORMS": "0",
-        "form-MIN_NUM_FORMS": "0",
-        "form-MAX_NUM_FORMS": "1000",
-        "form-0-user": str(new_treasurer.pk),
-        "form-0-role": "treasurer",
-        "form-0-start": start,
-        "form-0-end": end,
+        "user": str(new_treasurer.pk),
+        "role": "treasurer",
+        "start": start,
+        "end": end,
     }
     if reason is not None:
-        data["form-0-treasurer_term_exception_reason"] = reason
+        data["treasurer_term_exception_reason"] = reason
     return data
 
 
 @pytest.mark.django_db
-def test_officer_page_shows_treasurer_policy_note(auto_login_user):
-    """The Officer Election Report page shows the Treasurer term policy note."""
+def test_officer_add_page_shows_treasurer_policy_note(auto_login_user):
+    """The Add Officer page shows the Treasurer term policy note."""
     client, user = auto_login_user()
     _add_to_group(user, "officer")
-    response = client.get(reverse("forms:officer"))
+    response = client.get(reverse("forms:officer_add"))
     assert response.status_code == 200
     content = response.content.decode("UTF-8")
     assert "shall be elected to hold office for one year, beginning in January" in content
-    # The policy-check JS targets the form by this id (NOT the first POST form,
-    # which can be the navbar chapter switcher for national officers).
-    assert 'id="officer-role-form"' in content
+    # The policy-check JS targets the add form by this id.
+    assert 'id="officer-add-form"' in content
 
 
 @pytest.mark.django_db
@@ -2534,7 +3299,7 @@ def test_treasurer_non_january_without_reason_is_blocked(auto_login_user, mailou
     from thetatauCMT.users.models import UserRoleChange
 
     client, user, new_treasurer, url = _officer_treasurer_setup(auto_login_user)
-    data = _officer_formset_data(new_treasurer, "2026-03-01", "2027-02-28")
+    data = _officer_add_data(new_treasurer, "2026-03-01", "2027-02-28")
     response = client.post(url, data, follow=True)
     assert response.status_code == 200
     # Nothing saved and no notification emails sent.
@@ -2556,7 +3321,7 @@ def test_treasurer_non_january_with_reason_saves_and_emails(auto_login_user, mai
     user.chapter.region = region
     user.chapter.save(update_fields=["region"])
 
-    data = _officer_formset_data(
+    data = _officer_add_data(
         new_treasurer,
         "2026-03-01",
         "2027-02-28",
@@ -2583,7 +3348,7 @@ def test_treasurer_january_dates_no_exception_email(auto_login_user, mailoutbox)
     from thetatauCMT.users.models import UserRoleChange
 
     client, user, new_treasurer, url = _officer_treasurer_setup(auto_login_user)
-    data = _officer_formset_data(new_treasurer, "2026-01-05", "2027-01-04")
+    data = _officer_add_data(new_treasurer, "2026-01-05", "2027-01-04")
     response = client.post(url, data, follow=True)
     assert response.status_code == 200
     assert UserRoleChange.objects.filter(user=new_treasurer, role="treasurer").exists()
@@ -2857,6 +3622,88 @@ def test_resignation_create_view_get_with_submitted_process(auto_login_user):
     assert response.status_code == 200
 
 
+def _valid_resignation_post_data():
+    """Minimal valid ResignationForm POST payload (PDF letter + agreements).
+
+    ``b"%PDF-1.4 ..."`` passes ``upload_validator.FileTypeValidator`` (same trick
+    as ``test_bylaws_create_view_form_valid``); ``_viewflow_activation-started``
+    is the viewflow Start-view management form (ActivationDataForm), required so
+    the flow reaches ``form_valid`` (same trick as the nominations Start tests).
+    """
+    import io
+
+    from django.utils import timezone
+
+    letter = io.BytesIO(b"%PDF-1.4 fake pdf content")
+    letter.name = "letter.pdf"
+    return {
+        "letter": letter,
+        "resign": "True",
+        "secrets": "True",
+        "expel": "True",
+        "return_evidence": "True",
+        "obligation": "True",
+        "fee": "True",
+        "signature": "Test Member",
+        "_viewflow_activation-started": timezone.now().strftime("%Y-%m-%d %H:%M:%S"),
+    }
+
+
+@pytest.mark.django_db
+def test_resignation_create_view_duplicate_submit_blocked(auto_login_user):
+    """Re-submitting the resignation start form when the member already has a
+    ResignationProcess re-renders (200) with an error and writes no second row
+    (#833, ``exists`` pre-check path)."""
+    from thetatauCMT.forms.flows import ResignationFlow
+    from thetatauCMT.forms.models import ResignationProcess
+    from thetatauCMT.users.tests.factories import UserFactory
+
+    client, user = auto_login_user()
+    off1 = UserFactory.create(chapter=user.chapter)
+    off2 = UserFactory.create(chapter=user.chapter)
+    ResignationProcess.objects.create(
+        user=user,
+        chapter=user.chapter,
+        flow_class=ResignationFlow,
+        officer1=off1,
+        officer2=off2,
+    )
+    assert ResignationProcess.objects.filter(user=user).count() == 1
+
+    url = reverse("viewflow:forms:resignation:start")
+    response = client.post(url, _valid_resignation_post_data())
+    assert response.status_code == 200  # re-rendered, not a 302 success redirect
+    assert ResignationProcess.objects.filter(user=user).count() == 1  # no duplicate row
+    # The existing submission is recognized (its status is shown) instead of a
+    # second ResignationProcess being created.
+    assert "status of the form submission" in response.content.decode()
+
+
+@pytest.mark.django_db
+def test_resignation_create_view_integrityerror_is_caught(auto_login_user):
+    """A rapid double submit can slip past the ``exists`` pre-check (both requests
+    read no row, then both insert); the loser hits
+    ``IntegrityError: forms_resignationprocess_user_id_key``. The view must catch
+    it and re-render (200) instead of returning a 500 (#833 race path)."""
+    from unittest import mock
+
+    from django.db import IntegrityError
+
+    from thetatauCMT.forms.models import ResignationProcess
+
+    client, user = auto_login_user()
+    _create_all_chapter_officers(user.chapter)
+    url = reverse("viewflow:forms:resignation:start")
+    with mock.patch(
+        "thetatauCMT.forms.views.CreateProcessView.form_valid",
+        side_effect=IntegrityError("duplicate key value violates unique constraint"),
+    ):
+        response = client.post(url, _valid_resignation_post_data())
+    assert response.status_code == 200
+    assert "already exists" in response.content.decode()
+    assert ResignationProcess.objects.filter(user=user).count() == 0
+
+
 # ─── PledgeProgramListView CSV with officers (lines 1403-1406) ───────────────
 
 
@@ -2931,13 +3778,14 @@ def test_natoff_view_denies_authenticated_non_natoff_user(auto_login_user, view_
 
 
 @pytest.mark.django_db
-def test_natoff_role_change_view_denies_authenticated_non_natoff_user(auto_login_user):
-    """Authenticated user NOT in natoff group is denied access to natoff role form."""
+def test_natoff_role_change_view_allows_authenticated_non_natoff_user(auto_login_user):
+    """Any authenticated member can now view the consolidated national officers
+    page; only superusers get the Add control."""
     client, user = auto_login_user()
     url = reverse("forms:natoff")
-    response = client.get(url, follow=False)
-    assert response.status_code == 302
-    assert "login" not in response["Location"]
+    response = client.get(url)
+    assert response.status_code == 200
+    assert reverse("forms:natoff_add") not in response.content.decode("utf-8")
 
 
 # ─── AssignOfficerFormMixin.check_officers unit test ─────────────────────────
@@ -3111,6 +3959,37 @@ def test_rollbook_pdf_view_uses_candidate_template_for_candidate_chapter():
     assert view.get_template_names() == ["forms/rollbook_candidate_pdf.html"]
 
 
+@pytest.mark.django_db
+def test_rollbook_pdf_view_blank_init_date_falls_back_to_today():
+    """A blank session ``init_date`` must not 500 the roll book.
+
+    ``set_init_date`` stores the raw POST value, so an empty submission left
+    ``""`` in the session; ``strptime("", "%m/%d/%Y")`` then raised ValueError
+    on both the single-page and download-all paths (issues #984/#985).
+    """
+    import datetime
+    from unittest.mock import mock_open, patch
+
+    from django.test import RequestFactory
+
+    from thetatauCMT.forms.views import RollBookPDFView
+    from thetatauCMT.users.tests.factories import UserFactory
+
+    user = UserFactory()
+    view = RollBookPDFView()
+    view.object = user
+    view.kwargs = {"pk": user.pk}
+    request = RequestFactory().get("/")
+    request.session = {"init_date": ""}
+    view.request = request
+
+    # The oath text file lives in secrets/ (absent in the test image); the
+    # crash under test happens on the strptime line before it is read.
+    with patch("builtins.open", mock_open(read_data="short oath")):
+        context = view.get_context_data()
+    assert context["init_date"] == datetime.datetime.today().date()
+
+
 # ─── DisciplinaryCreateView GET (lines 2756-2759) ─────────────────────────────
 
 
@@ -3151,32 +4030,6 @@ def test_resignation_create_view_get_no_prior_submission(auto_login_user):
     client, user = auto_login_user()
     _create_all_chapter_officers(user.chapter)
     url = reverse("viewflow:forms:resignation:start")
-    response = client.get(url, follow=True)
-    assert response.status_code == 200
-
-
-# ─── StatusChangeView GET with session data (lines 626, 629, 647-693) ─────────
-
-
-@pytest.mark.django_db
-def test_status_change_view_get_with_empty_session(auto_login_user):
-    """StatusChangeView GET when 'status-selection' session key is present
-    (but all lists empty) covers initial_info, get_context_data (lines
-    621-647, 649-693)."""
-    client, user = auto_login_user()
-    _add_to_group(user, "officer")
-    session = client.session
-    session["status-selection"] = {
-        "graduate": [],
-        "coop": [],
-        "covid": [],
-        "military": [],
-        "withdraw": [],
-        "transfer": [],
-        "resignedCC": [],
-    }
-    session.save()
-    url = reverse("forms:status")
     response = client.get(url, follow=True)
     assert response.status_code == 200
 
@@ -3662,22 +4515,119 @@ def test_role_change_national_select_form_rejects_self_when_field_enabled():
     assert f.clean_user() == user
 
 
-@pytest.mark.django_db
-def test_status_change_select_view_excludes_self_from_actives(auto_login_user):
-    """StatusChangeSelectView must NOT include the requesting officer in the
-    user field queryset — the picker should only surface other chapter members."""
-    from thetatauCMT.users.tests.factories import UserFactory
+# ─── get_sign_status_discipline robustness (#901 / #902) ─────────────────────
 
-    client, user = auto_login_user()
-    _add_to_group(user, "officer")
-    other = UserFactory.create(chapter=user.chapter)
-    user.set_current_status(status="active")
-    other.set_current_status(status="active")
-    url = reverse("forms:status_selection")
-    response = client.get(url)
-    assert response.status_code == 200
-    formset = response.context["formset"]
-    user_qs = formset.form.base_fields["user"].queryset
-    pks = set(user_qs.values_list("pk", flat=True))
-    assert user.pk not in pks
-    assert other.pk in pks
+
+@pytest.mark.django_db
+def test_get_sign_status_discipline_process_without_tasks_is_skipped(auto_login_user):
+    """Regression for #901.
+
+    A disciplinary process with no tasks at all (e.g. it errored right after the
+    start view created the process) has no ``task_set.first()`` to read a status
+    from.  ``get_sign_status_discipline`` must skip it rather than crash with
+    ``AttributeError: 'NoneType' object has no attribute 'owner'``.
+    """
+    from thetatauCMT.forms.flows import DisciplinaryProcessFlow
+    from thetatauCMT.forms.models import DisciplinaryProcess
+    from thetatauCMT.forms.views import get_sign_status_discipline
+
+    _, user = auto_login_user()
+    DisciplinaryProcess.objects.create(
+        chapter=user.current_chapter,
+        user=user,
+        flow_class=DisciplinaryProcessFlow,
+    )
+
+    # complete=True forces the "no active task" branch to fall through to
+    # task_set, which is also empty -> the process must be skipped.
+    data = get_sign_status_discipline(user, complete=True)
+    assert data == []
+
+
+@pytest.mark.django_db
+def test_get_sign_status_discipline_survives_none_flow_task(auto_login_user, monkeypatch):
+    """Regression for #902.
+
+    An active task whose flow node was removed/renamed exposes ``flow_task=None``.
+    ``get_sign_status_discipline`` must fall back to the raw task status instead
+    of raising ``AttributeError: 'NoneType' object has no attribute 'flow_task'``.
+    """
+    from types import SimpleNamespace
+
+    from thetatauCMT.forms.flows import DisciplinaryProcessFlow
+    from thetatauCMT.forms.models import DisciplinaryProcess
+    from thetatauCMT.forms.views import get_sign_status_discipline
+
+    _, user = auto_login_user()
+    DisciplinaryProcess.objects.create(
+        chapter=user.current_chapter,
+        user=user,
+        flow_class=DisciplinaryProcessFlow,
+    )
+
+    class _ActiveTasks:
+        def first(self):
+            return SimpleNamespace(flow_task=None, owner=None, status="NEW", pk=1)
+
+    monkeypatch.setattr(DisciplinaryProcess, "active_tasks", lambda self: _ActiveTasks())
+
+    data = get_sign_status_discipline(user, complete=True)
+    assert len(data) == 1
+    assert data[0]["status"] == "NEW"  # fell back to task.status
+
+
+# ─── PledgeProgramProcessCreateView saves program before process (#971) ──────
+
+
+@pytest.mark.django_db
+def test_pledge_program_create_view_saves_program_before_process():
+    """Regression for #971.
+
+    ``PledgeProgramProcessCreateView.form_valid`` must persist the
+    ``PledgeProgram`` BEFORE attaching it to ``activation.process.program`` --
+    otherwise ``activation.done()`` -> ``process.save()`` raises "save()
+    prohibited to prevent data loss due to unsaved related object 'program'".
+    """
+    from unittest.mock import MagicMock, patch
+
+    from thetatauCMT.forms.flows import PledgeProgramProcessFlow
+    from thetatauCMT.forms.forms import PledgeProgramForm
+    from thetatauCMT.forms.models import PledgeProgramProcess
+    from thetatauCMT.forms.views import PledgeProgramProcessCreateView
+
+    chapter = ChapterFactory.create()
+
+    form = PledgeProgramForm(
+        data={
+            "weeks": 6,
+            "date_start": "06/01/2026",
+            "date_complete": "08/01/2026",
+            "date_initiation": "09/01/2026",
+            "dues": 100,
+            "manual": "basic",
+        }
+    )
+    assert form.is_valid(), form.errors
+
+    view = PledgeProgramProcessCreateView()
+    request = MagicMock()
+    request.user.current_chapter = chapter
+    request.user.chapter_officer.return_value = {"regent"}
+    view.request = request
+
+    # A real, still-unsaved process — the object activation.done() would save.
+    process = PledgeProgramProcess(flow_class=PledgeProgramProcessFlow)
+    view.activation = MagicMock()
+    view.activation.process = process
+
+    with patch("thetatauCMT.forms.views.CreateProcessView.form_valid", return_value=HttpResponse()) as mock_super:
+        with patch("thetatauCMT.forms.views.Task.mark_complete"):
+            view.form_valid(form)
+
+    mock_super.assert_called_once()
+    # The program was saved (has a PK) before being attached to the process...
+    assert process.program is not None
+    assert process.program.pk is not None
+    # ...so persisting the process no longer raises the #971 ValueError.
+    process.save()
+    assert PledgeProgramProcess.objects.filter(pk=process.pk).exists()

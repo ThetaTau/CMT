@@ -1,6 +1,8 @@
 from django.contrib import messages
+from django.contrib.messages.views import SuccessMessageMixin
 from django.db import models
 from django.http.request import QueryDict
+from django.shortcuts import get_object_or_404
 from django.urls import reverse
 from django.views.generic import CreateView, DetailView, RedirectView, UpdateView
 
@@ -127,11 +129,12 @@ class BallotDetailView(
         return context
 
 
-class BallotCreateView(LoginRequiredMixin, NatOfficerRequiredMixin, CreateView):
+class BallotCreateView(LoginRequiredMixin, NatOfficerRequiredMixin, SuccessMessageMixin, CreateView):
     model = Ballot
     template_name_suffix = "_create_form"
     officer_edit = "ballots"
     officer_edit_type = "create"
+    success_message = "Ballot '%(name)s' was created and is now open for voting."
     fields = [
         "sender",
         "name",
@@ -175,6 +178,7 @@ class BallotUpdateView(
 ):
     officer_edit = "ballot"
     officer_edit_type = "edit"
+    success_message = "Ballot '%(name)s' was updated."
     fields = [
         "sender",
         "name",
@@ -229,7 +233,7 @@ class BallotCompleteCreateView(LoginRequiredMixin, OfficerRequiredMixin, CreateV
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         ballot_slug = self.kwargs.get("slug")
-        ballot = Ballot.objects.get(slug=ballot_slug)
+        ballot = get_object_or_404(Ballot, slug=ballot_slug)
         current_roles = self.request.user.current_roles
         roles_allowed = ballot.voters
         if "all_chapters" in ballot.voters:
@@ -253,7 +257,7 @@ class BallotCompleteCreateView(LoginRequiredMixin, OfficerRequiredMixin, CreateV
 
     def form_valid(self, form):
         ballot_slug = self.kwargs.get("slug")
-        ballot = Ballot.objects.get(slug=ballot_slug)
+        ballot = get_object_or_404(Ballot, slug=ballot_slug)
         user = self.request.user
         form.instance.user = user
         form.instance.ballot = ballot

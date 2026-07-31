@@ -1,6 +1,9 @@
 import django_tables2 as tables
+from django.urls import reverse
 from django.utils.safestring import mark_safe
 from django_tables2.utils import A
+
+from thetatauCMT.users.models import UserRoleChange
 
 from .models import (
     OSM,
@@ -17,6 +20,48 @@ from .models import (
     RitualProficiency,
     StatusChange,
 )
+
+
+class OfficerRoleTable(tables.Table):
+    """Current + past chapter officers/roles, with a per-row edit control."""
+
+    user = tables.LinkColumn(
+        "users:profile",
+        kwargs={"username": A("user__username")},
+        accessor="user__name",
+        verbose_name="Member",
+    )
+    role = tables.Column(verbose_name="Role")
+    edit = tables.TemplateColumn(
+        template_name="forms/_officer_edit_button.html",
+        orderable=False,
+        verbose_name="",
+    )
+
+    class Meta:
+        model = UserRoleChange
+        fields = ("user", "role", "start", "end")
+        attrs = {"class": "table table-striped table-bordered"}
+        empty_text = "No officers or roles have been recorded for this chapter yet."
+
+    def render_role(self, value):
+        return value.title()
+
+
+class NationalOfficerRoleTable(OfficerRoleTable):
+    """National-officer variant: adds the member's chapter and email columns."""
+
+    chapter = tables.Column(verbose_name="Chapter", accessor="user__chapter")
+    email = tables.Column(verbose_name="Email", accessor="user__email", orderable=False)
+
+    class Meta:
+        model = UserRoleChange
+        fields = ("user", "chapter", "role", "email", "start", "end")
+        attrs = {"class": "table table-striped table-bordered"}
+        empty_text = "No national officers have been recorded yet."
+
+    def render_email(self, value, record):
+        return value or record.user.email_school or ""
 
 
 class BadgeTable(tables.Table):
@@ -72,6 +117,68 @@ class StatusChangeTable(tables.Table):
         model = StatusChange
         fields = ("user", "date_start", "created", "reason", "date_end")
         attrs = {"class": "table table-striped table-bordered"}
+
+
+def _member_profile_url(record):
+    """Link a status-change row's member to their profile page."""
+    return reverse("users:profile", kwargs={"username": record.user.username})
+
+
+class StatusChangeHistoryTable(tables.Table):
+    """Base history table for a single status-change reason (reason column
+    omitted because each page shows exactly one reason)."""
+
+    user = tables.Column(accessor="user__name", verbose_name="Member", linkify=_member_profile_url)
+    date_start = tables.DateColumn(verbose_name="Change Date")
+    created = tables.DateColumn(verbose_name="Submitted")
+
+    class Meta:
+        model = StatusChange
+        fields = ("user", "date_start", "created")
+        attrs = {"class": "table table-striped table-bordered"}
+        order_by = "-created"
+
+
+class CoopStatusChangeTable(StatusChangeHistoryTable):
+    employer = tables.Column(verbose_name="Employer")
+    date_end = tables.DateColumn(verbose_name="Return Date")
+
+    class Meta(StatusChangeHistoryTable.Meta):
+        fields = ("user", "employer", "date_start", "date_end", "miles", "created")
+
+
+class MilitaryStatusChangeTable(StatusChangeHistoryTable):
+    date_end = tables.DateColumn(verbose_name="Return Date")
+
+    class Meta(StatusChangeHistoryTable.Meta):
+        fields = ("user", "date_start", "date_end", "created")
+
+
+class WithdrawStatusChangeTable(StatusChangeHistoryTable):
+    class Meta(StatusChangeHistoryTable.Meta):
+        fields = ("user", "date_start", "created")
+
+
+class TransferStatusChangeTable(StatusChangeHistoryTable):
+    new_school = tables.Column(verbose_name="New School")
+    new_school_other = tables.Column(verbose_name="Other School")
+
+    class Meta(StatusChangeHistoryTable.Meta):
+        fields = ("user", "new_school", "new_school_other", "date_start", "created")
+
+
+class ResignedCCStatusChangeTable(StatusChangeHistoryTable):
+    class Meta(StatusChangeHistoryTable.Meta):
+        fields = ("user", "date_start", "created")
+
+
+class GraduateStatusChangeTable(StatusChangeHistoryTable):
+    degree = tables.Column(verbose_name="Degree", accessor="get_degree_display")
+    employer = tables.Column(verbose_name="Employer")
+    email_work = tables.Column(verbose_name="Work Email")
+
+    class Meta(StatusChangeHistoryTable.Meta):
+        fields = ("user", "degree", "date_start", "employer", "email_work", "created")
 
 
 class AuditTable(tables.Table):

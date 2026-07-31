@@ -40,6 +40,7 @@ from django.db import transaction
 from django.db.models import ProtectedError
 
 from core.address import get_or_create_address
+from core.seed_guard import ensure_seeding_allowed
 from thetatauCMT.chapters.models import Chapter, ChapterCurricula
 from thetatauCMT.forms.models import RiskManagement
 from thetatauCMT.regions.models import Region
@@ -164,10 +165,16 @@ class Command(BaseCommand):
             action="store_true",
             help="Delete previously-seeded Roll Book QA rows before seeding.",
         )
+        parser.add_argument(
+            "--force",
+            action="store_true",
+            help="Required to run when settings.DEBUG is off (production-like).",
+        )
 
     # ------------------------------------------------------------------ entry
     @transaction.atomic
     def handle(self, *args, **options) -> None:  # noqa: ANN401
+        ensure_seeding_allowed(options["force"])
         num_chapters = max(1, options["chapters"])
         num_pnms = max(1, options["pnms"])
         password = options["password"]
