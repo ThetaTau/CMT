@@ -158,3 +158,43 @@ def test_submission_create_view_unknown_slug_does_not_crash(auto_login_user):
     url = reverse("submissions:add-direct", kwargs={"slug": "no-such-scoretype-slug"})
     response = client.get(url)
     assert response.status_code == 200
+
+
+@pytest.mark.django_db
+def test_submission_detail_view_duplicate_date_slug_no_crash(auto_login_user):
+    """Two submissions sharing a date + slug must not raise MultipleObjectsReturned;
+    the date + slug detail URL returns the earliest deterministically."""
+    import datetime
+
+    from thetatauCMT.scores.models import ScoreType
+    from thetatauCMT.submissions.models import Submission
+
+    client, user = auto_login_user()
+    score_type = ScoreType.objects.filter(type="Sub").first()
+    if score_type is None:
+        pytest.skip("No Sub ScoreType in fixture")
+    date = datetime.date(2026, 7, 2)
+    first = Submission.objects.create(
+        name="Risk Management Form Aanika Kumar Nadar",
+        date=date,
+        type=score_type,
+        chapter=user.chapter,
+    )
+    Submission.objects.create(
+        name="Risk Management Form Aanika Kumar Nadar",
+        date=date,
+        type=score_type,
+        chapter=user.chapter,
+    )
+    url = reverse(
+        "submissions:detail",
+        kwargs={
+            "year": date.year,
+            "month": date.month,
+            "day": date.day,
+            "slug": first.slug,
+        },
+    )
+    response = client.get(url)
+    assert response.status_code == 200
+    assert response.context["object"].pk == first.pk
