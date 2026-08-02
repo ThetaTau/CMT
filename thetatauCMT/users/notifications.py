@@ -248,7 +248,32 @@ class NewOfficers(EmailNotification):  # extend from EmailNotification for email
             "region_web": chapter.region.website,
             "director_emails": chapter.region.email,
             "host": settings.CURRENT_URL,
+            # The single highest-leverage entry point to the Role Guide (TWI-12):
+            # this email arrives the moment someone takes office, which is exactly
+            # when "what am I responsible for?" is the only question they have.
+            "role_guides": self._role_guides(new_officers),
+            "catalog_url": f"{settings.CURRENT_URL}{reverse('guides:catalog')}",
+            "forms_url": f"{settings.CURRENT_URL}{reverse('forms:landing')}",
         }
+
+    @staticmethod
+    def _role_guides(new_officers):
+        """``[{"title", "url"}]`` for the offices these recipients now hold.
+
+        Imported here rather than at module scope so the notification module does
+        not depend on the guides app at import time -- ``herald`` imports every
+        notification class at startup. Returns ``[]`` when no guide matches, and
+        the template simply omits the section.
+        """
+        from thetatauCMT.guides.models import RoleGuide
+
+        roles = set()
+        for officer in new_officers:
+            roles |= set(officer.chapter_officer()) | set(officer.current_roles or [])
+        return [
+            {"title": guide.title, "url": f"{settings.CURRENT_URL}{guide.get_absolute_url()}"}
+            for guide in RoleGuide.objects.active().filter(role__in=roles)
+        ]
 
     @staticmethod
     def get_demo_args():  # define a static method to return list of args needed to initialize class for testing
@@ -329,7 +354,7 @@ class RegionalDirectorOfficerDigest(EmailNotification):
         self.reply_to = [
             "central.office@thetatau.org",
         ]
-        self.subject = f"CMT Weekly Officer Update Summary — {region.name} Region"
+        self.subject = f"CMT Weekly Officer Update Summary: {region.name} Region"
         self.context = {
             "region": region,
             "chapter_updates": chapter_updates,

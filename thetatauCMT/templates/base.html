@@ -88,7 +88,7 @@
                 {% else %}
                   Theta Tau
                 {% endif %}
-              Chapter Management Tool</a>
+              CMT</a>
             </h1>
             </div>
         </div>
@@ -121,11 +121,6 @@
                 </li>
 
                 {% if not request.user.is_authenticated %}
-                  {% if feature_awards_enabled %}
-                    <li class="nav-item">
-                      <a class="nav-link" href="{% url 'awards:directory' %}">{% trans "Award Winners" %}</a>
-                    </li>
-                  {% endif %}
                   <li class="nav-item">
                     <a class="nav-link" href="{% url 'forms:pledgeform' %}">Pledge Form</a>
                   </li>
@@ -236,13 +231,14 @@
 
                 {% if request.user.is_authenticated %}
                   <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="{{ request.user.first_name|default:request.user.username }} — account menu" title="{{ request.user.first_name|default:request.user.username }}">
+                    <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="{{ request.user.first_name|default:request.user.username }} account menu" title="{{ request.user.first_name|default:request.user.username }}">
                       <i class="fa-solid fa-circle-user"></i>
                       <span class="d-lg-none ms-2">{{ request.user.first_name|default:request.user.username }}</span>
                     </a>
                     <ul class="dropdown-menu dropdown-menu-lg-end">
                       <li><a class="dropdown-item" href="{% url 'users:profile' username=request.user.username %}">{% trans "My Profile" %}</a></li>
                       <li><a class="dropdown-item" href="{% url 'users:detail' %}">{% trans "Edit My Info" %}</a></li>
+                      <li><a class="dropdown-item" href="{% url 'guides:role-guides' %}">{% trans "What am I responsible for?" %}</a></li>
                       <li><hr class="dropdown-divider"></li>
                       <li>
                         <button id="theme-toggle" type="button" class="dropdown-item">
@@ -305,7 +301,7 @@
               {% if request.user.chapter_officer %}{% trans "Viewing as chapter officer" %}{% else %}{% trans "Viewing as member" %}{% endif %}
             </span>
             <span class="badge bg-secondary">
-              {{ request.user.current_chapter.name }}{% if request.user.chapter_officer %} — {{ request.user.chapter_officer|join:", " }}{% endif %}
+              {{ request.user.current_chapter.name }}{% if request.user.chapter_officer %}: {{ request.user.chapter_officer|join:", " }}{% endif %}
             </span>
           {% endif %}
 
@@ -330,6 +326,7 @@
       {% endblock content %}
     </div> <!-- /container -->
     {% block modal %}{% endblock modal %}
+    {% if whats_new_modal %}{% include "guides/_whats_new_modal.html" %}{% endif %}
     <hr>
     <div class="est"></div>
     <!-- Footer -->
@@ -361,7 +358,7 @@
         <!-- Grid column -->
         <div class="col-md-4 mx-auto">
           <h5 class="fw-bold text-uppercase mt-3 mb-4">Help/Issues</h5>
-          <p><a href="{% url 'help' %}">See the help document here.</a></p>
+          <p><a href="{% url 'help' %}">Find your way around.</a></p>
           <p>Or if you have ideas for features/improvements.<br><a href="https://github.com/VenturaFranklin/thetatauCMT/issues">Please let us know, by submitting an issue/feature request here.</a></p>
         </div>
         <!-- Grid column -->
@@ -413,6 +410,7 @@
     <!-- Copyright -->
     <div class="footer-copyright text-center py-3">© 2018-{% now "Y" %} Copyright:
       <a href="http://thetatau.org"> thetatau.org</a><br>
+      <a href="{% url 'about' %}">About the CMT</a> -
       <a href="{% url 'privacy' %}">Privacy Notice</a> -
       <a href="{% url 'eula' %}">Terms of Service (EULA)</a> -
       <a href="{% url 'electronic_terms' %}">Electronic Business Terms</a>
@@ -431,6 +429,9 @@
       <!-- place project specific Javascript in this file -->
 
       <script src="{% static 'js/project.js' %}"></script>
+
+      <!-- What's New: "Got it" buttons everywhere, plus the once-per-session modal -->
+      <script src="{% static 'js/whats_new.js' %}"></script>
 
       <!-- Theme + region-bar toggles -->
       <script>

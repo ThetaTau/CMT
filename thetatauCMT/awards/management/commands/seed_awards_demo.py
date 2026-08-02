@@ -310,7 +310,7 @@ class Command(BaseCommand):
             obj, created = AwardType.objects.get_or_create(
                 name=f"{DEMO}{name}",
                 defaults=dict(
-                    description=f"{DEMO}{name} — demo award for QA.",
+                    description=f"{DEMO}{name}: demo award for QA.",
                     level=level,
                     grant_method=method,
                     recurrence=recur,

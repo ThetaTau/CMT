@@ -169,7 +169,7 @@ class AwardNominationReviewView(UpdateProcessView):
         response = super().form_valid(form, *args, **kwargs)
         messages.success(
             self.request,
-            f"Nomination review saved — the nomination was {form.instance.get_result_display().lower()}.",
+            f"Nomination review saved. The nomination was {form.instance.get_result_display().lower()}.",
         )
         return response
 
@@ -223,13 +223,14 @@ class GrantArtifactDownloadView(LoginRequiredMixin, View):
         return FileResponse(artifact.file.open("rb"), as_attachment=True, filename=filename)
 
 
-class AwardDirectoryView(PagedFilteredTableView):
-    """Public, filterable directory of award winners (AWI-11).
+class AwardDirectoryView(LoginRequiredMixin, PagedFilteredTableView):
+    """Filterable directory of award winners (AWI-11).
 
-    All awards are public, so this view requires no login. It lists *active*
-    grants by default (revoked grants are excluded); passing ``?show_revoked=1``
-    includes revoked grants, which the table then labels with their status.
-    Filter by award type, level, cycle, chapter, region, or a recipient search.
+    Award data is visible to any signed-in member — it is not public. It lists
+    *active* grants by default (revoked grants are excluded); passing
+    ``?show_revoked=1`` includes revoked grants, which the table then labels with
+    their status. Filter by award type, level, cycle, chapter, region, or a
+    recipient search.
     """
 
     model = AwardGrant
@@ -275,7 +276,7 @@ class AwardDirectoryView(PagedFilteredTableView):
         context = super().get_context_data(**kwargs)
         context["show_revoked"] = self._show_revoked()
         context["can_view_revoked"] = self._can_view_revoked()
-        context["can_export"] = can_grant_awards(self.request.user)
+        context["can_export"] = self.request.user.is_superuser
         context["can_nominate"] = self.request.user.is_authenticated
         context["nominate_url"] = reverse("viewflow:awards:awardnomination:start")
         return context
@@ -318,20 +319,21 @@ class AwardCycleWinnersView(AwardDirectoryView):
 
 
 class AwardExportView(LoginRequiredMixin, View):
-    """Officer-gated CSV / Excel export of award grants (AWI-12).
+    """Administrator-gated CSV / Excel export of award grants (AWI-12).
 
-    Award data is public to browse, but bulk exports require an officer login
-    (any National / chapter officer or Regional Director -- the same gate as the
-    direct-grant and certificate tools). A single GET parameter selects the
-    report -- ``cycle`` (pk), ``chapter`` (slug), ``region`` (slug),
+    Award data is public to browse one page at a time, but a bulk export hands
+    over the whole set at once, so it is restricted to superusers -- a tighter
+    gate than the direct-grant and certificate tools. Officers use the winners
+    directory and their own chapter history instead. A single GET parameter
+    selects the report -- ``cycle`` (pk), ``chapter`` (slug), ``region`` (slug),
     ``award_type`` (pk), or ``member`` (username); none means "all grants".
     ``?format=xlsx`` returns an Excel workbook (CSV otherwise); ``?include_revoked=1``
     adds revoked grants.
     """
 
     def dispatch(self, request, *args, **kwargs):
-        if request.user.is_authenticated and not can_grant_awards(request.user):
-            messages.error(request, "Only officers can export award reports.")
+        if request.user.is_authenticated and not request.user.is_superuser:
+            messages.error(request, "Only administrators can export award reports.")
             return redirect("home")
         return super().dispatch(request, *args, **kwargs)
 
@@ -369,13 +371,13 @@ class AwardExportView(LoginRequiredMixin, View):
         return grants_export_response(queryset, fmt=fmt, filename_stem=stem)
 
 
-class _AwardHistoryView(SingleTableView):
-    """Base for the public, chronological award-history views (AWI-12).
+class _AwardHistoryView(LoginRequiredMixin, SingleTableView):
+    """Base for the chronological award-history views (AWI-12).
 
     Reuses :class:`~thetatauCMT.awards.tables.AwardGrantTable` (status column
     included so revoked grants are labeled) ordered by ``effective_date`` so
-    backdated grants sort into their historical place. Public -- award data is
-    public -- but export buttons are shown only to officers.
+    backdated grants sort into their historical place. Visible to any signed-in
+    member, but export buttons are shown only to administrators.
     """
 
     template_name = "awards/award_history.html"
@@ -387,7 +389,7 @@ class _AwardHistoryView(SingleTableView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["can_export"] = can_grant_awards(self.request.user)
+        context["can_export"] = self.request.user.is_superuser
         return context
 
 
@@ -401,7 +403,7 @@ class MemberAwardHistoryView(_AwardHistoryView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["member"] = self.member
-        context["heading"] = f"Award history — {self.member}"
+        context["heading"] = f"Award history for {self.member}"
         context["export_url"] = f"{reverse('awards:export')}?member={self.member.username}"
         return context
 
@@ -416,7 +418,7 @@ class ChapterAwardHistoryView(_AwardHistoryView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["chapter"] = self.chapter
-        context["heading"] = f"Award history — {self.chapter}"
+        context["heading"] = f"Award history for {self.chapter}"
         context["export_url"] = f"{reverse('awards:export')}?chapter={self.chapter.slug}"
         return context
 

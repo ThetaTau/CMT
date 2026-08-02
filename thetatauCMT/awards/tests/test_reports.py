@@ -4,6 +4,7 @@ import io
 
 import pytest
 from django.contrib.auth.models import Group
+from django.test import override_settings
 from django.urls import reverse
 
 from thetatauCMT.awards import reports
@@ -39,6 +40,12 @@ def _natoff():
 
 def _non_officer():
     user = UserFactory()
+    _sign_rmp(user)
+    return user
+
+
+def _admin():
+    user = UserFactory(is_superuser=True)
     _sign_rmp(user)
     return user
 
@@ -125,12 +132,13 @@ def test_chapter_award_history_ordered():
 # ===========================================================================
 # Exports: correct rows (CSV + XLSX)
 # ===========================================================================
+@override_settings(DEBUG=True)  # superusers bypass RequireSuperuser2FAMiddleware only when DEBUG
 def test_csv_export_returns_correct_rows(client):
     cycle = AwardCycleFactory()
     a = AwardGrantFactory(award_type=AwardTypeFactory(name="Row Award A"), cycle=cycle)
     b = AwardGrantFactory(award_type=AwardTypeFactory(name="Row Award B"), cycle=cycle)
     AwardGrantFactory(award_type=AwardTypeFactory(name="Other Cycle Award"))  # different cycle
-    client.force_login(_officer())
+    client.force_login(_admin())
     response = client.get(reverse("awards:export"), {"cycle": cycle.pk})
     assert response.status_code == 200
     assert "text/csv" in response["Content-Type"]
@@ -143,24 +151,26 @@ def test_csv_export_returns_correct_rows(client):
     assert b.recipient_display in recipients
 
 
+@override_settings(DEBUG=True)
 def test_csv_export_excludes_revoked_by_default_and_includes_on_request(client):
     cycle = AwardCycleFactory()
     AwardGrantFactory(award_type=AwardTypeFactory(name="Active Row Award"), cycle=cycle)
     revoked = AwardGrantFactory(award_type=AwardTypeFactory(name="Revoked Row Award"), cycle=cycle)
     revoke_grant(revoked, revoked_by=UserFactory(), reason="x")
-    client.force_login(_officer())
+    client.force_login(_admin())
     default_rows = _csv_rows(client.get(reverse("awards:export"), {"cycle": cycle.pk}))
     assert {r[0] for r in default_rows[1:]} == {"Active Row Award"}
     with_revoked = _csv_rows(client.get(reverse("awards:export"), {"cycle": cycle.pk, "include_revoked": "1"}))
     assert {r[0] for r in with_revoked[1:]} == {"Active Row Award", "Revoked Row Award"}
 
 
+@override_settings(DEBUG=True)
 def test_xlsx_export_returns_workbook_with_rows(client):
     from openpyxl import load_workbook
 
     cycle = AwardCycleFactory()
     AwardGrantFactory(award_type=AwardTypeFactory(name="Excel Award"), cycle=cycle)
-    client.force_login(_officer())
+    client.force_login(_admin())
     response = client.get(reverse("awards:export"), {"cycle": cycle.pk, "format": "xlsx"})
     assert response.status_code == 200
     assert "spreadsheetml" in response["Content-Type"]
@@ -171,12 +181,13 @@ def test_xlsx_export_returns_workbook_with_rows(client):
     assert any(row[0] == "Excel Award" for row in values[1:])
 
 
+@override_settings(DEBUG=True)
 def test_export_by_chapter_and_member(client):
     chapter = ChapterFactory(name=_NAMES[0])
     member = UserFactory(status="active", chapter=chapter)
     AwardGrantFactory(award_type=AwardTypeFactory(name="Chapter Member Award"), recipient_member=member)
     AwardGrantFactory(award_type=AwardTypeFactory(name="Elsewhere Award"))
-    client.force_login(_officer())
+    client.force_login(_admin())
     chapter_rows = _csv_rows(client.get(reverse("awards:export"), {"chapter": chapter.slug}))
     assert {r[0] for r in chapter_rows[1:]} == {"Chapter Member Award"}
     member_rows = _csv_rows(client.get(reverse("awards:export"), {"member": member.username}))
@@ -190,33 +201,51 @@ def test_export_redirects_anonymous(client):
     assert client.get(reverse("awards:export")).status_code == 302
 
 
-def test_export_blocks_non_officer(client):
+def test_export_blocks_a_member(client):
     client.force_login(_non_officer())
     response = client.get(reverse("awards:export"))
     assert response.status_code == 302
     assert "text/csv" not in response.get("Content-Type", "")
 
 
-def test_export_allows_officer(client):
+@pytest.mark.parametrize("make_user", [_officer, _natoff], ids=["chapter officer", "national officer"])
+def test_export_blocks_officers(client, make_user):
+    """Browsing awards a page at a time is open; walking off with the set is not."""
+    client.force_login(make_user())
+    response = client.get(reverse("awards:export"))
+    assert response.status_code == 302
+    assert "text/csv" not in response.get("Content-Type", "")
+
+
+@override_settings(DEBUG=True)
+def test_export_allows_an_administrator(client):
     AwardGrantFactory()
-    client.force_login(_officer())
+    client.force_login(_admin())
     response = client.get(reverse("awards:export"))
     assert response.status_code == 200
     assert "text/csv" in response["Content-Type"]
 
 
 # ===========================================================================
-# History views (public)
+# History views (signed-in members)
 # ===========================================================================
-def test_member_history_view_public_and_ordered(client):
+def test_member_history_requires_login(client):
+    member = UserFactory(status="active")
+    response = client.get(reverse("awards:member_history", kwargs={"username": member.username}))
+    assert response.status_code == 302
+    assert "/accounts/login/" in response["Location"]
+
+
+def test_member_history_view_ordered(client):
     member = UserFactory(status="active")
     AwardGrantFactory(
         award_type=AwardTypeFactory(name="History Award"),
         recipient_member=member,
         effective_date=datetime.date(2012, 1, 1),
     )
+    client.force_login(_non_officer())
     response = client.get(reverse("awards:member_history", kwargs={"username": member.username}))
-    assert response.status_code == 200  # public, no login
+    assert response.status_code == 200
     assert "Award history" in response.content.decode()
     history = list(response.context["object_list"])
     assert history == list(reports.member_award_history(member))
@@ -236,30 +265,36 @@ def test_member_history_hides_revoked_from_non_national_officer(client):
     member = UserFactory(status="active")
     grant = AwardGrantFactory(award_type=AwardTypeFactory(name="Hidden Revoked History"), recipient_member=member)
     revoke_grant(grant, revoked_by=UserFactory(), reason="x")
+    client.force_login(_non_officer())
     response = client.get(reverse("awards:member_history", kwargs={"username": member.username}))
     assert grant not in list(response.context["object_list"])
 
 
-def test_chapter_history_view_public(client):
+def test_chapter_history_view(client):
     chapter = ChapterFactory(name=_NAMES[0])
     AwardGrantFactory(
         award_type=AwardTypeFactory(name="Chapter History Award"), recipient_member=None, recipient_chapter=chapter
     )
+    client.force_login(_non_officer())
     response = client.get(reverse("awards:chapter_history", kwargs={"slug": chapter.slug}))
     assert response.status_code == 200
     assert "Chapter History Award" in response.content.decode()
 
 
-def test_history_export_buttons_officer_only(client):
+@override_settings(DEBUG=True)
+def test_history_export_buttons_administrator_only(client):
     member = UserFactory(status="active")
     AwardGrantFactory(recipient_member=member)
     url = reverse("awards:member_history", kwargs={"username": member.username})
-    # Anonymous: no export controls.
+    # Plain member and officer alike: no export controls.
+    client.force_login(_non_officer())
     assert client.get(url).context["can_export"] is False
-    # Officer: export controls available.
     client.force_login(_officer())
-    officer_response = client.get(url)
-    assert officer_response.context["can_export"] is True
+    assert client.get(url).context["can_export"] is False
+    # Administrator: export controls available.
+    client.force_login(_admin())
+    admin_response = client.get(url)
+    assert admin_response.context["can_export"] is True
     # CSV export is available; the Excel export button was removed.
-    assert reverse("awards:export") in officer_response.content.decode()
-    assert "format=xlsx" not in officer_response.content.decode()
+    assert reverse("awards:export") in admin_response.content.decode()
+    assert "format=xlsx" not in admin_response.content.decode()

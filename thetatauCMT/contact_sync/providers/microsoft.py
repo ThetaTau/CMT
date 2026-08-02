@@ -173,7 +173,7 @@ class MicrosoftContactsProvider(ContactProvider):
             "jobTitle": contact.role.title(),
             "categories": [CMT_CATEGORY, f"{contact.chapter_name} Chapter"],
             "personalNotes": (
-                f"CMT-KEY: {self._cmt_key(contact)}\n" f"{contact.chapter_name} Chapter — {contact.role.title()}"
+                f"CMT-KEY: {self._cmt_key(contact)}\n" f"{contact.chapter_name} Chapter, {contact.role.title()}"
             ),
         }
         email_addresses = []

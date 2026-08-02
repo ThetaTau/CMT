@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+﻿{% extends "base.html" %}
 {% load static %}
 {% load render_table from django_tables2 %}
 {% load award_tags %}
@@ -102,7 +102,7 @@
           <div class="d-flex flex-wrap gap-3 small">
             <div>
               <span class="text-body-secondary">Current status:</span>
-              <span class="fw-semibold">{{ current_status_label|default:"—" }}</span>
+              <span class="fw-semibold">{{ current_status_label|default:"None" }}</span>
             </div>
             {% if role_labels %}
               <div>
@@ -268,7 +268,7 @@
               <dt class="col-sm-5">Employer</dt>
               <dd class="col-sm-7">
                 {{ object.employer }}
-                {% if object.employer_position %}<span class="text-body-secondary">&mdash; {{ object.employer_position }}</span>{% endif %}
+                {% if object.employer_position %}<span class="text-body-secondary">({{ object.employer_position }})</span>{% endif %}
               </dd>
             {% endif %}
           </dl>
@@ -443,7 +443,7 @@
               {% for n in nominee_nominations %}
                 <tr>
                   <td>{{ n.get_level_display }}</td>
-                  <td>{% for p in n.recommended_positions %}{{ p|title }}{% if not forloop.last %}, {% endif %}{% empty %}&mdash;{% endfor %}</td>
+                  <td>{% for p in n.recommended_positions %}{{ p|title }}{% if not forloop.last %}, {% endif %}{% empty %}None{% endfor %}</td>
                   <td>{{ n.current_step }}</td>
                   <td>{{ n.get_consent_status_display }}</td>
                   <td>{{ n.created|date:"M j, Y" }}</td>
@@ -487,7 +487,7 @@
                           <td>{{ change.get_reason_display }}</td>
                           <td class="text-nowrap">{{ change.date_start|date:"M j, Y" }}</td>
                           <td class="text-nowrap">
-                            {% if change.date_end and change.date_end.year < 3000 %}{{ change.date_end|date:"M j, Y" }}{% else %}&mdash;{% endif %}
+                            {% if change.date_end and change.date_end.year < 3000 %}{{ change.date_end|date:"M j, Y" }}{% else %}None{% endif %}
                           </td>
                           <td class="text-nowrap">{{ change.created|date:"M j, Y" }}</td>
                         </tr>
@@ -574,7 +574,7 @@
                         {% elif rec.event.chapter %}
                           <a href="{% url 'chapters:detail' rec.event.chapter.slug %}">{{ rec.event.chapter.name }}</a>
                         {% else %}
-                          &mdash;
+                          None
                         {% endif %}
                       </td>
                       <td>
@@ -607,7 +607,7 @@
           <div class="card-footer">
             <h6 class="mb-2">Log missing attendance</h6>
             <p class="text-body-secondary small mb-2">
-              You cannot create events — search an existing national event or one of
+              You cannot create events. Search an existing national event or one of
               {% if is_owner %}your{% else %}{{ object.name }}'s{% endif %} chapter's events.
             </p>
             <form method="post" action="{{ attendance_add_url }}" class="row g-2 align-items-end">

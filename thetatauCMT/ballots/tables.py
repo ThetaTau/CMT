@@ -1,10 +1,12 @@
 import django_tables2 as tables
 from django_tables2.utils import A
 
+from core.tables import CMTTable
+
 from .models import Ballot, BallotComplete
 
 
-class BallotTable(tables.Table):
+class BallotTable(CMTTable):
     name = tables.LinkColumn("ballots:detail", args=[A("slug")])
 
     class Meta:
@@ -29,7 +31,7 @@ class BallotTable(tables.Table):
         return Ballot.TYPES.get_value(value)
 
 
-class BallotCompleteTable(tables.Table):
+class BallotCompleteTable(CMTTable):
     class Meta:
         model = BallotComplete
         fields = ("user_name", "chapter", "region", "motion", "role")
@@ -43,7 +45,7 @@ class BallotCompleteTable(tables.Table):
         return value.title()
 
 
-class BallotUserTable(tables.Table):
+class BallotUserTable(CMTTable):
     name = tables.LinkColumn("ballots:vote", args=[A("slug")])
 
     class Meta:

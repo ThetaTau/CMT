@@ -3,10 +3,12 @@ from django.urls import reverse
 from django.utils.safestring import mark_safe
 from django_tables2.utils import A
 
+from core.tables import CMTTable
+
 from .models import TaskDate
 
 
-class TaskTable(tables.Table):
+class TaskTable(CMTTable):
     task_name = tables.LinkColumn("tasks:complete", accessor="task__name", args=[A("pk")])
     form = tables.URLColumn(
         verbose_name="Form to Submit",

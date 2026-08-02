@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}What's New{% endblock title %}
+{% block content %}
+  <h1>What&rsquo;s new</h1>
+  <p class="text-muted">
+    Everything announced to you, newest first, including anything you have already dismissed.
+  </p>
+  <hr>
+  {% for item in items %}
+    {% include "guides/_whats_new_item.html" with item=item source="badge" show_ack=True %}
+  {% empty %}
+    <p>Nothing to report yet. New features and announcements will show up here.</p>
+  {% endfor %}
+{% endblock content %}

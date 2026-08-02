@@ -455,7 +455,7 @@ class Command(BaseCommand):
                         consideration=True,
                         vote=True,
                         prealumn_type="less4",
-                        exec_comments="Approved — seed data",
+                        exec_comments="Approved, seed data",
                         form=ContentFile(b"seed", name=f"prealum_{uuid.uuid4().hex[:6]}.pdf"),
                     )
                     stats["prealums"] += 1
@@ -490,7 +490,7 @@ class Command(BaseCommand):
                         approved_o1=True,
                         approved_o2=True,
                         letter=ContentFile(b"seed", name=f"resign_{uuid.uuid4().hex[:6]}.pdf"),
-                        exec_comments="Approved — seed data",
+                        exec_comments="Approved, seed data",
                     )
                     stats["resignations"] += 1
                 elif status_kind == "alumni":

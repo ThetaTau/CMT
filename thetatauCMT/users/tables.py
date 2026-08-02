@@ -1,10 +1,12 @@
 import django_tables2 as tables
 from django_tables2.utils import A
 
+from core.tables import CMTTable
+
 from .models import User, UserOrgParticipate, UserStatusChange
 
 
-class UserTable(tables.Table):
+class UserTable(CMTTable):
     rmp_complete = tables.Column(verbose_name="RMP Complete")
 
     class Meta:
@@ -86,7 +88,7 @@ class UserTable(tables.Table):
         return value
 
 
-class RollBookTable(tables.Table):
+class RollBookTable(CMTTable):
     rollbook = tables.LinkColumn("forms:roll_book_page", args=[A("pk")], attrs={"a": {"target": "_blank"}})
     birth_place = tables.Column()
     other_degrees = tables.Column()
@@ -109,7 +111,7 @@ class RollBookTable(tables.Table):
         attrs = {"class": "table table-striped table-bordered"}
 
 
-class UserOrgTable(tables.Table):
+class UserOrgTable(CMTTable):
     user = tables.LinkColumn(
         "users:profile",
         kwargs={"username": A("user__username")},

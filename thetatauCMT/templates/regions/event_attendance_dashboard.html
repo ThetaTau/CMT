@@ -55,7 +55,7 @@
                     {% elif event.chapter %}
                       <a href="{% url 'chapters:detail' event.chapter.slug %}">{{ event.chapter.name }}</a>
                     {% else %}
-                      &mdash;
+                      None
                     {% endif %}
                   </td>
                   <td class="text-end fw-semibold">{{ event.attended_count }}</td>

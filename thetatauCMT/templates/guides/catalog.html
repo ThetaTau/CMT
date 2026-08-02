@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}What can the CMT do? | Theta Tau Chapter Management Tool{% endblock title %}
+{% block content %}
+<h1>What can the CMT do?</h1>
+<p class="lead">
+  Everything the Chapter Management Tool does, grouped by what you are trying to get done.
+</p>
+
+{% if not request.user.is_authenticated %}
+  <div class="alert alert-info" role="alert">
+    You are not signed in, so this page shows only what you can do before signing in.
+    <a href="{% url 'account_login' %}" class="alert-link">Sign in</a> to see everything your chapter role gives you.
+  </div>
+{% endif %}
+
+{% if role_guides %}
+  <div class="alert alert-primary d-flex flex-wrap align-items-center gap-2" role="alert">
+    <span class="me-auto">
+      Looking for what <em>you</em> own? Your role guide lists it with due dates.
+    </span>
+    {% for guide in role_guides %}
+      <a class="btn btn-sm btn-primary"
+         href="{{ guide.get_absolute_url }}"
+         data-role-guide="{{ guide.role }}">{{ guide.title }} guide</a>
+    {% endfor %}
+  </div>
+{% elif request.user.is_authenticated %}
+  <p class="text-body-secondary">
+    Responsibilities are listed office by office in the
+    <a href="{% url 'guides:role-guides' %}">role guides</a>.
+  </p>
+{% endif %}
+
+<div class="card bg-body-tertiary mb-4">
+  <div class="card-body">
+    <div class="row g-2 align-items-center">
+      <div class="col-12 col-md-6">
+        <label class="form-label visually-hidden" for="tt-catalog-search">Search features</label>
+        <input type="search"
+               class="form-control"
+               id="tt-catalog-search"
+               placeholder="Search: try &ldquo;dues&rdquo;, &ldquo;attendance&rdquo; or &ldquo;audit&rdquo;"
+               autocomplete="off">
+      </div>
+      {% if duty_roles %}
+        <div class="col-12 col-md-6">
+          <div class="form-check form-switch">
+            <input class="form-check-input" type="checkbox" role="switch" id="tt-catalog-mine">
+            <label class="form-check-label" for="tt-catalog-mine">
+              Only show tools for my role{{ duty_roles|length|pluralize }}
+              ({% for role in duty_roles %}{{ role|title }}{% if not forloop.last %}, {% endif %}{% endfor %})
+            </label>
+          </div>
+        </div>
+      {% endif %}
+    </div>
+    <div class="d-flex flex-wrap gap-1 mt-3" id="tt-catalog-chips">
+      <button type="button" class="btn btn-sm btn-primary" data-catalog-chip="">Everything</button>
+      {% for group in catalog %}
+        <button type="button"
+                class="btn btn-sm btn-outline-secondary"
+                data-catalog-chip="{{ group.area.key }}">{{ group.area.name }}</button>
+      {% endfor %}
+    </div>
+    <div class="d-flex flex-wrap align-items-center gap-2 mt-3">
+      <button type="button" class="btn btn-sm btn-outline-secondary" id="tt-catalog-expand">
+        Expand all
+      </button>
+      <p class="small text-body-secondary mb-0" id="tt-catalog-count" role="status" aria-live="polite"></p>
+    </div>
+  </div>
+</div>
+
+<div class="accordion" id="tt-catalog-accordion">
+  {% for group in catalog %}
+    <div class="accordion-item tt-catalog-section"
+         id="area-{{ group.area.key }}"
+         data-catalog-area="{{ group.area.key }}">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed"
+                type="button"
+                data-bs-toggle="collapse"
+                data-bs-target="#panel-{{ group.area.key }}"
+                aria-expanded="false"
+                aria-controls="panel-{{ group.area.key }}">
+          <span class="me-2">
+            {% if group.area.icon %}<i class="{{ group.area.icon }} me-1" aria-hidden="true"></i>{% endif %}
+            <strong>{{ group.area.name }}</strong>
+          </span>
+          <span class="badge rounded-pill text-bg-secondary" data-catalog-tally>{{ group.features|length }}</span>
+        </button>
+      </h2>
+      <div id="panel-{{ group.area.key }}"
+           class="accordion-collapse collapse"
+           data-catalog-panel>
+        <div class="accordion-body">
+          <p class="text-body-secondary">{{ group.area.description }}</p>
+          <div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-3">
+            {% for entry in group.features %}
+              {% include "guides/_catalog_card.html" with entry=entry %}
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+  {% empty %}
+    <p>There is nothing to show here yet.</p>
+  {% endfor %}
+</div>
+
+<p class="text-body-secondary mt-3" id="tt-catalog-empty" hidden>
+  Nothing matches that search. Try a shorter word, or clear the filters.
+</p>
+{% endblock content %}
+
+{% block javascript %}
+  {{ block.super }}
+  <script src="{% static 'js/catalog.js' %}"></script>
+{% endblock javascript %}

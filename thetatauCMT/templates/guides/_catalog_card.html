@@ -1,0 +1,40 @@
+{% load custom_tags %}{% comment %}
+One catalog card (TWI-9). Shared by the catalog page and the forms landing page
+so search behaves identically on both.
+
+Context:
+  entry   {"feature", "url", "is_new", "duty_roles"} from guides.services.get_catalog
+{% endcomment %}
+<div class="col tt-catalog-card"
+     data-catalog-area="{{ entry.feature.area.key }}"
+     data-catalog-mine="{% if entry.duty_roles %}1{% else %}0{% endif %}"
+     data-catalog-text="{{ entry.feature.name }} {{ entry.feature.short_description }} {{ entry.feature.long_description }}">
+  <div class="card h-100 bg-body-tertiary text-body">
+    <div class="card-body">
+      <h3 class="h6 card-title">
+        {{ entry.feature.name }}
+        {% if entry.is_new %}<span class="badge text-bg-success align-middle">New</span>{% endif %}
+      </h3>
+      <p class="card-text small">{{ entry.feature.short_description }}</p>
+      {% if entry.feature.long_description %}
+        <p class="small text-body-secondary">{{ entry.feature.long_description }}</p>
+      {% endif %}
+      {% if entry.duty_roles %}
+        <p class="mb-0">
+          {% for role in entry.duty_roles %}
+            <span class="badge rounded-pill text-bg-info">Part of your {{ role|title }} duties</span>
+          {% endfor %}
+        </p>
+      {% endif %}
+    </div>
+    <div class="card-footer bg-transparent d-flex flex-wrap align-items-center gap-2">
+      {% if entry.url %}
+        <a class="btn btn-sm btn-outline-primary"
+           href="{{ entry.url }}"
+           data-catalog-link="{{ entry.feature.key }}">Take me there</a>
+      {% else %}
+        <span class="small text-body-secondary">No direct link. See the description.</span>
+      {% endif %}
+    </div>
+  </div>
+</div>

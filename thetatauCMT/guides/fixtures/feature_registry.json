@@ -1,0 +1,1683 @@
+{
+  "_readme": [
+    "Feature registry (TWI-8). Source of truth for the catalog and What's New.",
+    "Load with: python manage.py load_feature_registry [--dry-run]",
+    "This is NOT a Django loaddata serialization -- rows are matched by 'key' and upserted,",
+    "so re-running after every release updates copy without duplicating rows or losing",
+    "UserAcknowledgement history. Removing an entry from this file",
+    "deactivates it; nothing is ever deleted.",
+    "Display order comes from list position, so there is no 'order' field to keep in sync.",
+    "Role guides (TWI-12) live in the top-level 'role_guides' list and are matched on 'role',",
+    "which must be a value from core.models.ALL_ROLES so it lines up with tasks.Task.owner.",
+    "Authored from docs/specs/feature-inventory.md (TWI-1)."
+  ],
+  "version": "2026.07",
+  "areas": [
+    {
+      "key": "getting-in",
+      "name": "Getting in",
+      "description": "Signing in, and what to do when you cannot. This is the only part of the guide visible before you sign in.",
+      "icon": "fa-solid fa-right-to-bracket",
+      "audience": "public",
+      "features": [
+        {
+          "key": "sign-in",
+          "name": "Sign in",
+          "short_description": "Sign in with the email address the fraternity has on file for you.",
+          "long_description": "Accounts are created for you when you are pledged or initiated. There is no sign-up page. If your email address has changed, use 'Update my info without signing in' below.",
+          "url_name": "account_login"
+        },
+        {
+          "key": "find-username-or-badge",
+          "name": "Find my username or badge number",
+          "short_description": "Look yourself up by name and chapter to find the username and badge number on file.",
+          "long_description": "The lookup sits on the sign-in page. Give your university and badge number and a reset link is emailed to the address on file, with the address partly masked so you can check it is the one you still use.",
+          "url_name": "account_login",
+          "url_fragment": "lookup_form"
+        },
+        {
+          "key": "reset-password",
+          "name": "Reset my password",
+          "short_description": "Send yourself a password reset link.",
+          "long_description": "The link goes to the email address on file. If you no longer have access to that address, update your info first and then reset.",
+          "url_name": "password_reset"
+        },
+        {
+          "key": "update-info-signed-out",
+          "name": "Update my info without signing in",
+          "short_description": "Change the email address, phone number or address we hold for you, without an account.",
+          "long_description": "Look yourself up, confirm your identity, and submit the changes. A National Officer reviews the request before it takes effect.",
+          "url_name": "update_lookup"
+        }
+      ]
+    },
+    {
+      "key": "getting-started",
+      "name": "Getting started",
+      "description": "Your home page, your own record, and the policies you agree to.",
+      "icon": "fa-solid fa-house",
+      "features": [
+        {
+          "key": "home-dashboard",
+          "name": "Home dashboard",
+          "short_description": "Announcements, the tasks your chapter still owes, and your region's numbers, on one page.",
+          "url_name": "home"
+        },
+        {
+          "key": "my-profile",
+          "name": "My profile",
+          "short_description": "Your badge number, status, roles, service hours and award history.",
+          "url_name": "users:profile",
+          "url_kwargs": {"username": "@username"}
+        },
+        {
+          "key": "edit-my-info",
+          "name": "Edit my info",
+          "short_description": "Update your email, phone, address, graduation year and major.",
+          "long_description": "Keeping your graduation date right matters: it drives when you are moved to alumnus status and whether you keep receiving chapter mail.",
+          "url_name": "users:detail"
+        },
+        {
+          "key": "profile-picture",
+          "name": "My profile picture",
+          "short_description": "Upload the photo that appears next to your name in the roster and directories.",
+          "url_name": "users:profile_picture"
+        },
+        {
+          "key": "email-preferences",
+          "name": "Email preferences",
+          "short_description": "Choose which optional fraternity mailings you receive.",
+          "long_description": "Under 'Email Preferences / Unsubscribe' on your own info page. Every fraternity email also carries an unsubscribe link that switches off just that category. Compliance mail, such as risk management reminders, cannot be turned off. Some mailings are sent from systems that sync monthly, so a change can take a few weeks to reach them.",
+          "url_name": "users:detail",
+          "url_fragment": "email_prefs"
+        },
+        {
+          "key": "terms-of-service",
+          "name": "Terms of service",
+          "short_description": "The end user licence agreement you accept when you sign in.",
+          "url_name": "eula"
+        },
+        {
+          "key": "electronic-business-terms",
+          "name": "Electronic business terms",
+          "short_description": "How the fraternity treats electronic signatures and electronically submitted forms.",
+          "url_name": "electronic_terms"
+        },
+        {
+          "key": "privacy-notice",
+          "name": "Privacy notice",
+          "short_description": "What the fraternity stores about you and who can see it.",
+          "url_name": "privacy"
+        },
+        {
+          "key": "about-this-application",
+          "name": "About",
+          "short_description": "What the Chapter Management Tool is, who maintains it, and how to report a problem.",
+          "url_name": "about"
+        }
+      ]
+    },
+    {
+      "key": "my-chapter",
+      "name": "My chapter",
+      "description": "Your chapter's own page: what it has submitted, how it is scoring, and who is watching.",
+      "icon": "fa-solid fa-building-columns",
+      "features": [
+        {
+          "key": "chapter-home",
+          "name": "Chapter home",
+          "short_description": "Your chapter's officers, advisors, school and status in one place.",
+          "url_name": "chapters:detail",
+          "url_kwargs": {"slug": "@chapter_slug"}
+        },
+        {
+          "key": "chapter-activity",
+          "name": "Chapter activity",
+          "short_description": "A running log of everything your chapter has submitted and when.",
+          "url_name": "chapters:activity",
+          "url_kwargs": {"slug": "@chapter_slug"}
+        },
+        {
+          "key": "chapter-audit-history",
+          "name": "Chapter audit history",
+          "short_description": "Past audit submissions for your chapter.",
+          "url_name": "chapters:audit",
+          "url_kwargs": {"slug": "@chapter_slug"},
+          "roles": ["regent", "vice regent", "scribe", "treasurer", "corresponding secretary"]
+        },
+        {
+          "key": "chapter-directory",
+          "name": "Chapter directory",
+          "short_description": "Every chapter in the fraternity, with school, region and status.",
+          "url_name": "chapters:list"
+        },
+        {
+          "key": "chapter-scores",
+          "name": "Chapter scores",
+          "short_description": "How your chapter is scoring this year, broken down by what earns points.",
+          "long_description": "Scores come from what your chapter submits: events, service, forms and reports. Open a score line to see exactly which submissions counted.",
+          "url_name": "scores:list",
+          "roles": ["regent"]
+        },
+        {
+          "key": "chapter-notes",
+          "name": "Chapter notes",
+          "short_description": "Record a note against a chapter that other National Officers will see.",
+          "url_name": "notes:add",
+          "url_kwargs": {"slug": "@chapter_slug"},
+          "audience": "natoff"
+        },
+        {
+          "key": "member-notes",
+          "name": "Member notes",
+          "short_description": "Record a note against an individual member's record.",
+          "url_name": "notes:add_user",
+          "url_kwargs": {"username": "@username"},
+          "audience": "natoff"
+        }
+      ]
+    },
+    {
+      "key": "roster-members",
+      "name": "Roster & members",
+      "description": "Who is in your chapter, and the academic and service data the fraternity keeps for them.",
+      "icon": "fa-solid fa-users",
+      "features": [
+        {
+          "key": "chapter-roster",
+          "name": "Chapter roster",
+          "short_description": "Every active, pledge and alumnus member of your chapter, with status and contact details.",
+          "url_name": "users:list",
+          "roles": ["scribe"]
+        },
+        {
+          "key": "member-gpas",
+          "name": "Enter member GPAs",
+          "short_description": "Record each member's GPA for the term.",
+          "long_description": "GPAs feed the scholarship score and the academic reports the national office runs. Enter them once per term.",
+          "url_name": "users:gpas",
+          "audience": "officer",
+          "roles": ["scribe"]
+        },
+        {
+          "key": "service-hours",
+          "name": "Enter service hours",
+          "short_description": "Record service hours for members of your chapter.",
+          "url_name": "users:service",
+          "roles": ["scribe"]
+        },
+        {
+          "key": "external-organizations",
+          "name": "External organizations",
+          "short_description": "Other student organizations your chapter's members belong to.",
+          "url_name": "users:orgs"
+        },
+        {
+          "key": "log-external-org",
+          "name": "Log external org participation",
+          "short_description": "Add an organization a member takes part in outside Theta Tau.",
+          "url_name": "users:orgs_add"
+        },
+        {
+          "key": "member-search-all",
+          "name": "Member search (all chapters)",
+          "short_description": "Find any member in the fraternity, across every chapter.",
+          "url_name": "users:search",
+          "audience": "natoff"
+        }
+      ]
+    },
+    {
+      "key": "events-attendance",
+      "name": "Events & attendance",
+      "description": "Running chapter events and recording who came.",
+      "icon": "fa-solid fa-calendar-days",
+      "features": [
+        {
+          "key": "chapter-events",
+          "name": "Chapter events",
+          "short_description": "Every event your chapter has scheduled or held, with its type and score value.",
+          "url_name": "events:list",
+          "roles": ["vice regent"]
+        },
+        {
+          "key": "add-event",
+          "name": "Add an event",
+          "short_description": "Schedule an event, choose its type, and set how it scores.",
+          "long_description": "Event type decides which score it feeds, so pick it carefully. You can copy last year's event rather than retyping it.",
+          "url_name": "events:add",
+          "roles": ["vice regent"]
+        },
+        {
+          "key": "events-calendar",
+          "name": "Events calendar",
+          "short_description": "Your chapter's events in a month view.",
+          "url_name": "events:calendar",
+          "feature_flag": "FEATURE_EVENTS_CALENDAR"
+        },
+        {
+          "key": "calendar-subscriptions",
+          "name": "Calendar subscriptions",
+          "short_description": "Feed chapter events straight into Google Calendar, Outlook or Apple Calendar.",
+          "url_name": "events:feeds",
+          "feature_flag": "FEATURE_EVENTS_CALENDAR"
+        },
+        {
+          "key": "subscribe-chapter-calendar",
+          "name": "Subscribe to a chapter's calendar",
+          "short_description": "Get a subscription link for any chapter's events.",
+          "long_description": "Open a chapter and use Subscribe to these events under Public Events. You can add the chapter to a feed you already have instead of starting a new one, so several chapters can share a single calendar.",
+          "url_name": "chapters:detail",
+          "url_kwargs": {"slug": "@chapter_slug"},
+          "url_fragment": "public-events",
+          "feature_flag": "FEATURE_EVENTS_CALENDAR"
+        },
+        {
+          "key": "subscribe-my-tasks",
+          "name": "Add my tasks to my calendar",
+          "short_description": "Put your chapter's task due dates in your own calendar.",
+          "long_description": "Create a to-dos-only feed from Chapter To-do Reminders. Leave the officer list empty for every task, or pick the offices you hold so your calendar only carries what you owe.",
+          "url_name": "events:feeds",
+          "url_fragment": "task-reminders",
+          "feature_flag": "FEATURE_EVENTS_CALENDAR"
+        },
+        {
+          "key": "all-events",
+          "name": "All events (all chapters)",
+          "short_description": "Every event across the fraternity, filterable by region and type.",
+          "url_name": "events:list_all",
+          "audience": "natoff",
+          "roles": ["regional director"]
+        },
+        {
+          "key": "pending-event-reviews",
+          "name": "Pending event reviews",
+          "short_description": "Events waiting on a National Officer to approve or reject them.",
+          "url_name": "events:pending",
+          "audience": "natoff",
+          "roles": ["regional director"]
+        },
+        {
+          "key": "take-attendance",
+          "name": "Take attendance",
+          "short_description": "Mark who attended an event, in bulk, from the event's own page.",
+          "long_description": "Open the event from Chapter events and use the attendance roster. Attendance is per-event, so there is no single page to link to here.",
+          "roles": ["vice regent", "scribe"]
+        },
+        {
+          "key": "rsvp-for-event",
+          "name": "RSVP for an event",
+          "short_description": "Say whether you are coming, from the event's page.",
+          "long_description": "Open the event from Chapter events or the calendar. RSVPs are per-event, so there is no single page to link to here."
+        },
+        {
+          "key": "log-my-attendance",
+          "name": "Log my own attendance",
+          "short_description": "Record that you attended an event that was missed when the roster was taken.",
+          "long_description": "Use Log missing attendance at the foot of the attendance card on your profile. You cannot create events here. Search for the national or chapter event you attended.",
+          "url_name": "users:profile",
+          "url_kwargs": {"username": "@username"},
+          "url_fragment": "attendance"
+        },
+        {
+          "key": "national-attendance-upload",
+          "name": "Upload national attendance",
+          "short_description": "Bulk-load attendance for a national event from a spreadsheet.",
+          "url_name": "attendance:national_upload",
+          "audience": "natoff"
+        },
+        {
+          "key": "attendance-match-queue",
+          "name": "National attendance match queue",
+          "short_description": "Resolve uploaded attendance rows that did not match a member automatically.",
+          "url_name": "attendance:match_queue",
+          "audience": "natoff"
+        }
+      ]
+    },
+    {
+      "key": "tasks-goals",
+      "name": "Tasks & goals",
+      "description": "What your chapter owes the national office, what it has set out to do, and what it has sent in.",
+      "icon": "fa-solid fa-list-check",
+      "features": [
+        {
+          "key": "chapter-tasks",
+          "name": "Chapter tasks",
+          "short_description": "Every obligation your chapter has, who owns it, and when it is due.",
+          "long_description": "Tasks are assigned to an officer role, not a person, so they follow the office through elections. Missing a task costs your chapter score.",
+          "url_name": "tasks:list",
+          "roles": ["regent", "vice regent", "scribe", "treasurer", "corresponding secretary"]
+        },
+        {
+          "key": "workflow-task-inbox",
+          "name": "My workflow tasks",
+          "short_description": "Forms waiting on you to review, approve or complete.",
+          "long_description": "Multi-step forms such as initiation, discipline, premature alumnus and award nominations move between people. Anything waiting on your chapter shows under 'Chapter Process Reminders' at the top of the task list, and only the member it is assigned to gets a link to act on it.",
+          "url_name": "tasks:list",
+          "url_fragment": "process-reminders",
+          "roles": ["regent", "vice regent", "scribe", "treasurer", "corresponding secretary", "regional director"]
+        },
+        {
+          "key": "chapter-goals",
+          "name": "Chapter goals",
+          "short_description": "The goals your chapter set for the year and how they are tracking.",
+          "long_description": "This page shows the goals of whichever chapter you are currently viewing as. Regional Directors and National Officers pick a chapter with the switcher in the bar across the top of the page, then open this to see what that chapter set out to do.",
+          "url_name": "objectives:list",
+          "roles": ["regent", "regional director"]
+        },
+        {
+          "key": "set-a-goal",
+          "name": "Set a goal",
+          "short_description": "Record a goal for your chapter with a target and a date.",
+          "long_description": "The goal is recorded against whichever chapter you are currently viewing as, so a Regional Director or National Officer switches to the chapter first using the bar across the top of the page. Goals are usually agreed during a visit and written down here so the next visit has something to measure against.",
+          "url_name": "objectives:create",
+          "roles": ["regent", "regional director"]
+        },
+        {
+          "key": "submissions",
+          "name": "Submissions",
+          "short_description": "Everything your chapter has submitted for score, with dates and score types.",
+          "url_name": "submissions:list"
+        },
+        {
+          "key": "add-submission",
+          "name": "Add a submission",
+          "short_description": "Send in something your chapter did that earns score, then pick the score type and attach the evidence.",
+          "url_name": "submissions:add"
+        }
+      ]
+    },
+    {
+      "key": "forms-workflows",
+      "name": "Forms & workflows",
+      "description": "Every form the fraternity asks for, from pledging a new member to reporting an officer election.",
+      "icon": "fa-solid fa-file-lines",
+      "features": [
+        {
+          "key": "initiation-report",
+          "name": "Initiation report",
+          "short_description": "Report the members your chapter has initiated and order their badges.",
+          "long_description": "Select the pledges being initiated, confirm their details, and submit. Badge numbers are assigned by the national office once the report is processed.",
+          "url_name": "forms:init_selection",
+          "audience": "officer",
+          "roles": ["scribe", "regent"],
+          "task": "initiation-reportvice-regent"
+        },
+        {
+          "key": "pledge-form",
+          "name": "Pledge / new member form",
+          "short_description": "Register a new pledge with the national office.",
+          "long_description": "This is the only form a prospective member fills in themselves, so it works without an account. Pledges must be reported before they can be initiated.",
+          "url_name": "forms:pledgeform",
+          "audience": "officer",
+          "task": "pledge-forms"
+        },
+        {
+          "key": "status-change-graduate",
+          "name": "Graduate members",
+          "short_description": "Report members who are graduating. Select several at once and fill one row each.",
+          "url_name": "forms:status_history",
+          "url_kwargs": {"reason": "graduate"},
+          "audience": "officer",
+          "roles": ["scribe"]
+        },
+        {
+          "key": "status-change-coop",
+          "name": "Report a co-op or study abroad",
+          "short_description": "Report a member leaving temporarily for a co-op, internship, or study abroad.",
+          "url_name": "forms:status_history",
+          "url_kwargs": {"reason": "coop"},
+          "audience": "officer",
+          "roles": ["scribe"]
+        },
+        {
+          "key": "status-change-military",
+          "name": "Report a military deployment",
+          "short_description": "Report a member being deployed on active or reserve military duty.",
+          "url_name": "forms:status_history",
+          "url_kwargs": {"reason": "military"},
+          "audience": "officer",
+          "roles": ["scribe"]
+        },
+        {
+          "key": "status-change-withdraw",
+          "name": "Report a withdrawal from school",
+          "short_description": "Report a member withdrawing from school.",
+          "url_name": "forms:status_history",
+          "url_kwargs": {"reason": "withdraw"},
+          "audience": "officer",
+          "roles": ["scribe"]
+        },
+        {
+          "key": "status-change-transfer",
+          "name": "Report a transfer to another school",
+          "short_description": "Report a member transferring to another school.",
+          "url_name": "forms:status_history",
+          "url_kwargs": {"reason": "transfer"},
+          "audience": "officer",
+          "roles": ["scribe"]
+        },
+        {
+          "key": "premature-alumnus",
+          "name": "Premature alumnus request",
+          "short_description": "Ask for a member to be moved to alumnus status before they graduate.",
+          "long_description": "Reviewed by the national office. Use this rather than a withdrawal when the member is staying in school but stepping back from the chapter.",
+          "url_name": "viewflow:forms:prematurealumnus:start",
+          "audience": "officer",
+          "roles": ["scribe"],
+          "task": "premature-alumnus"
+        },
+        {
+          "key": "return-student",
+          "name": "Return student request",
+          "short_description": "Bring a member back to active status after a leave, co-op or deployment.",
+          "url_name": "viewflow:forms:returnstudent:start",
+          "audience": "officer",
+          "roles": ["scribe"]
+        },
+        {
+          "key": "resignation",
+          "name": "Resignation",
+          "short_description": "Resign your membership of the fraternity.",
+          "long_description": "A resignation is reviewed by your chapter and then by the national office. It is not reversible once accepted.",
+          "url_name": "viewflow:forms:resignation:start"
+        },
+        {
+          "key": "resignations-list",
+          "name": "Resignations",
+          "short_description": "Resignation requests submitted by your chapter's members.",
+          "url_name": "forms:resign_list",
+          "audience": "officer"
+        },
+        {
+          "key": "alumni-exclusion",
+          "name": "Alumni exclusion request",
+          "short_description": "Ask for an alumnus to be excluded from chapter and fraternity communications.",
+          "url_name": "viewflow:forms:alumniexclusion:start",
+          "audience": "officer",
+          "roles": ["regent", "scribe"]
+        },
+        {
+          "key": "alumni-exclusion-list",
+          "name": "All alumni exclusions",
+          "short_description": "Every alumni exclusion request across the fraternity.",
+          "url_name": "forms:alumniexclusion_list",
+          "audience": "natoff"
+        },
+        {
+          "key": "chapter-officers",
+          "name": "Chapter officers",
+          "short_description": "Who currently holds each office in your chapter, and when their term ends.",
+          "url_name": "forms:officer",
+          "roles": ["regent"]
+        },
+        {
+          "key": "submit-chapter-officers",
+          "name": "Submit chapter officers",
+          "short_description": "Report an officer election so the new officers get the right access and the right reminders.",
+          "long_description": "Until this is submitted, the outgoing officers keep the access and keep getting the reminder emails. Submit it the week the election happens.",
+          "url_name": "forms:officer_add",
+          "audience": "officer",
+          "roles": ["regent"],
+          "task": "officer-election-report"
+        },
+        {
+          "key": "national-officers-directory",
+          "name": "National officers directory",
+          "short_description": "Who holds each national office, and how to reach them.",
+          "url_name": "forms:natoff"
+        },
+        {
+          "key": "chapter-bylaws",
+          "name": "Chapter bylaws",
+          "short_description": "Upload your chapter's current bylaws.",
+          "url_name": "forms:bylaws",
+          "audience": "officer",
+          "roles": ["regent", "scribe"]
+        },
+        {
+          "key": "all-bylaws",
+          "name": "All chapter bylaws",
+          "short_description": "Bylaws submitted by every chapter.",
+          "url_name": "forms:bylaws_list",
+          "audience": "natoff"
+        },
+        {
+          "key": "roll-book-page",
+          "name": "Roll book page",
+          "short_description": "Generate the roll book page a candidate signs at initiation.",
+          "long_description": "On the initiation/depledge selection form, set the candidate's status to 'Roll Book' instead of 'Initiate' and continue. The next step lists everyone you marked, with a page to print for each and a download-all option. A candidate you send to the roll book is not initiated by that submission, so run them through as 'Initiate' when they are ready.",
+          "url_name": "forms:init_selection",
+          "audience": "officer",
+          "roles": ["scribe"]
+        },
+        {
+          "key": "ritual-proficiency",
+          "name": "Ritual proficiency",
+          "short_description": "Which chapters have certified ritual proficiency.",
+          "url_name": "forms:ritual_proficiency",
+          "audience": "natoff"
+        },
+        {
+          "key": "convention-form",
+          "name": "Convention credentials",
+          "short_description": "Name your chapter's delegate and alternate for national convention.",
+          "url_name": "conventionform",
+          "audience": "officer",
+          "roles": ["regent"]
+        },
+        {
+          "key": "all-convention-forms",
+          "name": "All convention credentials",
+          "short_description": "Convention credentials submitted by every chapter.",
+          "url_name": "forms:convention_list",
+          "audience": "natoff"
+        },
+        {
+          "key": "osm-form",
+          "name": "Outstanding student member",
+          "short_description": "Nominate your chapter's outstanding student member for the year.",
+          "url_name": "osmform",
+          "audience": "officer",
+          "roles": ["regent"],
+          "task": "outstanding-student-member"
+        },
+        {
+          "key": "all-osm-forms",
+          "name": "All outstanding student member forms",
+          "short_description": "Outstanding student member nominations from every chapter.",
+          "url_name": "forms:osm_list",
+          "audience": "natoff"
+        },
+        {
+          "key": "risk-management-policies",
+          "name": "Risk management policies",
+          "short_description": "Read and sign the fraternity's risk management policies. Every member signs their own.",
+          "long_description": "This is signed by each member individually, not filed once for the chapter, and it has to be signed again every term. Signing is required before you can use the rest of the application, and you will be sent here automatically until you have.",
+          "url_name": "forms:rmp"
+        },
+        {
+          "key": "all-rmp-signatures",
+          "name": "All risk management signatures",
+          "short_description": "Who has signed the risk management policies, across every chapter.",
+          "url_name": "forms:rmp_list",
+          "audience": "natoff"
+        },
+        {
+          "key": "hs-education-program",
+          "name": "Health & safety education program",
+          "short_description": "Submit your chapter's health and safety education plan for review.",
+          "url_name": "viewflow:forms:hseducation:start",
+          "audience": "officer",
+          "roles": ["risk management chair"],
+          "task": "hs-education-programsregent"
+        },
+        {
+          "key": "all-hs-education-reports",
+          "name": "All health & safety programs",
+          "short_description": "Health and safety education programs submitted by every chapter.",
+          "url_name": "forms:education_list",
+          "audience": "natoff"
+        },
+        {
+          "key": "new-member-education-program",
+          "name": "New member education program",
+          "short_description": "Submit the programme your chapter will use to educate its new members.",
+          "long_description": "Must be approved before you pledge anyone. It is reviewed by the national office and may come back with requested revisions.",
+          "url_name": "viewflow:forms:pledgeprogramprocess:start",
+          "audience": "officer",
+          "roles": ["pledge/new member educator"],
+          "task": "new-member-education-programvice-regent"
+        },
+        {
+          "key": "all-nme-programs",
+          "name": "All new member education programs",
+          "short_description": "New member education programs submitted by every chapter.",
+          "url_name": "forms:pledge_program_list",
+          "audience": "natoff"
+        },
+        {
+          "key": "disciplinary-process",
+          "name": "Disciplinary process",
+          "short_description": "Start a formal disciplinary process against a member.",
+          "long_description": "A multi-step process with national office involvement. Read the process notes before starting, because the steps and timings are prescribed.",
+          "url_name": "viewflow:forms:disciplinaryprocess:start",
+          "audience": "officer",
+          "roles": ["regent"]
+        },
+        {
+          "key": "bill-of-rights",
+          "name": "Member bill of rights",
+          "short_description": "The rights a member has in a disciplinary process, with your region's directors named.",
+          "long_description": "Reached from your chapter's page, because it names the regional directors responsible for your chapter."
+        },
+        {
+          "key": "chapter-audit-form",
+          "name": "Chapter audit form",
+          "short_description": "The annual audit of your chapter's finances and records.",
+          "long_description": "Several officers each sign off a section, so the audit is not finished until all of them have submitted. Check Chapter tasks to see who is outstanding.",
+          "url_name": "forms:audit",
+          "audience": "officer",
+          "task": "audit-treasurer"
+        },
+        {
+          "key": "all-audits",
+          "name": "All chapter audits",
+          "short_description": "Audit submissions from every chapter.",
+          "url_name": "forms:audit_list",
+          "audience": "natoff"
+        },
+        {
+          "key": "collection-referral",
+          "name": "Collection referral",
+          "short_description": "Refer a member's unpaid balance to the national office for collection.",
+          "url_name": "forms:collection",
+          "audience": "officer",
+          "roles": ["treasurer"]
+        },
+        {
+          "key": "pledge-pins",
+          "name": "Order pledge pins",
+          "short_description": "Order pledge pins and other regalia for your chapter.",
+          "url_name": "forms:pledge_pins",
+          "audience": "officer",
+          "roles": ["treasurer"]
+        },
+        {
+          "key": "gear-article",
+          "name": "Gear article submission",
+          "short_description": "Send a story about your chapter to the fraternity's magazine, The Gear of Theta Tau.",
+          "url_name": "gear",
+          "audience": "officer",
+          "roles": ["corresponding secretary"],
+          "task": "gear-article"
+        },
+        {
+          "key": "all-gear-articles",
+          "name": "All gear articles",
+          "short_description": "Gear article submissions from every chapter.",
+          "url_name": "submissions:gearlist",
+          "audience": "natoff"
+        }
+      ]
+    },
+    {
+      "key": "awards",
+      "name": "Awards",
+      "description": "Nominating members and chapters for fraternity awards, and looking up who has won what.",
+      "icon": "fa-solid fa-trophy",
+      "feature_flag": "FEATURE_AWARDS",
+      "features": [
+        {
+          "key": "award-nomination",
+          "name": "Nominate for an award",
+          "short_description": "Put a member or chapter forward for a fraternity award.",
+          "long_description": "Nominations are reviewed by the awards committee. Check the award's cycle before you start, because most close well before the award is presented. Regional Directors and National Officers see work across many chapters and are often the only ones placed to nominate it.",
+          "url_name": "viewflow:awards:awardnomination:start",
+          "task": "awards",
+          "roles": ["regional director"]
+        },
+        {
+          "key": "award-winners-directory",
+          "name": "Award winners directory",
+          "short_description": "Every award the fraternity gives, and who has won it.",
+          "url_name": "awards:directory"
+        },
+        {
+          "key": "member-award-history",
+          "name": "A member's award history",
+          "short_description": "Every award a particular member has received.",
+          "url_name": "awards:member_history",
+          "url_kwargs": {"username": "@username"}
+        },
+        {
+          "key": "chapter-award-history",
+          "name": "A chapter's award history",
+          "short_description": "Every award a chapter and its members have received.",
+          "url_name": "awards:chapter_history",
+          "url_kwargs": {"slug": "@chapter_slug"}
+        },
+        {
+          "key": "grant-an-award",
+          "name": "Grant an award",
+          "short_description": "Record an award your chapter has given, without going through a nomination.",
+          "url_name": "awards:direct_grant",
+          "audience": "officer",
+          "roles": ["regent"]
+        },
+        {
+          "key": "export-award-data",
+          "name": "Export award data",
+          "short_description": "Download award winners as a spreadsheet.",
+          "long_description": "Retired from the catalog: the bulk export is administrators only, and the catalog has no audience narrower than national officer, so listing it would advertise a door that sends most readers home. Officers use the award winners directory and their chapter's award history instead.",
+          "url_name": "awards:export",
+          "audience": "natoff",
+          "is_active": false
+        }
+      ]
+    },
+    {
+      "key": "volunteering",
+      "name": "Volunteering",
+      "description": "Putting yourself or someone else forward to serve the fraternity nationally.",
+      "icon": "fa-solid fa-hand-holding-heart",
+      "features": [
+        {
+          "key": "nominate-for-national-office",
+          "name": "Nominate someone for national office",
+          "short_description": "Nominate a member, or yourself, for a national office or committee.",
+          "long_description": "The nominee is emailed and asked to consent before the nomination goes any further, so you do not need their password or their account.",
+          "url_name": "viewflow:nominations:nomination:start"
+        },
+        {
+          "key": "all-volunteer-nominations",
+          "name": "All volunteer nominations",
+          "short_description": "Every volunteer nomination, with where each one has reached.",
+          "url_name": "nominations:list",
+          "audience": "natoff"
+        }
+      ]
+    },
+    {
+      "key": "finances",
+      "name": "Finances",
+      "description": "What your chapter owes the national office and what it has paid.",
+      "icon": "fa-solid fa-file-invoice-dollar",
+      "features": [
+        {
+          "key": "chapter-invoices",
+          "name": "Chapter invoices",
+          "short_description": "Every invoice the national office has raised against your chapter.",
+          "url_name": "finances:list",
+          "roles": ["treasurer"]
+        },
+        {
+          "key": "chapter-balances",
+          "name": "Chapter balances",
+          "short_description": "Your chapter's current balance with the national office.",
+          "long_description": "National Officers and Regional Directors see every chapter here; chapter officers and members see their own chapter.",
+          "url_name": "finances:chapters",
+          "roles": ["treasurer", "regional director"]
+        }
+      ]
+    },
+    {
+      "key": "training-education",
+      "name": "Training & education",
+      "description": "The training the fraternity requires and where to take it.",
+      "icon": "fa-solid fa-graduation-cap",
+      "features": [
+        {
+          "key": "chapter-training-records",
+          "name": "Chapter training records",
+          "short_description": "Which of your members have completed which required training.",
+          "url_name": "trainings:list"
+        },
+        {
+          "key": "vector-lms",
+          "name": "Vector LMS",
+          "short_description": "The external learning system that hosts the fraternity's required training courses.",
+          "long_description": "Opens in a new tab. Completions flow back into Chapter training records automatically, usually within a day.",
+          "external_url": "https://thetatau-tx.vectorlmsedu.com"
+        },
+        {
+          "key": "national-training-portal",
+          "name": "National training portal",
+          "short_description": "The national office's own training portal for officers and volunteers.",
+          "external_url": "https://apps.ed.thetatau.org/authn/login?tpa_hint=oa2-cmt",
+          "audience": "natoff"
+        }
+      ]
+    },
+    {
+      "key": "jobs",
+      "name": "Job board",
+      "description": "Engineering jobs and internships posted by members, for members.",
+      "icon": "fa-solid fa-briefcase",
+      "feature_flag": "FEATURE_JOBS",
+      "features": [
+        {
+          "key": "job-board",
+          "name": "Job board",
+          "short_description": "Jobs and internships posted by other members of the fraternity.",
+          "url_name": "jobs:list"
+        },
+        {
+          "key": "post-a-job",
+          "name": "Post a job",
+          "short_description": "Advertise a role at your employer to the rest of the fraternity.",
+          "long_description": "Postings are reviewed by a National Officer before they appear on the board.",
+          "url_name": "jobs:add"
+        },
+        {
+          "key": "saved-job-searches",
+          "name": "My saved job searches",
+          "short_description": "Searches you have saved, and the alerts they send you.",
+          "url_name": "jobs:search"
+        },
+        {
+          "key": "save-a-job-search",
+          "name": "Save a job search",
+          "short_description": "Save a search so you are emailed when a matching job is posted.",
+          "url_name": "jobs:add_search"
+        },
+        {
+          "key": "approve-job-posting",
+          "name": "Approve a job posting",
+          "short_description": "Review a submitted job posting before it goes on the board.",
+          "long_description": "Approvals are per-posting and are reached from the moderation email or from the job board itself.",
+          "audience": "natoff"
+        }
+      ]
+    },
+    {
+      "key": "ballots-voting",
+      "name": "Ballots & voting",
+      "description": "National votes put to the chapters.",
+      "icon": "fa-solid fa-square-poll-vertical",
+      "features": [
+        {
+          "key": "my-ballots",
+          "name": "My ballots",
+          "short_description": "Ballots open to your chapter, and whether your chapter has voted.",
+          "long_description": "Every member can see the ballots; only chapter officers can cast the chapter's vote.",
+          "url_name": "ballots:votelist"
+        },
+        {
+          "key": "cast-a-vote",
+          "name": "Cast a vote",
+          "short_description": "Cast your chapter's vote on an open ballot.",
+          "long_description": "Open the ballot from My ballots. Only officers may vote, and a chapter votes once.",
+          "audience": "officer",
+          "roles": ["regent"]
+        },
+        {
+          "key": "all-ballots",
+          "name": "All ballots",
+          "short_description": "Every ballot, open and closed, across the fraternity.",
+          "url_name": "ballots:list",
+          "audience": "natoff"
+        },
+        {
+          "key": "create-a-ballot",
+          "name": "Create a ballot",
+          "short_description": "Put a question to the chapters.",
+          "url_name": "ballots:create",
+          "audience": "natoff"
+        },
+        {
+          "key": "ballot-results",
+          "name": "Ballot results",
+          "short_description": "How each chapter voted on a ballot.",
+          "long_description": "Open a ballot from All ballots to see its results.",
+          "audience": "natoff"
+        }
+      ]
+    },
+    {
+      "key": "contacts-communication",
+      "name": "Contacts & communication",
+      "description": "Getting fraternity contact details onto your phone, and the mail the national office sends.",
+      "icon": "fa-solid fa-address-book",
+      "features": [
+        {
+          "key": "contact-sync",
+          "name": "Sync contacts to my phone",
+          "short_description": "Keep your chapter's, region's and the national officers' contact details in your own address book.",
+          "long_description": "Connect a Google or Microsoft account and the contacts stay up to date as officers change. A vCard download is available if you would rather not connect an account.",
+          "url_name": "contact_sync:status",
+          "roles": ["corresponding secretary"]
+        },
+        {
+          "key": "region-contacts-vcard",
+          "name": "Sync or download region contacts",
+          "short_description": "Put your region's officers and advisors into your own address book.",
+          "long_description": "Opens the region officer list. The Sync contacts button there connects a Google or Microsoft account, or hands you a vCard file if you would rather not connect one.",
+          "url_name": "regions:officers",
+          "url_kwargs": {"slug": "@region_slug"},
+          "audience": "natoff",
+          "roles": ["regional director"]
+        },
+        {
+          "key": "national-contacts-vcard",
+          "name": "Sync or download national contacts",
+          "short_description": "Put the national officers into your own address book.",
+          "long_description": "Opens the national officer directory. The Sync contacts button there connects a Google or Microsoft account, or hands you a vCard file if you would rather not connect one.",
+          "url_name": "forms:natoff"
+        },
+        {
+          "key": "member-email-communication",
+          "name": "Member email communication",
+          "short_description": "Send email to a filtered set of members, and see what was sent.",
+          "url_name": "email_tracking:member_communication",
+          "audience": "natoff"
+        }
+      ]
+    },
+    {
+      "key": "regions-national",
+      "name": "Regions & national",
+      "description": "Your region, and the national view of every chapter in it.",
+      "icon": "fa-solid fa-map",
+      "features": [
+        {
+          "key": "my-region",
+          "name": "My region",
+          "short_description": "The chapters in your region and who leads it.",
+          "url_name": "regions:detail",
+          "url_kwargs": {"slug": "@region_slug"}
+        },
+        {
+          "key": "region-list",
+          "name": "All regions",
+          "short_description": "Every region of the fraternity and the chapters in each.",
+          "url_name": "regions:list"
+        },
+        {
+          "key": "region-dashboard",
+          "name": "Region dashboard",
+          "short_description": "Chapter health across your region: scores, submissions and outstanding tasks.",
+          "url_name": "regions:dashboard",
+          "url_kwargs": {"slug": "@region_slug"},
+          "audience": "natoff",
+          "roles": ["regional director"]
+        },
+        {
+          "key": "region-officers",
+          "name": "Region officers",
+          "short_description": "Who holds each chapter office across your region.",
+          "url_name": "regions:officers",
+          "url_kwargs": {"slug": "@region_slug"},
+          "audience": "natoff",
+          "roles": ["regional director"]
+        },
+        {
+          "key": "region-advisors",
+          "name": "Region advisors",
+          "short_description": "Chapter and faculty advisors across your region.",
+          "url_name": "regions:advisors",
+          "url_kwargs": {"slug": "@region_slug"},
+          "audience": "natoff",
+          "roles": ["regional director"]
+        },
+        {
+          "key": "region-tasks",
+          "name": "Region tasks",
+          "short_description": "Outstanding chapter tasks across your region, so you can see who is behind.",
+          "url_name": "regions:tasks",
+          "url_kwargs": {"slug": "@region_slug"},
+          "audience": "natoff",
+          "roles": ["regional director"]
+        },
+        {
+          "key": "national-dashboard",
+          "name": "National dashboard",
+          "short_description": "The same chapter health view, across every region.",
+          "url_name": "regions:dashboard",
+          "url_kwargs": {"slug": "national"},
+          "audience": "natoff",
+          "roles": ["regional director"]
+        },
+        {
+          "key": "all-officers",
+          "name": "All chapter officers",
+          "short_description": "Who holds each chapter office, everywhere.",
+          "url_name": "regions:officers",
+          "url_kwargs": {"slug": "national"},
+          "audience": "natoff"
+        },
+        {
+          "key": "all-advisors",
+          "name": "All chapter advisors",
+          "short_description": "Every chapter and faculty advisor in the fraternity.",
+          "url_name": "regions:advisors",
+          "url_kwargs": {"slug": "national"},
+          "audience": "natoff"
+        },
+        {
+          "key": "events-attendance-dashboard",
+          "name": "Events & attendance dashboard",
+          "short_description": "Event and attendance numbers across the fraternity.",
+          "url_name": "regions:event_attendance",
+          "audience": "natoff",
+          "roles": ["regional director"]
+        },
+        {
+          "key": "all-chapter-scores",
+          "name": "All chapter scores",
+          "short_description": "Scores for every chapter, side by side.",
+          "url_name": "scores:chapterlist",
+          "audience": "natoff",
+          "roles": ["regional director"]
+        }
+      ]
+    },
+    {
+      "key": "surveys",
+      "name": "Surveys",
+      "description": "Surveys the fraternity asks members to fill in.",
+      "icon": "fa-solid fa-clipboard-question",
+      "features": [
+        {
+          "key": "depledge-survey",
+          "name": "Depledge survey",
+          "short_description": "Asked of a pledge who leaves before initiation, so the fraternity can learn why.",
+          "long_description": "Reached only from the personal link in the email sent to the individual, so it is deliberately not listed in the catalog. Retained here so the entry keeps its history rather than being deleted.",
+          "url_name": "surveys:depledge",
+          "url_kwargs": {"username": "@username"},
+          "roles": ["pledge/new member educator"],
+          "is_active": false
+        }
+      ]
+    }
+  ],
+  "role_guides": [
+    {
+      "role": "regent",
+      "title": "Regent",
+      "summary": "You are accountable for the chapter as a whole: its officers, its compliance with national policy, and its standing. Almost everything national headquarters needs from your chapter arrives as a task on your home page, and several of those tasks carry your name. Start there, then work down this page.",
+      "steps": [
+        {
+          "title": "Start with your task list",
+          "body": "Your home page lists every task the chapter still owes, with its due date. Tasks assigned to the Regent are yours to complete or delegate, but the chapter is graded on all of them, not just yours.",
+          "feature": "chapter-tasks",
+          "cadence": "ongoing"
+        },
+        {
+          "title": "Sign the Risk Management Policies",
+          "body": "Every member signs their own RMP each term, you included. It is not something the chapter files once. The site keeps prompting you until you do, and members who have not signed count against the chapter.",
+          "feature": "risk-management-policies",
+          "task": "risk-management-formregent",
+          "cadence": "each_term"
+        },
+        {
+          "title": "Run the health and safety education programs",
+          "body": "Once a year the chapter must run an alcohol and drug awareness program, an anti-harassment program, and a mental health recognition program, then report all three here.",
+          "feature": "hs-education-program",
+          "task": "hs-education-programsregent",
+          "cadence": "annual"
+        },
+        {
+          "title": "Complete the annual audit",
+          "body": "The audit is signed by the Regent, Vice Regent, Scribe, Treasurer and Corresponding Secretary. Fill it in with your Treasurer, who holds the numbers.",
+          "feature": "chapter-audit-form",
+          "task": "audit-regent",
+          "cadence": "annual"
+        },
+        {
+          "title": "Nominate your Outstanding Student Member",
+          "body": "One member each year. Nominations close well before Convention, so put it on the chapter calendar early.",
+          "feature": "osm-form",
+          "task": "outstanding-student-member",
+          "cadence": "annual"
+        },
+        {
+          "title": "Put your members up for awards",
+          "body": "Member, chapter and region awards all run through the same nomination flow. Nobody outside the chapter will do this for you.",
+          "feature": "award-nomination",
+          "task": "awards",
+          "cadence": "annual"
+        },
+        {
+          "title": "Set goals for the term",
+          "body": "Goals are how the chapter tells its Regional Director what it is trying to achieve, and how that progress gets recognised at the end of the term.",
+          "feature": "set-a-goal",
+          "cadence": "each_term"
+        },
+        {
+          "title": "Watch your chapter score",
+          "body": "The score rolls up submissions, events, service hours and attendance. Check it mid-term rather than at the end, while there is still time to close a gap.",
+          "feature": "chapter-scores",
+          "cadence": "ongoing"
+        }
+      ]
+    },
+    {
+      "role": "vice regent",
+      "title": "Vice Regent",
+      "summary": "You own the candidate program end to end: reporting who was pledged, running their education, and reporting their initiation. Each of those has a deadline, and the fees the chapter is invoiced follow directly from what you submit, so a late form is also a billing problem.",
+      "steps": [
+        {
+          "title": "Submit the pledge form as soon as you pledge a class",
+          "body": "The pledge form is what creates candidate records. Until it is filed the candidates do not exist on the roster and cannot be initiated.",
+          "feature": "pledge-form",
+          "task": "pledge-forms",
+          "cadence": "each_term"
+        },
+        {
+          "title": "Order pledge pins",
+          "body": "Pins are ordered separately from the pledge form and ship from a vendor, so order early.",
+          "feature": "pledge-pins",
+          "cadence": "each_term"
+        },
+        {
+          "title": "File your new member education program",
+          "body": "The program you intend to run, submitted once a year for review.",
+          "feature": "new-member-education-program",
+          "task": "new-member-education-programvice-regent",
+          "cadence": "annual"
+        },
+        {
+          "title": "Track candidates on the roster",
+          "body": "The roster shows every candidate and their current status. Use it to check nobody has been missed before initiation.",
+          "feature": "chapter-roster",
+          "cadence": "ongoing"
+        },
+        {
+          "title": "Report the initiation",
+          "body": "Filed immediately after the ceremony. This is what turns candidates into members and triggers the initiation invoice.",
+          "feature": "initiation-report",
+          "task": "initiation-reportvice-regent",
+          "cadence": "each_term"
+        },
+        {
+          "title": "Sign the Risk Management Policies",
+          "body": "Every member signs their own RMP each term, you included.",
+          "feature": "risk-management-policies",
+          "task": "risk-management-formvice-regent",
+          "cadence": "each_term"
+        },
+        {
+          "title": "Sign the annual audit",
+          "body": "The Treasurer fills it in; you are one of the officers who signs it.",
+          "feature": "chapter-audit-form",
+          "task": "audit-vice-regent",
+          "cadence": "annual"
+        }
+      ]
+    },
+    {
+      "role": "scribe",
+      "title": "Scribe",
+      "summary": "You keep the record. The roster is the fraternity's single source of truth for who is a member, where they are and how to reach them, and nearly every other report is built from it. Keeping it current is the whole job, and it is continuous rather than once a term.",
+      "steps": [
+        {
+          "title": "Keep the roster current",
+          "body": "Add, correct and update members as things change. Invoices, award eligibility and mailing lists all read from the roster, so an error here shows up everywhere else.",
+          "feature": "chapter-roster",
+          "task": "member-updates",
+          "cadence": "ongoing"
+        },
+        {
+          "title": "Report officer elections",
+          "body": "File within a week of the election. Officer records control who can sign what in this system, so a late report locks your new officers out of their own forms.",
+          "feature": "submit-chapter-officers",
+          "task": "officer-election-report",
+          "cadence": "annual"
+        },
+        {
+          "title": "File status changes when members leave",
+          "body": "Graduating, co-op, military leave, withdrawal and transfer each have their own form. Filing them is what stops the chapter being invoiced for members who are gone.",
+          "feature": "status-change-graduate",
+          "cadence": "each_term"
+        },
+        {
+          "title": "Submit premature alumnus requests",
+          "body": "For members who need alumnus status before graduating. Requires chapter approval and national review, so start early.",
+          "feature": "premature-alumnus",
+          "task": "premature-alumnus",
+          "cadence": "each_term"
+        },
+        {
+          "title": "Record the roll book",
+          "body": "The roll book page is the permanent signed record of each initiate. Mark the candidate 'Roll Book' on the initiation selection form to generate theirs.",
+          "feature": "roll-book-page",
+          "cadence": "each_term"
+        },
+        {
+          "title": "Take attendance at chapter events",
+          "body": "Attendance feeds the chapter score and the service-hour totals members rely on for their own records.",
+          "feature": "take-attendance",
+          "cadence": "ongoing"
+        },
+        {
+          "title": "Sign the Risk Management Policies",
+          "body": "Every member signs their own RMP each term, you included.",
+          "feature": "risk-management-policies",
+          "task": "risk-management-formscribe",
+          "cadence": "each_term"
+        },
+        {
+          "title": "Sign the annual audit",
+          "body": "The Treasurer fills it in; you are one of the officers who signs it.",
+          "feature": "chapter-audit-form",
+          "task": "audit-scribe",
+          "cadence": "annual"
+        }
+      ]
+    },
+    {
+      "role": "treasurer",
+      "title": "Treasurer",
+      "summary": "You are responsible for the chapter's money and for everything it owes nationally. Invoices are raised automatically from what the other officers submit, so a surprise on the balance is usually a roster change or an initiation report you have not seen yet. Read the invoice page before every chapter meeting.",
+      "steps": [
+        {
+          "title": "Know what your chapter owes",
+          "body": "Every national charge appears on the invoice page with what it was for. This is the page to bring to a chapter meeting.",
+          "feature": "chapter-invoices",
+          "cadence": "ongoing"
+        },
+        {
+          "title": "Pay dues on time",
+          "body": "Dues are invoiced per member straight from the roster. Late payment affects the chapter's standing, not just its balance.",
+          "task": "dues",
+          "cadence": "each_term"
+        },
+        {
+          "title": "Pay the insurance premium",
+          "body": "Billed annually and separately from dues.",
+          "task": "insurance-payment",
+          "cadence": "annual"
+        },
+        {
+          "title": "Lead the annual audit",
+          "body": "The audit is mostly your numbers. The other officers sign it, but you are the one who fills it in.",
+          "feature": "chapter-audit-form",
+          "task": "audit-treasurer",
+          "cadence": "annual"
+        },
+        {
+          "title": "Review the chapter inventory",
+          "body": "Badges, jewelry, ritual equipment and other chapter property.",
+          "task": "review-inventory",
+          "cadence": "annual"
+        },
+        {
+          "title": "Refer unpaid member accounts for collection",
+          "body": "When a member will not pay, this is the formal route. Do not quietly write the debt off locally, because the chapter stays liable for it.",
+          "feature": "collection-referral",
+          "cadence": "ongoing"
+        },
+        {
+          "title": "Sign the Risk Management Policies",
+          "body": "Every member signs their own RMP each term, you included.",
+          "feature": "risk-management-policies",
+          "task": "risk-management-formtreasurer",
+          "cadence": "each_term"
+        }
+      ]
+    },
+    {
+      "role": "corresponding secretary",
+      "title": "Corresponding Secretary",
+      "summary": "You are the chapter's voice to everyone outside it: the national office, your alumni, and The Gear. The Gear article and the alumni newsletter are the only regular contact most alumni have with the chapter, so they matter more than their size suggests.",
+      "steps": [
+        {
+          "title": "Write the chapter's Gear article",
+          "body": "The Gear is the fraternity's magazine and every chapter contributes. A short article with a photo is enough.",
+          "feature": "gear-article",
+          "task": "gear-article",
+          "cadence": "annual"
+        },
+        {
+          "title": "Send the alumni newsletter",
+          "body": "Once a year, to the alumni on your roster.",
+          "task": "newsletter-for-alumni",
+          "cadence": "annual"
+        },
+        {
+          "title": "Keep alumni contact details current",
+          "body": "Alumni sit on the roster like everyone else. Correct their details as they come back to you, or the newsletter will not reach them next year.",
+          "feature": "chapter-roster",
+          "cadence": "ongoing"
+        },
+        {
+          "title": "Export the chapter's contacts instead of retyping them",
+          "body": "Contact sync pushes the chapter's contacts into Google or Microsoft, or downloads them as a vCard file.",
+          "feature": "contact-sync",
+          "cadence": "once"
+        },
+        {
+          "title": "Sign the Risk Management Policies",
+          "body": "Every member signs their own RMP each term, you included.",
+          "feature": "risk-management-policies",
+          "task": "risk-management-formcorresponding-secretary",
+          "cadence": "each_term"
+        },
+        {
+          "title": "Sign the annual audit",
+          "body": "The Treasurer fills it in; you are one of the officers who signs it.",
+          "feature": "chapter-audit-form",
+          "task": "audit-corresponding-secretary",
+          "cadence": "annual"
+        }
+      ]
+    },
+    {
+      "role": "pledge/new member educator",
+      "title": "New Member Educator",
+      "summary": "You run candidate education day to day, alongside the Vice Regent who is formally accountable for it. Nothing here is invoiced to you, but the roster, the initiation report and the depledge survey all depend on you telling the Scribe and Vice Regent what has changed.",
+      "steps": [
+        {
+          "title": "Read the program the chapter filed",
+          "body": "The new member education program on file with headquarters is what you are delivering. Start by reading the current one.",
+          "feature": "new-member-education-program",
+          "cadence": "once"
+        },
+        {
+          "title": "Check the candidate list on the roster",
+          "body": "Candidates appear on the roster once the Vice Regent files the pledge form. If someone is missing, that form has not been submitted.",
+          "feature": "chapter-roster",
+          "cadence": "ongoing"
+        },
+        {
+          "title": "Log education sessions as events",
+          "body": "Recording sessions as events is what gets candidate attendance onto the record, which the chapter is scored on.",
+          "feature": "add-event",
+          "cadence": "ongoing"
+        },
+        {
+          "title": "Make sure every candidate is on the pledge form",
+          "body": "A candidate who was never reported cannot be initiated, and the omission usually surfaces the week of the ceremony.",
+          "feature": "pledge-form",
+          "cadence": "each_term"
+        },
+        {
+          "title": "Know the health and safety programs",
+          "body": "Alcohol and drug awareness, anti-harassment, and mental health recognition. Candidates should attend all three.",
+          "feature": "hs-education-program",
+          "cadence": "annual"
+        },
+        {
+          "title": "Expect the depledge survey",
+          "body": "Any candidate who leaves before initiation is emailed a short survey with their own personal link, so there is no page here to open. Results come back in aggregate, never by name. It is how the fraternity learns why candidates leave.",
+          "cadence": "ongoing"
+        }
+      ]
+    },
+    {
+      "role": "risk management chair",
+      "title": "Risk Management Chair",
+      "summary": "For permissions you are a member, not a chapter officer, but you own real obligations. The Risk Management Policies, the health and safety education programs and the chapter's event practices all run through you, and the chapter's compliance record depends on them happening on time.",
+      "steps": [
+        {
+          "title": "Read the Risk Management Policies",
+          "body": "Every member signs their own each term, you included. You should know them better than anyone.",
+          "feature": "risk-management-policies",
+          "cadence": "each_term"
+        },
+        {
+          "title": "Organise the health and safety education programs",
+          "body": "Alcohol and drug awareness, anti-harassment, and mental health recognition, at least one of each per year. The Regent files the report; you run the programs.",
+          "feature": "hs-education-program",
+          "task": "hs-education-programsregent",
+          "cadence": "annual"
+        },
+        {
+          "title": "Look ahead at the events calendar",
+          "body": "The chapter events list is the easiest way to see what is coming and flag anything that needs a plan before it happens rather than after.",
+          "feature": "chapter-events",
+          "cadence": "ongoing"
+        },
+        {
+          "title": "Know the Bill of Rights",
+          "body": "What every member and candidate is entitled to. Read it once; refer to it when something goes wrong.",
+          "feature": "bill-of-rights",
+          "cadence": "once"
+        },
+        {
+          "title": "Know where the chapter's bylaws are",
+          "body": "Chapter bylaws are filed here and reviewed nationally. Risk decisions often turn on what they actually say.",
+          "feature": "chapter-bylaws",
+          "cadence": "once"
+        }
+      ]
+    },
+    {
+      "role": "adviser",
+      "title": "Chapter Adviser",
+      "summary": "You advise; you do not run the chapter. But you are the continuity between officer terms and usually the first person a Regional Director asks. Most of what you need here is read-only: the task list, the score, the roster and the calendar.",
+      "steps": [
+        {
+          "title": "See what the chapter owes",
+          "body": "The task list shows every outstanding national obligation with its due date. It is the fastest way to tell whether a chapter is in trouble.",
+          "feature": "chapter-tasks",
+          "cadence": "ongoing"
+        },
+        {
+          "title": "Read the chapter's score",
+          "body": "Scores roll up submissions, events, service hours and attendance, so a falling score usually points at a specific officer who needs help.",
+          "feature": "chapter-scores",
+          "cadence": "ongoing"
+        },
+        {
+          "title": "Know who the officers are",
+          "body": "Officer records change every year and the chapter does not always tell you. Check after each election.",
+          "feature": "chapter-officers",
+          "cadence": "each_term"
+        },
+        {
+          "title": "Watch the events calendar",
+          "body": "What the chapter is actually doing, as opposed to what it reports.",
+          "feature": "chapter-events",
+          "cadence": "ongoing"
+        },
+        {
+          "title": "Know the Risk Management Policies",
+          "body": "You will be asked about them, usually at short notice.",
+          "feature": "risk-management-policies",
+          "cadence": "annual"
+        },
+        {
+          "title": "Keep your own details current",
+          "body": "Advisers are on the roster too, and the national office contacts you using what is there.",
+          "feature": "edit-my-info",
+          "cadence": "once"
+        }
+      ]
+    },
+    {
+      "role": "regional director",
+      "title": "Regional Director",
+      "summary": "You cover every chapter in your region. The region pages roll up what you would otherwise have to visit each chapter to find: outstanding tasks, scores, officers and advisers. You also hold National Officer access, so the fraternity-wide dashboards, event queues and balance reports are open to you. Start from your own region page and work outward.",
+      "steps": [
+        {
+          "title": "Start at your region page",
+          "body": "Your region, its chapters, and how each of them is doing, on one page.",
+          "feature": "my-region",
+          "cadence": "ongoing"
+        },
+        {
+          "title": "Watch the region dashboard",
+          "body": "The same charts the national dashboard uses, scoped to your region.",
+          "feature": "region-dashboard",
+          "cadence": "ongoing"
+        },
+        {
+          "title": "Compare against the whole fraternity",
+          "body": "The national dashboard is the same view with no region filter. Use it to tell a region-wide problem apart from a fraternity-wide one before you raise it with a chapter.",
+          "feature": "national-dashboard",
+          "cadence": "ongoing"
+        },
+        {
+          "title": "Check outstanding tasks across the region",
+          "body": "Every chapter's overdue obligations in one list. This is the page to work from before a check-in call.",
+          "feature": "region-tasks",
+          "cadence": "ongoing"
+        },
+        {
+          "title": "Follow the scores",
+          "body": "Every chapter's score, side by side. Filter to your region to see who is drifting, and open a chapter to see which categories are costing it points.",
+          "feature": "all-chapter-scores",
+          "cadence": "ongoing"
+        },
+        {
+          "title": "Keep an eye on chapter balances",
+          "body": "What each chapter owes the national office. A balance that keeps growing is usually the first sign of a Treasurer who needs help, well before anything else shows up.",
+          "feature": "chapter-balances",
+          "cadence": "ongoing"
+        },
+        {
+          "title": "Review the events waiting on you",
+          "body": "Events a chapter has submitted for national review sit in this queue until an officer approves or rejects them. Nothing chases you, so make a habit of opening it.",
+          "feature": "pending-event-reviews",
+          "cadence": "ongoing"
+        },
+        {
+          "title": "See what your chapters are actually running",
+          "body": "Every event across the fraternity, filterable by region and type. A chapter running nothing but meetings is worth a conversation.",
+          "feature": "all-events",
+          "cadence": "ongoing"
+        },
+        {
+          "title": "Watch turnout, not just event counts",
+          "body": "The events and attendance dashboard pairs how much a chapter is running with how many members turn up. The gap between the two is the number that matters.",
+          "feature": "events-attendance-dashboard",
+          "cadence": "ongoing"
+        },
+        {
+          "title": "Know who the officers are",
+          "body": "Officer records change every year. Check after each chapter's election so you are writing to the right people.",
+          "feature": "region-officers",
+          "cadence": "each_term"
+        },
+        {
+          "title": "Know who the advisers are",
+          "body": "Advisers are your continuity when a chapter's officers turn over.",
+          "feature": "region-advisors",
+          "cadence": "each_term"
+        },
+        {
+          "title": "Put your region's contacts on your phone",
+          "body": "The region officer list has a Sync contacts button. Connect a Google or Microsoft account and the details stay current as chapters hold elections, or take a vCard file instead.",
+          "feature": "region-contacts-vcard",
+          "cadence": "once"
+        },
+        {
+          "title": "Put the national officers on your phone too",
+          "body": "The national officer directory carries the same Sync contacts button, so you can reach the right national officer without hunting for an address.",
+          "feature": "national-contacts-vcard",
+          "cadence": "once"
+        },
+        {
+          "title": "Leave notes on the chapters you visit",
+          "body": "A chapter note is how the next Regional Director knows what happened before they arrived, and how the national office sees the history behind a score.",
+          "feature": "chapter-notes",
+          "cadence": "ongoing"
+        },
+        {
+          "title": "Set and review goals with each chapter",
+          "body": "Goals are scoped to the chapter you are viewing as, so switch to the chapter in the bar across the top of the page first. A visit can then open with what the chapter said it would do and close with a new goal written down, which is what gives the next visit something to measure against.",
+          "feature": "chapter-goals",
+          "cadence": "ongoing"
+        },
+        {
+          "title": "Nominate the chapters and members doing the work",
+          "body": "You see across a whole region, so you notice work that no single chapter would put forward for itself. Check the award's cycle first, because most close well before the award is presented.",
+          "feature": "award-nomination",
+          "cadence": "annual"
+        },
+        {
+          "title": "Nominate volunteers for national office",
+          "body": "You see more of the region's talent than anyone. Nominations are the pipeline for every national volunteer role.",
+          "feature": "nominate-for-national-office",
+          "cadence": "annual"
+        }
+      ]
+    },
+    {
+      "role": "national officer",
+      "title": "National Officer",
+      "summary": "National office opens the whole fraternity to you rather than one chapter. Every list you already know, such as events, forms, audits, ballots and scores, gains an all-chapters version, and the dashboards roll them up. This guide is the shared national surface. Which parts you live in depends on your seat: the Grand Treasurer works from balances and audits, the Grand Scribe from officer records and forms, the Grand Marshal from scores and tasks. If you also serve as a Regional Director, that guide covers what is specific to a region.",
+      "steps": [
+        {
+          "title": "Start at the national dashboard",
+          "body": "Chapter health across every region, covering scores, submissions and outstanding tasks, in one place. Every region has the same dashboard filtered to itself if you need to narrow it.",
+          "feature": "national-dashboard",
+          "cadence": "ongoing"
+        },
+        {
+          "title": "Know who holds each office",
+          "body": "Officer records turn over every year, and writing to last year's Regent is the commonest way a message goes unread. The adviser list is your continuity when they do.",
+          "feature": "all-officers",
+          "cadence": "each_term"
+        },
+        {
+          "title": "Know who the advisers are",
+          "body": "Advisers stay in post while officers rotate, so they are usually the fastest way to get a straight answer about a chapter.",
+          "feature": "all-advisors",
+          "cadence": "each_term"
+        },
+        {
+          "title": "Follow the scores",
+          "body": "Every chapter's score, side by side. This is the single number the fraternity uses to compare chapters, and it is built from everything else in this guide.",
+          "feature": "all-chapter-scores",
+          "cadence": "ongoing"
+        },
+        {
+          "title": "Watch the money",
+          "body": "What every chapter owes the national office. If you hold the Grand Treasurer's seat this is your home page; for everyone else a growing balance is an early warning worth passing on.",
+          "feature": "chapter-balances",
+          "cadence": "ongoing"
+        },
+        {
+          "title": "Clear the reviews waiting on you",
+          "body": "Events submitted for national review sit in a queue until an officer acts on them. Nothing chases you, so make a habit of opening it.",
+          "feature": "pending-event-reviews",
+          "cadence": "ongoing"
+        },
+        {
+          "title": "See what chapters are running",
+          "body": "Every event across the fraternity, filterable by region and type, alongside the attendance dashboard that shows how many members actually turned up.",
+          "feature": "all-events",
+          "cadence": "ongoing"
+        },
+        {
+          "title": "Watch turnout, not just event counts",
+          "body": "The events and attendance dashboard pairs how much a chapter is running against how many members attend. The gap between the two is the number that matters.",
+          "feature": "events-attendance-dashboard",
+          "cadence": "ongoing"
+        },
+        {
+          "title": "Read what chapters have filed",
+          "body": "Audits, bylaws, risk management signatures, health and safety programs and new member education programs each have an all-chapters view alongside the per-chapter one.",
+          "feature": "all-audits",
+          "cadence": "ongoing"
+        },
+        {
+          "title": "Chase the chapters that are behind",
+          "body": "Outstanding chapter tasks are what the scores are built from. Every region has its own task list, so you can hand a region's overdue items straight to its Regional Director.",
+          "feature": "region-tasks",
+          "cadence": "ongoing"
+        },
+        {
+          "title": "Look a member up anywhere",
+          "body": "Search stops being limited to your own chapter once you hold national office.",
+          "feature": "member-search-all",
+          "cadence": "ongoing"
+        },
+        {
+          "title": "Leave notes for whoever holds your seat next",
+          "body": "Chapter and member notes are how the next officer knows what happened before they arrived.",
+          "feature": "chapter-notes",
+          "cadence": "ongoing"
+        },
+        {
+          "title": "Set and review goals when you visit a chapter",
+          "body": "Goals are scoped to the chapter you are viewing as, so use the chapter switcher in the bar across the top of the page before you open them. A visit that starts from what the chapter set out to do, and ends with a new goal recorded, gives the next visit something to measure against.",
+          "feature": "chapter-goals",
+          "cadence": "ongoing"
+        },
+        {
+          "title": "Nominate the chapters and members doing the work",
+          "body": "You see across the whole fraternity, so you notice work that no single chapter would put forward for itself. Check the award's cycle first, because most close well before the award is presented.",
+          "feature": "award-nomination",
+          "cadence": "annual"
+        },
+        {
+          "title": "Put the national officers on your phone",
+          "body": "The national officer directory has a Sync contacts button. Connect a Google or Microsoft account and the details stay current as seats change, or take a vCard file instead.",
+          "feature": "national-contacts-vcard",
+          "cadence": "once"
+        },
+        {
+          "title": "Run a vote",
+          "body": "Ballots are created, distributed and counted here.",
+          "feature": "create-a-ballot",
+          "cadence": "annual"
+        }
+      ]
+    }
+  ]
+}

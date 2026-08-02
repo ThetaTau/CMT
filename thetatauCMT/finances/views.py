@@ -1,3 +1,4 @@
+from core.models import user_is_national_officer
 from core.views import LoginRequiredMixin, PagedFilteredTableView
 from thetatauCMT.chapters.models import Chapter
 
@@ -34,5 +35,10 @@ class ChapterBalancesListView(LoginRequiredMixin, PagedFilteredTableView):
 
     def get_queryset(self, **kwargs):
         qs = chapter_balance_overview().order_by("name")
+        # An ordinary member sees only their own chapter's balance; National
+        # Officers and admins see every chapter.
+        if not user_is_national_officer(self.request.user):
+            chapter = self.request.user.current_chapter
+            qs = qs.filter(pk=chapter.pk) if chapter else qs.none()
         qs = super().get_queryset(other_qs=qs)
         return qs

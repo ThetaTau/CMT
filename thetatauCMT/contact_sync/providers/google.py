@@ -177,7 +177,7 @@ class GoogleContactsProvider(ContactProvider):
         ]
         biographies = [
             {
-                "value": f"{contact.chapter_name} Chapter — {contact.role.title()}",
+                "value": f"{contact.chapter_name} Chapter, {contact.role.title()}",
                 "contentType": "TEXT_PLAIN",
             }
         ]

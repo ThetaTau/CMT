@@ -3,6 +3,7 @@ from django.urls import reverse
 from django.utils.safestring import mark_safe
 from django_tables2.utils import A
 
+from core.tables import CMTTable
 from thetatauCMT.users.models import UserRoleChange
 
 from .models import (
@@ -22,7 +23,7 @@ from .models import (
 )
 
 
-class OfficerRoleTable(tables.Table):
+class OfficerRoleTable(CMTTable):
     """Current + past chapter officers/roles, with a per-row edit control."""
 
     user = tables.LinkColumn(
@@ -64,7 +65,7 @@ class NationalOfficerRoleTable(OfficerRoleTable):
         return value or record.user.email_school or ""
 
 
-class BadgeTable(tables.Table):
+class BadgeTable(CMTTable):
     class Meta:
         model = Badge
         fields = (
@@ -75,7 +76,7 @@ class BadgeTable(tables.Table):
         attrs = {"class": "table table-striped table-bordered"}
 
 
-class PledgeFormTable(tables.Table):
+class PledgeFormTable(CMTTable):
     first_pledge = tables.DateColumn(verbose_name="First Pledge Date")
     last_pledge = tables.DateColumn(verbose_name="Last Pledge Date")
     status = tables.Column()
@@ -85,7 +86,7 @@ class PledgeFormTable(tables.Table):
         attrs = {"class": "table table-striped table-bordered"}
 
 
-class InitiationTable(tables.Table):
+class InitiationTable(CMTTable):
     initiation = tables.DateColumn(verbose_name="Initiation Date")
     submitted = tables.DateColumn()
     status = tables.Column()
@@ -97,7 +98,7 @@ class InitiationTable(tables.Table):
         }
 
 
-class DepledgeTable(tables.Table):
+class DepledgeTable(CMTTable):
     user = tables.Column(accessor="user__name")
     date = tables.DateColumn(verbose_name="Depledge Date")
     created = tables.DateColumn(verbose_name="Submitted")
@@ -108,7 +109,7 @@ class DepledgeTable(tables.Table):
         attrs = {"class": "table table-striped table-bordered"}
 
 
-class StatusChangeTable(tables.Table):
+class StatusChangeTable(CMTTable):
     user = tables.Column(accessor="user__name")
     date_start = tables.DateColumn(verbose_name="Change Date")
     created = tables.DateColumn(verbose_name="Form Submitted")
@@ -124,7 +125,7 @@ def _member_profile_url(record):
     return reverse("users:profile", kwargs={"username": record.user.username})
 
 
-class StatusChangeHistoryTable(tables.Table):
+class StatusChangeHistoryTable(CMTTable):
     """Base history table for a single status-change reason (reason column
     omitted because each page shows exactly one reason)."""
 
@@ -181,7 +182,7 @@ class GraduateStatusChangeTable(StatusChangeHistoryTable):
         fields = ("user", "degree", "date_start", "employer", "email_work", "created")
 
 
-class AuditTable(tables.Table):
+class AuditTable(CMTTable):
     debit_card_access = tables.Column("Debit Card Access")
 
     class Meta:
@@ -209,7 +210,7 @@ class AuditTable(tables.Table):
         ]
 
 
-class PledgeProgramTable(tables.Table):
+class PledgeProgramTable(CMTTable):
     notify = tables.TemplateColumn(
         template_name="forms/pledge_program_notify_button.html",
         verbose_name="Revisions",
@@ -290,7 +291,7 @@ def render_education_category(value, column, record, bound_column):
     return mark_safe(value)
 
 
-class HSEducationListTable(tables.Table):
+class HSEducationListTable(CMTTable):
     region = tables.Column()
     alcohol_drugs = tables.FileColumn(verbose_name="Alcohol and Drug Awareness")
     harassment = tables.FileColumn(verbose_name="Anti-Harassment")
@@ -318,7 +319,7 @@ class HSEducationListTable(tables.Table):
         return render_education_category(value, column, record, bound_column)
 
 
-class HSEducationTable(tables.Table):
+class HSEducationTable(CMTTable):
     category = tables.Column()
     approval_comments = tables.Column(verbose_name="Review Comments")
     program_date = tables.DateColumn()
@@ -339,7 +340,7 @@ class HSEducationTable(tables.Table):
     #     return HSEducation.APPROVAL.get_value(value)
 
 
-class RiskFormTable(tables.Table):
+class RiskFormTable(CMTTable):
     chapter = tables.Column(attrs={"td": {"align": "left", "style": "font-weight:bold"}})
     region = tables.Column()
     complete = tables.Column()
@@ -352,7 +353,7 @@ class RiskFormTable(tables.Table):
         # orderable = False
 
 
-class PrematureAlumnusStatusTable(tables.Table):
+class PrematureAlumnusStatusTable(CMTTable):
     user = tables.Column()
     status = tables.Column()
     approved = tables.Column()
@@ -364,7 +365,7 @@ class PrematureAlumnusStatusTable(tables.Table):
         }
 
 
-class ReturnStudentStatusTable(tables.Table):
+class ReturnStudentStatusTable(CMTTable):
     user = tables.Column()
     status = tables.Column()
     approved = tables.Column()
@@ -376,7 +377,7 @@ class ReturnStudentStatusTable(tables.Table):
         }
 
 
-class DisciplinaryStatusTable(tables.Table):
+class DisciplinaryStatusTable(CMTTable):
     user = tables.Column(verbose_name="Name of Accused")
     status = tables.Column()
     approved = tables.Column()
@@ -390,7 +391,7 @@ class DisciplinaryStatusTable(tables.Table):
         }
 
 
-class PledgeProgramStatusTable(tables.Table):
+class PledgeProgramStatusTable(CMTTable):
     status = tables.Column()
     approved = tables.Column()
     created = tables.DateColumn()
@@ -408,7 +409,7 @@ class PledgeProgramStatusTable(tables.Table):
         return value
 
 
-class SignTable(tables.Table):
+class SignTable(CMTTable):
     member = tables.Column(order_by=("user"))
     owner = tables.Column(verbose_name="Task Owner")
     role = tables.Column()
@@ -444,7 +445,7 @@ class SignTable(tables.Table):
         super().__init__(*args, **kwargs)
 
 
-class ConventionListTable(tables.Table):
+class ConventionListTable(CMTTable):
     class Meta:
         model = Convention
         order_by = "chapter"
@@ -459,7 +460,7 @@ class ConventionListTable(tables.Table):
         ]
 
 
-class OSMListTable(tables.Table):
+class OSMListTable(CMTTable):
     class Meta:
         model = OSM
         order_by = "chapter"
@@ -473,7 +474,7 @@ class OSMListTable(tables.Table):
         ]
 
 
-class CollectionReferralTable(tables.Table):
+class CollectionReferralTable(CMTTable):
     user = tables.Column(verbose_name="Indebted Member", accessor="user__name")
     created = tables.DateColumn(verbose_name="Submitted")
 
@@ -483,7 +484,7 @@ class CollectionReferralTable(tables.Table):
         attrs = {"class": "table table-striped table-bordered"}
 
 
-class AlumniExclusionTable(tables.Table):
+class AlumniExclusionTable(CMTTable):
     user = tables.Column(verbose_name="Excluded Alumni", accessor="user__name")
     regional_director_veto = tables.Column(verbose_name="Regional Director Review")
     veto_reason = tables.Column(verbose_name="RD Reasoning")
@@ -522,7 +523,7 @@ class AlumniExclusionTable(tables.Table):
         return value
 
 
-class ResignationStatusTable(tables.Table):
+class ResignationStatusTable(CMTTable):
     description = tables.Column()
     owner = tables.Column()
     started = tables.Column()
@@ -535,7 +536,7 @@ class ResignationStatusTable(tables.Table):
         }
 
 
-class BylawsListTable(tables.Table):
+class BylawsListTable(CMTTable):
     class Meta:
         model = Bylaws
         order_by = "-created"
@@ -570,7 +571,7 @@ class BylawsListTable(tables.Table):
         super().__init__(*args, **kwargs)
 
 
-class RitualProficiencyTable(tables.Table):
+class RitualProficiencyTable(CMTTable):
     recorded_by = tables.Column(accessor="recorded_by__name", verbose_name="Recorded By")
     level = tables.Column(verbose_name="Ritual Level")
     memorization = tables.Column()

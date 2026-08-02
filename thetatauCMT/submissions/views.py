@@ -6,6 +6,7 @@ from django.contrib import messages
 from django.contrib.messages.views import SuccessMessageMixin
 from django.db.models import Count, F
 from django.forms.models import modelformset_factory
+from django.http import Http404
 from django.http.request import QueryDict
 from django.http.response import HttpResponse, HttpResponseRedirect
 from django.shortcuts import redirect, reverse
@@ -35,6 +36,23 @@ class SubmissionDetailView(LoginRequiredMixin, DetailView):
     model = Submission
     slug_field = "slug"
     slug_url_kwarg = "slug"
+
+    def get_object(self, queryset=None):
+        # The detail URL is date + slug based and slug is not unique, so more
+        # than one submission can match; return the earliest to stay deterministic.
+        obj = (
+            Submission.objects.filter(
+                date__year=self.kwargs["year"],
+                date__month=self.kwargs["month"],
+                date__day=self.kwargs["day"],
+                slug=self.kwargs["slug"],
+            )
+            .order_by("pk")
+            .first()
+        )
+        if obj is None:
+            raise Http404("No submission matches the given query.")
+        return obj
 
 
 class SubmissionCreateView(

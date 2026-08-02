@@ -6,6 +6,8 @@ No emails are actually sent — we only assert that attributes are set correctly
 """
 
 import pytest
+from django.conf import settings
+from django.urls import reverse
 
 from thetatauCMT.chapters.tests.factories import ChapterFactory
 from thetatauCMT.users.notifications import (
@@ -73,6 +75,77 @@ def test_new_officers_context_has_chapter():
     officer = UserFactory.create(chapter=chapter)
     notif = NewOfficers([officer])
     assert notif.context["chapter"] == chapter
+
+
+@pytest.mark.django_db
+def test_new_officers_links_the_role_guide_for_the_office_they_now_hold():
+    """This email is the single best moment to answer "what am I responsible for?"."""
+    from thetatauCMT.guides.models import RoleGuide
+
+    chapter = ChapterFactory.create()
+    officer = UserFactory.create(chapter=chapter)
+    officer.current_roles = ["treasurer"]
+    officer.save(update_fields=["current_roles"])
+    guide = RoleGuide.objects.create(role="treasurer", title="Treasurer", summary="What the office owns.")
+
+    notif = NewOfficers([officer])
+
+    assert notif.context["role_guides"] == [
+        {"title": "Treasurer", "url": f"{settings.CURRENT_URL}{guide.get_absolute_url()}"}
+    ]
+
+
+@pytest.mark.django_db
+def test_new_officers_omits_the_role_guide_when_none_matches():
+    """A missing guide must not break the welcome email."""
+    chapter = ChapterFactory.create()
+    officer = UserFactory.create(chapter=chapter)
+    assert NewOfficers([officer]).context["role_guides"] == []
+
+
+@pytest.mark.django_db
+def test_new_officers_does_not_link_a_deactivated_guide():
+    from thetatauCMT.guides.models import RoleGuide
+
+    chapter = ChapterFactory.create()
+    officer = UserFactory.create(chapter=chapter)
+    officer.current_roles = ["treasurer"]
+    officer.save(update_fields=["current_roles"])
+    RoleGuide.objects.create(role="treasurer", title="Treasurer", summary="Retired.", is_active=False)
+
+    assert NewOfficers([officer]).context["role_guides"] == []
+
+
+@pytest.mark.django_db
+def test_new_officers_points_at_the_catalog_and_the_forms_landing():
+    """The role guide says what the office owns; these two say where to go do it."""
+    chapter = ChapterFactory.create()
+    officer = UserFactory.create(chapter=chapter)
+
+    context = NewOfficers([officer]).context
+
+    assert context["catalog_url"] == f"{settings.CURRENT_URL}{reverse('guides:catalog')}"
+    assert context["forms_url"] == f"{settings.CURRENT_URL}{reverse('forms:landing')}"
+
+
+@pytest.mark.django_db
+def test_new_officers_email_body_carries_every_link():
+    """Context alone proves nothing -- a URL only helps if the template renders it."""
+    from thetatauCMT.guides.models import RoleGuide
+
+    chapter = ChapterFactory.create()
+    officer = UserFactory.create(chapter=chapter)
+    officer.current_roles = ["treasurer"]
+    officer.save(update_fields=["current_roles"])
+    guide = RoleGuide.objects.create(role="treasurer", title="Treasurer", summary="What the office owns.")
+
+    notif = NewOfficers([officer])
+    bodies = [notif.render("html", notif.get_context_data()), notif.render("text", notif.get_context_data())]
+
+    for body in bodies:
+        assert f"{settings.CURRENT_URL}{guide.get_absolute_url()}" in body
+        assert f"{settings.CURRENT_URL}{reverse('guides:catalog')}" in body
+        assert f"{settings.CURRENT_URL}{reverse('forms:landing')}" in body
 
 
 # ─── OfficerUpdateReminder ────────────────────────────────────────────────────

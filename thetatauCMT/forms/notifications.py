@@ -777,7 +777,7 @@ class TreasurerTermException(EmailNotification):
             chapter_name = chapter.name + " Chapter"
         else:
             chapter_name = chapter.name
-        self.subject = f"[CMT] Treasurer Term Policy Exception — {chapter_name}"
+        self.subject = f"[CMT] Treasurer Term Policy Exception: {chapter_name}"
         self.context = {
             "member": member,
             "chapter": chapter_name,

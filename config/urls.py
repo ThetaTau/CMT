@@ -17,6 +17,7 @@ from oauth2_provider import urls as oauth2_urls
 
 from core.address import ZipCodeAutocomplete
 from core.views import HomeView
+from thetatauCMT.guides.views import HelpHubView
 from thetatauCMT.users.views import UserLookupLoginView
 
 
@@ -48,7 +49,7 @@ urlpatterns = [
         TemplateView.as_view(template_name="pages/about.html"),
         name="about",
     ),
-    path("help/", TemplateView.as_view(template_name="pages/help.html"), name="help"),
+    path("help/", HelpHubView.as_view(), name="help"),
     path(
         "electronic_terms/",
         TemplateView.as_view(template_name="pages/electronic_terms.html"),
@@ -123,6 +124,7 @@ urlpatterns = [
     path("ballots/", include("thetatauCMT.ballots.urls", namespace="ballots")),
     path("contact-sync/", include("thetatauCMT.contact_sync.urls", namespace="contact_sync")),
     path("awards/", include("thetatauCMT.awards.urls", namespace="awards")),
+    path("features/", include("thetatauCMT.guides.urls", namespace="guides")),
     path(
         "email-tracking/",
         include("thetatauCMT.email_tracking.urls", namespace="email_tracking"),

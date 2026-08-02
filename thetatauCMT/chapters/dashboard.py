@@ -476,7 +476,7 @@ def _count_card(end_val, start_val):
         pass
     if change is None or change == 0:
         delta_color = "#b2bec3"
-        delta_text = "no change" if change == 0 else "—"
+        delta_text = "no change" if change == 0 else "None"
     elif change > 0:
         delta_color = "#20bf6b"
         delta_text = f"▲ +{change}%"

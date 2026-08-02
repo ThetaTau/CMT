@@ -123,7 +123,7 @@ class Command(BaseCommand):
         self.stdout.write(f"\n{len(merges)} group(s), {total_dupes} duplicate(s).")
 
         if dry_run:
-            self.stdout.write(self.style.WARNING("Dry run — no changes made."))
+            self.stdout.write(self.style.WARNING("Dry run, no changes made."))
             return
 
         if not skip_confirm:

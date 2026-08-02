@@ -42,8 +42,12 @@ def test_form_landing_authenticated_returns_200(auto_login_user):
 
 @pytest.mark.django_db
 @override_settings(DEBUG=True)  # superuser bypasses RequireSuperuser2FAMiddleware only when DEBUG
-def test_form_landing_superuser_shows_moved_admin_links(auto_login_user):
-    """Nav cleanup moved these member/national/admin actions onto the Forms landing."""
+def test_form_landing_superuser_shows_moved_admin_links(auto_login_user, feature_registry):
+    """Nav cleanup moved these member/national/admin actions onto the Forms landing.
+
+    Since TWI-9b the rows come from the feature registry, so the copy is the
+    registry's ``name`` rather than the old hand-written table cell.
+    """
     client, user = auto_login_user()
     _add_to_group(user, "natoff")
     user.is_superuser = True
@@ -52,20 +56,29 @@ def test_form_landing_superuser_shows_moved_admin_links(auto_login_user):
     assert response.status_code == 200
     body = response.content.decode("utf-8")
     # Member nomination + national volunteer-nomination list.
-    assert "Nominate for Office" in body
+    assert "Nominate someone for national office" in body
     assert reverse("nominations:list") in body
-    # Award admin actions (superuser).
-    assert "Grant an Award" in body
+    # Award admin actions. "Import Awards" is SuperuserRequiredMixin-only and is
+    # deliberately absent from the catalog, so it lives in its own block here --
+    # this page is its only entry point.
+    assert "Grant an award" in body
     assert "Import Awards" in body
     # National officers: one consolidated page (add gated to superusers on the page).
     assert reverse("forms:natoff") in body
-    # National attendance upload (superuser).
-    assert "Upload National Attendance" in body
+    # National attendance upload.
+    assert "Upload national attendance" in body
 
 
 @pytest.mark.django_db
-def test_form_landing_natoff_hides_superuser_only_links(auto_login_user):
-    """A natoff sees the national-officer view + volunteer list, but not superuser actions."""
+def test_form_landing_natoff_sees_national_tools_but_not_superuser_only(auto_login_user, feature_registry):
+    """A natoff sees everything their mixins actually admit them to.
+
+    The pre-TWI-9b table hid ``attendance:national_upload`` and
+    ``awards:direct_grant`` behind ``user.is_superuser`` even though both views
+    are gated by ``NationalOfficerRequiredMixin`` / ``can_grant_awards``. The
+    registry-driven page shows what each viewer can genuinely use; only the
+    ``SuperuserRequiredMixin`` award import stays hidden.
+    """
     client, user = auto_login_user()
     _add_to_group(user, "natoff")
     response = client.get(reverse("forms:landing"))
@@ -73,8 +86,9 @@ def test_form_landing_natoff_hides_superuser_only_links(auto_login_user):
     body = response.content.decode("utf-8")
     assert reverse("forms:natoff") in body
     assert reverse("nominations:list") in body
-    assert "Upload National Attendance" not in body
-    assert "Grant an Award" not in body
+    assert "Upload national attendance" in body
+    assert "Grant an award" in body
+    assert "Import Awards" not in body
 
 
 # ─── PledgeFormView (no auth required, CreateView) ────────────────────────────
@@ -365,14 +379,20 @@ def test_graduate_fill_without_selection_redirects(auto_login_user):
 
 
 @pytest.mark.django_db
-def test_status_change_landing_lists_split_forms(auto_login_user):
+def test_status_change_landing_lists_split_forms(auto_login_user, feature_registry):
+    """The per-reason status changes still each get their own row (now from the registry).
+
+    They are ``officer`` audience, so a plain member no longer sees links they
+    would be bounced off -- hence the officer group here.
+    """
     client, user = auto_login_user()
+    _add_to_group(user, "officer")
     response = client.get(reverse("forms:landing"))
     body = response.content.decode("utf-8")
-    assert "Co-op / Study Abroad" in body
-    assert "Military Deployment" in body
-    assert "Graduation" in body
-    # Candidate-only reason is hidden for a chartered chapter.
+    assert "Report a co-op or study abroad" in body
+    assert "Report a military deployment" in body
+    assert "Graduate members" in body
+    # Candidate-only reason is not catalogued at all (TWI-8 decision).
     assert "Resign from Candidate Chapter" not in body
 
 
@@ -4629,5 +4649,67 @@ def test_pledge_program_create_view_saves_program_before_process():
     assert process.program is not None
     assert process.program.pk is not None
     # ...so persisting the process no longer raises the #971 ValueError.
+    process.save()
+    assert PledgeProgramProcess.objects.filter(pk=process.pk).exists()
+
+
+@pytest.mark.django_db
+def test_pledge_program_create_view_duplicate_program_reuses_existing_row():
+    """A rapid double submit slips past the ``get_object`` lookup (both requests
+    read no row, then both insert). ``YearTermModel.save`` swallows the loser's
+    ``IntegrityError: unique constraint`` on (chapter, year, term), which leaves
+    the ``PledgeProgram`` unsaved and made ``activation.done()`` raise "save()
+    prohibited to prevent data loss due to unsaved related object 'program'".
+    The view must reuse the row that won the race instead of returning a 500.
+    """
+    from unittest.mock import MagicMock, patch
+
+    from thetatauCMT.forms.flows import PledgeProgramProcessFlow
+    from thetatauCMT.forms.forms import PledgeProgramForm
+    from thetatauCMT.forms.models import PledgeProgram, PledgeProgramProcess
+    from thetatauCMT.forms.views import PledgeProgramProcessCreateView
+
+    chapter = ChapterFactory.create()
+    winner = PledgeProgram.objects.create(
+        chapter=chapter,
+        year=PledgeProgram.current_year(),
+        term=PledgeProgram.current_term(),
+        manual="basic",
+    )
+
+    form = PledgeProgramForm(
+        data={
+            "weeks": 6,
+            "date_start": "06/01/2026",
+            "date_complete": "08/01/2026",
+            "date_initiation": "09/01/2026",
+            "dues": 100,
+            "manual": "standard",
+        }
+    )
+    assert form.is_valid(), form.errors
+
+    view = PledgeProgramProcessCreateView()
+    request = MagicMock()
+    request.user.current_chapter = chapter
+    request.user.chapter_officer.return_value = {"regent"}
+    view.request = request
+
+    process = PledgeProgramProcess(flow_class=PledgeProgramProcessFlow)
+    view.activation = MagicMock()
+    view.activation.process = process
+
+    with patch("thetatauCMT.forms.views.CreateProcessView.form_valid", return_value=HttpResponse()) as mock_super:
+        with patch("thetatauCMT.forms.views.Task.mark_complete"):
+            view.form_valid(form)
+
+    mock_super.assert_called_once()
+    assert process.program is not None
+    assert process.program.pk == winner.pk
+    # No duplicate row, and the submitted data landed on the existing program.
+    assert PledgeProgram.objects.filter(chapter=chapter).count() == 1
+    winner.refresh_from_db()
+    assert winner.manual == "standard"
+    assert winner.dues == 100
     process.save()
     assert PledgeProgramProcess.objects.filter(pk=process.pk).exists()

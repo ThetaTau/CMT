@@ -73,6 +73,23 @@ def test_chapter_detail_shows_regional_director_link(auto_login_user):
 
 
 @pytest.mark.django_db
+def test_chapter_detail_links_to_the_region_overview(auto_login_user):
+    """Members have no other route to their region page from the chapter."""
+    from thetatauCMT.regions.tests.factories import RegionFactory
+
+    client, user = auto_login_user()
+    region = RegionFactory(name="Region Link Region")
+    chapter = ChapterFactory()
+    chapter.region = region
+    chapter.save(update_fields=["region"])
+
+    response = client.get(reverse("chapters:detail", kwargs={"slug": chapter.slug}), follow=True)
+
+    assert response.status_code == 200
+    assert reverse("regions:detail", kwargs={"slug": region.slug}) in response.content.decode("UTF-8")
+
+
+@pytest.mark.django_db
 def test_chapter_detail_shows_size_target(auto_login_user):
     """The chapter detail page displays the membership Size Target."""
     client, user = auto_login_user()

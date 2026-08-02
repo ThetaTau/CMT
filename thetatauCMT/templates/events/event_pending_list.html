@@ -1,10 +1,10 @@
-{% extends "base.html" %}
+﻿{% extends "base.html" %}
 {% load static i18n %}
-{% block title %}Pending Events — Open to Other Chapters{% endblock %}
+{% block title %}Pending Events Open to Other Chapters{% endblock %}
 
 {% block content %}
 <div class="page-header d-flex flex-wrap align-items-center gap-2 mb-3">
-  <h2 class="page-title mb-0">Pending Events — Open to Other Chapters</h2>
+  <h2 class="page-title mb-0">Pending Events Open to Other Chapters</h2>
   <div class="page-actions">
     <a href="{% url 'events:list_all' %}" class="btn btn-outline-secondary">
       <i class="fas fa-calendar-alt"></i> All Events
@@ -40,7 +40,7 @@
           </td>
           <td>{{ event.date }}</td>
           <td>{{ event.chapter.name|default:"National (org-wide)" }}</td>
-          <td>{{ event.effective_region|default:"—" }}</td>
+          <td>{{ event.effective_region|default:"None" }}</td>
           <td>{{ event.type }}</td>
           <td>{{ event.created_by.name|default:event.created_by }}</td>
           <td class="text-end">
@@ -76,7 +76,7 @@
             <div class="row g-2">
               <div class="col-md-6">
                 <strong>Description:</strong>
-                {{ event.description|default:"—" }}
+                {{ event.description|default:"None" }}
               </div>
               <div class="col-md-3">
                 <strong>Attendance:</strong>

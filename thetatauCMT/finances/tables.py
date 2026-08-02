@@ -1,6 +1,7 @@
 import django_tables2 as tables
 from django.urls import reverse
 
+from core.tables import CMTTable
 from thetatauCMT.chapters.models import Chapter
 
 from .models import Invoice
@@ -8,7 +9,7 @@ from .models import Invoice
 TERM_DISPLAY = {"fa": "Fall", "sp": "Spring", "wi": "Winter", "su": "Summer"}
 
 
-class InvoiceTable(tables.Table):
+class InvoiceTable(CMTTable):
     link = tables.TemplateColumn(
         '{%if record.link %}<a href="{{record.link}}" target="_blank">Invoice Link</a>{% endif %}'
     )
@@ -26,7 +27,7 @@ class InvoiceTable(tables.Table):
         empty_text = "There are no invoices matching the search criteria..."
 
 
-class ChapterBalanceTable(tables.Table):
+class ChapterBalanceTable(CMTTable):
     chapter = tables.Column(
         verbose_name="Chapter",
         accessor="name",
@@ -76,7 +77,7 @@ class ChapterBalanceTable(tables.Table):
     def render_audit_dues_member(self, record):
         amount = record.audit_dues_member
         if amount is None:
-            return "—"
+            return "None"
         frequency = record.audit_frequency or ""
         if frequency:
             return f"{self._money(amount)} / {frequency}"
@@ -84,12 +85,12 @@ class ChapterBalanceTable(tables.Table):
 
     def render_audit_dues_pledge(self, value):
         if value is None:
-            return "—"
+            return "None"
         return self._money(value)
 
     def render_audit_reported(self, record):
         if not record.audit_year:
-            return "—"
+            return "None"
         term = TERM_DISPLAY.get(record.audit_term, record.audit_term or "")
         reported = f"{term} {record.audit_year}".strip()
         if record.audit_created:

@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+﻿{% extends "base.html" %}
 {% block title %}Volunteer Nominations{% endblock %}
 
 {% block content %}
@@ -31,7 +31,7 @@
           <td>
             {% if nomination.nominee and nomination.nominee.chapter %}
               <a href="{% url 'chapters:detail' nomination.nominee.chapter.slug %}">{{ nomination.nominee.chapter }}</a>
-            {% else %}&mdash;{% endif %}
+            {% else %}None{% endif %}
           </td>
           <td>
             {% if nomination.nominator %}
