@@ -3400,6 +3400,19 @@ class PledgeProgramProcessCreateView(LoginRequiredMixin, CreateProcessView):
             return super().form_invalid(form)
         else:
             program = form.save()
+            if program.pk is None:
+                # ``YearTermModel.save`` swallows the unique constraint IntegrityError
+                # raised when a row for this chapter/year/term already exists, which
+                # leaves ``program`` unsaved. A rapid double submit slips past the
+                # ``get_object`` lookup this way, and the unsaved program then breaks
+                # ``activation.done()`` with "save() prohibited to prevent data loss".
+                existing = PledgeProgram.objects.filter(chapter=chapter, year=program.year, term=program.term).first()
+                if existing is None:
+                    form.add_error(None, "The pledge program could not be saved, please try again.")
+                    return self.render_to_response(self.get_context_data(form=form))
+                form.instance.pk = existing.pk
+                form.instance.created = existing.created
+                program = form.save()
             Task.mark_complete(
                 name="New Member Education Program",
                 chapter=chapter,
