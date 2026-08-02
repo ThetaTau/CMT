@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+﻿{% extends "base.html" %}
 {% load static %}
 {% load custom_tags %}
 
@@ -179,7 +179,7 @@
                             <span class="job-meta-label">Available Contact:</span>
                             {{ job.created_by.get_full_name|default:job.created_by }}
                             {% if job.created_by.email %}
-                                &mdash;
+                                at
                                 <a href="mailto:{{ job.created_by.email }}">{{ job.created_by.email }}</a>
                             {% endif %}
                         </li>
@@ -192,19 +192,19 @@
                     {% endif %}
                     <li>
                         <span class="job-meta-label">Education Qualification:</span>
-                        {{ job.get_education_qualification_display|default:"&mdash;" }}
+                        {{ job.get_education_qualification_display|default:"None" }}
                     </li>
                     <li>
                         <span class="job-meta-label">Experience:</span>
-                        {{ job.get_experience_display|default:"&mdash;" }}
+                        {{ job.get_experience_display|default:"None" }}
                     </li>
                     <li>
                         <span class="job-meta-label">Job Type:</span>
-                        {{ job.get_job_type_display|default:"&mdash;" }}
+                        {{ job.get_job_type_display|default:"None" }}
                     </li>
                     <li>
                         <span class="job-meta-label">Location Type:</span>
-                        {{ job.get_location_type_display|default:"&mdash;" }}
+                        {{ job.get_location_type_display|default:"None" }}
                     </li>
                     {% if job.majors_specific %}
                         <li>
@@ -212,7 +212,7 @@
                             {% for major in job.majors.all %}
                                 <span class="badge-pill-tag">{{ major.name }}</span>
                             {% empty %}
-                                &mdash;
+                                None
                             {% endfor %}
                         </li>
                     {% endif %}
@@ -221,7 +221,7 @@
                         {% for location in job.location.all %}
                             <span class="badge-pill-tag">{{ location.name }}</span>
                         {% empty %}
-                            &mdash;
+                            None
                         {% endfor %}
                         {% if job.country %}
                             <span class="badge-pill-tag">{{ job.country }}</span>
@@ -232,13 +232,13 @@
                         {% for keyword in job.keywords.all %}
                             <span class="badge-pill-tag">{{ keyword }}</span>
                         {% empty %}
-                            &mdash;
+                            None
                         {% endfor %}
                     </li>
                     <li>
                         <span class="job-meta-label">Posted:</span>
                         {{ job.publish_start|date:"M j, Y" }}
-                        &nbsp;&mdash;&nbsp;
+                        &nbsp;
                         <span class="job-meta-label" style="min-width: 0;">Closes:</span>
                         {{ job.publish_end|date:"M j, Y" }}
                     </li>
@@ -386,7 +386,7 @@
                     <p>Are you sure you want to remove the job
                         &ldquo;<strong>{{ job.title }}</strong>&rdquo; posted by
                         <strong>{{ job.created_by }}</strong>?</p>
-                    <p>The posting will be hidden from all listings. This is a soft delete &mdash; the record is retained in the database and can be restored by an administrator.</p>
+                    <p>The posting will be hidden from all listings. This is a soft delete: the record is retained in the database and can be restored by an administrator.</p>
                     <div class="mb-3">
                         <label for="deleteReason" class="form-label">Reason for removal <span class="text-danger">*</span></label>
                         <textarea class="form-control" id="deleteReason" name="reason" rows="3" required maxlength="2000" placeholder="e.g. Confirmed scam / duplicate / requester withdrew"></textarea>

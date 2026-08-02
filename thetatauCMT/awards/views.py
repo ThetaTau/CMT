@@ -169,7 +169,7 @@ class AwardNominationReviewView(UpdateProcessView):
         response = super().form_valid(form, *args, **kwargs)
         messages.success(
             self.request,
-            f"Nomination review saved — the nomination was {form.instance.get_result_display().lower()}.",
+            f"Nomination review saved. The nomination was {form.instance.get_result_display().lower()}.",
         )
         return response
 
@@ -223,13 +223,14 @@ class GrantArtifactDownloadView(LoginRequiredMixin, View):
         return FileResponse(artifact.file.open("rb"), as_attachment=True, filename=filename)
 
 
-class AwardDirectoryView(PagedFilteredTableView):
-    """Public, filterable directory of award winners (AWI-11).
+class AwardDirectoryView(LoginRequiredMixin, PagedFilteredTableView):
+    """Filterable directory of award winners (AWI-11).
 
-    All awards are public, so this view requires no login. It lists *active*
-    grants by default (revoked grants are excluded); passing ``?show_revoked=1``
-    includes revoked grants, which the table then labels with their status.
-    Filter by award type, level, cycle, chapter, region, or a recipient search.
+    Award data is visible to any signed-in member — it is not public. It lists
+    *active* grants by default (revoked grants are excluded); passing
+    ``?show_revoked=1`` includes revoked grants, which the table then labels with
+    their status. Filter by award type, level, cycle, chapter, region, or a
+    recipient search.
     """
 
     model = AwardGrant
@@ -369,13 +370,13 @@ class AwardExportView(LoginRequiredMixin, View):
         return grants_export_response(queryset, fmt=fmt, filename_stem=stem)
 
 
-class _AwardHistoryView(SingleTableView):
-    """Base for the public, chronological award-history views (AWI-12).
+class _AwardHistoryView(LoginRequiredMixin, SingleTableView):
+    """Base for the chronological award-history views (AWI-12).
 
     Reuses :class:`~thetatauCMT.awards.tables.AwardGrantTable` (status column
     included so revoked grants are labeled) ordered by ``effective_date`` so
-    backdated grants sort into their historical place. Public -- award data is
-    public -- but export buttons are shown only to officers.
+    backdated grants sort into their historical place. Visible to any signed-in
+    member, but export buttons are shown only to officers.
     """
 
     template_name = "awards/award_history.html"
@@ -401,7 +402,7 @@ class MemberAwardHistoryView(_AwardHistoryView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["member"] = self.member
-        context["heading"] = f"Award history — {self.member}"
+        context["heading"] = f"Award history for {self.member}"
         context["export_url"] = f"{reverse('awards:export')}?member={self.member.username}"
         return context
 
@@ -416,7 +417,7 @@ class ChapterAwardHistoryView(_AwardHistoryView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["chapter"] = self.chapter
-        context["heading"] = f"Award history — {self.chapter}"
+        context["heading"] = f"Award history for {self.chapter}"
         context["export_url"] = f"{reverse('awards:export')}?chapter={self.chapter.slug}"
         return context
 

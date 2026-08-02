@@ -1,10 +1,12 @@
 import django_tables2 as tables
 from django_tables2.utils import A
 
+from core.tables import CMTTable
+
 from .models import Chapter, ChapterCurricula
 
 
-class ChapterCurriculaTable(tables.Table):
+class ChapterCurriculaTable(CMTTable):
     class Meta:
         model = ChapterCurricula
         fields = ("major",)
@@ -12,7 +14,7 @@ class ChapterCurriculaTable(tables.Table):
         empty_text = "There are no curricula matching the search criteria..."
 
 
-class ChapterTable(tables.Table):
+class ChapterTable(CMTTable):
     name = tables.LinkColumn("chapters:detail", args=[A("slug")])
     region = tables.LinkColumn("regions:detail", args=[A("region__slug")])
 
@@ -44,7 +46,7 @@ class ChapterTable(tables.Table):
     #     return Chapter.RECOGNITION.get_value(value)
 
 
-class AuditTable(tables.Table):
+class AuditTable(CMTTable):
     item = tables.Column("", attrs={"td": {"align": "left", "style": "font-weight:bold"}})
     corresponding_secretary = tables.Column("Corr Sec")
     treasurer = tables.Column()
@@ -61,7 +63,7 @@ class AuditTable(tables.Table):
         orderable = False
 
 
-class ChapterStatusTable(tables.Table):
+class ChapterStatusTable(CMTTable):
     name = tables.TemplateColumn('<a href="{{ record.link }}">{{ record.name }}</a>')
 
     # Chapter, Members, Pledges, Events Last Month, Submissions Last Month, Current Balance, Tasks Overdue

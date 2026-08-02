@@ -2,10 +2,12 @@ import django_tables2 as tables
 from django.urls import reverse
 from django.utils.safestring import mark_safe
 
+from core.tables import CMTTable
+
 from .models import Event
 
 
-class EventTable(tables.Table):
+class EventTable(CMTTable):
     name = tables.Column(linkify=lambda record: record.get_absolute_url())
     is_public = tables.BooleanColumn(verbose_name="Open to Other Chapters")
     parent_event = tables.Column(verbose_name="Parent Event")
@@ -45,21 +47,21 @@ class EventTable(tables.Table):
 
     def render_parent_event(self, value, record):
         if not record.parent_event_id:
-            return "—"
+            return "None"
         url = record.parent_event.get_absolute_url()
         return mark_safe(f'<a href="{url}">{value}</a>')
 
     def render_chapter(self, value):
         """Link the (natoff-only) chapter column to the chapter detail page."""
         if not value:
-            return "—"
+            return "None"
         url = reverse("chapters:detail", kwargs={"slug": value.slug})
         return mark_safe(f'<a href="{url}">{value}</a>')
 
     def render_chapter__region(self, value, record):
         """Link the (natoff-only) region column to the region detail page."""
         if not value or not record.chapter_id:
-            return value or "—"
+            return value or "None"
         url = reverse("regions:detail", kwargs={"slug": record.chapter.region.slug})
         return mark_safe(f'<a href="{url}">{value}</a>')
 

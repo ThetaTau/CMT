@@ -2,10 +2,12 @@ import django_tables2 as tables
 from django.utils.safestring import mark_safe
 from django_tables2.utils import A
 
+from core.tables import CMTTable
+
 from .models import Job, JobSearch
 
 
-class JobTable(tables.Table):
+class JobTable(CMTTable):
     title = tables.LinkColumn("jobs:detail", kwargs={"pk": A("pk"), "slug": A("slug")})
 
     class Meta:
@@ -26,7 +28,7 @@ class JobTable(tables.Table):
         empty_text = "There are no jobs matching the search criteria..."
 
 
-class JobSearchTable(tables.Table):
+class JobSearchTable(CMTTable):
     search = tables.LinkColumn(
         "jobs:search_filter",
         args=[A("pk")],

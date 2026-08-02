@@ -811,7 +811,7 @@ class Training(TimeStampedModel):
         if after.get("enrollment"):
             return "enrolled", "enrolled"
         if after.get("allowed"):
-            return "pending", "pending — enrolls once the user logs in via SSO"
+            return "pending", "pending: enrolls once the user logs in via SSO"
         return "pending", "submitted"
 
     @staticmethod
@@ -875,7 +875,7 @@ class Training(TimeStampedModel):
             for course_id in courses:
                 course_block = course_results.get(course_id) or {}
                 status, detail = Training._interpret_enroll_result(course_block.get("results") or [])
-                results.append((course_id, status, f"{user}: {course_id} — {detail}"))
+                results.append((course_id, status, f"{user}: {course_id}, {detail}"))
 
         for _course_id, status, message in results:
             level = messages.INFO if status in ("enrolled", "pending") else messages.ERROR

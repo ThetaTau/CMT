@@ -79,6 +79,10 @@ django-ckeditor-5==0.2.18 #https://github.com/hvlads/django-ckeditor-5
 django-recaptcha==4.1.0 # https://github.com/praekelt/django-recaptcha
 # django-report-builder==6.4.2 # https://gitlab.com/burke-software/django-report-builder
 # No longer supported, but added in urls fix in this commit
+# NOTE: this git install omits the compiled Angular SPA bundle that spa.html
+# references (polyfills/runtime/main-es2015/es5 + styles.css). Those assets are
+# vendored from the 6.4.2 wheel into thetatauCMT/static/report_builder/ so
+# ManifestStaticFilesStorage (production) can resolve them.
 git+https://gitlab.com/burke-software/django-report-builder.git@aac796ebfb2b9ffc7f457cd37b1b5b0adfca45de
 django-upload-validator==1.1.6 # https://github.com/mckinseyacademy/django-upload-validator
 # django-allauth-2fa==0.10.0  # https://github.com/percipient/django-allauth-2fa

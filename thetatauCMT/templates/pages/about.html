@@ -1,1 +1,147 @@
 {% extends "base.html" %}
+{% block title %}About the CMT | Theta Tau Chapter Management Tool{% endblock title %}
+{% block content %}
+<h1>About the Chapter Management Tool</h1>
+<p class="lead">
+  The CMT is where Theta Tau chapters keep their record: the roster, officer terms, events and
+  attendance, dues, awards, ballots, and the forms that pass between a chapter, its region and the
+  Central Office.
+</p>
+
+<h2 class="h4">Why it exists</h2>
+<p>
+  Chapter business used to live in spreadsheets, email attachments and a filing cabinet in Springfield.
+  Every officer kept their own copy, and when they graduated, the chapter's history often graduated with
+  them. The CMT keeps one copy that outlasts any single term, and puts the same numbers in front of the
+  chapter, its Regional Director and the Central Office at the same time.
+</p>
+<p>
+  It is also the fraternity's system of record. Initiations, status changes, officer elections and the
+  disciplinary process all become official here, not in the email that announced them.
+</p>
+
+<h2 class="h4">Who uses it</h2>
+<div class="row row-cols-1 row-cols-md-2 g-3 mb-4">
+  <div class="col">
+    <div class="card h-100 bg-body-tertiary text-body">
+      <div class="card-body">
+        <h3 class="h5 card-title">Members</h3>
+        <p class="card-text mb-0">
+          See your chapter's roster and calendar, get counted at events, pay what you owe, apply for
+          awards and scholarships, and keep your own contact details current through graduation and
+          beyond.
+        </p>
+      </div>
+    </div>
+  </div>
+  <div class="col">
+    <div class="card h-100 bg-body-tertiary text-body">
+      <div class="card-body">
+        <h3 class="h5 card-title">Chapter officers</h3>
+        <p class="card-text mb-0">
+          File the reports your office owns, from a task list that says what is due and when. Regents,
+          Scribes, Treasurers, Corresponding Secretaries, Vice Regents, Educators and Risk Management
+          Chairs each get a guide to their own term.
+        </p>
+      </div>
+    </div>
+  </div>
+  <div class="col">
+    <div class="card h-100 bg-body-tertiary text-body">
+      <div class="card-body">
+        <h3 class="h5 card-title">Advisers &amp; Regional Directors</h3>
+        <p class="card-text mb-0">
+          Watch every chapter in the region from one page: who is behind on what, which chapters
+          are healthy, and where a visit is worth the trip.
+        </p>
+      </div>
+    </div>
+  </div>
+  <div class="col">
+    <div class="card h-100 bg-body-tertiary text-body">
+      <div class="card-body">
+        <h3 class="h5 card-title">National officers &amp; the Central Office</h3>
+        <p class="card-text mb-0">
+          Run the national roster, awards, ballots and the forms only the national organization can
+          approve, without asking every chapter for the same spreadsheet twice a year.
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<p class="text-body-secondary">
+  The CMT is not <a href="https://thetatau.org/" target="_blank" rel="noopener noreferrer">thetatau.org</a>
+  and it is not the training portal. Those are separate sites. This one is for running your chapter.
+</p>
+
+<h2 class="h4">Built by brothers, for brothers</h2>
+<p>
+  Nobody bought the CMT. It is written and maintained by volunteer brothers who wanted their own
+  chapters to spend less of the year on paperwork. Almost everything here started as a chapter saying
+  &ldquo;this part is painful&rdquo;, which is also the fastest way to change it.
+</p>
+<p>
+  The source is public and licensed
+  <a href="https://github.com/VenturaFranklin/thetatauCMT/blob/master/COPYING" target="_blank" rel="noopener noreferrer">GPLv3</a>,
+  so any brother can read exactly what the tool does with their chapter's data.
+</p>
+
+<h2 class="h4">We could use your help</h2>
+<div class="row row-cols-1 row-cols-md-3 g-3 mb-4">
+  <div class="col">
+    <div class="card h-100 bg-body-tertiary text-body">
+      <div class="card-body d-flex flex-column">
+        <h3 class="h5 card-title">Tell us what is broken</h3>
+        <p class="card-text">
+          No coding required, and it is the most useful thing most brothers can do. If a page is wrong,
+          slow or confusing, say so. That is where the next release comes from.
+        </p>
+        <a class="btn btn-primary mt-auto align-self-start"
+           href="https://github.com/VenturaFranklin/thetatauCMT/issues"
+           target="_blank" rel="noopener noreferrer">Report a bug or idea</a>
+      </div>
+    </div>
+  </div>
+  <div class="col">
+    <div class="card h-100 bg-body-tertiary text-body">
+      <div class="card-body d-flex flex-column">
+        <h3 class="h5 card-title">Write some code</h3>
+        <p class="card-text">
+          The CMT is Django and Python. If you have shipped anything on the web, or want to learn
+          on a real project that brothers actually use every day, there is an issue with your name
+          on it.
+        </p>
+        <a class="btn btn-primary mt-auto align-self-start"
+           href="https://github.com/VenturaFranklin/thetatauCMT/blob/master/CONTRIBUTING.md"
+           target="_blank" rel="noopener noreferrer"><i class="fab fa-github"></i> How to contribute</a>
+      </div>
+    </div>
+  </div>
+  <div class="col">
+    <div class="card h-100 bg-body-tertiary text-body">
+      <div class="card-body d-flex flex-column">
+        <h3 class="h5 card-title">Tell us how your chapter works</h3>
+        <p class="card-text">
+          Every chapter runs a little differently. If the tool assumes something about dues, elections or
+          attendance that is not true where you are, we want to hear it.
+        </p>
+        <a class="btn btn-primary mt-auto align-self-start"
+           href="mailto:cmt@thetatau.org">cmt@thetatau.org</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<h2 class="h4">Find your way around</h2>
+<ul>
+  <li><a href="{% url 'guides:catalog' %}">What can the CMT do?</a>: every feature, grouped and searchable.</li>
+  {% if request.user.is_authenticated %}
+    <li><a href="{% url 'guides:role-guides' %}">Role guides</a>: what each office owns, and when it falls due.</li>
+  {% else %}
+    <li>Role guides: what each office owns, and when it falls due.
+      <a href="{% url 'account_login' %}">Sign in</a> to read them.</li>
+  {% endif %}
+  <li><a href="{% url 'help' %}">Help</a>: start here if you are stuck.</li>
+</ul>
+{% endblock content %}

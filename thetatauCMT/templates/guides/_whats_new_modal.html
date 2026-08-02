@@ -1,0 +1,38 @@
+{% comment %}
+The unprompted What's New modal (TWI-6). Rendered by base.html only when
+guides.context_processors.whats_new decides this request may interrupt the user.
+
+Bootstrap's modal is opened by static/js/whats_new.js, which also POSTs
+"seen" the moment it opens -- so a page that renders and is then replaced by the
+RMP redirect does not burn the one showing allowed per session.
+{% endcomment %}
+<div class="modal fade"
+     id="tt-whats-new-modal"
+     tabindex="-1"
+     aria-labelledby="tt-whats-new-modal-label"
+     aria-hidden="true"
+     data-seen-url="{% url 'guides:whats-new-seen' %}"
+     data-ack-url="{% url 'guides:acknowledge' %}">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="tt-whats-new-modal-label">What&rsquo;s new</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        {% for item in whats_new_modal.items %}
+          {% include "guides/_whats_new_item.html" with item=item source="modal" show_ack=False %}
+        {% endfor %}
+        {% if whats_new_modal.has_more %}
+          <p class="mb-0">
+            <a href="{% url 'guides:whats-new' %}">See all {{ whats_new_modal.total }} updates</a>
+          </p>
+        {% endif %}
+      </div>
+      <div class="modal-footer">
+        <a class="btn btn-link me-auto" href="{% url 'guides:whats-new' %}">See all updates</a>
+        <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Got it</button>
+      </div>
+    </div>
+  </div>
+</div>

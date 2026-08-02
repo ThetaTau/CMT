@@ -3,12 +3,12 @@
 {% block content %}
 <div class="container my-4">
   <h1>Certificates &amp; letters</h1>
-  <p class="text-muted">{{ grant.award_type }} &mdash; {{ grant.recipient_display }}</p>
+  <p class="text-muted">{{ grant.award_type }} for {{ grant.recipient_display }}</p>
 
   <ul class="list-group mb-3">
     {% for artifact in artifacts %}
       <li class="list-group-item d-flex justify-content-between align-items-center">
-        <span>{{ artifact.get_artifact_type_display }} &mdash; {{ artifact.created_at }}</span>
+        <span>{{ artifact.get_artifact_type_display }}, {{ artifact.created_at }}</span>
         <a class="btn btn-sm btn-outline-primary" href="{% url 'awards:artifact_download' artifact.pk %}">Download</a>
       </li>
     {% empty %}

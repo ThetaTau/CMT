@@ -21,6 +21,11 @@ class Command(BaseCommand):
         for model in Command.SEED_MODELS:
             self._seed_data(model)
         self._manage_cmd("task_dates", "--current-year")
+        # Not a SEED_MODELS entry: the feature registry is upserted by key rather
+        # than loaddata'd, so re-seeding never duplicates rows or drops the user
+        # acknowledgement and tour-completion history hanging off them. It runs
+        # last because features link to the tasks seeded above.
+        self._manage_cmd("load_feature_registry")
 
     def _seed_data(self, model):
         self._load_data(self._data_load_path(model))

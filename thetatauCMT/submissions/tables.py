@@ -1,10 +1,12 @@
 import django_tables2 as tables
 from django_tables2.utils import A
 
+from core.tables import CMTTable
+
 from .models import GearArticle, Submission
 
 
-class SubmissionTable(tables.Table):
+class SubmissionTable(CMTTable):
     name = tables.LinkColumn("submissions:update", args=[A("pk")])
 
     class Meta:
@@ -19,7 +21,7 @@ class SubmissionTable(tables.Table):
         empty_text = "There are no submissions matching the search criteria..."
 
 
-class GearArticleTable(tables.Table):
+class GearArticleTable(CMTTable):
     date = tables.DateColumn(verbose_name="Submit Date")
     title = tables.LinkColumn("submissions:gear_detail", args=[A("pk")], verbose_name="Title")
     chapter = tables.Column()

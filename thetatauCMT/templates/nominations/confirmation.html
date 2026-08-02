@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+﻿{% extends "base.html" %}
 {% load i18n %}
 {% load crispy_forms_tags %}
 {% block title %}Confirmation Review{% endblock %}
@@ -25,7 +25,7 @@
   <ul>
     <li>Level: {{ nomination.get_level_display }}</li>
     <li>Recommended positions:
-      {% for position in nomination.recommended_positions %}{{ position|title }}{% if not forloop.last %}, {% endif %}{% empty %}&mdash;{% endfor %}
+      {% for position in nomination.recommended_positions %}{{ position|title }}{% if not forloop.last %}, {% endif %}{% empty %}None{% endfor %}
     </li>
     <li>Reason: {{ nomination.reason }}</li>
   </ul>
@@ -53,7 +53,7 @@
   <h5>Process history</h5>
   <ul>
     {% for task in history_tasks %}
-      <li>{{ task.flow_task.task_title|default:task.flow_task.name }} &mdash; {{ task.status }} ({{ task.created }})</li>
+      <li>{{ task.flow_task.task_title|default:task.flow_task.name }}: {{ task.status }} ({{ task.created }})</li>
     {% endfor %}
   </ul>
 

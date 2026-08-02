@@ -766,7 +766,7 @@ class ChapterFeedSubscribeView(LoginRequiredMixin, View):
             )
             verb = "Created a new feed with"
         else:
-            verb = f"Added {chapter.name} to '{feed.name}' —"
+            verb = f"Added {chapter.name} to '{feed.name}':"
         feed.chapters.add(chapter)
         messages.add_message(
             request,

@@ -19,7 +19,7 @@ from django_tables2.config import RequestConfig  # Imported by others
 from viewflow.frontend.views import AllTaskListView, DataTableMixin, FlowListMixin, TemplateResponseMixin, generic
 
 from core.models import user_is_national_officer
-from thetatauCMT.announcements.models import Announcement
+from thetatauCMT.guides.services import get_role_guides, get_whats_new
 from thetatauCMT.scores.models import ScoreType
 from thetatauCMT.tasks.models import TaskChapter, TaskDate
 from thetatauCMT.tasks.tables import TaskTable
@@ -305,11 +305,17 @@ class HomeView(LoginRequiredMixin, TemplateView):
         table = TaskTable(data=qs, complete=False)
         RequestConfig(self.request, paginate={"per_page": 40}).configure(table)
         context["table"] = table
-        announcements = Announcement.objects.filter(
-            publish_start__lt=timezone.now(),
-            publish_end__gt=timezone.now(),
-        )
-        context["announcements"] = announcements
+        # The What's New feed (TWI-6) replaces the old raw announcement list: same
+        # published announcements, now alongside recently released features and
+        # each with a "Got it" button. Acknowledged items are still returned so
+        # the template can tuck them behind a disclosure rather than vanishing
+        # them -- nothing a user dismisses becomes unreachable.
+        context["whats_new"] = get_whats_new(self.request.user, include_acknowledged=True)
+        context["seen_count"] = sum(1 for item in context["whats_new"] if item["is_acknowledged"])
+        # The Role Guide card (TWI-12) sits above the task table because that is
+        # where a newly elected officer is already looking -- the tasks below it
+        # are the very thing the guide explains.
+        context["role_guides"] = get_role_guides(self.request.user)
         # Scope the embedded RegionDashboard to the viewer's own chapter so the
         # home page shows the same dashboard as the regional/national views, but
         # auto-filtered. The template renders this into a hidden element that the

@@ -1,0 +1,25 @@
+{% comment %}
+The "What am I responsible for?" card (TWI-12). Included on the home page above
+the task table and on the help hub.
+
+Context:
+  role_guides   list of RoleGuide the viewer holds (guides.services.get_role_guides)
+{% endcomment %}
+{% if role_guides %}
+  <div class="card bg-body-tertiary text-body mb-3">
+    <div class="card-body">
+      <h2 class="h5 card-title">What am I responsible for?</h2>
+      <p class="card-text">
+        You hold {{ role_guides|length }} role{{ role_guides|length|pluralize }} in this system.
+        Each one has a short guide: what the office owns, what falls due when, and where each form lives.
+      </p>
+      <div class="d-flex flex-wrap gap-2">
+        {% for guide in role_guides %}
+          <a class="btn btn-sm btn-primary"
+             href="{{ guide.get_absolute_url }}"
+             data-role-guide="{{ guide.role }}">{{ guide.title }} guide</a>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+{% endif %}

@@ -52,6 +52,28 @@ def test_chapter_balances_view_authenticated(auto_login_user):
 
 
 @pytest.mark.django_db
+def test_chapter_balances_view_member_sees_only_own_chapter(auto_login_user):
+    """A member's balance overview is scoped to their own chapter."""
+    client, user = auto_login_user()
+    other = ChapterFactory(name="lambda beta")
+    response = client.get(reverse("finances:chapters"))
+    slugs = {chapter.slug for chapter in response.context["filter"].qs}
+    assert slugs == {user.current_chapter.slug}
+    assert other.slug not in slugs
+
+
+@pytest.mark.django_db
+def test_chapter_balances_view_natoff_sees_all_chapters(auto_login_user):
+    """National Officers keep the cross-chapter overview."""
+    client, user = auto_login_user()
+    _make_natoff(user, client)
+    other = ChapterFactory(name="lambda beta")
+    response = client.get(reverse("finances:chapters"))
+    slugs = {chapter.slug for chapter in response.context["filter"].qs}
+    assert {user.current_chapter.slug, other.slug} <= slugs
+
+
+@pytest.mark.django_db
 def test_chapter_balances_view_unauthenticated(client):
     url = reverse("finances:chapters")
     response = client.get(url)
@@ -74,6 +96,7 @@ def test_chapter_balances_view_with_invoices(auto_login_user):
 def test_chapter_balances_view_shows_membership_and_audit(auto_login_user):
     """The overview surfaces actives, PNMs, and the latest audit dues."""
     client, user = auto_login_user()
+    _make_natoff(user, client)
     chapter = ChapterFactory(name="lambda beta")
     UserFactory(chapter=chapter, current_status="active")
     pnm = UserFactory(chapter=chapter, current_status="pnm")

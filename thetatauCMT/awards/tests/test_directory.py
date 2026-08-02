@@ -23,6 +23,23 @@ def _natoff():
     return user
 
 
+def _member():
+    """A plain signed-in member with a current RMP signature."""
+    user = UserFactory(status="active")
+    sign_rmp(user)
+    return user
+
+
+@pytest.fixture(autouse=True)
+def _signed_in(client):
+    """Award data is member-only, so every directory test browses signed in.
+
+    Tests needing more privilege call ``client.force_login`` themselves, which
+    replaces this session.
+    """
+    client.force_login(_member())
+
+
 def _content(response):
     return response.content.decode()
 
@@ -38,10 +55,16 @@ def _award_names(response):
 
 
 # ---------------------------------------------------------------------------
-# Acceptance: public access (no login required)
+# Acceptance: members only (award data is not public)
 # ---------------------------------------------------------------------------
-def test_directory_is_public(client):
-    """An anonymous visitor can browse the award-winner directory."""
+def test_directory_requires_login(client):
+    client.logout()
+    response = client.get(reverse("awards:directory"))
+    assert response.status_code == 302
+    assert "/accounts/login/" in response["Location"]
+
+
+def test_directory_allows_member(client):
     response = client.get(reverse("awards:directory"))
     assert response.status_code == 200
 

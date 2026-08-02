@@ -3,7 +3,7 @@
 
 {% block content %}
 <div class="container">
-  <h2 class="page-title">Attendance rollup — {{ parent.name }}</h2>
+  <h2 class="page-title">Attendance rollup: {{ parent.name }}</h2>
   <p class="text-body-secondary">{{ parent.date }} &middot; {{ parent.chapter|default:"National (org-wide)" }}</p>
 
   <div class="row g-2 mb-3">
@@ -40,7 +40,7 @@
           <td><strong>{{ parent.name }}</strong> <span class="badge bg-secondary">parent</span></td>
           <td>{{ parent.date }}</td>
           <td>{{ parent_attended_count }}</td>
-          <td colspan="3" class="text-body-secondary">—</td>
+          <td colspan="3" class="text-body-secondary">None</td>
         </tr>
         {% for row in rows %}
           <tr>

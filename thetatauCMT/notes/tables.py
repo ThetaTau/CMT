@@ -1,10 +1,12 @@
 import django_tables2 as tables
 from django_tables2.utils import A
 
+from core.tables import CMTTable
+
 from .models import ChapterNote, UserNote
 
 
-class ChapterNoteTable(tables.Table):
+class ChapterNoteTable(CMTTable):
     title = tables.LinkColumn("notes:detail", args=[A("pk")])
 
     class Meta:
@@ -20,7 +22,7 @@ class ChapterNoteTable(tables.Table):
         empty_text = "There are no notes"
 
 
-class UserNoteTable(tables.Table):
+class UserNoteTable(CMTTable):
     note = tables.TemplateColumn("{% load custom_tags %}{{ value|sanitize_html }}")
 
     class Meta:

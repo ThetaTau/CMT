@@ -7,13 +7,13 @@ Central Office,
 <ul>
   <li><strong>Title:</strong> {{ job.title }}</li>
   <li><strong>Company:</strong> {{ job.company }}</li>
-  {% if creator_line %}<li><strong>Posted by:</strong> {{ creator_line }}{% if creator_chapter %} &mdash; {{ creator_chapter }}{% endif %}</li>{% endif %}
+  {% if creator_line %}<li><strong>Posted by:</strong> {{ creator_line }}{% if creator_chapter %} ({{ creator_chapter }}){% endif %}</li>{% endif %}
   <li><strong>Job link:</strong> <a href="{{ job.url }}">{{ job.url }}</a></li>
   <li><strong>Detail page:</strong> <a href="{{ job_detail_url }}">{{ job_detail_url }}</a></li>
   <li><strong>Publish window:</strong> {{ job.publish_start|date:"M j, Y" }} &ndash; {{ job.publish_end|date:"M j, Y" }}</li>
   <li><strong>Sponsored:</strong> {% if job.sponsored %}Yes{% else %}No{% endif %}</li>
   {% if auto_approved %}
-    <li><strong>Auto-approved:</strong> Yes &mdash; posted by a National Officer or superuser.</li>
+    <li><strong>Auto-approved:</strong> Yes, posted by a National Officer or superuser.</li>
   {% endif %}
 </ul>
 <p><strong>Description:</strong></p>

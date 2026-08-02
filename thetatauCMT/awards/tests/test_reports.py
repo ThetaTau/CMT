@@ -206,17 +206,25 @@ def test_export_allows_officer(client):
 
 
 # ===========================================================================
-# History views (public)
+# History views (signed-in members)
 # ===========================================================================
-def test_member_history_view_public_and_ordered(client):
+def test_member_history_requires_login(client):
+    member = UserFactory(status="active")
+    response = client.get(reverse("awards:member_history", kwargs={"username": member.username}))
+    assert response.status_code == 302
+    assert "/accounts/login/" in response["Location"]
+
+
+def test_member_history_view_ordered(client):
     member = UserFactory(status="active")
     AwardGrantFactory(
         award_type=AwardTypeFactory(name="History Award"),
         recipient_member=member,
         effective_date=datetime.date(2012, 1, 1),
     )
+    client.force_login(_non_officer())
     response = client.get(reverse("awards:member_history", kwargs={"username": member.username}))
-    assert response.status_code == 200  # public, no login
+    assert response.status_code == 200
     assert "Award history" in response.content.decode()
     history = list(response.context["object_list"])
     assert history == list(reports.member_award_history(member))
@@ -236,15 +244,17 @@ def test_member_history_hides_revoked_from_non_national_officer(client):
     member = UserFactory(status="active")
     grant = AwardGrantFactory(award_type=AwardTypeFactory(name="Hidden Revoked History"), recipient_member=member)
     revoke_grant(grant, revoked_by=UserFactory(), reason="x")
+    client.force_login(_non_officer())
     response = client.get(reverse("awards:member_history", kwargs={"username": member.username}))
     assert grant not in list(response.context["object_list"])
 
 
-def test_chapter_history_view_public(client):
+def test_chapter_history_view(client):
     chapter = ChapterFactory(name=_NAMES[0])
     AwardGrantFactory(
         award_type=AwardTypeFactory(name="Chapter History Award"), recipient_member=None, recipient_chapter=chapter
     )
+    client.force_login(_non_officer())
     response = client.get(reverse("awards:chapter_history", kwargs={"slug": chapter.slug}))
     assert response.status_code == 200
     assert "Chapter History Award" in response.content.decode()
@@ -254,7 +264,8 @@ def test_history_export_buttons_officer_only(client):
     member = UserFactory(status="active")
     AwardGrantFactory(recipient_member=member)
     url = reverse("awards:member_history", kwargs={"username": member.username})
-    # Anonymous: no export controls.
+    # Plain member: no export controls.
+    client.force_login(_non_officer())
     assert client.get(url).context["can_export"] is False
     # Officer: export controls available.
     client.force_login(_officer())

@@ -175,7 +175,7 @@
           html += '<li><strong>' + (ev.event_type || "event") + '</strong> ' +
             '<span class="text-body-secondary">' + fmt(ev.event_at) + '</span>' +
             (ev.source ? ' <span class="badge bg-secondary-subtle text-body-emphasis border">' + ev.source + '</span>' : '') +
-            (ev.useragent ? ' <span class="text-body-secondary">— ' + ev.useragent + '</span>' : '') +
+            (ev.useragent ? ' <span class="text-body-secondary"></span>' : '') +
             '</li>';
         });
         html += '</ul>';

@@ -2,11 +2,12 @@ import django_tables2 as tables
 from django_tables2.utils import A
 
 from core.models import BIENNIUM_YEARS
+from core.tables import CMTTable
 
 from .models import ScoreType
 
 
-class ScoreTable(tables.Table):
+class ScoreTable(CMTTable):
     name = tables.LinkColumn("scores:detail", args=[A("slug")])
     total = tables.Column("Biennium Total")
     points = tables.Column("Points/Year")
@@ -48,7 +49,7 @@ class ScoreTable(tables.Table):
         return ScoreType.TYPES.get_value(value)
 
 
-class ChapterScoreTable(tables.Table):
+class ChapterScoreTable(CMTTable):
     chapter_name = tables.Column()
     region = tables.Column()
     brotherhood = tables.Column(accessor="Bro")

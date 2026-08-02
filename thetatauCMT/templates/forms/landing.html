@@ -1,313 +1,206 @@
-{% extends "account/base.html" %} {% load i18n %} {% load crispy_forms_tags %}
-{% block head_title %}{% trans "Theta Tau Forms" %}{% endblock %} {% block content %}
-<table class="table table-hover table-bordered table-striped">
-  <thead>
-    <tr>
-      <th>Form Name</th>
-      {% if request.is_nat_officer %}
-      <th>All Chapters</th>
+{% extends "base.html" %}
+{% load i18n %}
+{% load static %}
+{% block title %}{% trans "Forms" %} | Theta Tau Chapter Management Tool{% endblock title %}
+{% block content %}
+<h1>{% trans "Forms" %}</h1>
+<p class="lead">
+  Every form and workflow you can file, grouped by what you are trying to get done.
+  Anything with a due date shows it here, for your chapter.
+</p>
+
+<div class="card bg-body-tertiary mb-4">
+  <div class="card-body">
+    <div class="row g-2 align-items-center">
+      <div class="col-12 col-md-6">
+        <label class="form-label visually-hidden" for="tt-catalog-search">{% trans "Search forms" %}</label>
+        <input type="search"
+               class="form-control"
+               id="tt-catalog-search"
+               placeholder="{% trans 'Search: try &ldquo;audit&rdquo;, &ldquo;pledge&rdquo; or &ldquo;bylaws&rdquo;' %}"
+               autocomplete="off">
+      </div>
+      {% if duty_roles %}
+        <div class="col-12 col-md-6">
+          <div class="form-check form-switch">
+            <input class="form-check-input" type="checkbox" role="switch" id="tt-catalog-mine">
+            <label class="form-check-label" for="tt-catalog-mine">
+              {% trans "Only show forms for my role" %}{{ duty_roles|length|pluralize }}
+              ({% for role in duty_roles %}{{ role|title }}{% if not forloop.last %}, {% endif %}{% endfor %})
+            </label>
+          </div>
+        </div>
       {% endif %}
-      <th>Form Description</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td><a href="{% url 'alumniexclusion' %}">{% trans "Alumni Exclusion" %}</a></td>
-      {% if request.is_nat_officer %}
-      <td>
-        <a href="{% url 'forms:alumniexclusion_list' %}">{% trans "All Alumni Exclusion" %}</a>
-      </td>
-      {% endif %}
-      <td>To submit an alumni exclusion form to
-        exclude alumni from participation in chapter meetings, events, or grounds.</td>
-    </tr>
-    <tr>
-      <td><a href="{% url 'forms:audit' %}">{% trans "Audit" %}</a></td>
-      {% if request.is_nat_officer %}
-      <td>
-        <a href="{% url 'forms:audit_list' %}">{% trans "All Audits" %}</a>
-      </td>
-      {% endif %}
-      <td>To submit an audit of the chapter finances.</td>
-    </tr>
-    {% if feature_awards_enabled %}
-    <tr>
-      <td><a href="{% url 'viewflow:awards:awardnomination:start' %}">{% trans "Award Nomination" %}</a></td>
-      {% if request.is_nat_officer %}
-      <td>
-        <a href="{% url 'awards:directory' %}">{% trans "Award Winners" %}</a>
-      </td>
-      {% endif %}
-      <td>To nominate a member, chapter, or region for an award.</td>
-    </tr>
-    {% endif %}
-    <tr>
-      <td><a href="{% url 'viewflow:nominations:nomination:start' %}">{% trans "Nominate for Office" %}</a></td>
-      {% if request.is_nat_officer %}
-      <td>
-        <a href="{% url 'nominations:list' %}">{% trans "Volunteer Nominations" %}</a>
-      </td>
-      {% endif %}
-      <td>To recommend a member for a national volunteer position and shepherd the nomination through consent, vetting, interview, training, confirmation, and appointment.</td>
-    </tr>
-    <tr>
-      <td><a href="{% url 'ballots:votelist' %}">{% trans "Ballots" %}</a></td>
-      {% if request.is_nat_officer %}
-      <td></td>
-      {% endif %}
-      <td>To submit electronic ballots for the chapter.</td>
-    </tr>
-    <tr>
-      <td><a href="{% url 'forms:bylaws' %}">{% trans "Bylaws" %}</a></td>
-      {% if request.is_nat_officer %}
-      <td>
-        <a href="{% url 'forms:bylaws_list' %}">{% trans "All Bylaws" %}</a>
-      </td>
-      {% endif %}
-      <td>To submit the bylaws for the chapter.</td>
-    </tr>
-    <tr>
-      <td>
-        <a href="{% url 'viewflow:forms:hseducation:start' %}"
-          >{% trans "H&S Education Program" %}</a
-        >
-      </td>
-      {% if request.is_nat_officer %}
-      <td>
-        <a href="{% url 'forms:education_list' %}"
-          >{% trans "H&S Education Programs" %}</a
-        >
-      </td>
-      {% endif %}
-      <td>
-        Chapter Officers (or Risk Management Chair) will organize chapter
-        participation at least once per year in each of the following: alcohol
-        and drug awareness program, anti-harassment program, and mental health
-        recognition program.
-      </td>
-    </tr>
-    <tr>
-      <td>
-        <a href="{% url 'forms:collection' %}"
-          >{% trans "Collection Referral" %}</a
-        >
-      </td>
-      {% if request.is_nat_officer %}
-      <td></td>
-      {% endif %}
-      <td>To recommend a member for collections for unpaid dues.</td>
-    </tr>
-    <tr>
-      <td>
-        <a href="{% url 'conventionform' %}">{% trans "Convention Form" %}</a>
-      </td>
-      {% if request.is_nat_officer %}
-      <td>
-        <a href="{% url 'forms:convention_list' %}"
-          >{% trans "All Convention Forms" %}</a
-        >
-      </td>
-      {% endif %}
-      <td>
-        In convention years, the form that sets the delegate and alternate for
-        the chapter to attend convention.
-      </td>
-    </tr>
-    <tr>
-      <td>
-        <a href="{% url 'viewflow:forms:disciplinaryprocess:start' %}"
-          >{% trans "Disciplinary Process" %}</a
-        >
-      </td>
-      {% if request.is_nat_officer %}
-      <td></td>
-      {% endif %}
-      <td>
-        To begin the process to suspend or expel a member from the Fraternity.
-      </td>
-    </tr>
-    <tr>
-      <td><a href="{% url 'gear' %}">{% trans "Gear Articles" %}</a></td>
-      {% if request.is_nat_officer %}
-      <td>
-        <a href="{% url 'submissions:gearlist' %}"
-          >{% trans "All Gear Articles" %}</a
-        >
-      </td>
-      {% endif %}
-      <td>
-        A Gear article should be a 250-500 word article with pictures (and
-        captions) about an event, major change, or area of growth in your
-        chapter.
-      </td>
-    </tr>
-    <tr>
-      <td>
-        <a href="{% url 'forms:init_selection' %}"
-          >{% trans "Initiate, Depledge, Roll Book Pages" %}</a
-        >
-      </td>
-      {% if request.is_nat_officer %}
-      <td></td>
-      {% endif %}
-      <td>
-        To initiate or depledge potential new members; Generate roll book pages.
-      </td>
-    </tr>
-    <tr>
-      <td>
-        <a href="{% url 'forms:pledge_program' %}"
-          >{% trans "New Member Education Program" %}</a
-        >
-      </td>
-      {% if request.is_nat_officer %}
-      <td>
-        <a href="{% url 'forms:pledge_program_list' %}"
-          >{% trans "All New Member Education Programs" %}</a
-        >
-      </td>
-      {% endif %}
-      <td>Report on the new member education program.</td>
-    </tr>
-    <tr>
-      <td>
-        <a href="{% url 'forms:officer' %}"
-          >{% trans "Officer Election Report" %}</a
-        >
-      </td>
-      {% if request.is_nat_officer %}
-      <td></td>
-      {% endif %}
-      <td>To submit the officers of the chapter.</td>
-    </tr>
-    <tr>
-      <td>
-        <a href="{% url 'osmform' %}"
-          >{% trans "Outstanding Student Member (OSM)" %}</a
-        >
-      </td>
-      {% if request.is_nat_officer %}
-      <td>
-        <a href="{% url 'forms:osm_list' %}">{% trans "All OSM Forms" %}</a>
-      </td>
-      {% endif %}
-      <td>To elect the outstanding student member of the chapter.</td>
-    </tr>
-    <tr>
-      <td>
-        <a href="{% url 'forms:pledge_pins' %}">{% trans "Pledge Pins" %}</a>
-      </td>
-      {% if request.is_nat_officer %}
-      <td></td>
-      {% endif %}
-      <td>Purchase pledge pins through the Theta Tau online store (Shopify).</td>
-    </tr>
-    <tr>
-      <td>
-        <a href="{% url 'viewflow:forms:prematurealumnus:start' %}"
-          >{% trans "Premature Alumnus" %}</a
-        >
-      </td>
-      {% if request.is_nat_officer %}
-      <td></td>
-      {% endif %}
-      <td>For members prematurely becoming alumni.</td>
-    </tr>
-    <tr>
-      <td>
-        <a href="{% url 'forms:resign_list' %}">{% trans "Resignations" %}</a>
-      </td>
-      {% if request.is_nat_officer %}
-      <td></td>
-      {% endif %}
-      <td>
-        List of members who have requested resignation from the chapter. Only a
-        member can resign their membership
-      </td>
-    </tr>
-    <tr>
-      <td>
-        <a href="{% url 'viewflow:forms:returnstudent:start' %}"
-          >{% trans "Return Student" %}</a
-        >
-      </td>
-      {% if request.is_nat_officer %}
-      <td></td>
-      {% endif %}
-      <td>
-        For returning an existing member of your chapter to student member
-        status.
-      </td>
-    </tr>
-    <tr>
-      <td>
-        <a href="{% url 'forms:rmp' %}"
-          >{% trans "Risk Management Policies" %}</a
-        >
-      </td>
-      {% if request.is_nat_officer %}
-      <td><a href="{% url 'forms:rmp_list' %}">{% trans "All RMP" %}</a></td>
-      {% endif %}
-      <td>The risk management policies electronic form.</td>
-    </tr>
-    {% if request.is_nat_officer %}
-    <tr>
-      <td>
-        <a href="{% url 'forms:ritual_proficiency' %}">{% trans "Ritual Proficiency" %}</a>
-      </td>
-      <td></td>
-      <td>Record when a member tests for a level of ritual proficiency.</td>
-    </tr>
-    {% endif %}
-    <tr>
-      <td><a href="{% url 'forms:natoff' %}">{% trans "National Officers" %}</a></td>
-      {% if request.is_nat_officer %}
-      <td></td>
-      {% endif %}
-      <td>View national officers{% if user.is_superuser %}; administrators can add or edit assignments{% endif %}.</td>
-    </tr>
-      {% if user.is_superuser %}
-    <tr>
-      <td>
-        <a href="{% url 'attendance:national_upload' %}">{% trans "Upload National Attendance" %}</a></td>
-      {% if request.is_nat_officer %}
-        <td>{% if user.is_superuser %}
-              <a href="{% url 'attendance:match_queue' %}">
-                {% trans "Attendance Match Queue" %}</a>
-            {% endif %}
-        </td>
-      {% endif %}
-      <td>Bulk-upload attendance for a national event (administrators only).</td>
-    </tr>
-    {% if feature_awards_enabled %}
-      {% if user.is_superuser %}
-      <tr>
-        <td><a href="{% url 'awards:direct_grant' %}">{% trans "Grant an Award" %}</a></td>
-        {% if request.is_nat_officer %}
-        <td><a href="{% url 'awards:import_upload' %}">{% trans "Import Awards" %}</a></td>
-        {% endif %}
-        <td>Directly grant an award to a member (administrators only).</td>
-      </tr>
-      {% endif %}
-    {% endif %}
-    {% endif %}
-    {% for change in status_change_types %}
-    <tr>
-      <td>
-        <a href="{% url 'forms:status_history' reason=change.reason %}">{{ change.label }}</a>
-      </td>
-      {% if request.is_nat_officer %}
-      <td></td>
-      {% endif %}
-      <td>{{ change.description }}</td>
-    </tr>
-    {% endfor %}
-    <tr>
-      <td><a href="{% url 'forms:pledgeform' %}">{% trans "Prospective New Member / Pledge Form" %}</a></td>
-      {% if request.is_nat_officer %}
-      <td></td>
-      {% endif %}
-      <td>Complete the form below to begin the membership process. This form should only be completed by the person wishing to pledge a chapter of Theta Tau.</td>
-    </tr>
-</table>
+    </div>
+    <div class="d-flex flex-wrap gap-1 mt-3" id="tt-catalog-chips">
+      <button type="button" class="btn btn-sm btn-primary" data-catalog-chip="">{% trans "Everything" %}</button>
+      {% for group in groups %}
+        <button type="button"
+                class="btn btn-sm btn-outline-secondary"
+                data-catalog-chip="{{ group.key }}">{{ group.chip|default:group.label }}</button>
+      {% endfor %}
+    </div>
+    <div class="d-flex flex-wrap align-items-center gap-2 mt-3">
+      <button type="button" class="btn btn-sm btn-outline-secondary" id="tt-catalog-expand">
+        {% trans "Expand all" %}
+      </button>
+      <p class="small text-body-secondary mb-0" id="tt-catalog-count" role="status" aria-live="polite"></p>
+    </div>
+  </div>
+</div>
+
+<div class="accordion" id="tt-forms-accordion">
+{% if mine %}
+  <div class="accordion-item" id="tt-catalog-mine-section">
+    <h2 class="accordion-header">
+      <button class="accordion-button collapsed"
+              type="button"
+              data-bs-toggle="collapse"
+              data-bs-target="#panel-mine"
+              aria-expanded="false"
+              aria-controls="panel-mine">
+        <span class="me-2"><strong>{% trans "For your role" %}</strong></span>
+        <span class="badge rounded-pill text-bg-info">{{ mine|length }}</span>
+      </button>
+    </h2>
+    <div id="panel-mine" class="accordion-collapse collapse" data-catalog-panel>
+      <div class="accordion-body">
+        <p class="text-body-secondary">
+          {% trans "The forms your office owns. They still appear in their own section below." %}
+        </p>
+        <div class="table-responsive">
+          <table class="table table-hover align-middle">
+            <thead>
+              <tr>
+                <th scope="col">{% trans "Form" %}</th>
+                <th scope="col">{% trans "When" %}</th>
+                <th scope="col">{% trans "Due" %}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for entry in mine %}
+                <tr>
+                  <th scope="row" class="fw-normal">
+                    {% if entry.url %}
+                      <a href="{{ entry.url }}" data-catalog-link="{{ entry.feature.key }}">{{ entry.feature.name }}</a>
+                    {% else %}
+                      {{ entry.feature.name }}
+                    {% endif %}
+                  </th>
+                  <td class="small text-body-secondary">{{ entry.cadence }}</td>
+                  <td>
+                    {% if entry.due %}
+                      <span class="badge text-bg-warning">{% trans "Due" %} {{ entry.due }}</span>
+                    {% endif %}
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endif %}
+
+{% for group in groups %}
+  <div class="accordion-item tt-catalog-section" id="forms-{{ group.key }}" data-catalog-area="{{ group.key }}">
+    <h2 class="accordion-header">
+      <button class="accordion-button collapsed"
+              type="button"
+              data-bs-toggle="collapse"
+              data-bs-target="#panel-{{ group.key }}"
+              aria-expanded="false"
+              aria-controls="panel-{{ group.key }}">
+        <span class="me-2"><strong>{{ group.label }}</strong></span>
+        <span class="badge rounded-pill text-bg-secondary" data-catalog-tally>{{ group.entries|length }}</span>
+      </button>
+    </h2>
+    <div id="panel-{{ group.key }}" class="accordion-collapse collapse" data-catalog-panel>
+      <div class="accordion-body">
+        <p class="text-body-secondary">{{ group.description }}</p>
+        <div class="table-responsive">
+          <table class="table table-hover align-middle">
+            <thead>
+              <tr>
+                <th scope="col">{% trans "Form" %}</th>
+                <th scope="col">{% trans "What it is for" %}</th>
+                <th scope="col">{% trans "Who submits it" %}</th>
+                <th scope="col">{% trans "When" %}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for entry in group.entries %}
+                <tr class="tt-catalog-card"
+                    data-catalog-area="{{ group.key }}"
+                    data-catalog-mine="{% if entry.duty_roles %}1{% else %}0{% endif %}"
+                    data-catalog-text="{{ entry.feature.name }} {{ entry.feature.short_description }} {{ entry.feature.long_description }}">
+                  <th scope="row" class="fw-normal">
+                    {% if entry.url %}
+                      <a href="{{ entry.url }}" data-catalog-link="{{ entry.feature.key }}">{{ entry.feature.name }}</a>
+                    {% else %}
+                      {{ entry.feature.name }}
+                    {% endif %}
+                    {% if entry.is_new %}<span class="badge text-bg-success align-middle">{% trans "New" %}</span>{% endif %}
+                  </th>
+                  <td class="small">
+                    {{ entry.feature.short_description }}
+                    {% if entry.feature.long_description %}
+                      <span class="d-block text-body-secondary">{{ entry.feature.long_description }}</span>
+                    {% endif %}
+                  </td>
+                  <td class="small">
+                    {% for role in entry.roles %}
+                      <span class="badge rounded-pill {% if role in entry.duty_roles %}text-bg-info{% else %}text-bg-light border{% endif %}">{{ role|title }}</span>
+                    {% empty %}
+                      {# No role owes it, so the audience is the answer: the RMP is every member's own filing. #}
+                      <span class="text-body-secondary">
+                        {% if entry.feature.effective_audience == "member" %}{% trans "Every member" %}
+                        {% elif entry.feature.effective_audience == "officer" %}{% trans "Any officer" %}
+                        {% elif entry.feature.effective_audience == "natoff" %}{% trans "National officers" %}
+                        {% else %}{% trans "Anyone" %}{% endif %}
+                      </span>
+                    {% endfor %}
+                  </td>
+                  <td class="small">
+                    {{ entry.cadence }}
+                    {% if entry.due %}
+                      <span class="badge text-bg-warning d-block mt-1">{% trans "Due" %} {{ entry.due }}</span>
+                    {% endif %}
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endfor %}
+</div>
+
+{% if request.user.is_superuser %}
+  <section class="mt-4 mb-5">
+    <h2 class="h4">{% trans "Administrator tools" %}</h2>
+    <p class="text-body-secondary">
+      {% trans "Internal tooling, deliberately kept out of the feature catalog. Administrators only." %}
+    </p>
+    <ul>
+      <li><a href="{% url 'awards:import_upload' %}">{% trans "Import Awards" %}</a></li>
+    </ul>
+  </section>
+{% endif %}
+
+<p class="text-body-secondary" id="tt-catalog-empty" hidden>
+  {% trans "Nothing matches that search. Try a shorter word, or clear the filters." %}
+</p>
+
+<p>
+  <a href="{% url 'guides:catalog' %}">{% trans "See everything the CMTcan do" %}</a>
+</p>
 {% endblock %}
+
+{% block javascript %}
+  {{ block.super }}
+  <script src="{% static 'js/catalog.js' %}"></script>
+{% endblock javascript %}

@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+﻿{% extends "base.html" %}
 {% load i18n %}
 {% block title %}{% trans "Award Import Queue" %}{% endblock %}
 
@@ -18,7 +18,7 @@
 </p>
 
 {% if not items %}
-  <div class="alert alert-success">{% trans "The match queue is empty — nothing to review." %}</div>
+  <div class="alert alert-success">{% trans "The match queue is empty. There is nothing to review." %}</div>
 {% else %}
   <div class="table-responsive">
     <table class="table table-bordered align-middle">
@@ -41,7 +41,7 @@
             </td>
             <td>{{ item.award_type }}</td>
             <td>{{ item.cycle }}</td>
-            <td>{{ item.effective_date|default:"—" }}</td>
+            <td>{{ item.effective_date|default:"None" }}</td>
             <td>
               {% if item.candidate_matches %}
                 <ul class="list-unstyled mb-0">

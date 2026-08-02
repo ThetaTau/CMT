@@ -2,6 +2,8 @@ import django_tables2 as tables
 from django.urls import NoReverseMatch, reverse
 from django.utils.html import format_html
 
+from core.tables import CMTTable
+
 from .models import AwardGrant
 
 
@@ -42,7 +44,7 @@ def _recipient_url(grant):
     return None
 
 
-class AwardGrantTable(tables.Table):
+class AwardGrantTable(CMTTable):
     """Public directory of award winners (AWI-11).
 
     Lists one row per :class:`~thetatauCMT.awards.models.AwardGrant`. The award
