@@ -4651,3 +4651,65 @@ def test_pledge_program_create_view_saves_program_before_process():
     # ...so persisting the process no longer raises the #971 ValueError.
     process.save()
     assert PledgeProgramProcess.objects.filter(pk=process.pk).exists()
+
+
+@pytest.mark.django_db
+def test_pledge_program_create_view_duplicate_program_reuses_existing_row():
+    """A rapid double submit slips past the ``get_object`` lookup (both requests
+    read no row, then both insert). ``YearTermModel.save`` swallows the loser's
+    ``IntegrityError: unique constraint`` on (chapter, year, term), which leaves
+    the ``PledgeProgram`` unsaved and made ``activation.done()`` raise "save()
+    prohibited to prevent data loss due to unsaved related object 'program'".
+    The view must reuse the row that won the race instead of returning a 500.
+    """
+    from unittest.mock import MagicMock, patch
+
+    from thetatauCMT.forms.flows import PledgeProgramProcessFlow
+    from thetatauCMT.forms.forms import PledgeProgramForm
+    from thetatauCMT.forms.models import PledgeProgram, PledgeProgramProcess
+    from thetatauCMT.forms.views import PledgeProgramProcessCreateView
+
+    chapter = ChapterFactory.create()
+    winner = PledgeProgram.objects.create(
+        chapter=chapter,
+        year=PledgeProgram.current_year(),
+        term=PledgeProgram.current_term(),
+        manual="basic",
+    )
+
+    form = PledgeProgramForm(
+        data={
+            "weeks": 6,
+            "date_start": "06/01/2026",
+            "date_complete": "08/01/2026",
+            "date_initiation": "09/01/2026",
+            "dues": 100,
+            "manual": "standard",
+        }
+    )
+    assert form.is_valid(), form.errors
+
+    view = PledgeProgramProcessCreateView()
+    request = MagicMock()
+    request.user.current_chapter = chapter
+    request.user.chapter_officer.return_value = {"regent"}
+    view.request = request
+
+    process = PledgeProgramProcess(flow_class=PledgeProgramProcessFlow)
+    view.activation = MagicMock()
+    view.activation.process = process
+
+    with patch("thetatauCMT.forms.views.CreateProcessView.form_valid", return_value=HttpResponse()) as mock_super:
+        with patch("thetatauCMT.forms.views.Task.mark_complete"):
+            view.form_valid(form)
+
+    mock_super.assert_called_once()
+    assert process.program is not None
+    assert process.program.pk == winner.pk
+    # No duplicate row, and the submitted data landed on the existing program.
+    assert PledgeProgram.objects.filter(chapter=chapter).count() == 1
+    winner.refresh_from_db()
+    assert winner.manual == "standard"
+    assert winner.dues == 100
+    process.save()
+    assert PledgeProgramProcess.objects.filter(pk=process.pk).exists()
