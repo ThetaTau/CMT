@@ -750,9 +750,10 @@
           "key": "export-award-data",
           "name": "Export award data",
           "short_description": "Download award winners as a spreadsheet.",
-          "long_description": "A bulk export of every award grant, filtered by cycle, chapter, region, award type or member. Chapters use the award winners directory and their own chapter history instead.",
+          "long_description": "Retired from the catalog: the bulk export is administrators only, and the catalog has no audience narrower than national officer, so listing it would advertise a door that sends most readers home. Officers use the award winners directory and their chapter's award history instead.",
           "url_name": "awards:export",
-          "audience": "natoff"
+          "audience": "natoff",
+          "is_active": false
         }
       ]
     },

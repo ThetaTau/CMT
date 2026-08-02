@@ -36,10 +36,15 @@ def test_the_footer_links_about_from_every_page(client):
 
 @pytest.mark.django_db
 def test_about_does_not_send_an_anonymous_reader_to_a_login_wall(client):
-    """``RoleGuideIndexView`` is login-required while this page is not."""
+    """``RoleGuideIndexView`` is login-required while this page is not.
+
+    The guides are not named either: dangling a signed-out reader in front of
+    something they cannot open is worse than not mentioning it.
+    """
     body = client.get(reverse("about")).content.decode()
 
     assert f'href="{reverse("guides:role-guides")}"' not in body
+    assert "Role guides" not in body
     assert reverse("account_login") in body
 
 

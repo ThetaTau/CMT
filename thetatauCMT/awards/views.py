@@ -276,7 +276,7 @@ class AwardDirectoryView(LoginRequiredMixin, PagedFilteredTableView):
         context = super().get_context_data(**kwargs)
         context["show_revoked"] = self._show_revoked()
         context["can_view_revoked"] = self._can_view_revoked()
-        context["can_export"] = can_grant_awards(self.request.user)
+        context["can_export"] = self.request.user.is_superuser
         context["can_nominate"] = self.request.user.is_authenticated
         context["nominate_url"] = reverse("viewflow:awards:awardnomination:start")
         return context
@@ -319,20 +319,21 @@ class AwardCycleWinnersView(AwardDirectoryView):
 
 
 class AwardExportView(LoginRequiredMixin, View):
-    """Officer-gated CSV / Excel export of award grants (AWI-12).
+    """Administrator-gated CSV / Excel export of award grants (AWI-12).
 
-    Award data is public to browse, but bulk exports require an officer login
-    (any National / chapter officer or Regional Director -- the same gate as the
-    direct-grant and certificate tools). A single GET parameter selects the
-    report -- ``cycle`` (pk), ``chapter`` (slug), ``region`` (slug),
+    Award data is public to browse one page at a time, but a bulk export hands
+    over the whole set at once, so it is restricted to superusers -- a tighter
+    gate than the direct-grant and certificate tools. Officers use the winners
+    directory and their own chapter history instead. A single GET parameter
+    selects the report -- ``cycle`` (pk), ``chapter`` (slug), ``region`` (slug),
     ``award_type`` (pk), or ``member`` (username); none means "all grants".
     ``?format=xlsx`` returns an Excel workbook (CSV otherwise); ``?include_revoked=1``
     adds revoked grants.
     """
 
     def dispatch(self, request, *args, **kwargs):
-        if request.user.is_authenticated and not can_grant_awards(request.user):
-            messages.error(request, "Only officers can export award reports.")
+        if request.user.is_authenticated and not request.user.is_superuser:
+            messages.error(request, "Only administrators can export award reports.")
             return redirect("home")
         return super().dispatch(request, *args, **kwargs)
 
@@ -376,7 +377,7 @@ class _AwardHistoryView(LoginRequiredMixin, SingleTableView):
     Reuses :class:`~thetatauCMT.awards.tables.AwardGrantTable` (status column
     included so revoked grants are labeled) ordered by ``effective_date`` so
     backdated grants sort into their historical place. Visible to any signed-in
-    member, but export buttons are shown only to officers.
+    member, but export buttons are shown only to administrators.
     """
 
     template_name = "awards/award_history.html"
@@ -388,7 +389,7 @@ class _AwardHistoryView(LoginRequiredMixin, SingleTableView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["can_export"] = can_grant_awards(self.request.user)
+        context["can_export"] = self.request.user.is_superuser
         return context
 
 

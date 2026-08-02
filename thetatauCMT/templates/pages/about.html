@@ -138,9 +138,6 @@
   <li><a href="{% url 'guides:catalog' %}">What can the CMT do?</a>: every feature, grouped and searchable.</li>
   {% if request.user.is_authenticated %}
     <li><a href="{% url 'guides:role-guides' %}">Role guides</a>: what each office owns, and when it falls due.</li>
-  {% else %}
-    <li>Role guides: what each office owns, and when it falls due.
-      <a href="{% url 'account_login' %}">Sign in</a> to read them.</li>
   {% endif %}
   <li><a href="{% url 'help' %}">Help</a>: start here if you are stuck.</li>
 </ul>
