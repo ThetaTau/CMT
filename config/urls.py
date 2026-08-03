@@ -16,6 +16,7 @@ from material.frontend.urls import modules
 from oauth2_provider import urls as oauth2_urls
 
 from core.address import ZipCodeAutocomplete
+from core.material_admin import admin_url_regex
 from core.views import HomeView
 from thetatauCMT.guides.views import HelpHubView
 from thetatauCMT.users.views import UserLookupLoginView
@@ -78,8 +79,9 @@ urlpatterns = [
         name="password_reset_done",
     ),
     # Django Admin, use {% url 'admin:index' %}
-    # If settings.ADMIN_URL is a simple string, use path. Otherwise, keep re_path.
-    re_path(settings.ADMIN_URL, admin.site.urls),
+    # admin_url_regex() anchors settings.ADMIN_URL so re.search cannot also match
+    # the admin under an arbitrary prefix.
+    re_path(admin_url_regex(), admin.site.urls),
     # User management
     path("users/", include("thetatauCMT.users.urls", namespace="users")),
     path("accounts/login/", UserLookupLoginView.as_view(), name="login"),

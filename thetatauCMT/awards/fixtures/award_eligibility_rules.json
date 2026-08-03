@@ -1,0 +1,716 @@
+[
+{
+    "model": "awards.eligibilityrule",
+    "pk": null,
+    "fields": {
+        "modified": "2026-08-02T00:00:00Z",
+        "award_type": ["Distinguished Service Commendation"],
+        "rule_type": "recipient_kind",
+        "member_status": "",
+        "hook_key": "",
+        "params": {"kind": "member"},
+        "chapters": [],
+        "regions": []
+    }
+},
+{
+    "model": "awards.eligibilityrule",
+    "pk": null,
+    "fields": {
+        "modified": "2026-08-02T00:00:00Z",
+        "award_type": ["Distinguished Service Commendation"],
+        "rule_type": "member_status",
+        "member_status": "active",
+        "hook_key": "",
+        "params": {},
+        "chapters": [],
+        "regions": []
+    }
+},
+{
+    "model": "awards.eligibilityrule",
+    "pk": null,
+    "fields": {
+        "modified": "2026-08-02T00:00:00Z",
+        "award_type": ["Distinguished Service Commendation"],
+        "rule_type": "member_status",
+        "member_status": "alumni",
+        "hook_key": "",
+        "params": {},
+        "chapters": [],
+        "regions": []
+    }
+},
+{
+    "model": "awards.eligibilityrule",
+    "pk": null,
+    "fields": {
+        "modified": "2026-08-02T00:00:00Z",
+        "award_type": ["National Volunteer of the Year"],
+        "rule_type": "recipient_kind",
+        "member_status": "",
+        "hook_key": "",
+        "params": {"kind": "member"},
+        "chapters": [],
+        "regions": []
+    }
+},
+{
+    "model": "awards.eligibilityrule",
+    "pk": null,
+    "fields": {
+        "modified": "2026-08-02T00:00:00Z",
+        "award_type": ["National Volunteer of the Year"],
+        "rule_type": "member_status",
+        "member_status": "active",
+        "hook_key": "",
+        "params": {},
+        "chapters": [],
+        "regions": []
+    }
+},
+{
+    "model": "awards.eligibilityrule",
+    "pk": null,
+    "fields": {
+        "modified": "2026-08-02T00:00:00Z",
+        "award_type": ["National Volunteer of the Year"],
+        "rule_type": "member_status",
+        "member_status": "alumni",
+        "hook_key": "",
+        "params": {},
+        "chapters": [],
+        "regions": []
+    }
+},
+{
+    "model": "awards.eligibilityrule",
+    "pk": null,
+    "fields": {
+        "modified": "2026-08-02T00:00:00Z",
+        "award_type": ["Executive Director's Award"],
+        "rule_type": "recipient_kind",
+        "member_status": "",
+        "hook_key": "",
+        "params": {"kind": "member"},
+        "chapters": [],
+        "regions": []
+    }
+},
+{
+    "model": "awards.eligibilityrule",
+    "pk": null,
+    "fields": {
+        "modified": "2026-08-02T00:00:00Z",
+        "award_type": ["Executive Director's Award"],
+        "rule_type": "member_status",
+        "member_status": "active",
+        "hook_key": "",
+        "params": {},
+        "chapters": [],
+        "regions": []
+    }
+},
+{
+    "model": "awards.eligibilityrule",
+    "pk": null,
+    "fields": {
+        "modified": "2026-08-02T00:00:00Z",
+        "award_type": ["Executive Director's Award"],
+        "rule_type": "member_status",
+        "member_status": "alumni",
+        "hook_key": "",
+        "params": {},
+        "chapters": [],
+        "regions": []
+    }
+},
+{
+    "model": "awards.eligibilityrule",
+    "pk": null,
+    "fields": {
+        "modified": "2026-08-02T00:00:00Z",
+        "award_type": ["Meritorious Service Commendation"],
+        "rule_type": "recipient_kind",
+        "member_status": "",
+        "hook_key": "",
+        "params": {"kind": "member"},
+        "chapters": [],
+        "regions": []
+    }
+},
+{
+    "model": "awards.eligibilityrule",
+    "pk": null,
+    "fields": {
+        "modified": "2026-08-02T00:00:00Z",
+        "award_type": ["Meritorious Service Commendation"],
+        "rule_type": "member_status",
+        "member_status": "active",
+        "hook_key": "",
+        "params": {},
+        "chapters": [],
+        "regions": []
+    }
+},
+{
+    "model": "awards.eligibilityrule",
+    "pk": null,
+    "fields": {
+        "modified": "2026-08-02T00:00:00Z",
+        "award_type": ["Meritorious Service Commendation"],
+        "rule_type": "member_status",
+        "member_status": "alumni",
+        "hook_key": "",
+        "params": {},
+        "chapters": [],
+        "regions": []
+    }
+},
+{
+    "model": "awards.eligibilityrule",
+    "pk": null,
+    "fields": {
+        "modified": "2026-08-02T00:00:00Z",
+        "award_type": ["Commendation"],
+        "rule_type": "recipient_kind",
+        "member_status": "",
+        "hook_key": "",
+        "params": {"kind": "member"},
+        "chapters": [],
+        "regions": []
+    }
+},
+{
+    "model": "awards.eligibilityrule",
+    "pk": null,
+    "fields": {
+        "modified": "2026-08-02T00:00:00Z",
+        "award_type": ["Commendation"],
+        "rule_type": "member_status",
+        "member_status": "active",
+        "hook_key": "",
+        "params": {},
+        "chapters": [],
+        "regions": []
+    }
+},
+{
+    "model": "awards.eligibilityrule",
+    "pk": null,
+    "fields": {
+        "modified": "2026-08-02T00:00:00Z",
+        "award_type": ["Commendation"],
+        "rule_type": "member_status",
+        "member_status": "alumni",
+        "hook_key": "",
+        "params": {},
+        "chapters": [],
+        "regions": []
+    }
+},
+{
+    "model": "awards.eligibilityrule",
+    "pk": null,
+    "fields": {
+        "modified": "2026-08-02T00:00:00Z",
+        "award_type": ["Special Commendation"],
+        "rule_type": "recipient_kind",
+        "member_status": "",
+        "hook_key": "",
+        "params": {"kind": "member"},
+        "chapters": [],
+        "regions": []
+    }
+},
+{
+    "model": "awards.eligibilityrule",
+    "pk": null,
+    "fields": {
+        "modified": "2026-08-02T00:00:00Z",
+        "award_type": ["Special Commendation"],
+        "rule_type": "member_status",
+        "member_status": "active",
+        "hook_key": "",
+        "params": {},
+        "chapters": [],
+        "regions": []
+    }
+},
+{
+    "model": "awards.eligibilityrule",
+    "pk": null,
+    "fields": {
+        "modified": "2026-08-02T00:00:00Z",
+        "award_type": ["Special Commendation"],
+        "rule_type": "member_status",
+        "member_status": "alumni",
+        "hook_key": "",
+        "params": {},
+        "chapters": [],
+        "regions": []
+    }
+},
+{
+    "model": "awards.eligibilityrule",
+    "pk": null,
+    "fields": {
+        "modified": "2026-08-02T00:00:00Z",
+        "award_type": ["Longevity of Service Award"],
+        "rule_type": "recipient_kind",
+        "member_status": "",
+        "hook_key": "",
+        "params": {"kind": "member"},
+        "chapters": [],
+        "regions": []
+    }
+},
+{
+    "model": "awards.eligibilityrule",
+    "pk": null,
+    "fields": {
+        "modified": "2026-08-02T00:00:00Z",
+        "award_type": ["Longevity of Service Award"],
+        "rule_type": "member_status",
+        "member_status": "active",
+        "hook_key": "",
+        "params": {},
+        "chapters": [],
+        "regions": []
+    }
+},
+{
+    "model": "awards.eligibilityrule",
+    "pk": null,
+    "fields": {
+        "modified": "2026-08-02T00:00:00Z",
+        "award_type": ["Longevity of Service Award"],
+        "rule_type": "member_status",
+        "member_status": "alumni",
+        "hook_key": "",
+        "params": {},
+        "chapters": [],
+        "regions": []
+    }
+},
+{
+    "model": "awards.eligibilityrule",
+    "pk": null,
+    "fields": {
+        "modified": "2026-08-02T00:00:00Z",
+        "award_type": ["Student Achievement Recognition"],
+        "rule_type": "recipient_kind",
+        "member_status": "",
+        "hook_key": "",
+        "params": {"kind": "member"},
+        "chapters": [],
+        "regions": []
+    }
+},
+{
+    "model": "awards.eligibilityrule",
+    "pk": null,
+    "fields": {
+        "modified": "2026-08-02T00:00:00Z",
+        "award_type": ["Student Achievement Recognition"],
+        "rule_type": "member_status",
+        "member_status": "active",
+        "hook_key": "",
+        "params": {},
+        "chapters": [],
+        "regions": []
+    }
+},
+{
+    "model": "awards.eligibilityrule",
+    "pk": null,
+    "fields": {
+        "modified": "2026-08-02T00:00:00Z",
+        "award_type": ["Outstanding Chapter Officer Award"],
+        "rule_type": "recipient_kind",
+        "member_status": "",
+        "hook_key": "",
+        "params": {"kind": "member"},
+        "chapters": [],
+        "regions": []
+    }
+},
+{
+    "model": "awards.eligibilityrule",
+    "pk": null,
+    "fields": {
+        "modified": "2026-08-02T00:00:00Z",
+        "award_type": ["Outstanding Chapter Officer Award"],
+        "rule_type": "member_status",
+        "member_status": "active",
+        "hook_key": "",
+        "params": {},
+        "chapters": [],
+        "regions": []
+    }
+},
+{
+    "model": "awards.eligibilityrule",
+    "pk": null,
+    "fields": {
+        "modified": "2026-08-02T00:00:00Z",
+        "award_type": ["Robert E. Pope Outstanding Student Member Award"],
+        "rule_type": "recipient_kind",
+        "member_status": "",
+        "hook_key": "",
+        "params": {"kind": "member"},
+        "chapters": [],
+        "regions": []
+    }
+},
+{
+    "model": "awards.eligibilityrule",
+    "pk": null,
+    "fields": {
+        "modified": "2026-08-02T00:00:00Z",
+        "award_type": ["Robert E. Pope Outstanding Student Member Award"],
+        "rule_type": "member_status",
+        "member_status": "active",
+        "hook_key": "",
+        "params": {},
+        "chapters": [],
+        "regions": []
+    }
+},
+{
+    "model": "awards.eligibilityrule",
+    "pk": null,
+    "fields": {
+        "modified": "2026-08-02T00:00:00Z",
+        "award_type": ["Outstanding Convention Delegate"],
+        "rule_type": "recipient_kind",
+        "member_status": "",
+        "hook_key": "",
+        "params": {"kind": "member"},
+        "chapters": [],
+        "regions": []
+    }
+},
+{
+    "model": "awards.eligibilityrule",
+    "pk": null,
+    "fields": {
+        "modified": "2026-08-02T00:00:00Z",
+        "award_type": ["Outstanding Convention Delegate"],
+        "rule_type": "member_status",
+        "member_status": "active",
+        "hook_key": "",
+        "params": {},
+        "chapters": [],
+        "regions": []
+    }
+},
+{
+    "model": "awards.eligibilityrule",
+    "pk": null,
+    "fields": {
+        "modified": "2026-08-02T00:00:00Z",
+        "award_type": ["Outstanding Convention Delegate"],
+        "rule_type": "member_status",
+        "member_status": "alumni",
+        "hook_key": "",
+        "params": {},
+        "chapters": [],
+        "regions": []
+    }
+},
+{
+    "model": "awards.eligibilityrule",
+    "pk": null,
+    "fields": {
+        "modified": "2026-08-02T00:00:00Z",
+        "award_type": ["Schrader Award"],
+        "rule_type": "recipient_kind",
+        "member_status": "",
+        "hook_key": "",
+        "params": {"kind": "chapter"},
+        "chapters": [],
+        "regions": []
+    }
+},
+{
+    "model": "awards.eligibilityrule",
+    "pk": null,
+    "fields": {
+        "modified": "2026-08-02T00:00:00Z",
+        "award_type": ["Grand Regent's Chapter Award"],
+        "rule_type": "recipient_kind",
+        "member_status": "",
+        "hook_key": "",
+        "params": {"kind": "chapter"},
+        "chapters": [],
+        "regions": []
+    }
+},
+{
+    "model": "awards.eligibilityrule",
+    "pk": null,
+    "fields": {
+        "modified": "2026-08-02T00:00:00Z",
+        "award_type": ["Founder's Award"],
+        "rule_type": "recipient_kind",
+        "member_status": "",
+        "hook_key": "",
+        "params": {"kind": "chapter"},
+        "chapters": [],
+        "regions": []
+    }
+},
+{
+    "model": "awards.eligibilityrule",
+    "pk": null,
+    "fields": {
+        "modified": "2026-08-02T00:00:00Z",
+        "award_type": ["Outstanding Brotherhood Program"],
+        "rule_type": "recipient_kind",
+        "member_status": "",
+        "hook_key": "",
+        "params": {"kind": "chapter"},
+        "chapters": [],
+        "regions": []
+    }
+},
+{
+    "model": "awards.eligibilityrule",
+    "pk": null,
+    "fields": {
+        "modified": "2026-08-02T00:00:00Z",
+        "award_type": ["Outstanding Philanthropy Program"],
+        "rule_type": "recipient_kind",
+        "member_status": "",
+        "hook_key": "",
+        "params": {"kind": "chapter"},
+        "chapters": [],
+        "regions": []
+    }
+},
+{
+    "model": "awards.eligibilityrule",
+    "pk": null,
+    "fields": {
+        "modified": "2026-08-02T00:00:00Z",
+        "award_type": ["Outstanding Philanthropy Event"],
+        "rule_type": "recipient_kind",
+        "member_status": "",
+        "hook_key": "",
+        "params": {"kind": "chapter"},
+        "chapters": [],
+        "regions": []
+    }
+},
+{
+    "model": "awards.eligibilityrule",
+    "pk": null,
+    "fields": {
+        "modified": "2026-08-02T00:00:00Z",
+        "award_type": ["Outstanding Professional Development Program"],
+        "rule_type": "recipient_kind",
+        "member_status": "",
+        "hook_key": "",
+        "params": {"kind": "chapter"},
+        "chapters": [],
+        "regions": []
+    }
+},
+{
+    "model": "awards.eligibilityrule",
+    "pk": null,
+    "fields": {
+        "modified": "2026-08-02T00:00:00Z",
+        "award_type": ["Outstanding Media Program"],
+        "rule_type": "recipient_kind",
+        "member_status": "",
+        "hook_key": "",
+        "params": {"kind": "chapter"},
+        "chapters": [],
+        "regions": []
+    }
+},
+{
+    "model": "awards.eligibilityrule",
+    "pk": null,
+    "fields": {
+        "modified": "2026-08-02T00:00:00Z",
+        "award_type": ["Outstanding DEI Program"],
+        "rule_type": "recipient_kind",
+        "member_status": "",
+        "hook_key": "",
+        "params": {"kind": "chapter"},
+        "chapters": [],
+        "regions": []
+    }
+},
+{
+    "model": "awards.eligibilityrule",
+    "pk": null,
+    "fields": {
+        "modified": "2026-08-02T00:00:00Z",
+        "award_type": ["Outstanding Newsletter"],
+        "rule_type": "recipient_kind",
+        "member_status": "",
+        "hook_key": "",
+        "params": {"kind": "chapter"},
+        "chapters": [],
+        "regions": []
+    }
+},
+{
+    "model": "awards.eligibilityrule",
+    "pk": null,
+    "fields": {
+        "modified": "2026-08-02T00:00:00Z",
+        "award_type": ["Outstanding Photography"],
+        "rule_type": "recipient_kind",
+        "member_status": "",
+        "hook_key": "",
+        "params": {"kind": "chapter"},
+        "chapters": [],
+        "regions": []
+    }
+},
+{
+    "model": "awards.eligibilityrule",
+    "pk": null,
+    "fields": {
+        "modified": "2026-08-02T00:00:00Z",
+        "award_type": ["Outstanding Video"],
+        "rule_type": "recipient_kind",
+        "member_status": "",
+        "hook_key": "",
+        "params": {"kind": "chapter"},
+        "chapters": [],
+        "regions": []
+    }
+},
+{
+    "model": "awards.eligibilityrule",
+    "pk": null,
+    "fields": {
+        "modified": "2026-08-02T00:00:00Z",
+        "award_type": ["Outstanding Website"],
+        "rule_type": "recipient_kind",
+        "member_status": "",
+        "hook_key": "",
+        "params": {"kind": "chapter"},
+        "chapters": [],
+        "regions": []
+    }
+},
+{
+    "model": "awards.eligibilityrule",
+    "pk": null,
+    "fields": {
+        "modified": "2026-08-02T00:00:00Z",
+        "award_type": ["Outstanding Social Media"],
+        "rule_type": "recipient_kind",
+        "member_status": "",
+        "hook_key": "",
+        "params": {"kind": "chapter"},
+        "chapters": [],
+        "regions": []
+    }
+},
+{
+    "model": "awards.eligibilityrule",
+    "pk": null,
+    "fields": {
+        "modified": "2026-08-02T00:00:00Z",
+        "award_type": ["Member Miles Award"],
+        "rule_type": "recipient_kind",
+        "member_status": "",
+        "hook_key": "",
+        "params": {"kind": "chapter"},
+        "chapters": [],
+        "regions": []
+    }
+},
+{
+    "model": "awards.eligibilityrule",
+    "pk": null,
+    "fields": {
+        "modified": "2026-08-02T00:00:00Z",
+        "award_type": ["700 Club"],
+        "rule_type": "recipient_kind",
+        "member_status": "",
+        "hook_key": "",
+        "params": {"kind": "chapter"},
+        "chapters": [],
+        "regions": []
+    }
+},
+{
+    "model": "awards.eligibilityrule",
+    "pk": null,
+    "fields": {
+        "modified": "2026-08-02T00:00:00Z",
+        "award_type": ["Interfraternal Service Award"],
+        "rule_type": "recipient_kind",
+        "member_status": "",
+        "hook_key": "",
+        "params": {"kind": "member"},
+        "chapters": [],
+        "regions": []
+    }
+},
+{
+    "model": "awards.eligibilityrule",
+    "pk": null,
+    "fields": {
+        "modified": "2026-08-02T00:00:00Z",
+        "award_type": ["Outstanding Advisor Award"],
+        "rule_type": "recipient_kind",
+        "member_status": "",
+        "hook_key": "",
+        "params": {"kind": "member"},
+        "chapters": [],
+        "regions": []
+    }
+},
+{
+    "model": "awards.eligibilityrule",
+    "pk": null,
+    "fields": {
+        "modified": "2026-08-02T00:00:00Z",
+        "award_type": ["Convention Named to Honor"],
+        "rule_type": "recipient_kind",
+        "member_status": "",
+        "hook_key": "",
+        "params": {"kind": "member"},
+        "chapters": [],
+        "regions": []
+    }
+},
+{
+    "model": "awards.eligibilityrule",
+    "pk": null,
+    "fields": {
+        "modified": "2026-08-02T00:00:00Z",
+        "award_type": ["Convention Named to Honor"],
+        "rule_type": "member_status",
+        "member_status": "active",
+        "hook_key": "",
+        "params": {},
+        "chapters": [],
+        "regions": []
+    }
+},
+{
+    "model": "awards.eligibilityrule",
+    "pk": null,
+    "fields": {
+        "modified": "2026-08-02T00:00:00Z",
+        "award_type": ["Convention Named to Honor"],
+        "rule_type": "member_status",
+        "member_status": "alumni",
+        "hook_key": "",
+        "params": {},
+        "chapters": [],
+        "regions": []
+    }
+}
+]

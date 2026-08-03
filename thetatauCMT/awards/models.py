@@ -26,6 +26,11 @@ class AwardTypeQuerySet(models.QuerySet):
         return self.filter(is_active=True)
 
 
+class AwardTypeManager(models.Manager.from_queryset(AwardTypeQuerySet)):
+    def get_by_natural_key(self, name):
+        return self.get(name=name)
+
+
 class AwardType(TimeStampedModel):
     """Admin-managed catalog entry describing a kind of award.
 
@@ -132,7 +137,7 @@ class AwardType(TimeStampedModel):
         help_text="Automatically generate a certificate / letter when this award is granted.",
     )
 
-    objects = AwardTypeQuerySet.as_manager()
+    objects = AwardTypeManager()
 
     class Meta:
         ordering = ["name"]
@@ -141,6 +146,9 @@ class AwardType(TimeStampedModel):
 
     def __str__(self):
         return self.name
+
+    def natural_key(self):
+        return (self.name,)
 
     # --- Per-cycle winner / nomination rules -------------------------------
     # The rules live on the AwardType; an AwardCycle supplies the period context
@@ -480,6 +488,16 @@ class GrantAudit(models.Model):
         return f"{self.get_action_display()} (grant {self.grant_id})"
 
 
+class EligibilityRuleManager(models.Manager):
+    def get_by_natural_key(self, award_type_name, rule_type, member_status, hook_key):
+        return self.get(
+            award_type__name=award_type_name,
+            rule_type=rule_type,
+            member_status=member_status,
+            hook_key=hook_key,
+        )
+
+
 class EligibilityRule(TimeStampedModel):
     """A single configurable eligibility rule attached to an :class:`AwardType`.
 
@@ -536,12 +554,19 @@ class EligibilityRule(TimeStampedModel):
         help_text="Parameters for the custom hook (or the recipient-kind guard).",
     )
 
+    objects = EligibilityRuleManager()
+
     class Meta:
         verbose_name = "Eligibility Rule"
         verbose_name_plural = "Eligibility Rules"
 
     def __str__(self):
         return f"{self.award_type} \u2014 {self.get_rule_type_display()}"
+
+    def natural_key(self):
+        return (self.award_type.name, self.rule_type, self.member_status, self.hook_key)
+
+    natural_key.dependencies = ["awards.awardtype"]
 
 
 def get_nomination_docs_path(instance, filename):

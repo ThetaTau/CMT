@@ -102,7 +102,10 @@ THIRD_PARTY_APPS = [
     "viewflow",
     "material",
     "material.frontend",
-    "material.admin",
+    # core.material_admin.SecureMaterialAdminConfig subclasses material.admin's
+    # AppConfig (same name/label) so the admin frontend module mounts at
+    # settings.ADMIN_URL instead of the hard-coded /admin/.
+    "core.material_admin.SecureMaterialAdminConfig",
     "import_export",
     "dbbackup",
     "watson",
