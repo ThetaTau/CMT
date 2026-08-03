@@ -156,6 +156,7 @@
                       {% if feature_awards_enabled %}
                         <li><hr class="dropdown-divider"></li>
                         <li><h6 class="dropdown-header">{% trans "Awards" %}</h6></li>
+                        <li><a class="dropdown-item" href="{% url 'awards:catalog' %}">{% trans "Award Catalog" %}</a></li>
                         <li><a class="dropdown-item" href="{% url 'awards:directory' %}">{% trans "Award Winners" %}</a></li>
                       {% endif %}
 

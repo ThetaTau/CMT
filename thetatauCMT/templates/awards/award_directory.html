@@ -8,6 +8,11 @@
 <div class="page-header d-flex flex-wrap align-items-center gap-2 mb-3">
   <h2 class="page-title mb-0">{% if heading %}{{ heading }}{% else %}{% trans "Award Winners" %}{% endif %}</h2>
   <div class="page-actions ms-auto d-flex flex-wrap gap-2">
+    {% if catalog_url %}
+      <a href="{{ catalog_url }}" class="btn btn-sm btn-outline-secondary" title="{% trans 'Back to the award catalog' %}">
+        <i class="fas fa-list"></i> {% trans "Award Catalog" %}
+      </a>
+    {% endif %}
     {% if can_nominate and nominate_url %}
       <a href="{{ nominate_url }}" class="btn btn-sm btn-primary" title="{% trans 'Nominate for an award' %}">
         <i class="fa fa-user-plus"></i>
@@ -22,8 +27,23 @@
   </div>
 </div>
 
-{% if award_type and award_type.description %}
-  <p class="text-muted">{{ award_type.description }}</p>
+{% if award_type %}
+  {% if award_type.description %}
+    <p class="text-muted">{{ award_type.description }}</p>
+  {% endif %}
+  <div class="card mb-3">
+    <div class="card-body py-2">
+      <h3 class="h6 mb-1">{% trans "Eligibility" %}</h3>
+      {% if award_type.eligibility %}
+        <p class="small mb-1">{{ award_type.eligibility }}</p>
+      {% endif %}
+      <ul class="small mb-0 ps-3 text-body-secondary">
+        {% for bullet in eligibility_bullets %}
+          <li>{{ bullet }}</li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
 {% endif %}
 
 <div class="mb-2">

@@ -192,3 +192,57 @@ def is_eligible(award_type, recipient, cycle=None, actor=None):
     if _object_kind(recipient) != award_type.recipient_kind:
         return False
     return get_eligible_recipients(award_type, cycle=cycle, actor=actor).filter(pk=recipient.pk).exists()
+
+
+# ---------------------------------------------------------------------------
+# Human-readable summary of the configured rules (award catalog)
+# ---------------------------------------------------------------------------
+RECIPIENT_KIND_LABELS = {
+    "member": "Individual members",
+    "chapter": "Chapters",
+    "region": "Regions",
+}
+
+MEMBER_STATUS_LABELS = {
+    EligibilityRule.MemberStatus.ACTIVE: "Active student members",
+    EligibilityRule.MemberStatus.ALUMNI: "Alumni members",
+    EligibilityRule.MemberStatus.PNM: "Prospective new members",
+}
+
+
+def _names(queryset, limit=8):
+    names = [str(obj) for obj in queryset.all()[: limit + 1]]
+    if len(names) > limit:
+        return f"{', '.join(names[:limit])}, and others"
+    return ", ".join(names)
+
+
+def describe_eligibility(award_type):
+    """Plain-language bullets describing the award's configured eligibility rules.
+
+    Renders the :class:`EligibilityRule` configuration for display; it never
+    invents restrictions, so an award with no rules yields only the recipient
+    kind implied by its level.
+    """
+    rules = list(award_type.eligibility_rules.all().prefetch_related("chapters", "regions"))
+    bullets = [RECIPIENT_KIND_LABELS.get(award_type.recipient_kind, "Recipients")]
+
+    statuses = [
+        MEMBER_STATUS_LABELS[rule.member_status]
+        for rule in rules
+        if rule.rule_type == EligibilityRule.RuleType.MEMBER_STATUS and rule.member_status in MEMBER_STATUS_LABELS
+    ]
+    if statuses:
+        # Status rules are additive (any listed status qualifies).
+        bullets[0] = " or ".join(dict.fromkeys(statuses))
+
+    for rule in rules:
+        if rule.rule_type == EligibilityRule.RuleType.CHAPTER_SCOPE and rule.chapters.exists():
+            bullets.append(f"Limited to chapters: {_names(rule.chapters)}")
+        elif rule.rule_type == EligibilityRule.RuleType.REGION_SCOPE and rule.regions.exists():
+            bullets.append(f"Limited to regions: {_names(rule.regions)}")
+        elif rule.rule_type == EligibilityRule.RuleType.CUSTOM_HOOK and rule.hook_key:
+            hook = get_eligibility_hook(rule.hook_key)
+            doc = (hook.__doc__ or "").strip().splitlines()[0] if hook else ""
+            bullets.append(doc or rule.hook_key.replace("_", " ").capitalize())
+    return bullets

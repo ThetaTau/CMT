@@ -340,6 +340,7 @@ FORM_GROUPS = [
             "osm-form",
             "all-osm-forms",
             "award-nomination",
+            "award-catalog",
             "award-winners-directory",
             "grant-an-award",
             "nominate-for-national-office",

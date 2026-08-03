@@ -65,6 +65,12 @@ class AwardType(TimeStampedModel):
 
     name = models.CharField(_("Name"), max_length=255)
     description = models.TextField(_("Description"), blank=True)
+    eligibility = models.TextField(
+        _("Eligibility"),
+        blank=True,
+        help_text="Who may receive this award, in plain language, shown on the award catalog "
+        "and the nomination form. The configured eligibility rules are listed alongside it.",
+    )
     category = models.CharField(
         _("Category"),
         max_length=255,

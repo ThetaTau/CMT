@@ -11,7 +11,11 @@
             {% if grant.award_type.badge_image %}
               <img src="{{ grant.award_type.badge_image.url }}" alt="" class="me-2" style="height:1.6em;width:auto;">
             {% endif %}
-            <span><strong>{{ grant.award_type }}</strong>, {{ grant.cycle }} ({{ grant.effective_date }})</span>
+            <span>
+              <a href="{% url 'awards:type_winners' grant.award_type_id %}"
+                 title="What this award is for, and who else has received it"><strong>{{ grant.award_type }}</strong></a>,
+              {{ grant.cycle }} ({{ grant.effective_date }})
+            </span>
           </li>
         {% endfor %}
       </ul>
@@ -23,7 +27,9 @@
       <h6 class="text-body-secondary">Revoked</h6>
       <ul class="list-unstyled mb-0">
         {% for grant in revoked_grants %}
-          <li class="mb-1 text-body-secondary"><s>{{ grant.award_type }}</s>, {{ grant.cycle }}</li>
+          <li class="mb-1 text-body-secondary">
+            <a href="{% url 'awards:type_winners' grant.award_type_id %}" class="link-secondary"><s>{{ grant.award_type }}</s></a>, {{ grant.cycle }}
+          </li>
         {% endfor %}
       </ul>
     {% endif %}

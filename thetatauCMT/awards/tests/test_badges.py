@@ -1,6 +1,7 @@
 import pytest
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.template import Context, Template
+from django.urls import reverse
 
 from thetatauCMT.awards.models import OfficerBadge
 from thetatauCMT.awards.services import revoke_grant
@@ -125,6 +126,45 @@ def test_officer_badges_excludes_inactive():
 def test_officer_badges_empty_for_non_member():
     assert officer_badges_for(ChapterFactory()) == []
     assert officer_badges_for(UserFactory()) == []  # no current_roles
+
+
+# ---------------------------------------------------------------------------
+# Acceptance: every award links to its description
+# ---------------------------------------------------------------------------
+def test_awards_section_links_each_award_to_its_description():
+    member = UserFactory(status="active")
+    grant = AwardGrantFactory(award_type=AwardTypeFactory(name="Linked Award"), recipient_member=member)
+    url = reverse("awards:type_winners", args=[grant.award_type_id])
+    assert f'href="{url}"' in _render_section(member)
+
+
+def test_awards_section_links_revoked_awards_too():
+    member = UserFactory(status="active")
+    grant = AwardGrantFactory(award_type=AwardTypeFactory(name="Revoked Award"), recipient_member=member)
+    revoke_grant(grant, UserFactory())
+    url = reverse("awards:type_winners", args=[grant.award_type_id])
+    assert f'href="{url}"' in _render_section(member, show_revoked=True)
+
+
+def test_awards_section_links_chapter_awards():
+    chapter = ChapterFactory()
+    grant = AwardGrantFactory(
+        recipient_member=None, recipient_chapter=chapter, award_type=AwardTypeFactory(name="Chapter Linked")
+    )
+    url = reverse("awards:type_winners", args=[grant.award_type_id])
+    assert f'href="{url}"' in _render_section(chapter)
+
+
+def test_inline_badge_links_to_award_description():
+    member = UserFactory(status="active")
+    award = AwardTypeFactory(name="Badged Award")
+    award.badge_image = SimpleUploadedFile("badge.png", b"fake-image", content_type="image/png")
+    award.save()
+    AwardGrantFactory(award_type=award, recipient_member=member)
+
+    url = reverse("awards:type_winners", args=[award.pk])
+    assert f'href="{url}"' in _render_inline(member)
+    award.badge_image.delete(save=False)
 
 
 # ---------------------------------------------------------------------------

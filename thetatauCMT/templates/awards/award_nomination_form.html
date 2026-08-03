@@ -4,12 +4,20 @@
 
 {% block head_title %}Award Nomination{% endblock %}
 {% block content %}
-  <h1>Nominate for an Award</h1>
+  <div class="d-flex flex-wrap align-items-center gap-2">
+    <h1 class="mb-0">Nominate for an Award</h1>
+    {% if catalog_url %}
+      <a href="{{ catalog_url }}" class="btn btn-sm btn-outline-secondary ms-auto">
+        <i class="fas fa-list"></i> {% trans "Award Catalog" %}
+      </a>
+    {% endif %}
+  </div>
   <hr>
   <p>
-    Choose the award first. The matching recipient field (member, chapter,
-    or region) appears automatically. Only awards you may nominate for are shown,
-    and ineligible recipients are rejected on submit.
+    Choose the award first. Its description and eligibility appear below the award
+    list, and the matching recipient field (member, chapter, or region) appears
+    automatically. Only awards you may nominate for are shown, and ineligible
+    recipients are rejected on submit.
   </p>
   <form method="POST" enctype="multipart/form-data">
     {{ form.media }}
@@ -19,16 +27,79 @@
     <button class="btn btn-primary" type="submit">Submit Nomination</button>
   </form>
   {{ award_kinds|json_script:"award-kinds" }}
+  {{ award_details|json_script:"award-details" }}
   <script>
     (function () {
       var kinds = JSON.parse(document.getElementById("award-kinds").textContent);
+      var details = JSON.parse(document.getElementById("award-details").textContent);
       var awardSelect = document.getElementById("id_award_type");
+      var awardGroup = document.getElementById("div_id_award_type");
       var groups = {
         member: document.getElementById("div_id_recipient_member"),
         chapter: document.getElementById("div_id_recipient_chapter"),
         region: document.getElementById("div_id_recipient_region"),
       };
       if (!awardSelect) { return; }
+
+      var panel = document.createElement("div");
+      panel.className = "card mb-3 d-none";
+      panel.id = "award-details-panel";
+      var panelBody = document.createElement("div");
+      panelBody.className = "card-body py-2";
+      panel.appendChild(panelBody);
+      if (awardGroup && awardGroup.parentNode) {
+        awardGroup.parentNode.insertBefore(panel, awardGroup.nextSibling);
+      }
+
+      function addHeading(text) {
+        var heading = document.createElement("div");
+        heading.className = "fw-bold small mb-1";
+        heading.textContent = text;
+        panelBody.appendChild(heading);
+      }
+
+      function addParagraph(text, className) {
+        var p = document.createElement("p");
+        p.className = className;
+        p.textContent = text;
+        panelBody.appendChild(p);
+      }
+
+      function renderDetails() {
+        var detail = details[awardSelect.value];
+        panelBody.textContent = "";
+        if (!detail) {
+          panel.classList.add("d-none");
+          return;
+        }
+        panel.classList.remove("d-none");
+        addHeading(detail.name);
+        var meta = [detail.category, detail.level].filter(Boolean).join(" \u00b7 ");
+        if (meta) { addParagraph(meta, "small text-body-secondary mb-2"); }
+        if (detail.description) { addParagraph(detail.description, "small mb-2"); }
+
+        addHeading("{% trans 'Eligibility' %}");
+        if (detail.eligibility) { addParagraph(detail.eligibility, "small mb-1"); }
+        if (detail.eligibility_bullets && detail.eligibility_bullets.length) {
+          var list = document.createElement("ul");
+          list.className = "small mb-2 ps-3 text-body-secondary";
+          detail.eligibility_bullets.forEach(function (bullet) {
+            var item = document.createElement("li");
+            item.textContent = bullet;
+            list.appendChild(item);
+          });
+          panelBody.appendChild(list);
+        }
+
+        if (detail.winners_url) {
+          var link = document.createElement("a");
+          link.className = "small";
+          link.href = detail.winners_url;
+          link.textContent = "{% trans 'See past recipients of this award' %}";
+          panelBody.appendChild(link);
+        }
+      }
+
       function updateRecipientFields() {
         var kind = kinds[awardSelect.value] || null;
         Object.keys(groups).forEach(function (key) {
@@ -36,8 +107,13 @@
           if (el) { el.style.display = (kind && key === kind) ? "" : "none"; }
         });
       }
-      awardSelect.addEventListener("change", updateRecipientFields);
+
+      awardSelect.addEventListener("change", function () {
+        updateRecipientFields();
+        renderDetails();
+      });
       updateRecipientFields();
+      renderDetails();
     })();
   </script>
 {% endblock %}

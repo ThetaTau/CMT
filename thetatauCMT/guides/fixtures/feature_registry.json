@@ -719,9 +719,16 @@
           "roles": ["regional director"]
         },
         {
+          "key": "award-catalog",
+          "name": "Award catalog",
+          "short_description": "Every award the fraternity gives, what it is for, and who is eligible.",
+          "long_description": "Browse the awards by category to see each one's description and eligibility before you nominate. Every award links to the members and chapters that have received it. The eligibility notes list both the written rule and the restrictions the system actually enforces.",
+          "url_name": "awards:catalog"
+        },
+        {
           "key": "award-winners-directory",
           "name": "Award winners directory",
-          "short_description": "Every award the fraternity gives, and who has won it.",
+          "short_description": "Search past award winners by award, chapter, region or year.",
           "url_name": "awards:directory"
         },
         {
