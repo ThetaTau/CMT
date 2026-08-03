@@ -1,0 +1,716 @@
+[
+{
+    "model": "awards.eligibilityrule",
+    "pk": 1,
+    "fields": {
+        "modified": "2026-08-02T00:00:00Z",
+        "award_type": 1,
+        "rule_type": "recipient_kind",
+        "member_status": "",
+        "hook_key": "",
+        "params": {"kind": "member"},
+        "chapters": [],
+        "regions": []
+    }
+},
+{
+    "model": "awards.eligibilityrule",
+    "pk": 2,
+    "fields": {
+        "modified": "2026-08-02T00:00:00Z",
+        "award_type": 1,
+        "rule_type": "member_status",
+        "member_status": "active",
+        "hook_key": "",
+        "params": {},
+        "chapters": [],
+        "regions": []
+    }
+},
+{
+    "model": "awards.eligibilityrule",
+    "pk": 3,
+    "fields": {
+        "modified": "2026-08-02T00:00:00Z",
+        "award_type": 1,
+        "rule_type": "member_status",
+        "member_status": "alumni",
+        "hook_key": "",
+        "params": {},
+        "chapters": [],
+        "regions": []
+    }
+},
+{
+    "model": "awards.eligibilityrule",
+    "pk": 4,
+    "fields": {
+        "modified": "2026-08-02T00:00:00Z",
+        "award_type": 2,
+        "rule_type": "recipient_kind",
+        "member_status": "",
+        "hook_key": "",
+        "params": {"kind": "member"},
+        "chapters": [],
+        "regions": []
+    }
+},
+{
+    "model": "awards.eligibilityrule",
+    "pk": 5,
+    "fields": {
+        "modified": "2026-08-02T00:00:00Z",
+        "award_type": 2,
+        "rule_type": "member_status",
+        "member_status": "active",
+        "hook_key": "",
+        "params": {},
+        "chapters": [],
+        "regions": []
+    }
+},
+{
+    "model": "awards.eligibilityrule",
+    "pk": 6,
+    "fields": {
+        "modified": "2026-08-02T00:00:00Z",
+        "award_type": 2,
+        "rule_type": "member_status",
+        "member_status": "alumni",
+        "hook_key": "",
+        "params": {},
+        "chapters": [],
+        "regions": []
+    }
+},
+{
+    "model": "awards.eligibilityrule",
+    "pk": 7,
+    "fields": {
+        "modified": "2026-08-02T00:00:00Z",
+        "award_type": 3,
+        "rule_type": "recipient_kind",
+        "member_status": "",
+        "hook_key": "",
+        "params": {"kind": "member"},
+        "chapters": [],
+        "regions": []
+    }
+},
+{
+    "model": "awards.eligibilityrule",
+    "pk": 8,
+    "fields": {
+        "modified": "2026-08-02T00:00:00Z",
+        "award_type": 3,
+        "rule_type": "member_status",
+        "member_status": "active",
+        "hook_key": "",
+        "params": {},
+        "chapters": [],
+        "regions": []
+    }
+},
+{
+    "model": "awards.eligibilityrule",
+    "pk": 9,
+    "fields": {
+        "modified": "2026-08-02T00:00:00Z",
+        "award_type": 3,
+        "rule_type": "member_status",
+        "member_status": "alumni",
+        "hook_key": "",
+        "params": {},
+        "chapters": [],
+        "regions": []
+    }
+},
+{
+    "model": "awards.eligibilityrule",
+    "pk": 10,
+    "fields": {
+        "modified": "2026-08-02T00:00:00Z",
+        "award_type": 4,
+        "rule_type": "recipient_kind",
+        "member_status": "",
+        "hook_key": "",
+        "params": {"kind": "member"},
+        "chapters": [],
+        "regions": []
+    }
+},
+{
+    "model": "awards.eligibilityrule",
+    "pk": 11,
+    "fields": {
+        "modified": "2026-08-02T00:00:00Z",
+        "award_type": 4,
+        "rule_type": "member_status",
+        "member_status": "active",
+        "hook_key": "",
+        "params": {},
+        "chapters": [],
+        "regions": []
+    }
+},
+{
+    "model": "awards.eligibilityrule",
+    "pk": 12,
+    "fields": {
+        "modified": "2026-08-02T00:00:00Z",
+        "award_type": 4,
+        "rule_type": "member_status",
+        "member_status": "alumni",
+        "hook_key": "",
+        "params": {},
+        "chapters": [],
+        "regions": []
+    }
+},
+{
+    "model": "awards.eligibilityrule",
+    "pk": 13,
+    "fields": {
+        "modified": "2026-08-02T00:00:00Z",
+        "award_type": 5,
+        "rule_type": "recipient_kind",
+        "member_status": "",
+        "hook_key": "",
+        "params": {"kind": "member"},
+        "chapters": [],
+        "regions": []
+    }
+},
+{
+    "model": "awards.eligibilityrule",
+    "pk": 14,
+    "fields": {
+        "modified": "2026-08-02T00:00:00Z",
+        "award_type": 5,
+        "rule_type": "member_status",
+        "member_status": "active",
+        "hook_key": "",
+        "params": {},
+        "chapters": [],
+        "regions": []
+    }
+},
+{
+    "model": "awards.eligibilityrule",
+    "pk": 15,
+    "fields": {
+        "modified": "2026-08-02T00:00:00Z",
+        "award_type": 5,
+        "rule_type": "member_status",
+        "member_status": "alumni",
+        "hook_key": "",
+        "params": {},
+        "chapters": [],
+        "regions": []
+    }
+},
+{
+    "model": "awards.eligibilityrule",
+    "pk": 16,
+    "fields": {
+        "modified": "2026-08-02T00:00:00Z",
+        "award_type": 6,
+        "rule_type": "recipient_kind",
+        "member_status": "",
+        "hook_key": "",
+        "params": {"kind": "member"},
+        "chapters": [],
+        "regions": []
+    }
+},
+{
+    "model": "awards.eligibilityrule",
+    "pk": 17,
+    "fields": {
+        "modified": "2026-08-02T00:00:00Z",
+        "award_type": 6,
+        "rule_type": "member_status",
+        "member_status": "active",
+        "hook_key": "",
+        "params": {},
+        "chapters": [],
+        "regions": []
+    }
+},
+{
+    "model": "awards.eligibilityrule",
+    "pk": 18,
+    "fields": {
+        "modified": "2026-08-02T00:00:00Z",
+        "award_type": 6,
+        "rule_type": "member_status",
+        "member_status": "alumni",
+        "hook_key": "",
+        "params": {},
+        "chapters": [],
+        "regions": []
+    }
+},
+{
+    "model": "awards.eligibilityrule",
+    "pk": 19,
+    "fields": {
+        "modified": "2026-08-02T00:00:00Z",
+        "award_type": 7,
+        "rule_type": "recipient_kind",
+        "member_status": "",
+        "hook_key": "",
+        "params": {"kind": "member"},
+        "chapters": [],
+        "regions": []
+    }
+},
+{
+    "model": "awards.eligibilityrule",
+    "pk": 20,
+    "fields": {
+        "modified": "2026-08-02T00:00:00Z",
+        "award_type": 7,
+        "rule_type": "member_status",
+        "member_status": "active",
+        "hook_key": "",
+        "params": {},
+        "chapters": [],
+        "regions": []
+    }
+},
+{
+    "model": "awards.eligibilityrule",
+    "pk": 21,
+    "fields": {
+        "modified": "2026-08-02T00:00:00Z",
+        "award_type": 7,
+        "rule_type": "member_status",
+        "member_status": "alumni",
+        "hook_key": "",
+        "params": {},
+        "chapters": [],
+        "regions": []
+    }
+},
+{
+    "model": "awards.eligibilityrule",
+    "pk": 22,
+    "fields": {
+        "modified": "2026-08-02T00:00:00Z",
+        "award_type": 8,
+        "rule_type": "recipient_kind",
+        "member_status": "",
+        "hook_key": "",
+        "params": {"kind": "member"},
+        "chapters": [],
+        "regions": []
+    }
+},
+{
+    "model": "awards.eligibilityrule",
+    "pk": 23,
+    "fields": {
+        "modified": "2026-08-02T00:00:00Z",
+        "award_type": 8,
+        "rule_type": "member_status",
+        "member_status": "active",
+        "hook_key": "",
+        "params": {},
+        "chapters": [],
+        "regions": []
+    }
+},
+{
+    "model": "awards.eligibilityrule",
+    "pk": 24,
+    "fields": {
+        "modified": "2026-08-02T00:00:00Z",
+        "award_type": 9,
+        "rule_type": "recipient_kind",
+        "member_status": "",
+        "hook_key": "",
+        "params": {"kind": "member"},
+        "chapters": [],
+        "regions": []
+    }
+},
+{
+    "model": "awards.eligibilityrule",
+    "pk": 25,
+    "fields": {
+        "modified": "2026-08-02T00:00:00Z",
+        "award_type": 9,
+        "rule_type": "member_status",
+        "member_status": "active",
+        "hook_key": "",
+        "params": {},
+        "chapters": [],
+        "regions": []
+    }
+},
+{
+    "model": "awards.eligibilityrule",
+    "pk": 26,
+    "fields": {
+        "modified": "2026-08-02T00:00:00Z",
+        "award_type": 10,
+        "rule_type": "recipient_kind",
+        "member_status": "",
+        "hook_key": "",
+        "params": {"kind": "member"},
+        "chapters": [],
+        "regions": []
+    }
+},
+{
+    "model": "awards.eligibilityrule",
+    "pk": 27,
+    "fields": {
+        "modified": "2026-08-02T00:00:00Z",
+        "award_type": 10,
+        "rule_type": "member_status",
+        "member_status": "active",
+        "hook_key": "",
+        "params": {},
+        "chapters": [],
+        "regions": []
+    }
+},
+{
+    "model": "awards.eligibilityrule",
+    "pk": 28,
+    "fields": {
+        "modified": "2026-08-02T00:00:00Z",
+        "award_type": 11,
+        "rule_type": "recipient_kind",
+        "member_status": "",
+        "hook_key": "",
+        "params": {"kind": "member"},
+        "chapters": [],
+        "regions": []
+    }
+},
+{
+    "model": "awards.eligibilityrule",
+    "pk": 29,
+    "fields": {
+        "modified": "2026-08-02T00:00:00Z",
+        "award_type": 11,
+        "rule_type": "member_status",
+        "member_status": "active",
+        "hook_key": "",
+        "params": {},
+        "chapters": [],
+        "regions": []
+    }
+},
+{
+    "model": "awards.eligibilityrule",
+    "pk": 30,
+    "fields": {
+        "modified": "2026-08-02T00:00:00Z",
+        "award_type": 11,
+        "rule_type": "member_status",
+        "member_status": "alumni",
+        "hook_key": "",
+        "params": {},
+        "chapters": [],
+        "regions": []
+    }
+},
+{
+    "model": "awards.eligibilityrule",
+    "pk": 31,
+    "fields": {
+        "modified": "2026-08-02T00:00:00Z",
+        "award_type": 12,
+        "rule_type": "recipient_kind",
+        "member_status": "",
+        "hook_key": "",
+        "params": {"kind": "chapter"},
+        "chapters": [],
+        "regions": []
+    }
+},
+{
+    "model": "awards.eligibilityrule",
+    "pk": 32,
+    "fields": {
+        "modified": "2026-08-02T00:00:00Z",
+        "award_type": 13,
+        "rule_type": "recipient_kind",
+        "member_status": "",
+        "hook_key": "",
+        "params": {"kind": "chapter"},
+        "chapters": [],
+        "regions": []
+    }
+},
+{
+    "model": "awards.eligibilityrule",
+    "pk": 33,
+    "fields": {
+        "modified": "2026-08-02T00:00:00Z",
+        "award_type": 14,
+        "rule_type": "recipient_kind",
+        "member_status": "",
+        "hook_key": "",
+        "params": {"kind": "chapter"},
+        "chapters": [],
+        "regions": []
+    }
+},
+{
+    "model": "awards.eligibilityrule",
+    "pk": 34,
+    "fields": {
+        "modified": "2026-08-02T00:00:00Z",
+        "award_type": 15,
+        "rule_type": "recipient_kind",
+        "member_status": "",
+        "hook_key": "",
+        "params": {"kind": "chapter"},
+        "chapters": [],
+        "regions": []
+    }
+},
+{
+    "model": "awards.eligibilityrule",
+    "pk": 35,
+    "fields": {
+        "modified": "2026-08-02T00:00:00Z",
+        "award_type": 16,
+        "rule_type": "recipient_kind",
+        "member_status": "",
+        "hook_key": "",
+        "params": {"kind": "chapter"},
+        "chapters": [],
+        "regions": []
+    }
+},
+{
+    "model": "awards.eligibilityrule",
+    "pk": 36,
+    "fields": {
+        "modified": "2026-08-02T00:00:00Z",
+        "award_type": 17,
+        "rule_type": "recipient_kind",
+        "member_status": "",
+        "hook_key": "",
+        "params": {"kind": "chapter"},
+        "chapters": [],
+        "regions": []
+    }
+},
+{
+    "model": "awards.eligibilityrule",
+    "pk": 37,
+    "fields": {
+        "modified": "2026-08-02T00:00:00Z",
+        "award_type": 18,
+        "rule_type": "recipient_kind",
+        "member_status": "",
+        "hook_key": "",
+        "params": {"kind": "chapter"},
+        "chapters": [],
+        "regions": []
+    }
+},
+{
+    "model": "awards.eligibilityrule",
+    "pk": 38,
+    "fields": {
+        "modified": "2026-08-02T00:00:00Z",
+        "award_type": 19,
+        "rule_type": "recipient_kind",
+        "member_status": "",
+        "hook_key": "",
+        "params": {"kind": "chapter"},
+        "chapters": [],
+        "regions": []
+    }
+},
+{
+    "model": "awards.eligibilityrule",
+    "pk": 39,
+    "fields": {
+        "modified": "2026-08-02T00:00:00Z",
+        "award_type": 20,
+        "rule_type": "recipient_kind",
+        "member_status": "",
+        "hook_key": "",
+        "params": {"kind": "chapter"},
+        "chapters": [],
+        "regions": []
+    }
+},
+{
+    "model": "awards.eligibilityrule",
+    "pk": 40,
+    "fields": {
+        "modified": "2026-08-02T00:00:00Z",
+        "award_type": 21,
+        "rule_type": "recipient_kind",
+        "member_status": "",
+        "hook_key": "",
+        "params": {"kind": "chapter"},
+        "chapters": [],
+        "regions": []
+    }
+},
+{
+    "model": "awards.eligibilityrule",
+    "pk": 41,
+    "fields": {
+        "modified": "2026-08-02T00:00:00Z",
+        "award_type": 22,
+        "rule_type": "recipient_kind",
+        "member_status": "",
+        "hook_key": "",
+        "params": {"kind": "chapter"},
+        "chapters": [],
+        "regions": []
+    }
+},
+{
+    "model": "awards.eligibilityrule",
+    "pk": 42,
+    "fields": {
+        "modified": "2026-08-02T00:00:00Z",
+        "award_type": 23,
+        "rule_type": "recipient_kind",
+        "member_status": "",
+        "hook_key": "",
+        "params": {"kind": "chapter"},
+        "chapters": [],
+        "regions": []
+    }
+},
+{
+    "model": "awards.eligibilityrule",
+    "pk": 43,
+    "fields": {
+        "modified": "2026-08-02T00:00:00Z",
+        "award_type": 24,
+        "rule_type": "recipient_kind",
+        "member_status": "",
+        "hook_key": "",
+        "params": {"kind": "chapter"},
+        "chapters": [],
+        "regions": []
+    }
+},
+{
+    "model": "awards.eligibilityrule",
+    "pk": 44,
+    "fields": {
+        "modified": "2026-08-02T00:00:00Z",
+        "award_type": 25,
+        "rule_type": "recipient_kind",
+        "member_status": "",
+        "hook_key": "",
+        "params": {"kind": "chapter"},
+        "chapters": [],
+        "regions": []
+    }
+},
+{
+    "model": "awards.eligibilityrule",
+    "pk": 45,
+    "fields": {
+        "modified": "2026-08-02T00:00:00Z",
+        "award_type": 26,
+        "rule_type": "recipient_kind",
+        "member_status": "",
+        "hook_key": "",
+        "params": {"kind": "chapter"},
+        "chapters": [],
+        "regions": []
+    }
+},
+{
+    "model": "awards.eligibilityrule",
+    "pk": 46,
+    "fields": {
+        "modified": "2026-08-02T00:00:00Z",
+        "award_type": 27,
+        "rule_type": "recipient_kind",
+        "member_status": "",
+        "hook_key": "",
+        "params": {"kind": "chapter"},
+        "chapters": [],
+        "regions": []
+    }
+},
+{
+    "model": "awards.eligibilityrule",
+    "pk": 47,
+    "fields": {
+        "modified": "2026-08-02T00:00:00Z",
+        "award_type": 28,
+        "rule_type": "recipient_kind",
+        "member_status": "",
+        "hook_key": "",
+        "params": {"kind": "member"},
+        "chapters": [],
+        "regions": []
+    }
+},
+{
+    "model": "awards.eligibilityrule",
+    "pk": 48,
+    "fields": {
+        "modified": "2026-08-02T00:00:00Z",
+        "award_type": 29,
+        "rule_type": "recipient_kind",
+        "member_status": "",
+        "hook_key": "",
+        "params": {"kind": "member"},
+        "chapters": [],
+        "regions": []
+    }
+},
+{
+    "model": "awards.eligibilityrule",
+    "pk": 49,
+    "fields": {
+        "modified": "2026-08-02T00:00:00Z",
+        "award_type": 30,
+        "rule_type": "recipient_kind",
+        "member_status": "",
+        "hook_key": "",
+        "params": {"kind": "member"},
+        "chapters": [],
+        "regions": []
+    }
+},
+{
+    "model": "awards.eligibilityrule",
+    "pk": 50,
+    "fields": {
+        "modified": "2026-08-02T00:00:00Z",
+        "award_type": 30,
+        "rule_type": "member_status",
+        "member_status": "active",
+        "hook_key": "",
+        "params": {},
+        "chapters": [],
+        "regions": []
+    }
+},
+{
+    "model": "awards.eligibilityrule",
+    "pk": 51,
+    "fields": {
+        "modified": "2026-08-02T00:00:00Z",
+        "award_type": 30,
+        "rule_type": "member_status",
+        "member_status": "alumni",
+        "hook_key": "",
+        "params": {},
+        "chapters": [],
+        "regions": []
+    }
+}
+]
