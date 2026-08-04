@@ -2,10 +2,10 @@
 {% load render_table from django_tables2 %}
 {% load crispy_forms_tags %}
 {% load filter_tags %}
-{% block title %}{{ type_label }} — Submitted Forms{% endblock %}
+{% block title %}{{ type_label }}: Submitted Forms{% endblock %}
 {% block content %}
   <div class="page-header d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
-    <h2 class="page-title mb-0">{{ type_label }} — Submitted Forms</h2>
+    <h2 class="page-title mb-0">{{ type_label }}: Submitted Forms</h2>
     <a class="btn btn-success" href="{{ create_url }}">Submit New {{ type_label }}</a>
   </div>
   <p class="text-muted">

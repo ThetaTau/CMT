@@ -17,6 +17,7 @@ urlpatterns = [
         "certificate/<int:artifact_pk>/download/", views.GrantArtifactDownloadView.as_view(), name="artifact_download"
     ),
     # Public awards dashboard / directory (AWI-11)
+    path("catalog/", views.AwardCatalogView.as_view(), name="catalog"),
     path("directory/", views.AwardDirectoryView.as_view(), name="directory"),
     path("directory/type/<int:pk>/", views.AwardTypeWinnersView.as_view(), name="type_winners"),
     path("directory/cycle/<int:pk>/", views.AwardCycleWinnersView.as_view(), name="cycle_winners"),

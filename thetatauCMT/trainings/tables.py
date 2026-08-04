@@ -1,9 +1,9 @@
-import django_tables2 as tables
+from core.tables import CMTTable
 
 from .models import Training
 
 
-class TrainingTable(tables.Table):
+class TrainingTable(CMTTable):
     class Meta:
         model = Training
         fields = (

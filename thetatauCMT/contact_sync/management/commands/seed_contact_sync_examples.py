@@ -199,7 +199,7 @@ class Command(BaseCommand):
     def _seed_national(self, stats: dict) -> None:
         default_chapter = Chapter.objects.filter(active=True).order_by("pk").first()
         if default_chapter is None:
-            self.stdout.write(self.style.WARNING("No active chapter — skipping national officer seed."))
+            self.stdout.write(self.style.WARNING("No active chapter, skipping national officer seed."))
             return
         national_roles = sorted(COUNCIL | NATIONAL_OFFICER)
         self.stdout.write(self.style.NOTICE(f"Seeding {len(national_roles)} national officer(s)…"))

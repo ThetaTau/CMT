@@ -13,7 +13,10 @@ conduct the business of Theta Tau according to our policies and bylaws.
 
 ** Resources specific to your role in the chapter:
 ------------------------------------------------------------
-* All tasks are outlined here: {{ host }}/tasks
+{% for guide in role_guides %}* What am I responsible for? Your {{ guide.title }} guide explains what the office owns, what falls due when, and where each form lives: {{ guide.url }}
+{% endfor %}* All tasks are outlined here: {{ host }}/tasks
+* What can the CMT do? Every tool the site gives you, grouped by what you are trying to get done, with the ones your office owns marked: {{ catalog_url }}
+* Forms you can file, with due dates for your chapter: {{ forms_url }}
 * The chapter management tool will handle many forms/tasks for your chapter, please login and review it now at {{ host }}
 * The latest policy and procedures manual is here: http://thetatau.org/policies
 * A list of manuals and resources are available here: http://thetatau.org/forms-manuals-resources

@@ -856,6 +856,9 @@ class OfficerAddForm(forms.ModelForm):
     user = forms.ModelChoiceField(
         queryset=User.objects.all(),
         label="Member",
+        # The widget forwards exclude_self, so you are simply absent from your own
+        # results; say why, or it reads as the member being missing from the site.
+        help_text="You cannot elect yourself, so you will not appear here. Another officer must record your term.",
         widget=autocomplete.ModelSelect2(
             url="users:autocomplete",
             forward=(
@@ -920,6 +923,9 @@ class NationalOfficerAddForm(forms.ModelForm):
     user = forms.ModelChoiceField(
         queryset=User.objects.all(),
         label="Member",
+        # The widget forwards exclude_self, so you are simply absent from your own
+        # results; say why, or it reads as the member being missing from the site.
+        help_text="Any member, from any chapter. You cannot appoint yourself, so you will not appear here.",
         widget=autocomplete.ModelSelect2(
             url="users:autocomplete",
             forward=(
@@ -1930,7 +1936,7 @@ class ConventionForm(forms.ModelForm):
             ),
         ),
         help_text=(
-            "You cannot nominate yourself as delegate — a different member "
+            "You cannot nominate yourself as delegate. A different member "
             "must submit this form if you plan to represent the chapter."
         ),
     )
@@ -1945,7 +1951,7 @@ class ConventionForm(forms.ModelForm):
             ),
         ),
         help_text=(
-            "You cannot nominate yourself as alternate — a different member "
+            "You cannot nominate yourself as alternate. A different member "
             "must submit this form if you plan to represent the chapter."
         ),
     )
@@ -1987,8 +1993,8 @@ class OSMForm(forms.ModelForm):
             ),
         ),
         help_text=(
-            "You cannot nominate yourself for Outstanding Student Member — "
-            "another officer must submit the nomination on your behalf."
+            "You cannot nominate yourself for Outstanding Student Member. "
+            "Another officer must submit the nomination on your behalf."
         ),
     )
     meeting_date = forms.DateField(

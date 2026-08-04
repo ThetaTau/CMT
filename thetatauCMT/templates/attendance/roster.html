@@ -5,7 +5,7 @@
 {% block content %}
 <div class="container">
   <div class="page-header d-flex flex-wrap align-items-center gap-2 mb-2">
-    <h2 class="page-title mb-0">Attendance — {{ event.name }}</h2>
+    <h2 class="page-title mb-0">Attendance: {{ event.name }}</h2>
     <div class="page-actions d-flex gap-2">
       <a href="{{ event.get_absolute_url }}" class="btn btn-outline-secondary btn-sm">
         <i class="fas fa-circle-info"></i> Event details
@@ -28,7 +28,7 @@
   <div class="alert alert-secondary">
     <strong>If quorum is needed:</strong>
     {{ quorum.attended_active }} of {{ quorum.active_count }} active members attended
-    (a majority would require {{ quorum.required }}) —
+    (a majority would require {{ quorum.required }}):
     {% if quorum.met %}<span class="text-success fw-semibold">quorum met</span>{% else %}<span class="text-warning-emphasis fw-semibold">quorum not met</span>{% endif %}.
   </div>
 

@@ -26,8 +26,8 @@ Context expected:
           Sync <strong>{{ officer_count }}</strong> officer{{ officer_count|pluralize }}
           from <strong>{{ contact_sync_scope_display }}</strong> to your personal address book.
           Contacts are named
-          <code>Prefix-Pos First Last</code>
-          — chapter Greek letters (<code>X-R Franklin Ventura</code>) for chapter
+          <code>Prefix-Pos First Last</code>,
+          using chapter Greek letters (<code>X-R Franklin Ventura</code>) for chapter
           officers, or <code>NAT-RD Jane Doe</code> for national officers.
         </p>
         <div id="contactSyncFeedback" class="d-none alert" role="status" aria-live="polite"></div>
@@ -129,7 +129,7 @@ Context expected:
                 <label class="form-check-label" for="autoSync-{{ provider_key }}-{{ contact_sync_scope|slugify }}">
                   Keep <strong>{{ contact_sync_scope_display }}</strong> in sync automatically
                   <span class="text-body-secondary small">
-                    — runs once a week via the <code>weekly_contact_sync</code> management command.
+                    (runs once a week via the <code>weekly_contact_sync</code> management command).
                   </span>
                 </label>
               </div>
@@ -158,7 +158,7 @@ Context expected:
             <ol class="mb-3">
               <li>Click <strong>Download vCard</strong>.</li>
               <li>
-                On <strong>macOS</strong>: double-click the <code>.vcf</code> file — Contacts.app will prompt you
+                On <strong>macOS</strong>: double-click the <code>.vcf</code> file and Contacts.app will prompt you
                 to add all cards.<br>
                 On <strong>iOS</strong>: open the <code>.vcf</code> attachment from Mail or Files, tap
                 <em>Share</em> → <em>Contacts</em> → <em>Add All Contacts</em>.
@@ -174,7 +174,7 @@ Context expected:
 
           <div class="tab-pane fade" id="pane-other" role="tabpanel" aria-labelledby="tab-other">
             <p>
-              The vCard 3.0 (<code>.vcf</code>) file works with virtually every contacts app —
+              The vCard 3.0 (<code>.vcf</code>) file works with virtually every contacts app,
               Google Contacts (Import), Outlook (Import), Fastmail, Nextcloud, CardDAV clients,
               Thunderbird, etc.
             </p>
@@ -350,8 +350,8 @@ Context expected:
             setFeedback(
               res.data.enabled ? "success" : "info",
               res.data.enabled
-                ? "Auto-sync ON — will run weekly."
-                : "Auto-sync OFF — manual only."
+                ? "Auto-sync ON. It will run weekly."
+                : "Auto-sync OFF. Manual only."
             );
           })
           .catch(function (err) {

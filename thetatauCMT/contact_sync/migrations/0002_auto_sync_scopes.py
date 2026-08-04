@@ -16,7 +16,7 @@ class Migration(migrations.Migration):
                 base_field=models.CharField(max_length=100),
                 blank=True,
                 default=list,
-                help_text="Scopes to push on each scheduled run — 'national' or 'region:<slug>'.",
+                help_text="Scopes to push on each scheduled run: 'national' or 'region:<slug>'.",
                 size=None,
             ),
         ),

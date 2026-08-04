@@ -299,7 +299,7 @@ class GuestMemberAutocompleteView(LoginRequiredMixin, View):
         results = [
             {
                 "id": member.pk,
-                "text": f"{member.name} — badge {member.badge_number}, grad {member.graduation_year}",
+                "text": f"{member.name}, badge {member.badge_number}, grad {member.graduation_year}",
                 "name": member.name,
                 "badge_number": member.badge_number,
                 "graduation_year": member.graduation_year,
@@ -486,7 +486,7 @@ class NationalMemberAutocompleteView(NationalOfficerRequiredMixin, View):
             {
                 "id": member.pk,
                 "text": (
-                    f"{member.name} — {member.chapter.name if member.chapter_id else 'No chapter'}, "
+                    f"{member.name}, {member.chapter.name if member.chapter_id else 'No chapter'}, "
                     f"badge {member.badge_number}, grad {member.graduation_year}"
                 ),
                 "name": member.name,
@@ -535,8 +535,8 @@ class MemberEventAutocomplete(autocomplete.Select2QuerySetView):
         return qs.select_related("chapter", "type").order_by("-date", "name")
 
     def get_result_label(self, event):
-        context = "National" if event.is_national else (event.chapter.name if event.chapter_id else "—")
-        return f"{event.name} — {context} ({event.date})"
+        context = "National" if event.is_national else (event.chapter.name if event.chapter_id else "None")
+        return f"{event.name}, {context} ({event.date})"
 
 
 class MemberAttendanceAddView(LoginRequiredMixin, View):

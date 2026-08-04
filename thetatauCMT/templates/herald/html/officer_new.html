@@ -24,8 +24,21 @@ conduct the business of Theta Tau according to our policies and bylaws.</p>
 Resources specific to your role in the chapter:
 </h3>
 <ul>
+  {% for guide in role_guides %}
+  <li style="-ms-text-size-adjust: 100%;-webkit-text-size-adjust: 100%;">
+<strong>What am I responsible for?</strong> Your {{ guide.title }} guide explains what the office owns,
+what falls due when, and where each form lives: <a href="{{ guide.url }}">{{ guide.url }}</a>
+  </li>
+  {% endfor %}
   <li style="-ms-text-size-adjust: 100%;-webkit-text-size-adjust: 100%;">
 All tasks are outlined here: <a href="{{ host }}/tasks">{{ host }}/tasks</a>
+  </li>
+  <li style="-ms-text-size-adjust: 100%;-webkit-text-size-adjust: 100%;">
+<strong>What can the CMT do?</strong> Every tool the site gives you, grouped by what you are trying to
+get done, with the ones your office owns marked: <a href="{{ catalog_url }}">{{ catalog_url }}</a>
+  </li>
+  <li style="-ms-text-size-adjust: 100%;-webkit-text-size-adjust: 100%;">
+<strong>Forms you can file</strong> are listed here, with due dates for your chapter: <a href="{{ forms_url }}">{{ forms_url }}</a>
   </li>
   <li style="-ms-text-size-adjust: 100%;-webkit-text-size-adjust: 100%;">
 The chapter management tool will handle many forms/tasks for your chapter, please login and review it now at <a href="{{ host }}">{{ host }}</a>

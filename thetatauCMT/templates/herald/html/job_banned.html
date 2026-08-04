@@ -5,7 +5,7 @@
 Central Office,
 <p>A National Officer has barred a member from creating new job postings.</p>
 <ul>
-  <li><strong>Member:</strong> {{ target_line }}{% if target_chapter %} &mdash; {{ target_chapter }}{% endif %}</li>
+  <li><strong>Member:</strong> {{ target_line }}{% if target_chapter %} ({{ target_chapter }}){% endif %}</li>
   <li><strong>Banned by:</strong> {{ actor_line }}</li>
   {% if ban.banned_at %}<li><strong>Banned at:</strong> {{ ban.banned_at|date:"M j, Y g:i A" }}</li>{% endif %}
   <li><strong>Existing postings removed:</strong> {{ affected_count }}</li>

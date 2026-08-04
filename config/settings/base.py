@@ -147,6 +147,7 @@ LOCAL_APPS = [
     "thetatauCMT.nominations.apps.NominationsConfig",
     "thetatauCMT.awards.apps.AwardsConfig",
     "thetatauCMT.email_tracking.apps.EmailTrackingConfig",
+    "thetatauCMT.guides.apps.GuidesConfig",
     # Added after any apps which contain models for which to create signals
     "email_signals",
 ]
@@ -297,6 +298,7 @@ TEMPLATES = [
                 "thetatauCMT.utils.context_processors.settings_context",
                 "thetatauCMT.utils.context_processors.feature_flags",
                 "thetatauCMT.utils.context_processors.incident_report",
+                "thetatauCMT.guides.context_processors.whats_new",
             ],
         },
     }
@@ -678,6 +680,14 @@ TERMS_EXCLUDE_URL_LIST = {
     "/forms/pledgeprogram/",
     "/forms/report/",
 }
+
+# How long a released feature stays "new" -- it is listed in the What's New feed
+# and badged in the catalog for this many days after its released_at date.
+NEW_FEATURE_MAX_AGE_DAYS = env.int("NEW_FEATURE_MAX_AGE_DAYS", default=30)
+
+# The unprompted What's New modal never shows more than this many items; the
+# rest are one click away on the archive page.
+WHATS_NEW_MAX_ITEMS = env.int("WHATS_NEW_MAX_ITEMS", default=5)
 
 CSV_DIRECTORY = Path("csv")  # Define the directory where csv are exported
 TEX_DIRECTORY = Path("tex")  # Define the directory where tex files and pdf are exported

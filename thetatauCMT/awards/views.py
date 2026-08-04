@@ -1,14 +1,17 @@
+from itertools import groupby
+
 from dal import autocomplete
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.core.exceptions import ValidationError
+from django.db.models import Count, Q
 from django.http import FileResponse, HttpResponseRedirect, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse, reverse_lazy
 from django.utils import timezone
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views import View
-from django.views.generic import FormView
+from django.views.generic import FormView, ListView
 from django_tables2 import SingleTableView
 from viewflow.flow.views import CreateProcessView, UpdateProcessView
 
@@ -20,13 +23,13 @@ from thetatauCMT.users.models import User
 
 from . import reports
 from .certificates import generate_certificate, store_uploaded_artifact
-from .eligibility import get_eligible_recipients
+from .eligibility import describe_eligibility, get_eligible_recipients
 from .exports import grants_export_response
 from .filters import AwardGrantFilter
 from .forms import AwardDirectoryFilterHelper, AwardNominationForm, AwardNominationReviewForm, DirectGrantForm
 from .importer import ingest_award_csv
 from .models import AwardCycle, AwardGrant, AwardImportMatchQueueItem, AwardNominationProcess, AwardType, GrantArtifact
-from .services import can_grant_awards, direct_grant
+from .services import can_grant_awards, direct_grant, nominatable_award_types
 from .tables import AwardGrantTable
 
 
@@ -94,13 +97,28 @@ class AwardNominationCreateView(LoginRequiredMixin, CreateProcessView):
 
     def get_context_data(self, **kwargs):
         # Map each selectable award to its recipient kind so the template shows
-        # only the matching recipient field (member / chapter / region).
+        # only the matching recipient field (member / chapter / region), plus the
+        # award's description / eligibility so the nominator sees what it is for.
         context = super().get_context_data(**kwargs)
         form = context.get("form")
         if form is not None:
-            context["award_kinds"] = {
-                str(award.pk): award.recipient_kind for award in form.fields["award_type"].queryset
+            awards = form.fields["award_type"].queryset.prefetch_related(
+                "eligibility_rules__chapters", "eligibility_rules__regions"
+            )
+            context["award_kinds"] = {str(award.pk): award.recipient_kind for award in awards}
+            context["award_details"] = {
+                str(award.pk): {
+                    "name": award.name,
+                    "category": award.category,
+                    "level": award.get_level_display(),
+                    "description": award.description,
+                    "eligibility": award.eligibility,
+                    "eligibility_bullets": describe_eligibility(award),
+                    "winners_url": reverse("awards:type_winners", args=[award.pk]),
+                }
+                for award in awards
             }
+            context["catalog_url"] = reverse("awards:catalog")
         return context
 
     def form_valid(self, form, *args, **kwargs):
@@ -169,7 +187,7 @@ class AwardNominationReviewView(UpdateProcessView):
         response = super().form_valid(form, *args, **kwargs)
         messages.success(
             self.request,
-            f"Nomination review saved — the nomination was {form.instance.get_result_display().lower()}.",
+            f"Nomination review saved. The nomination was {form.instance.get_result_display().lower()}.",
         )
         return response
 
@@ -223,13 +241,74 @@ class GrantArtifactDownloadView(LoginRequiredMixin, View):
         return FileResponse(artifact.file.open("rb"), as_attachment=True, filename=filename)
 
 
-class AwardDirectoryView(PagedFilteredTableView):
-    """Public, filterable directory of award winners (AWI-11).
+class AwardCatalogView(LoginRequiredMixin, ListView):
+    """Catalog of every available award: description, eligibility, and rules.
 
-    All awards are public, so this view requires no login. It lists *active*
-    grants by default (revoked grants are excluded); passing ``?show_revoked=1``
-    includes revoked grants, which the table then labels with their status.
-    Filter by award type, level, cycle, chapter, region, or a recipient search.
+    Each entry links to the winners of that award
+    (:class:`AwardTypeWinnersView`). Retired awards are hidden unless
+    ``?show_retired=1`` is passed by a National Officer / Admin. A ``?q=``
+    search matches the name, description, eligibility, or category.
+    """
+
+    model = AwardType
+    template_name = "awards/award_catalog.html"
+    context_object_name = "award_types"
+
+    def _show_retired(self):
+        return user_is_national_officer(self.request.user) and self.request.GET.get("show_retired") in (
+            "1",
+            "true",
+            "on",
+            "yes",
+        )
+
+    def get_queryset(self):
+        queryset = AwardType.objects.prefetch_related("eligibility_rules__chapters", "eligibility_rules__regions")
+        if not self._show_retired():
+            queryset = queryset.active()
+        search = self.request.GET.get("q", "").strip()
+        if search:
+            queryset = queryset.filter(
+                Q(name__icontains=search)
+                | Q(description__icontains=search)
+                | Q(eligibility__icontains=search)
+                | Q(category__icontains=search)
+            )
+        level = self.request.GET.get("level", "").strip()
+        if level:
+            queryset = queryset.filter(level=level)
+        return queryset.annotate(
+            winner_count=Count("grants", filter=Q(grants__status=AwardGrant.Status.ACTIVE), distinct=True)
+        ).order_by("category", "name")
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        award_types = list(context["award_types"])
+        nominatable = set(nominatable_award_types(self.request.user).values_list("pk", flat=True))
+        for award in award_types:
+            award.eligibility_bullets = describe_eligibility(award)
+            award.can_nominate = award.pk in nominatable
+        # Group by category so the page reads like the printed awards manual.
+        context["award_groups"] = [
+            (category, list(awards)) for category, awards in groupby(award_types, key=lambda a: a.category)
+        ]
+        context["search"] = self.request.GET.get("q", "")
+        context["level"] = self.request.GET.get("level", "")
+        context["level_choices"] = AwardType.Level.choices
+        context["can_view_retired"] = user_is_national_officer(self.request.user)
+        context["show_retired"] = self._show_retired()
+        context["nominate_url"] = reverse("viewflow:awards:awardnomination:start")
+        return context
+
+
+class AwardDirectoryView(LoginRequiredMixin, PagedFilteredTableView):
+    """Filterable directory of award winners (AWI-11).
+
+    Award data is visible to any signed-in member — it is not public. It lists
+    *active* grants by default (revoked grants are excluded); passing
+    ``?show_revoked=1`` includes revoked grants, which the table then labels with
+    their status. Filter by award type, level, cycle, chapter, region, or a
+    recipient search.
     """
 
     model = AwardGrant
@@ -275,8 +354,9 @@ class AwardDirectoryView(PagedFilteredTableView):
         context = super().get_context_data(**kwargs)
         context["show_revoked"] = self._show_revoked()
         context["can_view_revoked"] = self._can_view_revoked()
-        context["can_export"] = can_grant_awards(self.request.user)
+        context["can_export"] = self.request.user.is_superuser
         context["can_nominate"] = self.request.user.is_authenticated
+        context["catalog_url"] = reverse("awards:catalog")
         context["nominate_url"] = reverse("viewflow:awards:awardnomination:start")
         return context
 
@@ -292,6 +372,7 @@ class AwardTypeWinnersView(AwardDirectoryView):
         context = super().get_context_data(**kwargs)
         context["award_type"] = self.award_type
         context["heading"] = f"Winners of {self.award_type}"
+        context["eligibility_bullets"] = describe_eligibility(self.award_type)
         context["export_url"] = f"{reverse('awards:export')}?award_type={self.award_type.pk}"
         if self.award_type.grant_method == AwardType.GrantMethod.NOMINATION_WORKFLOW:
             context["nominate_url"] = (
@@ -318,20 +399,21 @@ class AwardCycleWinnersView(AwardDirectoryView):
 
 
 class AwardExportView(LoginRequiredMixin, View):
-    """Officer-gated CSV / Excel export of award grants (AWI-12).
+    """Administrator-gated CSV / Excel export of award grants (AWI-12).
 
-    Award data is public to browse, but bulk exports require an officer login
-    (any National / chapter officer or Regional Director -- the same gate as the
-    direct-grant and certificate tools). A single GET parameter selects the
-    report -- ``cycle`` (pk), ``chapter`` (slug), ``region`` (slug),
+    Award data is public to browse one page at a time, but a bulk export hands
+    over the whole set at once, so it is restricted to superusers -- a tighter
+    gate than the direct-grant and certificate tools. Officers use the winners
+    directory and their own chapter history instead. A single GET parameter
+    selects the report -- ``cycle`` (pk), ``chapter`` (slug), ``region`` (slug),
     ``award_type`` (pk), or ``member`` (username); none means "all grants".
     ``?format=xlsx`` returns an Excel workbook (CSV otherwise); ``?include_revoked=1``
     adds revoked grants.
     """
 
     def dispatch(self, request, *args, **kwargs):
-        if request.user.is_authenticated and not can_grant_awards(request.user):
-            messages.error(request, "Only officers can export award reports.")
+        if request.user.is_authenticated and not request.user.is_superuser:
+            messages.error(request, "Only administrators can export award reports.")
             return redirect("home")
         return super().dispatch(request, *args, **kwargs)
 
@@ -369,13 +451,13 @@ class AwardExportView(LoginRequiredMixin, View):
         return grants_export_response(queryset, fmt=fmt, filename_stem=stem)
 
 
-class _AwardHistoryView(SingleTableView):
-    """Base for the public, chronological award-history views (AWI-12).
+class _AwardHistoryView(LoginRequiredMixin, SingleTableView):
+    """Base for the chronological award-history views (AWI-12).
 
     Reuses :class:`~thetatauCMT.awards.tables.AwardGrantTable` (status column
     included so revoked grants are labeled) ordered by ``effective_date`` so
-    backdated grants sort into their historical place. Public -- award data is
-    public -- but export buttons are shown only to officers.
+    backdated grants sort into their historical place. Visible to any signed-in
+    member, but export buttons are shown only to administrators.
     """
 
     template_name = "awards/award_history.html"
@@ -387,7 +469,7 @@ class _AwardHistoryView(SingleTableView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["can_export"] = can_grant_awards(self.request.user)
+        context["can_export"] = self.request.user.is_superuser
         return context
 
 
@@ -401,7 +483,7 @@ class MemberAwardHistoryView(_AwardHistoryView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["member"] = self.member
-        context["heading"] = f"Award history — {self.member}"
+        context["heading"] = f"Award history for {self.member}"
         context["export_url"] = f"{reverse('awards:export')}?member={self.member.username}"
         return context
 
@@ -416,7 +498,7 @@ class ChapterAwardHistoryView(_AwardHistoryView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["chapter"] = self.chapter
-        context["heading"] = f"Award history — {self.chapter}"
+        context["heading"] = f"Award history for {self.chapter}"
         context["export_url"] = f"{reverse('awards:export')}?chapter={self.chapter.slug}"
         return context
 

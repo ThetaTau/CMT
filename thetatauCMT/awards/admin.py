@@ -44,11 +44,11 @@ class AwardTypeAdmin(admin.ModelAdmin):
         "allow_multiple_winners",
         "allow_multiple_nominations",
     )
-    search_fields = ("name", "description", "category")
+    search_fields = ("name", "description", "category", "eligibility")
     list_editable = ("is_active",)
     readonly_fields = ("created", "modified")
     fieldsets = (
-        (None, {"fields": ("name", "description", "category", "level", "badge_image", "points")}),
+        (None, {"fields": ("name", "description", "eligibility", "category", "level", "badge_image", "points")}),
         ("Grant configuration", {"fields": ("grant_method", "nominator_scope", "auto_generate_certificate")}),
         (
             "Cycle rules",

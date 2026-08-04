@@ -1281,7 +1281,7 @@ class ToggleNatoffView(LoginRequiredMixin, View):
         if instance.hide_natoff:
             messages.info(
                 request,
-                "National officer functionality is now hidden — you are viewing the "
+                "National officer functionality is now hidden. You are viewing the "
                 "site as a member. Use the account menu to show it again.",
             )
         else:

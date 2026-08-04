@@ -18,7 +18,11 @@
             <p class="text-muted mb-2">
               {{ object.school }}
               <span class="mx-2">&middot;</span>
-              {{ object.region }} Region
+              {% if object.region.slug %}
+                <a href="{% url 'regions:detail' object.region.slug %}">{{ object.region }} Region</a>
+              {% else %}
+                {{ object.region }} Region
+              {% endif %}
             </p>
             {% if region_directors %}
               <p class="mb-1 small">
@@ -76,7 +80,7 @@
                 {% if object.tax %}
                   <div class="h4 mb-0 fw-semibold">{{ object.tax }}</div>
                 {% else %}
-                  <div class="h6 mb-0 fw-semibold text-muted">&mdash;</div>
+                  <div class="h6 mb-0 fw-semibold text-muted">None</div>
                 {% endif %}
                 <div class="text-muted small text-uppercase">Tax ID</div>
                 {% if not object.tax and group_tax_form_url %}
@@ -345,5 +349,19 @@
       }
     });
   });
+
+  // Deep links from the feature catalog name an accordion item, which is closed
+  // by default -- open it, or the link lands on a heading that hides the control.
+  (function () {
+    var id = window.location.hash.slice(1);
+    if (!id) {
+      return;
+    }
+    var item = document.getElementById(id);
+    var panel = item && item.classList.contains('accordion-item') ? item.querySelector('.accordion-collapse') : null;
+    if (panel && !panel.classList.contains('show')) {
+      bootstrap.Collapse.getOrCreateInstance(panel).show();
+    }
+  })();
 </script>
 {% endblock %}

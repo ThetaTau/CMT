@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+﻿{% extends "base.html" %}
 {% block title %}Events Calendar{% endblock %}
 
 {% block content %}
@@ -121,7 +121,7 @@
                     <td>
                       {% if event.is_national %}<span class="badge bg-primary">National</span>
                       {% elif event.chapter %}<a href="{% url 'chapters:detail' event.chapter.slug %}">{{ event.chapter.name }}</a>
-                      {% else %}&mdash;{% endif %}
+                      {% else %}None{% endif %}
                     </td>
                     <td>{% include "events/_rsvp_control.html" with event=event my_status=event.my_status member_can_rsvp=event.member_can_rsvp %}</td>
                   </tr>

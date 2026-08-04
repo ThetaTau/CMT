@@ -8,18 +8,38 @@
     }
   </style>
 {% load plotly_dash %}
+<div>
   <h1>Announcements</h1>
   <hr>
-  {% for announcement in announcements %}
-    <div class="card bg-body-tertiary text-body">
-      <div class="card-body">
-        <h5 class="card-title">{{ announcement.title }}</h5>
-        {{ announcement.content|sanitize_html }}
-      </div>
-      <div class="card-footer bg-transparent text-muted">Published: {{ announcement.publish_start }}</div>
-    </div>
-    <hr>
+  {% for item in whats_new %}
+    {% if not item.is_acknowledged %}
+      {% include "guides/_whats_new_item.html" with item=item source="badge" show_ack=True %}
+    {% endif %}
   {% endfor %}
+  {% if seen_count %}
+    <p>
+      <button class="btn btn-sm btn-outline-secondary"
+              type="button"
+              data-bs-toggle="collapse"
+              data-bs-target="#tt-whats-new-seen"
+              aria-expanded="false"
+              aria-controls="tt-whats-new-seen">
+        Past announcements ({{ seen_count }})
+      </button>
+    </p>
+    <div class="collapse" id="tt-whats-new-seen">
+      {% for item in whats_new %}
+        {% if item.is_acknowledged %}
+          {% include "guides/_whats_new_item.html" with item=item source="badge" show_ack=False %}
+        {% endif %}
+      {% endfor %}
+    </div>
+  {% endif %}
+  <p><a href="{% url 'guides:whats-new' %}">See all updates</a></p>
+</div>
+  <hr>
+{% include "guides/_role_guide_card.html" %}
+<div>
 <h2>Incomplete Tasks:</h2>
   <p>Tasks are to help the officers of the chapter to remember to complete tasks in a timely manner. Some tasks have
     forms/submissions associated with them. You should try to complete the form or submit the appropriate document
@@ -29,6 +49,7 @@
     pre-alumn form or "Our chapter does not do lock-ins"). In those cases, simply click the "Mark Complete" button in the task page,
       as you acknowledge the task no longer needs to be completed.</p>
 {% render_table table %}
+</div>
 <h2>Chapter Dashboard:</h2>
 {% if dashboard_scope %}<div id="cmt-dashboard-scope" data-scope="{{ dashboard_scope }}" hidden></div>{% endif %}
 <div class="tt-dashboard-wrapper">

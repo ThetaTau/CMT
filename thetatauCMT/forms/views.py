@@ -63,6 +63,7 @@ from core.views import (
 from thetatauCMT.chapters.models import Chapter, ChapterCurricula
 from thetatauCMT.configs.models import Config
 from thetatauCMT.forms.notifications import CentralOfficeGenericEmail, TreasurerTermException
+from thetatauCMT.guides import services as guide_services
 from thetatauCMT.regions.models import Region
 from thetatauCMT.scores.models import ScoreType
 from thetatauCMT.submissions.models import Submission
@@ -251,20 +252,138 @@ STATUS_CHANGE_TYPES = {
 }
 
 
+# Purpose groups for the forms landing (TWI-9b). Configuration, not markup: the
+# copy for each row lives in the feature registry, and this only says which
+# registry entries belong together and in what order. Everything visible in the
+# `forms-workflows` area that no group claims still renders, under "Everything
+# else", so adding a registry entry can never make a form disappear from here.
+# ``chip`` is the short form of ``label`` used by the filter buttons, which need
+# to sit on one line.
+FORM_GROUPS = [
+    {
+        "key": "membership",
+        "label": "Members joining, changing and leaving",
+        "chip": "Membership",
+        "description": (
+            "Anything that changes who is on your roster. These drive what the chapter is invoiced, "
+            "so file them promptly rather than in a batch at the end of term."
+        ),
+        "features": [
+            "pledge-form",
+            "pledge-pins",
+            "new-member-education-program",
+            "all-nme-programs",
+            "initiation-report",
+            "roll-book-page",
+            "status-change-graduate",
+            "status-change-coop",
+            "status-change-military",
+            "status-change-withdraw",
+            "status-change-transfer",
+            "premature-alumnus",
+            "return-student",
+            "resignation",
+            "resignations-list",
+            "alumni-exclusion",
+            "alumni-exclusion-list",
+        ],
+    },
+    {
+        "key": "administration",
+        "label": "Officer and chapter administration",
+        "chip": "Administration",
+        "description": "Who holds office, what the chapter's governing documents say, and reporting to headquarters.",
+        "features": [
+            "chapter-officers",
+            "submit-chapter-officers",
+            "national-officers-directory",
+            "chapter-bylaws",
+            "all-bylaws",
+            "convention-form",
+            "all-convention-forms",
+            "gear-article",
+            "all-gear-articles",
+        ],
+    },
+    {
+        "key": "risk",
+        "label": "Risk and compliance",
+        "chip": "Risk",
+        "description": "The obligations the fraternity's insurance and its standards depend on. None of these is optional.",
+        "features": [
+            "risk-management-policies",
+            "all-rmp-signatures",
+            "hs-education-program",
+            "all-hs-education-reports",
+            "disciplinary-process",
+            "bill-of-rights",
+            "ritual-proficiency",
+        ],
+    },
+    {
+        "key": "money",
+        "label": "Money",
+        "chip": "Money",
+        "description": "The chapter's finances, and what to do when a member will not pay.",
+        "features": [
+            "chapter-audit-form",
+            "all-audits",
+            "collection-referral",
+        ],
+    },
+    {
+        "key": "recognition",
+        "label": "Recognition and voting",
+        "chip": "Recognition",
+        "description": "Putting members forward, and the ballots the chapter casts.",
+        "features": [
+            "osm-form",
+            "all-osm-forms",
+            "award-nomination",
+            "award-catalog",
+            "award-winners-directory",
+            "grant-an-award",
+            "nominate-for-national-office",
+            "all-volunteer-nominations",
+            "my-ballots",
+        ],
+    },
+    {
+        "key": "national",
+        "label": "National administration",
+        "chip": "National",
+        "description": "Bulk tools for national events. Only National Officers see this section.",
+        "features": [
+            "national-attendance-upload",
+            "attendance-match-queue",
+        ],
+    },
+]
+
+
 class FormLanding(LoginRequiredMixin, TemplateView):
+    """The forms landing, rebuilt from the feature registry (TWI-9b).
+
+    The old page was one alphabetical table that users described as useless. This
+    one groups by what you are trying to get done, pins the forms your own office
+    owns, and shows live due dates from the same ``tasks.Task`` rows the home page
+    reads -- so it answers "what do I owe" rather than "what forms exist".
+
+    Nothing about it is hand-maintained: rows, copy, audiences and feature flags
+    all come from ``guides/fixtures/feature_registry.json``.
+    """
+
     template_name = "forms/landing.html"
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        candidate = False
-        if self.request.user.is_authenticated:
-            chapter = self.request.user.current_chapter
-            candidate = bool(chapter and chapter.candidate_chapter)
-        context["status_change_types"] = [
-            {"reason": reason, "label": info["label"], "description": info["description"]}
-            for reason, info in STATUS_CHANGE_TYPES.items()
-            if not info["candidate_only"] or candidate
-        ]
+        user = self.request.user
+        groups = guide_services.get_feature_groups(user, FORM_GROUPS, fallback_area_key="forms-workflows")
+        context["groups"] = groups
+        context["duty_roles"] = sorted(guide_services.get_duty_roles(user))
+        # "For your role" is a pinned view of rows already on the page rather than
+        # a second query: the same entry object appears in both places.
+        context["mine"] = [entry for group in groups for entry in group["entries"] if entry["duty_roles"]]
         return context
 
 
@@ -1054,7 +1173,7 @@ class RoleChangeEditView(LoginRequiredMixin, UpdateView):
         if request.user.is_authenticated and not self.role_change.can_be_edited_by(request.user):
             messages.error(
                 request,
-                "You cannot edit this role — either it is no longer current or "
+                "You cannot edit this role. Either it is no longer current or "
                 "you do not have permission to change it.",
             )
             return HttpResponseRedirect(self._list_url())

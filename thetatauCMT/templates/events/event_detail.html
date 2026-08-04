@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+﻿{% extends "base.html" %}
 {% load static %}
 
 {% block title %}Event: {{ object.name }}{% endblock %}
@@ -93,7 +93,7 @@
       <tr><th scope="row">Date</th><td>{{ object.date }}</td></tr>
       <tr><th scope="row">Type</th><td>{{ object.type }}</td></tr>
       <tr><th scope="row">Chapter</th><td>{{ object.chapter|default:"National (org-wide)" }}</td></tr>
-      <tr><th scope="row">Region</th><td>{{ object.effective_region|default:"—" }}</td></tr>
+      <tr><th scope="row">Region</th><td>{{ object.effective_region|default:"None" }}</td></tr>
       <tr><th scope="row">Open to Other Chapters</th><td>{{ object.is_public|yesno:"Yes,No" }}</td></tr>
       <tr><th scope="row">Approval status</th><td>{{ object.get_approval_status_display }}</td></tr>
       {% if object.reviewed_by %}
@@ -200,10 +200,10 @@
               <td>{{ rec.get_status_display }}</td>
               <td>{{ rec.was_active|yesno:"Yes,No" }}</td>
               <td>
-                {% if rec.chapter %}<a href="{% url 'chapters:detail' rec.chapter.slug %}">{{ rec.chapter.name }}</a>{% else %}—{% endif %}
+                {% if rec.chapter %}<a href="{% url 'chapters:detail' rec.chapter.slug %}">{{ rec.chapter.name }}</a>{% else %}None{% endif %}
                 {% if rec.is_guest %} <span class="badge bg-info text-dark">guest</span>{% endif %}
               </td>
-              <td>{% if rec.recorded_by %}<a href="{% url 'users:profile' rec.recorded_by.username %}">{{ rec.recorded_by.name }}</a>{% else %}—{% endif %}</td>
+              <td>{% if rec.recorded_by %}<a href="{% url 'users:profile' rec.recorded_by.username %}">{{ rec.recorded_by.name }}</a>{% else %}None{% endif %}</td>
             </tr>
           {% endfor %}
         </tbody>

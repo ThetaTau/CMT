@@ -1,0 +1,39 @@
+{% load custom_tags %}{% comment %}
+One What's New entry (TWI-6). Shared by the home page, the modal and the
+archive so a "Got it" looks and behaves identically wherever it appears.
+
+Context:
+  item          normalized dict from guides.services.get_whats_new
+  source        which affordance this render is, e.g. "badge" or "modal"
+  show_ack      render the Got it button (off in the modal, which dismisses in bulk)
+{% endcomment %}
+<div class="card bg-body-tertiary text-body mb-3 tt-whats-new-item"
+     data-whats-new-kind="{{ item.kind }}"
+     data-whats-new-id="{{ item.id }}">
+  <div class="card-body">
+    <h5 class="card-title">
+      {{ item.title }}
+      {% if item.kind == "feature" %}<span class="badge text-bg-success align-middle">New</span>{% endif %}
+    </h5>
+    <div class="card-text">{{ item.body|sanitize_html }}</div>
+  </div>
+  <div class="card-footer bg-transparent text-muted d-flex flex-wrap align-items-center gap-2">
+    {% if item.date %}<span class="me-auto">Published: {{ item.date }}</span>{% endif %}
+    {% if item.url %}
+      <a class="btn btn-sm btn-outline-primary"
+         href="{{ item.url }}"
+         data-whats-new-visit
+         data-ack-url="{% url 'guides:acknowledge' %}">Take me there</a>
+    {% endif %}
+    {% if show_ack and item.is_dismissible and not item.is_acknowledged %}
+      <form method="post" action="{% url 'guides:acknowledge' %}" class="d-inline tt-whats-new-ack">
+        {% csrf_token %}
+        <input type="hidden" name="kind" value="{{ item.kind }}">
+        <input type="hidden" name="id" value="{{ item.id }}">
+        <input type="hidden" name="source" value="{{ source|default:'badge' }}">
+        <input type="hidden" name="next" value="{{ request.get_full_path }}">
+        <button type="submit" class="btn btn-sm btn-primary">Got it</button>
+      </form>
+    {% endif %}
+  </div>
+</div>

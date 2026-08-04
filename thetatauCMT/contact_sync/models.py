@@ -79,7 +79,7 @@ class UserContactSyncToken(TimeStampedModel):
         models.CharField(max_length=100),
         default=list,
         blank=True,
-        help_text="Scopes to push on each scheduled run — 'national' or 'region:<slug>'.",
+        help_text="Scopes to push on each scheduled run: 'national' or 'region:<slug>'.",
     )
 
     class Meta:
@@ -87,7 +87,7 @@ class UserContactSyncToken(TimeStampedModel):
         ordering = ("provider", "user_id")
 
     def __str__(self) -> str:  # pragma: no cover - trivial
-        return f"{self.get_provider_display()} — {self.account_email or self.user}"
+        return f"{self.get_provider_display()}: {self.account_email or self.user}"
 
     # ------------------------------------------------------------------ helpers
     def get_access_token(self) -> str:

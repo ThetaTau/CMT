@@ -89,7 +89,7 @@ class Command(BaseCommand):
                 self.stdout.write(f"  would archive: {task_date}")
             if count > 50:
                 self.stdout.write(f"  ... and {count - 50} more")
-            self.stdout.write(self.style.WARNING("Dry run — nothing changed."))
+            self.stdout.write(self.style.WARNING("Dry run, nothing changed."))
             return
 
         updated = qs.update(

@@ -1,4 +1,4 @@
-{% comment %}
+﻿{% comment %}
 Results fragment for the member-communication page, loaded asynchronously so the
 page shell isn't blocked on the (slower) Mailjet API. Rendered by
 MemberCommunicationResultsView.
@@ -19,7 +19,7 @@ MemberCommunicationResultsView.
         Messages sent
       {% endif %}
       <small class="text-body-secondary">
-        &mdash; {{ emails_checked|join:", " }}
+        for {{ emails_checked|join:", " }}
       </small>
     </h5>
     <div class="d-flex align-items-center gap-2">
@@ -38,16 +38,16 @@ MemberCommunicationResultsView.
     <div class="mb-2 small text-body-secondary">
       <i class="fa fa-filter me-1"></i>Filtered results
       {% if selected_user %}
-        &mdash; <a href="?member={{ selected_user.id }}">clear filters</a>
+        (<a href="?member={{ selected_user.id }}">clear filters</a>)
       {% elif emails_checked %}
-        &mdash; <a href="?email={{ emails_checked.0|urlencode }}">clear filters</a>
+        (<a href="?email={{ emails_checked.0|urlencode }}">clear filters</a>)
       {% endif %}
     </div>
     {% if scan_capped %}
       <div class="alert alert-info py-2 small" role="alert">
         <i class="fa fa-circle-info me-1"></i>
         Search scans up to the {{ search_scan_limit }} most recent messages per address
-        (within any date range selected). Older matches may not appear &mdash; narrow the
+        (within any date range selected). Older matches may not appear, so narrow the
         date range to look further back.
       </div>
     {% endif %}
@@ -71,7 +71,7 @@ MemberCommunicationResultsView.
           {% for msg in email_rows %}
             <tr>
               <td class="text-nowrap">
-                {% if msg.sent_at %}{{ msg.sent_at|date:"Y-m-d H:i" }}{% else %}&mdash;{% endif %}
+                {% if msg.sent_at %}{{ msg.sent_at|date:"Y-m-d H:i" }}{% else %}None{% endif %}
               </td>
               <td>
                 {{ msg.subject_display }}
@@ -89,7 +89,7 @@ MemberCommunicationResultsView.
                 {% if msg.has_tracking %}
                   {{ msg.opens }} / {{ msg.clicks }}
                 {% else %}
-                  <span class="text-body-secondary">&mdash;</span>
+                  <span class="text-body-secondary">None</span>
                 {% endif %}
               </td>
               <td><span class="badge bg-secondary-subtle text-body-emphasis border">{{ msg.source }}</span></td>
@@ -119,14 +119,14 @@ MemberCommunicationResultsView.
                 <td colspan="7" class="bg-body-tertiary">
                   <div class="small">
                     <div class="fw-semibold mb-1">
-                      Activity history &mdash; {{ msg.history_events|length }} record{{ msg.history_events|length|pluralize }}
+                      Activity history: {{ msg.history_events|length }} record{{ msg.history_events|length|pluralize }}
                     </div>
                     <ul class="list-unstyled mb-0">
                       {% for ev in msg.history_events %}
                         <li class="mb-1">
                           <span class="badge text-bg-{{ ev.status_class }}">{{ ev.label }}</span>
                           <span class="text-body-secondary">
-                            {% if ev.when %}{{ ev.when|date:"Y-m-d H:i" }}{% else %}&mdash;{% endif %}
+                            {% if ev.when %}{{ ev.when|date:"Y-m-d H:i" }}{% else %}None{% endif %}
                           </span>
                         </li>
                       {% endfor %}

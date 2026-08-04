@@ -146,7 +146,7 @@ def _kpi_card(card_id, label, subtitle=""):
                 className="card-body text-center",
                 children=[
                     html.H6(label, className="card-subtitle text-body-secondary text-uppercase small mb-2"),
-                    html.H3(id=card_id, className="card-title fw-bold mb-1", children="—"),
+                    html.H3(id=card_id, className="card-title fw-bold mb-1", children="0"),
                     html.Div(subtitle, className="text-body-secondary small") if subtitle else None,
                 ],
             ),
@@ -498,7 +498,7 @@ def store_ay(value):
 
 def _kpi_int(value):
     if value is None:
-        return "—"
+        return "None"
     return f"{int(value):,}"
 
 
@@ -561,7 +561,7 @@ def update_kpis(region_slug, ay_start_year):
         finished__lt=ay_end,
     ).count()
 
-    retention = "—"
+    retention = "None"
     if pnms:
         rate = max(0.0, 1.0 - (depledges / pnms)) * 100
         retention = f"{rate:.0f}%"

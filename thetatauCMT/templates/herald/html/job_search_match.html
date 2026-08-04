@@ -20,7 +20,7 @@ Hi{% if user %} {{ user.first_name|default:user.get_username }}{% endif %},
   {% for row in job_rows %}
     <li>
       <a href="{{ row.url }}"><strong>{{ row.job.title }}</strong></a>
-      &mdash; {{ row.job.company }}
+      at {{ row.job.company }}
       {% if row.job.publish_start %}<br><small>Posted {{ row.job.publish_start|date:"M j, Y" }}</small>{% endif %}
     </li>
   {% endfor %}

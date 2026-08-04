@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% load static %}
+{% load render_table from django_tables2 %}
+{% block title %}{{ guide.title }} guide | Theta Tau Chapter Management Tool{% endblock title %}
+{% block content %}
+<div data-role-guide-page="{{ guide.role }}"></div>
+<nav aria-label="breadcrumb">
+  <ol class="breadcrumb">
+    <li class="breadcrumb-item"><a href="{% url 'guides:catalog' %}">What can the CMT do?</a></li>
+    <li class="breadcrumb-item"><a href="{% url 'guides:role-guides' %}">Role guides</a></li>
+    <li class="breadcrumb-item active" aria-current="page">{{ guide.title }}</li>
+  </ol>
+</nav>
+
+<div class="d-flex flex-wrap align-items-center gap-2">
+  <h1 class="mb-0">{{ guide.title }}</h1>
+  {% if is_mine %}<span class="badge text-bg-primary">This is your role</span>{% endif %}
+</div>
+<p class="lead mt-3">{{ guide.summary }}</p>
+
+<h2 class="h4 mt-4">Your open items</h2>
+{% if table.rows %}
+  <p class="text-body-secondary">
+    Everything this role still owes for your chapter, with its due date. This is the same list as your
+    home page, filtered to {{ guide.title }} work.
+  </p>
+  {% render_table table %}
+{% else %}
+  <p class="text-body-secondary">
+    Nothing outstanding for this role in your chapter right now.
+  </p>
+{% endif %}
+
+{% if steps %}
+  <h2 class="h4 mt-4">What you will do, and when</h2>
+  <div class="list-group mb-3">
+    {% for entry in steps %}
+      <div class="list-group-item bg-body-tertiary">
+        <div class="d-flex flex-wrap align-items-center gap-2">
+          <h3 class="h6 mb-0">{{ forloop.counter }}. {{ entry.step.title }}</h3>
+          {% if entry.step.cadence %}
+            <span class="badge rounded-pill text-bg-secondary">{{ entry.step.get_cadence_display }}</span>
+          {% endif %}
+        </div>
+        {% if entry.step.body %}<p class="mb-2 mt-2 small">{{ entry.step.body }}</p>{% endif %}
+        {% if entry.url %}
+          <a class="btn btn-sm btn-outline-primary"
+             href="{{ entry.url }}"
+             data-catalog-link="{{ entry.step.feature.key }}">Take me there</a>
+        {% endif %}
+      </div>
+    {% endfor %}
+  </div>
+{% endif %}
+
+{% if tools %}
+  <h2 class="h4 mt-4">Tools you have access to</h2>
+  <p class="text-body-secondary">
+    Everything in the catalog that belongs to {{ guide.title }} work.
+  </p>
+  <ul>
+    {% for feature in tools %}
+      <li>
+        <a href="{% url 'guides:catalog' %}#area-{{ feature.area.key }}">{{ feature.name }}</a>:
+        {{ feature.short_description }}
+      </li>
+    {% endfor %}
+  </ul>
+{% endif %}
+
+{% if national_tools %}
+  <h2 class="h4 mt-4">National officer tools</h2>
+  <p class="text-body-secondary">
+    Everything else the site opens up to National Officers. These are not specific to
+    {{ guide.title }}. Any National Officer can reach them.
+  </p>
+  <ul>
+    {% for feature in national_tools %}
+      <li>
+        <a href="{% url 'guides:catalog' %}#area-{{ feature.area.key }}">{{ feature.name }}</a>:
+        {{ feature.short_description }}
+      </li>
+    {% endfor %}
+  </ul>
+{% endif %}
+{% endblock content %}
+
+{% block javascript %}
+  {{ block.super }}
+  <script src="{% static 'js/catalog.js' %}"></script>
+{% endblock javascript %}

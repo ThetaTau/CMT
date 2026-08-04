@@ -48,6 +48,21 @@ def test_password():
 
 
 @pytest.fixture
+def feature_registry(db):
+    """Load the real feature registry for tests of registry-driven pages.
+
+    Opt-in rather than part of ``django_db_setup``: the catalog, forms landing,
+    role guides and help hub all render from these rows, but the guides unit
+    tests build their own tiny registries with factories and assert over the
+    whole table. Seeding globally would force every one of those assertions to be
+    scoped against 16 areas and 122 features it does not care about.
+
+    Function-scoped, so the rows roll back with the test's transaction.
+    """
+    call_command("load_feature_registry", verbosity=0)
+
+
+@pytest.fixture
 def auto_login_user(db, client, user_factory, test_password):
     def make_auto_login(user=None, make_officer=False):
         from thetatauCMT.forms.models import RiskManagement

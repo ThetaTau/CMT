@@ -305,6 +305,28 @@ def test_nomination_form_exposes_award_recipient_kinds(client):
     assert kinds[str(chapter_award.pk)] == "chapter"
 
 
+def test_nomination_form_exposes_award_description_and_eligibility(client):
+    # Selecting an award shows what it recognizes and who is eligible; the
+    # template JS reads this award_pk -> details map.
+    award = _nom_award(
+        name="Distinguished Whatsit",
+        description="Recognizes a truly distinguished whatsit.",
+        eligibility="Any member in good standing.",
+    )
+    EligibilityRuleFactory(award_type=award, member_status="active")
+    client.force_login(_view_user())
+    resp = client.get(reverse("viewflow:awards:awardnomination:start"))
+    assert resp.status_code == 200
+    detail = resp.context["award_details"][str(award.pk)]
+    assert detail["name"] == "Distinguished Whatsit"
+    assert detail["description"] == "Recognizes a truly distinguished whatsit."
+    assert detail["eligibility"] == "Any member in good standing."
+    assert detail["eligibility_bullets"] == ["Active student members"]
+    assert detail["winners_url"] == reverse("awards:type_winners", args=[award.pk])
+    # The map is embedded for the template JS to read.
+    assert "award-details" in resp.content.decode()
+
+
 def test_osm_award_excluded_from_nominatable():
     # The Outstanding Student Member award is granted only through the forms-app
     # OSM flow; it must never appear in the awards nomination list, even when

@@ -1,5 +1,95 @@
 {% extends "base.html" %}
+{% load i18n %}
+{% block title %}{% trans "Help" %} | Theta Tau Chapter Management Tool{% endblock title %}
 {% block content %}
-<iframe width=100%, height=700 src="https://docs.google.com/document/d/e/2PACX-1vQCyqu-bRF336X8eCzFfQO0EUNkUPiFekqozq3mPQDKoJK0oyzbDCiPHwDVSGRlcYOZo98EEu7wygdJ/pub?embedded=true">
-</iframe>
+<h1>{% trans "Help" %}</h1>
+
+{% if not request.user.is_authenticated %}
+  <p class="lead">
+    {% trans "You are not signed in, so this page covers getting in. Sign in to see help for everything else." %}
+  </p>
+{% else %}
+  <p class="lead">{% trans "Three questions the CMT can answer about itself." %}</p>
+{% endif %}
+
+<div class="row row-cols-1 row-cols-md-2 g-3 mb-4">
+  <div class="col">
+    <div class="card h-100 bg-body-tertiary text-body">
+      <div class="card-body">
+        <h2 class="h5 card-title">{% trans "What can the CMT do?" %}</h2>
+        <p class="card-text">
+          {% trans "Every feature, grouped and searchable, with a direct link to each one." %}
+        </p>
+        <a class="btn btn-primary" href="{% url 'guides:catalog' %}">{% trans "Browse everything" %}</a>
+      </div>
+    </div>
+  </div>
+
+  {% if request.user.is_authenticated %}
+    <div class="col">
+      <div class="card h-100 bg-body-tertiary text-body">
+        <div class="card-body">
+          <h2 class="h5 card-title">{% trans "What am I responsible for?" %}</h2>
+          {% if role_guides %}
+            <p class="card-text">
+              {% trans "What your office owns, what falls due when, and where each form lives." %}
+            </p>
+            <div class="d-flex flex-wrap gap-2">
+              {% for guide in role_guides %}
+                <a class="btn btn-primary"
+                   href="{{ guide.get_absolute_url }}"
+                   data-role-guide="{{ guide.role }}">{{ guide.title }}</a>
+              {% endfor %}
+            </div>
+          {% else %}
+            <p class="card-text">
+              {% trans "A short guide for each office: what it owns, what falls due when, and where each form lives." %}
+            </p>
+            <a class="btn btn-outline-primary" href="{% url 'guides:role-guides' %}">{% trans "See the role guides" %}</a>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <div class="col">
+      <div class="card h-100 bg-body-tertiary text-body">
+        <div class="card-body">
+          <h2 class="h5 card-title">{% trans "What's new?" %}</h2>
+          <p class="card-text">
+            {% trans "Recent announcements and newly released features, including ones you have already dismissed." %}
+          </p>
+          <a class="btn btn-primary" href="{% url 'guides:whats-new' %}">{% trans "See all updates" %}</a>
+        </div>
+      </div>
+    </div>
+  {% endif %}
+</div>
+
+{% if not request.user.is_authenticated %}
+  {% for group in catalog %}
+    <section class="mb-4">
+      <h2 class="h4">{{ group.area.name }}</h2>
+      <p class="text-body-secondary">{{ group.area.description }}</p>
+      <ul>
+        {% for entry in group.features %}
+          <li>
+            {% if entry.url %}
+              <a href="{{ entry.url }}">{{ entry.feature.name }}</a>:
+            {% else %}
+              {{ entry.feature.name }}:
+            {% endif %}
+            {{ entry.feature.short_description }}
+          </li>
+        {% endfor %}
+      </ul>
+    </section>
+  {% endfor %}
+{% endif %}
+
+<h2 class="h4">{% trans "Still stuck?" %}</h2>
+<p>
+  {% blocktrans %}Report a problem or ask for something new on the
+  <a href="https://github.com/VenturaFranklin/thetatauCMT/issues">issue tracker</a>, or email the
+  central office.{% endblocktrans %}
+</p>
 {% endblock content %}

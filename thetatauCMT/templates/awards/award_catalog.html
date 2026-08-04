@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{% trans "Award Catalog" %}{% endblock %}
+
+{% block content %}
+<div class="page-header d-flex flex-wrap align-items-center gap-2 mb-3">
+  <h2 class="page-title mb-0">{% trans "Award Catalog" %}</h2>
+  <div class="page-actions ms-auto d-flex flex-wrap gap-2">
+    <a href="{% url 'awards:directory' %}" class="btn btn-sm btn-outline-primary">
+      <i class="fas fa-trophy"></i> {% trans "All Award Winners" %}
+    </a>
+    <a href="{{ nominate_url }}" class="btn btn-sm btn-primary">
+      <i class="fa fa-user-plus"></i> {% trans "Nominate" %}
+    </a>
+  </div>
+</div>
+
+<p class="text-body-secondary">
+  {% trans "Every award the Fraternity offers, with what it recognizes and who is eligible. Select an award to see everyone who has received it." %}
+</p>
+
+<form method="get" class="row g-2 align-items-end mb-4">
+  <div class="col-sm-5">
+    <label class="form-label mb-1" for="award-catalog-search">{% trans "Search" %}</label>
+    <input type="search" class="form-control" id="award-catalog-search" name="q" value="{{ search }}"
+           placeholder="{% trans 'Award name, description, or eligibility' %}">
+  </div>
+  <div class="col-sm-3">
+    <label class="form-label mb-1" for="award-catalog-level">{% trans "Level" %}</label>
+    <select class="form-select" id="award-catalog-level" name="level">
+      <option value="">{% trans "All levels" %}</option>
+      {% for value, label in level_choices %}
+        <option value="{{ value }}" {% if value == level %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  {% if show_retired %}<input type="hidden" name="show_retired" value="1">{% endif %}
+  <div class="col-sm-4 d-flex gap-2">
+    <button type="submit" class="btn btn-primary"><i class="fa fa-search"></i> {% trans "Filter" %}</button>
+    <a href="{% url 'awards:catalog' %}" class="btn btn-outline-secondary">{% trans "Clear" %}</a>
+  </div>
+</form>
+
+{% if can_view_retired %}
+  <div class="mb-3">
+    {% if show_retired %}
+      <a href="{% url 'awards:catalog' %}" class="btn btn-sm btn-outline-secondary">
+        <i class="fas fa-eye-slash"></i> {% trans "Hide retired awards" %}
+      </a>
+    {% else %}
+      <a href="{% url 'awards:catalog' %}?show_retired=1" class="btn btn-sm btn-outline-secondary">
+        <i class="fas fa-eye"></i> {% trans "Show retired awards" %}
+      </a>
+    {% endif %}
+  </div>
+{% endif %}
+
+{% for category, awards in award_groups %}
+  <h3 class="h5 border-bottom pb-2 mt-4">{{ category|default:_("Other Awards") }}</h3>
+  <div class="row row-cols-1 row-cols-lg-2 g-3">
+    {% for award in awards %}
+      <div class="col">
+        <div class="card h-100">
+          <div class="card-body">
+            <h4 class="card-title h6 mb-2">
+              <a href="{% url 'awards:type_winners' award.pk %}">{{ award.name }}</a>
+              {% if not award.is_active %}<span class="badge bg-secondary">{% trans "Retired" %}</span>{% endif %}
+            </h4>
+            <p class="mb-2">
+              <span class="badge bg-info text-dark">{{ award.get_level_display }}</span>
+              <span class="badge bg-light text-dark">{{ award.get_grant_method_display }}</span>
+              <span class="badge bg-light text-dark">{{ award.get_recurrence_display }}</span>
+              {% if award.single_winner %}
+                <span class="badge bg-light text-dark">{% trans "One winner per period" %}</span>
+              {% endif %}
+            </p>
+            {% if award.description %}
+              <p class="card-text small">{{ award.description }}</p>
+            {% endif %}
+
+            <div class="small">
+              <strong>{% trans "Eligibility" %}</strong>
+              {% if award.eligibility %}
+                <p class="mb-1">{{ award.eligibility }}</p>
+              {% endif %}
+              <ul class="mb-0 ps-3 text-body-secondary">
+                {% for bullet in award.eligibility_bullets %}
+                  <li>{{ bullet }}</li>
+                {% endfor %}
+              </ul>
+            </div>
+
+            {% if award.nominator_scope %}
+              <p class="small text-body-secondary mt-2 mb-0">
+                {% trans "Nominated by:" %} {{ award.get_nominator_scope_display }}
+              </p>
+            {% endif %}
+          </div>
+          <div class="card-footer d-flex flex-wrap align-items-center gap-2 bg-transparent">
+            <a href="{% url 'awards:type_winners' award.pk %}" class="btn btn-sm btn-outline-primary">
+              <i class="fas fa-trophy"></i>
+              {% blocktrans count counter=award.winner_count %}{{ counter }} recipient{% plural %}{{ counter }} recipients{% endblocktrans %}
+            </a>
+            {% if award.can_nominate %}
+              <a href="{{ nominate_url }}?award_type={{ award.pk }}" class="btn btn-sm btn-primary ms-auto">
+                <i class="fa fa-user-plus"></i> {% trans "Nominate" %}
+              </a>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+{% empty %}
+  <div class="alert alert-info">{% trans "No awards match your search." %}</div>
+{% endfor %}
+{% endblock content %}

@@ -1,6 +1,8 @@
 {% for award in award_badges %}
-  <img src="{{ award.badge_image.url }}" alt="{{ award.name }}" title="{{ award.name }}"
-       class="award-badge-icon" style="height:1.2em;width:auto;vertical-align:middle;">
+  <a href="{% url 'awards:type_winners' award.pk %}">
+    <img src="{{ award.badge_image.url }}" alt="{{ award.name }}" title="{{ award.name }}"
+         class="award-badge-icon" style="height:1.2em;width:auto;vertical-align:middle;">
+  </a>
 {% endfor %}
 {% for badge in officer_badges %}
   {% if badge.badge_image %}

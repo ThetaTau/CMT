@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}Role guides | Theta Tau Chapter Management Tool{% endblock title %}
+{% block content %}
+<h1>Role guides</h1>
+<p class="lead">
+  What each office is responsible for, what falls due when, and where each form lives.
+  Anyone can read any guide. A Regent often needs to know what the Scribe owes.
+</p>
+
+{% if mine %}
+  <h2 class="h4">Yours</h2>
+  <div class="list-group mb-4">
+    {% for guide in mine %}
+      <a class="list-group-item list-group-item-action bg-body-tertiary"
+         href="{{ guide.get_absolute_url }}"
+         data-role-guide="{{ guide.role }}">
+        <strong>{{ guide.title }}</strong>
+        <div class="small text-body-secondary">{{ guide.summary }}</div>
+      </a>
+    {% endfor %}
+  </div>
+  <h2 class="h4">Every role</h2>
+{% else %}
+  <div class="alert alert-info" role="alert">
+    You do not currently hold an office in this system, so none of these is yours yet.
+    If you have just been elected, ask your Scribe to file the officer election report.
+  </div>
+{% endif %}
+
+<div class="list-group">
+  {% for guide in guides %}
+    <a class="list-group-item list-group-item-action bg-body-tertiary"
+       href="{{ guide.get_absolute_url }}"
+       data-role-guide="{{ guide.role }}">
+      <strong>{{ guide.title }}</strong>
+      <div class="small text-body-secondary">{{ guide.summary }}</div>
+    </a>
+  {% empty %}
+    <p>No role guides have been published yet.</p>
+  {% endfor %}
+</div>
+{% endblock content %}

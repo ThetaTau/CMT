@@ -2,6 +2,8 @@ import django_tables2 as tables
 from django.urls import reverse
 from django.utils.safestring import mark_safe
 
+from core.tables import CMTTable
+
 
 def get_value_from_a(value):
     if value == "":
@@ -14,7 +16,7 @@ def get_value_from_a(value):
         return ""  # Value is not a task
 
 
-class RegionChapterTaskTable(tables.Table):
+class RegionChapterTaskTable(CMTTable):
     task_name = tables.Column("task_name")
     task_owner = tables.Column("task_owner")
     school_type = tables.Column("school_type")
