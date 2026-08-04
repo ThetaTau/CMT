@@ -143,6 +143,26 @@ GREEK_ABR = {
 }
 
 
+def advisors_in(members):
+    """Advisors within a ``User`` queryset: faculty advisors plus alumni advisory roles.
+
+    Takes a queryset so callers can span many chapters in one query instead of
+    OR-ing one queryset per chapter (which blows Django's subquery alias limit).
+    """
+    return members.filter(
+        models.Q(current_status="advisor") | models.Q(current_roles__overlap=list(ADVISOR_ROLES))
+    ).annotate(
+        role=models.Case(
+            models.When(
+                models.Q(current_roles__overlap=list(ADVISOR_ROLES)),
+                Concat(models.Value("Alumni "), "current_roles"),
+            ),
+            default=models.Value("Faculty Advisor"),
+            output_field=models.CharField(),
+        )
+    )
+
+
 class Chapter(models.Model, EmailSignalMixin):
     class Meta:
         ordering = [
@@ -437,22 +457,7 @@ class Chapter(models.Model, EmailSignalMixin):
     @property
     def advisors(self):
         # Do not annotate, need the queryset not a list
-        all_advisors = self.members.filter(
-            current_status="advisor",
-        ) | self.members.filter(
-            current_roles__overlap=list(ADVISOR_ROLES),
-        )
-        all_advisors = all_advisors.annotate(
-            role=models.Case(
-                models.When(
-                    models.Q(current_roles__overlap=list(ADVISOR_ROLES)),
-                    Concat(models.Value("Alumni "), "current_roles"),
-                ),
-                default=models.Value("Faculty Advisor"),
-                output_field=models.CharField(),
-            )
-        )
-        return all_advisors
+        return advisors_in(self.members)
 
     def active_actives(self):
         # Do not annotate, need the queryset not a list
