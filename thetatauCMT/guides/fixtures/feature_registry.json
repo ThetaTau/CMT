@@ -1272,9 +1272,9 @@
           "cadence": "each_term"
         },
         {
-          "title": "Pay the insurance premium",
+          "title": "Pay the H&S Fee premium",
           "body": "Billed annually and separately from dues.",
-          "task": "insurance-payment",
+          "task": "hs-fee-paymenttreasurer",
           "cadence": "annual"
         },
         {
