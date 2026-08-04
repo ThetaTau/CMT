@@ -1,7 +1,7 @@
 import pytest
 
 from thetatauCMT.configs.models import Config
-from thetatauCMT.utils.context_processors import feature_flags
+from thetatauCMT.utils.context_processors import feature_flags, incident_report
 
 
 @pytest.fixture
@@ -42,3 +42,21 @@ def test_feature_flags_reflect_disabled_config(make_config):
     assert result["feature_awards_enabled"] is False
     assert result["feature_jobs_enabled"] is True
     assert result["feature_events_calendar_enabled"] is True
+
+
+@pytest.mark.django_db
+def test_incident_report_url_blank_without_config():
+    assert incident_report(None) == {"incident_report_url": ""}
+
+
+@pytest.mark.django_db
+def test_incident_report_url_strips_markup_and_entities(make_config):
+    make_config("INCIDENT_REPORT_URL", "<p>https://forms.gle/abc?a=1&amp;b=2</p>")
+    result = incident_report(None)
+    assert result["incident_report_url"] == "https://forms.gle/abc?a=1&b=2"
+
+
+@pytest.mark.django_db
+def test_incident_report_url_rejects_non_http_scheme(make_config):
+    make_config("INCIDENT_REPORT_URL", "javascript:alert(1)")
+    assert incident_report(None)["incident_report_url"] == ""

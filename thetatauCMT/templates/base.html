@@ -365,6 +365,25 @@
         <!-- Grid column -->
       </div>
       <!-- Grid row -->
+      {% if incident_report_url %}
+        <!-- Grid row: incident reporting, spans all three columns -->
+        <div class="row">
+          <div class="col-12 mt-4">
+            <div class="d-md-flex align-items-center justify-content-center text-center gap-3 border-top pt-3">
+              <div>
+                <h5 class="fw-bold text-uppercase mb-1">{% trans "See Something, Say Something" %}</h5>
+                <p class="small mb-2 mb-md-0">
+                  {% blocktrans %}Report any violation of the Constitution, the PPM (including Health &amp; Safety), the law or university policy, and any injury however minor, within 48 hours. You may report anonymously. Also call your Regional Director.{% endblocktrans %}
+                </p>
+              </div>
+              <a class="btn btn-sm btn-outline-danger flex-shrink-0" href="{{ incident_report_url }}" target="_blank" rel="noopener noreferrer">
+                <i class="fas fa-triangle-exclamation"></i> {% trans "Submit an Incident Report" %}
+              </a>
+            </div>
+          </div>
+        </div>
+        <!-- Grid row -->
+      {% endif %}
     </div>
     <!-- Footer Links -->
     <hr>
