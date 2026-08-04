@@ -158,5 +158,15 @@
         "description": "Volunteer Nomination follow-up cadence: how many months to wait before re-contacting a nominee who asked to be contacted later. Whole number of months (default 6).",
         "modified": "2026-07-22T00:00:00Z"
     }
+},
+{
+    "model": "configs.config",
+    "pk": null,
+    "fields": {
+        "key": "INCIDENT_REPORT_URL",
+        "value": "",
+        "description": "Link target for the \"See something, say something\" incident reporting section in the site footer. Paste the full https:// address of the Theta Tau Incident Report Form. Leave blank (or set a non http/https value) to hide the footer section entirely.",
+        "modified": "2026-08-03T00:00:00Z"
+    }
 }
 ]
