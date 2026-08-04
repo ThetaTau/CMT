@@ -251,3 +251,55 @@ def test_region_officer_view_csv_includes_generic_column(auto_login_user):
     assert "Generic Officer Email" in content
     assert "regent@generic.example.com" in content
     assert "regentperson@example.com" in content
+
+
+@pytest.mark.django_db
+def test_region_officer_view_many_chapters(auto_login_user):
+    """A region with more chapters than Django's subquery alias limit still renders.
+
+    Both views used to OR one queryset per chapter, which raised
+    ``RecursionError: too many subqueries`` past roughly 60 chapters.
+    """
+    from thetatauCMT.chapters.models import Chapter
+
+    client, user = auto_login_user(make_officer="national")
+    _make_natoff(user, client)
+    region = user.current_chapter.region
+    Chapter.objects.bulk_create(
+        [
+            Chapter(name=f"recursion {index}", slug=f"recursion-{index}", region=region, school=f"School {index}")
+            for index in range(70)
+        ]
+    )
+    officer_url = reverse("regions:officers", kwargs={"slug": region.slug})
+    assert client.get(officer_url).status_code == 200
+    advisor_url = reverse("regions:advisors", kwargs={"slug": region.slug})
+    assert client.get(advisor_url).status_code == 200
+
+
+@pytest.mark.django_db
+def test_region_officer_view_sort_keeps_region_scope(auto_login_user):
+    """Sorting keeps the page scoped to the region in the URL."""
+    from thetatauCMT.chapters.tests.factories import ChapterFactory
+    from thetatauCMT.regions.tests.factories import RegionFactory
+
+    client, user = auto_login_user(make_officer="national")
+    _make_natoff(user, client)
+    region = user.current_chapter.region
+    in_region = ChapterFactory(name="alpha", region=region)
+    in_region.region = region
+    in_region.save(update_fields=["region"])
+    _make_region_officer(in_region, "regent", "inregion@example.com")
+
+    other_region = RegionFactory(name="Elsewhere")
+    out_region = ChapterFactory(name="beta", region=other_region)
+    out_region.region = other_region
+    out_region.save(update_fields=["region"])
+    _make_region_officer(out_region, "regent", "outofregion@example.com")
+
+    url = reverse("regions:officers", kwargs={"slug": region.slug})
+    response = client.get(url, {"sort": "chapter"})
+    assert response.status_code == 200
+    email_list = response.context["email_list"]
+    assert "inregion@example.com" in email_list
+    assert "outofregion@example.com" not in email_list

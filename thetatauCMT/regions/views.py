@@ -12,8 +12,9 @@ from django.views.generic import DetailView, ListView, RedirectView, TemplateVie
 from django_tables2.utils import A
 
 from core.csv_utils import escape_csv_row
+from core.models import CHAPTER_ROLES
 from core.views import LoginRequiredMixin, NatOfficerRequiredMixin, RequestConfig
-from thetatauCMT.chapters.models import Chapter
+from thetatauCMT.chapters.models import Chapter, advisors_in
 from thetatauCMT.contact_sync.context import build_sync_modal_context
 from thetatauCMT.tasks.models import TaskDate
 from thetatauCMT.users.filters import AdvisorListFilter, UserRoleListFilter
@@ -74,10 +75,11 @@ class RegionOfficerView(LoginRequiredMixin, NatOfficerRequiredMixin, DetailView)
         cancel = self.request.GET.get("cancel", False)
         request_get = self.request.GET.copy()
         if cancel:
-            request_get = QueryDict()
-        if not request_get:
-            # Create a mutable QueryDict object, default is immutable
             request_get = QueryDict(mutable=True)
+        if "region" not in request_get:
+            # The filter form always submits ``region``, so anything without it
+            # (sort links, pagination, the CSV button) is not a filter change and
+            # keeps this page's defaults instead of widening to every chapter.
             request_get.setlist(
                 "current_roles",
                 [
@@ -99,10 +101,9 @@ class RegionOfficerView(LoginRequiredMixin, NatOfficerRequiredMixin, DetailView)
                 chapters = active_chapters.filter(region__in=[region])
             elif region_slug == "candidate_chapter":
                 chapters = active_chapters.filter(candidate_chapter=True)
-        all_chapter_officers = User.objects.none()
-        for chapter in chapters:
-            chapter_officers = chapter.get_current_officers()
-            all_chapter_officers = chapter_officers | all_chapter_officers
+        # One query across every chapter. OR-ing a queryset per chapter piles up
+        # subquery aliases and raised RecursionError on the larger regions.
+        all_chapter_officers = User.objects.filter(chapter__in=chapters, current_roles__overlap=CHAPTER_ROLES)
         self.filter = self.filter_class(request_get, queryset=all_chapter_officers, request=self.request)
         self.filter.form.helper = self.formhelper_class()
         # Personal officer emails plus each officer's chapter generic mailbox(es)
@@ -200,10 +201,9 @@ class RegionAdvisorView(LoginRequiredMixin, NatOfficerRequiredMixin, DetailView)
         cancel = self.request.GET.get("cancel", False)
         request_get = self.request.GET.copy()
         if cancel:
-            request_get = QueryDict()
-        if not request_get:
-            # Create a mutable QueryDict object, default is immutable
             request_get = QueryDict(mutable=True)
+        if "region" not in request_get:
+            # See RegionOfficerView: only a filter submit carries ``region``.
             request_get.setlist("region", [self.object])
         self.filter = self.filter_class(request_get)
         chapters = Chapter.objects.exclude(active=False)
@@ -215,9 +215,8 @@ class RegionAdvisorView(LoginRequiredMixin, NatOfficerRequiredMixin, DetailView)
                 chapters = active_chapters.filter(region__in=[region])
             elif region_slug == "candidate_chapter":
                 chapters = active_chapters.filter(candidate_chapter=True)
-        all_chapter_advisors = User.objects.none()
-        for chapter in chapters:
-            all_chapter_advisors = chapter.advisors | all_chapter_advisors
+        # See RegionOfficerView: one query, not one per chapter.
+        all_chapter_advisors = advisors_in(User.objects.filter(chapter__in=chapters))
         self.filter = self.filter_class(request_get, queryset=all_chapter_advisors)
         self.filter.form.helper = self.formhelper_class()
         email_list = ", ".join([x[0] for x in self.filter.qs.values_list("email").distinct()])
