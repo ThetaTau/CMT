@@ -1570,6 +1570,12 @@ class PledgeDemographicsForm(forms.ModelForm):
         initial="",
         required=True,
     )
+    international = forms.ChoiceField(
+        label="Are you considered an international student by your college/university?",
+        choices=[("", ""), (True, "Yes"), (False, "No")],
+        initial="",
+        required=True,
+    )
 
     class Meta:
         model = UserDemographic
@@ -1821,6 +1827,7 @@ class PledgeFormFull(CrispyCompatableMultiModelForm):
                     "demographics-ability_write",
                     "demographics-first_gen",
                     "demographics-english",
+                    "demographics-international",
                 ),
                 AccordionGroup(
                     "BILL OF RIGHTS",

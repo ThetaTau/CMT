@@ -1640,6 +1640,7 @@ def test_user_detail_post_demo_form_valid(auto_login_user):
             "ability": "no_impairment",
             "first_gen": "True",
             "english": "True",
+            "international": "False",
         },
     )
     assert response.status_code in [200, 302]

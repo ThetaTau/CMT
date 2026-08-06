@@ -698,6 +698,13 @@ class UserDemographic(models.Model):
         blank=True,
         null=True,
     )
+    international = models.BooleanField(
+        _("Are you considered an international student by your college/university?"),
+        choices=BOOL_CHOICES,
+        default=None,
+        blank=True,
+        null=True,
+    )
 
 
 class UserAlter(models.Model):

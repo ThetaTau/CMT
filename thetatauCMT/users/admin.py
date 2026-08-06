@@ -160,6 +160,7 @@ class UserDemographicAdmin(admin.ModelAdmin):
         "ability",
         "first_gen",
         "english",
+        "international",
     )
     list_filter = [
         "user__chapter",
@@ -169,6 +170,7 @@ class UserDemographicAdmin(admin.ModelAdmin):
         "ability",
         "first_gen",
         "english",
+        "international",
     ]
     search_fields = ["user__chapter__name"]
 
