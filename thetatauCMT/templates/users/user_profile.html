@@ -69,9 +69,9 @@
         </div>
 
         <div class="flex-grow-1">
-          <h2 class="card-title mb-1">
+          <h1 class="h2 card-title mb-1">
             {% if object.title and object.title != 'none' %}{{ object.get_title_display }} {% endif %}{{ object.name }}{% if object.suffix %}, {{ object.suffix }}{% endif %}
-          </h2>
+          </h1>
           <div class="mb-2">{% if feature_awards_enabled %}{% inline_badges object %}{% endif %}</div>
           <div class="text-body-secondary mb-2 small">
             {% if object.preferred_name and object.preferred_name != object.first_name %}

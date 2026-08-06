@@ -8,7 +8,7 @@
 
 {% block content %}
 <div class="page-header d-flex flex-wrap align-items-center gap-2 mb-3">
-  <h2 class="page-title mb-0">Ballots</h2>
+  <h1 class="page-title mb-0">Ballots</h1>
   {% if request.is_officer %}
     <div class="page-actions">
       <a href="{% url 'ballots:create' %}" class="btn btn-primary">

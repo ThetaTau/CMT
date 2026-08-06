@@ -6,7 +6,7 @@
 {% block content %}
 <div class="container">
   <div class="page-header d-flex flex-wrap align-items-center gap-2 mb-3">
-    <h2 class="page-title mb-0">{{ object.name }}</h2>
+    <h1 class="page-title mb-0">{{ object.name }}</h1>
     <div class="page-actions">
       <a class="btn btn-primary" href="{{ object.get_update_url }}" role="button">Edit</a>
       {% if request.is_officer or request.is_nat_officer or user.is_superuser %}
@@ -38,7 +38,7 @@
   {% if can_review %}
     <div class="card border-warning mb-3">
       <div class="card-body">
-        <h5 class="card-title">Review this event</h5>
+        <h2 class="h5 card-title">Review this event</h2>
         <p class="card-text text-body-secondary mb-2">
           This event is pending approval to be opened to other chapters.
           Approve to make it visible to all chapters, or reject with an optional reason.

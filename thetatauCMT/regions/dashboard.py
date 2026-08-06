@@ -145,8 +145,8 @@ def _kpi_card(card_id, label, subtitle=""):
             children=html.Div(
                 className="card-body text-center",
                 children=[
-                    html.H6(label, className="card-subtitle text-body-secondary text-uppercase small mb-2"),
-                    html.H3(id=card_id, className="card-title fw-bold mb-1", children="0"),
+                    html.Div(label, className="card-subtitle text-body-secondary text-uppercase small mb-2"),
+                    html.Div(id=card_id, className="card-title h3 fw-bold mb-1", children="0"),
                     html.Div(subtitle, className="text-body-secondary small") if subtitle else None,
                 ],
             ),

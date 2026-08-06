@@ -37,6 +37,12 @@ class DatePicker(_DatePicker):
     value well within the same calendar day for any UTC offset.
     """
 
+    def id_for_label(self, id_):
+        # tempus_dominus rewrites "-" to "_" in the id it renders (it builds a
+        # JS function name from it), so on a prefixed form the crispy <label
+        # for="id_user-birth_date"> pointed at an element that did not exist.
+        return id_.replace("-", "_")
+
     def moment_option(self, value):
         opts = super().moment_option(value)
         if "date" in opts and "T" not in opts["date"]:

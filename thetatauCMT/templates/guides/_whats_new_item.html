@@ -11,10 +11,10 @@ Context:
      data-whats-new-kind="{{ item.kind }}"
      data-whats-new-id="{{ item.id }}">
   <div class="card-body">
-    <h5 class="card-title">
+    <h2 class="h5 card-title">
       {{ item.title }}
       {% if item.kind == "feature" %}<span class="badge text-bg-success align-middle">New</span>{% endif %}
-    </h5>
+    </h2>
     <div class="card-text">{{ item.body|sanitize_html }}</div>
   </div>
   <div class="card-footer bg-transparent text-muted d-flex flex-wrap align-items-center gap-2">

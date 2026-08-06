@@ -8,7 +8,7 @@
 
 {% block content %}
 <div class="page-header d-flex flex-wrap align-items-center gap-2 mb-3">
-  <h2 class="page-title mb-0">Risk Management Plans</h2>
+  <h1 class="page-title mb-0">Risk Management Plans</h1>
   <div class="page-actions">
     <form action="" method="GET">
       {% for key, values in request.GET.lists %}{% if key != "csv" %}{% for v in values %}<input type="hidden" name="{{ key }}" value="{{ v }}">{% endfor %}{% endif %}{% endfor %}

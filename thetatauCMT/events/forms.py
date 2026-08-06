@@ -3,6 +3,7 @@ from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Fieldset, Layout, Row, Submit
 from dal import autocomplete, forward
 from django import forms
+from django.forms.utils import pretty_name
 
 from core.models import CHAPTER_OFFICER_CHOICES, user_is_national_officer
 from thetatauCMT.chapters.models import Chapter
@@ -81,6 +82,13 @@ class PictureForm(forms.ModelForm):
             "description",
             "image",
         ]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # This formset renders as a table with labels suppressed, so the only
+        # accessible name each control can get is an aria-label.
+        for name, field in self.fields.items():
+            field.widget.attrs.setdefault("aria-label", field.label or pretty_name(name))
 
 
 class EventForm(forms.ModelForm):

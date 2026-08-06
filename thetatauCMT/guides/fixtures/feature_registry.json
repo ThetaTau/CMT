@@ -110,6 +110,14 @@
           "url_name": "privacy"
         },
         {
+          "key": "appearance-theme",
+          "name": "Light, dark or system appearance",
+          "short_description": "Switch the site between light and dark, or let it follow your device's own setting.",
+          "long_description": "The Appearance menu sits in the top navigation on every page, whether or not you are signed in. 'Match system setting' is the default: the site follows your device's light or dark preference and switches with it, so a phone that goes dark at sunset takes the site with it. Your choice is stored in that browser only, so pick it again on each device you use.",
+          "audience": "public",
+          "url_name": "home"
+        },
+        {
           "key": "about-this-application",
           "name": "About",
           "short_description": "What the Chapter Management Tool is, who maintains it, and how to report a problem.",
