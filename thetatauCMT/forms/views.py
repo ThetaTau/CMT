@@ -974,11 +974,18 @@ def _officer_status_overlap_errors(request, member, role, start, end):
 
 def _current_officer_emails(user):
     """Comma-joined, de-duplicated emails of the current chapter officers/roles
-    for ``user``'s chapter (for the roster's "Copy emails" button)."""
+    for ``user``'s chapter (for the roster's "Copy emails" button).
+
+    Only officers who share their email with ``user`` are listed; chapter
+    officers, National Officers and Admins always see everyone.
+    """
     emails = []
     seen = set()
     for role_change in UserRoleChange.get_current_roles(user).select_related("user"):
-        email = role_change.user.email or role_change.user.email_school
+        officer = role_change.user
+        if not officer.contact_visible_to(user, officer.email_visibility):
+            continue
+        email = officer.email or officer.email_school
         if email and email.lower() not in seen:
             seen.add(email.lower())
             emails.append(email)
@@ -1249,10 +1256,17 @@ class RoleChangeNationalListView(DefaultCurrentPeriodMixin, LoginRequiredMixin, 
         context = super().get_context_data(**kwargs)
         # Bulk "copy emails" of the current national officers (mirrors the old
         # contacts page); the roster table itself is driven by the filter above.
+        # Each officer's own contact-visibility choice decides whether the
+        # viewer gets their address.
         officers, _ = collect_national_officer_contacts()
+        viewer = self.request.user
+        officer_users = User.objects.in_bulk([officer.user_pk for officer in officers])
         emails = []
         seen = set()
         for officer in officers:
+            target = officer_users.get(officer.user_pk)
+            if target is None or not target.contact_visible_to(viewer, target.email_visibility):
+                continue
             for email in officer.emails:
                 if email and email.lower() not in seen:
                     seen.add(email.lower())
@@ -1262,6 +1276,11 @@ class RoleChangeNationalListView(DefaultCurrentPeriodMixin, LoginRequiredMixin, 
         if getattr(self.request, "is_nat_officer", False):
             context.update(build_sync_modal_context(self.request, NATIONAL_SCOPE))
         return context
+
+    def get_table_kwargs(self):
+        kwargs = super().get_table_kwargs()
+        kwargs["viewer"] = self.request.user
+        return kwargs
 
 
 class RoleChangeNationalCreateView(LoginRequiredMixin, SuperuserRequiredMixin, CreateView):

@@ -140,6 +140,7 @@ class RegionOfficerView(LoginRequiredMixin, NatOfficerRequiredMixin, DetailView)
             data=self.filter.qs,
             natoff=True,
             admin=admin,
+            viewer=self.request.user,
             extra_columns=[
                 (
                     "chapter",
@@ -226,6 +227,7 @@ class RegionAdvisorView(LoginRequiredMixin, NatOfficerRequiredMixin, DetailView)
             data=self.filter.qs,
             natoff=True,
             admin=admin,
+            viewer=self.request.user,
             extra_columns=[
                 (
                     "chapter",

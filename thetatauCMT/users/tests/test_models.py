@@ -87,16 +87,42 @@ def test_contact_visible_to_chapter_only_same_chapter():
 
 
 @pytest.mark.django_db
-def test_contact_visible_to_officers_only_same_chapter_officer():
+def test_contact_visible_to_chapter_officer_always_sees():
+    """Officers can always see their own chapter's members, even at 'no_one'."""
     chapter = ChapterFactory(name=_GREEK_NAMES[0])
     owner = UserFactory(chapter=chapter)
     officer = _in_group(UserFactory(chapter=chapter), "officer")
     plain_member = UserFactory(chapter=chapter)
     other_officer = _in_group(UserFactory(chapter=ChapterFactory(name=_GREEK_NAMES[1])), "officer")
+    assert owner.contact_visible_to(officer, CONTACT_VISIBILITY_NO_ONE) is True
+    assert owner.contact_visible_to(plain_member, CONTACT_VISIBILITY_NO_ONE) is False
+    # An officer of a DIFFERENT chapter must not see it.
+    assert owner.contact_visible_to(other_officer, CONTACT_VISIBILITY_NO_ONE) is False
+
+
+@pytest.mark.django_db
+def test_contact_visible_to_retired_officers_level_behaves_like_no_one():
+    """Rows saved at the retired 'officers' level keep working."""
+    chapter = ChapterFactory(name=_GREEK_NAMES[0])
+    owner = UserFactory(chapter=chapter)
+    officer = _in_group(UserFactory(chapter=chapter), "officer")
+    plain_member = UserFactory(chapter=chapter)
     assert owner.contact_visible_to(officer, CONTACT_VISIBILITY_OFFICERS) is True
     assert owner.contact_visible_to(plain_member, CONTACT_VISIBILITY_OFFICERS) is False
-    # An officer of a DIFFERENT chapter must not see it.
-    assert owner.contact_visible_to(other_officer, CONTACT_VISIBILITY_OFFICERS) is False
+
+
+def test_contact_visibility_choices_drop_the_officers_level():
+    """'officers' is not offered: it now means the same thing as 'no_one'."""
+    from thetatauCMT.users.models import CONTACT_VISIBILITY_CHOICES
+
+    values = [value for value, _ in CONTACT_VISIBILITY_CHOICES]
+    assert values == [
+        CONTACT_VISIBILITY_NO_ONE,
+        CONTACT_VISIBILITY_CHAPTER,
+        CONTACT_VISIBILITY_MEMBERS,
+    ]
+    labels = dict(CONTACT_VISIBILITY_CHOICES)
+    assert labels[CONTACT_VISIBILITY_NO_ONE] == "Only National Officers, Admins, and my chapter's officers"
 
 
 @pytest.mark.django_db

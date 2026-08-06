@@ -146,7 +146,7 @@ class ChapterDetailView(LoginRequiredMixin, MultiFormsView):
         if self.request.user.is_national_officer() and not self.request.user.natoff_hidden:
             natoff = True
         admin = self.request.user.is_superuser
-        table = UserTable(data=chapter_officers, natoff=natoff, admin=admin)
+        table = UserTable(data=chapter_officers, natoff=natoff, admin=admin, viewer=self.request.user)
         table.exclude = ("badge_number", "graduation_year")
         RequestConfig(self.request, paginate={"per_page": 100}).configure(table)
         context["table"] = table
@@ -156,7 +156,13 @@ class ChapterDetailView(LoginRequiredMixin, MultiFormsView):
         # Personal officer emails + region email + the chapter's generic officer
         # mailboxes (regent/vice regent/treasurer/scribe/corresponding secretary
         # plus the general chapter address), deduped and blanks dropped.
-        email_parts = [officer.email for officer in chapter_officers]
+        # A personal email is only included when the officer shares it with this
+        # viewer; the generic mailboxes are always the cross-chapter channel.
+        email_parts = [
+            officer.email
+            for officer in chapter_officers
+            if officer.contact_visible_to(self.request.user, officer.email_visibility)
+        ]
         email_parts.extend(chapter.get_generic_chapter_emails())
         seen = set()
         deduped_emails = []

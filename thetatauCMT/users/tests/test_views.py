@@ -613,8 +613,9 @@ def test_profile_owner_sees_own_contact_with_visibility_badge(auto_login_user):
     assert response.context["show_phone"] is True
     content = response.content.decode("UTF-8")
     assert "5559993333" in content
-    # The owner sees the current visibility level for the field.
-    assert "No one (private)" in content
+    # A compact badge shows the level; the full wording is the tooltip.
+    assert "Officers only" in content
+    assert "Who can see your phone number: Only National Officers, Admins, and my chapter" in content
 
 
 @pytest.mark.django_db
@@ -636,6 +637,58 @@ def test_profile_chapter_visibility_only_same_chapter(auto_login_user, user_fact
     assert response.status_code == 200
     assert response.context["show_phone"] is False
     assert b"5559994444" not in response.content
+
+
+# ---------------------------------------------------------------------------
+# UserTable — contact visibility in member tables
+# ---------------------------------------------------------------------------
+
+
+def _user_table_row(target, viewer):
+    from thetatauCMT.users.models import User
+    from thetatauCMT.users.tables import UserTable
+
+    table = UserTable(data=User.objects.filter(pk=target.pk), viewer=viewer)
+    return table.rows[0]
+
+
+@pytest.mark.django_db
+def test_user_table_masks_contact_from_plain_member(user_factory):
+    """A member roster hides contact info the member has not shared."""
+    target = user_factory.create(email="hidden@example.com", phone_number="5557770000")
+    viewer = user_factory.create(chapter=target.chapter)
+    row = _user_table_row(target, viewer)
+    assert row.get_cell_value("email") == "Private"
+    assert row.get_cell_value("phone_number") == "Private"
+    # No mailto link is rendered for a masked address.
+    assert row.get_cell("email") == "Private"
+
+
+@pytest.mark.django_db
+def test_user_table_shows_contact_to_chapter_officer(user_factory):
+    """A chapter's officers always see their own members' contact info."""
+    target = user_factory.create(email="shown@example.com", phone_number="5557771111")
+    viewer = user_factory.create(chapter=target.chapter)
+    group, _ = Group.objects.get_or_create(name="officer")
+    viewer.groups.add(group)
+    row = _user_table_row(target, viewer)
+    assert row.get_cell_value("email") == "shown@example.com"
+    assert row.get_cell_value("phone_number") == "5557771111"
+
+
+@pytest.mark.django_db
+def test_user_table_shows_contact_shared_with_all_members(user_factory):
+    """Opting into 'any member on the site' unmasks the column."""
+    target = user_factory.create(email="public@example.com", email_visibility="members")
+    viewer = user_factory.create()
+    assert _user_table_row(target, viewer).get_cell_value("email") == "public@example.com"
+
+
+@pytest.mark.django_db
+def test_user_table_without_viewer_is_not_masked(user_factory):
+    """System exports (dues CSV, admin bulk export) pass no viewer."""
+    target = user_factory.create(email="export@example.com")
+    assert _user_table_row(target, None).get_cell_value("email") == "export@example.com"
 
 
 # ---------------------------------------------------------------------------
@@ -1067,6 +1120,8 @@ def test_user_form_includes_contact_visibility_fields():
     choices = dict(form.fields["phone_visibility"].choices)
     assert "no_one" in choices
     assert "members" in choices
+    # The retired "my chapter's officers only" level is no longer offered.
+    assert "officers" not in choices
 
 
 @pytest.mark.django_db
@@ -1082,7 +1137,7 @@ def test_user_detail_post_saves_contact_visibility(auto_login_user):
             "phone_number": "5551234567",
             "phone_visibility": "members",
             "email_visibility": "chapter",
-            "address_visibility": "officers",
+            "address_visibility": "no_one",
             "email": user.email,
             "birth_date": "01/01/1990",
             "address_0": "123 Main St",
@@ -1096,7 +1151,7 @@ def test_user_detail_post_saves_contact_visibility(auto_login_user):
     user.refresh_from_db()
     assert user.phone_visibility == "members"
     assert user.email_visibility == "chapter"
-    assert user.address_visibility == "officers"
+    assert user.address_visibility == "no_one"
 
 
 @pytest.mark.django_db

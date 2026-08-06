@@ -2,6 +2,7 @@
 {% load static %}
 {% load render_table from django_tables2 %}
 {% load award_tags %}
+{% load filter_tags %}
 {% block title %}Profile: {{ object.name }}{% endblock %}
 
 {% block content %}
@@ -294,7 +295,7 @@
               <dt class="col-sm-4">Email</dt>
               <dd class="col-sm-8">
                 <a href="mailto:{{ object.email }}">{{ object.email }}</a>
-                {% if is_owner %}<span class="badge bg-body-secondary text-body-secondary border ms-1" title="Who can see your email">{{ object.get_email_visibility_display }}</span>{% endif %}
+                {% if is_owner %}<span class="badge bg-body-secondary text-body-secondary border ms-1" title="Who can see your email: {{ object.get_email_visibility_display }}">{{ object.email_visibility|contact_visibility_short }}</span>{% endif %}
               </dd>
             {% endif %}
             {% if show_email and object.email_school %}
@@ -305,14 +306,14 @@
               <dt class="col-sm-4">Phone</dt>
               <dd class="col-sm-8">
                 {{ object.phone_number }}
-                {% if is_owner %}<span class="badge bg-body-secondary text-body-secondary border ms-1" title="Who can see your phone number">{{ object.get_phone_visibility_display }}</span>{% endif %}
+                {% if is_owner %}<span class="badge bg-body-secondary text-body-secondary border ms-1" title="Who can see your phone number: {{ object.get_phone_visibility_display }}">{{ object.phone_visibility|contact_visibility_short }}</span>{% endif %}
               </dd>
             {% endif %}
             {% if show_address and object.address %}
               <dt class="col-sm-4">Address</dt>
               <dd class="col-sm-8">
                 {{ object.address }}
-                {% if is_owner %}<span class="badge bg-body-secondary text-body-secondary border ms-1" title="Who can see your address">{{ object.get_address_visibility_display }}</span>{% endif %}
+                {% if is_owner %}<span class="badge bg-body-secondary text-body-secondary border ms-1" title="Who can see your address: {{ object.get_address_visibility_display }}">{{ object.address_visibility|contact_visibility_short }}</span>{% endif %}
               </dd>
             {% endif %}
             {% if has_hidden_contact %}

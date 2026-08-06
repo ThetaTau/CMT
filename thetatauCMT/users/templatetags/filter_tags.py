@@ -101,3 +101,11 @@ def can_edit_role(record, user):
         return record.can_be_edited_by(user)
     except AttributeError:
         return False
+
+
+@register.filter
+def contact_visibility_short(value):
+    """Compact badge label for a contact-visibility level."""
+    from thetatauCMT.users.models import CONTACT_VISIBILITY_SHORT_LABELS
+
+    return CONTACT_VISIBILITY_SHORT_LABELS.get(value, "")

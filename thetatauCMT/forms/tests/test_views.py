@@ -2272,6 +2272,7 @@ def test_officer_list_page_has_copy_emails(auto_login_user, user_factory):
     from thetatauCMT.users.models import UserRoleChange
 
     client, user = auto_login_user()
+    _add_to_group(user, "officer")
     chapter = user.chapter
     UserRoleChange.objects.filter(user__chapter=chapter).delete()
     today = timezone.now().date()
@@ -2287,6 +2288,63 @@ def test_officer_list_page_has_copy_emails(auto_login_user, user_factory):
     body = response.content.decode("utf-8")
     assert "Copy emails to clipboard" in body
     assert "scribe-copy@example.com" in response.context["email_list"]
+
+
+@pytest.mark.django_db
+def test_officer_list_copy_emails_respects_contact_visibility(auto_login_user, user_factory):
+    """A plain member only gets the officer emails those officers have shared."""
+    from django.utils import timezone
+
+    from thetatauCMT.users.models import UserRoleChange
+
+    client, user = auto_login_user()
+    chapter = user.chapter
+    UserRoleChange.objects.filter(user__chapter=chapter).delete()
+    today = timezone.now().date()
+    private = user_factory.create(chapter=chapter, email="private-scribe@example.com")
+    shared = user_factory.create(
+        chapter=chapter,
+        email="shared-treasurer@example.com",
+        email_visibility="members",
+    )
+    for member, role in ((private, "scribe"), (shared, "treasurer")):
+        UserRoleChange.objects.create(
+            user=member,
+            role=role,
+            start=today - timezone.timedelta(days=10),
+            end=today + timezone.timedelta(days=300),
+        )
+    response = client.get(reverse("forms:officer"))
+    assert response.status_code == 200
+    email_list = response.context["email_list"]
+    assert "shared-treasurer@example.com" in email_list
+    assert "private-scribe@example.com" not in email_list
+
+
+@pytest.mark.django_db
+def test_national_officer_list_respects_contact_visibility(auto_login_user, user_factory):
+    """The national officer roster masks emails a member has not been given."""
+    from django.utils import timezone
+
+    from thetatauCMT.users.models import UserRoleChange
+
+    client, user = auto_login_user()
+    today = timezone.now().date()
+    officer = user_factory.create(email="private-natoff@example.com")
+    UserRoleChange.objects.create(
+        user=officer,
+        role="regional director",
+        start=today - timezone.timedelta(days=10),
+        end=today + timezone.timedelta(days=300),
+    )
+    response = client.get(reverse("forms:natoff"))
+    assert response.status_code == 200
+    assert "private-natoff@example.com" not in response.context["email_list"]
+    body = response.content.decode("utf-8")
+    # The officer's row is on the page; only the address is withheld.
+    assert officer.name in body
+    assert "mailto:private-natoff@example.com" not in body
+    assert ">private-natoff@example.com<" not in body
 
 
 @pytest.mark.django_db

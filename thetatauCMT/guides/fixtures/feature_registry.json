@@ -78,6 +78,14 @@
           "url_name": "users:detail"
         },
         {
+          "key": "contact-visibility",
+          "name": "Who can see my contact info",
+          "short_description": "Choose who sees your email, phone number and address.",
+          "long_description": "Set separately for your email, phone and address on your own info page. Your chapter's officers, National Officers and Admins can always see your contact details, because they need them to run the chapter and the fraternity. Beyond that you choose: only those officers, every member of your chapter, or any member on the site. The choice applies to your member profile, to member lists and to exports.",
+          "url_name": "users:detail",
+          "url_fragment": "user"
+        },
+        {
           "key": "profile-picture",
           "name": "My profile picture",
           "short_description": "Upload the photo that appears next to your name in the roster and directories.",

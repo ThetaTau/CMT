@@ -47,6 +47,30 @@ def test_chapter_detail_email_list_includes_generic_emails(auto_login_user):
 
 
 @pytest.mark.django_db
+def test_chapter_detail_email_list_respects_officer_privacy(auto_login_user):
+    """A visiting member gets the generic mailboxes, not private officer emails."""
+    from thetatauCMT.users.tests.factories import UserFactory
+
+    client, user = auto_login_user()
+    chapter = ChapterFactory()
+    chapter.email_regent = "regent@generic.example.com"
+    chapter.save(update_fields=["email_regent"])
+    officer = UserFactory(chapter=chapter, email="private.officer@example.com", make_officer="regent")
+    url = reverse("chapters:detail", kwargs={"slug": chapter.slug})
+    response = client.get(url, follow=True)
+    assert response.status_code == 200
+    assert officer in response.context["table"].data
+    email_list = response.context["email_list"]
+    assert "regent@generic.example.com" in email_list
+    assert "private.officer@example.com" not in email_list
+    content = response.content.decode("UTF-8")
+    # The username is the email address, so it still appears in the profile
+    # link; what must not leak is the address as displayed/mailto contact.
+    assert "mailto:private.officer@example.com" not in content
+    assert ">private.officer@example.com<" not in content
+
+
+@pytest.mark.django_db
 def test_chapter_detail_shows_regional_director_link(auto_login_user):
     """The chapter detail page links to the region's Regional Director profile."""
     from thetatauCMT.regions.tests.factories import RegionFactory

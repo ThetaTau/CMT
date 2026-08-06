@@ -83,19 +83,33 @@ class UserTag(models.Model):
 
 
 # Who may see one of a member's contact fields (email / phone / address) on
-# their public profile. National Officers, superusers, and the member
-# themselves can always see the information regardless of this setting.
+# their public profile and in member tables. The member themselves, their
+# chapter's officers, National Officers, and Admins can always see the
+# information regardless of this setting, so the most private level is named
+# for who that really is rather than "no one".
 CONTACT_VISIBILITY_NO_ONE = "no_one"
+# Retired level: saved before chapter officers always had access, so it now
+# means exactly the same thing as CONTACT_VISIBILITY_NO_ONE.
 CONTACT_VISIBILITY_OFFICERS = "officers"
 CONTACT_VISIBILITY_CHAPTER = "chapter"
 CONTACT_VISIBILITY_MEMBERS = "members"
 
 CONTACT_VISIBILITY_CHOICES = [
-    (CONTACT_VISIBILITY_NO_ONE, "No one (private)"),
-    (CONTACT_VISIBILITY_OFFICERS, "My chapter's officers only"),
+    (
+        CONTACT_VISIBILITY_NO_ONE,
+        "Only National Officers, Admins, and my chapter's officers",
+    ),
     (CONTACT_VISIBILITY_CHAPTER, "Members of my chapter"),
     (CONTACT_VISIBILITY_MEMBERS, "Any member on the site"),
 ]
+
+# Compact versions of the labels above, for badges that sit beside a value.
+CONTACT_VISIBILITY_SHORT_LABELS = {
+    CONTACT_VISIBILITY_NO_ONE: "Officers only",
+    CONTACT_VISIBILITY_OFFICERS: "Officers only",
+    CONTACT_VISIBILITY_CHAPTER: "My chapter",
+    CONTACT_VISIBILITY_MEMBERS: "All members",
+}
 
 
 class User(AbstractUser, EmailSignalMixin):
@@ -281,21 +295,30 @@ class User(AbstractUser, EmailSignalMixin):
         max_length=10,
         choices=CONTACT_VISIBILITY_CHOICES,
         default=CONTACT_VISIBILITY_NO_ONE,
-        help_text="Who may see your email addresses on your member profile. National Officers can always see them.",
+        help_text=(
+            "Who may see your email addresses on your member profile and in member lists. "
+            "Your chapter's officers, National Officers, and Admins can always see them."
+        ),
     )
     phone_visibility = models.CharField(
         _("Phone visibility"),
         max_length=10,
         choices=CONTACT_VISIBILITY_CHOICES,
         default=CONTACT_VISIBILITY_NO_ONE,
-        help_text="Who may see your phone number on your member profile. National Officers can always see it.",
+        help_text=(
+            "Who may see your phone number on your member profile and in member lists. "
+            "Your chapter's officers, National Officers, and Admins can always see it."
+        ),
     )
     address_visibility = models.CharField(
         _("Address visibility"),
         max_length=10,
         choices=CONTACT_VISIBILITY_CHOICES,
         default=CONTACT_VISIBILITY_NO_ONE,
-        help_text="Who may see your mailing address on your member profile. National Officers can always see it.",
+        help_text=(
+            "Who may see your mailing address on your member profile and in member lists. "
+            "Your chapter's officers, National Officers, and Admins can always see it."
+        ),
     )
     ##### DENORMALIZED FIELDS #####  # noqa: E266
     current_status = models.CharField(max_length=10)
@@ -512,10 +535,11 @@ class User(AbstractUser, EmailSignalMixin):
         """Whether ``viewer`` may see one of this member's contact fields
         (email / phone / address) given that field's ``visibility`` setting.
 
-        The member themselves, National Officers, and superusers can always
-        see the information; everyone else is limited by the chosen level:
-        ``members`` (any member), ``chapter`` (same chapter), ``officers``
-        (officers of the same chapter), or ``no_one`` (nobody else).
+        The member themselves, officers of their chapter, National Officers,
+        and superusers can always see the information because they need it to
+        run the chapter. Everyone else is limited by the chosen level:
+        ``members`` (any member), ``chapter`` (same chapter), or ``no_one``
+        (nobody else).
         """
         if viewer is None or not getattr(viewer, "is_authenticated", False):
             return False
@@ -523,13 +547,13 @@ class User(AbstractUser, EmailSignalMixin):
             return True
         if viewer.is_superuser or viewer.is_national_officer_group:
             return True
+        same_chapter = viewer.chapter_id == self.chapter_id
+        if same_chapter and viewer.is_chapter_officer_group:
+            return True
         if visibility == CONTACT_VISIBILITY_MEMBERS:
             return True
-        same_chapter = viewer.chapter_id == self.chapter_id
         if visibility == CONTACT_VISIBILITY_CHAPTER:
             return same_chapter
-        if visibility == CONTACT_VISIBILITY_OFFICERS:
-            return same_chapter and viewer.is_chapter_officer_group
         return False
 
     @property
