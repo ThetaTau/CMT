@@ -1,20 +1,27 @@
-"""Populate the job board's `jobs.Major` vocabulary from the chapter curricula.
+"""Load the curated job board major list from ``jobs/fixtures/job_majors.json``.
 
-`ChapterCurricula` holds one row per chapter per major, so the same major
-appears once for every chapter that offers it. The job board needs a single
-row per major, so the import collapses those and any existing `Major` rows
-that differ only by case or surrounding whitespace.
+Each fixture entry is a canonical major plus the spellings seen in the wild
+(typos, ampersands, degree suffixes, department names) that should collapse
+into it. Rows already tagged on a job or a saved search are repointed at the
+canonical row before the duplicate is removed.
 
 Names are stored lowercase to match `VocabularyAutocomplete.create_object`,
-so a major a member types on the job form resolves to the imported row
+so a major a member types on the job form resolves to the curated row
 instead of adding a near-duplicate.
+
+Majors in the database but absent from the fixture are reported, never
+deleted: they may be legitimate entries a member added.
 """
 
-from django.core.management.base import BaseCommand
+import json
+from pathlib import Path
+
+from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 
-from thetatauCMT.chapters.models import ChapterCurricula
 from thetatauCMT.jobs.models import Major
+
+DEFAULT_PATH = Path(__file__).resolve().parent.parent.parent / "fixtures" / "job_majors.json"
 
 
 def normalize(name):
@@ -22,7 +29,7 @@ def normalize(name):
 
 
 class Command(BaseCommand):
-    help = "Populate jobs.Major from the approved chapter curricula, lowercased and without duplicates."
+    help = "Load the curated major list into jobs.Major, merging known spelling variants."
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -31,35 +38,32 @@ class Command(BaseCommand):
             help="Report what would change without writing anything.",
         )
         parser.add_argument(
-            "--include-unapproved",
-            action="store_true",
-            help="Also import curricula still awaiting officer approval.",
+            "--path",
+            default=str(DEFAULT_PATH),
+            help="Major fixture to load. Defaults to the one packaged with the jobs app.",
         )
 
     def handle(self, *args, **options):
         dry_run = options["dry_run"]
-        merged, renamed = self.normalize_existing(dry_run)
-        added = self.add_from_curricula(dry_run, options["include_unapproved"])
-        self.stdout.write(f"{Major.objects.count()} major(s) currently in jobs.Major.")
-        summary = f"merged {merged} duplicate(s), lowercased {renamed}, added {added} new major(s)"
-        if dry_run:
-            self.stdout.write(self.style.WARNING(f"Dry run: would have {summary}. Nothing written."))
-        else:
-            self.stdout.write(self.style.SUCCESS(f"Done: {summary}."))
-
-    def normalize_existing(self, dry_run):
-        """Lowercase Major names, collapsing rows that then collide into the oldest."""
-        groups = {}
-        for major in Major.objects.order_by("pk"):
-            groups.setdefault(normalize(major.name), []).append(major)
-        merged = renamed = 0
-        for clean, majors in groups.items():
-            keeper, extras = majors[0], majors[1:]
-            if extras:
-                self.stdout.write(f"  merging {len(extras)} duplicate(s) into {clean!r}")
-                merged += len(extras)
-            if keeper.name != clean:
-                self.stdout.write(f"  renaming {keeper.name!r} to {clean!r}")
+        canonicals, alias_map = self.load_fixture(Path(options["path"]))
+        groups, unmatched = self.group_existing(alias_map)
+        created = merged = renamed = 0
+        for canonical in canonicals:
+            rows = groups.get(canonical, [])
+            if not rows:
+                created += 1
+                self.stdout.write(f"  adding {canonical!r}")
+                if not dry_run:
+                    Major.objects.create(name=canonical)
+                continue
+            # Prefer a row already named correctly so tagged jobs keep their pk.
+            keeper = next((row for row in rows if normalize(row.name) == canonical), rows[0])
+            extras = [row for row in rows if row.pk != keeper.pk]
+            for extra in extras:
+                self.stdout.write(f"  merging {extra.name!r} into {canonical!r}")
+            merged += len(extras)
+            if keeper.name != canonical:
+                self.stdout.write(f"  renaming {keeper.name!r} to {canonical!r}")
                 renamed += 1
             if dry_run:
                 continue
@@ -71,21 +75,49 @@ class Command(BaseCommand):
                     for job_search in extra.job_searches.all():
                         job_search.majors.add(keeper)
                     extra.delete()
-                if keeper.name != clean:
-                    keeper.name = clean
+                if keeper.name != canonical:
+                    keeper.name = canonical
                     keeper.save(update_fields=["name"])
-        return merged, renamed
+        for major in unmatched:
+            self.stdout.write(self.style.WARNING(f"  kept, not in fixture: {major.name!r}"))
+        summary = (
+            f"added {created}, merged {merged} duplicate(s), renamed {renamed}, "
+            f"left {len(unmatched)} major(s) not in the fixture"
+        )
+        if dry_run:
+            self.stdout.write(self.style.WARNING(f"Dry run: would have {summary}. Nothing written."))
+        else:
+            self.stdout.write(self.style.SUCCESS(f"Done: {summary}."))
 
-    def add_from_curricula(self, dry_run, include_unapproved):
-        curricula = ChapterCurricula.objects.all()
-        if not include_unapproved:
-            curricula = curricula.filter(approved=True)
-        names = {normalize(name) for name in curricula.values_list("major", flat=True)}
-        names.discard("")
-        existing = {normalize(name) for name in Major.objects.values_list("name", flat=True)}
-        added = sorted(names - existing)
-        for name in added:
-            self.stdout.write(f"  adding {name!r}")
-        if not dry_run:
-            Major.objects.bulk_create([Major(name=name) for name in added])
-        return len(added)
+    def load_fixture(self, path):
+        """Return the canonical names in fixture order and a spelling to canonical map."""
+        if not path.exists():
+            raise CommandError(f"Major fixture not found: {path}")
+        try:
+            entries = json.loads(path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError as exc:
+            raise CommandError(f"{path} is not valid JSON: {exc}")
+        if not isinstance(entries, list):
+            raise CommandError(f"{path} must hold a list of majors")
+        canonicals, alias_map = [], {}
+        for entry in entries:
+            canonical = normalize(entry.get("name"))
+            if not canonical:
+                raise CommandError(f"{path} has an entry with no name: {entry!r}")
+            canonicals.append(canonical)
+            for spelling in [canonical] + [normalize(alias) for alias in entry.get("aliases", [])]:
+                if spelling in alias_map and alias_map[spelling] != canonical:
+                    raise CommandError(f"{path} maps {spelling!r} to both {alias_map[spelling]!r} and {canonical!r}")
+                alias_map[spelling] = canonical
+        return canonicals, alias_map
+
+    def group_existing(self, alias_map):
+        """Bucket existing Major rows by the canonical name they belong to."""
+        groups, unmatched = {}, []
+        for major in Major.objects.order_by("pk"):
+            canonical = alias_map.get(normalize(major.name))
+            if canonical is None:
+                unmatched.append(major)
+            else:
+                groups.setdefault(canonical, []).append(major)
+        return groups, unmatched
