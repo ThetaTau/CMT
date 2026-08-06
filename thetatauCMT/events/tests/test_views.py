@@ -157,6 +157,44 @@ def test_event_create_view_regular_user(auto_login_user):
     assert response.status_code in (200, 302, 403)
 
 
+@pytest.mark.django_db
+def test_event_create_view_renders_datepicker(auto_login_user):
+    """The Event Date field must render the tempus-dominus picker, not a bare
+    text input (the create form used to ship the default DateInput)."""
+    client, user = auto_login_user(make_officer="chapter")
+    _make_officer(user, client)
+    response = client.get(reverse("events:add"))
+    assert response.status_code == 200
+    body = response.content.decode("utf-8")
+    assert 'name="date"' in body
+    assert 'data-toggle="datetimepicker"' in body
+    assert "deferDateTimePicker_id_date()" in body
+    # The picker assets have to be on the page for the popup to initialise.
+    assert "tempusdominus-bootstrap-4" in body
+    assert "moment" in body.lower()
+
+
+@pytest.mark.django_db
+def test_event_create_accepts_datepicker_formatted_date(auto_login_user):
+    """The picker writes M/DD/YYYY into the input; that must still validate."""
+    client, user = auto_login_user()
+    _make_chapter_officer(user, client)
+    score_type = _evt_score_type()
+    if score_type is None:
+        pytest.skip("No Evt ScoreType in fixture")
+    today = datetime.date.today()
+    response = client.post(
+        reverse("events:add"),
+        _event_create_post_data(
+            score_type,
+            name="Picker Formatted Date",
+            date=f"{today.month}/{today.day:02d}/{today.year}",
+        ),
+    )
+    assert response.status_code == 302
+    assert Event.objects.get(name="Picker Formatted Date").date == today
+
+
 # ---------------------------------------------------------------------------
 # EventUpdateView
 # ---------------------------------------------------------------------------
@@ -173,6 +211,24 @@ def test_event_update_view_officer(auto_login_user):
     url = event.get_update_url()
     response = client.get(url)
     assert response.status_code == 200
+
+
+@pytest.mark.django_db
+def test_event_update_view_renders_datepicker_with_saved_date(auto_login_user):
+    client, user = auto_login_user(make_officer="chapter")
+    _make_officer(user, client)
+    score_type = ScoreType.objects.filter(type="Evt").first()
+    if score_type is None:
+        pytest.skip("No Evt ScoreType in fixture")
+    event = EventFactory.create(chapter=user.chapter, type=score_type, date=datetime.date(2024, 3, 27))
+    response = client.get(event.get_update_url())
+    assert response.status_code == 200
+    body = response.content.decode("utf-8")
+    assert "deferDateTimePicker_id_date()" in body
+    assert "tempusdominus-bootstrap-4" in body
+    # Bare ISO dates are read as UTC midnight by moment.js, so the widget has
+    # to hand the picker a midday time or it shows the previous day.
+    assert '"date": "2024-03-27T12:00:00"' in body
 
 
 # ---------------------------------------------------------------------------

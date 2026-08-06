@@ -4,9 +4,27 @@ from crispy_forms.layout import Fieldset, Layout, Row, Submit
 from dal import autocomplete, forward
 from django import forms
 
+from core.forms import DatePicker
 from thetatauCMT.users.models import User
 
-from .models import GearArticle, Picture
+from .models import GearArticle, Picture, Submission
+
+
+class SubmissionForm(forms.ModelForm):
+    class Meta:
+        model = Submission
+        fields = [
+            "name",
+            "date",
+            "type",
+            "file",
+        ]
+        widgets = {
+            "date": DatePicker(
+                options={"format": "M/DD/YYYY"},
+                attrs={"autocomplete": "off"},
+            ),
+        }
 
 
 class SubmissionListFormHelper(FormHelper):

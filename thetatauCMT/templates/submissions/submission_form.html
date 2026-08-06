@@ -17,6 +17,7 @@
     {% endif %}
   <form class="form-horizontal" method="post" action="{% url 'submissions:update' submission.id %}">
     {% csrf_token %}
+    {{ form.media }}
     {{ form|crispy }}
     <div class="control-group">
       <div class="controls">

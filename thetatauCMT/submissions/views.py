@@ -27,7 +27,7 @@ from thetatauCMT.scores.models import ScoreType
 from thetatauCMT.tasks.models import Task
 
 from .filters import GearArticleListFilter, SubmissionListFilter
-from .forms import GearArticleForm, GearArticleListFormHelper, PictureForm, SubmissionListFormHelper
+from .forms import GearArticleForm, GearArticleListFormHelper, PictureForm, SubmissionForm, SubmissionListFormHelper
 from .models import GearArticle, Picture, Submission
 from .tables import GearArticleTable, SubmissionTable
 
@@ -63,12 +63,7 @@ class SubmissionCreateView(
     model = Submission
     score_type = "Sub"
     template_name_suffix = "_create_form"
-    fields = [
-        "name",
-        "date",
-        "type",
-        "file",
-    ]
+    form_class = SubmissionForm
     officer_edit = "submissions"
     officer_edit_type = "create"
     success_message = "Submission '%(name)s' was submitted."
@@ -99,12 +94,7 @@ class SubmissionRedirectView(LoginRequiredMixin, RedirectView):
 
 
 class SubmissionUpdateView(LoginRequiredMixin, TypeFieldFilteredChapterAdd, UpdateView):
-    fields = [
-        "name",
-        "date",
-        "type",
-        "file",
-    ]
+    form_class = SubmissionForm
     model = Submission
     score_type = "Sub"
     officer_edit = "submissions"

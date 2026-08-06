@@ -5,6 +5,7 @@ from dal import autocomplete, forward
 from django import forms
 from django.forms.utils import pretty_name
 
+from core.forms import DatePicker
 from core.models import CHAPTER_OFFICER_CHOICES, user_is_national_officer
 from thetatauCMT.chapters.models import Chapter
 from thetatauCMT.regions.models import Region
@@ -126,6 +127,12 @@ class EventForm(forms.ModelForm):
         ]
         labels = {
             "is_public": "Open to Other Chapters",
+        }
+        widgets = {
+            "date": DatePicker(
+                options={"format": "M/DD/YYYY"},
+                attrs={"autocomplete": "off"},
+            ),
         }
         help_texts = {
             "is_public": (

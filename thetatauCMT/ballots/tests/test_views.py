@@ -123,6 +123,41 @@ def test_ballot_create_view_regular_user_redirected(auto_login_user):
 
 
 @pytest.mark.django_db
+def test_ballot_create_view_renders_datepicker(auto_login_user):
+    """Due Date needs the shared picker; the view used to build a default
+    ModelForm from ``fields``, which renders a bare text input."""
+    client, user = auto_login_user(make_officer="national")
+    _make_natoff(user, client)
+    response = client.get(reverse("ballots:create"))
+    assert response.status_code == 200
+    body = response.content.decode("utf-8")
+    assert "deferDateTimePicker_id_due_date()" in body
+    assert 'name="due_date"' in body
+    # Without ``{{ form.media }}`` the widget renders but never initialises.
+    assert "tempusdominus-bootstrap-4" in body
+
+
+@pytest.mark.django_db
+def test_ballot_update_view_renders_datepicker(auto_login_user):
+    client, user = auto_login_user(make_officer="national")
+    _make_natoff(user, client)
+    ballot = Ballot(
+        sender="Grand Scribe",
+        name="Picker Ballot",
+        type="other",
+        description="desc",
+        due_date=datetime.date.today() + timedelta(days=30),
+        voters=["all_chapters"],
+    )
+    ballot.save()
+    response = client.get(reverse("ballots:update", kwargs={"pk": ballot.pk}))
+    assert response.status_code == 200
+    body = response.content.decode("utf-8")
+    assert "deferDateTimePicker_id_due_date()" in body
+    assert "tempusdominus-bootstrap-4" in body
+
+
+@pytest.mark.django_db
 def test_ballot_detail_view_natoff(auto_login_user):
     """BallotDetailView is accessible to natoff (ordering bug skipped)."""
     # BallotDetailView has ordering=["-date"] but Ballot has no 'date' field;

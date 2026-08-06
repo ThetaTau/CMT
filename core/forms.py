@@ -3,6 +3,7 @@ Copied from: https://gist.github.com/jamesbrobb/748c47f46b9bd224b07f
     per: http://stackoverflow.com/questions/15497693/django-can-class-based-views-accept-two-forms-at-a-time/24011448#24011448
 """
 
+import datetime
 import re
 
 from address.forms import Address
@@ -12,6 +13,7 @@ from dal_select2.widgets import Select2Multiple, Select2WidgetMixin, WidgetMixin
 from django import forms
 from django.conf import settings
 from django.http.response import HttpResponseForbidden, HttpResponseRedirect
+from django.utils import timezone
 from django.views.generic.base import ContextMixin, TemplateResponseMixin
 from django.views.generic.edit import ProcessFormView
 from tempus_dominus.widgets import DatePicker as _DatePicker
@@ -44,6 +46,12 @@ class DatePicker(_DatePicker):
         return id_.replace("-", "_")
 
     def moment_option(self, value):
+        # A date field's initial can be a datetime (e.g. a ``timezone.now``
+        # model default).  Its ISO string carries a UTC offset that moment.js
+        # re-renders in the *browser's* timezone, which can land on a different
+        # calendar day, so resolve it to a date in the site timezone first.
+        if isinstance(value, datetime.datetime):
+            value = timezone.localdate(value) if timezone.is_aware(value) else value.date()
         opts = super().moment_option(value)
         if "date" in opts and "T" not in opts["date"]:
             opts["date"] = opts["date"] + "T12:00:00"

@@ -19,7 +19,7 @@ from thetatauCMT.chapters.models import Chapter
 from thetatauCMT.users.models import UserRoleChange
 
 from .filters import BallotCompleteFilter, BallotFilter, BallotUserFilter
-from .forms import BallotCompleteListFormHelper, BallotListFormHelper, BallotUserListFormHelper
+from .forms import BallotCompleteListFormHelper, BallotForm, BallotListFormHelper, BallotUserListFormHelper
 from .models import Ballot, BallotComplete
 from .tables import BallotCompleteTable, BallotTable, BallotUserTable
 
@@ -135,15 +135,7 @@ class BallotCreateView(LoginRequiredMixin, NatOfficerRequiredMixin, SuccessMessa
     officer_edit = "ballots"
     officer_edit_type = "create"
     success_message = "Ballot '%(name)s' was created and is now open for voting."
-    fields = [
-        "sender",
-        "name",
-        "type",
-        "attachment",
-        "description",
-        "due_date",
-        "voters",
-    ]
+    form_class = BallotForm
 
     def get_success_url(self):
         return reverse("ballots:list")
@@ -179,15 +171,7 @@ class BallotUpdateView(
     officer_edit = "ballot"
     officer_edit_type = "edit"
     success_message = "Ballot '%(name)s' was updated."
-    fields = [
-        "sender",
-        "name",
-        "type",
-        "attachment",
-        "description",
-        "due_date",
-        "voters",
-    ]
+    form_class = BallotForm
     model = Ballot
 
     def get_success_url(self):
