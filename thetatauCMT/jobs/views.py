@@ -1,6 +1,7 @@
 from dal import autocomplete
 from django.contrib import messages
 from django.contrib.messages.views import SuccessMessageMixin
+from django.core.exceptions import ValidationError
 from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse
@@ -271,30 +272,52 @@ class JobListView(LoginRequiredMixin, PagedFilteredTableView):
         return context
 
 
-class KeywordAutocomplete(autocomplete.Select2QuerySetView):
+class VocabularyAutocomplete(autocomplete.Select2QuerySetView):
+    """Autocomplete for the free-text Keyword/Major vocabularies."""
+
+    vocabulary_model = None
+    max_name_length = 100
+    validate_create = True
+
+    def has_add_permission(self, request):
+        # Any signed-in member may extend these vocabularies. The DAL default
+        # requires the add_<model> model permission, which no CMT role grants,
+        # so the "Create ..." option never appeared and the create POST 403'd.
+        if self.create_field is None:
+            return False
+        return bool(request.user.is_authenticated)
+
+    def validate(self, text):
+        name = (text or "").strip()
+        if not name:
+            raise ValidationError({self.create_field: ["Enter a value before adding it."]})
+        if len(name) > self.max_name_length:
+            raise ValidationError({self.create_field: [f"Keep this to {self.max_name_length} characters or fewer."]})
+
     def create_object(self, text):
-        return super().create_object(text.lower())
+        name = text.strip().lower()
+        # get_queryset() is search-scoped, so reuse the manager to avoid
+        # inserting a duplicate row for a value that already exists.
+        existing = self.vocabulary_model.objects.filter(name__iexact=name).first()
+        return existing or self.vocabulary_model.objects.create(name=name)
 
     def get_queryset(self):
-        qs = Keyword.objects.none()
+        qs = self.vocabulary_model.objects.none()
         # Require >= 2 chars so the endpoint can't be used to enumerate the
-        # full keyword list with a single character.
+        # full list with a single character.
         if self.request.user.is_authenticated and self.q and len(self.q) >= 2:
-            qs = Keyword.objects.filter(Q(name__icontains=self.q))
+            qs = self.vocabulary_model.objects.filter(Q(name__icontains=self.q))
         return qs.order_by("name")
 
 
-class MajorAutocomplete(autocomplete.Select2QuerySetView):
-    def create_object(self, text):
-        return super().create_object(text.lower())
+class KeywordAutocomplete(VocabularyAutocomplete):
+    model = Keyword
+    vocabulary_model = Keyword
 
-    def get_queryset(self):
-        qs = Major.objects.none()
-        # Require >= 2 chars so the endpoint can't be used to enumerate the
-        # full major list with a single character.
-        if self.request.user.is_authenticated and self.q and len(self.q) >= 2:
-            qs = Major.objects.filter(Q(name__icontains=self.q))
-        return qs.order_by("name")
+
+class MajorAutocomplete(VocabularyAutocomplete):
+    model = Major
+    vocabulary_model = Major
 
 
 class JobReportView(LoginRequiredMixin, View):

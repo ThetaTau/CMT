@@ -217,6 +217,100 @@ def test_major_autocomplete_authenticated(auto_login_user):
     assert response.status_code == 200
 
 
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    "url_name",
+    ["jobs:keyword-autocomplete", "jobs:major-autocomplete"],
+)
+def test_autocomplete_offers_create_option(auto_login_user, url_name):
+    """A regular member is offered the "Create ..." option for a new value."""
+    client, user = auto_login_user()
+    assert not user.is_superuser
+    response = client.get(reverse(url_name), {"q": "quantum widgets"})
+    assert response.status_code == 200
+    results = response.json()["results"]
+    assert [r for r in results if r.get("create_id")]
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    "url_name,model_name",
+    [
+        ("jobs:keyword-autocomplete", "Keyword"),
+        ("jobs:major-autocomplete", "Major"),
+    ],
+)
+def test_autocomplete_create_post(auto_login_user, url_name, model_name):
+    """Posting new text creates the lowercased value and returns its pk."""
+    from thetatauCMT.jobs import models
+
+    model = getattr(models, model_name)
+    client, user = auto_login_user()
+    response = client.post(reverse(url_name), {"text": "Quantum Widgets"})
+    assert response.status_code == 200
+    obj = model.objects.get(name="quantum widgets")
+    assert response.json()["id"] == str(obj.pk)
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    "url_name,model_name",
+    [
+        ("jobs:keyword-autocomplete", "Keyword"),
+        ("jobs:major-autocomplete", "Major"),
+    ],
+)
+def test_autocomplete_create_post_reuses_existing(auto_login_user, url_name, model_name):
+    """Creating a value that already exists does not add a duplicate row."""
+    from thetatauCMT.jobs import models
+
+    model = getattr(models, model_name)
+    existing = model.objects.create(name="python")
+    client, user = auto_login_user()
+    response = client.post(reverse(url_name), {"text": "Python"})
+    assert response.status_code == 200
+    assert response.json()["id"] == str(existing.pk)
+    assert model.objects.filter(name="python").count() == 1
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    "url_name",
+    ["jobs:keyword-autocomplete", "jobs:major-autocomplete"],
+)
+def test_autocomplete_create_post_rejects_blank(auto_login_user, url_name):
+    from thetatauCMT.jobs.models import Keyword, Major
+
+    client, user = auto_login_user()
+    response = client.post(reverse(url_name), {"text": "   "})
+    assert response.status_code == 200
+    assert "error" in response.json()
+    assert not Keyword.objects.exists()
+    assert not Major.objects.exists()
+
+
+@pytest.mark.django_db
+def test_readonly_autocomplete_cannot_create(auto_login_user):
+    """The read-only keyword endpoint offers no create option and rejects POST."""
+    from thetatauCMT.jobs.models import Keyword
+
+    client, user = auto_login_user()
+    url = reverse("jobs:keyword-autocomplete-ro")
+    response = client.get(url, {"q": "quantum widgets"})
+    assert not [r for r in response.json()["results"] if r.get("create_id")]
+    assert client.post(url, {"text": "quantum widgets"}).status_code == 403
+    assert not Keyword.objects.exists()
+
+
+@pytest.mark.django_db
+def test_autocomplete_create_post_unauthenticated(client):
+    from thetatauCMT.jobs.models import Keyword
+
+    response = client.post(reverse("jobs:keyword-autocomplete"), {"text": "python"})
+    assert response.status_code == 403
+    assert not Keyword.objects.exists()
+
+
 # ---------------------------------------------------------------------------
 # JobSearchCreateView – GET
 # ---------------------------------------------------------------------------
