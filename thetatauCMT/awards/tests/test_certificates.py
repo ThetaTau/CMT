@@ -38,13 +38,14 @@ def _view_user():
 # ---------------------------------------------------------------------------
 # Acceptance: auto-generate produces a certificate with correct merge data
 # ---------------------------------------------------------------------------
-def test_certificate_template_merges_recipient_award_cycle_date():
+def test_certificate_template_merges_recipient_award_and_cycle():
     grant = AwardGrantFactory()
     html = render_to_string(CERTIFICATE_TEMPLATE, certificate_context(grant))
     assert grant.recipient_display in html
     assert grant.award_type.name in html
     assert grant.cycle.name in html
-    assert str(grant.effective_date.year) in html
+    # The award period is the only time reference; the grant date is never shown.
+    assert "Effective" not in html
 
 
 def test_generate_certificate_creates_generated_artifact():

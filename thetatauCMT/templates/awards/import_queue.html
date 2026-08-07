@@ -27,7 +27,6 @@
           <th>{% trans "Recipient (as uploaded)" %}</th>
           <th>{% trans "Award" %}</th>
           <th>{% trans "Award Period" %}</th>
-          <th>{% trans "Effective" %}</th>
           <th>{% trans "Candidates" %}</th>
           <th></th>
         </tr>
@@ -41,7 +40,6 @@
             </td>
             <td>{{ item.award_type }}</td>
             <td>{{ item.cycle }}</td>
-            <td>{{ item.effective_date|default:"None" }}</td>
             <td>
               {% if item.candidate_matches %}
                 <ul class="list-unstyled mb-0">

@@ -49,8 +49,9 @@ class AwardGrantTable(CMTTable):
 
     Lists one row per :class:`~thetatauCMT.awards.models.AwardGrant`. The award
     links to its "all winners of X" page, the cycle to its "winners in cycle Y"
-    page, and the recipient / chapter / region to their detail pages. The
-    ``status`` column is excluded by the view unless revoked grants are shown.
+    page, and the recipient / chapter / region to their detail pages. The award
+    period is the only time reference shown -- grant dates are never displayed.
+    The ``status`` column is excluded by the view unless revoked grants are shown.
     """
 
     award_type = tables.Column(
@@ -67,13 +68,11 @@ class AwardGrantTable(CMTTable):
         order_by=("cycle__name",),
         linkify=lambda record: reverse("awards:cycle_winners", args=[record.cycle_id]),
     )
-    effective_date = tables.DateColumn(verbose_name="Awarded")
     status = tables.Column(verbose_name="Status")
 
     class Meta:
         model = AwardGrant
-        order_by = "-effective_date"
-        fields = ("award_type", "recipient", "kind", "chapter", "region", "cycle", "effective_date", "status")
+        fields = ("award_type", "recipient", "kind", "chapter", "region", "cycle", "status")
         attrs = {"class": "table table-striped table-bordered"}
         empty_text = "No award winners match the current filters."
 

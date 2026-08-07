@@ -79,7 +79,6 @@ class AwardGrantedNotification(EmailNotification):
             "description": grant.award_type.description,
             "recipient": grant.recipient_display,
             "cycle": grant.cycle,
-            "effective_date": grant.effective_date,
             "reason": grant.reason,
         }
 

@@ -455,17 +455,15 @@ class _AwardHistoryView(LoginRequiredMixin, SingleTableView):
     """Base for the chronological award-history views (AWI-12).
 
     Reuses :class:`~thetatauCMT.awards.tables.AwardGrantTable` (status column
-    included so revoked grants are labeled) ordered by ``effective_date`` so
-    backdated grants sort into their historical place. Visible to any signed-in
-    member, but export buttons are shown only to administrators.
+    included so revoked grants are labeled). The queryset is ordered by
+    ``effective_date`` so backdated grants sort into their historical place,
+    though only the award period is displayed. Visible to any signed-in member,
+    but export buttons are shown only to administrators.
     """
 
     template_name = "awards/award_history.html"
     table_class = AwardGrantTable
     table_pagination = {"per_page": 50}
-
-    def get_table_kwargs(self):
-        return {"order_by": "effective_date"}
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)

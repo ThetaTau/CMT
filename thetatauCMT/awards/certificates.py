@@ -14,7 +14,7 @@ CERTIFICATE_TEMPLATE = "awards/certificate.html"
 
 
 def certificate_context(grant):
-    """Merge context for the certificate template (recipient / award / cycle / date)."""
+    """Merge context for the certificate template (recipient / award / cycle)."""
     return {
         "grant": grant,
         "award": grant.award_type,
@@ -23,8 +23,6 @@ def certificate_context(grant):
         "recipient_kind": grant.recipient_kind,
         "cycle": grant.cycle,
         "cycle_name": grant.cycle.name,
-        "effective_date": grant.effective_date,
-        "granted_at": grant.granted_at,
         "reason": grant.reason,
     }
 
