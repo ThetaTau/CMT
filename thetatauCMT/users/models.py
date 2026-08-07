@@ -19,6 +19,7 @@ from viewflow.models import Process
 from core.models import (
     ACTIVE_STATUSES,
     ALL_ROLES_CHOICES,
+    ALUMNI_STATUSES,
     CHAPTER_OFFICER,
     CHAPTER_OFFICER_CHOICES,
     CHAPTER_ROLES,
@@ -553,6 +554,18 @@ class User(AbstractUser, EmailSignalMixin):
     @property
     def is_advisor(self):
         return self.current_status == "advisor"
+
+    @property
+    def requires_rmp(self):
+        """Whether this member must sign the Risk Management Policies each term.
+
+        Alumni are exempt unless they still hold a role (chapter officer,
+        National Officer, advisor or committee chair), because the policies bind
+        them through that position.
+        """
+        if self.current_status in ALUMNI_STATUSES:
+            return bool(self.current_roles)
+        return True
 
     def contact_visible_to(self, viewer, visibility):
         """Whether ``viewer`` may see one of this member's contact fields

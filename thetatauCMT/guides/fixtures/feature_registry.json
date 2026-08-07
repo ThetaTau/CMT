@@ -610,7 +610,7 @@
           "key": "risk-management-policies",
           "name": "Risk management policies",
           "short_description": "Read and sign the fraternity's risk management policies. Every member signs their own.",
-          "long_description": "This is signed by each member individually, not filed once for the chapter, and it has to be signed again every term. Signing is required before you can use the rest of the application, and you will be sent here automatically until you have.",
+          "long_description": "This is signed by each member individually, not filed once for the chapter, and it has to be signed again every term. Signing is required before you can use the rest of the application, and you will be sent here automatically until you have. Alumni who no longer hold a chapter or national role are not required to sign, though they may still do so.",
           "url_name": "forms:rmp"
         },
         {

@@ -228,6 +228,13 @@ ACTIVE_STATUSES = [
     "activeCC",
 ]
 
+# Statuses meaning the member has graduated out of the chapter roster.
+# "alumnipend" is deliberately excluded: they are still an active member.
+ALUMNI_STATUSES = [
+    "alumni",
+    "alumniCC",
+]
+
 
 def user_is_national_officer(user):
     """Return True when ``user`` counts as a National Officer / Admin.
