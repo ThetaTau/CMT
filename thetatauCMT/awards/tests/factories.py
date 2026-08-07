@@ -1,4 +1,7 @@
+import datetime
+
 import factory
+from django.utils import timezone
 
 from thetatauCMT.users.tests.factories import UserFactory
 
@@ -20,6 +23,8 @@ class AwardTypeFactory(factory.django.DjangoModelFactory):
 class AwardCycleFactory(factory.django.DjangoModelFactory):
     name = factory.Sequence(lambda n: f"Cycle {n}")
     period_type = AwardCycle.PeriodType.YEAR
+    # Dated and open-ended, so the default factory cycle is a *current* period.
+    start_date = factory.LazyFunction(lambda: datetime.date(timezone.now().year, 1, 1))
 
     class Meta:
         model = AwardCycle

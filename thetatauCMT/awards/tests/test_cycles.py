@@ -107,6 +107,16 @@ def test_resolve_current_cycle_none_when_no_active_cycle():
     assert resolve_current_cycle(on_date=TODAY) is None
 
 
+def test_undated_cycle_is_never_current():
+    # Legacy imports create periods from labels with no dates. They have no
+    # period at all, so they must never be offered as the current one.
+    undated = AwardCycleFactory.create(start_date=None, end_date=None)
+    assert undated.contains(TODAY) is False
+    assert undated.is_current is False
+    assert undated not in AwardCycle.objects.current(TODAY)
+    assert resolve_current_cycle(on_date=TODAY) is None
+
+
 # ---------------------------------------------------------------------------
 # Acceptance: single-winner enforcement per cycle
 # ---------------------------------------------------------------------------
