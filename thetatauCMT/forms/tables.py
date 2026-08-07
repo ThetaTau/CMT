@@ -23,6 +23,15 @@ from .models import (
 )
 
 
+class TermEndColumn(tables.DateColumn):
+    """End date of a role term, shown as "Present" while the term is still active."""
+
+    def render(self, record, **kwargs):
+        if record.is_current:
+            return "Present"
+        return super().render(record=record, **kwargs)
+
+
 class OfficerRoleTable(CMTTable):
     """Current + past chapter officers/roles, with a per-row edit control."""
 
@@ -33,6 +42,7 @@ class OfficerRoleTable(CMTTable):
         verbose_name="Member",
     )
     role = tables.Column(verbose_name="Role")
+    end = TermEndColumn(verbose_name="End")
     edit = tables.TemplateColumn(
         template_name="forms/_officer_edit_button.html",
         orderable=False,

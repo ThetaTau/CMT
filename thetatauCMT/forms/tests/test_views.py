@@ -2265,6 +2265,38 @@ def test_officer_list_defaults_to_current_and_all_shows_past(auto_login_user, us
 
 
 @pytest.mark.django_db
+def test_officer_list_end_column_shows_present_for_current_terms(auto_login_user, user_factory):
+    """A term that has not ended yet shows "Present" instead of its future end date."""
+    from django.utils import formats, timezone
+
+    from thetatauCMT.users.models import UserRoleChange
+
+    client, user = auto_login_user()
+    chapter = user.chapter
+    UserRoleChange.objects.filter(user__chapter=chapter).delete()
+    today = timezone.now().date()
+    future_end = today + timezone.timedelta(days=300)
+    past_end = today - timezone.timedelta(days=400)
+    UserRoleChange.objects.create(
+        user=user_factory.create(chapter=chapter, name="Current Scribe"),
+        role="scribe",
+        start=today - timezone.timedelta(days=10),
+        end=future_end,
+    )
+    UserRoleChange.objects.create(
+        user=user_factory.create(chapter=chapter, name="Past Scribe"),
+        role="scribe",
+        start=today - timezone.timedelta(days=800),
+        end=past_end,
+    )
+    body = client.get(reverse("forms:officer"), {"period": ""}).content.decode("utf-8")
+    assert "Present" in body
+    assert formats.date_format(future_end, "SHORT_DATE_FORMAT") not in body
+    # A finished term still shows its real end date.
+    assert formats.date_format(past_end, "SHORT_DATE_FORMAT") in body
+
+
+@pytest.mark.django_db
 def test_officer_list_page_has_copy_emails(auto_login_user, user_factory):
     """The chapter officer roster carries a Copy-emails button with current officers' emails."""
     from django.utils import timezone
@@ -2324,18 +2356,19 @@ def test_officer_list_copy_emails_respects_contact_visibility(auto_login_user, u
 @pytest.mark.django_db
 def test_national_officer_list_respects_contact_visibility(auto_login_user, user_factory):
     """The national officer roster masks emails a member has not been given."""
-    from django.utils import timezone
+    from django.utils import formats, timezone
 
     from thetatauCMT.users.models import UserRoleChange
 
     client, user = auto_login_user()
     today = timezone.now().date()
     officer = user_factory.create(email="private-natoff@example.com")
+    term_end = today + timezone.timedelta(days=300)
     UserRoleChange.objects.create(
         user=officer,
         role="regional director",
         start=today - timezone.timedelta(days=10),
-        end=today + timezone.timedelta(days=300),
+        end=term_end,
     )
     response = client.get(reverse("forms:natoff"))
     assert response.status_code == 200
@@ -2345,6 +2378,9 @@ def test_national_officer_list_respects_contact_visibility(auto_login_user, user
     assert officer.name in body
     assert "mailto:private-natoff@example.com" not in body
     assert ">private-natoff@example.com<" not in body
+    # A term still running reads "Present" rather than its future end date.
+    assert "Present" in body
+    assert formats.date_format(term_end, "SHORT_DATE_FORMAT") not in body
 
 
 @pytest.mark.django_db

@@ -341,7 +341,7 @@
               {% for role in roles_history %}
                 <li class="mb-1">
                   <span class="fw-semibold">{{ role.get_role_display|default:role.role|title }}</span>
-                  <span class="text-body-secondary small">{{ role.start|date:"M Y" }} &ndash; {{ role.end|date:"M Y" }}</span>
+                  <span class="text-body-secondary small">{{ role.start|date:"M Y" }} &ndash; {% if role.is_current %}Present{% else %}{{ role.end|date:"M Y" }}{% endif %}</span>
                 </li>
               {% endfor %}
             </ul>

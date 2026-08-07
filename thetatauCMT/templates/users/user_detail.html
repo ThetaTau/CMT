@@ -60,7 +60,7 @@
           <div class="accordion-body">
             <ul class="list-unstyled mb-0">
               {% for role in object.roles.all %}
-                <li>{{ role }} <span class="text-muted small">{{ role.start }} &ndash; {{ role.end }}</span></li>
+                <li>{{ role }} <span class="text-muted small">{{ role.start }} &ndash; {% if role.is_current %}Present{% else %}{{ role.end }}{% endif %}</span></li>
               {% endfor %}
             </ul>
           </div>

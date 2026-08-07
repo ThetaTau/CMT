@@ -619,6 +619,29 @@ def test_profile_owner_sees_own_contact_with_visibility_badge(auto_login_user):
 
 
 @pytest.mark.django_db
+def test_profile_officer_roles_show_present_for_current_term(auto_login_user, user_factory):
+    """An officer term that has not ended yet reads "Present" instead of a future end date."""
+    from django.utils import timezone
+
+    from thetatauCMT.users.models import UserRoleChange
+
+    client, user = auto_login_user()
+    target = user_factory.create(chapter=user.chapter)
+    today = timezone.now().date()
+    future_end = today + timezone.timedelta(days=300)
+    past_end = today - timezone.timedelta(days=400)
+    UserRoleChange.objects.create(user=target, role="scribe", start=today - timezone.timedelta(days=10), end=future_end)
+    UserRoleChange.objects.create(
+        user=target, role="treasurer", start=today - timezone.timedelta(days=800), end=past_end
+    )
+    url = reverse("users:profile", kwargs={"username": target.username})
+    content = client.get(url).content.decode("UTF-8")
+    assert "Present" in content
+    assert future_end.strftime("%b %Y") not in content
+    assert past_end.strftime("%b %Y") in content
+
+
+@pytest.mark.django_db
 def test_profile_chapter_visibility_only_same_chapter(auto_login_user, user_factory):
     """'chapter' visibility hides the phone from a different-chapter member."""
     from thetatauCMT.chapters.models import GREEK_ABR
