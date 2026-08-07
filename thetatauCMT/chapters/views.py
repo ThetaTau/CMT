@@ -145,7 +145,7 @@ class ChapterDetailView(LoginRequiredMixin, MultiFormsView):
         natoff = False
         if self.request.user.is_national_officer() and not self.request.user.natoff_hidden:
             natoff = True
-        admin = self.request.user.is_superuser
+        admin = self.request.user.is_admin
         table = UserTable(data=chapter_officers, natoff=natoff, admin=admin, viewer=self.request.user)
         table.exclude = ("badge_number", "graduation_year")
         RequestConfig(self.request, paginate={"per_page": 100}).configure(table)
@@ -252,7 +252,7 @@ class ChapterActivityView(LoginRequiredMixin, TemplateView):
     def _user_allowed(self, user, chapter):
         if not user.is_authenticated:
             return False
-        if user.is_superuser:
+        if user.is_admin:
             return True
         if user.groups.filter(name="natoff").exists():
             return True
@@ -449,7 +449,7 @@ class ChapterAuditView(LoginRequiredMixin, TemplateView):
     def _user_allowed(self, user, chapter):
         if not user.is_authenticated:
             return False
-        if user.is_superuser:
+        if user.is_admin:
             return True
         if user.groups.filter(name="natoff").exists():
             return True

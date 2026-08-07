@@ -152,7 +152,7 @@ class TrainingView(LoginRequiredMixin, View):
 
     def _can_manage(self, request, nomination):
         user = request.user
-        if user.is_superuser or user.is_national_officer_group:
+        if user.is_admin or user.is_national_officer_group:
             return True
         reviewer = get_reviewer_for(REVIEWER_TRAINING)
         return reviewer is not None and reviewer.pk == user.pk
@@ -231,7 +231,7 @@ class AppointmentView(LoginRequiredMixin, View):
 
     def _can_manage(self, request, nomination):
         user = request.user
-        if user.is_superuser or user.is_national_officer_group:
+        if user.is_admin or user.is_national_officer_group:
             return True
         reviewer = get_reviewer_for(REVIEWER_APPOINTMENT)
         return reviewer is not None and reviewer.pk == user.pk
@@ -309,7 +309,7 @@ class DenialCentralOfficeView(LoginRequiredMixin, View):
 
     def _can_manage(self, request, nomination):
         user = request.user
-        if user.is_superuser or user.is_national_officer_group:
+        if user.is_admin or user.is_national_officer_group:
             return True
         reviewer = get_reviewer_for(REVIEWER_CENTRAL_OFFICE)
         return reviewer is not None and reviewer.pk == user.pk

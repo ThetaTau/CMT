@@ -179,7 +179,7 @@
 {% endfor %}
 </div>
 
-{% if request.user.is_superuser %}
+{% if request.user.is_admin %}
   <section class="mt-4 mb-5">
     <h2 class="h4">{% trans "Administrator tools" %}</h2>
     <p class="text-body-secondary">

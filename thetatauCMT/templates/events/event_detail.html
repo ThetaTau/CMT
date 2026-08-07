@@ -9,13 +9,13 @@
     <h1 class="page-title mb-0">{{ object.name }}</h1>
     <div class="page-actions">
       <a class="btn btn-primary" href="{{ object.get_update_url }}" role="button">Edit</a>
-      {% if request.is_officer or request.is_nat_officer or user.is_superuser %}
+      {% if request.is_officer or request.is_nat_officer or user.is_admin %}
         <a class="btn btn-outline-primary" href="{{ object.get_attendance_url }}" role="button">
           <i class="fas fa-clipboard-check"></i> Attendance
         </a>
       {% endif %}
       {% if object.is_national %}
-        {% if request.is_nat_officer or user.is_superuser %}
+        {% if request.is_nat_officer or user.is_admin %}
           <a class="btn btn-outline-primary" href="{% url 'attendance:national_upload' %}?event={{ object.pk }}" role="button">
             <i class="fas fa-upload"></i> Upload Attendance
           </a>
@@ -145,7 +145,7 @@
   {# ---- Attendance (WI-3..WI-6, RSVP WI-10) ---- #}
   <div class="d-flex flex-wrap align-items-center gap-2 mt-4">
     <h3 class="mb-0">Attendance</h3>
-    {% if request.is_officer or request.is_nat_officer or user.is_superuser %}
+    {% if request.is_officer or request.is_nat_officer or user.is_admin %}
       <a href="{{ object.get_attendance_url }}" class="btn btn-outline-primary btn-sm">
         <i class="fas fa-clipboard-check"></i> Record / edit attendance
       </a>

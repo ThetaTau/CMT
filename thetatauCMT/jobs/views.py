@@ -25,7 +25,7 @@ class JobDetailView(LoginRequiredMixin, DetailView):
         obj = self.get_object()
         is_owner = obj.created_by == request.user
         is_natoff = bool(getattr(request, "is_nat_officer", False)) or (
-            request.user.is_authenticated and request.user.is_superuser
+            request.user.is_authenticated and request.user.is_admin
         )
         if obj.deleted and not (is_owner or is_natoff):
             messages.error(request, f"The job {obj.title} is no longer available.")
@@ -74,13 +74,13 @@ class JobCreateView(
         context = super().get_context_data(**kwargs)
         user = self.request.user
         context["user_is_natoff_or_superuser"] = bool(
-            user.is_authenticated and (user.is_national_officer_group or user.is_superuser)
+            user.is_authenticated and (user.is_national_officer_group or user.is_admin)
         )
         return context
 
     def form_valid(self, form):
         user = self.request.user
-        is_natoff = bool(user.is_authenticated and (user.is_national_officer_group or user.is_superuser))
+        is_natoff = bool(user.is_authenticated and (user.is_national_officer_group or user.is_admin))
         if is_natoff:
             form.instance.approved = True
             form.instance.approved_at = timezone.now()
@@ -143,7 +143,7 @@ class JobCopyView(JobCreateView):
         if not request.user.is_authenticated:
             return super().dispatch(request, *args, **kwargs)
         source = get_object_or_404(Job, pk=self.kwargs["pk"])
-        if source.created_by != request.user and not request.user.is_superuser:
+        if source.created_by != request.user and not request.user.is_admin:
             messages.error(request, "You can only clone jobs you created.")
             return redirect("jobs:detail", pk=source.pk, slug=source.slug)
         self._source_job = source

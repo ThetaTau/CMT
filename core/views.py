@@ -29,12 +29,33 @@ from thetatauCMT.users.models import User
 admin.site.login = login_required(admin.site.login)
 
 
+def acting_as_admin(user):
+    """Superuser status that honors the "Hide admin functionality" toggle.
+
+    Falls back to the raw field for objects without the property (e.g.
+    ``AnonymousUser``).
+    """
+    return bool(getattr(user, "is_admin", getattr(user, "is_superuser", False)))
+
+
+def check_group_membership(user, groups):
+    """``braces`` group check with a hide-aware superuser bypass.
+
+    ``GroupRequiredMixin.check_membership`` lets every superuser through; that
+    bypass has to disappear while an Admin is previewing the site with admin
+    functionality hidden.
+    """
+    if acting_as_admin(user):
+        return True
+    return set(groups).intersection(set(user.groups.values_list("name", flat=True)))
+
+
 def group_required(*group_names):
     """Requires user membership in at least one of the groups passed in."""
 
     def in_groups(u):
         if u.is_authenticated:
-            if bool(u.groups.filter(name__in=group_names)) | u.is_superuser:
+            if bool(u.groups.filter(name__in=group_names)) | acting_as_admin(u):
                 return True
         return False
 
@@ -49,7 +70,7 @@ class NatOfficerRequiredMixin(GroupRequiredMixin):
         # treated as a non-member so natoff-only pages become inaccessible too.
         if getattr(self.request.user, "natoff_hidden", False):
             return False
-        return super().check_membership(groups)
+        return check_group_membership(self.request.user, groups)
 
     def get_login_url(self):
         if self.request.user.is_authenticated:
@@ -120,7 +141,7 @@ class SuperuserRequiredMixin(DjangoLoginRequiredMixin):
 
     def dispatch(self, request, *args, **kwargs):
         user = request.user
-        if user.is_authenticated and not user.is_superuser:
+        if user.is_authenticated and not user.is_admin:
             messages.add_message(request, messages.ERROR, self.superuser_message)
             return HttpResponseRedirect(resolve_url(self.superuser_redirect_url))
         return super().dispatch(request, *args, **kwargs)
@@ -131,6 +152,15 @@ class OfficerRequiredMixin(GroupRequiredMixin):
     officer_edit = "this"
     officer_edit_type = "edit"
     redirect_field_name = ""
+
+    def check_membership(self, groups):
+        user = self.request.user
+        if getattr(user, "natoff_hidden", False):
+            # Previewing the site as a member: officer access can only come from
+            # a real chapter role or the region-bar impersonation role, which is
+            # the same rule ``core.utils.check_officer`` applies to the nav.
+            return bool(user.chapter_officer())
+        return check_group_membership(user, groups)
 
     def get_login_url(self):
         if self.request.user.is_authenticated:

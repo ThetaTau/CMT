@@ -506,6 +506,29 @@ class User(AbstractUser, EmailSignalMixin):
         return self.in_national_officer_group and not self.natoff_hidden
 
     @property
+    def admin_hidden(self):
+        """True when an Admin has switched to "hide admin functionality" mode.
+
+        Toggled via the account menu, persisted on ``UserAlter.hide_admin``.
+        Only meaningful for superusers; everyone else is always ``False``.
+        """
+        if not self.is_superuser:
+            return False
+        alter = self.altered.first()
+        return bool(alter and alter.hide_admin)
+
+    @property
+    def is_admin(self):
+        """Whether the user is *currently acting as* an Admin (superuser).
+
+        Use this everywhere admin-only abilities are gated or displayed, rather
+        than the raw ``is_superuser`` field, so the "Hide admin functionality"
+        toggle takes effect. The raw field stays the source of truth for the
+        Django admin, 2FA enforcement and the switch-back controls.
+        """
+        return self.is_superuser and not self.admin_hidden
+
+    @property
     def is_chapter_officer_group(self):
         return self.groups.filter(name="officer").exists()
 
@@ -545,7 +568,7 @@ class User(AbstractUser, EmailSignalMixin):
             return False
         if viewer.pk == self.pk:
             return True
-        if viewer.is_superuser or viewer.is_national_officer_group:
+        if viewer.is_admin or viewer.is_national_officer_group:
             return True
         same_chapter = viewer.chapter_id == self.chapter_id
         if same_chapter and viewer.is_chapter_officer_group:
@@ -750,6 +773,15 @@ class UserAlter(models.Model):
             "that chapter officer)."
         ),
     )
+    hide_admin = models.BooleanField(
+        "Hide admin functionality",
+        default=False,
+        help_text=(
+            "When on, administrator-only abilities are hidden so the site can be "
+            "previewed without them. Combine with the national officer toggle and "
+            "no role above to see exactly what a regular member sees."
+        ),
+    )
 
 
 class UserSemesterServiceHours(YearTermModel):
@@ -885,7 +917,7 @@ class UserRoleChange(StartEndModel, TimeStampedModel, EmailSignalMixin):
             # The member themselves — never for their own chapter-officer role.
             return self.role not in CHAPTER_OFFICER
         if self.role in NAT_OFFICERS:
-            return bool(user.is_superuser)
+            return bool(user.is_admin)
         current_chapter = getattr(user, "current_chapter", None)
         return bool(user.is_officer_group and self.user.chapter_id == getattr(current_chapter, "id", None))
 

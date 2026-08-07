@@ -1007,6 +1007,26 @@ def test_natoff_gated_view_blocks_hidden_officer(auto_login_user):
 
 
 @pytest.mark.django_db
+def test_officer_gated_view_blocks_hidden_officer_without_role(auto_login_user):
+    """Officer-only pages need a real (or region-bar) chapter role while hidden."""
+    from thetatauCMT.users.models import UserAlter
+
+    client, user = auto_login_user()
+    _make_natoff(user, client)
+    url = reverse("users:gpas")
+    assert client.get(url).status_code == 200
+
+    # Previewing as a plain member: the natoff group no longer opens officer pages
+    alter = UserAlter.objects.create(user=user, chapter=user.chapter, role=None, hide_natoff=True)
+    assert client.get(url).status_code == 302
+
+    # Picking a role in the region bar restores officer access
+    alter.role = "scribe"
+    alter.save()
+    assert client.get(url).status_code == 200
+
+
+@pytest.mark.django_db
 def test_base_template_natoff_toggle_and_region_bar(auto_login_user):
     """Base template flips the toggle label + region bar between the two modes."""
     from thetatauCMT.users.models import UserAlter
@@ -1057,6 +1077,123 @@ def test_user_list_csv_blocked_when_natoff_hidden(auto_login_user):
     # Guard falls through to the normal HTML list render instead of a CSV download.
     assert response.status_code == 200
     assert response["Content-Type"].startswith("text/html")
+
+
+# ---------------------------------------------------------------------------
+# Hide admin functionality (ToggleAdminView)
+# ---------------------------------------------------------------------------
+
+
+def _make_admin(user, client, settings):
+    """Make the user a raw superuser (2FA enforcement off so pages still render)."""
+    settings.DEBUG = True
+    user.is_superuser = True
+    user.save(update_fields=["is_superuser"])
+    client.force_login(user)
+    return user
+
+
+@pytest.mark.django_db
+def test_toggle_admin_view_hides_and_shows(auto_login_user, settings):
+    """An Admin can hide and then re-show admin functionality."""
+    from thetatauCMT.users.models import UserAlter
+
+    client, user = auto_login_user()
+    _make_admin(user, client, settings)
+    url = reverse("users:toggle_admin")
+
+    response = client.post(url, {"next": "/"})
+    assert response.status_code == 302
+    alter = UserAlter.objects.get(user=user)
+    assert alter.hide_admin is True
+    assert user.admin_hidden is True
+    assert user.is_admin is False
+
+    response = client.post(url, {"next": "/"})
+    assert response.status_code == 302
+    alter.refresh_from_db()
+    assert alter.hide_admin is False
+    assert user.admin_hidden is False
+    assert user.is_admin is True
+
+
+@pytest.mark.django_db
+def test_toggle_admin_view_denies_non_superuser(auto_login_user):
+    """A non-superuser cannot create a hide toggle (no UserAlter is created)."""
+    from thetatauCMT.users.models import UserAlter
+
+    client, user = auto_login_user()
+    response = client.post(reverse("users:toggle_admin"), {"next": "/"})
+    assert response.status_code == 302
+    assert not UserAlter.objects.filter(user=user).exists()
+
+
+@pytest.mark.django_db
+def test_toggle_admin_view_get_not_allowed(auto_login_user, settings):
+    client, user = auto_login_user()
+    _make_admin(user, client, settings)
+    assert client.get(reverse("users:toggle_admin")).status_code == 405
+
+
+@pytest.mark.django_db
+def test_user_alter_reset_clears_hide_admin(auto_login_user, settings):
+    """The region-bar Reset button also restores admin functionality."""
+    from thetatauCMT.users.models import UserAlter
+
+    client, user = auto_login_user()
+    _make_natoff(user, client)
+    _make_admin(user, client, settings)
+    UserAlter.objects.create(user=user, chapter=user.chapter, role=None, hide_admin=True)
+    response = client.post(
+        reverse("users:alterchapter"),
+        {"chapter": user.chapter.slug, "role": "", "alter-action": "Reset", "next": "/"},
+    )
+    assert response.status_code == 302
+    assert UserAlter.objects.get(user=user).hide_admin is False
+
+
+@pytest.mark.django_db
+def test_admin_only_view_blocks_hidden_admin(auto_login_user, settings):
+    """A hidden Admin is treated as a member on superuser-only pages."""
+    from thetatauCMT.users.models import UserAlter
+
+    client, user = auto_login_user()
+    _make_admin(user, client, settings)
+    url = reverse("awards:import_upload")
+    assert client.get(url).status_code == 200
+    UserAlter.objects.create(user=user, chapter=user.chapter, role=None, hide_admin=True)
+    assert client.get(url).status_code == 302
+
+
+@pytest.mark.django_db
+def test_officer_gated_view_blocks_hidden_admin(auto_login_user, settings):
+    """The superuser bypass in the group mixins disappears while admin is hidden."""
+    from thetatauCMT.users.models import UserAlter
+
+    client, user = auto_login_user()
+    _make_admin(user, client, settings)
+    url = reverse("forms:education_list")
+    assert client.get(url).status_code == 200
+    UserAlter.objects.create(user=user, chapter=user.chapter, role=None, hide_admin=True)
+    assert client.get(url).status_code == 302
+
+
+@pytest.mark.django_db
+def test_base_template_admin_toggle_label(auto_login_user, settings):
+    """Base template flips the admin toggle label between the two modes."""
+    from thetatauCMT.users.models import UserAlter
+
+    client, user = auto_login_user()
+    _make_admin(user, client, settings)
+    home = reverse("home")
+
+    content = client.get(home).content.decode()
+    assert "Hide admin functionality" in content
+
+    UserAlter.objects.create(user=user, chapter=user.chapter, role=None, hide_admin=True)
+    content = client.get(home).content.decode()
+    assert "Show admin functionality" in content
+    assert reverse("users:toggle_admin") in content
 
 
 # ---------------------------------------------------------------------------

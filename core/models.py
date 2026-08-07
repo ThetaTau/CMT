@@ -241,12 +241,14 @@ def user_is_national_officer(user):
 
     Returns ``False`` when a National Officer has toggled "Hide national officer
     functionality" (``natoff_hidden``) to preview the site as a regular member.
+    An Admin who has toggled "Hide admin functionality" no longer qualifies
+    through ``is_superuser`` either.
     """
     if user is None or not getattr(user, "is_authenticated", False):
         return False
     if getattr(user, "natoff_hidden", False):
         return False
-    return bool(user.is_superuser or user.is_national_officer_group or user.is_national_officer())
+    return bool(user.is_admin or user.is_national_officer_group or user.is_national_officer())
 
 
 def resolve_config_actor(value):

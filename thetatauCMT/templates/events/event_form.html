@@ -13,7 +13,7 @@
       <a class="btn btn-outline-secondary" href="{{ event.get_absolute_url }}">
         <i class="fas fa-circle-info"></i> Event details
       </a>
-      {% if request.is_officer or request.is_nat_officer or user.is_superuser %}
+      {% if request.is_officer or request.is_nat_officer or user.is_admin %}
         <a class="btn btn-outline-primary" href="{{ event.get_attendance_url }}">
           <i class="fas fa-clipboard-check"></i> Attendance
         </a>

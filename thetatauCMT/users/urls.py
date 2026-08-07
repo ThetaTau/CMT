@@ -41,6 +41,7 @@ urlpatterns = [
     path("autocomplete/", views.UserAutocomplete.as_view(), name="autocomplete"),
     path("alterchapter/", views.UserAlterView.as_view(), name="alterchapter"),
     path("toggle-natoff/", views.ToggleNatoffView.as_view(), name="toggle_natoff"),
+    path("toggle-admin/", views.ToggleAdminView.as_view(), name="toggle_admin"),
     path(
         "sync_email_provider/<int:report_id>",
         sync_email_provider,

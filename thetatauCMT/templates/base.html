@@ -70,7 +70,7 @@
           posthog.identify(
             "{{ user.id }}",
             {officer: {{ request.is_officer|yesno:"true,false" }}, natoff: {{ request.is_nat_officer|yesno:"true,false" }}, role: "{{ user.role }}"},
-            {email: "{{ user.email }}", chapter: "{{ user.chapter }}", admin: {{ user.is_superuser|yesno:"true,false" }}});
+            {email: "{{ user.email }}", chapter: "{{ user.chapter }}", admin: {{ user.is_admin|yesno:"true,false" }}});
         }});
   </script>
   {% endif %}
@@ -179,7 +179,7 @@
                   <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">{% trans "Activity" %}</a>
                     <ul class="dropdown-menu">
-                      {% if request.is_officer or request.is_nat_officer or user.is_superuser %}
+                      {% if request.is_officer or request.is_nat_officer or user.is_admin %}
                         <li><a class="dropdown-item" href="{% url 'chapters:activity_redirect' %}">{% trans "All Activities" %}</a></li>
                         <li><hr class="dropdown-divider"></li>
                       {% endif %}
@@ -270,8 +270,10 @@
                       <li><a class="dropdown-item" href="{% url 'users:profile' username=request.user.username %}">{% trans "My Profile" %}</a></li>
                       <li><a class="dropdown-item" href="{% url 'users:detail' %}">{% trans "Edit My Info" %}</a></li>
                       <li><a class="dropdown-item" href="{% url 'guides:role-guides' %}">{% trans "What am I responsible for?" %}</a></li>
-                      {% if request.in_natoff_group %}
+                      {% if request.in_natoff_group or request.user.is_superuser %}
                         <li><hr class="dropdown-divider"></li>
+                      {% endif %}
+                      {% if request.in_natoff_group %}
                         <li>
                           <button id="region-bar-toggle" type="button" class="dropdown-item">
                             <span class="region-bar-label-hide">{% trans "Hide region bar" %}</span>
@@ -287,6 +289,21 @@
                                 {% trans "Hide national officer functionality" %}
                               {% else %}
                                 {% trans "Show national officer functionality" %}
+                              {% endif %}
+                            </button>
+                          </form>
+                        </li>
+                      {% endif %}
+                      {% if request.user.is_superuser %}
+                        <li>
+                          <form method="post" action="{% url 'users:toggle_admin' %}" class="d-grid m-0">
+                            {% csrf_token %}
+                            <input type="hidden" name="next" value="{{ request.get_full_path }}"/>
+                            <button type="submit" class="dropdown-item" name="toggle-admin" value="1">
+                              {% if request.user.is_admin %}
+                                {% trans "Hide admin functionality" %}
+                              {% else %}
+                                {% trans "Show admin functionality" %}
                               {% endif %}
                             </button>
                           </form>
@@ -328,6 +345,9 @@
             <span class="badge bg-secondary">
               {{ request.user.current_chapter.name }}{% if request.user.chapter_officer %}: {{ request.user.chapter_officer|join:", " }}{% endif %}
             </span>
+          {% endif %}
+          {% if request.user.admin_hidden %}
+            <span class="badge bg-warning text-dark">{% trans "Admin functionality hidden" %}</span>
           {% endif %}
 
           <form class="d-flex flex-wrap align-items-center gap-2 ms-auto" action="{% url 'users:alterchapter' %}" method="post">

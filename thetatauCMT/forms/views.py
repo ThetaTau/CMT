@@ -1925,7 +1925,7 @@ class AuditFormView(LoginRequiredMixin, OfficerRequiredMixin, UpdateView):
                 return None
             audit_chapter = audit.user.chapter
             user = self.request.user
-            if audit_chapter == user.current_chapter or user.is_national_officer_group or user.is_superuser:
+            if audit_chapter == user.current_chapter or user.is_national_officer_group or user.is_admin:
                 return audit
             messages.add_message(
                 self.request,
@@ -3743,7 +3743,7 @@ class OtherSchoolAutocomplete(autocomplete.Select2QuerySetView):
 
     def _is_authorized(self):
         user = self.request.user
-        return user.is_authenticated and (user.is_officer_group or user.is_superuser)
+        return user.is_authenticated and (user.is_officer_group or user.is_admin)
 
     def get_queryset(self):
         if not self._is_authorized():
@@ -3756,7 +3756,7 @@ class OtherSchoolAutocomplete(autocomplete.Select2QuerySetView):
 
     def has_add_permission(self, request):
         user = request.user
-        return user.is_authenticated and (user.is_officer_group or user.is_superuser)
+        return user.is_authenticated and (user.is_officer_group or user.is_admin)
 
     def post(self, request, *args, **kwargs):
         if not self.has_add_permission(request):
@@ -3787,7 +3787,7 @@ class EmployerAutocomplete(autocomplete.Select2QuerySetView):
 
     def _is_authorized(self):
         user = self.request.user
-        return user.is_authenticated and (user.is_officer_group or user.is_superuser)
+        return user.is_authenticated and (user.is_officer_group or user.is_admin)
 
     def get_queryset(self):
         if not self._is_authorized():
@@ -3799,7 +3799,7 @@ class EmployerAutocomplete(autocomplete.Select2QuerySetView):
 
     def has_add_permission(self, request):
         user = request.user
-        return user.is_authenticated and (user.is_officer_group or user.is_superuser)
+        return user.is_authenticated and (user.is_officer_group or user.is_admin)
 
     def post(self, request, *args, **kwargs):
         if not self.has_add_permission(request):

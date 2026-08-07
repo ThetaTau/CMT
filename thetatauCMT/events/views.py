@@ -93,7 +93,7 @@ class EventAutocomplete(autocomplete.Select2QuerySetView):
 
     def _is_authorized(self):
         user = self.request.user
-        return user.is_authenticated and (user.is_officer_group or user.is_superuser)
+        return user.is_authenticated and (user.is_officer_group or user.is_admin)
 
     def get_queryset(self):
         if not self._is_authorized():

@@ -40,7 +40,7 @@ def _is_natoff(request: HttpRequest) -> bool:
     user = request.user
     if not user.is_authenticated:
         return False
-    if user.is_superuser:
+    if user.is_admin:
         return True
     return getattr(user, "is_national_officer_group", False)
 

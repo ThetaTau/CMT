@@ -212,3 +212,61 @@ def test_hide_natoff_without_role_is_plain_member():
     assert user.current_chapter == other
     assert user.chapter_officer() == set()
     assert user.is_national_officer_group is False
+
+
+# ---------------------------------------------------------------------------
+# Hide admin functionality (admin_hidden / is_admin)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.django_db
+def test_admin_hidden_false_for_non_superuser():
+    user = UserFactory()
+    assert user.admin_hidden is False
+    assert user.is_admin is False
+
+
+@pytest.mark.django_db
+def test_superuser_acts_as_admin_by_default():
+    user = UserFactory(is_superuser=True)
+    assert user.admin_hidden is False
+    assert user.is_admin is True
+    assert user_is_national_officer(user) is True
+
+
+@pytest.mark.django_db
+def test_hide_admin_makes_user_act_as_member():
+    user = UserFactory(is_superuser=True)
+    UserAlter.objects.create(user=user, chapter=user.chapter, role=None, hide_admin=True)
+    # Still a raw superuser (so the switch-back control stays available)...
+    assert user.is_superuser is True
+    assert user.admin_hidden is True
+    # ...but not currently *acting* as an Admin.
+    assert user.is_admin is False
+    assert user_is_national_officer(user) is False
+
+
+@pytest.mark.django_db
+def test_hide_admin_alone_leaves_natoff_functionality():
+    user = _in_group(UserFactory(is_superuser=True), "natoff")
+    UserAlter.objects.create(user=user, chapter=user.chapter, role=None, hide_admin=True)
+    assert user.is_admin is False
+    assert user.is_national_officer_group is True
+    assert user_is_national_officer(user) is True
+
+
+@pytest.mark.django_db
+def test_hiding_both_toggles_without_role_is_a_plain_member():
+    user = _in_group(UserFactory(is_superuser=True), "natoff")
+    UserAlter.objects.create(
+        user=user,
+        chapter=user.chapter,
+        role=None,
+        hide_natoff=True,
+        hide_admin=True,
+    )
+    assert user.is_admin is False
+    assert user.is_national_officer_group is False
+    assert user.is_officer_group is False
+    assert user.chapter_officer() == set()
+    assert user_is_national_officer(user) is False

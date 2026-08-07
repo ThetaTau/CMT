@@ -135,7 +135,7 @@ class RegionOfficerView(LoginRequiredMixin, NatOfficerRequiredMixin, DetailView)
                 combined_emails.append(email)
         email_list = ", ".join(combined_emails)
         self.filter.form.fields["chapter"].queryset = chapters
-        admin = self.request.user.is_superuser
+        admin = self.request.user.is_admin
         table = UserTable(
             data=self.filter.qs,
             natoff=True,
@@ -222,7 +222,7 @@ class RegionAdvisorView(LoginRequiredMixin, NatOfficerRequiredMixin, DetailView)
         self.filter.form.helper = self.formhelper_class()
         email_list = ", ".join([x[0] for x in self.filter.qs.values_list("email").distinct()])
         self.filter.form.fields["chapter"].queryset = chapters
-        admin = self.request.user.is_superuser
+        admin = self.request.user.is_admin
         table = UserTable(
             data=self.filter.qs,
             natoff=True,

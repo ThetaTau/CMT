@@ -73,7 +73,7 @@
 <div class="container mt-4">
     <div class="row justify-content-center">
         <div class="col-md-9">
-            {% if creator_is_banned and request.is_nat_officer or creator_is_banned and request.user.is_superuser %}
+            {% if creator_is_banned and request.is_nat_officer or creator_is_banned and request.user.is_admin %}
 <div class="alert alert-secondary" role="alert">
     <i class="fas fa-ban"></i>
     <strong>{{ job.created_by }}</strong> has been barred from creating new job postings
@@ -100,7 +100,7 @@
                 </div>
             {% endif %}
             {% if job.reported and not job.approved %}
-                {% if request.is_nat_officer or request.user.is_superuser %}
+                {% if request.is_nat_officer or request.user.is_admin %}
                     <div class="alert alert-warning" role="alert">
                         <h5 class="alert-heading mb-2">
                             <i class="fas fa-flag"></i> This posting has been reported
@@ -283,13 +283,13 @@
                             <i class="fas fa-flag"></i> Report Job
                         </button>
                     {% endif %}
-                    {% if not job.approved and not job.deleted and request.is_nat_officer or not job.approved and not job.deleted and request.user.is_superuser %}
+                    {% if not job.approved and not job.deleted and request.is_nat_officer or not job.approved and not job.deleted and request.user.is_admin %}
                         <button type="button" class="btn btn-outline-danger"
                                 data-bs-toggle="modal" data-bs-target="#deleteJobModal">
                             <i class="fas fa-trash"></i> Delete Job
                         </button>
                     {% endif %}
-                    {% if request.is_nat_officer or request.user.is_superuser %}
+                    {% if request.is_nat_officer or request.user.is_admin %}
                         {% if job.created_by and job.created_by != request.user and not creator_is_banned %}
                             <button type="button" class="btn btn-dark"
                                     data-bs-toggle="modal" data-bs-target="#banMemberModal">
@@ -339,7 +339,7 @@
 </div>
 {% endif %}
 
-{% if not job.approved and not job.deleted and request.is_nat_officer or not job.approved and not job.deleted and request.user.is_superuser %}
+{% if not job.approved and not job.deleted and request.is_nat_officer or not job.approved and not job.deleted and request.user.is_admin %}
 <div class="modal fade" id="approveJobModal" tabindex="-1" aria-labelledby="approveJobModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <form method="post" action="{% url 'jobs:approve' job.pk %}">
@@ -403,7 +403,7 @@
     </div>
 </div>
 {% endif %}
-{% if job.created_by and job.created_by != request.user and not creator_is_banned and request.is_nat_officer or job.created_by and job.created_by != request.user and not creator_is_banned and request.user.is_superuser %}
+{% if job.created_by and job.created_by != request.user and not creator_is_banned and request.is_nat_officer or job.created_by and job.created_by != request.user and not creator_is_banned and request.user.is_admin %}
 <div class="modal fade" id="banMemberModal" tabindex="-1" aria-labelledby="banMemberModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <form method="post" action="{% url 'jobs:ban' job.pk %}">

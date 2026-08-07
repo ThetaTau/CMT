@@ -247,7 +247,7 @@ class Job(TimeStampedModel):
         )
         is_natoff = False
         if request is not None and getattr(request, "user", None) and request.user.is_authenticated:
-            is_natoff = bool(getattr(request, "is_nat_officer", False)) or request.user.is_superuser
+            is_natoff = bool(getattr(request, "is_nat_officer", False)) or request.user.is_admin
         if not is_natoff:
             # Hide postings that have been reported but not yet approved by a National Officer
             qs = qs.exclude(reported=True, approved=False)

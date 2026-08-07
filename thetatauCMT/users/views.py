@@ -242,7 +242,7 @@ class UserProfileView(LoginRequiredMixin, DetailView):
         is_owner = viewer.is_authenticated and viewer.pk == target.pk
         is_natoff = viewer.is_national_officer_group
         is_officer = viewer.is_officer_group
-        is_superuser = viewer.is_superuser
+        is_superuser = viewer.is_admin
         # A chapter officer currently serving in the target member's chapter.
         is_target_chapter_officer = is_officer and viewer.current_chapter == target.chapter
 
@@ -610,7 +610,7 @@ class UserSearchView(LoginRequiredMixin, NatOfficerRequiredMixin, PagedFilteredT
             "chapter": True,
             "extra_info": True,
             "natoff": self.request.user.is_national_officer() and not self.request.user.natoff_hidden,
-            "admin": self.request.user.is_superuser,
+            "admin": self.request.user.is_admin,
             "viewer": self.request.user,
         }
 
@@ -765,9 +765,9 @@ class UserListView(LoginRequiredMixin, PagedFilteredTableView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         natoff = False
-        if self.request.user.is_national_officer():
+        if self.request.user.is_national_officer() and not self.request.user.natoff_hidden:
             natoff = True
-        admin = self.request.user.is_superuser
+        admin = self.request.user.is_admin
         table = UserTable(
             data=self.object_list,
             natoff=natoff,
@@ -1260,6 +1260,7 @@ class UserAlterView(LoginRequiredMixin, NatOfficerRequiredMixin, FormView):
             if reset:
                 # Reset returns the National Officer to the full national view.
                 instance.hide_natoff = False
+                instance.hide_admin = False
             instance.save()
         else:
             form.save()
@@ -1291,8 +1292,37 @@ class ToggleNatoffView(LoginRequiredMixin, View):
                 "National officer functionality is now hidden. You are viewing the "
                 "site as a member. Use the account menu to show it again.",
             )
+        redirect_to = request.POST.get("next", "")
+        if redirect_to and url_has_allowed_host_and_scheme(redirect_to, allowed_hosts=None):
+            return HttpResponseRedirect(redirect_to)
+        return HttpResponseRedirect(reverse("home"))
+
+
+class ToggleAdminView(LoginRequiredMixin, View):
+    """Flip the Admin "hide admin functionality" toggle (``UserAlter.hide_admin``).
+
+    Gated on the *raw* ``is_superuser`` field (not :class:`SuperuserRequiredMixin`,
+    which treats hidden admins as non-admins) so the Admin can always switch back.
+    """
+
+    http_method_names = ["post"]
+
+    def post(self, request, *args, **kwargs):
+        user = request.user
+        if not user.is_superuser:
+            return HttpResponseRedirect(reverse("home"))
+        instance = UserAlter.objects.filter(user=user).first()
+        if instance is None:
+            instance = UserAlter(user=user, chapter=user.chapter, role=None)
+        instance.hide_admin = not instance.hide_admin
+        instance.save()
+        if instance.hide_admin:
+            messages.info(
+                request,
+                "Admin functionality is now hidden. Use the account menu to show it again.",
+            )
         else:
-            messages.info(request, "National officer functionality restored.")
+            messages.info(request, "Admin functionality restored.")
         redirect_to = request.POST.get("next", "")
         if redirect_to and url_has_allowed_host_and_scheme(redirect_to, allowed_hosts=None):
             return HttpResponseRedirect(redirect_to)
