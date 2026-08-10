@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block title %}Report could not be run{% endblock title %}
+
+{% block content %}
+  <h1>Report could not be run</h1>
+
+  <p>
+    "{{ report.name }}" was not generated because one of its filters cannot be applied to
+    the field it is set on. Nothing was changed, so you can edit the filters and try again.
+  </p>
+
+  {% if problems %}
+    <ul>
+      {% for problem in problems %}<li>{{ problem }}</li>{% endfor %}
+    </ul>
+  {% endif %}
+
+  {% if detail %}<p class="text-muted">Database error: {{ detail }}</p>{% endif %}
+
+  <a class="btn btn-primary" href="{% url 'report_update_view' pk=report.pk %}">Edit this report</a>
+{% endblock content %}
