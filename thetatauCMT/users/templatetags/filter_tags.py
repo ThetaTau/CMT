@@ -6,11 +6,32 @@ from django.utils.safestring import mark_safe
 register = template.Library()
 
 
+def _iter_choices(field):
+    """Yield flat ``(value, label)`` choice pairs for ``field``, if it has any.
+
+    Never takes the length of the choices: a filter whose ``choices`` is a
+    callable gets a ``CallableChoiceIterator``, and django_filters' wrapping
+    ``ChoiceIterator.__len__`` blows up on it (so even ``if field.choices``
+    raises). Grouped choices are flattened to their inner pairs.
+    """
+    choices = getattr(field, "choices", None)
+    if choices is None:
+        return
+    try:
+        pairs = list(choices)
+    except TypeError:
+        return
+    for choice_value, choice_label in pairs:
+        if isinstance(choice_label, (list, tuple)):
+            yield from choice_label
+        else:
+            yield choice_value, choice_label
+
+
 def _display_scalar(field, value):
-    if hasattr(field, "choices") and field.choices:
-        for choice_value, choice_label in field.choices:
-            if str(choice_value) == str(value):
-                return str(choice_label)
+    for choice_value, choice_label in _iter_choices(field):
+        if str(choice_value) == str(value):
+            return str(choice_label)
     if isinstance(field, (ModelChoiceField, ModelMultipleChoiceField)):
         try:
             obj = field.queryset.filter(pk=value).first()

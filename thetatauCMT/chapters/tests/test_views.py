@@ -177,6 +177,30 @@ def test_chapter_list_view_natoff(auto_login_user):
     assert "Filter Chapters" in response.content.decode("UTF-8")
 
 
+@pytest.mark.django_db
+@pytest.mark.freeze_time("2026-05-15 12:00:00")
+def test_chapter_list_filter_summary_with_callable_choices(auto_login_user):
+    """Filtering by region renders the active-filter chip.
+
+    The region filter's choices are a callable, so its bound field exposes a
+    ``CallableChoiceIterator`` that has no length; the summary builder must not
+    take one.
+    """
+    from thetatauCMT.regions.tests.factories import RegionFactory
+
+    client, user = auto_login_user(make_officer="national")
+    region = RegionFactory(name="Summary Chip Region")
+    response = client.get(
+        reverse("chapters:list"),
+        {"name__icontains": "", "region": region.slug, "school__icontains": ""},
+        follow=True,
+    )
+    assert response.status_code == 200
+    content = response.content.decode("UTF-8")
+    # The chip shows the region's label, not its raw slug value.
+    assert f'class="filter-chip-value">{region.name.title()}<' in content
+
+
 # ─── ChapterRedirectView ──────────────────────────────────────────────────────
 
 
