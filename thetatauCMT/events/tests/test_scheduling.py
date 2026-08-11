@@ -10,9 +10,11 @@ import datetime
 from zoneinfo import ZoneInfo
 
 import pytest
+from django import forms
 from django.core.exceptions import ValidationError
 from django.urls import reverse
 
+from core.choices import US_UK_TIME_ZONES
 from thetatauCMT.events.forms import EventForm
 from thetatauCMT.events.models import Event
 from thetatauCMT.events.tests.factories import EventFactory
@@ -95,6 +97,21 @@ def test_is_future_only_for_dates_after_today():
 def test_form_defaults_the_time_zone_to_the_site_zone(settings):
     form = EventForm()
     assert form.initial["time_zone"] == settings.TIME_ZONE
+
+
+@pytest.mark.django_db
+def test_time_zone_is_a_plain_select_of_us_and_uk_zones():
+    form = EventForm()
+    field = form.fields["time_zone"]
+    assert isinstance(field.widget, forms.Select)
+    assert not isinstance(field.widget, forms.SelectMultiple)
+    values = [value for value, _label in field.choices]
+    assert values[0] == ""  # site default
+    assert "America/New_York" in values
+    assert "Europe/London" in values
+    # Nothing outside the US / UK, and short enough for a plain dropdown.
+    assert "Asia/Tokyo" not in values
+    assert len(values) == len(US_UK_TIME_ZONES) + 1
 
 
 @pytest.mark.django_db

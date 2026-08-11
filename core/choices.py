@@ -1,7 +1,7 @@
 """Static choice lists reused across forms.  Kept in a dedicated module so
 form modules can import them without dragging in extra dependencies."""
 
-from zoneinfo import ZoneInfo, ZoneInfoNotFoundError, available_timezones
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 US_STATE_CHOICES = [
     ("AL", "Alabama"),
@@ -112,9 +112,9 @@ ADDRESS_REGION_SUGGESTIONS = (
     + [name for _code, name in UK_REGION_CHOICES]
 )
 
-# IANA zones that cover essentially every chapter, surfaced first so the common
-# case is one click.  The full list stays available underneath.
-COMMON_TIME_ZONES = [
+# The only zones chapters are actually in, so the event form can use a plain
+# <select> instead of a searchable 600-entry IANA list.
+US_UK_TIME_ZONES = [
     ("America/New_York", "Eastern"),
     ("America/Chicago", "Central"),
     ("America/Denver", "Mountain"),
@@ -122,21 +122,16 @@ COMMON_TIME_ZONES = [
     ("America/Los_Angeles", "Pacific"),
     ("America/Anchorage", "Alaska"),
     ("Pacific/Honolulu", "Hawaii"),
-    ("America/Puerto_Rico", "Puerto Rico"),
-    ("Pacific/Guam", "Guam"),
-    ("UTC", "UTC"),
+    ("America/Puerto_Rico", "Puerto Rico / US Virgin Islands"),
+    ("Pacific/Guam", "Guam / Northern Mariana Islands"),
+    ("Pacific/Pago_Pago", "American Samoa"),
+    ("Europe/London", "United Kingdom"),
 ]
 
 
 def time_zone_choices(blank_label="Site default"):
-    """Grouped ``<select>`` choices: the common US zones, then every IANA zone."""
-    common_keys = [key for key, _label in COMMON_TIME_ZONES]
-    rest = sorted(available_timezones() - set(common_keys))
-    return [
-        ("", blank_label),
-        ("Common", [(key, f"{label} ({key})") for key, label in COMMON_TIME_ZONES]),
-        ("All time zones", [(key, key) for key in rest]),
-    ]
+    """Flat ``<select>`` choices for the US and UK zones."""
+    return [("", blank_label)] + [(key, f"{label} ({key})") for key, label in US_UK_TIME_ZONES]
 
 
 def is_valid_time_zone(value):

@@ -115,7 +115,6 @@ class EventForm(forms.ModelForm):
         label="Time Zone",
         required=False,
         choices=time_zone_choices,
-        widget=autocomplete.Select2(attrs={"data-minimum-input-length": 0}),
         help_text="Defaults to your current time zone. Change it if the event is somewhere else.",
     )
 

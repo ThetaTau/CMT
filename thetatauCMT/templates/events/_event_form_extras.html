@@ -55,6 +55,35 @@ user just submitted are never overwritten.
       if (note) { note.classList.toggle('d-none', !isFuture); }
     }
 
+    // The select only offers the US/UK zones, so map the other IANA names a
+    // browser can report onto the equivalent option.
+    var ZONE_ALIASES = {
+      'America/Detroit': 'America/New_York',
+      'America/Indiana/Indianapolis': 'America/New_York',
+      'America/Indiana/Marengo': 'America/New_York',
+      'America/Indiana/Vevay': 'America/New_York',
+      'America/Indiana/Vincennes': 'America/New_York',
+      'America/Indiana/Winamac': 'America/New_York',
+      'America/Kentucky/Louisville': 'America/New_York',
+      'America/Kentucky/Monticello': 'America/New_York',
+      'America/Indiana/Knox': 'America/Chicago',
+      'America/Indiana/Tell_City': 'America/Chicago',
+      'America/Menominee': 'America/Chicago',
+      'America/North_Dakota/Beulah': 'America/Chicago',
+      'America/North_Dakota/Center': 'America/Chicago',
+      'America/North_Dakota/New_Salem': 'America/Chicago',
+      'America/Boise': 'America/Denver',
+      'America/Adak': 'Pacific/Honolulu',
+      'America/Juneau': 'America/Anchorage',
+      'America/Metlakatla': 'America/Anchorage',
+      'America/Nome': 'America/Anchorage',
+      'America/Sitka': 'America/Anchorage',
+      'America/Yakutat': 'America/Anchorage',
+      'America/St_Thomas': 'America/Puerto_Rico',
+      'Pacific/Saipan': 'Pacific/Guam',
+      'Europe/Belfast': 'Europe/London'
+    };
+
     function seedTimeZone() {
       var select = document.getElementById('id_time_zone');
       if (!select || !isNew) { return; }
@@ -65,11 +94,11 @@ user just submitted are never overwritten.
         return;
       }
       if (!browserZone) { return; }
-      var match = select.querySelector('option[value="' + browserZone.replace(/"/g, '') + '"]');
-      if (!match || select.value === browserZone) { return; }
-      select.value = browserZone;
-      // Select2 (django-autocomplete-light) only redraws on a jQuery change.
-      if (window.jQuery) { window.jQuery(select).trigger('change'); }
+      var zone = ZONE_ALIASES[browserZone] || browserZone;
+      if (select.value === zone) { return; }
+      var match = select.querySelector('option[value="' + zone.replace(/"/g, '') + '"]');
+      if (!match) { return; }
+      select.value = zone;
     }
 
     function init() {
