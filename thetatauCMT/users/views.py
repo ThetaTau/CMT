@@ -234,12 +234,11 @@ class UserProfileView(LoginRequiredMixin, DetailView):
             .get_queryset()
             .select_related(
                 "chapter",
-                "major",
                 "employer",
                 "address__locality__state__country",
                 "employer_address__locality__state__country",
             )
-            .prefetch_related("roles", "orgs", "ritual_proficiency", "employer_positions")
+            .prefetch_related("roles", "orgs", "ritual_proficiency", "employer_positions", "major_final")
         )
 
     def get_context_data(self, **kwargs):
@@ -300,6 +299,7 @@ class UserProfileView(LoginRequiredMixin, DetailView):
                 "show_phone": show_phone,
                 "show_address": show_address,
                 "employer_positions": employer_positions,
+                "final_majors": list(target.major_final.all()),
                 "show_employer_address": show_employer_address,
                 "has_employment": bool(target.employer_id) or bool(employer_positions) or show_employer_address,
                 "has_hidden_contact": has_hidden_contact,

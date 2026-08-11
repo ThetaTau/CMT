@@ -257,9 +257,11 @@
               <dt class="col-sm-5">Degree</dt>
               <dd class="col-sm-7">{{ object.get_degree_display }}</dd>
             {% endif %}
-            {% if object.major %}
-              <dt class="col-sm-5">Major</dt>
-              <dd class="col-sm-7">{{ object.major }}</dd>
+            {% if final_majors %}
+              <dt class="col-sm-5">Major{{ final_majors|length|pluralize }}</dt>
+              <dd class="col-sm-7">
+                {% for final_major in final_majors %}{{ final_major }}{% if not forloop.last %}, {% endif %}{% endfor %}
+              </dd>
             {% endif %}
             {% if object.class_year %}
               <dt class="col-sm-5">Class year</dt>

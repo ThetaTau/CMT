@@ -22,6 +22,7 @@ from core.forms import (
 from core.models import BIENNIUM_YEARS, forever
 from thetatauCMT.chapters.models import Chapter, ChapterCurricula
 from thetatauCMT.forms.models import Employer
+from thetatauCMT.jobs.models import Major
 
 from .models import (
     MemberUpdate,
@@ -378,6 +379,17 @@ class UserAlterForm(forms.ModelForm):
 
 class UserForm(forms.ModelForm):
     address = ComponentAddressField(required=True)
+    major_final = Select2ListCreateMultipleChoiceField(
+        queryset=Major.objects.all(),
+        label="Final Major(s)",
+        required=False,
+        widget=ListSelect2Multiple(url="jobs:major-autocomplete"),
+        help_text=(
+            "The major or majors you are graduating (or graduated) with. Start typing to "
+            "search, you do NOT have to pick from the list. If your major is not shown, "
+            "type it in full and press Enter (or Tab) to add it. Add as many as you have."
+        ),
+    )
     employer = forms.ModelChoiceField(
         queryset=Employer.objects.all(),
         label="Employer",
@@ -416,7 +428,7 @@ class UserForm(forms.ModelForm):
         fields = [
             "preferred_pronouns",
             "preferred_name",
-            "major",
+            "major_final",
             "graduation_year",
             "employer",
             "employer_positions",
@@ -443,9 +455,12 @@ class UserForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         if self.instance.pk:
             set_multiple_choices_initial(self, "employer_positions")
+            set_multiple_choices_initial(self, "major_final")
         if verify:
-            self.fields["major"].widget = forms.HiddenInput()
             self.fields["graduation_year"].widget = forms.HiddenInput()
+            # One hidden input per selected major so the values still post back;
+            # a plain HiddenInput would submit the repr of the whole list.
+            self.fields["major_final"].widget = forms.MultipleHiddenInput()
         else:
             self.fields["email"].widget = forms.HiddenInput()
 

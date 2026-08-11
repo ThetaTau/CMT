@@ -50,6 +50,39 @@ def test_position_clean_normalizes_whitespace():
 
 
 # ---------------------------------------------------------------------------
+# Final major(s)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.django_db
+def test_seed_major_final_copies_pledge_major():
+    from thetatauCMT.jobs.models import Major
+    from thetatauCMT.users.tests.factories import UserFactory as _UserFactory
+
+    existing = Major.objects.create(name="chemical engineering")
+    user = _UserFactory.create()
+    user.major.major = "Chemical Engineering"
+    user.major.save(update_fields=["major"])
+    user.seed_major_final()
+    assert list(user.major_final.all()) == [existing]
+    assert Major.objects.filter(name__iexact="chemical engineering").count() == 1
+
+
+@pytest.mark.django_db
+def test_seed_major_final_leaves_a_curated_list_alone():
+    from thetatauCMT.jobs.models import Major
+    from thetatauCMT.users.tests.factories import UserFactory as _UserFactory
+
+    user = _UserFactory.create()
+    user.major.major = "Chemical Engineering"
+    user.major.save(update_fields=["major"])
+    physics = Major.objects.create(name="physics")
+    user.major_final.add(physics)
+    user.seed_major_final()
+    assert list(user.major_final.all()) == [physics]
+
+
+# ---------------------------------------------------------------------------
 # Contact-field visibility (contact_visible_to)
 # ---------------------------------------------------------------------------
 from django.contrib.auth.models import AnonymousUser, Group  # noqa: E402

@@ -243,6 +243,15 @@ class User(AbstractUser, EmailSignalMixin):
         blank=True,
         null=True,
     )
+    # `major` stays the chapter-approved curriculum picked on the pledge form.
+    # `major_final` is the shared vocabulary the job board uses, so a member can
+    # record every major they actually finished with.
+    major_final = models.ManyToManyField(
+        "jobs.Major",
+        verbose_name=_("Final Major(s)"),
+        blank=True,
+        related_name="members",
+    )
     employer = models.ForeignKey(
         "forms.Employer",
         on_delete=models.SET_NULL,
@@ -437,6 +446,20 @@ class User(AbstractUser, EmailSignalMixin):
 
     def get_absolute_url(self):
         return reverse("users:detail")
+
+    def seed_major_final(self):
+        """Copy the pledge-form major into the member-maintained final major list.
+
+        Only seeds an empty list, so a member who has curated their own majors
+        (or an officer who set them on the graduation form) is never overwritten.
+        """
+        from thetatauCMT.jobs.models import Major
+
+        if not self.major_id or self.major_final.exists():
+            return
+        major = Major.get_for_name(self.major.major)
+        if major is not None:
+            self.major_final.add(major)
 
     @classmethod
     def next_pledge_number(cls):

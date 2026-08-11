@@ -857,6 +857,7 @@ class GraduateFillView(LoginRequiredMixin, OfficerRequiredMixin, TemplateView):
             self.request.user.current_chapter.actives()
             .exclude(pk=self.request.user.pk)
             .filter(pk__in=pks)
+            .prefetch_related("major_final")
             .order_by("name")
         )
 
@@ -865,15 +866,26 @@ class GraduateFillView(LoginRequiredMixin, OfficerRequiredMixin, TemplateView):
             return redirect("forms:status_graduate_select")
         return super().get(request, *args, **kwargs)
 
+    @staticmethod
+    def formset_initial(members):
+        return [
+            {
+                "user": member.name,
+                "email_personal": member.email,
+                "reason": "graduate",
+                # Seeded from the pledge-form major, the officer can correct it.
+                "major_final": [str(major) for major in member.major_final.all()],
+            }
+            for member in members
+        ]
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         members = self.selected_members() or []
         formset = kwargs.get("formset", None)
         if formset is None:
             formset = GraduateFormSet(prefix="graduates")
-        formset.initial = [
-            {"user": member.name, "email_personal": member.email, "reason": "graduate"} for member in members
-        ]
+        formset.initial = self.formset_initial(members)
         context["formset"] = formset
         context["helper"] = GraduateFormHelper()
         context["combined_media"] = formset.media
@@ -888,9 +900,7 @@ class GraduateFillView(LoginRequiredMixin, OfficerRequiredMixin, TemplateView):
         if not members:
             return redirect("forms:status_graduate_select")
         formset = GraduateFormSet(request.POST, request.FILES, prefix="graduates")
-        formset.initial = [
-            {"user": member.name, "email_personal": member.email, "reason": "graduate"} for member in members
-        ]
+        formset.initial = self.formset_initial(members)
         if not formset.is_valid():
             return self.render_to_response(self.get_context_data(formset=formset))
         chapter = request.user.current_chapter
@@ -2065,6 +2075,7 @@ class PledgeFormView(CreateView):
         pledge.instance.user = user
         self.object = pledge.save()
         user.set_current_status(status="pnm")
+        user.seed_major_final()
         view = BillOfRightsPDFView.as_view()
         new_request = HttpRequest()
         new_request.method = "GET"

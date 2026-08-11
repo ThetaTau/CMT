@@ -1,4 +1,4 @@
-.PHONY: help build build-up up down restart logs shell test clean migrate makemigrations collectstatic setup-host show-roles add-role remove-role
+.PHONY: help build build-up up down restart logs shell test test-anonymizer clean migrate makemigrations collectstatic setup-host show-roles add-role remove-role
 
 # ------------------------------------------------------------------------------
 # Container engine configuration (Docker or Podman)
@@ -36,6 +36,7 @@ help:
 	@echo "  make logs           - View container logs"
 	@echo "  make shell          - Connect to Django container shell"
 	@echo "  make test           - Run tests"
+	@echo "  make test-anonymizer - Dry-run the anonymizer to check every model is registered"
 	@echo "  make migrate        - Run database migrations"
 	@echo "  make makemigrations - Create new migrations"
 	@echo "  make collectstatic  - Collect static files"
@@ -96,6 +97,10 @@ test-fast:
 
 test-path:
 	$(EXEC) thetataucmt_local_django pytest $(path)
+
+# Dry run only: reports any model missing from anonymizer/, changes no data.
+test-anonymizer:
+	$(EXEC) thetataucmt_local_django python manage.py anonymize_db --check_only
 
 migrate:
 	$(EXEC) thetataucmt_local_django python manage.py migrate

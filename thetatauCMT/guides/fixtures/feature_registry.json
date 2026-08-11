@@ -73,8 +73,8 @@
         {
           "key": "edit-my-info",
           "name": "Edit my info",
-          "short_description": "Update your email, phone, address, employer, graduation year and major.",
-          "long_description": "Keeping your graduation date right matters: it drives when you are moved to alumnus status and whether you keep receiving chapter mail. Employer, job title and work address are shown on your member profile so other members can find you professionally; pick your employer and titles from the type-to-search lists, or type a new one to add it. Your work address is only shown to whoever you let see your address.",
+          "short_description": "Update your email, phone, address, employer, graduation year and majors.",
+          "long_description": "Keeping your graduation date right matters: it drives when you are moved to alumnus status and whether you keep receiving chapter mail. Record the major or majors you are actually graduating with; the major your chapter recorded when you pledged is kept as a historical record and is not changed here. Employer, job title and work address are shown on your member profile so other members can find you professionally; pick your employer, titles and majors from the type-to-search lists, or type a new one to add it. Your work address is only shown to whoever you let see your address.",
           "url_name": "users:detail"
         },
         {
@@ -432,7 +432,7 @@
         {
           "key": "status-change-graduate",
           "name": "Graduate members",
-          "short_description": "Report members who are graduating. Select several at once and fill one row each.",
+          "short_description": "Report members who are graduating. Select several at once and fill one row each, including the majors they graduated with.",
           "url_name": "forms:status_history",
           "url_kwargs": {"reason": "graduate"},
           "audience": "officer",

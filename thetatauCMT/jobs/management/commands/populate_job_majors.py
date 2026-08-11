@@ -2,8 +2,8 @@
 
 Each fixture entry is a canonical major plus the spellings seen in the wild
 (typos, ampersands, degree suffixes, department names) that should collapse
-into it. Rows already tagged on a job or a saved search are repointed at the
-canonical row before the duplicate is removed.
+into it. Rows already tagged on a job, a saved search, or a member's final
+major are repointed at the canonical row before the duplicate is removed.
 
 Names are stored lowercase to match `VocabularyAutocomplete.create_object`,
 so a major a member types on the job form resolves to the curated row
@@ -74,6 +74,8 @@ class Command(BaseCommand):
                         job.majors.add(keeper)
                     for job_search in extra.job_searches.all():
                         job_search.majors.add(keeper)
+                    for member in extra.members.all():
+                        member.major_final.add(keeper)
                     extra.delete()
                 if keeper.name != canonical:
                     keeper.name = canonical

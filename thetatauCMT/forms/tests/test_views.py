@@ -378,6 +378,62 @@ def test_graduate_fill_without_selection_redirects(auto_login_user):
     assert reverse("forms:status_graduate_select") in response["Location"]
 
 
+def _select_graduate(client, member):
+    session = client.session
+    session["graduate-selection"] = [member.pk]
+    session.save()
+
+
+@pytest.mark.django_db
+def test_graduate_fill_prefills_final_major(auto_login_user, user_factory):
+    """The fill step offers a final-major picker seeded with what we already know."""
+    from thetatauCMT.jobs.models import Major
+
+    client, user = auto_login_user()
+    _add_to_group(user, "officer")
+    member = user_factory.create(chapter=user.chapter)
+    member.set_current_status(status="active")
+    member.major_final.add(Major.objects.create(name="mechanical engineering"))
+    _select_graduate(client, member)
+    response = client.get(reverse("forms:status_graduate"))
+    assert response.status_code == 200
+    body = response.content.decode("utf-8")
+    assert "Final Major(s)" in body
+    assert "mechanical engineering" in body
+
+
+@pytest.mark.django_db
+def test_graduate_submit_records_final_majors(auto_login_user, user_factory):
+    """The submitted majors replace what the member had recorded."""
+    from thetatauCMT.jobs.models import Major
+
+    client, user = auto_login_user()
+    _add_to_group(user, "officer")
+    member = user_factory.create(chapter=user.chapter)
+    member.set_current_status(status="active")
+    member.major_final.add(Major.objects.create(name="mechanical engineering"))
+    civil = Major.objects.create(name="civil engineering")
+    physics = Major.objects.create(name="physics")
+    _select_graduate(client, member)
+    response = client.post(
+        reverse("forms:status_graduate"),
+        data={
+            "chapter": member.chapter.name,
+            "graduates-TOTAL_FORMS": "1",
+            "graduates-INITIAL_FORMS": "1",
+            "graduates-MIN_NUM_FORMS": "0",
+            "graduates-MAX_NUM_FORMS": "1000",
+            "graduates-0-degree": "bs",
+            "graduates-0-date_start": "2026-05-15",
+            "graduates-0-major_final": [str(civil.pk), str(physics.pk)],
+            "graduates-0-email_personal": "grad@example.com",
+        },
+        follow=False,
+    )
+    assert response.status_code == 302
+    assert sorted(member.major_final.values_list("name", flat=True)) == ["civil engineering", "physics"]
+
+
 @pytest.mark.django_db
 def test_status_change_landing_lists_split_forms(auto_login_user, feature_registry):
     """The per-reason status changes still each get their own row (now from the registry).

@@ -26,6 +26,19 @@ class Major(models.Model):
     def __str__(self):
         return self.name
 
+    @classmethod
+    def get_for_name(cls, text):
+        """Return the major matching free text, creating it when it is new.
+
+        Names are stored lowercase to match ``VocabularyAutocomplete.create_object``
+        so job postings, saved searches and members all land on the same row.
+        ``populate_job_majors`` is what merges near-duplicate spellings later.
+        """
+        name = " ".join((text or "").split()).lower()
+        if not name:
+            return None
+        return cls.objects.filter(name__iexact=name).first() or cls.objects.create(name=name)
+
 
 def get_job_attachment_upload_path(instance, filename):  # instance refers to object
     return os.path.join(

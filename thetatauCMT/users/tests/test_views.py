@@ -1414,6 +1414,76 @@ def test_profile_shows_work_address_when_address_is_visible(auto_login_user, use
     assert "405 Open Way" in response.content.decode("UTF-8")
 
 
+# ---------------------------------------------------------------------------
+# Final major(s)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.django_db
+def test_user_form_does_not_offer_the_pledge_major():
+    """The pledge-form major is a historical record; members maintain major_final."""
+    from thetatauCMT.users.forms import UserForm
+
+    form = UserForm()
+    assert "major" not in form.fields
+    assert "major_other" not in form.fields
+
+
+@pytest.mark.django_db
+def test_user_form_includes_final_major_field():
+    """Members pick their final major(s) from the shared job board vocabulary."""
+    from thetatauCMT.users.forms import UserForm
+
+    form = UserForm()
+    assert "major_final" in form.fields
+    assert form.fields["major_final"].widget.url == reverse("jobs:major-autocomplete")
+
+
+@pytest.mark.django_db
+def test_user_detail_post_saves_final_majors(auto_login_user):
+    """A member can record more than one final major."""
+    from thetatauCMT.jobs.models import Major
+
+    client, user = auto_login_user()
+    civil = Major.objects.create(name="civil engineering")
+    physics = Major.objects.create(name="physics")
+    response = client.post(
+        reverse("users:detail"),
+        {
+            "action": "user",
+            "graduation_year": user.graduation_year or 2025,
+            "email": user.email,
+            "birth_date": "01/01/1990",
+            "phone_visibility": "no_one",
+            "email_visibility": "no_one",
+            "address_visibility": "no_one",
+            "address_0": "123 Main St",
+            "address_1": "Phoenix",
+            "address_2": "AZ",
+            "address_3": "85001",
+            "address_4": "United States",
+            "major_final": [str(civil.pk), str(physics.pk)],
+        },
+    )
+    assert response.status_code == 302
+    assert set(user.major_final.all()) == {civil, physics}
+
+
+@pytest.mark.django_db
+def test_profile_shows_final_majors(auto_login_user, user_factory):
+    """The profile shows the final majors, not the historical pledge major."""
+    from thetatauCMT.jobs.models import Major
+
+    client, user = auto_login_user()
+    target = user_factory.create()
+    target.major_final.add(Major.objects.create(name="civil engineering"))
+    response = client.get(reverse("users:profile", kwargs={"username": target.username}))
+    assert response.status_code == 200
+    body = response.content.decode("UTF-8")
+    assert "civil engineering" in body
+    assert str(target.major) not in body
+
+
 @pytest.mark.django_db
 def test_position_autocomplete_search_and_create(auto_login_user):
     """Any member can search job titles and add one that is missing."""

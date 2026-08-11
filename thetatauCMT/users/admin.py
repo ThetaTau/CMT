@@ -591,6 +591,7 @@ class MyUserAdmin(
                     "phone_number",
                     "phone_visibility",
                     "major",
+                    "major_final",
                     "employer",
                     "employer_positions",
                     "employer_address",
