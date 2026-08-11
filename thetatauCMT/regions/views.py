@@ -33,6 +33,13 @@ def _contact_sync_context(request, region_slug):
 
     Retained as an internal helper so downstream tests can monkey-patch the
     context for a single region without touching the shared implementation.
+
+    Always uses the ``"region:<slug>"`` scope (never the bare ``"national"``
+    council scope) -- ``region_slug`` here is the "All Officers" page's
+    synthetic ``"national"`` slug meaning *every chapter*, which is a
+    different population than the National Officer roster's council members.
+    See :func:`contact_sync.officers._resolve_region_scope` for the
+    ``"national" -> all active chapters`` special case.
     """
     return build_sync_modal_context(request, f"region:{region_slug}")
 

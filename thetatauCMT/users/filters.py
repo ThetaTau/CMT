@@ -99,7 +99,7 @@ class UserRoleListFilter(DynamicScopeFilterSetMixin, django_filters.FilterSet):
         method="filter_current_status",
     )
     current_roles = django_filters.MultipleChoiceFilter(choices=UserRoleChange.ROLES, method="filter_current_roles")
-    region = django_filters.ChoiceFilter(choices=Region.region_choices(), method="filter_region")
+    region = django_filters.ChoiceFilter(label="Region", choices=Region.region_choices(), method="filter_region")
     major = django_filters.ModelChoiceFilter(
         queryset=ChapterCurricula.objects.none(),
         method="filter_major",
@@ -168,7 +168,7 @@ class UserRoleListFilter(DynamicScopeFilterSetMixin, django_filters.FilterSet):
 
 
 class AdvisorListFilter(DynamicScopeFilterSetMixin, django_filters.FilterSet):
-    region = django_filters.ChoiceFilter(choices=Region.region_choices(), method="filter_region")
+    region = django_filters.ChoiceFilter(label="Region", choices=Region.region_choices(), method="filter_region")
     chapter = django_filters.ChoiceFilter(
         label="Chapter",
         choices=Chapter.chapter_choices(),

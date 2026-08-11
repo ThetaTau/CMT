@@ -105,7 +105,11 @@ def _wants_json(request: HttpRequest) -> bool:
 def download_region_vcard(request: HttpRequest, region_slug: str) -> HttpResponse:
     if not _is_natoff(request):
         return _forbid(request)
-    scope = normalize_scope(region_slug)
+    # Always a region scope, even when region_slug == "national" (the
+    # all-chapters synthetic slug) -- normalize_scope() would otherwise
+    # collapse a bare "national" into the unrelated national-council scope,
+    # which has its own dedicated download_national_vcard view/URL.
+    scope = f"region:{region_slug}"
     return _vcard_response(
         request,
         scope,

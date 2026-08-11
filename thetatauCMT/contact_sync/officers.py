@@ -227,10 +227,15 @@ def _resolve_region_scope(region_slug: str) -> tuple[list[Chapter], str]:
 
     ``candidate_chapter`` is a synthetic scope Region uses to represent the
     non-region grouping of candidate chapters — handle it explicitly.
+    ``national`` is likewise synthetic: it means *every* active chapter (no
+    region row exists with that slug), matching ``UserRoleListFilter``'s
+    ``filter_region`` on the region officer list page.
     """
     active = Chapter.objects.exclude(active=False)
     if region_slug == "candidate_chapter":
         return list(active.filter(candidate_chapter=True)), "Candidate Chapters"
+    if region_slug == "national":
+        return list(active), "All Officers"
     region = Region.objects.filter(slug=region_slug).first()
     if region is None:
         return [], region_slug
