@@ -1,4 +1,5 @@
 ﻿{% extends "base.html" %}
+{% load static %}
 {% block title %}Events Calendar{% endblock %}
 
 {% block content %}
@@ -25,6 +26,9 @@
   <p class="text-body-secondary">
     Upcoming and past events you can see, your chapter's events, plus other chapters' approved
     public events. RSVP to reserve your intent to attend an upcoming event.
+    <span class="d-none" data-local-time-note>
+      Start times are shown in your own time zone, <span data-local-time-zone></span>.
+    </span>
   </p>
 
   {# ---------- Filters ---------- #}
@@ -90,7 +94,7 @@
                   {% for event in cell.events %}
                     <div class="mb-1">
                       <a href="{{ event.get_absolute_url }}" class="d-block small text-break">
-                        {% if event.is_national %}<span class="badge bg-primary">Nat</span>{% endif %}{% if event.start_time %}<span class="text-body-secondary">{{ event.start_time|time:"g:i A" }}</span> {% endif %}{{ event.name }}
+                        {% if event.is_national %}<span class="badge bg-primary">Nat</span>{% endif %}{% if event.start_time %}<time data-local-time="short" datetime="{{ event.start_datetime|date:'c' }}" data-event-date="{{ event.date|date:'Y-m-d' }}" class="text-body-secondary">{{ event.start_time|time:"g:i A" }}</time> {% endif %}{{ event.name }}
                       </a>
                       {% include "events/_rsvp_control.html" with event=event my_status=event.my_status member_can_rsvp=event.member_can_rsvp size="py-0 px-1" %}
                     </div>
@@ -118,7 +122,7 @@
                   <tr>
                     <td class="text-nowrap">
                       {{ event.date|date:"M j, Y" }}
-                      {% if event.start_time %}<span class="text-body-secondary">{{ event.start_time|time:"g:i A" }}</span>{% endif %}
+                      {% if event.start_time %}<time data-local-time datetime="{{ event.start_datetime|date:'c' }}" data-event-date="{{ event.date|date:'Y-m-d' }}" class="text-body-secondary">{{ event.start_time|time:"g:i A" }}</time>{% endif %}
                     </td>
                     <td><a href="{{ event.get_absolute_url }}">{{ event.name }}</a></td>
                     <td>
@@ -186,3 +190,8 @@ function calendarJump() {
 })();
 </script>
 {% endblock content %}
+
+{% block javascript %}
+{{ block.super }}
+<script src="{% static 'js/local_time.js' %}"></script>
+{% endblock javascript %}

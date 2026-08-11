@@ -7,6 +7,7 @@ knowable until after the event happens.
 """
 
 import datetime
+import re
 from zoneinfo import ZoneInfo
 
 import pytest
@@ -266,6 +267,57 @@ def test_detail_page_shows_time_and_link(auto_login_user):
     assert "https://example.com/rsvp" in content
     # Rich text renders as markup, not escaped source.
     assert "Bring a <em>friend</em>." in content
+
+
+@pytest.mark.django_db
+def test_detail_page_shows_viewer_time_before_event_time(auto_login_user):
+    """The viewer's own time comes first; the event's own time follows it."""
+    client, user = auto_login_user()
+    score_type = _evt_score_type()
+    if score_type is None:
+        pytest.skip("No Evt ScoreType in fixture")
+    event = EventFactory.create(
+        chapter=user.chapter,
+        type=score_type,
+        date=datetime.date(2026, 9, 15),
+        start_time=datetime.time(19, 0),
+        time_zone="America/New_York",
+    )
+    content = client.get(event.get_absolute_url()).content.decode()
+    local = re.search(
+        r'<time data-local-time datetime="([^"]+)"\s+data-event-date="([^"]+)">([^<]+)</time>',
+        content,
+    )
+    assert local, "the viewer-facing <time> element is missing"
+    iso, event_date, fallback = local.groups()
+    # Same instant as the event's own 7pm New York start, however the site
+    # timezone renders it, so the browser can restate it in the viewer's zone.
+    assert datetime.datetime.fromisoformat(iso) == event.start_datetime
+    assert event_date == "2026-09-15"
+    assert fallback == "7:00 PM"  # no-JS fallback is the event's own clock
+    # The event's own time follows the viewer's, not the other way round.
+    assert content.index("event time 7:00 PM") > local.start()
+    assert "js/local_time.js" in content
+
+
+@pytest.mark.django_db
+def test_calendar_marks_event_times_for_local_conversion(auto_login_user):
+    client, user = auto_login_user()
+    score_type = _evt_score_type()
+    if score_type is None:
+        pytest.skip("No Evt ScoreType in fixture")
+    EventFactory.create(
+        chapter=user.chapter,
+        type=score_type,
+        date=datetime.date.today(),
+        start_time=datetime.time(19, 0),
+        time_zone="America/New_York",
+    )
+    content = client.get(reverse("events:calendar")).content.decode()
+    # Month grid keeps it dense (time only); the table view names the zone.
+    assert 'data-local-time="short"' in content
+    assert "<time data-local-time datetime=" in content
+    assert "js/local_time.js" in content
 
 
 @pytest.mark.django_db

@@ -96,7 +96,11 @@
         <th scope="row">Start time</th>
         <td>
           {% if object.start_time %}
-            {{ object.start_time|time:"g:i A" }} ({{ object.effective_time_zone }})
+            <time data-local-time datetime="{{ object.start_datetime|date:'c' }}"
+                  data-event-date="{{ object.date|date:'Y-m-d' }}">{{ object.start_time|time:"g:i A" }}</time>
+            <span class="text-body-secondary ms-1">
+              (event time {{ object.start_time|time:"g:i A" }} {{ object.effective_time_zone }})
+            </span>
           {% else %}
             All day
           {% endif %}
@@ -240,3 +244,8 @@
   {% endif %}
 </div>
 {% endblock content %}
+
+{% block javascript %}
+{{ block.super }}
+<script src="{% static 'js/local_time.js' %}"></script>
+{% endblock javascript %}

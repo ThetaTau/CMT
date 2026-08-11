@@ -267,7 +267,8 @@
         {
           "key": "events-calendar",
           "name": "Events calendar",
-          "short_description": "Your chapter's events in a month view.",
+          "short_description": "Your chapter's events in a month view, with start times in your own time zone.",
+          "long_description": "Start times are converted to whatever time zone your device is set to, so an event another chapter scheduled in its own zone reads correctly for you. If the conversion moves an event onto a different day for you, the local date is shown alongside the time. Open an event to see its own time zone as well as yours.",
           "url_name": "events:calendar",
           "feature_flag": "FEATURE_EVENTS_CALENDAR"
         },
