@@ -1002,7 +1002,7 @@
         {
           "key": "region-dashboard",
           "name": "Region dashboard",
-          "short_description": "Chapter health across your region: scores, submissions and outstanding tasks.",
+          "short_description": "Chapter health across your region: scores, submissions, outstanding tasks, recruitment and where members work.",
           "url_name": "regions:dashboard",
           "url_kwargs": {"slug": "@region_slug"},
           "audience": "natoff",
@@ -1038,7 +1038,7 @@
         {
           "key": "national-dashboard",
           "name": "National dashboard",
-          "short_description": "The same chapter health view, across every region.",
+          "short_description": "The same chapter health, recruitment and careers view, across every region.",
           "url_name": "regions:dashboard",
           "url_kwargs": {"slug": "national"},
           "audience": "natoff",

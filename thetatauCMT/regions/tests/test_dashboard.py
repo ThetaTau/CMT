@@ -193,6 +193,18 @@ def test_treemap_from_rows_renders_labels_and_values():
     assert sum(fig.data[0].values) == 8
 
 
+def test_treemap_from_rows_caps_at_top_n():
+    from thetatauCMT.regions.dashboard import _treemap_from_rows
+
+    rows = [
+        {"Employer": "Boeing", "count": 3},
+        {"Employer": "SpaceX", "count": 5},
+        {"Employer": "Corner Shop", "count": 1},
+    ]
+    fig = _treemap_from_rows(rows, label_key="Employer", value_key="count", theme="light", top_n=2)
+    assert set(fig.data[0].labels) == {"Boeing", "SpaceX"}
+
+
 def test_treemap_from_rows_uses_custom_value_label():
     from thetatauCMT.regions.dashboard import _treemap_from_rows
 
@@ -324,6 +336,35 @@ def test_majors_breakdown_returns_figure():
 
     fig = majors_breakdown("national", "light")
     assert isinstance(fig, go.Figure)
+
+
+@pytest.mark.django_db
+def test_current_employer_cloud_counts_members_per_employer():
+    """current-employer-cloud is AY-independent: it reads `User.employer` today."""
+    from thetatauCMT.forms.models import Employer
+    from thetatauCMT.regions.dashboard import current_employer_cloud
+    from thetatauCMT.users.tests.factories import UserFactory
+
+    boeing = Employer.objects.create(name="Boeing Dashboard Test")
+    spacex = Employer.objects.create(name="SpaceX Dashboard Test")
+    UserFactory.create_batch(2, employer=boeing, current_status="alumni")
+    UserFactory(employer=spacex, current_status="active")
+    # A departed member's employer is not "where our members work".
+    UserFactory(employer=spacex, current_status="expelled")
+
+    fig = current_employer_cloud("national", "light")
+    assert isinstance(fig, go.Figure)
+    counts = dict(zip(fig.data[0].labels, fig.data[0].values))
+    assert counts["Boeing Dashboard Test"] == 2
+    assert counts["SpaceX Dashboard Test"] == 1
+
+
+@pytest.mark.django_db
+def test_current_employer_cloud_empty_without_employers():
+    from thetatauCMT.regions.dashboard import current_employer_cloud
+
+    fig = current_employer_cloud("national", "light")
+    assert len(fig.data) == 0
 
 
 @pytest.mark.django_db

@@ -47,6 +47,11 @@ ACTIVE_STATUSES = ["active", "activepend", "alumnipend", "activeCC", "pendexpul"
 # + PNMs. Use this (not ACTIVE_STATUSES) anywhere a chart reports "members".
 MEMBER_STATUSES = ACTIVE_STATUSES + ["pnm"]
 
+# Statuses whose members still count as "ours" for career charts. Alumni are
+# the ones most likely to have an employer on file, so they are included here
+# even though they are off the chapter roster.
+CAREER_STATUSES = ACTIVE_STATUSES + ["alumni", "alumniCC", "advisor"]
+
 # Distinct qualitative palette; falls back to Plotly D3 for extra regions.
 REGION_PALETTE = px.colors.qualitative.Bold + px.colors.qualitative.D3
 
@@ -341,6 +346,7 @@ app.layout = html.Div(
                                 md_cols=6,
                             ),
                             _panel("Majors of study (current members)", "majors-breakdown"),
+                            _panel("Where members work now (sized by members)", "current-employer-cloud"),
                             _panel(
                                 "Graduate employers (sized by hires)",
                                 "graduation-employer-cloud",
@@ -683,7 +689,7 @@ def _horizontal_bar_top_n(rows, label_key, value_key, x_label, theme, top_n=10, 
     return _apply_theme(fig, theme)
 
 
-def _treemap_from_rows(rows, label_key, value_key, theme, value_label="Graduates"):
+def _treemap_from_rows(rows, label_key, value_key, theme, value_label="Graduates", top_n=None):
     """Render a treemap where each rectangle's area is proportional to its
     value. Used in place of a word cloud (plotly ships no wordcloud trace)
     so the tag-cloud "biggest is most common" affordance survives.
@@ -698,6 +704,8 @@ def _treemap_from_rows(rows, label_key, value_key, theme, value_label="Graduates
     if df.empty:
         return _empty_figure(theme, "No data for this period")
     df = df.sort_values(value_key, ascending=False)
+    if top_n:
+        df = df.head(top_n)
 
     fig = go.Figure(
         go.Treemap(
@@ -1126,6 +1134,41 @@ def retention_by_chapter(region_slug, ay_start_year, theme):
         legend_title_text="Region",
     )
     return _apply_theme(fig, theme)
+
+
+@app.callback(
+    Output("current-employer-cloud", "figure"),
+    [Input("region-slug-store", "data"), Input("theme-store", "data")],
+)
+def current_employer_cloud(region_slug, theme):
+    """Treemap of the employers members have on their profile right now.
+
+    A snapshot rather than an academic-year window: it answers "where do our
+    members work" from `User.employer`, whereas `graduation_employer_cloud`
+    answers "who hired this year's graduates" from their status change.
+    """
+    from thetatauCMT.users.models import User
+
+    chapters = get_scope_chapters(region_slug)
+    rows = list(
+        User.objects.filter(
+            chapter__in=chapters,
+            current_status__in=CAREER_STATUSES,
+            employer__isnull=False,
+        )
+        .values("employer__name")
+        .annotate(count=Count("id"))
+    )
+    for row in rows:
+        row["Employer"] = row.pop("employer__name")
+    return _treemap_from_rows(
+        rows,
+        label_key="Employer",
+        value_key="count",
+        theme=theme,
+        value_label="Members",
+        top_n=40,
+    )
 
 
 @app.callback(
