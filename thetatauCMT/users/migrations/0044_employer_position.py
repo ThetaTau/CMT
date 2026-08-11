@@ -3,6 +3,13 @@
 # auto-generated AlterField would have tried to cast the text straight to a
 # foreign key, so this follows the same rename -> add FK -> populate -> drop
 # pattern as `forms/0044_employer.py`.
+#
+# The backfill is deliberately set-based. The first version of this migration
+# ran a `name__iexact` lookup and an `UPDATE ... WHERE employer_old = %s` per
+# distinct employer, which is one sequential scan of `users_historicaluser`
+# per name, and `.set()` per user for the positions. It did not finish in
+# 30 minutes on production. Everything below is a fixed number of queries
+# plus batched inserts, so keep it that way.
 
 import re
 
@@ -18,6 +25,9 @@ _SUFFIX_RE = re.compile(
     r",?\s*(inc|incorporated|llc|l\.l\.c\.|corp|corporation|co|company|" r"ltd|limited|plc|llp|lp|gmbh)\.?$",
     re.IGNORECASE,
 )
+
+# Rows per INSERT / bulk_create round trip.
+BATCH = 1000
 
 
 def _clean(name):
@@ -35,61 +45,156 @@ def _key(name):
     return re.sub(r"\s+", " ", s).strip(" .,;:")
 
 
+def _employer_lookups(Employer):
+    """Every existing employer as (exact casefolded name, dedup key) -> pk.
+
+    Loaded once so resolving a name is a dict hit; the per-name
+    `filter(name__iexact=...)` it replaces could not use the unique index and
+    rescanned the whole table for every distinct value.
+    """
+    by_exact, by_key = {}, {}
+    for pk, name in Employer.objects.order_by("id").values_list("id", "name"):
+        by_exact.setdefault((name or "").casefold(), pk)
+        key = _key(name)
+        if key:
+            by_key.setdefault(key, pk)
+    return by_exact, by_key
+
+
+def _apply_employer_mapping(schema_editor, mapping, targets):
+    """Set the employer FK on every `targets` table from `mapping`.
+
+    The (old text -> employer id) pairs go into a temporary table so each
+    table is rewritten by ONE `UPDATE ... FROM` join instead of one statement
+    per distinct employer name.
+    """
+    connection = schema_editor.connection
+    quote = schema_editor.quote_name
+    tmp = quote("cmt_employer_map")
+    with connection.cursor() as cursor:
+        cursor.execute(f"DROP TABLE IF EXISTS {tmp}")
+        cursor.execute(f"CREATE TEMPORARY TABLE {tmp} (old_value text PRIMARY KEY, employer_id bigint NOT NULL)")
+        for start in range(0, len(mapping), BATCH):
+            chunk = mapping[start : start + BATCH]
+            placeholders = ", ".join(["(%s, %s)"] * len(chunk))
+            params = [value for pair in chunk for value in pair]
+            cursor.execute(f"INSERT INTO {tmp} (old_value, employer_id) VALUES {placeholders}", params)
+        cursor.execute(f"ANALYZE {tmp}")
+        for model in targets:
+            table = quote(model._meta.db_table)
+            old_column = quote(model._meta.get_field("employer_old").column)
+            fk_column = quote(model._meta.get_field("employer").column)
+            cursor.execute(
+                f"UPDATE {table} AS t SET {fk_column} = m.employer_id "
+                f"FROM {tmp} AS m WHERE t.{old_column} = m.old_value"
+            )
+        cursor.execute(f"DROP TABLE {tmp}")
+
+
 def populate_employer(apps, schema_editor):
     Employer = apps.get_model("forms", "Employer")
     User = apps.get_model("users", "User")
     HistoricalUser = apps.get_model("users", "HistoricalUser")
-    key_to_employer = {}
+    targets = [User, HistoricalUser]
 
-    def resolve(raw):
-        cleaned = _clean(raw)[:200]
-        key = _key(cleaned)
-        if not key:
-            return None
-        employer = key_to_employer.get(key)
-        if employer is None:
-            # Prefer an existing case-insensitive match (the same employer may
-            # already be on a status change), else create it with the cleaned
-            # original casing.
-            employer = Employer.objects.filter(name__iexact=cleaned).first()
-            if employer is None:
-                employer, _ = Employer.objects.get_or_create(name=cleaned)
-            key_to_employer[key] = employer
-        return employer
-
-    for model in (User, HistoricalUser):
-        names = (
+    raw_values = set()
+    for model in targets:
+        raw_values.update(
             model.objects.exclude(employer_old="")
             .exclude(employer_old__isnull=True)
+            # order_by() clears User.Meta.ordering: Django adds ordering columns
+            # to a DISTINCT select, and `history_id` is unique, so leaving it on
+            # returns every historical row instead of the distinct names.
+            .order_by()
             .values_list("employer_old", flat=True)
             .distinct()
         )
-        for raw in names:
-            employer = resolve(raw)
-            if employer is not None:
-                model.objects.filter(employer_old=raw).update(employer=employer)
+    if not raw_values:
+        return
+
+    by_exact, by_key = _employer_lookups(Employer)
+    missing = {}
+    for raw in raw_values:
+        cleaned = _clean(raw)[:200]
+        key = _key(cleaned)
+        if not key or cleaned.casefold() in by_exact or key in by_key or key in missing:
+            continue
+        # Create with the cleaned original casing, which displays better than
+        # the lowercased dedup key.
+        missing[key] = cleaned
+    if missing:
+        Employer.objects.bulk_create(
+            [Employer(name=name) for name in missing.values()],
+            batch_size=BATCH,
+            ignore_conflicts=True,
+        )
+        by_exact, by_key = _employer_lookups(Employer)
+
+    mapping = []
+    for raw in raw_values:
+        cleaned = _clean(raw)[:200]
+        employer_id = by_exact.get(cleaned.casefold()) or by_key.get(_key(cleaned))
+        if employer_id:
+            mapping.append((raw, employer_id))
+    if mapping:
+        _apply_employer_mapping(schema_editor, mapping, targets)
+
+
+def _split_positions(text):
+    """Split one free-text position field into cleaned job titles."""
+    names = []
+    for part in (text or "").split(","):
+        name = " ".join(part.split())[:200]
+        if name and name not in names:
+            names.append(name)
+    return names
 
 
 def populate_positions(apps, schema_editor):
     Position = apps.get_model("users", "Position")
     User = apps.get_model("users", "User")
-    cache = {}
-    qs = User.objects.exclude(employer_position="").exclude(employer_position__isnull=True)
-    for user in qs.iterator():
-        positions = []
-        for raw in user.employer_position.split(","):
-            name = " ".join(raw.split())[:200]
-            if not name:
-                continue
-            position = cache.get(name.casefold())
-            if position is None:
-                position = Position.objects.filter(name__iexact=name).first()
-                if position is None:
-                    position = Position.objects.create(name=name)
-                cache[name.casefold()] = position
-            positions.append(position)
-        if positions:
-            user.employer_positions.set(positions)
+    through = User._meta.get_field("employer_positions").remote_field.through
+    # order_by() clears User.Meta.ordering so DISTINCT applies to the text alone
+    # and the streaming pass below does not sort the table.
+    filled = User.objects.exclude(employer_position="").exclude(employer_position__isnull=True).order_by()
+
+    # Pass 1: distinct texts only, so memory stays proportional to the number
+    # of distinct job titles rather than to the number of members.
+    names_by_text = {
+        text: _split_positions(text) for text in filled.values_list("employer_position", flat=True).distinct()
+    }
+    if not names_by_text:
+        return
+
+    wanted = {}
+    for names in names_by_text.values():
+        for name in names:
+            wanted.setdefault(name.casefold(), name)
+    existing = {name.casefold(): pk for pk, name in Position.objects.values_list("id", "name")}
+    missing = [name for key, name in wanted.items() if key not in existing]
+    if missing:
+        Position.objects.bulk_create(
+            [Position(name=name) for name in missing],
+            batch_size=BATCH,
+            ignore_conflicts=True,
+        )
+        existing = {name.casefold(): pk for pk, name in Position.objects.values_list("id", "name")}
+
+    ids_by_text = {
+        text: [existing[name.casefold()] for name in names if name.casefold() in existing]
+        for text, names in names_by_text.items()
+    }
+
+    # Pass 2: stream the members and insert the through rows in batches.
+    links = []
+    for user_id, text in filled.values_list("id", "employer_position").iterator(chunk_size=2000):
+        for position_id in ids_by_text.get(text, ()):
+            links.append(through(user_id=user_id, position_id=position_id))
+        if len(links) >= BATCH:
+            through.objects.bulk_create(links, batch_size=BATCH, ignore_conflicts=True)
+            links = []
+    if links:
+        through.objects.bulk_create(links, batch_size=BATCH, ignore_conflicts=True)
 
 
 class Migration(migrations.Migration):
