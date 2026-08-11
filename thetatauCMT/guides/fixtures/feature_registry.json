@@ -66,15 +66,15 @@
         {
           "key": "my-profile",
           "name": "My profile",
-          "short_description": "Your badge number, status, roles, service hours and award history.",
+          "short_description": "Your badge number, status, roles, employment, service hours and award history.",
           "url_name": "users:profile",
           "url_kwargs": {"username": "@username"}
         },
         {
           "key": "edit-my-info",
           "name": "Edit my info",
-          "short_description": "Update your email, phone, address, graduation year and major.",
-          "long_description": "Keeping your graduation date right matters: it drives when you are moved to alumnus status and whether you keep receiving chapter mail.",
+          "short_description": "Update your email, phone, address, employer, graduation year and major.",
+          "long_description": "Keeping your graduation date right matters: it drives when you are moved to alumnus status and whether you keep receiving chapter mail. Employer, job title and work address are shown on your member profile so other members can find you professionally; pick your employer and titles from the type-to-search lists, or type a new one to add it. Your work address is only shown to whoever you let see your address.",
           "url_name": "users:detail"
         },
         {

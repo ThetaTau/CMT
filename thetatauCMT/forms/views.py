@@ -156,6 +156,7 @@ from .models import (
     RiskManagement,
     RitualProficiency,
     StatusChange,
+    employer_from_text,
 )
 from .notifications import EmailPledgeConfirmation, EmailPledgeOfficer, EmailProcessUpdate, EmailRMPSigned
 from .tables import (
@@ -3779,15 +3780,15 @@ class OtherSchoolAutocomplete(autocomplete.Select2QuerySetView):
 
 
 class EmployerAutocomplete(autocomplete.Select2QuerySetView):
-    """Autocomplete for `StatusChange.employer`.
+    """Autocomplete for `StatusChange.employer` and `User.employer`.
 
-    Officers may search existing employer names or type a new one to create
-    it inline.
+    Any signed-in member may search existing employer names or type a new one
+    to create it inline, because members choose their own employer on their
+    member information page.
     """
 
     def _is_authorized(self):
-        user = self.request.user
-        return user.is_authenticated and (user.is_officer_group or user.is_admin)
+        return self.request.user.is_authenticated
 
     def get_queryset(self):
         if not self._is_authorized():
@@ -3798,8 +3799,7 @@ class EmployerAutocomplete(autocomplete.Select2QuerySetView):
         return qs.order_by("name")
 
     def has_add_permission(self, request):
-        user = request.user
-        return user.is_authenticated and (user.is_officer_group or user.is_admin)
+        return request.user.is_authenticated
 
     def post(self, request, *args, **kwargs):
         if not self.has_add_permission(request):
@@ -3807,5 +3807,5 @@ class EmployerAutocomplete(autocomplete.Select2QuerySetView):
         text = (request.POST.get("text") or "").strip()
         if not text:
             return JsonResponse({"error": "Employer name is required."}, status=400)
-        obj, _ = Employer.objects.get_or_create(name=text)
+        obj = employer_from_text(text)
         return JsonResponse({"id": obj.pk, "text": str(obj)})

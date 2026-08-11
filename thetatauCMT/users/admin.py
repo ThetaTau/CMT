@@ -52,6 +52,7 @@ from .models import (
     ChapterCurricula,
     MemberUpdate,
     Organization,
+    Position,
     User,
     UserAlter,
     UserDemographic,
@@ -196,6 +197,13 @@ class OrganizationAdmin(MergeableAdminMixin, admin.ModelAdmin):
     ordering = ["name"]
 
 
+@admin.register(Position)
+class PositionAdmin(MergeableAdminMixin, admin.ModelAdmin):
+    list_display = ("name",)
+    search_fields = ["name"]
+    ordering = ["name"]
+
+
 @admin.register(UserSemesterGPA)
 class UserSemesterGPAAdmin(admin.ModelAdmin):
     raw_id_fields = ["user"]
@@ -249,6 +257,7 @@ class UserRoleChangeAdmin(ImportExportActionModelAdmin):
 
 class MyUserChangeForm(UserChangeForm):
     address = ComponentAddressField(required=False)
+    employer_address = ComponentAddressField(required=False)
 
     class Meta(UserChangeForm.Meta):
         model = User
@@ -507,7 +516,7 @@ class MyUserAdmin(
         "id",
         "declined_nomination_display",
     )
-    autocomplete_fields = ("tags",)
+    autocomplete_fields = ("tags", "employer", "employer_positions")
     inlines = [
         UserNoteInline,
         UserAlterInline,
@@ -583,7 +592,8 @@ class MyUserAdmin(
                     "phone_visibility",
                     "major",
                     "employer",
-                    "employer_position",
+                    "employer_positions",
+                    "employer_address",
                     "graduation_year",
                     "class_year",
                 )

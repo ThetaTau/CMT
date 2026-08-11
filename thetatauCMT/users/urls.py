@@ -17,6 +17,11 @@ urlpatterns = [
         name="org-autocomplete",
     ),
     path("orgs/<int:pk>/delete/", views.UserOrgDeleteView.as_view(), name="orgs_delete"),
+    path(
+        "positions/autocomplete/",
+        views.PositionAutocomplete.as_view(create_field="name"),
+        name="position-autocomplete",
+    ),
     path("redirect/", views.UserRedirectView.as_view(), name="redirect"),
     path(
         "unsubscribe/<str:token>/",

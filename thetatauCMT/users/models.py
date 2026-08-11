@@ -83,6 +83,51 @@ class UserTag(models.Model):
         return self.name
 
 
+class Position(TimeStampedModel):
+    """Shared registry of job titles a member can hold at their employer.
+
+    Mirrors :class:`Organization` and :class:`forms.models.Employer`: names are
+    whitespace-cleaned so the same title is reused across members, and new ones
+    can be added inline from the member information form.
+    """
+
+    name = models.CharField(max_length=200, unique=True)
+
+    class Meta:
+        ordering = ["name"]
+        verbose_name = "Position"
+        verbose_name_plural = "Positions"
+
+    def __str__(self):
+        return self.name
+
+    def clean(self):
+        super().clean()
+        cleaned = " ".join((self.name or "").split())
+        self.name = cleaned
+        if not cleaned:
+            raise ValidationError({"name": "Position name is required."})
+
+
+def positions_from_text(text):
+    """Return :class:`Position` rows for a comma-separated list of job titles.
+
+    Used by the not-signed-in member update flow, where titles arrive as free
+    text rather than from the member-facing dropdown.
+    """
+    positions = []
+    for raw in (text or "").split(","):
+        name = " ".join(raw.split())[:200]
+        if not name:
+            continue
+        position = Position.objects.filter(name__iexact=name).first()
+        if position is None:
+            position, _ = Position.objects.get_or_create(name=name)
+        if position not in positions:
+            positions.append(position)
+    return positions
+
+
 # Who may see one of a member's contact fields (email / phone / address) on
 # their public profile and in member tables. The member themselves, their
 # chapter's officers, National Officers, and Admins can always see the
@@ -198,9 +243,22 @@ class User(AbstractUser, EmailSignalMixin):
         blank=True,
         null=True,
     )
-    employer = models.CharField(max_length=100, blank=True)
-    employer_changed = MonitorField(monitor="employer")
-    employer_position = models.CharField(max_length=100, blank=True, default="")
+    employer = models.ForeignKey(
+        "forms.Employer",
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True,
+        related_name="members",
+    )
+    # Monitors the raw column, not the relation, so loading a member never
+    # triggers a query for the related employer row.
+    employer_changed = MonitorField(monitor="employer_id")
+    employer_positions = models.ManyToManyField(
+        Position,
+        verbose_name=_("Position / Job Title"),
+        blank=True,
+        related_name="members",
+    )
     employer_address = AddressField(on_delete=models.SET_NULL, blank=True, null=True, related_name="employer")
     emergency_first_name = models.CharField(_("Emergency Contact first name"), max_length=30, blank=True, null=True)
     emergency_middle_name = models.CharField(_("Emergency Contact Middle Name"), max_length=30, blank=True, null=True)
@@ -1143,6 +1201,9 @@ class MemberUpdate(Process, EmailSignalMixin):
         null=True,
     )
     major_other = models.CharField(blank=True, null=True, max_length=500)
+    # Free text as typed on the not-signed-in update form (positions comma
+    # separated); MemberUpdateFlow turns these into Employer / Position records
+    # when the update is applied, so anonymous visitors cannot add registry rows.
     employer = models.CharField(blank=True, null=True, max_length=500)
     employer_position = models.CharField(blank=True, null=True, max_length=500)
     employer_address = AddressField(on_delete=models.SET_NULL, blank=True, null=True, related_name="update_employer")

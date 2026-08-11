@@ -265,13 +265,6 @@
               <dt class="col-sm-5">Class year</dt>
               <dd class="col-sm-7">{{ object.get_class_year_display }}</dd>
             {% endif %}
-            {% if object.employer %}
-              <dt class="col-sm-5">Employer</dt>
-              <dd class="col-sm-7">
-                {{ object.employer }}
-                {% if object.employer_position %}<span class="text-body-secondary">({{ object.employer_position }})</span>{% endif %}
-              </dd>
-            {% endif %}
           </dl>
         </div>
       </div>
@@ -328,6 +321,38 @@
         </div>
       </div>
     </div>
+
+    {# ---------- Employment ---------- #}
+    {% if has_employment %}
+      <div class="col-md-6">
+        <div class="card h-100">
+          <div class="card-header bg-body-tertiary">
+            <h5 class="mb-0"><i class="fa fa-briefcase me-2"></i>Employment</h5>
+          </div>
+          <div class="card-body">
+            <dl class="row mb-0">
+              {% if object.employer %}
+                <dt class="col-sm-5">Employer</dt>
+                <dd class="col-sm-7">{{ object.employer }}</dd>
+              {% endif %}
+              {% if employer_positions %}
+                <dt class="col-sm-5">Position</dt>
+                <dd class="col-sm-7">
+                  {% for position in employer_positions %}{{ position }}{% if not forloop.last %}, {% endif %}{% endfor %}
+                </dd>
+              {% endif %}
+              {% if show_employer_address %}
+                <dt class="col-sm-5">Work address</dt>
+                <dd class="col-sm-7">
+                  {{ object.employer_address }}
+                  {% if is_owner %}<span class="badge bg-body-secondary text-body-secondary border ms-1" title="Your work address follows your address setting: {{ object.get_address_visibility_display }}">{{ object.address_visibility|contact_visibility_short }}</span>{% endif %}
+                </dd>
+              {% endif %}
+            </dl>
+          </div>
+        </div>
+      </div>
+    {% endif %}
 
     {# ---------- Officer roles history ---------- #}
     {% if roles_history %}

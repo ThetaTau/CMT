@@ -16,6 +16,40 @@ def test__str__(tp):
 
 
 # ---------------------------------------------------------------------------
+# Employer / Position registries (free-text resolution)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.django_db
+def test_positions_from_text_splits_cleans_and_reuses():
+    from thetatauCMT.users.models import Position, positions_from_text
+
+    existing = Position.objects.create(name="Engineer")
+    positions = positions_from_text("  engineer , Project   Manager ,, ")
+    assert positions == [existing, Position.objects.get(name="Project Manager")]
+    assert Position.objects.filter(name__iexact="engineer").count() == 1
+
+
+@pytest.mark.django_db
+def test_employer_from_text_matches_case_insensitively():
+    from thetatauCMT.forms.models import Employer, employer_from_text
+
+    existing = Employer.objects.create(name="Boeing")
+    assert employer_from_text("  boeing ") == existing
+    assert employer_from_text("") is None
+    assert employer_from_text("Lockheed Martin").name == "Lockheed Martin"
+
+
+@pytest.mark.django_db
+def test_position_clean_normalizes_whitespace():
+    from thetatauCMT.users.models import Position
+
+    position = Position(name="  Field   Engineer  ")
+    position.full_clean()
+    assert position.name == "Field Engineer"
+
+
+# ---------------------------------------------------------------------------
 # Contact-field visibility (contact_visible_to)
 # ---------------------------------------------------------------------------
 from django.contrib.auth.models import AnonymousUser, Group  # noqa: E402

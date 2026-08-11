@@ -193,7 +193,7 @@ class EmailPledgeConfirmation(EmailNotification):  # extend from EmailNotificati
             "date_joined",
             "is_superuser",
             "employer",
-            "employer_position",
+            "employer_positions",
             "groups",
             "user_permissions",
             "no_contact",

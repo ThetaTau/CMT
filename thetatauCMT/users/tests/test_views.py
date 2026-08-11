@@ -1314,6 +1314,156 @@ def test_user_detail_post_saves_contact_visibility(auto_login_user):
     assert user.address_visibility == "no_one"
 
 
+# ---------------------------------------------------------------------------
+# Employment (employer / position / work address)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.django_db
+def test_user_form_includes_employment_fields():
+    """The member info form offers employer, job titles and a work address."""
+    from thetatauCMT.users.forms import UserForm
+
+    form = UserForm()
+    for name in ("employer", "employer_positions", "employer_address"):
+        assert name in form.fields
+    assert form.fields["employer"].widget.url == reverse("forms:employer-autocomplete")
+    assert form.fields["employer_positions"].widget.url == reverse("users:position-autocomplete")
+
+
+@pytest.mark.django_db
+def test_user_detail_post_saves_employment(auto_login_user):
+    """A member can set their employer, job titles and work address."""
+    from thetatauCMT.forms.models import Employer
+    from thetatauCMT.users.models import Position
+
+    client, user = auto_login_user()
+    employer = Employer.objects.create(name="Boeing")
+    engineer = Position.objects.create(name="Engineer")
+    manager = Position.objects.create(name="Project Manager")
+    response = client.post(
+        reverse("users:detail"),
+        {
+            "action": "user",
+            "graduation_year": user.graduation_year or 2025,
+            "email": user.email,
+            "birth_date": "01/01/1990",
+            "phone_visibility": "no_one",
+            "email_visibility": "no_one",
+            "address_visibility": "no_one",
+            "address_0": "123 Main St",
+            "address_1": "Phoenix",
+            "address_2": "AZ",
+            "address_3": "85001",
+            "address_4": "United States",
+            "employer": employer.pk,
+            "employer_positions": [engineer.pk, manager.pk],
+            "employer_address_0": "1 Industry Way",
+            "employer_address_1": "Seattle",
+            "employer_address_2": "WA",
+            "employer_address_3": "98101",
+            "employer_address_4": "United States",
+        },
+    )
+    assert response.status_code == 302
+    user.refresh_from_db()
+    assert user.employer == employer
+    assert set(user.employer_positions.all()) == {engineer, manager}
+    assert "1 Industry Way" in str(user.employer_address)
+
+
+@pytest.mark.django_db
+def test_profile_shows_employment_card(auto_login_user, user_factory):
+    """Employer and job titles are professional info every member can see."""
+    from thetatauCMT.forms.models import Employer
+    from thetatauCMT.users.models import Position
+
+    client, user = auto_login_user()
+    target = user_factory.create(employer=Employer.objects.create(name="Lockheed Martin"))
+    target.employer_positions.add(Position.objects.create(name="Systems Engineer"))
+    response = client.get(reverse("users:profile", kwargs={"username": target.username}))
+    assert response.status_code == 200
+    assert response.context["has_employment"] is True
+    content = response.content.decode("UTF-8")
+    assert "Lockheed Martin" in content
+    assert "Systems Engineer" in content
+
+
+@pytest.mark.django_db
+def test_profile_hides_work_address_by_default(auto_login_user, user_factory):
+    """The work address follows the member's address visibility ('no one' by default)."""
+    client, user = auto_login_user()
+    target = user_factory.create(employer_address="404 Secret Way, Phoenix, AZ 85001")
+    response = client.get(reverse("users:profile", kwargs={"username": target.username}))
+    assert response.status_code == 200
+    assert response.context["show_employer_address"] is False
+    assert "404 Secret Way" not in response.content.decode("UTF-8")
+
+
+@pytest.mark.django_db
+def test_profile_shows_work_address_when_address_is_visible(auto_login_user, user_factory):
+    """Opting into 'any member' for the address also reveals the work address."""
+    client, user = auto_login_user()
+    target = user_factory.create(
+        employer_address="405 Open Way, Phoenix, AZ 85001",
+        address_visibility="members",
+    )
+    response = client.get(reverse("users:profile", kwargs={"username": target.username}))
+    assert response.status_code == 200
+    assert response.context["show_employer_address"] is True
+    assert "405 Open Way" in response.content.decode("UTF-8")
+
+
+@pytest.mark.django_db
+def test_position_autocomplete_search_and_create(auto_login_user):
+    """Any member can search job titles and add one that is missing."""
+    from thetatauCMT.users.models import Position
+
+    client, user = auto_login_user()
+    Position.objects.create(name="Structural Engineer")
+    url = reverse("users:position-autocomplete")
+    response = client.get(url, {"q": "structural"})
+    assert response.status_code == 200
+    assert "Structural Engineer" in response.json()["results"][0]["text"]
+
+    # An unmatched search offers the "create" entry.
+    results = client.get(url, {"q": "Kiln Operator"}).json()["results"]
+    assert any(result.get("create_id") for result in results)
+
+    response = client.post(url, {"text": "  Field   Engineer "})
+    assert response.status_code == 200
+    assert Position.objects.filter(name="Field Engineer").exists()
+    # An existing title is reused rather than duplicated, whatever the casing.
+    client.post(url, {"text": "field engineer"})
+    assert Position.objects.filter(name__iexact="field engineer").count() == 1
+
+
+@pytest.mark.django_db
+def test_position_autocomplete_rejects_anonymous(client):
+    """Signed-out visitors cannot search or grow the vocabulary."""
+    url = reverse("users:position-autocomplete")
+    assert client.get(url, {"q": "engineer"}).json()["results"] == []
+    assert client.post(url, {"text": "Engineer"}).status_code == 403
+
+
+@pytest.mark.django_db
+def test_employer_autocomplete_open_to_any_member(auto_login_user):
+    """Members pick their own employer, so the endpoint is no longer officer-only."""
+    from thetatauCMT.forms.models import Employer
+
+    client, user = auto_login_user()
+    Employer.objects.create(name="Northrop Grumman")
+    url = reverse("forms:employer-autocomplete")
+    response = client.get(url, {"q": "northrop"})
+    assert response.status_code == 200
+    assert "Northrop Grumman" in response.json()["results"][0]["text"]
+    assert any(result.get("create_id") for result in client.get(url, {"q": "Blue Origin"}).json()["results"])
+
+    client.post(url, {"text": "blue   origin"})
+    client.post(url, {"text": "Blue Origin"})
+    assert Employer.objects.filter(name__iexact="blue origin").count() == 1
+
+
 @pytest.mark.django_db
 def test_user_detail_post_gpa_form_redirects(auto_login_user):
     """POST action=gpa to myinfo redirects on success."""

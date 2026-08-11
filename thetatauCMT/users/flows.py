@@ -8,11 +8,12 @@ from viewflow.flow import views as flow_views
 
 from core.flows import FilterableFlowViewSet, register_factory
 from thetatauCMT.configs.models import Config
+from thetatauCMT.forms.models import employer_from_text
 from thetatauCMT.forms.notifications import EmailProcessUpdate
 from thetatauCMT.users.models import User
 
 from .forms import MemberUpdateForm
-from .models import MemberUpdate
+from .models import MemberUpdate, positions_from_text
 
 
 class UpdateProcessViewUser(flow_views.UpdateProcessView):
@@ -235,16 +236,36 @@ class MemberUpdateFlow(Flow):
             value = getattr(model, key)
             if value:
                 if user:
-                    if getattr(user, key) != value:
-                        updated[key] = value
+                    # employer / employer_position arrive as free text but are
+                    # stored on the member as related records, so compare names.
+                    if key == "employer":
+                        current = str(user.employer) if user.employer else ""
+                    elif key == "employer_position":
+                        current = ", ".join(user.employer_positions.values_list("name", flat=True))
+                    else:
+                        current = getattr(user, key)
+                    if isinstance(current, str) and isinstance(value, str):
+                        if current.strip().casefold() == value.strip().casefold():
+                            continue
+                    elif current == value:
+                        continue
+                    updated[key] = value
                 else:
                     updated[key] = value
         if updated and perform_update:
             updated["_change_reason"] = "Not Logged In Update Info"
             if user:
+                positions = None
                 for update, value in updated.items():
+                    if update == "employer":
+                        value = employer_from_text(value)
+                    elif update == "employer_position":
+                        positions = positions_from_text(value)
+                        continue
                     setattr(user, update, value)
                 user.save()
+                if positions is not None:
+                    user.employer_positions.set(positions)
             else:
                 # There is no user to update
                 pass

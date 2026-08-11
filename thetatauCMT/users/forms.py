@@ -11,13 +11,22 @@ from django.utils import timezone
 from django_recaptcha.fields import ReCaptchaField
 from django_recaptcha.widgets import ReCaptchaV3
 
-from core.forms import ComponentAddressField, DatePicker, SchoolModelChoiceField
+from core.forms import (
+    ComponentAddressField,
+    DatePicker,
+    ListSelect2Multiple,
+    SchoolModelChoiceField,
+    Select2ListCreateMultipleChoiceField,
+    set_multiple_choices_initial,
+)
 from core.models import BIENNIUM_YEARS, forever
 from thetatauCMT.chapters.models import Chapter, ChapterCurricula
+from thetatauCMT.forms.models import Employer
 
 from .models import (
     MemberUpdate,
     Organization,
+    Position,
     User,
     UserAlter,
     UserOrgParticipate,
@@ -189,6 +198,15 @@ class UserUpdateForm(forms.ModelForm):
     major_other = forms.CharField(label="Other Major")
     address = ComponentAddressField(required=False)
     employer_address = ComponentAddressField(required=False)
+    # Free text rather than the member-facing dropdowns: this form is filled in
+    # by people who are not signed in, and the names are matched to (or created
+    # as) Employer / Position records only once the update is approved.
+    employer = forms.CharField(label="Employer", max_length=200)
+    employer_position = forms.CharField(
+        label="Position / Job Title",
+        max_length=200,
+        help_text="Separate multiple titles with commas.",
+    )
     birth_date = forms.DateField(
         label="Birth Date",
         widget=DatePicker(
@@ -199,6 +217,9 @@ class UserUpdateForm(forms.ModelForm):
 
     class Meta:
         model = User
+        # `employer` / `employer_position` are declared above as free text and
+        # deliberately left out here so the model's Employer FK and Position
+        # M2M are not assigned raw strings; the flow resolves them on approval.
         fields = [
             "school_name",
             "badge_number",
@@ -220,12 +241,38 @@ class UserUpdateForm(forms.ModelForm):
             "degree",
             "major",
             "major_other",
-            "employer",
-            "employer_position",
             "employer_address",
             "unsubscribe_paper_gear",
             "unsubscribe_email",
         ]
+
+    field_order = [
+        "school_name",
+        "badge_number",
+        "title",
+        "first_name",
+        "middle_name",
+        "last_name",
+        "maiden_name",
+        "preferred_pronouns",
+        "preferred_name",
+        "nickname",
+        "suffix",
+        "email",
+        "email_school",
+        "address",
+        "birth_date",
+        "phone_number",
+        "graduation_year",
+        "degree",
+        "major",
+        "major_other",
+        "employer",
+        "employer_position",
+        "employer_address",
+        "unsubscribe_paper_gear",
+        "unsubscribe_email",
+    ]
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -331,6 +378,31 @@ class UserAlterForm(forms.ModelForm):
 
 class UserForm(forms.ModelForm):
     address = ComponentAddressField(required=True)
+    employer = forms.ModelChoiceField(
+        queryset=Employer.objects.all(),
+        label="Employer",
+        required=False,
+        widget=autocomplete.ModelSelect2(
+            url="forms:employer-autocomplete",
+            attrs={"data-placeholder": "Type to search or add an employer…"},
+        ),
+        help_text=(
+            "Start typing to search. If your employer is not listed, type the full name "
+            "and choose the 'Create' option to add it."
+        ),
+    )
+    employer_positions = Select2ListCreateMultipleChoiceField(
+        queryset=Position.objects.all(),
+        label="Position / Job Title",
+        required=False,
+        widget=ListSelect2Multiple(url="users:position-autocomplete"),
+        help_text=(
+            "Start typing to search, you do NOT have to pick from the list. If your title "
+            "is not shown, type it in full and press Enter (or Tab) to add it. Add as many "
+            "as you hold."
+        ),
+    )
+    employer_address = ComponentAddressField(required=False)
     birth_date = forms.DateField(
         label="Birth Date",
         widget=DatePicker(
@@ -346,6 +418,9 @@ class UserForm(forms.ModelForm):
             "preferred_name",
             "major",
             "graduation_year",
+            "employer",
+            "employer_positions",
+            "employer_address",
             "phone_number",
             "phone_visibility",
             "address",
@@ -359,10 +434,15 @@ class UserForm(forms.ModelForm):
             "address_visibility": "Who can see my address?",
             "email_visibility": "Who can see my email?",
         }
+        help_texts = {
+            "employer_address": "Your work address. Shown to whoever you let see your address.",
+        }
 
     def __init__(self, *args, **kwargs):
         verify = kwargs.pop("verify", False)
         super().__init__(*args, **kwargs)
+        if self.instance.pk:
+            set_multiple_choices_initial(self, "employer_positions")
         if verify:
             self.fields["major"].widget = forms.HiddenInput()
             self.fields["graduation_year"].widget = forms.HiddenInput()
