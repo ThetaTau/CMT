@@ -5,36 +5,17 @@
 
 {% block content %}
   <h1>Create New Ballot</h1>
+  <p class="text-muted">
+    Saving emails the ballot to everyone eligible to vote, and reminds anyone who
+    has not voted every 7 days plus once more on the due date. Voting closes at
+    5 pm Pacific on the due date. A chapter that has not voted after 14 days has
+    all of its officers copied, and after 21 days its chairs, advisers and
+    Regional Director are copied too.
+  </p>
   <form class="form-horizontal" enctype="multipart/form-data" method="post">
     {% csrf_token %}
     {{ form.media }}
-    {% for field in form %}
-      {{ field|as_crispy_field }}
-      {% if field.name == "type" %}
-        <h4>Ballot Type Description: </h4>
-          <h5>
-        {% for description in descriptions %}
-          <div id="{{ description.id }}" class="group">
-          <table class="table">
-            <thead>
-            <tr>
-              <th>Type Description</th>
-              <th>Formula</th>
-              <th>Points Per Year</th>
-              <th>Detail Link</th>
-            </tr>
-            </thead>
-            <tr>
-              <td>{{ description.description }}</td>
-              <td>{{ description.formula }}</td>
-              <td>{{ description.points }}</td>
-              <td><a class="nav-link" href="{% url 'scores:detail' description.slug %}">Details</a></td>
-          </table>
-          </div>
-        {% endfor %}
-          </h5>
-      {% endif %}
-    {% endfor %}
+    {{ form|crispy }}
     <div class="control-group">
       <div class="controls">
         <input type="button" class='btn btn-secondary'

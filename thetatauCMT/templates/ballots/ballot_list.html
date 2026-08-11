@@ -9,14 +9,20 @@
 {% block content %}
 <div class="page-header d-flex flex-wrap align-items-center gap-2 mb-3">
   <h1 class="page-title mb-0">Ballots</h1>
-  {% if request.is_officer %}
+  {% if request.is_nat_officer or user.is_admin %}
     <div class="page-actions">
       <a href="{% url 'ballots:create' %}" class="btn btn-primary">
-        <i class="fas fa-calendar-alt"></i> Create Ballot
+        <i class="fas fa-square-poll-vertical"></i> Create Ballot
       </a>
     </div>
   {% endif %}
 </div>
+{% if not show_results %}
+  <p class="text-muted">
+    Only the Grand Regent and Grand Scribe can see how a ballot was voted. Open a
+    ballot to see who has and has not returned it.
+  </p>
+{% endif %}
 {% if table.page %}
   <div class="table-container">
 {% endif %}

@@ -4,53 +4,65 @@
 {% block title %}Vote Ballot{% endblock %}
 
 {% block content %}
-  <h1>Vote Ballot: {{ ballot.name }}</h1>
+  <div class="page-header d-flex flex-wrap align-items-center gap-2 mb-3">
+    <h1 class="page-title mb-0">Vote Ballot: {{ ballot.name }}</h1>
+    <div class="page-actions">
+      <a href="{% url 'ballots:detail' ballot.slug %}" class="btn btn-outline-primary">
+        <i class="fas fa-list-check"></i> Who has voted
+      </a>
+    </div>
+  </div>
   <table class="table table-hover table-bordered table-striped">
         <tr>
             <th>Sender:</th>
             <td>{{ ballot.sender }}</td>
             <th>Voters:</th>
-            <td>{{ ballot.get_voters_display }}</td>
+            <td>{{ ballot.voters_display }}</td>
         </tr>
         <tr>
             <th>Type:</th>
             <td>{{ ballot.get_type_display }}</td>
             <th>Due Date:</th>
-            <td>{{ ballot.due_date }}</td>
+            <td>{{ ballot.closes_display }}{% if not ballot_open %} <span class="badge bg-secondary">Closed</span>{% endif %}</td>
         </tr>
         <tr>
             <th>Description:</th>
-            <td colspan="3">{{ ballot.description }}</td>
+            <td colspan="3">{{ ballot.description|linebreaksbr }}</td>
         </tr>
         <tr>
             <th>Attachment:</th>
             <td colspan="3">
                 {% if ballot.attachment %}
-                <a href="{{ ballot.attachment.url }}">{{ ballot.attachment }}</a></td>
+                <a href="{{ ballot.attachment.url }}">{{ ballot.attachment }}</a>
                 {% else %}
                   No attachment provided.
                 {% endif %}
             </td>
         </tr>
     <tr>
-      <td colspan="2">
+      <td colspan="4">
           {% if complete %}
             Complete:<br>
               <h3>{{ current_vote.get_motion_display }}</h3>
               {{ current_vote.user }}<br>{{ current_vote.role | title }}<br>
               {{ current_vote.created }}
-          {% elif valid_roles %}
+          {% elif not valid_roles %}
+            <h3>Only {{ voters }} can vote on this ballot.</h3>
+          {% elif not ballot_open %}
+            <h3>Voting closed on {{ ballot.closes_display }} and no vote was recorded.</h3>
+          {% else %}
         <form class="form-horizontal" method="post">
           {% csrf_token %}
           {{ form|crispy }}
+          <p class="text-muted">
+            Only the Grand Regent and Grand Scribe can see how anyone voted.
+          </p>
           <div class="control-group">
             <div class="controls">
               <button type="submit" class="btn-primary" value="Save"><i class="fas fa-check"></i> Complete</button>
             </div>
           </div>
         </form>
-          {% else %}
-            <h3>Only {{ voters }} can vote on this ballot.</h3>
           {% endif %}
       </td>
     </tr>

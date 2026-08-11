@@ -299,6 +299,7 @@ TEMPLATES = [
                 "thetatauCMT.utils.context_processors.feature_flags",
                 "thetatauCMT.utils.context_processors.incident_report",
                 "thetatauCMT.guides.context_processors.whats_new",
+                "thetatauCMT.ballots.context_processors.outstanding_ballots",
             ],
         },
     }

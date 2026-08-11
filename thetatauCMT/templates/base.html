@@ -187,6 +187,7 @@
                       <li><a class="dropdown-item" href="{% url 'tasks:list' %}">Tasks</a></li>
                       <li><a class="dropdown-item" href="{% url 'objectives:list' %}">Goals</a></li>
                       <li><a class="dropdown-item" href="{% url 'submissions:list' %}">Submissions</a></li>
+                      <li><a class="dropdown-item" href="{% url 'ballots:votelist' %}">{% trans "My Ballots" %}</a></li>
                     </ul>
                   </li>
 
@@ -220,6 +221,16 @@
               </ul>
 
               <ul class="navbar-nav ms-auto">
+                {% if outstanding_ballot_count %}
+                  <li class="nav-item">
+                    <a id="outstanding-ballots" class="nav-link" href="{% url 'ballots:votelist' %}"
+                       aria-label="{% trans 'Ballots waiting on your vote' %}" title="{% trans 'Ballots waiting on your vote' %}">
+                      <i class="fa-solid fa-list-check"></i>
+                      <span class="badge rounded-pill bg-danger ms-1">{{ outstanding_ballot_count }}</span>
+                      <span class="d-lg-none ms-2">{% trans "Ballots to vote" %}</span>
+                    </a>
+                  </li>
+                {% endif %}
                 {% if request.user.is_authenticated and feature_events_calendar_enabled %}
                   <li class="nav-item">
                     <a id="calendar" class="nav-link" href="{% url 'events:calendar' %}" aria-label="{% trans 'Events Calendar' %}" title="{% trans 'Events Calendar' %}">

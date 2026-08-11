@@ -1,0 +1,73 @@
+{% extends "herald/html/base_email.html" %}
+{% block title %}Theta Tau ballot: {{ ballot.name }}{% endblock %}
+{% block content %}
+<h1 class="null" style="margin: 0;padding: 0;display: block;font-family: Helvetica;font-size: 40px;font-style: normal;font-weight: bold;line-height: 125%;letter-spacing: -1px;text-align: left;color: #606060 !important;">
+  {% if reminder %}Ballot reminder{% else %}New ballot{% endif %}</h1>
+Dear {{ addressee }},
+<p>
+  {% if final %}
+    <strong>This is the last call: voting closes today at {{ closes_display }}.</strong>
+    Our records show this ballot has not been returned yet.
+  {% elif reminder %}
+    Our records show this ballot has not been returned yet. You will keep receiving
+    this reminder every week until it is submitted.
+  {% else %}
+    A ballot has been opened and you are eligible to vote on it.
+  {% endif %}
+</p>
+{% if copied_region %}
+<p>
+  This ballot has been open for {{ days_open }} days with no vote from the chapter,
+  so every chapter officer, committee chair and adviser is copied, along with the
+  Regional Director.
+</p>
+{% elif copied_officers %}
+<p>
+  This ballot has been open for {{ days_open }} days with no vote from the chapter,
+  so all of the chapter's officers are copied on this reminder.
+</p>
+{% endif %}
+<table role="presentation" width="100%" cellpadding="8" cellspacing="0" style="border-collapse: collapse; font-family: Helvetica; font-size: 14px;">
+  <tr>
+    <th align="left" style="border-bottom: 1px solid #d0d0d0; color: #404040;">Ballot</th>
+    <td style="border-bottom: 1px solid #d0d0d0;">{{ ballot.name }}</td>
+  </tr>
+  <tr>
+    <th align="left" style="border-bottom: 1px solid #d0d0d0; color: #404040;">Type</th>
+    <td style="border-bottom: 1px solid #d0d0d0;">{{ ballot.get_type_display }}</td>
+  </tr>
+  <tr>
+    <th align="left" style="border-bottom: 1px solid #d0d0d0; color: #404040;">From</th>
+    <td style="border-bottom: 1px solid #d0d0d0;">{{ ballot.sender }}</td>
+  </tr>
+  <tr>
+    <th align="left" style="border-bottom: 1px solid #d0d0d0; color: #404040;">Due</th>
+    <td style="border-bottom: 1px solid #d0d0d0;">
+      {{ closes_display }}{% if days_left > 0 %} ({{ days_left }} day{{ days_left|pluralize }} left){% endif %}
+    </td>
+  </tr>
+  <tr>
+    <th align="left" style="border-bottom: 1px solid #d0d0d0; color: #404040;">Who votes</th>
+    <td style="border-bottom: 1px solid #d0d0d0;">{{ ballot.voters_display }}</td>
+  </tr>
+</table>
+<p>{{ ballot.description|linebreaksbr }}</p>
+{% if chapter %}
+<p>
+  Your chapter casts one vote. Either the Regent or the Scribe may submit it, and
+  the first vote submitted is the chapter's vote.
+</p>
+{% endif %}
+<p>
+  <a href="{{ vote_url }}">Open the ballot and vote</a><br>
+  {{ vote_url }}
+</p>
+{% if ballot.attachment %}
+<p>Supporting material is attached to the ballot on the CMT.</p>
+{% endif %}
+<p>
+  Only the Grand Regent and Grand Scribe can see how anyone voted. Other officers
+  can only see which ballots have and have not been returned.
+</p>
+  {% include "herald/html/rm_contact.html" %}
+{% endblock content %}

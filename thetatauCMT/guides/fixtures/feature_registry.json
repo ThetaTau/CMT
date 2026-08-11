@@ -903,22 +903,23 @@
         {
           "key": "my-ballots",
           "name": "My ballots",
-          "short_description": "Ballots open to your chapter, and whether your chapter has voted.",
-          "long_description": "Every member can see the ballots; only chapter officers can cast the chapter's vote.",
+          "short_description": "Ballots open to you or to your chapter, and whether the vote has been cast.",
+          "long_description": "A ballot is emailed to every voter when it opens, again every 7 days until it is returned, and once more on the due date. Voting closes at 5 pm Pacific on the due date. While a vote is outstanding it is also listed at the top of the home page and counted on the ballot icon in the top bar. Your chapter casts one vote: either the Regent or the Scribe may submit it. After 14 days every chapter officer is copied on the reminder, and after 21 days the chairs, advisers and Regional Director are copied too.",
           "url_name": "ballots:votelist"
         },
         {
           "key": "cast-a-vote",
           "name": "Cast a vote",
           "short_description": "Cast your chapter's vote on an open ballot.",
-          "long_description": "Open the ballot from My ballots. Only officers may vote, and a chapter votes once.",
+          "long_description": "Open the ballot from My ballots. Only the Regent and the Scribe may cast the chapter's vote, a chapter votes once, and voting closes at 5 pm Pacific on the due date.",
           "audience": "officer",
-          "roles": ["regent"]
+          "roles": ["regent", "scribe"]
         },
         {
           "key": "all-ballots",
           "name": "All ballots",
           "short_description": "Every ballot, open and closed, across the fraternity.",
+          "long_description": "The aye, nay and abstain totals are shown only to the Grand Regent and Grand Scribe.",
           "url_name": "ballots:list",
           "audience": "natoff"
         },
@@ -926,15 +927,16 @@
           "key": "create-a-ballot",
           "name": "Create a ballot",
           "short_description": "Put a question to the chapters.",
+          "long_description": "Creating a ballot emails it to everyone eligible to vote, and reminders go out every 7 days until they vote.",
           "url_name": "ballots:create",
           "audience": "natoff"
         },
         {
           "key": "ballot-results",
-          "name": "Ballot results",
-          "short_description": "How each chapter voted on a ballot.",
-          "long_description": "Open a ballot from All ballots to see its results.",
-          "audience": "natoff"
+          "name": "Ballot status and results",
+          "short_description": "Who has and has not returned a ballot.",
+          "long_description": "Any officer can see which chapters and National Officers have returned a ballot. Only the Grand Regent and Grand Scribe can see how anyone voted. Open a ballot from My ballots or All ballots.",
+          "audience": "officer"
         }
       ]
     },

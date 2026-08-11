@@ -5,9 +5,14 @@ from core.tables import CMTTable
 
 from .models import Ballot, BallotComplete
 
+# Columns that reveal how people voted; hidden from everyone except the Grand
+# Regent and Grand Scribe (see ``models.can_view_ballot_results``).
+RESULT_COLUMNS = ("ayes", "nays", "abstains")
+
 
 class BallotTable(CMTTable):
     name = tables.LinkColumn("ballots:detail", args=[A("slug")])
+    submitted = tables.Column(verbose_name="Ballots Returned")
 
     class Meta:
         model = Ballot
@@ -16,10 +21,10 @@ class BallotTable(CMTTable):
             "type",
             "due_date",
             "voters",
+            "submitted",
             "ayes",
             "nays",
             "abstains",
-            # 'incomplete',
         )
         attrs = {"class": "table table-striped table-bordered"}
         empty_text = "There are no ballots matching the search criteria..."
@@ -32,11 +37,16 @@ class BallotTable(CMTTable):
 
 
 class BallotCompleteTable(CMTTable):
+    status = tables.Column(accessor="motion", verbose_name="Ballot Returned", orderable=False)
+
     class Meta:
         model = BallotComplete
-        fields = ("user_name", "chapter", "region", "motion", "role")
+        fields = ("user_name", "chapter", "region", "role", "status", "motion")
         attrs = {"class": "table table-striped table-bordered"}
         empty_text = "There are no ballots matching the search criteria..."
+
+    def render_status(self, value):
+        return "Not submitted" if str(value).lower() == "incomplete" else "Submitted"
 
     def render_motion(self, value):
         return BallotComplete.MOTION.get_value(value)

@@ -159,7 +159,6 @@ def _collect_ballots(chapter, start_dt, end_dt) -> Iterable[ActivityItem]:
     )
     for bc in qs:
         ballot = bc.ballot
-        motion = bc.get_motion_display() if bc.motion else "vote"
         url = None
         if ballot is not None:
             url = _safe_reverse("ballots:detail", slug=ballot.slug)
@@ -167,10 +166,11 @@ def _collect_ballots(chapter, start_dt, end_dt) -> Iterable[ActivityItem]:
             when=_make_aware(bc.created),
             display_date=bc.created.date(),
             category=CATEGORY_BALLOT,
-            label=f"Ballot ({motion})",
+            # Never the motion: only the Grand Regent and Grand Scribe see votes.
+            label="Ballot returned",
             title=ballot.name if ballot else "Ballot",
             actor=_actor(bc.user),
-            url=url or reverse("ballots:list"),
+            url=url or reverse("ballots:votelist"),
         )
 
 

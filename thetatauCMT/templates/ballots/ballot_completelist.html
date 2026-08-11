@@ -15,34 +15,48 @@
             <th>Sender:</th>
             <td>{{ object.sender }}</td>
             <th>Voters:</th>
-            <td>{{ object.get_voters_display }}</td>
+            <td>{{ object.voters_display }}</td>
         </tr>
         <tr>
             <th>Type:</th>
             <td>{{ object.get_type_display }}</td>
             <th>Due Date:</th>
-            <td>{{ object.due_date }}</td>
+            <td>{{ object.closes_display }}{% if not object.is_open %} <span class="badge bg-secondary">Closed</span>{% endif %}</td>
         </tr>
         <tr>
             <th>Description:</th>
-            <td colspan="3">{{ object.description }}</td>
+            <td colspan="3">{{ object.description|linebreaksbr }}</td>
         </tr>
         <tr>
             <th>Attachment:</th>
           <td colspan="3">
             {% if object.attachment %}
-            <a href="{{ object.attachment.url }}">{{ object.attachment }}</a></td>
+            <a href="{{ object.attachment.url }}">{{ object.attachment }}</a>
             {% else %}
               No attachment provided.
             {% endif %}
+          </td>
         </tr>
+        {% if show_results %}
         <tr>
             <th>Ayes: {{ object.ayes }}</th>
             <th>Nays: {{ object.nays }}</th>
             <th>Abstains: {{ object.abstains }}</th>
             <th>Incomplete: {{ incomplete }}</th>
         </tr>
+        {% else %}
+        <tr>
+            <th colspan="2">Ballots returned: {{ submitted }}</th>
+            <th colspan="2">Not yet returned: {{ incomplete }}</th>
+        </tr>
+        {% endif %}
     </table>
+    {% if not show_results %}
+      <p class="text-muted">
+        Only the Grand Regent and Grand Scribe can see how each voter voted. This page
+        shows who has and has not returned a ballot.
+      </p>
+    {% endif %}
 {% if table.page %}
   <div class="table-container">
 {% endif %}
@@ -79,13 +93,6 @@
                   <tr class="{% cycle "odd" "even" %}">
                       {% for column, cell in row.items %}
                           <td {{ column.attrs.td.as_html }}>
-                          {% if column.name == "name" %}
-                            <a href="{% url "ballots:copy" row.record.pk %}" class="btn btn-link btn-xs btn">
-                            <span title="Copy Ballot">
-                                <i class="far fa-copy" ></i>
-                              </span>
-                      </a>
-                          {% endif %}
                             {{ cell }}
                           </td>
                       {% endfor %}
