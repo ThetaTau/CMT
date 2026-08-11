@@ -343,7 +343,7 @@ def test_ballot_list_voters_filter_matches_one_of_several_voters(auto_login_user
 
 @pytest.mark.django_db
 def test_ballot_detail_view_hides_votes_from_other_officers(auto_login_user):
-    """Any officer sees who has voted; only GR/GS see what they voted."""
+    """Any officer sees who has voted; only GR/GS see the totals."""
     client, user = auto_login_user(make_officer="treasurer")
     _make_officer(user, client)
     ballot = _create_ballot(voters=["all_chapters"])
@@ -359,7 +359,7 @@ def test_ballot_detail_view_hides_votes_from_other_officers(auto_login_user):
 
 
 @pytest.mark.django_db
-def test_ballot_detail_view_shows_votes_to_grand_scribe(auto_login_user):
+def test_ballot_detail_view_shows_totals_but_not_motions_to_grand_scribe(auto_login_user):
     client, user = auto_login_user(make_officer="grand scribe")
     _make_natoff(user, client)
     ballot = _create_ballot(voters=["all_chapters"])
@@ -369,14 +369,28 @@ def test_ballot_detail_view_shows_votes_to_grand_scribe(auto_login_user):
     assert response.status_code == 200
     body = response.content.decode("utf-8")
     assert "Ayes:" in body
-    assert "Motion" in body
+    # The aggregate only: no per-voter motion, even for the Grand Scribe.
+    assert "Motion" not in body
 
 
 @pytest.mark.django_db
-def test_ballot_detail_view_motion_filter_is_not_offered_without_results(auto_login_user):
-    """Filtering by motion would leak the results, so it is removed."""
-    client, user = auto_login_user(make_officer="treasurer")
-    _make_officer(user, client)
+def test_ballot_detail_view_hides_totals_from_other_national_officers(auto_login_user):
+    """A National Officer who is not GR/GS gets the same view as any officer."""
+    client, user = auto_login_user(make_officer="grand treasurer")
+    _make_natoff(user, client)
+    ballot = _create_ballot(voters=["all_chapters"])
+    response = client.get(reverse("ballots:detail", kwargs={"slug": ballot.slug}))
+    assert response.status_code == 200
+    body = response.content.decode("utf-8")
+    assert "Ayes:" not in body
+    assert "Motion" not in body
+
+
+@pytest.mark.django_db
+def test_ballot_detail_view_motion_filter_is_never_offered(auto_login_user):
+    """Filtering by motion would expose individual votes, so it does not exist."""
+    client, user = auto_login_user(make_officer="grand regent")
+    _make_natoff(user, client)
     ballot = _create_ballot(voters=["all_chapters"])
     voter = UserFactory.create()
     BallotComplete(ballot=ballot, user=voter, motion="aye", role="regent").save()

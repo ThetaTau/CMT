@@ -72,8 +72,8 @@ class BallotDetailView(
         request_get = self.request.GET.copy()
         if cancel:
             request_get = QueryDict()
-        self.filter = self.filter_class(request_get, queryset=qs, show_results=self.show_results)
-        self.filter.form.helper = self.formhelper_class(show_results=self.show_results)
+        self.filter = self.filter_class(request_get, queryset=qs)
+        self.filter.form.helper = self.formhelper_class()
         return self.filter.qs
 
     def post(self, request, *args, **kwargs):
@@ -86,11 +86,7 @@ class BallotDetailView(
         request_get = self.request.GET.copy()
         if cancel:
             request_get = QueryDict()
-        if show_results:
-            motion = request_get.get("motion", "")
-            want_incomplete = motion in ("", "incomplete")
-        else:
-            want_incomplete = request_get.get("status", "") in ("", "incomplete")
+        want_incomplete = request_get.get("status", "") in ("", "incomplete")
         region = request_get.get("region", "")
         all_ballots = self.object_list
         all_ballots = all_ballots.annotate(
@@ -152,8 +148,7 @@ class BallotDetailView(
         incomplete = []
         if want_incomplete:
             incomplete = incomplete_national + incomplete_chapter
-        exclude = () if show_results else ("motion",)
-        table = BallotCompleteTable(data=data + incomplete, exclude=exclude)
+        table = BallotCompleteTable(data=data + incomplete)
         RequestConfig(self.request, paginate={"per_page": 200}).configure(table)
         context["table"] = table
         context["object"] = self.object

@@ -53,8 +53,15 @@
     </table>
     {% if not show_results %}
       <p class="text-muted">
-        Only the Grand Regent and Grand Scribe can see how each voter voted. This page
-        shows who has and has not returned a ballot.
+        This page shows who has and has not returned a ballot. How anyone voted is
+        never shown, and the aye, nay and abstain totals are seen only by the
+        Grand Regent and Grand Scribe.
+      </p>
+    {% else %}
+      <p class="text-muted">
+        The totals above are shown to you as Grand Regent or Grand Scribe. How an
+        individual voted is not recorded on this page and is visible to no one but
+        the voter.
       </p>
     {% endif %}
 {% if table.page %}

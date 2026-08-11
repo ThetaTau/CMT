@@ -62,6 +62,7 @@ class CustomUserManager(UserManager):
         extra_fields.setdefault("chapter", self._get_or_create_default_chapter())
         superuser = super().create_superuser(email=email, password=password, **extra_fields)
         self._give_superuser_natoff_roles(superuser)
+        return superuser
 
     def _give_superuser_natoff_roles(self, superuser):
         superuser.current_roles = ["grand regent"]

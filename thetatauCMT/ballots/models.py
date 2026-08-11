@@ -17,7 +17,7 @@ from thetatauCMT.users.models import UserRoleChange
 # A chapter casts a single vote; only these two officers may cast it.
 BALLOT_CHAPTER_ROLES = ["regent", "scribe"]
 
-# Only these national officers may see how anyone voted.
+# Only these two national officers may see the aggregate tallies.
 BALLOT_RESULT_ROLES = ["grand regent", "grand scribe"]
 
 # Voting closes at 5pm Pacific on the due date, which is what the ballot emails
@@ -33,17 +33,16 @@ def ballot_closes_at(due_date):
 
 
 def can_view_ballot_results(user):
-    """Whether ``user`` may see the motions cast and the aye/nay/abstain tallies.
+    """Whether ``user`` may see the aggregate aye/nay/abstain tallies.
 
-    Every officer can see *who has and has not* returned a ballot; only the
-    Grand Regent and Grand Scribe (and Admins) may see the votes themselves.
+    Deliberately NOT superusers, Admins or the rest of the National Officers:
+    the ballot is secret. How an individual voted is shown to nobody but the
+    voter, and the counts are shown only to the Grand Regent and Grand Scribe.
     """
     if not getattr(user, "is_authenticated", False):
         return False
     if getattr(user, "natoff_hidden", False):
         return False
-    if getattr(user, "is_admin", False):
-        return True
     return bool(set(user.current_roles or []) & set(BALLOT_RESULT_ROLES))
 
 

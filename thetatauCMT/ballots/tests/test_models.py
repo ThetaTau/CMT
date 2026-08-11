@@ -279,23 +279,20 @@ def test_can_view_ballot_results_false_for_anonymous():
 
 
 @pytest.mark.django_db
-def test_can_view_ballot_results_true_for_admin():
+def test_can_view_ballot_results_false_for_admin():
+    """A superuser is not a Grand Regent; the tallies are theirs alone."""
     user = UserFactory.create(is_superuser=True)
     user.current_roles = ["treasurer"]
     user.save()
-    assert can_view_ballot_results(user) is True
+    assert can_view_ballot_results(user) is False
 
 
 @pytest.mark.django_db
-def test_can_view_ballot_results_false_while_hiding_admin():
-    """An Admin previewing the site with admin functionality hidden loses it."""
-    from thetatauCMT.users.models import UserAlter
-
+def test_can_view_ballot_results_true_for_a_superuser_who_is_grand_regent():
     user = UserFactory.create(is_superuser=True)
-    user.current_roles = ["treasurer"]
+    user.current_roles = ["grand regent"]
     user.save()
-    UserAlter.objects.create(user=user, chapter=user.chapter, hide_admin=True)
-    assert can_view_ballot_results(user) is False
+    assert can_view_ballot_results(user) is True
 
 
 # ---------------------------------------------------------------------------

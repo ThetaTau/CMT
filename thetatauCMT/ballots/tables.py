@@ -41,15 +41,13 @@ class BallotCompleteTable(CMTTable):
 
     class Meta:
         model = BallotComplete
-        fields = ("user_name", "chapter", "region", "role", "status", "motion")
+        # No motion column at any permission level: the vote itself is secret.
+        fields = ("user_name", "chapter", "region", "role", "status")
         attrs = {"class": "table table-striped table-bordered"}
         empty_text = "There are no ballots matching the search criteria..."
 
     def render_status(self, value):
         return "Not submitted" if str(value).lower() == "incomplete" else "Submitted"
-
-    def render_motion(self, value):
-        return BallotComplete.MOTION.get_value(value)
 
     def render_role(self, value):
         return value.title()

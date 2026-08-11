@@ -936,7 +936,7 @@
           "key": "ballot-results",
           "name": "Ballot status and results",
           "short_description": "Who has and has not returned a ballot.",
-          "long_description": "Any officer can see which chapters and National Officers have returned a ballot. Only the Grand Regent and Grand Scribe can see how anyone voted. Open a ballot from My ballots or All ballots.",
+          "long_description": "Any officer can see which chapters and National Officers have returned a ballot. How an individual voted is shown to nobody but the voter, not to Admins and not in the Django admin, and only the Grand Regent and Grand Scribe see the aye, nay and abstain totals. Open a ballot from My ballots or All ballots.",
           "audience": "officer"
         }
       ]

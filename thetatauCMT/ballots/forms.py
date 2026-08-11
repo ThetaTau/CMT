@@ -117,25 +117,20 @@ class BallotCompleteListFormHelper(FormHelper):
     form_show_errors = True
     help_text_inline = False
     html5_required = True
-
-    def __init__(self, *args, show_results=True, **kwargs):
-        super().__init__(*args, **kwargs)
-        # Matches BallotCompleteFilter: only result viewers get the motion filter.
-        vote_field = Field("motion") if show_results else Field("status")
-        self.layout = Layout(
-            Fieldset(
-                '<i class="fas fa-search"></i> Filter Complete Ballots',
-                Row(
-                    Field("region"),
-                    vote_field,
-                    FormActions(
-                        StrictButton(
-                            '<i class="fa fa-search"></i> Filter',
-                            type="submit",
-                            css_class="btn-primary",
-                        ),
-                        Submit("cancel", "Clear", css_class="btn-primary"),
+    layout = Layout(
+        Fieldset(
+            '<i class="fas fa-search"></i> Filter Complete Ballots',
+            Row(
+                Field("region"),
+                Field("status"),
+                FormActions(
+                    StrictButton(
+                        '<i class="fa fa-search"></i> Filter',
+                        type="submit",
+                        css_class="btn-primary",
                     ),
+                    Submit("cancel", "Clear", css_class="btn-primary"),
                 ),
             ),
-        )
+        ),
+    )

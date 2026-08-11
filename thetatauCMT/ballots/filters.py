@@ -46,18 +46,12 @@ class BallotCompleteFilter(DynamicScopeFilterSetMixin, django_filters.FilterSet)
 
     class Meta:
         model = BallotComplete
+        # Filtering by motion would expose individual votes, so it is not offered.
         fields = [
             "region",
-            "motion",
             "status",
         ]
         order_by = ["ballot__due_date"]
-
-    def __init__(self, *args, show_results=True, **kwargs):
-        super().__init__(*args, **kwargs)
-        # Filtering by motion is itself a way to read the results, so voters who
-        # may not see the votes only get a returned / not returned filter.
-        self.filters.pop("status" if show_results else "motion", None)
 
     def filter_region(self, queryset, field_name, value):
         if value == "national":
