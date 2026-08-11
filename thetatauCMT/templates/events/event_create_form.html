@@ -39,6 +39,7 @@
     {% endfor %}
     <link href="{% static 'css/project.css' %}" rel="stylesheet">
       {{ forms.gear|crispy }}
+    {% include "events/_event_form_extras.html" %}
     <h2 id="picture">Add pictures:</h2>
   <p>
     You do not have to add pictures, this is optional. Leave blank if no pictures.<br>

@@ -1,0 +1,95 @@
+{% comment %}
+Shared behaviour for the event create/update forms.
+
+* Defaults the Time Zone select to the browser's zone on a brand-new event.
+* Hides the outcome counts (members, PNMs, alumni, guests, funds raised) while
+  the chosen date is in the future, since none of them are knowable yet. The
+  form already treats those fields as optional, so hiding them is safe.
+
+Include after the form fields have been rendered. The view sets `is_new` true
+only for a genuinely blank create form, so a copied event's zone and a value the
+user just submitted are never overwritten.
+{% endcomment %}
+<div id="event-future-note" class="alert alert-info d-none" role="status">
+  This event is in the future, so attendance counts and funds raised are hidden.
+  Come back and edit the event afterwards to record them.
+</div>
+<script>
+  (function () {
+    var isNew = {% if is_new %}true{% else %}false{% endif %};
+
+    function parseEventDate(raw) {
+      if (!raw) { return null; }
+      var value = raw.trim();
+      var us = value.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+      if (us) {
+        return new Date(Number(us[3]), Number(us[1]) - 1, Number(us[2]));
+      }
+      var iso = value.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+      if (iso) {
+        return new Date(Number(iso[1]), Number(iso[2]) - 1, Number(iso[3]));
+      }
+      var parsed = new Date(value);
+      return isNaN(parsed.getTime()) ? null : parsed;
+    }
+
+    function wrapperFor(input) {
+      return input.closest('#div_' + input.id) ||
+             input.closest('.mb-3') ||
+             input.closest('.form-group') ||
+             input.parentElement;
+    }
+
+    function toggleOutcomeFields() {
+      var dateInput = document.getElementById('id_date');
+      if (!dateInput) { return; }
+      var chosen = parseEventDate(dateInput.value);
+      var today = new Date();
+      today.setHours(0, 0, 0, 0);
+      var isFuture = chosen !== null && chosen.getTime() > today.getTime();
+      document.querySelectorAll('[data-event-outcome]').forEach(function (input) {
+        var wrapper = wrapperFor(input);
+        if (wrapper) { wrapper.classList.toggle('d-none', isFuture); }
+      });
+      var note = document.getElementById('event-future-note');
+      if (note) { note.classList.toggle('d-none', !isFuture); }
+    }
+
+    function seedTimeZone() {
+      var select = document.getElementById('id_time_zone');
+      if (!select || !isNew) { return; }
+      var browserZone = null;
+      try {
+        browserZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      } catch (err) {
+        return;
+      }
+      if (!browserZone) { return; }
+      var match = select.querySelector('option[value="' + browserZone.replace(/"/g, '') + '"]');
+      if (!match || select.value === browserZone) { return; }
+      select.value = browserZone;
+      // Select2 (django-autocomplete-light) only redraws on a jQuery change.
+      if (window.jQuery) { window.jQuery(select).trigger('change'); }
+    }
+
+    function init() {
+      seedTimeZone();
+      toggleOutcomeFields();
+      var dateInput = document.getElementById('id_date');
+      if (!dateInput) { return; }
+      ['change', 'input', 'blur'].forEach(function (evt) {
+        dateInput.addEventListener(evt, toggleOutcomeFields);
+      });
+      if (window.jQuery) {
+        // tempus-dominus notifies only through its namespaced jQuery event.
+        window.jQuery(dateInput).on('change.datetimepicker', toggleOutcomeFields);
+      }
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', init);
+    } else {
+      init();
+    }
+  })();
+</script>

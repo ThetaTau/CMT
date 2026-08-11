@@ -1,6 +1,8 @@
 """Static choice lists reused across forms.  Kept in a dedicated module so
 form modules can import them without dragging in extra dependencies."""
 
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError, available_timezones
+
 US_STATE_CHOICES = [
     ("AL", "Alabama"),
     ("AK", "Alaska"),
@@ -109,3 +111,40 @@ ADDRESS_REGION_SUGGESTIONS = (
     + [name for _code, name in CA_PROVINCE_CHOICES]
     + [name for _code, name in UK_REGION_CHOICES]
 )
+
+# IANA zones that cover essentially every chapter, surfaced first so the common
+# case is one click.  The full list stays available underneath.
+COMMON_TIME_ZONES = [
+    ("America/New_York", "Eastern"),
+    ("America/Chicago", "Central"),
+    ("America/Denver", "Mountain"),
+    ("America/Phoenix", "Arizona (no DST)"),
+    ("America/Los_Angeles", "Pacific"),
+    ("America/Anchorage", "Alaska"),
+    ("Pacific/Honolulu", "Hawaii"),
+    ("America/Puerto_Rico", "Puerto Rico"),
+    ("Pacific/Guam", "Guam"),
+    ("UTC", "UTC"),
+]
+
+
+def time_zone_choices(blank_label="Site default"):
+    """Grouped ``<select>`` choices: the common US zones, then every IANA zone."""
+    common_keys = [key for key, _label in COMMON_TIME_ZONES]
+    rest = sorted(available_timezones() - set(common_keys))
+    return [
+        ("", blank_label),
+        ("Common", [(key, f"{label} ({key})") for key, label in COMMON_TIME_ZONES]),
+        ("All time zones", [(key, key) for key in rest]),
+    ]
+
+
+def is_valid_time_zone(value):
+    """True when ``value`` names an IANA zone (blank is allowed = site default)."""
+    if not value:
+        return True
+    try:
+        ZoneInfo(value)
+    except (ZoneInfoNotFoundError, ValueError):
+        return False
+    return True

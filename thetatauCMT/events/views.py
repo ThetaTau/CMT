@@ -180,8 +180,11 @@ class EventCreateView(
     fields = [
         "name",
         "date",
+        "start_time",
+        "time_zone",
         "type",
         "description",
+        "external_link",
         "members",
         "pledges",
         "alumni",
@@ -263,6 +266,9 @@ class EventCreateView(
             form.fields["type"].queryset = ScoreType.objects.filter(type=self.score_type).all()
         # return form
         context["descriptions"] = descriptions
+        # Seed the time zone from the browser only on a genuinely blank form —
+        # never over a copied event's zone or a value the user just submitted.
+        context["is_new"] = not form.is_bound and not self.initial.get("time_zone")
         return context
 
 
@@ -270,8 +276,11 @@ class EventCopyView(EventCreateView):
     fields = [
         "name",
         "date",
+        "start_time",
+        "time_zone",
         "type",
         "description",
+        "external_link",
         "members",
         "pledges",
         "alumni",
@@ -289,8 +298,11 @@ class EventCopyView(EventCreateView):
         self.initial = {
             "name": event.name,
             "date": event.date,
+            "start_time": event.start_time,
+            "time_zone": event.time_zone,
             "type": event.type,
             "description": event.description,
+            "external_link": event.external_link,
             "members": event.members,
             "pledges": event.pledges,
             "alumni": event.alumni,

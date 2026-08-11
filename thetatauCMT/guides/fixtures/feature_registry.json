@@ -259,8 +259,8 @@
         {
           "key": "add-event",
           "name": "Add an event",
-          "short_description": "Schedule an event, choose its type, and set how it scores.",
-          "long_description": "Event type decides which score it feeds, so pick it carefully. You can copy last year's event rather than retyping it.",
+          "short_description": "Schedule an event with a start time, time zone, rich description and info link, and set how it scores.",
+          "long_description": "Event type decides which score it feeds, so pick it carefully. Give a start time and time zone (it defaults to yours) so the event lands correctly on calendars, write the details with formatting and links, and add a link out to a registration page or flyer. For a future date the attendance counts and funds raised are hidden. Come back and edit the event afterwards to record them. You can copy last year's event rather than retyping it.",
           "url_name": "events:add",
           "roles": ["vice regent"]
         },

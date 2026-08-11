@@ -90,7 +90,7 @@
                   {% for event in cell.events %}
                     <div class="mb-1">
                       <a href="{{ event.get_absolute_url }}" class="d-block small text-break">
-                        {% if event.is_national %}<span class="badge bg-primary">Nat</span>{% endif %}{{ event.name }}
+                        {% if event.is_national %}<span class="badge bg-primary">Nat</span>{% endif %}{% if event.start_time %}<span class="text-body-secondary">{{ event.start_time|time:"g:i A" }}</span> {% endif %}{{ event.name }}
                       </a>
                       {% include "events/_rsvp_control.html" with event=event my_status=event.my_status member_can_rsvp=event.member_can_rsvp size="py-0 px-1" %}
                     </div>
@@ -116,7 +116,10 @@
               <tbody>
                 {% for event in events %}
                   <tr>
-                    <td class="text-nowrap">{{ event.date|date:"M j, Y" }}</td>
+                    <td class="text-nowrap">
+                      {{ event.date|date:"M j, Y" }}
+                      {% if event.start_time %}<span class="text-body-secondary">{{ event.start_time|time:"g:i A" }}</span>{% endif %}
+                    </td>
                     <td><a href="{{ event.get_absolute_url }}">{{ event.name }}</a></td>
                     <td>
                       {% if event.is_national %}<span class="badge bg-primary">National</span>

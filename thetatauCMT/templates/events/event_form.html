@@ -39,6 +39,7 @@
     {% csrf_token %}
     {{ form.media }}
     {{ form|crispy }}
+    {% include "events/_event_form_extras.html" %}
 
     {% if sub_events %}
       <h2>Sub-events</h2>

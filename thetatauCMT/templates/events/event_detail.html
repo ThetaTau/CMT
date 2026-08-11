@@ -1,5 +1,6 @@
 ﻿{% extends "base.html" %}
 {% load static %}
+{% load custom_tags %}
 
 {% block title %}Event: {{ object.name }}{% endblock %}
 
@@ -91,6 +92,16 @@
   <table class="table table-striped table-bordered">
     <tbody>
       <tr><th scope="row">Date</th><td>{{ object.date }}</td></tr>
+      <tr>
+        <th scope="row">Start time</th>
+        <td>
+          {% if object.start_time %}
+            {{ object.start_time|time:"g:i A" }} ({{ object.effective_time_zone }})
+          {% else %}
+            All day
+          {% endif %}
+        </td>
+      </tr>
       <tr><th scope="row">Type</th><td>{{ object.type }}</td></tr>
       <tr><th scope="row">Chapter</th><td>{{ object.chapter|default:"National (org-wide)" }}</td></tr>
       <tr><th scope="row">Region</th><td>{{ object.effective_region|default:"None" }}</td></tr>
@@ -103,7 +114,17 @@
         <tr><th scope="row">Rejection reason</th><td>{{ object.rejection_reason }}</td></tr>
       {% endif %}
       <tr><th scope="row">Score</th><td>{{ object.score }}</td></tr>
-      <tr><th scope="row">Description</th><td>{{ object.description }}</td></tr>
+      <tr><th scope="row">Description</th><td>{{ object.description|sanitize_html }}</td></tr>
+      <tr>
+        <th scope="row">More info</th>
+        <td>
+          {% if object.external_link %}
+            <a href="{{ object.external_link }}" target="_blank" rel="noopener noreferrer">{{ object.external_link }}</a>
+          {% else %}
+            None
+          {% endif %}
+        </td>
+      </tr>
       <tr><th scope="row">Duration</th><td>{{ object.duration }}</td></tr>
       <tr><th scope="row">STEM</th><td>{{ object.stem|yesno:"Yes,No" }}</td></tr>
       <tr><th scope="row">Hosted another chapter</th><td>{{ object.host|yesno:"Yes,No" }}</td></tr>

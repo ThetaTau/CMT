@@ -17,6 +17,7 @@ from django.utils import timezone
 from django.views.generic.base import ContextMixin, TemplateResponseMixin
 from django.views.generic.edit import ProcessFormView
 from tempus_dominus.widgets import DatePicker as _DatePicker
+from tempus_dominus.widgets import TimePicker as _TimePicker
 
 from core.address import get_or_create_address
 from core.choices import (
@@ -56,6 +57,32 @@ class DatePicker(_DatePicker):
         if "date" in opts and "T" not in opts["date"]:
             opts["date"] = opts["date"] + "T12:00:00"
         return opts
+
+
+class TimePicker(_TimePicker):
+    """12-hour tempus-dominus time picker that round-trips through Django.
+
+    Django's default ``TIME_INPUT_FORMATS`` are 24-hour only, so a form field
+    using this widget must accept :data:`TIME_INPUT_FORMATS_12H` as well.
+    """
+
+    def __init__(self, attrs=None, options=None, format=None):
+        options = {"format": "h:mm A", "stepping": 5, **(options or {})}
+        super().__init__(attrs=attrs, options=options, format=format or "%I:%M %p")
+
+    def id_for_label(self, id_):
+        # Same rewrite tempus_dominus applies when building its JS function name.
+        return id_.replace("-", "_")
+
+
+#: Accepted on input alongside the 12-hour string :class:`TimePicker` renders.
+TIME_INPUT_FORMATS_12H = [
+    "%I:%M %p",
+    "%I:%M%p",
+    "%I:%M:%S %p",
+    "%H:%M",
+    "%H:%M:%S",
+]
 
 
 class SchoolModelChoiceField(forms.ModelChoiceField):
