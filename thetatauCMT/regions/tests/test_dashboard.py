@@ -254,12 +254,12 @@ def test_get_scope_chapters_candidate_chapter_filter():
 
 
 @pytest.mark.django_db
-def test_update_kpis_returns_six_values():
+def test_update_kpis_returns_seven_values():
     from thetatauCMT.regions.dashboard import update_kpis
 
     result = update_kpis("national", None)
     assert isinstance(result, tuple)
-    assert len(result) == 6
+    assert len(result) == 7
     for v in result:
         assert isinstance(v, str)
 
@@ -432,3 +432,45 @@ def test_member_count_includes_pnms():
     # kpi-total-members is the first returned value; it must include the PNM.
     total_members = update_kpis(region.slug, None)[0]
     assert total_members == "2"
+
+
+@pytest.mark.django_db
+def test_living_census_counts_actives_and_alumni_excluding_deceased():
+    """The living census counts actives + alumni, minus anyone marked deceased."""
+    from thetatauCMT.chapters.tests.factories import ChapterFactory
+    from thetatauCMT.regions.dashboard import update_kpis
+    from thetatauCMT.regions.tests.factories import RegionFactory
+    from thetatauCMT.users.tests.factories import UserFactory
+
+    region = RegionFactory(name="Living Census Region")
+    chapter = ChapterFactory()
+    chapter.region = region
+    chapter.save(update_fields=["region"])
+    UserFactory(chapter=chapter, current_status="active")
+    UserFactory(chapter=chapter, current_status="alumni")
+    UserFactory(chapter=chapter, current_status="alumni", deceased=True)
+    UserFactory(chapter=chapter, current_status="pnm")
+
+    # kpi-living-census is the second returned value.
+    assert update_kpis(region.slug, None)[1] == "2"
+
+
+@pytest.mark.django_db
+def test_living_census_includes_closed_chapters():
+    """Alumni of a closed chapter are still living members of the fraternity."""
+    from thetatauCMT.chapters.tests.factories import ChapterFactory
+    from thetatauCMT.regions.dashboard import update_kpis
+    from thetatauCMT.regions.tests.factories import RegionFactory
+    from thetatauCMT.users.tests.factories import UserFactory
+
+    region = RegionFactory(name="Closed Chapter Region")
+    chapter = ChapterFactory()
+    chapter.region = region
+    chapter.active = False
+    chapter.save(update_fields=["region", "active"])
+    UserFactory(chapter=chapter, current_status="alumni")
+
+    kpis = update_kpis(region.slug, None)
+    assert kpis[1] == "1"
+    # Every other KPI still ignores closed chapters.
+    assert kpis[0] == "0"

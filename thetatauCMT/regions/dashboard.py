@@ -17,7 +17,7 @@ from django.db.models import Count
 from django.utils import timezone
 from django_plotly_dash import DjangoDash
 
-from core.models import academic_encompass_start_end_date
+from core.models import ALUMNI_STATUSES, academic_encompass_start_end_date
 from thetatauCMT.chapters.models import Chapter
 from thetatauCMT.regions.models import Region
 
@@ -51,6 +51,10 @@ MEMBER_STATUSES = ACTIVE_STATUSES + ["pnm"]
 # the ones most likely to have an employer on file, so they are included here
 # even though they are off the chapter roster.
 CAREER_STATUSES = ACTIVE_STATUSES + ["alumni", "alumniCC", "advisor"]
+
+# The "living census": actives + alumni who are not marked deceased. Unlike the
+# other KPIs this is a standing head count, not scoped to the academic year.
+CENSUS_STATUSES = ACTIVE_STATUSES + ALUMNI_STATUSES
 
 # Distinct qualitative palette; falls back to Plotly D3 for extra regions.
 REGION_PALETTE = px.colors.qualitative.Bold + px.colors.qualitative.D3
@@ -92,15 +96,20 @@ def parse_region_slug(pathname):
     return "national"
 
 
-def get_scope_chapters(region_slug):
+def get_scope_chapters(region_slug, include_inactive=False):
     """Return the queryset of active chapters in scope for `region_slug`.
 
     * `national` — all active chapters
     * `candidate_chapter` — all active candidate chapters
     * `chapter_<slug>` — the single chapter with that slug (member home page)
     * any other slug — chapters whose region slug matches
+
+    Pass `include_inactive=True` to keep closed chapters in scope; the living
+    census counts their alumni, every other KPI is about current activity.
     """
-    qs = Chapter.objects.exclude(active=False).select_related("region")
+    qs = Chapter.objects.select_related("region")
+    if not include_inactive:
+        qs = qs.exclude(active=False)
     if region_slug == "national" or not region_slug:
         return qs
     if region_slug == "candidate_chapter":
@@ -143,8 +152,9 @@ def ay_dates(ay_start_year):
 
 
 def _kpi_card(card_id, label, subtitle=""):
+    # `col-xl` (no number) splits the row evenly however many cards it holds.
     return html.Div(
-        className="col-6 col-md-4 col-xl-2 mb-3",
+        className="col-6 col-md-4 col-xl mb-3",
         children=html.Div(
             className="card h-100 shadow-sm bg-body-tertiary text-body border-0",
             children=html.Div(
@@ -245,6 +255,7 @@ app.layout = html.Div(
             className="row g-2 mb-2",
             children=[
                 _kpi_card("kpi-total-members", "Student members today", "active + activepend + PNMs"),
+                _kpi_card("kpi-living-census", "Living census", "actives + alumni, not deceased"),
                 _kpi_card("kpi-pnms", "PNMs", "prospective status started"),
                 _kpi_card("kpi-initiations", "Initiations", "date within academic year"),
                 _kpi_card("kpi-prealums", "Prealumni", "approved by exec"),
@@ -511,6 +522,7 @@ def _kpi_int(value):
 @app.callback(
     [
         Output("kpi-total-members", "children"),
+        Output("kpi-living-census", "children"),
         Output("kpi-pnms", "children"),
         Output("kpi-initiations", "children"),
         Output("kpi-prealums", "children"),
@@ -528,6 +540,15 @@ def update_kpis(region_slug, ay_start_year):
     ay_start_date, ay_end_date = ay_start.date(), ay_end.date()
 
     total_members = User.objects.filter(chapter__in=chapters, current_status__in=MEMBER_STATUSES).count()
+
+    living_census = (
+        User.objects.filter(
+            chapter__in=get_scope_chapters(region_slug, include_inactive=True),
+            current_status__in=CENSUS_STATUSES,
+        )
+        .exclude(deceased=True)
+        .count()
+    )
 
     pnms = (
         UserStatusChange.objects.filter(
@@ -574,6 +595,7 @@ def update_kpis(region_slug, ay_start_year):
 
     return (
         _kpi_int(total_members),
+        _kpi_int(living_census),
         _kpi_int(pnms),
         _kpi_int(initiations),
         _kpi_int(prealums),
