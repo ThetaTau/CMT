@@ -192,7 +192,7 @@ class Nomination(Process):
         default=False,
     )
     training_vector_complete = models.BooleanField(
-        _("Vector CommunityEdu H&S Training complete"),
+        _("Vector CommunityEDU H&S Training complete"),
         default=False,
     )
     training_completed = models.BooleanField(default=False)

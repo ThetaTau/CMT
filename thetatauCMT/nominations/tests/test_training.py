@@ -35,7 +35,7 @@ def test_two_required_trainings_defined():
     assert REQUIRED_TRAINING_KEYS == [TRAINING_CMT, TRAINING_VECTOR]
     labels = dict(TRAININGS)
     assert labels[TRAINING_CMT] == "CMT LMS Volunteer Training"
-    assert labels[TRAINING_VECTOR] == "Vector CommunityEdu H&S Training"
+    assert labels[TRAINING_VECTOR] == "Vector CommunityEDU H&S Training"
 
 
 def test_single_completion_does_not_advance():

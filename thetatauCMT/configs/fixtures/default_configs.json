@@ -35,7 +35,7 @@
     "fields": {
         "key": "TrainingAdministrator",
         "value": "",
-        "description": "Volunteer Nomination flow: who administers/marks required training (CMT LMS + Vector). Set to a username, email address, OR a national-officer role name. Blank falls back to CentralOffice, then settings.EXECUTIVE_DIRECTOR.",
+        "description": "Volunteer Nomination flow: who administers/marks required training (CMT LMS + Vector CommunityEDU). Set to a username, email address, OR a national-officer role name. Blank falls back to CentralOffice, then settings.EXECUTIVE_DIRECTOR.",
         "modified": "2026-07-22T00:00:00Z"
     }
 },

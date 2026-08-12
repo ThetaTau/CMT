@@ -840,7 +840,7 @@
         },
         {
           "key": "vector-lms",
-          "name": "Vector LMS",
+          "name": "Vector CommunityEDU",
           "short_description": "The external learning system that hosts the fraternity's required training courses.",
           "long_description": "Opens in a new tab. Completions flow back into Chapter training records automatically, usually within a day.",
           "external_url": "https://thetatau-tx.vectorlmsedu.com"
