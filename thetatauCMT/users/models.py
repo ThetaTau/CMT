@@ -638,6 +638,14 @@ class User(AbstractUser, EmailSignalMixin):
         return self.current_status == "advisor"
 
     @property
+    def is_active_member(self):
+        """Whether this user's current status counts as an active member.
+
+        Uses ``core.models.ACTIVE_STATUSES`` (same statuses as ``is_active_on``).
+        """
+        return self.current_status in ACTIVE_STATUSES
+
+    @property
     def requires_rmp(self):
         """Whether this member must sign the Risk Management Policies each term.
 

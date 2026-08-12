@@ -243,6 +243,43 @@ def test_init_selection_authenticated_returns_200(auto_login_user):
     assert response.status_code == 200
 
 
+# ─── PledgePinsView (ActiveMemberRequired, TemplateView) ─────────────────────
+
+
+def test_pledge_pins_unauthenticated_redirects(client, db):
+    response = client.get(reverse("forms:pledge_pins"))
+    assert response.status_code == 302
+
+
+@pytest.mark.django_db
+def test_pledge_pins_active_member_returns_200(auto_login_user):
+    client, user = auto_login_user()
+    user.current_status = "active"
+    user.save()
+    response = client.get(reverse("forms:pledge_pins"))
+    assert response.status_code == 200
+
+
+@pytest.mark.django_db
+def test_pledge_pins_non_active_member_redirects(auto_login_user):
+    client, user = auto_login_user()
+    user.current_status = "alumni"
+    user.save()
+    response = client.get(reverse("forms:pledge_pins"), follow=False)
+    assert response.status_code == 302
+
+
+@pytest.mark.django_db
+@override_settings(DEBUG=True)  # superuser bypasses RequireSuperuser2FAMiddleware only when DEBUG
+def test_pledge_pins_superuser_returns_200(auto_login_user):
+    client, user = auto_login_user()
+    user.current_status = "alumni"
+    user.is_superuser = True
+    user.save()
+    response = client.get(reverse("forms:pledge_pins"))
+    assert response.status_code == 200
+
+
 # ─── Split member status-change views ─────────────────────────────────────────
 
 SINGLE_STATUS_REASONS = ["coop", "military", "withdraw", "transfer"]

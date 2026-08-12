@@ -51,6 +51,7 @@ from core.models import (
 from core.notifications import GenericEmail
 from core.utils import retry_google_api, retry_on_deadlock
 from core.views import (
+    ActiveMemberRequiredMixin,
     AssignOfficerFormMixin,
     LoginRequiredMixin,
     NatOfficerRequiredMixin,
@@ -388,7 +389,7 @@ class FormLanding(LoginRequiredMixin, TemplateView):
         return context
 
 
-class PledgePinsView(LoginRequiredMixin, TemplateView):
+class PledgePinsView(ActiveMemberRequiredMixin, TemplateView):
     template_name = "forms/pledge_pins.html"
 
 

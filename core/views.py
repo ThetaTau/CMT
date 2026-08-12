@@ -147,6 +147,27 @@ class SuperuserRequiredMixin(DjangoLoginRequiredMixin):
         return super().dispatch(request, *args, **kwargs)
 
 
+class ActiveMemberRequiredMixin(DjangoLoginRequiredMixin):
+    """Restrict a view to active members (``User.is_active_member``).
+
+    Admins bypass the check so they can still preview the page. Authenticated
+    non-active members are redirected (default: ``home``) with an error
+    message; unauthenticated users are handled by ``LoginRequiredMixin``.
+    Views may override ``active_member_redirect_url`` and
+    ``active_member_message``.
+    """
+
+    active_member_redirect_url = "home"
+    active_member_message = "Only active members can access this."
+
+    def dispatch(self, request, *args, **kwargs):
+        user = request.user
+        if user.is_authenticated and not (acting_as_admin(user) or user.is_active_member):
+            messages.add_message(request, messages.ERROR, self.active_member_message)
+            return HttpResponseRedirect(resolve_url(self.active_member_redirect_url))
+        return super().dispatch(request, *args, **kwargs)
+
+
 class OfficerRequiredMixin(GroupRequiredMixin):
     group_required = ["officer", "natoff"]
     officer_edit = "this"
