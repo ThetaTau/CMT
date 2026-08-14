@@ -383,6 +383,51 @@ def test_match_row_name_only_partial_is_below_threshold(chapter_factory):
     assert result.candidates  # candidate is still surfaced for review
 
 
+@pytest.mark.django_db
+def test_match_row_finds_and_scores_on_nickname(chapter_factory):
+    """A row matching only a member's nickname is found (watson) and scored on it,
+    not just on the dissimilar legal first/last name."""
+    chapter = chapter_factory.create()
+    member = _member(
+        chapter,
+        name="Robert Johnson",
+        first_name="Robert",
+        last_name="Johnson",
+        nickname="Bobby Jay",
+    )
+
+    result = match_row({"name": "Bobby Jay"})
+
+    assert result.tier == "name"
+    assert result.user is not None and result.user.pk == member.pk
+    assert result.auto_accept
+
+
+@pytest.mark.django_db
+def test_match_row_chapter_text_corroborates_even_without_resolvable_chapter(chapter_factory):
+    """Chapter text that doesn't resolve to a real ``Chapter`` (word order swapped,
+    so exact/icontains lookup misses) can still raise the score via watson's
+    tokenized full-text index, so a row isn't scored on name alone when it also
+    supplies chapter info."""
+    chapter = chapter_factory.create(name="Kappa Beta")
+    reordered_chapter_text = " ".join(reversed(chapter.name.split()))
+    member = _member(
+        chapter,
+        name="Marguerite Okonkwo",
+        first_name="Marguerite",
+        last_name="Okonkwo",
+    )
+    other_chapter = chapter_factory.create()
+    _member(other_chapter, name="Marguerite Okafor", first_name="Marguerite", last_name="Okafor")
+
+    without_chapter = match_row({"name": "Marguerite Okonkwo"})
+    with_chapter_text = match_row({"name": "Marguerite Okonkwo", "chapter": reordered_chapter_text})
+
+    assert with_chapter_text.tier == "name"
+    assert with_chapter_text.user is not None and with_chapter_text.user.pk == member.pk
+    assert with_chapter_text.score > without_chapter.score
+
+
 # ===========================================================================
 # Upload prepopulation + inline national review + safe redirect (UX round)
 # ===========================================================================
