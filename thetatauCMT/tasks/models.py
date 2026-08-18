@@ -131,7 +131,17 @@ class Task(models.Model):
                 score_type = ScoreType.objects.filter(slug="audit").first()
                 file = f"forms:audit_complete {obj.pk}"
                 submit_name = f"Audit by {task.owner}"
-            elif name == "Pledge Program":
+            elif name in ("Pledge Program", "New Member Education Program"):
+                # The task was renamed from "Pledge Program" to "New Member
+                # Education Program" (see tasks/fixtures/tasks.json), but
+                # forms.views.PledgeProgramFormView.form_valid still calls
+                # mark_complete with the new name. Matching only the old name
+                # here caused ``create_submission`` to stay False, so the raw
+                # PledgeProgram instance (not a Submission) was stored as the
+                # generic FK; its pk then collided with unrelated Submission
+                # rows when templates assumed submission_object is always a
+                # Submission (issue: NME "Related Submission" linked to an
+                # unrelated Risk Management Form submission).
                 score_type = ScoreType.objects.filter(slug="pledge-program").first()
                 file = "forms:pledge_program"
                 submit_name = "Pledge program"
