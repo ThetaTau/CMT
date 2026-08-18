@@ -254,12 +254,12 @@ def test_get_scope_chapters_candidate_chapter_filter():
 
 
 @pytest.mark.django_db
-def test_update_kpis_returns_seven_values():
+def test_update_kpis_returns_eight_values():
     from thetatauCMT.regions.dashboard import update_kpis
 
     result = update_kpis("national", None)
     assert isinstance(result, tuple)
-    assert len(result) == 7
+    assert len(result) == 8
     for v in result:
         assert isinstance(v, str)
 

@@ -111,6 +111,14 @@ def _post_lms_json(url, *, description="Vector LMS request", attempts=3, initial
         return _lms_response_json(response, description)
 
 
+# The Vector LMS course id/title for the required health & safety programming
+# (branded "CommunityEdu"). Kept as a shared constant since it identifies the
+# course used both when upserting `Training` rows from the LMS and when
+# computing chapter completion percentages (`trainings.services`).
+COMMUNITY_EDU_COURSE_ID = "5d7b72cf-7e22-43a3-a4aa-628d8ee6c1a9"
+COMMUNITY_EDU_COURSE_TITLE = "CommunityEdu: Fraternity & Sorority Life"
+
+
 class Training(TimeStampedModel):
     class Meta:
         ordering = [
@@ -253,8 +261,8 @@ class Training(TimeStampedModel):
                                     max_quiz_score = 0
                 # We want to maintain backwards connection with old training system,
                 # so we use the same title/id
-                course_title = "CommunityEdu: Fraternity & Sorority Life"
-                course_id = "5d7b72cf-7e22-43a3-a4aa-628d8ee6c1a9"
+                course_title = COMMUNITY_EDU_COURSE_TITLE
+                course_id = COMMUNITY_EDU_COURSE_ID
                 user = User.objects.filter(
                     Q(username__iexact=username)
                     | Q(id__iexact=user_pk)

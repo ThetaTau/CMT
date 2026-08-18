@@ -261,6 +261,11 @@ app.layout = html.Div(
                 _kpi_card("kpi-prealums", "Prealumni", "approved by exec"),
                 _kpi_card("kpi-resignations", "Resignations", "approved by exec"),
                 _kpi_card("kpi-retention", "PNM retention", "1 − depledges / PNMs"),
+                _kpi_card(
+                    "kpi-communityedu",
+                    "Vector/CommunityEdu completion",
+                    "prior-year new members trained",
+                ),
             ],
         ),
         # Tabs.
@@ -528,11 +533,13 @@ def _kpi_int(value):
         Output("kpi-prealums", "children"),
         Output("kpi-resignations", "children"),
         Output("kpi-retention", "children"),
+        Output("kpi-communityedu", "children"),
     ],
     [Input("region-slug-store", "data"), Input("ay-store", "data")],
 )
 def update_kpis(region_slug, ay_start_year):
     from thetatauCMT.forms.models import Depledge, Initiation, PrematureAlumnus, ResignationProcess
+    from thetatauCMT.trainings.services import chapter_completion_stats
     from thetatauCMT.users.models import User, UserStatusChange
 
     chapters = get_scope_chapters(region_slug)
@@ -593,6 +600,13 @@ def update_kpis(region_slug, ay_start_year):
         rate = max(0.0, 1.0 - (depledges / pnms)) * 100
         retention = f"{rate:.0f}%"
 
+    completion_stats = chapter_completion_stats(start_date=ay_start_date, end_date=ay_end_date, chapters=chapters)
+    completion_total = sum(stat.total for stat in completion_stats)
+    completion_completed = sum(stat.completed for stat in completion_stats)
+    community_edu = "None"
+    if completion_total:
+        community_edu = f"{completion_completed / completion_total * 100:.0f}%"
+
     return (
         _kpi_int(total_members),
         _kpi_int(living_census),
@@ -601,6 +615,7 @@ def update_kpis(region_slug, ay_start_year):
         _kpi_int(prealums),
         _kpi_int(resignations),
         retention,
+        community_edu,
     )
 
 
