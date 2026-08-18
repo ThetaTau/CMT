@@ -254,6 +254,36 @@ def test_premature_alumnus_send_approval_complete_rejected():
 
 
 @pytest.mark.django_db
+def test_premature_alumnus_set_alumni_status_no_survey_config_does_not_crash():
+    """set_alumni_status must not crash when the PreAlumnSurvey Config is unset.
+
+    Regression test: Config.get_value returns "" when the row is missing, which
+    used to be passed straight into reverse(kwargs={"slug": ""}) and raise
+    NoReverseMatch (surveys:survey-detail-member requires a non-empty slug).
+    """
+    from unittest.mock import MagicMock, patch
+
+    from django.utils import timezone
+
+    from thetatauCMT.forms.flows import PrematureAlumnusFlow
+    from thetatauCMT.forms.tests.factories import PrematureAlumnusFactory
+
+    process = PrematureAlumnusFactory.create()
+    activation = MagicMock()
+    activation.process = process
+    activation.task.created = timezone.now()
+
+    flow_instance = PrematureAlumnusFlow()
+    with (
+        patch("thetatauCMT.forms.flows.Config.get_value", return_value=""),
+        patch("thetatauCMT.forms.flows.SurveyEmail") as MockSurveyEmail,
+    ):
+        flow_instance.set_alumni_status(activation)
+
+    MockSurveyEmail.assert_not_called()
+
+
+@pytest.mark.django_db
 def test_convention_flow_email_signers_func_sends_four_emails():
     """ConventionFlow.email_signers_func calls EmailConventionUpdate for each signer."""
     from unittest.mock import MagicMock, patch
