@@ -427,10 +427,23 @@ class Select2ListCreateMultipleChoiceField(Select2ListCreateChoiceField, Select2
                 val = int(val)
             except ValueError:
                 if self.queryset.model == Locality:
-                    val = re.search(r"\b\d{5}\b", val).group(0)
-                    true_value = self.queryset.filter(postal_code=val).first()
+                    zip_match = re.search(r"\b\d{5}\b", val)
+                    if zip_match:
+                        true_value = self.queryset.filter(postal_code=zip_match.group(0)).first()
+                    else:
+                        # Typed text with no 5-digit zip, e.g. a browser-autofilled
+                        # "Durham, North Carolina, United States"; match on city name.
+                        city = val.split(",")[0].strip()
+                        true_value = self.queryset.filter(name__iexact=city).first() if city else None
+                    if true_value is None:
+                        raise forms.ValidationError(
+                            f"'{val}' did not match a known location. Please pick a location "
+                            "from the dropdown list or type a 5-digit zip code."
+                        )
                 else:
-                    true_value = self.queryset.get(name=val)
+                    true_value = self.queryset.filter(name=val).first()
+                    if true_value is None:
+                        raise forms.ValidationError(f"'{val}' did not match a known choice.")
                 new_values.append(true_value)
             else:
                 new_values.append(val)
