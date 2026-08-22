@@ -494,6 +494,15 @@ class ChapterListView(LoginRequiredMixin, PagedFilteredTableView):
             "officer": self.request.user.is_national_officer(),
         }
 
+    def get_queryset(self, **kwargs):
+        # First (unfiltered) load defaults to Active chapters; "Clear" (cancel)
+        # resets to showing all, and any other explicit "active" value is kept.
+        cancel = self.request.GET.get("cancel", False)
+        request_get = self.request.GET.copy()
+        if not cancel and "active" not in request_get:
+            request_get["active"] = "1"
+        return super().get_queryset(request_get=request_get, **kwargs)
+
 
 class DuesSyncMixin:
     def sync_dues(self, request, queryset):

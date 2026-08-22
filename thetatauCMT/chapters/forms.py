@@ -78,6 +78,7 @@ class ChapterFormHelper(FormHelper):
                 InlineField("name__icontains"),
                 InlineField("region"),
                 InlineField("school__icontains"),
+                InlineField("active"),
                 FormActions(
                     StrictButton(
                         '<i class="fa fa-search"></i> Filter',
