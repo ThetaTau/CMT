@@ -189,7 +189,7 @@ class Training(TimeStampedModel):
             authenticate_header = Training.authenticate_header()
             if cursor:
                 cursor = f'after: "{cursor}"'
-            query = """
+            query = f"""
                 query
                 {{ People (first: 100 {cursor} active: "1")
                     {{ nodes
