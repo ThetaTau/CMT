@@ -17,8 +17,8 @@ RESTORE_TEST=${2:-true}
 source virtualenvwrapper.sh
 
 echo "Backup production to local drive"
-if ! workon thetatauCMT; then
-  echo "An error occurred setting thetatauCMT"
+if ! workon thetatauCMT-313; then
+  echo "An error occurred setting thetatauCMT-313"
   exit
 fi
 export GNUPGHOME="/home/Venturafranklin/thetatauCMT/secrets"
@@ -32,8 +32,8 @@ if [ "$RESTORE_TEST" = true ]; then
   deactivate
 
   echo "Restore test restore to staging"
-  if ! workon testCMT; then
-    echo "An error occurred setting testCMT"
+  if ! workon testCMT-313; then
+    echo "An error occurred setting testCMT-313"
     exit
   fi
   export GNUPGHOME="/home/Venturafranklin/thetatauCMT/secrets"
@@ -54,8 +54,8 @@ else
 fi
 
 echo "Backup production to Google Cloud"
-if ! workon thetatauCMT; then
-  echo "An error occurred setting thetatauCMT"
+if ! workon thetatauCMT-313; then
+  echo "An error occurred setting thetatauCMT-313"
   exit
 fi
 export GNUPGHOME="/home/Venturafranklin/thetatauCMT/secrets"
