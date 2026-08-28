@@ -228,6 +228,13 @@ ACTIVE_STATUSES = [
     "activeCC",
 ]
 
+# Statuses meaning the member has graduated out of the chapter roster.
+# "alumnipend" is deliberately excluded: they are still an active member.
+ALUMNI_STATUSES = [
+    "alumni",
+    "alumniCC",
+]
+
 
 def user_is_national_officer(user):
     """Return True when ``user`` counts as a National Officer / Admin.
@@ -241,12 +248,14 @@ def user_is_national_officer(user):
 
     Returns ``False`` when a National Officer has toggled "Hide national officer
     functionality" (``natoff_hidden``) to preview the site as a regular member.
+    An Admin who has toggled "Hide admin functionality" no longer qualifies
+    through ``is_superuser`` either.
     """
     if user is None or not getattr(user, "is_authenticated", False):
         return False
     if getattr(user, "natoff_hidden", False):
         return False
-    return bool(user.is_superuser or user.is_national_officer_group or user.is_national_officer())
+    return bool(user.is_admin or user.is_national_officer_group or user.is_national_officer())
 
 
 def resolve_config_actor(value):

@@ -7,6 +7,7 @@ from thetatauCMT.users.models import (
     HistoricalUser,
     MemberUpdate,
     Organization,
+    Position,
     User,
     UserAlter,
     UserDemographic,
@@ -29,6 +30,7 @@ register_skip(
         UserSemesterGPA,
         UserTag,
         Organization,
+        Position,
         Signal,
         SignalConstraint,
     ]
@@ -67,8 +69,6 @@ class UserAnonym(AnonymBase):
     emergency_middle_name = fields.function(fake.first_name)
     phone_number = fields.function(fake.msisdn)
     emergency_last_name = fields.function(fake.last_name)
-    employer = fields.function(fake.company)
-    employer_position = fields.function(fake.job)
     profile_picture = fields.function(fake.file_path)
 
     class Meta:

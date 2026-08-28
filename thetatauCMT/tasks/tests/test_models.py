@@ -481,6 +481,46 @@ def test_mark_complete_pledge_program_branch_creates_task_chapter(chapter):
 
 
 @pytest.mark.django_db
+def test_mark_complete_new_member_education_program_wraps_in_submission(chapter):
+    """Regression (production bug): the real task is named "New Member
+    Education Program" (see tasks/fixtures/tasks.json, loaded once per test
+    session by conftest.py django_db_setup) and
+    forms.views.PledgeProgramFormView calls mark_complete with that name. It
+    must take the same branch as "Pledge Program" and wrap the result in a
+    Submission, not store the raw PledgeProgram as submission_object (which
+    caused the "Related Submission" link to point at an unrelated Submission
+    row with the same pk).
+
+    Uses the real fixture Task (owner "vice regent") rather than creating a
+    second Task with the same name: Task.mark_complete looks up by
+    ``name=name`` with no secondary ordering, so a duplicate name makes
+    ``.first()`` non-deterministic across the session-scoped fixture data.
+    """
+    from unittest.mock import MagicMock
+
+    from thetatauCMT.submissions.models import Submission
+
+    _make_score_type("pledge-program", name="Pledge Program")
+
+    task = Task.objects.get(name="New Member Education Program", owner="vice regent")
+    due_date = datetime.date.today() + datetime.timedelta(days=5)
+    task_date = TaskDate.objects.create(task=task, school_type=chapter.school_type, date=due_date)
+
+    mock_obj = MagicMock()
+    mock_obj.pk = 9003
+    mock_obj.manual = "not_other"
+
+    Task.mark_complete("New Member Education Program", chapter, user=None, obj=mock_obj)
+
+    tc = TaskChapter.objects.filter(task=task_date, chapter=chapter).last()
+    assert tc is not None
+    assert isinstance(tc.submission_object, Submission)
+    assert tc.submission_object.file.name == "forms:pledge_program"
+    assert isinstance(tc.submission_object, Submission)
+    assert tc.submission_object.file.name == "forms:pledge_program"
+
+
+@pytest.mark.django_db
 def test_mark_complete_osm_branch_creates_task_chapter(chapter):
     """mark_complete('Outstanding Student Member', ...) takes the OSM branch."""
     _make_score_type("osm", name="Outstanding Student Member")

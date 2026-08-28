@@ -12,6 +12,7 @@ from django.contrib.auth.forms import PasswordResetForm
 from django.contrib.auth.tokens import default_token_generator
 from django.contrib.sites.shortcuts import get_current_site
 from django.core import signing
+from django.core.exceptions import ValidationError
 from django.http import HttpResponse, JsonResponse
 from django.http.request import QueryDict
 from django.http.response import HttpResponseRedirect
@@ -63,6 +64,7 @@ from .forms import (
 from .models import (
     MemberUpdate,
     Organization,
+    Position,
     User,
     UserAlter,
     UserDemographic,
@@ -230,8 +232,13 @@ class UserProfileView(LoginRequiredMixin, DetailView):
         return (
             super()
             .get_queryset()
-            .select_related("chapter", "major", "address__locality__state__country")
-            .prefetch_related("roles", "orgs", "ritual_proficiency")
+            .select_related(
+                "chapter",
+                "employer",
+                "address__locality__state__country",
+                "employer_address__locality__state__country",
+            )
+            .prefetch_related("roles", "orgs", "ritual_proficiency", "employer_positions", "major_final")
         )
 
     def get_context_data(self, **kwargs):
@@ -242,7 +249,7 @@ class UserProfileView(LoginRequiredMixin, DetailView):
         is_owner = viewer.is_authenticated and viewer.pk == target.pk
         is_natoff = viewer.is_national_officer_group
         is_officer = viewer.is_officer_group
-        is_superuser = viewer.is_superuser
+        is_superuser = viewer.is_admin
         # A chapter officer currently serving in the target member's chapter.
         is_target_chapter_officer = is_officer and viewer.current_chapter == target.chapter
 
@@ -263,6 +270,11 @@ class UserProfileView(LoginRequiredMixin, DetailView):
             or (bool(target.phone_number) and not show_phone)
             or (bool(target.address_id) and not show_address)
         )
+
+        # Employer and job titles are professional information every member can
+        # see; the work address follows the member's address visibility.
+        employer_positions = list(target.employer_positions.all())
+        show_employer_address = show_address and bool(target.employer_address_id)
 
         context.update(
             {
@@ -286,6 +298,10 @@ class UserProfileView(LoginRequiredMixin, DetailView):
                 "show_email": show_email,
                 "show_phone": show_phone,
                 "show_address": show_address,
+                "employer_positions": employer_positions,
+                "final_majors": list(target.major_final.all()),
+                "show_employer_address": show_employer_address,
+                "has_employment": bool(target.employer_id) or bool(employer_positions) or show_employer_address,
                 "has_hidden_contact": has_hidden_contact,
                 # Regions this member directs (Region.directors M2M). Drives the
                 # prominent "Regional Director" card + generic region contact info.
@@ -610,7 +626,8 @@ class UserSearchView(LoginRequiredMixin, NatOfficerRequiredMixin, PagedFilteredT
             "chapter": True,
             "extra_info": True,
             "natoff": self.request.user.is_national_officer() and not self.request.user.natoff_hidden,
-            "admin": self.request.user.is_superuser,
+            "admin": self.request.user.is_admin,
+            "viewer": self.request.user,
         }
 
 
@@ -764,10 +781,16 @@ class UserListView(LoginRequiredMixin, PagedFilteredTableView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         natoff = False
-        if self.request.user.is_national_officer():
+        if self.request.user.is_national_officer() and not self.request.user.natoff_hidden:
             natoff = True
-        admin = self.request.user.is_superuser
-        table = UserTable(data=self.object_list, natoff=natoff, admin=admin, rmp=True)
+        admin = self.request.user.is_admin
+        table = UserTable(
+            data=self.object_list,
+            natoff=natoff,
+            admin=admin,
+            rmp=True,
+            viewer=self.request.user,
+        )
         table.exclude = ("current_roles",)
         RequestConfig(self.request, paginate={"per_page": 30}).configure(table)
         context["table"] = table
@@ -1048,8 +1071,22 @@ class UserLookupUpdateView(FormView):
             for key, value in form.cleaned_data.items():
                 if value:
                     skip = ["school_name", "captcha", "major_other"]
-                    if user and key not in skip and getattr(user, key) != value:
-                        updated[key] = value
+                    if key in skip:
+                        continue
+                    # These two arrive as free text but are stored as related
+                    # Employer / Position records, so compare by name.
+                    if key == "employer":
+                        current = str(user.employer) if user.employer else ""
+                    elif key == "employer_position":
+                        current = ", ".join(user.employer_positions.values_list("name", flat=True))
+                    else:
+                        current = getattr(user, key)
+                    if isinstance(current, str) and isinstance(value, str):
+                        if current.strip().casefold() == value.strip().casefold():
+                            continue
+                    elif current == value:
+                        continue
+                    updated[key] = value
             if "major_other" in form.cleaned_data and form.cleaned_data["major_other"]:
                 # Can't get current value, but need to use for update
                 updated["major_other"] = form.cleaned_data["major_other"]
@@ -1095,8 +1132,9 @@ class UserLookupUpdateView(FormView):
             user_info["graduation_year"] = user.graduation_year if user.graduation_year else "Unknown"
             user_info["degree"] = user.get_degree_display()
             user_info["major"] = user.major if user.major else "Unknown"
-            user_info["employer"] = user.employer if user.employer else "Unknown"
-            user_info["employer_position"] = user.employer_position if user.employer_position else "Unknown"
+            user_info["employer"] = str(user.employer) if user.employer else "Unknown"
+            positions = ", ".join(user.employer_positions.values_list("name", flat=True))
+            user_info["employer_position"] = positions if positions else "Unknown"
             user_info["employer_address"] = user.employer_address if user.employer_address else "Unknown"
             user_info["school_name"] = user.chapter.school
             user_info["unsubscribe_paper_gear"] = user.unsubscribe_paper_gear
@@ -1253,6 +1291,7 @@ class UserAlterView(LoginRequiredMixin, NatOfficerRequiredMixin, FormView):
             if reset:
                 # Reset returns the National Officer to the full national view.
                 instance.hide_natoff = False
+                instance.hide_admin = False
             instance.save()
         else:
             form.save()
@@ -1284,8 +1323,37 @@ class ToggleNatoffView(LoginRequiredMixin, View):
                 "National officer functionality is now hidden. You are viewing the "
                 "site as a member. Use the account menu to show it again.",
             )
+        redirect_to = request.POST.get("next", "")
+        if redirect_to and url_has_allowed_host_and_scheme(redirect_to, allowed_hosts=None):
+            return HttpResponseRedirect(redirect_to)
+        return HttpResponseRedirect(reverse("home"))
+
+
+class ToggleAdminView(LoginRequiredMixin, View):
+    """Flip the Admin "hide admin functionality" toggle (``UserAlter.hide_admin``).
+
+    Gated on the *raw* ``is_superuser`` field (not :class:`SuperuserRequiredMixin`,
+    which treats hidden admins as non-admins) so the Admin can always switch back.
+    """
+
+    http_method_names = ["post"]
+
+    def post(self, request, *args, **kwargs):
+        user = request.user
+        if not user.is_superuser:
+            return HttpResponseRedirect(reverse("home"))
+        instance = UserAlter.objects.filter(user=user).first()
+        if instance is None:
+            instance = UserAlter(user=user, chapter=user.chapter, role=None)
+        instance.hide_admin = not instance.hide_admin
+        instance.save()
+        if instance.hide_admin:
+            messages.info(
+                request,
+                "Admin functionality is now hidden. Use the account menu to show it again.",
+            )
         else:
-            messages.info(request, "National officer functionality restored.")
+            messages.info(request, "Admin functionality restored.")
         redirect_to = request.POST.get("next", "")
         if redirect_to and url_has_allowed_host_and_scheme(redirect_to, allowed_hosts=None):
             return HttpResponseRedirect(redirect_to)
@@ -1444,6 +1512,46 @@ class OrganizationAutocomplete(autocomplete.Select2QuerySetView):
             return JsonResponse({"error": "Organization name is required."}, status=400)
         obj, _ = Organization.objects.get_or_create(name=text)
         return JsonResponse({"id": obj.pk, "text": str(obj)})
+
+
+class PositionAutocomplete(autocomplete.Select2QuerySetView):
+    """Autocomplete for :class:`Position` (a member's job title).
+
+    Any member may search existing titles or type a new one to add it, so the
+    vocabulary grows with the membership instead of being curated centrally.
+    """
+
+    validate_create = True
+    max_name_length = 200
+
+    def get_queryset(self):
+        if not self.request.user.is_authenticated:
+            return Position.objects.none()
+        qs = Position.objects.all()
+        if self.q:
+            qs = qs.filter(name__icontains=self.q)
+        return qs.order_by("name")
+
+    def has_add_permission(self, request):
+        # DAL's default requires the add_position model permission, which no CMT
+        # role grants, so the "Create" option would never appear.
+        if self.create_field is None:
+            return False
+        return bool(request.user.is_authenticated)
+
+    def validate(self, text):
+        name = " ".join((text or "").split())
+        if not name:
+            raise ValidationError({self.create_field: ["Enter a position before adding it."]})
+        if len(name) > self.max_name_length:
+            raise ValidationError({self.create_field: [f"Keep this to {self.max_name_length} characters or fewer."]})
+
+    def create_object(self, text):
+        name = " ".join((text or "").split())
+        # get_queryset() is search-scoped, so use the manager to avoid inserting
+        # a duplicate row for a title that already exists.
+        existing = Position.objects.filter(name__iexact=name).first()
+        return existing or Position.objects.create(name=name)
 
 
 class UserOrgListView(LoginRequiredMixin, PagedFilteredTableView):

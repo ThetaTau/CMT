@@ -183,6 +183,35 @@ def test_get_updated_perform_update_true_saves_user(user_factory):
     assert user.email == new_email
 
 
+@pytest.mark.django_db
+def test_get_updated_resolves_employer_and_positions(user_factory):
+    """The not-signed-in form submits free text; it becomes Employer / Position rows."""
+    from thetatauCMT.forms.models import Employer
+    from thetatauCMT.users.flows import MemberUpdateFlow
+    from thetatauCMT.users.models import MemberUpdate
+
+    user = user_factory.create()
+    process = MemberUpdate(user=user, employer="Boeing", employer_position="Engineer, Project Manager")
+    updated = MemberUpdateFlow.get_updated(process, perform_update=True)
+    assert set(updated) == {"employer", "employer_position"}
+    user.refresh_from_db()
+    assert user.employer == Employer.objects.get(name="Boeing")
+    assert set(user.employer_positions.values_list("name", flat=True)) == {"Engineer", "Project Manager"}
+
+
+@pytest.mark.django_db
+def test_get_updated_ignores_unchanged_employer_text(user_factory):
+    """Re-submitting the same employer / titles, in any casing, is not an update."""
+    from thetatauCMT.forms.models import employer_from_text
+    from thetatauCMT.users.flows import MemberUpdateFlow
+    from thetatauCMT.users.models import MemberUpdate, positions_from_text
+
+    user = user_factory.create(employer=employer_from_text("Boeing"))
+    user.employer_positions.set(positions_from_text("Engineer"))
+    process = MemberUpdate(user=user, employer="boeing", employer_position=" Engineer ")
+    assert MemberUpdateFlow.get_updated(process, perform_update=False) == {}
+
+
 # ---------------------------------------------------------------------------
 # email_delay_func handler
 # ---------------------------------------------------------------------------

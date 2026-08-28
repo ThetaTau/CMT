@@ -613,8 +613,32 @@ def test_profile_owner_sees_own_contact_with_visibility_badge(auto_login_user):
     assert response.context["show_phone"] is True
     content = response.content.decode("UTF-8")
     assert "5559993333" in content
-    # The owner sees the current visibility level for the field.
-    assert "No one (private)" in content
+    # A compact badge shows the level; the full wording is the tooltip.
+    assert "Officers only" in content
+    assert "Who can see your phone number: Only National Officers, Admins, and my chapter" in content
+
+
+@pytest.mark.django_db
+def test_profile_officer_roles_show_present_for_current_term(auto_login_user, user_factory):
+    """An officer term that has not ended yet reads "Present" instead of a future end date."""
+    from django.utils import timezone
+
+    from thetatauCMT.users.models import UserRoleChange
+
+    client, user = auto_login_user()
+    target = user_factory.create(chapter=user.chapter)
+    today = timezone.now().date()
+    future_end = today + timezone.timedelta(days=300)
+    past_end = today - timezone.timedelta(days=400)
+    UserRoleChange.objects.create(user=target, role="scribe", start=today - timezone.timedelta(days=10), end=future_end)
+    UserRoleChange.objects.create(
+        user=target, role="treasurer", start=today - timezone.timedelta(days=800), end=past_end
+    )
+    url = reverse("users:profile", kwargs={"username": target.username})
+    content = client.get(url).content.decode("UTF-8")
+    assert "Present" in content
+    assert future_end.strftime("%b %Y") not in content
+    assert past_end.strftime("%b %Y") in content
 
 
 @pytest.mark.django_db
@@ -636,6 +660,58 @@ def test_profile_chapter_visibility_only_same_chapter(auto_login_user, user_fact
     assert response.status_code == 200
     assert response.context["show_phone"] is False
     assert b"5559994444" not in response.content
+
+
+# ---------------------------------------------------------------------------
+# UserTable — contact visibility in member tables
+# ---------------------------------------------------------------------------
+
+
+def _user_table_row(target, viewer):
+    from thetatauCMT.users.models import User
+    from thetatauCMT.users.tables import UserTable
+
+    table = UserTable(data=User.objects.filter(pk=target.pk), viewer=viewer)
+    return table.rows[0]
+
+
+@pytest.mark.django_db
+def test_user_table_masks_contact_from_plain_member(user_factory):
+    """A member roster hides contact info the member has not shared."""
+    target = user_factory.create(email="hidden@example.com", phone_number="5557770000")
+    viewer = user_factory.create(chapter=target.chapter)
+    row = _user_table_row(target, viewer)
+    assert row.get_cell_value("email") == "Private"
+    assert row.get_cell_value("phone_number") == "Private"
+    # No mailto link is rendered for a masked address.
+    assert row.get_cell("email") == "Private"
+
+
+@pytest.mark.django_db
+def test_user_table_shows_contact_to_chapter_officer(user_factory):
+    """A chapter's officers always see their own members' contact info."""
+    target = user_factory.create(email="shown@example.com", phone_number="5557771111")
+    viewer = user_factory.create(chapter=target.chapter)
+    group, _ = Group.objects.get_or_create(name="officer")
+    viewer.groups.add(group)
+    row = _user_table_row(target, viewer)
+    assert row.get_cell_value("email") == "shown@example.com"
+    assert row.get_cell_value("phone_number") == "5557771111"
+
+
+@pytest.mark.django_db
+def test_user_table_shows_contact_shared_with_all_members(user_factory):
+    """Opting into 'any member on the site' unmasks the column."""
+    target = user_factory.create(email="public@example.com", email_visibility="members")
+    viewer = user_factory.create()
+    assert _user_table_row(target, viewer).get_cell_value("email") == "public@example.com"
+
+
+@pytest.mark.django_db
+def test_user_table_without_viewer_is_not_masked(user_factory):
+    """System exports (dues CSV, admin bulk export) pass no viewer."""
+    target = user_factory.create(email="export@example.com")
+    assert _user_table_row(target, None).get_cell_value("email") == "export@example.com"
 
 
 # ---------------------------------------------------------------------------
@@ -954,6 +1030,26 @@ def test_natoff_gated_view_blocks_hidden_officer(auto_login_user):
 
 
 @pytest.mark.django_db
+def test_officer_gated_view_blocks_hidden_officer_without_role(auto_login_user):
+    """Officer-only pages need a real (or region-bar) chapter role while hidden."""
+    from thetatauCMT.users.models import UserAlter
+
+    client, user = auto_login_user()
+    _make_natoff(user, client)
+    url = reverse("users:gpas")
+    assert client.get(url).status_code == 200
+
+    # Previewing as a plain member: the natoff group no longer opens officer pages
+    alter = UserAlter.objects.create(user=user, chapter=user.chapter, role=None, hide_natoff=True)
+    assert client.get(url).status_code == 302
+
+    # Picking a role in the region bar restores officer access
+    alter.role = "scribe"
+    alter.save()
+    assert client.get(url).status_code == 200
+
+
+@pytest.mark.django_db
 def test_base_template_natoff_toggle_and_region_bar(auto_login_user):
     """Base template flips the toggle label + region bar between the two modes."""
     from thetatauCMT.users.models import UserAlter
@@ -1004,6 +1100,123 @@ def test_user_list_csv_blocked_when_natoff_hidden(auto_login_user):
     # Guard falls through to the normal HTML list render instead of a CSV download.
     assert response.status_code == 200
     assert response["Content-Type"].startswith("text/html")
+
+
+# ---------------------------------------------------------------------------
+# Hide admin functionality (ToggleAdminView)
+# ---------------------------------------------------------------------------
+
+
+def _make_admin(user, client, settings):
+    """Make the user a raw superuser (2FA enforcement off so pages still render)."""
+    settings.DEBUG = True
+    user.is_superuser = True
+    user.save(update_fields=["is_superuser"])
+    client.force_login(user)
+    return user
+
+
+@pytest.mark.django_db
+def test_toggle_admin_view_hides_and_shows(auto_login_user, settings):
+    """An Admin can hide and then re-show admin functionality."""
+    from thetatauCMT.users.models import UserAlter
+
+    client, user = auto_login_user()
+    _make_admin(user, client, settings)
+    url = reverse("users:toggle_admin")
+
+    response = client.post(url, {"next": "/"})
+    assert response.status_code == 302
+    alter = UserAlter.objects.get(user=user)
+    assert alter.hide_admin is True
+    assert user.admin_hidden is True
+    assert user.is_admin is False
+
+    response = client.post(url, {"next": "/"})
+    assert response.status_code == 302
+    alter.refresh_from_db()
+    assert alter.hide_admin is False
+    assert user.admin_hidden is False
+    assert user.is_admin is True
+
+
+@pytest.mark.django_db
+def test_toggle_admin_view_denies_non_superuser(auto_login_user):
+    """A non-superuser cannot create a hide toggle (no UserAlter is created)."""
+    from thetatauCMT.users.models import UserAlter
+
+    client, user = auto_login_user()
+    response = client.post(reverse("users:toggle_admin"), {"next": "/"})
+    assert response.status_code == 302
+    assert not UserAlter.objects.filter(user=user).exists()
+
+
+@pytest.mark.django_db
+def test_toggle_admin_view_get_not_allowed(auto_login_user, settings):
+    client, user = auto_login_user()
+    _make_admin(user, client, settings)
+    assert client.get(reverse("users:toggle_admin")).status_code == 405
+
+
+@pytest.mark.django_db
+def test_user_alter_reset_clears_hide_admin(auto_login_user, settings):
+    """The region-bar Reset button also restores admin functionality."""
+    from thetatauCMT.users.models import UserAlter
+
+    client, user = auto_login_user()
+    _make_natoff(user, client)
+    _make_admin(user, client, settings)
+    UserAlter.objects.create(user=user, chapter=user.chapter, role=None, hide_admin=True)
+    response = client.post(
+        reverse("users:alterchapter"),
+        {"chapter": user.chapter.slug, "role": "", "alter-action": "Reset", "next": "/"},
+    )
+    assert response.status_code == 302
+    assert UserAlter.objects.get(user=user).hide_admin is False
+
+
+@pytest.mark.django_db
+def test_admin_only_view_blocks_hidden_admin(auto_login_user, settings):
+    """A hidden Admin is treated as a member on superuser-only pages."""
+    from thetatauCMT.users.models import UserAlter
+
+    client, user = auto_login_user()
+    _make_admin(user, client, settings)
+    url = reverse("awards:import_upload")
+    assert client.get(url).status_code == 200
+    UserAlter.objects.create(user=user, chapter=user.chapter, role=None, hide_admin=True)
+    assert client.get(url).status_code == 302
+
+
+@pytest.mark.django_db
+def test_officer_gated_view_blocks_hidden_admin(auto_login_user, settings):
+    """The superuser bypass in the group mixins disappears while admin is hidden."""
+    from thetatauCMT.users.models import UserAlter
+
+    client, user = auto_login_user()
+    _make_admin(user, client, settings)
+    url = reverse("forms:education_list")
+    assert client.get(url).status_code == 200
+    UserAlter.objects.create(user=user, chapter=user.chapter, role=None, hide_admin=True)
+    assert client.get(url).status_code == 302
+
+
+@pytest.mark.django_db
+def test_base_template_admin_toggle_label(auto_login_user, settings):
+    """Base template flips the admin toggle label between the two modes."""
+    from thetatauCMT.users.models import UserAlter
+
+    client, user = auto_login_user()
+    _make_admin(user, client, settings)
+    home = reverse("home")
+
+    content = client.get(home).content.decode()
+    assert "Hide admin functionality" in content
+
+    UserAlter.objects.create(user=user, chapter=user.chapter, role=None, hide_admin=True)
+    content = client.get(home).content.decode()
+    assert "Show admin functionality" in content
+    assert reverse("users:toggle_admin") in content
 
 
 # ---------------------------------------------------------------------------
@@ -1067,6 +1280,8 @@ def test_user_form_includes_contact_visibility_fields():
     choices = dict(form.fields["phone_visibility"].choices)
     assert "no_one" in choices
     assert "members" in choices
+    # The retired "my chapter's officers only" level is no longer offered.
+    assert "officers" not in choices
 
 
 @pytest.mark.django_db
@@ -1082,7 +1297,7 @@ def test_user_detail_post_saves_contact_visibility(auto_login_user):
             "phone_number": "5551234567",
             "phone_visibility": "members",
             "email_visibility": "chapter",
-            "address_visibility": "officers",
+            "address_visibility": "no_one",
             "email": user.email,
             "birth_date": "01/01/1990",
             "address_0": "123 Main St",
@@ -1096,7 +1311,227 @@ def test_user_detail_post_saves_contact_visibility(auto_login_user):
     user.refresh_from_db()
     assert user.phone_visibility == "members"
     assert user.email_visibility == "chapter"
-    assert user.address_visibility == "officers"
+    assert user.address_visibility == "no_one"
+
+
+# ---------------------------------------------------------------------------
+# Employment (employer / position / work address)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.django_db
+def test_user_form_includes_employment_fields():
+    """The member info form offers employer, job titles and a work address."""
+    from thetatauCMT.users.forms import UserForm
+
+    form = UserForm()
+    for name in ("employer", "employer_positions", "employer_address"):
+        assert name in form.fields
+    assert form.fields["employer"].widget.url == reverse("forms:employer-autocomplete")
+    assert form.fields["employer_positions"].widget.url == reverse("users:position-autocomplete")
+
+
+@pytest.mark.django_db
+def test_user_detail_post_saves_employment(auto_login_user):
+    """A member can set their employer, job titles and work address."""
+    from thetatauCMT.forms.models import Employer
+    from thetatauCMT.users.models import Position
+
+    client, user = auto_login_user()
+    employer = Employer.objects.create(name="Boeing")
+    engineer = Position.objects.create(name="Engineer")
+    manager = Position.objects.create(name="Project Manager")
+    response = client.post(
+        reverse("users:detail"),
+        {
+            "action": "user",
+            "graduation_year": user.graduation_year or 2025,
+            "email": user.email,
+            "birth_date": "01/01/1990",
+            "phone_visibility": "no_one",
+            "email_visibility": "no_one",
+            "address_visibility": "no_one",
+            "address_0": "123 Main St",
+            "address_1": "Phoenix",
+            "address_2": "AZ",
+            "address_3": "85001",
+            "address_4": "United States",
+            "employer": employer.pk,
+            "employer_positions": [engineer.pk, manager.pk],
+            "employer_address_0": "1 Industry Way",
+            "employer_address_1": "Seattle",
+            "employer_address_2": "WA",
+            "employer_address_3": "98101",
+            "employer_address_4": "United States",
+        },
+    )
+    assert response.status_code == 302
+    user.refresh_from_db()
+    assert user.employer == employer
+    assert set(user.employer_positions.all()) == {engineer, manager}
+    assert "1 Industry Way" in str(user.employer_address)
+
+
+@pytest.mark.django_db
+def test_profile_shows_employment_card(auto_login_user, user_factory):
+    """Employer and job titles are professional info every member can see."""
+    from thetatauCMT.forms.models import Employer
+    from thetatauCMT.users.models import Position
+
+    client, user = auto_login_user()
+    target = user_factory.create(employer=Employer.objects.create(name="Lockheed Martin"))
+    target.employer_positions.add(Position.objects.create(name="Systems Engineer"))
+    response = client.get(reverse("users:profile", kwargs={"username": target.username}))
+    assert response.status_code == 200
+    assert response.context["has_employment"] is True
+    content = response.content.decode("UTF-8")
+    assert "Lockheed Martin" in content
+    assert "Systems Engineer" in content
+
+
+@pytest.mark.django_db
+def test_profile_hides_work_address_by_default(auto_login_user, user_factory):
+    """The work address follows the member's address visibility ('no one' by default)."""
+    client, user = auto_login_user()
+    target = user_factory.create(employer_address="404 Secret Way, Phoenix, AZ 85001")
+    response = client.get(reverse("users:profile", kwargs={"username": target.username}))
+    assert response.status_code == 200
+    assert response.context["show_employer_address"] is False
+    assert "404 Secret Way" not in response.content.decode("UTF-8")
+
+
+@pytest.mark.django_db
+def test_profile_shows_work_address_when_address_is_visible(auto_login_user, user_factory):
+    """Opting into 'any member' for the address also reveals the work address."""
+    client, user = auto_login_user()
+    target = user_factory.create(
+        employer_address="405 Open Way, Phoenix, AZ 85001",
+        address_visibility="members",
+    )
+    response = client.get(reverse("users:profile", kwargs={"username": target.username}))
+    assert response.status_code == 200
+    assert response.context["show_employer_address"] is True
+    assert "405 Open Way" in response.content.decode("UTF-8")
+
+
+# ---------------------------------------------------------------------------
+# Final major(s)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.django_db
+def test_user_form_does_not_offer_the_pledge_major():
+    """The pledge-form major is a historical record; members maintain major_final."""
+    from thetatauCMT.users.forms import UserForm
+
+    form = UserForm()
+    assert "major" not in form.fields
+    assert "major_other" not in form.fields
+
+
+@pytest.mark.django_db
+def test_user_form_includes_final_major_field():
+    """Members pick their final major(s) from the shared job board vocabulary."""
+    from thetatauCMT.users.forms import UserForm
+
+    form = UserForm()
+    assert "major_final" in form.fields
+    assert form.fields["major_final"].widget.url == reverse("jobs:major-autocomplete")
+
+
+@pytest.mark.django_db
+def test_user_detail_post_saves_final_majors(auto_login_user):
+    """A member can record more than one final major."""
+    from thetatauCMT.jobs.models import Major
+
+    client, user = auto_login_user()
+    civil = Major.objects.create(name="civil engineering")
+    physics = Major.objects.create(name="physics")
+    response = client.post(
+        reverse("users:detail"),
+        {
+            "action": "user",
+            "graduation_year": user.graduation_year or 2025,
+            "email": user.email,
+            "birth_date": "01/01/1990",
+            "phone_visibility": "no_one",
+            "email_visibility": "no_one",
+            "address_visibility": "no_one",
+            "address_0": "123 Main St",
+            "address_1": "Phoenix",
+            "address_2": "AZ",
+            "address_3": "85001",
+            "address_4": "United States",
+            "major_final": [str(civil.pk), str(physics.pk)],
+        },
+    )
+    assert response.status_code == 302
+    assert set(user.major_final.all()) == {civil, physics}
+
+
+@pytest.mark.django_db
+def test_profile_shows_final_majors(auto_login_user, user_factory):
+    """The profile shows the final majors, not the historical pledge major."""
+    from thetatauCMT.jobs.models import Major
+
+    client, user = auto_login_user()
+    target = user_factory.create()
+    target.major_final.add(Major.objects.create(name="civil engineering"))
+    response = client.get(reverse("users:profile", kwargs={"username": target.username}))
+    assert response.status_code == 200
+    body = response.content.decode("UTF-8")
+    assert "civil engineering" in body
+    assert str(target.major) not in body
+
+
+@pytest.mark.django_db
+def test_position_autocomplete_search_and_create(auto_login_user):
+    """Any member can search job titles and add one that is missing."""
+    from thetatauCMT.users.models import Position
+
+    client, user = auto_login_user()
+    Position.objects.create(name="Structural Engineer")
+    url = reverse("users:position-autocomplete")
+    response = client.get(url, {"q": "structural"})
+    assert response.status_code == 200
+    assert "Structural Engineer" in response.json()["results"][0]["text"]
+
+    # An unmatched search offers the "create" entry.
+    results = client.get(url, {"q": "Kiln Operator"}).json()["results"]
+    assert any(result.get("create_id") for result in results)
+
+    response = client.post(url, {"text": "  Field   Engineer "})
+    assert response.status_code == 200
+    assert Position.objects.filter(name="Field Engineer").exists()
+    # An existing title is reused rather than duplicated, whatever the casing.
+    client.post(url, {"text": "field engineer"})
+    assert Position.objects.filter(name__iexact="field engineer").count() == 1
+
+
+@pytest.mark.django_db
+def test_position_autocomplete_rejects_anonymous(client):
+    """Signed-out visitors cannot search or grow the vocabulary."""
+    url = reverse("users:position-autocomplete")
+    assert client.get(url, {"q": "engineer"}).json()["results"] == []
+    assert client.post(url, {"text": "Engineer"}).status_code == 403
+
+
+@pytest.mark.django_db
+def test_employer_autocomplete_open_to_any_member(auto_login_user):
+    """Members pick their own employer, so the endpoint is no longer officer-only."""
+    from thetatauCMT.forms.models import Employer
+
+    client, user = auto_login_user()
+    Employer.objects.create(name="Northrop Grumman")
+    url = reverse("forms:employer-autocomplete")
+    response = client.get(url, {"q": "northrop"})
+    assert response.status_code == 200
+    assert "Northrop Grumman" in response.json()["results"][0]["text"]
+    assert any(result.get("create_id") for result in client.get(url, {"q": "Blue Origin"}).json()["results"])
+
+    client.post(url, {"text": "blue   origin"})
+    client.post(url, {"text": "Blue Origin"})
+    assert Employer.objects.filter(name__iexact="blue origin").count() == 1
 
 
 @pytest.mark.django_db
@@ -1640,6 +2075,7 @@ def test_user_detail_post_demo_form_valid(auto_login_user):
             "ability": "no_impairment",
             "first_gen": "True",
             "english": "True",
+            "international": "False",
         },
     )
     assert response.status_code in [200, 302]

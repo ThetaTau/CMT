@@ -214,3 +214,50 @@ class TestPreviouslyVulnerableFormsUseComponentAddressField:
             db_field = MemberUpdate._meta.get_field(field_name)
             formfield = admin_obj.formfield_for_dbfield(db_field, request=None)
             assert isinstance(formfield, ComponentAddressField), field_name
+
+
+class TestSelect2ListCreateMultipleChoiceFieldLocality:
+    """Regression for a prod crash on the jobs "location" field
+    (``Select2ListCreateMultipleChoiceField`` bound to ``Locality``).
+
+    The select2 tagging widget lets a user type free text instead of picking
+    a suggestion (e.g. a browser autofilled "Durham, North Carolina, United
+    States"). ``to_python`` used ``re.search(...).group(0)`` unconditionally,
+    which raised ``AttributeError: 'NoneType' object has no attribute 'group'``
+    whenever the typed text had no 5-digit zip code.
+    """
+
+    def test_typed_text_without_zip_matches_existing_city_by_name(self):
+        from address.models import Country, Locality, State
+
+        from core.forms import Select2ListCreateMultipleChoiceField
+
+        country = Country.objects.create(name="United States", code="US")
+        state = State.objects.create(name="North Carolina", code="NC", country=country)
+        locality = Locality.objects.create(name="Durham", postal_code="27701", state=state)
+
+        field = Select2ListCreateMultipleChoiceField(queryset=Locality.objects.all(), required=False)
+        result = field.to_python(["Durham, North Carolina, United States"])
+        assert result == [locality]
+
+    def test_typed_text_with_no_match_raises_validation_error_not_crash(self):
+        from address.models import Locality
+
+        from core.forms import Select2ListCreateMultipleChoiceField
+
+        field = Select2ListCreateMultipleChoiceField(queryset=Locality.objects.all(), required=False)
+        with pytest.raises(forms.ValidationError):
+            field.to_python(["Nowhereville, Atlantis"])
+
+    def test_typed_text_with_zip_still_resolves_by_postal_code(self):
+        from address.models import Country, Locality, State
+
+        from core.forms import Select2ListCreateMultipleChoiceField
+
+        country = Country.objects.create(name="United States", code="US")
+        state = State.objects.create(name="Texas", code="TX", country=country)
+        locality = Locality.objects.create(name="Austin", postal_code="78701", state=state)
+
+        field = Select2ListCreateMultipleChoiceField(queryset=Locality.objects.all(), required=False)
+        result = field.to_python(["Austin, TX 78701"])
+        assert result == [locality]

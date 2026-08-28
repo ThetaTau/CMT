@@ -5,7 +5,7 @@
 
 {% block content %}
 <div class="page-header d-flex flex-wrap align-items-center gap-2 mb-3">
-  <h2 class="page-title mb-0">{% if heading %}{{ heading }}{% else %}{% trans "Award History" %}{% endif %}</h2>
+  <h1 class="page-title mb-0">{% if heading %}{{ heading }}{% else %}{% trans "Award History" %}{% endif %}</h1>
   {% if can_export and export_url %}
     <div class="page-actions ms-auto">
       <a href="{{ export_url }}" class="btn btn-sm btn-outline-primary" title="{% trans 'Download CSV' %}">
@@ -15,7 +15,7 @@
   {% endif %}
 </div>
 
-<p class="text-body-secondary">{% trans "Awards are listed in chronological order, including backdated records." %}</p>
+<p class="text-body-secondary">{% trans "Awards are listed in chronological order, oldest first." %}</p>
 
 {% render_table table %}
 {% endblock content %}

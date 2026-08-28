@@ -33,6 +33,13 @@ def _contact_sync_context(request, region_slug):
 
     Retained as an internal helper so downstream tests can monkey-patch the
     context for a single region without touching the shared implementation.
+
+    Always uses the ``"region:<slug>"`` scope (never the bare ``"national"``
+    council scope) -- ``region_slug`` here is the "All Officers" page's
+    synthetic ``"national"`` slug meaning *every chapter*, which is a
+    different population than the National Officer roster's council members.
+    See :func:`contact_sync.officers._resolve_region_scope` for the
+    ``"national" -> all active chapters`` special case.
     """
     return build_sync_modal_context(request, f"region:{region_slug}")
 
@@ -135,11 +142,12 @@ class RegionOfficerView(LoginRequiredMixin, NatOfficerRequiredMixin, DetailView)
                 combined_emails.append(email)
         email_list = ", ".join(combined_emails)
         self.filter.form.fields["chapter"].queryset = chapters
-        admin = self.request.user.is_superuser
+        admin = self.request.user.is_admin
         table = UserTable(
             data=self.filter.qs,
             natoff=True,
             admin=admin,
+            viewer=self.request.user,
             extra_columns=[
                 (
                     "chapter",
@@ -221,11 +229,12 @@ class RegionAdvisorView(LoginRequiredMixin, NatOfficerRequiredMixin, DetailView)
         self.filter.form.helper = self.formhelper_class()
         email_list = ", ".join([x[0] for x in self.filter.qs.values_list("email").distinct()])
         self.filter.form.fields["chapter"].queryset = chapters
-        admin = self.request.user.is_superuser
+        admin = self.request.user.is_admin
         table = UserTable(
             data=self.filter.qs,
             natoff=True,
             admin=admin,
+            viewer=self.request.user,
             extra_columns=[
                 (
                     "chapter",

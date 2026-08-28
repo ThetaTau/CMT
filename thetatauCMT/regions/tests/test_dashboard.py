@@ -193,6 +193,18 @@ def test_treemap_from_rows_renders_labels_and_values():
     assert sum(fig.data[0].values) == 8
 
 
+def test_treemap_from_rows_caps_at_top_n():
+    from thetatauCMT.regions.dashboard import _treemap_from_rows
+
+    rows = [
+        {"Employer": "Boeing", "count": 3},
+        {"Employer": "SpaceX", "count": 5},
+        {"Employer": "Corner Shop", "count": 1},
+    ]
+    fig = _treemap_from_rows(rows, label_key="Employer", value_key="count", theme="light", top_n=2)
+    assert set(fig.data[0].labels) == {"Boeing", "SpaceX"}
+
+
 def test_treemap_from_rows_uses_custom_value_label():
     from thetatauCMT.regions.dashboard import _treemap_from_rows
 
@@ -242,12 +254,12 @@ def test_get_scope_chapters_candidate_chapter_filter():
 
 
 @pytest.mark.django_db
-def test_update_kpis_returns_six_values():
+def test_update_kpis_returns_eight_values():
     from thetatauCMT.regions.dashboard import update_kpis
 
     result = update_kpis("national", None)
     assert isinstance(result, tuple)
-    assert len(result) == 6
+    assert len(result) == 8
     for v in result:
         assert isinstance(v, str)
 
@@ -327,6 +339,35 @@ def test_majors_breakdown_returns_figure():
 
 
 @pytest.mark.django_db
+def test_current_employer_cloud_counts_members_per_employer():
+    """current-employer-cloud is AY-independent: it reads `User.employer` today."""
+    from thetatauCMT.forms.models import Employer
+    from thetatauCMT.regions.dashboard import current_employer_cloud
+    from thetatauCMT.users.tests.factories import UserFactory
+
+    boeing = Employer.objects.create(name="Boeing Dashboard Test")
+    spacex = Employer.objects.create(name="SpaceX Dashboard Test")
+    UserFactory.create_batch(2, employer=boeing, current_status="alumni")
+    UserFactory(employer=spacex, current_status="active")
+    # A departed member's employer is not "where our members work".
+    UserFactory(employer=spacex, current_status="expelled")
+
+    fig = current_employer_cloud("national", "light")
+    assert isinstance(fig, go.Figure)
+    counts = dict(zip(fig.data[0].labels, fig.data[0].values))
+    assert counts["Boeing Dashboard Test"] == 2
+    assert counts["SpaceX Dashboard Test"] == 1
+
+
+@pytest.mark.django_db
+def test_current_employer_cloud_empty_without_employers():
+    from thetatauCMT.regions.dashboard import current_employer_cloud
+
+    fig = current_employer_cloud("national", "light")
+    assert len(fig.data) == 0
+
+
+@pytest.mark.django_db
 def test_sync_region_from_url_returns_options_and_slug():
     from thetatauCMT.regions.dashboard import sync_region_from_url
 
@@ -391,3 +432,45 @@ def test_member_count_includes_pnms():
     # kpi-total-members is the first returned value; it must include the PNM.
     total_members = update_kpis(region.slug, None)[0]
     assert total_members == "2"
+
+
+@pytest.mark.django_db
+def test_living_census_counts_actives_and_alumni_excluding_deceased():
+    """The living census counts actives + alumni, minus anyone marked deceased."""
+    from thetatauCMT.chapters.tests.factories import ChapterFactory
+    from thetatauCMT.regions.dashboard import update_kpis
+    from thetatauCMT.regions.tests.factories import RegionFactory
+    from thetatauCMT.users.tests.factories import UserFactory
+
+    region = RegionFactory(name="Living Census Region")
+    chapter = ChapterFactory()
+    chapter.region = region
+    chapter.save(update_fields=["region"])
+    UserFactory(chapter=chapter, current_status="active")
+    UserFactory(chapter=chapter, current_status="alumni")
+    UserFactory(chapter=chapter, current_status="alumni", deceased=True)
+    UserFactory(chapter=chapter, current_status="pnm")
+
+    # kpi-living-census is the second returned value.
+    assert update_kpis(region.slug, None)[1] == "2"
+
+
+@pytest.mark.django_db
+def test_living_census_includes_closed_chapters():
+    """Alumni of a closed chapter are still living members of the fraternity."""
+    from thetatauCMT.chapters.tests.factories import ChapterFactory
+    from thetatauCMT.regions.dashboard import update_kpis
+    from thetatauCMT.regions.tests.factories import RegionFactory
+    from thetatauCMT.users.tests.factories import UserFactory
+
+    region = RegionFactory(name="Closed Chapter Region")
+    chapter = ChapterFactory()
+    chapter.region = region
+    chapter.active = False
+    chapter.save(update_fields=["region", "active"])
+    UserFactory(chapter=chapter, current_status="alumni")
+
+    kpis = update_kpis(region.slug, None)
+    assert kpis[1] == "1"
+    # Every other KPI still ignores closed chapters.
+    assert kpis[0] == "0"

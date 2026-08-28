@@ -198,8 +198,15 @@ class AwardType(TimeStampedModel):
 
 class AwardCycleQuerySet(models.QuerySet):
     def active_on(self, on_date):
-        """Cycles whose period contains ``on_date`` (a null bound is open-ended)."""
+        """Cycles whose period contains ``on_date`` (a null bound is open-ended).
+
+        A cycle with *neither* bound set has no period at all -- legacy imports
+        create these from labels that carry no dates -- so it is never active.
+        Without this guard every undated historical period would be offered
+        forever as a "current" one.
+        """
         return self.filter(
+            models.Q(start_date__isnull=False) | models.Q(end_date__isnull=False),
             models.Q(start_date__isnull=True) | models.Q(start_date__lte=on_date),
             models.Q(end_date__isnull=True) | models.Q(end_date__gte=on_date),
         )
@@ -267,7 +274,12 @@ class AwardCycle(TimeStampedModel):
             raise ValidationError({"end_date": _("End date cannot be before the start date.")})
 
     def contains(self, on_date):
-        """Whether ``on_date`` falls within this cycle (open-ended bounds included)."""
+        """Whether ``on_date`` falls within this cycle (open-ended bounds included).
+
+        An undated cycle has no period, so it contains nothing.
+        """
+        if self.start_date is None and self.end_date is None:
+            return False
         if self.start_date and on_date < self.start_date:
             return False
         if self.end_date and on_date > self.end_date:

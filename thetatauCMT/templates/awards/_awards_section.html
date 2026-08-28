@@ -14,7 +14,7 @@
             <span>
               <a href="{% url 'awards:type_winners' grant.award_type_id %}"
                  title="What this award is for, and who else has received it"><strong>{{ grant.award_type }}</strong></a>,
-              {{ grant.cycle }} ({{ grant.effective_date }})
+              {{ grant.cycle }}
             </span>
           </li>
         {% endfor %}

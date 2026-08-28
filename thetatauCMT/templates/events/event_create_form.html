@@ -13,8 +13,8 @@
     {% for field in forms.event %}
       {{ field|as_crispy_field }}
       {% if field.name == "type" %}
-        <h4>Event Type Description: </h4>
-          <h5>
+        <h2>Event Type Description: </h2>
+          <div>
         {% for description in descriptions %}
           <div id="{{ description.id }}" class="group">
           <table class="table">
@@ -34,12 +34,13 @@
           </table>
           </div>
         {% endfor %}
-          </h5>
+          </div>
       {% endif %}
     {% endfor %}
     <link href="{% static 'css/project.css' %}" rel="stylesheet">
       {{ forms.gear|crispy }}
-    <h4 id="picture">Add pictures:</h4>
+    {% include "events/_event_form_extras.html" %}
+    <h2 id="picture">Add pictures:</h2>
   <p>
     You do not have to add pictures, this is optional. Leave blank if no pictures.<br>
     However, if you do add a picture, for each picture,

@@ -1,6 +1,50 @@
 from crispy_forms.bootstrap import Field, FormActions, InlineField, StrictButton
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Fieldset, Layout, Row, Submit
+from django import forms
+from django.utils import timezone
+
+from core.forms import DatePicker
+
+from .models import Ballot, BallotComplete
+
+
+class BallotForm(forms.ModelForm):
+    class Meta:
+        model = Ballot
+        fields = [
+            "sender",
+            "name",
+            "type",
+            "attachment",
+            "description",
+            "due_date",
+            "voters",
+        ]
+        widgets = {
+            "due_date": DatePicker(
+                options={"format": "M/DD/YYYY"},
+                attrs={"autocomplete": "off"},
+            ),
+        }
+
+    def clean_due_date(self):
+        due_date = self.cleaned_data["due_date"]
+        # Voting closes on the due date, so a new ballot must not open closed.
+        # Editing an old ballot (to fix a typo) stays allowed.
+        if self.instance.pk is None and due_date < timezone.localdate():
+            raise forms.ValidationError("The due date must be today or later. Voting closes on the due date.")
+        return due_date
+
+
+class BallotCompleteForm(forms.ModelForm):
+    """The vote itself. "Incomplete" is a status, never a selectable motion."""
+
+    motion = forms.ChoiceField(label="Motion", choices=BallotComplete.VOTE_CHOICES, widget=forms.RadioSelect)
+
+    class Meta:
+        model = BallotComplete
+        fields = ["motion"]
 
 
 class BallotListFormHelper(FormHelper):
@@ -78,7 +122,7 @@ class BallotCompleteListFormHelper(FormHelper):
             '<i class="fas fa-search"></i> Filter Complete Ballots',
             Row(
                 Field("region"),
-                Field("motion"),
+                Field("status"),
                 FormActions(
                     StrictButton(
                         '<i class="fa fa-search"></i> Filter',

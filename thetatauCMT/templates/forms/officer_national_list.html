@@ -5,7 +5,7 @@
 
 {% block content %}
   <div class="page-header d-flex flex-wrap align-items-center gap-2 mb-3">
-    <h2 class="page-title mb-0">National Officers</h2>
+    <h1 class="page-title mb-0">National Officers</h1>
     <div class="page-actions d-flex flex-wrap align-items-center gap-2 ms-auto">
       <button class="clipboard btn btn-outline-primary" data-clipboard-text="{{ email_list }}">
         <i class="fas fa-envelope"></i> {% trans "Copy emails to clipboard" %}
@@ -16,7 +16,7 @@
           <i class="fas fa-address-book"></i> {% trans "Sync National Officers to Contacts" %}
         </button>
       {% endif %}
-      {% if user.is_superuser %}
+      {% if user.is_admin %}
         <a href="{% url 'forms:natoff_add' %}" class="btn btn-primary">
           <i class="fas fa-plus"></i> {% trans "Add National Officer" %}
         </a>
@@ -26,7 +26,7 @@
   <p class="text-body-secondary">
     Current and past national officers. The roster defaults to current officers, so
     use the filter to show past officers, or search by member, role, or dates.
-    {% if user.is_superuser %}Administrators can add or edit assignments.{% endif %}
+    {% if user.is_admin %}Administrators can add or edit assignments.{% endif %}
   </p>
   {% collapsible_filter filter label="Filter National Officers" collapse_id="natoffFilter" reset_url="?cancel=1" %}
   <div class="table-responsive">

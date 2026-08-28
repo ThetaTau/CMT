@@ -1,6 +1,8 @@
 import django_tables2 as tables
 from django.urls import reverse
+from django.utils.html import strip_tags
 from django.utils.safestring import mark_safe
+from django.utils.text import Truncator
 
 from core.tables import CMTTable
 
@@ -50,6 +52,10 @@ class EventTable(CMTTable):
             return "None"
         url = record.parent_event.get_absolute_url()
         return mark_safe(f'<a href="{url}">{value}</a>')
+
+    def render_description(self, value):
+        """The description is rich text; a table cell only wants a plain summary."""
+        return Truncator(strip_tags(value or "").strip()).chars(120) or "None"
 
     def render_chapter(self, value):
         """Link the (natoff-only) chapter column to the chapter detail page."""

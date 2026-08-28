@@ -11,7 +11,7 @@
   <div class="row">
     <div class="col-sm-12">
 
-      <h2>{{ object.title }}</h2>
+      <h1 class="h2">{{ object.title }}</h1>
       <form class="note" method="POST" enctype="multipart/form-data" novalidate>
         {% csrf_token %}
         {{ forms.note.management_form|crispy }}

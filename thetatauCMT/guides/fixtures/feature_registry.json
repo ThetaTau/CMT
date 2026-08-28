@@ -66,16 +66,24 @@
         {
           "key": "my-profile",
           "name": "My profile",
-          "short_description": "Your badge number, status, roles, service hours and award history.",
+          "short_description": "Your badge number, status, roles, employment, service hours and award history.",
           "url_name": "users:profile",
           "url_kwargs": {"username": "@username"}
         },
         {
           "key": "edit-my-info",
           "name": "Edit my info",
-          "short_description": "Update your email, phone, address, graduation year and major.",
-          "long_description": "Keeping your graduation date right matters: it drives when you are moved to alumnus status and whether you keep receiving chapter mail.",
+          "short_description": "Update your email, phone, address, employer, graduation year and majors.",
+          "long_description": "Keeping your graduation date right matters: it drives when you are moved to alumnus status and whether you keep receiving chapter mail. Record the major or majors you are actually graduating with; the major your chapter recorded when you pledged is kept as a historical record and is not changed here. Employer, job title and work address are shown on your member profile so other members can find you professionally; pick your employer, titles and majors from the type-to-search lists, or type a new one to add it. Your work address is only shown to whoever you let see your address.",
           "url_name": "users:detail"
+        },
+        {
+          "key": "contact-visibility",
+          "name": "Who can see my contact info",
+          "short_description": "Choose who sees your email, phone number and address.",
+          "long_description": "Set separately for your email, phone and address on your own info page. Your chapter's officers, National Officers and Admins can always see your contact details, because they need them to run the chapter and the fraternity. Beyond that you choose: only those officers, every member of your chapter, or any member on the site. The choice applies to your member profile, to member lists and to exports.",
+          "url_name": "users:detail",
+          "url_fragment": "user"
         },
         {
           "key": "profile-picture",
@@ -108,6 +116,14 @@
           "name": "Privacy notice",
           "short_description": "What the fraternity stores about you and who can see it.",
           "url_name": "privacy"
+        },
+        {
+          "key": "appearance-theme",
+          "name": "Light, dark or system appearance",
+          "short_description": "Switch the site between light and dark, or let it follow your device's own setting.",
+          "long_description": "The Appearance menu sits in the top navigation on every page, whether or not you are signed in. 'Match system setting' is the default: the site follows your device's light or dark preference and switches with it, so a phone that goes dark at sunset takes the site with it. Your choice is stored in that browser only, so pick it again on each device you use.",
+          "audience": "public",
+          "url_name": "home"
         },
         {
           "key": "about-this-application",
@@ -243,15 +259,16 @@
         {
           "key": "add-event",
           "name": "Add an event",
-          "short_description": "Schedule an event, choose its type, and set how it scores.",
-          "long_description": "Event type decides which score it feeds, so pick it carefully. You can copy last year's event rather than retyping it.",
+          "short_description": "Schedule an event with a start time, time zone, rich description and info link, and set how it scores.",
+          "long_description": "Event type decides which score it feeds, so pick it carefully. Give a start time and time zone (it defaults to yours) so the event lands correctly on calendars, write the details with formatting and links, and add a link out to a registration page or flyer. For a future date the attendance counts and funds raised are hidden. Come back and edit the event afterwards to record them. You can copy last year's event rather than retyping it.",
           "url_name": "events:add",
           "roles": ["vice regent"]
         },
         {
           "key": "events-calendar",
           "name": "Events calendar",
-          "short_description": "Your chapter's events in a month view.",
+          "short_description": "Your chapter's events in a month view, with start times in your own time zone.",
+          "long_description": "Start times are converted to whatever time zone your device is set to, so an event another chapter scheduled in its own zone reads correctly for you. If the conversion moves an event onto a different day for you, the local date is shown alongside the time. Open an event to see its own time zone as well as yours.",
           "url_name": "events:calendar",
           "feature_flag": "FEATURE_EVENTS_CALENDAR"
         },
@@ -416,7 +433,7 @@
         {
           "key": "status-change-graduate",
           "name": "Graduate members",
-          "short_description": "Report members who are graduating. Select several at once and fill one row each.",
+          "short_description": "Report members who are graduating. Select several at once and fill one row each, including the majors they graduated with.",
           "url_name": "forms:status_history",
           "url_kwargs": {"reason": "graduate"},
           "audience": "officer",
@@ -594,7 +611,7 @@
           "key": "risk-management-policies",
           "name": "Risk management policies",
           "short_description": "Read and sign the fraternity's risk management policies. Every member signs their own.",
-          "long_description": "This is signed by each member individually, not filed once for the chapter, and it has to be signed again every term. Signing is required before you can use the rest of the application, and you will be sent here automatically until you have.",
+          "long_description": "This is signed by each member individually, not filed once for the chapter, and it has to be signed again every term. Signing is required before you can use the rest of the application, and you will be sent here automatically until you have. Alumni who no longer hold a chapter or national role are not required to sign, though they may still do so.",
           "url_name": "forms:rmp"
         },
         {
@@ -823,7 +840,7 @@
         },
         {
           "key": "vector-lms",
-          "name": "Vector LMS",
+          "name": "Vector CommunityEDU",
           "short_description": "The external learning system that hosts the fraternity's required training courses.",
           "long_description": "Opens in a new tab. Completions flow back into Chapter training records automatically, usually within a day.",
           "external_url": "https://thetatau-tx.vectorlmsedu.com"
@@ -887,22 +904,23 @@
         {
           "key": "my-ballots",
           "name": "My ballots",
-          "short_description": "Ballots open to your chapter, and whether your chapter has voted.",
-          "long_description": "Every member can see the ballots; only chapter officers can cast the chapter's vote.",
+          "short_description": "Ballots open to you or to your chapter, and whether the vote has been cast.",
+          "long_description": "A ballot is emailed to every voter when it opens, again every 7 days until it is returned, and once more on the due date. Voting closes at 5 pm Pacific on the due date. While a vote is outstanding it is also listed at the top of the home page and counted on the ballot icon in the top bar. Your chapter casts one vote: either the Regent or the Scribe may submit it. After 14 days every chapter officer is copied on the reminder, and after 21 days the chairs, advisers and Regional Director are copied too.",
           "url_name": "ballots:votelist"
         },
         {
           "key": "cast-a-vote",
           "name": "Cast a vote",
           "short_description": "Cast your chapter's vote on an open ballot.",
-          "long_description": "Open the ballot from My ballots. Only officers may vote, and a chapter votes once.",
+          "long_description": "Open the ballot from My ballots. Only the Regent and the Scribe may cast the chapter's vote, a chapter votes once, and voting closes at 5 pm Pacific on the due date.",
           "audience": "officer",
-          "roles": ["regent"]
+          "roles": ["regent", "scribe"]
         },
         {
           "key": "all-ballots",
           "name": "All ballots",
           "short_description": "Every ballot, open and closed, across the fraternity.",
+          "long_description": "The aye, nay and abstain totals are shown only to the Grand Regent and Grand Scribe.",
           "url_name": "ballots:list",
           "audience": "natoff"
         },
@@ -910,15 +928,16 @@
           "key": "create-a-ballot",
           "name": "Create a ballot",
           "short_description": "Put a question to the chapters.",
+          "long_description": "Creating a ballot emails it to everyone eligible to vote, and reminders go out every 7 days until they vote.",
           "url_name": "ballots:create",
           "audience": "natoff"
         },
         {
           "key": "ballot-results",
-          "name": "Ballot results",
-          "short_description": "How each chapter voted on a ballot.",
-          "long_description": "Open a ballot from All ballots to see its results.",
-          "audience": "natoff"
+          "name": "Ballot status and results",
+          "short_description": "Who has and has not returned a ballot.",
+          "long_description": "Any officer can see which chapters and National Officers have returned a ballot. How an individual voted is shown to nobody but the voter, not to Admins and not in the Django admin, and only the Grand Regent and Grand Scribe see the aye, nay and abstain totals. Open a ballot from My ballots or All ballots.",
+          "audience": "officer"
         }
       ]
     },
@@ -984,7 +1003,7 @@
         {
           "key": "region-dashboard",
           "name": "Region dashboard",
-          "short_description": "Chapter health across your region: scores, submissions and outstanding tasks.",
+          "short_description": "Chapter health across your region: scores, submissions, outstanding tasks, recruitment and where members work.",
           "url_name": "regions:dashboard",
           "url_kwargs": {"slug": "@region_slug"},
           "audience": "natoff",
@@ -1020,7 +1039,7 @@
         {
           "key": "national-dashboard",
           "name": "National dashboard",
-          "short_description": "The same chapter health view, across every region.",
+          "short_description": "The same chapter health, recruitment and careers view, across every region.",
           "url_name": "regions:dashboard",
           "url_kwargs": {"slug": "national"},
           "audience": "natoff",
@@ -1272,9 +1291,9 @@
           "cadence": "each_term"
         },
         {
-          "title": "Pay the insurance premium",
+          "title": "Pay the H&S Fee premium",
           "body": "Billed annually and separately from dues.",
-          "task": "insurance-payment",
+          "task": "hs-fee-paymenttreasurer",
           "cadence": "annual"
         },
         {

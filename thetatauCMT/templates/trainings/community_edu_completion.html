@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}Vector/CommunityEdu Completion{% endblock %}
+
+{% block content %}
+  <h1 class="h3">{% trans "Vector/CommunityEdu Completion" %}</h1>
+  <p class="text-muted">
+    Percentage of each chapter's prior-year new members (initiations) who completed the required
+    CommunityEdu health &amp; safety training in Vector. Calculated from the training records synced
+    daily from Vector; use "Apply" to save the matching surcharge bracket directly onto a chapter.
+  </p>
+
+  <form method="get" class="row row-cols-lg-auto g-2 align-items-end mb-3">
+    <div class="col-12">
+      <label class="form-label small mb-0" for="id_start">{% trans "New members initiated on/after" %}</label>
+      <input type="date" class="form-control form-control-sm" id="id_start" name="start" value="{{ start_date|date:'Y-m-d' }}">
+    </div>
+    <div class="col-12">
+      <label class="form-label small mb-0" for="id_end">{% trans "New members initiated on/before" %}</label>
+      <input type="date" class="form-control form-control-sm" id="id_end" name="end" value="{{ end_date|date:'Y-m-d' }}">
+    </div>
+    <div class="col-12">
+      <button type="submit" class="btn btn-primary btn-sm">
+        <i class="fa-solid fa-rotate"></i> {% trans "Recalculate" %}
+      </button>
+    </div>
+  </form>
+
+  <form method="post">
+    {% csrf_token %}
+    <input type="hidden" name="start" value="{{ start_date|date:'Y-m-d' }}">
+    <input type="hidden" name="end" value="{{ end_date|date:'Y-m-d' }}">
+    <div class="mb-2">
+      <button type="submit" name="apply_all" value="1" class="btn btn-outline-danger btn-sm"
+              onclick="return confirm('Apply the calculated surcharge bracket to every chapter listed below?');">
+        {% trans "Apply calculated surcharge to ALL chapters" %}
+      </button>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-striped table-bordered align-middle">
+        <thead>
+          <tr>
+            <th>{% trans "Chapter" %}</th>
+            <th>{% trans "New Members" %}</th>
+            <th>{% trans "Completed" %}</th>
+            <th>{% trans "% Completed" %}</th>
+            <th>{% trans "Current Surcharge" %}</th>
+            <th>{% trans "Calculated Surcharge" %}</th>
+            <th>{% trans "Action" %}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for stat in stats %}
+            <tr>
+              <td><a href="{% url 'chapters:detail' stat.chapter.slug %}">{{ stat.chapter.name }}</a></td>
+              <td>{{ stat.total }}</td>
+              <td>{{ stat.completed }}</td>
+              <td>{% if stat.percentage is not None %}{{ stat.percentage }}%{% else %}N/A{% endif %}</td>
+              <td>{{ stat.chapter.get_health_safety_surcharge_display }}</td>
+              <td>
+                {% if stat.surcharge_bracket is not None %}
+                  {% if stat.surcharge_bracket == "none" %}
+                    <span class="badge bg-success">&gt;75%</span>
+                  {% elif stat.surcharge_bracket == "L1a" %}
+                    <span class="badge bg-warning text-dark">51-75%</span>
+                  {% elif stat.surcharge_bracket == "L1b" %}
+                    <span class="badge bg-warning text-dark">26-50%</span>
+                  {% else %}
+                    <span class="badge bg-danger">0-25%</span>
+                  {% endif %}
+                  {% if stat.surcharge_bracket != stat.chapter.health_safety_surcharge %}
+                    <span class="badge bg-secondary" title="Differs from the chapter's current surcharge">{% trans "changed" %}</span>
+                  {% endif %}
+                {% else %}
+                  <span class="text-muted">{% trans "No new members in window" %}</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if stat.surcharge_bracket is not None %}
+                  <button type="submit" name="apply_chapter" value="{{ stat.chapter.pk }}" class="btn btn-outline-primary btn-sm">
+                    {% trans "Apply" %}
+                  </button>
+                {% endif %}
+              </td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="7">{% trans "No chapters found." %}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </form>
+{% endblock %}

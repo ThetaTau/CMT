@@ -1,6 +1,7 @@
 import datetime
 import os
 import uuid
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from django.conf import settings
 from django.contrib.postgres.fields import ArrayField
@@ -9,9 +10,11 @@ from django.db import models
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.text import slugify
+from django_ckeditor_5.fields import CKEditor5Field
 from django_userforeignkey.models.fields import UserForeignKey
 from email_signals.models import EmailSignalMixin
 
+from core.choices import is_valid_time_zone
 from core.models import (
     BIENNIUM_END_DATE,
     BIENNIUM_START_DATE,
@@ -105,7 +108,7 @@ def can_delete_event(user, event):
     """
     if not getattr(user, "is_authenticated", False):
         return False
-    if user.is_superuser or user.is_national_officer_group:
+    if user.is_admin or user.is_national_officer_group:
         return True
     if event.chapter_id and user.is_chapter_officer_group:
         current = user.current_chapter
@@ -145,6 +148,26 @@ class Event(TimeStampedModel, EmailSignalMixin):
     )
     name = models.CharField("Event Name", max_length=50)
     date = models.DateField("Event Date", default=timezone.now)
+    start_time = models.TimeField(
+        "Start Time",
+        blank=True,
+        null=True,
+        help_text="When the event starts. Leave blank for an all-day event.",
+    )
+    time_zone = models.CharField(
+        "Time Zone",
+        max_length=64,
+        blank=True,
+        default="",
+        help_text="Time zone the start time is given in. Leave blank to use the site default.",
+    )
+    external_link = models.URLField(
+        "More Info Link",
+        max_length=500,
+        blank=True,
+        default="",
+        help_text="Optional link to a registration page, flyer, or other event info.",
+    )
     slug = models.SlugField(unique=False)
     type = models.ForeignKey(ScoreType, on_delete=models.PROTECT, related_name="events")
     chapter = models.ForeignKey(
@@ -202,7 +225,11 @@ class Event(TimeStampedModel, EmailSignalMixin):
         help_text="Optional reason recorded when a public event is rejected.",
     )
     score = models.FloatField(default=0)
-    description = models.CharField(max_length=200)
+    description = CKEditor5Field(
+        "Description",
+        help_text="What is the event about? For an upcoming event, include anything a member needs to know "
+        "to show up: where to meet, what to bring, who to contact.",
+    )
     # users = models.ManyToManyField(settings.AUTH_USER_MODEL,
     #                                related_name="events")
     members = models.PositiveIntegerField(default=0)
@@ -345,6 +372,41 @@ class Event(TimeStampedModel, EmailSignalMixin):
         return self.date >= timezone.localdate()
 
     # ------------------------------------------------------------------
+    # Scheduling helpers (start time / time zone)
+    # ------------------------------------------------------------------
+    @property
+    def is_future(self):
+        """True when the event has not happened yet, so outcome counts are unknown.
+
+        Drives the create/update form: a future event does not ask for members,
+        PNMs, alumni, guests, or funds raised.
+        """
+        return self.date > timezone.localdate()
+
+    @property
+    def effective_time_zone(self):
+        """The event's :class:`~zoneinfo.ZoneInfo`, falling back to the site zone."""
+        try:
+            return ZoneInfo(self.time_zone or settings.TIME_ZONE)
+        except (ZoneInfoNotFoundError, ValueError):
+            return ZoneInfo(settings.TIME_ZONE)
+
+    @property
+    def start_datetime(self):
+        """Aware start datetime in the event's own zone, or ``None`` if all-day."""
+        if not self.start_time:
+            return None
+        return datetime.datetime.combine(self.date, self.start_time, tzinfo=self.effective_time_zone)
+
+    @property
+    def end_datetime(self):
+        """Aware end datetime derived from ``duration`` (hours), or ``None``."""
+        start = self.start_datetime
+        if start is None:
+            return None
+        return start + datetime.timedelta(hours=self.duration or 0)
+
+    # ------------------------------------------------------------------
     # Sub-event / context helpers (WI-1)
     # ------------------------------------------------------------------
     def inherit_context_from_parent(self):
@@ -445,6 +507,8 @@ class Event(TimeStampedModel, EmailSignalMixin):
         # An event cannot be its own parent.
         if self.parent_event_id and self.pk and self.parent_event_id == self.pk:
             errors["parent_event"] = "An event cannot be its own parent."
+        if not is_valid_time_zone(self.time_zone):
+            errors["time_zone"] = f"'{self.time_zone}' is not a recognized time zone."
         if errors:
             raise ValidationError(errors)
 

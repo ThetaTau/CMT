@@ -10,7 +10,6 @@
     h1 { color: #a00e11; letter-spacing: 2px; }
     .recipient { font-size: 28px; margin: 0.4cm 0; }
     .award { font-size: 22px; color: #a00e11; margin: 0.3cm 0; }
-    .meta { color: #444; margin-top: 0.6cm; }
     .reason { font-style: italic; margin-top: 0.6cm; }
   </style>
 </head>
@@ -22,7 +21,6 @@
     <p>is hereby recognized with the</p>
     <p class="award">{{ award_name }}</p>
     <p>for the <strong>{{ cycle_name }}</strong> award period.</p>
-    <p class="meta">Effective {{ effective_date }}.</p>
     {% if reason %}<p class="reason">{{ reason }}</p>{% endif %}
   </div>
 </body>

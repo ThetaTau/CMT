@@ -1,0 +1,537 @@
+[
+  {
+    "name": "aerospace engineering",
+    "aliases": [
+      "aeronautical & astronautical engineering",
+      "aeronautical and astronautical engineering",
+      "aeronautical/astronautical engineering",
+      "aerospace engiineering",
+      "aerospace engineering and mechanics",
+      "aerospace science and engineering",
+      "astronautical engineering"
+    ]
+  },
+  {
+    "name": "aerospace engineering technology",
+    "aliases": [
+      "aeronautical engineering technology",
+      "aeronautical systems engineering technology"
+    ]
+  },
+  {
+    "name": "agricultural engineering",
+    "aliases": [
+      "agricultural and biological engineering",
+      "agricultural and biosystems engineering",
+      "biological & agricultural engineering",
+      "biological and agricultural engineering",
+      "bioresource and agriculture engineering",
+      "food, agricultural, & biological engineering"
+    ]
+  },
+  {
+    "name": "agricultural engineering technology"
+  },
+  {
+    "name": "applied mathematics",
+    "aliases": [
+      "applied mathematical sciences - comp. sci",
+      "applied mathematics & statistics",
+      "applied mathematics and statistics",
+      "applied mathmatics / engineering mathematics",
+      "engineering mathematics",
+      "engineering mathematics and statistics"
+    ]
+  },
+  {
+    "name": "architectural engineering",
+    "aliases": ["architectural engineering (bsae)"]
+  },
+  {
+    "name": "atmospheric, oceanic and space sciences",
+    "aliases": ["atmospheric, oceanic & space sciences"]
+  },
+  {
+    "name": "automotive engineering",
+    "aliases": ["motorsports engineering"]
+  },
+  {
+    "name": "aviation"
+  },
+  {
+    "name": "bioengineering",
+    "aliases": [
+      "bio-engineering",
+      "bioengineering (biotechnology)",
+      "bioengineering engineering",
+      "bioengineering: biosystems"
+    ]
+  },
+  {
+    "name": "bioinformatics"
+  },
+  {
+    "name": "biological engineering",
+    "aliases": [
+      "biological resources engineering",
+      "biological systems engineering",
+      "bioproducts and biosystems engineering",
+      "bioresource science and engineering",
+      "biosystems engineering",
+      "food, biological, and ecological engineering"
+    ]
+  },
+  {
+    "name": "biomedical engineering",
+    "aliases": [
+      "bioengineering and biomedical engineering",
+      "biomedical and health sciences engineering",
+      "biomedical engineering,",
+      "master's in biomedical engineering",
+      "master\u2019s in biomedical engineering"
+    ]
+  },
+  {
+    "name": "biomolecular science"
+  },
+  {
+    "name": "brain and cognitive science"
+  },
+  {
+    "name": "chemical engineering",
+    "aliases": [
+      "biochemical engineering",
+      "chemical and biological engineering",
+      "chemical and biomolecular engineering",
+      "chemical and life science engineering",
+      "chemical and molecular engineering",
+      "chemical engineering (bs)",
+      "chemical engineering (chemical & materials engineering)",
+      "chemical-biological engineering",
+      "chemical-materials engineering",
+      "engineering chemistry"
+    ]
+  },
+  {
+    "name": "civil engineering",
+    "aliases": [
+      "civil and environmental engineering",
+      "civil and infrastructure engineering",
+      "civil and structural engineering",
+      "civil engineering (bs)",
+      "civil engineering (civil & environmental engineering)",
+      "civil engineering - water and environment",
+      "civil engineering systems"
+    ]
+  },
+  {
+    "name": "civil engineering technology"
+  },
+  {
+    "name": "computational engineering",
+    "aliases": ["computational engineering science"]
+  },
+  {
+    "name": "computer engineering",
+    "aliases": [
+      "computer and telecommunications engineering",
+      "computer engineering (bs)",
+      "computer engineering and computer science",
+      "computer systems engineering",
+      "environmental computer engineering and computer science"
+    ]
+  },
+  {
+    "name": "computer engineering technology",
+    "aliases": [
+      "computer science & engineering technology (bs)",
+      "engineering technology, computer network systems management"
+    ]
+  },
+  {
+    "name": "computer graphics technology"
+  },
+  {
+    "name": "computer science",
+    "aliases": [
+      "applied computer science",
+      "computer & information science",
+      "computer science & engineering",
+      "computer science (bs degree and higher only)",
+      "computer science (bs degree only)",
+      "computer science (bs in engineering only)",
+      "computer science (bs)",
+      "computer science and engineering",
+      "computer science and engineering (with physics)",
+      "computer science with business applications",
+      "computing",
+      "interdisciplinary computing"
+    ]
+  },
+  {
+    "name": "construction engineering"
+  },
+  {
+    "name": "construction engineering technology",
+    "aliases": [
+      "construction engineering technology (bs)",
+      "construction option in engineering technology"
+    ]
+  },
+  {
+    "name": "construction management",
+    "aliases": [
+      "construction engineering & management",
+      "construction engineering and management",
+      "construction engineering management",
+      "construction management technology"
+    ]
+  },
+  {
+    "name": "cybersecurity",
+    "aliases": [
+      "cyber security",
+      "cyber security & information assurance",
+      "cyber security and digital forensics",
+      "cyber security engineering",
+      "cyber systems",
+      "cybersecurity engineering"
+    ]
+  },
+  {
+    "name": "data science",
+    "aliases": ["data engineering"]
+  },
+  {
+    "name": "digital media design"
+  },
+  {
+    "name": "electrical and computer engineering",
+    "aliases": [
+      "computer & electrical engineering",
+      "electrical & computer engineering",
+      "electrical engineering (electrical & computer engineering)",
+      "electrical engineering and computer science",
+      "electrical engineering, computer engineering"
+    ]
+  },
+  {
+    "name": "electrical engineering",
+    "aliases": [
+      "electrical and electronic engineering",
+      "electrical and electronics engineering",
+      "electrical engineeering",
+      "electrical engineering (bs)",
+      "electrical science and engineering",
+      "engineering (electrical systems)",
+      "master's in electrical engineering",
+      "master\u2019s in electrical engineering"
+    ]
+  },
+  {
+    "name": "electrical engineering technology",
+    "aliases": [
+      "audio engineering technology",
+      "electrical and computer option in engineering technology",
+      "electrical and electronic engineering technology",
+      "electrical and electronics engineering technology",
+      "electrical/electronic engineering technology",
+      "electronic engineering technology",
+      "electronic systems engineering technology",
+      "electronics engineering technology",
+      "telecommunications engineering technology"
+    ]
+  },
+  {
+    "name": "energy engineering",
+    "aliases": ["energy technologies and environmental engineering"]
+  },
+  {
+    "name": "engineering education"
+  },
+  {
+    "name": "engineering management",
+    "aliases": [
+      "business and technology management",
+      "engineering management (ms)",
+      "engineering operations",
+      "healthcare engineering technology management",
+      "technological systems management"
+    ]
+  },
+  {
+    "name": "engineering mechanics",
+    "aliases": ["engineering science and mechanics"]
+  },
+  {
+    "name": "engineering physics",
+    "aliases": [
+      "engineering physics & engineering science",
+      "engineering, engineering physics & engineering science engineering"
+    ]
+  },
+  {
+    "name": "engineering science",
+    "aliases": ["engineering science (be)"]
+  },
+  {
+    "name": "engineering technology",
+    "aliases": [
+      "applied engineering technology",
+      "multidisciplinary engineering technology"
+    ]
+  },
+  {
+    "name": "entertainment engineering"
+  },
+  {
+    "name": "environmental engineering",
+    "aliases": [
+      "bioenvironmental engineering",
+      "environmental and ecologican engineering",
+      "environmental engineeering",
+      "environmental engineering science",
+      "environmental systems engineering"
+    ]
+  },
+  {
+    "name": "fire protection engineering",
+    "aliases": ["fire protection and safety technology"]
+  },
+  {
+    "name": "general engineering",
+    "aliases": [
+      "engineering",
+      "engineering (undesignated)",
+      "engineering special studies",
+      "etam \u2013 general engineering",
+      "main engineering",
+      "undeclared engineering"
+    ]
+  },
+  {
+    "name": "geological engineering",
+    "aliases": [
+      "geo-engineering",
+      "geosystems engineering & hydrogeology",
+      "science of earth systems"
+    ]
+  },
+  {
+    "name": "human centered design and engineering",
+    "aliases": ["human centered design & engineering"]
+  },
+  {
+    "name": "industrial engineering",
+    "aliases": [
+      "industrial & systems engineering",
+      "industrial and operations engineering",
+      "industrial and systems engineering",
+      "industrial distribution",
+      "industrial engineering & operations research",
+      "industrial engineering (industrial & management engineering)",
+      "industrial engineering and engineering management",
+      "industrial engineering and management"
+    ]
+  },
+  {
+    "name": "industrial engineering technology",
+    "aliases": [
+      "engineering technology (manufacturing & industrial)",
+      "industrial technology",
+      "manufacturing/industrial engineering technology"
+    ]
+  },
+  {
+    "name": "informatics"
+  },
+  {
+    "name": "information systems",
+    "aliases": [
+      "computer information systems",
+      "information management packaging",
+      "information science systems & technology",
+      "information systems technology",
+      "management information science",
+      "systems and information science"
+    ]
+  },
+  {
+    "name": "information technology",
+    "aliases": ["computer network and systems administration"]
+  },
+  {
+    "name": "interdisciplinary engineering",
+    "aliases": [
+      "engineering interdisciplinary studies",
+      "integrated design engineering",
+      "integrated science and technology",
+      "multidisciplinary engineering"
+    ]
+  },
+  {
+    "name": "manufacturing engineering",
+    "aliases": ["furniture manufacturing & management"]
+  },
+  {
+    "name": "manufacturing engineering technology",
+    "aliases": ["engineering technology, manufacturing systems concentration"]
+  },
+  {
+    "name": "materials science and engineering",
+    "aliases": [
+      "ceramic and materials engineering",
+      "ceramic engineering",
+      "macromolecular science and engineering",
+      "material science and engineering",
+      "material science engineering",
+      "material science engineering, ms",
+      "materials engineering",
+      "materials science",
+      "materials science engineering"
+    ]
+  },
+  {
+    "name": "mechanical engineering",
+    "aliases": [
+      "master's in mechanical engineering",
+      "master\u2019s in mechanical engineering",
+      "mechanical and materials engineering",
+      "mechanical engineeering",
+      "mechanical engineering (bs)",
+      "mechanical engineering and applied mechanics",
+      "mechanical engineering with a nuclear engineering concentration"
+    ]
+  },
+  {
+    "name": "mechanical engineering technology",
+    "aliases": [
+      "engineering technology: electro-mechanical concentration",
+      "engineering technology: mechanical engineering technology concentration",
+      "manufacturing and mechanical engineering technology",
+      "mechanical and manufacturing engineering technology",
+      "mechanical component engineering technology",
+      "mechanical option in engineering technology"
+    ]
+  },
+  {
+    "name": "mechatronics engineering",
+    "aliases": [
+      "engineering - mechatronics concentration joint",
+      "mechatronic engineering",
+      "mechatronics & robotics",
+      "mechatronics engineering technology"
+    ]
+  },
+  {
+    "name": "metallurgical engineering"
+  },
+  {
+    "name": "mining engineering",
+    "aliases": ["mineral engineering"]
+  },
+  {
+    "name": "nanoengineering",
+    "aliases": ["nanoscale engineering", "nanoscale science", "nanotechnology"]
+  },
+  {
+    "name": "naval architecture and marine engineering"
+  },
+  {
+    "name": "nuclear engineering",
+    "aliases": [
+      "nuclear and power engineering",
+      "nuclear engineering and radiological sciences",
+      "nuclear science and engineering",
+      "nuclear, plasma, and radiological engineering",
+      "radiological health engineering"
+    ]
+  },
+  {
+    "name": "ocean engineering",
+    "aliases": [
+      "coastal and oceanographic engineering (m.s.)",
+      "mechanical and ocean engineering"
+    ]
+  },
+  {
+    "name": "operations research",
+    "aliases": [
+      "operations research and engineering management",
+      "operations research management"
+    ]
+  },
+  {
+    "name": "optical engineering",
+    "aliases": [
+      "optical science & engineering",
+      "optics",
+      "optoelectromechanical systems engineering",
+      "photonic science and engineering",
+      "photonics"
+    ]
+  },
+  {
+    "name": "packaging engineering"
+  },
+  {
+    "name": "paper science and engineering"
+  },
+  {
+    "name": "petroleum engineering"
+  },
+  {
+    "name": "physics",
+    "aliases": [
+      "applied physics",
+      "physics (electrical industrial option)",
+      "physics (mechanical industrial option)"
+    ]
+  },
+  {
+    "name": "polymer science and engineering"
+  },
+  {
+    "name": "robotics engineering",
+    "aliases": ["robotics"]
+  },
+  {
+    "name": "safety technology",
+    "aliases": ["industrial hygiene"]
+  },
+  {
+    "name": "software engineering"
+  },
+  {
+    "name": "structural engineering"
+  },
+  {
+    "name": "surveying and geomatics engineering",
+    "aliases": [
+      "geomatics (bs)",
+      "geospatial engineering",
+      "land surveying engineering",
+      "surveying and geomatics engineering technology",
+      "surveying engineering technology",
+      "surveying option in engineering technology"
+    ]
+  },
+  {
+    "name": "systems engineering",
+    "aliases": [
+      "engineering systems",
+      "market and social systems engineering",
+      "modeling and simulation engineering",
+      "systems analysis & engineering",
+      "systems and control engineering",
+      "systems engineering and design",
+      "systems science and engineering"
+    ]
+  },
+  {
+    "name": "textile engineering"
+  },
+  {
+    "name": "welding engineering"
+  }
+]

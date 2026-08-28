@@ -13,7 +13,7 @@ TRAINING_VECTOR = "vector"
 
 TRAININGS = [
     (TRAINING_CMT, "CMT LMS Volunteer Training"),
-    (TRAINING_VECTOR, "Vector CommunityEdu H&S Training"),
+    (TRAINING_VECTOR, "Vector CommunityEDU H&S Training"),
 ]
 TRAINING_LABELS = dict(TRAININGS)
 REQUIRED_TRAINING_KEYS = [TRAINING_CMT, TRAINING_VECTOR]

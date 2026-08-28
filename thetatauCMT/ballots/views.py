@@ -1,45 +1,72 @@
 from django.contrib import messages
 from django.contrib.messages.views import SuccessMessageMixin
 from django.db import models
+from django.http import Http404
 from django.http.request import QueryDict
 from django.shortcuts import get_object_or_404
 from django.urls import reverse
 from django.views.generic import CreateView, DetailView, RedirectView, UpdateView
 
-from core.models import CHAPTER_OFFICER, NAT_OFFICERS
+from core.models import NAT_OFFICERS
 from core.views import (
     LoginRequiredMixin,
     NatOfficerRequiredMixin,
     OfficerRequiredMixin,
     PagedFilteredTableView,
     RequestConfig,
-    TypeFieldFilteredChapterAdd,
 )
 from thetatauCMT.chapters.models import Chapter
 from thetatauCMT.users.models import UserRoleChange
 
 from .filters import BallotCompleteFilter, BallotFilter, BallotUserFilter
-from .forms import BallotCompleteListFormHelper, BallotListFormHelper, BallotUserListFormHelper
-from .models import Ballot, BallotComplete
-from .tables import BallotCompleteTable, BallotTable, BallotUserTable
+from .forms import (
+    BallotCompleteForm,
+    BallotCompleteListFormHelper,
+    BallotForm,
+    BallotListFormHelper,
+    BallotUserListFormHelper,
+)
+from .models import BALLOT_CHAPTER_ROLES, Ballot, BallotComplete, can_view_ballot_results
+from .notifications import send_ballot_notifications
+from .tables import RESULT_COLUMNS, BallotCompleteTable, BallotTable, BallotUserTable
+
+
+def get_ballot_or_404(slug):
+    """Ballot for ``slug``, newest first.
+
+    ``slug`` is only unique together with the due date, so a ballot re-run under
+    the same name used to blow up with ``MultipleObjectsReturned``.
+    """
+    ballot = Ballot.get_by_slug(slug)
+    if ballot is None:
+        raise Http404("No ballot matches the given query.")
+    return ballot
 
 
 class BallotDetailView(
     LoginRequiredMixin,
-    NatOfficerRequiredMixin,
+    OfficerRequiredMixin,
     PagedFilteredTableView,
     DetailView,
 ):
     model = Ballot
     context_object_name = "ballot"
-    ordering = ["-date"]
     template_name_suffix = "_completelist"
     table_class = BallotCompleteTable
     filter_class = BallotCompleteFilter
     formhelper_class = BallotCompleteListFormHelper
+    officer_edit = "ballot status"
+    officer_edit_type = "view"
+
+    def get_object(self, queryset=None):
+        return get_ballot_or_404(self.kwargs.get(self.slug_url_kwarg))
+
+    @property
+    def show_results(self):
+        return can_view_ballot_results(self.request.user)
 
     def get_queryset(self):
-        self.object = self.get_object(queryset=super(DetailView, self).get_queryset())
+        self.object = self.get_object()
         qs = self.object.completed.all()
         cancel = self.request.GET.get("cancel", False)
         request_get = self.request.GET.copy()
@@ -50,15 +77,16 @@ class BallotDetailView(
         return self.filter.qs
 
     def post(self, request, *args, **kwargs):
-        return PagedFilteredTableView.as_view()(request)
+        return self.get(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        show_results = self.show_results
         cancel = self.request.GET.get("cancel", False)
         request_get = self.request.GET.copy()
         if cancel:
             request_get = QueryDict()
-        motion = request_get.get("motion", "")
+        want_incomplete = request_get.get("status", "") in ("", "incomplete")
         region = request_get.get("region", "")
         all_ballots = self.object_list
         all_ballots = all_ballots.annotate(
@@ -92,7 +120,7 @@ class BallotDetailView(
         nat_offs = nat_offs.filter(role__in=self.object.voters)
         if "all_chapters" in self.object.voters and region != "national":
             # Candidate Chapters can not vote
-            chapters = Chapter.objects.filter(candidate_chapter=False).exclude(name__in=chapters)
+            chapters = Chapter.objects.filter(candidate_chapter=False, active=True).exclude(name__in=chapters)
             if region != "":
                 chapters = chapters.filter(region__slug=region)
             incomplete_chapter = [
@@ -118,13 +146,15 @@ class BallotDetailView(
                 for user in nat_offs
             ]
         incomplete = []
-        if motion == "incomplete" or motion == "":
+        if want_incomplete:
             incomplete = incomplete_national + incomplete_chapter
         table = BallotCompleteTable(data=data + incomplete)
         RequestConfig(self.request, paginate={"per_page": 200}).configure(table)
         context["table"] = table
         context["object"] = self.object
         context["incomplete"] = len(incomplete)
+        context["submitted"] = len(data)
+        context["show_results"] = show_results
         context[self.context_object_name] = self.object
         return context
 
@@ -135,15 +165,18 @@ class BallotCreateView(LoginRequiredMixin, NatOfficerRequiredMixin, SuccessMessa
     officer_edit = "ballots"
     officer_edit_type = "create"
     success_message = "Ballot '%(name)s' was created and is now open for voting."
-    fields = [
-        "sender",
-        "name",
-        "type",
-        "attachment",
-        "description",
-        "due_date",
-        "voters",
-    ]
+    form_class = BallotForm
+
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        sent = send_ballot_notifications(self.object, reminder=False)
+        messages.add_message(
+            self.request,
+            messages.INFO,
+            f"Ballot emailed to {sent} voter{'' if sent == 1 else 's'}; "
+            "reminders go out every 7 days until they vote.",
+        )
+        return response
 
     def get_success_url(self):
         return reverse("ballots:list")
@@ -151,7 +184,7 @@ class BallotCreateView(LoginRequiredMixin, NatOfficerRequiredMixin, SuccessMessa
 
 class BallotCopyView(BallotCreateView):
     def get_initial(self):
-        ballot = Ballot.objects.get(pk=self.kwargs["pk"])
+        ballot = get_object_or_404(Ballot, pk=self.kwargs["pk"])
         self.initial = {
             "name": ballot.name + " Copy",
             "sender": ballot.sender,
@@ -167,27 +200,22 @@ class BallotRedirectView(LoginRequiredMixin, RedirectView):
     permanent = False
 
     def get_redirect_url(self):
-        return reverse("ballots:list")
+        # Only National Officers can reach the all-ballots list.
+        if getattr(self.request, "is_nat_officer", False) or self.request.user.is_admin:
+            return reverse("ballots:list")
+        return reverse("ballots:votelist")
 
 
 class BallotUpdateView(
-    NatOfficerRequiredMixin,
     LoginRequiredMixin,
-    TypeFieldFilteredChapterAdd,
+    NatOfficerRequiredMixin,
+    SuccessMessageMixin,
     UpdateView,
 ):
     officer_edit = "ballot"
     officer_edit_type = "edit"
     success_message = "Ballot '%(name)s' was updated."
-    fields = [
-        "sender",
-        "name",
-        "type",
-        "attachment",
-        "description",
-        "due_date",
-        "voters",
-    ]
+    form_class = BallotForm
     model = Ballot
 
     def get_success_url(self):
@@ -197,7 +225,7 @@ class BallotUpdateView(
 class BallotListView(LoginRequiredMixin, NatOfficerRequiredMixin, PagedFilteredTableView):
     model = Ballot
     context_object_name = "ballot"
-    ordering = ["-date"]
+    ordering = ["-due_date"]
     table_class = BallotTable
     filter_class = BallotFilter
     formhelper_class = BallotListFormHelper
@@ -213,13 +241,16 @@ class BallotListView(LoginRequiredMixin, NatOfficerRequiredMixin, PagedFilteredT
         return self.filter.qs
 
     def post(self, request, *args, **kwargs):
-        return PagedFilteredTableView.as_view()(request)
+        return self.get(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        table = BallotTable(self.object_list)
+        show_results = can_view_ballot_results(self.request.user)
+        exclude = () if show_results else RESULT_COLUMNS
+        table = BallotTable(self.object_list, exclude=exclude)
         RequestConfig(self.request, paginate={"per_page": 30}).configure(table)
         context["table"] = table
+        context["show_results"] = show_results
         return context
 
 
@@ -228,58 +259,75 @@ class BallotCompleteCreateView(LoginRequiredMixin, OfficerRequiredMixin, CreateV
     template_name_suffix = "_vote"
     officer_edit = "ballots"
     officer_edit_type = "vote"
-    fields = ["motion"]
+    form_class = BallotCompleteForm
+
+    def get_ballot(self):
+        if not hasattr(self, "_ballot"):
+            self._ballot = get_ballot_or_404(self.kwargs.get("slug"))
+        return self._ballot
+
+    def get_existing_vote(self, ballot):
+        """The vote already on file for this user, or for their chapter."""
+        own = ballot.get_completed(self.request.user)
+        if own:
+            return own
+        if set(self.request.user.current_roles or []) & set(BALLOT_CHAPTER_ROLES):
+            return ballot.chapter_vote(self.request.user.chapter)
+        return None
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        ballot_slug = self.kwargs.get("slug")
-        ballot = get_object_or_404(Ballot, slug=ballot_slug)
-        current_roles = self.request.user.current_roles
-        roles_allowed = ballot.voters
-        if "all_chapters" in ballot.voters:
-            roles_allowed += CHAPTER_OFFICER
-        valid_roles = list(set(current_roles) & set(roles_allowed))
-        completed = ballot.get_completed(self.request.user)
-        complete = False
-        if completed:
+        ballot = self.get_ballot()
+        valid_roles = ballot.voting_roles_for(self.request.user)
+        completed = self.get_existing_vote(ballot)
+        if completed or not ballot.is_open:
             form = context["form"]
-            for field_name, field in form.fields.items():
+            for field in form.fields.values():
                 field.disabled = True
-            complete = True
-            context["current_vote"] = completed
         context["ballot"] = ballot
-        context["complete"] = complete
-        voters = ", ".join(val[1] for val in Ballot.VOTERS if val[0] in ballot.voters)
-        voters = voters.replace("All Chapters", "Chapter Officers")
-        context["voters"] = voters
-        context["valid_roles"] = True if valid_roles else False
+        context["complete"] = bool(completed)
+        context["current_vote"] = completed
+        context["show_results"] = can_view_ballot_results(self.request.user)
+        context["voters"] = ballot.voters_display
+        context["valid_roles"] = bool(valid_roles)
+        context["ballot_open"] = ballot.is_open
         return context
 
     def form_valid(self, form):
-        ballot_slug = self.kwargs.get("slug")
-        ballot = get_object_or_404(Ballot, slug=ballot_slug)
+        ballot = self.get_ballot()
         user = self.request.user
         form.instance.user = user
         form.instance.ballot = ballot
-        current_roles = user.current_roles
-        roles_allowed = ballot.voters
-        if "all_chapters" in ballot.voters:
-            roles_allowed += CHAPTER_OFFICER
-        valid_roles = list(set(current_roles) & set(roles_allowed))
+        if not ballot.is_open:
+            messages.add_message(
+                self.request,
+                messages.ERROR,
+                f"Voting on {ballot.name} closed on {ballot.closes_display}.",
+            )
+            return super().form_invalid(form)
+        valid_roles = ballot.voting_roles_for(user)
         if not valid_roles:
             messages.add_message(
                 self.request,
                 messages.ERROR,
-                f"This ballot is for {roles_allowed}. " f"Your current roles are: {current_roles}",
+                f"Only {ballot.voters_display} can vote on this ballot. "
+                f"Your current roles are: {', '.join(user.current_roles or []) or 'none'}",
             )
             return super().form_invalid(form)
-        else:
-            current_role = valid_roles[0]
+        existing = self.get_existing_vote(ballot)
+        if existing:
+            if existing.user == user:
+                detail = "You have already voted on this ballot."
+            else:
+                detail = f"{existing.user.name} already cast your chapter's vote as {existing.role.title()}."
+            messages.add_message(self.request, messages.ERROR, detail)
+            return super().form_invalid(form)
+        current_role = valid_roles[0]
         form.instance.role = current_role
         messages.add_message(
             self.request,
             messages.INFO,
-            f"Vote for {ballot.name} completed as {current_role}",
+            f"Vote for {ballot.name} completed as {current_role.title()}",
         )
         return super().form_valid(form)
 
@@ -291,7 +339,7 @@ class BallotUserListView(LoginRequiredMixin, PagedFilteredTableView):
     model = Ballot
     context_object_name = "ballot"
     template_name_suffix = "_votelist"
-    ordering = ["-date"]
+    ordering = ["-due_date"]
     table_class = BallotUserTable
     filter_class = BallotUserFilter
     formhelper_class = BallotUserListFormHelper
@@ -307,7 +355,7 @@ class BallotUserListView(LoginRequiredMixin, PagedFilteredTableView):
         return self.filter.qs
 
     def post(self, request, *args, **kwargs):
-        return PagedFilteredTableView.as_view()(request)
+        return self.get(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)

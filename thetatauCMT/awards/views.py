@@ -354,7 +354,7 @@ class AwardDirectoryView(LoginRequiredMixin, PagedFilteredTableView):
         context = super().get_context_data(**kwargs)
         context["show_revoked"] = self._show_revoked()
         context["can_view_revoked"] = self._can_view_revoked()
-        context["can_export"] = self.request.user.is_superuser
+        context["can_export"] = self.request.user.is_admin
         context["can_nominate"] = self.request.user.is_authenticated
         context["catalog_url"] = reverse("awards:catalog")
         context["nominate_url"] = reverse("viewflow:awards:awardnomination:start")
@@ -412,7 +412,7 @@ class AwardExportView(LoginRequiredMixin, View):
     """
 
     def dispatch(self, request, *args, **kwargs):
-        if request.user.is_authenticated and not request.user.is_superuser:
+        if request.user.is_authenticated and not request.user.is_admin:
             messages.error(request, "Only administrators can export award reports.")
             return redirect("home")
         return super().dispatch(request, *args, **kwargs)
@@ -455,21 +455,19 @@ class _AwardHistoryView(LoginRequiredMixin, SingleTableView):
     """Base for the chronological award-history views (AWI-12).
 
     Reuses :class:`~thetatauCMT.awards.tables.AwardGrantTable` (status column
-    included so revoked grants are labeled) ordered by ``effective_date`` so
-    backdated grants sort into their historical place. Visible to any signed-in
-    member, but export buttons are shown only to administrators.
+    included so revoked grants are labeled). The queryset is ordered by
+    ``effective_date`` so backdated grants sort into their historical place,
+    though only the award period is displayed. Visible to any signed-in member,
+    but export buttons are shown only to administrators.
     """
 
     template_name = "awards/award_history.html"
     table_class = AwardGrantTable
     table_pagination = {"per_page": 50}
 
-    def get_table_kwargs(self):
-        return {"order_by": "effective_date"}
-
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["can_export"] = self.request.user.is_superuser
+        context["can_export"] = self.request.user.is_admin
         return context
 
 
@@ -512,7 +510,7 @@ class SuperuserRequiredMixin(LoginRequiredMixin, UserPassesTestMixin):
     """
 
     def test_func(self):
-        return bool(getattr(self.request.user, "is_superuser", False))
+        return bool(getattr(self.request.user, "is_admin", False))
 
     def handle_no_permission(self):
         if self.request.user.is_authenticated:

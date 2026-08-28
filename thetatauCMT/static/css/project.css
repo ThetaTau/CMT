@@ -41,6 +41,12 @@ td[complete='True'] {
   --tt-dark-red: #a00e11;
   --tt-dark-red-hover: #ce1215;
   --tt-dark-red-dark: #7a0a0d;
+  /* Alias kept because several rules below reference --tt-red */
+  --tt-red: #a00e11;
+  /* Dark-mode counterpart: brand red is only 1.9:1 on our dark surfaces */
+  --tt-light-red: #ff8a8a;
+  --tt-light-red-rgb: 255, 138, 138;
+  --tt-light-red-hover: #ffb3b3;
   --tt-gold: #f4c046;
   --tt-gold-dark: #ae882e;
   --tt-gold-rgb: 244, 192, 70;
@@ -53,6 +59,10 @@ td[complete='True'] {
   --bs-primary-rgb: 160, 14, 17;
   --bs-link-color: var(--tt-dark-red);
   --bs-link-hover-color: var(--tt-dark-red-hover);
+  /* Bootstrap 5.3 renders `a` from the *-rgb tokens, so overriding only
+     --bs-link-color above left every link at the default blue (4.3:1). */
+  --bs-link-color-rgb: 160, 14, 17;
+  --bs-link-hover-color-rgb: 206, 18, 21;
 }
 
 .btn-primary {
@@ -73,6 +83,17 @@ td[complete='True'] {
   --bs-btn-active-bg: var(--tt-dark-red);
   --bs-btn-active-border-color: var(--tt-dark-red);
 }
+
+/* ===Outline-button label contrast (WCAG 2.1 AA, 4.5:1)===
+   Bootstrap's stock outline text colors sit between 4.3:1 and 4.5:1 on our
+   off-white body, so they fail by a hair. Darken the resting label only; the
+   border and the filled hover state keep the stock palette. */
+.btn-outline-secondary { --bs-btn-color: #5c636a; }   /* 4.48 -> 5.82 */
+.btn-outline-danger    { --bs-btn-color: #b02a37; }   /* 4.33 -> 6.21 */
+.btn-outline-success   { --bs-btn-color: #146c43; }   /* 4.33 -> 6.17 */
+.btn-outline-warning   { --bs-btn-color: #664d03; }   /* 1.56 -> 10.4 */
+.btn-outline-info      { --bs-btn-color: #087990; }   /* 1.87 -> 4.84 */
+
 .accordion {
   --bs-accordion-active-color: var(--tt-dark-red);
   --bs-accordion-active-bg: rgba(160, 14, 17, 0.08);
@@ -110,13 +131,6 @@ main,
   vertical-align: middle;
   font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   font-weight: 600;
-}
-.SloganText a {
-  color: inherit;
-  text-decoration: none;
-}
-.SloganText a:hover {
-  color: var(--tt-dark-red-hover);
 }
 
 /* ===Main navigation (white bar, dark uppercase Montserrat, matches thetatau.org)=== */
@@ -222,10 +236,35 @@ main,
 }
 
 /* ===User-preference toggles=== */
-/* Theme toggle labels — show the label matching the action, not the current state */
-.theme-label-light { display: none; }
-[data-bs-theme="dark"] .theme-label-dark { display: none; }
-[data-bs-theme="dark"] .theme-label-light { display: inline; }
+/* Appearance menu: tick whichever mode is stored (light / dark / auto). The
+   mode lives on <html data-tt-theme-mode>, separate from data-bs-theme, which
+   always holds the *resolved* theme. */
+.theme-option-check { visibility: hidden; }
+[data-tt-theme-mode="light"] .theme-option[data-theme-mode="light"] .theme-option-check,
+[data-tt-theme-mode="dark"] .theme-option[data-theme-mode="dark"] .theme-option-check,
+[data-tt-theme-mode="auto"] .theme-option[data-theme-mode="auto"] .theme-option-check {
+  visibility: visible;
+}
+
+/* ===Skip link===
+   Bootstrap's .visually-hidden-focusable handles the hide/reveal; this only
+   lifts it out of the layout so it does not shove the banner down on focus. */
+.skip-link:focus {
+  position: fixed;
+  top: 0.5rem;
+  left: 0.5rem;
+  z-index: 1080;
+  padding: 0.5rem 1rem;
+  background: var(--bs-body-bg);
+  color: var(--bs-body-color);
+  border: 2px solid var(--bs-primary);
+  border-radius: 0.25rem;
+  text-decoration: none;
+}
+/* The skip target is focusable only as a scroll anchor; no focus ring wanted. */
+#main-content:focus {
+  outline: none;
+}
 
 /* Region-bar toggle labels + hide state */
 .region-bar-label-show { display: none; }
@@ -238,11 +277,35 @@ body.region-bar-hidden .tt-region-bar { display: none !important; }
   background-color: #16181c;
   color: #e8eaed;
 }
+
+/* Links and brand-red text. The brand red is 1.9:1 on our dark surfaces, so
+   dark mode uses the lighter tint. Solid fills (.btn-primary, .bg-primary)
+   deliberately keep the real brand red, which is 8.2:1 against white. */
+[data-bs-theme="dark"] {
+  --bs-link-color: var(--tt-light-red);
+  --bs-link-color-rgb: var(--tt-light-red-rgb);
+  --bs-link-hover-color: var(--tt-light-red-hover);
+  --bs-link-hover-color-rgb: 255, 179, 179;
+  --bs-primary-text-emphasis: var(--tt-light-red);
+}
+[data-bs-theme="dark"] .text-primary {
+  color: var(--tt-light-red) !important;
+}
+
+/* Outline buttons: Bootstrap 5.3 does not re-tint these per theme, so every
+   variant keeps its light-mode label color against the dark surface. */
+[data-bs-theme="dark"] .btn-outline-primary   { --bs-btn-color: var(--tt-light-red); --bs-btn-border-color: var(--tt-light-red); }
+[data-bs-theme="dark"] .btn-outline-secondary { --bs-btn-color: #adb5bd; --bs-btn-border-color: #6c757d; }
+[data-bs-theme="dark"] .btn-outline-success   { --bs-btn-color: #75b798; --bs-btn-border-color: #479f76; }
+[data-bs-theme="dark"] .btn-outline-danger    { --bs-btn-color: #ea868f; --bs-btn-border-color: #e35d6a; }
+[data-bs-theme="dark"] .btn-outline-warning   { --bs-btn-color: #ffda6a; --bs-btn-border-color: #ffcd39; }
+[data-bs-theme="dark"] .btn-outline-info      { --bs-btn-color: #6edff6; --bs-btn-border-color: #3dd5f3; }
+[data-bs-theme="dark"] .btn-outline-dark      { --bs-btn-color: #dee2e6; --bs-btn-border-color: #adb5bd; --bs-btn-hover-bg: #dee2e6; --bs-btn-hover-color: #16181c; --bs-btn-active-bg: #dee2e6; --bs-btn-active-color: #16181c; }
+
 [data-bs-theme="dark"] #MPOuterHeader {
   background-color: #16181c;
 }
-[data-bs-theme="dark"] .SloganText,
-[data-bs-theme="dark"] .SloganText a {
+[data-bs-theme="dark"] .SloganText {
   color: var(--tt-gold);
 }
 

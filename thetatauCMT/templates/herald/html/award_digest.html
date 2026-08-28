@@ -9,18 +9,16 @@
     <tr>
       <th align="left">Award</th>
       <th align="left">Recipient</th>
-      <th align="left">Awarded</th>
     </tr>
   </thead>
   <tbody>
     {% for grant in grants %}
     <tr>
       <td>
-        {{ grant.award_type }}
+        {{ grant.award_type }} ({{ grant.cycle }})
         {% if grant.award_type.description %}<br><span style="font-size:12px;color:#666666;">{{ grant.award_type.description }}</span>{% endif %}
       </td>
       <td>{{ grant.recipient_display }}</td>
-      <td>{{ grant.effective_date }}</td>
     </tr>
     {% endfor %}
   </tbody>

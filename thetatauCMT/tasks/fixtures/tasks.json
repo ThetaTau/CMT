@@ -129,8 +129,8 @@
     "model": "tasks.task",
     "pk": 34,
     "fields": {
-      "name": "Insurance Payment",
-      "slug": "insurance-payment",
+      "name": "H&S Fee Payment",
+      "slug": "hs-fee-paymenttreasurer",
       "owner": "treasurer",
       "type": "bal",
       "days_advance": 30,

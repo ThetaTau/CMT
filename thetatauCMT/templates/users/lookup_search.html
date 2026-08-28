@@ -11,7 +11,7 @@
 <p>We will attempt to find a member given the info below
   <br> Already have an account? Then please <a href="{% url 'account_login' %}">sign in</a>.</p>
 
-  <h4><span style="background-color: #FFFF00">Officers, national or chapter, must sign in and update info, you can not use this form.</span></h4>
+  <h2 class="h4"><span style="background-color: #FFFF00">Officers, national or chapter, must sign in and update info, you can not use this form.</span></h2>
 
 <form class="lookup" id="lookup_form" method="post" action="{% url 'users:lookup_search' %}">
   {% csrf_token %}

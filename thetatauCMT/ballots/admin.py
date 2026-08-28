@@ -5,12 +5,25 @@ from .models import Ballot, BallotComplete
 
 @admin.register(BallotComplete)
 class BallotCompleteAdmin(admin.ModelAdmin):
+    """Who returned a ballot, never how they voted.
+
+    ``motion`` is excluded everywhere in the admin: a ballot is secret, only the
+    voter sees their own vote, and only the Grand Regent and Grand Scribe see
+    the aggregate counts. Votes are cast through the site, so they cannot be
+    added here either.
+    """
+
     raw_id_fields = ["user"]
-    list_display = ("user", "ballot", "motion", "role")
-    list_filter = ["motion", "ballot"]
+    list_display = ("user", "ballot", "role", "created")
+    list_filter = ["ballot", "role"]
+    search_fields = ["user__name", "user__username", "ballot__name"]
+    exclude = ["motion"]
     ordering = [
         "created",
     ]
+
+    def has_add_permission(self, request):
+        return False
 
 
 class BallotCompleteInline(admin.TabularInline):
@@ -18,13 +31,16 @@ class BallotCompleteInline(admin.TabularInline):
     raw_id_fields = ["user"]
     fields = [
         "user",
-        "motion",
+        "role",
     ]
     show_change_link = False
     can_delete = False
     extra = 0
 
     def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_add_permission(self, request, obj=None):
         return False
 
 

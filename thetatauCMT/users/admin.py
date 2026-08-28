@@ -52,6 +52,7 @@ from .models import (
     ChapterCurricula,
     MemberUpdate,
     Organization,
+    Position,
     User,
     UserAlter,
     UserDemographic,
@@ -160,6 +161,7 @@ class UserDemographicAdmin(admin.ModelAdmin):
         "ability",
         "first_gen",
         "english",
+        "international",
     )
     list_filter = [
         "user__chapter",
@@ -169,6 +171,7 @@ class UserDemographicAdmin(admin.ModelAdmin):
         "ability",
         "first_gen",
         "english",
+        "international",
     ]
     search_fields = ["user__chapter__name"]
 
@@ -189,6 +192,13 @@ class UserOrgParticipateAdmin(admin.ModelAdmin):
 
 @admin.register(Organization)
 class OrganizationAdmin(MergeableAdminMixin, admin.ModelAdmin):
+    list_display = ("name",)
+    search_fields = ["name"]
+    ordering = ["name"]
+
+
+@admin.register(Position)
+class PositionAdmin(MergeableAdminMixin, admin.ModelAdmin):
     list_display = ("name",)
     search_fields = ["name"]
     ordering = ["name"]
@@ -247,6 +257,7 @@ class UserRoleChangeAdmin(ImportExportActionModelAdmin):
 
 class MyUserChangeForm(UserChangeForm):
     address = ComponentAddressField(required=False)
+    employer_address = ComponentAddressField(required=False)
 
     class Meta(UserChangeForm.Meta):
         model = User
@@ -448,7 +459,7 @@ class ReturnStudentInline(admin.TabularInline):
 
 class UserAlterInline(admin.StackedInline):
     model = UserAlter
-    fields = ["chapter", "role", "hide_natoff"]
+    fields = ["chapter", "role", "hide_natoff", "hide_admin"]
     show_change_link = True
     extra = 0
 
@@ -505,7 +516,7 @@ class MyUserAdmin(
         "id",
         "declined_nomination_display",
     )
-    autocomplete_fields = ("tags",)
+    autocomplete_fields = ("tags", "employer", "employer_positions")
     inlines = [
         UserNoteInline,
         UserAlterInline,
@@ -580,8 +591,10 @@ class MyUserAdmin(
                     "phone_number",
                     "phone_visibility",
                     "major",
+                    "major_final",
                     "employer",
-                    "employer_position",
+                    "employer_positions",
+                    "employer_address",
                     "graduation_year",
                     "class_year",
                 )

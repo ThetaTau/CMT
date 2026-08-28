@@ -153,6 +153,45 @@ def test_region_officer_view_natoff(auto_login_user):
 
 
 @pytest.mark.django_db
+def test_region_officer_view_national_syncs_all_officers(auto_login_user):
+    """`/regions/national/officers/` (the base.html "All Officers" link) must
+    sync officers from EVERY chapter -- not 0 (a nonexistent "national"
+    Region row resolving to 0 chapters) and not the small National Officer
+    council roster (a different page/population). Issue reported 2026-08."""
+    from thetatauCMT.chapters.tests.factories import ChapterFactory
+
+    client, user = auto_login_user(make_officer="national")
+    _make_natoff(user, client)
+    chapter_a = ChapterFactory(name="alpha")
+    chapter_b = ChapterFactory(name="beta")
+    _make_region_officer(chapter_a, "regent", "regent-a@example.com")
+    _make_region_officer(chapter_b, "treasurer", "treasurer-b@example.com")
+
+    url = reverse("regions:officers", kwargs={"slug": "national"})
+    response = client.get(url)
+    assert response.status_code == 200
+    assert response.context["contact_sync_scope"] == "region:national"
+    # Both chapters' officers are counted (and the natoff council member
+    # created above -- who holds no chapter-officer role -- is excluded).
+    assert response.context["officer_count"] == 2
+
+
+@pytest.mark.django_db
+def test_region_officer_view_region_filter_label_is_not_invalid(auto_login_user):
+    """The region filter's crispy-rendered label must read "Region", not
+    django_filters' "[invalid name]" fallback (``region`` isn't a real field
+    on ``User``, so an explicit ``label=`` is required)."""
+    client, user = auto_login_user(make_officer="national")
+    _make_natoff(user, client)
+    region = user.current_chapter.region
+    url = reverse("regions:officers", kwargs={"slug": region.slug})
+    response = client.get(url)
+    assert response.status_code == 200
+    content = response.content.decode("UTF-8")
+    assert "[invalid name]" not in content
+
+
+@pytest.mark.django_db
 def test_region_advisor_view_natoff(auto_login_user):
     client, user = auto_login_user(make_officer="national")
     _make_natoff(user, client)

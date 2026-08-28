@@ -23,6 +23,15 @@ from .models import (
 )
 
 
+class TermEndColumn(tables.DateColumn):
+    """End date of a role term, shown as "Present" while the term is still active."""
+
+    def render(self, record, **kwargs):
+        if record.is_current:
+            return "Present"
+        return super().render(record=record, **kwargs)
+
+
 class OfficerRoleTable(CMTTable):
     """Current + past chapter officers/roles, with a per-row edit control."""
 
@@ -33,6 +42,7 @@ class OfficerRoleTable(CMTTable):
         verbose_name="Member",
     )
     role = tables.Column(verbose_name="Role")
+    end = TermEndColumn(verbose_name="End")
     edit = tables.TemplateColumn(
         template_name="forms/_officer_edit_button.html",
         orderable=False,
@@ -50,7 +60,11 @@ class OfficerRoleTable(CMTTable):
 
 
 class NationalOfficerRoleTable(OfficerRoleTable):
-    """National-officer variant: adds the member's chapter and email columns."""
+    """National-officer variant: adds the member's chapter and email columns.
+
+    Any member can read this roster, so the email column honours each officer's
+    contact-visibility choice. Pass ``viewer`` (the requesting user) to apply it.
+    """
 
     chapter = tables.Column(verbose_name="Chapter", accessor="user__chapter")
     email = tables.Column(verbose_name="Email", accessor="user__email", orderable=False)
@@ -61,8 +75,15 @@ class NationalOfficerRoleTable(OfficerRoleTable):
         attrs = {"class": "table table-striped table-bordered"}
         empty_text = "No national officers have been recorded yet."
 
+    def __init__(self, *args, viewer=None, **kwargs):
+        self.viewer = viewer
+        super().__init__(*args, **kwargs)
+
     def render_email(self, value, record):
-        return value or record.user.email_school or ""
+        officer = record.user
+        if self.viewer is not None and not officer.contact_visible_to(self.viewer, officer.email_visibility):
+            return "Private"
+        return value or officer.email_school or ""
 
 
 class BadgeTable(CMTTable):

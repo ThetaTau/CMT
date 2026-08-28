@@ -11,25 +11,44 @@ Match priority
 2. **exact email** case-insensitive match on ``email`` /
                    ``email_school``                                -> score 0.95
 3. **name**        fuzzy full-name similarity, *raised* by
-                   graduation-year and chapter agreement           -> score 0..1
+                   graduation-year, chapter and email agreement    -> score 0..1
 
 Name-tier scoring
 -----------------
 ``confidence = name_similarity * NAME_WEIGHT
              + (GRAD_YEAR_WEIGHT  if graduation year agrees)
-             + (CHAPTER_WEIGHT    if home chapter agrees)``
+             + (CHAPTER_WEIGHT    if home chapter agrees)
+             + (EMAIL_WEIGHT      if the row's email is corroborated by watson)``
 
-The weights sum to ``1.0`` (``0.70 + 0.15 + 0.15``) so a *perfect* name match
-that also agrees on graduation year and chapter scores exactly ``1.0``. Because
-``NAME_WEIGHT`` alone is ``0.70`` (> the ``0.60`` auto-accept threshold), an
-exact and unambiguous full-name match auto-accepts on its own, while a merely
-*good* name match (e.g. similarity ``0.80`` → ``0.56``) stays below threshold and
-is routed to the manual queue unless graduation year and/or chapter raise it.
+The weights sum to ``1.0`` (``0.65 + 0.10 + 0.10 + 0.15``) so a *perfect* name
+match that also agrees on graduation year and chapter scores ``0.85``, and a
+name match corroborated on every filled-in field scores ``1.0``. Because
+``NAME_WEIGHT`` alone (``0.65``) is > the ``0.60`` auto-accept threshold, an
+exact and unambiguous full-name match still auto-accepts on its own, while a
+merely *good* name match (e.g. similarity ``0.80`` → ``0.52``) stays below
+threshold unless other filled-in fields raise it.
 
 ``name_similarity`` is the :func:`difflib.SequenceMatcher` ratio over the
 normalised (lower-cased, punctuation-stripped, whitespace-collapsed) names,
 taking the best of the stored full name vs. ``"first last"`` and of the direct
 vs. token-sorted comparison (so ``"Doe, Jane"`` still matches ``"Jane Doe"``).
+
+Watson-backed corroboration
+----------------------------
+A row rarely fills in every field, and the previous implementation only ever
+raised a name match using ``graduation_year``/``chapter`` — an uploaded email
+or a nickname/maiden-name variant that didn't exactly match tier 2 was simply
+discarded, so confidence collapsed to a near-pure first/last name comparison.
+The name-tier candidate pool is now built with :mod:`watson`'s full-text index
+(:func:`_name_candidate_pool`), which covers every identity field registered
+on ``User`` — ``name``, ``first_name``, ``last_name``, ``nickname``,
+``preferred_name``, ``maiden_name``, ``username``, ``email``, ``email_school``
+and ``chapter__name`` — so a row matches on *whichever* of those fields it
+happens to supply, not just the literal name columns. Separately, whatever
+email/chapter text the row supplies is checked with watson against the pool
+(:func:`_watson_hits`) and, when corroborated, raises the score via
+``EMAIL_WEIGHT``/``CHAPTER_WEIGHT`` even if the email didn't exactly match
+anyone at tier 2 or the chapter text doesn't resolve to a real ``Chapter``.
 
 Auto-accept
 -----------
@@ -47,11 +66,13 @@ from typing import List, Optional
 
 from django.conf import settings
 from django.db.models import Q
+from watson import search as watson
 
 # --- Tunable scoring constants -------------------------------------------------
-NAME_WEIGHT = 0.70
-GRAD_YEAR_WEIGHT = 0.15
-CHAPTER_WEIGHT = 0.15
+NAME_WEIGHT = 0.65
+GRAD_YEAR_WEIGHT = 0.10
+CHAPTER_WEIGHT = 0.10
+EMAIL_WEIGHT = 0.15
 ID_MATCH_SCORE = 1.0
 EMAIL_MATCH_SCORE = 0.95
 AMBIGUITY_MARGIN = 0.05
@@ -106,11 +127,22 @@ def _row_name(row):
 
 
 def name_similarity(row_name, user):
-    """Best normalised similarity of ``row_name`` against a user's names."""
+    """Best normalised similarity of ``row_name`` against a user's names.
+
+    Checks nickname/preferred_name/maiden_name too, so an uploaded row that
+    was found via one of those alternate fields (see :func:`_name_candidate_pool`)
+    scores on the field that actually matched, not just the formal legal name.
+    """
     a = normalize(row_name)
     if not a:
         return 0.0
-    candidates = [user.name, f"{user.first_name or ''} {user.last_name or ''}"]
+    candidates = [
+        user.name,
+        f"{user.first_name or ''} {user.last_name or ''}",
+        user.nickname,
+        user.preferred_name,
+        user.maiden_name,
+    ]
     return max((_ratio(a, normalize(c)) for c in candidates if c), default=0.0)
 
 
@@ -134,8 +166,14 @@ def _resolve_chapter(raw):
     )
 
 
-def score_name_candidate(row, user, chapter=None):
-    """Confidence (0..1) and human-readable reasons for a name-tier candidate."""
+def score_name_candidate(row, user, chapter=None, email_hits=None, chapter_hits=None):
+    """Confidence (0..1) and human-readable reasons for a name-tier candidate.
+
+    ``email_hits``/``chapter_hits`` are optional sets of candidate pks (from
+    :func:`_watson_hits`) confirming that the row's email/chapter text is
+    corroborated *somewhere* in that candidate's watson-indexed fields, even
+    when it isn't an exact tier-2 email match or a resolvable ``Chapter``.
+    """
     sim = name_similarity(_row_name(row), user)
     score = sim * NAME_WEIGHT
     reasons = [f"name similarity {sim:.0%}"]
@@ -143,9 +181,15 @@ def score_name_candidate(row, user, chapter=None):
     if grad and user.graduation_year and grad == user.graduation_year:
         score += GRAD_YEAR_WEIGHT
         reasons.append(f"graduation year {grad} matches")
-    if chapter is not None and user.chapter_id == chapter.pk:
+    chapter_agrees = chapter is not None and user.chapter_id == chapter.pk
+    if not chapter_agrees and chapter_hits and user.pk in chapter_hits:
+        chapter_agrees = True
+    if chapter_agrees:
         score += CHAPTER_WEIGHT
-        reasons.append(f"chapter {chapter.name} matches")
+        reasons.append(f"chapter {chapter.name if chapter is not None else row.get('chapter')} matches")
+    if email_hits and user.pk in email_hits:
+        score += EMAIL_WEIGHT
+        reasons.append("email matches")
     return round(min(score, 1.0), 4), reasons
 
 
@@ -162,19 +206,58 @@ def _candidate_dict(user, score, reasons):
 
 
 def _name_candidate_pool(row, chapter):
-    """A bounded queryset of plausible name-match candidates."""
+    """A bounded queryset of plausible name-match candidates.
+
+    Discovery goes through watson's full-text index first, so a row's name
+    matches against every identity field registered on ``User`` (name,
+    first/last name, nickname, preferred_name, maiden_name, username) instead
+    of only ``name``/``first_name``/``last_name``. Falls back to a plain
+    icontains scan of those same fields if watson turns up nothing (e.g. no
+    index entries yet).
+    """
     from thetatauCMT.users.models import User
 
-    qs = User.objects.all()
+    qs = User.objects.select_related("chapter")
     if chapter is not None:
         qs = qs.filter(chapter=chapter)
     tokens = [t for t in normalize(_row_name(row)).split() if len(t) >= 2]
     if not tokens:
         return User.objects.none()
+    search_text = " ".join(tokens)
+    try:
+        pool = watson.filter(qs, search_text)[:CANDIDATE_POOL_LIMIT]
+        if pool:
+            return pool
+    except Exception:
+        pass
     query = Q()
     for token in tokens:
-        query |= Q(name__icontains=token) | Q(first_name__icontains=token) | Q(last_name__icontains=token)
-    return qs.filter(query).select_related("chapter")[:CANDIDATE_POOL_LIMIT]
+        query |= (
+            Q(name__icontains=token)
+            | Q(first_name__icontains=token)
+            | Q(last_name__icontains=token)
+            | Q(nickname__icontains=token)
+            | Q(preferred_name__icontains=token)
+            | Q(maiden_name__icontains=token)
+        )
+    return qs.filter(query)[:CANDIDATE_POOL_LIMIT]
+
+
+def _watson_hits(pool_qs, term):
+    """Pks within ``pool_qs`` that watson's index confirms for ``term``.
+
+    Lets a row's email or chapter text corroborate a name match via *any*
+    watson-registered field (e.g. ``email_school``, ``username``,
+    ``chapter__name``) instead of requiring an exact tier-2 email match or a
+    resolvable ``Chapter``.
+    """
+    term = (term or "").strip()
+    if not term:
+        return set()
+    try:
+        return set(watson.filter(pool_qs, term).values_list("pk", flat=True))
+    except Exception:
+        return set()
 
 
 def _lookup_by_id(row):
@@ -237,14 +320,20 @@ def match_row(row, threshold=None):
             candidates=candidates[:MAX_STORED_CANDIDATES],
         )
 
-    # Tier 3: fuzzy name, raised by graduation year + chapter agreement.
+    # Tier 3: fuzzy name, raised by graduation year, chapter and email agreement.
+    from thetatauCMT.users.models import User
+
     chapter = _resolve_chapter(row.get("chapter"))
-    scored = []
-    for candidate in _name_candidate_pool(row, chapter):
-        score, reasons = score_name_candidate(row, candidate, chapter)
-        scored.append((score, candidate, reasons))
-    if not scored:
+    pool = list(_name_candidate_pool(row, chapter))
+    if not pool:
         return MatchResult(tier="none")
+    pool_qs = User.objects.filter(pk__in=[candidate.pk for candidate in pool])
+    email_hits = _watson_hits(pool_qs, row.get("email"))
+    chapter_hits = _watson_hits(pool_qs, row.get("chapter"))
+    scored = []
+    for candidate in pool:
+        score, reasons = score_name_candidate(row, candidate, chapter, email_hits, chapter_hits)
+        scored.append((score, candidate, reasons))
     scored.sort(key=lambda t: (t[0], t[1].pk), reverse=True)
     candidates = [_candidate_dict(u, s, r) for s, u, r in scored[:MAX_STORED_CANDIDATES]]
     top_score, top_user, _ = scored[0]

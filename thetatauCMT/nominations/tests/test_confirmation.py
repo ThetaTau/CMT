@@ -78,7 +78,7 @@ def test_review_screen_shows_required_data():
     assert "Passed" in html  # vetting_passed True
     assert "Continue" in html  # interview_passed True
     assert "CMT LMS Volunteer Training" in html
-    assert "Vector CommunityEdu" in html
+    assert "Vector CommunityEDU" in html
     # Process history present.
     assert "history" in html.lower()
 

@@ -16,12 +16,17 @@
     <!-- Apply saved theme / region-bar state ASAP to avoid a flash of the wrong theme -->
     <script>
       (function () {
+        var mode = 'auto';
         try {
           var t = localStorage.getItem('tt-theme');
-          if (t === 'dark' || t === 'light') {
-            document.documentElement.setAttribute('data-bs-theme', t);
-          }
+          if (t === 'dark' || t === 'light') { mode = t; }
         } catch (e) { /* localStorage unavailable */ }
+        var resolved = mode;
+        if (mode === 'auto') {
+          resolved = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        }
+        document.documentElement.setAttribute('data-bs-theme', resolved);
+        document.documentElement.setAttribute('data-tt-theme-mode', mode);
       })();
     </script>
 
@@ -65,7 +70,7 @@
           posthog.identify(
             "{{ user.id }}",
             {officer: {{ request.is_officer|yesno:"true,false" }}, natoff: {{ request.is_nat_officer|yesno:"true,false" }}, role: "{{ user.role }}"},
-            {email: "{{ user.email }}", chapter: "{{ user.chapter }}", admin: {{ user.is_superuser|yesno:"true,false" }}});
+            {email: "{{ user.email }}", chapter: "{{ user.chapter }}", admin: {{ user.is_admin|yesno:"true,false" }}});
         }});
   </script>
   {% endif %}
@@ -73,29 +78,29 @@
   </head>
 
   <body>
+  <a class="visually-hidden-focusable skip-link" href="#main-content">{% trans "Skip to main content" %}</a>
   <section class="header">
     <div id="MPOuterHeader" class="row" role="banner">
         <div class="col-md-12">
             <div id="DesktopLogoDiv" class="LogoImg inline">
-                <a href="{% url 'home' %}" style=''>
-                    <img class="img-responsive" src="{% static 'images/header.png' %}" alt="Theta Tau Fraternity" /></a>
+                <img class="img-responsive" src="{% static 'images/header.png' %}" alt="Theta Tau Fraternity" />
             </div>
             <div class="SloganText inline">
-            <h1>
-              <a class="SloganText inline" href="{% url 'home' %}">
+            <div class="h1 mb-0">
+              <span class="SloganText inline">
                 {% if request.user.is_authenticated %}
                   {{ request.user.current_chapter }}
                 {% else %}
                   Theta Tau
                 {% endif %}
-              CMT</a>
-            </h1>
+              CMT</span>
+            </div>
             </div>
         </div>
     </div>
   </section>
     <div id="NAV" class="mb-3">
-      <nav class="navbar navbar-expand-lg navbar-light tt-navbar shadow-sm">
+      <nav class="navbar navbar-expand-lg navbar-light tt-navbar shadow-sm" aria-label="{% trans 'Main' %}">
         <div class="container-fluid">
           <a class="navbar-brand d-lg-none" href="{% url 'home' %}">
             {% if request.user.is_authenticated %}
@@ -110,7 +115,7 @@
 
           <div class="offcanvas offcanvas-end tt-offcanvas" tabindex="-1" id="mainNavOffcanvas" aria-labelledby="mainNavOffcanvasLabel">
             <div class="offcanvas-header border-bottom">
-              <h5 class="offcanvas-title" id="mainNavOffcanvasLabel">Menu</h5>
+              <span class="offcanvas-title h5 mb-0" id="mainNavOffcanvasLabel">Menu</span>
               <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
             </div>
             <div class="offcanvas-body">
@@ -134,7 +139,7 @@
                       <li><hr class="dropdown-divider"></li>
                       <li><a class="dropdown-item" href="{% url 'scores:list' %}">{% trans "Scores" %}</a></li>
                       <li><a class="dropdown-item" href="{% url 'trainings:list' %}">{% trans "Training" %}</a></li>
-                      <li><a class="dropdown-item" href="https://thetatau-tx.vectorlmsedu.com" target="_blank" rel="noopener noreferrer">{% trans "Vector" %}</a></li>
+                      <li><a class="dropdown-item" href="https://thetatau-tx.vectorlmsedu.com" target="_blank" rel="noopener noreferrer">{% trans "Vector CommunityEDU" %}</a></li>
                       <li><a class="dropdown-item" href="{% url 'finances:list' %}">{% trans "Invoices" %}</a></li>
                     </ul>
                   </li>
@@ -155,13 +160,13 @@
                       {% endif %}
                       {% if feature_awards_enabled %}
                         <li><hr class="dropdown-divider"></li>
-                        <li><h6 class="dropdown-header">{% trans "Awards" %}</h6></li>
+                        <li><span class="dropdown-header">{% trans "Awards" %}</span></li>
                         <li><a class="dropdown-item" href="{% url 'awards:catalog' %}">{% trans "Award Catalog" %}</a></li>
                         <li><a class="dropdown-item" href="{% url 'awards:directory' %}">{% trans "Award Winners" %}</a></li>
                       {% endif %}
 
                       <li><hr class="dropdown-divider"></li>
-                      <li><h6 class="dropdown-header">{% trans "Directory" %}</h6></li>
+                      <li><span class="dropdown-header">{% trans "Directory" %}</span></li>
                       <li><a class="dropdown-item" href="{% url 'chapters:list' %}">{% trans "Chapters" %}</a></li>
                       {% if request.is_nat_officer %}
                         <li><a class="dropdown-item" href="{% url 'regions:officers' 'national' %}">{% trans "All Officers" %}</a></li>
@@ -174,7 +179,7 @@
                   <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">{% trans "Activity" %}</a>
                     <ul class="dropdown-menu">
-                      {% if request.is_officer or request.is_nat_officer or user.is_superuser %}
+                      {% if request.is_officer or request.is_nat_officer or user.is_admin %}
                         <li><a class="dropdown-item" href="{% url 'chapters:activity_redirect' %}">{% trans "All Activities" %}</a></li>
                         <li><hr class="dropdown-divider"></li>
                       {% endif %}
@@ -182,6 +187,7 @@
                       <li><a class="dropdown-item" href="{% url 'tasks:list' %}">Tasks</a></li>
                       <li><a class="dropdown-item" href="{% url 'objectives:list' %}">Goals</a></li>
                       <li><a class="dropdown-item" href="{% url 'submissions:list' %}">Submissions</a></li>
+                      <li><a class="dropdown-item" href="{% url 'ballots:votelist' %}">{% trans "My Ballots" %}</a></li>
                     </ul>
                   </li>
 
@@ -215,6 +221,16 @@
               </ul>
 
               <ul class="navbar-nav ms-auto">
+                {% if outstanding_ballot_count %}
+                  <li class="nav-item">
+                    <a id="outstanding-ballots" class="nav-link" href="{% url 'ballots:votelist' %}"
+                       aria-label="{% trans 'Ballots waiting on your vote' %}" title="{% trans 'Ballots waiting on your vote' %}">
+                      <i class="fa-solid fa-list-check"></i>
+                      <span class="badge rounded-pill bg-danger ms-1">{{ outstanding_ballot_count }}</span>
+                      <span class="d-lg-none ms-2">{% trans "Ballots to vote" %}</span>
+                    </a>
+                  </li>
+                {% endif %}
                 {% if request.user.is_authenticated and feature_events_calendar_enabled %}
                   <li class="nav-item">
                     <a id="calendar" class="nav-link" href="{% url 'events:calendar' %}" aria-label="{% trans 'Events Calendar' %}" title="{% trans 'Events Calendar' %}">
@@ -230,6 +246,31 @@
                   </a>
                 </li>
 
+                <li class="nav-item dropdown">
+                  <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="{% trans 'Appearance' %}" title="{% trans 'Appearance' %}">
+                    <i class="fa-solid fa-circle-half-stroke"></i>
+                    <span class="d-lg-none ms-2">{% trans "Appearance" %}</span>
+                  </a>
+                  <ul class="dropdown-menu dropdown-menu-lg-end">
+                    <li><span class="dropdown-header">{% trans "Appearance" %}</span></li>
+                    <li>
+                      <button type="button" class="dropdown-item theme-option" data-theme-mode="light">
+                        <i class="fa-solid fa-check theme-option-check me-1"></i>{% trans "Light" %}
+                      </button>
+                    </li>
+                    <li>
+                      <button type="button" class="dropdown-item theme-option" data-theme-mode="dark">
+                        <i class="fa-solid fa-check theme-option-check me-1"></i>{% trans "Dark" %}
+                      </button>
+                    </li>
+                    <li>
+                      <button type="button" class="dropdown-item theme-option" data-theme-mode="auto">
+                        <i class="fa-solid fa-check theme-option-check me-1"></i>{% trans "Match system setting" %}
+                      </button>
+                    </li>
+                  </ul>
+                </li>
+
                 {% if request.user.is_authenticated %}
                   <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="{{ request.user.first_name|default:request.user.username }} account menu" title="{{ request.user.first_name|default:request.user.username }}">
@@ -240,13 +281,9 @@
                       <li><a class="dropdown-item" href="{% url 'users:profile' username=request.user.username %}">{% trans "My Profile" %}</a></li>
                       <li><a class="dropdown-item" href="{% url 'users:detail' %}">{% trans "Edit My Info" %}</a></li>
                       <li><a class="dropdown-item" href="{% url 'guides:role-guides' %}">{% trans "What am I responsible for?" %}</a></li>
-                      <li><hr class="dropdown-divider"></li>
-                      <li>
-                        <button id="theme-toggle" type="button" class="dropdown-item">
-                          <span class="theme-label-dark">{% trans "Switch to dark mode" %}</span>
-                          <span class="theme-label-light">{% trans "Switch to light mode" %}</span>
-                        </button>
-                      </li>
+                      {% if request.in_natoff_group or request.user.is_superuser %}
+                        <li><hr class="dropdown-divider"></li>
+                      {% endif %}
                       {% if request.in_natoff_group %}
                         <li>
                           <button id="region-bar-toggle" type="button" class="dropdown-item">
@@ -263,6 +300,21 @@
                                 {% trans "Hide national officer functionality" %}
                               {% else %}
                                 {% trans "Show national officer functionality" %}
+                              {% endif %}
+                            </button>
+                          </form>
+                        </li>
+                      {% endif %}
+                      {% if request.user.is_superuser %}
+                        <li>
+                          <form method="post" action="{% url 'users:toggle_admin' %}" class="d-grid m-0">
+                            {% csrf_token %}
+                            <input type="hidden" name="next" value="{{ request.get_full_path }}"/>
+                            <button type="submit" class="dropdown-item" name="toggle-admin" value="1">
+                              {% if request.user.is_admin %}
+                                {% trans "Hide admin functionality" %}
+                              {% else %}
+                                {% trans "Show admin functionality" %}
                               {% endif %}
                             </button>
                           </form>
@@ -286,7 +338,7 @@
         </div>
       </nav>
     {% if request.in_natoff_group %}
-      <nav class="navbar tt-region-bar border-bottom py-1">
+      <nav class="navbar tt-region-bar border-bottom py-1" aria-label="{% trans 'Region shortcuts' %}">
         <div class="container-fluid d-flex flex-wrap align-items-center gap-2">
           {% if request.is_nat_officer %}
             <a class="navbar-brand mb-0 h6 me-3" href="{% url 'regions:detail' request.user.current_chapter.region.slug %}">
@@ -305,6 +357,9 @@
               {{ request.user.current_chapter.name }}{% if request.user.chapter_officer %}: {{ request.user.chapter_officer|join:", " }}{% endif %}
             </span>
           {% endif %}
+          {% if request.user.admin_hidden %}
+            <span class="badge bg-warning text-dark">{% trans "Admin functionality hidden" %}</span>
+          {% endif %}
 
           <form class="d-flex flex-wrap align-items-center gap-2 ms-auto" action="{% url 'users:alterchapter' %}" method="post">
             {% csrf_token %}
@@ -317,6 +372,7 @@
       </nav>
     {% endif %}
     </div>
+    <main id="main-content" tabindex="-1">
     <div class="container">
       {% if messages %}
           {% for message in messages %}
@@ -326,18 +382,19 @@
       {% block content %}
       {% endblock content %}
     </div> <!-- /container -->
+    </main>
     {% block modal %}{% endblock modal %}
     {% if whats_new_modal %}{% include "guides/_whats_new_modal.html" %}{% endif %}
     <hr>
     <div class="est"></div>
     <!-- Footer -->
-<section class="footer page-footer font-small stylish-color-dark pt-4">
+<section class="footer page-footer font-small stylish-color-dark pt-4" role="contentinfo">
     <!-- Footer Links -->
     <div class="container text-center text-md-left">
       <!-- Grid row -->
       <div class="row">
         <div class="col-md-4" style="position: relative; font-size: 16px;">
-          <h5 class="fw-bold text-uppercase mt-3 mb-4">Contact Info</h5>
+          <h2 class="h5 fw-bold text-uppercase mt-3 mb-4">Contact Info</h2>
           <i class="fas fa-phone"></i> 512.472.1904<br>
           <i class="fas fa-envelope"></i>
           <a href="mailto:cmt@thetatau.org"> cmt@thetatau.org</a><br>
@@ -350,7 +407,7 @@
         <hr class="clearfix w-100 d-md-none">
         <div class="col-md-4 mx-auto">
           <!-- Content -->
-          <h5 class="fw-bold text-uppercase mt-3 mb-4">We need YOU!</h5>
+          <h2 class="h5 fw-bold text-uppercase mt-3 mb-4">We need YOU!</h2>
           <p>Interested in contributing to the Chapter Management Tool?<br>
             <a href="https://github.com/VenturaFranklin/thetatauCMT/blob/master/CONTRIBUTING.md">Please see contributing instructions here.</a></p>
         </div>
@@ -358,7 +415,7 @@
         <hr class="clearfix w-100 d-md-none">
         <!-- Grid column -->
         <div class="col-md-4 mx-auto">
-          <h5 class="fw-bold text-uppercase mt-3 mb-4">Help/Issues</h5>
+          <h2 class="h5 fw-bold text-uppercase mt-3 mb-4">Help/Issues</h2>
           <p><a href="{% url 'help' %}">Find your way around.</a></p>
           <p>Or if you have ideas for features/improvements.<br><a href="https://github.com/VenturaFranklin/thetatauCMT/issues">Please let us know, by submitting an issue/feature request here.</a></p>
         </div>
@@ -371,7 +428,7 @@
           <div class="col-12 mt-4">
             <div class="d-md-flex align-items-center justify-content-center text-center gap-3 border-top pt-3">
               <div>
-                <h5 class="fw-bold text-uppercase mb-1">{% trans "See Something, Say Something" %}</h5>
+                <h2 class="h5 fw-bold text-uppercase mb-1">{% trans "See Something, Say Something" %}</h2>
                 <p class="small mb-2 mb-md-0">
                   {% blocktrans %}Report any violation of the Constitution, the PPM (including Health &amp; Safety), the law or university policy, and any injury however minor, within 48 hours. You may report anonymously. Also call your Regional Director.{% endblocktrans %}
                 </p>
@@ -464,13 +521,33 @@
             document.body.classList.add('region-bar-hidden');
           }
 
-          var themeToggle = document.getElementById('theme-toggle');
-          if (themeToggle) {
-            themeToggle.addEventListener('click', function () {
-              var current = document.documentElement.getAttribute('data-bs-theme') === 'dark' ? 'dark' : 'light';
-              var next = current === 'dark' ? 'light' : 'dark';
-              document.documentElement.setAttribute('data-bs-theme', next);
-              try { localStorage.setItem(STORAGE_THEME, next); } catch (e) {}
+          var media = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
+
+          function currentMode() {
+            return document.documentElement.getAttribute('data-tt-theme-mode') || 'auto';
+          }
+
+          function applyMode(mode) {
+            var resolved = mode === 'auto' ? (media && media.matches ? 'dark' : 'light') : mode;
+            document.documentElement.setAttribute('data-bs-theme', resolved);
+            document.documentElement.setAttribute('data-tt-theme-mode', mode);
+          }
+
+          document.querySelectorAll('.theme-option').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+              var mode = btn.getAttribute('data-theme-mode');
+              applyMode(mode);
+              try {
+                if (mode === 'auto') { localStorage.removeItem(STORAGE_THEME); }
+                else { localStorage.setItem(STORAGE_THEME, mode); }
+              } catch (e) {}
+            });
+          });
+
+          // Follow the OS while the user is on "Match system setting".
+          if (media && media.addEventListener) {
+            media.addEventListener('change', function () {
+              if (currentMode() === 'auto') { applyMode('auto'); }
             });
           }
 

@@ -4,7 +4,9 @@ from import_export import resources
 from import_export.fields import Field
 from import_export.widgets import ManyToManyWidget
 
-from .models import User, UserRoleChange, UserStatusChange, UserTag
+from thetatauCMT.jobs.models import Major
+
+from .models import Position, User, UserRoleChange, UserStatusChange, UserTag
 
 
 class UserTagResource(resources.ModelResource):
@@ -63,6 +65,22 @@ class UserStatusChangeResource(resources.ModelResource):
 
 
 class UserResource(resources.ModelResource):
+    # Employer / positions / final majors are related records; export their names
+    # and keep them out of imports (the same treatment `major` gets).
+    employer_name = Field(attribute="employer__name", column_name="employer", readonly=True)
+    positions = Field(
+        attribute="employer_positions",
+        column_name="employer_positions",
+        widget=ManyToManyWidget(Position, field="name", separator="; "),
+        readonly=True,
+    )
+    final_majors = Field(
+        attribute="major_final",
+        column_name="major_final",
+        widget=ManyToManyWidget(Major, field="name", separator="; "),
+        readonly=True,
+    )
+
     class Meta:
         model = User
         skip_unchanged = True
@@ -76,9 +94,12 @@ class UserResource(resources.ModelResource):
             "address_changed",
             "chapter",
             "deceased_changed",
+            "employer",
             "employer_address",
             "employer_changed",
+            "employer_positions",
             "major",
+            "major_final",
             "date_joined",
             "is_active",
             "is_staff",

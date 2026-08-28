@@ -5,8 +5,9 @@
 
 {% block content %}
   <h1>Update Ballot: {{ object.name }}</h1>
-  <form class="form-horizontal" method="post" action="">
+  <form class="form-horizontal" enctype="multipart/form-data" method="post" action="">
     {% csrf_token %}
+    {{ form.media }}
     {{ form|crispy }}
     <div class="control-group">
       <div class="controls">

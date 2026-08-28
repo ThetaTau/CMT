@@ -51,6 +51,7 @@ from core.models import (
 from core.notifications import GenericEmail
 from core.utils import retry_google_api, retry_on_deadlock
 from core.views import (
+    ActiveMemberRequiredMixin,
     AssignOfficerFormMixin,
     LoginRequiredMixin,
     NatOfficerRequiredMixin,
@@ -156,6 +157,7 @@ from .models import (
     RiskManagement,
     RitualProficiency,
     StatusChange,
+    employer_from_text,
 )
 from .notifications import EmailPledgeConfirmation, EmailPledgeOfficer, EmailProcessUpdate, EmailRMPSigned
 from .tables import (
@@ -387,7 +389,7 @@ class FormLanding(LoginRequiredMixin, TemplateView):
         return context
 
 
-class PledgePinsView(LoginRequiredMixin, TemplateView):
+class PledgePinsView(ActiveMemberRequiredMixin, TemplateView):
     template_name = "forms/pledge_pins.html"
 
 
@@ -856,6 +858,7 @@ class GraduateFillView(LoginRequiredMixin, OfficerRequiredMixin, TemplateView):
             self.request.user.current_chapter.actives()
             .exclude(pk=self.request.user.pk)
             .filter(pk__in=pks)
+            .prefetch_related("major_final")
             .order_by("name")
         )
 
@@ -864,15 +867,26 @@ class GraduateFillView(LoginRequiredMixin, OfficerRequiredMixin, TemplateView):
             return redirect("forms:status_graduate_select")
         return super().get(request, *args, **kwargs)
 
+    @staticmethod
+    def formset_initial(members):
+        return [
+            {
+                "user": member.name,
+                "email_personal": member.email,
+                "reason": "graduate",
+                # Seeded from the pledge-form major, the officer can correct it.
+                "major_final": [str(major) for major in member.major_final.all()],
+            }
+            for member in members
+        ]
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         members = self.selected_members() or []
         formset = kwargs.get("formset", None)
         if formset is None:
             formset = GraduateFormSet(prefix="graduates")
-        formset.initial = [
-            {"user": member.name, "email_personal": member.email, "reason": "graduate"} for member in members
-        ]
+        formset.initial = self.formset_initial(members)
         context["formset"] = formset
         context["helper"] = GraduateFormHelper()
         context["combined_media"] = formset.media
@@ -887,9 +901,7 @@ class GraduateFillView(LoginRequiredMixin, OfficerRequiredMixin, TemplateView):
         if not members:
             return redirect("forms:status_graduate_select")
         formset = GraduateFormSet(request.POST, request.FILES, prefix="graduates")
-        formset.initial = [
-            {"user": member.name, "email_personal": member.email, "reason": "graduate"} for member in members
-        ]
+        formset.initial = self.formset_initial(members)
         if not formset.is_valid():
             return self.render_to_response(self.get_context_data(formset=formset))
         chapter = request.user.current_chapter
@@ -974,11 +986,18 @@ def _officer_status_overlap_errors(request, member, role, start, end):
 
 def _current_officer_emails(user):
     """Comma-joined, de-duplicated emails of the current chapter officers/roles
-    for ``user``'s chapter (for the roster's "Copy emails" button)."""
+    for ``user``'s chapter (for the roster's "Copy emails" button).
+
+    Only officers who share their email with ``user`` are listed; chapter
+    officers, National Officers and Admins always see everyone.
+    """
     emails = []
     seen = set()
     for role_change in UserRoleChange.get_current_roles(user).select_related("user"):
-        email = role_change.user.email or role_change.user.email_school
+        officer = role_change.user
+        if not officer.contact_visible_to(user, officer.email_visibility):
+            continue
+        email = officer.email or officer.email_school
         if email and email.lower() not in seen:
             seen.add(email.lower())
             emails.append(email)
@@ -1249,10 +1268,17 @@ class RoleChangeNationalListView(DefaultCurrentPeriodMixin, LoginRequiredMixin, 
         context = super().get_context_data(**kwargs)
         # Bulk "copy emails" of the current national officers (mirrors the old
         # contacts page); the roster table itself is driven by the filter above.
+        # Each officer's own contact-visibility choice decides whether the
+        # viewer gets their address.
         officers, _ = collect_national_officer_contacts()
+        viewer = self.request.user
+        officer_users = User.objects.in_bulk([officer.user_pk for officer in officers])
         emails = []
         seen = set()
         for officer in officers:
+            target = officer_users.get(officer.user_pk)
+            if target is None or not target.contact_visible_to(viewer, target.email_visibility):
+                continue
             for email in officer.emails:
                 if email and email.lower() not in seen:
                     seen.add(email.lower())
@@ -1262,6 +1288,11 @@ class RoleChangeNationalListView(DefaultCurrentPeriodMixin, LoginRequiredMixin, 
         if getattr(self.request, "is_nat_officer", False):
             context.update(build_sync_modal_context(self.request, NATIONAL_SCOPE))
         return context
+
+    def get_table_kwargs(self):
+        kwargs = super().get_table_kwargs()
+        kwargs["viewer"] = self.request.user
+        return kwargs
 
 
 class RoleChangeNationalCreateView(LoginRequiredMixin, SuperuserRequiredMixin, CreateView):
@@ -1906,7 +1937,7 @@ class AuditFormView(LoginRequiredMixin, OfficerRequiredMixin, UpdateView):
                 return None
             audit_chapter = audit.user.chapter
             user = self.request.user
-            if audit_chapter == user.current_chapter or user.is_national_officer_group or user.is_superuser:
+            if audit_chapter == user.current_chapter or user.is_national_officer_group or user.is_admin:
                 return audit
             messages.add_message(
                 self.request,
@@ -2045,6 +2076,7 @@ class PledgeFormView(CreateView):
         pledge.instance.user = user
         self.object = pledge.save()
         user.set_current_status(status="pnm")
+        user.seed_major_final()
         view = BillOfRightsPDFView.as_view()
         new_request = HttpRequest()
         new_request.method = "GET"
@@ -3724,7 +3756,7 @@ class OtherSchoolAutocomplete(autocomplete.Select2QuerySetView):
 
     def _is_authorized(self):
         user = self.request.user
-        return user.is_authenticated and (user.is_officer_group or user.is_superuser)
+        return user.is_authenticated and (user.is_officer_group or user.is_admin)
 
     def get_queryset(self):
         if not self._is_authorized():
@@ -3737,7 +3769,7 @@ class OtherSchoolAutocomplete(autocomplete.Select2QuerySetView):
 
     def has_add_permission(self, request):
         user = request.user
-        return user.is_authenticated and (user.is_officer_group or user.is_superuser)
+        return user.is_authenticated and (user.is_officer_group or user.is_admin)
 
     def post(self, request, *args, **kwargs):
         if not self.has_add_permission(request):
@@ -3760,15 +3792,15 @@ class OtherSchoolAutocomplete(autocomplete.Select2QuerySetView):
 
 
 class EmployerAutocomplete(autocomplete.Select2QuerySetView):
-    """Autocomplete for `StatusChange.employer`.
+    """Autocomplete for `StatusChange.employer` and `User.employer`.
 
-    Officers may search existing employer names or type a new one to create
-    it inline.
+    Any signed-in member may search existing employer names or type a new one
+    to create it inline, because members choose their own employer on their
+    member information page.
     """
 
     def _is_authorized(self):
-        user = self.request.user
-        return user.is_authenticated and (user.is_officer_group or user.is_superuser)
+        return self.request.user.is_authenticated
 
     def get_queryset(self):
         if not self._is_authorized():
@@ -3779,8 +3811,7 @@ class EmployerAutocomplete(autocomplete.Select2QuerySetView):
         return qs.order_by("name")
 
     def has_add_permission(self, request):
-        user = request.user
-        return user.is_authenticated and (user.is_officer_group or user.is_superuser)
+        return request.user.is_authenticated
 
     def post(self, request, *args, **kwargs):
         if not self.has_add_permission(request):
@@ -3788,5 +3819,5 @@ class EmployerAutocomplete(autocomplete.Select2QuerySetView):
         text = (request.POST.get("text") or "").strip()
         if not text:
             return JsonResponse({"error": "Employer name is required."}, status=400)
-        obj, _ = Employer.objects.get_or_create(name=text)
+        obj = employer_from_text(text)
         return JsonResponse({"id": obj.pk, "text": str(obj)})

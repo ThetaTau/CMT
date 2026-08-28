@@ -19,6 +19,7 @@ import datetime
 from django.urls import reverse
 from django.utils import timezone as tz
 from django.utils.decorators import method_decorator
+from django.utils.html import strip_tags
 from django.views.decorators.cache import cache_page
 from django_ical.views import ICalFeed
 
@@ -61,21 +62,27 @@ class _EventTodoFeedMixin:
     def item_description(self, item):
         if item.kind == "todo":
             return item.obj.task.description
-        return item.obj.description
+        # The event description is rich text; .ics carries plain text only.
+        return strip_tags(item.obj.description or "").strip()
 
     def item_component_type(self, item):
         return "todo" if item.kind == "todo" else None
 
     def item_start_datetime(self, item):
-        # All-day (DATE value) for events; to-dos carry only a DUE date.
-        if item.kind == "event":
-            return item.obj.date
-        return None
+        # Timed events carry a real start/end; the rest stay all-day (DATE value).
+        if item.kind != "event":
+            return None
+        return item.obj.start_datetime or item.obj.date
 
     def item_end_datetime(self, item):
-        if item.kind == "event":
-            return item.obj.date + datetime.timedelta(days=1)
-        return None
+        if item.kind != "event":
+            return None
+        end = item.obj.end_datetime
+        if end is not None:
+            # A zero-duration timed event still needs a non-empty span.
+            start = item.obj.start_datetime
+            return end if end > start else start + datetime.timedelta(hours=1)
+        return item.obj.date + datetime.timedelta(days=1)
 
     def item_due(self, item):
         if item.kind == "todo":

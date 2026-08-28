@@ -10,7 +10,10 @@ from .models import TaskDate
 
 class TaskTable(CMTTable):
     task_name = tables.LinkColumn("tasks:complete", accessor="task__name", args=[A("pk")])
-    form = tables.URLColumn(
+    # Plain Column, not URLColumn: render_form already returns a full <a>, and
+    # URLColumn wrapped it in a second anchor, which the parser split into an
+    # empty, unnamed link (WCAG 2.4.4 / axe "link-name").
+    form = tables.Column(
         verbose_name="Form to Submit",
         accessor="task__resource",
     )

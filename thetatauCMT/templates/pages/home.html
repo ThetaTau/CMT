@@ -8,6 +8,25 @@
     }
   </style>
 {% load plotly_dash %}
+{% if outstanding_ballots %}
+  <div class="alert alert-warning" role="alert">
+    <h2 class="h5 alert-heading">
+      <i class="fa-solid fa-list-check"></i>
+      You have {{ outstanding_ballot_count }} ballot{{ outstanding_ballot_count|pluralize }} waiting on your vote
+    </h2>
+    <ul class="mb-2">
+      {% for ballot in outstanding_ballots %}
+        <li>
+          <a href="{% url 'ballots:vote' ballot.slug %}">{{ ballot.name }}</a>
+          ({{ ballot.get_type_display }}), closes {{ ballot.closes_display }}
+        </li>
+      {% endfor %}
+    </ul>
+    <p class="mb-0">
+      A chapter casts one vote: either the Regent or the Scribe may submit it.
+    </p>
+  </div>
+{% endif %}
 <div>
   <h1>Announcements</h1>
   <hr>

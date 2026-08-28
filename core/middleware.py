@@ -37,7 +37,7 @@ class RMPSignMiddleware(MiddlewareMixin):
         # pages to not redirect on (no recursion please!)
         if path in settings.TERMS_EXCLUDE_URL_LIST:
             return response
-        if not RiskManagement.user_signed_this_semester(request.user):
+        if request.user.requires_rmp and not RiskManagement.user_signed_this_semester(request.user):
             messages.add_message(
                 request,
                 messages.ERROR,

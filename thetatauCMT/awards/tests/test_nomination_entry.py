@@ -89,10 +89,14 @@ def test_form_cycle_limited_to_current_periods():
     # Only award periods active today are offered for new nominations (request 1).
     current = AwardCycleFactory(start_date=datetime.date(2000, 1, 1), end_date=None)
     past = AwardCycleFactory(start_date=datetime.date(2000, 1, 1), end_date=datetime.date(2001, 1, 1))
+    # Legacy imports create periods from labels that carry no dates; those are
+    # history, not current periods, and must stay out of the picker.
+    undated = AwardCycleFactory(start_date=None, end_date=None)
     form = AwardNominationForm(request_user=UserFactory())
     cycle_pks = set(form.fields["cycle"].queryset.values_list("pk", flat=True))
     assert current.pk in cycle_pks
     assert past.pk not in cycle_pks
+    assert undated.pk not in cycle_pks
 
 
 # ---------------------------------------------------------------------------

@@ -5,6 +5,8 @@ from report_builder import views
 from report_builder.api import views as api_views
 from rest_framework import routers
 
+from .report_views import SafeDownloadFileView, SafeGenerateReport
+
 router = routers.DefaultRouter()
 router.register(r"reports", api_views.ReportViewSet)
 # For some reason there is a conflict with the basename report so need to override it
@@ -16,12 +18,12 @@ router.register(r"contenttypes", api_views.ContentTypeViewSet)
 urlpatterns = [
     re_path(
         r"^report/(?P<pk>\d+)/download_file/$",
-        views.DownloadFileView.as_view(),
+        SafeDownloadFileView.as_view(),
         name="report_download_file",
     ),
     re_path(
         r"^report/(?P<pk>\d+)/download_file/(?P<filetype>.+)/$",
-        views.DownloadFileView.as_view(),
+        SafeDownloadFileView.as_view(),
         name="report_download_file",
     ),
     re_path(
@@ -51,12 +53,12 @@ urlpatterns = [
     ),
     re_path(
         r"^api/report/(?P<report_id>\w+)/generate/",
-        staff_member_required(api_views.GenerateReport.as_view()),
+        staff_member_required(SafeGenerateReport.as_view()),
         name="generate_report",
     ),
     re_path(
         r"^api/report/(?P<pk>\d+)/download_file/(?P<filetype>.+)/$",
-        views.DownloadFileView.as_view(),
+        SafeDownloadFileView.as_view(),
         name="report_download_file",
     ),
     re_path(

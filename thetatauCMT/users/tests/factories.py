@@ -39,8 +39,6 @@ class UserFactory(factory.django.DjangoModelFactory):
     )
     badge_number = factory.Sequence(lambda n: n + 1)
     major = factory.LazyAttribute(lambda o: ChapterCurriculaFactory(chapter=o.chapter))
-    employer = factory.Faker("sentence", nb_words=3)
-    employer_position = factory.Faker("sentence", nb_words=3)
     graduation_year = factory.Faker("random_int", min=1950, max=datetime.datetime.now().year + 10)
     phone_number = factory.Faker("msisdn")
     address = factory.Faker("address")

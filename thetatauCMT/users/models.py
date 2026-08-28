@@ -19,6 +19,7 @@ from viewflow.models import Process
 from core.models import (
     ACTIVE_STATUSES,
     ALL_ROLES_CHOICES,
+    ALUMNI_STATUSES,
     CHAPTER_OFFICER,
     CHAPTER_OFFICER_CHOICES,
     CHAPTER_ROLES,
@@ -61,6 +62,7 @@ class CustomUserManager(UserManager):
         extra_fields.setdefault("chapter", self._get_or_create_default_chapter())
         superuser = super().create_superuser(email=email, password=password, **extra_fields)
         self._give_superuser_natoff_roles(superuser)
+        return superuser
 
     def _give_superuser_natoff_roles(self, superuser):
         superuser.current_roles = ["grand regent"]
@@ -82,20 +84,79 @@ class UserTag(models.Model):
         return self.name
 
 
+class Position(TimeStampedModel):
+    """Shared registry of job titles a member can hold at their employer.
+
+    Mirrors :class:`Organization` and :class:`forms.models.Employer`: names are
+    whitespace-cleaned so the same title is reused across members, and new ones
+    can be added inline from the member information form.
+    """
+
+    name = models.CharField(max_length=200, unique=True)
+
+    class Meta:
+        ordering = ["name"]
+        verbose_name = "Position"
+        verbose_name_plural = "Positions"
+
+    def __str__(self):
+        return self.name
+
+    def clean(self):
+        super().clean()
+        cleaned = " ".join((self.name or "").split())
+        self.name = cleaned
+        if not cleaned:
+            raise ValidationError({"name": "Position name is required."})
+
+
+def positions_from_text(text):
+    """Return :class:`Position` rows for a comma-separated list of job titles.
+
+    Used by the not-signed-in member update flow, where titles arrive as free
+    text rather than from the member-facing dropdown.
+    """
+    positions = []
+    for raw in (text or "").split(","):
+        name = " ".join(raw.split())[:200]
+        if not name:
+            continue
+        position = Position.objects.filter(name__iexact=name).first()
+        if position is None:
+            position, _ = Position.objects.get_or_create(name=name)
+        if position not in positions:
+            positions.append(position)
+    return positions
+
+
 # Who may see one of a member's contact fields (email / phone / address) on
-# their public profile. National Officers, superusers, and the member
-# themselves can always see the information regardless of this setting.
+# their public profile and in member tables. The member themselves, their
+# chapter's officers, National Officers, and Admins can always see the
+# information regardless of this setting, so the most private level is named
+# for who that really is rather than "no one".
 CONTACT_VISIBILITY_NO_ONE = "no_one"
+# Retired level: saved before chapter officers always had access, so it now
+# means exactly the same thing as CONTACT_VISIBILITY_NO_ONE.
 CONTACT_VISIBILITY_OFFICERS = "officers"
 CONTACT_VISIBILITY_CHAPTER = "chapter"
 CONTACT_VISIBILITY_MEMBERS = "members"
 
 CONTACT_VISIBILITY_CHOICES = [
-    (CONTACT_VISIBILITY_NO_ONE, "No one (private)"),
-    (CONTACT_VISIBILITY_OFFICERS, "My chapter's officers only"),
+    (
+        CONTACT_VISIBILITY_NO_ONE,
+        "Only National Officers, Admins, and my chapter's officers",
+    ),
     (CONTACT_VISIBILITY_CHAPTER, "Members of my chapter"),
     (CONTACT_VISIBILITY_MEMBERS, "Any member on the site"),
 ]
+
+# Compact versions of the labels above, for badges that sit beside a value.
+CONTACT_VISIBILITY_SHORT_LABELS = {
+    CONTACT_VISIBILITY_NO_ONE: "Officers only",
+    CONTACT_VISIBILITY_OFFICERS: "Officers only",
+    CONTACT_VISIBILITY_CHAPTER: "My chapter",
+    CONTACT_VISIBILITY_MEMBERS: "All members",
+}
 
 
 class User(AbstractUser, EmailSignalMixin):
@@ -183,9 +244,31 @@ class User(AbstractUser, EmailSignalMixin):
         blank=True,
         null=True,
     )
-    employer = models.CharField(max_length=100, blank=True)
-    employer_changed = MonitorField(monitor="employer")
-    employer_position = models.CharField(max_length=100, blank=True, default="")
+    # `major` stays the chapter-approved curriculum picked on the pledge form.
+    # `major_final` is the shared vocabulary the job board uses, so a member can
+    # record every major they actually finished with.
+    major_final = models.ManyToManyField(
+        "jobs.Major",
+        verbose_name=_("Final Major(s)"),
+        blank=True,
+        related_name="members",
+    )
+    employer = models.ForeignKey(
+        "forms.Employer",
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True,
+        related_name="members",
+    )
+    # Monitors the raw column, not the relation, so loading a member never
+    # triggers a query for the related employer row.
+    employer_changed = MonitorField(monitor="employer_id")
+    employer_positions = models.ManyToManyField(
+        Position,
+        verbose_name=_("Position / Job Title"),
+        blank=True,
+        related_name="members",
+    )
     employer_address = AddressField(on_delete=models.SET_NULL, blank=True, null=True, related_name="employer")
     emergency_first_name = models.CharField(_("Emergency Contact first name"), max_length=30, blank=True, null=True)
     emergency_middle_name = models.CharField(_("Emergency Contact Middle Name"), max_length=30, blank=True, null=True)
@@ -281,21 +364,30 @@ class User(AbstractUser, EmailSignalMixin):
         max_length=10,
         choices=CONTACT_VISIBILITY_CHOICES,
         default=CONTACT_VISIBILITY_NO_ONE,
-        help_text="Who may see your email addresses on your member profile. National Officers can always see them.",
+        help_text=(
+            "Who may see your email addresses on your member profile and in member lists. "
+            "Your chapter's officers, National Officers, and Admins can always see them."
+        ),
     )
     phone_visibility = models.CharField(
         _("Phone visibility"),
         max_length=10,
         choices=CONTACT_VISIBILITY_CHOICES,
         default=CONTACT_VISIBILITY_NO_ONE,
-        help_text="Who may see your phone number on your member profile. National Officers can always see it.",
+        help_text=(
+            "Who may see your phone number on your member profile and in member lists. "
+            "Your chapter's officers, National Officers, and Admins can always see it."
+        ),
     )
     address_visibility = models.CharField(
         _("Address visibility"),
         max_length=10,
         choices=CONTACT_VISIBILITY_CHOICES,
         default=CONTACT_VISIBILITY_NO_ONE,
-        help_text="Who may see your mailing address on your member profile. National Officers can always see it.",
+        help_text=(
+            "Who may see your mailing address on your member profile and in member lists. "
+            "Your chapter's officers, National Officers, and Admins can always see it."
+        ),
     )
     ##### DENORMALIZED FIELDS #####  # noqa: E266
     current_status = models.CharField(max_length=10)
@@ -355,6 +447,20 @@ class User(AbstractUser, EmailSignalMixin):
 
     def get_absolute_url(self):
         return reverse("users:detail")
+
+    def seed_major_final(self):
+        """Copy the pledge-form major into the member-maintained final major list.
+
+        Only seeds an empty list, so a member who has curated their own majors
+        (or an officer who set them on the graduation form) is never overwritten.
+        """
+        from thetatauCMT.jobs.models import Major
+
+        if not self.major_id or self.major_final.exists():
+            return
+        major = Major.get_for_name(self.major.major)
+        if major is not None:
+            self.major_final.add(major)
 
     @classmethod
     def next_pledge_number(cls):
@@ -483,6 +589,29 @@ class User(AbstractUser, EmailSignalMixin):
         return self.in_national_officer_group and not self.natoff_hidden
 
     @property
+    def admin_hidden(self):
+        """True when an Admin has switched to "hide admin functionality" mode.
+
+        Toggled via the account menu, persisted on ``UserAlter.hide_admin``.
+        Only meaningful for superusers; everyone else is always ``False``.
+        """
+        if not self.is_superuser:
+            return False
+        alter = self.altered.first()
+        return bool(alter and alter.hide_admin)
+
+    @property
+    def is_admin(self):
+        """Whether the user is *currently acting as* an Admin (superuser).
+
+        Use this everywhere admin-only abilities are gated or displayed, rather
+        than the raw ``is_superuser`` field, so the "Hide admin functionality"
+        toggle takes effect. The raw field stays the source of truth for the
+        Django admin, 2FA enforcement and the switch-back controls.
+        """
+        return self.is_superuser and not self.admin_hidden
+
+    @property
     def is_chapter_officer_group(self):
         return self.groups.filter(name="officer").exists()
 
@@ -508,28 +637,49 @@ class User(AbstractUser, EmailSignalMixin):
     def is_advisor(self):
         return self.current_status == "advisor"
 
+    @property
+    def is_active_member(self):
+        """Whether this user's current status counts as an active member.
+
+        Uses ``core.models.ACTIVE_STATUSES`` (same statuses as ``is_active_on``).
+        """
+        return self.current_status in ACTIVE_STATUSES
+
+    @property
+    def requires_rmp(self):
+        """Whether this member must sign the Risk Management Policies each term.
+
+        Alumni are exempt unless they still hold a role (chapter officer,
+        National Officer, advisor or committee chair), because the policies bind
+        them through that position.
+        """
+        if self.current_status in ALUMNI_STATUSES:
+            return bool(self.current_roles)
+        return True
+
     def contact_visible_to(self, viewer, visibility):
         """Whether ``viewer`` may see one of this member's contact fields
         (email / phone / address) given that field's ``visibility`` setting.
 
-        The member themselves, National Officers, and superusers can always
-        see the information; everyone else is limited by the chosen level:
-        ``members`` (any member), ``chapter`` (same chapter), ``officers``
-        (officers of the same chapter), or ``no_one`` (nobody else).
+        The member themselves, officers of their chapter, National Officers,
+        and superusers can always see the information because they need it to
+        run the chapter. Everyone else is limited by the chosen level:
+        ``members`` (any member), ``chapter`` (same chapter), or ``no_one``
+        (nobody else).
         """
         if viewer is None or not getattr(viewer, "is_authenticated", False):
             return False
         if viewer.pk == self.pk:
             return True
-        if viewer.is_superuser or viewer.is_national_officer_group:
+        if viewer.is_admin or viewer.is_national_officer_group:
+            return True
+        same_chapter = viewer.chapter_id == self.chapter_id
+        if same_chapter and viewer.is_chapter_officer_group:
             return True
         if visibility == CONTACT_VISIBILITY_MEMBERS:
             return True
-        same_chapter = viewer.chapter_id == self.chapter_id
         if visibility == CONTACT_VISIBILITY_CHAPTER:
             return same_chapter
-        if visibility == CONTACT_VISIBILITY_OFFICERS:
-            return same_chapter and viewer.is_chapter_officer_group
         return False
 
     @property
@@ -698,6 +848,13 @@ class UserDemographic(models.Model):
         blank=True,
         null=True,
     )
+    international = models.BooleanField(
+        _("Are you considered an international student by your college/university?"),
+        choices=BOOL_CHOICES,
+        default=None,
+        blank=True,
+        null=True,
+    )
 
 
 class UserAlter(models.Model):
@@ -717,6 +874,15 @@ class UserAlter(models.Model):
             "When on, national-officer-only abilities are hidden so the site can "
             "be previewed as a regular member (or, with a role selected above, as "
             "that chapter officer)."
+        ),
+    )
+    hide_admin = models.BooleanField(
+        "Hide admin functionality",
+        default=False,
+        help_text=(
+            "When on, administrator-only abilities are hidden so the site can be "
+            "previewed without them. Combine with the national officer toggle and "
+            "no role above to see exactly what a regular member sees."
         ),
     )
 
@@ -854,7 +1020,7 @@ class UserRoleChange(StartEndModel, TimeStampedModel, EmailSignalMixin):
             # The member themselves — never for their own chapter-officer role.
             return self.role not in CHAPTER_OFFICER
         if self.role in NAT_OFFICERS:
-            return bool(user.is_superuser)
+            return bool(user.is_admin)
         current_chapter = getattr(user, "current_chapter", None)
         return bool(user.is_officer_group and self.user.chapter_id == getattr(current_chapter, "id", None))
 
@@ -1067,6 +1233,9 @@ class MemberUpdate(Process, EmailSignalMixin):
         null=True,
     )
     major_other = models.CharField(blank=True, null=True, max_length=500)
+    # Free text as typed on the not-signed-in update form (positions comma
+    # separated); MemberUpdateFlow turns these into Employer / Position records
+    # when the update is applied, so anonymous visitors cannot add registry rows.
     employer = models.CharField(blank=True, null=True, max_length=500)
     employer_position = models.CharField(blank=True, null=True, max_length=500)
     employer_address = AddressField(on_delete=models.SET_NULL, blank=True, null=True, related_name="update_employer")

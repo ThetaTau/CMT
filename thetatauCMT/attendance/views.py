@@ -277,7 +277,7 @@ class GuestMemberAutocompleteView(LoginRequiredMixin, View):
 
     def get(self, request, *args, **kwargs):
         user = request.user
-        if not (user.is_authenticated and (user.is_officer_group or user.is_superuser)):
+        if not (user.is_authenticated and (user.is_officer_group or user.is_admin)):
             return JsonResponse({"results": [], "error": "Not authorized."}, status=403)
         chapter_id = request.GET.get("chapter")
         if not chapter_id:

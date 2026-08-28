@@ -1,6 +1,8 @@
 """Static choice lists reused across forms.  Kept in a dedicated module so
 form modules can import them without dragging in extra dependencies."""
 
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+
 US_STATE_CHOICES = [
     ("AL", "Alabama"),
     ("AK", "Alaska"),
@@ -109,3 +111,35 @@ ADDRESS_REGION_SUGGESTIONS = (
     + [name for _code, name in CA_PROVINCE_CHOICES]
     + [name for _code, name in UK_REGION_CHOICES]
 )
+
+# The only zones chapters are actually in, so the event form can use a plain
+# <select> instead of a searchable 600-entry IANA list.
+US_UK_TIME_ZONES = [
+    ("America/New_York", "Eastern"),
+    ("America/Chicago", "Central"),
+    ("America/Denver", "Mountain"),
+    ("America/Phoenix", "Arizona (no DST)"),
+    ("America/Los_Angeles", "Pacific"),
+    ("America/Anchorage", "Alaska"),
+    ("Pacific/Honolulu", "Hawaii"),
+    ("America/Puerto_Rico", "Puerto Rico / US Virgin Islands"),
+    ("Pacific/Guam", "Guam / Northern Mariana Islands"),
+    ("Pacific/Pago_Pago", "American Samoa"),
+    ("Europe/London", "United Kingdom"),
+]
+
+
+def time_zone_choices(blank_label="Site default"):
+    """Flat ``<select>`` choices for the US and UK zones."""
+    return [("", blank_label)] + [(key, f"{label} ({key})") for key, label in US_UK_TIME_ZONES]
+
+
+def is_valid_time_zone(value):
+    """True when ``value`` names an IANA zone (blank is allowed = site default)."""
+    if not value:
+        return True
+    try:
+        ZoneInfo(value)
+    except (ZoneInfoNotFoundError, ValueError):
+        return False
+    return True

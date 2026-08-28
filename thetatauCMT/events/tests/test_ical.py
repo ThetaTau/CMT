@@ -6,6 +6,7 @@ Acceptance criteria covered by name:
     * chapter-scoped feed includes only that chapter's public events
     * region-scoped feed includes only that region's chapters' public events
     * date window — events older than the past-weeks window are excluded, recent past + future kept
+    * an event with a start time is a timed VEVENT, not an all-day one
     * to-dos appear as VTODO only when opted in and the member has a chapter
     * a member can create a feed from the calendar page form
     * quick-subscribe from a chapter page creates a chapter-scoped feed (idempotent)
@@ -88,6 +89,32 @@ def test_national_feed_is_always_available(client, chapter_factory):
     assert "BEGIN:VEVENT" in content
     assert "Always National" in content
     assert "Chapter Public" not in content  # national feed is national-only
+
+
+@pytest.mark.django_db
+def test_feed_emits_a_timed_event_for_a_start_time(client, chapter_factory):
+    """an event with a start time is a timed VEVENT, not an all-day one"""
+    chapter = chapter_factory.create(name=GREEK[0])
+    user = UserFactory.create(chapter=chapter, name="Timed Feed Owner")
+    _event(
+        chapter,
+        "Timed Gala",
+        is_public=True,
+        approval_status="approved",
+        start_time=datetime.time(18, 30),
+        time_zone="America/New_York",
+        duration=2,
+    )
+    _event(chapter, "All Day Retreat", is_public=True, approval_status="approved", start_time=None)
+    feed = CalendarFeedSubscription.objects.create(user=user, name="Timed")
+    feed.chapters.add(chapter)
+
+    content = _feed_content(client, feed)
+
+    # A timed event carries the wall-clock start in the event's own zone.
+    assert "DTSTART;TZID=America/New_York:" in content
+    assert "T183000" in content
+    assert "DTSTART;VALUE=DATE:" in content  # the all-day event is unchanged
 
 
 # ===========================================================================

@@ -34,6 +34,7 @@ class JobSearchTable(CMTTable):
         args=[A("pk")],
         text=mark_safe('<i class="fa fa-search"></i>'),
         attrs={"td": {"style": "width:1%;"}},
+        orderable=False,
     )
     search_title = tables.LinkColumn("jobs:update_search", args=[A("pk")])
 

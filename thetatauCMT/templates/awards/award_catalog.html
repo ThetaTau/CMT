@@ -4,7 +4,7 @@
 
 {% block content %}
 <div class="page-header d-flex flex-wrap align-items-center gap-2 mb-3">
-  <h2 class="page-title mb-0">{% trans "Award Catalog" %}</h2>
+  <h1 class="page-title mb-0">{% trans "Award Catalog" %}</h1>
   <div class="page-actions ms-auto d-flex flex-wrap gap-2">
     <a href="{% url 'awards:directory' %}" class="btn btn-sm btn-outline-primary">
       <i class="fas fa-trophy"></i> {% trans "All Award Winners" %}
@@ -56,16 +56,16 @@
 {% endif %}
 
 {% for category, awards in award_groups %}
-  <h3 class="h5 border-bottom pb-2 mt-4">{{ category|default:_("Other Awards") }}</h3>
+  <h2 class="h5 border-bottom pb-2 mt-4">{{ category|default:_("Other Awards") }}</h2>
   <div class="row row-cols-1 row-cols-lg-2 g-3">
     {% for award in awards %}
       <div class="col">
         <div class="card h-100">
           <div class="card-body">
-            <h4 class="card-title h6 mb-2">
+            <h3 class="card-title h6 mb-2">
               <a href="{% url 'awards:type_winners' award.pk %}">{{ award.name }}</a>
               {% if not award.is_active %}<span class="badge bg-secondary">{% trans "Retired" %}</span>{% endif %}
-            </h4>
+            </h3>
             <p class="mb-2">
               <span class="badge bg-info text-dark">{{ award.get_level_display }}</span>
               <span class="badge bg-light text-dark">{{ award.get_grant_method_display }}</span>

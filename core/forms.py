@@ -3,6 +3,7 @@ Copied from: https://gist.github.com/jamesbrobb/748c47f46b9bd224b07f
     per: http://stackoverflow.com/questions/15497693/django-can-class-based-views-accept-two-forms-at-a-time/24011448#24011448
 """
 
+import datetime
 import re
 
 from address.forms import Address
@@ -12,9 +13,11 @@ from dal_select2.widgets import Select2Multiple, Select2WidgetMixin, WidgetMixin
 from django import forms
 from django.conf import settings
 from django.http.response import HttpResponseForbidden, HttpResponseRedirect
+from django.utils import timezone
 from django.views.generic.base import ContextMixin, TemplateResponseMixin
 from django.views.generic.edit import ProcessFormView
 from tempus_dominus.widgets import DatePicker as _DatePicker
+from tempus_dominus.widgets import TimePicker as _TimePicker
 
 from core.address import get_or_create_address
 from core.choices import (
@@ -37,11 +40,49 @@ class DatePicker(_DatePicker):
     value well within the same calendar day for any UTC offset.
     """
 
+    def id_for_label(self, id_):
+        # tempus_dominus rewrites "-" to "_" in the id it renders (it builds a
+        # JS function name from it), so on a prefixed form the crispy <label
+        # for="id_user-birth_date"> pointed at an element that did not exist.
+        return id_.replace("-", "_")
+
     def moment_option(self, value):
+        # A date field's initial can be a datetime (e.g. a ``timezone.now``
+        # model default).  Its ISO string carries a UTC offset that moment.js
+        # re-renders in the *browser's* timezone, which can land on a different
+        # calendar day, so resolve it to a date in the site timezone first.
+        if isinstance(value, datetime.datetime):
+            value = timezone.localdate(value) if timezone.is_aware(value) else value.date()
         opts = super().moment_option(value)
         if "date" in opts and "T" not in opts["date"]:
             opts["date"] = opts["date"] + "T12:00:00"
         return opts
+
+
+class TimePicker(_TimePicker):
+    """12-hour tempus-dominus time picker that round-trips through Django.
+
+    Django's default ``TIME_INPUT_FORMATS`` are 24-hour only, so a form field
+    using this widget must accept :data:`TIME_INPUT_FORMATS_12H` as well.
+    """
+
+    def __init__(self, attrs=None, options=None, format=None):
+        options = {"format": "h:mm A", "stepping": 5, **(options or {})}
+        super().__init__(attrs=attrs, options=options, format=format or "%I:%M %p")
+
+    def id_for_label(self, id_):
+        # Same rewrite tempus_dominus applies when building its JS function name.
+        return id_.replace("-", "_")
+
+
+#: Accepted on input alongside the 12-hour string :class:`TimePicker` renders.
+TIME_INPUT_FORMATS_12H = [
+    "%I:%M %p",
+    "%I:%M%p",
+    "%I:%M:%S %p",
+    "%H:%M",
+    "%H:%M:%S",
+]
 
 
 class SchoolModelChoiceField(forms.ModelChoiceField):
@@ -386,10 +427,23 @@ class Select2ListCreateMultipleChoiceField(Select2ListCreateChoiceField, Select2
                 val = int(val)
             except ValueError:
                 if self.queryset.model == Locality:
-                    val = re.search(r"\b\d{5}\b", val).group(0)
-                    true_value = self.queryset.filter(postal_code=val).first()
+                    zip_match = re.search(r"\b\d{5}\b", val)
+                    if zip_match:
+                        true_value = self.queryset.filter(postal_code=zip_match.group(0)).first()
+                    else:
+                        # Typed text with no 5-digit zip, e.g. a browser-autofilled
+                        # "Durham, North Carolina, United States"; match on city name.
+                        city = val.split(",")[0].strip()
+                        true_value = self.queryset.filter(name__iexact=city).first() if city else None
+                    if true_value is None:
+                        raise forms.ValidationError(
+                            f"'{val}' did not match a known location. Please pick a location "
+                            "from the dropdown list or type a 5-digit zip code."
+                        )
                 else:
-                    true_value = self.queryset.get(name=val)
+                    true_value = self.queryset.filter(name=val).first()
+                    if true_value is None:
+                        raise forms.ValidationError(f"'{val}' did not match a known choice.")
                 new_values.append(true_value)
             else:
                 new_values.append(val)

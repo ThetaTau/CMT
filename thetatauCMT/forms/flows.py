@@ -247,6 +247,8 @@ class PrematureAlumnusFlow(Flow):
         created = activation.task.created
         user.set_current_status(status="alumni", created=created, start=created)
         slug = Config.get_value("PreAlumnSurvey")
+        if not slug:
+            return
         if "http" in slug:
             survey_link = slug
         else:

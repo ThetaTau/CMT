@@ -21,7 +21,7 @@ class EmailRMPSigned(EmailNotification):  # extend from EmailNotification for em
 
     def __init__(self, user, file, file_name):
         self.to_emails = set([user.email])  # set list of emails to send to
-        self.cc = ["cmt@thetatau.org"]
+        self.cc = []
         self.reply_to = [
             "central.office@thetatau.org",
         ]
@@ -193,7 +193,7 @@ class EmailPledgeConfirmation(EmailNotification):  # extend from EmailNotificati
             "date_joined",
             "is_superuser",
             "employer",
-            "employer_position",
+            "employer_positions",
             "groups",
             "user_permissions",
             "no_contact",

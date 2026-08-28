@@ -16,6 +16,73 @@ def test__str__(tp):
 
 
 # ---------------------------------------------------------------------------
+# Employer / Position registries (free-text resolution)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.django_db
+def test_positions_from_text_splits_cleans_and_reuses():
+    from thetatauCMT.users.models import Position, positions_from_text
+
+    existing = Position.objects.create(name="Engineer")
+    positions = positions_from_text("  engineer , Project   Manager ,, ")
+    assert positions == [existing, Position.objects.get(name="Project Manager")]
+    assert Position.objects.filter(name__iexact="engineer").count() == 1
+
+
+@pytest.mark.django_db
+def test_employer_from_text_matches_case_insensitively():
+    from thetatauCMT.forms.models import Employer, employer_from_text
+
+    existing = Employer.objects.create(name="Boeing")
+    assert employer_from_text("  boeing ") == existing
+    assert employer_from_text("") is None
+    assert employer_from_text("Lockheed Martin").name == "Lockheed Martin"
+
+
+@pytest.mark.django_db
+def test_position_clean_normalizes_whitespace():
+    from thetatauCMT.users.models import Position
+
+    position = Position(name="  Field   Engineer  ")
+    position.full_clean()
+    assert position.name == "Field Engineer"
+
+
+# ---------------------------------------------------------------------------
+# Final major(s)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.django_db
+def test_seed_major_final_copies_pledge_major():
+    from thetatauCMT.jobs.models import Major
+    from thetatauCMT.users.tests.factories import UserFactory as _UserFactory
+
+    existing = Major.objects.create(name="chemical engineering")
+    user = _UserFactory.create()
+    user.major.major = "Chemical Engineering"
+    user.major.save(update_fields=["major"])
+    user.seed_major_final()
+    assert list(user.major_final.all()) == [existing]
+    assert Major.objects.filter(name__iexact="chemical engineering").count() == 1
+
+
+@pytest.mark.django_db
+def test_seed_major_final_leaves_a_curated_list_alone():
+    from thetatauCMT.jobs.models import Major
+    from thetatauCMT.users.tests.factories import UserFactory as _UserFactory
+
+    user = _UserFactory.create()
+    user.major.major = "Chemical Engineering"
+    user.major.save(update_fields=["major"])
+    physics = Major.objects.create(name="physics")
+    user.major_final.add(physics)
+    user.seed_major_final()
+    assert list(user.major_final.all()) == [physics]
+
+
+# ---------------------------------------------------------------------------
 # Contact-field visibility (contact_visible_to)
 # ---------------------------------------------------------------------------
 from django.contrib.auth.models import AnonymousUser, Group  # noqa: E402
@@ -87,16 +154,42 @@ def test_contact_visible_to_chapter_only_same_chapter():
 
 
 @pytest.mark.django_db
-def test_contact_visible_to_officers_only_same_chapter_officer():
+def test_contact_visible_to_chapter_officer_always_sees():
+    """Officers can always see their own chapter's members, even at 'no_one'."""
     chapter = ChapterFactory(name=_GREEK_NAMES[0])
     owner = UserFactory(chapter=chapter)
     officer = _in_group(UserFactory(chapter=chapter), "officer")
     plain_member = UserFactory(chapter=chapter)
     other_officer = _in_group(UserFactory(chapter=ChapterFactory(name=_GREEK_NAMES[1])), "officer")
+    assert owner.contact_visible_to(officer, CONTACT_VISIBILITY_NO_ONE) is True
+    assert owner.contact_visible_to(plain_member, CONTACT_VISIBILITY_NO_ONE) is False
+    # An officer of a DIFFERENT chapter must not see it.
+    assert owner.contact_visible_to(other_officer, CONTACT_VISIBILITY_NO_ONE) is False
+
+
+@pytest.mark.django_db
+def test_contact_visible_to_retired_officers_level_behaves_like_no_one():
+    """Rows saved at the retired 'officers' level keep working."""
+    chapter = ChapterFactory(name=_GREEK_NAMES[0])
+    owner = UserFactory(chapter=chapter)
+    officer = _in_group(UserFactory(chapter=chapter), "officer")
+    plain_member = UserFactory(chapter=chapter)
     assert owner.contact_visible_to(officer, CONTACT_VISIBILITY_OFFICERS) is True
     assert owner.contact_visible_to(plain_member, CONTACT_VISIBILITY_OFFICERS) is False
-    # An officer of a DIFFERENT chapter must not see it.
-    assert owner.contact_visible_to(other_officer, CONTACT_VISIBILITY_OFFICERS) is False
+
+
+def test_contact_visibility_choices_drop_the_officers_level():
+    """'officers' is not offered: it now means the same thing as 'no_one'."""
+    from thetatauCMT.users.models import CONTACT_VISIBILITY_CHOICES
+
+    values = [value for value, _ in CONTACT_VISIBILITY_CHOICES]
+    assert values == [
+        CONTACT_VISIBILITY_NO_ONE,
+        CONTACT_VISIBILITY_CHAPTER,
+        CONTACT_VISIBILITY_MEMBERS,
+    ]
+    labels = dict(CONTACT_VISIBILITY_CHOICES)
+    assert labels[CONTACT_VISIBILITY_NO_ONE] == "Only National Officers, Admins, and my chapter's officers"
 
 
 @pytest.mark.django_db
@@ -186,3 +279,61 @@ def test_hide_natoff_without_role_is_plain_member():
     assert user.current_chapter == other
     assert user.chapter_officer() == set()
     assert user.is_national_officer_group is False
+
+
+# ---------------------------------------------------------------------------
+# Hide admin functionality (admin_hidden / is_admin)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.django_db
+def test_admin_hidden_false_for_non_superuser():
+    user = UserFactory()
+    assert user.admin_hidden is False
+    assert user.is_admin is False
+
+
+@pytest.mark.django_db
+def test_superuser_acts_as_admin_by_default():
+    user = UserFactory(is_superuser=True)
+    assert user.admin_hidden is False
+    assert user.is_admin is True
+    assert user_is_national_officer(user) is True
+
+
+@pytest.mark.django_db
+def test_hide_admin_makes_user_act_as_member():
+    user = UserFactory(is_superuser=True)
+    UserAlter.objects.create(user=user, chapter=user.chapter, role=None, hide_admin=True)
+    # Still a raw superuser (so the switch-back control stays available)...
+    assert user.is_superuser is True
+    assert user.admin_hidden is True
+    # ...but not currently *acting* as an Admin.
+    assert user.is_admin is False
+    assert user_is_national_officer(user) is False
+
+
+@pytest.mark.django_db
+def test_hide_admin_alone_leaves_natoff_functionality():
+    user = _in_group(UserFactory(is_superuser=True), "natoff")
+    UserAlter.objects.create(user=user, chapter=user.chapter, role=None, hide_admin=True)
+    assert user.is_admin is False
+    assert user.is_national_officer_group is True
+    assert user_is_national_officer(user) is True
+
+
+@pytest.mark.django_db
+def test_hiding_both_toggles_without_role_is_a_plain_member():
+    user = _in_group(UserFactory(is_superuser=True), "natoff")
+    UserAlter.objects.create(
+        user=user,
+        chapter=user.chapter,
+        role=None,
+        hide_natoff=True,
+        hide_admin=True,
+    )
+    assert user.is_admin is False
+    assert user.is_national_officer_group is False
+    assert user.is_officer_group is False
+    assert user.chapter_officer() == set()
+    assert user_is_national_officer(user) is False

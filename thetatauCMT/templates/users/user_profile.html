@@ -2,6 +2,7 @@
 {% load static %}
 {% load render_table from django_tables2 %}
 {% load award_tags %}
+{% load filter_tags %}
 {% block title %}Profile: {{ object.name }}{% endblock %}
 
 {% block content %}
@@ -69,9 +70,9 @@
         </div>
 
         <div class="flex-grow-1">
-          <h2 class="card-title mb-1">
+          <h1 class="h2 card-title mb-1">
             {% if object.title and object.title != 'none' %}{{ object.get_title_display }} {% endif %}{{ object.name }}{% if object.suffix %}, {{ object.suffix }}{% endif %}
-          </h2>
+          </h1>
           <div class="mb-2">{% if feature_awards_enabled %}{% inline_badges object %}{% endif %}</div>
           <div class="text-body-secondary mb-2 small">
             {% if object.preferred_name and object.preferred_name != object.first_name %}
@@ -256,20 +257,15 @@
               <dt class="col-sm-5">Degree</dt>
               <dd class="col-sm-7">{{ object.get_degree_display }}</dd>
             {% endif %}
-            {% if object.major %}
-              <dt class="col-sm-5">Major</dt>
-              <dd class="col-sm-7">{{ object.major }}</dd>
+            {% if final_majors %}
+              <dt class="col-sm-5">Major{{ final_majors|length|pluralize }}</dt>
+              <dd class="col-sm-7">
+                {% for final_major in final_majors %}{{ final_major }}{% if not forloop.last %}, {% endif %}{% endfor %}
+              </dd>
             {% endif %}
             {% if object.class_year %}
               <dt class="col-sm-5">Class year</dt>
               <dd class="col-sm-7">{{ object.get_class_year_display }}</dd>
-            {% endif %}
-            {% if object.employer %}
-              <dt class="col-sm-5">Employer</dt>
-              <dd class="col-sm-7">
-                {{ object.employer }}
-                {% if object.employer_position %}<span class="text-body-secondary">({{ object.employer_position }})</span>{% endif %}
-              </dd>
             {% endif %}
           </dl>
         </div>
@@ -294,7 +290,7 @@
               <dt class="col-sm-4">Email</dt>
               <dd class="col-sm-8">
                 <a href="mailto:{{ object.email }}">{{ object.email }}</a>
-                {% if is_owner %}<span class="badge bg-body-secondary text-body-secondary border ms-1" title="Who can see your email">{{ object.get_email_visibility_display }}</span>{% endif %}
+                {% if is_owner %}<span class="badge bg-body-secondary text-body-secondary border ms-1" title="Who can see your email: {{ object.get_email_visibility_display }}">{{ object.email_visibility|contact_visibility_short }}</span>{% endif %}
               </dd>
             {% endif %}
             {% if show_email and object.email_school %}
@@ -305,14 +301,14 @@
               <dt class="col-sm-4">Phone</dt>
               <dd class="col-sm-8">
                 {{ object.phone_number }}
-                {% if is_owner %}<span class="badge bg-body-secondary text-body-secondary border ms-1" title="Who can see your phone number">{{ object.get_phone_visibility_display }}</span>{% endif %}
+                {% if is_owner %}<span class="badge bg-body-secondary text-body-secondary border ms-1" title="Who can see your phone number: {{ object.get_phone_visibility_display }}">{{ object.phone_visibility|contact_visibility_short }}</span>{% endif %}
               </dd>
             {% endif %}
             {% if show_address and object.address %}
               <dt class="col-sm-4">Address</dt>
               <dd class="col-sm-8">
                 {{ object.address }}
-                {% if is_owner %}<span class="badge bg-body-secondary text-body-secondary border ms-1" title="Who can see your address">{{ object.get_address_visibility_display }}</span>{% endif %}
+                {% if is_owner %}<span class="badge bg-body-secondary text-body-secondary border ms-1" title="Who can see your address: {{ object.get_address_visibility_display }}">{{ object.address_visibility|contact_visibility_short }}</span>{% endif %}
               </dd>
             {% endif %}
             {% if has_hidden_contact %}
@@ -328,6 +324,38 @@
       </div>
     </div>
 
+    {# ---------- Employment ---------- #}
+    {% if has_employment %}
+      <div class="col-md-6">
+        <div class="card h-100">
+          <div class="card-header bg-body-tertiary">
+            <h5 class="mb-0"><i class="fa fa-briefcase me-2"></i>Employment</h5>
+          </div>
+          <div class="card-body">
+            <dl class="row mb-0">
+              {% if object.employer %}
+                <dt class="col-sm-5">Employer</dt>
+                <dd class="col-sm-7">{{ object.employer }}</dd>
+              {% endif %}
+              {% if employer_positions %}
+                <dt class="col-sm-5">Position</dt>
+                <dd class="col-sm-7">
+                  {% for position in employer_positions %}{{ position }}{% if not forloop.last %}, {% endif %}{% endfor %}
+                </dd>
+              {% endif %}
+              {% if show_employer_address %}
+                <dt class="col-sm-5">Work address</dt>
+                <dd class="col-sm-7">
+                  {{ object.employer_address }}
+                  {% if is_owner %}<span class="badge bg-body-secondary text-body-secondary border ms-1" title="Your work address follows your address setting: {{ object.get_address_visibility_display }}">{{ object.address_visibility|contact_visibility_short }}</span>{% endif %}
+                </dd>
+              {% endif %}
+            </dl>
+          </div>
+        </div>
+      </div>
+    {% endif %}
+
     {# ---------- Officer roles history ---------- #}
     {% if roles_history %}
       <div class="col-md-6">
@@ -340,7 +368,7 @@
               {% for role in roles_history %}
                 <li class="mb-1">
                   <span class="fw-semibold">{{ role.get_role_display|default:role.role|title }}</span>
-                  <span class="text-body-secondary small">{{ role.start|date:"M Y" }} &ndash; {{ role.end|date:"M Y" }}</span>
+                  <span class="text-body-secondary small">{{ role.start|date:"M Y" }} &ndash; {% if role.is_current %}Present{% else %}{{ role.end|date:"M Y" }}{% endif %}</span>
                 </li>
               {% endfor %}
             </ul>

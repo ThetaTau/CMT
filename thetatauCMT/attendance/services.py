@@ -11,7 +11,7 @@ def can_record_attendance(user, event):
     Officers / Admins) may record attendance for an event."""
     if not getattr(user, "is_authenticated", False):
         return False
-    if user.is_superuser or user.is_national_officer_group:
+    if user.is_admin or user.is_national_officer_group:
         return True
     if event.chapter_id and user.is_chapter_officer_group:
         current = user.current_chapter

@@ -243,6 +243,43 @@ def test_init_selection_authenticated_returns_200(auto_login_user):
     assert response.status_code == 200
 
 
+# ─── PledgePinsView (ActiveMemberRequired, TemplateView) ─────────────────────
+
+
+def test_pledge_pins_unauthenticated_redirects(client, db):
+    response = client.get(reverse("forms:pledge_pins"))
+    assert response.status_code == 302
+
+
+@pytest.mark.django_db
+def test_pledge_pins_active_member_returns_200(auto_login_user):
+    client, user = auto_login_user()
+    user.current_status = "active"
+    user.save()
+    response = client.get(reverse("forms:pledge_pins"))
+    assert response.status_code == 200
+
+
+@pytest.mark.django_db
+def test_pledge_pins_non_active_member_redirects(auto_login_user):
+    client, user = auto_login_user()
+    user.current_status = "alumni"
+    user.save()
+    response = client.get(reverse("forms:pledge_pins"), follow=False)
+    assert response.status_code == 302
+
+
+@pytest.mark.django_db
+@override_settings(DEBUG=True)  # superuser bypasses RequireSuperuser2FAMiddleware only when DEBUG
+def test_pledge_pins_superuser_returns_200(auto_login_user):
+    client, user = auto_login_user()
+    user.current_status = "alumni"
+    user.is_superuser = True
+    user.save()
+    response = client.get(reverse("forms:pledge_pins"))
+    assert response.status_code == 200
+
+
 # ─── Split member status-change views ─────────────────────────────────────────
 
 SINGLE_STATUS_REASONS = ["coop", "military", "withdraw", "transfer"]
@@ -376,6 +413,62 @@ def test_graduate_fill_without_selection_redirects(auto_login_user):
     response = client.get(reverse("forms:status_graduate"), follow=False)
     assert response.status_code == 302
     assert reverse("forms:status_graduate_select") in response["Location"]
+
+
+def _select_graduate(client, member):
+    session = client.session
+    session["graduate-selection"] = [member.pk]
+    session.save()
+
+
+@pytest.mark.django_db
+def test_graduate_fill_prefills_final_major(auto_login_user, user_factory):
+    """The fill step offers a final-major picker seeded with what we already know."""
+    from thetatauCMT.jobs.models import Major
+
+    client, user = auto_login_user()
+    _add_to_group(user, "officer")
+    member = user_factory.create(chapter=user.chapter)
+    member.set_current_status(status="active")
+    member.major_final.add(Major.objects.create(name="mechanical engineering"))
+    _select_graduate(client, member)
+    response = client.get(reverse("forms:status_graduate"))
+    assert response.status_code == 200
+    body = response.content.decode("utf-8")
+    assert "Final Major(s)" in body
+    assert "mechanical engineering" in body
+
+
+@pytest.mark.django_db
+def test_graduate_submit_records_final_majors(auto_login_user, user_factory):
+    """The submitted majors replace what the member had recorded."""
+    from thetatauCMT.jobs.models import Major
+
+    client, user = auto_login_user()
+    _add_to_group(user, "officer")
+    member = user_factory.create(chapter=user.chapter)
+    member.set_current_status(status="active")
+    member.major_final.add(Major.objects.create(name="mechanical engineering"))
+    civil = Major.objects.create(name="civil engineering")
+    physics = Major.objects.create(name="physics")
+    _select_graduate(client, member)
+    response = client.post(
+        reverse("forms:status_graduate"),
+        data={
+            "chapter": member.chapter.name,
+            "graduates-TOTAL_FORMS": "1",
+            "graduates-INITIAL_FORMS": "1",
+            "graduates-MIN_NUM_FORMS": "0",
+            "graduates-MAX_NUM_FORMS": "1000",
+            "graduates-0-degree": "bs",
+            "graduates-0-date_start": "2026-05-15",
+            "graduates-0-major_final": [str(civil.pk), str(physics.pk)],
+            "graduates-0-email_personal": "grad@example.com",
+        },
+        follow=False,
+    )
+    assert response.status_code == 302
+    assert sorted(member.major_final.values_list("name", flat=True)) == ["civil engineering", "physics"]
 
 
 @pytest.mark.django_db
@@ -2265,6 +2358,38 @@ def test_officer_list_defaults_to_current_and_all_shows_past(auto_login_user, us
 
 
 @pytest.mark.django_db
+def test_officer_list_end_column_shows_present_for_current_terms(auto_login_user, user_factory):
+    """A term that has not ended yet shows "Present" instead of its future end date."""
+    from django.utils import formats, timezone
+
+    from thetatauCMT.users.models import UserRoleChange
+
+    client, user = auto_login_user()
+    chapter = user.chapter
+    UserRoleChange.objects.filter(user__chapter=chapter).delete()
+    today = timezone.now().date()
+    future_end = today + timezone.timedelta(days=300)
+    past_end = today - timezone.timedelta(days=400)
+    UserRoleChange.objects.create(
+        user=user_factory.create(chapter=chapter, name="Current Scribe"),
+        role="scribe",
+        start=today - timezone.timedelta(days=10),
+        end=future_end,
+    )
+    UserRoleChange.objects.create(
+        user=user_factory.create(chapter=chapter, name="Past Scribe"),
+        role="scribe",
+        start=today - timezone.timedelta(days=800),
+        end=past_end,
+    )
+    body = client.get(reverse("forms:officer"), {"period": ""}).content.decode("utf-8")
+    assert "Present" in body
+    assert formats.date_format(future_end, "SHORT_DATE_FORMAT") not in body
+    # A finished term still shows its real end date.
+    assert formats.date_format(past_end, "SHORT_DATE_FORMAT") in body
+
+
+@pytest.mark.django_db
 def test_officer_list_page_has_copy_emails(auto_login_user, user_factory):
     """The chapter officer roster carries a Copy-emails button with current officers' emails."""
     from django.utils import timezone
@@ -2272,6 +2397,7 @@ def test_officer_list_page_has_copy_emails(auto_login_user, user_factory):
     from thetatauCMT.users.models import UserRoleChange
 
     client, user = auto_login_user()
+    _add_to_group(user, "officer")
     chapter = user.chapter
     UserRoleChange.objects.filter(user__chapter=chapter).delete()
     today = timezone.now().date()
@@ -2287,6 +2413,67 @@ def test_officer_list_page_has_copy_emails(auto_login_user, user_factory):
     body = response.content.decode("utf-8")
     assert "Copy emails to clipboard" in body
     assert "scribe-copy@example.com" in response.context["email_list"]
+
+
+@pytest.mark.django_db
+def test_officer_list_copy_emails_respects_contact_visibility(auto_login_user, user_factory):
+    """A plain member only gets the officer emails those officers have shared."""
+    from django.utils import timezone
+
+    from thetatauCMT.users.models import UserRoleChange
+
+    client, user = auto_login_user()
+    chapter = user.chapter
+    UserRoleChange.objects.filter(user__chapter=chapter).delete()
+    today = timezone.now().date()
+    private = user_factory.create(chapter=chapter, email="private-scribe@example.com")
+    shared = user_factory.create(
+        chapter=chapter,
+        email="shared-treasurer@example.com",
+        email_visibility="members",
+    )
+    for member, role in ((private, "scribe"), (shared, "treasurer")):
+        UserRoleChange.objects.create(
+            user=member,
+            role=role,
+            start=today - timezone.timedelta(days=10),
+            end=today + timezone.timedelta(days=300),
+        )
+    response = client.get(reverse("forms:officer"))
+    assert response.status_code == 200
+    email_list = response.context["email_list"]
+    assert "shared-treasurer@example.com" in email_list
+    assert "private-scribe@example.com" not in email_list
+
+
+@pytest.mark.django_db
+def test_national_officer_list_respects_contact_visibility(auto_login_user, user_factory):
+    """The national officer roster masks emails a member has not been given."""
+    from django.utils import formats, timezone
+
+    from thetatauCMT.users.models import UserRoleChange
+
+    client, user = auto_login_user()
+    today = timezone.now().date()
+    officer = user_factory.create(email="private-natoff@example.com")
+    term_end = today + timezone.timedelta(days=300)
+    UserRoleChange.objects.create(
+        user=officer,
+        role="regional director",
+        start=today - timezone.timedelta(days=10),
+        end=term_end,
+    )
+    response = client.get(reverse("forms:natoff"))
+    assert response.status_code == 200
+    assert "private-natoff@example.com" not in response.context["email_list"]
+    body = response.content.decode("utf-8")
+    # The officer's row is on the page; only the address is withheld.
+    assert officer.name in body
+    assert "mailto:private-natoff@example.com" not in body
+    assert ">private-natoff@example.com<" not in body
+    # A term still running reads "Present" rather than its future end date.
+    assert "Present" in body
+    assert formats.date_format(term_end, "SHORT_DATE_FORMAT") not in body
 
 
 @pytest.mark.django_db

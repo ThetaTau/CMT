@@ -49,6 +49,20 @@ def test_submission_create_view_unauthenticated(client):
 
 
 @pytest.mark.django_db
+def test_submission_create_view_renders_datepicker(auto_login_user):
+    """Submission Date needs the shared picker; the view used to build a default
+    ModelForm from ``fields``, which renders a bare text input."""
+    client, user = auto_login_user()
+    response = client.get(reverse("submissions:add"))
+    assert response.status_code == 200
+    body = response.content.decode("utf-8")
+    assert "deferDateTimePicker_id_date()" in body
+    assert 'name="date"' in body
+    # Without ``{{ form.media }}`` the widget renders but never initialises.
+    assert "tempusdominus-bootstrap-4" in body
+
+
+@pytest.mark.django_db
 def test_submission_redirect_view(auto_login_user):
     """Redirect view sends authenticated users to the list."""
     client, user = auto_login_user()
@@ -121,6 +135,31 @@ def test_submission_update_view_get_officer(auto_login_user):
     url = reverse("submissions:update", kwargs={"pk": submission.pk})
     response = client.get(url)
     assert response.status_code == 200
+
+
+@pytest.mark.django_db
+def test_submission_update_view_renders_datepicker(auto_login_user):
+    from thetatauCMT.scores.models import ScoreType
+    from thetatauCMT.submissions.models import Submission
+
+    client, user = auto_login_user(make_officer="chapter")
+    _make_officer(user, client)
+    score_type = ScoreType.objects.filter(type="Sub").first()
+    if score_type is None:
+        pytest.skip("No Sub ScoreType in fixture")
+    import datetime
+
+    submission = Submission.objects.create(
+        name="Picker Submission",
+        date=datetime.date.today(),
+        type=score_type,
+        chapter=user.chapter,
+    )
+    response = client.get(reverse("submissions:update", kwargs={"pk": submission.pk}))
+    assert response.status_code == 200
+    body = response.content.decode("utf-8")
+    assert "deferDateTimePicker_id_date()" in body
+    assert "tempusdominus-bootstrap-4" in body
 
 
 @pytest.mark.django_db

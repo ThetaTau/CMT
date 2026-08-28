@@ -13,10 +13,17 @@ from hcaptcha.fields import hCaptchaField
 from tempus_dominus.widgets import DatePicker as TempusDominusDatePicker  # noqa: F401
 from upload_validator import FileTypeValidator
 
-from core.forms import ComponentAddressField, DatePicker, SchoolModelChoiceField
+from core.forms import (
+    ComponentAddressField,
+    DatePicker,
+    ListSelect2Multiple,
+    SchoolModelChoiceField,
+    Select2ListCreateMultipleChoiceField,
+)
 from core.models import CHAPTER_ROLES_CHOICES, NAT_OFFICERS_CHOICES
 from thetatauCMT.chapters.forms import ChapterForm
 from thetatauCMT.chapters.models import Chapter, ChapterCurricula
+from thetatauCMT.jobs.models import Major
 from thetatauCMT.users.models import User, UserDemographic, UserRoleChange
 
 from .models import (
@@ -368,6 +375,13 @@ class GraduateForm(forms.ModelForm):
             attrs={"autocomplete": "off"},
         ),
     )
+    major_final = Select2ListCreateMultipleChoiceField(
+        label="Final Major(s)",
+        queryset=Major.objects.all(),
+        required=False,
+        widget=ListSelect2Multiple(url="jobs:major-autocomplete"),
+        help_text="What did they actually graduate in? Type to search, press Enter to add one that is not listed.",
+    )
     email_personal = forms.EmailField()
     email_work = forms.EmailField(required=False)
     employer = forms.ModelChoiceField(
@@ -385,10 +399,18 @@ class GraduateForm(forms.ModelForm):
             "reason",  # Set selected
             "degree",
             "date_start",  # Graduation Date
+            "major_final",  # Stored on the member, not on the status change
             "employer",  # label=Employer/<br>School/Location
             "email_personal",  # get from user model PERSONAL<br>Email Address
             "email_work",
         ]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Prefilled with the member's recorded majors. The picker takes free
+        # text, so the current values only render if they are also choices.
+        names = self.initial.get("major_final") or []
+        self.fields["major_final"].choices = [(name, name) for name in names]
 
     def clean_user(self):
         data = self.cleaned_data["user"]
@@ -398,6 +420,14 @@ class GraduateForm(forms.ModelForm):
         else:
             self.add_error("user", f"Could not find user with ID {data}")
             raise forms.ValidationError(f"Could not find user with ID {data}")
+
+    def save(self, commit=True):
+        status_change = super().save(commit=commit)
+        if commit:
+            # `major_final` lives on the member, not on the status change, so it
+            # is not something ModelForm can save for us.
+            status_change.user.major_final.set(self.cleaned_data.get("major_final") or [])
+        return status_change
 
 
 GraduateFormSet = forms.formset_factory(GraduateForm, extra=0)
@@ -411,6 +441,7 @@ class GraduateFormHelper(FormHelper):
         "reason",  # Set selected
         "degree",
         "date_start",  # Graduation Date
+        "major_final",
         "employer",  # label=Employer/<br>School/Location
         "email_personal",  # get from user model PERSONAL<br>Email Address
         "email_work",
@@ -1570,6 +1601,12 @@ class PledgeDemographicsForm(forms.ModelForm):
         initial="",
         required=True,
     )
+    international = forms.ChoiceField(
+        label="Are you considered an international student by your college/university?",
+        choices=[("", ""), (True, "Yes"), (False, "No")],
+        initial="",
+        required=True,
+    )
 
     class Meta:
         model = UserDemographic
@@ -1821,6 +1858,7 @@ class PledgeFormFull(CrispyCompatableMultiModelForm):
                     "demographics-ability_write",
                     "demographics-first_gen",
                     "demographics-english",
+                    "demographics-international",
                 ),
                 AccordionGroup(
                     "BILL OF RIGHTS",

@@ -25,7 +25,7 @@ class ChapterNoteDetailView(LoginRequiredMixin, MultiFormsView):
 
     def get(self, request, *args, **kwargs):
         self.object = self.get_object()
-        if (self.object.restricted and not request.user.is_council_officer) and not request.user.is_superuser:
+        if (self.object.restricted and not request.user.is_council_officer) and not request.user.is_admin:
             messages.add_message(
                 request,
                 messages.INFO,

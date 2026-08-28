@@ -17,7 +17,7 @@ from django.db.models import Count
 from django.utils import timezone
 from django_plotly_dash import DjangoDash
 
-from core.models import academic_encompass_start_end_date
+from core.models import ALUMNI_STATUSES, academic_encompass_start_end_date
 from thetatauCMT.chapters.models import Chapter
 from thetatauCMT.regions.models import Region
 
@@ -46,6 +46,15 @@ ACTIVE_STATUSES = ["active", "activepend", "alumnipend", "activeCC", "pendexpul"
 # new members) per org preference: the headline member metric = active members
 # + PNMs. Use this (not ACTIVE_STATUSES) anywhere a chart reports "members".
 MEMBER_STATUSES = ACTIVE_STATUSES + ["pnm"]
+
+# Statuses whose members still count as "ours" for career charts. Alumni are
+# the ones most likely to have an employer on file, so they are included here
+# even though they are off the chapter roster.
+CAREER_STATUSES = ACTIVE_STATUSES + ["alumni", "alumniCC", "advisor"]
+
+# The "living census": actives + alumni who are not marked deceased. Unlike the
+# other KPIs this is a standing head count, not scoped to the academic year.
+CENSUS_STATUSES = ACTIVE_STATUSES + ALUMNI_STATUSES
 
 # Distinct qualitative palette; falls back to Plotly D3 for extra regions.
 REGION_PALETTE = px.colors.qualitative.Bold + px.colors.qualitative.D3
@@ -87,15 +96,20 @@ def parse_region_slug(pathname):
     return "national"
 
 
-def get_scope_chapters(region_slug):
+def get_scope_chapters(region_slug, include_inactive=False):
     """Return the queryset of active chapters in scope for `region_slug`.
 
     * `national` — all active chapters
     * `candidate_chapter` — all active candidate chapters
     * `chapter_<slug>` — the single chapter with that slug (member home page)
     * any other slug — chapters whose region slug matches
+
+    Pass `include_inactive=True` to keep closed chapters in scope; the living
+    census counts their alumni, every other KPI is about current activity.
     """
-    qs = Chapter.objects.exclude(active=False).select_related("region")
+    qs = Chapter.objects.select_related("region")
+    if not include_inactive:
+        qs = qs.exclude(active=False)
     if region_slug == "national" or not region_slug:
         return qs
     if region_slug == "candidate_chapter":
@@ -138,15 +152,16 @@ def ay_dates(ay_start_year):
 
 
 def _kpi_card(card_id, label, subtitle=""):
+    # `col-xl` (no number) splits the row evenly however many cards it holds.
     return html.Div(
-        className="col-6 col-md-4 col-xl-2 mb-3",
+        className="col-6 col-md-4 col-xl mb-3",
         children=html.Div(
             className="card h-100 shadow-sm bg-body-tertiary text-body border-0",
             children=html.Div(
                 className="card-body text-center",
                 children=[
-                    html.H6(label, className="card-subtitle text-body-secondary text-uppercase small mb-2"),
-                    html.H3(id=card_id, className="card-title fw-bold mb-1", children="0"),
+                    html.Div(label, className="card-subtitle text-body-secondary text-uppercase small mb-2"),
+                    html.Div(id=card_id, className="card-title h3 fw-bold mb-1", children="0"),
                     html.Div(subtitle, className="text-body-secondary small") if subtitle else None,
                 ],
             ),
@@ -240,11 +255,17 @@ app.layout = html.Div(
             className="row g-2 mb-2",
             children=[
                 _kpi_card("kpi-total-members", "Student members today", "active + activepend + PNMs"),
+                _kpi_card("kpi-living-census", "Living census", "actives + alumni, not deceased"),
                 _kpi_card("kpi-pnms", "PNMs", "prospective status started"),
                 _kpi_card("kpi-initiations", "Initiations", "date within academic year"),
                 _kpi_card("kpi-prealums", "Prealumni", "approved by exec"),
                 _kpi_card("kpi-resignations", "Resignations", "approved by exec"),
                 _kpi_card("kpi-retention", "PNM retention", "1 − depledges / PNMs"),
+                _kpi_card(
+                    "kpi-communityedu",
+                    "Vector/CommunityEdu completion",
+                    "prior-year new members trained",
+                ),
             ],
         ),
         # Tabs.
@@ -341,6 +362,7 @@ app.layout = html.Div(
                                 md_cols=6,
                             ),
                             _panel("Majors of study (current members)", "majors-breakdown"),
+                            _panel("Where members work now (sized by members)", "current-employer-cloud"),
                             _panel(
                                 "Graduate employers (sized by hires)",
                                 "graduation-employer-cloud",
@@ -505,16 +527,19 @@ def _kpi_int(value):
 @app.callback(
     [
         Output("kpi-total-members", "children"),
+        Output("kpi-living-census", "children"),
         Output("kpi-pnms", "children"),
         Output("kpi-initiations", "children"),
         Output("kpi-prealums", "children"),
         Output("kpi-resignations", "children"),
         Output("kpi-retention", "children"),
+        Output("kpi-communityedu", "children"),
     ],
     [Input("region-slug-store", "data"), Input("ay-store", "data")],
 )
 def update_kpis(region_slug, ay_start_year):
     from thetatauCMT.forms.models import Depledge, Initiation, PrematureAlumnus, ResignationProcess
+    from thetatauCMT.trainings.services import chapter_completion_stats
     from thetatauCMT.users.models import User, UserStatusChange
 
     chapters = get_scope_chapters(region_slug)
@@ -522,6 +547,15 @@ def update_kpis(region_slug, ay_start_year):
     ay_start_date, ay_end_date = ay_start.date(), ay_end.date()
 
     total_members = User.objects.filter(chapter__in=chapters, current_status__in=MEMBER_STATUSES).count()
+
+    living_census = (
+        User.objects.filter(
+            chapter__in=get_scope_chapters(region_slug, include_inactive=True),
+            current_status__in=CENSUS_STATUSES,
+        )
+        .exclude(deceased=True)
+        .count()
+    )
 
     pnms = (
         UserStatusChange.objects.filter(
@@ -566,13 +600,22 @@ def update_kpis(region_slug, ay_start_year):
         rate = max(0.0, 1.0 - (depledges / pnms)) * 100
         retention = f"{rate:.0f}%"
 
+    completion_stats = chapter_completion_stats(start_date=ay_start_date, end_date=ay_end_date, chapters=chapters)
+    completion_total = sum(stat.total for stat in completion_stats)
+    completion_completed = sum(stat.completed for stat in completion_stats)
+    community_edu = "None"
+    if completion_total:
+        community_edu = f"{completion_completed / completion_total * 100:.0f}%"
+
     return (
         _kpi_int(total_members),
+        _kpi_int(living_census),
         _kpi_int(pnms),
         _kpi_int(initiations),
         _kpi_int(prealums),
         _kpi_int(resignations),
         retention,
+        community_edu,
     )
 
 
@@ -683,7 +726,7 @@ def _horizontal_bar_top_n(rows, label_key, value_key, x_label, theme, top_n=10, 
     return _apply_theme(fig, theme)
 
 
-def _treemap_from_rows(rows, label_key, value_key, theme, value_label="Graduates"):
+def _treemap_from_rows(rows, label_key, value_key, theme, value_label="Graduates", top_n=None):
     """Render a treemap where each rectangle's area is proportional to its
     value. Used in place of a word cloud (plotly ships no wordcloud trace)
     so the tag-cloud "biggest is most common" affordance survives.
@@ -698,6 +741,8 @@ def _treemap_from_rows(rows, label_key, value_key, theme, value_label="Graduates
     if df.empty:
         return _empty_figure(theme, "No data for this period")
     df = df.sort_values(value_key, ascending=False)
+    if top_n:
+        df = df.head(top_n)
 
     fig = go.Figure(
         go.Treemap(
@@ -1126,6 +1171,41 @@ def retention_by_chapter(region_slug, ay_start_year, theme):
         legend_title_text="Region",
     )
     return _apply_theme(fig, theme)
+
+
+@app.callback(
+    Output("current-employer-cloud", "figure"),
+    [Input("region-slug-store", "data"), Input("theme-store", "data")],
+)
+def current_employer_cloud(region_slug, theme):
+    """Treemap of the employers members have on their profile right now.
+
+    A snapshot rather than an academic-year window: it answers "where do our
+    members work" from `User.employer`, whereas `graduation_employer_cloud`
+    answers "who hired this year's graduates" from their status change.
+    """
+    from thetatauCMT.users.models import User
+
+    chapters = get_scope_chapters(region_slug)
+    rows = list(
+        User.objects.filter(
+            chapter__in=chapters,
+            current_status__in=CAREER_STATUSES,
+            employer__isnull=False,
+        )
+        .values("employer__name")
+        .annotate(count=Count("id"))
+    )
+    for row in rows:
+        row["Employer"] = row.pop("employer__name")
+    return _treemap_from_rows(
+        rows,
+        label_key="Employer",
+        value_key="count",
+        theme=theme,
+        value_label="Members",
+        top_n=40,
+    )
 
 
 @app.callback(

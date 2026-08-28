@@ -1,4 +1,4 @@
-.PHONY: help build build-up up down restart logs shell test clean migrate makemigrations collectstatic setup-host
+.PHONY: help build build-up up down restart logs shell test test-anonymizer clean migrate makemigrations collectstatic setup-host show-roles add-role remove-role
 
 # ------------------------------------------------------------------------------
 # Container engine configuration (Docker or Podman)
@@ -36,11 +36,16 @@ help:
 	@echo "  make logs           - View container logs"
 	@echo "  make shell          - Connect to Django container shell"
 	@echo "  make test           - Run tests"
+	@echo "  make test-anonymizer - Dry-run the anonymizer to check every model is registered"
 	@echo "  make migrate        - Run database migrations"
 	@echo "  make makemigrations - Create new migrations"
 	@echo "  make collectstatic  - Collect static files"
 	@echo "  make clean          - Remove containers and volumes"
 	@echo "  make setup-host     - Fix host.containers.internal -> Windows host (run once, or after WSL2 restart)"
+	@echo ""
+	@echo "  make show-roles  EMAIL=you@example.com                       - List a member's roles"
+	@echo "  make add-role    EMAIL=you@example.com ROLE='grand regent'    - Grant a role (MONTHS=12)"
+	@echo "  make remove-role EMAIL=you@example.com ROLE='grand regent'    - Revoke a role"
 	@echo ""
 	@echo "  Switch engine in .env (CONTAINER_ENGINE=docker|podman) or per run, e.g.: make up CONTAINER_ENGINE=docker"
 
@@ -63,6 +68,18 @@ logs:
 shell:
 	$(EXEC) thetataucmt_local_django bash
 
+# Role management, e.g. make add-role EMAIL=test@gmail.com ROLE="grand regent"
+MONTHS ?= 12
+
+show-roles:
+	$(EXEC) thetataucmt_local_django python manage.py user_role "$(EMAIL)"
+
+add-role:
+	$(EXEC) thetataucmt_local_django python manage.py user_role "$(EMAIL)" --add "$(ROLE)" --months $(MONTHS)
+
+remove-role:
+	$(EXEC) thetataucmt_local_django python manage.py user_role "$(EMAIL)" --remove "$(ROLE)"
+
 shellworker:
 	$(EXEC) thetataucmt_local_celeryworker bash
 
@@ -80,6 +97,10 @@ test-fast:
 
 test-path:
 	$(EXEC) thetataucmt_local_django pytest $(path)
+
+# Dry run only: reports any model missing from anonymizer/, changes no data.
+test-anonymizer:
+	$(EXEC) thetataucmt_local_django python manage.py anonymize_db --check_only
 
 migrate:
 	$(EXEC) thetataucmt_local_django python manage.py migrate

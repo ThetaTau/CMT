@@ -161,6 +161,35 @@ def test_rmp_middleware_unsigned_redirects():
 
 
 @pytest.mark.django_db
+def test_rmp_middleware_alumni_without_role_not_required():
+    """An alumnus holding no current role is exempt from the RMP requirement."""
+    user = UserFactory.create(status="alumni")  # no RiskManagement record
+
+    factory = RequestFactory()
+    request = _make_request(factory, "/chapter/dashboard/")
+    request.user = user
+
+    response = RMPSignMiddleware(get_response=_get_response)(request)
+
+    assert response.status_code == 200
+
+
+@pytest.mark.django_db
+def test_rmp_middleware_alumni_with_role_still_redirects():
+    """An alumnus who still holds a role must sign the RMP."""
+    user = UserFactory.create(status="alumni", make_officer="adviser")
+
+    factory = RequestFactory()
+    request = _make_request(factory, "/chapter/dashboard/")
+    request.user = user
+
+    response = RMPSignMiddleware(get_response=_get_response)(request)
+
+    assert response.status_code == 302
+    assert "/rmp/" in response["Location"]
+
+
+@pytest.mark.django_db
 def test_rmp_middleware_signed_passes_through():
     """Authenticated user who has signed the RMP this semester gets normal response."""
     from thetatauCMT.forms.models import RiskManagement

@@ -6,7 +6,26 @@ from core.tables import CMTTable
 from .models import User, UserOrgParticipate, UserStatusChange
 
 
+class ContactEmailColumn(tables.EmailColumn):
+    """Email column that drops the ``mailto:`` link when the cell is masked."""
+
+    def get_url(self, value, record, table):
+        if not table.contact_visible(record, "email"):
+            return None
+        return f"mailto:{value}"
+
+
 class UserTable(CMTTable):
+    """Member roster. Contact columns honour each member's visibility choice.
+
+    Pass ``viewer`` (the requesting user) to mask email / phone / address for
+    members who have not shared them with that viewer. Omit it for system
+    exports (dues CSV, admin bulk export) that are not rendered for a person.
+    """
+
+    HIDDEN_CONTACT = "Private"
+
+    email = ContactEmailColumn()
     rmp_complete = tables.Column(verbose_name="RMP Complete")
 
     class Meta:
@@ -30,7 +49,18 @@ class UserTable(CMTTable):
             + "Only officers can view alumni contact information."
         )
 
-    def __init__(self, chapter=False, natoff=False, admin=False, extra_info=False, rmp=False, *args, **kwargs):
+    def __init__(
+        self,
+        chapter=False,
+        natoff=False,
+        admin=False,
+        extra_info=False,
+        rmp=False,
+        viewer=None,
+        *args,
+        **kwargs,
+    ):
+        self.viewer = viewer
         extra_columns = kwargs.get("extra_columns", [])
         # Everyone (chapter member, officer, natoff, admin) links through the
         # public member profile page. Admins still see the backend admin link
@@ -64,6 +94,25 @@ class UserTable(CMTTable):
         kwargs["extra_columns"] = extra_columns
         super().__init__(*args, **kwargs)
 
+    def contact_visible(self, record, field):
+        """Whether ``self.viewer`` may see ``record``'s ``field`` contact info."""
+        if self.viewer is None:
+            return True
+        check = getattr(record, "contact_visible_to", None)
+        if check is None:
+            return True
+        return check(self.viewer, getattr(record, f"{field}_visibility", ""))
+
+    def render_email(self, value, record):
+        if not self.contact_visible(record, "email"):
+            return self.HIDDEN_CONTACT
+        return value
+
+    def render_phone_number(self, value, record):
+        if not self.contact_visible(record, "phone"):
+            return self.HIDDEN_CONTACT
+        return value
+
     def render_initiation(self, value):
         if value:
             value = value.date
@@ -79,7 +128,14 @@ class UserTable(CMTTable):
             value = UserStatusChange.STATUS.get_value(value)
         return value
 
-    def render_address(self, value):
+    def render_full_address(self, value, record):
+        if not self.contact_visible(record, "address"):
+            return self.HIDDEN_CONTACT
+        return value
+
+    def render_address(self, value, record):
+        if not self.contact_visible(record, "address"):
+            return self.HIDDEN_CONTACT
         if value:
             if hasattr(value, "locality"):
                 value = value.locality

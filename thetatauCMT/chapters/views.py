@@ -145,8 +145,8 @@ class ChapterDetailView(LoginRequiredMixin, MultiFormsView):
         natoff = False
         if self.request.user.is_national_officer() and not self.request.user.natoff_hidden:
             natoff = True
-        admin = self.request.user.is_superuser
-        table = UserTable(data=chapter_officers, natoff=natoff, admin=admin)
+        admin = self.request.user.is_admin
+        table = UserTable(data=chapter_officers, natoff=natoff, admin=admin, viewer=self.request.user)
         table.exclude = ("badge_number", "graduation_year")
         RequestConfig(self.request, paginate={"per_page": 100}).configure(table)
         context["table"] = table
@@ -156,7 +156,13 @@ class ChapterDetailView(LoginRequiredMixin, MultiFormsView):
         # Personal officer emails + region email + the chapter's generic officer
         # mailboxes (regent/vice regent/treasurer/scribe/corresponding secretary
         # plus the general chapter address), deduped and blanks dropped.
-        email_parts = [officer.email for officer in chapter_officers]
+        # A personal email is only included when the officer shares it with this
+        # viewer; the generic mailboxes are always the cross-chapter channel.
+        email_parts = [
+            officer.email
+            for officer in chapter_officers
+            if officer.contact_visible_to(self.request.user, officer.email_visibility)
+        ]
         email_parts.extend(chapter.get_generic_chapter_emails())
         seen = set()
         deduped_emails = []
@@ -246,7 +252,7 @@ class ChapterActivityView(LoginRequiredMixin, TemplateView):
     def _user_allowed(self, user, chapter):
         if not user.is_authenticated:
             return False
-        if user.is_superuser:
+        if user.is_admin:
             return True
         if user.groups.filter(name="natoff").exists():
             return True
@@ -443,7 +449,7 @@ class ChapterAuditView(LoginRequiredMixin, TemplateView):
     def _user_allowed(self, user, chapter):
         if not user.is_authenticated:
             return False
-        if user.is_superuser:
+        if user.is_admin:
             return True
         if user.groups.filter(name="natoff").exists():
             return True
@@ -487,6 +493,15 @@ class ChapterListView(LoginRequiredMixin, PagedFilteredTableView):
         return {
             "officer": self.request.user.is_national_officer(),
         }
+
+    def get_queryset(self, **kwargs):
+        # First (unfiltered) load defaults to Active chapters; "Clear" (cancel)
+        # resets to showing all, and any other explicit "active" value is kept.
+        cancel = self.request.GET.get("cancel", False)
+        request_get = self.request.GET.copy()
+        if not cancel and "active" not in request_get:
+            request_get["active"] = "1"
+        return super().get_queryset(request_get=request_get, **kwargs)
 
 
 class DuesSyncMixin:

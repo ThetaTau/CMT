@@ -416,6 +416,22 @@ class Employer(TimeStampedModel):
             raise ValidationError({"name": "Employer name is required."})
 
 
+def employer_from_text(name):
+    """Return the :class:`Employer` matching ``name``, creating it when new.
+
+    Names are whitespace-cleaned and matched case-insensitively so free-text
+    entry (the not-signed-in member update form, the inline "add" option on the
+    autocomplete) does not fill the registry with near-duplicates.
+    """
+    cleaned = " ".join((name or "").split())[:200]
+    if not cleaned:
+        return None
+    employer = Employer.objects.filter(name__iexact=cleaned).first()
+    if employer is None:
+        employer, _ = Employer.objects.get_or_create(name=cleaned)
+    return employer
+
+
 class StatusChange(TimeStampedModel):
     class REASONS(EnumClass):
         graduate = ("graduate", "Member is graduating")  # Graduated from school
