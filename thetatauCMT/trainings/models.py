@@ -220,16 +220,14 @@ class Training(TimeStampedModel):
                     }}
                 }}
                 """
-            try:
-                response = requests.post(url, json={"query": query}, headers=authenticate_header)
-                json_response = response.json()
-            except Exception:
-                if response.status_code == 429:
-                    logger.warning("Delay for 300...")
-                    sleep(300)
-                    authenticate_header = Training.authenticate_header()
-                    continue
-                break
+            json_response = _post_lms_json(
+                url,
+                json={"query": query},
+                headers=authenticate_header,
+                description="Training system progress lookup",
+            )
+            if "data" not in json_response:
+                raise TrainingSystemUnavailable(f"Training system progress lookup returned no data: {json_response}")
             users = json_response["data"]["People"]["nodes"]
             has_next = json_response["data"]["People"]["pageInfo"]["hasNextPage"]
             cursor = json_response["data"]["People"]["pageInfo"]["endCursor"]
