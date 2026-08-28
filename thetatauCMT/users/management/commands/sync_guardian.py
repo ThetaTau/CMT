@@ -1,6 +1,7 @@
 import csv
 import datetime
 import io
+from pathlib import Path
 
 import environ
 import requests
@@ -217,7 +218,9 @@ class Command(BaseCommand):
         api = f"{url}/api/auth/login/admin"
 
         env = environ.Env()
-        env.read_env(str(settings.ROOT_DIR / ".env"))
+        env_path = str(settings.ROOT_DIR / ".env")
+        if Path(env_path).exists():
+            env.read_env(str(settings.ROOT_DIR / ".env"))
         email = env("GUARDIAN_EMAIL")
         password = env("GUARDIAN_PASSWORD")
 
