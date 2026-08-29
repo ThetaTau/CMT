@@ -1,4 +1,4 @@
-ARG PYTHON_VERSION=3.12-slim-bookworm
+ARG PYTHON_VERSION=3.12-slim-bookworm@sha256:0f5b26b9518d002b6173fd61daad821fa340635ebfec5bba471013f9ca114579
 
 
 
@@ -34,7 +34,7 @@ COPY ./requirements .
 #   - poetry-core is the build backend for the git-pinned django-report-builder
 # --find-links ensures pip passes the local wheel cache to isolated build
 # environments it spawns for packages like the git-pinned report-builder.
-RUN pip wheel --wheel-dir /usr/src/app/wheels setuptools wheel poetry-core \
+RUN pip wheel --wheel-dir /usr/src/app/wheels "setuptools==80.10.2" "wheel==0.48.0" "poetry-core==2.4.1" \
   && pip wheel --wheel-dir /usr/src/app/wheels \
     --retries 5 \
     --timeout 60 \
