@@ -24,7 +24,7 @@ services:
     command: /start
 
   postgres:
-    image: postgres:12.6
+    image: postgres:12.6@sha256:26ce5e265fbbf120b4a89a9b26770bad757a7dfa4f329038d93770edbe5aae00
     container_name: thetataucmt_local_postgres
     volumes:
       - thetataucmt_local_postgres_data:/var/lib/postgresql/data
@@ -35,7 +35,7 @@ services:
       - ./.envs/.local/.postgres
 
   mailpit:
-    image: docker.io/axllent/mailpit:latest
+    image: docker.io/axllent/mailpit:v1.31.0@sha256:c96991d9bef73594c246d89ca81411d4e916f03e76a7d2d72fa2ab5dd3c9ce24
     container_name: thetataucmt_local_mailpit
     ports:
       - "8025:8025"
