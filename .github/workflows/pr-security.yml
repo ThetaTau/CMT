@@ -1,0 +1,65 @@
+name: PR Security
+
+on:
+  pull_request:
+    branches: ["main", "staging"]
+
+concurrency:
+  group: pr-security-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  semgrep:
+    name: Semgrep
+    runs-on: ubuntu-latest
+
+    # Dependabot/Renovate branches only touch dependency manifests, not app code.
+    if: github.actor != 'dependabot[bot]' && github.actor != 'renovate[bot]'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          # semgrep ci needs history to compute the PR diff baseline (merge base).
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: "3.12"
+
+      - name: Install Semgrep
+        # Pinned for reproducible rule/engine behavior; bump deliberately.
+        run: pip install --quiet "semgrep==1.175.0"
+
+      - name: Run Semgrep
+        # `semgrep ci` on a pull_request event is diff-aware: it reports only
+        # findings introduced vs. the merge base, never pre-existing ones.
+        # continue-on-error so semgrep's exit code doesn't decide the gate;
+        # the "Gate" step below does.
+        continue-on-error: true
+        run: semgrep ci --json-output=semgrep.json
+        env:
+          SEMGREP_SEND_METRICS: "off"
+          # No Semgrep AppSec Platform token, so rules come from the registry
+          # via SEMGREP_RULES (space/newline separated) plus the local pack.
+          SEMGREP_RULES: >-
+            p/django
+            p/python
+            p/security-audit
+            p/secrets
+            p/dockerfile
+            p/github-actions
+            .github/semgrep/
+
+      - name: Gate on new ERROR findings
+        run: |
+          count=$(python -c "import json; print(sum(1 for r in json.load(open('semgrep.json'))['results'] if r['extra']['severity'] == 'ERROR'))")
+          echo "New ERROR-severity findings in this diff: $count"
+          if [ "$count" -gt 0 ]; then
+            echo "::error::Semgrep found $count new ERROR-severity issue(s) in this PR's diff. See the run log / annotations above."
+            exit 1
+          fi
