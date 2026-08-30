@@ -404,6 +404,12 @@ class User(AbstractUser, EmailSignalMixin):
     )
     history = HistoricalRecords()
 
+    @classmethod
+    def from_db(cls, db, field_names, values):
+        instance = super().from_db(db, field_names, values)
+        instance._loaded_email = instance.email
+        return instance
+
     def save(self, *args, **kwargs):
         suffix = f" {self.suffix}" if self.suffix else ""
         if self.name == "":
@@ -412,7 +418,26 @@ class User(AbstractUser, EmailSignalMixin):
             self.name = f"{self.preferred_name} {self.last_name}{suffix}"
         if self.username == "":
             self.username = self.email
+        else:
+            self._sync_username_to_email(kwargs)
         super(User, self).save(*args, **kwargs)
+
+    def _sync_username_to_email(self, save_kwargs):
+        loaded_email = getattr(self, "_loaded_email", None)
+        if (
+            not self.pk
+            or not self.email
+            or self.username != loaded_email
+            or self.email == self.username
+            or len(self.email) > 150
+        ):
+            return
+        if User.objects.exclude(pk=self.pk).filter(username=self.email).exists():
+            return
+        self.username = self.email
+        update_fields = save_kwargs.get("update_fields")
+        if update_fields is not None and "username" not in update_fields:
+            save_kwargs["update_fields"] = [*update_fields, "username"]
 
     def __str__(self):
         return self.name
