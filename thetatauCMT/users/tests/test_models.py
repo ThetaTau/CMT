@@ -95,6 +95,7 @@ from thetatauCMT.users.models import (  # noqa: E402
     CONTACT_VISIBILITY_MEMBERS,
     CONTACT_VISIBILITY_NO_ONE,
     CONTACT_VISIBILITY_OFFICERS,
+    User,
 )
 from thetatauCMT.users.tests.factories import UserFactory  # noqa: E402
 
@@ -337,3 +338,47 @@ def test_hiding_both_toggles_without_role_is_a_plain_member():
     assert user.is_officer_group is False
     assert user.chapter_officer() == set()
     assert user_is_national_officer(user) is False
+
+
+@pytest.mark.django_db
+def test_changing_email_syncs_username():
+    UserFactory(email="old@example.edu")
+    user = User.objects.get(username="old@example.edu")
+    user.email = "new@example.edu"
+    user.save()
+    assert user.username == "new@example.edu"
+    assert User.objects.get(pk=user.pk).username == "new@example.edu"
+
+
+@pytest.mark.django_db
+def test_changing_email_leaves_a_customised_username_alone():
+    UserFactory(email="member@example.edu", username="legacy-handle")
+    user = User.objects.get(username="legacy-handle")
+    user.email = "member2@example.edu"
+    user.save()
+    assert user.username == "legacy-handle"
+
+
+@pytest.mark.django_db
+def test_email_change_colliding_with_another_username_is_skipped():
+    UserFactory(email="taken@example.edu")
+    UserFactory(email="mine@example.edu")
+    user = User.objects.get(username="mine@example.edu")
+    user.email = "taken@example.edu"
+    user.save()  # must not raise IntegrityError
+    assert user.username == "mine@example.edu"
+
+
+@pytest.mark.django_db
+def test_email_change_via_update_fields_persists_username():
+    UserFactory(email="a@example.edu")
+    user = User.objects.get(username="a@example.edu")
+    user.email = "b@example.edu"
+    user.save(update_fields=["email"])
+    assert User.objects.get(pk=user.pk).username == "b@example.edu"
+
+
+@pytest.mark.django_db
+def test_new_user_still_takes_username_from_email():
+    user = UserFactory(username="", email="fresh@example.edu")
+    assert user.username == "fresh@example.edu"

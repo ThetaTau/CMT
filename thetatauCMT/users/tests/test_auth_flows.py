@@ -231,3 +231,25 @@ def test_account_adapter_2fa_methods_exist_on_instance(rf):
     assert callable(adapter.has_2fa_enabled)
     assert hasattr(adapter, "get_2fa_authenticate_url")
     assert callable(adapter.get_2fa_authenticate_url)
+
+
+@pytest.mark.django_db
+def test_make_primary_email_via_account_email_view_syncs_username(auto_login_user):
+    from allauth.account.models import EmailAddress
+
+    client, user = auto_login_user()
+    original = user.email
+    assert user.username == original
+
+    EmailAddress.objects.create(user=user, email=original, verified=True, primary=True)
+    EmailAddress.objects.create(user=user, email="newprimary@example.edu", verified=True, primary=False)
+
+    response = client.post(
+        reverse("account_email"),
+        {"action_primary": "", "email": "newprimary@example.edu"},
+    )
+    assert response.status_code in (200, 302)
+
+    user.refresh_from_db()
+    assert user.email == "newprimary@example.edu"
+    assert user.username == "newprimary@example.edu"
