@@ -1,0 +1,50 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    "docker:pinDigests",
+    ":semanticCommitTypeAll(chore)"
+  ],
+  "enabledManagers": [
+    "dockerfile",
+    "docker-compose",
+    "custom.regex"
+  ],
+  "minimumReleaseAge": "3 days",
+  "internalChecksFilter": "strict",
+  "customManagers": [
+    {
+      "customType": "regex",
+      "managerFilePatterns": [
+        "/(^|/)Dockerfile$/"
+      ],
+      "matchStrings": [
+        "\"(?<depName>setuptools|wheel|poetry-core)==(?<currentValue>[0-9][0-9.]*)\""
+      ],
+      "datasourceTemplate": "pypi",
+      "versioningTemplate": "pep440"
+    }
+  ],
+  "packageRules": [
+    {
+      "matchManagers": ["dockerfile", "docker-compose"],
+      "groupName": "base images",
+      "commitMessageTopic": "base image {{depName}}"
+    },
+    {
+      "matchManagers": ["dockerfile", "docker-compose"],
+      "matchUpdateTypes": ["digest", "pinDigest"],
+      "groupName": "base image digests"
+    },
+    {
+      "matchManagers": ["custom.regex"],
+      "matchDatasources": ["pypi"],
+      "groupName": "docker build backends"
+    },
+    {
+      "matchManagers": ["custom.regex"],
+      "matchPackageNames": ["setuptools"],
+      "allowedVersions": "<81"
+    }
+  ]
+}
