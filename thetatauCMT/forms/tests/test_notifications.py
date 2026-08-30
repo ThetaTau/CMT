@@ -78,12 +78,12 @@ def test_email_rmp_signed_to_emails_contains_user_email():
 
 
 @pytest.mark.django_db
-def test_email_rmp_signed_cc_contains_cmt():
+def test_email_rmp_signed_has_no_cc():
     from thetatauCMT.users.tests.factories import UserFactory
 
     user = UserFactory.create()
     notif = EmailRMPSigned(user, b"", "rmp.pdf")
-    assert "cmt@thetatau.org" in notif.cc
+    assert notif.cc == []
 
 
 @pytest.mark.django_db

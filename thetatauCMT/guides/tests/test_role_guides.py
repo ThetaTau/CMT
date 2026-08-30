@@ -16,6 +16,7 @@ from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 from django.utils import timezone
 
+from thetatauCMT.chapters.tests.factories import ChapterFactory
 from thetatauCMT.guides import services
 from thetatauCMT.guides.models import Audience, FeatureArea, RoleGuide
 from thetatauCMT.guides.tests.factories import FeatureFactory, RoleGuideFactory, RoleGuideStepFactory
@@ -49,10 +50,14 @@ def _member():
     return UserFactory(status="active")
 
 
-def _officer(*roles):
+def _officer(*roles, chapter=None):
     user = _in_group(_member(), "officer")
+    fields = ["current_roles"]
+    if chapter is not None:
+        user.chapter = chapter
+        fields.append("chapter")
     user.current_roles = list(roles) or ["treasurer"]
-    user.save(update_fields=["current_roles"])
+    user.save(update_fields=fields)
     return user
 
 
@@ -190,8 +195,8 @@ def test_another_chapters_completion_does_not_close_out_mine():
     Worth pinning down, because it is the one place a guide could quietly tell an
     officer they are done when they are not.
     """
-    mine = _officer("treasurer")
-    theirs = _officer("treasurer")
+    mine = _officer("treasurer", chapter=ChapterFactory(name="alpha", school_type="semester"))
+    theirs = _officer("treasurer", chapter=ChapterFactory(name="beta", school_type="semester"))
     guide = RoleGuideFactory(role="treasurer")
     task = _task("treasurer", "Shared obligation", mine.current_chapter)
     TaskChapter.objects.create(task=task.dates.first(), chapter=theirs.current_chapter, date=timezone.now())
