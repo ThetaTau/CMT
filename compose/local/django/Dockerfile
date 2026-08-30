@@ -1,4 +1,4 @@
-ARG PYTHON_VERSION=3.13-slim
+ARG PYTHON_VERSION=3.13-slim@sha256:7ce4b6dfe35e55397b7cda544f8a13f191b7ae28dc5aad71fe664dbc9bc2623f
 
 # define an alias for the specfic python version used in this file.
 FROM python:${PYTHON_VERSION} AS python
@@ -38,7 +38,7 @@ COPY ./requirements .
 #   - poetry-core is the build backend for the git-pinned django-report-builder
 # --find-links ensures pip passes the local wheel cache to isolated build
 # environments it spawns for packages like the git-pinned report-builder.
-RUN pip wheel --wheel-dir /usr/src/app/wheels setuptools wheel poetry-core \
+RUN pip wheel --wheel-dir /usr/src/app/wheels "setuptools==80.10.2" "wheel==0.48.0" "poetry-core==2.4.1" \
   && pip wheel --wheel-dir /usr/src/app/wheels \
     --retries 5 \
     --timeout 60 \
