@@ -280,6 +280,18 @@ def test_pledge_pins_superuser_returns_200(auto_login_user):
     assert response.status_code == 200
 
 
+def test_pledgepins_shortcut_redirects_to_pledge_pins(client, db):
+    response = client.get("/pledgepins/")
+    assert response.status_code == 301
+    assert response.url == "/forms/pledge-pins/"
+
+
+def test_pledgepin_shortcut_redirects_to_pledge_pins(client, db):
+    response = client.get("/pledgepin/")
+    assert response.status_code == 301
+    assert response.url == "/forms/pledge-pins/"
+
+
 # ─── Split member status-change views ─────────────────────────────────────────
 
 SINGLE_STATUS_REASONS = ["coop", "military", "withdraw", "transfer"]
