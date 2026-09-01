@@ -11,7 +11,10 @@
     "custom.regex"
   ],
   "minimumReleaseAge": "3 days",
-  "internalChecksFilter": "strict",
+  "internalChecksFilter": "flexible",
+  "vulnerabilityAlerts": {
+    "enabled": false
+  },
   "customManagers": [
     {
       "customType": "regex",
