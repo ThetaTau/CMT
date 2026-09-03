@@ -1057,7 +1057,13 @@ class UserRoleChange(StartEndModel, TimeStampedModel, EmailSignalMixin):
             self.start = self.start.date()
         if hasattr(self.end, "date"):
             self.end = self.end.date()
-        if self.start <= TOMORROW < self.end:
+        # TODAY, not TOMORROW, is the pivot on the end side: an end date of
+        # exactly tomorrow (the earliest a fresh "current" term can end) must
+        # still count as current today. Using TOMORROW on both sides left a
+        # one-day gap where a brand-new current-dated role was silently never
+        # added to current_roles (roughly 1 in 1460 UserRoleChangeFactory
+        # rows, since ``end`` is drawn from "+1d" to "+4y").
+        if self.start <= TOMORROW and TODAY < self.end:
             current_roles = self.user.current_roles if self.user.current_roles else []
             if self.role not in current_roles:
                 current_roles.append(self.role)
