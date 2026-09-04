@@ -15,6 +15,12 @@ KEY_TEMPLATE_VARS = {
         ("graduation_year", "graduation year"),
         ("years", "years since graduation (e.g. 5)"),
     ],
+    "ChapterFoundingDay": [
+        ("user", "member User instance (e.g. user.name, user.first_name, user.get_full_name, user.email)"),
+        ("chapter", "member's chapter (e.g. chapter.name, chapter.school)"),
+        ("founding_date", "the chapter's founding date"),
+        ("years", "years since the chapter was chartered (e.g. 42)"),
+    ],
 }
 
 
