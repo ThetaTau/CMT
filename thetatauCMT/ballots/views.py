@@ -1,11 +1,11 @@
 from django.contrib import messages
 from django.contrib.messages.views import SuccessMessageMixin
 from django.db import models
-from django.http import Http404
+from django.http import Http404, HttpResponseRedirect
 from django.http.request import QueryDict
-from django.shortcuts import get_object_or_404
+from django.shortcuts import get_object_or_404, resolve_url
 from django.urls import reverse
-from django.views.generic import CreateView, DetailView, RedirectView, UpdateView
+from django.views.generic import CreateView, DeleteView, DetailView, RedirectView, UpdateView
 
 from core.models import NAT_OFFICERS
 from core.views import (
@@ -26,9 +26,27 @@ from .forms import (
     BallotListFormHelper,
     BallotUserListFormHelper,
 )
-from .models import BALLOT_CHAPTER_ROLES, Ballot, BallotComplete, can_view_ballot_results
-from .notifications import send_ballot_notifications
-from .tables import RESULT_COLUMNS, BallotCompleteTable, BallotTable, BallotUserTable
+from .models import BALLOT_CHAPTER_ROLES, CHAPTER_VOTE_RULE, Ballot, BallotComplete, can_view_ballot_results
+from .notifications import BallotVoteDeleted, BallotVoteReceipt, send_ballot_notifications
+from .tables import RESULT_COLUMNS, SUBMISSION_REVIEW_COLUMNS, BallotCompleteTable, BallotTable, BallotUserTable
+
+
+class BallotResultsRequiredMixin:
+    """Restrict a view to the Grand Regent and Grand Scribe.
+
+    Not a group check: qualification is the current duty role, so Admins and
+    other National Officers are turned away like anyone else.
+    """
+
+    def dispatch(self, request, *args, **kwargs):
+        if request.user.is_authenticated and not can_view_ballot_results(request.user):
+            messages.add_message(
+                request,
+                messages.ERROR,
+                "Only the Grand Regent and Grand Scribe can do that.",
+            )
+            return HttpResponseRedirect(resolve_url("ballots:votelist"))
+        return super().dispatch(request, *args, **kwargs)
 
 
 def get_ballot_or_404(slug):
@@ -108,11 +126,13 @@ class BallotDetailView(
         chapters = all_ballots.exclude(role__in=NAT_OFFICERS).values_list("chapter", flat=True)
         data = list(
             all_ballots.values(
+                "pk",
                 "user_name",
                 "chapter",
                 "region",
                 "motion",
                 "role",
+                "authority",
             )
         )
         nat_offs = UserRoleChange.get_current_natoff().exclude(user__in=users)
@@ -125,11 +145,13 @@ class BallotDetailView(
                 chapters = chapters.filter(region__slug=region)
             incomplete_chapter = [
                 {
+                    "pk": None,
                     "user_name": "",
                     "chapter": chapter,
                     "motion": "Incomplete",
                     "role": "",
                     "region": chapter.region,
+                    "authority": "",
                 }
                 for chapter in chapters
             ]
@@ -137,18 +159,21 @@ class BallotDetailView(
         if region == "" or region == "national":
             incomplete_national = [
                 {
+                    "pk": None,
                     "user_name": user.user,
                     "chapter": "",
                     "motion": "Incomplete",
                     "role": user.role,
                     "region": "National",
+                    "authority": "",
                 }
                 for user in nat_offs
             ]
         incomplete = []
         if want_incomplete:
             incomplete = incomplete_national + incomplete_chapter
-        table = BallotCompleteTable(data=data + incomplete)
+        exclude = () if show_results else SUBMISSION_REVIEW_COLUMNS
+        table = BallotCompleteTable(data=data + incomplete, exclude=exclude)
         RequestConfig(self.request, paginate={"per_page": 200}).configure(table)
         context["table"] = table
         context["object"] = self.object
@@ -275,10 +300,25 @@ class BallotCompleteCreateView(LoginRequiredMixin, OfficerRequiredMixin, CreateV
             return ballot.chapter_vote(self.request.user.chapter)
         return None
 
+    def get_chapter_role(self):
+        """The Regent/Scribe role this user would cast the chapter's vote under."""
+        ballot = self.get_ballot()
+        if "all_chapters" not in ballot.voters:
+            return None
+        role = ballot.voting_role_for(self.request.user)
+        return role if role in BALLOT_CHAPTER_ROLES else None
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs["chapter_role"] = self.get_chapter_role()
+        return kwargs
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         ballot = self.get_ballot()
-        valid_roles = ballot.voting_roles_for(self.request.user)
+        user = self.request.user
+        voting_role = ballot.voting_role_for(user)
+        chapter_role = self.get_chapter_role()
         completed = self.get_existing_vote(ballot)
         if completed or not ballot.is_open:
             form = context["form"]
@@ -287,9 +327,12 @@ class BallotCompleteCreateView(LoginRequiredMixin, OfficerRequiredMixin, CreateV
         context["ballot"] = ballot
         context["complete"] = bool(completed)
         context["current_vote"] = completed
-        context["show_results"] = can_view_ballot_results(self.request.user)
+        context["show_results"] = can_view_ballot_results(user)
         context["voters"] = ballot.voters_display
-        context["valid_roles"] = bool(valid_roles)
+        context["valid_roles"] = bool(voting_role)
+        context["voting_role"] = voting_role
+        context["voting_chapter"] = user.chapter if chapter_role else None
+        context["chapter_vote_rule"] = CHAPTER_VOTE_RULE
         context["ballot_open"] = ballot.is_open
         return context
 
@@ -324,15 +367,61 @@ class BallotCompleteCreateView(LoginRequiredMixin, OfficerRequiredMixin, CreateV
             return super().form_invalid(form)
         current_role = valid_roles[0]
         form.instance.role = current_role
+        response = super().form_valid(form)
+        BallotVoteReceipt(self.object).send()
+        confirmation = (
+            "A confirmation has been emailed to your chapter's Regent and Scribe."
+            if self.get_chapter_role()
+            else "A confirmation has been emailed to you."
+        )
         messages.add_message(
             self.request,
             messages.INFO,
-            f"Vote for {ballot.name} completed as {current_role.title()}",
+            f"Vote for {ballot.name} submitted as {current_role.title()}. {confirmation}",
         )
-        return super().form_valid(form)
+        return response
 
     def get_success_url(self):
         return reverse("ballots:votelist")
+
+
+class BallotCompleteDeleteView(LoginRequiredMixin, BallotResultsRequiredMixin, DeleteView):
+    """Remove a mistaken submission so the vote can be cast again.
+
+    Restricted to the Grand Regent and Grand Scribe, who are also the only
+    people who see the tallies. They never see the motion being removed.
+    """
+
+    model = BallotComplete
+    template_name_suffix = "_confirm_delete"
+    context_object_name = "vote"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        vote = self.object
+        context["ballot"] = vote.ballot
+        context["voting_chapter"] = vote.user.chapter if vote.is_chapter_vote else None
+        return context
+
+    def form_valid(self, form):
+        vote = self.get_object()
+        reason = (self.request.POST.get("reason") or "").strip()
+        # Capture everything the email needs before the row disappears.
+        notification = BallotVoteDeleted(vote, self.request.user, reason=reason)
+        vote.clear_chapter_task_complete()
+        self.object = vote
+        vote.delete()
+        notification.send()
+        messages.add_message(
+            self.request,
+            messages.SUCCESS,
+            f"Removed {vote.user.name}'s submission for {vote.ballot.name}. "
+            "The voter, the chapter's officers, the Grand Regent and the Grand Scribe have been notified.",
+        )
+        return HttpResponseRedirect(self.get_success_url())
+
+    def get_success_url(self):
+        return reverse("ballots:detail", kwargs={"slug": self.object.ballot.slug})
 
 
 class BallotUserListView(LoginRequiredMixin, PagedFilteredTableView):

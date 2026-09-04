@@ -9,6 +9,10 @@ from .models import Ballot, BallotComplete
 # Regent and Grand Scribe (see ``models.can_view_ballot_results``).
 RESULT_COLUMNS = ("ayes", "nays", "abstains")
 
+# Per-submission columns only the Grand Regent and Grand Scribe get: how the
+# chapter authorized its vote, and the control to remove a mistaken submission.
+SUBMISSION_REVIEW_COLUMNS = ("authority", "remove")
+
 
 class BallotTable(CMTTable):
     name = tables.LinkColumn("ballots:detail", args=[A("slug")])
@@ -38,16 +42,30 @@ class BallotTable(CMTTable):
 
 class BallotCompleteTable(CMTTable):
     status = tables.Column(accessor="motion", verbose_name="Ballot Returned", orderable=False)
+    authority = tables.Column(verbose_name="Decided By", orderable=False)
+    remove = tables.TemplateColumn(
+        # Synthesized "not submitted" rows have no pk and nothing to remove.
+        template_code=(
+            '{% if record.pk %}<a class="btn btn-link btn-sm text-danger p-0" '
+            'href="{% url "ballots:vote_delete" record.pk %}" title="Remove this submission">'
+            '<i class="fas fa-trash"></i> Remove</a>{% endif %}'
+        ),
+        verbose_name="",
+        orderable=False,
+    )
 
     class Meta:
         model = BallotComplete
         # No motion column at any permission level: the vote itself is secret.
-        fields = ("user_name", "chapter", "region", "role", "status")
+        fields = ("user_name", "chapter", "region", "role", "status", "authority", "remove")
         attrs = {"class": "table table-striped table-bordered"}
         empty_text = "There are no ballots matching the search criteria..."
 
     def render_status(self, value):
         return "Not submitted" if str(value).lower() == "incomplete" else "Submitted"
+
+    def render_authority(self, value):
+        return BallotComplete.AUTHORITY.get_value(value)
 
     def render_role(self, value):
         return value.title()

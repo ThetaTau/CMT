@@ -912,7 +912,7 @@
           "key": "cast-a-vote",
           "name": "Cast a vote",
           "short_description": "Cast your chapter's vote on an open ballot.",
-          "long_description": "Open the ballot from My ballots. Only the Regent and the Scribe may cast the chapter's vote, a chapter votes once, and voting closes at 5 pm Pacific on the due date.",
+          "long_description": "Open the ballot from My ballots. The form names you and the role you are voting as. Only the Regent and the Scribe may cast the chapter's vote, a chapter votes once, and voting closes at 5 pm Pacific on the due date. Before submitting, the officer confirms either that the chapter voted under the four-fifths rule or, for the Regent alone, that the chapter is out of session and they are voting on its behalf. A confirmation email then goes to both the Regent and the Scribe, so neither of you is left wondering whether the chapter has voted; it says the ballot was submitted but never repeats how you voted.",
           "audience": "officer",
           "roles": ["regent", "scribe"]
         },
@@ -938,6 +938,14 @@
           "short_description": "Who has and has not returned a ballot.",
           "long_description": "Any officer can see which chapters and National Officers have returned a ballot. How an individual voted is shown to nobody but the voter, not to Admins and not in the Django admin, and only the Grand Regent and Grand Scribe see the aye, nay and abstain totals. Open a ballot from My ballots or All ballots.",
           "audience": "officer"
+        },
+        {
+          "key": "remove-a-ballot-submission",
+          "name": "Remove a ballot submission",
+          "short_description": "Undo a ballot that was submitted by mistake so it can be cast again.",
+          "long_description": "Only the Grand Regent and Grand Scribe can remove a submission, and they do not see how it was voted. Open the ballot's status page and use Remove on that row. The voter, the chapter's officers and both Grand officers are emailed, and the chapter's ballot task reopens so the vote can be recast before the deadline.",
+          "audience": "natoff",
+          "roles": ["grand regent", "grand scribe"]
         }
       ]
     },

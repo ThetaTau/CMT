@@ -172,3 +172,100 @@ class BallotVoteRequest(EmailNotification):
 
         ballot = Ballot.objects.order_by("-due_date").first()
         return [ballot, {CENTRAL_OFFICE_EMAIL}, "Grand Regent", True, None]
+
+
+def grand_officer_emails():
+    """Current Grand Regent and Grand Scribe addresses."""
+    from thetatauCMT.users.models import UserRoleChange
+
+    from .models import BALLOT_RESULT_ROLES
+
+    emails = set()
+    for role_change in UserRoleChange.get_current_natoff().filter(role__in=BALLOT_RESULT_ROLES):
+        emails |= set(role_change.user.emails)
+    return {email for email in emails if email}
+
+
+@registry.register_decorator()
+class BallotVoteReceipt(EmailNotification):
+    """Confirm that a ballot was recorded, never how it was voted.
+
+    A chapter's receipt goes to both the Regent and the Scribe: they were both
+    asked for this ballot and either of them can cast it, so both are told it
+    is in rather than only whoever happened to submit it.
+    """
+
+    render_types = ["html"]
+    template_name = "ballot_vote_receipt"
+
+    def __init__(self, vote):
+        chapter = vote.user.chapter if vote.is_chapter_vote else None
+        emails = {email for email in vote.user.emails if email}
+        if chapter is not None:
+            emails |= chapter_reminder_emails(chapter, LEVEL_VOTERS)
+        self.to_emails = sorted({email for email in emails if email})
+        self.cc = []
+        self.reply_to = [CENTRAL_OFFICE_EMAIL]
+        self.subject = f"Ballot submitted: {vote.ballot.name}"
+        self.context = {
+            "vote": vote,
+            "ballot": vote.ballot,
+            "voter": vote.user,
+            "role": vote.role.title(),
+            "chapter": chapter,
+            "addressee": f"{chapter.name} Regent and Scribe" if chapter else vote.user.name,
+            "authority": vote.get_authority_display() if vote.authority else "",
+            "closes_display": vote.ballot.closes_display,
+            "vote_url": ballot_vote_url(vote.ballot),
+            "host": settings.CURRENT_URL,
+        }
+
+    @staticmethod
+    def get_demo_args():
+        from .models import BallotComplete
+
+        return [BallotComplete.objects.order_by("-id").first()]
+
+
+@registry.register_decorator()
+class BallotVoteDeleted(EmailNotification):
+    """Tell everyone concerned that a submitted ballot was removed.
+
+    Goes to the voter, the chapter's officers when it was a chapter vote, and
+    the Grand Regent and Grand Scribe, who are the only people who can do this.
+    """
+
+    render_types = ["html"]
+    template_name = "ballot_vote_deleted"
+
+    def __init__(self, vote, removed_by, reason=""):
+        chapter = vote.user.chapter if vote.is_chapter_vote else None
+        emails = {email for email in vote.user.emails if email}
+        if chapter is not None:
+            emails |= set(chapter.get_email_specific(roles=sorted(CHAPTER_OFFICER)))
+        emails |= grand_officer_emails()
+        self.to_emails = sorted({email for email in emails if email})
+        self.cc = []
+        self.reply_to = [CENTRAL_OFFICE_EMAIL]
+        self.subject = f"Ballot submission removed: {vote.ballot.name}"
+        self.context = {
+            "ballot": vote.ballot,
+            "voter": vote.user,
+            "role": vote.role.title(),
+            "chapter": chapter,
+            "removed_by": removed_by,
+            "reason": reason,
+            "ballot_open": vote.ballot.is_open,
+            "closes_display": vote.ballot.closes_display,
+            "vote_url": ballot_vote_url(vote.ballot),
+            "host": settings.CURRENT_URL,
+        }
+
+    @staticmethod
+    def get_demo_args():
+        from thetatauCMT.users.models import User
+
+        from .models import BallotComplete
+
+        vote = BallotComplete.objects.order_by("-id").first()
+        return [vote, User.objects.order_by("?").first(), "Submitted by mistake"]
