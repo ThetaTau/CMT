@@ -22,6 +22,7 @@ from herald import registry
 from herald.base import EmailNotification
 
 from core.models import CHAPTER_OFFICER
+from core.notifications import capped_recipients
 
 from .models import BALLOT_CHAPTER_ROLES
 
@@ -139,7 +140,7 @@ class BallotVoteRequest(EmailNotification):
     template_name = "ballot_vote_request"
 
     def __init__(self, ballot, emails, addressee, reminder=False, chapter=None, level=LEVEL_VOTERS, final=False):
-        self.to_emails = sorted({email for email in emails if email})
+        self.to_emails = capped_recipients(emails, context=f"ballot request {ballot.name}")
         self.cc = []
         self.reply_to = [CENTRAL_OFFICE_EMAIL]
         if final:
@@ -175,14 +176,21 @@ class BallotVoteRequest(EmailNotification):
 
 
 def grand_officer_emails():
-    """Current Grand Regent and Grand Scribe addresses."""
+    """Emails of the sitting Grand Regent and Grand Scribe.
+
+    One member holds each office, so take the most recent current term per
+    role. Matching every current row multiplies the recipient list by every
+    overlapping, stale or seeded term still on file.
+    """
     from thetatauCMT.users.models import UserRoleChange
 
     from .models import BALLOT_RESULT_ROLES
 
     emails = set()
-    for role_change in UserRoleChange.get_current_natoff().filter(role__in=BALLOT_RESULT_ROLES):
-        emails |= set(role_change.user.emails)
+    for role in BALLOT_RESULT_ROLES:
+        role_change = UserRoleChange.get_current_natoff().filter(role=role).order_by("-start").first()
+        if role_change is not None:
+            emails |= set(role_change.user.emails)
     return {email for email in emails if email}
 
 
@@ -203,7 +211,7 @@ class BallotVoteReceipt(EmailNotification):
         emails = {email for email in vote.user.emails if email}
         if chapter is not None:
             emails |= chapter_reminder_emails(chapter, LEVEL_VOTERS)
-        self.to_emails = sorted({email for email in emails if email})
+        self.to_emails = capped_recipients(emails, context=f"vote receipt {vote.ballot.name}")
         self.cc = []
         self.reply_to = [CENTRAL_OFFICE_EMAIL]
         self.subject = f"Ballot submitted: {vote.ballot.name}"
@@ -244,7 +252,7 @@ class BallotVoteDeleted(EmailNotification):
         if chapter is not None:
             emails |= set(chapter.get_email_specific(roles=sorted(CHAPTER_OFFICER)))
         emails |= grand_officer_emails()
-        self.to_emails = sorted({email for email in emails if email})
+        self.to_emails = capped_recipients(emails, context=f"vote removal {vote.ballot.name}")
         self.cc = []
         self.reply_to = [CENTRAL_OFFICE_EMAIL]
         self.subject = f"Ballot submission removed: {vote.ballot.name}"

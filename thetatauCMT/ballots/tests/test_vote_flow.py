@@ -10,7 +10,10 @@ from django.contrib.auth.models import Group
 from django.core import mail
 from django.urls import reverse
 
+from core.notifications import MAX_RECIPIENT_CHARS, capped_recipients
 from thetatauCMT.ballots.models import CHAPTER_VOTE_RULE, Ballot, BallotComplete
+from thetatauCMT.ballots.notifications import grand_officer_emails
+from thetatauCMT.chapters.tests.factories import ChapterFactory
 from thetatauCMT.users.tests.factories import UserFactory, UserRoleChangeFactory
 
 
@@ -326,6 +329,50 @@ def test_removal_reopens_the_chapter_task():
     assert TaskChapter.objects.filter(task=task_date, chapter=regent.chapter).exists()
     vote.clear_chapter_task_complete()
     assert not TaskChapter.objects.filter(task=task_date, chapter=regent.chapter).exists()
+
+
+# ---------------------------------------------------------------------------
+# Recipient lists must fit herald's varchar(2000) recipients column
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.django_db
+def test_grand_officer_emails_takes_one_holder_per_office():
+    """Stale or seeded terms must not multiply the recipient list."""
+    chapter = ChapterFactory.create()
+    for _ in range(5):
+        _officer(chapter, "grand regent")
+        _officer(chapter, "grand scribe")
+    emails = grand_officer_emails()
+    # At most one holder per office, and each holder has email + email_school.
+    assert 0 < len(emails) <= 4
+
+
+def test_capped_recipients_never_exceeds_the_column():
+    kept = capped_recipients([f"user-{index}@example.com" for index in range(500)])
+    assert len(",".join(kept)) <= MAX_RECIPIENT_CHARS
+    assert len(kept) < 500
+
+
+@pytest.mark.django_db
+def test_removal_survives_a_crowded_grand_officer_roster(auto_login_user):
+    """Regression: 200 current Grand terms overflowed herald's recipients column."""
+    client, grand_scribe = auto_login_user(make_officer="grand scribe")
+    _make_natoff(grand_scribe, client)
+    crowd = ChapterFactory.create()
+    for _ in range(30):
+        _officer(crowd, "grand regent")
+        _officer(crowd, "grand scribe")
+    ballot = _create_ballot(voters=["all_chapters"])
+    regent = _officer(UserFactory.create().chapter, "regent")
+    vote = BallotComplete(ballot=ballot, user=regent, motion="aye", role="regent", authority="chapter_vote")
+    vote.save()
+    mail.outbox = []
+    response = client.post(reverse("ballots:vote_delete", kwargs={"pk": vote.pk}))
+    assert response.status_code == 302
+    assert not BallotComplete.objects.filter(pk=vote.pk).exists()
+    assert len(mail.outbox) == 1
+    assert len(",".join(mail.outbox[0].to)) <= MAX_RECIPIENT_CHARS
 
 
 @pytest.mark.django_db

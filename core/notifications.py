@@ -1,7 +1,40 @@
+import logging
+
 from django.conf import settings
 from django.core.files.base import ContentFile
 from herald import registry
 from herald.base import EmailNotification
+
+logger = logging.getLogger(__name__)
+
+# herald joins the recipient list with commas into ``SentNotification.recipients``,
+# a varchar(2000). Overflowing it raises a DataError from ``send()``, which takes
+# down the whole request rather than just failing to email.
+MAX_RECIPIENT_CHARS = 2000
+
+
+def capped_recipients(emails, context=""):
+    """Sorted, de-duplicated addresses that fit herald's recipients column.
+
+    Use for any ``to_emails`` built from a query rather than a fixed handful of
+    people: a role with duplicate or stale rows, a whole chapter, or a region
+    can each produce a list long enough to break the send.
+    """
+    unique = {email for email in emails if email}
+    kept, length = [], 0
+    for email in sorted(unique):
+        extra = len(email) + (1 if kept else 0)
+        if length + extra > MAX_RECIPIENT_CHARS:
+            logger.warning(
+                "Email recipient list too long%s; sending to %s of %s addresses.",
+                f" for {context}" if context else "",
+                len(kept),
+                len(unique),
+            )
+            break
+        kept.append(email)
+        length += extra
+    return kept
 
 
 @registry.register_decorator()

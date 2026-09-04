@@ -427,9 +427,11 @@ def test_outstanding_chapters_is_empty_without_all_chapters():
 @pytest.mark.django_db
 def test_outstanding_chapters_excludes_candidate_and_inactive_chapters():
     ballot = _create_ballot(name="Chapter Outstanding Ballot", voters=["all_chapters"])
-    active = ChapterFactory.create()
-    candidate = ChapterFactory.create(candidate_chapter=True)
-    inactive = ChapterFactory.create(active=False)
+    # Explicit names: ChapterFactory draws randomly from the greek pool and
+    # matches on name, so three unnamed chapters can collapse into one row.
+    active = ChapterFactory.create(name="alpha")
+    candidate = ChapterFactory.create(name="beta", candidate_chapter=True)
+    inactive = ChapterFactory.create(name="chi", active=False)
     outstanding = list(ballot.outstanding_chapters())
     assert active in outstanding
     assert candidate not in outstanding
