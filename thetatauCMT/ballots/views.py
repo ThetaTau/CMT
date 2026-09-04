@@ -1,6 +1,6 @@
 from django.contrib import messages
 from django.contrib.messages.views import SuccessMessageMixin
-from django.db import models
+from django.db import IntegrityError, models, transaction
 from django.http import Http404, HttpResponseRedirect
 from django.http.request import QueryDict
 from django.shortcuts import get_object_or_404, resolve_url
@@ -359,15 +359,18 @@ class BallotCompleteCreateView(LoginRequiredMixin, OfficerRequiredMixin, CreateV
             return super().form_invalid(form)
         existing = self.get_existing_vote(ballot)
         if existing:
-            if existing.user == user:
-                detail = "You have already voted on this ballot."
-            else:
-                detail = f"{existing.user.name} already cast your chapter's vote as {existing.role.title()}."
-            messages.add_message(self.request, messages.ERROR, detail)
-            return super().form_invalid(form)
+            return self.already_voted(form, existing)
         current_role = valid_roles[0]
         form.instance.role = current_role
-        response = super().form_valid(form)
+        try:
+            # A double submit races past the check above; the savepoint keeps the
+            # ATOMIC_REQUESTS transaction usable so we can answer instead of 500.
+            with transaction.atomic():
+                response = super().form_valid(form)
+        except IntegrityError:
+            # The unique constraint is (user, ballot), so the row that beat us
+            # is this user's own even though the pre-check did not see it.
+            return self.already_voted(form, ballot.get_completed(user))
         BallotVoteReceipt(self.object).send()
         confirmation = (
             "A confirmation has been emailed to your chapter's Regent and Scribe."
@@ -380,6 +383,16 @@ class BallotCompleteCreateView(LoginRequiredMixin, OfficerRequiredMixin, CreateV
             f"Vote for {ballot.name} submitted as {current_role.title()}. {confirmation}",
         )
         return response
+
+    def already_voted(self, form, existing):
+        if existing is None:
+            detail = "This ballot has already been voted on."
+        elif existing.user == self.request.user:
+            detail = "You have already voted on this ballot."
+        else:
+            detail = f"{existing.user.name} already cast your chapter's vote as {existing.role.title()}."
+        messages.add_message(self.request, messages.ERROR, detail)
+        return super().form_invalid(form)
 
     def get_success_url(self):
         return reverse("ballots:votelist")

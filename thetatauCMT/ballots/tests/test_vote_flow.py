@@ -4,6 +4,7 @@ submission receipt, and the Grand Regent / Grand Scribe removing a vote.
 
 import datetime
 from datetime import timedelta
+from unittest import mock
 
 import pytest
 from django.contrib.auth.models import Group
@@ -15,6 +16,10 @@ from thetatauCMT.ballots.models import CHAPTER_VOTE_RULE, Ballot, BallotComplete
 from thetatauCMT.ballots.notifications import grand_officer_emails
 from thetatauCMT.chapters.tests.factories import ChapterFactory
 from thetatauCMT.users.tests.factories import UserFactory, UserRoleChangeFactory
+
+# Importing the view at module scope would build the region filter choices, and
+# therefore hit the database, during collection.
+GET_EXISTING_VOTE = "thetatauCMT.ballots.views.BallotCompleteCreateView.get_existing_vote"
 
 
 def _create_ballot(**kwargs):
@@ -329,6 +334,65 @@ def test_removal_reopens_the_chapter_task():
     assert TaskChapter.objects.filter(task=task_date, chapter=regent.chapter).exists()
     vote.clear_chapter_task_complete()
     assert not TaskChapter.objects.filter(task=task_date, chapter=regent.chapter).exists()
+
+
+# ---------------------------------------------------------------------------
+# Double submits must not 500 on the unique constraint
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.django_db
+def test_double_submit_races_past_the_check_without_a_500(auto_login_user):
+    """Production hit IntegrityError on (user, ballot) when a vote double posted.
+
+    Patching the pre-check to miss reproduces the race: two requests both read
+    "not voted yet" before either commits.
+    """
+    client, user = auto_login_user(make_officer="regent")
+    _make_officer(user, client)
+    ballot = _create_ballot(voters=["all_chapters"])
+    BallotComplete(ballot=ballot, user=user, motion="aye", role="regent", authority="chapter_vote").save()
+    mail.outbox = []
+    with mock.patch(GET_EXISTING_VOTE, return_value=None):
+        response = client.post(
+            reverse("ballots:vote", kwargs={"slug": ballot.slug}),
+            {"motion": "nay", "authority": "chapter_vote"},
+        )
+    assert response.status_code == 200
+    assert ballot.completed.count() == 1
+    assert ballot.completed.first().motion == "aye"
+    assert mail.outbox == []
+
+
+@pytest.mark.django_db
+def test_double_submit_still_reports_who_voted(auto_login_user):
+    client, user = auto_login_user(make_officer="regent")
+    _make_officer(user, client)
+    ballot = _create_ballot(voters=["all_chapters"])
+    BallotComplete(ballot=ballot, user=user, motion="aye", role="regent", authority="chapter_vote").save()
+    with mock.patch(GET_EXISTING_VOTE, return_value=None):
+        response = client.post(
+            reverse("ballots:vote", kwargs={"slug": ballot.slug}),
+            {"motion": "nay", "authority": "chapter_vote"},
+        )
+    body = response.content.decode("utf-8")
+    assert "already voted on this ballot" in body
+
+
+@pytest.mark.django_db
+def test_the_transaction_survives_the_race(auto_login_user):
+    """The savepoint must leave ATOMIC_REQUESTS' transaction usable."""
+    client, user = auto_login_user(make_officer="regent")
+    _make_officer(user, client)
+    ballot = _create_ballot(voters=["all_chapters"])
+    BallotComplete(ballot=ballot, user=user, motion="aye", role="regent", authority="chapter_vote").save()
+    with mock.patch(GET_EXISTING_VOTE, return_value=None):
+        client.post(
+            reverse("ballots:vote", kwargs={"slug": ballot.slug}),
+            {"motion": "nay", "authority": "chapter_vote"},
+        )
+    # A query after the rolled-back savepoint proves the connection is not broken.
+    assert Ballot.objects.filter(pk=ballot.pk).exists()
 
 
 # ---------------------------------------------------------------------------
