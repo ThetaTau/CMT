@@ -1,6 +1,6 @@
 # Transition Reports & Lessons Learned — Feature Spec & Work Breakdown
 
-> **Status:** Ready for development (2026-09-04) — all decisions are locked in. See "Decisions Log" at the end for the full record; "Remaining Open Questions" is now empty.
+> **Status:** In development (2026-09-05) — TRWI-1, TRWI-2, and TRWI-3 are implemented and tested. See "Decisions Log" at the end for the full record of resolved decisions (A-J); "Remaining Open Questions" is empty again.
 > **Approach:** Purpose-built app (custom), no third-party survey dependency. App name: `thetatauCMT.transitions`.
 > **File location:** `docs/specs/transition-reports.md`
 
@@ -563,6 +563,17 @@ Every question from the codebase review has been answered. Recorded here for tra
 - **H18 — Pinning:** dropped entirely. No `is_pinned`/`pinned_by`/`pinned_reason` fields anywhere in the data model; every report sorts purely by recency in the handoff packet, search, and QA seed data.
 - **H19 — Edit-after-acknowledgment:** acknowledgments persist unchanged. Editing a report after a successor has acknowledged it does NOT reset or flag the acknowledgment — kept simple, per your answer.
 
+### I. TRWI-3 — Obligation generation (resolved 2026-09-05)
+- **I20 — Vacancy-detection algorithm:** confirmed the two-trigger design (term-ending-soon attaches `officer=role_change.user`; the `CHAPTER_OFFICER_REQUIRED`-only safety net attaches `officer=None` from a stale role change), **with one correction: the safety net's stale role change must be no more than 1 year old.** Implemented as `VACANCY_MAX_STALENESS_DAYS = 365` in `services.py`.
+- **I21 — `--lookahead-days` default:** confirmed 45 days is fine, but tied it explicitly to the configured reminder offsets rather than a bare constant, per your note that the offsets (14/7/1/-1/-7/etc.) are "what this was for." Implemented `get_default_lookahead_days()` = `due_date_offset + max(configured reminder offsets) + a 10-day buffer` — 14+21+10=45 under default config, but now widens automatically if the reminder offsets are ever configured larger.
+- **I22 — Backward grace window:** widened from 7 days to **365 days** ("look back up to a year") — `LOOKBACK_GRACE_DAYS = 365` in `services.py`. Catches up to a year of missed/late daily command runs.
+- **I23 — Missed-marking timing:** confirmed — same `generate_transition_obligations` run, immediately after both generation triggers.
+
+**Consequence discovered while implementing I20+I22 together (see J24 below):** since both windows are now 365 days, trigger 1 (term-ending-soon) ends up covering every role change within the last year anyway, so it always claims the natural key first with `officer=role_change.user` — the vacancy safety net's `officer=None` path is now only reachable for a required position that's been vacant for **more than** a year, which I20 says NOT to use. In practice: a required position vacant for up to a year still gets an obligation, just with the last known holder as `officer`, not `None`. Flagged as J24 for your review rather than silently deciding.
+
+### J. TRWI-3 — Vacancy-safety-net reachability (resolved 2026-09-05)
+- **J24 — Confirmed acceptable.** A required position vacant for up to a year still gets an obligation via trigger 1 (`officer=<last known holder>`, not `None`); only a position vacant for MORE than a year, or never held at all, produces nothing. No code change needed — this is already the implemented, tested behavior.
+
 ---
 
 ## Pre-Launch Checklist
@@ -575,4 +586,4 @@ Every question from the codebase review has been answered. Recorded here for tra
 
 ## Remaining Open Questions
 
-None. Every question raised during the codebase review — and the two follow-up items it surfaced (pinning, edit-after-acknowledgment) — is now resolved. See the Decisions Log above (section H covers the last two). This plan is ready for implementation, starting with TRWI-1.
+None. Every question from the original codebase review round, TRWI-3's first round (I20-I23), and its J24 follow-up is resolved (see Decisions Log A-J above).

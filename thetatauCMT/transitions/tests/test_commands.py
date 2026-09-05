@@ -1,8 +1,14 @@
+import datetime
+
 import pytest
 from django.core.management import call_command
 
+from thetatauCMT.chapters.tests.factories import ChapterFactory
+from thetatauCMT.users.models import UserRoleChange
+from thetatauCMT.users.tests.factories import UserFactory
+
 from .. import services
-from ..models import ReportTemplate, TemplatePrompt
+from ..models import ReportObligation, ReportTemplate, TemplatePrompt
 
 pytestmark = pytest.mark.django_db
 
@@ -99,3 +105,44 @@ def test_advisor_roles_excluded_from_seeded_templates():
 def test_resolve_template_after_seeding(position_key, expected_template_name):
     call_command("seed_transition_prompt_set")
     assert services.resolve_template(position_key).name == expected_template_name
+
+
+# ---------------------------------------------------------------------------
+# generate_transition_obligations (TRWI-3)
+# ---------------------------------------------------------------------------
+def test_generate_transition_obligations_creates_and_reports_counts(capsys):
+    chapter = ChapterFactory()
+    user = UserFactory(chapter=chapter)
+    end = datetime.date.today() + datetime.timedelta(days=30)
+    UserRoleChange.objects.create(user=user, role="treasurer", start=end - datetime.timedelta(days=180), end=end)
+
+    call_command("generate_transition_obligations")
+
+    assert ReportObligation.objects.filter(chapter=chapter, position_key="treasurer").exists()
+    output = capsys.readouterr().out
+    assert "created from term ends" in output
+
+
+def test_generate_transition_obligations_dry_run_flag_writes_nothing(capsys):
+    chapter = ChapterFactory()
+    user = UserFactory(chapter=chapter)
+    end = datetime.date.today() + datetime.timedelta(days=30)
+    UserRoleChange.objects.create(user=user, role="treasurer", start=end - datetime.timedelta(days=180), end=end)
+
+    call_command("generate_transition_obligations", "--dry-run")
+
+    assert not ReportObligation.objects.filter(chapter=chapter, position_key="treasurer").exists()
+    assert "[dry-run]" in capsys.readouterr().out
+
+
+def test_generate_transition_obligations_lookahead_days_flag_is_respected():
+    chapter = ChapterFactory()
+    user = UserFactory(chapter=chapter)
+    end = datetime.date.today() + datetime.timedelta(days=100)
+    UserRoleChange.objects.create(user=user, role="treasurer", start=end - datetime.timedelta(days=180), end=end)
+
+    call_command("generate_transition_obligations", "--lookahead-days", "45")
+    assert not ReportObligation.objects.filter(chapter=chapter, position_key="treasurer").exists()
+
+    call_command("generate_transition_obligations", "--lookahead-days", "150")
+    assert ReportObligation.objects.filter(chapter=chapter, position_key="treasurer").exists()

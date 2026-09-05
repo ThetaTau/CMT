@@ -1,11 +1,28 @@
+import datetime
+
 import pytest
 
+from thetatauCMT.chapters.tests.factories import ChapterFactory
 from thetatauCMT.configs.models import Config
+from thetatauCMT.users.models import UserRoleChange
+from thetatauCMT.users.tests.factories import UserFactory
 
 from .. import services
-from ..models import PositionOverride, ReportTemplate
+from ..models import PositionOverride, ReportObligation, ReportTemplate
 
 pytestmark = pytest.mark.django_db
+
+TODAY = datetime.date.today()
+
+
+def _role_change(chapter, role, end, start=None, user=None):
+    # NOTE: deliberately NOT UserRoleChangeFactory -- its `current`
+    # post_generation hook unconditionally overwrites `end` (persisted to the
+    # DB despite skip_postgeneration_save) with a random date whenever it
+    # isn't passed truthy, clobbering the exact date this helper needs.
+    user = user or UserFactory(chapter=chapter)
+    start = start or end - datetime.timedelta(days=180)
+    return UserRoleChange.objects.create(user=user, role=role, start=start, end=end)
 
 
 # ---------------------------------------------------------------------------
@@ -92,6 +109,19 @@ def test_offset_config_falls_back_on_unparsable_value():
 
 
 # ---------------------------------------------------------------------------
+# get_default_lookahead_days -- derived from the offsets above (decision I21)
+# ---------------------------------------------------------------------------
+def test_default_lookahead_days_with_no_config_rows():
+    # due_offset(14) + largest reminder offset(21) + buffer(10) = 45.
+    assert services.get_default_lookahead_days() == 45
+
+
+def test_default_lookahead_days_widens_when_reminder_offsets_configured_larger():
+    Config.objects.create(key="TRANSITIONS_REMINDER_OFFSETS_DAYS", value="60,30,14", description="")
+    assert services.get_default_lookahead_days() == 14 + 60 + services.DEFAULT_LOOKAHEAD_BUFFER_DAYS
+
+
+# ---------------------------------------------------------------------------
 # resolve_template -- 3-tier resolution (TRWI-2)
 # ---------------------------------------------------------------------------
 def test_resolve_template_out_of_scope_position_returns_none():
@@ -130,3 +160,248 @@ def test_resolve_template_ignores_inactive_templates():
     ReportTemplate.objects.create(position_type="CHAPTER_OFFICER", name="Inactive", is_active=False)
     global_default = ReportTemplate.objects.create(position_type="", position_key="", name="Global Default")
     assert services.resolve_template("treasurer") == global_default
+
+
+# ---------------------------------------------------------------------------
+# generate_obligations -- term-end trigger (TRWI-3)
+# ---------------------------------------------------------------------------
+def test_generate_obligations_creates_obligation_for_term_ending_soon():
+    chapter = ChapterFactory()
+    # 30 days out so due_date (end - 14) is still in the future -- keeps
+    # status "open" rather than being immediately marked "missed" below.
+    end = TODAY + datetime.timedelta(days=30)
+    role_change = _role_change(chapter, "treasurer", end)
+
+    counts = services.generate_obligations()
+
+    obligation = ReportObligation.objects.get(chapter=chapter, position_key="treasurer")
+    assert counts["term_end_created"] == 1
+    assert obligation.officer == role_change.user
+    assert obligation.role_change == role_change
+    assert obligation.position_type == "CHAPTER_OFFICER"
+    assert obligation.term_start == role_change.start
+    assert obligation.term_end == end
+    assert obligation.due_date == end - datetime.timedelta(days=services.DEFAULT_DUE_DATE_OFFSET_DAYS)
+    assert obligation.is_required is True
+    assert obligation.status == "open"
+
+
+def test_generate_obligations_is_idempotent():
+    chapter = ChapterFactory()
+    _role_change(chapter, "treasurer", TODAY + datetime.timedelta(days=10))
+
+    services.generate_obligations()
+    pk = ReportObligation.objects.get(chapter=chapter, position_key="treasurer").pk
+    counts = services.generate_obligations()
+
+    assert ReportObligation.objects.filter(chapter=chapter, position_key="treasurer").count() == 1
+    assert ReportObligation.objects.get(chapter=chapter, position_key="treasurer").pk == pk
+    assert counts["term_end_created"] == 0
+
+
+def test_generate_obligations_optional_position_excluded_when_config_off():
+    Config.objects.create(key="TRANSITIONS_COUNCIL_ENABLED", value="off", description="")
+    chapter = ChapterFactory()
+    _role_change(chapter, "grand regent", TODAY + datetime.timedelta(days=10))
+
+    services.generate_obligations()
+
+    assert not ReportObligation.objects.filter(chapter=chapter, position_key="grand regent").exists()
+
+
+def test_generate_obligations_optional_position_created_when_config_on():
+    chapter = ChapterFactory()
+    _role_change(chapter, "grand regent", TODAY + datetime.timedelta(days=10))
+
+    services.generate_obligations()
+
+    obligation = ReportObligation.objects.get(chapter=chapter, position_key="grand regent")
+    assert obligation.position_type == "COUNCIL"
+    assert obligation.is_required is False
+
+
+def test_generate_obligations_per_position_override_excludes_even_required_position():
+    PositionOverride.objects.create(position_key="treasurer", status="excluded")
+    chapter = ChapterFactory()
+    _role_change(chapter, "treasurer", TODAY + datetime.timedelta(days=10))
+
+    services.generate_obligations()
+
+    assert not ReportObligation.objects.filter(chapter=chapter, position_key="treasurer").exists()
+
+
+def test_generate_obligations_respects_lookahead_window():
+    chapter = ChapterFactory()
+    _role_change(chapter, "treasurer", TODAY + datetime.timedelta(days=100))
+
+    services.generate_obligations(lookahead_days=45)
+    assert not ReportObligation.objects.filter(chapter=chapter, position_key="treasurer").exists()
+
+    services.generate_obligations(lookahead_days=150)
+    assert ReportObligation.objects.filter(chapter=chapter, position_key="treasurer").exists()
+
+
+def test_generate_obligations_default_lookahead_boundary():
+    chapter = ChapterFactory()
+    # 50 days is just beyond the 45-day default (14 + 21 + 10).
+    _role_change(chapter, "treasurer", TODAY + datetime.timedelta(days=50))
+
+    services.generate_obligations()
+    assert not ReportObligation.objects.filter(chapter=chapter, position_key="treasurer").exists()
+
+    services.generate_obligations(lookahead_days=60)
+    assert ReportObligation.objects.filter(chapter=chapter, position_key="treasurer").exists()
+
+
+def test_generate_obligations_skips_role_change_outside_lookback_grace():
+    chapter = ChapterFactory()
+    # Ended more than a year ago -- outside the 365-day backward grace window
+    # (decision I22) -- and there's a current holder so the vacancy safety
+    # net doesn't apply either.
+    _role_change(chapter, "treasurer", TODAY - datetime.timedelta(days=400))
+    _role_change(chapter, "treasurer", TODAY + datetime.timedelta(days=300))
+
+    services.generate_obligations()
+
+    assert ReportObligation.objects.filter(chapter=chapter, position_key="treasurer").count() == 0
+
+
+def test_generate_obligations_mid_term_turnover_each_role_change_gets_its_own_obligation():
+    chapter = ChapterFactory()
+    first = _role_change(chapter, "treasurer", TODAY + datetime.timedelta(days=5))
+    second = _role_change(chapter, "treasurer", TODAY + datetime.timedelta(days=40))
+
+    services.generate_obligations()
+
+    obligations = ReportObligation.objects.filter(chapter=chapter, position_key="treasurer")
+    assert obligations.count() == 2
+    assert set(obligations.values_list("role_change_id", flat=True)) == {first.pk, second.pk}
+
+
+# ---------------------------------------------------------------------------
+# generate_obligations -- already-vacant safety net (TRWI-3)
+# ---------------------------------------------------------------------------
+def test_generate_obligations_never_creates_vacancy_obligation_from_a_holder_more_than_a_year_stale():
+    # Decision I20: the vacancy safety net never reaches back further than a
+    # year to pick a stale role change. Neither trigger fires here since
+    # trigger 1's own grace window (decision I22) is also capped at 365 days.
+    chapter = ChapterFactory()
+    _role_change(chapter, "regent", TODAY - datetime.timedelta(days=400))
+
+    services.generate_obligations()
+
+    assert not ReportObligation.objects.filter(chapter=chapter, position_key="regent").exists()
+
+
+def test_generate_obligations_vacant_required_position_within_a_year_still_gets_an_obligation():
+    # Decisions I20 and I22 both cap at 365 days, so a required position
+    # that's vacant now but was held within the last year gets its
+    # obligation via trigger 1 (term-ending-soon) with the last known holder
+    # as officer -- NOT trigger 2's officer=None path, since trigger 1 always
+    # claims the natural key first. See open question J24 in
+    # transitions-app.md re: whether officer should still be nulled out here.
+    chapter = ChapterFactory()
+    stale = _role_change(chapter, "regent", TODAY - datetime.timedelta(days=200))
+
+    services.generate_obligations()
+
+    obligation = ReportObligation.objects.get(chapter=chapter, position_key="regent")
+    assert obligation.officer == stale.user
+    assert obligation.role_change == stale
+    assert obligation.is_required is True
+
+
+def test_generate_obligations_never_held_position_creates_nothing():
+    chapter = ChapterFactory()
+    # No UserRoleChange at all for "regent" in this chapter.
+    services.generate_obligations()
+    assert not ReportObligation.objects.filter(chapter=chapter, position_key="regent").exists()
+
+
+def test_generate_obligations_vacancy_safety_net_only_applies_to_required_positions():
+    chapter = ChapterFactory()
+    # Also outside trigger 1's 365-day grace, so only trigger 2's role scoping
+    # is under test here -- committee chair is never in CHAPTER_OFFICER_REQUIRED.
+    _role_change(chapter, "committee chair", TODAY - datetime.timedelta(days=400))
+
+    services.generate_obligations()
+
+    assert not ReportObligation.objects.filter(chapter=chapter, position_key="committee chair").exists()
+
+
+def test_generate_obligations_vacancy_safety_net_does_not_duplicate_term_end_trigger():
+    # The stale role change's end (2 days ago) is inside the lookback grace
+    # window, so trigger 1 already covers it -- trigger 2 must not also fire.
+    # This is now the COMMON case since decisions I20/I22 widened both
+    # windows to 365 days -- see the "within_a_year" test above.
+    chapter = ChapterFactory()
+    role_change = _role_change(chapter, "regent", TODAY - datetime.timedelta(days=2))
+
+    counts = services.generate_obligations()
+
+    assert ReportObligation.objects.filter(chapter=chapter, position_key="regent").count() == 1
+    obligation = ReportObligation.objects.get(chapter=chapter, position_key="regent")
+    assert obligation.officer == role_change.user  # trigger 1's officer, not trigger 2's None
+    assert counts["term_end_created"] == 1
+    assert counts["vacant_created"] == 0
+
+
+# ---------------------------------------------------------------------------
+# generate_obligations -- missed marking (TRWI-3)
+# ---------------------------------------------------------------------------
+def test_generate_obligations_marks_past_due_open_obligations_missed():
+    chapter = ChapterFactory()
+    role_change = _role_change(chapter, "treasurer", TODAY - datetime.timedelta(days=20))
+    obligation = ReportObligation.objects.create(
+        chapter=chapter,
+        position_type="CHAPTER_OFFICER",
+        position_key="treasurer",
+        officer=role_change.user,
+        role_change=role_change,
+        term_start=role_change.start,
+        term_end=role_change.end,
+        due_date=TODAY - datetime.timedelta(days=1),
+        is_required=True,
+        status="open",
+    )
+
+    counts = services.generate_obligations()
+
+    obligation.refresh_from_db()
+    assert obligation.status == "missed"
+    assert counts["missed"] == 1
+
+
+@pytest.mark.parametrize("status", ["submitted", "na_vacant", "missed"])
+def test_generate_obligations_does_not_touch_non_open_obligations(status):
+    chapter = ChapterFactory()
+    role_change = _role_change(chapter, "treasurer", TODAY - datetime.timedelta(days=20))
+    ReportObligation.objects.create(
+        chapter=chapter,
+        position_type="CHAPTER_OFFICER",
+        position_key="treasurer",
+        officer=role_change.user,
+        role_change=role_change,
+        term_start=role_change.start,
+        term_end=role_change.end,
+        due_date=TODAY - datetime.timedelta(days=1),
+        is_required=True,
+        status=status,
+    )
+
+    services.generate_obligations()
+
+    assert ReportObligation.objects.get(chapter=chapter, position_key="treasurer").status == status
+
+
+# ---------------------------------------------------------------------------
+# generate_obligations -- dry-run (TRWI-3)
+# ---------------------------------------------------------------------------
+def test_generate_obligations_dry_run_writes_nothing():
+    chapter = ChapterFactory()
+    _role_change(chapter, "treasurer", TODAY + datetime.timedelta(days=10))
+
+    counts = services.generate_obligations(dry_run=True)
+
+    assert counts["term_end_created"] == 1
+    assert ReportObligation.objects.count() == 0
