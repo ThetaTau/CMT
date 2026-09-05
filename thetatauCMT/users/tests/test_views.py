@@ -1484,6 +1484,94 @@ def test_profile_shows_final_majors(auto_login_user, user_factory):
     assert str(target.major) not in body
 
 
+# ---------------------------------------------------------------------------
+# Name change (marriage last name / maiden name)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.django_db
+def test_user_form_includes_name_change_fields():
+    """Members can update their last name and record a maiden name."""
+    from thetatauCMT.users.forms import UserForm
+
+    form = UserForm()
+    assert "last_name" in form.fields
+    assert "maiden_name" in form.fields
+
+
+@pytest.mark.django_db
+def test_user_detail_post_saves_name_change(auto_login_user):
+    """A member can change their last name and set a maiden name, e.g. after marriage.
+
+    The denormalized `name` field should reflect the new last name too, even
+    though this factory user has no `preferred_name` set (the common case).
+    """
+    client, user = auto_login_user()
+    assert not user.preferred_name
+    response = client.post(
+        reverse("users:detail"),
+        {
+            "action": "user",
+            "last_name": "Newlywed",
+            "maiden_name": "Oldname",
+            "graduation_year": user.graduation_year or 2025,
+            "email": user.email,
+            "birth_date": "01/01/1990",
+            "phone_visibility": "no_one",
+            "email_visibility": "no_one",
+            "address_visibility": "no_one",
+            "address_0": "123 Main St",
+            "address_1": "Phoenix",
+            "address_2": "AZ",
+            "address_3": "85001",
+            "address_4": "United States",
+        },
+    )
+    assert response.status_code == 302
+    user.refresh_from_db()
+    assert user.last_name == "Newlywed"
+    assert user.maiden_name == "Oldname"
+    assert "Newlywed" in user.name
+
+
+@pytest.mark.django_db
+def test_user_list_view_finds_member_by_maiden_name(auto_login_user):
+    """The chapter roster search matches a member's maiden name too."""
+    from thetatauCMT.users.tests.factories import UserFactory
+
+    client, user = auto_login_user()
+    user.current_roles = ["regent"]
+    user.save()
+    # UserListView defaults `current_status` to the active-like statuses
+    # whenever it is absent from the query string, so the target needs one.
+    target = UserFactory.create(chapter=user.chapter, maiden_name="Fitzgerald", current_status="active")
+    response = client.get(reverse("users:list"), {"name__icontains": "Fitzgerald"})
+    assert response.status_code == 200
+    assert target.name.encode() in response.content
+
+
+@pytest.mark.django_db
+def test_user_profile_shows_last_name_and_maiden_name(auto_login_user, user_factory):
+    """The profile page shows both names when a maiden name is on file."""
+    client, user = auto_login_user()
+    target = user_factory.create(last_name="Newlywed", maiden_name="Oldname")
+    response = client.get(reverse("users:profile", kwargs={"username": target.username}))
+    assert response.status_code == 200
+    body = response.content.decode("UTF-8")
+    assert "Last name:</strong> Newlywed" in body
+    assert "Maiden name:</strong> Oldname" in body
+
+
+@pytest.mark.django_db
+def test_user_profile_hides_last_name_row_without_maiden_name(auto_login_user, user_factory):
+    """No separate "Last name" row when there is no maiden name to contrast it with."""
+    client, user = auto_login_user()
+    target = user_factory.create(maiden_name="")
+    response = client.get(reverse("users:profile", kwargs={"username": target.username}))
+    assert response.status_code == 200
+    assert b"Last name:</strong>" not in response.content
+
+
 @pytest.mark.django_db
 def test_position_autocomplete_search_and_create(auto_login_user):
     """Any member can search job titles and add one that is missing."""
