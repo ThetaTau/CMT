@@ -141,6 +141,7 @@ Then load the fixtures `dbseed` does **not** cover (see
 ```bash
 python manage.py loaddata national_region   # regions.Region "National" (pk 1)
 python manage.py loaddata award_types        # 30 awards.AwardType rows (Awards feature)
+python manage.py loaddata award_eligibility_rules  # 51 awards.EligibilityRule rows (after award_types)
 python manage.py loaddata keywords           # ~1000 jobs.Keyword rows (Job Board autocomplete)
 ```
 
@@ -314,6 +315,7 @@ them explicitly:
 ```bash
 python manage.py loaddata national_region   # regions/fixtures/national_region.json
 python manage.py loaddata award_types        # awards/fixtures/award_types.json
+python manage.py loaddata award_eligibility_rules  # awards/fixtures/award_eligibility_rules.json
 python manage.py loaddata keywords           # jobs/fixtures/keywords.json
 ```
 
@@ -321,6 +323,7 @@ python manage.py loaddata keywords           # jobs/fixtures/keywords.json
 |---|---|---|---|
 | `national_region` | 1 | The `National` region (pk 1) that national events/officers hang off. | Fixed pk 1 → re-load overwrites pk 1 only. On an existing DB, confirm pk 1 is already "National" before loading. |
 | `award_types` | 30 | The Awards catalog (`AwardType`). The Awards feature is **non-functional without it** (no award types to nominate/grant). | Fixed pks 1–30 → re-load overwrites those rows in place (safe/idempotent). |
+| `award_eligibility_rules` | 51 | Baseline `EligibilityRule` rows for the 30 award types (recipient-kind guard per award, plus member-status filters). Without them every award is open to every member. Requires `award_types` first (the fixture links rules to awards **by award name**, via natural keys). | `"pk": null` + natural key `(award name, rule_type, member_status, hook_key)` → re-load updates the matching row in place instead of duplicating, and never clobbers rules natoffs added in the admin. |
 | `keywords` | ~1000 | Job Board keyword autocomplete. | Fixed pks → re-load overwrites in place. |
 
 > **Fixture idempotency note.** `feature_flags` uses `"pk": null` (auto id) so it
@@ -442,8 +445,10 @@ them daily and let them decide. Use `--dry-run` / `--override` for testing only 
 | `set_current_status_roles` | daily | Recompute members' current status/roles. |
 | `officer_update_reminder_email` | daily | Chapter officer-update reminders. |
 | `region_officer_reminder_digest` | daily → sends **Mon** | Weekly RD officer digest (`--weekday 0`). |
+| `ballot_reminders` | daily → per-ballot 7 day ladder | Re-sends an open ballot every 7 days to whoever has not voted, widening the chapter copy list at day 14 (all officers) and day 21 (chapter roles + Regional Director), plus a final reminder on the due date. Voting closes 5pm Pacific on the due date. |
 | `monthly_chapter_officer_email` | daily → sends **1st** | Monthly per-region chapter health dashboard. |
 | `grad_anniversary_email` | daily | Graduation-anniversary emails (respects unsubscribes). |
+| `chapter_founding_day_email` | daily | Chapter founding-anniversary emails (respects unsubscribes). |
 | `award_digest` | daily → sends **1st** | Monthly award-grant digest. |
 | `nomination_follow_up` | daily | Re-contact volunteer nominees per `follow_up_interval_months`. |
 | `job_search_notify --frequency both` | daily | Job Board saved-search alerts (daily + weekly digests). |
@@ -472,6 +477,10 @@ pip install -r requirements/production.txt      # if requirements changed
 
 python manage.py showmigrations | grep '\[ \]'  # review pending (additive/safe)
 python manage.py migrate
+
+# MUST print config.settings.production before collecting static -- see the
+# warning below. `workon` exports it via postactivate.
+python -c "import os; print(os.environ.get('DJANGO_SETTINGS_MODULE'))"
 python manage.py collectstatic --noinput
 
 # Only if new seed rows are needed this release:
@@ -481,6 +490,51 @@ python manage.py collectstatic --noinput
 python manage.py check --deploy                 # resolve anything reported
 # reload the web app (PythonAnywhere "Reload" button), then remove maintenance_active
 ```
+
+> **Static files silently fail to update if the settings module is wrong.**
+> `manage.py` falls back to `config.settings.local`, which uses the plain
+> `StaticFilesStorage`. Production uses `CompressedManifestStaticFilesStorage`,
+> which writes content-hashed filenames plus `staticfiles/staticfiles.json`, and
+> `{% static %}` resolves through that manifest.
+>
+> Running `collectstatic` **without** `config.settings.production` copies the
+> unhashed files but never rewrites the hashed copies or the manifest. Pages keep
+> pointing at the previous hash, which is still on disk and is served with a
+> ten-year `immutable` cache header, so the change is invisible no matter how many
+> times you reload the web app or clear your browser cache.
+>
+> Verify after collecting, then reload the web app:
+>
+> ```bash
+> grep -o 'project\.[a-f0-9]\{12\}\.css' staticfiles/staticfiles.json
+> ```
+>
+> If the hash did not change when `project.css` did, collectstatic ran under the
+> wrong settings. Re-run it explicitly and reload:
+>
+> ```bash
+> python manage.py collectstatic --noinput --clear --settings=config.settings.production
+> ```
+
+> **The reload is not optional, and `--clear` makes skipping it fatal.**
+> Two caches live inside the mod_wsgi process and are only rebuilt at startup:
+> the staticfiles manifest (read once by the storage backend) and WhiteNoise's
+> index of `STATIC_ROOT` (scanned once, because `autorefresh` is off when
+> `DEBUG=False`). `collectstatic` changes nothing a visitor sees until you reload.
+>
+> Skip the reload after a `--clear` and the site loses all styling, because the
+> old hashed file the running process is still advertising has just been deleted:
+>
+> | Request | Result |
+> | --- | --- |
+> | old hash, still emitted by the cached manifest | **500** (in WhiteNoise's index, missing on disk) |
+> | new hash, present on disk | **404** (not in WhiteNoise's startup index) |
+>
+> The fix is only ever "reload the web app", never another `collectstatic`.
+> Prefer a plain `collectstatic --noinput` for routine deploys: it writes the new
+> hashed file and manifest without deleting the old one, so the window between
+> collecting and reloading stays harmless. Keep `--clear` for when you actually
+> need to purge accumulated hashes, and reload immediately afterwards.
 
 When upgrading **into** the July release for the first time, also run the
 one-time fixtures in [§4.1](#41-fixtures-not-loaded-by-dbseed-load-manually)
@@ -532,20 +586,45 @@ Record the date of the last successful **restore test** in the deploy log.
 
 ## 11. SSL certificates
 
-PythonAnywhere Let's Encrypt: <https://help.pythonanywhere.com/pages/LetsEncrypt/>
+**Nothing to renew by hand.** As of 2026-08-07 `cmt.thetatau.org` uses
+PythonAnywhere's *Auto-renewed Let's Encrypt certificate* (Web page → **Security**
+→ HTTPS certificate). PythonAnywhere issues, installs and renews it. There is no
+scheduled task and no command to run. Docs:
+<https://help.pythonanywhere.com/pages/HTTPSSetup>
 
-Check expiry:
+`cmt.thetatau.info` resolves to Cloudflare, not PythonAnywhere, so its
+certificate is Cloudflare's and auto-renews separately. The PythonAnywhere cert's
+SAN covers `cmt.thetatau.org` only, which is correct.
+
+Note `SECURE_HSTS_SECONDS` is 1 year with `SECURE_HSTS_PRELOAD` on
+([config/settings/production.py](../config/settings/production.py)), so a lapsed
+certificate is a hard outage for returning visitors, with no click-through. That
+is the main reason not to go back to a hand-rolled renewal.
+
+Check what is actually being served (works from any machine, no server access):
 
 ```bash
-openssl x509 -enddate -noout -in ~/letsencrypt/cmt.thetatau.org/cert.pem
+openssl s_client -connect cmt.thetatau.org:443 -servername cmt.thetatau.org </dev/null 2>/dev/null | openssl x509 -noout -subject -issuer -dates
 ```
 
-Renew:
+### Retired: manual dehydrated renewal
 
-```bash
-cd ~/letsencrypt
-~/dehydrated/dehydrated --cron --domain cmt.thetatau.org --out . --challenge http-01
+The site previously ran a daily task doing `dehydrated --cron` plus
+`pa_install_webapp_letsencrypt_ssl.py`. **Do not revive it.** It failed for
+months with
+
 ```
+bash: /home/<user>/.local/bin/pa_install_webapp_letsencrypt_ssl.py:
+/usr/local/bin/python3.6: bad interpreter: No such file or directory
+... return code was 126.
+```
+
+because the `pythonanywhere` helper package was installed with a Python that
+PythonAnywhere later removed from the image. The failure was easy to miss:
+dehydrated ran first and logged "Certificate will not expire ... Skipping renew!",
+so the task *looked* healthy while the install step, the one that binds the cert
+to the web app, never ran. Left alone it would have renewed the cert on disk and
+still served an expired one.
 
 ---
 
