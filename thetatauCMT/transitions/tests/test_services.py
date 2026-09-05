@@ -1,9 +1,11 @@
 import datetime
 
 import pytest
+from django.core import mail
 
 from thetatauCMT.chapters.tests.factories import ChapterFactory
 from thetatauCMT.configs.models import Config
+from thetatauCMT.regions.tests.factories import RegionFactory
 from thetatauCMT.users.models import UserRoleChange
 from thetatauCMT.users.tests.factories import UserFactory
 
@@ -405,3 +407,295 @@ def test_generate_obligations_dry_run_writes_nothing():
 
     assert counts["term_end_created"] == 1
     assert ReportObligation.objects.count() == 0
+
+
+# ---------------------------------------------------------------------------
+# _current_reminder_threshold / get_rd_escalation_offset_days (TRWI-4)
+# ---------------------------------------------------------------------------
+@pytest.mark.parametrize(
+    "days_until_due,expected",
+    [
+        (25, None),  # nothing crossed yet (furthest offset is 21)
+        (21, 21),
+        (15, 21),  # still short of the 14-day mark -- 21 remains the most recent crossed
+        (0, 1),  # crossed 21/14/7/1 -- most urgent (smallest) crossed is 1
+        (-1, -1),
+        (-5, -1),
+        (-7, -7),
+        (-20, -14),  # crossed everything -- most urgent is the most negative
+    ],
+)
+def test_current_reminder_threshold(days_until_due, expected):
+    assert services._current_reminder_threshold(days_until_due, services.DEFAULT_REMINDER_OFFSETS_DAYS) == expected
+
+
+def test_rd_escalation_offset_default_and_configured():
+    assert services.get_rd_escalation_offset_days() == services.DEFAULT_RD_ESCALATION_OFFSET_DAYS
+    Config.objects.create(key="TRANSITIONS_RD_ESCALATION_OFFSET_DAYS", value="-10", description="")
+    assert services.get_rd_escalation_offset_days() == -10
+
+
+# ---------------------------------------------------------------------------
+# send_due_date_reminders (TRWI-4 mechanism 1)
+# ---------------------------------------------------------------------------
+def _open_obligation(
+    chapter, officer, due_date, status="open", last_reminder_offset_sent=None, position_key="treasurer"
+):
+    return ReportObligation.objects.create(
+        chapter=chapter,
+        position_type="CHAPTER_OFFICER",
+        position_key=position_key,
+        officer=officer,
+        term_start=due_date - datetime.timedelta(days=166),
+        term_end=due_date + datetime.timedelta(days=services.DEFAULT_DUE_DATE_OFFSET_DAYS),
+        due_date=due_date,
+        is_required=True,
+        status=status,
+        last_reminder_offset_sent=last_reminder_offset_sent,
+    )
+
+
+def test_send_due_date_reminders_sends_to_officer_when_threshold_crossed():
+    chapter = ChapterFactory()
+    user = UserFactory(chapter=chapter)
+    _open_obligation(chapter, user, TODAY + datetime.timedelta(days=21))
+
+    sent = services.send_due_date_reminders()
+
+    assert sent == 1
+    obligation = ReportObligation.objects.get(chapter=chapter)
+    assert obligation.last_reminder_offset_sent == 21
+    assert len(mail.outbox) == 1
+    assert set(mail.outbox[0].to) == set(user.emails)
+
+
+def test_send_due_date_reminders_is_idempotent_for_the_same_threshold():
+    chapter = ChapterFactory()
+    user = UserFactory(chapter=chapter)
+    _open_obligation(chapter, user, TODAY + datetime.timedelta(days=21))
+
+    services.send_due_date_reminders()
+    sent_again = services.send_due_date_reminders()
+
+    assert sent_again == 0
+    assert len(mail.outbox) == 1
+
+
+def test_send_due_date_reminders_no_threshold_crossed_yet_sends_nothing():
+    chapter = ChapterFactory()
+    user = UserFactory(chapter=chapter)
+    _open_obligation(chapter, user, TODAY + datetime.timedelta(days=25))
+
+    sent = services.send_due_date_reminders()
+
+    assert sent == 0
+    obligation = ReportObligation.objects.get(chapter=chapter)
+    assert obligation.last_reminder_offset_sent is None
+    assert len(mail.outbox) == 0
+
+
+def test_send_due_date_reminders_escalates_to_regent_once_past_due():
+    chapter = ChapterFactory(email_regent="regent@example.com")
+    user = UserFactory(chapter=chapter)
+    _open_obligation(chapter, user, TODAY - datetime.timedelta(days=1))
+
+    services.send_due_date_reminders()
+
+    assert "regent@example.com" in mail.outbox[0].to
+    assert set(user.emails).issubset(set(mail.outbox[0].to))
+
+
+def test_send_due_date_reminders_does_not_escalate_to_regent_before_due():
+    chapter = ChapterFactory(email_regent="regent@example.com")
+    user = UserFactory(chapter=chapter)
+    _open_obligation(chapter, user, TODAY + datetime.timedelta(days=1))
+
+    services.send_due_date_reminders()
+
+    assert "regent@example.com" not in mail.outbox[0].to
+
+
+def test_send_due_date_reminders_escalates_to_rd_at_configured_offset():
+    region = RegionFactory(email="region-mailbox@example.com")
+    chapter = ChapterFactory(region=region, email_regent="regent@example.com")
+    director = UserFactory(chapter=chapter)
+    region.directors.add(director)
+    user = UserFactory(chapter=chapter)
+    # -7 is the default RD escalation offset.
+    _open_obligation(chapter, user, TODAY - datetime.timedelta(days=7))
+
+    services.send_due_date_reminders()
+
+    recipients = set(mail.outbox[0].to)
+    assert "region-mailbox@example.com" in recipients
+    assert set(director.emails).issubset(recipients)
+    assert "regent@example.com" in recipients  # RD tier implies the Regent tier too
+
+
+def test_send_due_date_reminders_does_not_escalate_to_rd_before_configured_offset():
+    region = RegionFactory(email="region-mailbox@example.com")
+    chapter = ChapterFactory(region=region, email_regent="regent@example.com")
+    user = UserFactory(chapter=chapter)
+    _open_obligation(chapter, user, TODAY - datetime.timedelta(days=1))
+
+    services.send_due_date_reminders()
+
+    assert "region-mailbox@example.com" not in mail.outbox[0].to
+
+
+def test_send_due_date_reminders_vacant_pre_due_sends_nothing_but_records_threshold():
+    chapter = ChapterFactory()
+    _open_obligation(chapter, None, TODAY + datetime.timedelta(days=21))
+
+    sent = services.send_due_date_reminders()
+
+    assert sent == 0
+    assert len(mail.outbox) == 0
+    assert ReportObligation.objects.get(chapter=chapter).last_reminder_offset_sent == 21
+
+
+def test_send_due_date_reminders_vacant_past_due_still_escalates_to_regent():
+    chapter = ChapterFactory(email_regent="regent@example.com")
+    _open_obligation(chapter, None, TODAY - datetime.timedelta(days=1))
+
+    sent = services.send_due_date_reminders()
+
+    assert sent == 1
+    assert "regent@example.com" in mail.outbox[0].to
+
+
+def test_send_due_date_reminders_continues_for_missed_status():
+    chapter = ChapterFactory()
+    user = UserFactory(chapter=chapter)
+    _open_obligation(chapter, user, TODAY - datetime.timedelta(days=1), status="missed")
+
+    sent = services.send_due_date_reminders()
+
+    assert sent == 1
+
+
+@pytest.mark.parametrize("status", ["submitted", "na_vacant"])
+def test_send_due_date_reminders_stops_on_closure(status):
+    chapter = ChapterFactory()
+    user = UserFactory(chapter=chapter)
+    _open_obligation(chapter, user, TODAY - datetime.timedelta(days=1), status=status)
+
+    sent = services.send_due_date_reminders()
+
+    assert sent == 0
+    assert len(mail.outbox) == 0
+
+
+def test_send_due_date_reminders_dry_run_sends_nothing_and_writes_nothing():
+    chapter = ChapterFactory()
+    user = UserFactory(chapter=chapter)
+    _open_obligation(chapter, user, TODAY + datetime.timedelta(days=21))
+
+    sent = services.send_due_date_reminders(dry_run=True)
+
+    assert sent == 1
+    assert len(mail.outbox) == 0
+    assert ReportObligation.objects.get(chapter=chapter).last_reminder_offset_sent is None
+
+
+# ---------------------------------------------------------------------------
+# send_seasonal_reminder (TRWI-4 mechanism 2)
+# ---------------------------------------------------------------------------
+@pytest.mark.freeze_time("2026-12-15")  # 17 days before the fall semester ends (Jan 1, 2027)
+def test_send_seasonal_reminder_fires_within_window():
+    chapter = ChapterFactory()
+    user = UserFactory(chapter=chapter)
+    _open_obligation(chapter, user, datetime.date(2027, 1, 15))
+
+    sent = services.send_seasonal_reminder()
+
+    assert sent == 1
+    assert len(mail.outbox) == 1
+    assert set(mail.outbox[0].to) == set(user.emails)
+    assert Config.get_value("TRANSITIONS_SEASONAL_REMINDER_LAST_SENT_FOR") == "2027-01-01"
+
+
+@pytest.mark.freeze_time("2026-11-01")  # 61 days before the fall semester ends -- outside the 30-day window
+def test_send_seasonal_reminder_outside_window_does_nothing():
+    chapter = ChapterFactory()
+    user = UserFactory(chapter=chapter)
+    _open_obligation(chapter, user, datetime.date(2027, 1, 15))
+
+    sent = services.send_seasonal_reminder()
+
+    assert sent == 0
+    assert len(mail.outbox) == 0
+
+
+@pytest.mark.freeze_time("2026-12-15")
+def test_send_seasonal_reminder_does_not_resend_for_the_same_semester():
+    chapter = ChapterFactory()
+    user = UserFactory(chapter=chapter)
+    _open_obligation(chapter, user, datetime.date(2027, 1, 15))
+
+    services.send_seasonal_reminder()
+    sent_again = services.send_seasonal_reminder()
+
+    assert sent_again == 0
+    assert len(mail.outbox) == 1
+
+
+@pytest.mark.freeze_time("2026-12-15")
+def test_send_seasonal_reminder_only_emails_users_with_open_obligations():
+    chapter = ChapterFactory()
+    has_obligation = UserFactory(chapter=chapter)
+    no_obligation = UserFactory(chapter=chapter)
+    _open_obligation(chapter, has_obligation, datetime.date(2027, 1, 15))
+
+    services.send_seasonal_reminder()
+
+    assert len(mail.outbox) == 1
+    assert set(mail.outbox[0].to) == set(has_obligation.emails)
+    assert not any(email in mail.outbox[0].to for email in no_obligation.emails)
+
+
+@pytest.mark.freeze_time("2026-12-15")
+def test_send_seasonal_reminder_dry_run_sends_nothing_and_writes_nothing():
+    chapter = ChapterFactory()
+    user = UserFactory(chapter=chapter)
+    _open_obligation(chapter, user, datetime.date(2027, 1, 15))
+
+    sent = services.send_seasonal_reminder(dry_run=True)
+
+    assert sent == 1
+    assert len(mail.outbox) == 0
+    assert Config.get_value("TRANSITIONS_SEASONAL_REMINDER_LAST_SENT_FOR") == ""
+
+
+# ---------------------------------------------------------------------------
+# get_my_open_obligations (TRWI-4 home dashboard card)
+# ---------------------------------------------------------------------------
+def test_get_my_open_obligations_scoped_to_viewer():
+    chapter = ChapterFactory()
+    viewer = UserFactory(chapter=chapter)
+    someone_else = UserFactory(chapter=chapter)
+    mine = _open_obligation(chapter, viewer, TODAY + datetime.timedelta(days=10), position_key="treasurer")
+    _open_obligation(chapter, someone_else, TODAY + datetime.timedelta(days=10), position_key="scribe")
+
+    obligations = list(services.get_my_open_obligations(viewer))
+
+    assert obligations == [mine]
+
+
+def test_get_my_open_obligations_includes_missed_excludes_closed():
+    chapter = ChapterFactory()
+    viewer = UserFactory(chapter=chapter)
+    _open_obligation(chapter, viewer, TODAY - datetime.timedelta(days=1), status="missed", position_key="treasurer")
+    _open_obligation(
+        chapter,
+        viewer,
+        TODAY - datetime.timedelta(days=1),
+        status="submitted",
+        last_reminder_offset_sent=-14,
+        position_key="scribe",
+    )
+
+    obligations = list(services.get_my_open_obligations(viewer))
+
+    assert len(obligations) == 1
+    assert obligations[0].status == "missed"

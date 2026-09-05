@@ -1,6 +1,6 @@
 # Transition Reports & Lessons Learned — Feature Spec & Work Breakdown
 
-> **Status:** In development (2026-09-05) — TRWI-1, TRWI-2, and TRWI-3 are implemented and tested. See "Decisions Log" at the end for the full record of resolved decisions (A-J); "Remaining Open Questions" is empty again.
+> **Status:** In development (2026-09-05) — TRWI-1 through TRWI-4 are implemented and tested. See "Decisions Log" at the end for the full record of resolved decisions (A-J) plus TRWI-4's choices awaiting review (K25-K34).
 > **Approach:** Purpose-built app (custom), no third-party survey dependency. App name: `thetatauCMT.transitions`.
 > **File location:** `docs/specs/transition-reports.md`
 
@@ -574,6 +574,21 @@ Every question from the codebase review has been answered. Recorded here for tra
 ### J. TRWI-3 — Vacancy-safety-net reachability (resolved 2026-09-05)
 - **J24 — Confirmed acceptable.** A required position vacant for up to a year still gets an obligation via trigger 1 (`officer=<last known holder>`, not `None`); only a position vacant for MORE than a year, or never held at all, produces nothing. No code change needed — this is already the implemented, tested behavior.
 
+### K. TRWI-4 — Nudges & reminder emails (implemented autonomously 2026-09-05 — please review)
+
+TRWI-4 is implemented, migrated, and tested (112 tests passing in the transitions app; 480 across the full regression sweep including configs/core/users). Several design points weren't fully specified in the original work item, so I made reasoned choices — flagging here for your review rather than treating them as locked in like A-J.
+
+- **K25 — New field:** `ReportObligation.last_reminder_offset_sent` (nullable `IntegerField`), exactly as the work item itself suggested, tracking the most recent (most urgent) configured offset already acted on so the daily command never double-sends a threshold.
+- **K26 — New Config key `TRANSITIONS_RD_ESCALATION_OFFSET_DAYS`** (default **-7**, seeded in `default_configs.json`): once a reminder offset at/below this is reached, the Regional Director is escalated in addition to the Regent. Not called for explicitly in TRWI-1's original config list — added because "a later offset includes the RD" needed a concrete threshold. -7 was chosen as the middle of the three default past-due offsets (-1/-7/-14): Regent alone at -1, Regent+RD from -7 onward.
+- **K27 — Reminder-eligible statuses are `open` AND `missed`, not just `open`.** TRWI-3 flips `open` -> `missed` the very first day something is past due, which would otherwise silence every negative-offset reminder (-1/-7/-14) immediately once due_date passes. Resolved via the acceptance criterion's own wording — "reminders stop on submission/closure" — closure means `submitted`/`na_vacant` only; `missed` is a visibility flag (decision C7), not a stopping condition.
+- **K28 — Threshold-detection algorithm:** for each obligation, `days_until_due = due_date - today`; the applicable threshold is the SMALLEST (most urgent) configured offset with `days_until_due <= offset`. A daily command that missed several days jumps straight to the correct current threshold rather than replaying every skipped one.
+- **K29 — Recipient tiers:** officer's own email(s) always (if an officer is set); + the chapter's generic Regent email (`chapter.generic_email_for_role("regent")`) once the threshold is past due (< 0); + the region's RD email(s)/region mailbox (mirrors `RegionalDirectorOfficerDigest`'s own recipient gathering) once the threshold is at/below the K26 RD-escalation offset. A vacant obligation (`officer=None`) not yet past due resolves NO recipients and sends nothing, but still records the threshold so it's never re-evaluated; once past due it still escalates to the Regent (there's no officer to email, but the Regent needs to know to close it `na_vacant`).
+- **K30 — One daily management command** `send_transition_report_reminders`, running both mechanisms in sequence, matching the work item's own "Same daily command" instruction for mechanism 2 and the repo's daily-only-scheduling constraint.
+- **K31 — Mechanism 2 dedupe:** a NEW Config key `TRANSITIONS_SEASONAL_REMINDER_LAST_SENT_FOR` (system-managed bookkeeping, not an admin-tunable despite living in the `Config` table) storing the ISO date of the semester-end last sent for. A NEW row is created to record it (never an update) since `Config.get_value` already reads the latest row by `created` — matches how every other Config value in this codebase is written, not a special case.
+- **K32 — `dry_run` is an explicit skip, NOT a rolled-back transaction**, unlike `generate_obligations`'s TRWI-3 sibling. An actual email send is a real external side effect a DB transaction rollback cannot undo, so both reminder functions explicitly skip every `.send()` and every write when `dry_run=True`, computing and returning the same counts either way.
+- **K33 — Home dashboard card** "My Transition Report Obligations" added to `pages/home.html` (via `guides/_role_guide_card.html`'s exact pattern) showing the viewer's own `open`/`missed` obligations (positions THEY hold, not chapter-wide) — no new page, so no feature-registry entry needed (TRWI-5's page will need one).
+- **K34 — Fixed a pre-existing gap found while regression-testing:** `PositionOverride`/`ReportTemplate`/`TemplatePrompt`/`ReportObligation` (TRWI-1/2/3) had never been registered with `dj_anonymizer`, failing `core/tests/test_anonymizer.py::test_every_model_is_registered_with_the_anonymizer`. This wasn't caught earlier because only `thetatauCMT/transitions` tests had been run, not the full suite. Added `anonymizer/transitions.py` (`register_skip` for all four — admin-managed config/prompt content, plus `ReportObligation` which only references a person through FKs, matching `guides/_role_guide_card.html`'s `UserAcknowledgement` precedent).
+
 ---
 
 ## Pre-Launch Checklist
@@ -586,4 +601,4 @@ Every question from the codebase review has been answered. Recorded here for tra
 
 ## Remaining Open Questions
 
-None. Every question from the original codebase review round, TRWI-3's first round (I20-I23), and its J24 follow-up is resolved (see Decisions Log A-J above).
+None from the original codebase review round or TRWI-3 (I20-I23, J24) — see Decisions Log A-J. TRWI-4's design choices (K25-K34) are implemented and tested but not yet reviewed by you; see the Decisions Log entry above.

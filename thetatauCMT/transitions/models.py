@@ -180,6 +180,12 @@ class ReportObligation(models.Model):
     (``SET_NULL``): ``term_start``/``term_end`` are copied at generation time
     and stay authoritative for this obligation from then on, so editing or
     deleting the source role change never cascades here.
+
+    ``last_reminder_offset_sent`` (TRWI-4): the most recent -- i.e. most
+    urgent/smallest -- configured reminder offset already acted on for this
+    obligation, so the daily reminder command never re-sends the same
+    threshold twice. Not reset on status change; simply stops advancing once
+    reminders stop (status becomes ``submitted``/``na_vacant``).
     """
 
     class Status(EnumClass):
@@ -214,6 +220,7 @@ class ReportObligation(models.Model):
         choices=[x.value for x in Status],
         default=Status.open.value[0],
     )
+    last_reminder_offset_sent = models.IntegerField(null=True, blank=True)
     generated_at = models.DateTimeField(default=timezone.now)
 
     class Meta:

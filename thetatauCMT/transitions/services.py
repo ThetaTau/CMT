@@ -3,10 +3,10 @@ import datetime
 from django.db import transaction
 from django.utils import timezone
 
-from core.models import CHAPTER_OFFICER_REQUIRED
+from core.models import CHAPTER_OFFICER_REQUIRED, semester_encompass_start_end_date
 from thetatauCMT.chapters.models import Chapter
 from thetatauCMT.configs.models import Config
-from thetatauCMT.users.models import UserRoleChange
+from thetatauCMT.users.models import User, UserRoleChange
 
 from .models import (
     POSITION_KEY_TO_TYPE,
@@ -16,13 +16,24 @@ from .models import (
     ReportTemplate,
     position_type_for_key,
 )
+from .notifications import TransitionReportDueReminder, TransitionReportSeasonalReminder
 
 DUE_DATE_OFFSET_DAYS_CONFIG_KEY = "TRANSITIONS_DUE_DATE_OFFSET_DAYS"
 REMINDER_OFFSETS_DAYS_CONFIG_KEY = "TRANSITIONS_REMINDER_OFFSETS_DAYS"
 SEASONAL_REMINDER_OFFSET_DAYS_CONFIG_KEY = "TRANSITIONS_SEASONAL_REMINDER_OFFSET_DAYS"
+RD_ESCALATION_OFFSET_DAYS_CONFIG_KEY = "TRANSITIONS_RD_ESCALATION_OFFSET_DAYS"
+# System-managed bookkeeping key (not an admin-tunable, despite living in the
+# same Config table) -- see send_seasonal_reminder.
+SEASONAL_REMINDER_LAST_SENT_FOR_CONFIG_KEY = "TRANSITIONS_SEASONAL_REMINDER_LAST_SENT_FOR"
 
 DEFAULT_DUE_DATE_OFFSET_DAYS = 14
 DEFAULT_REMINDER_OFFSETS_DAYS = (21, 14, 7, 1, -1, -7, -14)
+DEFAULT_RD_ESCALATION_OFFSET_DAYS = -7
+
+# TRWI-4: reminders continue through "missed" -- it is a visibility-only
+# status (decision C7), not a stopping condition. Only submitted/na_vacant are
+# "closure" per the acceptance criterion "reminders stop on submission/closure".
+REMINDER_ELIGIBLE_STATUSES = (ReportObligation.Status.open.value[0], ReportObligation.Status.missed.value[0])
 
 # TRWI-3: obligation generation window/tuning. Not Config-driven like the
 # offsets above -- these govern the SCAN, not the business rule, and
@@ -275,3 +286,153 @@ def generate_obligations(lookahead_days=None, dry_run=False):
             transaction.set_rollback(True)
 
     return counts
+
+
+def get_rd_escalation_offset_days():
+    return _parse_config_int(RD_ESCALATION_OFFSET_DAYS_CONFIG_KEY, DEFAULT_RD_ESCALATION_OFFSET_DAYS)
+
+
+def _current_reminder_threshold(days_until_due, offsets):
+    """The most urgent configured offset already crossed, or ``None`` if none yet.
+
+    "Crossed" means ``days_until_due <= offset``. The most urgent (smallest,
+    i.e. most past-due) crossed offset wins, so a daily command that missed a
+    few days jumps straight to where it should be rather than replaying every
+    skipped step.
+    """
+    crossed = [offset for offset in offsets if days_until_due <= offset]
+    return min(crossed) if crossed else None
+
+
+def _regent_emails(chapter):
+    email = chapter.generic_email_for_role("regent")
+    return {email} if email else set()
+
+
+def _rd_emails(chapter):
+    region = chapter.region
+    emails = set()
+    for director in region.directors.all():
+        emails |= {email for email in director.emails if email}
+    if region.email:
+        emails.add(region.email)
+    return emails
+
+
+def send_due_date_reminders(dry_run=False):
+    """Per-officer reminders at configured offsets (TRWI-4 mechanism 1).
+
+    For every obligation still owed (``REMINDER_ELIGIBLE_STATUSES`` -- missed
+    is visibility-only, not a stopping condition), finds the most urgent
+    configured offset already crossed and, if it is newer than
+    ``last_reminder_offset_sent``, sends one reminder. Recipients escalate
+    with urgency: the officer (if any) always; the chapter's Regent once past
+    due; the region's RD once at/past ``get_rd_escalation_offset_days()``. If
+    nobody resolves (e.g. a vacant obligation not yet past due), nothing is
+    sent, but the threshold is still recorded so it is never re-evaluated.
+
+    ``dry_run`` skips every send/write explicitly (this has a real external
+    side effect -- an actual email send -- so unlike ``generate_obligations``
+    this is NOT implemented via a rolled-back transaction). Returns the count
+    of reminders sent (or that would be sent, under ``dry_run``).
+    """
+    today = timezone.now().date()
+    offsets = get_reminder_offsets_days()
+    rd_escalation_offset = get_rd_escalation_offset_days()
+    sent = 0
+
+    obligations = ReportObligation.objects.filter(status__in=REMINDER_ELIGIBLE_STATUSES).select_related(
+        "officer", "chapter", "chapter__region"
+    )
+    for obligation in obligations:
+        days_until_due = (obligation.due_date - today).days
+        threshold = _current_reminder_threshold(days_until_due, offsets)
+        if threshold is None:
+            continue
+        if obligation.last_reminder_offset_sent is not None and threshold >= obligation.last_reminder_offset_sent:
+            continue
+
+        emails = set(obligation.officer.emails) if obligation.officer else set()
+        past_due = threshold < 0
+        escalate_to_rd = threshold <= rd_escalation_offset
+        if past_due:
+            emails |= _regent_emails(obligation.chapter)
+        if escalate_to_rd:
+            emails |= _rd_emails(obligation.chapter)
+
+        if emails:
+            if not dry_run:
+                TransitionReportDueReminder(obligation, emails, past_due, escalate_to_rd).send()
+            sent += 1
+        if not dry_run:
+            obligation.last_reminder_offset_sent = threshold
+            obligation.save(update_fields=["last_reminder_offset_sent"])
+
+    return sent
+
+
+def send_seasonal_reminder(dry_run=False):
+    """Once-per-semester broadcast nudge (TRWI-4 mechanism 2).
+
+    Fires when today is within ``get_seasonal_reminder_offset_days()`` of the
+    CURRENT semester's end (``core.models.semester_encompass_start_end_date``)
+    and hasn't already fired for that exact end date -- tracked via the
+    ``TRANSITIONS_SEASONAL_REMINDER_LAST_SENT_FOR`` Config value. A NEW Config
+    row is created to record it (not an update) since ``Config.get_value``
+    already reads the latest row by ``created``, matching how every other
+    Config value in this codebase is written. One individual email per user
+    who currently owns at least one ``open`` obligation, listing all of them.
+
+    ``dry_run`` skips every send/write explicitly, same reasoning as
+    ``send_due_date_reminders``. Returns the count of users emailed (or who
+    would be emailed under ``dry_run``); 0 if the window/dedupe gate didn't
+    fire at all.
+    """
+    today = timezone.now().date()
+    _, semester_end = semester_encompass_start_end_date()
+    semester_end = semester_end.date()
+    if not (0 <= (semester_end - today).days <= get_seasonal_reminder_offset_days()):
+        return 0
+    if Config.get_value(SEASONAL_REMINDER_LAST_SENT_FOR_CONFIG_KEY) == semester_end.isoformat():
+        return 0
+
+    officers = User.objects.filter(
+        transition_report_obligations__status=ReportObligation.Status.open.value[0]
+    ).distinct()
+    sent = 0
+    for officer in officers:
+        obligations = officer.transition_report_obligations.filter(
+            status=ReportObligation.Status.open.value[0]
+        ).select_related("chapter")
+        if not dry_run:
+            TransitionReportSeasonalReminder(officer, obligations).send()
+        sent += 1
+
+    if not dry_run:
+        Config.objects.create(
+            key=SEASONAL_REMINDER_LAST_SENT_FOR_CONFIG_KEY,
+            value=semester_end.isoformat(),
+            description=(
+                "TRWI-4 bookkeeping (system-managed, not admin-tunable): semester-end "
+                "date the seasonal transition-report reminder was last sent for."
+            ),
+        )
+
+    return sent
+
+
+def send_transition_report_reminders(dry_run=False):
+    """Both TRWI-4 reminder mechanisms -- what the daily command runs."""
+    return {
+        "due_date_reminders_sent": send_due_date_reminders(dry_run=dry_run),
+        "seasonal_reminders_sent": send_seasonal_reminder(dry_run=dry_run),
+    }
+
+
+def get_my_open_obligations(user):
+    """The viewer's own open/missed obligations, for the home dashboard card (TRWI-4)."""
+    return (
+        ReportObligation.objects.filter(officer=user, status__in=REMINDER_ELIGIBLE_STATUSES)
+        .select_related("chapter")
+        .order_by("due_date")
+    )

@@ -1,0 +1,34 @@
+{% extends "herald/html/base_email.html" %}
+{% block title %}Transition Report reminder{% endblock %}
+{% block content %}
+<h1 class="null" style="margin: 0;padding: 0;display: block;font-family: Helvetica;font-size: 40px;font-style: normal;font-weight: bold;line-height: 125%;letter-spacing: -1px;text-align: left;color: #606060 !important;">Transition Report reminder</h1>
+Dear {{ user.name }},
+<p>
+The semester is winding down, which makes this a good time to write your Transition Report(s) --
+a short account of what worked, what didn't, and what your successor needs to know.
+</p>
+<table role="presentation" width="100%" cellpadding="8" cellspacing="0" style="border-collapse: collapse; font-family: Helvetica; font-size: 14px;">
+  <thead>
+    <tr>
+      <th align="left" style="border-bottom: 2px solid #606060; color: #404040;">Position</th>
+      <th align="left" style="border-bottom: 2px solid #606060; color: #404040;">Chapter</th>
+      <th align="left" style="border-bottom: 2px solid #606060; color: #404040;">Due</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for obligation in obligations %}
+    <tr>
+      <td style="border-bottom: 1px solid #d0d0d0; vertical-align: top;">{{ obligation.position_key|title }}</td>
+      <td style="border-bottom: 1px solid #d0d0d0; vertical-align: top;">{{ obligation.chapter }}</td>
+      <td style="border-bottom: 1px solid #d0d0d0; vertical-align: top;">{{ obligation.due_date }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+<p>
+Submit or manage Transition Reports from the Forms page:
+<a href="{{ host }}{% url 'forms:landing' %}">{{ host }}{% url 'forms:landing' %}</a>
+</p>
+<br>
+  {% include "herald/html/rm_contact.html" %}
+{% endblock content %}

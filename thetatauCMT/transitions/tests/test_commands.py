@@ -146,3 +146,33 @@ def test_generate_transition_obligations_lookahead_days_flag_is_respected():
 
     call_command("generate_transition_obligations", "--lookahead-days", "150")
     assert ReportObligation.objects.filter(chapter=chapter, position_key="treasurer").exists()
+
+
+# ---------------------------------------------------------------------------
+# send_transition_report_reminders (TRWI-4)
+# ---------------------------------------------------------------------------
+def test_send_transition_report_reminders_reports_counts(capsys):
+    chapter = ChapterFactory()
+    user = UserFactory(chapter=chapter)
+    due_date = datetime.date.today() + datetime.timedelta(days=21)
+    ReportObligation.objects.create(
+        chapter=chapter,
+        position_type="CHAPTER_OFFICER",
+        position_key="treasurer",
+        officer=user,
+        term_start=due_date - datetime.timedelta(days=166),
+        term_end=due_date + datetime.timedelta(days=14),
+        due_date=due_date,
+        is_required=True,
+        status="open",
+    )
+
+    call_command("send_transition_report_reminders")
+
+    output = capsys.readouterr().out
+    assert "1 due-date reminder(s)" in output
+
+
+def test_send_transition_report_reminders_dry_run_flag(capsys):
+    call_command("send_transition_report_reminders", "--dry-run")
+    assert "[dry-run]" in capsys.readouterr().out
