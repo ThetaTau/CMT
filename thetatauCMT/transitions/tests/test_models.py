@@ -1,8 +1,16 @@
 import pytest
+from django.db import IntegrityError
 
 from core.models import ADVISOR_ROLES, CHAPTER_OFFICER_REQUIRED, COMMITTEE_CHAIR, COUNCIL, NATIONAL_OFFICER
 
-from ..models import POSITION_KEY_CHOICES, PositionOverride, PositionType, position_type_for_key
+from ..models import (
+    POSITION_KEY_CHOICES,
+    PositionOverride,
+    PositionType,
+    ReportTemplate,
+    TemplatePrompt,
+    position_type_for_key,
+)
 
 pytestmark = pytest.mark.django_db
 
@@ -58,3 +66,45 @@ def test_position_override_position_key_is_unique():
     PositionOverride.objects.create(position_key="treasurer", status="excluded")
     with pytest.raises(Exception):
         PositionOverride.objects.create(position_key="treasurer", status="optional")
+
+
+# ---------------------------------------------------------------------------
+# ReportTemplate / TemplatePrompt (TRWI-2)
+# ---------------------------------------------------------------------------
+def test_report_template_defaults_to_active_version_1():
+    template = ReportTemplate.objects.create(position_type="CHAPTER_OFFICER", name="Chapter Officer Report")
+    assert template.is_active is True
+    assert template.version == 1
+    assert template.position_key == ""
+
+
+def test_report_template_position_type_and_key_together_unique():
+    ReportTemplate.objects.create(position_type="CHAPTER_OFFICER", position_key="", name="Chapter Officer Report")
+    with pytest.raises(IntegrityError):
+        ReportTemplate.objects.create(position_type="CHAPTER_OFFICER", position_key="", name="Duplicate")
+
+
+def test_report_template_allows_a_position_specific_override_alongside_the_type_default():
+    ReportTemplate.objects.create(position_type="CHAPTER_OFFICER", position_key="", name="Chapter Officer Report")
+    # Same type, but a specific position_key -- different resolution tier, allowed.
+    override = ReportTemplate.objects.create(
+        position_type="CHAPTER_OFFICER", position_key="treasurer", name="Treasurer Report"
+    )
+    assert override.pk is not None
+
+
+def test_template_prompt_prompt_key_unique_within_template_only():
+    template_a = ReportTemplate.objects.create(position_type="CHAPTER_OFFICER", name="A")
+    template_b = ReportTemplate.objects.create(position_type="COUNCIL", name="B")
+    TemplatePrompt.objects.create(template=template_a, prompt_key="successes", label="Successes?")
+    # Same prompt_key on a DIFFERENT template is fine -- the key is reused by design.
+    TemplatePrompt.objects.create(template=template_b, prompt_key="successes", label="Successes?")
+
+    with pytest.raises(IntegrityError):
+        TemplatePrompt.objects.create(template=template_a, prompt_key="successes", label="Duplicate")
+
+
+def test_template_prompt_str():
+    template = ReportTemplate.objects.create(position_type="CHAPTER_OFFICER", name="A")
+    prompt = TemplatePrompt.objects.create(template=template, prompt_key="successes", label="Successes?")
+    assert str(prompt) == f"successes ({template})"

@@ -83,3 +83,84 @@ class PositionOverride(TimeStampedModel):
 
     def __str__(self):
         return f"{self.position_key} ({self.status})"
+
+
+class FieldType(EnumClass):
+    text = ("text", "Short text")
+    long_text = ("long_text", "Long text")
+    list = ("list", "List")
+    date = ("date", "Date")
+    contact = ("contact", "Contact")
+
+
+# Controlled tag vocabulary (TRWI-11) -- keep short and stable so cross-chapter
+# trend counts stay meaningful.
+TAG_CHOICES = [
+    ("success", "Success"),
+    ("failure", "Failure"),
+    ("contacts", "Contacts"),
+    ("expertise", "Expertise"),
+    ("calendar", "Calendar"),
+    ("systems", "Systems"),
+    ("continuity", "Continuity"),
+    ("advice", "Advice"),
+    ("risk", "Risk"),
+]
+
+
+class ReportTemplate(TimeStampedModel):
+    """Per-position questionnaire template (TRWI-2).
+
+    Resolution is 3-tier: exact (position_type, position_key) match -> the
+    type-level default (blank position_key) -> the global default (blank
+    position_type AND position_key). ``unique_together`` guarantees each tier
+    has at most one row, so prompt edits happen in place via ``version``
+    bumps rather than by creating parallel template rows.
+    """
+
+    position_type = models.CharField(max_length=20, choices=[x.value for x in PositionType], blank=True)
+    position_key = models.CharField(max_length=50, choices=POSITION_KEY_CHOICES, blank=True)
+    name = models.CharField(max_length=100)
+    description = models.TextField(blank=True)
+    is_active = models.BooleanField(default=True)
+    version = models.PositiveIntegerField(default=1)
+
+    class Meta:
+        unique_together = [("position_type", "position_key")]
+        ordering = ["position_type", "position_key"]
+        verbose_name = "Report Template"
+
+    def __str__(self):
+        return self.name
+
+
+class TemplatePrompt(models.Model):
+    """One question on a ``ReportTemplate`` (TRWI-2).
+
+    ``prompt_key`` is a stable identity reused across templates/versions for
+    the prior-answers view (TRWI-8) -- unique only within its own template,
+    since the same key legitimately appears on multiple templates.
+    """
+
+    template = models.ForeignKey(ReportTemplate, on_delete=models.CASCADE, related_name="prompts")
+    order = models.PositiveIntegerField(default=0)
+    prompt_key = models.SlugField(max_length=50)
+    label = models.CharField(max_length=255)
+    help_text = models.TextField(blank=True)
+    field_type = models.CharField(
+        max_length=10,
+        choices=[x.value for x in FieldType],
+        default=FieldType.long_text.value[0],
+    )
+    is_required = models.BooleanField(default=True)
+    min_chars = models.PositiveIntegerField(null=True, blank=True)
+    max_chars = models.PositiveIntegerField(null=True, blank=True)
+    tag = models.CharField(max_length=20, choices=TAG_CHOICES, blank=True)
+
+    class Meta:
+        unique_together = [("template", "prompt_key")]
+        ordering = ["template", "order"]
+        verbose_name = "Template Prompt"
+
+    def __str__(self):
+        return f"{self.prompt_key} ({self.template})"

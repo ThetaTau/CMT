@@ -3,7 +3,7 @@ import pytest
 from thetatauCMT.configs.models import Config
 
 from .. import services
-from ..models import PositionOverride
+from ..models import PositionOverride, ReportTemplate
 
 pytestmark = pytest.mark.django_db
 
@@ -89,3 +89,44 @@ def test_reminder_offsets_default_includes_past_due_escalation():
 def test_offset_config_falls_back_on_unparsable_value():
     Config.objects.create(key="TRANSITIONS_DUE_DATE_OFFSET_DAYS", value="not a number", description="")
     assert services.get_due_date_offset_days() == services.DEFAULT_DUE_DATE_OFFSET_DAYS
+
+
+# ---------------------------------------------------------------------------
+# resolve_template -- 3-tier resolution (TRWI-2)
+# ---------------------------------------------------------------------------
+def test_resolve_template_out_of_scope_position_returns_none():
+    assert services.resolve_template("adviser") is None
+    assert services.resolve_template("not a real position") is None
+
+
+def test_resolve_template_returns_none_when_nothing_is_seeded():
+    assert services.resolve_template("treasurer") is None
+
+
+def test_resolve_template_falls_back_to_type_default():
+    type_default = ReportTemplate.objects.create(position_type="CHAPTER_OFFICER", name="Chapter Officer Report")
+    assert services.resolve_template("treasurer") == type_default
+    # Any chapter_officer-type position resolves to the same type default.
+    assert services.resolve_template("pledge/new member educator") == type_default
+
+
+def test_resolve_template_prefers_exact_position_key_match():
+    ReportTemplate.objects.create(position_type="CHAPTER_OFFICER", name="Chapter Officer Report")
+    treasurer_specific = ReportTemplate.objects.create(
+        position_type="CHAPTER_OFFICER", position_key="treasurer", name="Treasurer Report"
+    )
+    assert services.resolve_template("treasurer") == treasurer_specific
+    # A sibling chapter_officer position still gets the type default.
+    assert services.resolve_template("scribe").name == "Chapter Officer Report"
+
+
+def test_resolve_template_falls_back_to_global_default():
+    global_default = ReportTemplate.objects.create(position_type="", position_key="", name="Global Default")
+    assert services.resolve_template("treasurer") == global_default
+    assert services.resolve_template("grand regent") == global_default
+
+
+def test_resolve_template_ignores_inactive_templates():
+    ReportTemplate.objects.create(position_type="CHAPTER_OFFICER", name="Inactive", is_active=False)
+    global_default = ReportTemplate.objects.create(position_type="", position_key="", name="Global Default")
+    assert services.resolve_template("treasurer") == global_default
