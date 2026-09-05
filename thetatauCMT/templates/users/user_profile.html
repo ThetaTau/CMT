@@ -85,6 +85,8 @@
               <span class="me-2"><strong>Pronouns:</strong> {{ object.preferred_pronouns }}</span>
             {% endif %}
             {% if object.maiden_name %}
+              {# Only paired with maiden name, since last_name is already in the heading above otherwise. #}
+              <span class="me-2"><strong>Last name:</strong> {{ object.last_name }}</span>
               <span class="me-2"><strong>Maiden name:</strong> {{ object.maiden_name }}</span>
             {% endif %}
           </div>

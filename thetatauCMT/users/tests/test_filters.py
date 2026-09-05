@@ -332,3 +332,58 @@ def test_user_role_list_filter_badge_number_range():
     assert low not in result
     assert mid in result
     assert high not in result
+
+
+# ---------------------------------------------------------------------------
+# Name search also matches maiden_name (marriage last name change)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.django_db
+def test_filter_name_or_maiden_name_matches_maiden_name():
+    """The shared helper matches maiden_name even when `name` does not contain it."""
+    from thetatauCMT.users.filters import filter_name_or_maiden_name
+    from thetatauCMT.users.models import User
+
+    user = UserFactory.create(name="Jane Doe", maiden_name="Fitzgerald")
+    qs = User.objects.filter(pk=user.pk)
+    assert user in filter_name_or_maiden_name(qs, "name", "Fitzgerald")
+
+
+@pytest.mark.django_db
+def test_filter_name_or_maiden_name_still_matches_name():
+    """The shared helper still matches the denormalized `name` field."""
+    from thetatauCMT.users.filters import filter_name_or_maiden_name
+    from thetatauCMT.users.models import User
+
+    user = UserFactory.create(name="Jane Doe", maiden_name="Fitzgerald")
+    qs = User.objects.filter(pk=user.pk)
+    assert user in filter_name_or_maiden_name(qs, "name", "Jane")
+
+
+@pytest.mark.django_db
+def test_user_role_list_filter_name_icontains_matches_maiden_name():
+    """UserRoleListFilter's name search matches a member's maiden name."""
+    from django.http import QueryDict
+
+    from thetatauCMT.users.filters import UserRoleListFilter
+    from thetatauCMT.users.models import User
+
+    user = UserFactory.create(maiden_name="Fitzgerald")
+    qs = User.objects.filter(pk=user.pk)
+    f = UserRoleListFilter(QueryDict("name__icontains=Fitzgerald"), queryset=qs)
+    assert user in list(f.qs)
+
+
+@pytest.mark.django_db
+def test_advisor_list_filter_name_icontains_matches_maiden_name():
+    """AdvisorListFilter's name search matches a member's maiden name."""
+    from django.http import QueryDict
+
+    from thetatauCMT.users.filters import AdvisorListFilter
+    from thetatauCMT.users.models import User
+
+    user = UserFactory.create(maiden_name="Fitzgerald")
+    qs = User.objects.filter(pk=user.pk)
+    f = AdvisorListFilter(QueryDict("name__icontains=Fitzgerald"), queryset=qs)
+    assert user in list(f.qs)

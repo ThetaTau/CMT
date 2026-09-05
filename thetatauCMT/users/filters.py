@@ -1,5 +1,6 @@
 # filters.py
 import django_filters
+from django.db.models import Q
 
 from core.filters import DateRangeFilter, DynamicScopeFilterSetMixin
 from core.models import ACTIVE_STATUSES
@@ -9,7 +10,20 @@ from thetatauCMT.regions.models import Region
 from .models import User, UserOrgParticipate, UserRoleChange
 
 
+def filter_name_or_maiden_name(queryset, field_name, value):
+    """Match ``value`` against the denormalized ``name`` OR ``maiden_name``.
+
+    Members who change their last name (e.g. after marriage) keep their prior
+    name in ``maiden_name``, so a search on either name still finds them.
+    """
+    return queryset.filter(Q(name__icontains=value) | Q(maiden_name__icontains=value))
+
+
 class UserListFilterBase(django_filters.FilterSet):
+    name__icontains = django_filters.CharFilter(
+        method=filter_name_or_maiden_name,
+        label="Member Name contains",
+    )
     current_status = django_filters.MultipleChoiceFilter(
         choices=[
             ("active", "Active"),
@@ -91,6 +105,10 @@ class UserListFilter(UserListFilterBase):
 
 
 class UserRoleListFilter(DynamicScopeFilterSetMixin, django_filters.FilterSet):
+    name__icontains = django_filters.CharFilter(
+        method=filter_name_or_maiden_name,
+        label="Member Name contains",
+    )
     current_status = django_filters.ChoiceFilter(
         choices=[
             ("active", "active"),
@@ -168,6 +186,10 @@ class UserRoleListFilter(DynamicScopeFilterSetMixin, django_filters.FilterSet):
 
 
 class AdvisorListFilter(DynamicScopeFilterSetMixin, django_filters.FilterSet):
+    name__icontains = django_filters.CharFilter(
+        method=filter_name_or_maiden_name,
+        label="Member Name contains",
+    )
     region = django_filters.ChoiceFilter(label="Region", choices=Region.region_choices(), method="filter_region")
     chapter = django_filters.ChoiceFilter(
         label="Chapter",

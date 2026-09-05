@@ -426,8 +426,10 @@ class UserForm(forms.ModelForm):
     class Meta:
         model = User
         fields = [
-            "preferred_pronouns",
             "preferred_name",
+            "preferred_pronouns",
+            "last_name",
+            "maiden_name",
             "major_final",
             "graduation_year",
             "employer",
@@ -447,6 +449,11 @@ class UserForm(forms.ModelForm):
             "email_visibility": "Who can see my email?",
         }
         help_texts = {
+            "last_name": "Update this if your last name has changed, e.g. after marriage.",
+            "maiden_name": (
+                "Your previous last name, if different from above. Lets chapter officers "
+                "and national staff find your record when searching under either name."
+            ),
             "employer_address": "Your work address. Shown to whoever you let see your address.",
         }
 
@@ -463,6 +470,23 @@ class UserForm(forms.ModelForm):
             self.fields["major_final"].widget = forms.MultipleHiddenInput()
         else:
             self.fields["email"].widget = forms.HiddenInput()
+
+    def save(self, commit=True):
+        user = super().save(commit=False)
+        # User.save() only derives `name` from first/middle/last_name while it
+        # is still blank, then afterward only when preferred_name is set. So a
+        # member with no preferred_name (most members) who changes last_name
+        # here (e.g. after marriage) would otherwise keep showing their old
+        # name everywhere. Recompute it the same way User.save() does.
+        suffix = f" {user.suffix}" if user.suffix else ""
+        if user.preferred_name:
+            user.name = f"{user.preferred_name} {user.last_name}{suffix}"
+        else:
+            user.name = f"{user.first_name} {user.middle_name} {user.last_name}{suffix}"
+        if commit:
+            user.save()
+            self.save_m2m()
+        return user
 
 
 class EmailPreferencesForm(forms.ModelForm):
