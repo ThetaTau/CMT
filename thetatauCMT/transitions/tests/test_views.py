@@ -2,6 +2,7 @@ import datetime
 
 import pytest
 from django.urls import reverse
+from django.utils import timezone
 
 from thetatauCMT.chapters.tests.factories import ChapterFactory
 from thetatauCMT.users.models import UserRoleChange
@@ -216,6 +217,22 @@ def test_handoff_packet_view_shows_predecessor_reports(auto_login_user):
     successor.current_roles = ["treasurer"]
     successor.save(update_fields=["current_roles"])
     _report(successor.chapter, "treasurer", UserFactory(chapter=successor.chapter))
+
+    response = client.get(reverse("transitions:packet", args=[successor.chapter.pk, "treasurer"]))
+
+    assert response.status_code == 200
+    assert "Mark as read" in response.content.decode()
+
+
+def test_handoff_packet_view_shows_a_report_submitted_many_years_ago(auto_login_user):
+    # TRWI-10: full history, no retention window -- a decade-old report is
+    # still shown, not hidden by any time-based cutoff.
+    client, successor = auto_login_user()
+    successor.current_roles = ["treasurer"]
+    successor.save(update_fields=["current_roles"])
+    old_report = _report(successor.chapter, "treasurer", UserFactory(chapter=successor.chapter))
+    old_report.submitted_at = timezone.now() - datetime.timedelta(days=3650)
+    old_report.save(update_fields=["submitted_at"])
 
     response = client.get(reverse("transitions:packet", args=[successor.chapter.pk, "treasurer"]))
 

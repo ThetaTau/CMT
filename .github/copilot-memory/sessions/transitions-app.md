@@ -1,6 +1,6 @@
 # Transition Reports & Lessons Learned — Feature Spec & Work Breakdown
 
-> **Status:** In development (2026-09-05) — TRWI-1 through TRWI-9 are implemented and tested. See "Decisions Log" at the end for the full record of resolved decisions (A-K) plus TRWI-5's (L35-L45), TRWI-6's (M46-M52), TRWI-7's (N53-N61), TRWI-8's (O62-O67), and TRWI-9's (P68-P75) choices awaiting review. Note: CSV export requirement dropped (TRWI-11 only).
+> **Status:** In development (2026-09-05) — TRWI-1 through TRWI-10 are implemented and tested. See "Decisions Log" at the end for the full record of resolved decisions (A-K, Q) plus TRWI-5's (L35-L45), TRWI-6's (M46-M52), TRWI-7's (N53-N61), TRWI-8's (O62-O67), and TRWI-9's (P68-P75) choices awaiting review. Note: CSV export requirement dropped (TRWI-11 only).
 > **Approach:** Purpose-built app (custom), no third-party survey dependency. App name: `thetatauCMT.transitions`.
 > **File location:** `docs/specs/transition-reports.md`
 
@@ -654,6 +654,15 @@ TRWI-9 is implemented and tested (255 tests passing in the transitions app, up f
 - **P74 — "Missed" highlighting is a `row_attrs` red highlight** (`table-danger`) on the chapter dashboard (obligation-level: that ONE obligation is missed) and on the rates view (chapter-level: this chapter has 1+ missed obligations this cycle) — django_tables2's standard mechanism for this, with no prior in-repo precedent to match, since no other table in this codebase highlights rows conditionally yet.
 - **P75 — No new feature registry entries for either dashboard.** Both are reached only via links from the already-registered `transition-reports` list page (a "My chapter dashboard" button for officers, a "Compliance rates" button for RD/National/Admin) — matches TRWI-5/TRWI-7's own precedent (sub-pages reached by a link don't need their own entry, only the primary navigable list page does).
 
+### Q. TRWI-10 — Full history: no retention, archiving, or pinning (verified 2026-09-05)
+
+Unlike L-P, this section records a VERIFICATION, not a judgment call awaiting your review — there was no ambiguity to resolve. Every retention/archive/pinning field the ORIGINAL proposal called for was already dropped from the data model back at the 2026-09-04 codebase review round (decisions F13/H18), so TRWI-1 through TRWI-9 never built any of it in the first place. TRWI-10's own job was to confirm that and lock it in with regression tests, not write new code.
+
+- **Q76 — No code changes.** Grepped the entire `thetatauCMT/transitions` app, its templates, and its migrations for `archiv`/`pin`/`retention` — the only hit is a comment in `services.py` describing this very decision. No `is_pinned`/`pinned_by`/`pinned_reason`/`archived_at`/`retention_expires_on` field, filter, admin option, or management command exists anywhere in the feature, and none needed to be removed.
+- **Q77 — Added a permanent regression guard**: a test that walks every transitions model's `_meta.get_fields()` and asserts none of the five forbidden field names are present. If anyone ever reintroduces one of them (e.g. copying a pattern from another app that DOES retain/pin), this test catches it immediately rather than relying on someone remembering this decision.
+- **Q78 — Added "full history, no time-based cutoff" regression tests**: a `TransitionReport` with `created`/`submitted_at` set 10 years in the past is still returned by `get_readable_reports`/`get_handoff_packet` (service level) and still renders on the handoff packet page (view level) — proving there is no hidden lookback window anywhere in the READ path. (`send_handoff_notices`' own `LOOKBACK_GRACE_DAYS` bound, TRWI-7/N-series, is a NOTIFICATION-dedup scope, not a report-visibility cutoff — confirmed these are two different concerns that don't conflict.)
+- **Q79 — Added a "sorts purely by recency" regression test**: two reports with deliberately non-chronological `created` timestamps come back most-recent-first with no reordering possible — there is no pin/feature field anywhere in the model for anything to sort by except recency.
+
 ---
 
 ## Pre-Launch Checklist
@@ -667,4 +676,4 @@ TRWI-9 is implemented and tested (255 tests passing in the transitions app, up f
 
 ## Remaining Open Questions
 
-None from the original codebase review round, TRWI-3 (I20-I23, J24), or TRWI-4 (K25-K34, confirmed) — see Decisions Log A-K. TRWI-5's design choices (L35-L45), TRWI-6's (M46-M52), TRWI-7's (N53-N61), TRWI-8's (O62-O67), and TRWI-9's (P68-P75) are implemented and tested but not yet reviewed by you; see the Decisions Log entries above.
+None from the original codebase review round, TRWI-3 (I20-I23, J24), TRWI-4 (K25-K34, confirmed), or TRWI-10 (Q76-Q79, verification only — nothing to review) — see Decisions Log A-K, Q. TRWI-5's design choices (L35-L45), TRWI-6's (M46-M52), TRWI-7's (N53-N61), TRWI-8's (O62-O67), and TRWI-9's (P68-P75) are implemented and tested but not yet reviewed by you; see the Decisions Log entries above.

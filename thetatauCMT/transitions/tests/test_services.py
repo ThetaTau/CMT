@@ -3,6 +3,7 @@ import datetime
 import pytest
 from django.contrib.auth.models import AnonymousUser, Group
 from django.core import mail
+from django.utils import timezone
 
 from thetatauCMT.chapters.tests.factories import ChapterFactory
 from thetatauCMT.configs.models import Config
@@ -15,6 +16,8 @@ from ..models import (
     HandoffNotice,
     PositionOverride,
     ReportAcknowledgement,
+    ReportAnswer,
+    ReportAttachment,
     ReportObligation,
     ReportTemplate,
     TemplatePrompt,
@@ -1628,3 +1631,67 @@ def test_get_compliance_rate_chapters_excludes_inactive_chapters():
 
     assert chapter in chapters
     assert inactive_chapter not in chapters
+
+
+# ---------------------------------------------------------------------------
+# Full history -- no retention, archiving, or pinning (TRWI-10)
+# ---------------------------------------------------------------------------
+def test_get_readable_reports_includes_a_report_submitted_many_years_ago():
+    chapter = ChapterFactory()
+    old_report = _report(chapter, "treasurer", UserFactory(chapter=chapter))
+    ten_years_ago = timezone.now() - datetime.timedelta(days=3650)
+    old_report.created = ten_years_ago
+    old_report.submitted_at = ten_years_ago
+    old_report.save(update_fields=["created", "submitted_at"])
+    successor = UserFactory(chapter=chapter)
+    successor.current_roles = ["treasurer"]
+    successor.save(update_fields=["current_roles"])
+
+    assert old_report in services.get_readable_reports(successor)
+    assert old_report in list(services.get_handoff_packet(successor, chapter, "treasurer"))
+
+
+def test_get_handoff_packet_has_no_time_cutoff_and_sorts_purely_by_recency():
+    chapter = ChapterFactory()
+    old_report = _report(
+        chapter, "treasurer", UserFactory(chapter=chapter), due_date=TODAY + datetime.timedelta(days=10)
+    )
+    old_report.created = timezone.now() - datetime.timedelta(days=3650)
+    old_report.save(update_fields=["created"])
+    recent_report = _report(
+        chapter, "treasurer", UserFactory(chapter=chapter), due_date=TODAY + datetime.timedelta(days=200)
+    )
+    recent_report.created = timezone.now() - datetime.timedelta(days=30)
+    recent_report.save(update_fields=["created"])
+    successor = UserFactory(chapter=chapter)
+    successor.current_roles = ["treasurer"]
+    successor.save(update_fields=["current_roles"])
+
+    packet = list(services.get_handoff_packet(successor, chapter, "treasurer"))
+
+    # Most-recent-first, but the decade-old report is still there -- no
+    # "only the last N years" cutoff and no pin-based reordering possible.
+    assert packet == [recent_report, old_report]
+
+
+def test_no_transitions_model_has_a_retention_or_pinning_field():
+    # Decision 2026-09-04: no retention window/archive job, no pinning --
+    # a permanent regression guard against ever reintroducing any of these
+    # fields (is_pinned/pinned_by/pinned_reason/archived_at/
+    # retention_expires_on), which the ORIGINAL proposal called for but the
+    # codebase review round dropped entirely.
+    forbidden = {"is_pinned", "pinned_by", "pinned_reason", "archived_at", "retention_expires_on"}
+    models = [
+        PositionOverride,
+        ReportTemplate,
+        TemplatePrompt,
+        ReportObligation,
+        TransitionReport,
+        ReportAnswer,
+        ReportAttachment,
+        ReportAcknowledgement,
+        HandoffNotice,
+    ]
+    for model in models:
+        field_names = {field.name for field in model._meta.get_fields()}
+        assert field_names.isdisjoint(forbidden), f"{model.__name__} has a forbidden field: {field_names & forbidden}"
