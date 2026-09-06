@@ -5,9 +5,9 @@ from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Fieldset, Layout, Row, Submit
 from django import forms
 
-from core.forms import DatePicker
+from core.forms import DatePicker, ListSelect2Multiple, Select2ListCreateMultipleChoiceField
 
-from .models import TAG_CHOICES, FieldType, ReportAttachment, ReportTag
+from .models import FieldType, ReportAttachment, ReportTag, TransitionTag
 
 
 def _field_name(prompt):
@@ -27,8 +27,15 @@ class ComposeReportForm(forms.Form):
     draft and submit").
     """
 
-    manual_tags = forms.MultipleChoiceField(
-        required=False, choices=TAG_CHOICES, label="Additional tags", widget=forms.CheckboxSelectMultiple
+    manual_tags = Select2ListCreateMultipleChoiceField(
+        required=False,
+        queryset=TransitionTag.objects.all(),
+        label="Additional tags",
+        help_text=(
+            "Start typing to search existing tags, you do NOT have to pick from the list. "
+            "If nothing matches, just type your own tag and press Enter (or Tab) to add it."
+        ),
+        widget=ListSelect2Multiple(url="transitions:tag-autocomplete"),
     )
 
     def __init__(self, *args, template, submitting=False, **kwargs):
@@ -42,6 +49,14 @@ class ComposeReportForm(forms.Form):
         # without this manual_tags would render BEFORE the prompts it's
         # declared before them at the class level.
         self.fields["manual_tags"] = self.fields.pop("manual_tags")
+        # This form has no ``self.instance`` (it isn't a ModelForm), so
+        # unlike jobs.forms.set_multiple_choices_initial, the already-selected
+        # tag names come from initial_from_report's own initial= dict instead
+        # of a real relation -- choices need those names too, or the widget
+        # would not know they're valid/selected on first render.
+        selected_tags = self.initial.get("manual_tags") or []
+        if selected_tags:
+            self.fields["manual_tags"].choices = [(name, name) for name in selected_tags]
 
     @staticmethod
     def _build_field(prompt):
@@ -104,8 +119,23 @@ class ComposeReportForm(forms.Form):
         ]
 
     def manual_tags_data(self):
-        """``[tag, ...]`` ready for ``services.set_manual_tags`` (TRWI-11)."""
-        return self.cleaned_data.get("manual_tags") or []
+        """``[tag_name, ...]`` ready for ``services.set_manual_tags`` (TRWI-11).
+
+        ``Select2ListCreateMultipleChoiceField.to_python`` returns a mix of
+        raw pks (values whose submitted ``<option>`` used the tag's id, e.g.
+        one just created via the autocomplete, or re-picked from a search)
+        and ``TransitionTag`` instances (values submitted by name, e.g. an
+        untouched pre-selected option -- see the ``choices=`` set in
+        ``__init__``), so both forms are normalized to their ``.name`` here.
+        """
+        values = self.cleaned_data.get("manual_tags") or []
+        names = []
+        for value in values:
+            if isinstance(value, TransitionTag):
+                names.append(value.name)
+            else:
+                names.append(TransitionTag.objects.get(pk=value).name)
+        return names
 
 
 class ReportAttachmentForm(forms.ModelForm):
@@ -115,7 +145,7 @@ class ReportAttachmentForm(forms.ModelForm):
 
 
 class ComplianceFilterFormHelper(FormHelper):
-    """Crispy helper for the chapter dashboard's obligation filter (TRWI-9).
+    """Crispy helper for the dashboard section's obligation filter (TRWI-9).
 
     ``form_tag = False`` because ``_partials/collapsible_filter.html``
     supplies its own ``<form method="get">`` wrapper -- mirrors
@@ -136,9 +166,9 @@ class ComplianceFilterFormHelper(FormHelper):
             Fieldset(
                 '<i class="fas fa-search"></i> Filter',
                 Row(
-                    InlineField("position_key"),
+                    InlineField("obl_position_key"),
                     InlineField("status"),
-                    InlineField("cycle"),
+                    InlineField("obl_cycle"),
                     FormActions(
                         StrictButton(
                             '<i class="fa fa-search"></i> Filter',

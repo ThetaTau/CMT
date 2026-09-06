@@ -588,7 +588,9 @@ def test_close_na_vacant_blocked_for_plain_member(auto_login_user):
 
 
 # ---------------------------------------------------------------------------
-# ChapterComplianceView (TRWI-9)
+# ReportSearchView's dashboard section, reached via the chapter-dashboard URL
+# (TRWI-9; merged into ReportSearchView 2026-09 -- see the ReportSearchView
+# section below for the rest of its own tests)
 # ---------------------------------------------------------------------------
 def _role_change(chapter, role, end, start=None, user=None):
     user = user or UserFactory(chapter=chapter)
@@ -857,6 +859,46 @@ def test_search_view_non_national_does_not_see_chapter_and_region_filters(auto_l
     body = response.content.decode()
     assert 'name="chapter"' not in body
     assert 'name="region"' not in body
+
+
+def test_search_view_shows_dashboard_section_for_the_viewers_own_chapter(auto_login_user):
+    """2026-09 merge: "My chapter dashboard" and "Search reports" were
+    condensed to one page -- /transitions/search/ (no explicit chapter_pk)
+    also shows the obligation dashboard for a chapter officer's own chapter.
+    """
+    client, officer = auto_login_user()
+    _role_change(officer.chapter, "treasurer", datetime.date.today() + datetime.timedelta(days=180), user=officer)
+    _obligation(officer.chapter, officer)
+
+    response = client.get(reverse("transitions:search"))
+
+    assert response.status_code == 200
+    assert response.context["chapter"] == officer.chapter
+    assert "Treasurer" in response.content.decode()
+
+
+def test_search_view_hides_dashboard_section_for_a_plain_member(auto_login_user):
+    client, member = auto_login_user()
+
+    response = client.get(reverse("transitions:search"))
+
+    assert response.status_code == 200
+    assert response.context.get("chapter") is None
+
+
+def test_chapter_dashboard_url_reaches_the_same_merged_page(auto_login_user):
+    """The old dashboard/chapter/<pk>/ URL keeps working (RD/national officer
+    direct navigation, plus the access-control tests above) and routes to
+    the exact same merged view/template as /transitions/search/.
+    """
+    client, officer = auto_login_user()
+    _role_change(officer.chapter, "treasurer", datetime.date.today() + datetime.timedelta(days=180), user=officer)
+    _obligation(officer.chapter, officer)
+
+    response = client.get(reverse("transitions:chapter-dashboard", args=[officer.chapter.pk]))
+
+    assert response.status_code == 200
+    assert "Search reports" in response.content.decode()
 
 
 # ---------------------------------------------------------------------------

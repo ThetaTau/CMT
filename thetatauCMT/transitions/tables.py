@@ -8,11 +8,12 @@ from .models import ReportObligation, TransitionReport
 
 
 class ObligationComplianceTable(CMTTable):
-    """One row per ``ReportObligation`` -- the chapter dashboard (TRWI-9).
+    """One row per ``ReportObligation`` -- the dashboard section of the
+    merged dashboard+search page (TRWI-9; see ``views.ReportSearchView``).
 
     ``acknowledged`` reads the queryset's own ``acknowledged`` annotation
-    (an ``Exists`` subquery -- see ``views.ChapterComplianceView``), not a
-    per-row lookup, so this table never causes extra queries per row.
+    (an ``Exists`` subquery -- see ``views.ReportSearchView._dashboard_context``),
+    not a per-row lookup, so this table never causes extra queries per row.
     "Missed" rows get a red highlight (``row_attrs``) -- the spec's own
     "primary accountability lever".
     """

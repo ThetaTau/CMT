@@ -953,9 +953,12 @@ def derive_prompt_tags(report):
 
 def set_manual_tags(report, tags):
     """Replace ``report``'s ``source="manual"`` tags with ``tags`` (an
-    iterable of ``TAG_CHOICES`` values). Leaves any ``source="prompt"`` rows
-    untouched -- the author's own additions are independent of whatever
-    ``derive_prompt_tags`` derives from their answers.
+    iterable of ``TransitionTag.name`` values, not restricted to
+    ``TAG_CHOICES`` since the 2026-09 "Additional tags" autocomplete change --
+    see ``forms.ComposeReportForm.manual_tags_data``). Leaves any
+    ``source="prompt"`` rows untouched -- the author's own additions are
+    independent of whatever ``derive_prompt_tags`` derives from their
+    answers.
     """
     report.tags.filter(source=ReportTag.Source.manual.value[0]).delete()
     for tag in tags:

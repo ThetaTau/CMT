@@ -2,12 +2,14 @@
 matching notes/objectives -- no viewflow (this feature has no approval step).
 """
 
+from dal import autocomplete
 from django.contrib import messages
+from django.core.exceptions import ValidationError
 from django.db.models import Exists, OuterRef
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.generic import TemplateView, View
 
-from core.views import LoginRequiredMixin, PagedFilteredTableView, RequestConfig
+from core.views import LoginRequiredMixin, RequestConfig
 from thetatauCMT.chapters.models import Chapter
 
 from . import services
@@ -27,7 +29,14 @@ from .forms import (
     SearchFilterFormHelper,
     TrendFilterFormHelper,
 )
-from .models import POSITION_KEY_TO_TYPE, ReportAcknowledgement, ReportAttachment, ReportObligation, TransitionReport
+from .models import (
+    POSITION_KEY_TO_TYPE,
+    ReportAcknowledgement,
+    ReportAttachment,
+    ReportObligation,
+    TransitionReport,
+    TransitionTag,
+)
 from .tables import ChapterRateTable, ObligationComplianceTable, SearchResultsTable, TagFrequencyTable
 
 
@@ -74,7 +83,6 @@ class TransitionsListView(LoginRequiredMixin, TemplateView):
             {"position_key": position_key, "chapter": user.chapter}
             for position_key in sorted(set(user.current_roles or []) & set(POSITION_KEY_TO_TYPE))
         ]
-        context["show_chapter_dashboard_link"] = bool(user.chapter_id) and user.is_officer_group
         context["show_rates_dashboard_link"] = services.can_view_compliance_rates(user)
         context["show_trends_link"] = services.can_view_trends(user)
         return context
@@ -166,6 +174,47 @@ class AttachmentDeleteView(LoginRequiredMixin, View):
         return redirect("transitions:compose", pk=attachment.report.obligation_id)
 
 
+class TransitionTagAutocomplete(autocomplete.Select2QuerySetView):
+    """Autocomplete for :class:`TransitionTag` (the compose form's
+    "Additional tags" field, 2026-09 UI change).
+
+    Any signed-in member may search existing tags or type a new one to add
+    it, so the vocabulary grows with use -- mirrors
+    ``jobs.views.VocabularyAutocomplete``/``users.views.PositionAutocomplete``.
+    """
+
+    max_name_length = 50
+
+    def get_queryset(self):
+        if not self.request.user.is_authenticated:
+            return TransitionTag.objects.none()
+        qs = TransitionTag.objects.all()
+        if self.q:
+            qs = qs.filter(name__icontains=self.q)
+        return qs.order_by("name")
+
+    def has_add_permission(self, request):
+        # DAL's default requires the add_transitiontag model permission,
+        # which no CMT role grants, so the "Create" option would never appear.
+        if self.create_field is None:
+            return False
+        return bool(request.user.is_authenticated)
+
+    def validate(self, text):
+        name = " ".join((text or "").split())
+        if not name:
+            raise ValidationError({self.create_field: ["Enter a tag before adding it."]})
+        if len(name) > self.max_name_length:
+            raise ValidationError({self.create_field: [f"Keep this to {self.max_name_length} characters or fewer."]})
+
+    def create_object(self, text):
+        name = " ".join((text or "").split())
+        # get_queryset() is search-scoped, so use the manager to avoid
+        # inserting a duplicate row for a tag that already exists.
+        existing = TransitionTag.objects.filter(name__iexact=name).first()
+        return existing or TransitionTag.objects.create(name=name)
+
+
 class CloseNAVacantView(LoginRequiredMixin, View):
     """Regent/RD-only path that closes an obligation WITHOUT a report."""
 
@@ -235,40 +284,16 @@ def _default_cycle(request):
     return request_get
 
 
-class ChapterComplianceView(LoginRequiredMixin, PagedFilteredTableView):
-    """Per-obligation compliance dashboard for one chapter (TRWI-9) --
-    "Chapter view (Regent/officers)": every position's obligations, not just
-    the viewer's own, with status/due date/acknowledgment for the cycle.
-
-    Access: ``services.can_view_chapter_dashboard`` (own chapter's officers,
-    the chapter's RD, or any National Officer/Admin).
+def _default_dashboard_cycle(request):
+    """``request.GET`` with ``obl_cycle=current`` injected when absent --
+    mirrors ``_default_cycle`` but for the merged dashboard+search page's own
+    ``obl_``-prefixed cycle field (see ``ObligationComplianceFilter``),
+    which must not collide with the search section's own bare ``cycle``.
     """
-
-    template_name = "transitions/chapter_dashboard.html"
-    table_class = ObligationComplianceTable
-    filter_class = ObligationComplianceFilter
-    formhelper_class = ComplianceFilterFormHelper
-
-    def dispatch(self, request, *args, **kwargs):
-        self.chapter = get_object_or_404(Chapter, pk=kwargs["chapter_pk"])
-        if not services.can_view_chapter_dashboard(request.user, self.chapter):
-            messages.error(request, "You are not able to view this chapter's dashboard.")
-            return redirect("transitions:list")
-        return super().dispatch(request, *args, **kwargs)
-
-    def get_queryset(self, **kwargs):
-        base_qs = (
-            ReportObligation.objects.filter(chapter=self.chapter)
-            .select_related("officer", "report")
-            .annotate(acknowledged=Exists(ReportAcknowledgement.objects.filter(report__obligation_id=OuterRef("pk"))))
-        )
-        return super().get_queryset(other_qs=base_qs, request_get=_default_cycle(self.request), **kwargs)
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context["chapter"] = self.chapter
-        context["cycle_label"] = services.cycle_label(self.request.GET.get("cycle", services.DEFAULT_CYCLE))
-        return context
+    request_get = request.GET.copy()
+    if not request_get.get("cancel") and "obl_cycle" not in request_get:
+        request_get["obl_cycle"] = services.DEFAULT_CYCLE
+    return request_get
 
 
 class ComplianceRatesView(LoginRequiredMixin, TemplateView):
@@ -333,18 +358,76 @@ def _default_search_cycle(request):
 
 
 class ReportSearchView(LoginRequiredMixin, TemplateView):
-    """Full-text + filtered search across every report the viewer may read
-    (TRWI-11) -- position/chapter/region/tag/cycle filters, keyword search
-    ranked by ``watson``.
+    """Combined chapter obligation dashboard + full-text/filtered report
+    search (TRWI-9's dashboard and TRWI-11's search were merged into one
+    page in a 2026-09 UI pass -- "My chapter dashboard" and "Search reports"
+    were two separate pages that looked near-identical and, for a chapter
+    officer, covered mostly the same chapter's data).
 
-    Not a ``PagedFilteredTableView`` (same reasoning as
-    ``ComplianceRatesView``): ``services.search_reports`` already does its
-    own filtering AND its own access control in one place, so the filterset
-    here is only ever bound to a throwaway/empty queryset to clean/render
-    GET params -- never used to actually filter a real queryset.
+    Reachable two ways, both routed here (see ``urls.py``):
+    - ``transitions:search`` (no ``chapter_pk``): the one link shown to
+      everyone from the Transitions list. The dashboard section shows for
+      ``request.user.chapter`` only if the viewer can see it
+      (``services.can_view_chapter_dashboard``) and is silently omitted
+      otherwise (e.g. a plain member) -- this URL must never itself deny
+      access, since it is everyone's entry point.
+    - ``transitions:chapter-dashboard`` (explicit ``chapter_pk``): the same
+      page for a chapter the viewer does not necessarily belong to (RD/
+      National Officer/Admin) -- denies with a redirect + message if the
+      viewer can't see THAT chapter, matching the original
+      ``ChapterComplianceView``'s own gate. No UI links here with an
+      explicit ``chapter_pk`` other than the viewer's own; kept for direct
+      navigation and the access-control tests.
+
+    The search section (position/tag/cycle/q, plus chapter/region for RD/
+    National Officer/Admin) is unchanged: ``services.search_reports``
+    already does its own filtering AND its own access control in one place,
+    so its filterset is only ever bound to a throwaway/empty queryset to
+    clean/render GET params, never used to actually filter a real queryset.
+
+    The dashboard section's own filter fields are prefixed ``obl_`` (see
+    ``ObligationComplianceFilter``) so its GET params never collide with the
+    search filter's -- ``_partials/collapsible_filter.html`` renders each as
+    its own independent ``<form method="get">`` on this same page.
     """
 
     template_name = "transitions/search.html"
+
+    def dispatch(self, request, *args, **kwargs):
+        self.chapter = None
+        chapter_pk = kwargs.get("chapter_pk")
+        if chapter_pk is not None:
+            chapter = get_object_or_404(Chapter, pk=chapter_pk)
+            if not services.can_view_chapter_dashboard(request.user, chapter):
+                messages.error(request, "You are not able to view this chapter's dashboard.")
+                return redirect("transitions:list")
+            self.chapter = chapter
+        elif request.user.is_authenticated and request.user.chapter_id:
+            if services.can_view_chapter_dashboard(request.user, request.user.chapter):
+                self.chapter = request.user.chapter
+        return super().dispatch(request, *args, **kwargs)
+
+    def _dashboard_context(self):
+        base_qs = (
+            ReportObligation.objects.filter(chapter=self.chapter)
+            .select_related("officer", "report")
+            .annotate(acknowledged=Exists(ReportAcknowledgement.objects.filter(report__obligation_id=OuterRef("pk"))))
+        )
+        filterset = ObligationComplianceFilter(_default_dashboard_cycle(self.request), queryset=base_qs)
+        filterset.request = self.request
+        filterset.form.helper = ComplianceFilterFormHelper(form=filterset.form)
+        # prefix="obl_": this table paginates/sorts independently of the
+        # search table below it on the same page -- without it both would
+        # read/write the same ?page=/?sort= GET params (django_tables2's
+        # own fix for two tables on one page).
+        table = ObligationComplianceTable(data=filterset.qs, prefix="obl_")
+        RequestConfig(self.request, paginate={"per_page": 25}).configure(table)
+        return {
+            "chapter": self.chapter,
+            "compliance_filter": filterset,
+            "compliance_table": table,
+            "compliance_cycle_label": services.cycle_label(self.request.GET.get("obl_cycle", services.DEFAULT_CYCLE)),
+        }
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -374,6 +457,9 @@ class ReportSearchView(LoginRequiredMixin, TemplateView):
         context["filter"] = filterset
         context["table"] = table
         context["cycle_label"] = services.cycle_label(cycle) if cycle != "all" else "All time"
+
+        if self.chapter is not None:
+            context.update(self._dashboard_context())
         return context
 
 

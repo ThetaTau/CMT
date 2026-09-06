@@ -1172,6 +1172,12 @@
           "body": "The score rolls up submissions, events, service hours and attendance. Check it mid-term rather than at the end, while there is still time to close a gap.",
           "feature": "chapter-scores",
           "cadence": "ongoing"
+        },
+        {
+          "title": "Write your transition report, and read what came before",
+          "body": "When your term as Regent ends, the site owes a transition report: what worked, what did not, and what your successor needs to know. As Regent you can also read every position's past reports for your chapter from the same page, not just your own.",
+          "feature": "transition-reports",
+          "cadence": "each_term"
         }
       ]
     },
@@ -1226,6 +1232,12 @@
           "feature": "chapter-audit-form",
           "task": "audit-vice-regent",
           "cadence": "annual"
+        },
+        {
+          "title": "Write your transition report, and read what came before",
+          "body": "When your term as Vice Regent ends, the site owes a transition report: what worked, what did not, and what your successor needs to know. The same page lets you read what past Vice Regents wrote before you.",
+          "feature": "transition-reports",
+          "cadence": "each_term"
         }
       ]
     },
@@ -1286,6 +1298,12 @@
           "feature": "chapter-audit-form",
           "task": "audit-scribe",
           "cadence": "annual"
+        },
+        {
+          "title": "Write your transition report, and read what came before",
+          "body": "When your term as Scribe ends, the site owes a transition report: what worked, what did not, and what your successor needs to know. The same page lets you read what past Scribes wrote before you.",
+          "feature": "transition-reports",
+          "cadence": "each_term"
         }
       ]
     },
@@ -1337,6 +1355,12 @@
           "feature": "risk-management-policies",
           "task": "risk-management-formtreasurer",
           "cadence": "each_term"
+        },
+        {
+          "title": "Write your transition report, and read what came before",
+          "body": "When your term as Treasurer ends, the site owes a transition report: what worked, what did not, and what your successor needs to know. The same page lets you read what past Treasurers wrote before you.",
+          "feature": "transition-reports",
+          "cadence": "each_term"
         }
       ]
     },
@@ -1383,6 +1407,12 @@
           "feature": "chapter-audit-form",
           "task": "audit-corresponding-secretary",
           "cadence": "annual"
+        },
+        {
+          "title": "Write your transition report, and read what came before",
+          "body": "When your term as Corresponding Secretary ends, the site owes a transition report: what worked, what did not, and what your successor needs to know. The same page lets you read what past Corresponding Secretaries wrote before you.",
+          "feature": "transition-reports",
+          "cadence": "each_term"
         }
       ]
     },
@@ -1425,6 +1455,12 @@
           "title": "Expect the depledge survey",
           "body": "Any candidate who leaves before initiation is emailed a short survey with their own personal link, so there is no page here to open. Results come back in aggregate, never by name. It is how the fraternity learns why candidates leave.",
           "cadence": "ongoing"
+        },
+        {
+          "title": "Write your transition report, and read what came before",
+          "body": "When your term as New Member Educator ends, the site owes a transition report: what worked, what did not, and what your successor needs to know. The same page lets you read what past New Member Educators wrote before you.",
+          "feature": "transition-reports",
+          "cadence": "each_term"
         }
       ]
     },
@@ -1463,6 +1499,12 @@
           "body": "Chapter bylaws are filed here and reviewed nationally. Risk decisions often turn on what they actually say.",
           "feature": "chapter-bylaws",
           "cadence": "once"
+        },
+        {
+          "title": "Write your transition report, and read what came before",
+          "body": "When your term as Risk Management Chair ends, the site owes a transition report: what worked, what did not, and what your successor needs to know. The same page lets you read what past chairs wrote before you.",
+          "feature": "transition-reports",
+          "cadence": "each_term"
         }
       ]
     },
@@ -1615,6 +1657,12 @@
           "body": "You see more of the region's talent than anyone. Nominations are the pipeline for every national volunteer role.",
           "feature": "nominate-for-national-office",
           "cadence": "annual"
+        },
+        {
+          "title": "Read transition reports across your region",
+          "body": "Every submitted transition report for a chapter in your region is open to you: search by position, chapter, tag or cycle to see what an officer said before you visit, and the compliance dashboard shows which chapters still owe one.",
+          "feature": "transition-reports",
+          "cadence": "ongoing"
         }
       ]
     },
@@ -1718,6 +1766,12 @@
           "body": "Ballots are created, distributed and counted here.",
           "feature": "create-a-ballot",
           "cadence": "annual"
+        },
+        {
+          "title": "Read transition reports fraternity-wide",
+          "body": "Every submitted transition report is open to you, searchable by position, chapter, tag or cycle. The trend view shows the themes coming up most often and which chapters have not yet submitted.",
+          "feature": "transition-reports",
+          "cadence": "ongoing"
         }
       ]
     }

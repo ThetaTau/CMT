@@ -98,8 +98,11 @@ class FieldType(EnumClass):
     contact = ("contact", "Contact")
 
 
-# Controlled tag vocabulary (TRWI-11) -- keep short and stable so cross-chapter
-# trend counts stay meaningful.
+# Starting tag vocabulary (TRWI-11) -- still used for TemplatePrompt.tag's
+# admin-curated choices (prompt authors pick from this fixed, small set so
+# prompt-derived tags stay predictable). ReportTag.tag itself is no longer
+# restricted to these: see TransitionTag, the free-form vocabulary "Additional
+# tags" on the compose form draws from (2026-09 UI change).
 TAG_CHOICES = [
     ("success", "Success"),
     ("failure", "Failure"),
@@ -394,9 +397,31 @@ class HandoffNotice(models.Model):
         return f"Handoff notice sent for {self.role_change}"
 
 
+class TransitionTag(models.Model):
+    """Free-form tag vocabulary for ``ReportTag`` (2026-09 UI change).
+
+    Backs the compose form's "Additional tags" autocomplete
+    (``forms.ComposeReportForm.manual_tags``, ``TransitionTagAutocomplete``)
+    -- any signed-in member may search existing tags or type a new one to
+    create it inline, mirroring ``jobs.Keyword``'s own vocabulary pattern.
+    The original ``TAG_CHOICES`` 9 values are seeded here by migration so
+    prompt-derived tags (still drawn from ``TemplatePrompt.tag``'s fixed
+    choices) always have a matching row.
+    """
+
+    name = models.CharField(max_length=50)
+
+    class Meta:
+        ordering = ["name"]
+        verbose_name = "Transition Tag"
+
+    def __str__(self):
+        return self.name
+
+
 class ReportTag(models.Model):
-    """A controlled-vocabulary tag on a ``TransitionReport`` (TRWI-11), for
-    cross-chapter trend mining -- tag frequency, common themes.
+    """A tag on a ``TransitionReport`` (TRWI-11), for cross-chapter trend
+    mining -- tag frequency, common themes.
 
     ``source="prompt"`` rows are derived automatically from
     ``TemplatePrompt.tag`` on submit (``services.derive_prompt_tags``) and
@@ -406,6 +431,13 @@ class ReportTag(models.Model):
     (``services.set_manual_tags``) and are never touched by re-derivation.
     ``unique_together``: a tag is either present on a report or it isn't,
     regardless of how it got there.
+
+    ``tag`` stores the ``TransitionTag.name`` value as plain text rather than
+    an FK -- ``TransitionReport``'s own read/search/trend code all already
+    works off this string (see ``services.py``), and keeping it a CharField
+    means none of that had to change when ``TransitionTag`` was introduced.
+    No longer restricted to ``TAG_CHOICES``: a manually-added tag can be any
+    ``TransitionTag`` name, including one created on the fly.
     """
 
     class Source(EnumClass):
@@ -413,7 +445,7 @@ class ReportTag(models.Model):
         manual = ("manual", "Manual")
 
     report = models.ForeignKey(TransitionReport, on_delete=models.CASCADE, related_name="tags")
-    tag = models.CharField(max_length=20, choices=TAG_CHOICES)
+    tag = models.CharField(max_length=50)
     source = models.CharField(max_length=10, choices=[x.value for x in Source])
 
     class Meta:

@@ -1,5 +1,7 @@
 from django.contrib import admin
 
+from core.admin import MergeableAdminMixin
+
 from .models import (
     PositionOverride,
     ReportAcknowledgement,
@@ -8,8 +10,16 @@ from .models import (
     ReportTemplate,
     TemplatePrompt,
     TransitionReport,
+    TransitionTag,
     position_type_for_key,
 )
+
+
+@admin.register(TransitionTag)
+class TransitionTagAdmin(MergeableAdminMixin, admin.ModelAdmin):
+    list_display = ("name",)
+    search_fields = ("name",)
+    ordering = ("name",)
 
 
 @admin.register(PositionOverride)

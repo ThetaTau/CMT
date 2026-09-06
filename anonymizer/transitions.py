@@ -11,6 +11,7 @@ from thetatauCMT.transitions.models import (
     ReportTemplate,
     TemplatePrompt,
     TransitionReport,
+    TransitionTag,
 )
 
 # PositionOverride/ReportTemplate/TemplatePrompt are admin-managed config and
@@ -24,9 +25,13 @@ from thetatauCMT.transitions.models import (
 # are pure bookkeeping too -- a read-receipt FK+timestamp and a notification
 # dedupe FK+timestamp, respectively -- same category as guides.
 # UserAcknowledgement, which this app's own Codebase Review Notes already
-# treated as skip-safe. ReportTag (TRWI-11) is a controlled-vocabulary
-# category (tag/source choice fields only, no free text and no user FK at
-# all), same category as PositionOverride.
+# treated as skip-safe. ReportTag (TRWI-11) is a tag/source choice-field
+# join row with no free text and no user FK at all, same category as
+# PositionOverride. TransitionTag (2026-09 "Additional tags" autocomplete
+# change) is the free-form tag vocabulary itself -- just a short ``name``
+# string, same free-vocabulary category as jobs.Keyword/jobs.Major/
+# users.Position, and never contains a person's name in practice (tags are
+# theme words like "risk"/"continuity", not who said them).
 register_skip(
     [
         PositionOverride,
@@ -37,6 +42,7 @@ register_skip(
         ReportAcknowledgement,
         HandoffNotice,
         ReportTag,
+        TransitionTag,
     ]
 )
 
