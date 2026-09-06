@@ -37,6 +37,34 @@ def _template():
     return template
 
 
+def _report(chapter, position_key, author, status="submitted", due_date=None):
+    due_date = due_date or datetime.date.today() + datetime.timedelta(days=10)
+    obligation = ReportObligation.objects.create(
+        chapter=chapter,
+        position_type="CHAPTER_OFFICER",
+        position_key=position_key,
+        officer=author,
+        term_start=due_date - datetime.timedelta(days=166),
+        term_end=due_date + datetime.timedelta(days=14),
+        due_date=due_date,
+        is_required=True,
+        status="open",
+    )
+    template, _created = ReportTemplate.objects.get_or_create(
+        position_type="CHAPTER_OFFICER", position_key=position_key, defaults={"name": f"{position_key} report"}
+    )
+    return TransitionReport.objects.create(
+        obligation=obligation,
+        chapter=chapter,
+        position_type="CHAPTER_OFFICER",
+        position_key=position_key,
+        author=author,
+        template=template,
+        template_version=1,
+        status=status,
+    )
+
+
 # ---------------------------------------------------------------------------
 # TransitionsListView
 # ---------------------------------------------------------------------------
@@ -101,6 +129,58 @@ def test_transitions_list_hides_vacant_obligations_from_a_plain_member(auto_logi
     response = client.get(reverse("transitions:list"))
 
     assert "Vacant positions" not in response.content.decode()
+
+
+# ---------------------------------------------------------------------------
+# TransitionsListView -- readable_reports / scope filter (TRWI-6)
+# ---------------------------------------------------------------------------
+def test_transitions_list_shows_readable_reports_for_a_successor(auto_login_user):
+    client, successor = auto_login_user()
+    successor.current_roles = ["treasurer"]
+    successor.save(update_fields=["current_roles"])
+    _report(successor.chapter, "treasurer", UserFactory(chapter=successor.chapter))
+
+    response = client.get(reverse("transitions:list"))
+
+    body = response.content.decode()
+    assert "Reports you can read" in body
+    assert "<td>Treasurer</td>" in body
+
+
+def test_transitions_list_hides_someone_elses_draft_from_a_successor(auto_login_user):
+    client, successor = auto_login_user()
+    successor.current_roles = ["treasurer"]
+    successor.save(update_fields=["current_roles"])
+    _report(successor.chapter, "treasurer", UserFactory(chapter=successor.chapter), status="draft")
+
+    response = client.get(reverse("transitions:list"))
+
+    assert "No other Transition Reports are visible to you yet." in response.content.decode()
+
+
+def test_transitions_list_hides_scope_filter_for_a_regent(auto_login_user):
+    client, regent = auto_login_user()
+    regent.current_roles = ["regent"]
+    regent.save(update_fields=["current_roles"])
+
+    response = client.get(reverse("transitions:list"))
+
+    assert "My chapter only" not in response.content.decode()
+
+
+def test_transitions_list_scope_filter_shown_and_narrows_an_rds_view(auto_login_user):
+    client, rd = auto_login_user()
+    other_chapter = ChapterFactory()
+    other_chapter.region.directors.add(rd)
+    _report(other_chapter, "treasurer", UserFactory(chapter=other_chapter))
+
+    response = client.get(reverse("transitions:list"))
+    body = response.content.decode()
+    assert "My chapter only" in body
+    assert "<td>Treasurer</td>" in body
+
+    response = client.get(reverse("transitions:list"), {"scope": "chapter"})
+    assert "<td>Treasurer</td>" not in response.content.decode()
 
 
 # ---------------------------------------------------------------------------

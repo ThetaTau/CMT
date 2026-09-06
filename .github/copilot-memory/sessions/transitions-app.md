@@ -1,6 +1,6 @@
 # Transition Reports & Lessons Learned — Feature Spec & Work Breakdown
 
-> **Status:** In development (2026-09-05) — TRWI-1 through TRWI-4 are implemented and tested. See "Decisions Log" at the end for the full record of resolved decisions (A-J) plus TRWI-4's choices awaiting review (K25-K34).
+> **Status:** In development (2026-09-05) — TRWI-1 through TRWI-6 are implemented and tested. See "Decisions Log" at the end for the full record of resolved decisions (A-K) plus TRWI-5's (L35-L45) and TRWI-6's (M46-M52) choices awaiting review. Note: CSV export requirement dropped (TRWI-11 only).
 > **Approach:** Purpose-built app (custom), no third-party survey dependency. App name: `thetatauCMT.transitions`.
 > **File location:** `docs/specs/transition-reports.md`
 
@@ -34,7 +34,7 @@ This proposal was drafted by an LLM without access to the codebase. Below is wha
 - **RD scoping already exists** as `user.director_regions` (`Region.directors` M2M, used by `awards/eligibility.py`). **No equivalent scoping exists for "candidate chapter director"** — a CCD is just another `NATIONAL_OFFICER` role and lands in the `natoff` group like any national officer, with no chapter subset. **Decided:** treat CCD as a plain national officer (sees all reports); no new scoping built.
 - **`guides.UserAcknowledgement`** already models "user said got it to a thing" generically (GFK over `Feature`/`Announcement`). **Decided:** build a dedicated `ReportAcknowledgement` model instead (spelling matches this codebase's `UserAcknowledgement` convention, not the original proposal's `ReportAcknowledgment`).
 - **The `django-survey` rejection is reinforced, not contradicted, by the codebase.** `django-survey-and-report` IS already a dependency (`thetatauCMT.surveys` wraps `survey.models.Survey`), but its existing usage (`SurveyDetail` in `thetatauCMT/surveys/views.py`) has to match a question by `question__text__icontains="to contact you"` because the library has no stable prompt identity — exactly the fragility TRWI-8 needs to avoid, and file-upload answers (a hard requirement) aren't supported either. **Decided:** keep the purpose-built app.
-- **CSV export has no library in this repo** — every export is a bespoke `HttpResponse(content_type="text/csv")` + `csv.writer` (see `thetatauCMT/awards/exports.py`). `watson` (django-watson) is already installed and registered for 2 models and could cover TRWI-11's full-text search instead of a hand-rolled query.
+- **CSV export has no library in this repo** — NO NEED FOR CSV EXPORT (see `thetatauCMT/awards/exports.py`). `watson` (django-watson) is already installed and registered for 2 models and could cover TRWI-11's full-text search instead of a hand-rolled query.
 - **No dedicated nav entry — lives on the Forms landing page instead** (decision 2026-09-04, see TRWI-5). `thetatauCMT/forms/views.py`'s `FORM_GROUPS` + registry-driven `forms:landing` already lists officer/administration forms (`chapter-officers`, `submit-chapter-officers`, ...) — Transition Reports slots into that same "administration" group rather than getting a new top-level nav item.
 - **No retention/archiving** (decision 2026-09-04) — full report history is kept forever so a new officer can see everything a predecessor and their predecessors wrote. TRWI-10 rewritten accordingly; `archived_at`/`retention_expires_on` dropped from the data model.
 - **No post-submission edit lock** (decision 2026-09-04) — authors may edit their own report indefinitely, even long after their term ends, since new information may come to mind later. TRWI-5's grace-window config is dropped.
@@ -65,7 +65,6 @@ Chapter officers and committee chairs turn over without transferring lessons lea
 - A dedicated nav entry — this lives on the Forms landing page instead (decision 2026-09-04); see TRWI-5.
 - Confidential/private sections restricted to National Officers/Regents (decision 2026-09-04: omit from v1, see Decisions Log).
 - LLM-assisted cross-chapter thematic mining (tags + search only in v1).
-- LaTeX/PDF export (CSV only — avoids adding a TeX toolchain to the container image).
 - Any gating of officer roster updates, certifications, or award eligibility on submission.
 
 ---
@@ -454,14 +453,14 @@ Provide `can_read_report(user, report)` and `get_readable_reports(user, **filter
 
 ---
 
-## TRWI-11 — Tags, search, trends & CSV export
+## TRWI-11 — Tags, search, trends
 
 **Work item:** Mine inputs for best practices and blind spots.
 
 - Derive `ReportTag` rows from `TemplatePrompt.tag` on submission; allow manual tags from the controlled vocabulary.
 - **Search** across readable reports: full-text over answers; filters by position, chapter, region, tag, cycle — no `pinned`/`archived` filters needed, since neither exists (decisions 2026-09-04). `watson` (django-watson) is already a dependency, already registered for 2 models (`jobs.Job`, `users.User` — see their `apps.py` `ready()`), and is a better fit than a hand-rolled `icontains` chain across `ReportAnswer.value`. Registering a new model needs `manage.py buildwatson` after deploy — budget that into the rollout, not just the migration.
 - **National trend view:** tag frequency by position/region/cycle; most common failure themes; chapters with no submissions.
-- **CSV export** of readable reports/answers (flat: one row per answer, with chapter/position/cycle/tag columns) for offline analysis. No PDF/LaTeX. No CSV library exists in this repo — every export is a bespoke `HttpResponse(content_type="text/csv")` + `csv.writer` view (cleanest example: `thetatauCMT/awards/exports.py`); follow that, don't add a dependency.
+- **CSV export** NO NEED FOR CSV EXPORT
 - Every query must call the TRWI-6 access service — search and export are the easiest places to leak data.
 - v1 is deterministic (tags + search). No LLM summarization.
 
@@ -496,7 +495,7 @@ Deliver the command + `docs/specs/transition-reports-qa.md` listing expected vis
 4. **TRWI-7 → TRWI-8** — Handoff packet + prior answers. **The compliance payoff — do not defer.**
 5. **TRWI-9** — Compliance dashboards.
 6. **TRWI-10** — Full history (no archiving, no pinning).
-7. **TRWI-11** — Tags, search, trends, CSV export.
+7. **TRWI-11** — Tags, search, trends, CSV export. NO NEED FOR CSV EXPORT
 8. **TRWI-12** — QA seed (buildable once TRWI-5/6 land; extend as later items ship).
 
 **Minimum viable slice:** TRWI-1 → TRWI-8. That delivers capture + accountability + handoff, which is the core of the request.
@@ -574,9 +573,9 @@ Every question from the codebase review has been answered. Recorded here for tra
 ### J. TRWI-3 — Vacancy-safety-net reachability (resolved 2026-09-05)
 - **J24 — Confirmed acceptable.** A required position vacant for up to a year still gets an obligation via trigger 1 (`officer=<last known holder>`, not `None`); only a position vacant for MORE than a year, or never held at all, produces nothing. No code change needed — this is already the implemented, tested behavior.
 
-### K. TRWI-4 — Nudges & reminder emails (implemented autonomously 2026-09-05 — please review)
+### K. TRWI-4 — Nudges & reminder emails (resolved 2026-09-05)
 
-TRWI-4 is implemented, migrated, and tested (112 tests passing in the transitions app; 480 across the full regression sweep including configs/core/users). Several design points weren't fully specified in the original work item, so I made reasoned choices — flagging here for your review rather than treating them as locked in like A-J.
+TRWI-4 is implemented, migrated, and tested (112 tests passing in the transitions app; 480 across the full regression sweep including configs/core/users). **Confirmed by you 2026-09-05: "Design decisions reviewed and are good."**
 
 - **K25 — New field:** `ReportObligation.last_reminder_offset_sent` (nullable `IntegerField`), exactly as the work item itself suggested, tracking the most recent (most urgent) configured offset already acted on so the daily command never double-sends a threshold.
 - **K26 — New Config key `TRANSITIONS_RD_ESCALATION_OFFSET_DAYS`** (default **-7**, seeded in `default_configs.json`): once a reminder offset at/below this is reached, the Regional Director is escalated in addition to the Regent. Not called for explicitly in TRWI-1's original config list — added because "a later offset includes the RD" needed a concrete threshold. -7 was chosen as the middle of the three default past-due offsets (-1/-7/-14): Regent alone at -1, Regent+RD from -7 onward.
@@ -589,16 +588,44 @@ TRWI-4 is implemented, migrated, and tested (112 tests passing in the transition
 - **K33 — Home dashboard card** "My Transition Report Obligations" added to `pages/home.html` (via `guides/_role_guide_card.html`'s exact pattern) showing the viewer's own `open`/`missed` obligations (positions THEY hold, not chapter-wide) — no new page, so no feature-registry entry needed (TRWI-5's page will need one).
 - **K34 — Fixed a pre-existing gap found while regression-testing:** `PositionOverride`/`ReportTemplate`/`TemplatePrompt`/`ReportObligation` (TRWI-1/2/3) had never been registered with `dj_anonymizer`, failing `core/tests/test_anonymizer.py::test_every_model_is_registered_with_the_anonymizer`. This wasn't caught earlier because only `thetatauCMT/transitions` tests had been run, not the full suite. Added `anonymizer/transitions.py` (`register_skip` for all four — admin-managed config/prompt content, plus `ReportObligation` which only references a person through FKs, matching `guides/_role_guide_card.html`'s `UserAcknowledgement` precedent).
 
+### L. TRWI-5 — Compose & submit report (implemented autonomously 2026-09-05 — please review)
+
+TRWI-5 is implemented, migrated, and tested (159 tests passing in the transitions app; 1867 passed / 15 skipped across a full regression sweep of configs/core/users/guides/forms/chapters/regions/transitions). This work item had the most genuinely underspecified design surface so far — flagging every material choice below.
+
+- **L35 — `na_vacant` creates NO `TransitionReport` row at all**, taken literally from the spec's own wording ("closes an obligation WITHOUT a report"). It is purely a `ReportObligation.status` transition. `TransitionReport.Status` still includes `na_vacant` for schema completeness (matches the spec's field table exactly), but no code path ever actually sets it — every real row is `draft` or `submitted`.
+- **L36 — Fixed invariant: `report.author == obligation.officer`, always.** Only the position's assigned officer may compose their own obligation (`ComposeReportView` redirects anyone else with an error). There is no "someone else fills it in for you" path — simpler than solving "who else may author" with no spec guidance either way.
+- **L37 — `TransitionReport.template` uses `on_delete=PROTECT`** (spec didn't say). `ReportAnswer.prompt` is `SET_NULL` by the spec's own explicit "nullable so prompt deletion never orphans history" language, but `template` isn't marked nullable, so PROTECT (block deletion rather than orphan/null it) was the more conservative, data-integrity-preserving reading. `author`/`uploaded_by` use plain `on_delete=CASCADE`, matching `notes.ChapterNote.created_by`'s exact precedent (non-nullable "who did this" FKs elsewhere in the repo).
+- **L38 — `ReportAnswer` has an added `unique_together = (report, prompt_key)`** not explicit in the spec table, but a natural integrity constraint (one answer per prompt per report) matching the app's established unique-constraint conventions elsewhere.
+- **L39 — `ReportAttachment.ALLOWED_FILE_TYPES` invented**: PDF, JPEG, PNG, CSV, DOCX, XLSX. No file-size validator exists anywhere in this codebase to pair with `FileTypeValidator`, so none was added here either (would be a new precedent, not a reused one).
+- **L40 — The Transitions list view is scoped to "my own" only for now** (my own obligations, any status, doubling as submission history) — deliberately NOT the full "reports I'm entitled to read" breadth (successor/Regent/RD/national visibility), since that needs TRWI-6's access service, which doesn't exist yet (Build Order: "the access service must exist before any read surface"). The "chapter vs. national scope" filter from the spec is deferred to TRWI-6 for the same reason; only a simple position/role filter exists today.
+- **L41 — Built a narrow, self-contained "vacant obligations for closer" query now**, rather than waiting for TRWI-6: a Regent sees their own chapter's officer-less open obligations, an RD sees their own region's, via `services.get_vacant_obligations_for_closer()`. This was necessary because a vacant obligation (`officer=None`) can never appear in "my own obligations" (filtered by `officer=user`), yet the na_vacant path is explicitly part of TRWI-5's own acceptance criteria ("na_vacant restricted to Regent/RD") — so it needed *some* visibility surface now, just not the full TRWI-6 one.
+- **L42 — No `django_tables2`/`django_filter`/`PagedFilteredTableView` stack yet** — a plain `TemplateView` with a manual GET-param position filter, since "my own obligations" is typically 1-3 rows per user right now. Deferred the heavier list/filter stack (the repo's established convention for larger datasets) to TRWI-6/9 once the dataset actually grows to "all chapter/region reports."
+- **L43 — `template_version` is re-resolved and re-stamped at SUBMIT time**, not fixed at draft creation, so it reflects what was actually current "at submission" per the spec's own field description, even if an admin changed the template while a draft sat unfinished.
+- **L44 — Anonymizer split by content risk, not by TRWI grouping:** `TransitionReport` is `register_skip` (pure metadata), but `ReportAnswer`/`ReportAttachment` are `register_clean` (delete all rows) — the plan's own "candor risk" note (officers may write critically about NAMED INDIVIDUALS) means the actual authored content is raw as-uploaded identity data, the same category as `attendance.MatchQueueItem`, not a simple FK reference.
+- **L45 — Feature registry:** one new entry `transition-reports` (audience `officer`, no `roles` — every in-scope position owes one, not just Regents), added to `FORM_GROUPS`'s "administration" group and to `docs/specs`'s forms-workflows area. Verified with `load_feature_registry --dry-run` (clean, `1 added` then `0 added/0 updated` on the second dry-run) and the full `guides` test suite (216 passed).
+
+### M. TRWI-6 — Access control service (implemented autonomously 2026-09-05 — please review)
+
+TRWI-6 is implemented and tested (179 tests passing in the transitions app, up from 159; 1887 passed / 15 skipped across the full regression sweep of configs/core/users/guides/forms/chapters/regions/transitions). This is the smallest work item so far in terms of new surface area (two functions), but it carries the most consequential correctness responsibility in the whole feature, since every future read surface depends on it.
+
+- **M46 — Drafts are never visible to anyone but their author, even to someone who otherwise has full read access to the position/chapter.** The spec doesn't say this in TRWI-6's own section, but it follows directly from the Design decisions section's "reports are submitted and immediately visible to entitled readers" (no approval step, but visibility is gated on submission, not authorship) — a report is not yet "submitted and immediately visible" while still a draft. Every rule EXCEPT "author reads their own" is therefore restricted to `status=submitted`; only the author sees their own in-progress draft. This is a meaningful interpretive choice, not just an implementation detail, so it's called out explicitly rather than buried in a docstring.
+- **M47 — `can_read_report(user, report)` is implemented as `get_readable_reports(user, pk=report.pk).exists()`**, not as a separate, independently-written rule set. "Can I read this one" is just "is it in my readable queryset" — this guarantees the single-object check and the bulk query can never drift apart as the rules evolve (the spec's own instruction: "Access rules live in one service").
+- **M48 — CCD and Council need no special-casing.** `core.models.NAT_OFFICERS = COUNCIL | NATIONAL_OFFICER`, and `UserRoleChange.save()` already adds anyone holding an ``is_national_officer()`` role (which checks against `NAT_OFFICERS`) to the `natoff` Django group. So `user.is_national_officer_group` alone already covers Council positions (e.g. "grand regent") and CCD ("candidate chapter director") identically to any other National Officer — confirmed with a dedicated test for each, per the spec's explicit CCD callout.
+- **M49 — Successor/Regent access uses direct `current_roles`/`current_chapter` checks, not `user.is_officer_group`.** `is_officer_group` (`is_national_officer_group or is_chapter_officer_group`) is a coarse "officer of SOME kind" flag backed by Django group membership; it can't answer "holds THIS SPECIFIC position in THIS SPECIFIC chapter", which is what successor access actually requires. Per the spec's own instruction ("do not create a second role lookup or a raw group-membership check"), this reuses the exact `user.current_chapter.pk == report.chapter_id` / `REGENT_ROLE_KEY in user.current_roles` pattern already established by TRWI-5's `can_close_na_vacant` — not a new lookup, the same one extended to a new table.
+- **M50 — RD scoping matches `get_vacant_obligations_for_closer`'s exact style**: `chapter__region__in=user.director_regions.all()`, not `awards/eligibility.py`'s `chapter__region_id__in=[...]` (materialized pk list) style. Both are correct; this file's own established TRWI-5 precedent won out over the other app's for internal consistency.
+- **M51 — `TransitionsListView` was extended, not left as a bare service with zero callers.** The spec's own "chapter vs. national scope" filter (Design decisions section) was explicitly deferred to TRWI-6 by decision L40, and TRWI-9's own text assumes the Transitions list "already filters by role and chapter/national scope" by the time dashboards start — so closing that gap now, rather than leaving it for TRWI-7/9, keeps the spec's own forward references true. Added a **"Reports you can read"** section (`services.get_readable_reports`) plus a `scope=chapter` GET param that narrows to the viewer's own current chapter. The toggle itself is only rendered when it would narrow anything (admin, national officer, or RD) — a Regent's or successor's readable set is already chapter-scoped, so the toggle would be a no-op for them. This is intentionally a binary toggle ("my chapter" vs. "everything I can read"), not a per-chapter picker dropdown — the fuller rate/trend breakdown by chapter belongs to TRWI-9's dashboards, not this list view.
+- **M52 — No query-count regression test added for `get_readable_reports` in TRWI-6 itself** — the spec assigns that performance discipline (`select_related`/`prefetch_related`, `CaptureQueriesContext` N=1 vs N=6+ comparison) explicitly to TRWI-9. `select_related("chapter", "chapter__region", "obligation")` is already applied here so TRWI-9 inherits a reasonably query-light base rather than starting from zero.
+
 ---
 
 ## Pre-Launch Checklist
 
 - [ ] **Default Prompt Set review** — get a pass from someone who has actually held a chapter office before the prompt set is seeded to production; `prompt_key` values become immutable once shipped (F16).
-- [ ] Feature registry entry added for the Transitions page(s) and verified with `load_feature_registry --dry-run` (this is also what makes the row appear on Forms landing).
+- [x] Feature registry entry added for the Transitions page(s) and verified with `load_feature_registry --dry-run` (this is also what makes the row appear on Forms landing). Done 2026-09-05 (TRWI-5, key `transition-reports`).
 - [ ] `manage.py buildwatson` run after deploy if TRWI-11's search is implemented via `watson`.
 
 ---
 
 ## Remaining Open Questions
 
-None from the original codebase review round or TRWI-3 (I20-I23, J24) — see Decisions Log A-J. TRWI-4's design choices (K25-K34) are implemented and tested but not yet reviewed by you; see the Decisions Log entry above.
+None from the original codebase review round, TRWI-3 (I20-I23, J24), or TRWI-4 (K25-K34, confirmed) — see Decisions Log A-K. TRWI-5's design choices (L35-L45) and TRWI-6's (M46-M52) are implemented and tested but not yet reviewed by you; see the Decisions Log entries above.

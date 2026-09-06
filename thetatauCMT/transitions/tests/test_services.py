@@ -1,12 +1,13 @@
 import datetime
 
 import pytest
+from django.contrib.auth.models import AnonymousUser, Group
 from django.core import mail
 
 from thetatauCMT.chapters.tests.factories import ChapterFactory
 from thetatauCMT.configs.models import Config
 from thetatauCMT.regions.tests.factories import RegionFactory
-from thetatauCMT.users.models import UserRoleChange
+from thetatauCMT.users.models import UserAlter, UserRoleChange
 from thetatauCMT.users.tests.factories import UserFactory
 
 from .. import services
@@ -908,3 +909,198 @@ def test_get_vacant_obligations_for_closer_empty_for_a_plain_member():
     _open_obligation(chapter, None, TODAY + datetime.timedelta(days=10), position_key="regent")
 
     assert list(services.get_vacant_obligations_for_closer(member)) == []
+
+
+# ---------------------------------------------------------------------------
+# can_read_report / get_readable_reports (TRWI-6)
+# ---------------------------------------------------------------------------
+def _report(chapter, position_key, author, status="submitted", due_date=None):
+    due_date = due_date or TODAY + datetime.timedelta(days=10)
+    obligation = _open_obligation(chapter, author, due_date, position_key=position_key)
+    template, _created = ReportTemplate.objects.get_or_create(
+        position_type="CHAPTER_OFFICER", position_key=position_key, defaults={"name": f"{position_key} report"}
+    )
+    return TransitionReport.objects.create(
+        obligation=obligation,
+        chapter=chapter,
+        position_type="CHAPTER_OFFICER",
+        position_key=position_key,
+        author=author,
+        template=template,
+        template_version=1,
+        status=status,
+    )
+
+
+def test_get_readable_reports_anonymous_user_sees_nothing():
+    assert list(services.get_readable_reports(AnonymousUser())) == []
+
+
+def test_can_read_report_author_always_reads_their_own_report_even_as_a_draft():
+    chapter = ChapterFactory()
+    author = UserFactory(chapter=chapter)
+    report = _report(chapter, "treasurer", author, status="draft")
+
+    assert services.can_read_report(author, report) is True
+
+
+def test_can_read_report_denied_for_an_unrelated_plain_member():
+    chapter = ChapterFactory(name="alpha")
+    other_chapter = ChapterFactory(name="beta")
+    report = _report(chapter, "treasurer", UserFactory(chapter=chapter))
+    member = UserFactory(chapter=other_chapter)
+
+    assert services.can_read_report(member, report) is False
+
+
+def test_can_read_report_denied_for_someone_elses_draft():
+    # No approval step, but a draft is not "submitted and immediately
+    # visible" yet -- even the current position holder can't preview it.
+    chapter = ChapterFactory()
+    report = _report(chapter, "treasurer", UserFactory(chapter=chapter), status="draft")
+    successor = UserFactory(chapter=chapter)
+    successor.current_roles = ["treasurer"]
+    successor.save(update_fields=["current_roles"])
+
+    assert services.can_read_report(successor, report) is False
+
+
+def test_can_read_report_successor_reads_full_submitted_history_same_position_and_chapter():
+    chapter = ChapterFactory()
+    report_1 = _report(chapter, "treasurer", UserFactory(chapter=chapter), due_date=TODAY + datetime.timedelta(days=10))
+    report_2 = _report(
+        chapter, "treasurer", UserFactory(chapter=chapter), due_date=TODAY + datetime.timedelta(days=200)
+    )
+    successor = UserFactory(chapter=chapter)
+    successor.current_roles = ["treasurer"]
+    successor.save(update_fields=["current_roles"])
+
+    assert services.can_read_report(successor, report_1) is True
+    assert services.can_read_report(successor, report_2) is True
+    readable = set(services.get_readable_reports(successor).values_list("pk", flat=True))
+    assert readable == {report_1.pk, report_2.pk}
+
+
+def test_can_read_report_denied_for_a_different_position_in_the_same_chapter():
+    chapter = ChapterFactory()
+    report = _report(chapter, "scribe", UserFactory(chapter=chapter))
+    treasurer = UserFactory(chapter=chapter)
+    treasurer.current_roles = ["treasurer"]
+    treasurer.save(update_fields=["current_roles"])
+
+    assert services.can_read_report(treasurer, report) is False
+
+
+def test_can_read_report_denied_for_the_same_position_in_a_different_chapter():
+    chapter = ChapterFactory(name="alpha")
+    other_chapter = ChapterFactory(name="beta")
+    report = _report(chapter, "treasurer", UserFactory(chapter=chapter))
+    treasurer = UserFactory(chapter=other_chapter)
+    treasurer.current_roles = ["treasurer"]
+    treasurer.save(update_fields=["current_roles"])
+
+    assert services.can_read_report(treasurer, report) is False
+
+
+def test_can_read_report_regent_reads_every_position_in_their_own_chapter():
+    chapter = ChapterFactory()
+    treasurer_report = _report(chapter, "treasurer", UserFactory(chapter=chapter))
+    scribe_report = _report(
+        chapter, "scribe", UserFactory(chapter=chapter), due_date=TODAY + datetime.timedelta(days=200)
+    )
+    regent = UserFactory(chapter=chapter)
+    regent.current_roles = ["regent"]
+    regent.save(update_fields=["current_roles"])
+
+    assert services.can_read_report(regent, treasurer_report) is True
+    assert services.can_read_report(regent, scribe_report) is True
+
+
+def test_can_read_report_regent_denied_for_a_different_chapter():
+    chapter = ChapterFactory(name="alpha")
+    other_chapter = ChapterFactory(name="beta")
+    report = _report(other_chapter, "treasurer", UserFactory(chapter=other_chapter))
+    regent = UserFactory(chapter=chapter)
+    regent.current_roles = ["regent"]
+    regent.save(update_fields=["current_roles"])
+
+    assert services.can_read_report(regent, report) is False
+
+
+def test_can_read_report_rd_reads_any_position_in_their_own_region():
+    chapter = ChapterFactory(name="alpha")
+    report = _report(chapter, "scribe", UserFactory(chapter=chapter))
+    rd = UserFactory(chapter=ChapterFactory(name="beta"))
+    chapter.region.directors.add(rd)
+
+    assert services.can_read_report(rd, report) is True
+
+
+def test_can_read_report_rd_denied_outside_their_own_region():
+    chapter = ChapterFactory(name="alpha")
+    report = _report(chapter, "scribe", UserFactory(chapter=chapter))
+    rd = UserFactory(chapter=ChapterFactory(name="beta"))
+    other_region = RegionFactory()
+    other_region.directors.add(rd)
+
+    assert services.can_read_report(rd, report) is False
+
+
+def test_can_read_report_national_officer_reads_everything_nationally():
+    # CCD is just another NATIONAL_OFFICER role (decision 2026-09-04) -- no
+    # special-casing, is_national_officer_group alone covers it.
+    chapter = ChapterFactory()
+    report = _report(chapter, "scribe", UserFactory(chapter=chapter))
+    natoff = UserFactory()
+    natoff.current_roles = ["candidate chapter director"]
+    natoff.save(update_fields=["current_roles"])
+    natoff.groups.add(Group.objects.get_or_create(name="natoff")[0])
+
+    assert services.can_read_report(natoff, report) is True
+
+
+def test_can_read_report_council_member_reads_everything_nationally():
+    # NAT_OFFICERS = COUNCIL | NATIONAL_OFFICER, so a Council role also lands
+    # in the natoff group -- confirming Council is covered the same way.
+    chapter = ChapterFactory()
+    report = _report(chapter, "scribe", UserFactory(chapter=chapter))
+    council = UserFactory()
+    council.current_roles = ["grand regent"]
+    council.save(update_fields=["current_roles"])
+    council.groups.add(Group.objects.get_or_create(name="natoff")[0])
+
+    assert services.can_read_report(council, report) is True
+
+
+def test_can_read_report_admin_reads_everything_nationally():
+    chapter = ChapterFactory()
+    report = _report(chapter, "scribe", UserFactory(chapter=chapter))
+    admin = UserFactory(is_superuser=True)
+
+    assert services.can_read_report(admin, report) is True
+
+
+def test_can_read_report_denied_when_natoff_functionality_is_hidden():
+    # is_national_officer_group respects the "view as member" toggle -- a
+    # natoff user previewing as a member is scoped like a plain member here
+    # too, same as everywhere else this property is used.
+    chapter = ChapterFactory()
+    report = _report(chapter, "scribe", UserFactory(chapter=chapter))
+    natoff = UserFactory()
+    natoff.groups.add(Group.objects.get_or_create(name="natoff")[0])
+    UserAlter.objects.create(user=natoff, chapter=natoff.chapter, role=None, hide_natoff=True)
+
+    assert services.can_read_report(natoff, report) is False
+
+
+def test_get_readable_reports_filters_narrow_what_the_rules_already_allow():
+    chapter = ChapterFactory()
+    treasurer_report = _report(chapter, "treasurer", UserFactory(chapter=chapter))
+    _report(chapter, "scribe", UserFactory(chapter=chapter), due_date=TODAY + datetime.timedelta(days=200))
+    regent = UserFactory(chapter=chapter)
+    regent.current_roles = ["regent"]
+    regent.save(update_fields=["current_roles"])
+
+    readable = services.get_readable_reports(regent, position_key="treasurer")
+
+    assert list(readable) == [treasurer_report]

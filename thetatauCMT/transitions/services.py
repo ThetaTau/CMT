@@ -1,6 +1,7 @@
 import datetime
 
 from django.db import transaction
+from django.db.models import Q
 from django.utils import timezone
 
 from core.models import CHAPTER_OFFICER_REQUIRED, semester_encompass_start_end_date
@@ -558,4 +559,79 @@ def get_vacant_obligations_for_closer(user):
 def close_as_na_vacant(obligation):
     obligation.status = ReportObligation.Status.na_vacant.value[0]
     obligation.save(update_fields=["status"])
-    return obligation
+
+
+# ---------------------------------------------------------------------------
+# TRWI-6: access control service
+# ---------------------------------------------------------------------------
+def get_readable_reports(user, **filters):
+    """Every ``TransitionReport`` ``user`` is entitled to read (TRWI-6).
+
+    The one centralized access-rule service -- every read surface (the
+    Transitions list, TRWI-7's handoff packet, TRWI-8's prior-answers view,
+    TRWI-9's dashboards, TRWI-11's search) must call this rather than
+    re-deriving access.
+
+    - **Author:** always their own report, draft or submitted. There is no
+      approval step, but a draft is not "submitted and immediately visible"
+      yet (see the Design decisions section), so every OTHER rule below only
+      ever matches ``submitted`` reports -- nobody but the author previews an
+      in-progress draft.
+    - **Successor:** the current holder of position_key P reads every
+      submitted P report for their own chapter -- full history, since
+      nothing is archived (TRWI-10).
+    - **Regent:** every position's submitted reports for their own chapter.
+    - **RD:** every submitted report for chapters in their own region, via
+      the existing ``user.director_regions`` (same pattern as
+      ``awards/eligibility.py``'s regional scoping) -- no new region-scope
+      lookup.
+    - **National Officer or Admin:** every submitted report.
+      ``core.models.NAT_OFFICERS`` already merges Council into the
+      ``natoff`` group, and CCD is just another ``NATIONAL_OFFICER`` role
+      value, so ``user.is_national_officer_group`` alone covers Council/CCD
+      too (decision 2026-09-04) -- no separate scoping needed.
+
+    ``**filters`` apply on top of the rules above (e.g. ``position_key=...``)
+    -- they narrow, never widen, what the rules already allow.
+    """
+    if not getattr(user, "is_authenticated", False):
+        return TransitionReport.objects.none()
+
+    base = TransitionReport.objects.select_related("chapter", "chapter__region", "obligation")
+    submitted = Q(status=TransitionReport.Status.submitted.value[0])
+
+    if user.is_admin or user.is_national_officer_group:
+        return base.filter(Q(author=user) | submitted, **filters)
+
+    current_chapter = user.current_chapter
+    current_roles = user.current_roles or []
+    scope = Q()
+    has_scope = False
+    if current_chapter is not None:
+        scope |= Q(chapter=current_chapter, position_key__in=current_roles)
+        has_scope = True
+        if REGENT_ROLE_KEY in current_roles:
+            scope |= Q(chapter=current_chapter)
+    director_regions = user.director_regions.all()
+    if director_regions:
+        scope |= Q(chapter__region__in=director_regions)
+        has_scope = True
+
+    conditions = Q(author=user)
+    if has_scope:
+        # AND, not OR: everyone else's access is submitted-only (see above);
+        # an empty `scope` (has_scope=False) is never ANDed in, since an
+        # empty Q() would otherwise act as "always true" and leak every
+        # submitted report to everyone.
+        conditions |= submitted & scope
+    return base.filter(conditions, **filters)
+
+
+def can_read_report(user, report):
+    """Whether ``user`` may read ``report`` (TRWI-6).
+
+    Delegates to ``get_readable_reports`` -- "can I read this one" is just
+    "is it in my readable queryset" -- so the two rule sets can never drift
+    apart.
+    """
+    return get_readable_reports(user, pk=report.pk).exists()

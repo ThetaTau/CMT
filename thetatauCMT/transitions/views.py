@@ -14,29 +14,44 @@ from .models import ReportAttachment, ReportObligation
 
 
 class TransitionsListView(LoginRequiredMixin, TemplateView):
-    """The viewer's own obligations + submission history (TRWI-5).
+    """The viewer's own obligations + submission history + reports they're
+    entitled to read (TRWI-5, broadened by TRWI-6's access control service).
 
-    Scoped to "my own" only -- the broader "reports I'm entitled to read"
-    surface (successor/Regent/RD/national visibility) needs TRWI-6's access
-    service, which does not exist yet (Build Order: "the access service must
-    exist before any read surface"). This view will gain that breadth, and a
-    chapter-vs-national scope filter, once TRWI-6 lands.
+    ``readable_reports`` uses ``services.get_readable_reports`` -- author,
+    successor, Regent, RD, and national-officer/admin access are ALL handled
+    there; this view never re-derives a role check. The ``scope`` GET param
+    (``"chapter"`` vs. anything else/unset) is the spec's "chapter vs.
+    national scope" filter -- only shown when it would narrow anything (RD/
+    national officer/admin), since a Regent or successor's readable set is
+    already their own chapter only.
     """
 
     template_name = "transitions/transitions_list.html"
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        obligations = services.get_my_obligations(self.request.user)
+        user = self.request.user
+        obligations = services.get_my_obligations(user)
         position_choices = sorted({obligation.position_key for obligation in obligations})
         selected = self.request.GET.get("position_key", "")
         if selected:
             obligations = obligations.filter(position_key=selected)
+
+        readable_reports = services.get_readable_reports(user)
+        if selected:
+            readable_reports = readable_reports.filter(position_key=selected)
+        scope = self.request.GET.get("scope", "")
+        if scope == "chapter" and user.current_chapter is not None:
+            readable_reports = readable_reports.filter(chapter=user.current_chapter)
+
         context["obligations"] = obligations
-        context["reports"] = services.get_my_reports(self.request.user)
+        context["reports"] = services.get_my_reports(user)
         context["position_choices"] = position_choices
         context["selected_position_key"] = selected
-        context["vacant_obligations"] = services.get_vacant_obligations_for_closer(self.request.user)
+        context["vacant_obligations"] = services.get_vacant_obligations_for_closer(user)
+        context["readable_reports"] = readable_reports
+        context["scope"] = scope
+        context["show_scope_filter"] = user.is_admin or user.is_national_officer_group or user.director_regions.exists()
         return context
 
 
