@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% load render_table from django_tables2 %}
+{% load filter_tags %}
+
+{% block title %}{{ chapter }} Transition Report Dashboard{% endblock %}
+
+{% block content %}
+  <h1>{{ chapter }} Transition Reports</h1>
+  <p>{{ cycle_label }} -- every position's obligations for this chapter.</p>
+
+  {% collapsible_filter filter label="Filter" collapse_id="obligationFilter" reset_url="?cancel=1" %}
+  <div class="table-responsive">
+    {% render_table table %}
+  </div>
+{% endblock %}

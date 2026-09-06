@@ -1394,3 +1394,237 @@ def test_get_prior_answers_ignores_prompts_not_on_the_current_template():
     )
 
     assert services.get_prior_answers(successor, current_report) == {}
+
+
+# ---------------------------------------------------------------------------
+# Compliance dashboards (TRWI-9)
+# ---------------------------------------------------------------------------
+@pytest.mark.freeze_time("2026-10-15")
+def test_get_cycle_bounds_current_is_the_academic_year_containing_today():
+    start, end = services.get_cycle_bounds("current")
+    assert start == datetime.date(2026, 7, 1)
+    assert end == datetime.date(2027, 7, 1)
+
+
+@pytest.mark.freeze_time("2026-10-15")
+def test_get_cycle_bounds_previous_is_one_academic_year_earlier():
+    start, end = services.get_cycle_bounds("previous")
+    assert start == datetime.date(2025, 7, 1)
+    assert end == datetime.date(2026, 7, 1)
+
+
+def test_get_cycle_bounds_all_time_returns_none():
+    assert services.get_cycle_bounds("all") == (None, None)
+
+
+@pytest.mark.freeze_time("2026-10-15")
+def test_cycle_label_formats_as_a_year_range():
+    assert services.cycle_label("current") == "2026-2027"
+
+
+def test_cycle_label_all_time():
+    assert services.cycle_label("all") == "All time"
+
+
+@pytest.mark.freeze_time("2026-10-15")
+def test_chapter_compliance_stats_counts_and_rates():
+    chapter = ChapterFactory()
+    due = datetime.date(2026, 9, 1)
+    submitted_obligation = _open_obligation(
+        chapter, UserFactory(chapter=chapter), due, status="submitted", position_key="treasurer"
+    )
+    template = ReportTemplate.objects.create(position_type="CHAPTER_OFFICER", name="Report")
+    report = TransitionReport.objects.create(
+        obligation=submitted_obligation,
+        chapter=chapter,
+        position_type="CHAPTER_OFFICER",
+        position_key="treasurer",
+        author=submitted_obligation.officer,
+        template=template,
+        template_version=1,
+        status="submitted",
+    )
+    ReportAcknowledgement.objects.create(report=report, user=UserFactory(chapter=chapter))
+    _open_obligation(chapter, None, due, status="missed", position_key="scribe")
+    _open_obligation(chapter, UserFactory(chapter=chapter), due, status="open", position_key="vice regent")
+
+    stats = services.get_chapter_compliance_stats([chapter])
+
+    assert len(stats) == 1
+    row = stats[0]
+    assert row.chapter == chapter
+    assert row.total == 3
+    assert row.submitted == 1
+    assert row.missed == 1
+    assert row.acknowledged == 1
+    assert row.submission_rate == round(1 / 3 * 100, 1)
+    assert row.acknowledgment_rate == round(1 / 3 * 100, 1)
+
+
+def test_chapter_compliance_stats_zero_obligations_rate_is_none():
+    chapter = ChapterFactory()
+
+    stats = services.get_chapter_compliance_stats([chapter])
+
+    assert stats[0].total == 0
+    assert stats[0].submission_rate is None
+    assert stats[0].acknowledgment_rate is None
+
+
+@pytest.mark.freeze_time("2026-10-15")
+def test_chapter_compliance_stats_excludes_obligations_outside_the_current_cycle():
+    chapter = ChapterFactory()
+    _open_obligation(chapter, UserFactory(chapter=chapter), datetime.date(2026, 9, 1), status="submitted")
+    _open_obligation(chapter, UserFactory(chapter=chapter), datetime.date(2025, 9, 1), status="submitted")
+
+    stats = services.get_chapter_compliance_stats([chapter])
+
+    assert stats[0].total == 1
+
+
+@pytest.mark.freeze_time("2026-10-15")
+def test_chapter_compliance_stats_all_time_includes_every_cycle():
+    chapter = ChapterFactory()
+    _open_obligation(chapter, UserFactory(chapter=chapter), datetime.date(2026, 9, 1), status="submitted")
+    _open_obligation(chapter, UserFactory(chapter=chapter), datetime.date(2025, 9, 1), status="submitted")
+
+    stats = services.get_chapter_compliance_stats([chapter], cycle="all")
+
+    assert stats[0].total == 2
+
+
+@pytest.mark.freeze_time("2026-10-15")
+def test_chapter_compliance_stats_filters_by_position():
+    chapter = ChapterFactory()
+    _open_obligation(chapter, UserFactory(chapter=chapter), datetime.date(2026, 9, 1), position_key="treasurer")
+    _open_obligation(chapter, UserFactory(chapter=chapter), datetime.date(2026, 9, 1), position_key="scribe")
+
+    stats = services.get_chapter_compliance_stats([chapter], position_key="treasurer")
+
+    assert stats[0].total == 1
+
+
+def test_chapter_compliance_stats_query_count_does_not_grow_with_chapter_count():
+    from django.db import connection
+    from django.test.utils import CaptureQueriesContext
+
+    small_chapters = [ChapterFactory(name=name) for name in ["alpha", "beta"]]
+    with CaptureQueriesContext(connection) as small:
+        services.get_chapter_compliance_stats(small_chapters)
+
+    large_chapters = [ChapterFactory(name=name) for name in ["delta", "epsilon", "eta", "kappa", "mu", "omicron"]]
+    with CaptureQueriesContext(connection) as large:
+        services.get_chapter_compliance_stats(large_chapters)
+
+    assert len(large) == len(small)
+
+
+def test_can_view_chapter_dashboard_true_for_own_chapter_officer():
+    chapter = ChapterFactory()
+    officer = UserFactory(chapter=chapter)
+    _role_change(chapter, "treasurer", TODAY + datetime.timedelta(days=180), user=officer)
+
+    assert services.can_view_chapter_dashboard(officer, chapter) is True
+
+
+def test_can_view_chapter_dashboard_false_for_a_plain_member_of_the_chapter():
+    chapter = ChapterFactory()
+    member = UserFactory(chapter=chapter)
+
+    assert services.can_view_chapter_dashboard(member, chapter) is False
+
+
+def test_can_view_chapter_dashboard_false_for_an_officer_of_a_different_chapter():
+    chapter = ChapterFactory(name="alpha")
+    other_chapter = ChapterFactory(name="beta")
+    officer = UserFactory(chapter=other_chapter)
+    _role_change(other_chapter, "treasurer", TODAY + datetime.timedelta(days=180), user=officer)
+
+    assert services.can_view_chapter_dashboard(officer, chapter) is False
+
+
+def test_can_view_chapter_dashboard_true_for_the_chapters_rd():
+    chapter = ChapterFactory(name="alpha")
+    rd = UserFactory(chapter=ChapterFactory(name="beta"))
+    chapter.region.directors.add(rd)
+
+    assert services.can_view_chapter_dashboard(rd, chapter) is True
+
+
+def test_can_view_chapter_dashboard_true_for_admin():
+    chapter = ChapterFactory()
+    admin = UserFactory(is_superuser=True)
+
+    assert services.can_view_chapter_dashboard(admin, chapter) is True
+
+
+def test_can_view_compliance_rates_true_for_rd():
+    chapter = ChapterFactory(name="alpha")
+    rd = UserFactory(chapter=ChapterFactory(name="beta"))
+    chapter.region.directors.add(rd)
+
+    assert services.can_view_compliance_rates(rd) is True
+
+
+def test_can_view_compliance_rates_true_for_national_officer():
+    natoff = UserFactory()
+    natoff.groups.add(Group.objects.get_or_create(name="natoff")[0])
+
+    assert services.can_view_compliance_rates(natoff) is True
+
+
+def test_can_view_compliance_rates_false_for_a_plain_chapter_officer():
+    chapter = ChapterFactory()
+    officer = UserFactory(chapter=chapter)
+    officer.current_roles = ["regent"]
+    officer.save(update_fields=["current_roles"])
+
+    assert services.can_view_compliance_rates(officer) is False
+
+
+def test_get_compliance_rate_chapters_scopes_an_rd_to_their_own_region():
+    chapter = ChapterFactory(name="alpha")
+    other_chapter = ChapterFactory(name="beta")
+    rd = UserFactory(chapter=ChapterFactory(name="delta"))
+    chapter.region.directors.add(rd)
+
+    chapters = list(services.get_compliance_rate_chapters(rd))
+
+    assert chapters == [chapter]
+    assert other_chapter not in chapters
+
+
+def test_get_compliance_rate_chapters_national_sees_every_active_chapter():
+    chapter = ChapterFactory(name="alpha")
+    other_chapter = ChapterFactory(name="beta")
+    natoff = UserFactory()
+    natoff.groups.add(Group.objects.get_or_create(name="natoff")[0])
+
+    chapters = list(services.get_compliance_rate_chapters(natoff))
+
+    assert chapter in chapters
+    assert other_chapter in chapters
+
+
+def test_get_compliance_rate_chapters_national_can_narrow_to_one_region():
+    chapter = ChapterFactory(name="alpha")
+    other_chapter = ChapterFactory(name="beta")
+    natoff = UserFactory()
+    natoff.groups.add(Group.objects.get_or_create(name="natoff")[0])
+
+    chapters = list(services.get_compliance_rate_chapters(natoff, region=chapter.region))
+
+    assert chapters == [chapter]
+    assert other_chapter not in chapters
+
+
+def test_get_compliance_rate_chapters_excludes_inactive_chapters():
+    chapter = ChapterFactory(name="alpha")
+    inactive_chapter = ChapterFactory(name="beta", active=False)
+    natoff = UserFactory()
+    natoff.groups.add(Group.objects.get_or_create(name="natoff")[0])
+
+    chapters = list(services.get_compliance_rate_chapters(natoff))
+
+    assert chapter in chapters
+    assert inactive_chapter not in chapters

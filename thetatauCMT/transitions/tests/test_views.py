@@ -4,6 +4,7 @@ import pytest
 from django.urls import reverse
 
 from thetatauCMT.chapters.tests.factories import ChapterFactory
+from thetatauCMT.users.models import UserRoleChange
 from thetatauCMT.users.tests.factories import UserFactory
 
 from ..models import ReportAttachment, ReportObligation, ReportTemplate, TemplatePrompt, TransitionReport
@@ -563,3 +564,151 @@ def test_close_na_vacant_blocked_for_plain_member(auto_login_user):
     assert response.status_code == 302
     obligation.refresh_from_db()
     assert obligation.status == "open"
+
+
+# ---------------------------------------------------------------------------
+# ChapterComplianceView (TRWI-9)
+# ---------------------------------------------------------------------------
+def _role_change(chapter, role, end, start=None, user=None):
+    user = user or UserFactory(chapter=chapter)
+    start = start or end - datetime.timedelta(days=180)
+    return UserRoleChange.objects.create(user=user, role=role, start=start, end=end)
+
+
+def test_chapter_dashboard_requires_login(client):
+    chapter = ChapterFactory()
+    response = client.get(reverse("transitions:chapter-dashboard", args=[chapter.pk]))
+    assert response.status_code == 302
+
+
+def test_chapter_dashboard_denies_an_unrelated_member(auto_login_user):
+    client, member = auto_login_user()
+    other_chapter = ChapterFactory()
+
+    response = client.get(reverse("transitions:chapter-dashboard", args=[other_chapter.pk]))
+
+    assert response.status_code == 302
+
+
+def test_chapter_dashboard_shown_to_the_chapters_own_officer(auto_login_user):
+    client, officer = auto_login_user()
+    _role_change(officer.chapter, "treasurer", datetime.date.today() + datetime.timedelta(days=180), user=officer)
+    _obligation(officer.chapter, officer)
+
+    response = client.get(reverse("transitions:chapter-dashboard", args=[officer.chapter.pk]))
+
+    assert response.status_code == 200
+    assert "Treasurer" in response.content.decode()
+
+
+def test_chapter_dashboard_denied_for_a_plain_member_of_their_own_chapter(auto_login_user):
+    client, member = auto_login_user()
+
+    response = client.get(reverse("transitions:chapter-dashboard", args=[member.chapter.pk]))
+
+    assert response.status_code == 302
+
+
+def test_chapter_dashboard_highlights_missed_obligations(auto_login_user):
+    client, officer = auto_login_user()
+    _role_change(officer.chapter, "treasurer", datetime.date.today() + datetime.timedelta(days=180), user=officer)
+    ReportObligation.objects.create(
+        chapter=officer.chapter,
+        position_type="CHAPTER_OFFICER",
+        position_key="scribe",
+        officer=None,
+        term_start=datetime.date.today() - datetime.timedelta(days=200),
+        term_end=datetime.date.today() - datetime.timedelta(days=20),
+        due_date=datetime.date.today() - datetime.timedelta(days=5),
+        is_required=True,
+        status="missed",
+    )
+
+    response = client.get(reverse("transitions:chapter-dashboard", args=[officer.chapter.pk]))
+
+    assert "table-danger" in response.content.decode()
+
+
+def test_chapter_dashboard_shown_to_the_chapters_rd(auto_login_user):
+    client, rd = auto_login_user()
+    chapter = ChapterFactory()
+    chapter.region.directors.add(rd)
+
+    response = client.get(reverse("transitions:chapter-dashboard", args=[chapter.pk]))
+
+    assert response.status_code == 200
+
+
+def test_chapter_dashboard_shown_to_a_national_officer(auto_login_user):
+    from django.contrib.auth.models import Group
+
+    client, natoff = auto_login_user()
+    natoff.groups.add(Group.objects.get_or_create(name="natoff")[0])
+    chapter = ChapterFactory()
+
+    response = client.get(reverse("transitions:chapter-dashboard", args=[chapter.pk]))
+
+    assert response.status_code == 200
+
+
+# ---------------------------------------------------------------------------
+# ComplianceRatesView (TRWI-9)
+# ---------------------------------------------------------------------------
+def test_rates_dashboard_requires_login(client):
+    response = client.get(reverse("transitions:rates-dashboard"))
+    assert response.status_code == 302
+
+
+def test_rates_dashboard_denied_for_a_plain_officer(auto_login_user):
+    client, officer = auto_login_user()
+
+    response = client.get(reverse("transitions:rates-dashboard"))
+
+    assert response.status_code == 302
+
+
+def test_rates_dashboard_shown_to_rd_scoped_to_their_own_region(auto_login_user):
+    client, rd = auto_login_user()
+    chapter = ChapterFactory(name="alpha")
+    chapter.region.directors.add(rd)
+    _obligation(chapter, UserFactory(chapter=chapter))
+
+    response = client.get(reverse("transitions:rates-dashboard"))
+
+    assert response.status_code == 200
+    assert chapter.name in response.content.decode()
+
+
+def test_rates_dashboard_shown_to_national_officer(auto_login_user):
+    from django.contrib.auth.models import Group
+
+    client, natoff = auto_login_user()
+    natoff.groups.add(Group.objects.get_or_create(name="natoff")[0])
+    chapter = ChapterFactory()
+    _obligation(chapter, UserFactory(chapter=chapter))
+
+    response = client.get(reverse("transitions:rates-dashboard"))
+
+    assert response.status_code == 200
+    assert chapter.name in response.content.decode()
+
+
+def test_rates_dashboard_national_officer_can_narrow_by_region(auto_login_user):
+    from django.contrib.auth.models import Group
+
+    client, natoff = auto_login_user()
+    natoff.groups.add(Group.objects.get_or_create(name="natoff")[0])
+    chapter = ChapterFactory(name="alpha")
+    other_chapter = ChapterFactory(name="beta")
+    _obligation(chapter, UserFactory(chapter=chapter))
+    _obligation(other_chapter, UserFactory(chapter=other_chapter))
+
+    response = client.get(reverse("transitions:rates-dashboard"), {"region": other_chapter.region_id})
+
+    # django_tables2's default cell markup is "<td >value</td>" (note the
+    # space before ">"); the region FILTER DROPDOWN still legitimately lists
+    # both regions (so the viewer can switch), so assert on the table cell
+    # specifically, not whole-page text.
+    body = response.content.decode()
+    assert f"<td >{other_chapter.name}</td>" in body
+    assert f"<td >{chapter.name}</td>" not in body

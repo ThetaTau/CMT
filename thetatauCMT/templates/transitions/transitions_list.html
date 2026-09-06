@@ -9,6 +9,21 @@
     A Transition Report captures what worked, what didn't, and what your successor needs to know.
   </p>
 
+  {% if show_chapter_dashboard_link or show_rates_dashboard_link %}
+    <p>
+      {% if show_chapter_dashboard_link %}
+        <a class="btn btn-sm btn-outline-secondary" href="{% url 'transitions:chapter-dashboard' request.user.chapter.pk %}">
+          My chapter dashboard
+        </a>
+      {% endif %}
+      {% if show_rates_dashboard_link %}
+        <a class="btn btn-sm btn-outline-secondary" href="{% url 'transitions:rates-dashboard' %}">
+          Compliance rates
+        </a>
+      {% endif %}
+    </p>
+  {% endif %}
+
   {% if my_packets %}
     <h2>Handoff packets for your positions</h2>
     <p>Everything your predecessors wrote for the positions you currently hold.</p>

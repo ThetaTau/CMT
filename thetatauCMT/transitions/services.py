@@ -1,10 +1,11 @@
 import datetime
+from dataclasses import dataclass
 
 from django.db import transaction
-from django.db.models import Q
+from django.db.models import Count, Q
 from django.utils import timezone
 
-from core.models import CHAPTER_OFFICER_REQUIRED, semester_encompass_start_end_date
+from core.models import CHAPTER_OFFICER_REQUIRED, academic_encompass_start_end_date, semester_encompass_start_end_date
 from thetatauCMT.chapters.models import Chapter
 from thetatauCMT.configs.models import Config
 from thetatauCMT.users.models import User, UserRoleChange
@@ -751,3 +752,172 @@ def get_prior_answers(user, report):
         if answer is not None:
             prior_answers[prompt.prompt_key] = answer
     return prior_answers
+
+
+# ---------------------------------------------------------------------------
+# TRWI-9: compliance dashboards
+# ---------------------------------------------------------------------------
+# A "cycle" is one academic year (July-to-July, reusing
+# core.models.academic_encompass_start_end_date -- the same calendar TRWI-4's
+# seasonal reminder already anchors to). Kept to 3 fixed choices rather than a
+# dynamically-enumerated list of every historical cycle -- "current" satisfies
+# TRWI-9's own "current-cycle obligations" wording for the chapter view, and
+# switching to "previous" is how "trend across cycles" is surfaced for the
+# rates view, without needing an extra distinct-values query per request.
+CYCLE_CHOICES = [
+    ("current", "Current cycle"),
+    ("previous", "Previous cycle"),
+    ("all", "All time"),
+]
+DEFAULT_CYCLE = "current"
+
+
+def get_cycle_bounds(cycle=DEFAULT_CYCLE, today=None):
+    """``(start_date, end_date)`` for ``cycle``, or ``(None, None)`` for "all
+    time" -- both plain ``datetime.date`` (not datetime), ready to compare
+    against ``ReportObligation.due_date``.
+    """
+    today = today or timezone.now()
+    if cycle == "all":
+        return None, None
+    start, end = academic_encompass_start_end_date(today)
+    if cycle == "previous":
+        start, end = academic_encompass_start_end_date(start - datetime.timedelta(days=1))
+    return start.date(), end.date()
+
+
+def cycle_label(cycle=DEFAULT_CYCLE, today=None):
+    """Human-readable label for ``cycle``, e.g. "2025-2026" or "All time"."""
+    start, end = get_cycle_bounds(cycle, today=today)
+    if start is None:
+        return "All time"
+    return f"{start.year}-{end.year}"
+
+
+@dataclass
+class ChapterComplianceStats:
+    """One chapter's obligation counts for a cycle (TRWI-9) -- submission and
+    acknowledgment rate share the SAME denominator (``total`` obligations in
+    the cycle), so the two percentages are directly comparable side by side.
+    """
+
+    chapter: object
+    total: int
+    submitted: int
+    missed: int
+    acknowledged: int
+
+    @property
+    def submission_rate(self):
+        """Percent submitted, or ``None`` if there were no obligations at all."""
+        if not self.total:
+            return None
+        return round(self.submitted / self.total * 100, 1)
+
+    @property
+    def acknowledgment_rate(self):
+        """Percent whose report has at least one acknowledgment, or ``None``
+        if there were no obligations at all.
+        """
+        if not self.total:
+            return None
+        return round(self.acknowledged / self.total * 100, 1)
+
+
+def get_chapter_compliance_stats(chapters, cycle=DEFAULT_CYCLE, position_key=""):
+    """``[ChapterComplianceStats, ...]``, one row per chapter in ``chapters``
+    (TRWI-9 regional/national rates views).
+
+    Exactly 2 aggregate queries total, regardless of how many chapters are
+    passed in (``.values("chapter_id").annotate(...)``, not one query per
+    chapter) -- the acknowledgment count is deliberately a SEPARATE query from
+    the status counts: it joins through ``report__acknowledgements`` (a
+    fan-out-prone reverse relation, since one report can have multiple
+    acknowledgments), and Django's docs warn that combining a fan-out
+    aggregate with other aggregates in the SAME query silently inflates them
+    all unless every one of them is also ``distinct=True`` -- splitting into
+    two single-purpose queries sidesteps that correctness trap entirely
+    rather than trying to get multiple ``distinct=True`` aggregates exactly
+    right in one query.
+    """
+    chapters = list(chapters)
+    chapter_by_id = {chapter.pk: chapter for chapter in chapters}
+    obligations = ReportObligation.objects.filter(chapter_id__in=chapter_by_id)
+    start, end = get_cycle_bounds(cycle)
+    if start is not None:
+        obligations = obligations.filter(due_date__gte=start, due_date__lt=end)
+    if position_key:
+        obligations = obligations.filter(position_key=position_key)
+
+    counts_by_chapter = {
+        row["chapter_id"]: row
+        for row in obligations.values("chapter_id").annotate(
+            total=Count("id"),
+            submitted=Count("id", filter=Q(status=ReportObligation.Status.submitted.value[0])),
+            missed=Count("id", filter=Q(status=ReportObligation.Status.missed.value[0])),
+        )
+    }
+    acks_by_chapter = {
+        row["chapter_id"]: row["acknowledged"]
+        for row in obligations.values("chapter_id").annotate(
+            acknowledged=Count("id", filter=Q(report__acknowledgements__isnull=False), distinct=True)
+        )
+    }
+
+    return [
+        ChapterComplianceStats(
+            chapter=chapter,
+            total=counts_by_chapter.get(chapter.pk, {}).get("total", 0),
+            submitted=counts_by_chapter.get(chapter.pk, {}).get("submitted", 0),
+            missed=counts_by_chapter.get(chapter.pk, {}).get("missed", 0),
+            acknowledged=acks_by_chapter.get(chapter.pk, 0),
+        )
+        for chapter in chapters
+    ]
+
+
+def can_view_chapter_dashboard(user, chapter):
+    """Whether ``user`` may view ``chapter``'s compliance dashboard (TRWI-9).
+
+    National Officer/Admin: any chapter. RD: any chapter in their own
+    region(s) (``user.director_regions``, TRWI-6's existing RD pattern).
+    Otherwise: only their OWN chapter, and only if they're an officer of
+    SOME kind (``is_officer_group``) -- matches TRWI-9's own "Chapter view
+    (Regent/officers)" scoping; a plain member never sees this page, even
+    for their own chapter.
+    """
+    if not getattr(user, "is_authenticated", False):
+        return False
+    if user.is_admin or user.is_national_officer_group:
+        return True
+    if user.director_regions.filter(pk=chapter.region_id).exists():
+        return True
+    return user.chapter_id == chapter.pk and user.is_officer_group
+
+
+def can_view_compliance_rates(user):
+    """Whether ``user`` may view the regional/national rates dashboard
+    (TRWI-9) -- RD/CCD (CCD is a plain national officer, decision 2026-09-04)
+    or National Officer/Admin. Deliberately excludes plain chapter officers:
+    a single-chapter rate is less useful to them than the Chapter view's own
+    per-obligation detail.
+    """
+    if not getattr(user, "is_authenticated", False):
+        return False
+    return user.is_admin or user.is_national_officer_group or user.director_regions.exists()
+
+
+def get_compliance_rate_chapters(user, region=None):
+    """Active chapters ``user``'s rates dashboard should cover (TRWI-9).
+
+    National Officer/Admin: every active chapter, optionally narrowed to one
+    ``region``. RD: only their own ``director_regions``' chapters -- the
+    ``region`` param is ignored for an RD, since their own scope is already
+    narrower than any single region they'd pick.
+    """
+    chapters = Chapter.objects.filter(active=True)
+    if user.is_admin or user.is_national_officer_group:
+        if region is not None:
+            chapters = chapters.filter(region=region)
+        return chapters.select_related("region").order_by("name")
+    return chapters.filter(region__in=user.director_regions.all()).select_related("region").order_by("name")

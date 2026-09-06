@@ -1,5 +1,8 @@
 """TRWI-5: the compose form -- one dynamic field per resolved template prompt."""
 
+from crispy_forms.bootstrap import FormActions, InlineField, StrictButton
+from crispy_forms.helper import FormHelper
+from crispy_forms.layout import Fieldset, Layout, Row, Submit
 from django import forms
 
 from core.forms import DatePicker
@@ -83,3 +86,85 @@ class ReportAttachmentForm(forms.ModelForm):
     class Meta:
         model = ReportAttachment
         fields = ["file", "description"]
+
+
+class ComplianceFilterFormHelper(FormHelper):
+    """Crispy helper for the chapter dashboard's obligation filter (TRWI-9).
+
+    ``form_tag = False`` because ``_partials/collapsible_filter.html``
+    supplies its own ``<form method="get">`` wrapper -- mirrors
+    ``forms.forms.RoleChangeListFormHelper``'s exact style.
+    """
+
+    form_method = "GET"
+    form_id = "compliance-filter-form"
+    form_class = "form-inline"
+    field_template = "bootstrap5/layout/inline_field.html"
+    form_show_errors = True
+    help_text_inline = False
+    html5_required = True
+    form_tag = False
+
+    def __init__(self, form=None):
+        self.layout = Layout(
+            Fieldset(
+                '<i class="fas fa-search"></i> Filter',
+                Row(
+                    InlineField("position_key"),
+                    InlineField("status"),
+                    InlineField("cycle"),
+                    FormActions(
+                        StrictButton(
+                            '<i class="fa fa-search"></i> Filter',
+                            type="submit",
+                            css_class="btn-primary",
+                        ),
+                        Submit("cancel", "Clear", css_class="btn-primary"),
+                    ),
+                ),
+            ),
+        )
+        # NOT super().__init__(form=form): FormHelper.__init__ overwrites
+        # self.layout with its own build_default_layout(form) whenever
+        # form is not None -- calling it with no args keeps our own custom
+        # Layout above intact while still initializing self.attrs/inputs.
+        super().__init__()
+
+
+class ComplianceRateFilterFormHelper(FormHelper):
+    """Crispy helper for the regional/national rates dashboard filter
+    (TRWI-9) -- no ``status`` field (there's no single obligation to show a
+    status for; each row is a whole chapter's aggregate).
+    """
+
+    form_method = "GET"
+    form_id = "compliance-rate-filter-form"
+    form_class = "form-inline"
+    field_template = "bootstrap5/layout/inline_field.html"
+    form_show_errors = True
+    help_text_inline = False
+    html5_required = True
+    form_tag = False
+
+    def __init__(self, form=None):
+        fields = [InlineField("position_key")]
+        if form is not None and "region" in form.fields:
+            fields.append(InlineField("region"))
+        fields.append(InlineField("cycle"))
+        self.layout = Layout(
+            Fieldset(
+                '<i class="fas fa-search"></i> Filter',
+                Row(
+                    *fields,
+                    FormActions(
+                        StrictButton(
+                            '<i class="fa fa-search"></i> Filter',
+                            type="submit",
+                            css_class="btn-primary",
+                        ),
+                        Submit("cancel", "Clear", css_class="btn-primary"),
+                    ),
+                ),
+            ),
+        )
+        super().__init__()

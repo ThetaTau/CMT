@@ -3,15 +3,18 @@ matching notes/objectives -- no viewflow (this feature has no approval step).
 """
 
 from django.contrib import messages
+from django.db.models import Exists, OuterRef
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.generic import TemplateView, View
 
-from core.views import LoginRequiredMixin
+from core.views import LoginRequiredMixin, PagedFilteredTableView, RequestConfig
 from thetatauCMT.chapters.models import Chapter
 
 from . import services
-from .forms import ComposeReportForm, ReportAttachmentForm
-from .models import POSITION_KEY_TO_TYPE, ReportAttachment, ReportObligation, TransitionReport
+from .filters import ComplianceRateFilter, NationalComplianceRateFilter, ObligationComplianceFilter
+from .forms import ComplianceFilterFormHelper, ComplianceRateFilterFormHelper, ComposeReportForm, ReportAttachmentForm
+from .models import POSITION_KEY_TO_TYPE, ReportAcknowledgement, ReportAttachment, ReportObligation, TransitionReport
+from .tables import ChapterRateTable, ObligationComplianceTable
 
 
 class TransitionsListView(LoginRequiredMixin, TemplateView):
@@ -57,6 +60,8 @@ class TransitionsListView(LoginRequiredMixin, TemplateView):
             {"position_key": position_key, "chapter": user.chapter}
             for position_key in sorted(set(user.current_roles or []) & set(POSITION_KEY_TO_TYPE))
         ]
+        context["show_chapter_dashboard_link"] = bool(user.chapter_id) and user.is_officer_group
+        context["show_rates_dashboard_link"] = services.can_view_compliance_rates(user)
         return context
 
 
@@ -200,3 +205,99 @@ class AcknowledgeReportView(LoginRequiredMixin, View):
             services.acknowledge_report(report, request.user)
             messages.success(request, "Marked as read.")
         return redirect("transitions:packet", chapter_pk=report.chapter_id, position_key=report.position_key)
+
+
+def _default_cycle(request):
+    """``request.GET`` with ``cycle=current`` injected when absent (TRWI-9) --
+    mirrors ``forms.views.DefaultCurrentPeriodMixin``'s exact pattern so an
+    unfiltered initial load defaults to the current cycle.
+    """
+    request_get = request.GET.copy()
+    if not request_get.get("cancel") and "cycle" not in request_get:
+        request_get["cycle"] = services.DEFAULT_CYCLE
+    return request_get
+
+
+class ChapterComplianceView(LoginRequiredMixin, PagedFilteredTableView):
+    """Per-obligation compliance dashboard for one chapter (TRWI-9) --
+    "Chapter view (Regent/officers)": every position's obligations, not just
+    the viewer's own, with status/due date/acknowledgment for the cycle.
+
+    Access: ``services.can_view_chapter_dashboard`` (own chapter's officers,
+    the chapter's RD, or any National Officer/Admin).
+    """
+
+    template_name = "transitions/chapter_dashboard.html"
+    table_class = ObligationComplianceTable
+    filter_class = ObligationComplianceFilter
+    formhelper_class = ComplianceFilterFormHelper
+
+    def dispatch(self, request, *args, **kwargs):
+        self.chapter = get_object_or_404(Chapter, pk=kwargs["chapter_pk"])
+        if not services.can_view_chapter_dashboard(request.user, self.chapter):
+            messages.error(request, "You are not able to view this chapter's dashboard.")
+            return redirect("transitions:list")
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_queryset(self, **kwargs):
+        base_qs = (
+            ReportObligation.objects.filter(chapter=self.chapter)
+            .select_related("officer", "report")
+            .annotate(acknowledged=Exists(ReportAcknowledgement.objects.filter(report__obligation_id=OuterRef("pk"))))
+        )
+        return super().get_queryset(other_qs=base_qs, request_get=_default_cycle(self.request), **kwargs)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["chapter"] = self.chapter
+        context["cycle_label"] = services.cycle_label(self.request.GET.get("cycle", services.DEFAULT_CYCLE))
+        return context
+
+
+class ComplianceRatesView(LoginRequiredMixin, TemplateView):
+    """Submission/acknowledgment rates by chapter (TRWI-9 regional/national
+    view) -- one row per chapter, filterable by position/cycle (and, for
+    National Officers/Admins only, region). RD/CCD see only their own
+    ``director_regions``' chapters; National Officer/Admin see every active
+    chapter.
+
+    Not a ``PagedFilteredTableView``: its rows are post-aggregation
+    ``services.ChapterComplianceStats`` dataclasses, not a plain queryset,
+    so the filter is applied to the underlying obligations BEFORE
+    ``services.get_chapter_compliance_stats`` aggregates them, then a
+    ``django_tables2`` table wraps the resulting list directly.
+    """
+
+    template_name = "transitions/rates_dashboard.html"
+
+    def dispatch(self, request, *args, **kwargs):
+        if not services.can_view_compliance_rates(request.user):
+            messages.error(request, "You are not able to view the compliance rates dashboard.")
+            return redirect("transitions:list")
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        user = self.request.user
+        is_national = user.is_admin or user.is_national_officer_group
+        filter_class = NationalComplianceRateFilter if is_national else ComplianceRateFilter
+
+        filterset = filter_class(_default_cycle(self.request), queryset=ReportObligation.objects.none())
+        filterset.request = self.request
+        filterset.form.helper = ComplianceRateFilterFormHelper(form=filterset.form)
+        filterset.form.is_valid()
+
+        position_key = filterset.form.cleaned_data.get("position_key") or ""
+        region = filterset.form.cleaned_data.get("region") if is_national else None
+        cycle = filterset.form.cleaned_data.get("cycle") or services.DEFAULT_CYCLE
+
+        chapters = services.get_compliance_rate_chapters(user, region=region)
+        stats = services.get_chapter_compliance_stats(chapters, cycle=cycle, position_key=position_key)
+        table = ChapterRateTable(data=stats)
+        RequestConfig(self.request, paginate={"per_page": 25}).configure(table)
+
+        context["filter"] = filterset
+        context["table"] = table
+        context["cycle_label"] = services.cycle_label(cycle)
+        context["is_national"] = is_national
+        return context
