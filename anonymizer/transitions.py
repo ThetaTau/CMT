@@ -7,6 +7,7 @@ from thetatauCMT.transitions.models import (
     ReportAnswer,
     ReportAttachment,
     ReportObligation,
+    ReportTag,
     ReportTemplate,
     TemplatePrompt,
     TransitionReport,
@@ -23,7 +24,9 @@ from thetatauCMT.transitions.models import (
 # are pure bookkeeping too -- a read-receipt FK+timestamp and a notification
 # dedupe FK+timestamp, respectively -- same category as guides.
 # UserAcknowledgement, which this app's own Codebase Review Notes already
-# treated as skip-safe.
+# treated as skip-safe. ReportTag (TRWI-11) is a controlled-vocabulary
+# category (tag/source choice fields only, no free text and no user FK at
+# all), same category as PositionOverride.
 register_skip(
     [
         PositionOverride,
@@ -33,6 +36,7 @@ register_skip(
         TransitionReport,
         ReportAcknowledgement,
         HandoffNotice,
+        ReportTag,
     ]
 )
 

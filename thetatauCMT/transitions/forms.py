@@ -7,7 +7,7 @@ from django import forms
 
 from core.forms import DatePicker
 
-from .models import FieldType, ReportAttachment
+from .models import TAG_CHOICES, FieldType, ReportAttachment, ReportTag
 
 
 def _field_name(prompt):
@@ -15,12 +15,21 @@ def _field_name(prompt):
 
 
 class ComposeReportForm(forms.Form):
-    """Renders one field per ``TemplatePrompt`` on ``template``.
+    """Renders one field per ``TemplatePrompt`` on ``template``, plus a fixed
+    ``manual_tags`` field (TRWI-11) -- the author's own tag additions on top
+    of whatever ``services.derive_prompt_tags`` derives automatically from
+    their answers on submit. ``manual_tags`` can never collide with a
+    prompt's own generated field name (always ``prompt_<prompt_key>``, never
+    a bare ``prompt_key`` value on its own).
 
     Required/min/max-chars are enforced only when ``submitting=True`` -- a
     draft save must accept an incomplete form (TRWI-5: "supports save as
     draft and submit").
     """
+
+    manual_tags = forms.MultipleChoiceField(
+        required=False, choices=TAG_CHOICES, label="Additional tags", widget=forms.CheckboxSelectMultiple
+    )
 
     def __init__(self, *args, template, submitting=False, **kwargs):
         self.template = template
@@ -28,6 +37,11 @@ class ComposeReportForm(forms.Form):
         super().__init__(*args, **kwargs)
         for prompt in template.prompts.all():
             self.fields[_field_name(prompt)] = self._build_field(prompt)
+        # Re-insert at the end: the loop above just added the prompt fields
+        # to self.fields, and dict insertion order drives render order, so
+        # without this manual_tags would render BEFORE the prompts it's
+        # declared before them at the class level.
+        self.fields["manual_tags"] = self.fields.pop("manual_tags")
 
     @staticmethod
     def _build_field(prompt):
@@ -44,8 +58,16 @@ class ComposeReportForm(forms.Form):
 
     @classmethod
     def initial_from_report(cls, report):
-        """``initial=`` data matching existing answers by ``prompt_key``."""
-        return {f"prompt_{answer.prompt_key}": answer.value for answer in report.answers.all()}
+        """``initial=`` data matching existing answers by ``prompt_key``, plus
+        the report's existing manual tags (TRWI-11) -- prompt-derived tags are
+        never shown/edited here; they're read-only, re-derived on submit.
+        """
+        initial = {f"prompt_{answer.prompt_key}": answer.value for answer in report.answers.all()}
+        if report.pk:
+            initial["manual_tags"] = list(
+                report.tags.filter(source=ReportTag.Source.manual.value[0]).values_list("tag", flat=True)
+            )
+        return initial
 
     def fields_with_prior_answers(self, prior_answers):
         """``[(BoundField, ReportAnswer_or_None), ...]`` in prompt order
@@ -80,6 +102,10 @@ class ComposeReportForm(forms.Form):
             (prompt, (self.cleaned_data.get(_field_name(prompt)) or "").strip())
             for prompt in self.template.prompts.all()
         ]
+
+    def manual_tags_data(self):
+        """``[tag, ...]`` ready for ``services.set_manual_tags`` (TRWI-11)."""
+        return self.cleaned_data.get("manual_tags") or []
 
 
 class ReportAttachmentForm(forms.ModelForm):
@@ -156,6 +182,82 @@ class ComplianceRateFilterFormHelper(FormHelper):
                 '<i class="fas fa-search"></i> Filter',
                 Row(
                     *fields,
+                    FormActions(
+                        StrictButton(
+                            '<i class="fa fa-search"></i> Filter',
+                            type="submit",
+                            css_class="btn-primary",
+                        ),
+                        Submit("cancel", "Clear", css_class="btn-primary"),
+                    ),
+                ),
+            ),
+        )
+        super().__init__()
+
+
+class SearchFilterFormHelper(FormHelper):
+    """Crispy helper for the search view's filter (TRWI-11) -- ``chapter``/
+    ``region`` only appear for viewers whose search spans more than their
+    own chapter (see ``filters.NationalSearchFilter``).
+    """
+
+    form_method = "GET"
+    form_id = "search-filter-form"
+    form_class = "form-inline"
+    field_template = "bootstrap5/layout/inline_field.html"
+    form_show_errors = True
+    help_text_inline = False
+    html5_required = True
+    form_tag = False
+
+    def __init__(self, form=None):
+        fields = [InlineField("q"), InlineField("position_key")]
+        if form is not None and "chapter" in form.fields:
+            fields.append(InlineField("chapter"))
+        if form is not None and "region" in form.fields:
+            fields.append(InlineField("region"))
+        fields.append(InlineField("tag"))
+        fields.append(InlineField("cycle"))
+        self.layout = Layout(
+            Fieldset(
+                '<i class="fas fa-search"></i> Filter',
+                Row(
+                    *fields,
+                    FormActions(
+                        StrictButton(
+                            '<i class="fa fa-search"></i> Filter',
+                            type="submit",
+                            css_class="btn-primary",
+                        ),
+                        Submit("cancel", "Clear", css_class="btn-primary"),
+                    ),
+                ),
+            ),
+        )
+        super().__init__()
+
+
+class TrendFilterFormHelper(FormHelper):
+    """Crispy helper for the national trend view's filter (TRWI-11)."""
+
+    form_method = "GET"
+    form_id = "trend-filter-form"
+    form_class = "form-inline"
+    field_template = "bootstrap5/layout/inline_field.html"
+    form_show_errors = True
+    help_text_inline = False
+    html5_required = True
+    form_tag = False
+
+    def __init__(self, form=None):
+        self.layout = Layout(
+            Fieldset(
+                '<i class="fas fa-search"></i> Filter',
+                Row(
+                    InlineField("position_key"),
+                    InlineField("region"),
+                    InlineField("cycle"),
                     FormActions(
                         StrictButton(
                             '<i class="fa fa-search"></i> Filter',

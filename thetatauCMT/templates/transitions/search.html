@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% load render_table from django_tables2 %}
+{% load filter_tags %}
+
+{% block title %}Search Transition Reports{% endblock %}
+
+{% block content %}
+  <h1>Search transition reports</h1>
+  <p>{{ cycle_label }}</p>
+
+  {% collapsible_filter filter label="Filter" collapse_id="searchFilter" reset_url="?cancel=1" %}
+  <div class="table-responsive">
+    {% render_table table %}
+  </div>
+{% endblock %}

@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from django.db import transaction
 from django.db.models import Count, Q
 from django.utils import timezone
+from watson import search as watson
 
 from core.models import CHAPTER_OFFICER_REQUIRED, academic_encompass_start_end_date, semester_encompass_start_end_date
 from thetatauCMT.chapters.models import Chapter
@@ -12,12 +13,14 @@ from thetatauCMT.users.models import User, UserRoleChange
 
 from .models import (
     POSITION_KEY_TO_TYPE,
+    TAG_CHOICES,
     HandoffNotice,
     PositionOverride,
     PositionType,
     ReportAcknowledgement,
     ReportAnswer,
     ReportObligation,
+    ReportTag,
     ReportTemplate,
     TransitionReport,
     position_type_for_key,
@@ -519,6 +522,7 @@ def submit_report(report, answers_data):
     report.status = TransitionReport.Status.submitted.value[0]
     report.submitted_at = timezone.now()
     report.save()
+    derive_prompt_tags(report)
     report.obligation.status = ReportObligation.Status.submitted.value[0]
     report.obligation.save(update_fields=["status"])
     return report
@@ -921,3 +925,137 @@ def get_compliance_rate_chapters(user, region=None):
             chapters = chapters.filter(region=region)
         return chapters.select_related("region").order_by("name")
     return chapters.filter(region__in=user.director_regions.all()).select_related("region").order_by("name")
+
+
+# ---------------------------------------------------------------------------
+# TRWI-11: search & national trend view
+# ---------------------------------------------------------------------------
+def derive_prompt_tags(report):
+    """(Re-)derive ``report``'s ``source="prompt"`` tags from
+    ``TemplatePrompt.tag`` (TRWI-11): one tag per DISTINCT non-blank
+    ``TemplatePrompt.tag`` among the prompts ``report`` actually answered
+    (non-blank ``ReportAnswer.value``) on its own current ``template``.
+
+    Called from ``submit_report`` -- always fully re-derived (existing
+    ``source="prompt"`` rows deleted first) so a later re-submit with
+    different answers never leaves a stale tag behind. Never touches
+    ``source="manual"`` rows -- ``set_manual_tags`` owns those exclusively.
+    """
+    report.tags.filter(source=ReportTag.Source.prompt.value[0]).delete()
+    if report.template is None:
+        return
+    answered_keys = set(report.answers.exclude(value="").values_list("prompt_key", flat=True))
+    tag_by_prompt_key = {prompt.prompt_key: prompt.tag for prompt in report.template.prompts.all() if prompt.tag}
+    tags = {tag_by_prompt_key[key] for key in answered_keys if key in tag_by_prompt_key}
+    for tag in tags:
+        ReportTag.objects.get_or_create(report=report, tag=tag, defaults={"source": ReportTag.Source.prompt.value[0]})
+
+
+def set_manual_tags(report, tags):
+    """Replace ``report``'s ``source="manual"`` tags with ``tags`` (an
+    iterable of ``TAG_CHOICES`` values). Leaves any ``source="prompt"`` rows
+    untouched -- the author's own additions are independent of whatever
+    ``derive_prompt_tags`` derives from their answers.
+    """
+    report.tags.filter(source=ReportTag.Source.manual.value[0]).delete()
+    for tag in tags:
+        ReportTag.objects.get_or_create(report=report, tag=tag, defaults={"source": ReportTag.Source.manual.value[0]})
+
+
+def search_reports(user, query="", position_key="", chapter=None, region=None, tag="", cycle=DEFAULT_CYCLE):
+    """Full-text + filtered search across every ``TransitionReport`` ``user``
+    may read (TRWI-11).
+
+    ``get_readable_reports`` (TRWI-6) is the base queryset -- search can
+    never surface a report the viewer couldn't otherwise open; access rules
+    and search share the one enforcement point, exactly like every other
+    read surface. Restricted to ``submitted`` reports regardless of author --
+    a draft-in-progress isn't "institutional knowledge" yet, and the author
+    is already looking at it in the compose view (passing ``status=`` as an
+    extra filter narrows the author's own OR-branch down too, not just the
+    successor/Regent/RD/national branch that's already submitted-only).
+
+    ``query`` (if given) narrows by full-text relevance via ``watson.filter``
+    against the ``TransitionReport`` watson index (registered in
+    ``TransitionsConfig.ready``, over the report's own answer text plus
+    chapter/author identity) -- ranked, and applied ON TOP OF the
+    already-access-scoped queryset rather than a bare global search. An
+    empty ``query`` just returns the filtered-but-unranked queryset (e.g.
+    "every Regent report tagged 'risk' this cycle", no keywords needed).
+    """
+    queryset = get_readable_reports(user, status=TransitionReport.Status.submitted.value[0]).prefetch_related("tags")
+    if position_key:
+        queryset = queryset.filter(position_key=position_key)
+    if chapter is not None:
+        queryset = queryset.filter(chapter=chapter)
+    if region is not None:
+        queryset = queryset.filter(chapter__region=region)
+    if tag:
+        queryset = queryset.filter(tags__tag=tag)
+    start, end = get_cycle_bounds(cycle)
+    if start is not None:
+        queryset = queryset.filter(submitted_at__date__gte=start, submitted_at__date__lt=end)
+    if query:
+        queryset = watson.filter(queryset, query)
+    return queryset
+
+
+def get_tag_frequency(cycle=DEFAULT_CYCLE, position_key="", region=None):
+    """``[{"tag", "tag_label", "count"}, ...]``, most common first, across
+    every submitted report matching the given filters (TRWI-11 national
+    trend view) -- deliberately NOT scoped through ``get_readable_reports``:
+    this is a National Officer/Admin-only surface that already sees every
+    submitted report, gated at the view level by ``can_view_trends``, not
+    filtered per-viewer here.
+
+    The "failure" tag's own count/rank here IS the "most common failure
+    themes" signal (TRWI-11's acceptance criterion) -- v1 is a deterministic
+    controlled-vocabulary count, not free-text theme extraction/summarization.
+    """
+    reports = TransitionReport.objects.filter(status=TransitionReport.Status.submitted.value[0])
+    start, end = get_cycle_bounds(cycle)
+    if start is not None:
+        reports = reports.filter(submitted_at__date__gte=start, submitted_at__date__lt=end)
+    if position_key:
+        reports = reports.filter(position_key=position_key)
+    if region is not None:
+        reports = reports.filter(chapter__region=region)
+
+    tag_labels = dict(TAG_CHOICES)
+    counts = (
+        ReportTag.objects.filter(report__in=reports).values("tag").annotate(count=Count("id")).order_by("-count", "tag")
+    )
+    return [
+        {"tag": row["tag"], "tag_label": tag_labels.get(row["tag"], row["tag"]), "count": row["count"]}
+        for row in counts
+    ]
+
+
+def get_chapters_with_no_submissions(cycle=DEFAULT_CYCLE, position_key="", region=None):
+    """Active chapters with ZERO submitted ``TransitionReport``s matching the
+    given filters (TRWI-11 national trend view) -- the flip side of
+    ``get_tag_frequency``: which chapters have nothing to mine yet.
+    """
+    submitted = TransitionReport.objects.filter(status=TransitionReport.Status.submitted.value[0])
+    start, end = get_cycle_bounds(cycle)
+    if start is not None:
+        submitted = submitted.filter(submitted_at__date__gte=start, submitted_at__date__lt=end)
+    if position_key:
+        submitted = submitted.filter(position_key=position_key)
+    chapters_with_reports = submitted.values_list("chapter_id", flat=True)
+    chapters = Chapter.objects.filter(active=True).exclude(pk__in=chapters_with_reports)
+    if region is not None:
+        chapters = chapters.filter(region=region)
+    return chapters.select_related("region").order_by("name")
+
+
+def can_view_trends(user):
+    """Whether ``user`` may view the national tag-trend view (TRWI-11) --
+    National Officer/Admin only. Deliberately narrower than
+    ``can_view_compliance_rates`` (no RD branch): trends mine free-text
+    content across ALL chapters/positions at once, a more sensitive surface
+    than a single region's numeric submission rate.
+    """
+    if not getattr(user, "is_authenticated", False):
+        return False
+    return user.is_admin or user.is_national_officer_group

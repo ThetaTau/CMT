@@ -19,6 +19,7 @@ from ..models import (
     ReportAnswer,
     ReportAttachment,
     ReportObligation,
+    ReportTag,
     ReportTemplate,
     TemplatePrompt,
     TransitionReport,
@@ -940,6 +941,12 @@ def _report(chapter, position_key, author, status="submitted", due_date=None):
         template=template,
         template_version=1,
         status=status,
+        # Matches submit_report's own invariant: a "submitted" report always
+        # has submitted_at set. Needed so TRWI-11's cycle-bounded queries
+        # (which filter on submitted_at) see these fixtures as "current
+        # cycle" by default -- individual tests still override this
+        # explicitly when they need a specific submission date.
+        submitted_at=timezone.now() if status == TransitionReport.Status.submitted.value[0] else None,
     )
 
 
@@ -1285,8 +1292,10 @@ def test_send_handoff_notices_dry_run_sends_and_writes_nothing():
 # ---------------------------------------------------------------------------
 # get_prior_answers (TRWI-8)
 # ---------------------------------------------------------------------------
-def _add_prompt(template, prompt_key, label):
-    TemplatePrompt.objects.get_or_create(template=template, prompt_key=prompt_key, defaults={"label": label})
+def _add_prompt(template, prompt_key, label, tag=""):
+    TemplatePrompt.objects.get_or_create(
+        template=template, prompt_key=prompt_key, defaults={"label": label, "tag": tag}
+    )
 
 
 def test_get_prior_answers_matches_by_prompt_key():
@@ -1695,3 +1704,385 @@ def test_no_transitions_model_has_a_retention_or_pinning_field():
     for model in models:
         field_names = {field.name for field in model._meta.get_fields()}
         assert field_names.isdisjoint(forbidden), f"{model.__name__} has a forbidden field: {field_names & forbidden}"
+
+
+# ---------------------------------------------------------------------------
+# TRWI-11: tagging (derive_prompt_tags / set_manual_tags)
+# ---------------------------------------------------------------------------
+def test_derive_prompt_tags_creates_a_tag_for_each_answered_prompts_tag():
+    chapter = ChapterFactory()
+    report = _report(chapter, "treasurer", UserFactory(chapter=chapter), status="draft")
+    _add_prompt(report.template, "successes", "Successes?", tag="success")
+    _add_prompt(report.template, "pitfalls", "Pitfalls?", tag="failure")
+    report.answers.create(prompt_key="successes", prompt_label_snapshot="Successes?", value="did great")
+    # "pitfalls" left unanswered entirely -- no ReportAnswer row at all.
+
+    services.derive_prompt_tags(report)
+
+    assert set(report.tags.values_list("tag", flat=True)) == {"success"}
+
+
+def test_derive_prompt_tags_ignores_a_blank_answer():
+    chapter = ChapterFactory()
+    report = _report(chapter, "treasurer", UserFactory(chapter=chapter), status="draft")
+    _add_prompt(report.template, "pitfalls", "Pitfalls?", tag="failure")
+    report.answers.create(prompt_key="pitfalls", prompt_label_snapshot="Pitfalls?", value="")
+
+    services.derive_prompt_tags(report)
+
+    assert not report.tags.exists()
+
+
+def test_derive_prompt_tags_ignores_prompts_without_a_tag():
+    chapter = ChapterFactory()
+    report = _report(chapter, "treasurer", UserFactory(chapter=chapter), status="draft")
+    _add_prompt(report.template, "successes", "Successes?")  # tag left blank
+    report.answers.create(prompt_key="successes", prompt_label_snapshot="Successes?", value="did great")
+
+    services.derive_prompt_tags(report)
+
+    assert not report.tags.exists()
+
+
+def test_derive_prompt_tags_dedupes_multiple_prompts_sharing_a_tag():
+    chapter = ChapterFactory()
+    report = _report(chapter, "treasurer", UserFactory(chapter=chapter), status="draft")
+    _add_prompt(report.template, "successes", "Successes?", tag="success")
+    _add_prompt(report.template, "wins", "Wins?", tag="success")
+    report.answers.create(prompt_key="successes", prompt_label_snapshot="Successes?", value="a")
+    report.answers.create(prompt_key="wins", prompt_label_snapshot="Wins?", value="b")
+
+    services.derive_prompt_tags(report)
+
+    assert report.tags.filter(tag="success").count() == 1
+
+
+def test_derive_prompt_tags_is_fully_re_derived_on_each_call():
+    chapter = ChapterFactory()
+    report = _report(chapter, "treasurer", UserFactory(chapter=chapter), status="draft")
+    _add_prompt(report.template, "successes", "Successes?", tag="success")
+    _add_prompt(report.template, "pitfalls", "Pitfalls?", tag="failure")
+    report.answers.create(prompt_key="successes", prompt_label_snapshot="Successes?", value="did great")
+    services.derive_prompt_tags(report)
+    assert set(report.tags.values_list("tag", flat=True)) == {"success"}
+
+    # A later re-submit with a DIFFERENT answer profile -- the stale
+    # "success" tag must be gone, not just the new "failure" tag added.
+    report.answers.filter(prompt_key="successes").update(value="")
+    report.answers.create(prompt_key="pitfalls", prompt_label_snapshot="Pitfalls?", value="missed a deadline")
+    services.derive_prompt_tags(report)
+
+    assert set(report.tags.filter(source=ReportTag.Source.prompt.value[0]).values_list("tag", flat=True)) == {"failure"}
+
+
+def test_derive_prompt_tags_never_touches_manual_tags():
+    chapter = ChapterFactory()
+    report = _report(chapter, "treasurer", UserFactory(chapter=chapter), status="draft")
+    services.set_manual_tags(report, ["risk"])
+    _add_prompt(report.template, "successes", "Successes?", tag="success")
+    report.answers.create(prompt_key="successes", prompt_label_snapshot="Successes?", value="did great")
+
+    services.derive_prompt_tags(report)
+
+    assert set(report.tags.values_list("tag", "source")) == {("risk", "manual"), ("success", "prompt")}
+
+
+def test_submit_report_derives_prompt_tags():
+    chapter = ChapterFactory()
+    report = _report(chapter, "treasurer", UserFactory(chapter=chapter), status="draft")
+    _add_prompt(report.template, "successes", "Successes?", tag="success")
+    prompt = report.template.prompts.get(prompt_key="successes")
+
+    services.submit_report(report, [(prompt, "did great")])
+
+    assert report.tags.filter(source=ReportTag.Source.prompt.value[0], tag="success").exists()
+
+
+def test_set_manual_tags_replaces_existing_manual_tags_only():
+    chapter = ChapterFactory()
+    report = _report(chapter, "treasurer", UserFactory(chapter=chapter), status="draft")
+    ReportTag.objects.create(report=report, tag="success", source=ReportTag.Source.prompt.value[0])
+    services.set_manual_tags(report, ["risk", "advice"])
+
+    services.set_manual_tags(report, ["risk"])
+
+    assert set(report.tags.values_list("tag", "source")) == {
+        ("success", ReportTag.Source.prompt.value[0]),
+        ("risk", ReportTag.Source.manual.value[0]),
+    }
+
+
+def test_set_manual_tags_with_empty_list_clears_manual_tags():
+    chapter = ChapterFactory()
+    report = _report(chapter, "treasurer", UserFactory(chapter=chapter), status="draft")
+    services.set_manual_tags(report, ["risk"])
+
+    services.set_manual_tags(report, [])
+
+    assert not report.tags.exists()
+
+
+# ---------------------------------------------------------------------------
+# search_reports (TRWI-11)
+# ---------------------------------------------------------------------------
+def test_search_reports_only_returns_what_get_readable_reports_allows():
+    chapter = ChapterFactory(name="alpha")
+    other_chapter = ChapterFactory(name="beta")
+    _report(chapter, "treasurer", UserFactory(chapter=chapter))
+    member = UserFactory(chapter=other_chapter)
+
+    assert list(services.search_reports(member)) == []
+
+
+def test_search_reports_no_cross_chapter_leakage_for_a_chapter_scoped_regent():
+    chapter = ChapterFactory(name="alpha")
+    other_chapter = ChapterFactory(name="beta")
+    own_report = _report(chapter, "treasurer", UserFactory(chapter=chapter))
+    _report(other_chapter, "treasurer", UserFactory(chapter=other_chapter))
+    regent = UserFactory(chapter=chapter)
+    regent.current_roles = ["regent"]
+    regent.save(update_fields=["current_roles"])
+
+    assert list(services.search_reports(regent)) == [own_report]
+
+
+def test_search_reports_excludes_drafts_even_the_authors_own():
+    chapter = ChapterFactory()
+    author = UserFactory(chapter=chapter)
+    _report(chapter, "treasurer", author, status="draft")
+
+    assert list(services.search_reports(author)) == []
+
+
+def test_search_reports_filters_by_query_text():
+    chapter = ChapterFactory()
+    matching = _report(chapter, "treasurer", UserFactory(chapter=chapter))
+    matching.answers.create(prompt_key="successes", prompt_label_snapshot="Successes?", value="we bought a zorblatt")
+    matching.save()
+    other = _report(chapter, "scribe", UserFactory(chapter=chapter))
+    other.answers.create(prompt_key="notes", prompt_label_snapshot="Notes?", value="nothing special")
+    other.save()
+    national = UserFactory()
+    national.groups.add(Group.objects.get_or_create(name="natoff")[0])
+
+    results = list(services.search_reports(national, query="zorblatt"))
+
+    assert results == [matching]
+
+
+def test_search_reports_empty_query_returns_the_unranked_filtered_queryset():
+    chapter = ChapterFactory()
+    report = _report(chapter, "treasurer", UserFactory(chapter=chapter))
+    national = UserFactory()
+    national.groups.add(Group.objects.get_or_create(name="natoff")[0])
+
+    assert list(services.search_reports(national, query="")) == [report]
+
+
+def test_search_reports_filters_by_position_key():
+    chapter = ChapterFactory()
+    treasurer_report = _report(chapter, "treasurer", UserFactory(chapter=chapter))
+    _report(chapter, "scribe", UserFactory(chapter=chapter))
+    national = UserFactory()
+    national.groups.add(Group.objects.get_or_create(name="natoff")[0])
+
+    results = list(services.search_reports(national, position_key="treasurer"))
+
+    assert results == [treasurer_report]
+
+
+def test_search_reports_filters_by_chapter():
+    chapter = ChapterFactory(name="alpha")
+    other_chapter = ChapterFactory(name="beta")
+    report = _report(chapter, "treasurer", UserFactory(chapter=chapter))
+    _report(other_chapter, "treasurer", UserFactory(chapter=other_chapter))
+    national = UserFactory()
+    national.groups.add(Group.objects.get_or_create(name="natoff")[0])
+
+    results = list(services.search_reports(national, chapter=chapter))
+
+    assert results == [report]
+
+
+def test_search_reports_filters_by_region():
+    chapter = ChapterFactory(name="alpha")
+    other_chapter = ChapterFactory(name="beta")
+    report = _report(chapter, "treasurer", UserFactory(chapter=chapter))
+    _report(other_chapter, "treasurer", UserFactory(chapter=other_chapter))
+    national = UserFactory()
+    national.groups.add(Group.objects.get_or_create(name="natoff")[0])
+
+    results = list(services.search_reports(national, region=chapter.region))
+
+    assert results == [report]
+
+
+def test_search_reports_filters_by_tag():
+    chapter = ChapterFactory()
+    tagged = _report(chapter, "treasurer", UserFactory(chapter=chapter))
+    services.set_manual_tags(tagged, ["risk"])
+    untagged = _report(chapter, "scribe", UserFactory(chapter=chapter))
+    national = UserFactory()
+    national.groups.add(Group.objects.get_or_create(name="natoff")[0])
+
+    results = list(services.search_reports(national, tag="risk"))
+
+    assert results == [tagged]
+    assert untagged not in results
+
+
+def test_search_reports_filters_by_cycle():
+    chapter = ChapterFactory()
+    current_report = _report(chapter, "treasurer", UserFactory(chapter=chapter))
+    current_report.submitted_at = timezone.now()
+    current_report.save(update_fields=["submitted_at"])
+    old_report = _report(chapter, "scribe", UserFactory(chapter=chapter))
+    old_report.submitted_at = timezone.now() - datetime.timedelta(days=900)
+    old_report.save(update_fields=["submitted_at"])
+    national = UserFactory()
+    national.groups.add(Group.objects.get_or_create(name="natoff")[0])
+
+    results = list(services.search_reports(national, cycle="current"))
+
+    assert results == [current_report]
+    assert old_report not in results
+
+
+def test_search_reports_cycle_all_includes_every_submitted_report_regardless_of_age():
+    chapter = ChapterFactory()
+    old_report = _report(chapter, "treasurer", UserFactory(chapter=chapter))
+    old_report.submitted_at = timezone.now() - datetime.timedelta(days=900)
+    old_report.save(update_fields=["submitted_at"])
+    national = UserFactory()
+    national.groups.add(Group.objects.get_or_create(name="natoff")[0])
+
+    results = list(services.search_reports(national, cycle="all"))
+
+    assert old_report in results
+
+
+# ---------------------------------------------------------------------------
+# get_tag_frequency / get_chapters_with_no_submissions / can_view_trends (TRWI-11)
+# ---------------------------------------------------------------------------
+def test_get_tag_frequency_counts_reports_per_tag():
+    chapter = ChapterFactory()
+    report_1 = _report(chapter, "treasurer", UserFactory(chapter=chapter))
+    services.set_manual_tags(report_1, ["risk"])
+    report_2 = _report(chapter, "scribe", UserFactory(chapter=chapter))
+    services.set_manual_tags(report_2, ["risk", "advice"])
+
+    frequency = {row["tag"]: row["count"] for row in services.get_tag_frequency()}
+
+    assert frequency["risk"] == 2
+    assert frequency["advice"] == 1
+
+
+def test_get_tag_frequency_excludes_drafts():
+    chapter = ChapterFactory()
+    report = _report(chapter, "treasurer", UserFactory(chapter=chapter), status="draft")
+    services.set_manual_tags(report, ["risk"])
+
+    frequency = services.get_tag_frequency()
+
+    assert frequency == []
+
+
+def test_get_tag_frequency_filters_by_position_key():
+    chapter = ChapterFactory()
+    treasurer_report = _report(chapter, "treasurer", UserFactory(chapter=chapter))
+    services.set_manual_tags(treasurer_report, ["risk"])
+    scribe_report = _report(chapter, "scribe", UserFactory(chapter=chapter))
+    services.set_manual_tags(scribe_report, ["advice"])
+
+    frequency = {row["tag"]: row["count"] for row in services.get_tag_frequency(position_key="treasurer")}
+
+    assert frequency == {"risk": 1}
+
+
+def test_get_tag_frequency_filters_by_region():
+    chapter = ChapterFactory(name="alpha")
+    other_chapter = ChapterFactory(name="beta")
+    report = _report(chapter, "treasurer", UserFactory(chapter=chapter))
+    services.set_manual_tags(report, ["risk"])
+    other_report = _report(other_chapter, "treasurer", UserFactory(chapter=other_chapter))
+    services.set_manual_tags(other_report, ["advice"])
+
+    frequency = {row["tag"]: row["count"] for row in services.get_tag_frequency(region=chapter.region)}
+
+    assert frequency == {"risk": 1}
+
+
+def test_get_tag_frequency_filters_by_cycle():
+    chapter = ChapterFactory()
+    old_report = _report(chapter, "treasurer", UserFactory(chapter=chapter))
+    old_report.submitted_at = timezone.now() - datetime.timedelta(days=900)
+    old_report.save(update_fields=["submitted_at"])
+    services.set_manual_tags(old_report, ["risk"])
+
+    frequency = services.get_tag_frequency(cycle="current")
+
+    assert frequency == []
+    assert services.get_tag_frequency(cycle="all") != []
+
+
+def test_get_chapters_with_no_submissions_excludes_a_chapter_with_a_submission():
+    chapter_with_report = ChapterFactory(name="alpha")
+    chapter_without_report = ChapterFactory(name="beta")
+    _report(chapter_with_report, "treasurer", UserFactory(chapter=chapter_with_report))
+
+    chapters = list(services.get_chapters_with_no_submissions())
+
+    assert chapter_without_report in chapters
+    assert chapter_with_report not in chapters
+
+
+def test_get_chapters_with_no_submissions_excludes_inactive_chapters():
+    ChapterFactory(name="alpha", active=False)
+
+    chapters = list(services.get_chapters_with_no_submissions())
+
+    assert chapters == []
+
+
+def test_get_chapters_with_no_submissions_a_draft_does_not_count_as_a_submission():
+    chapter = ChapterFactory()
+    _report(chapter, "treasurer", UserFactory(chapter=chapter), status="draft")
+
+    chapters = list(services.get_chapters_with_no_submissions())
+
+    assert chapter in chapters
+
+
+def test_get_chapters_with_no_submissions_filters_by_region():
+    chapter = ChapterFactory(name="alpha")
+    other_chapter = ChapterFactory(name="beta")
+
+    chapters = list(services.get_chapters_with_no_submissions(region=chapter.region))
+
+    assert chapters == [chapter]
+    assert other_chapter not in chapters
+
+
+def test_can_view_trends_true_for_national_officer_and_admin():
+    natoff = UserFactory()
+    natoff.groups.add(Group.objects.get_or_create(name="natoff")[0])
+    admin = UserFactory(is_superuser=True)
+
+    assert services.can_view_trends(natoff) is True
+    assert services.can_view_trends(admin) is True
+
+
+def test_can_view_trends_false_for_rd_and_plain_chapter_officer():
+    chapter = ChapterFactory()
+    rd = UserFactory(chapter=ChapterFactory())
+    chapter.region.directors.add(rd)
+    officer = UserFactory(chapter=chapter)
+    officer.current_roles = ["treasurer"]
+    officer.save(update_fields=["current_roles"])
+
+    assert services.can_view_trends(rd) is False
+    assert services.can_view_trends(officer) is False
+
+
+def test_can_view_trends_false_for_anonymous_user():
+    assert services.can_view_trends(AnonymousUser()) is False

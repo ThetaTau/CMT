@@ -543,7 +543,7 @@
           "key": "transition-reports",
           "name": "Transition Reports",
           "short_description": "What worked, what didn't, and what your successor needs to know, from the officer or committee chair leaving the position.",
-          "long_description": "Owed once your term ends: a short set of prompts about successes, failures, contacts, and unfinished business. Submitted reports are visible to the officer who follows you so nothing gets lost between terms.",
+          "long_description": "Owed once your term ends: a short set of prompts about successes, failures, contacts, and unfinished business. Submitted reports are visible to the officer who follows you so nothing gets lost between terms. From the Transition Reports page you can also search past reports by keyword, position, tag, or cycle; National Officers and Admins additionally see a national trend view (tag frequency and which chapters have not yet submitted).",
           "url_name": "transitions:list",
           "audience": "officer"
         },

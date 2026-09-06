@@ -9,7 +9,7 @@
     A Transition Report captures what worked, what didn't, and what your successor needs to know.
   </p>
 
-  {% if show_chapter_dashboard_link or show_rates_dashboard_link %}
+  {% if show_chapter_dashboard_link or show_rates_dashboard_link or show_trends_link %}
     <p>
       {% if show_chapter_dashboard_link %}
         <a class="btn btn-sm btn-outline-secondary" href="{% url 'transitions:chapter-dashboard' request.user.chapter.pk %}">
@@ -21,6 +21,20 @@
           Compliance rates
         </a>
       {% endif %}
+      {% if show_trends_link %}
+        <a class="btn btn-sm btn-outline-secondary" href="{% url 'transitions:trends' %}">
+          National trends
+        </a>
+      {% endif %}
+      <a class="btn btn-sm btn-outline-secondary" href="{% url 'transitions:search' %}">
+        Search reports
+      </a>
+    </p>
+  {% else %}
+    <p>
+      <a class="btn btn-sm btn-outline-secondary" href="{% url 'transitions:search' %}">
+        Search reports
+      </a>
     </p>
   {% endif %}
 

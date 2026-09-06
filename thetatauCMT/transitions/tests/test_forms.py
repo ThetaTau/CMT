@@ -28,7 +28,7 @@ def _template_with_prompts():
 def test_compose_form_builds_one_field_per_prompt():
     template = _template_with_prompts()
     form = ComposeReportForm(template=template)
-    assert set(form.fields) == {"prompt_successes", "prompt_pitfalls", "prompt_key_dates"}
+    assert set(form.fields) == {"prompt_successes", "prompt_pitfalls", "prompt_key_dates", "manual_tags"}
 
 
 def test_compose_form_date_field_type_uses_date_field():
@@ -120,7 +120,7 @@ def test_compose_form_initial_from_report_matches_by_prompt_key():
 
     initial = ComposeReportForm.initial_from_report(report)
 
-    assert initial == {"prompt_successes": "did well"}
+    assert initial == {"prompt_successes": "did well", "manual_tags": []}
 
 
 def test_compose_form_fields_with_prior_answers_pairs_by_prompt_key():

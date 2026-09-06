@@ -11,10 +11,24 @@ from core.views import LoginRequiredMixin, PagedFilteredTableView, RequestConfig
 from thetatauCMT.chapters.models import Chapter
 
 from . import services
-from .filters import ComplianceRateFilter, NationalComplianceRateFilter, ObligationComplianceFilter
-from .forms import ComplianceFilterFormHelper, ComplianceRateFilterFormHelper, ComposeReportForm, ReportAttachmentForm
+from .filters import (
+    ComplianceRateFilter,
+    NationalComplianceRateFilter,
+    NationalSearchFilter,
+    ObligationComplianceFilter,
+    SearchFilter,
+    TrendFilter,
+)
+from .forms import (
+    ComplianceFilterFormHelper,
+    ComplianceRateFilterFormHelper,
+    ComposeReportForm,
+    ReportAttachmentForm,
+    SearchFilterFormHelper,
+    TrendFilterFormHelper,
+)
 from .models import POSITION_KEY_TO_TYPE, ReportAcknowledgement, ReportAttachment, ReportObligation, TransitionReport
-from .tables import ChapterRateTable, ObligationComplianceTable
+from .tables import ChapterRateTable, ObligationComplianceTable, SearchResultsTable, TagFrequencyTable
 
 
 class TransitionsListView(LoginRequiredMixin, TemplateView):
@@ -62,6 +76,7 @@ class TransitionsListView(LoginRequiredMixin, TemplateView):
         ]
         context["show_chapter_dashboard_link"] = bool(user.chapter_id) and user.is_officer_group
         context["show_rates_dashboard_link"] = services.can_view_compliance_rates(user)
+        context["show_trends_link"] = services.can_view_trends(user)
         return context
 
 
@@ -102,9 +117,11 @@ class ComposeReportView(LoginRequiredMixin, View):
         if form.is_valid():
             if submitting:
                 services.submit_report(report, form.answers_data())
+                services.set_manual_tags(report, form.manual_tags_data())
                 messages.success(request, "Transition Report submitted. Thank you!")
                 return redirect("transitions:list")
             services.save_draft(report, form.answers_data())
+            services.set_manual_tags(report, form.manual_tags_data())
             messages.success(request, "Draft saved.")
             return redirect("transitions:compose", pk=self.obligation.pk)
         return self._render(request, report, form)
@@ -300,4 +317,99 @@ class ComplianceRatesView(LoginRequiredMixin, TemplateView):
         context["table"] = table
         context["cycle_label"] = services.cycle_label(cycle)
         context["is_national"] = is_national
+        return context
+
+
+def _default_search_cycle(request):
+    """``request.GET`` with ``cycle=all`` injected when absent (TRWI-11) --
+    search's own default is "All time", not "current" (see
+    ``filters.SearchFilter``'s docstring for why), so this mirrors
+    ``_default_cycle`` with a different default rather than reusing it.
+    """
+    request_get = request.GET.copy()
+    if not request_get.get("cancel") and "cycle" not in request_get:
+        request_get["cycle"] = "all"
+    return request_get
+
+
+class ReportSearchView(LoginRequiredMixin, TemplateView):
+    """Full-text + filtered search across every report the viewer may read
+    (TRWI-11) -- position/chapter/region/tag/cycle filters, keyword search
+    ranked by ``watson``.
+
+    Not a ``PagedFilteredTableView`` (same reasoning as
+    ``ComplianceRatesView``): ``services.search_reports`` already does its
+    own filtering AND its own access control in one place, so the filterset
+    here is only ever bound to a throwaway/empty queryset to clean/render
+    GET params -- never used to actually filter a real queryset.
+    """
+
+    template_name = "transitions/search.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        user = self.request.user
+        is_national = user.is_admin or user.is_national_officer_group
+        filter_class = NationalSearchFilter if is_national else SearchFilter
+
+        filterset = filter_class(_default_search_cycle(self.request), queryset=TransitionReport.objects.none())
+        filterset.request = self.request
+        filterset.form.helper = SearchFilterFormHelper(form=filterset.form)
+        filterset.form.is_valid()
+
+        cleaned = filterset.form.cleaned_data
+        query = cleaned.get("q") or ""
+        position_key = cleaned.get("position_key") or ""
+        chapter = cleaned.get("chapter") if is_national else None
+        region = cleaned.get("region") if is_national else None
+        tag = cleaned.get("tag") or ""
+        cycle = cleaned.get("cycle") or "all"
+
+        reports = services.search_reports(
+            user, query=query, position_key=position_key, chapter=chapter, region=region, tag=tag, cycle=cycle
+        )
+        table = SearchResultsTable(data=reports)
+        RequestConfig(self.request, paginate={"per_page": 25}).configure(table)
+
+        context["filter"] = filterset
+        context["table"] = table
+        context["cycle_label"] = services.cycle_label(cycle) if cycle != "all" else "All time"
+        return context
+
+
+class TrendView(LoginRequiredMixin, TemplateView):
+    """National tag-trend view (TRWI-11): tag frequency across every
+    submitted report, plus which active chapters have submitted nothing yet
+    -- National Officer/Admin only (``services.can_view_trends``).
+    """
+
+    template_name = "transitions/trends.html"
+
+    def dispatch(self, request, *args, **kwargs):
+        if not services.can_view_trends(request.user):
+            messages.error(request, "You are not able to view the transition report trends.")
+            return redirect("transitions:list")
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        filterset = TrendFilter(_default_cycle(self.request), queryset=TransitionReport.objects.none())
+        filterset.request = self.request
+        filterset.form.helper = TrendFilterFormHelper(form=filterset.form)
+        filterset.form.is_valid()
+
+        position_key = filterset.form.cleaned_data.get("position_key") or ""
+        region = filterset.form.cleaned_data.get("region")
+        cycle = filterset.form.cleaned_data.get("cycle") or services.DEFAULT_CYCLE
+
+        tag_frequency = services.get_tag_frequency(cycle=cycle, position_key=position_key, region=region)
+        table = TagFrequencyTable(data=tag_frequency)
+        RequestConfig(self.request, paginate={"per_page": 25}).configure(table)
+
+        context["filter"] = filterset
+        context["table"] = table
+        context["cycle_label"] = services.cycle_label(cycle)
+        context["chapters_with_no_submissions"] = services.get_chapters_with_no_submissions(
+            cycle=cycle, position_key=position_key, region=region
+        )
         return context

@@ -276,6 +276,17 @@ class TransitionReport(TimeStampedModel):
     def __str__(self):
         return f"{self.position_key} ({self.chapter}) -- {self.status}"
 
+    @property
+    def tag_list(self):
+        """Comma-joined display labels of every ``ReportTag`` on this report
+        (TRWI-11 search results column). A plain property, not a queryset
+        annotation -- avoids the filter/annotate "shared join" pitfall of
+        combining an aggregate with ``search_reports``' own ``tags__tag=``
+        filter in the same query; call sites needing this on many rows
+        should ``prefetch_related("tags")`` first (``search_reports`` does).
+        """
+        return ", ".join(tag.get_tag_display() for tag in self.tags.all())
+
 
 class ReportAnswer(models.Model):
     """One prompt's answer on a ``TransitionReport`` (TRWI-5).
@@ -381,3 +392,34 @@ class HandoffNotice(models.Model):
 
     def __str__(self):
         return f"Handoff notice sent for {self.role_change}"
+
+
+class ReportTag(models.Model):
+    """A controlled-vocabulary tag on a ``TransitionReport`` (TRWI-11), for
+    cross-chapter trend mining -- tag frequency, common themes.
+
+    ``source="prompt"`` rows are derived automatically from
+    ``TemplatePrompt.tag`` on submit (``services.derive_prompt_tags``) and
+    are fully re-derived (deleted and recreated) every submission, so they
+    always reflect the CURRENT template/answers. ``source="manual"`` rows
+    are added/removed independently by the author
+    (``services.set_manual_tags``) and are never touched by re-derivation.
+    ``unique_together``: a tag is either present on a report or it isn't,
+    regardless of how it got there.
+    """
+
+    class Source(EnumClass):
+        prompt = ("prompt", "From prompt")
+        manual = ("manual", "Manual")
+
+    report = models.ForeignKey(TransitionReport, on_delete=models.CASCADE, related_name="tags")
+    tag = models.CharField(max_length=20, choices=TAG_CHOICES)
+    source = models.CharField(max_length=10, choices=[x.value for x in Source])
+
+    class Meta:
+        unique_together = [("report", "tag")]
+        ordering = ["report", "tag"]
+        verbose_name = "Report Tag"
+
+    def __str__(self):
+        return f"{self.tag} ({self.report})"

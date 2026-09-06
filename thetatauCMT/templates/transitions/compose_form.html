@@ -28,6 +28,7 @@
         </details>
       {% endif %}
     {% endfor %}
+    {{ form.manual_tags|as_crispy_field }}
     <button type="submit" name="action" value="draft" class="btn btn-outline-primary">Save Draft</button>
     <button type="submit" name="action" value="submit" class="btn btn-primary">Submit</button>
   </form>

@@ -8,6 +8,7 @@ from thetatauCMT.chapters.tests.factories import ChapterFactory
 from thetatauCMT.users.models import UserRoleChange
 from thetatauCMT.users.tests.factories import UserFactory
 
+from .. import services
 from ..models import ReportAttachment, ReportObligation, ReportTemplate, TemplatePrompt, TransitionReport
 
 pytestmark = pytest.mark.django_db
@@ -64,6 +65,9 @@ def _report(chapter, position_key, author, status="submitted", due_date=None):
         template=template,
         template_version=1,
         status=status,
+        # Matches submit_report's own invariant -- see the identical comment
+        # on test_services.py's own _report() helper.
+        submitted_at=timezone.now() if status == "submitted" else None,
     )
 
 
@@ -729,3 +733,191 @@ def test_rates_dashboard_national_officer_can_narrow_by_region(auto_login_user):
     body = response.content.decode()
     assert f"<td >{other_chapter.name}</td>" in body
     assert f"<td >{chapter.name}</td>" not in body
+
+
+# ---------------------------------------------------------------------------
+# ComposeReportView manual tags (TRWI-11)
+# ---------------------------------------------------------------------------
+def test_compose_view_submit_saves_manual_tags(auto_login_user):
+    client, officer = auto_login_user()
+    _template()
+    obligation = _obligation(officer.chapter, officer)
+
+    response = client.post(
+        reverse("transitions:compose", kwargs={"pk": obligation.pk}),
+        {
+            "action": "submit",
+            "prompt_successes": "we did well this term",
+            "prompt_pitfalls": "",
+            "manual_tags": ["risk", "advice"],
+        },
+    )
+
+    assert response.status_code == 302
+    report = TransitionReport.objects.get(obligation=obligation)
+    assert set(report.tags.filter(source="manual").values_list("tag", flat=True)) == {"risk", "advice"}
+
+
+def test_compose_view_draft_save_also_saves_manual_tags(auto_login_user):
+    client, officer = auto_login_user()
+    _template()
+    obligation = _obligation(officer.chapter, officer)
+
+    response = client.post(
+        reverse("transitions:compose", kwargs={"pk": obligation.pk}),
+        {"action": "draft", "prompt_successes": "", "prompt_pitfalls": "", "manual_tags": ["risk"]},
+    )
+
+    assert response.status_code == 302
+    report = TransitionReport.objects.get(obligation=obligation)
+    assert set(report.tags.filter(source="manual").values_list("tag", flat=True)) == {"risk"}
+
+
+def test_compose_view_get_prefills_existing_manual_tags(auto_login_user):
+    client, officer = auto_login_user()
+    _template()
+    obligation = _obligation(officer.chapter, officer)
+    report = services.get_or_create_report(obligation)
+    report.tags.create(tag="risk", source="manual")
+
+    response = client.get(reverse("transitions:compose", kwargs={"pk": obligation.pk}))
+
+    assert response.status_code == 200
+    assert response.context["form"].initial.get("manual_tags") == ["risk"]
+
+
+# ---------------------------------------------------------------------------
+# ReportSearchView (TRWI-11)
+# ---------------------------------------------------------------------------
+def test_search_view_requires_login(client):
+    response = client.get(reverse("transitions:search"))
+    assert response.status_code == 302
+
+
+def test_search_view_shows_a_readable_report(auto_login_user):
+    client, author = auto_login_user()
+    _report(author.chapter, "treasurer", author)
+
+    response = client.get(reverse("transitions:search"))
+
+    assert response.status_code == 200
+    body = response.content.decode()
+    assert author.chapter.name in body
+    assert "Treasurer" in body
+
+
+def test_search_view_hides_an_unrelated_chapters_report(auto_login_user):
+    client, member = auto_login_user()
+    other_chapter = ChapterFactory()
+    _report(other_chapter, "treasurer", UserFactory(chapter=other_chapter))
+
+    response = client.get(reverse("transitions:search"))
+
+    assert response.status_code == 200
+    assert other_chapter.name not in response.content.decode()
+
+
+def test_search_view_filters_by_query_text(auto_login_user):
+    from django.contrib.auth.models import Group
+
+    client, natoff = auto_login_user()
+    natoff.groups.add(Group.objects.get_or_create(name="natoff")[0])
+    chapter = ChapterFactory()
+    matching = _report(chapter, "treasurer", UserFactory(chapter=chapter))
+    matching.answers.create(prompt_key="successes", prompt_label_snapshot="Successes?", value="a zorblatt printer")
+    matching.save()
+    other = _report(chapter, "scribe", UserFactory(chapter=chapter))
+    other.answers.create(prompt_key="notes", prompt_label_snapshot="Notes?", value="nothing special")
+    other.save()
+
+    response = client.get(reverse("transitions:search"), {"q": "zorblatt", "cycle": "all"})
+
+    body = response.content.decode()
+    assert matching.chapter.name in body
+
+
+def test_search_view_national_officer_sees_chapter_and_region_filters(auto_login_user):
+    from django.contrib.auth.models import Group
+
+    client, natoff = auto_login_user()
+    natoff.groups.add(Group.objects.get_or_create(name="natoff")[0])
+
+    response = client.get(reverse("transitions:search"))
+
+    body = response.content.decode()
+    assert 'name="chapter"' in body
+    assert 'name="region"' in body
+
+
+def test_search_view_non_national_does_not_see_chapter_and_region_filters(auto_login_user):
+    client, officer = auto_login_user()
+
+    response = client.get(reverse("transitions:search"))
+
+    body = response.content.decode()
+    assert 'name="chapter"' not in body
+    assert 'name="region"' not in body
+
+
+# ---------------------------------------------------------------------------
+# TrendView (TRWI-11)
+# ---------------------------------------------------------------------------
+def test_trends_view_requires_login(client):
+    response = client.get(reverse("transitions:trends"))
+    assert response.status_code == 302
+
+
+def test_trends_view_denied_for_a_plain_officer(auto_login_user):
+    client, officer = auto_login_user()
+
+    response = client.get(reverse("transitions:trends"))
+
+    assert response.status_code == 302
+
+
+def test_trends_view_denied_for_an_rd(auto_login_user):
+    client, rd = auto_login_user()
+    chapter = ChapterFactory()
+    chapter.region.directors.add(rd)
+
+    response = client.get(reverse("transitions:trends"))
+
+    assert response.status_code == 302
+
+
+def test_trends_view_shown_to_national_officer(auto_login_user):
+    from django.contrib.auth.models import Group
+
+    client, natoff = auto_login_user()
+    natoff.groups.add(Group.objects.get_or_create(name="natoff")[0])
+
+    response = client.get(reverse("transitions:trends"))
+
+    assert response.status_code == 200
+
+
+def test_trends_view_shows_tag_frequency(auto_login_user):
+    from django.contrib.auth.models import Group
+
+    client, natoff = auto_login_user()
+    natoff.groups.add(Group.objects.get_or_create(name="natoff")[0])
+    chapter = ChapterFactory()
+    report = _report(chapter, "treasurer", UserFactory(chapter=chapter))
+    report.tags.create(tag="risk", source="manual")
+
+    response = client.get(reverse("transitions:trends"))
+
+    body = response.content.decode()
+    assert "Risk" in body
+
+
+def test_trends_view_shows_chapters_with_no_submissions(auto_login_user):
+    from django.contrib.auth.models import Group
+
+    client, natoff = auto_login_user()
+    natoff.groups.add(Group.objects.get_or_create(name="natoff")[0])
+    silent_chapter = ChapterFactory()
+
+    response = client.get(reverse("transitions:trends"))
+
+    assert silent_chapter.name in response.content.decode()

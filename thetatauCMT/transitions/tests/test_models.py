@@ -17,6 +17,7 @@ from ..models import (
     ReportAnswer,
     ReportAttachment,
     ReportObligation,
+    ReportTag,
     ReportTemplate,
     TemplatePrompt,
     TransitionReport,
@@ -322,3 +323,50 @@ def test_handoff_notice_str():
     notice = HandoffNotice.objects.create(role_change=role_change)
 
     assert str(notice) == f"Handoff notice sent for {role_change}"
+
+
+# ---------------------------------------------------------------------------
+# ReportTag (TRWI-11)
+# ---------------------------------------------------------------------------
+def test_report_tag_unique_per_report_and_tag():
+    chapter = ChapterFactory()
+    officer = UserFactory(chapter=chapter)
+    report = _report(chapter, officer)
+    ReportTag.objects.create(report=report, tag="risk", source="manual")
+
+    with pytest.raises(IntegrityError):
+        ReportTag.objects.create(report=report, tag="risk", source="prompt")
+
+
+def test_report_tag_str():
+    chapter = ChapterFactory()
+    officer = UserFactory(chapter=chapter)
+    report = _report(chapter, officer)
+    tag = ReportTag.objects.create(report=report, tag="risk", source="manual")
+
+    assert str(tag) == f"risk ({report})"
+
+
+def test_report_tag_allows_the_same_tag_on_different_reports():
+    chapter = ChapterFactory()
+    other_chapter = ChapterFactory()
+    report_1 = _report(chapter, UserFactory(chapter=chapter))
+    other_obligation = _obligation(other_chapter, UserFactory(chapter=other_chapter))
+    # Reuses report_1's template (rather than a second _report() call) --
+    # ReportTemplate has a unique (position_type, position_key) constraint,
+    # and _report() always creates a fresh blank-position_key template.
+    report_2 = TransitionReport.objects.create(
+        obligation=other_obligation,
+        chapter=other_chapter,
+        position_type="CHAPTER_OFFICER",
+        position_key="treasurer",
+        author=other_obligation.officer,
+        template=report_1.template,
+        template_version=1,
+        status="submitted",
+    )
+    ReportTag.objects.create(report=report_1, tag="risk", source="manual")
+
+    ReportTag.objects.create(report=report_2, tag="risk", source="manual")  # must not raise
+
+    assert ReportTag.objects.filter(tag="risk").count() == 2

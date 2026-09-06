@@ -1,10 +1,10 @@
-"""TRWI-9: compliance dashboard tables."""
+"""TRWI-9: compliance dashboard tables. TRWI-11: search & trend tables."""
 
 import django_tables2 as tables
 
 from core.tables import CMTTable
 
-from .models import ReportObligation
+from .models import ReportObligation, TransitionReport
 
 
 class ObligationComplianceTable(CMTTable):
@@ -62,3 +62,41 @@ class ChapterRateTable(CMTTable):
 
     def render_acknowledgment_rate(self, value):
         return "None" if value is None else f"{value}%"
+
+
+class SearchResultsTable(CMTTable):
+    """One row per ``TransitionReport`` (TRWI-11 search results) -- a plain
+    queryset table (unlike ``ChapterRateTable``/``TagFrequencyTable``), so
+    sorting works directly off the underlying query.
+    """
+
+    chapter = tables.Column(verbose_name="Chapter", accessor="chapter__name", order_by="chapter__name")
+    position_key = tables.Column(verbose_name="Position")
+    author = tables.Column(verbose_name="Author", accessor="author__name", order_by="author__name")
+    submitted_at = tables.DateTimeColumn(verbose_name="Submitted", format="N j, Y")
+    tag_list = tables.Column(verbose_name="Tags", accessor="tag_list", orderable=False)
+
+    class Meta:
+        model = TransitionReport
+        fields = ("chapter", "position_key", "author", "submitted_at", "tag_list")
+        attrs = {"class": "table table-striped table-bordered"}
+        empty_text = "No reports match your search."
+        order_by = "-submitted_at"
+
+    def render_position_key(self, value):
+        return value.title()
+
+
+class TagFrequencyTable(CMTTable):
+    """One row per ``services.get_tag_frequency`` dict (TRWI-11 national
+    trend view) -- backed by a plain list, not a queryset, so there is no
+    ``Meta.model`` here (mirrors ``ChapterRateTable``).
+    """
+
+    tag_label = tables.Column(verbose_name="Tag", accessor="tag_label", order_by="tag_label")
+    count = tables.Column(verbose_name="Reports")
+
+    class Meta:
+        attrs = {"class": "table table-striped table-bordered"}
+        empty_text = "No tagged reports for this cycle."
+        order_by = "-count"

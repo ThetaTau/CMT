@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% load render_table from django_tables2 %}
+{% load filter_tags %}
+
+{% block title %}Transition Report Trends{% endblock %}
+
+{% block content %}
+  <h1>Transition report trends</h1>
+  <p>{{ cycle_label }} -- every submitted report, nationwide.</p>
+
+  {% collapsible_filter filter label="Filter" collapse_id="trendFilter" reset_url="?cancel=1" %}
+
+  <h2 class="mt-4">Tag frequency</h2>
+  <p class="text-muted">
+    How often each tag appears across submitted reports -- "Failure" is the most common failure-theme signal.
+  </p>
+  <div class="table-responsive">
+    {% render_table table %}
+  </div>
+
+  <h2 class="mt-4">Chapters with no submissions</h2>
+  {% if chapters_with_no_submissions %}
+    <ul>
+      {% for chapter in chapters_with_no_submissions %}
+        <li>{{ chapter.name }}</li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p class="text-muted">Every active chapter has at least one submission for this cycle.</p>
+  {% endif %}
+{% endblock %}
