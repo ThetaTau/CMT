@@ -11,7 +11,15 @@ from thetatauCMT.users.models import UserAlter, UserRoleChange
 from thetatauCMT.users.tests.factories import UserFactory
 
 from .. import services
-from ..models import PositionOverride, ReportObligation, ReportTemplate, TemplatePrompt, TransitionReport
+from ..models import (
+    HandoffNotice,
+    PositionOverride,
+    ReportAcknowledgement,
+    ReportObligation,
+    ReportTemplate,
+    TemplatePrompt,
+    TransitionReport,
+)
 
 pytestmark = pytest.mark.django_db
 
@@ -1104,3 +1112,168 @@ def test_get_readable_reports_filters_narrow_what_the_rules_already_allow():
     readable = services.get_readable_reports(regent, position_key="treasurer")
 
     assert list(readable) == [treasurer_report]
+
+
+# ---------------------------------------------------------------------------
+# get_handoff_packet / acknowledge_report (TRWI-7)
+# ---------------------------------------------------------------------------
+def test_get_handoff_packet_shows_predecessor_reports_to_the_successor():
+    chapter = ChapterFactory()
+    predecessor_report = _report(chapter, "treasurer", UserFactory(chapter=chapter))
+    successor = UserFactory(chapter=chapter)
+    successor.current_roles = ["treasurer"]
+    successor.save(update_fields=["current_roles"])
+
+    packet = list(services.get_handoff_packet(successor, chapter, "treasurer"))
+
+    assert packet == [predecessor_report]
+
+
+def test_get_handoff_packet_excludes_the_viewers_own_report():
+    chapter = ChapterFactory()
+    successor = UserFactory(chapter=chapter)
+    successor.current_roles = ["treasurer"]
+    successor.save(update_fields=["current_roles"])
+    _report(chapter, "treasurer", successor)  # the successor's own (already-submitted) report
+
+    packet = list(services.get_handoff_packet(successor, chapter, "treasurer"))
+
+    assert packet == []
+
+
+def test_get_handoff_packet_empty_when_not_entitled():
+    chapter = ChapterFactory(name="alpha")
+    other_chapter = ChapterFactory(name="beta")
+    _report(chapter, "treasurer", UserFactory(chapter=chapter))
+    member = UserFactory(chapter=other_chapter)
+
+    assert list(services.get_handoff_packet(member, chapter, "treasurer")) == []
+
+
+def test_acknowledge_report_creates_a_record():
+    chapter = ChapterFactory()
+    report = _report(chapter, "treasurer", UserFactory(chapter=chapter))
+    reader = UserFactory(chapter=chapter)
+
+    services.acknowledge_report(report, reader)
+
+    assert ReportAcknowledgement.objects.filter(report=report, user=reader).exists()
+
+
+def test_acknowledge_report_is_idempotent():
+    chapter = ChapterFactory()
+    report = _report(chapter, "treasurer", UserFactory(chapter=chapter))
+    reader = UserFactory(chapter=chapter)
+
+    services.acknowledge_report(report, reader)
+    services.acknowledge_report(report, reader)
+
+    assert ReportAcknowledgement.objects.filter(report=report, user=reader).count() == 1
+
+
+# ---------------------------------------------------------------------------
+# send_handoff_notices (TRWI-7)
+# ---------------------------------------------------------------------------
+def test_send_handoff_notices_sends_when_predecessor_reports_exist():
+    chapter = ChapterFactory()
+    predecessor = UserFactory(chapter=chapter)
+    _report(chapter, "treasurer", predecessor)
+    successor = UserFactory(chapter=chapter)
+    _role_change(chapter, "treasurer", TODAY + datetime.timedelta(days=180), start=TODAY, user=successor)
+
+    sent = services.send_handoff_notices()
+
+    assert sent == 1
+    assert len(mail.outbox) == 1
+    assert set(mail.outbox[0].to) == set(successor.emails)
+    assert HandoffNotice.objects.filter(role_change__user=successor, role_change__role="treasurer").exists()
+
+
+def test_send_handoff_notices_skips_the_email_but_still_records_when_nothing_to_read():
+    chapter = ChapterFactory()
+    successor = UserFactory(chapter=chapter)
+    _role_change(chapter, "treasurer", TODAY + datetime.timedelta(days=180), start=TODAY, user=successor)
+
+    sent = services.send_handoff_notices()
+
+    assert sent == 0
+    assert len(mail.outbox) == 0
+    assert HandoffNotice.objects.filter(role_change__user=successor, role_change__role="treasurer").exists()
+
+
+def test_send_handoff_notices_is_idempotent():
+    chapter = ChapterFactory()
+    _report(chapter, "treasurer", UserFactory(chapter=chapter))
+    successor = UserFactory(chapter=chapter)
+    _role_change(chapter, "treasurer", TODAY + datetime.timedelta(days=180), start=TODAY, user=successor)
+
+    services.send_handoff_notices()
+    mail.outbox.clear()
+    sent_again = services.send_handoff_notices()
+
+    assert sent_again == 0
+    assert len(mail.outbox) == 0
+
+
+def test_send_handoff_notices_skips_a_position_excluded_from_the_feature():
+    Config.objects.create(key="TRANSITIONS_COUNCIL_ENABLED", value="off", description="")
+    chapter = ChapterFactory()
+    _report(chapter, "grand regent", UserFactory(chapter=chapter))
+    successor = UserFactory(chapter=chapter)
+    _role_change(chapter, "grand regent", TODAY + datetime.timedelta(days=180), start=TODAY, user=successor)
+
+    sent = services.send_handoff_notices()
+
+    assert sent == 0
+    assert not HandoffNotice.objects.filter(role_change__user=successor).exists()
+
+
+def test_send_handoff_notices_ignores_a_role_that_started_outside_the_lookback_window():
+    chapter = ChapterFactory()
+    _report(chapter, "treasurer", UserFactory(chapter=chapter))
+    successor = UserFactory(chapter=chapter)
+    # Started well over a year ago (LOOKBACK_GRACE_DAYS) but still "current" --
+    # a historical backfill, not a fresh take-office event.
+    _role_change(
+        chapter,
+        "treasurer",
+        TODAY + datetime.timedelta(days=180),
+        start=TODAY - datetime.timedelta(days=services.LOOKBACK_GRACE_DAYS + 30),
+        user=successor,
+    )
+
+    sent = services.send_handoff_notices()
+
+    assert sent == 0
+    assert not HandoffNotice.objects.filter(role_change__user=successor).exists()
+
+
+def test_send_handoff_notices_ignores_a_role_that_has_not_started_yet():
+    chapter = ChapterFactory()
+    _report(chapter, "treasurer", UserFactory(chapter=chapter))
+    successor = UserFactory(chapter=chapter)
+    _role_change(
+        chapter,
+        "treasurer",
+        TODAY + datetime.timedelta(days=180),
+        start=TODAY + datetime.timedelta(days=10),
+        user=successor,
+    )
+
+    sent = services.send_handoff_notices()
+
+    assert sent == 0
+    assert not HandoffNotice.objects.filter(role_change__user=successor).exists()
+
+
+def test_send_handoff_notices_dry_run_sends_and_writes_nothing():
+    chapter = ChapterFactory()
+    _report(chapter, "treasurer", UserFactory(chapter=chapter))
+    successor = UserFactory(chapter=chapter)
+    _role_change(chapter, "treasurer", TODAY + datetime.timedelta(days=180), start=TODAY, user=successor)
+
+    sent = services.send_handoff_notices(dry_run=True)
+
+    assert sent == 1
+    assert len(mail.outbox) == 0
+    assert not HandoffNotice.objects.filter(role_change__user=successor).exists()

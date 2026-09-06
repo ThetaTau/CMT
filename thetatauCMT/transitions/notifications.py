@@ -74,3 +74,38 @@ class TransitionReportSeasonalReminder(EmailNotification):
         user = User.objects.order_by("?").first()
         obligations = ReportObligation.objects.filter(officer=user, status="open")
         return [user, obligations]
+
+
+@registry.register_decorator()
+class HandoffPacketAvailable(EmailNotification):
+    """New-officeholder notice that predecessor Transition Reports exist to
+    read (TRWI-7). Fired once per role taken (services.send_handoff_notices)
+    -- the packet view always reflects the current full history, so this is
+    a one-time "come look" nudge, not a recurring reminder.
+    """
+
+    render_types = ["html"]
+    template_name = "transition_handoff_packet_available"
+    subject = "Transition Reports are available for your new position"
+
+    def __init__(self, user, position_key, chapter, report_count):
+        self.to_emails = {email for email in user.emails if email}
+        self.cc = []
+        self.reply_to = ["central.office@thetatau.org"]
+        chapter_name = _chapter_display_name(chapter)
+        self.subject = f"Transition Reports available: {position_key.title()} ({chapter_name})"
+        self.context = {
+            "user": user,
+            "position_key": position_key,
+            "chapter_name": chapter_name,
+            "chapter_pk": chapter.pk,
+            "report_count": report_count,
+            "host": settings.CURRENT_URL,
+        }
+
+    @staticmethod
+    def get_demo_args():
+        from thetatauCMT.users.models import User
+
+        user = User.objects.order_by("?").first()
+        return [user, "treasurer", user.chapter, 3]

@@ -183,6 +183,111 @@ def test_transitions_list_scope_filter_shown_and_narrows_an_rds_view(auto_login_
     assert "<td>Treasurer</td>" not in response.content.decode()
 
 
+def test_transitions_list_shows_handoff_packet_link_for_a_held_position(auto_login_user):
+    client, treasurer = auto_login_user()
+    treasurer.current_roles = ["treasurer"]
+    treasurer.save(update_fields=["current_roles"])
+
+    response = client.get(reverse("transitions:list"))
+
+    assert "Treasurer handoff packet" in response.content.decode()
+
+
+def test_transitions_list_hides_handoff_packet_link_when_holding_no_in_scope_position(auto_login_user):
+    client, member = auto_login_user()
+
+    response = client.get(reverse("transitions:list"))
+
+    assert "handoff packet" not in response.content.decode()
+
+
+# ---------------------------------------------------------------------------
+# HandoffPacketView
+# ---------------------------------------------------------------------------
+def test_handoff_packet_view_requires_login(client):
+    chapter = ChapterFactory()
+    response = client.get(reverse("transitions:packet", args=[chapter.pk, "treasurer"]))
+    assert response.status_code == 302
+
+
+def test_handoff_packet_view_shows_predecessor_reports(auto_login_user):
+    client, successor = auto_login_user()
+    successor.current_roles = ["treasurer"]
+    successor.save(update_fields=["current_roles"])
+    _report(successor.chapter, "treasurer", UserFactory(chapter=successor.chapter))
+
+    response = client.get(reverse("transitions:packet", args=[successor.chapter.pk, "treasurer"]))
+
+    assert response.status_code == 200
+    assert "Mark as read" in response.content.decode()
+
+
+def test_handoff_packet_view_excludes_the_viewers_own_report(auto_login_user):
+    client, successor = auto_login_user()
+    successor.current_roles = ["treasurer"]
+    successor.save(update_fields=["current_roles"])
+    _report(successor.chapter, "treasurer", successor)
+
+    response = client.get(reverse("transitions:packet", args=[successor.chapter.pk, "treasurer"]))
+
+    assert "No Transition Reports are available to read" in response.content.decode()
+
+
+def test_handoff_packet_view_empty_when_not_entitled(auto_login_user):
+    client, member = auto_login_user()
+    other_chapter = ChapterFactory()
+    _report(other_chapter, "treasurer", UserFactory(chapter=other_chapter))
+
+    response = client.get(reverse("transitions:packet", args=[other_chapter.pk, "treasurer"]))
+
+    assert response.status_code == 200
+    assert "No Transition Reports are available to read" in response.content.decode()
+
+
+def test_handoff_packet_view_shows_read_badge_after_acknowledging(auto_login_user):
+    client, successor = auto_login_user()
+    successor.current_roles = ["treasurer"]
+    successor.save(update_fields=["current_roles"])
+    report = _report(successor.chapter, "treasurer", UserFactory(chapter=successor.chapter))
+
+    client.post(reverse("transitions:acknowledge", args=[report.pk]))
+    response = client.get(reverse("transitions:packet", args=[successor.chapter.pk, "treasurer"]))
+
+    body = response.content.decode()
+    assert "Read</span>" in body
+    assert "Mark as read" not in body
+
+
+# ---------------------------------------------------------------------------
+# AcknowledgeReportView
+# ---------------------------------------------------------------------------
+def test_acknowledge_view_records_acknowledgment_for_an_entitled_reader(auto_login_user):
+    from ..models import ReportAcknowledgement
+
+    client, successor = auto_login_user()
+    successor.current_roles = ["treasurer"]
+    successor.save(update_fields=["current_roles"])
+    report = _report(successor.chapter, "treasurer", UserFactory(chapter=successor.chapter))
+
+    response = client.post(reverse("transitions:acknowledge", args=[report.pk]))
+
+    assert response.status_code == 302
+    assert ReportAcknowledgement.objects.filter(report=report, user=successor).exists()
+
+
+def test_acknowledge_view_denies_an_unentitled_user(auto_login_user):
+    from ..models import ReportAcknowledgement
+
+    client, member = auto_login_user()
+    other_chapter = ChapterFactory()
+    report = _report(other_chapter, "treasurer", UserFactory(chapter=other_chapter))
+
+    response = client.post(reverse("transitions:acknowledge", args=[report.pk]))
+
+    assert response.status_code == 302
+    assert not ReportAcknowledgement.objects.filter(report=report, user=member).exists()
+
+
 # ---------------------------------------------------------------------------
 # ComposeReportView
 # ---------------------------------------------------------------------------

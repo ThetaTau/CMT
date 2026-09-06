@@ -1,7 +1,9 @@
 from dj_anonymizer.register_models import AnonymBase, register_clean, register_skip
 
 from thetatauCMT.transitions.models import (
+    HandoffNotice,
     PositionOverride,
+    ReportAcknowledgement,
     ReportAnswer,
     ReportAttachment,
     ReportObligation,
@@ -17,7 +19,11 @@ from thetatauCMT.transitions.models import (
 # holds no raw identity fields of its own (dates, position keys, status).
 # TransitionReport (TRWI-5) is likewise just metadata (chapter/position/
 # author FK/status/dates) -- the actual authored content lives on
-# ReportAnswer, not here.
+# ReportAnswer, not here. ReportAcknowledgement and HandoffNotice (TRWI-7)
+# are pure bookkeeping too -- a read-receipt FK+timestamp and a notification
+# dedupe FK+timestamp, respectively -- same category as guides.
+# UserAcknowledgement, which this app's own Codebase Review Notes already
+# treated as skip-safe.
 register_skip(
     [
         PositionOverride,
@@ -25,6 +31,8 @@ register_skip(
         TemplatePrompt,
         ReportObligation,
         TransitionReport,
+        ReportAcknowledgement,
+        HandoffNotice,
     ]
 )
 

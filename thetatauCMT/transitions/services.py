@@ -11,15 +11,17 @@ from thetatauCMT.users.models import User, UserRoleChange
 
 from .models import (
     POSITION_KEY_TO_TYPE,
+    HandoffNotice,
     PositionOverride,
     PositionType,
+    ReportAcknowledgement,
     ReportAnswer,
     ReportObligation,
     ReportTemplate,
     TransitionReport,
     position_type_for_key,
 )
-from .notifications import TransitionReportDueReminder, TransitionReportSeasonalReminder
+from .notifications import HandoffPacketAvailable, TransitionReportDueReminder, TransitionReportSeasonalReminder
 
 DUE_DATE_OFFSET_DAYS_CONFIG_KEY = "TRANSITIONS_DUE_DATE_OFFSET_DAYS"
 REMINDER_OFFSETS_DAYS_CONFIG_KEY = "TRANSITIONS_REMINDER_OFFSETS_DAYS"
@@ -635,3 +637,78 @@ def can_read_report(user, report):
     apart.
     """
     return get_readable_reports(user, pk=report.pk).exists()
+
+
+# ---------------------------------------------------------------------------
+# TRWI-7: successor handoff packet & acknowledgment
+# ---------------------------------------------------------------------------
+def get_handoff_packet(user, chapter, position_key):
+    """ALL PREDECESSOR reports ``user`` may read for ``position_key`` in
+    ``chapter`` (TRWI-7), reverse-chronological (``TransitionReport.Meta.
+    ordering``). Excludes ``user``'s own report -- "predecessor reports" per
+    the spec, not a mirror of their own in-progress/submitted one.
+
+    Otherwise just ``get_readable_reports`` scoped down to one slot -- there
+    is no separate access rule for the packet; it's the same TRWI-6 service
+    every other read surface uses.
+    """
+    return get_readable_reports(user, chapter=chapter, position_key=position_key).exclude(author=user)
+
+
+def acknowledge_report(report, user):
+    """Record ``user`` having read ``report`` (TRWI-7). Idempotent -- a
+    second acknowledgment of the same report by the same user is a no-op,
+    matching the ``(report, user)`` unique constraint. Editing the report
+    later does NOT reset or re-require acknowledgment (decision 2026-09-04).
+    """
+    ReportAcknowledgement.objects.get_or_create(report=report, user=user)
+
+
+def send_handoff_notices(dry_run=False):
+    """New-officeholder "predecessor reports are available" notice (TRWI-7).
+
+    Fires once per ``UserRoleChange`` taking an in-scope, required/optional
+    position, scanning the same ``LOOKBACK_GRACE_DAYS`` window as
+    ``generate_obligations``' own trigger 1 -- so a historical data import
+    can never flood years-old alumni with notices. Skips the actual SEND
+    when there is nothing readable yet (an empty "here's your packet!" email
+    is noise, not a nudge), but still records ``HandoffNotice`` either way so
+    the role change is never re-evaluated once handled.
+
+    Uses ``role_change.user.chapter`` (not ``user.current_chapter``) for the
+    same reason ``generate_obligations`` does: the report/obligation rows
+    this notice is about are keyed to the chapter actually held AT THE TIME,
+    which for a National Officer with an active ``UserAlter`` preview
+    override can differ from ``current_chapter``.
+
+    ``dry_run`` skips every send/write explicitly, matching
+    ``send_due_date_reminders``' reasoning (an actual email send is a real
+    external side effect a rolled-back transaction can't undo). Returns the
+    count of notices sent (or that would be sent, under ``dry_run``).
+    """
+    today = timezone.now().date()
+    window_start = today - datetime.timedelta(days=LOOKBACK_GRACE_DAYS)
+    sent = 0
+
+    role_changes = UserRoleChange.objects.filter(
+        role__in=list(POSITION_KEY_TO_TYPE),
+        start__lte=today,
+        end__gte=today,
+        start__gte=window_start,
+        transition_handoff_notice__isnull=True,
+    ).select_related("user", "user__chapter")
+    for role_change in role_changes:
+        status = resolve_position_status(role_change.role)
+        if status not in (PositionOverride.Status.required.name, PositionOverride.Status.optional.name):
+            continue
+        user = role_change.user
+        chapter = user.chapter
+        report_count = get_handoff_packet(user, chapter, role_change.role).count()
+        if report_count > 0:
+            if not dry_run:
+                HandoffPacketAvailable(user, role_change.role, chapter, report_count).send()
+            sent += 1
+        if not dry_run:
+            HandoffNotice.objects.create(role_change=role_change)
+
+    return sent

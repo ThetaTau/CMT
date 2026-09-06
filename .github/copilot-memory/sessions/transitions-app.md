@@ -1,6 +1,6 @@
 # Transition Reports & Lessons Learned — Feature Spec & Work Breakdown
 
-> **Status:** In development (2026-09-05) — TRWI-1 through TRWI-6 are implemented and tested. See "Decisions Log" at the end for the full record of resolved decisions (A-K) plus TRWI-5's (L35-L45) and TRWI-6's (M46-M52) choices awaiting review. Note: CSV export requirement dropped (TRWI-11 only).
+> **Status:** In development (2026-09-05) — TRWI-1 through TRWI-7 are implemented and tested. See "Decisions Log" at the end for the full record of resolved decisions (A-K) plus TRWI-5's (L35-L45), TRWI-6's (M46-M52), and TRWI-7's (N53-N61) choices awaiting review. Note: CSV export requirement dropped (TRWI-11 only).
 > **Approach:** Purpose-built app (custom), no third-party survey dependency. App name: `thetatauCMT.transitions`.
 > **File location:** `docs/specs/transition-reports.md`
 
@@ -495,7 +495,7 @@ Deliver the command + `docs/specs/transition-reports-qa.md` listing expected vis
 4. **TRWI-7 → TRWI-8** — Handoff packet + prior answers. **The compliance payoff — do not defer.**
 5. **TRWI-9** — Compliance dashboards.
 6. **TRWI-10** — Full history (no archiving, no pinning).
-7. **TRWI-11** — Tags, search, trends, CSV export. NO NEED FOR CSV EXPORT
+7. **TRWI-11** — Tags, search, trends. NO NEED FOR CSV EXPORT
 8. **TRWI-12** — QA seed (buildable once TRWI-5/6 land; extend as later items ship).
 
 **Minimum viable slice:** TRWI-1 → TRWI-8. That delivers capture + accountability + handoff, which is the core of the request.
@@ -616,6 +616,20 @@ TRWI-6 is implemented and tested (179 tests passing in the transitions app, up f
 - **M51 — `TransitionsListView` was extended, not left as a bare service with zero callers.** The spec's own "chapter vs. national scope" filter (Design decisions section) was explicitly deferred to TRWI-6 by decision L40, and TRWI-9's own text assumes the Transitions list "already filters by role and chapter/national scope" by the time dashboards start — so closing that gap now, rather than leaving it for TRWI-7/9, keeps the spec's own forward references true. Added a **"Reports you can read"** section (`services.get_readable_reports`) plus a `scope=chapter` GET param that narrows to the viewer's own current chapter. The toggle itself is only rendered when it would narrow anything (admin, national officer, or RD) — a Regent's or successor's readable set is already chapter-scoped, so the toggle would be a no-op for them. This is intentionally a binary toggle ("my chapter" vs. "everything I can read"), not a per-chapter picker dropdown — the fuller rate/trend breakdown by chapter belongs to TRWI-9's dashboards, not this list view.
 - **M52 — No query-count regression test added for `get_readable_reports` in TRWI-6 itself** — the spec assigns that performance discipline (`select_related`/`prefetch_related`, `CaptureQueriesContext` N=1 vs N=6+ comparison) explicitly to TRWI-9. `select_related("chapter", "chapter__region", "obligation")` is already applied here so TRWI-9 inherits a reasonably query-light base rather than starting from zero.
 
+### N. TRWI-7 — Successor handoff packet & acknowledgment (implemented autonomously 2026-09-05 — please review)
+
+TRWI-7 is implemented, migrated, and tested (207 tests passing in the transitions app, up from 179; 1915 passed / 15 skipped across the full regression sweep). This work item's spec left the "notify on taking office" trigger mechanism unspecified beyond "reuse existing notification patterns," which drove most of the judgment calls below.
+
+- **N53 — A SEPARATE new daily command, `send_transition_handoff_notices`, not folded into TRWI-4's existing `send_transition_report_reminders`.** The Design Rules say scheduled commands must be daily-only, but not that every daily concern must share ONE command/function. Reminders (nudging the outgoing officer) and handoff notices (informing the incoming officer) are different audiences and different triggers; more importantly, `send_transition_report_reminders` is already a live, presumably-scheduled production command — changing its behavior or name to absorb a second concern risked disrupting an existing PythonAnywhere scheduled task for no real benefit. Cost: one more daily task to schedule, called out in the Pre-Launch Checklist below.
+- **N54 — Handoff notices cover the FULL in-scope position set** (`POSITION_KEY_TO_TYPE`, filtered through `resolve_position_status` for required/optional, excluding "excluded"), not the narrower 5-role `CHAPTER_OFFICER` set the existing `users.notifications.NewOfficers` "welcome new officer" email happens to use. TRWI-7's own wording ("a member takes office in an in-scope position") means council/national_officer/committee_chair positions too, matching `generate_obligations`' own trigger-1 scope exactly — not a new, narrower rule invented for notifications specifically.
+- **N55 — The notice EMAIL is skipped when there are zero predecessor reports to read, but `HandoffNotice` is still recorded either way.** An empty "here's your packet!" email the moment someone takes a brand-new-to-the-feature position (which will be EVERY position for a long while after rollout) is noise, not a nudge, and risks training recipients to ignore the notification entirely. Mirrors K29's exact reasoning (TRWI-4: "resolves no recipients... but still records the threshold so it's never re-evaluated").
+- **N56 — New `HandoffNotice` model (OneToOne to `UserRoleChange`) is pure dedupe bookkeeping**, tracking only that the one-time notice already fired for a specific role change — it is NOT registered in Django admin, matching `ReportObligation`'s own precedent (also bookkeeping-heavy, also has no dedicated admin page; officers/committee use the front-end views, not raw table browsing, for this kind of row).
+- **N57 — `get_handoff_packet` excludes the viewer's OWN report from the results**, layered on top of `get_readable_reports` (TRWI-6). The spec says "ALL readable PREDECESSOR reports" — a successor who has already drafted or submitted their own report for the same slot should see it via the Compose flow (TRWI-5) and the Transitions list (TRWI-5/6), not mixed into what's supposed to be their predecessors' history.
+- **N58 — Packet view access is exactly `get_readable_reports`, scoped down — no separate 403 for an unentitled visitor.** An unentitled viewer of `/transitions/packet/<chapter>/<position>/` simply sees an empty packet ("No Transition Reports are available to read for this position yet"), the same "the queryset IS the security boundary" approach `TransitionsListView` already uses — no report CONTENT is ever at risk since the queryset itself is the enforcement point, and chapter/position names aren't confidential.
+- **N59 — `AcknowledgeReportView` re-checks `can_read_report` independently**, even though its only real entry point (the packet view) already only ever shows readable reports — defense in depth for a POST endpoint that takes a bare report pk, consistent with how `CloseNAVacantView`/`AttachmentDeleteView` (TRWI-5) also each re-check their own authorization rather than trusting the referring page.
+- **N60 — `send_handoff_notices` uses `role_change.user.chapter`, not `user.current_chapter`,** for the same reason `generate_obligations` does (TRWI-3): the report/obligation history this notice is about is keyed to the chapter the role was actually held in, which for a National Officer previewing via an active `UserAlter` override can differ from `current_chapter`.
+- **N61 — No new feature registry entry for the packet page.** It is a sub-page reached only via a link from the already-registered `transition-reports` list page (Forms landing), never a directly-navigable top-level destination — matches TRWI-5's own precedent (`ComposeReportView`/`AttachmentDeleteView`/`CloseNAVacantView` also got no separate entries, only the list view did).
+
 ---
 
 ## Pre-Launch Checklist
@@ -623,9 +637,10 @@ TRWI-6 is implemented and tested (179 tests passing in the transitions app, up f
 - [ ] **Default Prompt Set review** — get a pass from someone who has actually held a chapter office before the prompt set is seeded to production; `prompt_key` values become immutable once shipped (F16).
 - [x] Feature registry entry added for the Transitions page(s) and verified with `load_feature_registry --dry-run` (this is also what makes the row appear on Forms landing). Done 2026-09-05 (TRWI-5, key `transition-reports`).
 - [ ] `manage.py buildwatson` run after deploy if TRWI-11's search is implemented via `watson`.
+- [ ] Schedule the new `send_transition_handoff_notices` daily command on PythonAnywhere (TRWI-7) — separate from the existing `send_transition_report_reminders` task (decision N53); both must run daily.
 
 ---
 
 ## Remaining Open Questions
 
-None from the original codebase review round, TRWI-3 (I20-I23, J24), or TRWI-4 (K25-K34, confirmed) — see Decisions Log A-K. TRWI-5's design choices (L35-L45) and TRWI-6's (M46-M52) are implemented and tested but not yet reviewed by you; see the Decisions Log entries above.
+None from the original codebase review round, TRWI-3 (I20-I23, J24), or TRWI-4 (K25-K34, confirmed) — see Decisions Log A-K. TRWI-5's design choices (L35-L45), TRWI-6's (M46-M52), and TRWI-7's (N53-N61) are implemented and tested but not yet reviewed by you; see the Decisions Log entries above.

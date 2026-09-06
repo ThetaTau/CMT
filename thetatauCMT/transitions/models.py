@@ -336,3 +336,48 @@ class ReportAttachment(models.Model):
 
     def __str__(self):
         return self.file.name
+
+
+class ReportAcknowledgement(models.Model):
+    """A successor's "I've read this" receipt for one ``TransitionReport``
+    (TRWI-7) -- a read-receipt metric, arguably more valuable than submission
+    rate.
+
+    Dedicated model rather than reusing ``guides.UserAcknowledgement`` (which
+    already models "user said got it to a thing" generically over a GFK) --
+    avoids a new app depending on `guides`; spelling matches this codebase's
+    ``UserAcknowledgement`` convention. Editing the report after
+    acknowledgment does NOT reset or flag it (decision 2026-09-04) --
+    acknowledgments persist regardless of later edits.
+    """
+
+    report = models.ForeignKey(TransitionReport, on_delete=models.CASCADE, related_name="acknowledgements")
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="transition_report_acknowledgements"
+    )
+    acknowledged_at = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        unique_together = [("report", "user")]
+        ordering = ["-acknowledged_at"]
+        verbose_name = "Report Acknowledgement"
+
+    def __str__(self):
+        return f"{self.user} acknowledged {self.report}"
+
+
+class HandoffNotice(models.Model):
+    """Dedupe record: the "handoff packet available" email has already been
+    sent for a ``UserRoleChange`` taking office (TRWI-7), so the daily
+    command never re-sends it. The packet view itself always reflects the
+    CURRENT full history -- this only tracks the one-time notification, not
+    the packet's content.
+    """
+
+    role_change = models.OneToOneField(
+        UserRoleChange, on_delete=models.CASCADE, related_name="transition_handoff_notice"
+    )
+    sent_at = models.DateTimeField(default=timezone.now)
+
+    def __str__(self):
+        return f"Handoff notice sent for {self.role_change}"

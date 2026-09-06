@@ -5,12 +5,15 @@ from django.db import IntegrityError
 
 from core.models import ADVISOR_ROLES, CHAPTER_OFFICER_REQUIRED, COMMITTEE_CHAIR, COUNCIL, NATIONAL_OFFICER
 from thetatauCMT.chapters.tests.factories import ChapterFactory
+from thetatauCMT.users.models import UserRoleChange
 from thetatauCMT.users.tests.factories import UserFactory
 
 from ..models import (
     POSITION_KEY_CHOICES,
+    HandoffNotice,
     PositionOverride,
     PositionType,
+    ReportAcknowledgement,
     ReportAnswer,
     ReportAttachment,
     ReportObligation,
@@ -251,3 +254,71 @@ def test_report_attachment_rejects_disallowed_file_type():
     )
     with pytest.raises(ValidationError):
         attachment.full_clean()
+
+
+# ---------------------------------------------------------------------------
+# ReportAcknowledgement / HandoffNotice (TRWI-7)
+# ---------------------------------------------------------------------------
+def _report(chapter, officer):
+    obligation = _obligation(chapter, officer)
+    template = ReportTemplate.objects.create(position_type="CHAPTER_OFFICER", name="Chapter Officer Report")
+    return TransitionReport.objects.create(
+        obligation=obligation,
+        chapter=chapter,
+        position_type="CHAPTER_OFFICER",
+        position_key="treasurer",
+        author=officer,
+        template=template,
+        template_version=1,
+        status="submitted",
+    )
+
+
+def test_report_acknowledgement_unique_per_user_and_report():
+    chapter = ChapterFactory()
+    author = UserFactory(chapter=chapter)
+    reader = UserFactory(chapter=chapter)
+    report = _report(chapter, author)
+    ReportAcknowledgement.objects.create(report=report, user=reader)
+
+    with pytest.raises(IntegrityError):
+        ReportAcknowledgement.objects.create(report=report, user=reader)
+
+
+def test_report_acknowledgement_str():
+    chapter = ChapterFactory()
+    author = UserFactory(chapter=chapter)
+    reader = UserFactory(chapter=chapter)
+    report = _report(chapter, author)
+    ack = ReportAcknowledgement.objects.create(report=report, user=reader)
+
+    assert str(ack) == f"{reader} acknowledged {report}"
+
+
+def test_handoff_notice_one_per_role_change():
+    chapter = ChapterFactory()
+    officer = UserFactory(chapter=chapter)
+    role_change = UserRoleChange.objects.create(
+        user=officer,
+        role="treasurer",
+        start=datetime.date.today(),
+        end=datetime.date.today() + datetime.timedelta(days=180),
+    )
+    HandoffNotice.objects.create(role_change=role_change)
+
+    with pytest.raises(IntegrityError):
+        HandoffNotice.objects.create(role_change=role_change)
+
+
+def test_handoff_notice_str():
+    chapter = ChapterFactory()
+    officer = UserFactory(chapter=chapter)
+    role_change = UserRoleChange.objects.create(
+        user=officer,
+        role="treasurer",
+        start=datetime.date.today(),
+        end=datetime.date.today() + datetime.timedelta(days=180),
+    )
+    notice = HandoffNotice.objects.create(role_change=role_change)
+
+    assert str(notice) == f"Handoff notice sent for {role_change}"

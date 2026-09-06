@@ -6,7 +6,7 @@ from thetatauCMT.chapters.tests.factories import ChapterFactory
 from thetatauCMT.users.tests.factories import UserFactory
 
 from ..models import ReportObligation
-from ..notifications import TransitionReportDueReminder, TransitionReportSeasonalReminder
+from ..notifications import HandoffPacketAvailable, TransitionReportDueReminder, TransitionReportSeasonalReminder
 
 pytestmark = pytest.mark.django_db
 
@@ -76,3 +76,30 @@ def test_seasonal_reminder_context_lists_obligations():
     obligation = _obligation(chapter, officer=user)
     notif = TransitionReportSeasonalReminder(user, [obligation])
     assert notif.context["obligations"] == [obligation]
+
+
+# ---------------------------------------------------------------------------
+# HandoffPacketAvailable
+# ---------------------------------------------------------------------------
+def test_handoff_packet_available_to_emails_from_user():
+    chapter = ChapterFactory()
+    user = UserFactory(chapter=chapter)
+    notif = HandoffPacketAvailable(user, "treasurer", chapter, 3)
+    assert notif.to_emails == set(user.emails)
+
+
+def test_handoff_packet_available_subject_contains_position_and_chapter():
+    chapter = ChapterFactory()
+    user = UserFactory(chapter=chapter)
+    notif = HandoffPacketAvailable(user, "treasurer", chapter, 3)
+    assert "Treasurer" in notif.subject
+    assert chapter.name in notif.subject
+
+
+def test_handoff_packet_available_context():
+    chapter = ChapterFactory()
+    user = UserFactory(chapter=chapter)
+    notif = HandoffPacketAvailable(user, "treasurer", chapter, 3)
+    assert notif.context["position_key"] == "treasurer"
+    assert notif.context["chapter_pk"] == chapter.pk
+    assert notif.context["report_count"] == 3

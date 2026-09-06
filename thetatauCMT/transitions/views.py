@@ -7,10 +7,11 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.views.generic import TemplateView, View
 
 from core.views import LoginRequiredMixin
+from thetatauCMT.chapters.models import Chapter
 
 from . import services
 from .forms import ComposeReportForm, ReportAttachmentForm
-from .models import ReportAttachment, ReportObligation
+from .models import POSITION_KEY_TO_TYPE, ReportAttachment, ReportObligation, TransitionReport
 
 
 class TransitionsListView(LoginRequiredMixin, TemplateView):
@@ -52,6 +53,10 @@ class TransitionsListView(LoginRequiredMixin, TemplateView):
         context["readable_reports"] = readable_reports
         context["scope"] = scope
         context["show_scope_filter"] = user.is_admin or user.is_national_officer_group or user.director_regions.exists()
+        context["my_packets"] = [
+            {"position_key": position_key, "chapter": user.chapter}
+            for position_key in sorted(set(user.current_roles or []) & set(POSITION_KEY_TO_TYPE))
+        ]
         return context
 
 
@@ -148,3 +153,48 @@ class CloseNAVacantView(LoginRequiredMixin, View):
             services.close_as_na_vacant(obligation)
             messages.success(request, "Closed as vacant -- no report required.")
         return redirect("transitions:list")
+
+
+class HandoffPacketView(LoginRequiredMixin, TemplateView):
+    """ALL reports the viewer may read for one position/chapter (TRWI-7),
+    reverse-chronological -- permanently reachable, not a one-time
+    notification. Access is whatever ``services.get_readable_reports``
+    already allows (successor/Regent/RD/national/admin); an unentitled
+    viewer simply sees an empty packet, the same "the queryset IS the
+    security boundary" approach as ``TransitionsListView``.
+    """
+
+    template_name = "transitions/handoff_packet.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        chapter = get_object_or_404(Chapter, pk=kwargs["chapter_pk"])
+        position_key = kwargs["position_key"]
+        reports = list(services.get_handoff_packet(self.request.user, chapter, position_key))
+        acknowledged_ids = set(
+            self.request.user.transition_report_acknowledgements.filter(report__in=reports).values_list(
+                "report_id", flat=True
+            )
+        )
+        context["chapter"] = chapter
+        context["position_key"] = position_key
+        context["reports"] = reports
+        context["acknowledged_report_ids"] = acknowledged_ids
+        return context
+
+
+class AcknowledgeReportView(LoginRequiredMixin, View):
+    """Records "I've read this" for one report (TRWI-7). Requires read
+    access to the report itself -- the packet view already only ever shows
+    readable reports, but this is checked again here too since it is its
+    own POST endpoint.
+    """
+
+    def post(self, request, pk):
+        report = get_object_or_404(TransitionReport, pk=pk)
+        if not services.can_read_report(request.user, report):
+            messages.error(request, "You are not able to acknowledge this report.")
+        else:
+            services.acknowledge_report(report, request.user)
+            messages.success(request, "Marked as read.")
+        return redirect("transitions:packet", chapter_pk=report.chapter_id, position_key=report.position_key)

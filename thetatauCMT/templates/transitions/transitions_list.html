@@ -9,6 +9,18 @@
     A Transition Report captures what worked, what didn't, and what your successor needs to know.
   </p>
 
+  {% if my_packets %}
+    <h2>Handoff packets for your positions</h2>
+    <p>Everything your predecessors wrote for the positions you currently hold.</p>
+    <p>
+      {% for packet in my_packets %}
+        <a class="btn btn-sm btn-outline-primary" href="{% url 'transitions:packet' packet.chapter.pk packet.position_key %}">
+          {{ packet.position_key|title }} handoff packet
+        </a>
+      {% endfor %}
+    </p>
+  {% endif %}
+
   {% if vacant_obligations %}
     <h2>Vacant positions to close</h2>
     <p>These positions have no current holder, so no one can write a report for them.</p>

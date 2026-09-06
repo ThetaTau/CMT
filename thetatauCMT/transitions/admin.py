@@ -2,6 +2,7 @@ from django.contrib import admin
 
 from .models import (
     PositionOverride,
+    ReportAcknowledgement,
     ReportAnswer,
     ReportAttachment,
     ReportTemplate,
@@ -65,6 +66,14 @@ class ReportAttachmentInline(admin.TabularInline):
     readonly_fields = ("uploaded_by", "uploaded_at")
 
 
+class ReportAcknowledgementInline(admin.TabularInline):
+    model = ReportAcknowledgement
+    extra = 0
+    fields = ("user", "acknowledged_at")
+    readonly_fields = ("user", "acknowledged_at")
+    can_delete = False
+
+
 @admin.register(TransitionReport)
 class TransitionReportAdmin(admin.ModelAdmin):
     """Read-oriented -- national committee oversight, not day-to-day editing.
@@ -78,4 +87,4 @@ class TransitionReportAdmin(admin.ModelAdmin):
     list_filter = ("position_type", "status")
     search_fields = ("position_key", "chapter__name", "author__name")
     ordering = ("-created",)
-    inlines = [ReportAnswerInline, ReportAttachmentInline]
+    inlines = [ReportAnswerInline, ReportAttachmentInline, ReportAcknowledgementInline]

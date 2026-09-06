@@ -1,0 +1,16 @@
+{% extends "herald/html/base_email.html" %}
+{% block title %}Transition Reports are available{% endblock %}
+{% block content %}
+<h1 class="null" style="margin: 0;padding: 0;display: block;font-family: Helvetica;font-size: 40px;font-style: normal;font-weight: bold;line-height: 125%;letter-spacing: -1px;text-align: left;color: #606060 !important;">Transition Reports are available</h1>
+Dear {{ user.name }},
+<p>
+Congratulations on your new position as {{ position_key|title }} ({{ chapter_name }}). Your predecessors left
+behind {{ report_count }} Transition Report{{ report_count|pluralize }} covering what worked, what didn't, and
+what you need to know -- read them before you're stuck reinventing something they already figured out.
+</p>
+<p>
+<a href="{{ host }}{% url 'transitions:packet' chapter_pk position_key %}">View your handoff packet</a>
+</p>
+<br>
+  {% include "herald/html/rm_contact.html" %}
+{% endblock content %}
