@@ -1277,3 +1277,120 @@ def test_send_handoff_notices_dry_run_sends_and_writes_nothing():
     assert sent == 1
     assert len(mail.outbox) == 0
     assert not HandoffNotice.objects.filter(role_change__user=successor).exists()
+
+
+# ---------------------------------------------------------------------------
+# get_prior_answers (TRWI-8)
+# ---------------------------------------------------------------------------
+def _add_prompt(template, prompt_key, label):
+    TemplatePrompt.objects.get_or_create(template=template, prompt_key=prompt_key, defaults={"label": label})
+
+
+def test_get_prior_answers_matches_by_prompt_key():
+    chapter = ChapterFactory()
+    predecessor = _report(chapter, "treasurer", UserFactory(chapter=chapter))
+    _add_prompt(predecessor.template, "successes", "Successes?")
+    predecessor.answers.create(prompt_key="successes", prompt_label_snapshot="Successes?", value="ask the RD")
+    successor = UserFactory(chapter=chapter)
+    successor.current_roles = ["treasurer"]
+    successor.save(update_fields=["current_roles"])
+    current_report = _report(
+        chapter, "treasurer", successor, status="draft", due_date=TODAY + datetime.timedelta(days=200)
+    )
+
+    prior = services.get_prior_answers(successor, current_report)
+
+    assert prior["successes"].value == "ask the RD"
+
+
+def test_get_prior_answers_uses_the_most_recent_predecessor_only():
+    chapter = ChapterFactory()
+    oldest = _report(chapter, "treasurer", UserFactory(chapter=chapter), due_date=TODAY + datetime.timedelta(days=10))
+    _add_prompt(oldest.template, "successes", "Successes?")
+    oldest.answers.create(prompt_key="successes", prompt_label_snapshot="Successes?", value="old advice")
+    newest = _report(chapter, "treasurer", UserFactory(chapter=chapter), due_date=TODAY + datetime.timedelta(days=200))
+    newest.answers.create(prompt_key="successes", prompt_label_snapshot="Successes?", value="fresh advice")
+    successor = UserFactory(chapter=chapter)
+    successor.current_roles = ["treasurer"]
+    successor.save(update_fields=["current_roles"])
+    current_report = _report(
+        chapter, "treasurer", successor, status="draft", due_date=TODAY + datetime.timedelta(days=400)
+    )
+
+    prior = services.get_prior_answers(successor, current_report)
+
+    assert prior["successes"].value == "fresh advice"
+
+
+def test_get_prior_answers_falls_back_to_label_when_the_key_changed():
+    chapter = ChapterFactory()
+    predecessor = _report(chapter, "treasurer", UserFactory(chapter=chapter))
+    # Predecessor answered under an OLD prompt_key; the current template's
+    # prompt for the "same question" (by wording) now uses a different key.
+    predecessor.answers.create(prompt_key="old_key", prompt_label_snapshot="Successes?", value="ask the RD")
+    _add_prompt(predecessor.template, "successes_v2", "Successes?")
+    successor = UserFactory(chapter=chapter)
+    successor.current_roles = ["treasurer"]
+    successor.save(update_fields=["current_roles"])
+    current_report = _report(
+        chapter, "treasurer", successor, status="draft", due_date=TODAY + datetime.timedelta(days=200)
+    )
+
+    prior = services.get_prior_answers(successor, current_report)
+
+    assert prior["successes_v2"].value == "ask the RD"
+
+
+def test_get_prior_answers_empty_when_not_entitled():
+    chapter = ChapterFactory(name="alpha")
+    other_chapter = ChapterFactory(name="beta")
+    predecessor = _report(chapter, "treasurer", UserFactory(chapter=chapter))
+    _add_prompt(predecessor.template, "successes", "Successes?")
+    predecessor.answers.create(prompt_key="successes", prompt_label_snapshot="Successes?", value="ask the RD")
+    outsider = UserFactory(chapter=other_chapter)
+    current_report = _report(
+        other_chapter, "treasurer", outsider, status="draft", due_date=TODAY + datetime.timedelta(days=200)
+    )
+
+    assert services.get_prior_answers(outsider, current_report) == {}
+
+
+def test_get_prior_answers_empty_when_no_predecessor_reports():
+    chapter = ChapterFactory()
+    successor = UserFactory(chapter=chapter)
+    successor.current_roles = ["treasurer"]
+    successor.save(update_fields=["current_roles"])
+    current_report = _report(chapter, "treasurer", successor, status="draft")
+
+    assert services.get_prior_answers(successor, current_report) == {}
+
+
+def test_get_prior_answers_never_shows_the_viewers_own_report():
+    chapter = ChapterFactory()
+    author = UserFactory(chapter=chapter)
+    author.current_roles = ["treasurer"]
+    author.save(update_fields=["current_roles"])
+    own_older_report = _report(chapter, "treasurer", author, due_date=TODAY + datetime.timedelta(days=10))
+    _add_prompt(own_older_report.template, "successes", "Successes?")
+    own_older_report.answers.create(prompt_key="successes", prompt_label_snapshot="Successes?", value="my own words")
+    current_report = _report(
+        chapter, "treasurer", author, status="draft", due_date=TODAY + datetime.timedelta(days=200)
+    )
+
+    assert services.get_prior_answers(author, current_report) == {}
+
+
+def test_get_prior_answers_ignores_prompts_not_on_the_current_template():
+    chapter = ChapterFactory()
+    predecessor = _report(chapter, "treasurer", UserFactory(chapter=chapter))
+    # Answered under a prompt_key that isn't on the current template at all,
+    # and whose label doesn't match anything either -- no fallback possible.
+    predecessor.answers.create(prompt_key="retired_prompt", prompt_label_snapshot="Old question?", value="obsolete")
+    successor = UserFactory(chapter=chapter)
+    successor.current_roles = ["treasurer"]
+    successor.save(update_fields=["current_roles"])
+    current_report = _report(
+        chapter, "treasurer", successor, status="draft", due_date=TODAY + datetime.timedelta(days=200)
+    )
+
+    assert services.get_prior_answers(successor, current_report) == {}

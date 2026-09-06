@@ -19,7 +19,15 @@
   {{ form.media }}
   <form method="post" enctype="multipart/form-data" novalidate>
     {% csrf_token %}
-    {{ form|crispy }}
+    {% for field, prior in fields_with_prior_answers %}
+      {{ field|as_crispy_field }}
+      {% if prior %}
+        <details class="mb-3 text-muted">
+          <summary>What your predecessor said</summary>
+          <p style="white-space: pre-wrap;">{{ prior.value }}</p>
+        </details>
+      {% endif %}
+    {% endfor %}
     <button type="submit" name="action" value="draft" class="btn btn-outline-primary">Save Draft</button>
     <button type="submit" name="action" value="submit" class="btn btn-primary">Submit</button>
   </form>

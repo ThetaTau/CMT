@@ -118,6 +118,7 @@ class ComposeReportView(LoginRequiredMixin, View):
         return redirect("transitions:compose", pk=self.obligation.pk)
 
     def _render(self, request, report, form):
+        prior_answers = services.get_prior_answers(request.user, report)
         return render(
             request,
             self.template_name,
@@ -125,6 +126,7 @@ class ComposeReportView(LoginRequiredMixin, View):
                 "obligation": self.obligation,
                 "report": report,
                 "form": form,
+                "fields_with_prior_answers": form.fields_with_prior_answers(prior_answers),
                 "attachment_form": ReportAttachmentForm(),
             },
         )

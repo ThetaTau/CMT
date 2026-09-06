@@ -712,3 +712,42 @@ def send_handoff_notices(dry_run=False):
             HandoffNotice.objects.create(role_change=role_change)
 
     return sent
+
+
+# ---------------------------------------------------------------------------
+# TRWI-8: prior answers while composing
+# ---------------------------------------------------------------------------
+def get_prior_answers(user, report):
+    """``{prompt_key: ReportAnswer}`` of the MOST RECENT predecessor's answer
+    to each of ``report``'s own current template's prompts (TRWI-8) --
+    display only, never used to pre-fill anything.
+
+    "The previous holder's answer" (singular, per the spec) means the single
+    most recent predecessor report, not a merge scanning further back --
+    ``get_handoff_packet`` is already most-recent-first and already excludes
+    ``user``'s own report. Matched primarily by ``prompt_key``; falls back to
+    ``prompt_label_snapshot`` for a prompt whose key changed since (a
+    defensive fallback -- shipped keys are meant to stay immutable, F16).
+
+    Respects TRWI-6 access rules automatically: if ``user`` doesn't qualify
+    as a reader for this exact position/chapter (e.g. editing their own
+    report long after current_roles no longer lists this position -- see
+    decision F15), ``get_handoff_packet`` returns nothing and this returns
+    ``{}``, same as if there were no predecessor reports at all.
+    """
+    if report.template is None:
+        return {}
+    predecessor = get_handoff_packet(user, report.chapter, report.position_key).first()
+    if predecessor is None:
+        return {}
+
+    predecessor_answers = list(predecessor.answers.all())
+    by_key = {answer.prompt_key: answer for answer in predecessor_answers}
+    by_label = {answer.prompt_label_snapshot: answer for answer in predecessor_answers}
+
+    prior_answers = {}
+    for prompt in report.template.prompts.all():
+        answer = by_key.get(prompt.prompt_key) or by_label.get(prompt.label)
+        if answer is not None:
+            prior_answers[prompt.prompt_key] = answer
+    return prior_answers

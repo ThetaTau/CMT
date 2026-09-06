@@ -1,6 +1,6 @@
 # Transition Reports & Lessons Learned — Feature Spec & Work Breakdown
 
-> **Status:** In development (2026-09-05) — TRWI-1 through TRWI-7 are implemented and tested. See "Decisions Log" at the end for the full record of resolved decisions (A-K) plus TRWI-5's (L35-L45), TRWI-6's (M46-M52), and TRWI-7's (N53-N61) choices awaiting review. Note: CSV export requirement dropped (TRWI-11 only).
+> **Status:** In development (2026-09-05) — TRWI-1 through TRWI-8 are implemented and tested. See "Decisions Log" at the end for the full record of resolved decisions (A-K) plus TRWI-5's (L35-L45), TRWI-6's (M46-M52), TRWI-7's (N53-N61), and TRWI-8's (O62-O67) choices awaiting review. Note: CSV export requirement dropped (TRWI-11 only).
 > **Approach:** Purpose-built app (custom), no third-party survey dependency. App name: `thetatauCMT.transitions`.
 > **File location:** `docs/specs/transition-reports.md`
 
@@ -630,6 +630,17 @@ TRWI-7 is implemented, migrated, and tested (207 tests passing in the transition
 - **N60 — `send_handoff_notices` uses `role_change.user.chapter`, not `user.current_chapter`,** for the same reason `generate_obligations` does (TRWI-3): the report/obligation history this notice is about is keyed to the chapter the role was actually held in, which for a National Officer previewing via an active `UserAlter` override can differ from `current_chapter`.
 - **N61 — No new feature registry entry for the packet page.** It is a sub-page reached only via a link from the already-registered `transition-reports` list page (Forms landing), never a directly-navigable top-level destination — matches TRWI-5's own precedent (`ComposeReportView`/`AttachmentDeleteView`/`CloseNAVacantView` also got no separate entries, only the list view did).
 
+### O. TRWI-8 — Prior answers while composing (implemented autonomously 2026-09-05 — please review)
+
+TRWI-8 is implemented and tested (220 tests passing in the transitions app, up from 207; 1928 passed / 15 skipped across the full regression sweep). No migration — this work item is pure services/forms/views/template, reusing TRWI-6/TRWI-7's existing data model and access rules.
+
+- **O62 — "The previous holder's answer" (spec's own singular wording) means the SINGLE most recent predecessor report**, not a merge scanning further back through full history. `get_prior_answers` takes `get_handoff_packet(...).first()` (already most-recent-first) rather than searching older reports for a prompt the latest predecessor left blank. Simpler, and matches the literal wording; a prompt the most recent predecessor didn't answer just shows nothing, even if an earlier predecessor answered it.
+- **O63 — Access is TRWI-6/7's existing rules, reused outright — no new derivation.** `get_prior_answers` calls `get_handoff_packet` (TRWI-7), which already excludes the composer's own report and already respects `get_readable_reports` (TRWI-6). One real consequence worth flagging: an officer editing their OWN report long after their term ends (decision F15, indefinitely editable) may no longer satisfy the TRWI-6 "successor" rule once `current_roles` no longer lists that position — at that point prior answers correctly show NOTHING, even though they can still edit their own report. Composing ability and "see prior answers" are two separate checks that can diverge; this is intentional, not a bug.
+- **O64 — Compose form rendering changed from one `{{ form|crispy }}` call to a per-field loop** (`{% for field, prior in fields_with_prior_answers %}`, using crispy's `as_crispy_field` filter) so each prompt's prior answer can be interleaved directly beneath its own field. Uses a native `<details>`/`<summary>` element for "collapsed by default" — no JS, CSP-safe by construction (the Shared Preamble's own "no inline `<script>`" rule).
+- **O65 — `services.py` stays Django-form-agnostic**: `get_prior_answers(user, report)` returns a plain `{prompt_key: ReportAnswer}` dict. Pairing each answer with its actual form field lives on `ComposeReportForm.fields_with_prior_answers()` instead (the form already owns the prompt-key <-> field-name mapping via `_field_name()`), not in services.py — matches TRWI-5's own established layering (`answers_data()`/`save_draft`/`submit_report` already take/return plain prompt-keyed structures, never Django form objects).
+- **O66 — Never pre-filled, by construction, not by a special-case check.** `initial_from_report()` (the only thing that ever seeds a field's actual value) reads exclusively from `report.answers` — the CURRENT report's own answers. `prior_answers` is a completely separate context variable rendered as read-only display text alongside the field, never passed anywhere near `initial=`. There is no code path where a prior answer's value could leak into `cleaned_data`.
+- **O67 — Label-snapshot fallback matches by exact string equality** (`prompt_label_snapshot == prompt.label`), not a fuzzy/normalized comparison. Given `prompt_key` is meant to be immutable once shipped (F16), this fallback is deliberately a defensive safety net for a scenario that should never actually happen in practice, so exact matching (simplest, least surprising) was preferred over building normalization logic for a case with no real precedent yet.
+
 ---
 
 ## Pre-Launch Checklist
@@ -643,4 +654,4 @@ TRWI-7 is implemented, migrated, and tested (207 tests passing in the transition
 
 ## Remaining Open Questions
 
-None from the original codebase review round, TRWI-3 (I20-I23, J24), or TRWI-4 (K25-K34, confirmed) — see Decisions Log A-K. TRWI-5's design choices (L35-L45), TRWI-6's (M46-M52), and TRWI-7's (N53-N61) are implemented and tested but not yet reviewed by you; see the Decisions Log entries above.
+None from the original codebase review round, TRWI-3 (I20-I23, J24), or TRWI-4 (K25-K34, confirmed) — see Decisions Log A-K. TRWI-5's design choices (L35-L45), TRWI-6's (M46-M52), TRWI-7's (N53-N61), and TRWI-8's (O62-O67) are implemented and tested but not yet reviewed by you; see the Decisions Log entries above.

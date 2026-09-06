@@ -44,6 +44,18 @@ class ComposeReportForm(forms.Form):
         """``initial=`` data matching existing answers by ``prompt_key``."""
         return {f"prompt_{answer.prompt_key}": answer.value for answer in report.answers.all()}
 
+    def fields_with_prior_answers(self, prior_answers):
+        """``[(BoundField, ReportAnswer_or_None), ...]`` in prompt order
+        (TRWI-8) -- ``prior_answers`` is ``services.get_prior_answers``'s
+        ``{prompt_key: ReportAnswer}`` return shape; pairing them with this
+        form's own fields lives here (not in services.py, which stays
+        Django-form-agnostic) since this class already owns the prompt <->
+        field-name mapping.
+        """
+        return [
+            (self[_field_name(prompt)], prior_answers.get(prompt.prompt_key)) for prompt in self.template.prompts.all()
+        ]
+
     def clean(self):
         cleaned_data = super().clean()
         if self.submitting:

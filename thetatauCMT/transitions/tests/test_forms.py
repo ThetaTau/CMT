@@ -6,7 +6,7 @@ from thetatauCMT.chapters.tests.factories import ChapterFactory
 from thetatauCMT.users.tests.factories import UserFactory
 
 from ..forms import ComposeReportForm
-from ..models import ReportObligation, ReportTemplate, TemplatePrompt, TransitionReport
+from ..models import ReportAnswer, ReportObligation, ReportTemplate, TemplatePrompt, TransitionReport
 
 pytestmark = pytest.mark.django_db
 
@@ -121,3 +121,25 @@ def test_compose_form_initial_from_report_matches_by_prompt_key():
     initial = ComposeReportForm.initial_from_report(report)
 
     assert initial == {"prompt_successes": "did well"}
+
+
+def test_compose_form_fields_with_prior_answers_pairs_by_prompt_key():
+    template = _template_with_prompts()
+    form = ComposeReportForm(template=template)
+    prior_answer = ReportAnswer(prompt_key="successes", value="ask the RD")
+
+    paired = dict((field.name, prior) for field, prior in form.fields_with_prior_answers({"successes": prior_answer}))
+
+    assert paired["prompt_successes"] is prior_answer
+    assert paired["prompt_pitfalls"] is None
+    assert paired["prompt_key_dates"] is None
+
+
+def test_compose_form_fields_with_prior_answers_empty_dict_pairs_everything_with_none():
+    template = _template_with_prompts()
+    form = ComposeReportForm(template=template)
+
+    paired = form.fields_with_prior_answers({})
+
+    assert all(prior is None for _field, prior in paired)
+    assert [field.name for field, _prior in paired] == ["prompt_successes", "prompt_pitfalls", "prompt_key_dates"]

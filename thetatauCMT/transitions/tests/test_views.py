@@ -381,6 +381,92 @@ def test_compose_view_editable_after_submission(auto_login_user):
     assert report.answers.get(prompt_key="successes").value == "an updated answer here"
 
 
+# ---------------------------------------------------------------------------
+# ComposeReportView -- prior answers while composing (TRWI-8)
+# ---------------------------------------------------------------------------
+def _predecessor_report(chapter, template, answer_value="ask the RD"):
+    # A distinct, already-elapsed term -- _obligation()'s fixed due_date
+    # would otherwise collide with the successor's own (chapter, position_key,
+    # term_start, term_end) unique constraint.
+    past_due_date = datetime.date.today() - datetime.timedelta(days=200)
+    obligation = ReportObligation.objects.create(
+        chapter=chapter,
+        position_type="CHAPTER_OFFICER",
+        position_key="treasurer",
+        officer=UserFactory(chapter=chapter),
+        term_start=past_due_date - datetime.timedelta(days=166),
+        term_end=past_due_date + datetime.timedelta(days=14),
+        due_date=past_due_date,
+        is_required=True,
+        status="submitted",
+    )
+    report = TransitionReport.objects.create(
+        obligation=obligation,
+        chapter=chapter,
+        position_type="CHAPTER_OFFICER",
+        position_key="treasurer",
+        author=obligation.officer,
+        template=template,
+        template_version=1,
+        status="submitted",
+    )
+    report.answers.create(prompt_key="successes", prompt_label_snapshot="Successes?", value=answer_value)
+    return report
+
+
+def test_compose_view_shows_predecessors_answer_inline(auto_login_user):
+    client, successor = auto_login_user()
+    template = _template()
+    _predecessor_report(successor.chapter, template)
+    successor.current_roles = ["treasurer"]
+    successor.save(update_fields=["current_roles"])
+    obligation = _obligation(successor.chapter, successor)
+
+    response = client.get(reverse("transitions:compose", kwargs={"pk": obligation.pk}))
+
+    body = response.content.decode()
+    assert "What your predecessor said" in body
+    assert "ask the RD" in body
+
+
+def test_compose_view_hides_prior_answer_section_when_no_predecessor(auto_login_user):
+    client, officer = auto_login_user()
+    _template()
+    obligation = _obligation(officer.chapter, officer)
+
+    response = client.get(reverse("transitions:compose", kwargs={"pk": obligation.pk}))
+
+    assert "What your predecessor said" not in response.content.decode()
+
+
+def test_compose_view_never_prefills_the_field_with_the_predecessors_answer(auto_login_user):
+    client, successor = auto_login_user()
+    template = _template()
+    _predecessor_report(successor.chapter, template)
+    successor.current_roles = ["treasurer"]
+    successor.save(update_fields=["current_roles"])
+    obligation = _obligation(successor.chapter, successor)
+
+    response = client.get(reverse("transitions:compose", kwargs={"pk": obligation.pk}))
+
+    # The predecessor's text appears (in the collapsible display), but never
+    # as the actual textarea CONTENT for the successor's own blank field.
+    assert ">ask the RD</textarea>" not in response.content.decode()
+
+
+def test_compose_view_prior_answer_is_collapsed_by_default(auto_login_user):
+    client, successor = auto_login_user()
+    template = _template()
+    _predecessor_report(successor.chapter, template)
+    successor.current_roles = ["treasurer"]
+    successor.save(update_fields=["current_roles"])
+    obligation = _obligation(successor.chapter, successor)
+
+    response = client.get(reverse("transitions:compose", kwargs={"pk": obligation.pk}))
+
+    assert '<details class="mb-3 text-muted">' in response.content.decode()
+
+
 def test_compose_view_add_attachment(auto_login_user):
     from django.core.files.uploadedfile import SimpleUploadedFile
 
