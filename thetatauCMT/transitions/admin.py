@@ -1,6 +1,14 @@
 from django.contrib import admin
 
-from .models import PositionOverride, ReportTemplate, TemplatePrompt, position_type_for_key
+from .models import (
+    PositionOverride,
+    ReportAnswer,
+    ReportAttachment,
+    ReportTemplate,
+    TemplatePrompt,
+    TransitionReport,
+    position_type_for_key,
+)
 
 
 @admin.register(PositionOverride)
@@ -40,3 +48,34 @@ class ReportTemplateAdmin(admin.ModelAdmin):
     search_fields = ("name", "position_key")
     ordering = ("position_type", "position_key")
     inlines = [TemplatePromptInline]
+
+
+class ReportAnswerInline(admin.TabularInline):
+    model = ReportAnswer
+    extra = 0
+    fields = ("prompt_key", "prompt_label_snapshot", "value")
+    readonly_fields = ("prompt_key", "prompt_label_snapshot", "value")
+    can_delete = False
+
+
+class ReportAttachmentInline(admin.TabularInline):
+    model = ReportAttachment
+    extra = 0
+    fields = ("file", "description", "uploaded_by", "uploaded_at")
+    readonly_fields = ("uploaded_by", "uploaded_at")
+
+
+@admin.register(TransitionReport)
+class TransitionReportAdmin(admin.ModelAdmin):
+    """Read-oriented -- national committee oversight, not day-to-day editing.
+
+    Officers compose/submit through the front-end view (TRWI-5); this exists
+    for the committee to spot-check content quality (Pre-Launch Checklist
+    F16) and for support to look up a specific report.
+    """
+
+    list_display = ("position_key", "chapter", "author", "status", "submitted_at")
+    list_filter = ("position_type", "status")
+    search_fields = ("position_key", "chapter__name", "author__name")
+    ordering = ("-created",)
+    inlines = [ReportAnswerInline, ReportAttachmentInline]

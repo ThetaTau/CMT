@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+
+{% block title %}Transitions{% endblock %}
+
+{% block content %}
+  <h1>Transition Reports</h1>
+  <p>
+    A Transition Report captures what worked, what didn't, and what your successor needs to know.
+  </p>
+
+  {% if vacant_obligations %}
+    <h2>Vacant positions to close</h2>
+    <p>These positions have no current holder, so no one can write a report for them.</p>
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Position</th>
+          <th>Chapter</th>
+          <th>Due</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for obligation in vacant_obligations %}
+          <tr>
+            <td>{{ obligation.position_key|title }}</td>
+            <td>{{ obligation.chapter }}</td>
+            <td>{{ obligation.due_date }}</td>
+            <td>
+              <form method="post" action="{% url 'transitions:close-vacant' obligation.pk %}">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-sm btn-outline-secondary">Close as vacant</button>
+              </form>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% endif %}
+
+  <h2>My obligations</h2>
+  {% if position_choices|length > 1 %}
+    <form method="get" class="mb-3">
+      <label for="position_key">Position</label>
+      <select name="position_key" id="position_key" class="form-select" onchange="this.form.submit()" style="max-width: 20rem;">
+        <option value=""{% if not selected_position_key %} selected{% endif %}>All</option>
+        {% for position_key in position_choices %}
+          <option value="{{ position_key }}"{% if position_key == selected_position_key %} selected{% endif %}>{{ position_key|title }}</option>
+        {% endfor %}
+      </select>
+    </form>
+  {% endif %}
+  {% if obligations %}
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Position</th>
+          <th>Chapter</th>
+          <th>Due</th>
+          <th>Status</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for obligation in obligations %}
+          <tr>
+            <td>{{ obligation.position_key|title }}</td>
+            <td>{{ obligation.chapter }}</td>
+            <td>{{ obligation.due_date }}</td>
+            <td>{{ obligation.get_status_display }}</td>
+            <td>
+              {% if obligation.status == "open" or obligation.status == "missed" %}
+                <a class="btn btn-sm btn-primary" href="{% url 'transitions:compose' obligation.pk %}">Compose</a>
+              {% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p>You have no Transition Report obligations.</p>
+  {% endif %}
+
+  <h2>My submitted reports</h2>
+  {% if reports %}
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Position</th>
+          <th>Chapter</th>
+          <th>Status</th>
+          <th>Last updated</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for report in reports %}
+          <tr>
+            <td>{{ report.position_key|title }}</td>
+            <td>{{ report.chapter }}</td>
+            <td>{{ report.get_status_display }}</td>
+            <td>{{ report.modified }}</td>
+            <td>
+              <a class="btn btn-sm btn-outline-primary" href="{% url 'transitions:compose' report.obligation_id %}">
+                {% if report.status == "submitted" %}View / edit{% else %}Continue{% endif %}
+              </a>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p>You have not written any Transition Reports yet.</p>
+  {% endif %}
+{% endblock %}

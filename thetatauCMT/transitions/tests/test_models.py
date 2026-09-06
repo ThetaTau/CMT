@@ -1,14 +1,22 @@
+import datetime
+
 import pytest
 from django.db import IntegrityError
 
 from core.models import ADVISOR_ROLES, CHAPTER_OFFICER_REQUIRED, COMMITTEE_CHAIR, COUNCIL, NATIONAL_OFFICER
+from thetatauCMT.chapters.tests.factories import ChapterFactory
+from thetatauCMT.users.tests.factories import UserFactory
 
 from ..models import (
     POSITION_KEY_CHOICES,
     PositionOverride,
     PositionType,
+    ReportAnswer,
+    ReportAttachment,
+    ReportObligation,
     ReportTemplate,
     TemplatePrompt,
+    TransitionReport,
     position_type_for_key,
 )
 
@@ -108,3 +116,138 @@ def test_template_prompt_str():
     template = ReportTemplate.objects.create(position_type="CHAPTER_OFFICER", name="A")
     prompt = TemplatePrompt.objects.create(template=template, prompt_key="successes", label="Successes?")
     assert str(prompt) == f"successes ({template})"
+
+
+# ---------------------------------------------------------------------------
+# TransitionReport / ReportAnswer / ReportAttachment (TRWI-5)
+# ---------------------------------------------------------------------------
+def _obligation(chapter, officer):
+    due_date = datetime.date.today() + datetime.timedelta(days=16)
+    return ReportObligation.objects.create(
+        chapter=chapter,
+        position_type="CHAPTER_OFFICER",
+        position_key="treasurer",
+        officer=officer,
+        term_start=due_date - datetime.timedelta(days=166),
+        term_end=due_date + datetime.timedelta(days=14),
+        due_date=due_date,
+        is_required=True,
+        status="open",
+    )
+
+
+def test_transition_report_defaults_to_draft():
+    chapter = ChapterFactory()
+    officer = UserFactory(chapter=chapter)
+    obligation = _obligation(chapter, officer)
+    template = ReportTemplate.objects.create(position_type="CHAPTER_OFFICER", name="Chapter Officer Report")
+
+    report = TransitionReport.objects.create(
+        obligation=obligation,
+        chapter=chapter,
+        position_type="CHAPTER_OFFICER",
+        position_key="treasurer",
+        author=officer,
+        template=template,
+        template_version=1,
+    )
+
+    assert report.status == "draft"
+    assert report.submitted_at is None
+    assert str(report) == f"treasurer ({chapter}) -- draft"
+
+
+def test_transition_report_obligation_is_one_to_one():
+    chapter = ChapterFactory()
+    officer = UserFactory(chapter=chapter)
+    obligation = _obligation(chapter, officer)
+    template = ReportTemplate.objects.create(position_type="CHAPTER_OFFICER", name="Chapter Officer Report")
+    TransitionReport.objects.create(
+        obligation=obligation,
+        chapter=chapter,
+        position_type="CHAPTER_OFFICER",
+        position_key="treasurer",
+        author=officer,
+        template=template,
+        template_version=1,
+    )
+
+    with pytest.raises(IntegrityError):
+        TransitionReport.objects.create(
+            obligation=obligation,
+            chapter=chapter,
+            position_type="CHAPTER_OFFICER",
+            position_key="treasurer",
+            author=officer,
+            template=template,
+            template_version=1,
+        )
+
+
+def test_report_answer_unique_per_prompt_key_within_report():
+    chapter = ChapterFactory()
+    officer = UserFactory(chapter=chapter)
+    obligation = _obligation(chapter, officer)
+    template = ReportTemplate.objects.create(position_type="CHAPTER_OFFICER", name="Chapter Officer Report")
+    report = TransitionReport.objects.create(
+        obligation=obligation,
+        chapter=chapter,
+        position_type="CHAPTER_OFFICER",
+        position_key="treasurer",
+        author=officer,
+        template=template,
+        template_version=1,
+    )
+    ReportAnswer.objects.create(report=report, prompt_key="successes", prompt_label_snapshot="Successes?", value="a")
+
+    with pytest.raises(IntegrityError):
+        ReportAnswer.objects.create(
+            report=report, prompt_key="successes", prompt_label_snapshot="Successes?", value="b"
+        )
+
+
+def test_report_answer_prompt_is_nullable():
+    chapter = ChapterFactory()
+    officer = UserFactory(chapter=chapter)
+    obligation = _obligation(chapter, officer)
+    template = ReportTemplate.objects.create(position_type="CHAPTER_OFFICER", name="Chapter Officer Report")
+    report = TransitionReport.objects.create(
+        obligation=obligation,
+        chapter=chapter,
+        position_type="CHAPTER_OFFICER",
+        position_key="treasurer",
+        author=officer,
+        template=template,
+        template_version=1,
+    )
+    answer = ReportAnswer.objects.create(
+        report=report, prompt=None, prompt_key="successes", prompt_label_snapshot="Successes?", value="a"
+    )
+    assert answer.prompt is None
+    assert str(answer) == f"successes ({report})"
+
+
+def test_report_attachment_rejects_disallowed_file_type():
+    from django.core.exceptions import ValidationError
+    from django.core.files.uploadedfile import SimpleUploadedFile
+
+    chapter = ChapterFactory()
+    officer = UserFactory(chapter=chapter)
+    obligation = _obligation(chapter, officer)
+    template = ReportTemplate.objects.create(position_type="CHAPTER_OFFICER", name="Chapter Officer Report")
+    report = TransitionReport.objects.create(
+        obligation=obligation,
+        chapter=chapter,
+        position_type="CHAPTER_OFFICER",
+        position_key="treasurer",
+        author=officer,
+        template=template,
+        template_version=1,
+    )
+    attachment = ReportAttachment(
+        report=report,
+        file=SimpleUploadedFile("script.exe", b"not a real exe", content_type="application/x-msdownload"),
+        uploaded_by=officer,
+    )
+    with pytest.raises(ValidationError):
+        attachment.full_clean()

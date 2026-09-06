@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+
+{% block title %}{{ report.template.name }}{% endblock %}
+
+{% block content %}
+  <h1>{{ report.template.name }}</h1>
+  <p>
+    {{ obligation.chapter }} -- {{ obligation.position_key|title }} -- due {{ obligation.due_date }}
+    ({{ obligation.get_status_display }})
+  </p>
+  {% if report.template.description %}<p>{{ report.template.description }}</p>{% endif %}
+  {% if report.status == "submitted" %}
+    <p class="text-muted">
+      Submitted {{ report.submitted_at }}. You may keep editing at any time -- there is no lock or deadline.
+    </p>
+  {% endif %}
+
+  {{ form.media }}
+  <form method="post" enctype="multipart/form-data" novalidate>
+    {% csrf_token %}
+    {{ form|crispy }}
+    <button type="submit" name="action" value="draft" class="btn btn-outline-primary">Save Draft</button>
+    <button type="submit" name="action" value="submit" class="btn btn-primary">Submit</button>
+  </form>
+
+  <h2 class="mt-4">Attachments</h2>
+  {% if report.attachments.all %}
+    <ul>
+      {% for attachment in report.attachments.all %}
+        <li>
+          <a href="{{ attachment.file.url }}">{{ attachment.file.name }}</a>
+          {% if attachment.description %} -- {{ attachment.description }}{% endif %}
+          <form method="post" action="{% url 'transitions:attachment-delete' attachment.pk %}" style="display:inline;">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-sm btn-outline-danger">Remove</button>
+          </form>
+        </li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+  <form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="add_attachment">
+    {{ attachment_form|crispy }}
+    <button type="submit" class="btn btn-outline-secondary">Add attachment</button>
+  </form>
+{% endblock %}

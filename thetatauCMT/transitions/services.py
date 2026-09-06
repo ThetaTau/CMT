@@ -12,8 +12,10 @@ from .models import (
     POSITION_KEY_TO_TYPE,
     PositionOverride,
     PositionType,
+    ReportAnswer,
     ReportObligation,
     ReportTemplate,
+    TransitionReport,
     position_type_for_key,
 )
 from .notifications import TransitionReportDueReminder, TransitionReportSeasonalReminder
@@ -436,3 +438,124 @@ def get_my_open_obligations(user):
         .select_related("chapter")
         .order_by("due_date")
     )
+
+
+# ---------------------------------------------------------------------------
+# TRWI-5: compose & submit
+# ---------------------------------------------------------------------------
+REGENT_ROLE_KEY = "regent"
+
+
+def get_my_obligations(user):
+    """Every one of the viewer's own obligations, any status (TRWI-5 Transitions
+    list). Broader than ``get_my_open_obligations`` (TRWI-4's home card, which
+    is open/missed only) -- this one doubles as the viewer's own submission
+    history, so submitted/na_vacant rows belong here too.
+    """
+    return ReportObligation.objects.filter(officer=user).select_related("chapter").order_by("-term_end")
+
+
+def get_my_reports(user):
+    """The viewer's own authored reports (draft + submitted), for the Transitions list."""
+    return TransitionReport.objects.filter(author=user).select_related("chapter", "obligation").order_by("-created")
+
+
+def get_or_create_report(obligation):
+    """The obligation's ``TransitionReport``, creating a fresh draft if none exists.
+
+    Fixed invariant: ``report.author == obligation.officer`` always -- only the
+    assigned officer ever composes their own obligation; see
+    ``views.ComposeReportView`` for the access check enforcing this.
+    """
+    template = resolve_template(obligation.position_key)
+    report, _created = TransitionReport.objects.get_or_create(
+        obligation=obligation,
+        defaults={
+            "chapter": obligation.chapter,
+            "position_type": obligation.position_type,
+            "position_key": obligation.position_key,
+            "author": obligation.officer,
+            "template": template,
+            "template_version": template.version if template else 1,
+        },
+    )
+    return report
+
+
+def _save_answers(report, answers_data):
+    for prompt, value in answers_data:
+        ReportAnswer.objects.update_or_create(
+            report=report,
+            prompt_key=prompt.prompt_key,
+            defaults={"prompt": prompt, "prompt_label_snapshot": prompt.label, "value": value},
+        )
+
+
+def save_draft(report, answers_data):
+    """Persist answers without changing ``report.status`` -- draft saves never
+    enforce required/min/max (that's ``submit_report``'s job); the form itself
+    skips those checks when not submitting.
+    """
+    _save_answers(report, answers_data)
+    report.save(update_fields=["modified"])
+    return report
+
+
+def submit_report(report, answers_data):
+    """Write answers, stamp the template version actually used, and close the
+    obligation. ``template_version`` is re-resolved here (not fixed at draft
+    creation) so it always reflects what was current AT SUBMISSION, per the
+    spec's "version used at submission" wording.
+    """
+    _save_answers(report, answers_data)
+    template = resolve_template(report.position_key)
+    if template is not None:
+        report.template = template
+        report.template_version = template.version
+    report.status = TransitionReport.Status.submitted.value[0]
+    report.submitted_at = timezone.now()
+    report.save()
+    report.obligation.status = ReportObligation.Status.submitted.value[0]
+    report.obligation.save(update_fields=["status"])
+    return report
+
+
+def can_close_na_vacant(user, obligation):
+    """Whether ``user`` may close ``obligation`` as na_vacant: the obligation
+    chapter's current Regent, or a Regional Director for its region.
+    """
+    if not getattr(user, "is_authenticated", False):
+        return False
+    if user.current_chapter is not None and user.current_chapter.pk == obligation.chapter_id:
+        if REGENT_ROLE_KEY in (user.current_roles or []):
+            return True
+    return user.director_regions.filter(pk=obligation.chapter.region_id).exists()
+
+
+def get_vacant_obligations_for_closer(user):
+    """Open, officer-less obligations ``user`` may close as na_vacant.
+
+    A vacant obligation (``officer=None``) never appears in
+    ``get_my_obligations`` (which filters by ``officer=user``), so it needs
+    its own narrow, self-contained scope here: the Regent's own chapter, or
+    an RD's own region. Deliberately NOT the full "reports I'm entitled to
+    read" surface (that needs TRWI-6) -- just enough to make the na_vacant
+    path usable now, per TRWI-5's own acceptance criterion.
+    """
+    open_status = ReportObligation.Status.open.value[0]
+    if user.current_chapter is not None and REGENT_ROLE_KEY in (user.current_roles or []):
+        return ReportObligation.objects.filter(
+            chapter=user.current_chapter, officer__isnull=True, status=open_status
+        ).select_related("chapter")
+    director_regions = user.director_regions.all()
+    if director_regions:
+        return ReportObligation.objects.filter(
+            chapter__region__in=director_regions, officer__isnull=True, status=open_status
+        ).select_related("chapter")
+    return ReportObligation.objects.none()
+
+
+def close_as_na_vacant(obligation):
+    obligation.status = ReportObligation.Status.na_vacant.value[0]
+    obligation.save(update_fields=["status"])
+    return obligation

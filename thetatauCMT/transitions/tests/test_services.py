@@ -10,7 +10,7 @@ from thetatauCMT.users.models import UserRoleChange
 from thetatauCMT.users.tests.factories import UserFactory
 
 from .. import services
-from ..models import PositionOverride, ReportObligation, ReportTemplate
+from ..models import PositionOverride, ReportObligation, ReportTemplate, TemplatePrompt, TransitionReport
 
 pytestmark = pytest.mark.django_db
 
@@ -699,3 +699,212 @@ def test_get_my_open_obligations_includes_missed_excludes_closed():
 
     assert len(obligations) == 1
     assert obligations[0].status == "missed"
+
+
+# ---------------------------------------------------------------------------
+# TRWI-5: compose & submit
+# ---------------------------------------------------------------------------
+def test_get_my_obligations_includes_every_status():
+    chapter = ChapterFactory()
+    viewer = UserFactory(chapter=chapter)
+    _open_obligation(chapter, viewer, TODAY + datetime.timedelta(days=10), status="open", position_key="treasurer")
+    _open_obligation(chapter, viewer, TODAY - datetime.timedelta(days=1), status="submitted", position_key="scribe")
+    _open_obligation(
+        chapter, viewer, TODAY - datetime.timedelta(days=1), status="na_vacant", position_key="vice regent"
+    )
+
+    obligations = services.get_my_obligations(viewer)
+
+    assert obligations.count() == 3
+
+
+def test_get_or_create_report_creates_draft_authored_by_officer():
+    chapter = ChapterFactory()
+    officer = UserFactory(chapter=chapter)
+    ReportTemplate.objects.create(position_type="CHAPTER_OFFICER", name="Chapter Officer Report", version=3)
+    obligation = _open_obligation(chapter, officer, TODAY + datetime.timedelta(days=10))
+
+    report = services.get_or_create_report(obligation)
+
+    assert report.author == officer
+    assert report.status == "draft"
+    assert report.template_version == 3
+
+
+def test_get_or_create_report_is_idempotent():
+    chapter = ChapterFactory()
+    officer = UserFactory(chapter=chapter)
+    ReportTemplate.objects.create(position_type="CHAPTER_OFFICER", name="Chapter Officer Report")
+    obligation = _open_obligation(chapter, officer, TODAY + datetime.timedelta(days=10))
+
+    first = services.get_or_create_report(obligation)
+    second = services.get_or_create_report(obligation)
+
+    assert first.pk == second.pk
+    assert TransitionReport.objects.count() == 1
+
+
+def test_save_draft_writes_answers_without_changing_status():
+    chapter = ChapterFactory()
+    officer = UserFactory(chapter=chapter)
+    template = ReportTemplate.objects.create(position_type="CHAPTER_OFFICER", name="Chapter Officer Report")
+    prompt = TemplatePrompt.objects.create(template=template, prompt_key="successes", label="Successes?")
+    obligation = _open_obligation(chapter, officer, TODAY + datetime.timedelta(days=10))
+    report = services.get_or_create_report(obligation)
+
+    services.save_draft(report, [(prompt, "made progress")])
+
+    report.refresh_from_db()
+    assert report.status == "draft"
+    answer = report.answers.get(prompt_key="successes")
+    assert answer.value == "made progress"
+    assert answer.prompt_label_snapshot == "Successes?"
+
+
+def test_save_draft_upserts_the_same_prompt_key():
+    chapter = ChapterFactory()
+    officer = UserFactory(chapter=chapter)
+    template = ReportTemplate.objects.create(position_type="CHAPTER_OFFICER", name="Chapter Officer Report")
+    prompt = TemplatePrompt.objects.create(template=template, prompt_key="successes", label="Successes?")
+    obligation = _open_obligation(chapter, officer, TODAY + datetime.timedelta(days=10))
+    report = services.get_or_create_report(obligation)
+
+    services.save_draft(report, [(prompt, "first draft")])
+    services.save_draft(report, [(prompt, "revised draft")])
+
+    assert report.answers.count() == 1
+    assert report.answers.get(prompt_key="successes").value == "revised draft"
+
+
+def test_submit_report_closes_obligation_and_stamps_submitted_at():
+    chapter = ChapterFactory()
+    officer = UserFactory(chapter=chapter)
+    template = ReportTemplate.objects.create(position_type="CHAPTER_OFFICER", name="Chapter Officer Report")
+    prompt = TemplatePrompt.objects.create(template=template, prompt_key="successes", label="Successes?")
+    obligation = _open_obligation(chapter, officer, TODAY + datetime.timedelta(days=10))
+    report = services.get_or_create_report(obligation)
+
+    services.submit_report(report, [(prompt, "we did well")])
+
+    report.refresh_from_db()
+    obligation.refresh_from_db()
+    assert report.status == "submitted"
+    assert report.submitted_at is not None
+    assert obligation.status == "submitted"
+
+
+def test_submit_report_records_the_template_version_used_at_submission():
+    chapter = ChapterFactory()
+    officer = UserFactory(chapter=chapter)
+    template = ReportTemplate.objects.create(position_type="CHAPTER_OFFICER", name="Chapter Officer Report", version=1)
+    obligation = _open_obligation(chapter, officer, TODAY + datetime.timedelta(days=10))
+    report = services.get_or_create_report(obligation)
+    assert report.template_version == 1
+
+    template.version = 2
+    template.save(update_fields=["version"])
+
+    services.submit_report(report, [])
+
+    report.refresh_from_db()
+    assert report.template_version == 2
+
+
+def test_can_close_na_vacant_true_for_chapter_regent():
+    chapter = ChapterFactory()
+    regent = UserFactory(chapter=chapter)
+    regent.current_roles = ["regent"]
+    regent.save(update_fields=["current_roles"])
+    obligation = _open_obligation(chapter, None, TODAY + datetime.timedelta(days=10))
+
+    assert services.can_close_na_vacant(regent, obligation) is True
+
+
+def test_can_close_na_vacant_false_for_regent_of_a_different_chapter():
+    chapter = ChapterFactory(name="alpha")
+    other_chapter = ChapterFactory(name="beta")
+    regent = UserFactory(chapter=other_chapter)
+    regent.current_roles = ["regent"]
+    regent.save(update_fields=["current_roles"])
+    obligation = _open_obligation(chapter, None, TODAY + datetime.timedelta(days=10))
+
+    assert services.can_close_na_vacant(regent, obligation) is False
+
+
+def test_can_close_na_vacant_true_for_regional_director():
+    chapter = ChapterFactory(name="alpha")
+    rd = UserFactory(chapter=ChapterFactory(name="beta"))
+    chapter.region.directors.add(rd)
+    obligation = _open_obligation(chapter, None, TODAY + datetime.timedelta(days=10))
+
+    assert services.can_close_na_vacant(rd, obligation) is True
+
+
+def test_can_close_na_vacant_false_for_a_plain_member():
+    chapter = ChapterFactory()
+    member = UserFactory(chapter=chapter)
+    obligation = _open_obligation(chapter, None, TODAY + datetime.timedelta(days=10))
+
+    assert services.can_close_na_vacant(member, obligation) is False
+
+
+def test_close_as_na_vacant_sets_status():
+    chapter = ChapterFactory()
+    obligation = _open_obligation(chapter, None, TODAY + datetime.timedelta(days=10))
+
+    services.close_as_na_vacant(obligation)
+
+    obligation.refresh_from_db()
+    assert obligation.status == "na_vacant"
+
+
+def test_get_vacant_obligations_for_closer_scoped_to_regents_own_chapter():
+    # Explicit distinct names -- ChapterFactory.name is a random pick from a
+    # small fixed Greek-letter list (get_or_create'd), so two plain
+    # ChapterFactory() calls can collide onto the SAME chapter.
+    chapter = ChapterFactory(name="alpha")
+    other_chapter = ChapterFactory(name="beta")
+    regent = UserFactory(chapter=chapter)
+    regent.current_roles = ["regent"]
+    regent.save(update_fields=["current_roles"])
+    mine = _open_obligation(chapter, None, TODAY + datetime.timedelta(days=10), position_key="regent")
+    _open_obligation(other_chapter, None, TODAY + datetime.timedelta(days=10), position_key="regent")
+
+    vacant = list(services.get_vacant_obligations_for_closer(regent))
+
+    assert vacant == [mine]
+
+
+def test_get_vacant_obligations_for_closer_scoped_to_rds_own_region():
+    # Explicit distinct names -- see the collision note above.
+    chapter = ChapterFactory(name="alpha")
+    other_chapter = ChapterFactory(name="beta")
+    rd = UserFactory(chapter=ChapterFactory(name="delta"))
+    chapter.region.directors.add(rd)
+    mine = _open_obligation(chapter, None, TODAY + datetime.timedelta(days=10), position_key="regent")
+    _open_obligation(other_chapter, None, TODAY + datetime.timedelta(days=10), position_key="regent")
+
+    vacant = list(services.get_vacant_obligations_for_closer(rd))
+
+    assert vacant == [mine]
+
+
+def test_get_vacant_obligations_for_closer_excludes_filled_positions():
+    chapter = ChapterFactory()
+    regent = UserFactory(chapter=chapter)
+    regent.current_roles = ["regent"]
+    regent.save(update_fields=["current_roles"])
+    filled_officer = UserFactory(chapter=chapter)
+    _open_obligation(chapter, filled_officer, TODAY + datetime.timedelta(days=10), position_key="treasurer")
+
+    vacant = list(services.get_vacant_obligations_for_closer(regent))
+
+    assert vacant == []
+
+
+def test_get_vacant_obligations_for_closer_empty_for_a_plain_member():
+    chapter = ChapterFactory()
+    member = UserFactory(chapter=chapter)
+    _open_obligation(chapter, None, TODAY + datetime.timedelta(days=10), position_key="regent")
+
+    assert list(services.get_vacant_obligations_for_closer(member)) == []

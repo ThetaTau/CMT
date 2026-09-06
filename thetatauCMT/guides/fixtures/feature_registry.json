@@ -540,6 +540,14 @@
           "task": "officer-election-report"
         },
         {
+          "key": "transition-reports",
+          "name": "Transition Reports",
+          "short_description": "What worked, what didn't, and what your successor needs to know, from the officer or committee chair leaving the position.",
+          "long_description": "Owed once your term ends: a short set of prompts about successes, failures, contacts, and unfinished business. Submitted reports are visible to the officer who follows you so nothing gets lost between terms.",
+          "url_name": "transitions:list",
+          "audience": "officer"
+        },
+        {
           "key": "national-officers-directory",
           "name": "National officers directory",
           "short_description": "Who holds each national office, and how to reach them.",

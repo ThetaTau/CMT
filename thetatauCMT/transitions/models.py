@@ -1,6 +1,7 @@
 from django.conf import settings
 from django.db import models
 from django.utils import timezone
+from upload_validator import FileTypeValidator
 
 from core.models import (
     CHAPTER_OFFICER_REQUIRED,
@@ -230,3 +231,108 @@ class ReportObligation(models.Model):
 
     def __str__(self):
         return f"{self.position_key} ({self.chapter}) due {self.due_date}"
+
+
+class TransitionReport(TimeStampedModel):
+    """The authored report for one obligation (TRWI-5).
+
+    ``na_vacant`` closes an obligation WITHOUT a report (per spec) -- that
+    path sets ``ReportObligation.status`` directly and never creates a
+    ``TransitionReport`` row at all. ``na_vacant`` still appears in
+    ``Status`` for schema completeness (matching the spec's field table) but
+    in practice every actual row is ``draft`` or ``submitted``.
+
+    Author may edit indefinitely, even long after their term ends (decision
+    F15) -- there is no lock and no separate "editable" check anywhere here.
+    ``modified`` (from TimeStampedModel) is the only "last touched" signal
+    since ``submitted_at`` is set once, at first submission, and never moves.
+    """
+
+    class Status(EnumClass):
+        draft = ("draft", "Draft")
+        submitted = ("submitted", "Submitted")
+        na_vacant = ("na_vacant", "N/A - Vacant")
+
+    obligation = models.OneToOneField(ReportObligation, on_delete=models.CASCADE, related_name="report")
+    chapter = models.ForeignKey(Chapter, on_delete=models.CASCADE, related_name="transition_reports")
+    position_type = models.CharField(max_length=20, choices=[x.value for x in PositionType])
+    position_key = models.CharField(max_length=50, choices=POSITION_KEY_CHOICES)
+    author = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="transition_reports_authored"
+    )
+    template = models.ForeignKey(ReportTemplate, on_delete=models.PROTECT, related_name="reports")
+    template_version = models.PositiveIntegerField()
+    status = models.CharField(
+        max_length=10,
+        choices=[x.value for x in Status],
+        default=Status.draft.value[0],
+    )
+    submitted_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-created"]
+        verbose_name = "Transition Report"
+
+    def __str__(self):
+        return f"{self.position_key} ({self.chapter}) -- {self.status}"
+
+
+class ReportAnswer(models.Model):
+    """One prompt's answer on a ``TransitionReport`` (TRWI-5).
+
+    ``prompt_key``/``prompt_label_snapshot`` are denormalized so the
+    prior-answers view (TRWI-8) and this answer's own display never break if
+    the source ``TemplatePrompt`` is later edited or deleted -- ``prompt`` is
+    a loose, nullable traceability link only, mirroring
+    ``ReportObligation.role_change``'s exact reasoning.
+    """
+
+    report = models.ForeignKey(TransitionReport, on_delete=models.CASCADE, related_name="answers")
+    prompt = models.ForeignKey(TemplatePrompt, on_delete=models.SET_NULL, null=True, blank=True, related_name="answers")
+    prompt_key = models.SlugField(max_length=50)
+    prompt_label_snapshot = models.CharField(max_length=255)
+    value = models.TextField(blank=True)
+
+    class Meta:
+        unique_together = [("report", "prompt_key")]
+        ordering = ["report", "prompt__order"]
+        verbose_name = "Report Answer"
+
+    def __str__(self):
+        return f"{self.prompt_key} ({self.report})"
+
+
+def get_attachment_upload_path(instance, filename):
+    """``transitions/<chapter-slug>/<report-pk>/<filename>`` -- mirrors ``notes.models.get_upload_path``."""
+    return "/".join(["transitions", instance.report.chapter.slug, str(instance.report.pk), filename])
+
+
+class ReportAttachment(models.Model):
+    """An optional artifact uploaded alongside a ``TransitionReport`` (TRWI-5)."""
+
+    ALLOWED_FILE_TYPES = [
+        "application/pdf",
+        "image/jpeg",
+        "image/png",
+        "text/csv",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    ]
+
+    report = models.ForeignKey(TransitionReport, on_delete=models.CASCADE, related_name="attachments")
+    file = models.FileField(
+        upload_to=get_attachment_upload_path,
+        validators=[FileTypeValidator(allowed_types=ALLOWED_FILE_TYPES)],
+    )
+    description = models.CharField(max_length=255, blank=True)
+    uploaded_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="transition_report_attachments"
+    )
+    uploaded_at = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        ordering = ["uploaded_at"]
+        verbose_name = "Report Attachment"
+
+    def __str__(self):
+        return self.file.name
