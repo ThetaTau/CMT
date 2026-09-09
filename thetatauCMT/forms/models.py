@@ -1064,7 +1064,10 @@ class InitiationProcess(Process, EmailSignalMixin):
                 INIT.remove(column)
         chapter = self.chapter.name
         # chapter_abr = self.chapter.greek
-        init_date = self.initiations.first().date.strftime("%Y%m%d")
+        first_initiation = self.initiations.first()
+        # A process can end up with no linked Initiation rows (e.g. the member
+        # was later deleted); fall back to when the process itself was created.
+        init_date = (first_initiation.date if first_initiation else self.created.date()).strftime("%Y%m%d")
         filename = f"{chapter}_{init_date}_initiation.csv"
         if response is not None:
             init_file = response
@@ -1159,7 +1162,10 @@ class InitiationProcess(Process, EmailSignalMixin):
             invoice.Line.append(line)
         badge_count = Counter(self.initiations.values_list("badge__code", flat=True))
         for badge_guard_code, count in badge_count.items():
-            if badge_guard_code == "None":
+            # A member with no badge (e.g. no badge was ever needed, or their
+            # Badge was later deleted via SET_NULL) has no QuickBooks item to
+            # invoice -- skip rather than looking up an item named None.
+            if not badge_guard_code or badge_guard_code == "None":
                 continue
             line = create_line(count, linenumber_count, name=badge_guard_code, client=client)
             invoice.Line.append(line)
@@ -1234,7 +1240,8 @@ class InitiationProcess(Process, EmailSignalMixin):
         ]
         chapter = self.chapter.name
         chapter_abr = self.chapter.greek
-        init_date = self.initiations.first().date.strftime("%Y%m%d")
+        first_initiation = self.initiations.first()
+        init_date = (first_initiation.date if first_initiation else self.created.date()).strftime("%Y%m%d")
         badge_file = io.StringIO()
         shingle_file = io.StringIO()
         badge_mail = MIMEBase("application", file_type)

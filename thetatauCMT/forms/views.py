@@ -419,6 +419,11 @@ class InitDeplSelectView(LoginRequiredMixin, FormSetView):
         processes = InitiationProcess.objects.filter(chapter__name=self.request.user.current_chapter)
         initiation_data = []
         for process in processes:
+            first_initiation = process.initiations.first()
+            if first_initiation is None:
+                # A process can end up with no linked Initiation rows (e.g. the
+                # member was later deleted); nothing meaningful to show for it.
+                continue
             active_task = process.active_tasks().first()
             status = active_task
             if active_task:
@@ -429,7 +434,7 @@ class InitDeplSelectView(LoginRequiredMixin, FormSetView):
             members = ", ".join(list(process.initiations.values_list("user__name", flat=True)))
             initiation_data.append(
                 {
-                    "initiation": process.initiations.first().date,
+                    "initiation": first_initiation.date,
                     "submitted": process.created,
                     "status": status,
                     "member_names": members,
@@ -533,6 +538,23 @@ class InitiationView(LoginRequiredMixin, OfficerRequiredMixin, FormView):
         self.to_roll = pledges.filter(pk__in=initiate["Roll"])
         self.next_badge = self.request.user.current_chapter.next_badge_number()
 
+    def _configure_badge_field(self, formset):
+        """Candidate chapters have no badge to order, so the field must not
+        block submission when there is nothing (or nothing matching) to
+        choose from; chartered chapters keep it required. ``base_fields`` is
+        shared on the ``InitiationForm`` class, so this must be re-applied on
+        every request that uses it (GET render below, and POST validate),
+        not just once.
+        """
+        chapter = self.request.user.current_chapter
+        badge_field = formset.form.base_fields["badge"]
+        if chapter.candidate_chapter:
+            badge_field.queryset = Badge.objects.filter(Q(name__icontains="Candidate Chapter"))
+            badge_field.required = False
+        else:
+            badge_field.queryset = Badge.objects.filter(~Q(name__icontains="Candidate Chapter"))
+            badge_field.required = True
+
     def get(self, request, *args, **kwargs):
         initiate = request.session.get("init-selection", None)
         if initiate is None:
@@ -566,14 +588,8 @@ class InitiationView(LoginRequiredMixin, OfficerRequiredMixin, FormView):
                 {"user": user, "roll": self.next_badge + num} for num, user in enumerate(self.to_initiate)
             ]
             chapter = self.request.user.current_chapter
-            if chapter.candidate_chapter:
-                formset.form.base_fields["badge"].queryset = Badge.objects.filter(
-                    Q(name__icontains="Candidate Chapter")
-                )
-            else:
-                formset.form.base_fields["badge"].queryset = Badge.objects.filter(
-                    ~Q(name__icontains="Candidate Chapter")
-                )
+            self._configure_badge_field(formset)
+            context["is_candidate_chapter"] = chapter.candidate_chapter
             context["formset"] = formset
             context["helper"] = InitiationFormHelper()
             depledge_formset = kwargs.get("depledge_formset", None)
@@ -585,9 +601,10 @@ class InitiationView(LoginRequiredMixin, OfficerRequiredMixin, FormView):
             context["form_show_errors"] = True
             context["error_text_inline"] = True
             context["help_text_inline"] = True
-            badges = BadgeTable(Badge.objects.all().order_by("name"))
-            RequestConfig(self.request).configure(badges)
-            context["badge_table"] = badges
+            if not chapter.candidate_chapter:
+                badges = BadgeTable(Badge.objects.all().order_by("name"))
+                RequestConfig(self.request).configure(badges)
+                context["badge_table"] = badges
         return context
 
     def post(self, request, *args, **kwargs):
@@ -599,6 +616,11 @@ class InitiationView(LoginRequiredMixin, OfficerRequiredMixin, FormView):
         ]
         depledge_formset = DepledgeFormSet(request.POST, request.FILES, prefix="depledges")
         depledge_formset.initial = [{"user": user.name} for user in self.to_depledge]
+        # ``base_fields["badge"]`` is shared on the InitiationForm class (only
+        # otherwise set by get_context_data on GET), so POST must reconfigure
+        # it too or validation runs against whatever chapter last rendered
+        # this page in this worker process.
+        self._configure_badge_field(formset)
         if not formset.is_valid() or not depledge_formset.is_valid():
             return self.render_to_response(self.get_context_data(formset=formset, depledge_formset=depledge_formset))
         update_list = []
