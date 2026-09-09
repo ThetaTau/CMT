@@ -14,6 +14,21 @@ from ..models import ReportAttachment, ReportObligation, ReportTemplate, Templat
 pytestmark = pytest.mark.django_db
 
 
+def _empty_formsets_data():
+    """Zero-row management-form data for the compose view's Contacts/Key
+    Dates formsets (TRWI-13 proposal) -- every POST to ``transitions:compose``
+    must include this, or ``formset.is_valid()`` raises inside the
+    ``management_form`` property instead of just failing validation.
+    """
+    data = {}
+    for prefix in ("contacts", "key_dates"):
+        data[f"{prefix}-TOTAL_FORMS"] = "0"
+        data[f"{prefix}-INITIAL_FORMS"] = "0"
+        data[f"{prefix}-MIN_NUM_FORMS"] = "0"
+        data[f"{prefix}-MAX_NUM_FORMS"] = "1000"
+    return data
+
+
 def _obligation(chapter, officer, position_key="treasurer"):
     due_date = datetime.date.today() + datetime.timedelta(days=16)
     return ReportObligation.objects.create(
@@ -272,7 +287,7 @@ def test_handoff_packet_view_shows_read_badge_after_acknowledging(auto_login_use
     successor.save(update_fields=["current_roles"])
     report = _report(successor.chapter, "treasurer", UserFactory(chapter=successor.chapter))
 
-    client.post(reverse("transitions:acknowledge", args=[report.pk]))
+    client.post(reverse("transitions:acknowledge", args=[report.public_id]))
     response = client.get(reverse("transitions:packet", args=[successor.chapter.pk, "treasurer"]))
 
     body = response.content.decode()
@@ -291,7 +306,7 @@ def test_acknowledge_view_records_acknowledgment_for_an_entitled_reader(auto_log
     successor.save(update_fields=["current_roles"])
     report = _report(successor.chapter, "treasurer", UserFactory(chapter=successor.chapter))
 
-    response = client.post(reverse("transitions:acknowledge", args=[report.pk]))
+    response = client.post(reverse("transitions:acknowledge", args=[report.public_id]))
 
     assert response.status_code == 302
     assert ReportAcknowledgement.objects.filter(report=report, user=successor).exists()
@@ -304,7 +319,7 @@ def test_acknowledge_view_denies_an_unentitled_user(auto_login_user):
     other_chapter = ChapterFactory()
     report = _report(other_chapter, "treasurer", UserFactory(chapter=other_chapter))
 
-    response = client.post(reverse("transitions:acknowledge", args=[report.pk]))
+    response = client.post(reverse("transitions:acknowledge", args=[report.public_id]))
 
     assert response.status_code == 302
     assert not ReportAcknowledgement.objects.filter(report=report, user=member).exists()
@@ -318,7 +333,7 @@ def test_compose_view_get_renders_form_for_assigned_officer(auto_login_user):
     _template()
     obligation = _obligation(officer.chapter, officer)
 
-    response = client.get(reverse("transitions:compose", kwargs={"pk": obligation.pk}))
+    response = client.get(reverse("transitions:compose", kwargs={"pk": obligation.public_id}))
 
     assert response.status_code == 200
     assert TransitionReport.objects.filter(obligation=obligation, author=officer).exists()
@@ -331,7 +346,7 @@ def test_compose_view_blocks_a_different_user(auto_login_user):
     officer = UserFactory(chapter=chapter)
     obligation = _obligation(chapter, officer)
 
-    response = client.get(reverse("transitions:compose", kwargs={"pk": obligation.pk}))
+    response = client.get(reverse("transitions:compose", kwargs={"pk": obligation.public_id}))
 
     assert response.status_code == 302
     assert not TransitionReport.objects.filter(obligation=obligation).exists()
@@ -343,8 +358,8 @@ def test_compose_view_save_draft_does_not_require_fields(auto_login_user):
     obligation = _obligation(officer.chapter, officer)
 
     response = client.post(
-        reverse("transitions:compose", kwargs={"pk": obligation.pk}),
-        {"action": "draft", "prompt_successes": "", "prompt_pitfalls": ""},
+        reverse("transitions:compose", kwargs={"pk": obligation.public_id}),
+        {"action": "draft", "prompt_successes": "", "prompt_pitfalls": "", **_empty_formsets_data()},
     )
 
     assert response.status_code == 302
@@ -358,8 +373,8 @@ def test_compose_view_submit_enforces_required_fields(auto_login_user):
     obligation = _obligation(officer.chapter, officer)
 
     response = client.post(
-        reverse("transitions:compose", kwargs={"pk": obligation.pk}),
-        {"action": "submit", "prompt_successes": "", "prompt_pitfalls": ""},
+        reverse("transitions:compose", kwargs={"pk": obligation.public_id}),
+        {"action": "submit", "prompt_successes": "", "prompt_pitfalls": "", **_empty_formsets_data()},
     )
 
     assert response.status_code == 200
@@ -373,8 +388,13 @@ def test_compose_view_submit_closes_obligation(auto_login_user):
     obligation = _obligation(officer.chapter, officer)
 
     response = client.post(
-        reverse("transitions:compose", kwargs={"pk": obligation.pk}),
-        {"action": "submit", "prompt_successes": "we did well this term", "prompt_pitfalls": ""},
+        reverse("transitions:compose", kwargs={"pk": obligation.public_id}),
+        {
+            "action": "submit",
+            "prompt_successes": "we did well this term",
+            "prompt_pitfalls": "",
+            **_empty_formsets_data(),
+        },
     )
 
     assert response.status_code == 302
@@ -389,13 +409,23 @@ def test_compose_view_editable_after_submission(auto_login_user):
     _template()
     obligation = _obligation(officer.chapter, officer)
     client.post(
-        reverse("transitions:compose", kwargs={"pk": obligation.pk}),
-        {"action": "submit", "prompt_successes": "we did well this term", "prompt_pitfalls": ""},
+        reverse("transitions:compose", kwargs={"pk": obligation.public_id}),
+        {
+            "action": "submit",
+            "prompt_successes": "we did well this term",
+            "prompt_pitfalls": "",
+            **_empty_formsets_data(),
+        },
     )
 
     response = client.post(
-        reverse("transitions:compose", kwargs={"pk": obligation.pk}),
-        {"action": "submit", "prompt_successes": "an updated answer here", "prompt_pitfalls": ""},
+        reverse("transitions:compose", kwargs={"pk": obligation.public_id}),
+        {
+            "action": "submit",
+            "prompt_successes": "an updated answer here",
+            "prompt_pitfalls": "",
+            **_empty_formsets_data(),
+        },
     )
 
     assert response.status_code == 302
@@ -444,7 +474,7 @@ def test_compose_view_shows_predecessors_answer_inline(auto_login_user):
     successor.save(update_fields=["current_roles"])
     obligation = _obligation(successor.chapter, successor)
 
-    response = client.get(reverse("transitions:compose", kwargs={"pk": obligation.pk}))
+    response = client.get(reverse("transitions:compose", kwargs={"pk": obligation.public_id}))
 
     body = response.content.decode()
     assert "What your predecessor said" in body
@@ -456,7 +486,7 @@ def test_compose_view_hides_prior_answer_section_when_no_predecessor(auto_login_
     _template()
     obligation = _obligation(officer.chapter, officer)
 
-    response = client.get(reverse("transitions:compose", kwargs={"pk": obligation.pk}))
+    response = client.get(reverse("transitions:compose", kwargs={"pk": obligation.public_id}))
 
     assert "What your predecessor said" not in response.content.decode()
 
@@ -469,7 +499,7 @@ def test_compose_view_never_prefills_the_field_with_the_predecessors_answer(auto
     successor.save(update_fields=["current_roles"])
     obligation = _obligation(successor.chapter, successor)
 
-    response = client.get(reverse("transitions:compose", kwargs={"pk": obligation.pk}))
+    response = client.get(reverse("transitions:compose", kwargs={"pk": obligation.public_id}))
 
     # The predecessor's text appears (in the collapsible display), but never
     # as the actual textarea CONTENT for the successor's own blank field.
@@ -484,7 +514,7 @@ def test_compose_view_prior_answer_is_collapsed_by_default(auto_login_user):
     successor.save(update_fields=["current_roles"])
     obligation = _obligation(successor.chapter, successor)
 
-    response = client.get(reverse("transitions:compose", kwargs={"pk": obligation.pk}))
+    response = client.get(reverse("transitions:compose", kwargs={"pk": obligation.public_id}))
 
     assert '<details class="mb-3 text-muted">' in response.content.decode()
 
@@ -497,7 +527,7 @@ def test_compose_view_add_attachment(auto_login_user):
     obligation = _obligation(officer.chapter, officer)
 
     response = client.post(
-        reverse("transitions:compose", kwargs={"pk": obligation.pk}),
+        reverse("transitions:compose", kwargs={"pk": obligation.public_id}),
         {
             "action": "add_attachment",
             "file": SimpleUploadedFile("budget.pdf", b"%PDF-1.4 fake", content_type="application/pdf"),
@@ -511,6 +541,126 @@ def test_compose_view_add_attachment(auto_login_user):
 
 
 # ---------------------------------------------------------------------------
+# ComposeReportView -- contacts / key dates formsets (TRWI-13 proposal)
+# ---------------------------------------------------------------------------
+def test_compose_view_get_shows_one_blank_row_and_an_empty_form_template(auto_login_user):
+    """extra=1 always; the page's own JS clones the rendered empty_form
+    (asserted here via its __prefix__ placeholder) to add further rows, so
+    there is no fixed limit on how many contacts/dates can be entered.
+    """
+    client, officer = auto_login_user()
+    _template()
+    obligation = _obligation(officer.chapter, officer)
+
+    response = client.get(reverse("transitions:compose", kwargs={"pk": obligation.public_id}))
+
+    assert response.status_code == 200
+    assert len(response.context["contacts_formset"].forms) == 1
+    assert len(response.context["key_dates_formset"].forms) == 1
+    body = response.content.decode()
+    assert 'id="contacts-empty-form"' in body
+    assert 'id="key_dates-empty-form"' in body
+    assert "contacts-__prefix__-name" in body
+
+
+def test_compose_view_saves_contacts_and_key_dates(auto_login_user):
+    client, officer = auto_login_user()
+    _template()
+    obligation = _obligation(officer.chapter, officer)
+
+    response = client.post(
+        reverse("transitions:compose", kwargs={"pk": obligation.public_id}),
+        {
+            "action": "draft",
+            "prompt_successes": "",
+            "prompt_pitfalls": "",
+            "contacts-TOTAL_FORMS": "1",
+            "contacts-INITIAL_FORMS": "0",
+            "contacts-MIN_NUM_FORMS": "0",
+            "contacts-MAX_NUM_FORMS": "1000",
+            "contacts-0-name": "Joe Krauskopf",
+            "contacts-0-phone": "(650)575-4242",
+            "contacts-0-notes": "Holds the tabling stuff",
+            "key_dates-TOTAL_FORMS": "1",
+            "key_dates-INITIAL_FORMS": "0",
+            "key_dates-MIN_NUM_FORMS": "0",
+            "key_dates-MAX_NUM_FORMS": "1000",
+            "key_dates-0-label": "IFC dues",
+            "key_dates-0-timing": "Oct 1",
+            "key_dates-0-lead_time_note": "Start collecting Sept 1",
+        },
+    )
+
+    assert response.status_code == 302
+    report = TransitionReport.objects.get(obligation=obligation)
+    assert report.contacts.count() == 1
+    assert report.contacts.get().name == "Joe Krauskopf"
+    assert report.key_dates.count() == 1
+    assert report.key_dates.get().label == "IFC dues"
+
+
+def test_compose_view_invalid_contact_blocks_the_whole_save(auto_login_user):
+    client, officer = auto_login_user()
+    _template()
+    obligation = _obligation(officer.chapter, officer)
+
+    response = client.post(
+        reverse("transitions:compose", kwargs={"pk": obligation.public_id}),
+        {
+            "action": "draft",
+            "prompt_successes": "should not be saved",
+            "prompt_pitfalls": "",
+            "contacts-TOTAL_FORMS": "1",
+            "contacts-INITIAL_FORMS": "0",
+            "contacts-MIN_NUM_FORMS": "0",
+            "contacts-MAX_NUM_FORMS": "1000",
+            "contacts-0-name": "",
+            "contacts-0-phone": "(650)575-4242",
+            "key_dates-TOTAL_FORMS": "0",
+            "key_dates-INITIAL_FORMS": "0",
+            "key_dates-MIN_NUM_FORMS": "0",
+            "key_dates-MAX_NUM_FORMS": "1000",
+        },
+    )
+
+    assert response.status_code == 200
+    report = TransitionReport.objects.get(obligation=obligation)
+    assert report.contacts.count() == 0
+    assert not report.answers.filter(prompt_key="successes", value="should not be saved").exists()
+
+
+def test_compose_view_deletes_an_existing_contact(auto_login_user):
+    client, officer = auto_login_user()
+    _template()
+    obligation = _obligation(officer.chapter, officer)
+    report = services.get_or_create_report(obligation)
+    contact = report.contacts.create(name="Old Contact")
+
+    response = client.post(
+        reverse("transitions:compose", kwargs={"pk": obligation.public_id}),
+        {
+            "action": "draft",
+            "prompt_successes": "",
+            "prompt_pitfalls": "",
+            "contacts-TOTAL_FORMS": "1",
+            "contacts-INITIAL_FORMS": "1",
+            "contacts-MIN_NUM_FORMS": "0",
+            "contacts-MAX_NUM_FORMS": "1000",
+            "contacts-0-id": str(contact.pk),
+            "contacts-0-name": "Old Contact",
+            "contacts-0-DELETE": "on",
+            "key_dates-TOTAL_FORMS": "0",
+            "key_dates-INITIAL_FORMS": "0",
+            "key_dates-MIN_NUM_FORMS": "0",
+            "key_dates-MAX_NUM_FORMS": "1000",
+        },
+    )
+
+    assert response.status_code == 302
+    assert not report.contacts.filter(pk=contact.pk).exists()
+
+
+# ---------------------------------------------------------------------------
 # AttachmentDeleteView
 # ---------------------------------------------------------------------------
 def test_attachment_delete_by_author(auto_login_user):
@@ -520,7 +670,7 @@ def test_attachment_delete_by_author(auto_login_user):
     _template()
     obligation = _obligation(officer.chapter, officer)
     client.post(
-        reverse("transitions:compose", kwargs={"pk": obligation.pk}),
+        reverse("transitions:compose", kwargs={"pk": obligation.public_id}),
         {
             "action": "add_attachment",
             "file": SimpleUploadedFile("budget.pdf", b"%PDF-1.4 fake", content_type="application/pdf"),
@@ -529,7 +679,7 @@ def test_attachment_delete_by_author(auto_login_user):
     )
     attachment = ReportAttachment.objects.get()
 
-    response = client.post(reverse("transitions:attachment-delete", kwargs={"pk": attachment.pk}))
+    response = client.post(reverse("transitions:attachment-delete", kwargs={"pk": attachment.public_id}))
 
     assert response.status_code == 302
     assert not ReportAttachment.objects.filter(pk=attachment.pk).exists()
@@ -542,7 +692,7 @@ def test_attachment_delete_blocked_for_non_author(auto_login_user):
     _template()
     obligation = _obligation(officer.chapter, officer)
     client.post(
-        reverse("transitions:compose", kwargs={"pk": obligation.pk}),
+        reverse("transitions:compose", kwargs={"pk": obligation.public_id}),
         {
             "action": "add_attachment",
             "file": SimpleUploadedFile("budget.pdf", b"%PDF-1.4 fake", content_type="application/pdf"),
@@ -554,7 +704,7 @@ def test_attachment_delete_blocked_for_non_author(auto_login_user):
     other_client_user = UserFactory(chapter=ChapterFactory())
     client.force_login(other_client_user)
 
-    response = client.post(reverse("transitions:attachment-delete", kwargs={"pk": attachment.pk}))
+    response = client.post(reverse("transitions:attachment-delete", kwargs={"pk": attachment.public_id}))
 
     assert response.status_code == 302
     assert ReportAttachment.objects.filter(pk=attachment.pk).exists()
@@ -569,7 +719,7 @@ def test_close_na_vacant_by_regent(auto_login_user):
     regent.save(update_fields=["current_roles"])
     obligation = _obligation(regent.chapter, None, position_key="scribe")
 
-    response = client.post(reverse("transitions:close-vacant", kwargs={"pk": obligation.pk}))
+    response = client.post(reverse("transitions:close-vacant", kwargs={"pk": obligation.public_id}))
 
     assert response.status_code == 302
     obligation.refresh_from_db()
@@ -580,7 +730,7 @@ def test_close_na_vacant_blocked_for_plain_member(auto_login_user):
     client, member = auto_login_user()
     obligation = _obligation(member.chapter, None, position_key="scribe")
 
-    response = client.post(reverse("transitions:close-vacant", kwargs={"pk": obligation.pk}))
+    response = client.post(reverse("transitions:close-vacant", kwargs={"pk": obligation.public_id}))
 
     assert response.status_code == 302
     obligation.refresh_from_db()
@@ -746,12 +896,13 @@ def test_compose_view_submit_saves_manual_tags(auto_login_user):
     obligation = _obligation(officer.chapter, officer)
 
     response = client.post(
-        reverse("transitions:compose", kwargs={"pk": obligation.pk}),
+        reverse("transitions:compose", kwargs={"pk": obligation.public_id}),
         {
             "action": "submit",
             "prompt_successes": "we did well this term",
             "prompt_pitfalls": "",
             "manual_tags": ["risk", "advice"],
+            **_empty_formsets_data(),
         },
     )
 
@@ -766,8 +917,14 @@ def test_compose_view_draft_save_also_saves_manual_tags(auto_login_user):
     obligation = _obligation(officer.chapter, officer)
 
     response = client.post(
-        reverse("transitions:compose", kwargs={"pk": obligation.pk}),
-        {"action": "draft", "prompt_successes": "", "prompt_pitfalls": "", "manual_tags": ["risk"]},
+        reverse("transitions:compose", kwargs={"pk": obligation.public_id}),
+        {
+            "action": "draft",
+            "prompt_successes": "",
+            "prompt_pitfalls": "",
+            "manual_tags": ["risk"],
+            **_empty_formsets_data(),
+        },
     )
 
     assert response.status_code == 302
@@ -782,7 +939,7 @@ def test_compose_view_get_prefills_existing_manual_tags(auto_login_user):
     report = services.get_or_create_report(obligation)
     report.tags.create(tag="risk", source="manual")
 
-    response = client.get(reverse("transitions:compose", kwargs={"pk": obligation.pk}))
+    response = client.get(reverse("transitions:compose", kwargs={"pk": obligation.public_id}))
 
     assert response.status_code == 200
     assert response.context["form"].initial.get("manual_tags") == ["risk"]
@@ -823,6 +980,8 @@ def test_search_view_filters_by_query_text(auto_login_user):
     from django.contrib.auth.models import Group
 
     client, natoff = auto_login_user()
+    natoff.current_roles = ["grand regent"]
+    natoff.save(update_fields=["current_roles"])
     natoff.groups.add(Group.objects.get_or_create(name="natoff")[0])
     chapter = ChapterFactory()
     matching = _report(chapter, "treasurer", UserFactory(chapter=chapter))

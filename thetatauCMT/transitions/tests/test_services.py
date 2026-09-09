@@ -40,6 +40,19 @@ def _role_change(chapter, role, end, start=None, user=None):
     return UserRoleChange.objects.create(user=user, role=role, start=start, end=end)
 
 
+def _council_officer():
+    """A user who sees every submitted report nationally (2026-09 access
+    tightening narrowed a plain NATIONAL_OFFICER role to "their own
+    position_key only" -- tests that just need "someone who can see
+    everything" to exercise an unrelated filter use a Council role instead).
+    """
+    user = UserFactory()
+    user.current_roles = ["grand regent"]
+    user.save(update_fields=["current_roles"])
+    user.groups.add(Group.objects.get_or_create(name="natoff")[0])
+    return user
+
+
 # ---------------------------------------------------------------------------
 # resolve_position_status / is_position_required
 # ---------------------------------------------------------------------------
@@ -1064,22 +1077,26 @@ def test_can_read_report_rd_denied_outside_their_own_region():
     assert services.can_read_report(rd, report) is False
 
 
-def test_can_read_report_national_officer_reads_everything_nationally():
-    # CCD is just another NATIONAL_OFFICER role (decision 2026-09-04) -- no
-    # special-casing, is_national_officer_group alone covers it.
+def test_can_read_report_national_officer_reads_only_their_own_position_nationally():
+    # 2026-09 access tightening: a plain NATIONAL_OFFICER role (e.g. CCD) no
+    # longer sees every chapter's reports, only ones for the SAME
+    # position_key, across chapters -- "reports related to them."
     chapter = ChapterFactory()
-    report = _report(chapter, "scribe", UserFactory(chapter=chapter))
+    unrelated_report = _report(chapter, "scribe", UserFactory(chapter=chapter))
+    ccd_report = _report(ChapterFactory(), "candidate chapter director", UserFactory())
     natoff = UserFactory()
     natoff.current_roles = ["candidate chapter director"]
     natoff.save(update_fields=["current_roles"])
     natoff.groups.add(Group.objects.get_or_create(name="natoff")[0])
 
-    assert services.can_read_report(natoff, report) is True
+    assert services.can_read_report(natoff, unrelated_report) is False
+    assert services.can_read_report(natoff, ccd_report) is True
 
 
 def test_can_read_report_council_member_reads_everything_nationally():
     # NAT_OFFICERS = COUNCIL | NATIONAL_OFFICER, so a Council role also lands
-    # in the natoff group -- confirming Council is covered the same way.
+    # in the natoff group -- Council retains full access, unlike a plain
+    # National Officer above.
     chapter = ChapterFactory()
     report = _report(chapter, "scribe", UserFactory(chapter=chapter))
     council = UserFactory()
@@ -1862,10 +1879,27 @@ def test_search_reports_filters_by_query_text():
     other = _report(chapter, "scribe", UserFactory(chapter=chapter))
     other.answers.create(prompt_key="notes", prompt_label_snapshot="Notes?", value="nothing special")
     other.save()
-    national = UserFactory()
-    national.groups.add(Group.objects.get_or_create(name="natoff")[0])
+    national = _council_officer()
 
     results = list(services.search_reports(national, query="zorblatt"))
+
+    assert results == [matching]
+
+
+def test_search_reports_finds_a_structured_contact():
+    """TRWI-13 proposal: watson's fields= list includes contacts__name/notes,
+    so a Contact added via the compose page's formset is findable by full-text
+    search the same way answers__value already is (R85/R86's own mechanism).
+    """
+    chapter = ChapterFactory()
+    matching = _report(chapter, "treasurer", UserFactory(chapter=chapter))
+    matching.contacts.create(name="Anvie", notes="Domain name renewal trouble")
+    matching.save()
+    other = _report(chapter, "scribe", UserFactory(chapter=chapter))
+    other.save()
+    national = _council_officer()
+
+    results = list(services.search_reports(national, query="Anvie"))
 
     assert results == [matching]
 
@@ -1873,8 +1907,7 @@ def test_search_reports_filters_by_query_text():
 def test_search_reports_empty_query_returns_the_unranked_filtered_queryset():
     chapter = ChapterFactory()
     report = _report(chapter, "treasurer", UserFactory(chapter=chapter))
-    national = UserFactory()
-    national.groups.add(Group.objects.get_or_create(name="natoff")[0])
+    national = _council_officer()
 
     assert list(services.search_reports(national, query="")) == [report]
 
@@ -1883,8 +1916,7 @@ def test_search_reports_filters_by_position_key():
     chapter = ChapterFactory()
     treasurer_report = _report(chapter, "treasurer", UserFactory(chapter=chapter))
     _report(chapter, "scribe", UserFactory(chapter=chapter))
-    national = UserFactory()
-    national.groups.add(Group.objects.get_or_create(name="natoff")[0])
+    national = _council_officer()
 
     results = list(services.search_reports(national, position_key="treasurer"))
 
@@ -1896,8 +1928,7 @@ def test_search_reports_filters_by_chapter():
     other_chapter = ChapterFactory(name="beta")
     report = _report(chapter, "treasurer", UserFactory(chapter=chapter))
     _report(other_chapter, "treasurer", UserFactory(chapter=other_chapter))
-    national = UserFactory()
-    national.groups.add(Group.objects.get_or_create(name="natoff")[0])
+    national = _council_officer()
 
     results = list(services.search_reports(national, chapter=chapter))
 
@@ -1909,8 +1940,7 @@ def test_search_reports_filters_by_region():
     other_chapter = ChapterFactory(name="beta")
     report = _report(chapter, "treasurer", UserFactory(chapter=chapter))
     _report(other_chapter, "treasurer", UserFactory(chapter=other_chapter))
-    national = UserFactory()
-    national.groups.add(Group.objects.get_or_create(name="natoff")[0])
+    national = _council_officer()
 
     results = list(services.search_reports(national, region=chapter.region))
 
@@ -1922,8 +1952,7 @@ def test_search_reports_filters_by_tag():
     tagged = _report(chapter, "treasurer", UserFactory(chapter=chapter))
     services.set_manual_tags(tagged, ["risk"])
     untagged = _report(chapter, "scribe", UserFactory(chapter=chapter))
-    national = UserFactory()
-    national.groups.add(Group.objects.get_or_create(name="natoff")[0])
+    national = _council_officer()
 
     results = list(services.search_reports(national, tag="risk"))
 
@@ -1939,8 +1968,7 @@ def test_search_reports_filters_by_cycle():
     old_report = _report(chapter, "scribe", UserFactory(chapter=chapter))
     old_report.submitted_at = timezone.now() - datetime.timedelta(days=900)
     old_report.save(update_fields=["submitted_at"])
-    national = UserFactory()
-    national.groups.add(Group.objects.get_or_create(name="natoff")[0])
+    national = _council_officer()
 
     results = list(services.search_reports(national, cycle="current"))
 
@@ -1953,8 +1981,7 @@ def test_search_reports_cycle_all_includes_every_submitted_report_regardless_of_
     old_report = _report(chapter, "treasurer", UserFactory(chapter=chapter))
     old_report.submitted_at = timezone.now() - datetime.timedelta(days=900)
     old_report.save(update_fields=["submitted_at"])
-    national = UserFactory()
-    national.groups.add(Group.objects.get_or_create(name="natoff")[0])
+    national = _council_officer()
 
     results = list(services.search_reports(national, cycle="all"))
 

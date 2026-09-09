@@ -6,6 +6,8 @@ from thetatauCMT.transitions.models import (
     ReportAcknowledgement,
     ReportAnswer,
     ReportAttachment,
+    ReportContact,
+    ReportKeyDate,
     ReportObligation,
     ReportTag,
     ReportTemplate,
@@ -31,7 +33,10 @@ from thetatauCMT.transitions.models import (
 # change) is the free-form tag vocabulary itself -- just a short ``name``
 # string, same free-vocabulary category as jobs.Keyword/jobs.Major/
 # users.Position, and never contains a person's name in practice (tags are
-# theme words like "risk"/"continuity", not who said them).
+# theme words like "risk"/"continuity", not who said them). ReportKeyDate
+# (2026-09 structured-content pass) is organizational scheduling text only
+# (label/timing/lead-time note) -- no person's name, phone, or email lives
+# on it, same category as ReportTag.
 register_skip(
     [
         PositionOverride,
@@ -43,6 +48,7 @@ register_skip(
         HandoffNotice,
         ReportTag,
         TransitionTag,
+        ReportKeyDate,
     ]
 )
 
@@ -50,10 +56,14 @@ register_skip(
 # content officers write about their term -- the plan's own "candor risk" note
 # says officers may write critically about NAMED INDIVIDUALS, so this is raw
 # as-uploaded identity content (same category as attendance.MatchQueueItem),
-# not just an FK reference. Drop every row.
+# not just an FK reference. ReportContact (2026-09 structured-content pass)
+# is real third-party PII by design -- name/phone/email of a person who may
+# not even be a CMT member (a vendor, a campus office contact) -- same
+# category, not just an FK reference. Drop every row.
 register_clean(
     [
         (ReportAnswer, AnonymBase),
         (ReportAttachment, AnonymBase),
+        (ReportContact, AnonymBase),
     ]
 )

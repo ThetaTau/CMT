@@ -5,7 +5,7 @@ import pytest
 from thetatauCMT.chapters.tests.factories import ChapterFactory
 from thetatauCMT.users.tests.factories import UserFactory
 
-from ..forms import ComposeReportForm
+from ..forms import ComposeReportForm, ReportContactForm, ReportKeyDateForm
 from ..models import ReportAnswer, ReportObligation, ReportTemplate, TemplatePrompt, TransitionReport
 
 pytestmark = pytest.mark.django_db
@@ -38,6 +38,38 @@ def test_compose_form_date_field_type_uses_date_field():
     form = ComposeReportForm(template=template)
     assert isinstance(form.fields["prompt_key_dates"], django_forms.DateField)
     assert isinstance(form.fields["prompt_successes"], django_forms.CharField)
+
+
+def test_compose_form_flags_systems_tagged_prompts_for_credential_warning():
+    """TRWI-13 proposal: static/js/transitions_compose.js hooks off this
+    attribute to show its heuristic "looks like a password" warning.
+    """
+    template = ReportTemplate.objects.create(position_type="CHAPTER_OFFICER", name="Chapter Officer Report")
+    TemplatePrompt.objects.create(
+        template=template, order=1, prompt_key="systems_access", label="Systems?", tag="systems"
+    )
+    TemplatePrompt.objects.create(template=template, order=2, prompt_key="successes", label="Successes?", tag="success")
+
+    form = ComposeReportForm(template=template)
+
+    assert form.fields["prompt_systems_access"].widget.attrs.get("data-warn-credentials") == "1"
+    assert "data-warn-credentials" not in form.fields["prompt_successes"].widget.attrs
+
+
+def test_report_contact_form_requires_a_name():
+    form = ReportContactForm(data={"name": "", "phone": "(650)575-4242"})
+    assert not form.is_valid()
+    assert "name" in form.errors
+
+
+def test_report_contact_form_valid_with_just_a_name():
+    form = ReportContactForm(data={"name": "Joe Krauskopf"})
+    assert form.is_valid()
+
+
+def test_report_key_date_form_valid_with_just_a_label():
+    form = ReportKeyDateForm(data={"label": "IFC dues"})
+    assert form.is_valid()
 
 
 def test_compose_form_draft_save_skips_required_and_bounds():

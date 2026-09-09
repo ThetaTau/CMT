@@ -1,3 +1,5 @@
+import uuid
+
 from django.conf import settings
 from django.db import models
 from django.utils import timezone
@@ -190,6 +192,12 @@ class ReportObligation(models.Model):
     obligation, so the daily reminder command never re-sends the same
     threshold twice. Not reset on status change; simply stops advancing once
     reminders stop (status becomes ``submitted``/``na_vacant``).
+
+    ``public_id`` (2026-09): the compose/close-vacant URLs key off this, not
+    the bare auto-increment ``id`` -- a sequential integer in a URL lets a
+    bad actor enumerate every obligation (e.g. incrementing ``/1/compose/``,
+    ``/2/compose/``, ...) to probe for existence even though the view itself
+    is access-controlled; a random UUID removes that avenue entirely.
     """
 
     class Status(EnumClass):
@@ -198,6 +206,7 @@ class ReportObligation(models.Model):
         na_vacant = ("na_vacant", "N/A - Vacant")
         missed = ("missed", "Missed")
 
+    public_id = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
     chapter = models.ForeignKey(Chapter, on_delete=models.CASCADE, related_name="report_obligations")
     position_type = models.CharField(max_length=20, choices=[x.value for x in PositionType])
     position_key = models.CharField(max_length=50, choices=POSITION_KEY_CHOICES)
@@ -249,6 +258,9 @@ class TransitionReport(TimeStampedModel):
     F15) -- there is no lock and no separate "editable" check anywhere here.
     ``modified`` (from TimeStampedModel) is the only "last touched" signal
     since ``submitted_at`` is set once, at first submission, and never moves.
+
+    ``public_id`` (2026-09): the acknowledge URL keys off this, not the bare
+    auto-increment ``id`` -- see ``ReportObligation.public_id``'s own note.
     """
 
     class Status(EnumClass):
@@ -256,6 +268,7 @@ class TransitionReport(TimeStampedModel):
         submitted = ("submitted", "Submitted")
         na_vacant = ("na_vacant", "N/A - Vacant")
 
+    public_id = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
     obligation = models.OneToOneField(ReportObligation, on_delete=models.CASCADE, related_name="report")
     chapter = models.ForeignKey(Chapter, on_delete=models.CASCADE, related_name="transition_reports")
     position_type = models.CharField(max_length=20, choices=[x.value for x in PositionType])
@@ -316,13 +329,91 @@ class ReportAnswer(models.Model):
         return f"{self.prompt_key} ({self.report})"
 
 
+class ReportContact(models.Model):
+    """A named contact captured on a ``TransitionReport`` (2026-09,
+    structured-content pass, TRWI-13 proposal).
+
+    Structured instead of buried in the ``campus_contacts``/``experts``
+    prompts' free text -- makes contacts individually browsable and
+    searchable (see ``TransitionsConfig.ready``'s watson ``fields=``) rather
+    than only findable by hoping the right phrase survives a paraphrase in a
+    full-text match. Contains real third-party PII (name/phone/email of
+    someone who may not be a CMT member at all, e.g. a vendor or a campus
+    contact) -- ``anonymizer/transitions.py`` registers this ``register_clean``,
+    same category as ``ReportAnswer``/``ReportAttachment``, not ``register_skip``.
+    """
+
+    report = models.ForeignKey(TransitionReport, on_delete=models.CASCADE, related_name="contacts")
+    name = models.CharField(max_length=150)
+    role_or_context = models.CharField(max_length=150, blank=True)
+    phone = models.CharField(max_length=30, blank=True)
+    email = models.EmailField(blank=True)
+    notes = models.TextField(blank=True)
+
+    class Meta:
+        ordering = ["report", "name"]
+        verbose_name = "Report Contact"
+
+    def __str__(self):
+        return self.name
+
+
+class ReportKeyDate(models.Model):
+    """A recurring date/deadline captured on a ``TransitionReport`` (2026-09,
+    structured-content pass, TRWI-13 proposal).
+
+    Structured instead of buried in the ``key_dates`` prompt's one-per-line
+    free text, so the lead-time note stays attached to its own date instead
+    of hoping it survives a full-text search. ``timing`` is deliberately a
+    free-text ``CharField``, not a real ``DateField`` -- the real examples
+    this was modeled on include recurring/relative timing ("usually in
+    October or March", "before January") that a single calendar date cannot
+    express, so this trades away strict chronological sorting for matching
+    what officers actually write. No PII here (label/timing/lead-time text
+    only) -- ``anonymizer/transitions.py`` registers this ``register_skip``.
+    """
+
+    report = models.ForeignKey(TransitionReport, on_delete=models.CASCADE, related_name="key_dates")
+    label = models.CharField(max_length=200)
+    timing = models.CharField(max_length=100, blank=True)
+    lead_time_note = models.CharField(max_length=200, blank=True)
+
+    class Meta:
+        ordering = ["report", "id"]
+        verbose_name = "Report Key Date"
+
+    def __str__(self):
+        return self.label
+
+
 def get_attachment_upload_path(instance, filename):
     """``transitions/<chapter-slug>/<report-pk>/<filename>`` -- mirrors ``notes.models.get_upload_path``."""
     return "/".join(["transitions", instance.report.chapter.slug, str(instance.report.pk), filename])
 
 
 class ReportAttachment(models.Model):
-    """An optional artifact uploaded alongside a ``TransitionReport`` (TRWI-5)."""
+    """An optional artifact uploaded alongside a ``TransitionReport`` (TRWI-5).
+
+    ``category`` (2026-09, TRWI-13 proposal) is a soft hint, not an
+    enforced requirement -- mirrors the formal "Executive Board Officer
+    Transition Worksheet" template's own "Additional Information to Share"
+    checklist (budgets, meeting minutes, vendor info, asset lists, ...), so
+    attachments become filterable/groupable by kind instead of an
+    undifferentiated pile of files.
+
+    ``public_id`` (2026-09): the attachment-delete URL keys off this, not
+    the bare auto-increment ``id`` -- see ``ReportObligation.public_id``'s
+    own note.
+    """
+
+    class Category(EnumClass):
+        budget = ("budget", "Budget / financial")
+        minutes = ("minutes", "Meeting minutes")
+        vendor_info = ("vendor_info", "Vendor / contact info")
+        policy = ("policy", "Policy / bylaws / C&B")
+        event_plan = ("event_plan", "Event plan / checklist")
+        asset_list = ("asset_list", "Asset / inventory list")
+        other = ("other", "Other")
 
     ALLOWED_FILE_TYPES = [
         "application/pdf",
@@ -334,11 +425,13 @@ class ReportAttachment(models.Model):
     ]
 
     report = models.ForeignKey(TransitionReport, on_delete=models.CASCADE, related_name="attachments")
+    public_id = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
     file = models.FileField(
         upload_to=get_attachment_upload_path,
         validators=[FileTypeValidator(allowed_types=ALLOWED_FILE_TYPES)],
     )
     description = models.CharField(max_length=255, blank=True)
+    category = models.CharField(max_length=20, choices=[x.value for x in Category], blank=True)
     uploaded_by = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="transition_report_attachments"
     )

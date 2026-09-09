@@ -19,6 +19,11 @@ class TransitionsConfig(AppConfig):
         (``related_name="answers"``) -- watson's ``SearchAdapter._resolve_field``
         detects the related manager and joins every answer's text automatically,
         so the FULL body of the report is indexed, not just its own fields.
+        ``contacts__name``/``contacts__notes``/``key_dates__label``/
+        ``key_dates__timing`` (2026-09 structured-content pass, TRWI-13
+        proposal) use the exact same reverse-relation-traversal mechanism, so
+        the new structured Contacts/Key Dates content is fully searchable
+        from day one with no dedicated search UI of its own needed for v1.
         When this is updated need to run: python manage.py buildwatson
         """
         model = self.get_model("TransitionReport")
@@ -29,5 +34,9 @@ class TransitionsConfig(AppConfig):
                 "answers__value",
                 "chapter__name",
                 "author__name",
+                "contacts__name",
+                "contacts__notes",
+                "key_dates__label",
+                "key_dates__timing",
             ],
         )

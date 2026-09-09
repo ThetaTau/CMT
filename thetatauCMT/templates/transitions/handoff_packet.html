@@ -14,7 +14,7 @@
           {% if report.pk in acknowledged_report_ids %}
             <span class="badge bg-secondary">Read</span>
           {% else %}
-            <form method="post" action="{% url 'transitions:acknowledge' report.pk %}">
+            <form method="post" action="{% url 'transitions:acknowledge' report.public_id %}">
               {% csrf_token %}
               <button type="submit" class="btn btn-sm btn-outline-secondary">Mark as read</button>
             </form>

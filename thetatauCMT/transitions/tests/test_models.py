@@ -16,6 +16,8 @@ from ..models import (
     ReportAcknowledgement,
     ReportAnswer,
     ReportAttachment,
+    ReportContact,
+    ReportKeyDate,
     ReportObligation,
     ReportTag,
     ReportTemplate,
@@ -255,6 +257,90 @@ def test_report_attachment_rejects_disallowed_file_type():
     )
     with pytest.raises(ValidationError):
         attachment.full_clean()
+
+
+def test_report_attachment_category_is_optional_and_displays():
+    chapter = ChapterFactory()
+    officer = UserFactory(chapter=chapter)
+    obligation = _obligation(chapter, officer)
+    template = ReportTemplate.objects.create(position_type="CHAPTER_OFFICER", name="Chapter Officer Report")
+    report = TransitionReport.objects.create(
+        obligation=obligation,
+        chapter=chapter,
+        position_type="CHAPTER_OFFICER",
+        position_key="treasurer",
+        author=officer,
+        template=template,
+        template_version=1,
+    )
+    from django.core.files.uploadedfile import SimpleUploadedFile
+
+    no_category = ReportAttachment.objects.create(
+        report=report,
+        file=SimpleUploadedFile("notes.pdf", b"%PDF-1.4 fake", content_type="application/pdf"),
+        uploaded_by=officer,
+    )
+    assert no_category.category == ""
+    assert no_category.get_category_display() == ""
+
+    budget = ReportAttachment.objects.create(
+        report=report,
+        file=SimpleUploadedFile("budget.pdf", b"%PDF-1.4 fake", content_type="application/pdf"),
+        uploaded_by=officer,
+        category="budget",
+    )
+    assert budget.get_category_display() == "Budget / financial"
+
+
+# ---------------------------------------------------------------------------
+# ReportContact / ReportKeyDate (TRWI-13 proposal, structured content)
+# ---------------------------------------------------------------------------
+def test_report_contact_str_and_optional_fields():
+    chapter = ChapterFactory()
+    officer = UserFactory(chapter=chapter)
+    obligation = _obligation(chapter, officer)
+    template = ReportTemplate.objects.create(position_type="CHAPTER_OFFICER", name="Chapter Officer Report")
+    report = TransitionReport.objects.create(
+        obligation=obligation,
+        chapter=chapter,
+        position_type="CHAPTER_OFFICER",
+        position_key="treasurer",
+        author=officer,
+        template=template,
+        template_version=1,
+    )
+
+    contact = ReportContact.objects.create(report=report, name="Joe Krauskopf")
+
+    assert str(contact) == "Joe Krauskopf"
+    assert contact.role_or_context == ""
+    assert contact.phone == ""
+    assert contact.email == ""
+    assert list(report.contacts.all()) == [contact]
+
+
+def test_report_key_date_str_and_optional_fields():
+    chapter = ChapterFactory()
+    officer = UserFactory(chapter=chapter)
+    obligation = _obligation(chapter, officer)
+    template = ReportTemplate.objects.create(position_type="CHAPTER_OFFICER", name="Chapter Officer Report")
+    report = TransitionReport.objects.create(
+        obligation=obligation,
+        chapter=chapter,
+        position_type="CHAPTER_OFFICER",
+        position_key="treasurer",
+        author=officer,
+        template=template,
+        template_version=1,
+    )
+
+    key_date = ReportKeyDate.objects.create(
+        report=report, label="IFC dues", timing="Oct 1", lead_time_note="Start collecting Sept 1"
+    )
+
+    assert str(key_date) == "IFC dues"
+    assert key_date.timing == "Oct 1"
+    assert list(report.key_dates.all()) == [key_date]
 
 
 # ---------------------------------------------------------------------------

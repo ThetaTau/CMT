@@ -47,7 +47,7 @@ def test_seeds_full_coverage_on_empty_db():
     assert statuses == {"open", "submitted", "missed", "na_vacant"}
 
     reports = TransitionReport.objects.filter(chapter__name__startswith=QA_PREFIX)
-    assert reports.count() == 7
+    assert reports.count() == 8
     position_types = set(reports.values_list("position_type", flat=True))
     assert position_types == {"CHAPTER_OFFICER", "COUNCIL", "NATIONAL_OFFICER", "COMMITTEE_CHAIR"}
 
@@ -124,18 +124,39 @@ def test_rd_reads_their_own_region_but_not_the_other_region():
     assert f"{QA_PREFIX} Chapter Delta" not in readable_chapters
 
 
-def test_ccd_and_national_officer_read_everywhere_including_the_other_region():
+def test_ccd_and_national_officer_read_only_their_own_position_nationally():
+    """2026-09 access tightening: a plain National Officer role (CCD,
+    National Director) no longer reads everywhere -- only reports for the
+    SAME position_key, across chapters (here: the seeded predecessor in
+    Chapter Delta, not their own home Chapter Beta).
+    """
     _seed()
     ccd = _user("ccd")
     natoff = _user("natoff")
 
-    for user in (ccd, natoff):
-        readable_chapters = set(services.get_readable_reports(user).values_list("chapter__name", flat=True))
-        assert readable_chapters == {
-            f"{QA_PREFIX} Chapter Alpha",
-            f"{QA_PREFIX} Chapter Beta",
-            f"{QA_PREFIX} Chapter Delta",
-        }
+    assert set(services.get_readable_reports(ccd).values_list("chapter__name", flat=True)) == {
+        f"{QA_PREFIX} Chapter Delta"
+    }
+    assert set(services.get_readable_reports(natoff).values_list("chapter__name", flat=True)) == {
+        f"{QA_PREFIX} Chapter Delta"
+    }
+
+
+def test_council_reads_everywhere_including_the_other_region():
+    """Only Council ("Grand" officers) plus Admin keep the "sees everything
+    nationally" access after the 2026-09 tightening (see the CCD/National
+    Officer test above for the narrower rule everyone else in NATIONAL_OFFICER
+    now gets).
+    """
+    _seed()
+    council = _user("council")
+
+    readable_chapters = set(services.get_readable_reports(council).values_list("chapter__name", flat=True))
+    assert readable_chapters == {
+        f"{QA_PREFIX} Chapter Alpha",
+        f"{QA_PREFIX} Chapter Beta",
+        f"{QA_PREFIX} Chapter Delta",
+    }
 
 
 def test_outsider_reads_nothing():

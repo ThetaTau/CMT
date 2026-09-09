@@ -6,7 +6,12 @@ from django.db.models import Count, Q
 from django.utils import timezone
 from watson import search as watson
 
-from core.models import CHAPTER_OFFICER_REQUIRED, academic_encompass_start_end_date, semester_encompass_start_end_date
+from core.models import (
+    CHAPTER_OFFICER_REQUIRED,
+    NATIONAL_OFFICER,
+    academic_encompass_start_end_date,
+    semester_encompass_start_end_date,
+)
 from thetatauCMT.chapters.models import Chapter
 from thetatauCMT.configs.models import Config
 from thetatauCMT.users.models import User, UserRoleChange
@@ -571,6 +576,13 @@ def close_as_na_vacant(obligation):
 # ---------------------------------------------------------------------------
 # TRWI-6: access control service
 # ---------------------------------------------------------------------------
+# "Regional director" is excluded: RD already has its own, narrower,
+# region-based scope in get_readable_reports, so the generic "same
+# position_key, any chapter" rule below must not ALSO apply to it (that
+# would let an RD see every OTHER region's RD reports too).
+NATIONAL_OFFICER_SCOPED = NATIONAL_OFFICER - {"regional director"}
+
+
 def get_readable_reports(user, **filters):
     """Every ``TransitionReport`` ``user`` is entitled to read (TRWI-6).
 
@@ -592,11 +604,24 @@ def get_readable_reports(user, **filters):
       the existing ``user.director_regions`` (same pattern as
       ``awards/eligibility.py``'s regional scoping) -- no new region-scope
       lookup.
-    - **National Officer or Admin:** every submitted report.
-      ``core.models.NAT_OFFICERS`` already merges Council into the
-      ``natoff`` group, and CCD is just another ``NATIONAL_OFFICER`` role
-      value, so ``user.is_national_officer_group`` alone covers Council/CCD
-      too (decision 2026-09-04) -- no separate scoping needed.
+    - **Council ("Grand" officers) or Admin:** every submitted report,
+      nationally. 2026-09 tightened this from "any National Officer" --
+      seeing every chapter's full candor was broader than intended for a
+      plain ``NATIONAL_OFFICER`` role (e.g. a candidate chapter director);
+      only ``core.models.COUNCIL`` (the "Grand X" positions + council
+      delegate) plus Admin see everything now. ``is_national_officer_group``
+      is still checked alongside ``is_council_officer()`` so a Council
+      member who has toggled "Hide national officer functionality"
+      (``natoff_hidden``) previews as a regular member here too, same as
+      everywhere else that toggle applies.
+    - **Other National Officer (in ``NATIONAL_OFFICER``, not Council, not
+      RD):** every submitted report for the SAME national-officer
+      position_key they currently hold, across every chapter -- "reports
+      related to them," not everything. Excludes "regional director"
+      specifically: RD already has its own, narrower, region-based scope
+      just above, and adding the bare position_key here too would widen an
+      RD to see every OTHER region's RD reports as well, which the RD rule
+      deliberately does not do.
 
     ``**filters`` apply on top of the rules above (e.g. ``position_key=...``)
     -- they narrow, never widen, what the rules already allow.
@@ -607,7 +632,7 @@ def get_readable_reports(user, **filters):
     base = TransitionReport.objects.select_related("chapter", "chapter__region", "obligation")
     submitted = Q(status=TransitionReport.Status.submitted.value[0])
 
-    if user.is_admin or user.is_national_officer_group:
+    if user.is_admin or (user.is_national_officer_group and user.is_council_officer()):
         return base.filter(Q(author=user) | submitted, **filters)
 
     current_chapter = user.current_chapter
@@ -623,6 +648,11 @@ def get_readable_reports(user, **filters):
     if director_regions:
         scope |= Q(chapter__region__in=director_regions)
         has_scope = True
+    if user.is_national_officer_group:
+        other_national_roles = NATIONAL_OFFICER_SCOPED & set(current_roles)
+        if other_national_roles:
+            scope |= Q(position_key__in=other_national_roles)
+            has_scope = True
 
     conditions = Q(author=user)
     if has_scope:

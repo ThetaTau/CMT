@@ -4,11 +4,12 @@ import pytest
 from django.core.management import call_command
 
 from thetatauCMT.chapters.tests.factories import ChapterFactory
+from thetatauCMT.regions.tests.factories import RegionFactory
 from thetatauCMT.users.models import UserRoleChange
 from thetatauCMT.users.tests.factories import UserFactory
 
 from .. import services
-from ..models import ReportObligation, ReportTemplate, TemplatePrompt
+from ..models import ReportObligation, ReportTemplate, TemplatePrompt, TransitionTag
 
 pytestmark = pytest.mark.django_db
 
@@ -176,3 +177,66 @@ def test_send_transition_report_reminders_reports_counts(capsys):
 def test_send_transition_report_reminders_dry_run_flag(capsys):
     call_command("send_transition_report_reminders", "--dry-run")
     assert "[dry-run]" in capsys.readouterr().out
+
+
+# ---------------------------------------------------------------------------
+# seed_transition_tags (2026-09 follow-up to TRWI-13)
+# ---------------------------------------------------------------------------
+# NOTE: migration 0008 data-seeds the original 9 TAG_CHOICES names into every
+# test database, so assertions below check for specific names/deltas rather
+# than assuming TransitionTag starts out empty.
+def test_seed_transition_tags_creates_suggested_region_and_chapter_tags():
+    region = RegionFactory(name="Test Seed Region")
+    chapter = ChapterFactory(name="alpha", region=region, active=True)
+
+    call_command("seed_transition_tags")
+
+    names = set(TransitionTag.objects.values_list("name", flat=True))
+    assert "budget" in names
+    assert region.name in names
+    assert chapter.name in names
+
+
+def test_seed_transition_tags_skips_inactive_chapters():
+    inactive = ChapterFactory(name="beta", active=False)
+
+    call_command("seed_transition_tags")
+
+    assert not TransitionTag.objects.filter(name__iexact=inactive.name).exists()
+
+
+def test_seed_transition_tags_is_idempotent():
+    ChapterFactory(name="kappa", active=True)
+    call_command("seed_transition_tags")
+    pks_after_first_run = set(TransitionTag.objects.values_list("pk", flat=True))
+
+    call_command("seed_transition_tags")
+
+    assert set(TransitionTag.objects.values_list("pk", flat=True)) == pks_after_first_run
+
+
+def test_seed_transition_tags_does_not_duplicate_an_existing_tag_with_different_case():
+    TransitionTag.objects.create(name="Budget")
+
+    call_command("seed_transition_tags")
+
+    assert TransitionTag.objects.filter(name__iexact="budget").count() == 1
+
+
+def test_seed_transition_tags_dry_run_writes_nothing(capsys):
+    chapter = ChapterFactory(name="delta", active=True)
+    count_before = TransitionTag.objects.count()
+
+    call_command("seed_transition_tags", "--dry-run")
+
+    assert TransitionTag.objects.count() == count_before
+    assert not TransitionTag.objects.filter(name__iexact=chapter.name).exists()
+    assert "[dry-run]" in capsys.readouterr().out
+
+
+def test_seed_transition_tags_reports_created_and_skipped_counts(capsys):
+    call_command("seed_transition_tags")
+
+    output = capsys.readouterr().out
+    assert "created" in output
+    assert "already existed" in output

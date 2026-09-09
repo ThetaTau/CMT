@@ -7,7 +7,7 @@ from django import forms
 
 from core.forms import DatePicker, ListSelect2Multiple, Select2ListCreateMultipleChoiceField
 
-from .models import FieldType, ReportAttachment, ReportTag, TransitionTag
+from .models import FieldType, ReportAttachment, ReportContact, ReportKeyDate, ReportTag, TransitionTag
 
 
 def _field_name(prompt):
@@ -66,7 +66,16 @@ class ComposeReportForm(forms.Form):
                 widget=DatePicker(options={"format": "M/DD/YYYY"}, attrs={"autocomplete": "off"}),
             )
         else:
-            field = forms.CharField(required=False, widget=forms.Textarea(attrs={"rows": 4}))
+            attrs = {"rows": 4}
+            if prompt.tag == "systems":
+                # 2026-09 structured-content pass: real past transition docs
+                # pasted actual account passwords into exactly this kind of
+                # prompt despite the help text already saying not to (see
+                # transitions-app.md TRWI-13) -- data-warn-credentials hooks
+                # up static/js/transitions_compose.js's heuristic inline
+                # warning, external/CSP-safe, never blocks submission.
+                attrs["data-warn-credentials"] = "1"
+            field = forms.CharField(required=False, widget=forms.Textarea(attrs=attrs))
         field.label = prompt.label
         field.help_text = prompt.help_text
         return field
@@ -141,7 +150,29 @@ class ComposeReportForm(forms.Form):
 class ReportAttachmentForm(forms.ModelForm):
     class Meta:
         model = ReportAttachment
-        fields = ["file", "description"]
+        fields = ["file", "description", "category"]
+
+
+class ReportContactForm(forms.ModelForm):
+    """One row of the compose page's Contacts formset (TRWI-13 proposal).
+
+    ``name`` is the only required field -- Django's own formset machinery
+    (``empty_permitted`` on extra forms) already skips a row left entirely
+    blank, so a row is only validated once SOMETHING in it changes.
+    """
+
+    class Meta:
+        model = ReportContact
+        fields = ["name", "role_or_context", "phone", "email", "notes"]
+        widgets = {"notes": forms.Textarea(attrs={"rows": 2})}
+
+
+class ReportKeyDateForm(forms.ModelForm):
+    """One row of the compose page's Key Dates formset (TRWI-13 proposal)."""
+
+    class Meta:
+        model = ReportKeyDate
+        fields = ["label", "timing", "lead_time_note"]
 
 
 class ComplianceFilterFormHelper(FormHelper):

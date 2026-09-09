@@ -6,6 +6,7 @@ from dal import autocomplete
 from django.contrib import messages
 from django.core.exceptions import ValidationError
 from django.db.models import Exists, OuterRef
+from django.forms.models import modelformset_factory
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.generic import TemplateView, View
 
@@ -26,6 +27,8 @@ from .forms import (
     ComplianceRateFilterFormHelper,
     ComposeReportForm,
     ReportAttachmentForm,
+    ReportContactForm,
+    ReportKeyDateForm,
     SearchFilterFormHelper,
     TrendFilterFormHelper,
 )
@@ -33,6 +36,8 @@ from .models import (
     POSITION_KEY_TO_TYPE,
     ReportAcknowledgement,
     ReportAttachment,
+    ReportContact,
+    ReportKeyDate,
     ReportObligation,
     TransitionReport,
     TransitionTag,
@@ -88,6 +93,51 @@ class TransitionsListView(LoginRequiredMixin, TemplateView):
         return context
 
 
+def _build_contacts_formset(report, data=None):
+    """Contacts formset for the compose page (TRWI-13 proposal).
+
+    ``extra=1`` always: the template clones ``contacts_formset.empty_form``
+    client-side (``static/js/transitions_compose.js``'s ``addFormsetRow``) to
+    add further rows with no page reload, so there is no need to pre-render
+    a pile of blank ones. Blank extra rows are silently skipped by Django's
+    own ``empty_permitted`` formset handling -- no manual filtering needed.
+    """
+    contacts = report.contacts.all()
+    factory = modelformset_factory(ReportContact, form=ReportContactForm, can_delete=True, extra=1)
+    kwargs = {"queryset": contacts, "prefix": "contacts"}
+    if data is not None:
+        kwargs["data"] = data
+    return factory(**kwargs)
+
+
+def _build_key_dates_formset(report, data=None):
+    """Key Dates formset for the compose page (TRWI-13 proposal) -- see
+    ``_build_contacts_formset`` for the ``extra=`` reasoning.
+    """
+    key_dates = report.key_dates.all()
+    factory = modelformset_factory(ReportKeyDate, form=ReportKeyDateForm, can_delete=True, extra=1)
+    kwargs = {"queryset": key_dates, "prefix": "key_dates"}
+    if data is not None:
+        kwargs["data"] = data
+    return factory(**kwargs)
+
+
+def _save_child_formset(formset, **extra_fields):
+    """Save a ``modelformset_factory`` formset whose model needs a parent FK
+    set after the fact (mirrors ``objectives.views.ObjectiveDetailView``'s
+    own ``actions_form_valid``/``notes.views.ChapterNoteDetailView``'s
+    ``subnotes_form_valid`` -- the established pattern in this codebase for
+    exactly this "child rows of a parent, added/edited/deleted in one
+    formset" shape). Caller must have already checked ``formset.is_valid()``.
+    """
+    instances = formset.save(commit=False)
+    for instance in instances:
+        for field, value in extra_fields.items():
+            setattr(instance, field, value)
+        instance.save()
+    formset.save()
+
+
 class ComposeReportView(LoginRequiredMixin, View):
     """Compose/edit/submit the report for one obligation.
 
@@ -100,7 +150,7 @@ class ComposeReportView(LoginRequiredMixin, View):
     template_name = "transitions/compose_form.html"
 
     def dispatch(self, request, *args, **kwargs):
-        self.obligation = get_object_or_404(ReportObligation, pk=kwargs["pk"])
+        self.obligation = get_object_or_404(ReportObligation, public_id=kwargs["pk"])
         if request.user.is_authenticated and request.user != self.obligation.officer:
             messages.error(request, "Only the assigned officer may compose this report.")
             return redirect("transitions:list")
@@ -112,7 +162,13 @@ class ComposeReportView(LoginRequiredMixin, View):
             messages.error(request, "No report template is configured for this position yet.")
             return redirect("transitions:list")
         form = ComposeReportForm(template=report.template, initial=ComposeReportForm.initial_from_report(report))
-        return self._render(request, report, form)
+        return self._render(
+            request,
+            report,
+            form,
+            contacts_formset=_build_contacts_formset(report),
+            key_dates_formset=_build_key_dates_formset(report),
+        )
 
     def post(self, request, *args, **kwargs):
         report = services.get_or_create_report(self.obligation)
@@ -122,7 +178,11 @@ class ComposeReportView(LoginRequiredMixin, View):
 
         submitting = action == "submit"
         form = ComposeReportForm(request.POST, template=report.template, submitting=submitting)
-        if form.is_valid():
+        contacts_formset = _build_contacts_formset(report, data=request.POST)
+        key_dates_formset = _build_key_dates_formset(report, data=request.POST)
+        if form.is_valid() and contacts_formset.is_valid() and key_dates_formset.is_valid():
+            _save_child_formset(contacts_formset, report=report)
+            _save_child_formset(key_dates_formset, report=report)
             if submitting:
                 services.submit_report(report, form.answers_data())
                 services.set_manual_tags(report, form.manual_tags_data())
@@ -131,8 +191,10 @@ class ComposeReportView(LoginRequiredMixin, View):
             services.save_draft(report, form.answers_data())
             services.set_manual_tags(report, form.manual_tags_data())
             messages.success(request, "Draft saved.")
-            return redirect("transitions:compose", pk=self.obligation.pk)
-        return self._render(request, report, form)
+            return redirect("transitions:compose", pk=self.obligation.public_id)
+        return self._render(
+            request, report, form, contacts_formset=contacts_formset, key_dates_formset=key_dates_formset
+        )
 
     def _handle_attachment(self, request, report):
         attachment_form = ReportAttachmentForm(request.POST, request.FILES)
@@ -145,9 +207,9 @@ class ComposeReportView(LoginRequiredMixin, View):
         else:
             errors = "; ".join(str(error) for errors in attachment_form.errors.values() for error in errors)
             messages.error(request, f"That file could not be added: {errors}")
-        return redirect("transitions:compose", pk=self.obligation.pk)
+        return redirect("transitions:compose", pk=self.obligation.public_id)
 
-    def _render(self, request, report, form):
+    def _render(self, request, report, form, contacts_formset=None, key_dates_formset=None):
         prior_answers = services.get_prior_answers(request.user, report)
         return render(
             request,
@@ -158,20 +220,22 @@ class ComposeReportView(LoginRequiredMixin, View):
                 "form": form,
                 "fields_with_prior_answers": form.fields_with_prior_answers(prior_answers),
                 "attachment_form": ReportAttachmentForm(),
+                "contacts_formset": contacts_formset,
+                "key_dates_formset": key_dates_formset,
             },
         )
 
 
 class AttachmentDeleteView(LoginRequiredMixin, View):
     def post(self, request, pk):
-        attachment = get_object_or_404(ReportAttachment, pk=pk)
+        attachment = get_object_or_404(ReportAttachment, public_id=pk)
         if request.user != attachment.report.author:
             messages.error(request, "Only the report's author may remove an attachment.")
         else:
             attachment.file.delete(save=False)
             attachment.delete()
             messages.success(request, "Attachment removed.")
-        return redirect("transitions:compose", pk=attachment.report.obligation_id)
+        return redirect("transitions:compose", pk=attachment.report.obligation.public_id)
 
 
 class TransitionTagAutocomplete(autocomplete.Select2QuerySetView):
@@ -219,7 +283,7 @@ class CloseNAVacantView(LoginRequiredMixin, View):
     """Regent/RD-only path that closes an obligation WITHOUT a report."""
 
     def post(self, request, pk):
-        obligation = get_object_or_404(ReportObligation, pk=pk)
+        obligation = get_object_or_404(ReportObligation, public_id=pk)
         if not services.can_close_na_vacant(request.user, obligation):
             messages.error(request, "Only the chapter Regent or a Regional Director can close this as vacant.")
         else:
@@ -264,7 +328,7 @@ class AcknowledgeReportView(LoginRequiredMixin, View):
     """
 
     def post(self, request, pk):
-        report = get_object_or_404(TransitionReport, pk=pk)
+        report = get_object_or_404(TransitionReport, public_id=pk)
         if not services.can_read_report(request.user, report):
             messages.error(request, "You are not able to acknowledge this report.")
         else:

@@ -35,6 +35,7 @@ from django.core.management import call_command
 from django.core.management.base import BaseCommand
 from django.db import transaction
 
+from core.models import NAT_OFFICERS
 from core.seed_guard import ensure_seeding_allowed
 from thetatauCMT.chapters.models import Chapter
 from thetatauCMT.forms.models import RiskManagement
@@ -345,6 +346,7 @@ class Command(BaseCommand):
             "rd": ("rd", "QA Regional Director", beta, None, None, 3),
             "ccd": ("ccd", "QA Candidate Chapter Director", beta, "candidate chapter director", 38, 4),
             "natoff": ("natoff", "QA National Officer", beta, "national director", 42, 5),
+            "council": ("council", "QA Grand Scribe", beta, "grand scribe", 44, 17),
             "outsider": ("outsider", "QA Outsider Member", gamma, None, None, 6),
             "pred1": ("pred.treasurer.1", "QA Predecessor Treasurer One", alpha, "treasurer", -300, 7),
             "pred2": ("pred.treasurer.2", "QA Predecessor Treasurer Two", alpha, "treasurer", -150, 8),
@@ -371,10 +373,18 @@ class Command(BaseCommand):
             "national_pred": (
                 "pred.national-officer",
                 "QA Predecessor National Officer",
-                beta,
-                "national operations manager",
+                delta,
+                "national director",
                 -90,
                 15,
+            ),
+            "ccd_pred": (
+                "pred.ccd",
+                "QA Predecessor Candidate Chapter Director",
+                delta,
+                "candidate chapter director",
+                -95,
+                16,
             ),
         }
 
@@ -486,9 +496,7 @@ class Command(BaseCommand):
         if changed:
             user.current_roles = current
             user.save(update_fields=["current_roles"])
-        group_name = (
-            "natoff" if role in ("candidate chapter director", "national director", "grand regent") else "officer"
-        )
+        group_name = "natoff" if role in NAT_OFFICERS else "officer"
         Group.objects.get_or_create(name=group_name)[0].user_set.add(user)
 
     # ---------------------------------------------------------------- reports
@@ -500,7 +508,8 @@ class Command(BaseCommand):
         self._submit(users["council_pred"], "grand regent", rich=True)
         self._submit(users["committee_pred"], "events chair", rich=True)
         self._submit(users["outside_region_pred"], "regent", rich=True)
-        self._submit(users["national_pred"], "national operations manager", rich=True)
+        self._submit(users["national_pred"], "national director", rich=True)
+        self._submit(users["ccd_pred"], "candidate chapter director", rich=True)
         # missed_pred and vacant_pred are deliberately NEVER submitted -- their
         # obligations stay "missed"/become "na_vacant" (handled in handle()).
         return reports
@@ -528,8 +537,9 @@ class Command(BaseCommand):
             (users["treasurer"].username, "Successor officer (treasurer, Chapter Alpha)"),
             (users["regent"].username, "Regent (Chapter Alpha, all positions)"),
             (users["rd"].username, "Regional Director ([QA] Transitions Region: Alpha/Beta/Gamma)"),
-            (users["ccd"].username, "Candidate Chapter Director (national-wide, like any natoff)"),
-            (users["natoff"].username, "National Officer (national-wide)"),
+            (users["ccd"].username, "Candidate Chapter Director (own position only, any chapter)"),
+            (users["natoff"].username, "National Officer (own position only, any chapter)"),
+            (users["council"].username, "Council / Grand Officer (national-wide, sees everything)"),
             (users["outsider"].username, "Unrelated member (must see nothing)"),
         ]
         for username, description in rows:
