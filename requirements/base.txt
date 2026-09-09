@@ -71,8 +71,11 @@ django-herald==0.3.0  # https://github.com/worthwhile/django-herald
 django-viewflow==1.11.0  # http://docs.viewflow.io/
 django-material==1.11.3  #
 django-import-export==4.3.9  # https://django-import-export.readthedocs.io
-git+https://github.com/django-dbbackup/django-dbbackup.git@9d1909c30a3271c8c9c8450add30d6e0b996e145
-  # https://django-dbbackup.readthedocs.io/
+django-dbbackup==4.3.0  # https://django-dbbackup.readthedocs.io/
+  # last pre-5.0 release: 5.0+ requires django>=5.0 (we're pinned to 4.2 for
+  # PythonAnywhere's Postgres 12) and removes DBBACKUP_STORAGE/_OPTIONS, which
+  # config/settings/base.py still relies on. 4.3.0 already fixes decrypt_file()
+  # for python-gnupg>=0.5.0 (uses fileobj_or_path=, not the removed file= kwarg)
 django-watson==1.6.3 # https://github.com/etianen/django-watson
 # django-ckeditor==6.7.3 # https://github.com/django-ckeditor/django-ckeditor
 django-ckeditor-5==0.2.18 #https://github.com/hvlads/django-ckeditor-5
