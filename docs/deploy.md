@@ -50,7 +50,7 @@ Local apps that ship models/migrations (all in `LOCAL_APPS`): `users`,
 `chapters`, `jobs`, `events`, `regions`, `scores`, `submissions`, `forms`,
 `tasks`, `finances`, `ballots`, `surveys`, `announcements`, `notes`,
 `objectives`, `trainings`, `configs`, `contact_sync`, `attendance`,
-`nominations`, `awards`, `email_tracking`.
+`nominations`, `awards`, `email_tracking`, `guides`.
 
 ---
 
@@ -275,6 +275,8 @@ set. The vCard download path always works without any of these. Full setup:
 | `MOOSEND_API_KEY` | `None` | Optional. |
 | `METABASE_SECRET_KEY` | `None` | Optional dashboards. |
 | `EXECUTIVE_DIRECTOR` | `Jim.Gaffney@thetatau.org` | `User.username` of the ED; fallback reviewer/recipient for workflows. |
+| `GUARDIAN_EMAIL` | — | Admin login for the Guardian Conduct System; required by the `sync_guardian` scheduled command ([§7](#7-scheduled-tasks-pythonanywhere-daily)). |
+| `GUARDIAN_PASSWORD` | — | Password for `GUARDIAN_EMAIL`. |
 
 ### 3.11 Backups (dbbackup)
 
@@ -442,21 +444,26 @@ them daily and let them decide. Use `--dry-run` / `--override` for testing only 
 |---|---|---|
 | `task_dates --current-year` | daily | Ensure current academic-year task dates exist. |
 | `archive_old_task_dates` | daily | Retire stale `TaskDate` rows. |
+| `prune_acknowledgements` | daily | Prune stale guides/What's New acknowledgement rows (`--days`, default 365). |
 | `set_current_status_roles` | daily | Recompute members' current status/roles. |
+| `member_update_process` | daily | Continue parked Member Update Process tasks 7 days after submission. |
 | `officer_update_reminder_email` | daily | Chapter officer-update reminders. |
 | `region_officer_reminder_digest` | daily → sends **Mon** | Weekly RD officer digest (`--weekday 0`). |
 | `ballot_reminders` | daily → per-ballot 7 day ladder | Re-sends an open ballot every 7 days to whoever has not voted, widening the chapter copy list at day 14 (all officers) and day 21 (chapter roles + Regional Director), plus a final reminder on the due date. Voting closes 5pm Pacific on the due date. |
 | `monthly_chapter_officer_email` | daily → sends **1st** | Monthly per-region chapter health dashboard. |
 | `grad_anniversary_email` | daily | Graduation-anniversary emails (respects unsubscribes). |
-| `chapter_founding_day_email` | daily | Chapter founding-anniversary emails (respects unsubscribes). |
+| `chapter_founding_day_email` | daily | Chapter founding-anniversary emails to initiated members. |
+| `chapter_pledges_check` | daily → sends **Mon** | Warn chapter e-board of pledges not initiated after 6 months. |
 | `award_digest` | daily → sends **1st** | Monthly award-grant digest. |
 | `nomination_follow_up` | daily | Re-contact volunteer nominees per `follow_up_interval_months`. |
-| `job_search_notify --frequency both` | daily | Job Board saved-search alerts (daily + weekly digests). |
-| `weekly_contact_sync` | daily | Push auto-sync-enrolled contact lists. |
+| `ballot_reminders` | daily | 7 day reminder ladder for unreturned open ballots (widens the CC list as it ages). |
+| `job_search_notify --frequency both` | daily → weekly digest sends **Wed** | Job Board saved-search alerts (daily digest every run, `--weekday 2`). |
+| `weekly_contact_sync` | daily → pushes **Thu** | Push auto-sync-enrolled contact lists (`--weekday 3`). |
 | `remind_workflow_tasks` | daily | Viewflow task reminders. |
 | `discipline_tasks` | daily | Disciplinary-process follow-ups. |
 | `badge_pnm_notify` | daily | Badge/PNM notifications. |
 | `sync_trainings` / `enroll_all_ed` | daily | Open edX training sync + enrollment. |
+| `sync_guardian` | daily → syncs **Tue** | Push the active member roster to the Guardian Conduct System (needs `GUARDIAN_EMAIL`/`GUARDIAN_PASSWORD`, [§3.10](#310-other-integrations--people)). |
 | `sync_quickbooks` | daily | Finances sync. |
 
 > This is the deployment-relevant set; confirm the exact crontab against the live
@@ -482,6 +489,7 @@ python manage.py migrate
 # warning below. `workon` exports it via postactivate.
 python -c "import os; print(os.environ.get('DJANGO_SETTINGS_MODULE'))"
 python manage.py collectstatic --noinput
+python manage.py load_feature_registry          # re-sync the feature catalog (safe/idempotent, upsert by key)
 
 # Only if new seed rows are needed this release:
 #   python manage.py loaddata award_types      # e.g. new award types
@@ -658,7 +666,8 @@ os.environ["DJANGO_GCP_STORAGE_BUCKET_NAME"] = ""
 os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = ""
 os.environ["ROLLBAR_ACCESS"] = ""
 # Optional / feature-specific (see §3): MAILERLITE_API_KEY, CONTACT_SYNC_*,
-# LMS_*, ED_*, EXECUTIVE_DIRECTOR, EVENTS_AUTO_APPROVE_NATIONAL_PUBLIC, etc.
+# LMS_*, ED_*, EXECUTIVE_DIRECTOR, EVENTS_AUTO_APPROVE_NATIONAL_PUBLIC,
+# GUARDIAN_EMAIL, GUARDIAN_PASSWORD, etc.
 
 from django.core.wsgi import get_wsgi_application
 

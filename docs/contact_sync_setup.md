@@ -229,10 +229,12 @@ own region — both will run once a week).
 ### Cron / Celery beat integration
 
 A management command drives the actual work — safe to schedule from cron,
-PythonAnywhere, or Celery beat:
+PythonAnywhere, or Celery beat. PythonAnywhere only offers *daily* scheduled
+tasks, so the command self-gates to a single weekday (Thursday by default)
+the same way `job_search_notify` / `region_officer_reminder_digest` do:
 
 ```sh
-# Once a week (e.g. Sunday 06:00) — from a cron-style scheduler:
+# Schedule DAILY; it only actually pushes on --weekday (Thursday by default):
 podman exec thetataucmt_local_django python manage.py weekly_contact_sync
 ```
 
@@ -241,7 +243,11 @@ Options:
 - `--user someone@example.com` — only sync one user's tokens (handy for
   debugging).
 - `--provider google` — only sync one provider.
-- `--dry-run` — print what would happen without actually pushing.
+- `--weekday N` — weekday to actually push on (0=Monday ... 6=Sunday).
+  Default Thursday (3).
+- `--override` — push now regardless of the weekday gate.
+- `--dry-run` — print what would happen without actually pushing; also
+  bypasses the weekday gate so it can be tested on any day.
 
 The command:
 1. Loads every `UserContactSyncToken` with a non-empty `auto_sync_scopes`.

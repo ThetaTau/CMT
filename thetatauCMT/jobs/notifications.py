@@ -320,15 +320,17 @@ def notify_job_banned(ban, affected_count=0):
         logger.exception("Failed to send JobBannedNotification for ban pk=%s", ban.pk)
 
 
-def notify_matching_searches(job_qs, frequency):
+def notify_matching_searches(job_qs, frequency, dry_run=False):
     """Send :class:`JobSearchMatchNotification` for every matching search.
 
     Iterates ``JobSearch`` rows whose ``notification`` equals ``frequency``,
     keeps only those with at least one active filter, and sends one email
     per (owner, search) pair listing the matched subset of ``job_qs``.
 
-    Returns the number of emails actually sent (useful for management
-    command output).
+    When ``dry_run`` is True the same matching runs but no email is sent.
+
+    Returns the number of emails sent (or that would be sent, in dry-run
+    mode) -- useful for management command output.
     """
     sent = 0
     searches = JobSearch.objects.filter(notification=frequency).select_related("created_by")
@@ -341,6 +343,9 @@ def notify_matching_searches(job_qs, frequency):
             continue
         matches = list(matched_qs)
         if not matches:
+            continue
+        if dry_run:
+            sent += 1
             continue
         try:
             JobSearchMatchNotification(search, matches, frequency=frequency).send()
