@@ -14,8 +14,8 @@ class BallotCompleteAdmin(admin.ModelAdmin):
     """
 
     raw_id_fields = ["user"]
-    list_display = ("user", "ballot", "role", "created")
-    list_filter = ["ballot", "role"]
+    list_display = ("user", "ballot", "role", "authority", "created")
+    list_filter = ["ballot", "role", "authority"]
     search_fields = ["user__name", "user__username", "ballot__name"]
     exclude = ["motion"]
     ordering = [
@@ -32,6 +32,7 @@ class BallotCompleteInline(admin.TabularInline):
     fields = [
         "user",
         "role",
+        "authority",
     ]
     show_change_link = False
     can_delete = False

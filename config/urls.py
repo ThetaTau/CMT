@@ -122,6 +122,16 @@ urlpatterns = [
     path("submissions/", include("thetatauCMT.submissions.urls", namespace="submissions")),
     path("surveys/", include("thetatauCMT.surveys.urls", namespace="surveys")),
     path("forms/", include("thetatauCMT.forms.urls", namespace="forms")),
+    path(
+        "pledgepins/",
+        RedirectView.as_view(url="/forms/pledge-pins/", permanent=True),
+        name="pledgepins",
+    ),
+    path(
+        "pledgepin/",
+        RedirectView.as_view(url="/forms/pledge-pins/", permanent=True),
+        name="pledgepin",
+    ),
     path("tasks/", include("thetatauCMT.tasks.urls", namespace="tasks")),
     path("ballots/", include("thetatauCMT.ballots.urls", namespace="ballots")),
     path("contact-sync/", include("thetatauCMT.contact_sync.urls", namespace="contact_sync")),

@@ -243,6 +243,21 @@ def test_init_selection_authenticated_returns_200(auto_login_user):
     assert response.status_code == 200
 
 
+@pytest.mark.django_db
+def test_init_selection_process_with_no_initiations_does_not_500(auto_login_user):
+    """A process whose linked Initiation rows were all deleted (e.g. the
+    member was removed from the system) must not crash the selection page --
+    previously ``process.initiations.first().date`` raised ``AttributeError:
+    'NoneType' object has no attribute 'date'``."""
+    from thetatauCMT.forms.tests.factories import InitiationProcessFactory
+
+    client, user = auto_login_user()
+    process = InitiationProcessFactory.create(chapter=user.current_chapter)
+    process.initiations.clear()
+    response = client.get(reverse("forms:init_selection"))
+    assert response.status_code == 200
+
+
 # ─── PledgePinsView (ActiveMemberRequired, TemplateView) ─────────────────────
 
 
@@ -278,6 +293,18 @@ def test_pledge_pins_superuser_returns_200(auto_login_user):
     user.save()
     response = client.get(reverse("forms:pledge_pins"))
     assert response.status_code == 200
+
+
+def test_pledgepins_shortcut_redirects_to_pledge_pins(client, db):
+    response = client.get("/pledgepins/")
+    assert response.status_code == 301
+    assert response.url == "/forms/pledge-pins/"
+
+
+def test_pledgepin_shortcut_redirects_to_pledge_pins(client, db):
+    response = client.get("/pledgepin/")
+    assert response.status_code == 301
+    assert response.url == "/forms/pledge-pins/"
 
 
 # ─── Split member status-change views ─────────────────────────────────────────
@@ -2956,6 +2983,57 @@ def test_initiation_view_post_initiate_duplicate_does_not_500(auto_login_user):
     assert response.status_code == 302
     stored = [str(m) for m in get_messages(response.wsgi_request)]
     assert any("already initiated" in m for m in stored)
+
+
+@pytest.mark.django_db
+def test_initiation_view_post_candidate_chapter_without_badge_succeeds(auto_login_user):
+    """Candidate chapters have no badge to order, so the initiation report must
+    submit with no badge selected. Regression test: the ``badge`` field was
+    required even though ``Badge`` is filtered to name__icontains='Candidate
+    Chapter' for these chapters, which blocked submission whenever no such
+    Badge existed."""
+    from thetatauCMT.forms.models import Initiation
+    from thetatauCMT.users.tests.factories import UserFactory
+
+    client, user = auto_login_user()
+    _add_to_group(user, "officer")
+    user.chapter.candidate_chapter = True
+    user.chapter.save()
+    pnm = UserFactory.create(chapter=user.chapter)
+    pnm.set_current_status(status="pnm")
+    next_badge = user.current_chapter.next_badge_number()
+
+    session = client.session
+    session["init-selection"] = {
+        "Initiate": [pnm.pk],
+        "Depledge": [],
+        "Defer": [],
+        "Roll": [],
+    }
+    session.save()
+
+    data = {
+        "chapter": user.current_chapter.name,
+        "initiates-TOTAL_FORMS": "1",
+        "initiates-INITIAL_FORMS": "1",
+        "initiates-MIN_NUM_FORMS": "0",
+        "initiates-MAX_NUM_FORMS": "1000",
+        "initiates-0-date": "2020-02-01",
+        "initiates-0-date_graduation": "2024-05-01",
+        "initiates-0-roll": str(next_badge),
+        "initiates-0-gpa": "3.5",
+        "initiates-0-test_a": "90",
+        "initiates-0-test_b": "90",
+        "initiates-0-badge": "",
+        "depledges-TOTAL_FORMS": "0",
+        "depledges-INITIAL_FORMS": "0",
+        "depledges-MIN_NUM_FORMS": "0",
+        "depledges-MAX_NUM_FORMS": "1000",
+    }
+    url = reverse("forms:initiation")
+    response = client.post(url, data)
+    assert response.status_code == 302
+    assert Initiation.objects.get(user=pnm).badge is None
 
 
 # ─── PrematureAlumnusCreateView GET (context_data) ────────────────────────────

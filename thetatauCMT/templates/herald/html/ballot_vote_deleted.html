@@ -1,0 +1,37 @@
+{% extends "herald/html/base_email.html" %}
+{% block title %}Ballot submission removed: {{ ballot.name }}{% endblock %}
+{% block content %}
+<h1 class="null" style="margin: 0;padding: 0;display: block;font-family: Helvetica;font-size: 40px;font-style: normal;font-weight: bold;line-height: 125%;letter-spacing: -1px;text-align: left;color: #606060 !important;">
+  Ballot submission removed</h1>
+<p>
+  The ballot submitted for <b>{{ ballot.name }}</b> by {{ voter.name }} ({{ role }})
+  {% if chapter %}on behalf of the {{ chapter.name }} Chapter {% endif %}has been
+  removed by {{ removed_by.name }}.
+</p>
+{% if reason %}
+<p><b>Reason given:</b> {{ reason }}</p>
+{% endif %}
+<p>
+  {% if ballot_open %}
+    {% if chapter %}
+      The chapter's vote is outstanding again and can be cast by the Regent or the
+      Scribe until voting closes on {{ closes_display }}.
+    {% else %}
+      The vote is outstanding again and can be cast until voting closes on
+      {{ closes_display }}.
+    {% endif %}
+  {% else %}
+    Voting closed on {{ closes_display }}, so no replacement vote can be submitted.
+  {% endif %}
+</p>
+<p>
+  <a href="{{ vote_url }}">Open the ballot</a><br>
+  {{ vote_url }}
+</p>
+<p>
+  You are receiving this because you are the voter, an officer of the chapter
+  concerned, or the Grand Regent or Grand Scribe. How the removed ballot was voted
+  is not recorded here and was not visible to whoever removed it.
+</p>
+  {% include "herald/html/rm_contact.html" %}
+{% endblock content %}

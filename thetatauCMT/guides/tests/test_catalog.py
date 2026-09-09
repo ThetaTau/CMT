@@ -89,8 +89,20 @@ def test_catalog_drops_an_area_with_nothing_visible_in_it():
 # ---------------------------------------------------------------------------
 @pytest.fixture
 def ladder():
-    for audience in [Audience.PUBLIC, Audience.MEMBER, Audience.OFFICER, Audience.NATOFF]:
-        area = FeatureAreaFactory(key=f"ladder-{audience}", audience=audience)
+    """One area per audience, in ascending order.
+
+    ``order`` must be explicit: ``FeatureArea.Meta.ordering`` is
+    ``["order", "name"]`` and the factory leaves every area at the default
+    ``order=0``, so an unset order falls back to sorting by the
+    factory-sequenced ``name`` (e.g. "Area 9" vs. "Area 10") -- alphabetical,
+    not numeric, so it silently reorders once the process-wide sequence
+    counter crosses a digit boundary. That made this fixture's assertions
+    order-dependent on how many other ``FeatureAreaFactory`` rows earlier
+    tests in the same worker had already created (worse with fewer xdist
+    workers, since more tests share one worker's counter).
+    """
+    for order, audience in enumerate([Audience.PUBLIC, Audience.MEMBER, Audience.OFFICER, Audience.NATOFF]):
+        area = FeatureAreaFactory(key=f"ladder-{audience}", audience=audience, order=order)
         FeatureFactory(area=area, key=f"ladder-{audience}-feature")
 
 

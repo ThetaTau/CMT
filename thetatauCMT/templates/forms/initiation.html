@@ -211,13 +211,17 @@ $('.returned_items-class input').change(function () {
                   <th class="requiredField" style="width: 7%">GPA<span class="asteriskField">*</span></th>
                   <th class="requiredField" style="width: 7%">Test A<span class="asteriskField">*</span></th>
                   <th class="requiredField" style="width: 7%">Test B<span class="asteriskField">*</span></th>
+                  {% if not is_candidate_chapter %}
                   <th class="requiredField" style="width: 25%">Badge<span class="asteriskField">*</span></th>
+                  {% endif %}
                 </tr>
         </thead>
         <tbody>
             <tr class="d-none empty-form">
                 {% for field in formset.empty_form %}
+                    {% if field.label != "Badge" or not is_candidate_chapter %}
                     {% include 'bootstrap5/field.html' with tag="td" form_show_labels=False %}
+                    {% endif %}
                 {% endfor %}
             </tr>
             {% for form in formset %}
@@ -242,6 +246,7 @@ $('.returned_items-class input').change(function () {
                             {% endfor %}
                         {% endif %}
                         </td>
+                      {% elif field.label == "Badge" and is_candidate_chapter %}
                       {% else %}
                         {% include 'bootstrap5/field.html' with tag="td" form_show_labels=False %}
                       {% endif %}
@@ -280,6 +285,7 @@ $('.returned_items-class input').change(function () {
 {% endif %}
   <input type="submit" value="Submit" class="btn btn-primary">
   </form>
+{% if not is_candidate_chapter %}
 <div class="container">
   <div class="row">
   <h3>Badge Descriptions:</h3>
@@ -290,6 +296,7 @@ $('.returned_items-class input').change(function () {
     </small>
   </div>
 </div>
+{% endif %}
 {% endspecialspaceless %}
   {% endif %}
 {% endblock content %}

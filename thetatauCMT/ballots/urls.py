@@ -24,4 +24,9 @@ urlpatterns = [
         views.BallotCompleteCreateView.as_view(),
         name="vote",
     ),
+    path(
+        "vote/delete/<int:pk>/",
+        views.BallotCompleteDeleteView.as_view(),
+        name="vote_delete",
+    ),
 ]

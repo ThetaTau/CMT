@@ -450,7 +450,7 @@ def test_chapter_ballot_vote_rejected_for_treasurer(auto_login_user):
     _make_officer(user, client)
     ballot = _create_ballot(voters=["all_chapters"])
     url = reverse("ballots:vote", kwargs={"slug": ballot.slug})
-    response = client.post(url, {"motion": "aye"})
+    response = client.post(url, {"motion": "aye", "authority": "chapter_vote"})
     assert response.status_code == 200
     assert not BallotComplete.objects.filter(ballot=ballot, user=user).exists()
 
@@ -462,11 +462,12 @@ def test_chapter_ballot_vote_accepted_for_regent_and_scribe(auto_login_user, rol
     _make_officer(user, client)
     ballot = _create_ballot(voters=["all_chapters"])
     url = reverse("ballots:vote", kwargs={"slug": ballot.slug})
-    response = client.post(url, {"motion": "aye"})
+    response = client.post(url, {"motion": "aye", "authority": "chapter_vote"})
     assert response.status_code == 302
     vote = BallotComplete.objects.get(ballot=ballot, user=user)
     assert vote.role == role
     assert vote.motion == "aye"
+    assert vote.authority == "chapter_vote"
 
 
 @pytest.mark.django_db
@@ -478,7 +479,7 @@ def test_chapter_votes_only_once(auto_login_user):
     regent = UserFactory.create(chapter=scribe.chapter)
     BallotComplete(ballot=ballot, user=regent, motion="nay", role="regent").save()
     url = reverse("ballots:vote", kwargs={"slug": ballot.slug})
-    response = client.post(url, {"motion": "aye"})
+    response = client.post(url, {"motion": "aye", "authority": "chapter_vote"})
     assert response.status_code == 200
     assert not BallotComplete.objects.filter(ballot=ballot, user=scribe).exists()
     assert ballot.completed.count() == 1
@@ -490,7 +491,7 @@ def test_vote_rejected_after_the_due_date(auto_login_user):
     _make_officer(user, client)
     ballot = _create_ballot(voters=["all_chapters"], due_date=datetime.date.today() - timedelta(days=1))
     url = reverse("ballots:vote", kwargs={"slug": ballot.slug})
-    response = client.post(url, {"motion": "aye"})
+    response = client.post(url, {"motion": "aye", "authority": "chapter_vote"})
     assert response.status_code == 200
     assert not BallotComplete.objects.filter(ballot=ballot).exists()
 

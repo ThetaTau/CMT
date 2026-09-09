@@ -210,7 +210,8 @@ class Command(BaseCommand):
     # Supporting data (reuse existing; create minimal demo records if empty)
     # ------------------------------------------------------------------
     def _ensure_regions(self):
-        regions = list(Region.objects.all()[:3])
+        # order_by keeps regions[0] stable across reruns (no implicit DB order).
+        regions = list(Region.objects.all().order_by("pk")[:3])
         if regions:
             return regions
         created = []
@@ -222,7 +223,8 @@ class Command(BaseCommand):
         return created
 
     def _ensure_chapters(self, regions):
-        chapters = list(Chapter.objects.filter(active=True)[:5])
+        # order_by keeps chapters[0] stable across reruns (no implicit DB order).
+        chapters = list(Chapter.objects.filter(active=True).order_by("pk")[:5])
         if chapters:
             return chapters
         created = []

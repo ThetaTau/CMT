@@ -17,8 +17,31 @@ from thetatauCMT.users.models import UserRoleChange
 # A chapter casts a single vote; only these two officers may cast it.
 BALLOT_CHAPTER_ROLES = ["regent", "scribe"]
 
-# Only these two national officers may see the aggregate tallies.
+# Chapters and candidate chapters are separate constituencies: a candidate
+# chapter does not automatically vote whenever the chapters do, so a ballot
+# targets either group, both, or neither.
+CHAPTER_VOTER_ALL = "all_chapters"
+CHAPTER_VOTER_CANDIDATE = "all_candidate_chapters"
+CHAPTER_VOTER_GROUPS = [CHAPTER_VOTER_ALL, CHAPTER_VOTER_CANDIDATE]
+
+CHAPTER_VOTER_LABELS = {
+    CHAPTER_VOTER_ALL: "Chapter Regent or Scribe",
+    CHAPTER_VOTER_CANDIDATE: "Candidate Chapter Regent or Scribe",
+}
+
+# Only these two national officers may see the aggregate tallies, and only they
+# may remove a vote that was submitted by mistake.
 BALLOT_RESULT_ROLES = ["grand regent", "grand scribe"]
+
+# Quoted verbatim on the vote form: the officer attests to one of these two
+# routes before the chapter's vote is accepted.
+CHAPTER_VOTE_RULE = (
+    "A favorable vote by four-fifths of the student members of a chapter shall be "
+    "considered a favorable vote of that chapter. If a Chapter is no longer in "
+    "session (e.g. summer break), the Chapter Regent has the power to vote on "
+    "behalf of his/her chapter, after consulting the other officers and members of "
+    "the chapter if possible."
+)
 
 # Voting closes at 5pm Pacific on the due date, which is what the ballot emails
 # tell every voter. Pacific rather than the site's Phoenix time zone because
@@ -89,7 +112,10 @@ class Ballot(TimeStampedModel):
         def get_value(cls, member):
             return cls[member.lower()].value[1]
 
-    VOTERS = [("all_chapters", "All Chapters")] + NAT_OFFICERS_CHOICES
+    VOTERS = [
+        (CHAPTER_VOTER_ALL, "All Chapters"),
+        (CHAPTER_VOTER_CANDIDATE, "All Candidate Chapters"),
+    ] + NAT_OFFICERS_CHOICES
 
     sender = models.CharField("From", max_length=50, default="Grand Scribe")
     slug = models.SlugField(unique=False)
@@ -113,7 +139,7 @@ class Ballot(TimeStampedModel):
         if not self._state.adding:
             previous_due = Ballot.objects.filter(pk=self.pk).values_list("due_date", flat=True).first()
         super().save(*args, **kwargs)
-        if "all_chapters" in self.voters:
+        if CHAPTER_VOTER_ALL in self.voters:
             self.sync_chapter_task(previous_due)
 
     def sync_chapter_task(self, previous_due=None):
@@ -183,21 +209,39 @@ class Ballot(TimeStampedModel):
         """
         return (timezone.localdate() - timezone.localtime(self.created).date()).days
 
+    @staticmethod
+    def chapter_group(chapter):
+        """Which voter group ``chapter`` belongs to, if any."""
+        if chapter is None:
+            return None
+        return CHAPTER_VOTER_CANDIDATE if chapter.candidate_chapter else CHAPTER_VOTER_ALL
+
     @property
-    def roles_allowed(self):
-        """Every role that may cast a vote, chapter officers included."""
+    def chapter_voter_groups(self):
+        return [group for group in CHAPTER_VOTER_GROUPS if group in self.voters]
+
+    def roles_allowed_for(self, user):
+        """Every role ``user`` could vote under, their chapter's group included.
+
+        Chapter roles only count when the ballot targets the group that this
+        user's chapter is actually in.
+        """
         roles = list(self.voters)
-        if "all_chapters" in roles:
+        if self.chapter_group(getattr(user, "chapter", None)) in roles:
             roles += BALLOT_CHAPTER_ROLES
         return roles
 
     def voting_roles_for(self, user):
-        return sorted(set(user.current_roles or []) & set(self.roles_allowed))
+        return sorted(set(user.current_roles or []) & set(self.roles_allowed_for(user)))
+
+    def voting_role_for(self, user):
+        """The single role this user's vote is recorded under, if they may vote."""
+        roles = self.voting_roles_for(user)
+        return roles[0] if roles else ""
 
     @property
     def voters_display(self):
-        display = ", ".join(val[1] for val in self.VOTERS if val[0] in self.voters)
-        return display.replace("All Chapters", "Chapter Regent or Scribe")
+        return ", ".join(CHAPTER_VOTER_LABELS.get(value, label) for value, label in self.VOTERS if value in self.voters)
 
     def chapter_vote(self, chapter):
         """The single vote cast on behalf of ``chapter``, if any."""
@@ -234,22 +278,33 @@ class Ballot(TimeStampedModel):
         voted = self.completed.values_list("user_id", flat=True)
         return UserRoleChange.get_current_natoff().filter(role__in=list(self.voters)).exclude(user_id__in=voted)
 
-    def outstanding_chapters(self):
-        """Active chartered chapters that still owe a vote."""
+    def eligible_chapters(self):
+        """Active chapters in whichever voter groups this ballot targets."""
         from thetatauCMT.chapters.models import Chapter
 
-        if "all_chapters" not in self.voters:
+        groups = self.chapter_voter_groups
+        if not groups:
             return Chapter.objects.none()
+        chapters = Chapter.objects.filter(active=True)
+        if CHAPTER_VOTER_CANDIDATE not in groups:
+            chapters = chapters.filter(candidate_chapter=False)
+        elif CHAPTER_VOTER_ALL not in groups:
+            chapters = chapters.filter(candidate_chapter=True)
+        return chapters
+
+    def outstanding_chapters(self):
+        """Eligible chapters that still owe a vote."""
         voted = self.completed.filter(role__in=BALLOT_CHAPTER_ROLES).values_list("user__chapter_id", flat=True)
-        # Candidate chapters do not get a vote.
-        return Chapter.objects.filter(active=True, candidate_chapter=False).exclude(pk__in=voted)
+        return self.eligible_chapters().exclude(pk__in=voted)
 
     @classmethod
     def voter_roles_for(cls, user):
-        """The user's roles, plus ``all_chapters`` when they can cast the chapter vote."""
+        """The user's roles, plus their chapter's group when they can cast its vote."""
         roles = list(user.current_roles) if user.current_roles else []
         if set(roles) & set(BALLOT_CHAPTER_ROLES):
-            roles.append("all_chapters")
+            group = cls.chapter_group(getattr(user, "chapter", None))
+            if group:
+                roles.append(group)
         return roles
 
     @classmethod
@@ -281,7 +336,7 @@ class Ballot(TimeStampedModel):
         if not roles:
             return cls.objects.none()
         voted = models.Q(completed__user=user)
-        if "all_chapters" in roles and getattr(user, "chapter_id", None):
+        if set(roles) & set(CHAPTER_VOTER_GROUPS) and getattr(user, "chapter_id", None):
             voted |= models.Q(
                 completed__user__chapter_id=user.chapter_id,
                 completed__role__in=BALLOT_CHAPTER_ROLES,
@@ -335,35 +390,79 @@ class BallotComplete(TimeStampedModel):
     # never something anyone can select.
     VOTE_CHOICES = [motion.value for motion in MOTION if motion.value[0] != "incomplete"]
 
+    class AUTHORITY(Enum):
+        chapter_vote = ("chapter_vote", "The chapter voted")
+        out_of_session = ("out_of_session", "Chapter out of session, Regent voted on its behalf")
+
+        @classmethod
+        def get_value(cls, member):
+            return cls[member.lower()].value[1]
+
+    AUTHORITY_CHOICES = [item.value for item in AUTHORITY]
+
     ROLES = ALL_OFFICERS_CHOICES
 
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="ballots")
     ballot = models.ForeignKey(Ballot, on_delete=models.CASCADE, related_name="completed")
     motion = models.CharField(max_length=20, choices=[x.value for x in MOTION])
     role = models.CharField(max_length=50, choices=ROLES)
+    authority = models.CharField(
+        "How the chapter's vote was decided",
+        max_length=20,
+        choices=AUTHORITY_CHOICES,
+        blank=True,
+        default="",
+        help_text="Only recorded for a chapter's vote; blank when a National Officer votes for themselves.",
+    )
 
     def __str__(self):
         return f"{self.user} on {self.ballot}"
+
+    @classmethod
+    def authority_choices_for(cls, role):
+        """Only the Regent may vote for a chapter that is out of session."""
+        if role == "regent":
+            return cls.AUTHORITY_CHOICES
+        return [choice for choice in cls.AUTHORITY_CHOICES if choice[0] != "out_of_session"]
+
+    @property
+    def is_chapter_vote(self):
+        if self.role not in BALLOT_CHAPTER_ROLES:
+            return False
+        return Ballot.chapter_group(self.user.chapter) in self.ballot.voters
 
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
         self.mark_chapter_task_complete()
 
+    def _chapter_task_date(self):
+        task = Task.objects.filter(slug=slugify(f"{self.ballot.name}regent")).first()
+        if task is None:
+            return None
+        return TaskDate.objects.filter(task=task, date=self.ballot.due_date).first()
+
     def mark_chapter_task_complete(self):
         """Tick the chapter's ballot task once its Regent or Scribe has voted."""
-        if "all_chapters" not in self.ballot.voters:
-            return
-        if self.role not in BALLOT_CHAPTER_ROLES:
+        if not self.is_chapter_vote:
             return
         chapter = self.user.chapter
         if chapter is None:
             return
-        task = Task.objects.filter(slug=slugify(f"{self.ballot.name}regent")).first()
-        if task is None:
-            return
-        task_date = TaskDate.objects.filter(task=task, date=self.ballot.due_date).first()
+        task_date = self._chapter_task_date()
         if task_date is None:
             return
         if not TaskChapter.check_previous(task_date, chapter):
             # get_or_create absorbs the unique_together race two officers can hit.
             TaskChapter.objects.get_or_create(task=task_date, chapter=chapter, date=timezone.localdate())
+
+    def clear_chapter_task_complete(self):
+        """Reopen the chapter's ballot task when the vote is removed."""
+        if not self.is_chapter_vote:
+            return
+        chapter = self.user.chapter
+        if chapter is None:
+            return
+        task_date = self._chapter_task_date()
+        if task_date is None:
+            return
+        TaskChapter.objects.filter(task=task_date, chapter=chapter).delete()

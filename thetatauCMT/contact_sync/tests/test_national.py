@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import datetime
 from datetime import timedelta
 from io import StringIO
 from unittest import mock
@@ -245,7 +246,7 @@ def test_weekly_contact_sync_pushes_enrolled_scopes():
         return_value=SyncResult(created=1, updated=0, failed=0, total=1),
     ) as push:
         out = StringIO()
-        call_command("weekly_contact_sync", stdout=out)
+        call_command("weekly_contact_sync", "--override", stdout=out)
     push.assert_called_once()
     token.refresh_from_db()
     assert token.last_sync_count == 1
@@ -257,7 +258,7 @@ def test_weekly_contact_sync_skips_tokens_with_no_auto_sync_scopes():
     user = UserFactory.create()
     UserContactSyncToken.objects.create(user=user, provider="google", auto_sync_scopes=[])
     with mock.patch("thetatauCMT.contact_sync.providers.google.GoogleContactsProvider.push_contacts") as push:
-        call_command("weekly_contact_sync", stdout=StringIO())
+        call_command("weekly_contact_sync", "--override", stdout=StringIO())
     push.assert_not_called()
 
 
@@ -274,6 +275,38 @@ def test_weekly_contact_sync_dry_run_does_not_push():
     with mock.patch("thetatauCMT.contact_sync.providers.google.GoogleContactsProvider.push_contacts") as push:
         call_command("weekly_contact_sync", "--dry-run", stdout=StringIO())
     push.assert_not_called()
+
+
+@pytest.mark.django_db
+def test_weekly_contact_sync_skips_when_not_scheduled_weekday():
+    """Run daily but only push on the target weekday (PythonAnywhere has no weekly task)."""
+    user = UserFactory.create()
+    UserContactSyncToken.objects.create(user=user, provider="google", auto_sync_scopes=["national"])
+    not_today = (datetime.date.today().weekday() + 1) % 7
+    out = StringIO()
+    with mock.patch("thetatauCMT.contact_sync.providers.google.GoogleContactsProvider.push_contacts") as push:
+        call_command("weekly_contact_sync", "--weekday", str(not_today), stdout=out)
+    push.assert_not_called()
+    assert "Not the scheduled day" in out.getvalue()
+
+
+@pytest.mark.django_db
+@override_settings(CONTACT_SYNC_GOOGLE_CLIENT_ID="id", CONTACT_SYNC_GOOGLE_CLIENT_SECRET="s")
+def test_weekly_contact_sync_sends_on_scheduled_weekday():
+    user = UserFactory.create()
+    _seed_national_role(user, "regional director")
+    token = UserContactSyncToken.objects.create(user=user, provider="google")
+    token.set_access_token("AT")
+    token.expires_at = timezone.now() + timedelta(hours=1)
+    token.auto_sync_scopes = ["national"]
+    token.save()
+    today = datetime.date.today().weekday()
+    with mock.patch(
+        "thetatauCMT.contact_sync.providers.google.GoogleContactsProvider.push_contacts",
+        return_value=SyncResult(created=1, updated=0, failed=0, total=1),
+    ) as push:
+        call_command("weekly_contact_sync", "--weekday", str(today), stdout=StringIO())
+    push.assert_called_once()
 
 
 # --------------------------------------------------------------------- seed cmd

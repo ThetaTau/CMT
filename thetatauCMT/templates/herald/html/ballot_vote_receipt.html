@@ -1,0 +1,60 @@
+{% extends "herald/html/base_email.html" %}
+{% block title %}Ballot submitted: {{ ballot.name }}{% endblock %}
+{% block content %}
+<h1 class="null" style="margin: 0;padding: 0;display: block;font-family: Helvetica;font-size: 40px;font-style: normal;font-weight: bold;line-height: 125%;letter-spacing: -1px;text-align: left;color: #606060 !important;">
+  Ballot submitted</h1>
+Dear {{ addressee }},
+<p>
+  {% if chapter %}
+    The {{ chapter.name }} Chapter's ballot for <b>{{ ballot.name }}</b> has been
+    submitted by {{ voter.name }} as {{ role }}. A chapter votes once, so no
+    further vote is needed and this ballot is no longer outstanding for the
+    chapter.
+  {% else %}
+    Your ballot for <b>{{ ballot.name }}</b> has been recorded. It was submitted
+    as {{ role }}.
+  {% endif %}
+</p>
+{% if chapter %}
+<p>
+  Both the Regent and the Scribe receive this confirmation, because either of you
+  could have cast the chapter's vote and you were both asked for this ballot.
+</p>
+{% endif %}
+<table role="presentation" width="100%" cellpadding="8" cellspacing="0" style="border-collapse: collapse; font-family: Helvetica; font-size: 14px;">
+  <tr>
+    <th align="left" style="border-bottom: 1px solid #d0d0d0; color: #404040;">Ballot</th>
+    <td style="border-bottom: 1px solid #d0d0d0;">{{ ballot.name }} ({{ ballot.get_type_display }})</td>
+  </tr>
+  <tr>
+    <th align="left" style="border-bottom: 1px solid #d0d0d0; color: #404040;">Submitted by</th>
+    <td style="border-bottom: 1px solid #d0d0d0;">{{ voter.name }}, {{ role }}</td>
+  </tr>
+  <tr>
+    <th align="left" style="border-bottom: 1px solid #d0d0d0; color: #404040;">Submitted on</th>
+    <td style="border-bottom: 1px solid #d0d0d0;">{{ vote.created }}</td>
+  </tr>
+  {% if authority %}
+  <tr>
+    <th align="left" style="border-bottom: 1px solid #d0d0d0; color: #404040;">Decided by</th>
+    <td style="border-bottom: 1px solid #d0d0d0;">{{ authority }}</td>
+  </tr>
+  {% endif %}
+  <tr>
+    <th align="left" style="border-bottom: 1px solid #d0d0d0; color: #404040;">Voting closes</th>
+    <td style="border-bottom: 1px solid #d0d0d0;">{{ closes_display }}</td>
+  </tr>
+</table>
+<p>
+  This confirmation deliberately does not repeat the vote itself. To see
+  {% if chapter %}your chapter's{% else %}your own{% endif %} vote, open the ballot:<br>
+  <a href="{{ vote_url }}">{{ vote_url }}</a>
+</p>
+<p>
+  The vote is secret. Only the Grand Regent and Grand Scribe see the aye, nay and
+  abstain totals, and nobody sees how an individual voted. If this ballot was
+  submitted in error, ask the Grand Scribe to remove it so it can be cast again
+  before voting closes.
+</p>
+  {% include "herald/html/rm_contact.html" %}
+{% endblock content %}

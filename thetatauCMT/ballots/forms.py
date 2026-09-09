@@ -6,7 +6,7 @@ from django.utils import timezone
 
 from core.forms import DatePicker
 
-from .models import Ballot, BallotComplete
+from .models import CHAPTER_VOTE_RULE, Ballot, BallotComplete
 
 
 class BallotForm(forms.ModelForm):
@@ -44,7 +44,24 @@ class BallotCompleteForm(forms.ModelForm):
 
     class Meta:
         model = BallotComplete
-        fields = ["motion"]
+        fields = ["motion", "authority"]
+
+    def __init__(self, *args, chapter_role=None, **kwargs):
+        """``chapter_role`` is the Regent/Scribe role casting the chapter's vote.
+
+        A National Officer voting for themselves has no chapter to attest for,
+        so the attestation is dropped rather than shown and ignored.
+        """
+        super().__init__(*args, **kwargs)
+        if chapter_role is None:
+            del self.fields["authority"]
+            return
+        authority = self.fields["authority"]
+        authority.required = True
+        authority.label = "Confirm how this vote was decided"
+        authority.help_text = CHAPTER_VOTE_RULE
+        authority.widget = forms.RadioSelect(choices=BallotComplete.authority_choices_for(chapter_role))
+        authority.choices = BallotComplete.authority_choices_for(chapter_role)
 
 
 class BallotListFormHelper(FormHelper):

@@ -8,6 +8,7 @@ Covers:
 """
 
 import datetime
+from io import StringIO
 
 import pytest
 from django.contrib.auth import get_user_model
@@ -547,7 +548,7 @@ def test_job_search_notify_weekly_ignores_daily_search(mailoutbox):
         created_by=watcher,
     )
     _make_job(title=f"Recent Match {datetime.datetime.now().microsecond}", company="Acme Corp")
-    call_command("job_search_notify", "--frequency", "weekly")
+    call_command("job_search_notify", "--frequency", "weekly", "--override")
     match_mails = [m for m in mailoutbox if "weekly@example.com" in m.to]
     assert match_mails == []
 
@@ -582,7 +583,7 @@ def test_job_search_notify_default_runs_both(mailoutbox):
         created_by=weekly_user,
     )
     _make_job(title=f"Both Match {datetime.datetime.now().microsecond}", company="Acme Corp")
-    call_command("job_search_notify")
+    call_command("job_search_notify", "--override")
     daily_mails = [m for m in mailoutbox if "d@example.com" in m.to]
     weekly_mails = [m for m in mailoutbox if "w@example.com" in m.to]
     assert len(daily_mails) == 1
@@ -637,3 +638,114 @@ def test_job_search_notify_matches_keywords(mailoutbox):
     call_command("job_search_notify", "--frequency", "daily")
     match_mails = [m for m in mailoutbox if "kw@example.com" in m.to]
     assert len(match_mails) == 1
+
+
+# ---------------------------------------------------------------------------
+# job_search_notify: weekday gate + --dry-run
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.django_db
+def test_job_search_notify_weekly_skips_when_not_scheduled_weekday(mailoutbox):
+    """Run daily but only send the weekly digest on the target weekday."""
+    User = get_user_model()
+    watcher = User.objects.create_user(
+        username=f"gated_{datetime.datetime.now().microsecond}",
+        password="pw",
+        email="gated@example.com",
+    )
+    JobSearch.objects.create(
+        search_title="Any job",
+        search_description="Company match",
+        company="Acme",
+        company_filter=JobSearch.FILTER.include.name,
+        notification=JobSearch.NOTIFICATION.weekly.name,
+        created_by=watcher,
+    )
+    _make_job(title=f"Gated Match {datetime.datetime.now().microsecond}", company="Acme Corp")
+    not_today = (datetime.date.today().weekday() + 1) % 7
+    out = StringIO()
+
+    call_command("job_search_notify", "--frequency", "weekly", "--weekday", str(not_today), stdout=out)
+
+    match_mails = [m for m in mailoutbox if "gated@example.com" in m.to]
+    assert match_mails == []
+    assert "Not the scheduled day" in out.getvalue()
+
+
+@pytest.mark.django_db
+def test_job_search_notify_weekly_sends_on_scheduled_weekday(mailoutbox):
+    User = get_user_model()
+    watcher = User.objects.create_user(
+        username=f"onday_{datetime.datetime.now().microsecond}",
+        password="pw",
+        email="onday@example.com",
+    )
+    JobSearch.objects.create(
+        search_title="Any job",
+        search_description="Company match",
+        company="Acme",
+        company_filter=JobSearch.FILTER.include.name,
+        notification=JobSearch.NOTIFICATION.weekly.name,
+        created_by=watcher,
+    )
+    _make_job(title=f"Onday Match {datetime.datetime.now().microsecond}", company="Acme Corp")
+    today = datetime.date.today().weekday()
+
+    call_command("job_search_notify", "--frequency", "weekly", "--weekday", str(today))
+
+    match_mails = [m for m in mailoutbox if "onday@example.com" in m.to]
+    assert len(match_mails) == 1
+
+
+@pytest.mark.django_db
+def test_job_search_notify_weekly_override_bypasses_gate(mailoutbox):
+    User = get_user_model()
+    watcher = User.objects.create_user(
+        username=f"ovr_{datetime.datetime.now().microsecond}",
+        password="pw",
+        email="ovr@example.com",
+    )
+    JobSearch.objects.create(
+        search_title="Any job",
+        search_description="Company match",
+        company="Acme",
+        company_filter=JobSearch.FILTER.include.name,
+        notification=JobSearch.NOTIFICATION.weekly.name,
+        created_by=watcher,
+    )
+    _make_job(title=f"Override Match {datetime.datetime.now().microsecond}", company="Acme Corp")
+    not_today = (datetime.date.today().weekday() + 1) % 7
+
+    call_command("job_search_notify", "--frequency", "weekly", "--weekday", str(not_today), "--override")
+
+    match_mails = [m for m in mailoutbox if "ovr@example.com" in m.to]
+    assert len(match_mails) == 1
+
+
+@pytest.mark.django_db
+def test_job_search_notify_dry_run_sends_nothing_and_bypasses_gate(mailoutbox):
+    User = get_user_model()
+    watcher = User.objects.create_user(
+        username=f"dry_{datetime.datetime.now().microsecond}",
+        password="pw",
+        email="dry@example.com",
+    )
+    JobSearch.objects.create(
+        search_title="Any job",
+        search_description="Company match",
+        company="Acme",
+        company_filter=JobSearch.FILTER.include.name,
+        notification=JobSearch.NOTIFICATION.weekly.name,
+        created_by=watcher,
+    )
+    _make_job(title=f"Dry Match {datetime.datetime.now().microsecond}", company="Acme Corp")
+    not_today = (datetime.date.today().weekday() + 1) % 7
+    out = StringIO()
+
+    call_command("job_search_notify", "--frequency", "weekly", "--weekday", str(not_today), "--dry-run", stdout=out)
+
+    match_mails = [m for m in mailoutbox if "dry@example.com" in m.to]
+    assert match_mails == []
+    assert "would send 1 digest email" in out.getvalue()
+    assert "Total digest emails would send: 1" in out.getvalue()

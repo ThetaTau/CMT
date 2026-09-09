@@ -404,6 +404,12 @@ class User(AbstractUser, EmailSignalMixin):
     )
     history = HistoricalRecords()
 
+    @classmethod
+    def from_db(cls, db, field_names, values):
+        instance = super().from_db(db, field_names, values)
+        instance._loaded_email = instance.email
+        return instance
+
     def save(self, *args, **kwargs):
         suffix = f" {self.suffix}" if self.suffix else ""
         if self.name == "":
@@ -412,7 +418,26 @@ class User(AbstractUser, EmailSignalMixin):
             self.name = f"{self.preferred_name} {self.last_name}{suffix}"
         if self.username == "":
             self.username = self.email
+        else:
+            self._sync_username_to_email(kwargs)
         super(User, self).save(*args, **kwargs)
+
+    def _sync_username_to_email(self, save_kwargs):
+        loaded_email = getattr(self, "_loaded_email", None)
+        if (
+            not self.pk
+            or not self.email
+            or self.username != loaded_email
+            or self.email == self.username
+            or len(self.email) > 150
+        ):
+            return
+        if User.objects.exclude(pk=self.pk).filter(username=self.email).exists():
+            return
+        self.username = self.email
+        update_fields = save_kwargs.get("update_fields")
+        if update_fields is not None and "username" not in update_fields:
+            save_kwargs["update_fields"] = [*update_fields, "username"]
 
     def __str__(self):
         return self.name
@@ -1032,7 +1057,13 @@ class UserRoleChange(StartEndModel, TimeStampedModel, EmailSignalMixin):
             self.start = self.start.date()
         if hasattr(self.end, "date"):
             self.end = self.end.date()
-        if self.start <= TOMORROW < self.end:
+        # TODAY, not TOMORROW, is the pivot on the end side: an end date of
+        # exactly tomorrow (the earliest a fresh "current" term can end) must
+        # still count as current today. Using TOMORROW on both sides left a
+        # one-day gap where a brand-new current-dated role was silently never
+        # added to current_roles (roughly 1 in 1460 UserRoleChangeFactory
+        # rows, since ``end`` is drawn from "+1d" to "+4y").
+        if self.start <= TOMORROW and TODAY < self.end:
             current_roles = self.user.current_roles if self.user.current_roles else []
             if self.role not in current_roles:
                 current_roles.append(self.role)

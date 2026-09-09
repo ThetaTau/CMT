@@ -1,4 +1,4 @@
-.PHONY: help build build-up up down restart logs shell test test-anonymizer clean migrate makemigrations collectstatic setup-host show-roles add-role remove-role
+.PHONY: help build build-up up down restart logs shell test clean migrate makemigrations collectstatic setup-host show-roles add-role remove-role seed-ballot-qa set-password
 
 # ------------------------------------------------------------------------------
 # Container engine configuration (Docker or Podman)
@@ -46,6 +46,8 @@ help:
 	@echo "  make show-roles  EMAIL=you@example.com                       - List a member's roles"
 	@echo "  make add-role    EMAIL=you@example.com ROLE='grand regent'    - Grant a role (MONTHS=12)"
 	@echo "  make remove-role EMAIL=you@example.com ROLE='grand regent'    - Revoke a role"
+	@echo "  make seed-ballot-qa                                          - Seed QA officers + an open ballot"
+	@echo "  make set-password EMAIL=you@example.com                       - Set a password (prompts you)"
 	@echo ""
 	@echo "  Switch engine in .env (CONTAINER_ENGINE=docker|podman) or per run, e.g.: make up CONTAINER_ENGINE=docker"
 
@@ -79,6 +81,13 @@ add-role:
 
 remove-role:
 	$(EXEC) thetataucmt_local_django python manage.py user_role "$(EMAIL)" --remove "$(ROLE)"
+
+# QA the ballot officer flow: seed the accounts, then set each password yourself.
+seed-ballot-qa:
+	$(EXEC) thetataucmt_local_django python manage.py seed_ballot_qa
+
+set-password:
+	$(EXEC) thetataucmt_local_django python manage.py changepassword "$(EMAIL)"
 
 shellworker:
 	$(EXEC) thetataucmt_local_celeryworker bash

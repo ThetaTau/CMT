@@ -303,7 +303,111 @@ def test_can_view_ballot_results_true_for_a_superuser_who_is_grand_regent():
 @pytest.mark.django_db
 def test_roles_allowed_adds_only_regent_and_scribe():
     ballot = _create_ballot(name="Chapter Ballot", voters=["all_chapters"])
-    assert set(ballot.roles_allowed) == {"all_chapters", "regent", "scribe"}
+    user = UserFactory.create()
+    assert set(ballot.roles_allowed_for(user)) == {"all_chapters", "regent", "scribe"}
+
+
+# ---------------------------------------------------------------------------
+# Chapters and candidate chapters are separate voter groups
+# ---------------------------------------------------------------------------
+
+
+def _chapter_officer(candidate_chapter, role="regent", **chapter_kwargs):
+    chapter = ChapterFactory.create(candidate_chapter=candidate_chapter, **chapter_kwargs)
+    user = UserFactory.create(chapter=chapter)
+    user.current_roles = [role]
+    user.save()
+    return chapter, user
+
+
+@pytest.mark.django_db
+def test_chapter_group_splits_chapters_from_candidate_chapters():
+    chapter = ChapterFactory.create(name="alpha", candidate_chapter=False)
+    candidate = ChapterFactory.create(name="beta", candidate_chapter=True)
+    assert Ballot.chapter_group(chapter) == "all_chapters"
+    assert Ballot.chapter_group(candidate) == "all_candidate_chapters"
+    assert Ballot.chapter_group(None) is None
+
+
+@pytest.mark.django_db
+def test_a_chapter_ballot_does_not_reach_a_candidate_chapter():
+    ballot = _create_ballot(name="Chapters Only Ballot", voters=["all_chapters"])
+    _, candidate_regent = _chapter_officer(True, name="beta")
+    assert ballot.voting_roles_for(candidate_regent) == []
+    assert ballot.pk not in [entry["pk"] for entry in Ballot.user_ballots(candidate_regent)]
+
+
+@pytest.mark.django_db
+def test_a_candidate_ballot_does_not_reach_a_chapter():
+    ballot = _create_ballot(name="Candidate Only Ballot", voters=["all_candidate_chapters"])
+    _, chapter_regent = _chapter_officer(False, name="alpha")
+    assert ballot.voting_roles_for(chapter_regent) == []
+    assert ballot.pk not in [entry["pk"] for entry in Ballot.user_ballots(chapter_regent)]
+
+
+@pytest.mark.django_db
+def test_a_candidate_ballot_reaches_a_candidate_chapter():
+    ballot = _create_ballot(name="Candidate Ballot", voters=["all_candidate_chapters"])
+    _, candidate_regent = _chapter_officer(True, name="beta")
+    assert ballot.voting_roles_for(candidate_regent) == ["regent"]
+    assert ballot.pk in [entry["pk"] for entry in Ballot.user_ballots(candidate_regent)]
+
+
+@pytest.mark.django_db
+def test_a_ballot_can_target_both_chapter_groups():
+    ballot = _create_ballot(name="Both Groups Ballot", voters=["all_chapters", "all_candidate_chapters"])
+    _, chapter_regent = _chapter_officer(False, name="alpha")
+    _, candidate_regent = _chapter_officer(True, name="beta")
+    assert ballot.voting_roles_for(chapter_regent) == ["regent"]
+    assert ballot.voting_roles_for(candidate_regent) == ["regent"]
+
+
+@pytest.mark.django_db
+def test_eligible_chapters_follows_the_selected_groups():
+    chapter = ChapterFactory.create(name="alpha", candidate_chapter=False)
+    candidate = ChapterFactory.create(name="beta", candidate_chapter=True)
+    inactive = ChapterFactory.create(name="chi", candidate_chapter=True, active=False)
+
+    chapters_only = _create_ballot(name="Eligible Chapters", voters=["all_chapters"])
+    assert chapter in chapters_only.eligible_chapters()
+    assert candidate not in chapters_only.eligible_chapters()
+
+    candidate_only = _create_ballot(name="Eligible Candidate", voters=["all_candidate_chapters"])
+    assert candidate in candidate_only.eligible_chapters()
+    assert chapter not in candidate_only.eligible_chapters()
+    assert inactive not in candidate_only.eligible_chapters()
+
+    both = _create_ballot(name="Eligible Both", voters=["all_chapters", "all_candidate_chapters"])
+    assert chapter in both.eligible_chapters()
+    assert candidate in both.eligible_chapters()
+
+    national = _create_ballot(name="Eligible National", voters=["grand regent"])
+    assert list(national.eligible_chapters()) == []
+
+
+@pytest.mark.django_db
+def test_voters_display_names_each_chapter_group():
+    ballot = _create_ballot(name="Display Ballot", voters=["all_chapters", "all_candidate_chapters"])
+    assert ballot.voters_display == "Chapter Regent or Scribe, Candidate Chapter Regent or Scribe"
+
+
+@pytest.mark.django_db
+def test_a_candidate_chapter_vote_counts_as_a_chapter_vote():
+    ballot = _create_ballot(name="Candidate Chapter Vote", voters=["all_candidate_chapters"])
+    chapter, regent = _chapter_officer(True, name="beta")
+    vote = BallotComplete(ballot=ballot, user=regent, motion="aye", role="regent")
+    vote.save()
+    assert vote.is_chapter_vote
+    assert ballot.chapter_vote(chapter) == vote
+
+
+@pytest.mark.django_db
+def test_a_candidate_chapter_vote_is_not_a_chapter_vote_on_a_chapter_ballot():
+    ballot = _create_ballot(name="Chapters Ballot Only", voters=["all_chapters"])
+    _, regent = _chapter_officer(True, name="beta")
+    vote = BallotComplete(ballot=ballot, user=regent, motion="aye", role="regent")
+    vote.save()
+    assert not vote.is_chapter_vote
 
 
 @pytest.mark.django_db
@@ -427,9 +531,11 @@ def test_outstanding_chapters_is_empty_without_all_chapters():
 @pytest.mark.django_db
 def test_outstanding_chapters_excludes_candidate_and_inactive_chapters():
     ballot = _create_ballot(name="Chapter Outstanding Ballot", voters=["all_chapters"])
-    active = ChapterFactory.create()
-    candidate = ChapterFactory.create(candidate_chapter=True)
-    inactive = ChapterFactory.create(active=False)
+    # Explicit names: ChapterFactory draws randomly from the greek pool and
+    # matches on name, so three unnamed chapters can collapse into one row.
+    active = ChapterFactory.create(name="alpha")
+    candidate = ChapterFactory.create(name="beta", candidate_chapter=True)
+    inactive = ChapterFactory.create(name="chi", active=False)
     outstanding = list(ballot.outstanding_chapters())
     assert active in outstanding
     assert candidate not in outstanding

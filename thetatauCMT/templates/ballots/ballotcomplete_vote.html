@@ -45,18 +45,40 @@
             Complete:<br>
               <h3>{{ current_vote.get_motion_display }}</h3>
               {{ current_vote.user }}<br>{{ current_vote.role | title }}<br>
+              {% if current_vote.authority %}{{ current_vote.get_authority_display }}<br>{% endif %}
               {{ current_vote.created }}
           {% elif not valid_roles %}
             <h3>Only {{ voters }} can vote on this ballot.</h3>
           {% elif not ballot_open %}
             <h3>Voting closed on {{ ballot.closes_display }} and no vote was recorded.</h3>
           {% else %}
+        <div class="alert alert-info" role="alert">
+          <h2 class="h5 alert-heading mb-1">You are voting as {{ user.name }}, {{ voting_role|title }}</h2>
+          {% if voting_chapter %}
+            <p class="mb-0">
+              This is the {{ voting_chapter.name }} Chapter's single vote. Either the
+              Regent or the Scribe may cast it, and it can only be cast once.
+            </p>
+          {% else %}
+            <p class="mb-0">This is your own vote as a National Officer.</p>
+          {% endif %}
+        </div>
+        {% if voting_chapter %}
+          <div class="card mb-3">
+            <div class="card-body">
+              <h3 class="h6 card-title">Chapter voting rule</h3>
+              <p class="card-text fst-italic mb-0">{{ chapter_vote_rule }}</p>
+            </div>
+          </div>
+        {% endif %}
         <form class="form-horizontal" method="post">
           {% csrf_token %}
           {{ form|crispy }}
           <p class="text-muted">
             Your vote is secret. Nobody else sees how you voted, and only the Grand
-            Regent and Grand Scribe see the totals.
+            Regent and Grand Scribe see the totals. A confirmation that the ballot
+            was submitted, without the vote itself, is emailed to
+            {% if voting_chapter %}both the Regent and the Scribe{% else %}you{% endif %}.
           </p>
           <div class="control-group">
             <div class="controls">

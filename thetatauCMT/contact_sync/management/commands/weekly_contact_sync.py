@@ -1,8 +1,13 @@
 """Run the weekly auto-sync for every token that has enrolled scopes.
 
-Typical schedule: once a week via cron / PythonAnywhere / Celery beat. This
-command is safe to run more often — it does nothing for a token whose
-``auto_sync_scopes`` list is empty.
+PythonAnywhere only offers *daily* scheduled tasks, so (like
+``job_search_notify`` / ``region_officer_reminder_digest``) this command
+self-gates to a single weekday (Thursday by default). Schedule it DAILY and
+it only actually pushes on ``--weekday``.
+
+``--override`` pushes right now regardless of the weekday gate. ``--dry-run``
+prints what would happen without pushing anything, and also bypasses the
+weekday gate so it can be tested on any day.
 
 Usage::
 
@@ -13,12 +18,16 @@ Usage::
 
 from __future__ import annotations
 
+import datetime
+
 from django.core.management.base import BaseCommand
 
 from thetatauCMT.contact_sync.models import UserContactSyncToken
 from thetatauCMT.contact_sync.officers import collect_contacts_for_scope
 from thetatauCMT.contact_sync.providers import get_provider, provider_is_configured
 from thetatauCMT.contact_sync.providers.base import ProviderAuthError, ProviderNotConfigured
+
+WEEKDAY_NAMES = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
 
 
 class Command(BaseCommand):
@@ -36,10 +45,36 @@ class Command(BaseCommand):
         parser.add_argument(
             "--dry-run",
             action="store_true",
-            help="Print what would happen without actually pushing.",
+            help="Print what would happen without actually pushing (also bypasses the weekday gate).",
+        )
+        parser.add_argument(
+            "--weekday",
+            type=int,
+            default=3,
+            help="Weekday this actually pushes on when run daily (0=Monday ... 6=Sunday). Default Thursday.",
+        )
+        parser.add_argument(
+            "--override",
+            action="store_true",
+            help="Push now regardless of the weekday gate.",
         )
 
     def handle(self, *args, **options) -> None:  # noqa: ANN401
+        dry_run = options.get("dry_run", False)
+        weekday = options.get("weekday", 3)
+        override = options.get("override", False)
+
+        # PythonAnywhere runs this daily; only actually push on the configured
+        # weekday so auto-synced contacts update once a week. --override /
+        # --dry-run bypass the gate.
+        today_weekday = datetime.date.today().weekday()
+        if today_weekday != weekday and not (override or dry_run):
+            self.stdout.write(
+                f"Not the scheduled day (today is {WEEKDAY_NAMES[today_weekday]}, "
+                f"sync runs on {WEEKDAY_NAMES[weekday]}); skipping."
+            )
+            return
+
         qs = (
             UserContactSyncToken.objects.exclude(auto_sync_scopes__len=0)
             .select_related("user")
@@ -49,7 +84,6 @@ class Command(BaseCommand):
             qs = qs.filter(user__email__iexact=options["user"]) | qs.filter(user__username__iexact=options["user"])
         if options.get("provider"):
             qs = qs.filter(provider=options["provider"])
-        dry_run = options.get("dry_run", False)
 
         total_tokens = qs.count()
         if total_tokens == 0:

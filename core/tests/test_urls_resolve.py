@@ -43,6 +43,8 @@ _URL_CASES = [
     ("logout", {}),
     ("privacy", {}),
     ("eula", {}),
+    ("pledgepins", {}),
+    ("pledgepin", {}),
     ("rmp", {}),
     ("report_redirect", {}),
     ("conventionform", {}),
