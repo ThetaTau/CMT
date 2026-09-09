@@ -337,6 +337,80 @@ def test_removal_reopens_the_chapter_task():
 
 
 # ---------------------------------------------------------------------------
+# Candidate chapters are their own voter group
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.django_db
+def test_candidate_chapter_regent_can_vote_a_candidate_ballot(auto_login_user):
+    client, user = auto_login_user(make_officer="regent")
+    _make_officer(user, client)
+    user.chapter.candidate_chapter = True
+    user.chapter.save()
+    ballot = _create_ballot(voters=["all_candidate_chapters"])
+    response = client.post(
+        reverse("ballots:vote", kwargs={"slug": ballot.slug}),
+        {"motion": "aye", "authority": "chapter_vote"},
+    )
+    assert response.status_code == 302
+    assert BallotComplete.objects.get(ballot=ballot, user=user).role == "regent"
+
+
+@pytest.mark.django_db
+def test_candidate_chapter_regent_is_refused_a_chapter_ballot(auto_login_user):
+    client, user = auto_login_user(make_officer="regent")
+    _make_officer(user, client)
+    user.chapter.candidate_chapter = True
+    user.chapter.save()
+    ballot = _create_ballot(voters=["all_chapters"])
+    response = client.post(
+        reverse("ballots:vote", kwargs={"slug": ballot.slug}),
+        {"motion": "aye", "authority": "chapter_vote"},
+    )
+    assert response.status_code == 200
+    assert not BallotComplete.objects.filter(ballot=ballot).exists()
+    assert "Candidate Chapter Regent or Scribe" not in response.content.decode("utf-8")
+
+
+@pytest.mark.django_db
+def test_chapter_regent_is_refused_a_candidate_ballot(auto_login_user):
+    client, user = auto_login_user(make_officer="regent")
+    _make_officer(user, client)
+    ballot = _create_ballot(voters=["all_candidate_chapters"])
+    response = client.post(
+        reverse("ballots:vote", kwargs={"slug": ballot.slug}),
+        {"motion": "aye", "authority": "chapter_vote"},
+    )
+    assert response.status_code == 200
+    assert not BallotComplete.objects.filter(ballot=ballot).exists()
+
+
+@pytest.mark.django_db
+def test_candidate_ballot_status_lists_candidate_chapters(auto_login_user):
+    client, user = auto_login_user(make_officer="grand regent")
+    _make_natoff(user, client)
+    candidate = ChapterFactory.create(name="beta", candidate_chapter=True)
+    chapter = ChapterFactory.create(name="alpha", candidate_chapter=False)
+    ballot = _create_ballot(voters=["all_candidate_chapters"])
+    response = client.get(reverse("ballots:detail", kwargs={"slug": ballot.slug}))
+    # The chapter switcher in the region bar names every chapter, so read the
+    # table rather than the raw HTML.
+    listed = {str(row.get_cell("chapter")) for row in response.context["table"].rows}
+    assert candidate.name in listed
+    assert chapter.name not in listed
+
+
+@pytest.mark.django_db
+def test_candidate_ballot_emails_only_candidate_chapters():
+    candidate = ChapterFactory.create(name="beta", candidate_chapter=True, email_regent="cc@example.com")
+    chapter = ChapterFactory.create(name="alpha", candidate_chapter=False, email_regent="ch@example.com")
+    ballot = _create_ballot(voters=["all_candidate_chapters"])
+    outstanding = list(ballot.outstanding_chapters())
+    assert candidate in outstanding
+    assert chapter not in outstanding
+
+
+# ---------------------------------------------------------------------------
 # Double submits must not 500 on the unique constraint
 # ---------------------------------------------------------------------------
 

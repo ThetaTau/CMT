@@ -85,7 +85,7 @@ class Command(BaseCommand):
         chapters = Chapter.objects.filter(active=True, candidate_chapter=False)
         chapter = chapters.filter(slug=slug).first() if slug else chapters.order_by("name").first()
         if chapter is None:
-            raise SystemExit("No active chartered chapter to attach the QA officers to.")
+            raise SystemExit("No active chapter to attach the QA officers to.")
         # The reminder and receipt emails read these, so give them somewhere to go.
         chapter.email_regent = chapter.email_regent or "qa.regent@thetatau.local"
         chapter.email_scribe = chapter.email_scribe or "qa.scribe@thetatau.local"
@@ -138,7 +138,7 @@ class Command(BaseCommand):
                     "Grand Scribe to see the tallies and remove the submission."
                 ),
                 due_date=due_date,
-                voters=["all_chapters", "grand regent", "grand scribe"],
+                voters=["all_chapters", "all_candidate_chapters", "grand regent", "grand scribe"],
             )
         else:
             ballot.due_date = due_date

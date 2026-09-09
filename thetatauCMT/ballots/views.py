@@ -15,7 +15,6 @@ from core.views import (
     PagedFilteredTableView,
     RequestConfig,
 )
-from thetatauCMT.chapters.models import Chapter
 from thetatauCMT.users.models import UserRoleChange
 
 from .filters import BallotCompleteFilter, BallotFilter, BallotUserFilter
@@ -138,9 +137,8 @@ class BallotDetailView(
         nat_offs = UserRoleChange.get_current_natoff().exclude(user__in=users)
         incomplete_chapter = []
         nat_offs = nat_offs.filter(role__in=self.object.voters)
-        if "all_chapters" in self.object.voters and region != "national":
-            # Candidate Chapters can not vote
-            chapters = Chapter.objects.filter(candidate_chapter=False, active=True).exclude(name__in=chapters)
+        if self.object.chapter_voter_groups and region != "national":
+            chapters = self.object.eligible_chapters().exclude(name__in=chapters)
             if region != "":
                 chapters = chapters.filter(region__slug=region)
             incomplete_chapter = [
@@ -303,7 +301,7 @@ class BallotCompleteCreateView(LoginRequiredMixin, OfficerRequiredMixin, CreateV
     def get_chapter_role(self):
         """The Regent/Scribe role this user would cast the chapter's vote under."""
         ballot = self.get_ballot()
-        if "all_chapters" not in ballot.voters:
+        if Ballot.chapter_group(self.request.user.chapter) not in ballot.voters:
             return None
         role = ballot.voting_role_for(self.request.user)
         return role if role in BALLOT_CHAPTER_ROLES else None
