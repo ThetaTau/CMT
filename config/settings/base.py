@@ -503,6 +503,9 @@ DBBACKUP_CONNECTORS = {
         "CONNECTOR": "dbbackup.db.postgresql.PgDumpBinaryConnector",
         # Sometimes this is needed for restore on local dev machine
         # "SINGLE_TRANSACTION": False,
+        # backup.sh wipes the restore-test schema first, so pg_restore's own
+        # --clean drop statements target objects that no longer exist
+        "IF_EXISTS": True,
     }
 }
 if DBBACKUP_LOCAL:
