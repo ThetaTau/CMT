@@ -180,7 +180,7 @@
             <td>{{ report.get_status_display }}</td>
             <td>{{ report.submitted_at|default:"None" }}</td>
             <td>
-              <a class="btn btn-sm btn-outline-primary" href="{% url 'transitions:compose' report.obligation.public_id %}">View</a>
+              <a class="btn btn-sm btn-outline-primary" href="{% url 'transitions:packet' report.chapter.pk report.position_key %}">View</a>
             </td>
           </tr>
         {% endfor %}

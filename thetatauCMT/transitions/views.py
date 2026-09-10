@@ -69,7 +69,11 @@ class TransitionsListView(LoginRequiredMixin, TemplateView):
         if selected:
             obligations = obligations.filter(position_key=selected)
 
-        readable_reports = services.get_readable_reports(user)
+        # Own reports always satisfy get_readable_reports (author access) but
+        # already have their own row under "My submitted reports" above --
+        # exclude them here so "Reports you can read" is only other people's
+        # reports, matching get_handoff_packet's own author exclusion.
+        readable_reports = services.get_readable_reports(user).exclude(author=user)
         if selected:
             readable_reports = readable_reports.filter(position_key=selected)
         scope = self.request.GET.get("scope", "")

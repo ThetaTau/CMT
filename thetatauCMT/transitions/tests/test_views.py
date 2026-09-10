@@ -179,6 +179,30 @@ def test_transitions_list_hides_someone_elses_draft_from_a_successor(auto_login_
     assert "No other Transition Reports are visible to you yet." in response.content.decode()
 
 
+def test_transitions_list_readable_report_view_link_points_to_the_handoff_packet(auto_login_user):
+    client, successor = auto_login_user()
+    successor.current_roles = ["treasurer"]
+    successor.save(update_fields=["current_roles"])
+    report = _report(successor.chapter, "treasurer", UserFactory(chapter=successor.chapter))
+
+    response = client.get(reverse("transitions:list"))
+
+    packet_url = reverse("transitions:packet", args=[report.chapter.pk, "treasurer"])
+    assert packet_url in response.content.decode()
+    assert reverse("transitions:compose", args=[report.obligation.public_id]) not in response.content.decode()
+
+
+def test_transitions_list_excludes_own_report_from_readable_reports_table(auto_login_user):
+    client, treasurer = auto_login_user()
+    treasurer.current_roles = ["treasurer"]
+    treasurer.save(update_fields=["current_roles"])
+    _report(treasurer.chapter, "treasurer", treasurer)
+
+    response = client.get(reverse("transitions:list"))
+
+    assert "No other Transition Reports are visible to you yet." in response.content.decode()
+
+
 def test_transitions_list_hides_scope_filter_for_a_regent(auto_login_user):
     client, regent = auto_login_user()
     regent.current_roles = ["regent"]
