@@ -2,10 +2,10 @@
 {% load render_table from django_tables2 %}
 {% load filter_tags %}
 
-{% block title %}Transition Report Compliance Rates{% endblock %}
+{% block title %}Transition Report Completion Rates{% endblock %}
 
 {% block content %}
-  <h1>Transition Report compliance rates</h1>
+  <h1>Transition Report completion rates</h1>
   <p>
     {{ cycle_label }} --
     {% if is_national %}every active chapter.{% else %}chapters in your region.{% endif %}

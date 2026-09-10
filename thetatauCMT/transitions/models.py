@@ -294,14 +294,16 @@ class TransitionReport(TimeStampedModel):
 
     @property
     def tag_list(self):
-        """Comma-joined display labels of every ``ReportTag`` on this report
-        (TRWI-11 search results column). A plain property, not a queryset
-        annotation -- avoids the filter/annotate "shared join" pitfall of
-        combining an aggregate with ``search_reports``' own ``tags__tag=``
-        filter in the same query; call sites needing this on many rows
-        should ``prefetch_related("tags")`` first (``search_reports`` does).
+        """Comma-joined tag names on this report (TRWI-11 search results
+        column). A plain property, not a queryset annotation -- avoids the
+        filter/annotate "shared join" pitfall of combining an aggregate with
+        ``search_reports``' own ``tags__tag=`` filter in the same query;
+        call sites needing this on many rows should ``prefetch_related("tags")``
+        first (``search_reports`` does). ``ReportTag.tag`` is free-form (no
+        ``choices=``, 2026-09 UI change) -- this is the raw stored value,
+        not a ``get_FOO_display()`` label (which no longer exists on it).
         """
-        return ", ".join(tag.get_tag_display() for tag in self.tags.all())
+        return ", ".join(tag.tag for tag in self.tags.all())
 
 
 class ReportAnswer(models.Model):

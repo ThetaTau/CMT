@@ -8,18 +8,11 @@
   <p><a href="{% url 'transitions:list' %}">&laquo; Back to Transition Reports</a></p>
   <h1>Transition Reports Dashboard</h1>
 
-  {% if chapter %}
-    <h2>{{ chapter }} obligations</h2>
-    <p>{{ compliance_cycle_label }}, every position's obligations for this chapter.</p>
-    {% collapsible_filter compliance_filter label="Filter obligations" collapse_id="obligationFilter" reset_url="?cancel=1" %}
-    <div class="table-responsive">
-      {% render_table compliance_table %}
-    </div>
-  {% endif %}
-
   <h2>Search reports</h2>
-  <p>{{ cycle_label }}</p>
-
+  <p>
+    {{ cycle_label }}{% if chapter %} -- including every position's Transition Report for {{ chapter }}, even ones
+    you may not be able to read yet.{% endif %}
+  </p>
   {% collapsible_filter filter label="Filter search" collapse_id="searchFilter" reset_url="?cancel=1" %}
   <div class="table-responsive">
     {% render_table table %}

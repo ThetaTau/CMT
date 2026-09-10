@@ -3,6 +3,7 @@
 {% block title %}Transition Report handoff packet{% endblock %}
 
 {% block content %}
+  <p><a href="{% url 'transitions:list' %}">&laquo; Back to Transition Reports</a></p>
   <h1>{{ position_key|title }} handoff packet</h1>
   <p>{{ chapter }} -- every Transition Report you can read for this position, most recent first.</p>
 

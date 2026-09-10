@@ -105,15 +105,37 @@ def test_transitions_list_shows_my_obligations(auto_login_user):
     assert "treasurer" in response.content.decode().lower()
 
 
+def test_transitions_list_explains_why_no_reports_are_due(auto_login_user):
+    client, member = auto_login_user()
+
+    response = client.get(reverse("transitions:list"))
+
+    # Django auto-escapes the apostrophe as &#x27; in rendered HTML.
+    assert "currently hold a position that requires a Transition Report." in response.content.decode()
+
+
+def test_transitions_list_explains_why_no_reports_are_due_for_a_regional_director(auto_login_user):
+    client, rd = auto_login_user()
+    rd.chapter.region.directors.add(rd)
+
+    response = client.get(reverse("transitions:list"))
+
+    assert "does not have its own Transition Report in this system" in response.content.decode()
+
+
 def test_transitions_list_does_not_show_someone_elses_obligation(auto_login_user):
     client, user = auto_login_user()
     other_chapter = ChapterFactory()
     other_officer = UserFactory(chapter=other_chapter)
-    _obligation(other_chapter, other_officer, position_key="scribe")
+    obligation = _obligation(other_chapter, other_officer, position_key="scribe")
 
     response = client.get(reverse("transitions:list"))
 
-    assert "scribe" not in response.content.decode().lower()
+    # "My Reports" (response.context["obligations"]) specifically, not a
+    # substring check against the whole page -- the search filter's own
+    # position dropdown always lists every position (including "scribe" as
+    # part of "grand scribe"), regardless of whose obligations exist.
+    assert obligation not in response.context["obligations"]
 
 
 def test_transitions_list_position_filter(auto_login_user):
@@ -122,7 +144,7 @@ def test_transitions_list_position_filter(auto_login_user):
     _obligation(chapter, user, position_key="treasurer")
     _obligation(chapter, user, position_key="scribe")
 
-    response = client.get(reverse("transitions:list"), {"position_key": "treasurer"})
+    response = client.get(reverse("transitions:list"), {"my_position_key": "treasurer"})
 
     # The position dropdown itself always lists every position the viewer
     # holds (including "scribe", so they can switch filters) -- assert on the
@@ -153,81 +175,8 @@ def test_transitions_list_hides_vacant_obligations_from_a_plain_member(auto_logi
 
 
 # ---------------------------------------------------------------------------
-# TransitionsListView -- readable_reports / scope filter (TRWI-6)
+# TransitionsListView -- handoff packet links (TRWI-7)
 # ---------------------------------------------------------------------------
-def test_transitions_list_shows_readable_reports_for_a_successor(auto_login_user):
-    client, successor = auto_login_user()
-    successor.current_roles = ["treasurer"]
-    successor.save(update_fields=["current_roles"])
-    _report(successor.chapter, "treasurer", UserFactory(chapter=successor.chapter))
-
-    response = client.get(reverse("transitions:list"))
-
-    body = response.content.decode()
-    assert "Reports you can read" in body
-    assert "<td>Treasurer</td>" in body
-
-
-def test_transitions_list_hides_someone_elses_draft_from_a_successor(auto_login_user):
-    client, successor = auto_login_user()
-    successor.current_roles = ["treasurer"]
-    successor.save(update_fields=["current_roles"])
-    _report(successor.chapter, "treasurer", UserFactory(chapter=successor.chapter), status="draft")
-
-    response = client.get(reverse("transitions:list"))
-
-    assert "No other Transition Reports are visible to you yet." in response.content.decode()
-
-
-def test_transitions_list_readable_report_view_link_points_to_the_handoff_packet(auto_login_user):
-    client, successor = auto_login_user()
-    successor.current_roles = ["treasurer"]
-    successor.save(update_fields=["current_roles"])
-    report = _report(successor.chapter, "treasurer", UserFactory(chapter=successor.chapter))
-
-    response = client.get(reverse("transitions:list"))
-
-    packet_url = reverse("transitions:packet", args=[report.chapter.pk, "treasurer"])
-    assert packet_url in response.content.decode()
-    assert reverse("transitions:compose", args=[report.obligation.public_id]) not in response.content.decode()
-
-
-def test_transitions_list_excludes_own_report_from_readable_reports_table(auto_login_user):
-    client, treasurer = auto_login_user()
-    treasurer.current_roles = ["treasurer"]
-    treasurer.save(update_fields=["current_roles"])
-    _report(treasurer.chapter, "treasurer", treasurer)
-
-    response = client.get(reverse("transitions:list"))
-
-    assert "No other Transition Reports are visible to you yet." in response.content.decode()
-
-
-def test_transitions_list_hides_scope_filter_for_a_regent(auto_login_user):
-    client, regent = auto_login_user()
-    regent.current_roles = ["regent"]
-    regent.save(update_fields=["current_roles"])
-
-    response = client.get(reverse("transitions:list"))
-
-    assert "My chapter only" not in response.content.decode()
-
-
-def test_transitions_list_scope_filter_shown_and_narrows_an_rds_view(auto_login_user):
-    client, rd = auto_login_user()
-    other_chapter = ChapterFactory()
-    other_chapter.region.directors.add(rd)
-    _report(other_chapter, "treasurer", UserFactory(chapter=other_chapter))
-
-    response = client.get(reverse("transitions:list"))
-    body = response.content.decode()
-    assert "My chapter only" in body
-    assert "<td>Treasurer</td>" in body
-
-    response = client.get(reverse("transitions:list"), {"scope": "chapter"})
-    assert "<td>Treasurer</td>" not in response.content.decode()
-
-
 def test_transitions_list_shows_handoff_packet_link_for_a_held_position(auto_login_user):
     client, treasurer = auto_login_user()
     treasurer.current_roles = ["treasurer"]
@@ -970,18 +919,21 @@ def test_compose_view_get_prefills_existing_manual_tags(auto_login_user):
 
 
 # ---------------------------------------------------------------------------
-# ReportSearchView (TRWI-11)
+# TransitionsListView's inline search/browse section (TRWI-11, merged onto
+# transitions:list 2026-09 -- ReportSearchView/transitions:search itself now
+# only serves an explicit chapter_pk; see the chapter-dashboard tests below)
 # ---------------------------------------------------------------------------
-def test_search_view_requires_login(client):
+def test_search_view_with_no_chapter_pk_redirects_to_the_list_page(client):
     response = client.get(reverse("transitions:search"))
     assert response.status_code == 302
+    assert response.url == reverse("transitions:list")
 
 
-def test_search_view_shows_a_readable_report(auto_login_user):
+def test_transitions_list_search_shows_a_readable_report(auto_login_user):
     client, author = auto_login_user()
     _report(author.chapter, "treasurer", author)
 
-    response = client.get(reverse("transitions:search"))
+    response = client.get(reverse("transitions:list"))
 
     assert response.status_code == 200
     body = response.content.decode()
@@ -989,18 +941,51 @@ def test_search_view_shows_a_readable_report(auto_login_user):
     assert "Treasurer" in body
 
 
-def test_search_view_hides_an_unrelated_chapters_report(auto_login_user):
+def test_transitions_list_search_position_links_to_compose_for_the_searchers_own_report(auto_login_user):
+    client, author = auto_login_user()
+    report = _report(author.chapter, "treasurer", author)
+
+    response = client.get(reverse("transitions:list"))
+
+    compose_url = reverse("transitions:compose", args=[report.obligation.public_id])
+    assert compose_url in response.content.decode()
+
+
+def test_transitions_list_search_position_links_to_the_handoff_packet_for_someone_elses_report(auto_login_user):
+    client, successor = auto_login_user()
+    successor.current_roles = ["treasurer"]
+    successor.save(update_fields=["current_roles"])
+    report = _report(successor.chapter, "treasurer", UserFactory(chapter=successor.chapter))
+
+    response = client.get(reverse("transitions:list"), {"cycle": "all"})
+
+    packet_url = reverse("transitions:packet", args=[report.chapter.pk, "treasurer"])
+    assert packet_url in response.content.decode()
+
+
+def test_transitions_list_search_hides_a_draft_report(auto_login_user):
+    client, successor = auto_login_user()
+    successor.current_roles = ["treasurer"]
+    successor.save(update_fields=["current_roles"])
+    _report(successor.chapter, "treasurer", UserFactory(chapter=successor.chapter), status="draft")
+
+    response = client.get(reverse("transitions:list"), {"cycle": "all"})
+
+    assert "No reports match your search." in response.content.decode()
+
+
+def test_transitions_list_search_hides_an_unrelated_chapters_report(auto_login_user):
     client, member = auto_login_user()
     other_chapter = ChapterFactory()
     _report(other_chapter, "treasurer", UserFactory(chapter=other_chapter))
 
-    response = client.get(reverse("transitions:search"))
+    response = client.get(reverse("transitions:list"))
 
     assert response.status_code == 200
     assert other_chapter.name not in response.content.decode()
 
 
-def test_search_view_filters_by_query_text(auto_login_user):
+def test_transitions_list_search_filters_by_query_text(auto_login_user):
     from django.contrib.auth.models import Group
 
     client, natoff = auto_login_user()
@@ -1015,65 +1000,67 @@ def test_search_view_filters_by_query_text(auto_login_user):
     other.answers.create(prompt_key="notes", prompt_label_snapshot="Notes?", value="nothing special")
     other.save()
 
-    response = client.get(reverse("transitions:search"), {"q": "zorblatt", "cycle": "all"})
+    response = client.get(reverse("transitions:list"), {"q": "zorblatt", "cycle": "all"})
 
     body = response.content.decode()
     assert matching.chapter.name in body
 
 
-def test_search_view_national_officer_sees_chapter_and_region_filters(auto_login_user):
+def test_transitions_list_national_officer_sees_chapter_and_region_filters(auto_login_user):
     from django.contrib.auth.models import Group
 
     client, natoff = auto_login_user()
     natoff.groups.add(Group.objects.get_or_create(name="natoff")[0])
 
-    response = client.get(reverse("transitions:search"))
+    response = client.get(reverse("transitions:list"))
 
     body = response.content.decode()
     assert 'name="chapter"' in body
     assert 'name="region"' in body
 
 
-def test_search_view_non_national_does_not_see_chapter_and_region_filters(auto_login_user):
+def test_transitions_list_non_national_does_not_see_chapter_and_region_filters(auto_login_user):
     client, officer = auto_login_user()
 
-    response = client.get(reverse("transitions:search"))
+    response = client.get(reverse("transitions:list"))
 
     body = response.content.decode()
     assert 'name="chapter"' not in body
     assert 'name="region"' not in body
 
 
-def test_search_view_shows_dashboard_section_for_the_viewers_own_chapter(auto_login_user):
-    """2026-09 merge: "My chapter dashboard" and "Search reports" were
-    condensed to one page -- /transitions/search/ (no explicit chapter_pk)
-    also shows the obligation dashboard for a chapter officer's own chapter.
+def test_transitions_list_shows_dashboard_section_for_the_viewers_own_chapter(auto_login_user):
+    """2026-09 second merge: the compliance dashboard for the viewer's OWN
+    chapter is now inline on transitions:list itself, alongside the search
+    section -- no more separate /transitions/search/ page.
     """
     client, officer = auto_login_user()
     _role_change(officer.chapter, "treasurer", datetime.date.today() + datetime.timedelta(days=180), user=officer)
     _obligation(officer.chapter, officer)
 
-    response = client.get(reverse("transitions:search"))
+    response = client.get(reverse("transitions:list"))
 
     assert response.status_code == 200
     assert response.context["chapter"] == officer.chapter
     assert "Treasurer" in response.content.decode()
 
 
-def test_search_view_hides_dashboard_section_for_a_plain_member(auto_login_user):
+def test_transitions_list_hides_dashboard_section_for_a_plain_member(auto_login_user):
     client, member = auto_login_user()
 
-    response = client.get(reverse("transitions:search"))
+    response = client.get(reverse("transitions:list"))
 
     assert response.status_code == 200
     assert response.context.get("chapter") is None
 
 
-def test_chapter_dashboard_url_reaches_the_same_merged_page(auto_login_user):
-    """The old dashboard/chapter/<pk>/ URL keeps working (RD/national officer
-    direct navigation, plus the access-control tests above) and routes to
-    the exact same merged view/template as /transitions/search/.
-    """
+# ---------------------------------------------------------------------------
+# ReportSearchView -- an explicit OTHER chapter's dashboard (RD/National
+# Officer/Admin only), reached via transitions:chapter-dashboard. This is
+# the one remaining reason ReportSearchView/search.html still exist --
+# transitions:list only ever shows the viewer's OWN chapter's dashboard.
+# ---------------------------------------------------------------------------
+def test_chapter_dashboard_url_still_shows_the_search_and_compliance_page(auto_login_user):
     client, officer = auto_login_user()
     _role_change(officer.chapter, "treasurer", datetime.date.today() + datetime.timedelta(days=180), user=officer)
     _obligation(officer.chapter, officer)

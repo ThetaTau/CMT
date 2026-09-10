@@ -19,28 +19,6 @@ class CycleFilterMixin:
         return queryset.filter(due_date__gte=start, due_date__lt=end)
 
 
-class ObligationComplianceFilter(CycleFilterMixin, django_filters.FilterSet):
-    """Filters the dashboard section's per-obligation table (TRWI-9).
-
-    Field names are prefixed ``obl_`` (2026-09 merge) so this filter's own
-    GET params never collide with ``SearchFilter``'s -- both filter forms
-    render as separate ``<form>``s on the same combined dashboard+search
-    page (see ``views.ReportSearchView``).
-    """
-
-    obl_position_key = django_filters.ChoiceFilter(
-        field_name="position_key", label="Position", choices=POSITION_KEY_CHOICES
-    )
-    status = django_filters.ChoiceFilter(label="Status", choices=[x.value for x in ReportObligation.Status])
-    obl_cycle = django_filters.ChoiceFilter(
-        field_name="due_date", label="Cycle", choices=CYCLE_CHOICES, method="filter_cycle", empty_label=None
-    )
-
-    class Meta:
-        model = ReportObligation
-        fields = ["obl_position_key", "status", "obl_cycle"]
-
-
 class ComplianceRateFilter(CycleFilterMixin, django_filters.FilterSet):
     """Filters the obligations queryset BEFORE
     ``services.get_chapter_compliance_stats`` aggregates it (TRWI-9 regional

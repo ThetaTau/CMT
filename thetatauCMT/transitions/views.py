@@ -5,7 +5,6 @@ matching notes/objectives -- no viewflow (this feature has no approval step).
 from dal import autocomplete
 from django.contrib import messages
 from django.core.exceptions import ValidationError
-from django.db.models import Exists, OuterRef
 from django.forms.models import modelformset_factory
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.generic import TemplateView, View
@@ -14,16 +13,8 @@ from core.views import LoginRequiredMixin, RequestConfig
 from thetatauCMT.chapters.models import Chapter
 
 from . import services
-from .filters import (
-    ComplianceRateFilter,
-    NationalComplianceRateFilter,
-    NationalSearchFilter,
-    ObligationComplianceFilter,
-    SearchFilter,
-    TrendFilter,
-)
+from .filters import ComplianceRateFilter, NationalComplianceRateFilter, NationalSearchFilter, SearchFilter, TrendFilter
 from .forms import (
-    ComplianceFilterFormHelper,
     ComplianceRateFilterFormHelper,
     ComposeReportForm,
     ReportAttachmentForm,
@@ -34,7 +25,6 @@ from .forms import (
 )
 from .models import (
     POSITION_KEY_TO_TYPE,
-    ReportAcknowledgement,
     ReportAttachment,
     ReportContact,
     ReportKeyDate,
@@ -42,58 +32,58 @@ from .models import (
     TransitionReport,
     TransitionTag,
 )
-from .tables import ChapterRateTable, ObligationComplianceTable, SearchResultsTable, TagFrequencyTable
+from .tables import ChapterRateTable, ReportRowTable, TagFrequencyTable
 
 
 class TransitionsListView(LoginRequiredMixin, TemplateView):
-    """The viewer's own obligations + submission history + reports they're
-    entitled to read (TRWI-5, broadened by TRWI-6's access control service).
-
-    ``readable_reports`` uses ``services.get_readable_reports`` -- author,
-    successor, Regent, RD, and national-officer/admin access are ALL handled
-    there; this view never re-derives a role check. The ``scope`` GET param
-    (``"chapter"`` vs. anything else/unset) is the spec's "chapter vs.
-    national scope" filter -- only shown when it would narrow anything (RD/
-    national officer/admin), since a Regent or successor's readable set is
-    already their own chapter only.
+    """The viewer's own reports plus everything else, all on one page
+    (2026-09 second merge): reports owed, submission history, handoff
+    packets, and (inline, via the module-level ``_search_context`` helper
+    shared with ``ReportSearchView``) the combined search/browse + chapter
+    obligations table (TRWI-6/TRWI-9/TRWI-11), if they can see one. There is
+    no more separate "Reports you can read" section, chapter compliance
+    table, or "Dashboard & search reports" page for the viewer's own
+    chapter -- an RD/National Officer/Admin inspecting a DIFFERENT chapter
+    still uses the dedicated ``transitions:chapter-dashboard`` URL
+    (``ReportSearchView``).
     """
 
     template_name = "transitions/transitions_list.html"
+
+    def dispatch(self, request, *args, **kwargs):
+        self.chapter = None
+        if request.user.is_authenticated and request.user.chapter_id:
+            if services.can_view_chapter_dashboard(request.user, request.user.chapter):
+                self.chapter = request.user.chapter
+        return super().dispatch(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         user = self.request.user
         obligations = services.get_my_obligations(user)
         position_choices = sorted({obligation.position_key for obligation in obligations})
-        selected = self.request.GET.get("position_key", "")
+        no_obligations_reason = None if position_choices else services.get_no_obligations_reason(user)
+        # "my_position_key", not "position_key": the search section below
+        # (_search_context) has its own bare "position_key" filter field on
+        # the same page, so this must not collide with it.
+        selected = self.request.GET.get("my_position_key", "")
         if selected:
             obligations = obligations.filter(position_key=selected)
 
-        # Own reports always satisfy get_readable_reports (author access) but
-        # already have their own row under "My submitted reports" above --
-        # exclude them here so "Reports you can read" is only other people's
-        # reports, matching get_handoff_packet's own author exclusion.
-        readable_reports = services.get_readable_reports(user).exclude(author=user)
-        if selected:
-            readable_reports = readable_reports.filter(position_key=selected)
-        scope = self.request.GET.get("scope", "")
-        if scope == "chapter" and user.current_chapter is not None:
-            readable_reports = readable_reports.filter(chapter=user.current_chapter)
-
         context["obligations"] = obligations
+        context["no_obligations_reason"] = no_obligations_reason
         context["reports"] = services.get_my_reports(user)
         context["position_choices"] = position_choices
         context["selected_position_key"] = selected
         context["vacant_obligations"] = services.get_vacant_obligations_for_closer(user)
-        context["readable_reports"] = readable_reports
-        context["scope"] = scope
-        context["show_scope_filter"] = user.is_admin or user.is_national_officer_group or user.director_regions.exists()
         context["my_packets"] = [
             {"position_key": position_key, "chapter": user.chapter}
             for position_key in sorted(set(user.current_roles or []) & set(POSITION_KEY_TO_TYPE))
         ]
         context["show_rates_dashboard_link"] = services.can_view_compliance_rates(user)
         context["show_trends_link"] = services.can_view_trends(user)
+
+        context.update(_search_context(self.request, chapter=self.chapter))
         return context
 
 
@@ -352,16 +342,90 @@ def _default_cycle(request):
     return request_get
 
 
-def _default_dashboard_cycle(request):
-    """``request.GET`` with ``obl_cycle=current`` injected when absent --
-    mirrors ``_default_cycle`` but for the merged dashboard+search page's own
-    ``obl_``-prefixed cycle field (see ``ObligationComplianceFilter``),
-    which must not collide with the search section's own bare ``cycle``.
+def _default_search_cycle(request):
+    """``request.GET`` with ``cycle=all`` injected when absent (TRWI-11) --
+    search's own default is "All time", not "current" (see
+    ``filters.SearchFilter``'s docstring for why), so this mirrors
+    ``_default_cycle`` with a different default rather than reusing it.
     """
     request_get = request.GET.copy()
-    if not request_get.get("cancel") and "obl_cycle" not in request_get:
-        request_get["obl_cycle"] = services.DEFAULT_CYCLE
+    if not request_get.get("cancel") and "cycle" not in request_get:
+        request_get["cycle"] = "all"
     return request_get
+
+
+def _search_context(request, chapter=None):
+    """Search/browse section (TRWI-11, merged with the chapter obligation
+    table 2026-09) -- every report the viewer may read, filterable by query
+    text/position/tag/cycle (plus chapter/region for RD/National
+    Officer/Admin), each linking out to the report itself. When ``chapter``
+    narrows to one specific chapter (the viewer's own, or an explicit one
+    for RD/National Officer/Admin), the SAME table also carries that
+    chapter's other obligations with no readable report yet (TRWI-9) -- see
+    ``services.get_report_rows``, which does the actual row-building. A
+    national-scoped viewer's OWN chapter/region filter picks take priority
+    over the ``chapter`` passed in, so picking a different chapter there
+    switches which chapter's full picture is shown.
+    """
+    user = request.user
+    is_national = user.is_admin or user.is_national_officer_group
+    filter_class = NationalSearchFilter if is_national else SearchFilter
+
+    filterset = filter_class(_default_search_cycle(request), queryset=TransitionReport.objects.none())
+    filterset.request = request
+    filterset.form.helper = SearchFilterFormHelper(form=filterset.form)
+    filterset.form.is_valid()
+
+    cleaned = filterset.form.cleaned_data
+    query = cleaned.get("q") or ""
+    position_key = cleaned.get("position_key") or ""
+    filter_chapter = cleaned.get("chapter") if is_national else None
+    region = cleaned.get("region") if is_national else None
+    tag = cleaned.get("tag") or ""
+    cycle = cleaned.get("cycle") or "all"
+    scoped_chapter = filter_chapter or chapter
+
+    rows = services.get_report_rows(
+        user, query=query, position_key=position_key, chapter=scoped_chapter, region=region, tag=tag, cycle=cycle
+    )
+    table = ReportRowTable(data=rows)
+    RequestConfig(request, paginate={"per_page": 25}).configure(table)
+
+    return {
+        "filter": filterset,
+        "table": table,
+        "cycle_label": services.cycle_label(cycle) if cycle != "all" else "All time",
+        "chapter": scoped_chapter,
+    }
+
+
+class ReportSearchView(LoginRequiredMixin, TemplateView):
+    """An explicit OTHER chapter's obligations + search (RD/
+    National Officer/Admin only), reached via ``transitions:chapter-dashboard``.
+
+    The viewer's OWN combined table now lives inline on ``transitions:list``
+    (2026-09 second merge) -- this view no longer resolves ``request.user``'s
+    own chapter itself, so ``transitions:search`` (no ``chapter_pk``) simply
+    redirects there; that URL is kept resolvable only so an old link/bookmark
+    doesn't 404, not because it has any content of its own anymore.
+    """
+
+    template_name = "transitions/search.html"
+
+    def dispatch(self, request, *args, **kwargs):
+        chapter_pk = kwargs.get("chapter_pk")
+        if chapter_pk is None:
+            return redirect("transitions:list")
+        self.chapter = get_object_or_404(Chapter, pk=chapter_pk)
+        if not services.can_view_chapter_dashboard(request.user, self.chapter):
+            messages.error(request, "You are not able to view this chapter's dashboard.")
+            return redirect("transitions:list")
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context.update(_search_context(self.request, chapter=self.chapter))
+        return context
 
 
 class ComplianceRatesView(LoginRequiredMixin, TemplateView):
@@ -382,7 +446,7 @@ class ComplianceRatesView(LoginRequiredMixin, TemplateView):
 
     def dispatch(self, request, *args, **kwargs):
         if not services.can_view_compliance_rates(request.user):
-            messages.error(request, "You are not able to view the compliance rates dashboard.")
+            messages.error(request, "You are not able to view the completion rates dashboard.")
             return redirect("transitions:list")
         return super().dispatch(request, *args, **kwargs)
 
@@ -410,124 +474,6 @@ class ComplianceRatesView(LoginRequiredMixin, TemplateView):
         context["table"] = table
         context["cycle_label"] = services.cycle_label(cycle)
         context["is_national"] = is_national
-        return context
-
-
-def _default_search_cycle(request):
-    """``request.GET`` with ``cycle=all`` injected when absent (TRWI-11) --
-    search's own default is "All time", not "current" (see
-    ``filters.SearchFilter``'s docstring for why), so this mirrors
-    ``_default_cycle`` with a different default rather than reusing it.
-    """
-    request_get = request.GET.copy()
-    if not request_get.get("cancel") and "cycle" not in request_get:
-        request_get["cycle"] = "all"
-    return request_get
-
-
-class ReportSearchView(LoginRequiredMixin, TemplateView):
-    """Combined chapter obligation dashboard + full-text/filtered report
-    search (TRWI-9's dashboard and TRWI-11's search were merged into one
-    page in a 2026-09 UI pass -- "My chapter dashboard" and "Search reports"
-    were two separate pages that looked near-identical and, for a chapter
-    officer, covered mostly the same chapter's data).
-
-    Reachable two ways, both routed here (see ``urls.py``):
-    - ``transitions:search`` (no ``chapter_pk``): the one link shown to
-      everyone from the Transitions list. The dashboard section shows for
-      ``request.user.chapter`` only if the viewer can see it
-      (``services.can_view_chapter_dashboard``) and is silently omitted
-      otherwise (e.g. a plain member) -- this URL must never itself deny
-      access, since it is everyone's entry point.
-    - ``transitions:chapter-dashboard`` (explicit ``chapter_pk``): the same
-      page for a chapter the viewer does not necessarily belong to (RD/
-      National Officer/Admin) -- denies with a redirect + message if the
-      viewer can't see THAT chapter, matching the original
-      ``ChapterComplianceView``'s own gate. No UI links here with an
-      explicit ``chapter_pk`` other than the viewer's own; kept for direct
-      navigation and the access-control tests.
-
-    The search section (position/tag/cycle/q, plus chapter/region for RD/
-    National Officer/Admin) is unchanged: ``services.search_reports``
-    already does its own filtering AND its own access control in one place,
-    so its filterset is only ever bound to a throwaway/empty queryset to
-    clean/render GET params, never used to actually filter a real queryset.
-
-    The dashboard section's own filter fields are prefixed ``obl_`` (see
-    ``ObligationComplianceFilter``) so its GET params never collide with the
-    search filter's -- ``_partials/collapsible_filter.html`` renders each as
-    its own independent ``<form method="get">`` on this same page.
-    """
-
-    template_name = "transitions/search.html"
-
-    def dispatch(self, request, *args, **kwargs):
-        self.chapter = None
-        chapter_pk = kwargs.get("chapter_pk")
-        if chapter_pk is not None:
-            chapter = get_object_or_404(Chapter, pk=chapter_pk)
-            if not services.can_view_chapter_dashboard(request.user, chapter):
-                messages.error(request, "You are not able to view this chapter's dashboard.")
-                return redirect("transitions:list")
-            self.chapter = chapter
-        elif request.user.is_authenticated and request.user.chapter_id:
-            if services.can_view_chapter_dashboard(request.user, request.user.chapter):
-                self.chapter = request.user.chapter
-        return super().dispatch(request, *args, **kwargs)
-
-    def _dashboard_context(self):
-        base_qs = (
-            ReportObligation.objects.filter(chapter=self.chapter)
-            .select_related("officer", "report")
-            .annotate(acknowledged=Exists(ReportAcknowledgement.objects.filter(report__obligation_id=OuterRef("pk"))))
-        )
-        filterset = ObligationComplianceFilter(_default_dashboard_cycle(self.request), queryset=base_qs)
-        filterset.request = self.request
-        filterset.form.helper = ComplianceFilterFormHelper(form=filterset.form)
-        # prefix="obl_": this table paginates/sorts independently of the
-        # search table below it on the same page -- without it both would
-        # read/write the same ?page=/?sort= GET params (django_tables2's
-        # own fix for two tables on one page).
-        table = ObligationComplianceTable(data=filterset.qs, prefix="obl_")
-        RequestConfig(self.request, paginate={"per_page": 25}).configure(table)
-        return {
-            "chapter": self.chapter,
-            "compliance_filter": filterset,
-            "compliance_table": table,
-            "compliance_cycle_label": services.cycle_label(self.request.GET.get("obl_cycle", services.DEFAULT_CYCLE)),
-        }
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        user = self.request.user
-        is_national = user.is_admin or user.is_national_officer_group
-        filter_class = NationalSearchFilter if is_national else SearchFilter
-
-        filterset = filter_class(_default_search_cycle(self.request), queryset=TransitionReport.objects.none())
-        filterset.request = self.request
-        filterset.form.helper = SearchFilterFormHelper(form=filterset.form)
-        filterset.form.is_valid()
-
-        cleaned = filterset.form.cleaned_data
-        query = cleaned.get("q") or ""
-        position_key = cleaned.get("position_key") or ""
-        chapter = cleaned.get("chapter") if is_national else None
-        region = cleaned.get("region") if is_national else None
-        tag = cleaned.get("tag") or ""
-        cycle = cleaned.get("cycle") or "all"
-
-        reports = services.search_reports(
-            user, query=query, position_key=position_key, chapter=chapter, region=region, tag=tag, cycle=cycle
-        )
-        table = SearchResultsTable(data=reports)
-        RequestConfig(self.request, paginate={"per_page": 25}).configure(table)
-
-        context["filter"] = filterset
-        context["table"] = table
-        context["cycle_label"] = services.cycle_label(cycle) if cycle != "all" else "All time"
-
-        if self.chapter is not None:
-            context.update(self._dashboard_context())
         return context
 
 

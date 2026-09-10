@@ -456,3 +456,21 @@ def test_report_tag_allows_the_same_tag_on_different_reports():
     ReportTag.objects.create(report=report_2, tag="risk", source="manual")  # must not raise
 
     assert ReportTag.objects.filter(tag="risk").count() == 2
+
+
+def test_transition_report_tag_list_joins_raw_tag_names():
+    """Regression test: ``ReportTag.tag`` is free-form (no ``choices=``,
+    2026-09 UI change), so ``get_tag_display()`` doesn't exist on it --
+    ``tag_list`` must use the raw stored value instead, or every page
+    rendering a tagged report's ``tag_list`` (Search reports, the handoff
+    packet) 500s with ``AttributeError``.
+    """
+    chapter = ChapterFactory()
+    officer = UserFactory(chapter=chapter)
+    report = _report(chapter, officer)
+    ReportTag.objects.create(report=report, tag="risk", source="prompt")
+    ReportTag.objects.create(report=report, tag="a custom tag", source="manual")
+
+    # ReportTag.Meta.ordering = ["report", "tag"] -- alphabetical by tag,
+    # not insertion order.
+    assert report.tag_list == "a custom tag, risk"

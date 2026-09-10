@@ -744,6 +744,71 @@ def test_get_my_obligations_includes_every_status():
     assert obligations.count() == 3
 
 
+def test_get_no_obligations_reason_no_current_tracked_role():
+    member = UserFactory()
+
+    assert services.get_no_obligations_reason(member) == (
+        "You don't currently hold a position that requires a Transition Report."
+    )
+
+
+def test_get_no_obligations_reason_excluded_position():
+    Config.objects.create(key="TRANSITIONS_COMMITTEE_CHAIR_ENABLED", value="off", description="")
+    chapter = ChapterFactory()
+    officer = _role_change(chapter, "committee chair", TODAY + datetime.timedelta(days=200)).user
+
+    assert services.get_no_obligations_reason(officer) == "Your current position does not require a Transition Report."
+
+
+def test_get_no_obligations_reason_too_early():
+    chapter = ChapterFactory()
+    end = TODAY + datetime.timedelta(days=200)
+    officer = _role_change(chapter, "treasurer", end).user
+
+    reason = services.get_no_obligations_reason(officer)
+
+    due_date = end - datetime.timedelta(days=services.DEFAULT_DUE_DATE_OFFSET_DAYS)
+    assert reason == f"Not due yet: your Treasurer term ends {end}, so the report isn't due until {due_date}."
+
+
+def test_get_no_obligations_reason_picks_the_soonest_eligible_role_when_holding_several():
+    chapter = ChapterFactory()
+    officer = UserFactory(chapter=chapter)
+    _role_change(chapter, "treasurer", TODAY + datetime.timedelta(days=300), user=officer)
+    soon = TODAY + datetime.timedelta(days=200)
+    _role_change(chapter, "scribe", soon, user=officer)
+
+    reason = services.get_no_obligations_reason(officer)
+
+    assert "your Scribe term ends" in reason
+
+
+def test_get_no_obligations_reason_regional_director_gets_a_distinct_explanation():
+    # RD is assigned via Region.directors (M2M), never a UserRoleChange --
+    # the generic "you don't hold a position" message would be misleading.
+    region = RegionFactory()
+    rd = UserFactory()
+    region.directors.add(rd)
+
+    reason = services.get_no_obligations_reason(rd)
+
+    assert reason == (
+        "Your national-level role does not have its own Transition Report in this system. "
+        "Use the Search reports section below to read what your chapters have submitted."
+    )
+
+
+def test_get_no_obligations_reason_national_officer_group_without_a_role_change():
+    from django.contrib.auth.models import Group
+
+    natoff = UserFactory()
+    natoff.groups.add(Group.objects.get_or_create(name="natoff")[0])
+
+    reason = services.get_no_obligations_reason(natoff)
+
+    assert reason.startswith("Your national-level role does not have its own Transition Report")
+
+
 def test_get_or_create_report_creates_draft_authored_by_officer():
     chapter = ChapterFactory()
     officer = UserFactory(chapter=chapter)

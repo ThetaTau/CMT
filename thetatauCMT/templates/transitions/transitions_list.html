@@ -1,5 +1,7 @@
 {% extends "base.html" %}
 {% load crispy_forms_tags %}
+{% load render_table from django_tables2 %}
+{% load filter_tags %}
 
 {% block title %}Transitions{% endblock %}
 
@@ -11,12 +13,9 @@
 
   {% if show_rates_dashboard_link or show_trends_link %}
     <p>
-      <a class="btn btn-sm btn-outline-secondary" href="{% url 'transitions:search' %}">
-        Dashboard &amp; search reports
-      </a>
       {% if show_rates_dashboard_link %}
         <a class="btn btn-sm btn-outline-secondary" href="{% url 'transitions:rates-dashboard' %}">
-          Compliance rates
+          Completion rates
         </a>
       {% endif %}
       {% if show_trends_link %}
@@ -24,12 +23,6 @@
           National trends
         </a>
       {% endif %}
-    </p>
-  {% else %}
-    <p>
-      <a class="btn btn-sm btn-outline-secondary" href="{% url 'transitions:search' %}">
-        Dashboard &amp; search reports
-      </a>
     </p>
   {% endif %}
 
@@ -75,11 +68,11 @@
     </table>
   {% endif %}
 
-  <h2>My obligations</h2>
+  <h2>My Reports</h2>
   {% if position_choices|length > 1 %}
     <form method="get" class="mb-3">
-      <label for="position_key">Position</label>
-      <select name="position_key" id="position_key" class="form-select" onchange="this.form.submit()" style="max-width: 20rem;">
+      <label for="my_position_key">Position</label>
+      <select name="my_position_key" id="my_position_key" class="form-select" onchange="this.form.submit()" style="max-width: 20rem;">
         <option value=""{% if not selected_position_key %} selected{% endif %}>All</option>
         {% for position_key in position_choices %}
           <option value="{{ position_key }}"{% if position_key == selected_position_key %} selected{% endif %}>{{ position_key|title }}</option>
@@ -115,10 +108,10 @@
       </tbody>
     </table>
   {% else %}
-    <p>You have no Transition Report obligations.</p>
+    <p>You have no Transition Reports due. {{ no_obligations_reason }}</p>
   {% endif %}
 
-  <h2>My submitted reports</h2>
+  <h2>My Submitted Reports</h2>
   {% if reports %}
     <table class="table">
       <thead>
@@ -150,43 +143,13 @@
     <p>You have not written any Transition Reports yet.</p>
   {% endif %}
 
-  <h2>Reports you can read</h2>
-  {% if show_scope_filter %}
-    <p>
-      <a href="?scope=chapter{% if selected_position_key %}&amp;position_key={{ selected_position_key }}{% endif %}"
-         class="btn btn-sm {% if scope == 'chapter' %}btn-secondary{% else %}btn-outline-secondary{% endif %}">My chapter only</a>
-      <a href="?{% if selected_position_key %}position_key={{ selected_position_key }}{% endif %}"
-         class="btn btn-sm {% if scope != 'chapter' %}btn-secondary{% else %}btn-outline-secondary{% endif %}">Everything I can read</a>
-    </p>
-  {% endif %}
-  {% if readable_reports %}
-    <table class="table">
-      <thead>
-        <tr>
-          <th>Position</th>
-          <th>Chapter</th>
-          <th>Author</th>
-          <th>Status</th>
-          <th>Submitted</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for report in readable_reports %}
-          <tr>
-            <td>{{ report.position_key|title }}</td>
-            <td>{{ report.chapter }}</td>
-            <td>{{ report.author }}</td>
-            <td>{{ report.get_status_display }}</td>
-            <td>{{ report.submitted_at|default:"None" }}</td>
-            <td>
-              <a class="btn btn-sm btn-outline-primary" href="{% url 'transitions:packet' report.chapter.pk report.position_key %}">View</a>
-            </td>
-          </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  {% else %}
-    <p>No other Transition Reports are visible to you yet.</p>
-  {% endif %}
+  <h2>Search reports</h2>
+  <p>
+    {{ cycle_label }}{% if chapter %} -- including every position's Transition Report for {{ chapter }}, even ones
+    you may not be able to read yet.{% endif %}
+  </p>
+  {% collapsible_filter filter label="Filter search" collapse_id="searchFilter" reset_url="?cancel=1" %}
+  <div class="table-responsive">
+    {% render_table table %}
+  </div>
 {% endblock %}

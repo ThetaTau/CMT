@@ -3,6 +3,7 @@ from dataclasses import dataclass
 
 from django.db import transaction
 from django.db.models import Count, Q
+from django.urls import reverse
 from django.utils import timezone
 from watson import search as watson
 
@@ -465,6 +466,55 @@ def get_my_obligations(user):
     history, so submitted/na_vacant rows belong here too.
     """
     return ReportObligation.objects.filter(officer=user).select_related("chapter").order_by("-term_end")
+
+
+def get_no_obligations_reason(user):
+    """Why ``user`` has no ``ReportObligation`` row at all (any status) --
+    for the "My Reports" empty state, so a member isn't left wondering
+    whether that's a bug. Only meaningful when ``get_my_obligations(user)``
+    is empty; ``generate_obligations`` only ever creates a row once a
+    tracked role's term end falls within its lookahead window (TRWI-3), so
+    an empty result always comes down to one of:
+
+    1. No CURRENT role in an in-scope position (``POSITION_KEY_TO_TYPE``) at
+       all -- never generated because there is nothing to generate from.
+       Includes Regional Director/other national-level roles not tied to a
+       ``UserRoleChange`` term (RD is assigned via ``Region.directors``, not
+       a role change with a start/end date -- see the RD-specific branch
+       below), so they get a distinct explanation, not the generic one.
+    2. Every current in-scope role resolves to "excluded" (per-position
+       override, or its type's Config flag off) -- never generated because
+       ``generate_obligations`` skips excluded positions entirely.
+    3. Otherwise: at least one current in-scope role is required/optional,
+       but its term end is too far away yet for the lookahead window to
+       have reached it -- simply too early.
+
+    Returns a plain sentence; callers should only show it when there truly
+    are no obligations to display.
+    """
+    today = timezone.now().date()
+    current_role_changes = list(
+        UserRoleChange.objects.filter(user=user, role__in=list(POSITION_KEY_TO_TYPE), end__gte=today).order_by("end")
+    )
+    if not current_role_changes:
+        if user.director_regions.exists() or user.is_national_officer_group:
+            return (
+                "Your national-level role does not have its own Transition Report in this system. "
+                "Use the Search reports section below to read what your chapters have submitted."
+            )
+        return "You don't currently hold a position that requires a Transition Report."
+
+    excluded_status = PositionOverride.Status.excluded.name
+    eligible = [rc for rc in current_role_changes if resolve_position_status(rc.role) != excluded_status]
+    if not eligible:
+        return "Your current position does not require a Transition Report."
+
+    soonest = min(eligible, key=lambda rc: rc.end)
+    due_date = soonest.end - datetime.timedelta(days=get_due_date_offset_days())
+    return (
+        f"Not due yet: your {soonest.role.title()} term ends {soonest.end}, "
+        f"so the report isn't due until {due_date}."
+    )
 
 
 def get_my_reports(user):
@@ -1031,6 +1081,105 @@ def search_reports(user, query="", position_key="", chapter=None, region=None, t
     if query:
         queryset = watson.filter(queryset, query)
     return queryset
+
+
+@dataclass
+class ReportRow:
+    """One row of the combined "Search reports" table (2026-09 UI pass).
+
+    Either a submitted report the viewer may read (``person`` is the
+    author, plus tags/submitted date/a link out) or -- when the search is
+    narrowed to one ``chapter`` -- a ``ReportObligation`` with no readable
+    report yet (``person`` is the officer or "Vacant", status/due date
+    only). Replaces what used to be two separate tables (the search
+    results table and the chapter compliance/obligation table).
+    """
+
+    position_key: str
+    chapter_name: str
+    person: str
+    status: str
+    status_display: str
+    due_date: object = None
+    submitted_at: object = None
+    acknowledged: object = None
+    tag_list: str = ""
+    link_url: object = None
+
+
+def _report_row(report, user, acknowledged):
+    if report.author_id == user.pk:
+        link_url = reverse("transitions:compose", args=[report.obligation.public_id])
+    else:
+        link_url = reverse("transitions:packet", args=[report.chapter_id, report.position_key])
+    return ReportRow(
+        position_key=report.position_key,
+        chapter_name=report.chapter.name,
+        person=report.author.name,
+        status="submitted",
+        status_display=report.get_status_display(),
+        due_date=report.obligation.due_date,
+        submitted_at=report.submitted_at,
+        acknowledged=acknowledged,
+        tag_list=report.tag_list,
+        link_url=link_url,
+    )
+
+
+def _obligation_row(obligation, chapter_name, user):
+    link_url = None
+    if obligation.status in ("open", "missed") and obligation.officer_id == user.pk:
+        link_url = reverse("transitions:compose", args=[obligation.public_id])
+    return ReportRow(
+        position_key=obligation.position_key,
+        chapter_name=chapter_name,
+        person=obligation.officer.name if obligation.officer_id else "Vacant",
+        status=obligation.status,
+        status_display=obligation.get_status_display(),
+        due_date=obligation.due_date,
+        link_url=link_url,
+    )
+
+
+def get_report_rows(user, query="", position_key="", chapter=None, region=None, tag="", cycle=DEFAULT_CYCLE):
+    """Combined rows for the merged "Search reports" table (2026-09 UI pass).
+
+    Always includes every submitted report ``user`` may read
+    (``search_reports``, same filters, any chapter within their read
+    scope). When ``chapter`` narrows the search to one specific chapter,
+    ALSO adds a row for every OTHER obligation in that chapter with no
+    readable report yet (open/missed/na_vacant, or submitted but not one
+    ``user`` may read) -- so nothing the old, separate chapter compliance
+    table used to show is lost, just merged into one row set, deduplicated
+    by obligation (``exclude(pk__in=covered_obligation_ids)``).
+    """
+    reports = list(
+        search_reports(
+            user, query=query, position_key=position_key, chapter=chapter, region=region, tag=tag, cycle=cycle
+        ).select_related("author", "chapter", "obligation")
+    )
+    acknowledged_report_ids = set(
+        ReportAcknowledgement.objects.filter(report_id__in=[report.pk for report in reports]).values_list(
+            "report_id", flat=True
+        )
+    )
+    rows = [_report_row(report, user, report.pk in acknowledged_report_ids) for report in reports]
+
+    if chapter is not None:
+        covered_obligation_ids = {report.obligation_id for report in reports}
+        obligations = (
+            ReportObligation.objects.filter(chapter=chapter)
+            .exclude(pk__in=covered_obligation_ids)
+            .select_related("officer")
+        )
+        if position_key:
+            obligations = obligations.filter(position_key=position_key)
+        start, end = get_cycle_bounds(cycle)
+        if start is not None:
+            obligations = obligations.filter(due_date__gte=start, due_date__lt=end)
+        rows += [_obligation_row(obligation, chapter.name, user) for obligation in obligations]
+
+    return rows
 
 
 def get_tag_frequency(cycle=DEFAULT_CYCLE, position_key="", region=None):
