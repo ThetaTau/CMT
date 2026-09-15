@@ -2,9 +2,11 @@ import logging
 import time
 
 from allauth_2fa.middleware import BaseRequire2FAMiddleware
+from dash.exceptions import CallbackException
 from django.conf import settings
 from django.contrib import messages
 from django.db import connection, reset_queries
+from django.http import JsonResponse
 from django.shortcuts import redirect
 from django.urls import reverse
 from django.utils.deprecation import MiddlewareMixin
@@ -15,6 +17,7 @@ from core.utils import check_nat_officer, check_officer
 from thetatauCMT.forms.models import PledgeProgram, RiskManagement
 
 perf_logger = logging.getLogger("perf")
+dash_logger = logging.getLogger("django_plotly_dash.stale_callback")
 
 
 class RequireSuperuser2FAMiddleware(BaseRequire2FAMiddleware):
@@ -100,3 +103,36 @@ class QueryTimingMiddleware:
             sql_time,
         )
         return response
+
+
+class PlotlyDashStaleCallbackMiddleware:
+    """Return a clean 400 instead of a 500 for a stale django-plotly-dash callback.
+
+    DjangoDash apps register their callback map once per worker process at
+    import time, and production (PythonAnywhere) only picks up code changes
+    on a manual reload. A browser tab left open across a reload/deploy (or
+    still pointed at a retired dash app) posts an Input/Output shape the
+    running process no longer recognizes, which dash raises as
+    `CallbackException("Inputs do not match callback definition")`. That's a
+    stale client, not a server bug, so it's handled here in `process_view`
+    (before the exception ever propagates) instead of surfacing as an
+    unhandled 500.
+    """
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        return self.get_response(request)
+
+    def process_view(self, request, view_func, view_args, view_kwargs):
+        if not request.path.startswith("/django_plotly_dash/"):
+            return None
+        try:
+            return view_func(request, *view_args, **view_kwargs)
+        except CallbackException as exc:
+            dash_logger.warning("Stale django-plotly-dash callback on %s: %s", request.path, exc)
+            return JsonResponse(
+                {"error": "This dashboard was updated. Please refresh the page."},
+                status=400,
+            )

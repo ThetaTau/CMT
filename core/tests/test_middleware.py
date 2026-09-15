@@ -6,13 +6,14 @@ injection, or the request-attribute contract, these tests fail immediately.
 """
 
 import pytest
+from dash.exceptions import CallbackException
 from django.contrib.auth.models import AnonymousUser, Group
 from django.contrib.messages.storage.cookie import CookieStorage
 from django.http import HttpResponse
 from django.test import RequestFactory
 from django.utils import timezone
 
-from core.middleware import OfficerMiddleware, RMPSignMiddleware
+from core.middleware import OfficerMiddleware, PlotlyDashStaleCallbackMiddleware, RMPSignMiddleware
 from thetatauCMT.users.tests.factories import UserFactory
 
 # ---------------------------------------------------------------------------
@@ -46,6 +47,7 @@ def test_middleware_module_imports():
     assert hasattr(mod, "OfficerMiddleware")
     assert hasattr(mod, "RMPSignMiddleware")
     assert hasattr(mod, "RequireSuperuser2FAMiddleware")
+    assert hasattr(mod, "PlotlyDashStaleCallbackMiddleware")
 
 
 # ---------------------------------------------------------------------------
@@ -228,3 +230,59 @@ def test_rmp_middleware_signed_passes_through():
     response = RMPSignMiddleware(get_response=_get_response)(request)
 
     assert response.status_code == 200
+
+
+# ---------------------------------------------------------------------------
+# PlotlyDashStaleCallbackMiddleware
+# ---------------------------------------------------------------------------
+
+
+def test_plotly_stale_middleware_ignores_other_paths():
+    """process_view is a no-op (returns None) outside /django_plotly_dash/."""
+    factory = RequestFactory()
+    request = factory.post("/some-other-view/")
+
+    def _view(_request):
+        raise CallbackException("Inputs do not match callback definition")
+
+    result = PlotlyDashStaleCallbackMiddleware(get_response=_get_response).process_view(request, _view, [], {})
+
+    assert result is None
+
+
+def test_plotly_stale_middleware_passes_through_normal_response():
+    """A well-formed dash update still returns the view's own response untouched."""
+    factory = RequestFactory()
+    request = factory.post("/django_plotly_dash/app/Dashboard/_dash-update-component")
+
+    def _view(_request):
+        return _DUMMY_RESPONSE
+
+    result = PlotlyDashStaleCallbackMiddleware(get_response=_get_response).process_view(request, _view, [], {})
+
+    assert result is _DUMMY_RESPONSE
+
+
+def test_plotly_stale_middleware_converts_callback_exception_to_400():
+    """A stale/mismatched callback request gets a clean 400, not an unhandled 500."""
+    factory = RequestFactory()
+    request = factory.post("/django_plotly_dash/app/Dashboard/_dash-update-component")
+
+    def _view(_request):
+        raise CallbackException("Inputs do not match callback definition")
+
+    result = PlotlyDashStaleCallbackMiddleware(get_response=_get_response).process_view(request, _view, [], {})
+
+    assert result.status_code == 400
+
+
+def test_plotly_stale_middleware_does_not_swallow_other_exceptions():
+    """Genuine bugs (e.g. a KeyError in callback logic) still propagate normally."""
+    factory = RequestFactory()
+    request = factory.post("/django_plotly_dash/app/Dashboard/_dash-update-component")
+
+    def _view(_request):
+        raise KeyError("boom")
+
+    with pytest.raises(KeyError):
+        PlotlyDashStaleCallbackMiddleware(get_response=_get_response).process_view(request, _view, [], {})

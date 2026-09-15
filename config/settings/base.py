@@ -226,6 +226,7 @@ MIDDLEWARE = [
     "django_userforeignkey.middleware.UserForeignKeyMiddleware",
     "corsheaders.middleware.CorsMiddleware",
     "core.middleware.RequireSuperuser2FAMiddleware",
+    "core.middleware.PlotlyDashStaleCallbackMiddleware",
     "rollbar.contrib.django.middleware.RollbarNotifierMiddleware",  # Last
 ]
 
