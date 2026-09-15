@@ -20,6 +20,12 @@
     <button class="btn btn-primary" type="submit">{% trans 'Confirm' %}</button>
 </form>
 
+{% elif already_confirmed_email %}
+
+{% url 'account_login' as login_url %}
+
+<p>{% blocktrans with already_confirmed_email as email %}This confirmation link has already been used. <a href="mailto:{{ email }}">{{ email }}</a> is already confirmed, please <a href="{{ login_url }}">log in</a>.{% endblocktrans %}</p>
+
 {% else %}
 
 {% url 'account_email' as email_url %}

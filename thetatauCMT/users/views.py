@@ -4,6 +4,9 @@ import zipfile
 from io import BytesIO, StringIO
 
 import viewflow
+from allauth.account import app_settings as allauth_account_settings
+from allauth.account.models import EmailAddress
+from allauth.account.views import ConfirmEmailView as _AllauthConfirmEmailView
 from allauth.account.views import LoginView
 from dal import autocomplete
 from django import forms
@@ -13,7 +16,7 @@ from django.contrib.auth.tokens import default_token_generator
 from django.contrib.sites.shortcuts import get_current_site
 from django.core import signing
 from django.core.exceptions import ValidationError
-from django.http import HttpResponse, JsonResponse
+from django.http import Http404, HttpResponse, JsonResponse
 from django.http.request import QueryDict
 from django.http.response import HttpResponseRedirect
 from django.shortcuts import get_object_or_404, render
@@ -872,6 +875,42 @@ class PasswordResetFormNotActive(PasswordResetForm):
                     user_email_school,
                     html_email_template_name=html_email_template_name,
                 )
+
+
+class ConfirmEmailView(_AllauthConfirmEmailView):
+    """An already-confirmed, expired, or tampered key 404s on POST upstream:
+    unlike GET, allauth's post() doesn't guard get_object(). Members double-
+    clicking Confirm (or revisiting a used link) got a bare 404 instead of the
+    same "invalid or expired" page GET already renders; show that instead.
+
+    Mandatory email verification also re-sends a fresh confirmation link on
+    every unverified login attempt (allauth's EmailVerificationStage), so
+    members routinely end up with several valid-until-used links for the
+    same address; confirming via any one dead-ends the rest. get_context_data
+    tells those two "link doesn't work" cases apart so an already-confirmed
+    member is told to log in rather than to request a new confirmation."""
+
+    def post(self, *args, **kwargs):
+        try:
+            return super().post(*args, **kwargs)
+        except Http404:
+            self.object = None
+            return self.render_to_response(self.get_context_data())
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        if not self.object:
+            ctx["already_confirmed_email"] = self._get_already_confirmed_email()
+        return ctx
+
+    def _get_already_confirmed_email(self):
+        # No max_age: a key that is otherwise validly signed but expired
+        # should still let us look up (and report on) the address it was for.
+        try:
+            pk = signing.loads(self.kwargs["key"], salt=allauth_account_settings.SALT)
+        except signing.BadSignature:
+            return None
+        return EmailAddress.objects.filter(pk=pk, verified=True).values_list("email", flat=True).first()
 
 
 class CaptchaLoginView(LoginView):

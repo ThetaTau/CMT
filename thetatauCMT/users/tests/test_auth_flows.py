@@ -89,6 +89,83 @@ def test_password_reset_page_renders(client):
 
 
 # ---------------------------------------------------------------------------
+# Email confirmation
+#
+# Regression coverage for a production 404: allauth's ConfirmEmailView.post()
+# doesn't guard get_object() the way GET does, so re-POSTing a key whose
+# EmailAddress is already verified (double-click, revisited link, expired
+# signature) raises a bare Http404 instead of the friendly "expired or
+# invalid" page. ConfirmEmailView (thetatauCMT/users/views.py) fixes this.
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.django_db
+def test_confirm_email_valid_key_confirms(client, user_factory):
+    """POSTing a fresh, unconfirmed key verifies the email (no 404)."""
+    from allauth.account.models import EmailAddress, EmailConfirmationHMAC
+
+    user = user_factory.create()
+    email_address = EmailAddress.objects.create(user=user, email=user.email, verified=False, primary=True)
+    key = EmailConfirmationHMAC(email_address).key
+
+    response = client.post(reverse("account_confirm_email", args=[key]))
+
+    assert response.status_code in (200, 302)
+    email_address.refresh_from_db()
+    assert email_address.verified is True
+
+
+@pytest.mark.django_db
+def test_confirm_email_already_confirmed_key_does_not_404(client, user_factory):
+    """POSTing a key for an already-verified EmailAddress must not 404 (the
+    production bug), and should say "already confirmed, log in" rather than
+    the generic "expired or invalid, request a new one" (that message is
+    wrong here: mandatory verification re-sends a fresh link on every
+    unverified login attempt, so a member can hold several once-valid links
+    for the same address; the first one used verifies it for all of them)."""
+    from allauth.account.models import EmailAddress, EmailConfirmationHMAC
+
+    user = user_factory.create()
+    email_address = EmailAddress.objects.create(user=user, email=user.email, verified=True, primary=True)
+    key = EmailConfirmationHMAC(email_address).key
+
+    response = client.post(reverse("account_confirm_email", args=[key]))
+
+    assert response.status_code == 200
+    content = response.content.decode().lower()
+    assert "already been used" in content
+    assert user.email.lower() in content
+    assert "expired or is invalid" not in content
+
+
+@pytest.mark.django_db
+def test_confirm_email_bogus_key_does_not_404(client):
+    """POSTing a garbage/tampered key shows the invalid page, not a 404."""
+    response = client.post(reverse("account_confirm_email", args=["not-a-real-key"]))
+
+    assert response.status_code == 200
+    assert "expired or is invalid" in response.content.decode().lower()
+
+
+@pytest.mark.django_db
+def test_confirm_email_already_confirmed_key_get_shows_login_message(client, user_factory):
+    """Same distinction on GET: revisiting (not just re-POSTing) an already-used
+    link should say "log in", not "request a new confirmation"."""
+    from allauth.account.models import EmailAddress, EmailConfirmationHMAC
+
+    user = user_factory.create()
+    email_address = EmailAddress.objects.create(user=user, email=user.email, verified=True, primary=True)
+    key = EmailConfirmationHMAC(email_address).key
+
+    response = client.get(reverse("account_confirm_email", args=[key]))
+
+    assert response.status_code == 200
+    content = response.content.decode().lower()
+    assert "already been used" in content
+    assert "expired or is invalid" not in content
+
+
+# ---------------------------------------------------------------------------
 # Signup gate
 # ---------------------------------------------------------------------------
 
