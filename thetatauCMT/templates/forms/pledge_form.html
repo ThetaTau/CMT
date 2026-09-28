@@ -26,9 +26,11 @@
   {% crispy form form.helper %}
   <p>If you have trouble with the Captcha try filling out the alternative form captcha here: <a href="{% url 'forms:pledgeform-alt' %}">cmt.thetatau.org/pledgeform-alt</a></p>
 <script src="https://ajax.aspnetcdn.com/ajax/jquery.validate/1.11.1/jquery.validate.min.js"></script>
-{# Handle issues with jquery validate of dates https://github.com/johnnyreilly/jquery-validation-globalize #}
-<script src="https://cdnjs.cloudflare.com/ajax/libs/globalize/1.6.0/globalize.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/jquery-validation-globalize@0.1.1/jquery.validate.globalize.min.js"></script>
+{# jquery-validation-globalize@0.1.1 targets the legacy pre-1.0 Globalize API #}
+{# (static Globalize.parseFloat/parseDate). It is incompatible with globalize@1.6.0's #}
+{# CLDR-based rewrite (no static parseFloat) and no CLDR locale data is loaded anyway, #}
+{# so it throws "t.parseFloat is not a function" on any number/date field and breaks #}
+{# validation. Removed; jQuery Validate's built-in methods handle plain US input fine. #}
 
 <script type="text/javascript">
   $("#submit-id-submit").click(function (event) {
