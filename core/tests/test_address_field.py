@@ -181,6 +181,84 @@ class TestDuplicateAddressesDoNotCrash:
         assert form.cleaned_data["address"].pk == addrs[0].pk
 
 
+class TestBlankStateAddressesDoNotCrash:
+    """Regression for a prod crash on the Pledge form -- ``Locality.DoesNotExist``
+    (chained from an ``IntegrityError``: ``NotNullViolation`` on
+    ``address_locality.state_id``) whenever an address was submitted with no
+    state. The real prod row was a US address (Medina, OH 44256) where the
+    optional state sub-field was simply left blank, not a stateless country,
+    though countries with no state/province concept (e.g. Poland) hit the
+    same path.
+
+    ``address.models.Locality.state`` is a required (NOT NULL) FK, so passing
+    ``state=None`` into ``Locality.objects.get_or_create`` raised
+    ``IntegrityError`` on creation; Django's internal retry then raised (and
+    chained) ``Locality.DoesNotExist`` before re-raising the ``IntegrityError``.
+    ``get_or_create_address`` now reuses a blank placeholder ``State`` scoped to
+    the country instead of ``None``.
+    """
+
+    def test_get_or_create_address_with_no_state_does_not_raise(self):
+        addr = get_or_create_address(
+            street="ul. Marszalkowska 1",
+            city="Warsaw",
+            state="",
+            postal_code="00-001",
+            country="Poland",
+        )
+        assert isinstance(addr, Address)
+        assert addr.locality.name == "Warsaw"
+        assert addr.locality.state.name == ""
+        assert addr.locality.state.country.name == "Poland"
+
+    def test_us_address_with_blank_state_does_not_crash(self):
+        # Exact shape of the failing prod row: DETAIL: Failing row contains
+        # (72522, Medina, 44256, null).
+        addr = get_or_create_address(street="", city="Medina", state="", postal_code="44256", country="United States")
+        assert isinstance(addr, Address)
+        assert addr.locality.name == "Medina"
+        assert addr.locality.postal_code == "44256"
+        assert addr.locality.state.name == ""
+        assert addr.locality.state.country.name == "United States"
+
+    def test_bound_form_with_no_state_is_valid(self):
+        form = AddressOnlyForm(
+            data={
+                "address_0": "ul. Marszalkowska 1",
+                "address_1": "Warsaw",
+                "address_2": "",
+                "address_3": "00-001",
+                "address_4": "Poland",
+            }
+        )
+        assert form.is_valid() is True
+        assert isinstance(form.cleaned_data["address"], Address)
+
+    def test_repeated_submissions_reuse_the_same_placeholder_state(self):
+        first = get_or_create_address(
+            street="ul. Marszalkowska 1",
+            city="Warsaw",
+            state="",
+            postal_code="00-001",
+            country="Poland",
+        )
+        second = get_or_create_address(
+            street="ul. Dluga 5",
+            city="Krakow",
+            state="",
+            postal_code="30-001",
+            country="Poland",
+        )
+        assert first.locality.state.pk == second.locality.state.pk
+
+    def test_different_countries_get_distinct_placeholder_states(self):
+        us_addr = get_or_create_address(
+            street="", city="Medina", state="", postal_code="44256", country="United States"
+        )
+        pl_addr = get_or_create_address(street="", city="Warsaw", state="", postal_code="00-001", country="Poland")
+        assert us_addr.locality.state.pk != pl_addr.locality.state.pk
+
+
 class TestPreviouslyVulnerableFormsUseComponentAddressField:
     """Every form/admin that edits an ``address.models.AddressField`` must route
     through ``ComponentAddressField`` rather than django-address's default
