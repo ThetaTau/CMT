@@ -103,6 +103,12 @@ COUNTRY_CHOICES = [
     ("Other", "Other"),
 ]
 
+# Countries whose state/province is required on the address form -- limited to
+# the ones we carry a canonical state/province list for (see US_STATE_CHOICES /
+# CA_PROVINCE_CHOICES above), so the user is prompted to fix an address like
+# "Medina, OH 44256" submitted with a blank state instead of it saving silently.
+STATE_REQUIRED_COUNTRIES = {"United States", "Canada"}
+
 # All state/province/region names, used for the datalist suggestions on the
 # free-text state input in the address widget.  Order doesn't matter — the
 # datalist is presented alphabetically by the browser regardless.

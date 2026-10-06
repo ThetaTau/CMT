@@ -259,6 +259,85 @@ class TestBlankStateAddressesDoNotCrash:
         assert us_addr.locality.state.pk != pl_addr.locality.state.pk
 
 
+class TestStateRequiredForKnownCountries:
+    """The state sub-field is plain free text with no server-side requirement,
+    which is how the Medina/OH/44256 prod row above got saved with no state in
+    the first place. For countries we carry a canonical state/province list
+    for (United States, Canada -- see ``STATE_REQUIRED_COUNTRIES``),
+    ``ComponentAddressField`` now rejects a submission with city/postal code
+    but no state instead of silently saving it. Countries without a known
+    list (Poland, etc.) are left optional, unchanged.
+    """
+
+    def test_us_address_without_state_is_invalid(self):
+        form = AddressOnlyForm(
+            data={
+                "address_0": "1 Main St",
+                "address_1": "Medina",
+                "address_2": "",
+                "address_3": "44256",
+                "address_4": "United States",
+            }
+        )
+        assert form.is_valid() is False
+        assert "State / Province is required for United States addresses." in form.errors["address"]
+
+    def test_canada_address_without_state_is_invalid(self):
+        form = AddressOnlyForm(
+            data={
+                "address_0": "1 Main St",
+                "address_1": "Toronto",
+                "address_2": "",
+                "address_3": "M5H 2N2",
+                "address_4": "Canada",
+            }
+        )
+        assert form.is_valid() is False
+        assert "State / Province is required for Canada addresses." in form.errors["address"]
+
+    def test_blank_country_defaults_to_united_states_and_still_requires_state(self):
+        # ComponentAddressField.compress() defaults a blank country to "United
+        # States", so this must be caught too, not just an explicitly typed one.
+        form = AddressOnlyForm(
+            data={
+                "address_0": "1 Main St",
+                "address_1": "Medina",
+                "address_2": "",
+                "address_3": "44256",
+                "address_4": "",
+            }
+        )
+        assert form.is_valid() is False
+
+    def test_poland_address_without_state_is_still_valid(self):
+        form = AddressOnlyForm(
+            data={
+                "address_0": "ul. Marszalkowska 1",
+                "address_1": "Warsaw",
+                "address_2": "",
+                "address_3": "00-001",
+                "address_4": "Poland",
+            }
+        )
+        assert form.is_valid() is True
+
+    def test_entirely_blank_optional_address_is_still_valid(self):
+        field = ComponentAddressField(required=False)
+        assert field.clean(["", "", "", "", ""]) is None
+
+    def test_us_address_with_state_is_valid(self):
+        form = AddressOnlyForm(
+            data={
+                "address_0": "1 Main St",
+                "address_1": "Medina",
+                "address_2": "Ohio",
+                "address_3": "44256",
+                "address_4": "United States",
+            }
+        )
+        assert form.is_valid() is True
+
+
 class TestPreviouslyVulnerableFormsUseComponentAddressField:
     """Every form/admin that edits an ``address.models.AddressField`` must route
     through ``ComponentAddressField`` rather than django-address's default
