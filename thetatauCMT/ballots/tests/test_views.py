@@ -7,6 +7,7 @@ from django.core import mail
 from django.urls import reverse
 
 from thetatauCMT.ballots.models import Ballot, BallotComplete
+from thetatauCMT.chapters.tests.factories import ChapterFactory
 from thetatauCMT.users.tests.factories import UserFactory
 
 
@@ -399,6 +400,33 @@ def test_ballot_detail_view_motion_filter_is_never_offered(auto_login_user):
     body = response.content.decode("utf-8")
     assert 'name="motion"' not in body
     assert 'name="status"' in body
+
+
+@pytest.mark.django_db
+def test_ballot_detail_view_incomplete_filter_excludes_chapters_that_voted(auto_login_user):
+    """Regression: ``?status=incomplete`` must not list a chapter that already
+    voted. ``BallotCompleteFilter.filter_status`` empties the queryset so the
+    table itself doesn't show the real row, but that same (now-empty)
+    queryset used to ALSO be reused to work out who had already voted, so
+    every eligible chapter -- voted or not -- was synthesized as "Not
+    submitted".
+    """
+    client, user = auto_login_user(make_officer="grand regent")
+    _make_natoff(user, client)
+    ballot = _create_ballot(voters=["all_chapters"])
+    voted_chapter = ChapterFactory.create(name="alpha")
+    pending_chapter = ChapterFactory.create(name="beta")
+    voter = UserFactory.create(chapter=voted_chapter)
+    BallotComplete(ballot=ballot, user=voter, motion="aye", role="regent").save()
+    response = client.get(reverse("ballots:detail", kwargs={"slug": ballot.slug}) + "?region=&status=incomplete")
+    assert response.status_code == 200
+    assert response.context["submitted"] == 0
+    # Checking rendered body text is unreliable here: chapter names also
+    # appear in an unrelated sitewide "chapter" select field, so assert
+    # against the table's own records instead.
+    chapters_shown = {str(row.record["chapter"]) for row in response.context["table"].rows}
+    assert pending_chapter.name in chapters_shown
+    assert voted_chapter.name not in chapters_shown
 
 
 @pytest.mark.django_db
