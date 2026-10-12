@@ -682,8 +682,11 @@ class Chapter(models.Model, EmailSignalMixin):
                         roles__end__gte=TODAY_END + timedelta(5),
                     )
                     current = current_and_future.first()
+                    # Local import: users.notifications imports Chapter from this module.
+                    from thetatauCMT.users.notifications import OfficerUpdateReminder
+
                     already_notified = SentNotification.objects.filter(
-                        notification_class="thetatauCMT.users.notifications.OfficerUpdateReminder",
+                        notification_class=OfficerUpdateReminder.get_class_path(),
                         recipients__icontains=current.email,
                         date_sent__gte=TODAY_END - timedelta(7),
                     )

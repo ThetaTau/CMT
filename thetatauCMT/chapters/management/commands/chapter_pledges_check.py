@@ -55,7 +55,7 @@ class Command(BaseCommand):
                 # Once a semester? chapter, RD, CO
                 self.stdout.write("    No pledges last 8 months")
                 already_notified_pledges = SentNotification.objects.filter(
-                    notification_class="core.notifications.GenericEmail",
+                    notification_class=GenericEmail.get_class_path(),
                     html_content__icontains="potential new members in the last 8 months",
                     date_sent__gte=make_aware(TODAY_END - datetime.timedelta(30 * 3)),
                 )
