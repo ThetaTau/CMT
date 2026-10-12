@@ -89,6 +89,93 @@ def test_gear_article_form_view_authenticated(auto_login_user):
     assert response.status_code == 200
 
 
+def _gear_article_post_data(user, **overrides):
+    """Build a valid POST payload for GearArticleFormView (incl. picture formset)."""
+    data = {
+        "action": "article",
+        "name": "Fall 2026 Chapter Update",
+        "authors": [user.pk],
+        "article": "<p>Our chapter had a great fall semester.</p>",
+        # picture formset management form (default modelformset prefix "form");
+        # no per-form data means the lone extra form is left blank/optional.
+        "form-TOTAL_FORMS": "1",
+        "form-INITIAL_FORMS": "0",
+        "form-MIN_NUM_FORMS": "0",
+        "form-MAX_NUM_FORMS": "1000",
+    }
+    data.update(overrides)
+    return data
+
+
+@pytest.mark.django_db
+def test_gear_article_form_view_post_valid_creates_submission(auto_login_user):
+    """A valid Gear article submission is saved and the user sees a success message."""
+    from django.contrib.messages import get_messages
+
+    from thetatauCMT.scores.models import ScoreType
+    from thetatauCMT.submissions.models import GearArticle, Submission
+
+    client, user = auto_login_user()
+    gear_type = ScoreType.objects.get(name="Gear Article")
+    response = client.post(reverse("submissions:gear"), _gear_article_post_data(user))
+    assert response.status_code == 302
+    assert response["Location"] == reverse("submissions:list")
+    assert Submission.objects.filter(type=gear_type, chapter=user.chapter).count() == 1
+    assert GearArticle.objects.count() == 1
+    rendered_messages = [str(m) for m in get_messages(response.wsgi_request)]
+    assert any("was submitted to the Gear editor" in m for m in rendered_messages)
+
+
+@pytest.mark.django_db
+def test_gear_article_form_view_post_invalid_shows_errors(auto_login_user):
+    """Missing required fields re-render the page (not a redirect) with visible errors."""
+    from thetatauCMT.submissions.models import Submission
+
+    client, user = auto_login_user()
+    data = _gear_article_post_data(user, name="", authors=[], article="")
+    response = client.post(reverse("submissions:gear"), data)
+    assert response.status_code == 200
+    body = response.content.decode("utf-8")
+    assert "This field is required" in body
+    assert not Submission.objects.exists()
+
+
+@pytest.mark.django_db
+def test_gear_article_form_view_post_save_failure_shows_error_not_500(auto_login_user, monkeypatch):
+    """A storage/DB failure while saving shows a friendly error instead of a bare
+    500, and leaves no partially-created Submission/GearArticle behind."""
+    from thetatauCMT.submissions.models import GearArticle, Submission
+
+    def _boom(self, *args, **kwargs):
+        raise TimeoutError("simulated storage timeout")
+
+    monkeypatch.setattr(Submission, "save", _boom)
+    client, user = auto_login_user()
+    response = client.post(reverse("submissions:gear"), _gear_article_post_data(user))
+    assert response.status_code == 200
+    body = response.content.decode("utf-8")
+    assert "could not be submitted" in body
+    assert not Submission.objects.exists()
+    assert not GearArticle.objects.exists()
+
+
+@pytest.mark.django_db
+def test_gear_article_form_view_submissions_link_not_hardcoded(auto_login_user):
+    """The 'view submitted gear articles' link filters by the real ScoreType pk
+    looked up at request time, not a hard-coded id."""
+    from django.utils.html import escape
+
+    from thetatauCMT.scores.models import ScoreType
+
+    client, user = auto_login_user()
+    gear_type = ScoreType.objects.get(name="Gear Article")
+    response = client.get(reverse("submissions:gear"))
+    assert response.status_code == 200
+    expected_url = f"{reverse('submissions:list')}?name=&date=&type={gear_type.pk}"
+    assert response.context["gear_submissions_url"] == expected_url
+    assert escape(expected_url) in response.content.decode("utf-8")
+
+
 @pytest.mark.django_db
 def test_gear_article_list_view_natoff(auto_login_user):
     """GearArticleListView requires natoff group."""
