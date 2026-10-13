@@ -42,3 +42,37 @@ def test_invoice_search_preserves_existing_customer_memo():
 
     assert invoice.CustomerMemo is memo
     assert invoice.CustomerMemo.value == "existing memo"
+
+
+def test_invoice_search_sentinel_accepts_int():
+    """``999999999`` passed as an int still reuses the open unsent invoice.
+
+    The sync views get ``invoice_number`` from a ``<int:invoice_number>`` URL
+    converter, so it arrives as an int. The sentinel comparisons were against
+    strings, so the "reuse the existing NeedToSend invoice" branch never ran and
+    QuickBooks got a brand new invoice for every process.
+    """
+    from core import finances
+
+    existing = MagicMock()
+    existing.EmailStatus = "NeedToSend"
+    existing.CustomerMemo = None
+    existing.Line = [object()]
+    with patch.object(finances.Invoice, "query", return_value=[existing]) as query:
+        invoice, _ = finances.invoice_search(999999999, MagicMock(Id="7"), client=MagicMock())
+
+    assert invoice is existing
+    assert "balance > '0'" in query.call_args.kwargs["select"]
+
+
+def test_invoice_search_force_new_accepts_int():
+    """``1`` passed as an int forces a new invoice instead of a DocNumber query."""
+    from core import finances
+
+    with patch.object(finances.Invoice, "query") as query, patch.object(finances, "Term") as term:
+        term.filter.return_value = [MagicMock()]
+        invoice, linenumber_count = finances.invoice_search(1, MagicMock(Id="7"), client=MagicMock())
+
+    query.assert_not_called()
+    assert invoice.Id is None
+    assert linenumber_count == 1

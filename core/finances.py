@@ -82,6 +82,9 @@ def invoice_search(invoice_number, customer, client=None):
     """
     if client is None:
         client = get_quickbooks_client()
+    # The sync views receive this from a ``<int:invoice_number>`` URL converter,
+    # so it arrives as an int and never matched the sentinel strings below.
+    invoice_number = str(invoice_number).strip()
     invoice = None
     if invoice_number == "999999999":
         # search for any NeedToSend invoices for chapter
