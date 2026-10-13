@@ -53,8 +53,8 @@ Add two environment variables (see `config/settings/base.py` for the exact
 names). For production this typically lives in `.env` next to the compose file:
 
 ```env
-CONTACT_SYNC_GOOGLE_CLIENT_ID=1234567890-abcd.apps.googleusercontent.com
-CONTACT_SYNC_GOOGLE_CLIENT_SECRET=GOCSPX-your-secret-here
+CONTACT_SYNC_GOOGLE_CLIENT_ID=EXAMPLE_CLIENT_ID.apps.googleusercontent.com
+CONTACT_SYNC_GOOGLE_CLIENT_SECRET=EXAMPLE_CLIENT_SECRET
 ```
 
 Restart the Django service so the new settings load
@@ -110,8 +110,8 @@ Members can revoke access at any time from
 ### 2b. Configure the Django app
 
 ```env
-CONTACT_SYNC_MICROSOFT_CLIENT_ID=00000000-1111-2222-3333-444444444444
-CONTACT_SYNC_MICROSOFT_CLIENT_SECRET=your-client-secret-value
+CONTACT_SYNC_MICROSOFT_CLIENT_ID=EXAMPLE_CLIENT_ID
+CONTACT_SYNC_MICROSOFT_CLIENT_SECRET=EXAMPLE_CLIENT_SECRET
 # Optional — defaults to "common" (personal + any work/school account).
 # Set to a tenant GUID or verified domain to restrict.
 CONTACT_SYNC_MICROSOFT_TENANT=common

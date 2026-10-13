@@ -38,7 +38,7 @@ from thetatauCMT.users.models import User
 me = User.objects.get(username='venturafranklin@gmail.com')
 me.is_superuser = True
 me.is_staff = True
-me.set_password('_new_password_')
+me.set_password('EXAMPLE_PASSWORD')
 me.save()
 
 from django.contrib.auth.models import Group

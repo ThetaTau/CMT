@@ -38,8 +38,9 @@ export MAILJET_API_KEY='...'
 export MAILJET_SECRET_KEY='...'
 
 # Secure the webhook (HTTP basic auth "user:pass"). Use the SAME credentials in
-# the webhook URL you register with Mailjet.
-export ANYMAIL_WEBHOOK_SECRET='someuser:somelongrandompassword'
+# the webhook URL you register with Mailjet. Replace the placeholders below with
+# a real username and a long random password.
+export ANYMAIL_WEBHOOK_SECRET='EXAMPLE_USER:EXAMPLE_PASSWORD'
 
 # Optional (default true):
 export EMAIL_TRACK_OPENS=true
@@ -52,7 +53,7 @@ Either register it in the [Mailjet dashboard]
 (Account settings → Event notifications / triggers) pointing at:
 
 ```
-https://<user>:<pass>@cmt.thetatau.org/anymail/mailjet/tracking/
+https://EXAMPLE_USER:EXAMPLE_PASSWORD@cmt.thetatau.org/anymail/mailjet/tracking/
 ```
 
 …or run the bundled management command (uses the Mailjet REST API):
@@ -63,7 +64,7 @@ python manage.py register_mailjet_webhook
 
 # or provide the full public https URL (include basic-auth if you set a secret)
 python manage.py register_mailjet_webhook \
-    --url 'https://someuser:somelongrandompassword@cmt.thetatau.org/anymail/mailjet/tracking/'
+    --url 'https://EXAMPLE_USER:EXAMPLE_PASSWORD@cmt.thetatau.org/anymail/mailjet/tracking/'
 
 # check what is registered
 python manage.py register_mailjet_webhook --list

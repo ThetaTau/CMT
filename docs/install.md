@@ -17,7 +17,7 @@ Run the image for the first time
 
 Kill the image with ctrl+c
 
-Run the database reset command. This will perform migrations, generate static files, create a superuser with natoff privileges, and preload the database with essential items. When this command is run, enter 'yes' whenever prompted. Then you will be promted to create a superuser, generally locally I use user test and email test@gmail.com and a password easy to remember.
+Run the database reset command. This will perform migrations, generate static files, create a superuser with natoff privileges, and preload the database with essential items. When this command is run, enter 'yes' whenever prompted. Then you will be promted to create a superuser, generally locally I use user test and email test@gmail.com and a password you pick yourself (never reuse a real one).
 
     docker compose -f docker-compose.local.yml run --rm django python manage.py dbreset
 
@@ -34,8 +34,8 @@ http://localhost:8000/admin/socialaccount/socialapp/ click on "Add Social Applic
 Set following:
 Provider: Facebook
 Name: Facebook
-Client ID: 1234
-Secret Key: 1234
+Client ID: EXAMPLE_CLIENT_ID
+Secret Key: EXAMPLE_CLIENT_SECRET
 Add cmt.thetatau.org to the chosen sites (click the right arrow after selecting)
 
 I also have a pycharm run configuration that I use that should be in git.
@@ -166,7 +166,7 @@ Setup the database
     python manage.py migrate
 
 Then you will need to create a superuser, generally locally I use
-user test and email test@gmail.com and a password easy to remember (I use test)
+user test and email test@gmail.com and a password you pick yourself (never reuse a real one)
 
     python manage.py createsuperuser
 
