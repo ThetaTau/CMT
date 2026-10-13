@@ -263,7 +263,7 @@ def _form_sources() -> List[tuple]:
             PledgeProgram,
             {"chapter": None},
             "created",
-            "Pledge Program",
+            "New Member Education Program",
             lambda o: _safe_reverse("forms:pledge_program_list"),
             lambda o: "",
         ),

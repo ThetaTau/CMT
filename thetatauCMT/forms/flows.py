@@ -1388,16 +1388,16 @@ class PledgeProgramProcessFlow(Flow):
     """
 
     process_class = PledgeProgramProcess
-    process_title = _("Pledge Program Process")
-    process_description = _("This process is for chapter pledge programs.")
+    process_title = _("New Member Education Program Process")
+    process_description = _("This process is for chapter new member education programs.")
 
-    start = flow.Start(PledgeProgramProcessCreateView, task_title=_("Submit Pledge Program For Review")).Next(
-        this.email_all
-    )
+    start = flow.Start(
+        PledgeProgramProcessCreateView, task_title=_("Submit New Member Education Program For Review")
+    ).Next(this.email_all)
 
     email_all = flow.Handler(
         this.email_all_func,
-        task_title=_("Email All Pledge Program"),
+        task_title=_("Email All New Member Education Program"),
     ).Next(this.review)
 
     review = (
@@ -1405,7 +1405,7 @@ class PledgeProgramProcessFlow(Flow):
             AutoAssignUpdateProcessView,
             fields=["approval", "approval_comments"],
             task_title=_("Central Office Review"),
-            task_description=_("Review of Pledge Program by Central Office"),
+            task_description=_("Review of New Member Education Program by Central Office"),
             task_result_summary=_("Message was: {{ process.get_approval_display  }}"),
         )
         .Permission("auth.central_office")
@@ -1422,20 +1422,20 @@ class PledgeProgramProcessFlow(Flow):
 
     reject_fix = flow.Handler(
         this.reject_fix_func,
-        task_title=_("Reject Fix Pledge Program"),
+        task_title=_("Reject Fix New Member Education Program"),
     ).Next(this.end_reject)
 
     approve = flow.Handler(
         this.approve_func,
-        task_title=_("Approve Pledge Program"),
+        task_title=_("Approve New Member Education Program"),
     ).Next(this.end)
 
     end_reject = flow.End(
-        task_title=_("Pledge Program Process Rejected"),
+        task_title=_("New Member Education Program Process Rejected"),
     )
 
     end = flow.End(
-        task_title=_("Pledge Program Process Complete"),
+        task_title=_("New Member Education Program Process Complete"),
     )
 
     def email_all_func(self, activation):
@@ -1449,12 +1449,12 @@ class PledgeProgramProcessFlow(Flow):
         chapter = model_obj.chapter
         EmailProcessUpdate(
             model_obj,
-            complete_step="Pledge Program Submitted",
+            complete_step="New Member Education Program Submitted",
             next_step="Central Office Review",
             state="Pending Central Office Review",
             message=(
                 "This if a notification that the Central Office has "
-                "received the pledge program for you chapter.<br>"
+                "received the new member education program for you chapter.<br>"
                 "Here is a link to the program under review: "
                 f"<a href='https://docs.google.com/document/d/{chapter.nme_file_id}/edit' target='_blank'>NME Program</a>"
             ),
@@ -1472,12 +1472,12 @@ class PledgeProgramProcessFlow(Flow):
         chapter = model_obj.chapter
         EmailProcessUpdate(
             activation,
-            complete_step="Pledge Program Reviewed",
+            complete_step="New Member Education Program Reviewed",
             next_step="Chapter Resubmit",
-            state="Chapter Pledge Program Rejected",
+            state="Chapter New Member Education Program Rejected",
             message=(
                 "This is a notification that the Central Office has "
-                "rejected the pledge program for you chapter."
+                "rejected the new member education program for you chapter."
                 "Please review the notes and resubmit ASAP.<br>"
                 "Here is a link to the program under review: "
                 f"<a href='https://docs.google.com/document/d/{chapter.nme_file_id}/edit' target='_blank'>NME Program</a>"
@@ -1534,12 +1534,12 @@ class PledgeProgramProcessFlow(Flow):
             )
         EmailProcessUpdate(
             activation,
-            complete_step="Pledge Program Reviewed",
+            complete_step="New Member Education Program Reviewed",
             next_step="Complete",
-            state="Chapter Pledge Program Approved",
+            state="Chapter New Member Education Program Approved",
             message=(
                 "This is a notification that the Central Office has "
-                "approved the pledge program for you chapter."
+                "approved the new member education program for you chapter."
                 "Attached is the final approved program."
             ),
             fields=["approval", "approval_comments"],

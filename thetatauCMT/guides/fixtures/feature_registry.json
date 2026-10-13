@@ -202,7 +202,7 @@
         {
           "key": "chapter-roster",
           "name": "Chapter roster",
-          "short_description": "Every active, pledge and alumnus member of your chapter, with status and contact details.",
+          "short_description": "Every active, PNM and alumnus member of your chapter, with status and contact details.",
           "url_name": "users:list",
           "roles": ["scribe"]
         },
@@ -415,7 +415,7 @@
           "key": "initiation-report",
           "name": "Initiation report",
           "short_description": "Report the members your chapter has initiated and order their badges.",
-          "long_description": "Select the pledges being initiated, confirm their details, and submit. Badge numbers are assigned by the national office once the report is processed.",
+          "long_description": "Select the PNMs being initiated, confirm their details, and submit. Badge numbers are assigned by the national office once the report is processed.",
           "url_name": "forms:init_selection",
           "audience": "officer",
           "roles": ["scribe", "regent"],
@@ -424,8 +424,8 @@
         {
           "key": "pledge-form",
           "name": "Pledge / new member form",
-          "short_description": "Register a new pledge with the national office.",
-          "long_description": "This is the only form a prospective member fills in themselves, so it works without an account. Pledges must be reported before they can be initiated.",
+          "short_description": "Register a new PNM with the national office.",
+          "long_description": "This is the only form a prospective member fills in themselves, so it works without an account. PNMs must be reported before they can be initiated.",
           "url_name": "forms:pledgeform",
           "audience": "officer",
           "task": "pledge-forms"
@@ -1096,7 +1096,7 @@
         {
           "key": "depledge-survey",
           "name": "Depledge survey",
-          "short_description": "Asked of a pledge who leaves before initiation, so the fraternity can learn why.",
+          "short_description": "Asked of a PNM who leaves before initiation, so the fraternity can learn why.",
           "long_description": "Reached only from the personal link in the email sent to the individual, so it is deliberately not listed in the catalog. Retained here so the entry keeps its history rather than being deleted.",
           "url_name": "surveys:depledge",
           "url_kwargs": {"username": "@username"},

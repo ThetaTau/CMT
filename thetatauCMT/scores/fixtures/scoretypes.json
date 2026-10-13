@@ -361,7 +361,7 @@
     "pk": 18,
     "fields": {
         "name": "% Pledged vs % Initiated",
-        "description": "Ratio of the number of pledges actually initiated",
+        "description": "Ratio of the number of PNMs actually initiated",
         "section": "Bro",
         "points": 20,
         "term_points": 20,

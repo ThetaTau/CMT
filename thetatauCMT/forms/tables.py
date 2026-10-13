@@ -98,10 +98,10 @@ class BadgeTable(CMTTable):
 
 
 class PledgeFormTable(CMTTable):
-    first_pledge = tables.DateColumn(verbose_name="First Pledge Date")
-    last_pledge = tables.DateColumn(verbose_name="Last Pledge Date")
+    first_pledge = tables.DateColumn(verbose_name="First PNM Date")
+    last_pledge = tables.DateColumn(verbose_name="Last PNM Date")
     status = tables.Column()
-    pledge_names = tables.Column()
+    pledge_names = tables.Column(verbose_name="PNM Names")
 
     class Meta:
         attrs = {"class": "table table-striped table-bordered"}

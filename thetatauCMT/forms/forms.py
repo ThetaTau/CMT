@@ -1278,7 +1278,7 @@ class PledgeProgramForm(forms.ModelForm):
         ),
     )
     date_initiation = forms.DateField(
-        label="When do you plan to initiate your pledges?",
+        label="When do you plan to initiate your PNMs?",
         help_text="Best estimated date is sufficient.",
         widget=DatePicker(
             options={"format": "M/DD/YYYY"},
