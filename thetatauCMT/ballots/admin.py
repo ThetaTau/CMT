@@ -7,10 +7,10 @@ from .models import Ballot, BallotComplete
 class BallotCompleteAdmin(admin.ModelAdmin):
     """Who returned a ballot, never how they voted.
 
-    ``motion`` is excluded everywhere in the admin: a ballot is secret, only the
-    voter sees their own vote, and only the Grand Regent and Grand Scribe see
-    the aggregate counts. Votes are cast through the site, so they cannot be
-    added here either.
+    ``motion`` is excluded everywhere in the admin: only the voter and the Grand
+    Regent and Grand Scribe may see how a ballot was voted, and they see it on
+    the site, so Admins do not see it here. Votes are cast through the site, so
+    they cannot be added here either.
     """
 
     raw_id_fields = ["user"]

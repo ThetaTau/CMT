@@ -312,9 +312,9 @@ CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap5"
 # https://django-tables2.readthedocs.io/en/latest/pages/custom-rendering.html#available-templates
 DJANGO_TABLES2_TEMPLATE = "django_tables2/bootstrap5.html"
 
-# A ballot is secret: nobody but the voter sees how they voted, so the vote rows
-# must not be reportable. Applies to BallotComplete both as a report's root
-# model and when traversing to it from User or Ballot.
+# Only the voter and the Grand Regent and Grand Scribe may see how a ballot was
+# voted, so the vote rows must not be reportable. Applies to BallotComplete both
+# as a report's root model and when traversing to it from User or Ballot.
 REPORT_BUILDER_EXCLUDE = ["ballots.ballotcomplete"]
 
 # FIXTURES

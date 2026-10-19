@@ -56,11 +56,11 @@ def ballot_closes_at(due_date):
 
 
 def can_view_ballot_results(user):
-    """Whether ``user`` may see the aggregate aye/nay/abstain tallies.
+    """Whether ``user`` may see how each chapter and officer voted, and the tallies.
 
-    Deliberately NOT superusers, Admins or the rest of the National Officers:
-    the ballot is secret. How an individual voted is shown to nobody but the
-    voter, and the counts are shown only to the Grand Regent and Grand Scribe.
+    Only the Grand Regent and Grand Scribe, who count the ballots, whether or not
+    the ballot has closed. Deliberately NOT superusers, Admins or the rest of the
+    National Officers.
     """
     if not getattr(user, "is_authenticated", False):
         return False

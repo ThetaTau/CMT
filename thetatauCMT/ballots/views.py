@@ -412,8 +412,8 @@ class BallotCompleteCreateView(LoginRequiredMixin, OfficerRequiredMixin, CreateV
 class BallotCompleteDeleteView(LoginRequiredMixin, BallotResultsRequiredMixin, DeleteView):
     """Remove a mistaken submission so the vote can be cast again.
 
-    Restricted to the Grand Regent and Grand Scribe, who are also the only
-    people who see the tallies. They never see the motion being removed.
+    Restricted to the Grand Regent and Grand Scribe, the only people who can
+    see how each submission was voted.
     """
 
     model = BallotComplete
