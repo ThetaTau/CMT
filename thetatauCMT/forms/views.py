@@ -305,6 +305,7 @@ FORM_GROUPS = [
             "all-convention-forms",
             "gear-article",
             "all-gear-articles",
+            "transition-reports",
         ],
     },
     {

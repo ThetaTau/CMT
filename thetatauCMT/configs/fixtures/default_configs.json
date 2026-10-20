@@ -168,5 +168,45 @@
         "description": "Link target for the \"See something, say something\" incident reporting section in the site footer. Paste the full https:// address of the Theta Tau Incident Report Form. Leave blank (or set a non http/https value) to hide the footer section entirely.",
         "modified": "2026-08-03T00:00:00Z"
     }
+},
+{
+    "model": "configs.config",
+    "pk": null,
+    "fields": {
+        "key": "TRANSITIONS_DUE_DATE_OFFSET_DAYS",
+        "value": "14",
+        "description": "Transition Reports: how many days before an officer's term end date their transition report obligation is due. Whole number of days (default 14).",
+        "modified": "2026-09-05T00:00:00Z"
+    }
+},
+{
+    "model": "configs.config",
+    "pk": null,
+    "fields": {
+        "key": "TRANSITIONS_REMINDER_OFFSETS_DAYS",
+        "value": "21,14,7,1,-1,-7,-14",
+        "description": "Transition Reports: comma-separated reminder offsets, in days relative to due_date. Positive = days before due; negative = days after due (past-due escalation). Default \"21,14,7,1,-1,-7,-14\".",
+        "modified": "2026-09-05T00:00:00Z"
+    }
+},
+{
+    "model": "configs.config",
+    "pk": null,
+    "fields": {
+        "key": "TRANSITIONS_SEASONAL_REMINDER_OFFSET_DAYS",
+        "value": "30",
+        "description": "Transition Reports: how many days before the current semester's end (core.models.semester_encompass_start_end_date) to send the generic broadcast reminder to everyone with an open obligation. Whole number of days (default 30).",
+        "modified": "2026-09-05T00:00:00Z"
+    }
+},
+{
+    "model": "configs.config",
+    "pk": null,
+    "fields": {
+        "key": "TRANSITIONS_RD_ESCALATION_OFFSET_DAYS",
+        "value": "-7",
+        "description": "Transition Reports: once a reminder offset at or below this value (days relative to due_date; negative = past due) is reached, the Regional Director is escalated in addition to the Regent. Whole number, normally negative (default -7).",
+        "modified": "2026-09-05T00:00:00Z"
+    }
 }
 ]

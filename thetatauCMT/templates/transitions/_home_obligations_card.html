@@ -1,0 +1,28 @@
+{% comment %}
+"My Transition Report Obligations" card (TRWI-4). Included on the home page
+above the task table, alongside the Role Guide card.
+
+Context:
+  my_transition_obligations   queryset of ReportObligation owed by the viewer
+                               (transitions.services.get_my_open_obligations)
+{% endcomment %}
+{% if my_transition_obligations %}
+  <div class="card bg-body-tertiary text-body mb-3">
+    <div class="card-body">
+      <h2 class="h5 card-title">My Transition Reports</h2>
+      <p class="card-text">
+        You have {{ my_transition_obligations|length }} Transition Report{{ my_transition_obligations|length|pluralize }}
+        to submit.
+      </p>
+      <ul class="mb-2">
+        {% for obligation in my_transition_obligations %}
+          <li>
+            {{ obligation.position_key|title }} ({{ obligation.chapter }}) -- due {{ obligation.due_date }}
+            {% if obligation.status == "missed" %}<span class="badge text-bg-danger">past due</span>{% endif %}
+          </li>
+        {% endfor %}
+      </ul>
+      <a class="btn btn-sm btn-primary" href="{% url 'transitions:list' %}">Submit a Transition Report</a>
+    </div>
+  </div>
+{% endif %}

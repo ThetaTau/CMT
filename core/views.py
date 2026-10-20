@@ -23,6 +23,7 @@ from thetatauCMT.guides.services import get_role_guides, get_whats_new
 from thetatauCMT.scores.models import ScoreType
 from thetatauCMT.tasks.models import TaskChapter, TaskDate
 from thetatauCMT.tasks.tables import TaskTable
+from thetatauCMT.transitions.services import get_my_open_obligations
 from thetatauCMT.users.models import User
 
 # https://django-allauth.readthedocs.io/en/latest/advanced.html#admin
@@ -367,6 +368,10 @@ class HomeView(LoginRequiredMixin, TemplateView):
         # where a newly elected officer is already looking -- the tasks below it
         # are the very thing the guide explains.
         context["role_guides"] = get_role_guides(self.request.user)
+        # "My Transition Report Obligations" (TRWI-4) -- the viewer's own open
+        # obligations, derived from positions they hold, alongside the Role
+        # Guide card since both are "here's what's on you right now" prompts.
+        context["my_transition_obligations"] = get_my_open_obligations(self.request.user)
         # Scope the embedded RegionDashboard to the viewer's own chapter so the
         # home page shows the same dashboard as the regional/national views, but
         # auto-filtered. The template renders this into a hidden element that the
