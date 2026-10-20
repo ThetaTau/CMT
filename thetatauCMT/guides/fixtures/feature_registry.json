@@ -67,6 +67,7 @@
           "key": "my-profile",
           "name": "My profile",
           "short_description": "Your badge number, status, roles, employment, service hours and award history.",
+          "long_description": "Admins can also see the member's internal ID number.",
           "url_name": "users:profile",
           "url_kwargs": {"username": "@username"}
         },
