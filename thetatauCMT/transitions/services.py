@@ -74,6 +74,9 @@ TYPE_ENABLED_CONFIG_KEYS = {
     PositionType.committee_chair: "TRANSITIONS_COMMITTEE_CHAIR_ENABLED",
 }
 
+# The resolve_position_status() values that get an obligation at all.
+TRACKED_POSITION_STATUSES = (PositionOverride.Status.required.name, PositionOverride.Status.optional.name)
+
 
 def resolve_position_status(position_key):
     """The effective TRWI-1 status for ``position_key``.
@@ -184,7 +187,16 @@ def _upsert_obligation(*, chapter, position_key, role_change, officer, term_star
     generated obligation's derived fields (officer/due_date/status/...) are
     never rewritten on a later run -- they become authoritative once
     generated, per the ReportObligation docstring / decision E12.
+
+    A role change that already has an obligation never gets a second one, even
+    if its dates were edited since (the natural key below would no longer
+    match): one role change, one obligation (decision C7). That matters more
+    now that an officer can start their report long before the term ends
+    (``start_report_early``), which widens the window for such an edit.
     """
+    existing = ReportObligation.objects.filter(role_change=role_change).first()
+    if existing is not None:
+        return existing, False
     return ReportObligation.objects.get_or_create(
         chapter=chapter,
         position_key=position_key,
@@ -197,6 +209,29 @@ def _upsert_obligation(*, chapter, position_key, role_change, officer, term_star
             "due_date": term_end - datetime.timedelta(days=get_due_date_offset_days()),
             "is_required": is_required,
         },
+    )
+
+
+def _ensure_obligation(role_change):
+    """``(obligation, created)`` for ``role_change``'s own term, creating it if
+    missing; ``(None, False)`` if its position is excluded.
+
+    The one place an outgoing officer's obligation is built, shared by
+    ``generate_obligations`` (trigger 1) and ``start_report_early``, so an
+    obligation started early is identical to the one the daily command would
+    have generated later: same natural key, same due date.
+    """
+    status = resolve_position_status(role_change.role)
+    if status not in TRACKED_POSITION_STATUSES:
+        return None, False
+    return _upsert_obligation(
+        chapter=role_change.user.chapter,
+        position_key=role_change.role,
+        role_change=role_change,
+        officer=role_change.user,
+        term_start=role_change.start,
+        term_end=role_change.end,
+        is_required=status == PositionOverride.Status.required.name,
     )
 
 
@@ -244,25 +279,14 @@ def generate_obligations(lookahead_days=None, dry_run=False):
             end__lte=window_end,
         ).select_related("user")
         for role_change in role_changes:
-            status = resolve_position_status(role_change.role)
-            if status not in (PositionOverride.Status.required.name, PositionOverride.Status.optional.name):
-                continue
-            _, created = _upsert_obligation(
-                chapter=role_change.user.chapter,
-                position_key=role_change.role,
-                role_change=role_change,
-                officer=role_change.user,
-                term_start=role_change.start,
-                term_end=role_change.end,
-                is_required=status == PositionOverride.Status.required.name,
-            )
+            _, created = _ensure_obligation(role_change)
             if created:
                 counts["term_end_created"] += 1
 
         for chapter in Chapter.objects.exclude(active=False):
             for role in CHAPTER_OFFICER_REQUIRED:
                 status = resolve_position_status(role)
-                if status not in (PositionOverride.Status.required.name, PositionOverride.Status.optional.name):
+                if status not in TRACKED_POSITION_STATUSES:
                     continue
                 vacant_now = not UserRoleChange.objects.filter(
                     user__chapter=chapter, role=role, end__gte=today
@@ -463,39 +487,131 @@ def get_my_obligations(user):
     """Every one of the viewer's own obligations, any status (TRWI-5 Transitions
     list). Broader than ``get_my_open_obligations`` (TRWI-4's home card, which
     is open/missed only) -- this one doubles as the viewer's own submission
-    history, so submitted/na_vacant rows belong here too.
+    history, so submitted/na_vacant rows belong here too. ``report`` is
+    selected so the list can tell a saved draft from a report not started.
     """
-    return ReportObligation.objects.filter(officer=user).select_related("chapter").order_by("-term_end")
+    return ReportObligation.objects.filter(officer=user).select_related("chapter", "report").order_by("-term_end")
+
+
+@dataclass
+class UpcomingReport:
+    """A position the viewer holds right now whose Transition Report has no
+    obligation yet -- a "Start report" row, so they can begin drafting long
+    before ``generate_obligations`` would assign it.
+    """
+
+    role_change: object
+    position_key: str
+    chapter: object
+    term_end: datetime.date
+    due_date: datetime.date
+
+
+def _current_tracked_role_changes(user, today):
+    return UserRoleChange.objects.filter(
+        user=user, role__in=list(POSITION_KEY_TO_TYPE), start__lte=today, end__gte=today
+    )
+
+
+def get_upcoming_reports(user):
+    """``[UpcomingReport, ...]``: the viewer's current required/optional
+    positions that have no obligation yet, soonest term end first.
+
+    An obligation only exists once ``generate_obligations`` reaches the term
+    end (its lookahead window) or the viewer starts it early, so everything
+    here is a report they may begin now. ``due_date`` is what the obligation
+    will carry (term end minus the configured offset), not a date they must
+    wait for. Mirrors ``_upsert_obligation``'s lookup, so a position that
+    already has an obligation (by role-change link or natural key, e.g.
+    another officer with identical term dates) is left out.
+    """
+    today = timezone.now().date()
+    role_changes = [
+        role_change
+        for role_change in _current_tracked_role_changes(user, today).order_by("end", "role")
+        if resolve_position_status(role_change.role) in TRACKED_POSITION_STATUSES
+    ]
+    if not role_changes:
+        return []
+
+    chapter = user.chapter
+    linked_role_change_ids = set(
+        ReportObligation.objects.filter(role_change__in=role_changes).values_list("role_change_id", flat=True)
+    )
+    existing_terms = set(
+        ReportObligation.objects.filter(
+            chapter=chapter, position_key__in={role_change.role for role_change in role_changes}
+        ).values_list("position_key", "term_start", "term_end")
+    )
+    due_offset = datetime.timedelta(days=get_due_date_offset_days())
+    return [
+        UpcomingReport(
+            role_change=role_change,
+            position_key=role_change.role,
+            chapter=chapter,
+            term_end=role_change.end,
+            due_date=role_change.end - due_offset,
+        )
+        for role_change in role_changes
+        if role_change.pk not in linked_role_change_ids
+        and (role_change.role, role_change.start, role_change.end) not in existing_terms
+    ]
+
+
+def start_report_early(user, role_change_pk):
+    """The viewer's obligation for one of their CURRENT positions, created now
+    instead of waiting for ``generate_obligations`` to assign it, so they can
+    start drafting right away.
+
+    It is the same obligation the daily command would create later (shared
+    ``_ensure_obligation``): same natural key, same due date, so reminders
+    still follow the due date and run until the report is submitted -- saving
+    a draft never closes it. Returns ``None`` when ``role_change_pk`` is not a
+    current, tracked position held by ``user`` (including one excluded by
+    config), or when that term's obligation is already assigned to a
+    different officer. Calling it again just returns the same obligation.
+    """
+    today = timezone.now().date()
+    role_change = (
+        _current_tracked_role_changes(user, today)
+        .select_related("user", "user__chapter")
+        .filter(pk=role_change_pk)
+        .first()
+    )
+    if role_change is None:
+        return None
+    obligation, _created = _ensure_obligation(role_change)
+    if obligation is None or obligation.officer_id != user.pk:
+        return None
+    return obligation
 
 
 def get_no_obligations_reason(user):
-    """Why ``user`` has no ``ReportObligation`` row at all (any status) --
-    for the "My Reports" empty state, so a member isn't left wondering
-    whether that's a bug. Only meaningful when ``get_my_obligations(user)``
-    is empty; ``generate_obligations`` only ever creates a row once a
-    tracked role's term end falls within its lookahead window (TRWI-3), so
-    an empty result always comes down to one of:
+    """Why ``user`` has nothing to write or start in "My Reports" -- for its
+    empty state, so a member isn't left wondering whether that's a bug. Only
+    meaningful when both ``get_my_obligations(user)`` and
+    ``get_upcoming_reports(user)`` are empty. A current, tracked position
+    always shows up as one or the other (an obligation, or a "Start report"
+    row), so an empty result always comes down to one of:
 
     1. No CURRENT role in an in-scope position (``POSITION_KEY_TO_TYPE``) at
-       all -- never generated because there is nothing to generate from.
-       Includes Regional Director/other national-level roles not tied to a
-       ``UserRoleChange`` term (RD is assigned via ``Region.directors``, not
-       a role change with a start/end date -- see the RD-specific branch
-       below), so they get a distinct explanation, not the generic one.
+       all -- nothing to write a report about. Includes Regional Director/
+       other national-level roles not tied to a ``UserRoleChange`` term (RD
+       is assigned via ``Region.directors``, not a role change with a
+       start/end date -- see the RD-specific branch below), so they get a
+       distinct explanation, not the generic one.
     2. Every current in-scope role resolves to "excluded" (per-position
-       override, or its type's Config flag off) -- never generated because
-       ``generate_obligations`` skips excluded positions entirely.
-    3. Otherwise: at least one current in-scope role is required/optional,
-       but its term end is too far away yet for the lookahead window to
-       have reached it -- simply too early.
+       override, or its type's Config flag off) -- ``generate_obligations``
+       and ``start_report_early`` both skip excluded positions entirely.
+    3. Otherwise: the term's report is already assigned to another officer
+       (two holders of one position with identical term dates share one
+       obligation -- see ``_upsert_obligation``).
 
     Returns a plain sentence; callers should only show it when there truly
-    are no obligations to display.
+    is nothing to display.
     """
     today = timezone.now().date()
-    current_role_changes = list(
-        UserRoleChange.objects.filter(user=user, role__in=list(POSITION_KEY_TO_TYPE), end__gte=today).order_by("end")
-    )
+    current_role_changes = list(_current_tracked_role_changes(user, today))
     if not current_role_changes:
         if user.director_regions.exists() or user.is_national_officer_group:
             return (
@@ -505,16 +621,10 @@ def get_no_obligations_reason(user):
         return "You don't currently hold a position that requires a Transition Report."
 
     excluded_status = PositionOverride.Status.excluded.name
-    eligible = [rc for rc in current_role_changes if resolve_position_status(rc.role) != excluded_status]
-    if not eligible:
+    if all(resolve_position_status(rc.role) == excluded_status for rc in current_role_changes):
         return "Your current position does not require a Transition Report."
 
-    soonest = min(eligible, key=lambda rc: rc.end)
-    due_date = soonest.end - datetime.timedelta(days=get_due_date_offset_days())
-    return (
-        f"Not due yet: your {soonest.role.title()} term ends {soonest.end}, "
-        f"so the report isn't due until {due_date}."
-    )
+    return "The Transition Report for your current position is already assigned to another officer."
 
 
 def get_my_reports(user):
@@ -784,7 +894,7 @@ def send_handoff_notices(dry_run=False):
     ).select_related("user", "user__chapter")
     for role_change in role_changes:
         status = resolve_position_status(role_change.role)
-        if status not in (PositionOverride.Status.required.name, PositionOverride.Status.optional.name):
+        if status not in TRACKED_POSITION_STATUSES:
             continue
         user = role_change.user
         chapter = user.chapter

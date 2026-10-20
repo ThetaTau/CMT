@@ -29,6 +29,7 @@ class TransitionReportDueReminder(EmailNotification):
         self.reply_to = ["central.office@thetatau.org"]
         chapter_name = _chapter_display_name(obligation.chapter)
         self.subject = f"Transition Report reminder: {obligation.position_key.title()} ({chapter_name})"
+        report = getattr(obligation, "report", None)
         self.context = {
             "obligation": obligation,
             "chapter": chapter_name,
@@ -36,6 +37,8 @@ class TransitionReportDueReminder(EmailNotification):
             "due_date": obligation.due_date,
             "past_due": past_due,
             "escalate_to_rd": escalate_to_rd,
+            # A saved draft is not a submission: the reminders keep coming.
+            "has_draft": report is not None and report.status == report.Status.draft.value[0],
             "host": settings.CURRENT_URL,
         }
 

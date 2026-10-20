@@ -15,6 +15,11 @@
     <p class="text-muted">
       Submitted {{ report.submitted_at }}. You may keep editing at any time -- there is no lock or deadline.
     </p>
+  {% else %}
+    <p class="text-muted">
+      This is a draft that only you can see. Save it as often as you like and come back to finish it. It is not
+      submitted, and reminders about the due date continue, until you press Submit.
+    </p>
   {% endif %}
 
   {{ form.media }}

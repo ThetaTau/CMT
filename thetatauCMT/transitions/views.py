@@ -61,7 +61,11 @@ class TransitionsListView(LoginRequiredMixin, TemplateView):
         context = super().get_context_data(**kwargs)
         user = self.request.user
         obligations = services.get_my_obligations(user)
-        position_choices = sorted({obligation.position_key for obligation in obligations})
+        upcoming_reports = services.get_upcoming_reports(user)
+        position_choices = sorted(
+            {obligation.position_key for obligation in obligations}
+            | {upcoming.position_key for upcoming in upcoming_reports}
+        )
         no_obligations_reason = None if position_choices else services.get_no_obligations_reason(user)
         # "my_position_key", not "position_key": the search section below
         # (_search_context) has its own bare "position_key" filter field on
@@ -69,8 +73,10 @@ class TransitionsListView(LoginRequiredMixin, TemplateView):
         selected = self.request.GET.get("my_position_key", "")
         if selected:
             obligations = obligations.filter(position_key=selected)
+            upcoming_reports = [upcoming for upcoming in upcoming_reports if upcoming.position_key == selected]
 
         context["obligations"] = obligations
+        context["upcoming_reports"] = upcoming_reports
         context["no_obligations_reason"] = no_obligations_reason
         context["reports"] = services.get_my_reports(user)
         context["position_choices"] = position_choices
@@ -130,6 +136,24 @@ def _save_child_formset(formset, **extra_fields):
             setattr(instance, field, value)
         instance.save()
     formset.save()
+
+
+class StartReportView(LoginRequiredMixin, View):
+    """POST-only: start the viewer's Transition Report for a position they
+    currently hold, before ``generate_transition_obligations`` has assigned it.
+
+    Creates the same obligation the daily command would (see
+    ``services.start_report_early``), then sends them to compose it. They
+    can save a draft and come back as often as they like; reminders follow
+    the due date and run until the report is submitted.
+    """
+
+    def post(self, request, role_change_pk):
+        obligation = services.start_report_early(request.user, role_change_pk)
+        if obligation is None:
+            messages.error(request, "You can't start a Transition Report for that position.")
+            return redirect("transitions:list")
+        return redirect("transitions:compose", pk=obligation.public_id)
 
 
 class ComposeReportView(LoginRequiredMixin, View):

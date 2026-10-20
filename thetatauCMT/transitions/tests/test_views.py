@@ -175,6 +175,173 @@ def test_transitions_list_hides_vacant_obligations_from_a_plain_member(auto_logi
 
 
 # ---------------------------------------------------------------------------
+# Start early: begin a report before the daily command has assigned it
+# ---------------------------------------------------------------------------
+def _current_role(user, role="treasurer", end_in_days=200):
+    """A role ``user`` already holds that ends well past the obligation
+    lookahead window, so no obligation exists for it yet.
+    """
+    today = datetime.date.today()
+    return UserRoleChange.objects.create(
+        user=user,
+        role=role,
+        start=today - datetime.timedelta(days=30),
+        end=today + datetime.timedelta(days=end_in_days),
+    )
+
+
+def test_transitions_list_offers_to_start_a_report_that_is_not_assigned_yet(auto_login_user):
+    client, officer = auto_login_user()
+    role_change = _current_role(officer)
+
+    response = client.get(reverse("transitions:list"))
+
+    body = response.content.decode()
+    assert [row.role_change for row in response.context["upcoming_reports"]] == [role_change]
+    assert "Start report" in body
+    assert "Not started" in body
+    assert reverse("transitions:start", args=[role_change.pk]) in body
+    assert "Not due yet" not in body
+    assert "You have no Transition Reports due" not in body
+
+
+def test_transitions_list_start_rows_follow_the_position_filter(auto_login_user):
+    client, officer = auto_login_user()
+    _current_role(officer, "treasurer")
+    _current_role(officer, "scribe")
+
+    response = client.get(reverse("transitions:list"), {"my_position_key": "scribe"})
+
+    assert [row.position_key for row in response.context["upcoming_reports"]] == ["scribe"]
+
+
+def test_transitions_list_has_no_start_row_once_the_report_is_assigned(auto_login_user):
+    client, officer = auto_login_user()
+    _current_role(officer, end_in_days=20)  # inside the lookahead window
+    services.generate_obligations()
+
+    response = client.get(reverse("transitions:list"))
+
+    assert response.context["upcoming_reports"] == []
+    assert len(response.context["obligations"]) == 1
+    assert "Start report" not in response.content.decode()
+
+
+def test_start_view_creates_the_obligation_and_opens_the_report(auto_login_user):
+    client, officer = auto_login_user()
+    _template()
+    role_change = _current_role(officer)
+
+    response = client.post(reverse("transitions:start", args=[role_change.pk]))
+
+    obligation = ReportObligation.objects.get(officer=officer, position_key="treasurer")
+    assert response.status_code == 302
+    assert response.url == reverse("transitions:compose", kwargs={"pk": obligation.public_id})
+    assert obligation.status == "open"
+    compose = client.get(response.url)
+    assert compose.status_code == 200
+    assert TransitionReport.objects.filter(obligation=obligation, status="draft").exists()
+
+
+def test_start_view_rejects_get(auto_login_user):
+    client, officer = auto_login_user()
+    role_change = _current_role(officer)
+
+    response = client.get(reverse("transitions:start", args=[role_change.pk]))
+
+    assert response.status_code == 405
+    assert not ReportObligation.objects.filter(officer=officer).exists()
+
+
+def test_start_view_requires_login(client):
+    response = client.post(reverse("transitions:start", args=[1]))
+
+    assert response.status_code == 302
+    assert not ReportObligation.objects.exists()
+
+
+def test_start_view_refuses_someone_elses_position(auto_login_user):
+    client, officer = auto_login_user()
+    someone_else = UserFactory(chapter=officer.chapter)
+    role_change = _current_role(someone_else)
+
+    response = client.post(reverse("transitions:start", args=[role_change.pk]), follow=True)
+
+    assert response.redirect_chain[-1][0] == reverse("transitions:list")
+    assert "You can't start a Transition Report for that position." in [
+        str(message) for message in response.context["messages"]
+    ]
+    assert not ReportObligation.objects.filter(officer=someone_else).exists()
+
+
+def test_a_report_started_early_can_be_saved_and_updated_over_time_then_submitted(auto_login_user):
+    client, officer = auto_login_user()
+    _template()
+    role_change = _current_role(officer)
+    compose_url = client.post(reverse("transitions:start", args=[role_change.pk])).url
+
+    first = client.post(
+        compose_url,
+        {"action": "draft", "prompt_successes": "first thoughts", "prompt_pitfalls": "", **_empty_formsets_data()},
+    )
+    second = client.post(
+        compose_url,
+        {
+            "action": "draft",
+            "prompt_successes": "first thoughts, plus more",
+            "prompt_pitfalls": "watch the budget",
+            **_empty_formsets_data(),
+        },
+    )
+
+    obligation = ReportObligation.objects.get(officer=officer)
+    report = TransitionReport.objects.get(obligation=obligation)
+    assert first.status_code == second.status_code == 302
+    assert report.answers.get(prompt_key="successes").value == "first thoughts, plus more"
+    assert report.answers.get(prompt_key="pitfalls").value == "watch the budget"
+    # Saving is not submitting: the obligation stays open, so reminders continue.
+    assert (report.status, obligation.status) == ("draft", "open")
+    listing = client.get(reverse("transitions:list")).content.decode()
+    assert "(draft saved)" in listing
+    assert "Continue draft" in listing
+
+    client.post(
+        compose_url,
+        {
+            "action": "submit",
+            "prompt_successes": "first thoughts, plus more",
+            "prompt_pitfalls": "watch the budget",
+            **_empty_formsets_data(),
+        },
+    )
+
+    obligation.refresh_from_db()
+    report.refresh_from_db()
+    assert (report.status, obligation.status) == ("submitted", "submitted")
+
+
+def test_compose_view_explains_a_draft_until_it_is_submitted(auto_login_user):
+    client, officer = auto_login_user()
+    _template()
+    obligation = _obligation(officer.chapter, officer)
+    url = reverse("transitions:compose", kwargs={"pk": obligation.public_id})
+
+    assert "only you can see" in client.get(url).content.decode()
+
+    client.post(
+        url,
+        {
+            "action": "submit",
+            "prompt_successes": "we did well this term",
+            "prompt_pitfalls": "",
+            **_empty_formsets_data(),
+        },
+    )
+
+    assert "only you can see" not in client.get(url).content.decode()
+
+
+# ---------------------------------------------------------------------------
 # TransitionsListView -- handoff packet links (TRWI-7)
 # ---------------------------------------------------------------------------
 def test_transitions_list_shows_handoff_packet_link_for_a_held_position(auto_login_user):

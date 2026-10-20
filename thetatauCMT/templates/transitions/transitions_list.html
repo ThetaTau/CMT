@@ -80,7 +80,7 @@
       </select>
     </form>
   {% endif %}
-  {% if obligations %}
+  {% if obligations or upcoming_reports %}
     <table class="table">
       <thead>
         <tr>
@@ -97,21 +97,45 @@
             <td>{{ obligation.position_key|title }}</td>
             <td>{{ obligation.chapter }}</td>
             <td>{{ obligation.due_date }}</td>
-            <td>{{ obligation.get_status_display }}</td>
+            <td>
+              {{ obligation.get_status_display }}{% if obligation.report and obligation.report.status == "draft" %} (draft saved){% endif %}
+            </td>
             <td>
               {% if obligation.status == "open" or obligation.status == "missed" %}
-                <a class="btn btn-sm btn-primary" href="{% url 'transitions:compose' obligation.public_id %}">Compose</a>
+                <a class="btn btn-sm btn-primary" href="{% url 'transitions:compose' obligation.public_id %}">
+                  {% if obligation.report %}Continue draft{% else %}Compose{% endif %}
+                </a>
               {% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+        {% for upcoming in upcoming_reports %}
+          <tr>
+            <td>{{ upcoming.position_key|title }}</td>
+            <td>{{ upcoming.chapter }}</td>
+            <td>{{ upcoming.due_date }}</td>
+            <td>Not started</td>
+            <td>
+              <form method="post" action="{% url 'transitions:start' upcoming.role_change.pk %}">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-sm btn-primary">Start report</button>
+              </form>
             </td>
           </tr>
         {% endfor %}
       </tbody>
     </table>
+    {% if upcoming_reports %}
+      <p class="text-muted small">
+        You do not have to wait for the due date. Start a report any time and save a draft as you go. A draft stays
+        private until you submit it, and reminders about the due date continue until you do.
+      </p>
+    {% endif %}
   {% else %}
     <p>You have no Transition Reports due. {{ no_obligations_reason }}</p>
   {% endif %}
 
-  <h2>My Submitted Reports</h2>
+  <h2>My Drafts and Submitted Reports</h2>
   {% if reports %}
     <table class="table">
       <thead>

@@ -15,6 +15,7 @@ app_name = "transitions"
 # this app's scope.
 urlpatterns = [
     path("", views.TransitionsListView.as_view(), name="list"),
+    path("start/<int:role_change_pk>/", views.StartReportView.as_view(), name="start"),
     path("<uuid:pk>/compose/", views.ComposeReportView.as_view(), name="compose"),
     path("<uuid:pk>/close-vacant/", views.CloseNAVacantView.as_view(), name="close-vacant"),
     path("attachments/<uuid:pk>/delete/", views.AttachmentDeleteView.as_view(), name="attachment-delete"),

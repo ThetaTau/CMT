@@ -53,7 +53,9 @@ fixed RNG seed for reproducibility.
   Region 2` (Delta only), so RD/region scoping has something concrete to exclude.
 - **Chapters:**
   - **Alpha** -- the treasurer multi-generation chain, the Regent's own obligation,
-    and a missed Scribe obligation.
+    a missed Scribe obligation, and a current Scribe (`early@...`) whose term ends
+    about 120 days out, so no obligation exists for them yet and the Transition
+    Reports page offers **Start report** instead.
   - **Beta** -- a national officer, a candidate chapter director, a Council member,
     a submitted Committee Chair report, and a vacant Vice Regent obligation.
   - **Gamma** -- deliberately has **zero** Transition Report activity, so the
@@ -93,6 +95,7 @@ Every account's password is `transitionsqa` (or whatever you passed to `--passwo
 |---|---|---|
 | `treasurer@transitions-qa.thetatau.local` | Successor officer (current treasurer, Alpha) | Their own open obligation (compose it); all 3 predecessor treasurer reports at Alpha via the handoff packet, with the most recent one's answers shown inline while composing (TRWI-8); **not** Beta/Gamma/Delta's reports. |
 | `regent@transitions-qa.thetatau.local` | Regent (Alpha) | Every submitted report for **any** position at Alpha (the treasurer chain, the missed Scribe's obligation) plus their own open Regent obligation; **not** Beta/Gamma/Delta. |
+| `early@transitions-qa.thetatau.local` | Current Scribe (Alpha), report not assigned yet | A "Not started" row with a **Start report** button instead of an empty "My Reports" table. Starting creates the open obligation (due 14 days before the term ends) and lands on the compose page; saving a draft keeps it open. |
 | `rd@transitions-qa.thetatau.local` | Regional Director (`[QA] Transitions Region`) | Every submitted report at Alpha, Beta, **and** Gamma (region-wide); **not** Delta (a different region). Their own "My Reports" table is empty -- RD is assigned via `Region.directors`, not a `UserRoleChange` term, so it has no Transition Report of its own; the empty-state message says so and points at Search reports instead of the generic "you don't hold a position" text. |
 | `ccd@transitions-qa.thetatau.local` | Candidate Chapter Director | Only the submitted `candidate chapter director` report at **Delta** (2026-09: no longer everything nationally -- see the access-tightening note below); **not** Alpha/Beta/Gamma's other reports. |
 | `natoff@transitions-qa.thetatau.local` | National Officer (`national director`) | Only the submitted `national director` report at **Delta**, plus their own open National Officer obligation, plus the national trend view (`/transitions/trends/`) and the Search reports section on `/transitions/` with chapter/region filters visible (those two stay open to any National Officer -- aggregate counts, not report content). |
@@ -114,6 +117,7 @@ rule unchanged. See `services.get_readable_reports`'s own docstring.
 | Templates/prompts + override (TRWI-2) | Django admin -> Report Templates -> Template Prompts inline; confirm "Treasurer Transition Report" is a separate row from "Chapter Officer Transition Report". |
 | Obligations, every status (TRWI-3) | `/transitions/` as `regent@...` -- open, missed, and (after closing) na_vacant all visible for Alpha/Beta. |
 | Compose + submit (TRWI-5) | `/transitions/` as `treasurer@...` -> compose the open Treasurer obligation; note the most recent predecessor's answers shown inline (TRWI-8), and the manual tags checklist at the bottom of the form. |
+| Start early (2026-10) | `/transitions/` as `early@...` -> **Start report** on the "Not started" Scribe row, save a draft, leave, and come back via **Continue draft** (the row now reads "Open (draft saved)"). Only submitting closes it; until then reminders keep following the due date (`send_transition_report_reminders`, and the email notes the unsubmitted draft). Re-run `generate_transition_obligations` and confirm no second Scribe obligation appears for the same term. |
 | Access control (TRWI-6) | Log in as each account above and confirm the "Expected visibility" table. |
 | Handoff packet + acknowledgment (TRWI-7) | `/transitions/packet/<alpha-chapter-pk>/treasurer/` as `treasurer@...` -- 3 predecessor reports, most recent already marked read. |
 | Prior answers while composing (TRWI-8) | Same compose page as above -- "What your predecessor said" under each field. |

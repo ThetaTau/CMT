@@ -14,6 +14,9 @@ gunicorn + Postgres) also exists but is **advisory / not the live path**.
 > [email_tracking_setup.md](email_tracking_setup.md),
 > [management_commands.md](management_commands.md). The machine-readable
 > environment contract lives in [`.env.example`](../.env.example).
+>
+> The October 2026 Transition Reports release has its own upgrade steps in
+> [§8.1](#81-upgrading-into-the-transition-reports-release-october-2026).
 
 Contents
 --------
@@ -329,11 +332,13 @@ python manage.py loaddata keywords           # jobs/fixtures/keywords.json
 | `keywords` | ~1000 | Job Board keyword autocomplete. | Fixed pks → re-load overwrites in place. |
 
 > **Fixture idempotency note.** `feature_flags` uses `"pk": null` (auto id) so it
-> is **not** idempotent — re-running duplicates rows (harmless; the flag reader
-> uses the latest row). `default_configs` also uses `"pk": null`. The three
-> fixtures above use fixed pks and are safe to re-load. When in doubt on a
-> populated prod DB, set only the missing `Config` keys via the admin instead of
-> re-loading.
+> is **not** idempotent: re-running duplicates rows. That is harmless only on a
+> fresh DB. `Config.get_value` reads the newest row, so on a configured prod DB the
+> reloaded rows (`on` for flags, blank for `default_configs`) override whatever an
+> admin already set. `default_configs` also uses `"pk": null`. The three
+> fixtures above use fixed pks and are safe to re-load. On a populated prod DB,
+> never re-run `dbseed` or those two fixtures; set only the missing `Config` keys
+> via the admin instead.
 
 ### 4.2 Do NOT run seed/demo commands in production
 
@@ -341,7 +346,12 @@ These generate throwaway sample data and are guarded by `core.seed_guard`
 (they refuse to run when `DEBUG=False` unless `--force` is passed). **Never**
 wire any of them into a scheduled task:
 `seed_awards_demo`, `seed_rollbook_qa`, `seed_contact_sync_examples`,
-`seed_dashboard_data`, `seed_pending_national_events`.
+`seed_dashboard_data`, `seed_pending_national_events`,
+`seed_transition_reports_demo`.
+
+The exception is `seed_transition_prompt_set` and `seed_transition_tags`: they
+load real production data and are meant to be run once
+([§8.1](#81-upgrading-into-the-transition-reports-release-october-2026)).
 
 ---
 
@@ -393,6 +403,35 @@ enables. Direct URLs are intentionally **not** blocked — flags only hide UI.
 | `FEATURE_AWARDS` | `on` | Awards directory, nominations, and award cards/badges. |
 | `FEATURE_JOBS` | `on` | Job Board link. |
 | `FEATURE_EVENTS_CALENDAR` | `on` | Events Calendar menu item + calendar icon. |
+
+### 5.4 Transition Reports keys
+
+Seeded as discoverable rows by `default_configs.json` (the first four) and
+`feature_flags.json` (the three `*_ENABLED` flags). All are optional: when a key is
+missing, the default shown here applies.
+
+| Key | Default | Purpose |
+|---|---|---|
+| `TRANSITIONS_DUE_DATE_OFFSET_DAYS` | `14` | Days before an officer's term end that their report is due. |
+| `TRANSITIONS_REMINDER_OFFSETS_DAYS` | `21,14,7,1,-1,-7,-14` | Reminder offsets in days relative to the due date (positive before, negative after). The most negative one is the last reminder. |
+| `TRANSITIONS_SEASONAL_REMINDER_OFFSET_DAYS` | `30` | Days before the current semester ends to send the once-per-semester reminder to everyone with an open report. |
+| `TRANSITIONS_RD_ESCALATION_OFFSET_DAYS` | `-7` | Once a reminder offset at or below this is reached, the Regional Director is added to the email (the chapter Regent is added once the report is past due). |
+| `TRANSITIONS_COUNCIL_ENABLED` | `on` | `off` removes Council positions (grand regent, grand scribe, and so on) from Transition Reports. |
+| `TRANSITIONS_NATIONAL_OFFICER_ENABLED` | `on` | `off` removes National Officer positions from Transition Reports. |
+| `TRANSITIONS_COMMITTEE_CHAIR_ENABLED` | `on` | `off` removes Committee Chair positions from Transition Reports. |
+
+Regent, vice regent, scribe, treasurer, corresponding secretary, pledge/new member
+educator and risk management chair are always required and are not controlled by
+any flag. The other three types are optional reports when enabled. The flags and
+the per-position override (Django admin → Transitions → **Position Overrides**:
+required, optional or excluded, which beats the type flag) only stop **new**
+obligations being generated. Ones already created stay, so set them before the
+first `generate_transition_obligations` run
+([§8.1](#81-upgrading-into-the-transition-reports-release-october-2026)).
+**Start report** on the Transition Reports page creates an obligation too (the same
+one the daily command would), so the flags and overrides apply to it as well.
+`TRANSITIONS_SEASONAL_REMINDER_LAST_SENT_FOR` is written by the system to record the
+last semester end it broadcast for; do not create, edit or delete it.
 
 ---
 
@@ -465,6 +504,9 @@ them daily and let them decide. Use `--dry-run` / `--override` for testing only 
 | `sync_trainings` / `enroll_all_ed` | daily | Open edX training sync + enrollment. |
 | `sync_guardian` | daily → syncs **Tue** | Push the active member roster to the Guardian Conduct System (needs `GUARDIAN_EMAIL`/`GUARDIAN_PASSWORD`, [§3.10](#310-other-integrations--people)). |
 | `sync_quickbooks` | daily | Finances sync. |
+| `generate_transition_obligations` | daily | Create/refresh Transition Report obligations from officer term ends (looks back 365 days, ahead 45 by default, derived from the [§5.4](#54-transition-reports-keys) offsets) and mark past-due ones `missed`. Officers can also press **Start report** on `/transitions/` before their report is assigned; that creates the same obligation, which this command then reuses. Schedule it before the two below. First-run steps: [§8.1](#81-upgrading-into-the-transition-reports-release-october-2026). |
+| `send_transition_report_reminders` | daily | Due-date reminder ladder (`TRANSITIONS_REMINDER_OFFSETS_DAYS`) plus the once-per-semester broadcast. **Do the first-run baseline in [§8.1](#81-upgrading-into-the-transition-reports-release-october-2026) before scheduling it.** |
+| `send_transition_handoff_notices` | daily | Tells a new officeholder their predecessors' reports are available (sent only when a report exists). |
 
 > This is the deployment-relevant set; confirm the exact crontab against the live
 > PythonAnywhere **Tasks** page. Every command above is idempotent and safe to
@@ -479,7 +521,7 @@ them daily and let them decide. Use `--dry-run` / `--override` for testing only 
 nano maintenance_active
 
 workon thetatauCMT
-git pull origin master
+git pull origin main
 pip install -r requirements/production.txt      # if requirements changed
 
 python manage.py showmigrations | grep '\[ \]'  # review pending (additive/safe)
@@ -550,6 +592,130 @@ one-time fixtures in [§4.1](#41-fixtures-not-loaded-by-dbseed-load-manually)
 confirm feature flags in [§5](#5-configsconfig-keys--feature-flags-post-deploy),
 then register the Mailjet webhook ([§6.1](#61-mailjet-tracking-webhook-email-openclick--new)).
 
+### 8.1 Upgrading into the Transition Reports release (October 2026)
+
+First production release of the `transitions` app (`main` at `f95bd44a`, the merge
+of `transitions-reports`). It adds ten migrations (`transitions` 0001 to 0010, which
+only create the app's own new tables), three daily commands
+([§7](#7-scheduled-tasks-pythonanywhere-daily)), one static file
+(`js/transitions_compose.js`), feature-catalog and role-guide entries, and seven
+optional `Config` keys ([§5.4](#54-transition-reports-keys)). There are no new
+required environment variables. Other work on `main` since August rides along
+(migrations in `users`, `forms`, `ballots`, `tasks`, `nominations`, `awards`,
+`events`, `announcements` and `guides`); `showmigrations` lists whatever is still
+pending. Verified on `f95bd44a` before release: full test suite 3327 passed, 16
+skipped, 0 failed; no model changes missing a migration; `check` clean.
+
+Run the standard flow in [§8](#8-updating-an-existing-deploy) first: fresh backup
+([§9](#9-backups--tested-restore)), `git pull origin main`,
+`pip install -r requirements/production.txt` (the `rollbar` and `django-dbbackup`
+pins changed), `migrate`, `collectstatic`, `load_feature_registry`,
+`check --deploy`, then reload. Then, in this order:
+
+**1. Check the new static file is in the manifest.**
+
+```bash
+grep -o 'transitions_compose\.[a-f0-9]\{12\}\.js' staticfiles/staticfiles.json
+```
+
+One hashed name should print. Nothing printing means `collectstatic` ran under the
+wrong settings module (see the warning above).
+
+**2. Seed the prompt set and tags (once).** Both are idempotent. Unlike the demo seeds
+in [§4.2](#42-do-not-run-seeddemo-commands-in-production), they load real data and are
+not guarded.
+
+```bash
+python manage.py seed_transition_prompt_set --dry-run
+python manage.py seed_transition_prompt_set     # 4 templates, 44 prompts
+python manage.py seed_transition_tags --dry-run
+python manage.py seed_transition_tags           # regions, active chapters, 8 general tags
+```
+
+Without the prompt set, officers see "No report template is configured for this
+position yet." Prompt keys are permanent once seeded, and re-running
+`seed_transition_prompt_set` later overwrites prompt edits made in the admin, so run
+it once and make later changes in the admin.
+
+**3. Decide scope, before the first generate run.** The five chapter officer roles
+plus pledge/new member educator and risk management chair are always required.
+Council, National Officer and Committee Chair positions default to optional reports.
+To launch with chapter officers only, add the three `TRANSITIONS_*_ENABLED` rows from
+[§5.4](#54-transition-reports-keys) with value `off` (Django admin → Configs → Add).
+Add the other four rows too if you want them editable; code defaults apply when they
+are missing. **Never** re-run `dbseed`, `loaddata default_configs` or
+`loaddata feature_flags` on production
+([§4.1](#41-fixtures-not-loaded-by-dbseed-load-manually)).
+
+**4. First run, before scheduling anything.**
+
+```bash
+python manage.py generate_transition_obligations --dry-run
+python manage.py generate_transition_obligations
+python manage.py send_transition_report_reminders --dry-run   # how many emails would go out
+```
+
+The first generate looks back 365 days, so it creates a `missed` obligation for every
+tracked role whose term ended in the past year. The first reminder run then emails
+each of those as past due, to the former officer, the chapter Regent, and the
+region's RDs and region address. In testing, 4 obligations (2 ended terms, 2 current)
+produced 4 emails. If the dry-run count is more than a handful, baseline the ended
+terms first:
+
+```python
+# python manage.py shell
+from django.utils import timezone
+from thetatauCMT.transitions import services
+from thetatauCMT.transitions.models import ReportObligation
+
+today = timezone.now().date()
+backlog = ReportObligation.objects.filter(term_end__lt=today, last_reminder_offset_sent__isnull=True)
+print(backlog.count())
+backlog.update(last_reminder_offset_sent=min(services.get_reminder_offsets_days()))
+```
+
+Re-run the dry-run: it should now count only current-term officers, who get one
+catch-up reminder and then the normal ladder. In testing, later daily generate runs
+did not undo the baseline. Use a later cutoff (for example
+`term_end__lt=today - datetime.timedelta(days=30)`, with `import datetime`) if
+recently ended terms should still get one catch-up email. Do not delete the backlog
+rows instead: the daily generate recreates them (natural-key upsert) and they would be
+unreminded again. Because the per-obligation emails are suppressed, consider a
+one-time announcement to Regents and RDs; they will otherwise only find old vacancies
+under "Vacant positions to close". `send_transition_handoff_notices` is harmless on
+day one: it emails only when a predecessor report exists, so it just records current
+role changes as handled.
+
+**5. Schedule the three daily tasks** on the PythonAnywhere Tasks page (same
+invocation style as the existing tasks), generate first and the other two a bit later:
+
+```
+python manage.py generate_transition_obligations
+python manage.py send_transition_report_reminders
+python manage.py send_transition_handoff_notices
+```
+
+No `--dry-run` or `--lookahead-days` in the live schedule.
+
+**6. Smoke test.** As an admin open `/transitions/`, `/transitions/dashboard/rates/`
+and `/transitions/trends/`. As a Regent check your chapter's rows under Search
+reports. As an officer, press **Start report** on a position whose report is not
+assigned yet (or **Compose** an open one), save a draft and upload an attachment (the
+first write to GCS for this feature). Start report creates the real obligation, so use
+an officer who is fine keeping it; it only sends reminders as the due date approaches.
+Confirm `/features/` lists Transition Reports and Rollbar stays quiet. After the first
+scheduled run, confirm a reminder in Mailjet.
+
+**7. Rollback.** Code: `git checkout <previous sha>` and reload; the new tables are
+harmless if left in place. Emails: disable the three scheduled tasks (there is no
+feature flag for the whole feature). Database:
+`python manage.py migrate transitions zero` only if no reports have been submitted,
+otherwise restore the backup.
+
+`buildwatson` is not needed on a first deploy: no reports exist yet and each report
+indexes itself on save. If reports are ever imported, run
+`python manage.py buildwatson transitions.TransitionReport`.
+
 ---
 
 ## 9. Backups & tested restore
@@ -589,6 +755,9 @@ Record the date of the last successful **restore test** in the deploy log.
    ([§7](#7-scheduled-tasks-pythonanywhere-daily)); no `seed_*` command scheduled.
 9. **Backups**: fresh backup taken and a **restore** tested into a scratch DB.
 10. **Dependency audit**: review CI `pip-audit` output; patch high/critical.
+11. **Transition Reports (October 2026 release)**: seeds run, scope flags decided,
+    first-run baseline done, then the three daily tasks scheduled
+    ([§8.1](#81-upgrading-into-the-transition-reports-release-october-2026)).
 
 ---
 

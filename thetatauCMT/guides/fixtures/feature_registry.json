@@ -544,7 +544,7 @@
           "key": "transition-reports",
           "name": "Transition Reports",
           "short_description": "What worked, what didn't, and what your successor needs to know, from the officer or committee chair leaving the position.",
-          "long_description": "Owed once your term ends: a short set of prompts about successes, failures, contacts, and unfinished business. Submitted reports are visible to the officer who follows you so nothing gets lost between terms. From the Transition Reports page you can also search past reports by keyword, position, tag, or cycle; National Officers and Admins additionally see a national trend view (tag frequency and which chapters have not yet submitted).",
+          "long_description": "Start any time while you hold the position and save a draft as you go; the report is due shortly before your term ends, and you get reminders until it is submitted. It is a short set of prompts about successes, failures, contacts, and unfinished business. Submitted reports are visible to the officer who follows you so nothing gets lost between terms. From the Transition Reports page you can also search past reports by keyword, position, tag, or cycle; National Officers and Admins additionally see a national trend view (tag frequency and which chapters have not yet submitted).",
           "url_name": "transitions:list",
           "audience": "officer"
         },
@@ -1176,7 +1176,7 @@
         },
         {
           "title": "Write your transition report, and read what came before",
-          "body": "When your term as Regent ends, the site owes a transition report: what worked, what did not, and what your successor needs to know. As Regent you can also read every position's past reports for your chapter from the same page, not just your own.",
+          "body": "Start your transition report any time and save a draft as you go; it is due shortly before your term as Regent ends. It covers what worked, what did not, and what your successor needs to know. As Regent you can also read every position's past reports for your chapter from the same page, not just your own.",
           "feature": "transition-reports",
           "cadence": "each_term"
         }
@@ -1236,7 +1236,7 @@
         },
         {
           "title": "Write your transition report, and read what came before",
-          "body": "When your term as Vice Regent ends, the site owes a transition report: what worked, what did not, and what your successor needs to know. The same page lets you read what past Vice Regents wrote before you.",
+          "body": "Start your transition report any time and save a draft as you go; it is due shortly before your term as Vice Regent ends. It covers what worked, what did not, and what your successor needs to know. The same page lets you read what past Vice Regents wrote before you.",
           "feature": "transition-reports",
           "cadence": "each_term"
         }
@@ -1302,7 +1302,7 @@
         },
         {
           "title": "Write your transition report, and read what came before",
-          "body": "When your term as Scribe ends, the site owes a transition report: what worked, what did not, and what your successor needs to know. The same page lets you read what past Scribes wrote before you.",
+          "body": "Start your transition report any time and save a draft as you go; it is due shortly before your term as Scribe ends. It covers what worked, what did not, and what your successor needs to know. The same page lets you read what past Scribes wrote before you.",
           "feature": "transition-reports",
           "cadence": "each_term"
         }
@@ -1359,7 +1359,7 @@
         },
         {
           "title": "Write your transition report, and read what came before",
-          "body": "When your term as Treasurer ends, the site owes a transition report: what worked, what did not, and what your successor needs to know. The same page lets you read what past Treasurers wrote before you.",
+          "body": "Start your transition report any time and save a draft as you go; it is due shortly before your term as Treasurer ends. It covers what worked, what did not, and what your successor needs to know. The same page lets you read what past Treasurers wrote before you.",
           "feature": "transition-reports",
           "cadence": "each_term"
         }
@@ -1411,7 +1411,7 @@
         },
         {
           "title": "Write your transition report, and read what came before",
-          "body": "When your term as Corresponding Secretary ends, the site owes a transition report: what worked, what did not, and what your successor needs to know. The same page lets you read what past Corresponding Secretaries wrote before you.",
+          "body": "Start your transition report any time and save a draft as you go; it is due shortly before your term as Corresponding Secretary ends. It covers what worked, what did not, and what your successor needs to know. The same page lets you read what past Corresponding Secretaries wrote before you.",
           "feature": "transition-reports",
           "cadence": "each_term"
         }
@@ -1459,7 +1459,7 @@
         },
         {
           "title": "Write your transition report, and read what came before",
-          "body": "When your term as New Member Educator ends, the site owes a transition report: what worked, what did not, and what your successor needs to know. The same page lets you read what past New Member Educators wrote before you.",
+          "body": "Start your transition report any time and save a draft as you go; it is due shortly before your term as New Member Educator ends. It covers what worked, what did not, and what your successor needs to know. The same page lets you read what past New Member Educators wrote before you.",
           "feature": "transition-reports",
           "cadence": "each_term"
         }
@@ -1503,7 +1503,7 @@
         },
         {
           "title": "Write your transition report, and read what came before",
-          "body": "When your term as Risk Management Chair ends, the site owes a transition report: what worked, what did not, and what your successor needs to know. The same page lets you read what past chairs wrote before you.",
+          "body": "Start your transition report any time and save a draft as you go; it is due shortly before your term as Risk Management Chair ends. It covers what worked, what did not, and what your successor needs to know. The same page lets you read what past chairs wrote before you.",
           "feature": "transition-reports",
           "cadence": "each_term"
         }

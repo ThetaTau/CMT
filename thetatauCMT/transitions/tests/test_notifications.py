@@ -5,7 +5,7 @@ import pytest
 from thetatauCMT.chapters.tests.factories import ChapterFactory
 from thetatauCMT.users.tests.factories import UserFactory
 
-from ..models import ReportObligation
+from ..models import ReportObligation, ReportTemplate, TransitionReport
 from ..notifications import HandoffPacketAvailable, TransitionReportDueReminder, TransitionReportSeasonalReminder
 
 pytestmark = pytest.mark.django_db
@@ -22,6 +22,20 @@ def _obligation(chapter, officer=None, position_key="treasurer", due_date=None):
         due_date=due_date or datetime.date.today() + datetime.timedelta(days=16),
         is_required=True,
         status="open",
+    )
+
+
+def _report(obligation, status):
+    template = ReportTemplate.objects.create(position_type="CHAPTER_OFFICER", name="Chapter Officer Report")
+    return TransitionReport.objects.create(
+        obligation=obligation,
+        chapter=obligation.chapter,
+        position_type=obligation.position_type,
+        position_key=obligation.position_key,
+        author=obligation.officer,
+        template=template,
+        template_version=1,
+        status=status,
     )
 
 
@@ -57,6 +71,29 @@ def test_due_reminder_context_flags():
     assert notif.context["past_due"] is True
     assert notif.context["escalate_to_rd"] is True
     assert notif.context["due_date"] == obligation.due_date
+
+
+def test_due_reminder_has_no_draft_when_nothing_was_started():
+    chapter = ChapterFactory()
+    obligation = _obligation(chapter, officer=UserFactory(chapter=chapter))
+    notif = TransitionReportDueReminder(obligation, {"officer@example.com"}, False, False)
+    assert notif.context["has_draft"] is False
+
+
+def test_due_reminder_flags_a_saved_but_unsubmitted_draft():
+    chapter = ChapterFactory()
+    obligation = _obligation(chapter, officer=UserFactory(chapter=chapter))
+    _report(obligation, "draft")
+    notif = TransitionReportDueReminder(obligation, {"officer@example.com"}, False, False)
+    assert notif.context["has_draft"] is True
+
+
+def test_due_reminder_does_not_flag_a_submitted_report_as_a_draft():
+    chapter = ChapterFactory()
+    obligation = _obligation(chapter, officer=UserFactory(chapter=chapter))
+    _report(obligation, "submitted")
+    notif = TransitionReportDueReminder(obligation, {"officer@example.com"}, False, False)
+    assert notif.context["has_draft"] is False
 
 
 # ---------------------------------------------------------------------------

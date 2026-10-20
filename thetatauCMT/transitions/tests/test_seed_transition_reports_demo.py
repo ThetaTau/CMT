@@ -93,6 +93,19 @@ def test_missed_and_na_vacant_obligations_have_no_report():
     assert not hasattr(vacant, "report")
 
 
+def test_the_early_starter_holds_a_position_whose_report_is_not_assigned_yet():
+    _seed()
+    early = _user("early")
+
+    assert not early.transition_report_obligations.exists()
+    upcoming = services.get_upcoming_reports(early)
+    assert [row.position_key for row in upcoming] == ["scribe"]
+
+    obligation = services.start_report_early(early, upcoming[0].role_change.pk)
+    assert obligation.officer == early
+    assert obligation.status == "open"
+
+
 # ---------------------------------------------------------------------------
 # TRWI-6 access scenarios represented (mirrors docs/specs/transition-reports-qa.md)
 # ---------------------------------------------------------------------------

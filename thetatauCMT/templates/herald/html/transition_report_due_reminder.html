@@ -6,6 +6,12 @@
 The <b>{{ position_key|title }}</b> Transition Report for <b>{{ chapter }}</b>
 {% if past_due %}was due <b>{{ due_date }}</b> and has not been submitted yet.{% else %}is due <b>{{ due_date }}</b>.{% endif %}
 </p>
+{% if has_draft %}
+<p>
+A draft of this report has been started but not submitted. It stays a private draft, and these reminders
+continue, until the officer opens it and presses Submit.
+</p>
+{% endif %}
 <p>
 A Transition Report captures what worked, what didn't, and what a successor needs to know --
 it is the single highest-leverage thing an outgoing officer can leave behind.

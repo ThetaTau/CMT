@@ -40,6 +40,20 @@ def _role_change(chapter, role, end, start=None, user=None):
     return UserRoleChange.objects.create(user=user, role=role, start=start, end=end)
 
 
+def _current_role_change(chapter, role, end_in_days=200, user=None):
+    """A role change that has already started and ends ``end_in_days`` from
+    now -- the shape ``_role_change``'s default ``start`` (end minus 180 days)
+    only produces for ends under 180 days out.
+    """
+    return _role_change(
+        chapter,
+        role,
+        TODAY + datetime.timedelta(days=end_in_days),
+        start=TODAY - datetime.timedelta(days=30),
+        user=user,
+    )
+
+
 def _council_officer():
     """A user who sees every submitted report nationally (2026-09 access
     tightening narrowed a plain NATIONAL_OFFICER role to "their own
@@ -755,32 +769,288 @@ def test_get_no_obligations_reason_no_current_tracked_role():
 def test_get_no_obligations_reason_excluded_position():
     Config.objects.create(key="TRANSITIONS_COMMITTEE_CHAIR_ENABLED", value="off", description="")
     chapter = ChapterFactory()
-    officer = _role_change(chapter, "committee chair", TODAY + datetime.timedelta(days=200)).user
+    officer = _current_role_change(chapter, "committee chair").user
 
     assert services.get_no_obligations_reason(officer) == "Your current position does not require a Transition Report."
 
 
-def test_get_no_obligations_reason_too_early():
+def test_get_no_obligations_reason_a_role_that_has_not_started_is_not_a_current_position():
+    chapter = ChapterFactory()
+    start = TODAY + datetime.timedelta(days=20)
+    officer = _role_change(chapter, "treasurer", TODAY + datetime.timedelta(days=200), start=start).user
+
+    assert services.get_no_obligations_reason(officer) == (
+        "You don't currently hold a position that requires a Transition Report."
+    )
+
+
+def test_get_no_obligations_reason_term_already_assigned_to_another_officer():
+    # Two holders of one position with identical term dates share one
+    # obligation (its natural key), so the second holder has nothing to start.
     chapter = ChapterFactory()
     end = TODAY + datetime.timedelta(days=200)
-    officer = _role_change(chapter, "treasurer", end).user
+    start = TODAY - datetime.timedelta(days=10)
+    first = _role_change(chapter, "events chair", end, start=start)
+    second = _role_change(chapter, "events chair", end, start=start)
+    services.start_report_early(first.user, first.pk)
 
-    reason = services.get_no_obligations_reason(officer)
+    assert services.get_upcoming_reports(second.user) == []
+    assert services.get_no_obligations_reason(second.user) == (
+        "The Transition Report for your current position is already assigned to another officer."
+    )
 
-    due_date = end - datetime.timedelta(days=services.DEFAULT_DUE_DATE_OFFSET_DAYS)
-    assert reason == f"Not due yet: your Treasurer term ends {end}, so the report isn't due until {due_date}."
+
+# ---------------------------------------------------------------------------
+# Start early: get_upcoming_reports / start_report_early
+# ---------------------------------------------------------------------------
+def test_get_upcoming_reports_lists_a_current_position_with_no_obligation_yet():
+    chapter = ChapterFactory()
+    role_change = _current_role_change(chapter, "treasurer", end_in_days=200)
+
+    upcoming = services.get_upcoming_reports(role_change.user)
+
+    assert len(upcoming) == 1
+    row = upcoming[0]
+    assert row.role_change == role_change
+    assert row.position_key == "treasurer"
+    assert row.chapter == chapter
+    assert row.term_end == role_change.end
+    assert row.due_date == role_change.end - datetime.timedelta(days=services.DEFAULT_DUE_DATE_OFFSET_DAYS)
 
 
-def test_get_no_obligations_reason_picks_the_soonest_eligible_role_when_holding_several():
+def test_get_upcoming_reports_is_soonest_term_end_first():
     chapter = ChapterFactory()
     officer = UserFactory(chapter=chapter)
-    _role_change(chapter, "treasurer", TODAY + datetime.timedelta(days=300), user=officer)
-    soon = TODAY + datetime.timedelta(days=200)
-    _role_change(chapter, "scribe", soon, user=officer)
+    _current_role_change(chapter, "treasurer", end_in_days=300, user=officer)
+    _current_role_change(chapter, "scribe", end_in_days=200, user=officer)
 
-    reason = services.get_no_obligations_reason(officer)
+    assert [row.position_key for row in services.get_upcoming_reports(officer)] == ["scribe", "treasurer"]
 
-    assert "your Scribe term ends" in reason
+
+def test_get_upcoming_reports_leaves_out_a_position_that_already_has_an_obligation():
+    chapter = ChapterFactory()
+    role_change = _current_role_change(chapter, "treasurer", end_in_days=20)
+    services.generate_obligations()  # 20 days out is inside the lookahead window
+
+    assert services.get_upcoming_reports(role_change.user) == []
+
+
+def test_get_upcoming_reports_leaves_out_a_role_change_whose_dates_were_edited_after_its_obligation():
+    chapter = ChapterFactory()
+    role_change = _current_role_change(chapter, "treasurer", end_in_days=20)
+    services.generate_obligations()
+    UserRoleChange.objects.filter(pk=role_change.pk).update(end=TODAY + datetime.timedelta(days=200))
+
+    assert services.get_upcoming_reports(role_change.user) == []
+
+
+def test_get_upcoming_reports_ignores_roles_that_are_not_current_or_not_tracked():
+    chapter = ChapterFactory()
+    officer = UserFactory(chapter=chapter)
+    not_started = TODAY + datetime.timedelta(days=20)
+    _role_change(chapter, "treasurer", TODAY + datetime.timedelta(days=200), start=not_started, user=officer)
+    _role_change(
+        chapter, "scribe", TODAY - datetime.timedelta(days=5), start=TODAY - datetime.timedelta(days=100), user=officer
+    )
+    _current_role_change(chapter, "adviser", user=officer)  # advisors never owe a report
+
+    assert services.get_upcoming_reports(officer) == []
+
+
+def test_get_upcoming_reports_skips_an_excluded_position():
+    Config.objects.create(key="TRANSITIONS_COMMITTEE_CHAIR_ENABLED", value="off", description="")
+    chapter = ChapterFactory()
+    officer = _current_role_change(chapter, "committee chair").user
+
+    assert services.get_upcoming_reports(officer) == []
+
+
+def test_start_report_early_creates_the_obligation_the_daily_command_would():
+    chapter = ChapterFactory()
+    role_change = _current_role_change(chapter, "treasurer", end_in_days=200)
+
+    obligation = services.start_report_early(role_change.user, role_change.pk)
+
+    assert obligation.officer == role_change.user
+    assert obligation.chapter == chapter
+    assert obligation.position_key == "treasurer"
+    assert obligation.position_type == "CHAPTER_OFFICER"
+    assert obligation.role_change == role_change
+    assert obligation.term_start == role_change.start
+    assert obligation.term_end == role_change.end
+    assert obligation.due_date == role_change.end - datetime.timedelta(days=services.DEFAULT_DUE_DATE_OFFSET_DAYS)
+    assert obligation.is_required is True
+    assert obligation.status == "open"
+
+
+def test_start_report_early_marks_an_optional_position_as_not_required():
+    chapter = ChapterFactory()
+    role_change = _current_role_change(chapter, "national director", end_in_days=200)
+
+    obligation = services.start_report_early(role_change.user, role_change.pk)
+
+    assert obligation.is_required is False
+
+
+def test_start_report_early_is_idempotent():
+    chapter = ChapterFactory()
+    role_change = _current_role_change(chapter, "treasurer", end_in_days=200)
+
+    first = services.start_report_early(role_change.user, role_change.pk)
+    second = services.start_report_early(role_change.user, role_change.pk)
+
+    assert first == second
+    assert ReportObligation.objects.filter(chapter=chapter, position_key="treasurer").count() == 1
+
+
+def test_start_report_early_returns_the_obligation_the_daily_command_already_generated():
+    chapter = ChapterFactory()
+    role_change = _current_role_change(chapter, "treasurer", end_in_days=20)
+    services.generate_obligations()
+    generated = ReportObligation.objects.get(chapter=chapter, position_key="treasurer")
+
+    assert services.start_report_early(role_change.user, role_change.pk) == generated
+
+
+def test_the_daily_command_reuses_an_obligation_started_early():
+    chapter = ChapterFactory()
+    role_change = _current_role_change(chapter, "treasurer", end_in_days=200)
+    started = services.start_report_early(role_change.user, role_change.pk)
+
+    counts = services.generate_obligations(lookahead_days=500)
+
+    assert counts["term_end_created"] == 0
+    assert list(ReportObligation.objects.filter(chapter=chapter, position_key="treasurer")) == [started]
+
+
+def test_start_report_early_refuses_someone_elses_role_change():
+    chapter = ChapterFactory()
+    role_change = _current_role_change(chapter, "treasurer", end_in_days=200)
+    someone_else = UserFactory(chapter=chapter)
+
+    assert services.start_report_early(someone_else, role_change.pk) is None
+    assert not ReportObligation.objects.filter(chapter=chapter).exists()
+
+
+def test_start_report_early_refuses_a_role_that_has_not_started_or_has_ended():
+    chapter = ChapterFactory()
+    officer = UserFactory(chapter=chapter)
+    future = _role_change(
+        chapter,
+        "treasurer",
+        TODAY + datetime.timedelta(days=200),
+        start=TODAY + datetime.timedelta(days=20),
+        user=officer,
+    )
+    ended = _role_change(
+        chapter, "scribe", TODAY - datetime.timedelta(days=5), start=TODAY - datetime.timedelta(days=100), user=officer
+    )
+
+    assert services.start_report_early(officer, future.pk) is None
+    assert services.start_report_early(officer, ended.pk) is None
+    assert not ReportObligation.objects.filter(chapter=chapter).exists()
+
+
+def test_start_report_early_refuses_an_excluded_or_untracked_position():
+    PositionOverride.objects.create(position_key="treasurer", status="excluded")
+    chapter = ChapterFactory()
+    officer = UserFactory(chapter=chapter)
+    excluded = _current_role_change(chapter, "treasurer", user=officer)
+    untracked = _current_role_change(chapter, "adviser", user=officer)
+
+    assert services.start_report_early(officer, excluded.pk) is None
+    assert services.start_report_early(officer, untracked.pk) is None
+    assert not ReportObligation.objects.filter(chapter=chapter).exists()
+
+
+def test_start_report_early_refuses_a_term_assigned_to_another_officer():
+    chapter = ChapterFactory()
+    end = TODAY + datetime.timedelta(days=200)
+    start = TODAY - datetime.timedelta(days=10)
+    first = _role_change(chapter, "events chair", end, start=start)
+    second = _role_change(chapter, "events chair", end, start=start)
+    services.start_report_early(first.user, first.pk)
+
+    assert services.start_report_early(second.user, second.pk) is None
+    assert ReportObligation.objects.filter(chapter=chapter, position_key="events chair").count() == 1
+
+
+def test_generate_obligations_does_not_duplicate_when_a_role_changes_dates_were_edited():
+    # One role change, one obligation: its natural key no longer matches
+    # once the term dates change, but the role-change link still does.
+    chapter = ChapterFactory()
+    role_change = _current_role_change(chapter, "treasurer", end_in_days=20)
+    services.generate_obligations()
+    UserRoleChange.objects.filter(pk=role_change.pk).update(end=TODAY + datetime.timedelta(days=30))
+
+    counts = services.generate_obligations()
+
+    assert counts["term_end_created"] == 0
+    assert ReportObligation.objects.filter(chapter=chapter, position_key="treasurer").count() == 1
+
+
+# ---------------------------------------------------------------------------
+# Reminders run until the report is SUBMITTED, drafts included
+# ---------------------------------------------------------------------------
+def test_send_due_date_reminders_leaves_an_early_started_report_alone_until_the_ladder_reaches_it():
+    chapter = ChapterFactory()
+    role_change = _current_role_change(chapter, "treasurer", end_in_days=200)
+    services.start_report_early(role_change.user, role_change.pk)
+
+    assert services.send_due_date_reminders() == 0
+    assert len(mail.outbox) == 0
+
+
+def test_send_due_date_reminders_continue_while_the_report_is_only_a_draft():
+    chapter = ChapterFactory()
+    officer = UserFactory(chapter=chapter)
+    ReportTemplate.objects.create(position_type="CHAPTER_OFFICER", name="Chapter Officer Report")
+    obligation = _open_obligation(chapter, officer, TODAY + datetime.timedelta(days=7))
+    services.save_draft(services.get_or_create_report(obligation), [])
+
+    sent = services.send_due_date_reminders()
+
+    assert sent == 1
+    obligation.refresh_from_db()
+    assert obligation.status == "open"
+    assert obligation.last_reminder_offset_sent == 7
+
+
+def test_send_due_date_reminders_stop_once_the_draft_is_submitted():
+    chapter = ChapterFactory()
+    officer = UserFactory(chapter=chapter)
+    ReportTemplate.objects.create(position_type="CHAPTER_OFFICER", name="Chapter Officer Report")
+    obligation = _open_obligation(chapter, officer, TODAY + datetime.timedelta(days=7))
+    services.submit_report(services.get_or_create_report(obligation), [])
+
+    assert services.send_due_date_reminders() == 0
+    assert len(mail.outbox) == 0
+
+
+def test_send_due_date_reminders_email_tells_the_officer_about_a_saved_draft():
+    chapter = ChapterFactory()
+    officer = UserFactory(chapter=chapter)
+    ReportTemplate.objects.create(position_type="CHAPTER_OFFICER", name="Chapter Officer Report")
+    obligation = _open_obligation(chapter, officer, TODAY + datetime.timedelta(days=7))
+    services.save_draft(services.get_or_create_report(obligation), [])
+
+    services.send_due_date_reminders()
+
+    message = mail.outbox[0]
+    content = message.body + "".join(alternative[0] for alternative in getattr(message, "alternatives", []))
+    assert "has been started but not submitted" in content
+
+
+def test_send_due_date_reminders_email_has_no_draft_note_when_nothing_was_started():
+    chapter = ChapterFactory()
+    officer = UserFactory(chapter=chapter)
+    _open_obligation(chapter, officer, TODAY + datetime.timedelta(days=7))
+
+    services.send_due_date_reminders()
+
+    message = mail.outbox[0]
+    content = message.body + "".join(alternative[0] for alternative in getattr(message, "alternatives", []))
+    assert "has been started but not submitted" not in content
 
 
 def test_get_no_obligations_reason_regional_director_gets_a_distinct_explanation():

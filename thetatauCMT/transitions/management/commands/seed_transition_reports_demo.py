@@ -340,9 +340,13 @@ class Command(BaseCommand):
         # CURRENT (open obligation); a negative one is far enough in the past to
         # be picked up by generate_obligations' scan window (LOOKBACK_GRACE_DAYS
         # = 365) but already past its due date, so it becomes submitted/missed.
+        # "early" is the exception to "current means open obligation": its term
+        # ends past the lookahead window, so it has NO obligation yet and shows
+        # a "Start report" row instead.
         specs = {
             "treasurer": ("treasurer", "QA Treasurer Successor", alpha, "treasurer", 30, 1),
             "regent": ("regent", "QA Regent", alpha, "regent", 35, 2),
+            "early": ("early", "QA Early Starter Scribe", alpha, "scribe", 120, 18),
             "rd": ("rd", "QA Regional Director", beta, None, None, 3),
             "ccd": ("ccd", "QA Candidate Chapter Director", beta, "candidate chapter director", 38, 4),
             "natoff": ("natoff", "QA National Officer", beta, "national director", 42, 5),
@@ -536,6 +540,7 @@ class Command(BaseCommand):
         rows = [
             (users["treasurer"].username, "Successor officer (treasurer, Chapter Alpha)"),
             (users["regent"].username, "Regent (Chapter Alpha, all positions)"),
+            (users["early"].username, "Scribe, Chapter Alpha, report not assigned yet (use Start report)"),
             (users["rd"].username, "Regional Director ([QA] Transitions Region: Alpha/Beta/Gamma)"),
             (users["ccd"].username, "Candidate Chapter Director (own position only, any chapter)"),
             (users["natoff"].username, "National Officer (own position only, any chapter)"),
