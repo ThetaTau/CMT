@@ -924,6 +924,26 @@ def test_email_process_update_model_with_form_field():
     assert notif.to_emails
 
 
+@pytest.mark.django_db
+def test_email_process_update_without_form_file():
+    from thetatauCMT.forms.notifications import EmailProcessUpdate
+    from thetatauCMT.forms.tests.factories import PrematureAlumnusFactory
+
+    pa = PrematureAlumnusFactory.create(form="")
+    notif = EmailProcessUpdate(
+        pa,
+        "Step 1",
+        "Step 2",
+        "Submitted",
+        "Test message",
+        [],
+    )
+
+    assert not pa.form.name
+    assert notif.to_emails
+    assert notif.attachments == []
+
+
 # ─── EmailProcessUpdate: attachments kwarg (lines 467-477) ───────────────────
 
 

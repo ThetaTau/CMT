@@ -1,8 +1,8 @@
 """The vote itself must not be reachable through admin tooling.
 
-A ballot is secret: only the voter sees their own vote, and only the Grand
-Regent and Grand Scribe see the aggregate counts. That has to hold in the
-Django admin and the report builder too, not just in the member-facing views.
+Only the voter and the Grand Regent and Grand Scribe may see how a ballot was
+voted, and they see it on the site. Admins must not, so it has to stay out of
+the Django admin and the report builder.
 """
 
 import datetime

@@ -105,24 +105,25 @@ class BallotDetailView(
             request_get = QueryDict()
         want_incomplete = request_get.get("status", "") in ("", "incomplete")
         region = request_get.get("region", "")
-        all_ballots = self.object_list
-        all_ballots = all_ballots.annotate(
-            region=models.Case(
-                models.When(role__in=NAT_OFFICERS, then=models.Value("National")),
-                default=models.F("user__chapter__region__name"),
-                output_field=models.CharField(),
-            ),
-            chapter=models.Case(
-                models.When(role__in=NAT_OFFICERS, then=models.Value("")),
-                default=models.F("user__chapter__name"),
-                output_field=models.CharField(),
-            ),
-            user_name=models.F("user__name"),
-        )
+
+        def annotate_ballots(qs):
+            return qs.annotate(
+                region=models.Case(
+                    models.When(role__in=NAT_OFFICERS, then=models.Value("National")),
+                    default=models.F("user__chapter__region__name"),
+                    output_field=models.CharField(),
+                ),
+                chapter=models.Case(
+                    models.When(role__in=NAT_OFFICERS, then=models.Value("")),
+                    default=models.F("user__chapter__name"),
+                    output_field=models.CharField(),
+                ),
+                user_name=models.F("user__name"),
+            )
+
+        all_ballots = annotate_ballots(self.object_list)
         if region == "national":
             all_ballots = all_ballots.filter(region="National")
-        users = all_ballots.values_list("user", flat=True)
-        chapters = all_ballots.exclude(role__in=NAT_OFFICERS).values_list("chapter", flat=True)
         data = list(
             all_ballots.values(
                 "pk",
@@ -134,6 +135,18 @@ class BallotDetailView(
                 "authority",
             )
         )
+        # Who has actually submitted, regardless of the "status" filter.
+        # `BallotCompleteFilter.filter_status` deliberately empties
+        # `self.object_list` for "incomplete" so the table doesn't also show
+        # the real vote rows; reusing that same queryset here would blank out
+        # the exclude sets below too, so an already-submitted chapter/officer
+        # got synthesized as "Not submitted" right alongside the genuinely
+        # outstanding ones.
+        all_submitted = annotate_ballots(self.filter_class({"region": region}, queryset=self.object.completed.all()).qs)
+        if region == "national":
+            all_submitted = all_submitted.filter(region="National")
+        users = all_submitted.values_list("user", flat=True)
+        chapters = all_submitted.exclude(role__in=NAT_OFFICERS).values_list("chapter", flat=True)
         nat_offs = UserRoleChange.get_current_natoff().exclude(user__in=users)
         incomplete_chapter = []
         nat_offs = nat_offs.filter(role__in=self.object.voters)
@@ -399,8 +412,8 @@ class BallotCompleteCreateView(LoginRequiredMixin, OfficerRequiredMixin, CreateV
 class BallotCompleteDeleteView(LoginRequiredMixin, BallotResultsRequiredMixin, DeleteView):
     """Remove a mistaken submission so the vote can be cast again.
 
-    Restricted to the Grand Regent and Grand Scribe, who are also the only
-    people who see the tallies. They never see the motion being removed.
+    Restricted to the Grand Regent and Grand Scribe, the only people who can
+    see how each submission was voted.
     """
 
     model = BallotComplete

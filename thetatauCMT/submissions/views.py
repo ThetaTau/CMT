@@ -1,9 +1,12 @@
 import csv
 import datetime
+import logging
+from urllib.parse import urlencode
 
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.messages.views import SuccessMessageMixin
+from django.db import transaction
 from django.db.models import Count, F
 from django.forms.models import modelformset_factory
 from django.http import Http404
@@ -30,6 +33,8 @@ from .filters import GearArticleListFilter, SubmissionListFilter
 from .forms import GearArticleForm, GearArticleListFormHelper, PictureForm, SubmissionForm, SubmissionListFormHelper
 from .models import GearArticle, Picture, Submission
 from .tables import GearArticleTable, SubmissionTable
+
+logger = logging.getLogger(__name__)
 
 
 class SubmissionDetailView(LoginRequiredMixin, DetailView):
@@ -169,43 +174,79 @@ class GearArticleFormView(LoginRequiredMixin, MultiFormsView):
     def _group_exists(self, group_name):
         return False
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["gear_submissions_url"] = self._gear_submissions_url()
+        return context
+
+    def _gear_submissions_url(self):
+        # Built from the ScoreType's actual pk instead of a hard-coded id so it
+        # keeps working if the fixture is ever reloaded with a different pk.
+        gear_type = ScoreType.objects.filter(name="Gear Article").first()
+        query = urlencode({"name": "", "date": "", "type": gear_type.pk if gear_type else ""})
+        return f"{reverse('submissions:list')}?{query}"
+
     def forms_valid(self, forms):
         gear_form = forms["gear"]
         picture_forms = forms["picture"]
         chapter = self.request.user.current_chapter
-        submission = Submission(
-            user=self.request.user,
-            file=gear_form.cleaned_data.get("file"),
-            name=gear_form.cleaned_data.get("name"),
-            type=ScoreType.objects.get(name="Gear Article"),
-            chapter=chapter,
-        )
-        submission.save()
-        gear_form.instance.submission = submission
-        obj = gear_form.save()
-        for picture_form in picture_forms:
-            if picture_form.is_valid() and picture_form.instance.image.name != "":
-                picture_form.instance.submission = gear_form.instance
-                picture_form.save()
+        try:
+            with transaction.atomic():
+                submission = Submission(
+                    user=self.request.user,
+                    file=gear_form.cleaned_data.get("file"),
+                    name=gear_form.cleaned_data.get("name"),
+                    type=ScoreType.objects.get(name="Gear Article"),
+                    chapter=chapter,
+                )
+                submission.save()
+                gear_form.instance.submission = submission
+                obj = gear_form.save()
+                for picture_form in picture_forms:
+                    if picture_form.is_valid() and picture_form.instance.image.name != "":
+                        picture_form.instance.submission = gear_form.instance
+                        picture_form.save()
+        except Exception:
+            # A storage hiccup (or anything else) used to bubble up as a bare
+            # 500 with nothing saved and no indication to the user of what
+            # happened; show them something actionable and let them retry.
+            logger.exception("Gear article submission failed for chapter %s", chapter)
+            messages.add_message(
+                self.request,
+                messages.ERROR,
+                "Your Gear article could not be submitted because of an unexpected error. "
+                "Please try again. If this keeps happening, email gear@thetatau.org so the "
+                "editor can get your article directly.",
+            )
+            return self.forms_invalid(forms)
         link = reverse("submissions:gear_detail", kwargs={"pk": gear_form.instance.pk})
         link = settings.CURRENT_URL + link
-        Task.mark_complete(
-            name="Gear Article",
-            chapter=chapter,
-            user=self.request.user,
-            obj=obj,
-        )
-        GenericEmail(
-            emails=["gear@thetatau.org"],
-            subject=f"{chapter.name} Gear Article Submission",
-            message=(
-                f"{chapter.name} Gear Article Submission <br>"
-                f"Please see the form at: <a href='{link}'>{submission.name}</a>"
-            ),
-            cc=False,
-            reply="cmt@thetatau.org",
-            addressee="Dear Gear Editor",
-        ).send()
+        try:
+            Task.mark_complete(
+                name="Gear Article",
+                chapter=chapter,
+                user=self.request.user,
+                obj=obj,
+            )
+            GenericEmail(
+                emails=["gear@thetatau.org"],
+                subject=f"{chapter.name} Gear Article Submission",
+                message=(
+                    f"{chapter.name} Gear Article Submission <br>"
+                    f"Please see the form at: <a href='{link}'>{submission.name}</a>"
+                ),
+                cc=False,
+                reply="cmt@thetatau.org",
+                addressee="Dear Gear Editor",
+            ).send()
+        except Exception:
+            # The article itself is already saved at this point; a failure to
+            # mark the task complete or notify the editor shouldn't make the
+            # user think their submission was lost.
+            logger.exception(
+                "Gear article saved but task/notification follow-up failed for chapter %s",
+                chapter,
+            )
         messages.add_message(
             self.request,
             messages.SUCCESS,

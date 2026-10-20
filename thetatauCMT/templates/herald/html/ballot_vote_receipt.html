@@ -51,10 +51,10 @@ Dear {{ addressee }},
   <a href="{{ vote_url }}">{{ vote_url }}</a>
 </p>
 <p>
-  The vote is secret. Only the Grand Regent and Grand Scribe see the aye, nay and
-  abstain totals, and nobody sees how an individual voted. If this ballot was
-  submitted in error, ask the Grand Scribe to remove it so it can be cast again
-  before voting closes.
+  Apart from {% if chapter %}your chapter's Regent and Scribe{% else %}you{% endif %},
+  only the Grand Regent and Grand Scribe, who count the ballots, can see how this
+  ballot was voted. If it was submitted in error, ask the Grand Scribe to remove it
+  so it can be cast again before voting closes.
 </p>
   {% include "herald/html/rm_contact.html" %}
 {% endblock content %}

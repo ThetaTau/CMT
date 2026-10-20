@@ -19,7 +19,7 @@ from core.address import ZipCodeAutocomplete
 from core.material_admin import admin_url_regex
 from core.views import HomeView
 from thetatauCMT.guides.views import HelpHubView
-from thetatauCMT.users.views import UserLookupLoginView
+from thetatauCMT.users.views import ConfirmEmailView, UserLookupLoginView
 
 
 def home_redirect(request):
@@ -86,6 +86,11 @@ urlpatterns = [
     path("users/", include("thetatauCMT.users.urls", namespace="users")),
     path("accounts/login/", UserLookupLoginView.as_view(), name="login"),
     path("accounts/logout/", LogoutView.as_view(), name="logout"),
+    path(
+        "accounts/confirm-email/<key>/",
+        ConfirmEmailView.as_view(),
+        name="account_confirm_email",
+    ),
     path("accounts/", include("allauth.urls")),
     # Your stuff: custom urls includes go here
     path("", RedirectView.as_view(url="/workflow/", permanent=False)),

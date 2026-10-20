@@ -239,6 +239,10 @@
         </div>
         <div class="card-body">
           <dl class="row mb-0">
+            {% if is_superuser %}
+              <dt class="col-sm-5">ID number</dt>
+              <dd class="col-sm-7">{{ object.pk }}</dd>
+            {% endif %}
             {% if initiation %}
               <dt class="col-sm-5">Initiation date</dt>
               <dd class="col-sm-7">{{ initiation.date|date:"F j, Y" }}

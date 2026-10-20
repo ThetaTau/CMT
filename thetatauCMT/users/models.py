@@ -214,7 +214,7 @@ class User(AbstractUser, EmailSignalMixin):
     nickname = models.CharField(
         max_length=30,
         blank=True,
-        help_text="Other than first name and preferred first name - eg Bud, Skip, Frank The Tank, Etc. Do NOT indicate 'pledge names'",
+        help_text="Other than first name and preferred first name - eg Bud, Skip, Frank The Tank, Etc. Do NOT indicate 'PNM names'",
     )
     email_school = models.EmailField(
         _("School Email"),

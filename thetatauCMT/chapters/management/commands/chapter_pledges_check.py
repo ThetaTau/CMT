@@ -50,17 +50,17 @@ class Command(BaseCommand):
                     f"{', '.join(pledges.values_list('name', flat=True))}.<br>"
                     f"Please complete the initiation form as soon as possible."
                 )
-                subject += "Pledge"
+                subject += "PNM"
             if not chapter.pledges_last_x_months():
                 # Once a semester? chapter, RD, CO
                 self.stdout.write("    No pledges last 8 months")
                 already_notified_pledges = SentNotification.objects.filter(
-                    notification_class="core.notifications.GenericEmail",
+                    notification_class=GenericEmail.get_class_path(),
                     html_content__icontains="potential new members in the last 8 months",
                     date_sent__gte=make_aware(TODAY_END - datetime.timedelta(30 * 3)),
                 )
                 if not already_notified_pledges:
-                    if "Pledge" in subject:
+                    if "PNM" in subject:
                         subject += " and "
                         message += "<br><br>"
                     subject += "Initiation"

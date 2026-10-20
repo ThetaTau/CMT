@@ -271,6 +271,19 @@ def test_a_rejected_vote_sends_no_receipt(auto_login_user):
 
 
 @pytest.mark.django_db
+def test_remove_confirmation_shows_the_vote_to_the_grand_officer(auto_login_user):
+    client, grand_scribe = auto_login_user(make_officer="grand scribe")
+    _make_natoff(grand_scribe, client)
+    ballot = _create_ballot(voters=["all_chapters"])
+    regent = _officer(UserFactory.create().chapter, "regent")
+    vote = BallotComplete(ballot=ballot, user=regent, motion="abstain", role="regent", authority="chapter_vote")
+    vote.save()
+    response = client.get(reverse("ballots:vote_delete", kwargs={"pk": vote.pk}))
+    assert response.status_code == 200
+    assert "Abstain" in response.content.decode("utf-8")
+
+
+@pytest.mark.django_db
 def test_grand_scribe_can_remove_a_submission(auto_login_user):
     client, grand_scribe = auto_login_user(make_officer="grand scribe")
     _make_natoff(grand_scribe, client)

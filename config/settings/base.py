@@ -227,6 +227,7 @@ MIDDLEWARE = [
     "django_userforeignkey.middleware.UserForeignKeyMiddleware",
     "corsheaders.middleware.CorsMiddleware",
     "core.middleware.RequireSuperuser2FAMiddleware",
+    "core.middleware.PlotlyDashStaleCallbackMiddleware",
     "rollbar.contrib.django.middleware.RollbarNotifierMiddleware",  # Last
 ]
 
@@ -312,9 +313,9 @@ CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap5"
 # https://django-tables2.readthedocs.io/en/latest/pages/custom-rendering.html#available-templates
 DJANGO_TABLES2_TEMPLATE = "django_tables2/bootstrap5.html"
 
-# A ballot is secret: nobody but the voter sees how they voted, so the vote rows
-# must not be reportable. Applies to BallotComplete both as a report's root
-# model and when traversing to it from User or Ballot.
+# Only the voter and the Grand Regent and Grand Scribe may see how a ballot was
+# voted, so the vote rows must not be reportable. Applies to BallotComplete both
+# as a report's root model and when traversing to it from User or Ballot.
 REPORT_BUILDER_EXCLUDE = ["ballots.ballotcomplete"]
 
 # FIXTURES
@@ -504,6 +505,9 @@ DBBACKUP_CONNECTORS = {
         "CONNECTOR": "dbbackup.db.postgresql.PgDumpBinaryConnector",
         # Sometimes this is needed for restore on local dev machine
         # "SINGLE_TRANSACTION": False,
+        # backup.sh wipes the restore-test schema first, so pg_restore's own
+        # --clean drop statements target objects that no longer exist
+        "IF_EXISTS": True,
     }
 }
 if DBBACKUP_LOCAL:

@@ -65,8 +65,9 @@ class AuditTable(CMTTable):
 
 class ChapterStatusTable(CMTTable):
     name = tables.TemplateColumn('<a href="{{ record.link }}">{{ record.name }}</a>')
+    pledge_count = tables.Column(verbose_name="PNMs")
 
-    # Chapter, Members, Pledges, Events Last Month, Submissions Last Month, Current Balance, Tasks Overdue
+    # Chapter, Members, PNMs, Events Last Month, Submissions Last Month, Current Balance, Tasks Overdue
     class Meta:
         model = Chapter
         fields = (

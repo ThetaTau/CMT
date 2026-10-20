@@ -136,7 +136,7 @@ class EmailAdvisorWelcome(EmailNotification):  # extend from EmailNotification f
 @registry.register_decorator()
 class EmailPledgeOther(EmailNotification):  # extend from EmailNotification for emails
     template_name = "pledge_other"  # name of template, without extension
-    subject = "[CMT] Other Pledge Program"  # subject of email
+    subject = "[CMT] Other NME Program Submitted"  # subject of email
 
     def __init__(self, user, file):
         self.to_emails = set(["risk@thetatau.org"])  # set list of emails to send to
@@ -459,7 +459,8 @@ class EmailProcessUpdate(EmailNotification):
         files = []
         if hasattr(model_obj, "form"):
             file = model_obj.form
-            files.append(file)
+            if file.name:
+                files.append(file)
         if attachments:
             for attachment in attachments:
                 model_obj_orig = None

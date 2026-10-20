@@ -7,6 +7,7 @@ from django.core import mail
 from django.urls import reverse
 
 from thetatauCMT.ballots.models import Ballot, BallotComplete
+from thetatauCMT.chapters.tests.factories import ChapterFactory
 from thetatauCMT.users.tests.factories import UserFactory
 
 
@@ -358,19 +359,71 @@ def test_ballot_detail_view_hides_votes_from_other_officers(auto_login_user):
     assert voter.name in body
 
 
+def _motion_by_voter(response):
+    """{voter name: rendered Motion cell} from the results table, or None if hidden."""
+    table = response.context["table"]
+    if "motion" not in [column.name for column in table.columns]:
+        return None
+    return {str(row.get_cell("user_name")): str(row.get_cell("motion")) for row in table.rows}
+
+
 @pytest.mark.django_db
-def test_ballot_detail_view_shows_totals_but_not_motions_to_grand_scribe(auto_login_user):
-    client, user = auto_login_user(make_officer="grand scribe")
+@pytest.mark.parametrize("role", ["grand regent", "grand scribe"])
+def test_grand_officers_see_each_vote_on_an_open_ballot(auto_login_user, role):
+    client, user = auto_login_user(make_officer=role)
     _make_natoff(user, client)
     ballot = _create_ballot(voters=["all_chapters"])
     voter = UserFactory.create()
-    BallotComplete(ballot=ballot, user=voter, motion="aye", role="regent").save()
+    BallotComplete(ballot=ballot, user=voter, motion="nay", role="regent").save()
     response = client.get(reverse("ballots:detail", kwargs={"slug": ballot.slug}))
     assert response.status_code == 200
-    body = response.content.decode("utf-8")
-    assert "Ayes:" in body
-    # The aggregate only: no per-voter motion, even for the Grand Scribe.
-    assert "Motion" not in body
+    assert "Ayes:" in response.content.decode("utf-8")
+    assert _motion_by_voter(response)[voter.name] == "Nay"
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("role", ["grand regent", "grand scribe"])
+def test_grand_officers_still_see_each_vote_after_the_ballot_closes(auto_login_user, role):
+    """Regression: GR/GS reported losing per-chapter results once a ballot closed."""
+    client, user = auto_login_user(make_officer=role)
+    _make_natoff(user, client)
+    ballot = _create_ballot(voters=["all_chapters"])
+    aye_voter = UserFactory.create()
+    abstain_voter = UserFactory.create()
+    BallotComplete(ballot=ballot, user=aye_voter, motion="aye", role="regent").save()
+    BallotComplete(ballot=ballot, user=abstain_voter, motion="abstain", role="scribe").save()
+    Ballot.objects.filter(pk=ballot.pk).update(due_date=datetime.date.today() - timedelta(days=3))
+    ballot.refresh_from_db()
+    assert not ballot.is_open
+    response = client.get(reverse("ballots:detail", kwargs={"slug": ballot.slug}))
+    assert response.status_code == 200
+    votes = _motion_by_voter(response)
+    assert votes[aye_voter.name] == "Aye"
+    assert votes[abstain_voter.name] == "Abstain"
+
+
+@pytest.mark.django_db
+def test_not_submitted_rows_show_no_vote_to_grand_officers(auto_login_user):
+    client, user = auto_login_user(make_officer="grand regent")
+    _make_natoff(user, client)
+    ballot = _create_ballot(voters=["all_chapters"])
+    response = client.get(reverse("ballots:detail", kwargs={"slug": ballot.slug}))
+    table = response.context["table"]
+    not_submitted = [row for row in table.rows if str(row.get_cell("status")) == "Not submitted"]
+    assert not_submitted
+    assert {str(row.get_cell("motion")) for row in not_submitted} == {"None"}
+
+
+@pytest.mark.django_db
+def test_closed_ballot_still_hides_each_vote_from_other_national_officers(auto_login_user):
+    client, user = auto_login_user(make_officer="grand treasurer")
+    _make_natoff(user, client)
+    ballot = _create_ballot(voters=["all_chapters"], due_date=datetime.date.today() - timedelta(days=3))
+    BallotComplete(ballot=ballot, user=UserFactory.create(), motion="aye", role="regent").save()
+    response = client.get(reverse("ballots:detail", kwargs={"slug": ballot.slug}))
+    assert response.status_code == 200
+    assert _motion_by_voter(response) is None
+    assert "Ayes:" not in response.content.decode("utf-8")
 
 
 @pytest.mark.django_db
@@ -399,6 +452,33 @@ def test_ballot_detail_view_motion_filter_is_never_offered(auto_login_user):
     body = response.content.decode("utf-8")
     assert 'name="motion"' not in body
     assert 'name="status"' in body
+
+
+@pytest.mark.django_db
+def test_ballot_detail_view_incomplete_filter_excludes_chapters_that_voted(auto_login_user):
+    """Regression: ``?status=incomplete`` must not list a chapter that already
+    voted. ``BallotCompleteFilter.filter_status`` empties the queryset so the
+    table itself doesn't show the real row, but that same (now-empty)
+    queryset used to ALSO be reused to work out who had already voted, so
+    every eligible chapter -- voted or not -- was synthesized as "Not
+    submitted".
+    """
+    client, user = auto_login_user(make_officer="grand regent")
+    _make_natoff(user, client)
+    ballot = _create_ballot(voters=["all_chapters"])
+    voted_chapter = ChapterFactory.create(name="alpha")
+    pending_chapter = ChapterFactory.create(name="beta")
+    voter = UserFactory.create(chapter=voted_chapter)
+    BallotComplete(ballot=ballot, user=voter, motion="aye", role="regent").save()
+    response = client.get(reverse("ballots:detail", kwargs={"slug": ballot.slug}) + "?region=&status=incomplete")
+    assert response.status_code == 200
+    assert response.context["submitted"] == 0
+    # Checking rendered body text is unreliable here: chapter names also
+    # appear in an unrelated sitewide "chapter" select field, so assert
+    # against the table's own records instead.
+    chapters_shown = {str(row.record["chapter"]) for row in response.context["table"].rows}
+    assert pending_chapter.name in chapters_shown
+    assert voted_chapter.name not in chapters_shown
 
 
 @pytest.mark.django_db

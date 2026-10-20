@@ -630,6 +630,35 @@ def test_disciplinary_form1_clean_both_names_provided_returns_data():
 
 
 @pytest.mark.django_db
+def test_premature_alumnus_form_valid_without_upload():
+    import datetime
+
+    from django.utils import timezone
+
+    from thetatauCMT.forms.forms import PrematureAlumnusForm
+    from thetatauCMT.forms.tests.factories import InitiationFactory
+    from thetatauCMT.users.tests.factories import UserFactory
+
+    user = UserFactory.create()
+    InitiationFactory.create(user=user, date=timezone.now().date() - datetime.timedelta(days=365))
+    form = PrematureAlumnusForm(
+        data={
+            "user": user.pk,
+            "good_standing": "True",
+            "financial": "True",
+            "semesters": "True",
+            "lifestyle": "True",
+            "consideration": "True",
+            "prealumn_type": "less4",
+            "vote": "True",
+        }
+    )
+
+    assert "form" not in form.fields
+    assert form.is_valid(), form.errors
+
+
+@pytest.mark.django_db
 def test_premature_alumnus_form_clean_semesters_false_raises():
     """PrematureAlumnusForm.clean raises when semesters is 'False'."""
     from unittest.mock import patch
@@ -700,6 +729,26 @@ def test_premature_alumnus_form_clean_old_enough_initiation_passes():
         f.cleaned_data = mock_data
         result = f.clean()
         assert result["user"] == user
+
+
+@pytest.mark.django_db
+def test_resignation_form_valid_without_letter():
+    from thetatauCMT.forms.forms import ResignationForm
+
+    form = ResignationForm(
+        data={
+            "resign": "True",
+            "secrets": "True",
+            "expel": "True",
+            "return_evidence": "True",
+            "obligation": "True",
+            "fee": "True",
+            "signature": "Test Member",
+        }
+    )
+
+    assert "letter" not in form.fields
+    assert form.is_valid(), form.errors
 
 
 # ─── CSMTForm.clean date validation ──────────────────────────────────────────

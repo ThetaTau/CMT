@@ -41,7 +41,7 @@ class Command(BaseCommand):
             self.stdout.write(f"Found {pledges.count()} for {chapter}")
             for pledge in pledges:
                 already_notified = SentNotification.objects.filter(
-                    notification_class="forms.notifications.BadgePNMNotify",
+                    notification_class=BadgePNMNotify.get_class_path(),
                     recipients__icontains=pledge.email,
                 )
                 if not already_notified:

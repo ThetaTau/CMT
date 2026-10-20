@@ -398,7 +398,7 @@ class InitDeplSelectView(LoginRequiredMixin, FormSetView):
     form_class = InitDeplSelectForm
     template_name = "forms/init-depl-select.html"
     factory_kwargs = {"extra": 0}
-    officer_edit = "pledge status"
+    officer_edit = "PNM status"
 
     def get_initial(self):
         pledges = self.request.user.current_chapter.pledges()
@@ -529,7 +529,7 @@ class InitiationView(LoginRequiredMixin, OfficerRequiredMixin, FormView):
     to_depledge = []
     to_defer = []
     next_badge = 999999
-    officer_edit = "pledge status"
+    officer_edit = "PNM status"
 
     def initial_info(self, initiate):
         pledges = self.request.user.current_chapter.pledges()
@@ -1886,7 +1886,7 @@ def pledge_program_request_revision(request, process_pk):
     process = PledgeProgramProcess.objects.filter(pk=process_pk).select_related("chapter", "chapter__region").first()
     redirect_to = request.META.get("HTTP_REFERER") or reverse("forms:pledge_program_list")
     if process is None:
-        messages.add_message(request, messages.ERROR, "Requested pledge program could not be found.")
+        messages.add_message(request, messages.ERROR, "Requested new member education program could not be found.")
         return HttpResponseRedirect(redirect_to)
     chapter = process.chapter
     recipients = chapter.council_emails()
@@ -3557,7 +3557,7 @@ class PledgeProgramProcessCreateView(LoginRequiredMixin, CreateProcessView):
     def activation_done(self, *args, **kwargs):
         """Finish task activation."""
         self.activation.done()
-        self.success("Pledge Program submitted successfully.")
+        self.success("New Member Education Program submitted successfully.")
 
     def form_valid(self, form, *args, **kwargs):
         chapter = self.request.user.current_chapter
@@ -3568,7 +3568,7 @@ class PledgeProgramProcessCreateView(LoginRequiredMixin, CreateProcessView):
             messages.add_message(
                 self.request,
                 messages.ERROR,
-                f"Only executive officers can sign submit pledge program: {*CHAPTER_OFFICER,}\n"
+                f"Only executive officers can sign submit new member education program: {*CHAPTER_OFFICER,}\n"
                 f"Your current roles are: {*current_roles,}",
             )
             return super().form_invalid(form)
@@ -3582,7 +3582,7 @@ class PledgeProgramProcessCreateView(LoginRequiredMixin, CreateProcessView):
                 # ``activation.done()`` with "save() prohibited to prevent data loss".
                 existing = PledgeProgram.objects.filter(chapter=chapter, year=program.year, term=program.term).first()
                 if existing is None:
-                    form.add_error(None, "The pledge program could not be saved, please try again.")
+                    form.add_error(None, "The new member education program could not be saved, please try again.")
                     return self.render_to_response(self.get_context_data(form=form))
                 form.instance.pk = existing.pk
                 form.instance.created = existing.created

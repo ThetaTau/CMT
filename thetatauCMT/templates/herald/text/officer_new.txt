@@ -20,7 +20,7 @@ conduct the business of Theta Tau according to our policies and bylaws.
 * The chapter management tool will handle many forms/tasks for your chapter, please login and review it now at {{ host }}
 * The latest policy and procedures manual is here: http://thetatau.org/policies
 * A list of manuals and resources are available here: http://thetatau.org/forms-manuals-resources
-* All overnight pledge events must be approved by emailing risk.management@thetatau.org
+* All overnight potential new member education events must be approved by emailing risk.management@thetatau.org
 
 ** Notes for your region:
 ------------------------------------------------------------

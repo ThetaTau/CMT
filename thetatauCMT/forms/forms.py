@@ -1278,7 +1278,7 @@ class PledgeProgramForm(forms.ModelForm):
         ),
     )
     date_initiation = forms.DateField(
-        label="When do you plan to initiate your pledges?",
+        label="When do you plan to initiate your PNMs?",
         help_text="Best estimated date is sufficient.",
         widget=DatePicker(
             options={"format": "M/DD/YYYY"},
@@ -1916,16 +1916,11 @@ class PrematureAlumnusForm(forms.ModelForm):
             "ask another chapter officer to submit this form on your behalf."
         ),
     )
-    form = forms.FileField(
-        help_text="Only PDF format accepted",
-        validators=[FileTypeValidator(allowed_types=["application/pdf"])],
-    )
 
     class Meta:
         model = PrematureAlumnus
         fields = [
             "user",
-            "form",
             "good_standing",
             "financial",
             "semesters",
@@ -2274,15 +2269,9 @@ class CollectionReferralForm(forms.ModelForm):
 
 
 class ResignationForm(forms.ModelForm):
-    letter = forms.FileField(
-        help_text="Only PDF format accepted",
-        validators=[FileTypeValidator(allowed_types=["application/pdf"])],
-    )
-
     class Meta:
         model = ResignationProcess
         fields = [
-            "letter",
             "resign",
             "secrets",
             "expel",

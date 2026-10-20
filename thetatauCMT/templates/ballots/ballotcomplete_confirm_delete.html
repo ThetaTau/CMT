@@ -10,7 +10,7 @@
   <div class="alert alert-warning" role="alert">
     This removes the submission so the ballot can be cast again. The voter, the
     chapter's officers, the Grand Regent and the Grand Scribe are all emailed.
-    How the ballot was voted is not shown to you and is not repeated in that email.
+    That email does not say how the ballot was voted.
   </div>
 
   <table class="table table-hover table-bordered table-striped">
@@ -31,6 +31,10 @@
       <td>{% if voting_chapter %}{{ voting_chapter.name }}{% else %}None{% endif %}</td>
       <th>Submitted on:</th>
       <td>{{ vote.created }}</td>
+    </tr>
+    <tr>
+      <th>Vote:</th>
+      <td colspan="3">{{ vote.get_motion_display }}</td>
     </tr>
     {% if vote.authority %}
       <tr>

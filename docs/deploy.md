@@ -82,7 +82,7 @@ From <https://help.pythonanywhere.com/pages/PostgresGettingStarted/>:
 
 ```sql
 CREATE DATABASE myappdb;
-CREATE USER myappuser WITH PASSWORD 'a-nice-random-password';
+CREATE USER myappuser WITH PASSWORD 'EXAMPLE_PASSWORD';  -- generate a real random one
 ALTER ROLE myappuser SET client_encoding TO 'utf8';
 ALTER ROLE myappuser SET default_transaction_isolation TO 'read committed';
 ALTER ROLE myappuser SET timezone TO 'UTC';
@@ -187,7 +187,7 @@ authoritative template.
 
 | Variable | Required | Default | Notes |
 |---|---|---|---|
-| `DATABASE_URL` | ✅ | — | `postgres://user:pass@host:port/dbname` |
+| `DATABASE_URL` | ✅ | — | `postgres://EXAMPLE_USER:EXAMPLE_PASSWORD@host:port/dbname` |
 | `CONN_MAX_AGE` | — | `60` | Persistent DB connections (seconds). |
 | `REDIS_URL` | — | `redis://127.0.0.1:6379` | Cache backend. |
 
@@ -408,7 +408,7 @@ the same `user:pass` in the URL.
 ```bash
 python manage.py register_mailjet_webhook --list          # show current registration
 python manage.py register_mailjet_webhook \
-    --url https://user:pass@cmt.thetatau.org/anymail/mailjet/tracking/
+    --url https://EXAMPLE_USER:EXAMPLE_PASSWORD@cmt.thetatau.org/anymail/mailjet/tracking/
 ```
 
 Full walk-through: [email_tracking_setup.md](email_tracking_setup.md).

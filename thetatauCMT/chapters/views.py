@@ -20,7 +20,7 @@ from thetatauCMT.users.tables import UserTable
 
 from .filters import ChapterListFilter
 from .forms import ChapterForm, ChapterFormHelper
-from .models import Chapter
+from .models import Chapter, DuesAttachmentUploadError
 from .tables import AuditTable, ChapterCurriculaTable, ChapterTable
 
 
@@ -506,11 +506,25 @@ class ChapterListView(LoginRequiredMixin, PagedFilteredTableView):
 
 class DuesSyncMixin:
     def sync_dues(self, request, queryset):
-        message = "Sync complete for chapters: <br>"
+        synced = []
         for chapter in queryset.all():
-            invoice_number = chapter.sync_dues(request)
-            message += f"{chapter}: {invoice_number}<br>"
-        messages.add_message(request, messages.INFO, mark_safe(message))
+            try:
+                invoice_number = chapter.sync_dues(request)
+            except DuesAttachmentUploadError as exc:
+                messages.error(
+                    request,
+                    f"{chapter}: invoice {exc.invoice_number} was created, but its dues CSV could not be attached. "
+                    "Check the invoice in QuickBooks before retrying the full sync.",
+                )
+                continue
+            if invoice_number:
+                synced.append(f"{chapter}: {invoice_number}")
+        if synced:
+            messages.add_message(
+                request,
+                messages.INFO,
+                mark_safe("Sync complete for chapters: <br>" + "<br>".join(synced)),
+            )
 
     sync_dues.short_description = "Sync selected chapters dues to Quickbooks"
 

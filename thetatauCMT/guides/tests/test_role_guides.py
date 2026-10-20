@@ -254,8 +254,8 @@ def test_tools_include_a_duty_the_task_carries_rather_than_the_roles_field():
     """
     user = _officer("scribe")
     guide = RoleGuideFactory(role="scribe")
-    Task.objects.create(name="Audit", owner="scribe", type="task", description="Audit")
-    linked = Task.objects.create(name="Audit", owner="treasurer", type="task", description="Audit")
+    Task.objects.create(name="Shared audit", owner="scribe", type="task", description="Audit")
+    linked = Task.objects.create(name="Shared audit", owner="treasurer", type="task", description="Audit")
     FeatureFactory(key="mine-audit", roles=[], task=linked)
 
     tools = services.get_role_guide_detail(guide, user)["tools"]

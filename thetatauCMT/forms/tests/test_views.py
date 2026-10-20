@@ -3043,9 +3043,14 @@ def test_initiation_view_post_candidate_chapter_without_badge_succeeds(auto_logi
 def test_premature_alumnus_create_view_get(auto_login_user):
     """PrematureAlumnusCreateView GET covers get_context_data."""
     client, user = auto_login_user()
+    _add_to_group(user, "officer")
     url = reverse("viewflow:forms:prematurealumnus:start")
     response = client.get(url, follow=True)
     assert response.status_code == 200
+    content = response.content.decode()
+    assert "must include the completed form" not in content
+    assert "15JqPP-Oqny-NAKFlNSPf0jD2FDG6qd5s" not in content
+    assert 'type="file"' not in content
 
 
 @pytest.mark.django_db
@@ -3907,22 +3912,26 @@ def test_resignation_create_view_get_with_submitted_process(auto_login_user):
     assert response.status_code == 200
 
 
+@pytest.mark.django_db
+def test_resignation_create_view_get_has_no_paperwork_upload(auto_login_user):
+    client, _user = auto_login_user()
+    url = reverse("viewflow:forms:resignation:start")
+    response = client.get(url, follow=True)
+    assert response.status_code == 200
+    content = response.content.decode()
+    assert "written resignation letter" not in content
+    assert 'type="file"' not in content
+
+
 def _valid_resignation_post_data():
-    """Minimal valid ResignationForm POST payload (PDF letter + agreements).
+    """Minimal valid ResignationForm POST payload without a paperwork upload.
 
-    ``b"%PDF-1.4 ..."`` passes ``upload_validator.FileTypeValidator`` (same trick
-    as ``test_bylaws_create_view_form_valid``); ``_viewflow_activation-started``
-    is the viewflow Start-view management form (ActivationDataForm), required so
-    the flow reaches ``form_valid`` (same trick as the nominations Start tests).
+    ``_viewflow_activation-started`` is the viewflow Start-view management form
+    (ActivationDataForm), required so the flow reaches ``form_valid``.
     """
-    import io
-
     from django.utils import timezone
 
-    letter = io.BytesIO(b"%PDF-1.4 fake pdf content")
-    letter.name = "letter.pdf"
     return {
-        "letter": letter,
         "resign": "True",
         "secrets": "True",
         "expel": "True",
