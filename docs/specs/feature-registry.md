@@ -71,7 +71,8 @@ environment gets the registry automatically.
 | `url_fragment` | Element id on the destination page, without the `#`, for a feature that is a control on a larger page. A test checks the id exists in some template. |
 | `external_url` | For destinations with no Django URL (Vector LMS, the national training portal). Wins over `url_name`. |
 | `audience`, `feature_flag` | Blank inherits the area's. |
-| `roles` | **Targeting, never permission.** Drives the "who submits it" chips, the "For your role" block on the Forms landing, and the Role Guide's "Tools you have access to". Values must exist in `core.models.ALL_ROLES`. The displayed list is this field **plus every owner of the linked `task`**, so set it only for roles a task cannot express — the Risk Management Chair who prepares what the Regent formally owes. Leave it empty for anything every member files individually: "who submits it" then falls back to naming the audience ("Every member"), which is the truthful answer for the RMP. || `task` | A `tasks.Task` slug. Gives the Forms landing its live due date and cadence. A task is one row *per owner*, so the Audit is five rows sharing a name: link any one of them and the catalog reads the whole name for its dates and its list of submitters. At most one feature may claim a given slug. |
+| `roles` | **Targeting, never permission.** Drives the "who submits it" chips, the "For your role" block on the Forms landing, and the Role Guide's "Tools you have access to". Values must exist in `core.models.ALL_ROLES`. The displayed list is this field **plus every owner of the linked `task`**, so set it only for roles a task cannot express — the Risk Management Chair who prepares what the Regent formally owes. Leave it empty for anything every member files individually: "who submits it" then falls back to naming the audience ("Every member"), which is the truthful answer for the RMP. |
+| `task` | A `tasks.Task` slug, always in the `slugify(name + owner)` form `Task.save()` writes (`duestreasurer`, `audittreasurer`). `Task.save()` re-derives the slug every time, including when a due date is added in the admin, so a slug in any other form changes on the next save and the entry loses its link. Gives the Forms landing its live due date and cadence. A task is one row *per owner*, so the Audit is five rows sharing a name: link any one of them and the catalog reads the whole name for its dates and its list of submitters. At most one feature may claim a given slug. |
 | `released_at`, `release_version` | Setting `released_at` is what makes something "new": it appears in What's New and carries a `New` badge for `settings.NEW_FEATURE_MAX_AGE_DAYS`. **Leave it blank to add a catalog entry without announcing it.** |
 | `is_highlighted` | Reserved for future emphasis. |
 
@@ -102,7 +103,7 @@ missing year of `TaskDate` rows rather than a bug here.
     {
       "title": "Pay dues on time",
       "body": "…",
-      "task": "dues",                        // optional tasks.Task slug
+      "task": "duestreasurer",               // optional tasks.Task slug
       "feature": "chapter-invoices",         // optional registry feature key
       "cadence": "each_term"                 // once | each_term | annual | ongoing
     }

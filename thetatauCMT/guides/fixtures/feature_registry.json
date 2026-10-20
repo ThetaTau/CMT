@@ -428,7 +428,7 @@
           "long_description": "This is the only form a prospective member fills in themselves, so it works without an account. PNMs must be reported before they can be initiated.",
           "url_name": "forms:pledgeform",
           "audience": "officer",
-          "task": "pledge-forms"
+          "task": "pledge-formsvice-regent"
         },
         {
           "key": "status-change-graduate",
@@ -483,7 +483,7 @@
           "url_name": "viewflow:forms:prematurealumnus:start",
           "audience": "officer",
           "roles": ["scribe"],
-          "task": "premature-alumnus"
+          "task": "premature-alumnusscribe"
         },
         {
           "key": "return-student",
@@ -537,7 +537,7 @@
           "url_name": "forms:officer_add",
           "audience": "officer",
           "roles": ["regent"],
-          "task": "officer-election-report"
+          "task": "officer-election-reportscribe"
         },
         {
           "key": "national-officers-directory",
@@ -598,7 +598,7 @@
           "url_name": "osmform",
           "audience": "officer",
           "roles": ["regent"],
-          "task": "outstanding-student-member"
+          "task": "outstanding-student-memberregent"
         },
         {
           "key": "all-osm-forms",
@@ -676,7 +676,7 @@
           "long_description": "Several officers each sign off a section, so the audit is not finished until all of them have submitted. Check Chapter tasks to see who is outstanding.",
           "url_name": "forms:audit",
           "audience": "officer",
-          "task": "audit-treasurer"
+          "task": "audittreasurer"
         },
         {
           "key": "all-audits",
@@ -708,7 +708,7 @@
           "url_name": "gear",
           "audience": "officer",
           "roles": ["corresponding secretary"],
-          "task": "gear-article"
+          "task": "gear-articlecorresponding-secretary"
         },
         {
           "key": "all-gear-articles",
@@ -732,7 +732,7 @@
           "short_description": "Put a member or chapter forward for a fraternity award.",
           "long_description": "Nominations are reviewed by the awards committee. Check the award's cycle before you start, because most close well before the award is presented. Regional Directors and National Officers see work across many chapters and are often the only ones placed to nominate it.",
           "url_name": "viewflow:awards:awardnomination:start",
-          "task": "awards",
+          "task": "awardsregent",
           "roles": ["regional director"]
         },
         {
@@ -1136,21 +1136,21 @@
           "title": "Complete the annual audit",
           "body": "The audit is signed by the Regent, Vice Regent, Scribe, Treasurer and Corresponding Secretary. Fill it in with your Treasurer, who holds the numbers.",
           "feature": "chapter-audit-form",
-          "task": "audit-regent",
+          "task": "auditregent",
           "cadence": "annual"
         },
         {
           "title": "Nominate your Outstanding Student Member",
           "body": "One member each year. Nominations close well before Convention, so put it on the chapter calendar early.",
           "feature": "osm-form",
-          "task": "outstanding-student-member",
+          "task": "outstanding-student-memberregent",
           "cadence": "annual"
         },
         {
           "title": "Put your members up for awards",
           "body": "Member, chapter and region awards all run through the same nomination flow. Nobody outside the chapter will do this for you.",
           "feature": "award-nomination",
-          "task": "awards",
+          "task": "awardsregent",
           "cadence": "annual"
         },
         {
@@ -1176,7 +1176,7 @@
           "title": "Submit the pledge form as soon as you pledge a class",
           "body": "The pledge form is what creates candidate records. Until it is filed the candidates do not exist on the roster and cannot be initiated.",
           "feature": "pledge-form",
-          "task": "pledge-forms",
+          "task": "pledge-formsvice-regent",
           "cadence": "each_term"
         },
         {
@@ -1216,7 +1216,7 @@
           "title": "Sign the annual audit",
           "body": "The Treasurer fills it in; you are one of the officers who signs it.",
           "feature": "chapter-audit-form",
-          "task": "audit-vice-regent",
+          "task": "auditvice-regent",
           "cadence": "annual"
         }
       ]
@@ -1230,14 +1230,14 @@
           "title": "Keep the roster current",
           "body": "Add, correct and update members as things change. Invoices, award eligibility and mailing lists all read from the roster, so an error here shows up everywhere else.",
           "feature": "chapter-roster",
-          "task": "member-updates",
+          "task": "member-updatesscribe",
           "cadence": "ongoing"
         },
         {
           "title": "Report officer elections",
           "body": "File within a week of the election. Officer records control who can sign what in this system, so a late report locks your new officers out of their own forms.",
           "feature": "submit-chapter-officers",
-          "task": "officer-election-report",
+          "task": "officer-election-reportscribe",
           "cadence": "annual"
         },
         {
@@ -1250,7 +1250,7 @@
           "title": "Submit premature alumnus requests",
           "body": "For members who need alumnus status before graduating. Requires chapter approval and national review, so start early.",
           "feature": "premature-alumnus",
-          "task": "premature-alumnus",
+          "task": "premature-alumnusscribe",
           "cadence": "each_term"
         },
         {
@@ -1276,7 +1276,7 @@
           "title": "Sign the annual audit",
           "body": "The Treasurer fills it in; you are one of the officers who signs it.",
           "feature": "chapter-audit-form",
-          "task": "audit-scribe",
+          "task": "auditscribe",
           "cadence": "annual"
         }
       ]
@@ -1295,7 +1295,7 @@
         {
           "title": "Pay dues on time",
           "body": "Dues are invoiced per member straight from the roster. Late payment affects the chapter's standing, not just its balance.",
-          "task": "dues",
+          "task": "duestreasurer",
           "cadence": "each_term"
         },
         {
@@ -1308,13 +1308,13 @@
           "title": "Lead the annual audit",
           "body": "The audit is mostly your numbers. The other officers sign it, but you are the one who fills it in.",
           "feature": "chapter-audit-form",
-          "task": "audit-treasurer",
+          "task": "audittreasurer",
           "cadence": "annual"
         },
         {
           "title": "Review the chapter inventory",
           "body": "Badges, jewelry, ritual equipment and other chapter property.",
-          "task": "review-inventory",
+          "task": "review-inventorytreasurer",
           "cadence": "annual"
         },
         {
@@ -1341,13 +1341,13 @@
           "title": "Write the chapter's Gear article",
           "body": "The Gear is the fraternity's magazine and every chapter contributes. A short article with a photo is enough.",
           "feature": "gear-article",
-          "task": "gear-article",
+          "task": "gear-articlecorresponding-secretary",
           "cadence": "annual"
         },
         {
           "title": "Send the alumni newsletter",
           "body": "Once a year, to the alumni on your roster.",
-          "task": "newsletter-for-alumni",
+          "task": "newsletter-for-alumnicorresponding-secretary",
           "cadence": "annual"
         },
         {
@@ -1373,7 +1373,7 @@
           "title": "Sign the annual audit",
           "body": "The Treasurer fills it in; you are one of the officers who signs it.",
           "feature": "chapter-audit-form",
-          "task": "audit-corresponding-secretary",
+          "task": "auditcorresponding-secretary",
           "cadence": "annual"
         }
       ]
