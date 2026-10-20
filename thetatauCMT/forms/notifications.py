@@ -459,7 +459,8 @@ class EmailProcessUpdate(EmailNotification):
         files = []
         if hasattr(model_obj, "form"):
             file = model_obj.form
-            files.append(file)
+            if file.name:
+                files.append(file)
         if attachments:
             for attachment in attachments:
                 model_obj_orig = None

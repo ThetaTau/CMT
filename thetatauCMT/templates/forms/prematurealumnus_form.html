@@ -11,9 +11,6 @@
   <hr>
   {% if request.is_officer %}
   Complete the form below to submit a premature alumnus request.<br>
-  <h3><i>You must include the completed form:</i><br>
-  <a href="https://drive.google.com/file/d/15JqPP-Oqny-NAKFlNSPf0jD2FDG6qd5s/view?usp=sharing">
-    https://drive.google.com/file/d/15JqPP-Oqny-NAKFlNSPf0jD2FDG6qd5s/view?usp=sharing</a></h3>
   <i>If approved, a ${{ prealumn_charge }} charge will be added to the chapter's next invoice.</i>
   <div class="alert alert-info" role="alert">
     <strong>Note:</strong> Officers cannot request premature alumnus status for
@@ -21,7 +18,7 @@
     another chapter officer submit this form on your behalf.
   </div>
   <hr>
-  <form method="POST" enctype="multipart/form-data">
+  <form method="POST">
     {{ form.media }}
     <link href="{% static 'css/project.css' %}" rel="stylesheet">
     {% csrf_token %}
