@@ -652,8 +652,10 @@ class SingleStatusChangeForm(CSMTForm):
         ),
     )
 
-    def __init__(self, *args, request_user=None, actives=None, reason=None, **kwargs):
+    def __init__(self, *args, request_user=None, actives=None, reason=None, self_resignation=False, **kwargs):
         self.request_user = request_user
+        self.self_resignation = self_resignation
+        self.reason = reason
         if reason is not None:
             # ``CSMTForm.__init__`` reads ``self.initial['reason']`` to decide
             # which fields to hide/disable, so seed it before calling super().
@@ -662,6 +664,15 @@ class SingleStatusChangeForm(CSMTForm):
         super().__init__(*args, **kwargs)
         if actives is not None:
             self.fields["user"].queryset = actives
+        if self_resignation:
+            self.fields["user"].widget = forms.HiddenInput()
+            self.initial["user"] = request_user
+        elif reason == "resignedCC":
+            self.fields["user"].widget.forward = (
+                forward.Const("true", "chapter"),
+                forward.Const("true", "actives"),
+                forward.Const("false", "exclude_self"),
+            )
         # The reason is fixed by the page; keep it on the instance but hidden.
         self.fields["reason"].widget = forms.HiddenInput()
         # Drop every optional field not relevant to this reason so it is hidden
@@ -673,9 +684,10 @@ class SingleStatusChangeForm(CSMTForm):
 
     def clean_user(self):
         # Replaces CSMTForm.clean_user (a name lookup): the member picker already
-        # yields a User. Only guard against an officer reporting on themselves.
+        # yields a User. Self-reporting is allowed only for a member's own
+        # candidate-chapter resignation.
         user = self.cleaned_data.get("user")
-        if self.request_user is not None and user == self.request_user:
+        if self.request_user is not None and user == self.request_user and self.reason != "resignedCC":
             raise forms.ValidationError(f"You cannot report a status change for yourself. {SELF_SUBMIT_FORBIDDEN_MSG}")
         return user
 

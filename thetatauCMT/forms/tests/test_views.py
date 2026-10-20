@@ -390,6 +390,62 @@ def test_resignedcc_available_for_candidate_chapter(auto_login_user):
 
 
 @pytest.mark.django_db
+def test_candidate_member_can_submit_only_their_own_resignation(auto_login_user):
+    from thetatauCMT.forms.models import StatusChange
+
+    client, user = auto_login_user()
+    user.chapter.candidate_chapter = True
+    user.chapter.save(update_fields=["candidate_chapter"])
+    user.current_status = "active"
+    user.save(update_fields=["current_status"])
+    url = reverse("forms:status_new", kwargs={"reason": "resignedCC"})
+
+    response = client.get(url)
+
+    assert response.status_code == 200
+    assert response.context["form"].fields["user"].widget.is_hidden
+    assert list(response.context["form"].fields["user"].queryset) == [user]
+
+    response = client.post(
+        url,
+        {"user": user.pk, "reason": "resignedCC", "date_start": "2026-10-20"},
+    )
+
+    assert response.status_code == 302
+    assert response.url == reverse("users:detail")
+    assert StatusChange.objects.filter(user=user, reason="resignedCC").exists()
+    user.refresh_from_db()
+    assert user.current_status == "alumniCC"
+
+
+@pytest.mark.django_db
+def test_candidate_officer_can_resign_themselves(auto_login_user):
+    from thetatauCMT.forms.models import StatusChange
+
+    client, user = auto_login_user()
+    _add_to_group(user, "officer")
+    user.chapter.candidate_chapter = True
+    user.chapter.save(update_fields=["candidate_chapter"])
+    user.current_status = "active"
+    user.save(update_fields=["current_status"])
+    url = reverse("forms:status_new", kwargs={"reason": "resignedCC"})
+
+    response = client.get(url)
+
+    assert response.status_code == 200
+    assert not response.context["form"].fields["user"].widget.is_hidden
+    assert user in response.context["form"].fields["user"].queryset
+
+    response = client.post(
+        url,
+        {"user": user.pk, "reason": "resignedCC", "date_start": "2026-10-20"},
+    )
+
+    assert response.status_code == 302
+    assert StatusChange.objects.filter(user=user, reason="resignedCC").exists()
+
+
+@pytest.mark.django_db
 def test_graduate_select_officer_returns_200(auto_login_user):
     client, user = auto_login_user()
     _add_to_group(user, "officer")

@@ -51,6 +51,25 @@ def test_user_detail_view_returns_200(auto_login_user):
 
 
 @pytest.mark.django_db
+@pytest.mark.parametrize(
+    "candidate_chapter,expected_url_name",
+    [(True, "forms:status_new"), (False, "forms:resignation")],
+)
+def test_profile_resignation_link_matches_chapter_type(auto_login_user, candidate_chapter, expected_url_name):
+    client, user = auto_login_user()
+    user.chapter.candidate_chapter = candidate_chapter
+    user.chapter.save(update_fields=["candidate_chapter"])
+
+    response = client.get(reverse("users:detail"))
+
+    assert response.status_code == 200
+    expected_url = (
+        reverse(expected_url_name, kwargs={"reason": "resignedCC"}) if candidate_chapter else reverse(expected_url_name)
+    )
+    assert f'href="{expected_url}"' in response.content.decode()
+
+
+@pytest.mark.django_db
 def test_user_detail_view_unauthenticated(client):
     url = reverse("users:detail")
     response = client.get(url)

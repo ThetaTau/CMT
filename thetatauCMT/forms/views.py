@@ -382,6 +382,14 @@ class FormLanding(LoginRequiredMixin, TemplateView):
         context = super().get_context_data(**kwargs)
         user = self.request.user
         groups = guide_services.get_feature_groups(user, FORM_GROUPS, fallback_area_key="forms-workflows")
+        chapter = user.current_chapter
+        if chapter.candidate_chapter:
+            for group in groups:
+                for entry in group["entries"]:
+                    if entry["feature"].key == "resignation":
+                        entry["url"] = reverse("forms:status_new", kwargs={"reason": "resignedCC"})
+                    elif entry["feature"].key == "resignations-list":
+                        entry["url"] = reverse("forms:status_history", kwargs={"reason": "resignedCC"})
         context["groups"] = groups
         context["duty_roles"] = sorted(guide_services.get_duty_roles(user))
         # "For your role" is a pinned view of rows already on the page rather than
@@ -777,9 +785,15 @@ class StatusChangeCreateView(LoginRequiredMixin, OfficerRequiredMixin, StatusCha
         if info is not None and info["multi"]:
             # Graduation is multi-member; send the officer to its select step.
             return redirect("forms:status_graduate_select")
+        if self.reason == "resignedCC" and request.user.is_authenticated and not request.user.is_officer_group:
+            return StatusChangeTypeMixin.dispatch(self, request, *args, **kwargs)
         return super().dispatch(request, *args, **kwargs)
 
     def get_actives(self):
+        if self.reason == "resignedCC" and not self.request.user.is_officer_group:
+            return self.request.user.current_chapter.actives().filter(pk=self.request.user.pk)
+        if self.reason == "resignedCC":
+            return self.request.user.current_chapter.actives().order_by("name")
         return self.request.user.current_chapter.actives().exclude(pk=self.request.user.pk).order_by("name")
 
     def get_form_kwargs(self):
@@ -787,6 +801,7 @@ class StatusChangeCreateView(LoginRequiredMixin, OfficerRequiredMixin, StatusCha
         kwargs["request_user"] = self.request.user
         kwargs["reason"] = self.reason
         kwargs["actives"] = self.get_actives()
+        kwargs["self_resignation"] = self.reason == "resignedCC" and not self.request.user.is_officer_group
         return kwargs
 
     def get_context_data(self, **kwargs):
@@ -794,6 +809,7 @@ class StatusChangeCreateView(LoginRequiredMixin, OfficerRequiredMixin, StatusCha
         context["helper"] = SingleStatusChangeFormHelper()
         context["type_label"] = self.type_info["label"]
         context["reason"] = self.reason
+        context["is_self_resignation"] = self.reason == "resignedCC" and not self.request.user.is_officer_group
         context["history_url"] = reverse("forms:status_history", kwargs={"reason": self.reason})
         return context
 
@@ -827,7 +843,8 @@ class StatusChangeCreateView(LoginRequiredMixin, OfficerRequiredMixin, StatusCha
                         )
                         return self.form_invalid(form)
         response = super().form_valid(form)
-        Task.mark_complete(name="Member Updates", chapter=chapter)
+        if self.request.user.is_officer_group:
+            Task.mark_complete(name="Member Updates", chapter=chapter)
         messages.add_message(
             self.request,
             messages.INFO,
@@ -836,6 +853,8 @@ class StatusChangeCreateView(LoginRequiredMixin, OfficerRequiredMixin, StatusCha
         return response
 
     def get_success_url(self):
+        if self.reason == "resignedCC" and not self.request.user.is_officer_group:
+            return reverse("users:detail")
         return reverse("forms:status_history", kwargs={"reason": self.reason})
 
 

@@ -39,7 +39,11 @@
               <a class="btn btn-outline-warning btn-sm" href="{% url 'two-factor-setup' %}">Setup 2FA</a>
               <a class="btn btn-outline-warning btn-sm" href="{% url 'two-factor-backup-tokens' %}">Backup 2FA</a>
               <a class="btn btn-outline-danger btn-sm" href="{% url 'two-factor-remove' %}">Remove 2FA</a>
-              <a class="btn btn-outline-danger btn-sm" href="{% url 'forms:resignation' %}">Resign Membership</a>
+              {% if object.chapter.candidate_chapter %}
+                <a class="btn btn-outline-danger btn-sm" href="{% url 'forms:status_new' reason='resignedCC' %}">Resign Membership</a>
+              {% else %}
+                <a class="btn btn-outline-danger btn-sm" href="{% url 'forms:resignation' %}">Resign Membership</a>
+              {% endif %}
             </div>
           {% endif %}
         </div>

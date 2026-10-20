@@ -29,12 +29,20 @@
   </script>
   <div class="page-header d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
     <h1 class="page-title mb-0">{{ type_label }} Status Change</h1>
-    <a class="btn btn-outline-secondary" href="{{ history_url }}">View submitted {{ type_label }} forms</a>
+    {% if not is_self_resignation %}
+      <a class="btn btn-outline-secondary" href="{{ history_url }}">View submitted {{ type_label }} forms</a>
+    {% endif %}
   </div>
-  <p>
-    Report a {{ type_label }} status change for a single member. You cannot report
-    a status change for yourself. Ask another officer to submit it on your behalf.
-  </p>
+  {% if is_self_resignation %}
+    <p>Submit your resignation from your candidate chapter.</p>
+  {% elif reason == "resignedCC" %}
+    <p>Report a candidate chapter resignation. You may submit your own resignation or report another member.</p>
+  {% else %}
+    <p>
+      Report a {{ type_label }} status change for a single member. You cannot report
+      a status change for yourself. Ask another officer to submit it on your behalf.
+    </p>
+  {% endif %}
   <form method="post">
     {% csrf_token %}
     {% for field in form.hidden_fields %}{{ field }}{% endfor %}
