@@ -2,6 +2,8 @@
 
 from unittest.mock import MagicMock, patch
 
+import pytest
+from quickbooks.exceptions import GeneralException, SevereException
 from quickbooks.objects.base import CustomerMemo
 
 
@@ -76,3 +78,40 @@ def test_invoice_search_force_new_accepts_int():
     query.assert_not_called()
     assert invoice.Id is None
     assert linenumber_count == 1
+
+
+def test_retry_quickbooks_api_retries_internal_server_error():
+    from core.finances import retry_quickbooks_api
+
+    operation = MagicMock(side_effect=[SevereException("InternalServerError", 10000), "uploaded"])
+    with patch("core.finances.time.sleep") as sleep:
+        result = retry_quickbooks_api(operation)
+
+    assert result == "uploaded"
+    assert operation.call_count == 2
+    sleep.assert_called_once_with(1.0)
+
+
+def test_retry_quickbooks_api_stops_after_max_attempts():
+    from core.finances import retry_quickbooks_api
+
+    error = SevereException("InternalServerError", 10000)
+    operation = MagicMock(side_effect=error)
+    with patch("core.finances.time.sleep") as sleep:
+        with pytest.raises(SevereException, match="InternalServerError"):
+            retry_quickbooks_api(operation, attempts=3)
+
+    assert operation.call_count == 3
+    assert sleep.call_count == 2
+
+
+def test_retry_quickbooks_api_does_not_retry_permanent_errors():
+    from core.finances import retry_quickbooks_api
+
+    operation = MagicMock(side_effect=GeneralException("ValidationException", 600))
+    with patch("core.finances.time.sleep") as sleep:
+        with pytest.raises(GeneralException):
+            retry_quickbooks_api(operation)
+
+    operation.assert_called_once_with()
+    sleep.assert_not_called()

@@ -1,15 +1,55 @@
 import datetime
+import logging
 import os
+import time
 
 import environ
 from django.conf import settings
 from intuitlib.client import AuthClient
 from quickbooks import QuickBooks
+from quickbooks.exceptions import QuickbooksException
 from quickbooks.objects.base import CustomerMemo
 from quickbooks.objects.detailline import SalesItemLine, SalesItemLineDetail
 from quickbooks.objects.invoice import Invoice
 from quickbooks.objects.item import Item
 from quickbooks.objects.term import Term
+
+logger = logging.getLogger(__name__)
+
+
+def _is_retryable_quickbooks_error(exc):
+    if not isinstance(exc, QuickbooksException) or exc.error_code != 10000:
+        return False
+    message = f"{exc.message} {exc.detail}".casefold()
+    return "internalservererror" in message or "internal server error" in message
+
+
+def retry_quickbooks_api(
+    operation,
+    *,
+    attempts=3,
+    initial_delay=1.0,
+    backoff=2.0,
+    description="QuickBooks API operation",
+):
+    """Retry a QuickBooks operation after its transient InternalServerError."""
+    delay = initial_delay
+    for attempt in range(1, attempts + 1):
+        try:
+            return operation()
+        except QuickbooksException as exc:
+            if not _is_retryable_quickbooks_error(exc) or attempt == attempts:
+                raise
+            logger.warning(
+                "%s failed with transient QuickBooks error %s (attempt %s/%s); retrying in %.1fs",
+                description,
+                exc.error_code,
+                attempt,
+                attempts,
+                delay,
+            )
+            time.sleep(delay)
+            delay *= backoff
 
 
 def get_quickbooks_client():
