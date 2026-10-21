@@ -116,5 +116,6 @@ dash==4.4.0
 # dash-renderer and dash-html-components were merged into dash in Dash 2.0; removed
 pandas==2.3.1
 plotly==6.8.0
+igraph==1.0.0  # https://python.igraph.org/  tree layout for the Big/Little family tree
 django-plotly-dash==2.5.1
 django-pandas==0.6.7

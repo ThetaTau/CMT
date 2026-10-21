@@ -155,6 +155,7 @@
                         <li><a class="dropdown-item" href="{% url 'users:gpas' %}">{% trans "GPAs" %}</a></li>
                       {% endif %}
                       <li><a class="dropdown-item" href="{% url 'users:service' %}">{% trans "Service Hours" %}</a></li>
+                      <li><a class="dropdown-item" href="{% url 'biglittle:tree' request.user.current_chapter.slug %}">{% trans "Family Tree" %}</a></li>
                       {% if request.is_officer or request.is_nat_officer %}
                         <li><a class="dropdown-item" href="{% url 'users:orgs' %}">{% trans "External Orgs" %}</a></li>
                       {% endif %}

@@ -43,6 +43,9 @@ from core.views import (
     RequestConfig,
     group_required,
 )
+from thetatauCMT.biglittle import services as big_little
+from thetatauCMT.biglittle.forms import AddLittleForm, MyBigForm
+from thetatauCMT.biglittle.models import BigLittle
 from thetatauCMT.chapters.models import Chapter
 from thetatauCMT.forms.forms import PledgeDemographicsForm
 from thetatauCMT.notes.tables import UserNoteTable
@@ -311,6 +314,7 @@ class UserProfileView(LoginRequiredMixin, DetailView):
                 "director_regions": (target.regional_director.all().prefetch_related("chapters").order_by("name")),
             }
         )
+        context["big_little"] = _profile_big_little(target, viewer, is_owner)
 
         # Volunteer nominations (#2/#3/#9/#14). Anyone can nominate a member;
         # the member (owner) and National Officers can see the status of the
@@ -407,6 +411,33 @@ class UserProfileView(LoginRequiredMixin, DetailView):
 UserDetailView = UserProfileView
 
 
+def _profile_big_little(target, viewer, is_owner):
+    """The profile's Big and Littles card, or None when the viewer may not see it (Q2)."""
+    chapter = big_little.link_chapter_for(target)
+    can_view_tree = big_little.can_view_tree(viewer, chapter)
+    if not (is_owner or can_view_tree):
+        return None
+    big_link = big_little.current_big_link(target)
+    littles = [link.little for link in big_little.current_little_links(target)]
+    has_pairings = big_link is not None or bool(littles)
+    initiated = big_little.is_initiated(target)
+    edit_url = ""
+    if is_owner:
+        edit_url = reverse("users:detail") + "#big_little"
+    elif big_little.can_manage(viewer, chapter):
+        edit_url = reverse("biglittle:record") + f"?little={target.pk}"
+    tree_url = ""
+    if has_pairings and can_view_tree:
+        tree_url = reverse("biglittle:tree", kwargs={"slug": chapter.slug}) + f"?member={target.pk}"
+    return {
+        "show": has_pairings or (is_owner and initiated),
+        "big": big_link.big if big_link else None,
+        "littles": littles,
+        "edit_url": edit_url if initiated else "",
+        "tree_url": tree_url,
+    }
+
+
 def _role_labels(current_roles):
     """Return a list of ``(slug, label)`` pairs for the user's current roles."""
     if not current_roles:
@@ -448,6 +479,8 @@ class UserDetailUpdateView(LoginRequiredMixin, MultiFormsView):
         "user": UserForm,
         "demo": PledgeDemographicsForm,
         "prefs": EmailPreferencesForm,
+        "big": MyBigForm,
+        "little": AddLittleForm,
     }
 
     # send the user back to their own page after a successful update
@@ -531,6 +564,41 @@ class UserDetailUpdateView(LoginRequiredMixin, MultiFormsView):
             form.save()
         return HttpResponseRedirect(self.get_success_url() + "#member_gpaservice")
 
+    def get_big_kwargs(self):
+        return {"user": self.request.user}
+
+    def get_little_kwargs(self):
+        return {"user": self.request.user}
+
+    def get_big_initial(self):
+        big = big_little.current_big(self.request.user)
+        return {"big": big.pk} if big else {}
+
+    def big_form_valid(self, form):
+        big = form.cleaned_data["big"]
+        try:
+            result = big_little.set_big(self.request.user, big, actor=self.request.user, source=BigLittle.Source.MEMBER)
+        except big_little.BigLittleError as error:
+            messages.error(self.request, error.messages[0])
+        else:
+            if result.outcome == big_little.UNCHANGED:
+                messages.info(self.request, "No changes were made.")
+            elif result.outcome == big_little.CHANGED:
+                messages.success(self.request, f"Changed your Big from {result.previous_big} to {big}.")
+            else:
+                messages.success(self.request, f"Recorded {big} as your Big.")
+        return HttpResponseRedirect(self.get_success_url() + "#big_little")
+
+    def little_form_valid(self, form):
+        little = form.cleaned_data["little"]
+        try:
+            big_little.set_big(little, self.request.user, actor=self.request.user, source=BigLittle.Source.MEMBER)
+        except big_little.BigLittleError as error:
+            messages.error(self.request, error.messages[0])
+        else:
+            messages.success(self.request, f"Recorded {little} as your Little.")
+        return HttpResponseRedirect(self.get_success_url() + "#big_little")
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context.update(
@@ -549,6 +617,15 @@ class UserDetailUpdateView(LoginRequiredMixin, MultiFormsView):
         RequestConfig(self.request, paginate={"per_page": 30}).configure(table)
         context["submission_table"] = table
         context["member_orgs"] = self.request.user.orgs.select_related("organization").order_by("-start")
+        user = self.request.user
+        context["big_little"] = {
+            "initiated": big_little.is_initiated(user),
+            "big_link": big_little.current_big_link(user),
+            "little_links": [
+                {"link": link, "can_remove": big_little.can_remove(user, link)}
+                for link in big_little.current_little_links(user)
+            ],
+        }
         return context
 
     def _get_form_kwargs(self, form_name, bind_form=False):

@@ -5,6 +5,12 @@
 {% load crispy_forms_utils %}
 {% load crispy_forms_field %}
 {% block title %}Initiation Report{{ object.name }}{% endblock %}
+{% block css %}
+  {{ block.super }}
+  <style>
+    .initiation-table .select2-container { width: 100% !important; min-width: 12rem; }
+  </style>
+{% endblock css %}
 {% block content %}
 <script>
 function update_dates() {
@@ -197,23 +203,29 @@ $('.returned_items-class input').change(function () {
         <li>
           The initiation fee is raised by a late fee for each if not submitted within 2 weeks of the initiation date.
         </li>
+        <li>
+          Big: pick each new member's final Big Brother mentor, the Big chosen at initiation, not a
+          temporary one from earlier in the program. The same Big can be picked for two new members.
+          Leave it blank if it is not decided yet; it can be added later.
+        </li>
       </ul>
       </th>
   </tr>
   </table>
-  <table{% if form_id %} id="{{ form_id }}_table"{% endif%} class="table table-striped table-sm">
+  <table{% if form_id %} id="{{ form_id }}_table"{% endif%} class="table table-striped table-sm initiation-table">
         <thead>
                 <tr>
-                  <th class="requiredField" style="width: 20%">User<span class="asteriskField">*</span></th>
-                  <th class="requiredField" style="width: 12%">Initiation Date<span class="asteriskField">*</span></th>
-                  <th class="requiredField" style="width: 12%">Graduation Date<span class="asteriskField">*</span></th>
-                  <th class="requiredField" style="width: 8%">Roll<span class="asteriskField">*</span></th>
-                  <th class="requiredField" style="width: 7%">GPA<span class="asteriskField">*</span></th>
-                  <th class="requiredField" style="width: 7%">Test A<span class="asteriskField">*</span></th>
-                  <th class="requiredField" style="width: 7%">Test B<span class="asteriskField">*</span></th>
+                  <th class="requiredField" style="width: 15%">User<span class="asteriskField">*</span></th>
+                  <th class="requiredField" style="width: 10%">Initiation Date<span class="asteriskField">*</span></th>
+                  <th class="requiredField" style="width: 10%">Graduation Date<span class="asteriskField">*</span></th>
+                  <th class="requiredField" style="width: 7%">Roll<span class="asteriskField">*</span></th>
+                  <th class="requiredField" style="width: 6%">GPA<span class="asteriskField">*</span></th>
+                  <th class="requiredField" style="width: 6%">Test A<span class="asteriskField">*</span></th>
+                  <th class="requiredField" style="width: 6%">Test B<span class="asteriskField">*</span></th>
                   {% if not is_candidate_chapter %}
-                  <th class="requiredField" style="width: 25%">Badge<span class="asteriskField">*</span></th>
+                  <th class="requiredField" style="width: 20%">Badge<span class="asteriskField">*</span></th>
                   {% endif %}
+                  <th style="width: 20%">Big</th>
                 </tr>
         </thead>
         <tbody>

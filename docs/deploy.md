@@ -347,7 +347,7 @@ These generate throwaway sample data and are guarded by `core.seed_guard`
 wire any of them into a scheduled task:
 `seed_awards_demo`, `seed_rollbook_qa`, `seed_contact_sync_examples`,
 `seed_dashboard_data`, `seed_pending_national_events`,
-`seed_transition_reports_demo`.
+`seed_transition_reports_demo`, `seed_big_little_demo`.
 
 The exception is `seed_transition_prompt_set` and `seed_transition_tags`: they
 load real production data and are meant to be run once
@@ -391,6 +391,7 @@ Each accepts a **username**, an **email**, or a **national-officer role name**
 | `GROUP_TAX_FORM` | `""` | URL of the group tax-exemption form on the chapter page. |
 | `PledgeWelcome` | `""` | HTML welcome copy included in the pledge welcome email. |
 | `JOBS_CREATION_EMAIL` | `""` | Recipient list notified on new job postings (whitespace/comma/semicolon separated). |
+| `BIG_LITTLE_MANAGER_ROLES` | `pledge/new member educator` | Roles that may record, change and remove anyone's Big for their chapter and upload a CSV of pairings, besides the chapter officers. Comma-separated role names as they appear on officer records. Missing or blank means the New Member Educator only. |
 
 ### 5.3 Feature flags (`feature_flags.json`)
 
@@ -715,6 +716,35 @@ otherwise restore the backup.
 `buildwatson` is not needed on a first deploy: no reports exist yet and each report
 indexes itself on save. If reports are ever imported, run
 `python manage.py buildwatson transitions.TransitionReport`.
+
+### 8.2 Upgrading into the Bigs and Littles release
+
+First release of the `biglittle` app (spec: `docs/specs/big-little.md`). It adds one
+migration (`biglittle` 0001, a new table only), one Python package (`igraph==1.0.0`),
+two static files (`js/biglittle.js`, `js/family_tree.js`), feature-catalog and
+role-guide entries, and one optional `Config` key. No scheduled tasks, no emails, no new
+environment variables.
+
+Run the standard flow in [§8](#8-updating-an-existing-deploy). Notes:
+
+1. `pip install -r requirements/production.txt` **is required** this time, for igraph.
+   It installs from a prebuilt wheel (manylinux_2_28, needs glibc 2.28 or newer). If pip
+   starts compiling it from source, stop and check the PythonAnywhere system image before
+   migrating. Check: `python -c "import igraph; print(igraph.__version__)"`.
+2. After `collectstatic`, confirm both scripts are in the manifest:
+   `grep -oE '(biglittle|family_tree)\.[a-f0-9]{12}\.js' staticfiles/staticfiles.json`.
+3. Optional: add `BIG_LITTLE_MANAGER_ROLES` in Django admin
+   ([§5.2](#52-setting-keys-default_configsjson)) only if roles other than the New Member
+   Educator should manage the chapter's records. The code default applies when it is
+   missing. Never `loaddata default_configs` on production.
+4. Smoke test. As a chapter officer: Members > Bigs & Littles shows the roster with
+   Record and Upload buttons; record a Big, then remove it. Open Members > Family Tree
+   (plotly.js loads from `cdn.plot.ly`, which the CSP already allows). As a plain member
+   of another chapter, the first chapter's tree redirects to your own. Confirm
+   `/features/` lists the new entries and Rollbar stays quiet.
+5. Rollback: `git checkout <previous sha>` and reload; the new table is harmless if left
+   in place. `python manage.py migrate biglittle zero` drops every recorded pairing, so
+   back up first.
 
 ---
 

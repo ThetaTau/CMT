@@ -149,6 +149,7 @@ LOCAL_APPS = [
     "thetatauCMT.email_tracking.apps.EmailTrackingConfig",
     "thetatauCMT.guides.apps.GuidesConfig",
     "thetatauCMT.transitions.apps.TransitionsConfig",
+    "thetatauCMT.biglittle.apps.BigLittleConfig",
     # Added after any apps which contain models for which to create signals
     "email_signals",
 ]

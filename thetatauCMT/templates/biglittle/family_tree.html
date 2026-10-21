@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}{{ chapter }} family tree{% endblock %}
+
+{% block content %}
+  <div class="page-header d-flex flex-wrap align-items-center gap-2 mb-3">
+    <h1 class="page-title mb-0">{{ chapter }} family tree</h1>
+    <div class="page-actions d-flex flex-wrap gap-2">
+      {% if is_current_chapter %}
+        <a href="{% url 'biglittle:list' %}" class="btn btn-outline-primary">
+          <i class="fas fa-list" aria-hidden="true"></i> Bigs and Littles list
+        </a>
+      {% endif %}
+      {% if can_manage %}
+        <a href="{% url 'biglittle:record' %}" class="btn btn-primary">
+          <i class="fas fa-plus" aria-hidden="true"></i> Record or change a Big
+        </a>
+        <a href="{% url 'biglittle:upload' %}" class="btn btn-outline-secondary">
+          <i class="fas fa-file-csv" aria-hidden="true"></i> Upload CSV
+        </a>
+      {% endif %}
+    </div>
+  </div>
+  <p class="text-body-secondary">
+    Each line runs from a Big down to their Littles, using the final Big chosen at initiation.
+    Hover over a name for details and click it to open the member's profile. Drag to move around
+    and use the toolbar to zoom or download a picture.
+  </p>
+
+  {% if notice %}
+    <div class="alert alert-info">{{ notice }}</div>
+  {% endif %}
+
+  {% if figure %}
+    {% if families|length > 1 %}
+      <form method="get" class="row g-2 align-items-end mb-3" id="family-picker">
+        <div class="col-auto">
+          <label for="family-select" class="form-label">Family</label>
+          <select id="family-select" name="family" class="form-select">
+            <option value="all"{% if selected_family == "all" %} selected{% endif %}>All families ({{ people_count }} people)</option>
+            {% for family in families %}
+              <option value="{{ family.root.pk }}"{% if selected_family == family.root.pk|stringformat:"s" %} selected{% endif %}>Family of {{ family.root.name }} ({{ family.size }} people)</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-auto">
+          <button type="submit" class="btn btn-primary">Show</button>
+        </div>
+      </form>
+    {% endif %}
+    <div class="overflow-auto border rounded">
+      <div id="family-tree-chart" role="img" data-filename="{{ chapter.slug }}-family-tree"
+           aria-label="Family tree chart for {{ chapter }}. A text version follows below."></div>
+    </div>
+    {{ figure|json_script:"family-tree-figure" }}
+    <details class="mt-3">
+      <summary>Text version of the tree</summary>
+      <ul class="mt-2">
+        {% for node in outline %}
+          {% include "biglittle/_outline_node.html" %}
+        {% endfor %}
+      </ul>
+    </details>
+  {% else %}
+    <div class="alert alert-secondary">
+      No Bigs have been recorded for {{ chapter }} yet.
+      {% if can_manage %}
+        <a href="{% url 'biglittle:record' %}">Record one</a> or <a href="{% url 'biglittle:upload' %}">upload a CSV</a>.
+      {% elif is_current_chapter %}
+        Record your own Big on <a href="{% url 'users:detail' %}#big_little">Edit My Info</a>.
+      {% endif %}
+    </div>
+  {% endif %}
+
+  {% if missing_big_count %}
+    <p class="text-body-secondary mt-3">
+      {{ missing_big_count }} initiated member{{ missing_big_count|pluralize }} of {{ chapter }}
+      {{ missing_big_count|pluralize:"has,have" }} no Big recorded yet.
+      {% if can_manage %}<a href="{% url 'biglittle:list' %}?big=no">See who</a>.{% endif %}
+    </p>
+  {% endif %}
+{% endblock content %}
+
+{% block javascript %}
+  {{ block.super }}
+  {% if figure %}
+    <script src="{{ plotlyjs_url }}" charset="utf-8"></script>
+    <script src="{% static 'js/family_tree.js' %}"></script>
+  {% endif %}
+{% endblock javascript %}

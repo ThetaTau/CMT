@@ -21,6 +21,8 @@ from core.forms import (
     Select2ListCreateMultipleChoiceField,
 )
 from core.models import CHAPTER_ROLES_CHOICES, NAT_OFFICERS_CHOICES
+from thetatauCMT.biglittle.forms import member_choice_field
+from thetatauCMT.biglittle.services import eligible_members
 from thetatauCMT.chapters.forms import ChapterForm
 from thetatauCMT.chapters.models import Chapter, ChapterCurricula
 from thetatauCMT.jobs.models import Major
@@ -150,6 +152,7 @@ class InitiationForm(forms.ModelForm):
             attrs={"autocomplete": "off"},
         ),
     )
+    big = member_choice_field("Big", required=False, aria_label="Big")
 
     class Meta:
         model = Initiation
@@ -163,6 +166,10 @@ class InitiationForm(forms.ModelForm):
             "test_b",
             "badge",
         ]
+
+    def __init__(self, *args, chapter=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["big"].queryset = eligible_members(chapter)
 
     def clean_roll(self):
         data = self.cleaned_data["roll"]
@@ -189,6 +196,7 @@ class InitiationFormHelper(FormHelper):
         "test_a",
         "test_b",
         "badge",
+        "big",
     )
 
 

@@ -113,6 +113,11 @@
                 {% endif %}
               </div>
             {% endif %}
+            {% if can_view_family_tree %}
+              <a href="{% url 'biglittle:tree' object.slug %}" class="btn btn-outline-primary btn-sm">
+                <i class="fa-solid fa-sitemap" aria-hidden="true"></i> Family tree
+              </a>
+            {% endif %}
           </div>
         </div>
       </div>

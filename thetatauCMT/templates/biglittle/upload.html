@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+{% block title %}Upload Bigs and Littles{% endblock %}
+
+{% block content %}
+  <div class="page-header d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+    <h1 class="page-title mb-0">Upload Bigs and Littles</h1>
+    <a class="btn btn-outline-secondary" href="{% url 'biglittle:list' %}">
+      <i class="fas fa-arrow-left" aria-hidden="true"></i> Back to list
+    </a>
+  </div>
+  <p>Record many Bigs at once for {{ request.user.current_chapter }} from a spreadsheet saved as CSV.</p>
+  <ul>
+    <li>
+      The first row must have the column names <code>badge_number_big</code> and
+      <code>badge_number_little</code>. Other columns, such as names, are ignored.
+    </li>
+    <li>One row per Little, using your chapter's badge (roll) numbers. A Big can appear on several rows.</li>
+    <li>Use each member's final Big, the one chosen at initiation. A row that gives a member a different Big replaces the old one.</li>
+    <li>
+      Every row is checked before anything is saved. Rows with problems are listed below and not
+      saved. Fix them and upload the file again; rows already saved will show as no change.
+    </li>
+  </ul>
+  <p><a href="{% url 'biglittle:upload_template' %}"><i class="fas fa-download" aria-hidden="true"></i> Download a template file</a></p>
+
+  <form id="big-little-upload-form" method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    {{ form|crispy }}
+    <button class="btn btn-primary" type="submit">Upload</button>
+  </form>
+
+  {% if result %}
+    <h2 class="h4 mt-4">Results</h2>
+    <p>{{ result.summary }}</p>
+    <div class="table-responsive">
+      <table class="table table-striped table-sm">
+        <thead>
+          <tr>
+            <th scope="col">Line</th>
+            <th scope="col">Big</th>
+            <th scope="col">Little</th>
+            <th scope="col">Result</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in result.rows %}
+            <tr{% if row.outcome == "error" %} class="table-danger"{% endif %}>
+              <td>{{ row.line }}</td>
+              <td>{{ row.big_badge|default:"None" }}{% if row.big %} ({{ row.big }}){% endif %}</td>
+              <td>{{ row.little_badge|default:"None" }}{% if row.little %} ({{ row.little }}){% endif %}</td>
+              <td>{{ row.message }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% endif %}
+{% endblock content %}

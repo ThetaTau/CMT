@@ -208,5 +208,15 @@
         "description": "Transition Reports: once a reminder offset at or below this value (days relative to due_date; negative = past due) is reached, the Regional Director is escalated in addition to the Regent. Whole number, normally negative (default -7).",
         "modified": "2026-09-05T00:00:00Z"
     }
+},
+{
+    "model": "configs.config",
+    "pk": null,
+    "fields": {
+        "key": "BIG_LITTLE_MANAGER_ROLES",
+        "value": "pledge/new member educator",
+        "description": "Bigs and Littles: roles that may record, change and remove Bigs for their whole chapter and upload a CSV of pairings, in addition to the chapter officers. Comma-separated role names exactly as they appear on officer records (for example: pledge/new member educator, scribe). Blank means the New Member Educator only.",
+        "modified": "2026-10-20T00:00:00Z"
+    }
 }
 ]

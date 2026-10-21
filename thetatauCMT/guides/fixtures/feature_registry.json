@@ -66,7 +66,7 @@
         {
           "key": "my-profile",
           "name": "My profile",
-          "short_description": "Your badge number, status, roles, employment, service hours and award history.",
+          "short_description": "Your badge number, status, roles, Big and Littles, employment, service hours and award history.",
           "long_description": "Admins can also see the member's internal ID number.",
           "url_name": "users:profile",
           "url_kwargs": {"username": "@username"}
@@ -85,6 +85,14 @@
           "long_description": "Set separately for your email, phone and address on your own info page. Your chapter's officers, National Officers and Admins can always see your contact details, because they need them to run the chapter and the fraternity. Beyond that you choose: only those officers, every member of your chapter, or any member on the site. The choice applies to your member profile, to member lists and to exports.",
           "url_name": "users:detail",
           "url_fragment": "user"
+        },
+        {
+          "key": "my-big-little",
+          "name": "My Big and Littles",
+          "short_description": "Record your Big, the final Big Brother mentor chosen at initiation, and add your Littles.",
+          "long_description": "Under 'My Big and Littles' on your own info page, once you are initiated. Pick your Big from your chapter's members; a new Big replaces the old one. You can also add a Little who has no Big recorded yet, and remove a Little you added. To change a Big someone else recorded for one of your Littles, ask a chapter officer or the New Member Educator.",
+          "url_name": "users:detail",
+          "url_fragment": "big_little"
         },
         {
           "key": "profile-picture",
@@ -234,6 +242,31 @@
           "name": "Log external org participation",
           "short_description": "Add an organization a member takes part in outside Theta Tau.",
           "url_name": "users:orgs_add"
+        },
+        {
+          "key": "big-little-list",
+          "name": "Bigs and Littles",
+          "short_description": "See each member's Big and how many Littles they have. Officers and the New Member Educator can record or change anyone's Big.",
+          "long_description": "Lists every initiated member of your chapter with their Big, the final Big Brother mentor chosen at initiation (not a temporary one), and their number of Littles. Filter it to find members with no Big recorded yet. Chapter officers and the New Member Educator can record or change a Big, or remove one entered by mistake. Every member can record their own Big from Edit My Info. A new Big replaces the old one.",
+          "url_name": "biglittle:list",
+          "roles": ["pledge/new member educator", "vice regent"]
+        },
+        {
+          "key": "family-tree",
+          "name": "Chapter family tree",
+          "short_description": "Your chapter's Big and Little family lines, drawn as an interactive tree.",
+          "long_description": "Each line runs from a Big down to their Littles, using the final Big chosen at initiation. Hover over a name for details, click it to open the member's profile, pick one family to focus on, or download the tree as a picture. A text version sits under the chart. Open to members of the chapter, its Regional Directors, National Officers and Admins.",
+          "url_name": "biglittle:tree",
+          "url_kwargs": {"slug": "@chapter_slug"}
+        },
+        {
+          "key": "upload-big-little",
+          "name": "Upload Bigs and Littles",
+          "short_description": "Record many Bigs at once from a CSV of badge numbers, with the columns badge_number_big and badge_number_little.",
+          "long_description": "One row per Little, using your chapter's badge (roll) numbers; a Big can appear on several rows, and other columns such as names are ignored. Every row is checked before anything is saved, rows with problems are listed so you can fix and upload again, and uploading the same file twice changes nothing. A row that gives a member a different Big replaces the old one. The page offers a template file.",
+          "url_name": "biglittle:upload",
+          "audience": "officer",
+          "roles": ["pledge/new member educator"]
         },
         {
           "key": "member-search-all",
@@ -416,7 +449,7 @@
           "key": "initiation-report",
           "name": "Initiation report",
           "short_description": "Report the members your chapter has initiated and order their badges.",
-          "long_description": "Select the PNMs being initiated, confirm their details, and submit. Badge numbers are assigned by the national office once the report is processed.",
+          "long_description": "Select the PNMs being initiated, confirm their details, and submit. Badge numbers are assigned by the national office once the report is processed. You can also record each new member's Big, the final Big chosen at initiation; the same Big can be picked for two new members, and a Big left blank can be added later.",
           "url_name": "forms:init_selection",
           "audience": "officer",
           "roles": ["scribe", "regent"],
@@ -1451,6 +1484,12 @@
           "body": "Alcohol and drug awareness, anti-harassment, and mental health recognition. Candidates should attend all three.",
           "feature": "hs-education-program",
           "cadence": "annual"
+        },
+        {
+          "title": "Record each new member's Big",
+          "body": "Record each new member's final Big, the one chosen at initiation, not a temporary one. Bigs can go on the initiation report; on the Bigs and Littles page you can record or change anyone's Big, find members with none recorded, or upload a CSV of badge numbers. Members can add their own too.",
+          "feature": "big-little-list",
+          "cadence": "each_term"
         },
         {
           "title": "Expect the depledge survey",

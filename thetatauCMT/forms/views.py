@@ -61,6 +61,8 @@ from core.views import (
     SuperuserRequiredMixin,
     group_required,
 )
+from thetatauCMT.biglittle.models import BigLittle
+from thetatauCMT.biglittle.services import BigLittleError, set_big
 from thetatauCMT.chapters.models import Chapter, ChapterCurricula
 from thetatauCMT.configs.models import Config
 from thetatauCMT.forms.notifications import CentralOfficeGenericEmail, TreasurerTermException
@@ -276,6 +278,7 @@ FORM_GROUPS = [
             "new-member-education-program",
             "all-nme-programs",
             "initiation-report",
+            "big-little-list",
             "roll-book-page",
             "status-change-graduate",
             "status-change-coop",
@@ -590,13 +593,13 @@ class InitiationView(LoginRequiredMixin, OfficerRequiredMixin, FormView):
             )
             context["roll_table"] = RollBookTable(data=data)
         else:
+            chapter = self.request.user.current_chapter
             formset = kwargs.get("formset", None)
             if formset is None:
-                formset = InitiationFormSet(prefix="initiates")
+                formset = InitiationFormSet(prefix="initiates", form_kwargs={"chapter": chapter})
             formset.initial = [
                 {"user": user, "roll": self.next_badge + num} for num, user in enumerate(self.to_initiate)
             ]
-            chapter = self.request.user.current_chapter
             self._configure_badge_field(formset)
             context["is_candidate_chapter"] = chapter.candidate_chapter
             context["formset"] = formset
@@ -619,7 +622,12 @@ class InitiationView(LoginRequiredMixin, OfficerRequiredMixin, FormView):
     def post(self, request, *args, **kwargs):
         initiate = request.session.get("init-selection", None)
         self.initial_info(initiate)
-        formset = InitiationFormSet(request.POST, request.FILES, prefix="initiates")
+        formset = InitiationFormSet(
+            request.POST,
+            request.FILES,
+            prefix="initiates",
+            form_kwargs={"chapter": self.request.user.current_chapter},
+        )
         formset.initial = [
             {"user": user.pk, "roll": self.next_badge + num} for num, user in enumerate(self.to_initiate)
         ]
@@ -635,6 +643,7 @@ class InitiationView(LoginRequiredMixin, OfficerRequiredMixin, FormView):
         update_list = []
         depledge_list = []
         initiations = []
+        bigs_recorded = []
         for form in formset:
             # ``Initiation.user`` is a OneToOneField, so a concurrent double
             # submit of the initiation report (two requests processing the same
@@ -656,6 +665,24 @@ class InitiationView(LoginRequiredMixin, OfficerRequiredMixin, FormView):
                 continue
             update_list.append(member)
             initiations.append(form.instance)
+            big = form.cleaned_data.get("big")
+            if big is not None:
+                try:
+                    set_big(
+                        member,
+                        big,
+                        actor=request.user,
+                        source=BigLittle.Source.INITIATION,
+                        chapter=form.instance.chapter,
+                    )
+                except BigLittleError as error:
+                    messages.add_message(
+                        request,
+                        messages.WARNING,
+                        f"Could not record {big} as {member}'s Big: {error.messages[0]}",
+                    )
+                else:
+                    bigs_recorded.append(member)
         for form in depledge_formset:
             # ``Depledge.user`` is a OneToOneField. A rapid double submit (or
             # re-depledging a PNM who was re-added after a prior depledge) tries
@@ -680,6 +707,12 @@ class InitiationView(LoginRequiredMixin, OfficerRequiredMixin, FormView):
                 request,
                 messages.INFO,
                 "You successfully submitted initiation report for:\n" f"{update_list}",
+            )
+        if bigs_recorded:
+            messages.add_message(
+                request,
+                messages.INFO,
+                f"Recorded the Big for: {', '.join(str(member) for member in bigs_recorded)}.",
             )
         if depledge_list:
             messages.add_message(

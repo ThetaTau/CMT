@@ -10,6 +10,7 @@ from django.views.generic import RedirectView, TemplateView
 from core.forms import MultiFormsView
 from core.models import CHAPTER_OFFICER
 from core.views import LoginRequiredMixin, PagedFilteredTableView, RequestConfig
+from thetatauCMT.biglittle.services import can_view_tree
 from thetatauCMT.configs.models import Config
 from thetatauCMT.forms.models import Audit
 from thetatauCMT.forms.notifications import EmailAdvisorWelcome
@@ -193,6 +194,7 @@ class ChapterDetailView(LoginRequiredMixin, MultiFormsView):
         # linked to their member profiles on the chapter detail page.
         region = chapter.region
         context["region_directors"] = region.directors.all().order_by("last_name", "name") if region else []
+        context["can_view_family_tree"] = can_view_tree(self.request.user, chapter)
         return context
 
     def get_form_kwargs(self, form_name, bind_form=False):

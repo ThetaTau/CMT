@@ -1,0 +1,12 @@
+<li>
+  <a href="{% url 'biglittle:member' node.person.pk %}">{{ node.person.name }}</a>
+  {% if node.person.chapter_note %}<span class="text-body-secondary">({{ node.person.chapter_note }})</span>{% endif %}
+  {% if node.person.initiated %}<span class="text-body-secondary small">initiated {{ node.person.initiated }}</span>{% endif %}
+  {% if node.children %}
+    <ul>
+      {% for node in node.children %}
+        {% include "biglittle/_outline_node.html" %}
+      {% endfor %}
+    </ul>
+  {% endif %}
+</li>

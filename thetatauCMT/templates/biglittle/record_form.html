@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+{% block title %}Record or change a Big{% endblock %}
+
+{% block css %}
+  {{ block.super }}
+  <style>
+    #big-little-record-form .select2-container { width: 100% !important; }
+  </style>
+{% endblock css %}
+
+{% block content %}
+  {{ form.media }}
+  <div class="page-header d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+    <h1 class="page-title mb-0">Record or change a Big</h1>
+    <a class="btn btn-outline-secondary" href="{% url 'biglittle:list' %}">
+      <i class="fas fa-arrow-left" aria-hidden="true"></i> Back to list
+    </a>
+  </div>
+  <p>
+    Pick a member of {{ request.user.current_chapter }} and their final Big, the one chosen at
+    initiation. If the member already has a Big, the new one replaces it. A Big can have more
+    than one Little.
+  </p>
+
+  <form id="big-little-record-form" method="post">
+    {% csrf_token %}
+    {{ form|crispy }}
+    <button class="btn btn-primary" type="submit">Save</button>
+  </form>
+{% endblock content %}
