@@ -11,7 +11,7 @@ from thetatauCMT.chapters.tests.factories import ChapterFactory
 from thetatauCMT.forms.tests.factories import InitiationFactory
 from thetatauCMT.trainings.admin import AssignTrainingMixin
 from thetatauCMT.trainings.models import COMMUNITY_EDU_COURSE_ID, COMMUNITY_EDU_COURSE_TITLE, Training
-from thetatauCMT.users.models import User
+from thetatauCMT.users.models import User, UserStatusChange
 from thetatauCMT.users.tests.factories import UserFactory
 
 
@@ -48,6 +48,126 @@ def test_training_list_view_unauthenticated(client):
     response = client.get(url)
     assert response.status_code == 302
     assert "/accounts/login/" in response["Location"]
+
+
+def _member_with_training(chapter, current_status="active", pnm_starts=()):
+    member = UserFactory.create(chapter=chapter, current_status=current_status)
+    for start in pnm_starts:
+        UserStatusChange.objects.create(user=member, status="pnm", start=start, end=start + datetime.timedelta(days=30))
+    Training.objects.create(
+        user=member,
+        progress_id="p",
+        course_id=COMMUNITY_EDU_COURSE_ID,
+        course_title=COMMUNITY_EDU_COURSE_TITLE,
+        completed=False,
+        max_quiz_score=0,
+    )
+    return member
+
+
+def _row_for(response, member):
+    return next(row for row in response.context["table"].rows if row.record.user_id == member.pk)
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    "pnm_start, semester",
+    [
+        (datetime.date(2024, 9, 15), "Fall 2024"),
+        (datetime.date(2025, 6, 30), "Spring 2025"),
+        (datetime.date(2025, 7, 1), "Fall 2025"),
+    ],
+)
+def test_training_list_shows_current_status_and_semester_pledged(auto_login_user, pnm_start, semester):
+    client, viewer = auto_login_user()
+    member = _member_with_training(viewer.chapter, current_status="alumni", pnm_starts=[pnm_start])
+
+    row = _row_for(client.get(reverse("trainings:list")), member)
+
+    assert (row.get_cell("current_status"), row.get_cell("pledge_semester")) == ("Alumni", semester)
+
+
+@pytest.mark.django_db
+def test_training_list_semester_pledged_uses_the_most_recent_pnm_status(auto_login_user):
+    client, viewer = auto_login_user()
+    member = _member_with_training(viewer.chapter, pnm_starts=[datetime.date(2024, 10, 1), datetime.date(2025, 2, 10)])
+
+    row = _row_for(client.get(reverse("trainings:list")), member)
+
+    assert row.get_cell("pledge_semester") == "Spring 2025"
+
+
+@pytest.mark.django_db
+def test_training_list_semester_pledged_is_none_without_a_pnm_status(auto_login_user):
+    client, viewer = auto_login_user()
+    member = _member_with_training(viewer.chapter)
+
+    row = _row_for(client.get(reverse("trainings:list")), member)
+
+    assert row.get_cell("pledge_semester") == "None"
+
+
+@pytest.mark.django_db
+def test_training_list_sorts_by_current_status_and_semester_pledged(auto_login_user):
+    client, viewer = auto_login_user()
+    alumnus = _member_with_training(viewer.chapter, current_status="alumni", pnm_starts=[datetime.date(2021, 9, 1)])
+    pnm = _member_with_training(viewer.chapter, current_status="pnm", pnm_starts=[datetime.date(2024, 9, 1)])
+
+    def members_sorted_by(sort):
+        response = client.get(reverse("trainings:list"), {"sort": sort})
+        assert response.status_code == 200
+        return [row.record.user for row in response.context["table"].rows]
+
+    assert members_sorted_by("pledge_semester") == [alumnus, pnm]
+    assert members_sorted_by("-current_status") == [pnm, alumnus]
+
+
+@pytest.mark.django_db
+def test_training_list_filters_by_current_status_including_candidate_chapter_variant(auto_login_user):
+    client, viewer = auto_login_user()
+    active = _member_with_training(viewer.chapter, current_status="active")
+    candidate_chapter_active = _member_with_training(viewer.chapter, current_status="activeCC")
+    _member_with_training(viewer.chapter, current_status="alumni")
+
+    response = client.get(reverse("trainings:list"), {"current_status": "active"})
+
+    assert {row.record.user for row in response.context["table"].rows} == {active, candidate_chapter_active}
+
+
+@pytest.mark.django_db
+def test_training_list_filters_by_semester_pledged(auto_login_user):
+    client, viewer = auto_login_user()
+    first_day = _member_with_training(viewer.chapter, pnm_starts=[datetime.date(2024, 7, 1)])
+    last_day = _member_with_training(viewer.chapter, pnm_starts=[datetime.date(2024, 12, 31)])
+    for start in (datetime.date(2024, 6, 30), datetime.date(2025, 1, 1)):
+        _member_with_training(viewer.chapter, pnm_starts=[start])
+    _member_with_training(viewer.chapter)
+
+    response = client.get(reverse("trainings:list"), {"pledge_semester": "fa-2024"})
+
+    assert {row.record.user for row in response.context["table"].rows} == {first_day, last_day}
+
+
+@pytest.mark.django_db
+def test_training_list_semester_pledged_choices_are_the_chapters_semesters_newest_first(auto_login_user):
+    client, viewer = auto_login_user(user=UserFactory.create(chapter=ChapterFactory.create(name="alpha")))
+    for start in (
+        datetime.date(2024, 9, 1),
+        datetime.date(2025, 8, 1),
+        datetime.date(2025, 2, 1),
+        datetime.date(2024, 10, 1),
+    ):
+        _member_with_training(viewer.chapter, pnm_starts=[start])
+    _member_with_training(ChapterFactory.create(name="beta"), pnm_starts=[datetime.date(2019, 9, 1)])
+
+    response = client.get(reverse("trainings:list"))
+
+    assert list(response.context["filter"].form.fields["pledge_semester"].choices) == [
+        ("", "Any semester pledged"),
+        ("fa-2025", "Fall 2025"),
+        ("sp-2025", "Spring 2025"),
+        ("fa-2024", "Fall 2024"),
+    ]
 
 
 class _RecordingUserAdmin(AssignTrainingMixin, dj_admin.ModelAdmin):

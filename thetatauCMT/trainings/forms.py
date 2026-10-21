@@ -26,6 +26,8 @@ class TrainingListFormHelper(FormHelper):
             Fieldset(
                 '<i class="fas fa-search"></i> Filter Trainings',
                 Row(
+                    InlineField("current_status"),
+                    InlineField("pledge_semester"),
                     InlineField("course_title"),
                     InlineField("completed"),
                     InlineField("completed_time"),

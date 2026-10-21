@@ -1,8 +1,10 @@
 from django.contrib import messages
+from django.db.models import OuterRef, Subquery
 from django.utils.dateparse import parse_date
 from django.views.generic import TemplateView
 
 from core.views import LoginRequiredMixin, PagedFilteredTableView, SuperuserRequiredMixin
+from thetatauCMT.users.models import UserStatusChange
 
 from .filters import TrainingListFilter
 from .forms import TrainingListFormHelper
@@ -13,6 +15,12 @@ from .tables import TrainingTable
 
 class TrainingListView(LoginRequiredMixin, PagedFilteredTableView):
     model = Training
+    # Most recent PNM status, so a member who re-pledged shows their current class.
+    queryset = Training.objects.annotate(
+        pledge_date=Subquery(
+            UserStatusChange.objects.filter(user=OuterRef("user"), status="pnm").order_by("-start").values("start")[:1]
+        )
+    )
     context_object_name = "training"
     ordering = ["-completed_time"]
     table_class = TrainingTable

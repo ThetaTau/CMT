@@ -112,6 +112,12 @@ def current_year_term_slug():
     return f"{term}_{current_year()}"
 
 
+def semester_label(given_date):
+    """The semester containing ``given_date``, e.g. "Fall 2024"."""
+    term = {"fa": "Fall", "sp": "Spring"}[SEMESTER[given_date.month]]
+    return f"{term} {given_date.year}"
+
+
 def previous_month_period(today=None):
     """(start, end) dates of the calendar month before ``today`` (default: today)."""
     today = today or timezone.now().date()
