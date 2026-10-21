@@ -1,8 +1,11 @@
 # Bigs, Littles and the chapter family tree
 
-**Status (2026-10-20):** Built. Questions answered (see the [Decisions log](#decisions-log)),
-all eleven work items built and tested, full suite green (3,492 passed, 16 skipped). Still
-open: your manual checks in a browser (see [Verification](#verification)) and the deploy.
+**Status (2026-10-21):** Built. Questions Q1 to Q12 answered (see the
+[Decisions log](#decisions-log)), all eleven original work items built and tested. A follow-up,
+BLWI-12 (names in the CSV upload, plus a review page for names that do not match), is built
+and tested using the defaults of the new questions [Q13 and Q14](#follow-up-questions-name-upload-2026-10-21),
+which are waiting for your answers. Still open: your manual checks in a browser (see
+[Verification](#verification)) and the deploy.
 
 **How to use this document**
 
@@ -33,6 +36,7 @@ App: `thetatauCMT.biglittle`. URL prefix: `/biglittle/`. URL namespace: `biglitt
 | BLWI-9 | Family tree page | 3, 8 | Manual theme check | Built and tested |
 | BLWI-10 | Profile card | 5, 6, 9 | | Done |
 | BLWI-11 | Role guide, QA seed command, docs, full test run | all | Manual checks | Built and tested |
+| BLWI-12 | Names in the CSV upload; review page for names that do not match | 7 | Q13, Q14, manual check | Built and tested |
 
 Build order: BLWI-1, 2, 3, then 4, 5, 6 and 7 in any order. BLWI-8 can be built any time
 after BLWI-1. Then 9, 10 and 11.
@@ -52,6 +56,7 @@ after BLWI-1. Then 9, 10 and 11.
 | R9 | Member selection uses the usual type-to-search member dropdown. | BLWI-3 |
 | R10 | A chapter page with a Plotly tree graph (https://plotly.com/python/tree-plots/), usable as an HTML family tree / connection chart. | BLWI-8, BLWI-9 |
 | R11 | Officers can upload a CSV with the headers `badge_number_big,badge_number_little`. | BLWI-7 |
+| R12 | (2026-10-21) A request arrives as `little_full_name, big_full_name`, and nobody knows how well the spelling matches the roster. The CSV upload should handle names, with a way to deal with a name nobody recognizes. | BLWI-12 |
 
 ## Questions for review
 
@@ -185,10 +190,11 @@ committee chair and is not in that group.
 - **S6.** Hovering a name shows the name, roll number, initiation term, Big and number of
   Littles. Clicking opens the member's profile. Status only appears as the legend groups
   Active, Alumni and Other.
-- **S7.** CSV upload: extra columns such as names are ignored; .csv files only; 5 MB and
-  5,000 rows at most; every row is checked before any row is saved; uploading the same file
-  twice changes nothing the second time; a Little listed twice in one file is an error. The
-  upload page offers a template file with just the two headers.
+- **S7.** CSV upload: .csv files only; 5 MB and 5,000 rows at most; every row is checked
+  before any row is saved; uploading the same file twice changes nothing the second time; a
+  Little listed twice in one file is an error. Columns that are neither badge numbers nor
+  names are ignored (names became usable in BLWI-12). The upload page offers a template file
+  for each format.
 - **S8.** New Members menu items: "Bigs & Littles" and "Family Tree". A "Family tree" button
   on the chapter page. The list page also appears in the Membership group of the forms page,
   next to the initiation report.
@@ -196,6 +202,43 @@ committee chair and is not in that group.
   the Dash dashboards have had.
 - **S10.** Links in the tree go through a small `/biglittle/member/<id>/` redirect, so the
   page never prints every member's username (usernames are email addresses).
+
+### Follow-up questions: name upload (2026-10-21)
+
+Asked when R12 came in; you were away, so BLWI-12 was built with the defaults. Changing
+either answer is a small change to `services._send_to_review` or `names.Roster.match`.
+
+### Q13. A name close to a member's name, but not exact ("Jon Smyth" for "John Smith"):
+
+- **A (default):** Never guessed. The row waits on the review page with the closest members
+  listed and the best one already selected, so confirming takes one click. Only a name that
+  matches exactly one member saves straight away.
+- **B:** Save it straight away when one member is clearly closest (for example 90% alike and
+  well ahead of the next), and flag the row in the results so it can be checked.
+
+**Answer:**
+
+### Q14. A row dismissed on the review page, when the same file is uploaded again:
+
+- **A (default):** Skipped, and reported as "dismissed on the review page" in the results.
+- **B:** Put back on the review page.
+
+**Answer:**
+
+Smaller defaults for BLWI-12 (no answer needed unless you disagree):
+
+- **S11.** Matching ignores capitals, accents, punctuation, word order and the suffixes Jr.,
+  Sr., II, III and IV. Each member is matched under their display name, first or preferred
+  name or nickname with their last or maiden name, and first, middle (or middle initial) and
+  last name.
+- **S12.** Only the uploader's chapter roster is searched (badge numbers already work this
+  way, and Q7 keeps Bigs in the same chapter). A person from another chapter, or not in the
+  CMT, is dismissed; admins can record a rare cross-chapter case in Django admin.
+- **S13.** Up to five suggestions per name, each at least 60% alike, drawn from initiated
+  members only. A name that exactly matches a PNM is an error on its line, the same as a PNM's
+  badge number.
+- **S14.** A file can mix formats: each side uses its badge number when the row has one, and
+  the name otherwise. `big_name` and `little_name` are accepted as headers too.
 
 ## Shared preamble
 
@@ -280,6 +323,20 @@ Rules enforced by the database:
 
 Queryset helpers: `BigLittle.objects.current()` and `.former()`, also available on
 `user.links_as_big` (their Littles) and `user.links_as_little` (their Bigs).
+
+A second table, added in BLWI-12: `biglittle.PendingPairing`, an uploaded row naming someone
+who did not match exactly one member, waiting on the review page.
+
+| Field | Type | Notes |
+|---|---|---|
+| `chapter` | FK to Chapter, cascade, related name `pending_big_little_rows` | The uploader's chapter. |
+| `fingerprint` | Text (64) | SHA-256 of the chapter and both normalized cells. Unique per chapter, so a re-upload updates the row or reuses its answer. |
+| `line` | Whole number | Line in the latest upload. |
+| `little_text`, `big_text` | Text (255) | The cells as typed. Real names, so the anonymizer drops every row. |
+| `little`, `big` | FK to User, set null | A side that matched on upload, or the member picked on review. |
+| `little_suggestions`, `big_suggestions` | JSON | `[{"pk": id, "score": 0.95}]`, best first. |
+| `status` | Text choice | `pending`, `saved` or `dismissed`. |
+| `uploaded_by`, `resolved_by`, `resolved_at` | FK to User (set null), date and time | |
 
 ## Work items
 
@@ -653,6 +710,61 @@ Done when:
 - [x] The full suite is at baseline (2026-10-20: 3,492 passed, 16 skipped, 0 failed)
 - [ ] Manual checks done
 
+### BLWI-12: Names in the CSV upload, and a review page
+
+Asked for in R12. Built 2026-10-21 with the defaults of Q13 and Q14.
+
+Build:
+
+- `thetatauCMT/biglittle/names.py`, with no database access:
+  - `normalize_name`, `name_forms` (S11) and `Roster`, built from one
+    `chapter.members.values(*ROSTER_FIELDS)` query.
+  - `Roster.match(text)` returns the member when exactly one matches, otherwise up to five
+    suggestions (S13).
+  - Scoring every member against a misspelled name took about 100 ms per name for a
+    2,500-member chapter. Only members whose name words are the same or nearly the same as
+    the name's words are scored now (about 8 ms). A name typed as one run-together word is
+    split against the known words first.
+- `services.import_big_little_csv`:
+  - Each side takes `badge_number_big`/`badge_number_little` or
+    `big_full_name`/`little_full_name` (also `big_name`/`little_name`); a side needs at least
+    one of the two (S14).
+  - A row whose names do not each match exactly one member is queued as a `PendingPairing`
+    (outcome "review") instead of being saved, unless the other side has a problem.
+  - On re-upload, a waiting row is refreshed, a dismissed row is skipped (Q14), and a saved
+    row reuses the members picked on review.
+  - The summary counts rows waiting for review and rows skipped.
+- Review page `review/` (`biglittle:review`, managers only, `PendingPairingReviewView`):
+  - One form per waiting row: radio suggestions (or the member matched on upload),
+    preselected, plus the usual member search. A searched member wins over a suggestion.
+  - Save runs `set_big` (source "upload") and closes the row; the usual rules still apply.
+    Dismiss closes it without saving, after a confirmation.
+- Upload page: both formats explained, two template downloads (`?columns=names` gives
+  `little_full_name,big_full_name`), a link to the review page when rows are waiting, and
+  review rows highlighted in the results. The list page shows a "Review uploaded names"
+  button with the count.
+- `biglittle.js` also honors `data-confirm` on a submit button.
+- Migration `0002_pendingpairing`, admin, and the anonymizer (`register_clean`, because the
+  cells as typed are real names).
+- Registry: reworded `upload-big-little`, new `review-big-little-names`, and the NME role
+  guide step mentions names.
+
+Done when:
+
+- [x] Exact names save whatever the capitals, accents, word order, punctuation or suffix
+- [x] Name and badge columns mix, and a badge number wins over a name on the same row
+- [x] A misspelled name, a name shared by two members and an unknown name each wait for
+  review with the right message and suggestions; nothing is saved for those rows
+- [x] A PNM named exactly, or a missing name, is an error on its line and is not queued
+- [x] Re-uploads refresh waiting rows, skip dismissed rows and reuse saved answers; a saved
+  answer whose member was deleted goes back for review
+- [x] Review page: lists only the chapter's waiting rows; save with a suggestion or a searched
+  member; nothing chosen, an unoffered choice and a self-pairing are refused; dismiss works;
+  closed or other chapters' rows cannot be changed; non-managers are redirected
+- [x] The list and upload pages point managers at waiting rows
+- [ ] Manual check: upload a names file with a typo and an unknown name, then save one and
+  dismiss the other on the review page
+
 ## Verification
 
 ```bash
@@ -678,6 +790,8 @@ add `--reset` to start over):
 - Edit My Info as a PNM and as an initiated member
 - List and record pages as a plain member, an officer and the New Member Educator
 - CSV upload with the template, and with a file containing errors
+- CSV upload by name (the names template), with one misspelled and one unknown name; then
+  the review page: save the suggestion for one, dismiss the other, and upload the file again
 - Tree page in light and dark themes, with `?member=`, clicking a name, and the PNG download
 - Profile card as the member, as a manager and as another member
 
@@ -689,9 +803,9 @@ Production is PythonAnywhere (see `docs/deploy.md`). One new Python package,
 1. `pip install -r requirements/production.txt`. igraph installs from a prebuilt wheel
    (manylinux_2_28, so the server needs glibc 2.28 or newer). If pip starts compiling it
    from source, stop and check the PythonAnywhere system image first.
-2. `python manage.py migrate`
+2. `python manage.py migrate` (`biglittle` 0001 and, for BLWI-12, 0002)
 3. `python manage.py collectstatic --noinput --settings=config.settings.production` for the
-   new JS files, then Reload the web app
+   new and changed JS files, then Reload the web app
 4. `python manage.py load_feature_registry`
 5. Add the `BIG_LITTLE_MANAGER_ROLES` Config row in Django admin. Never run
    `loaddata default_configs` on production; it overrides values set in admin.

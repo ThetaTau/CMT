@@ -262,9 +262,18 @@
         {
           "key": "upload-big-little",
           "name": "Upload Bigs and Littles",
-          "short_description": "Record many Bigs at once from a CSV of badge numbers, with the columns badge_number_big and badge_number_little.",
-          "long_description": "One row per Little, using your chapter's badge (roll) numbers; a Big can appear on several rows, and other columns such as names are ignored. Every row is checked before anything is saved, rows with problems are listed so you can fix and upload again, and uploading the same file twice changes nothing. A row that gives a member a different Big replaces the old one. The page offers a template file.",
+          "short_description": "Record many Bigs at once from a CSV that names each Big and Little by badge number or by full name.",
+          "long_description": "One row per Little, with the columns badge_number_big and badge_number_little, or big_full_name and little_full_name; a Big can appear on several rows. Names are matched to your chapter's roster ignoring capitals, accents, punctuation, word order and suffixes, and a name that matches nobody exactly, or several members, waits on the review page instead of being guessed. Every row is checked before anything is saved, rows with problems are listed so you can fix and upload again, and uploading the same file twice changes nothing. A row that gives a member a different Big replaces the old one. The page offers template files for both formats.",
           "url_name": "biglittle:upload",
+          "audience": "officer",
+          "roles": ["pledge/new member educator"]
+        },
+        {
+          "key": "review-big-little-names",
+          "name": "Review uploaded Big and Little names",
+          "short_description": "Choose who a name from a Big and Little upload means when it did not match exactly one member, or dismiss the row.",
+          "long_description": "Each waiting row shows the names as typed in the file, the member already matched on the other side, and the closest members of your chapter with how alike the names are. Pick a suggestion or search for anyone in the chapter, then save the pairing. Dismiss a row when nobody can tell who a name means or the person is not on your roster; uploading the same file again skips dismissed rows and reuses the members you chose.",
+          "url_name": "biglittle:review",
           "audience": "officer",
           "roles": ["pledge/new member educator"]
         },
@@ -1487,7 +1496,7 @@
         },
         {
           "title": "Record each new member's Big",
-          "body": "Record each new member's final Big, the one chosen at initiation, not a temporary one. Bigs can go on the initiation report; on the Bigs and Littles page you can record or change anyone's Big, find members with none recorded, or upload a CSV of badge numbers. Members can add their own too.",
+          "body": "Record each new member's final Big, the one chosen at initiation, not a temporary one. Bigs can go on the initiation report; on the Bigs and Littles page you can record or change anyone's Big, find members with none recorded, or upload a CSV of badge numbers or names. Members can add their own too.",
           "feature": "big-little-list",
           "cadence": "each_term"
         },

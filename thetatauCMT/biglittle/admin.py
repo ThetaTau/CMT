@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import BigLittle
+from .models import BigLittle, PendingPairing
 
 
 class CurrentListFilter(admin.SimpleListFilter):
@@ -31,3 +31,13 @@ class BigLittleAdmin(admin.ModelAdmin):
         if not change and obj.created_by_id is None:
             obj.created_by = request.user
         super().save_model(request, obj, form, change)
+
+
+@admin.register(PendingPairing)
+class PendingPairingAdmin(admin.ModelAdmin):
+    list_display = ("chapter", "line", "little_text", "big_text", "status", "created", "resolved_at")
+    list_filter = ("status",)
+    list_select_related = ("chapter",)
+    search_fields = ("little_text", "big_text", "chapter__name")
+    raw_id_fields = ("chapter", "little", "big", "uploaded_by", "resolved_by")
+    readonly_fields = ("fingerprint", "created", "modified")

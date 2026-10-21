@@ -18,6 +18,12 @@
         <a href="{% url 'biglittle:upload' %}" class="btn btn-outline-secondary">
           <i class="fas fa-file-csv" aria-hidden="true"></i> Upload CSV
         </a>
+        {% if pending_count %}
+          <a href="{% url 'biglittle:review' %}" class="btn btn-outline-warning">
+            <i class="fas fa-user-check" aria-hidden="true"></i> Review uploaded names
+            <span class="badge text-bg-warning">{{ pending_count }}<span class="visually-hidden"> waiting</span></span>
+          </a>
+        {% endif %}
       {% endif %}
     </div>
   </div>

@@ -45,7 +45,9 @@ def test_rows_are_recorded_and_twins_are_allowed(chapter):
     links = BigLittle.objects.current().filter(big=big)
     assert set(links.values_list("little", flat=True)) == {twin.pk for twin in twins}
     assert set(links.values_list("source", "created_by")) == {(BigLittle.Source.UPLOAD, officer.pk)}
-    assert result.summary == "Processed 2 row(s): 2 recorded, 0 changed, 0 unchanged, 0 with errors."
+    assert result.summary == (
+        "Processed 2 row(s): 2 recorded, 0 changed, 0 unchanged, 0 waiting for review, 0 skipped, 0 with errors."
+    )
 
 
 def test_a_byte_order_mark_capitals_and_extra_columns_are_fine(chapter):
@@ -63,7 +65,7 @@ def test_missing_headers_save_nothing(chapter):
 
     result = _import(chapter, "big,little\n101,201\n")
 
-    assert result.error == "The first row must contain the column names badge_number_big and badge_number_little."
+    assert result.error == services.HEADER_ERROR
     assert result.rows == []
     assert not BigLittle.objects.exists()
 
@@ -182,7 +184,7 @@ def test_the_page_shows_results_after_an_upload(officer_client, chapter):
     [
         ("pairs.txt", HEADER.encode(), "Please upload a .csv file."),
         ("pairs.csv", b"x" * (5 * 1024 * 1024 + 1), "The file is too large (5 MB at most)."),
-        ("pairs.csv", b"big,little\n", "The first row must contain the column names"),
+        ("pairs.csv", b"big,little\n", "The first row must name a Big column"),
     ],
 )
 def test_the_page_refuses_bad_files(officer_client, name, content, error):
@@ -205,3 +207,10 @@ def test_the_template_has_the_two_headers(officer_client):
 
     assert response.content == b"badge_number_big,badge_number_little\r\n"
     assert response["Content-Disposition"] == 'attachment; filename="big_little_template.csv"'
+
+
+def test_the_names_template_has_the_name_headers(officer_client):
+    response = officer_client.get(reverse("biglittle:upload_template"), {"columns": "names"})
+
+    assert response.content == b"little_full_name,big_full_name\r\n"
+    assert response["Content-Disposition"] == 'attachment; filename="big_little_names_template.csv"'

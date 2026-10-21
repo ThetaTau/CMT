@@ -719,8 +719,9 @@ indexes itself on save. If reports are ever imported, run
 
 ### 8.2 Upgrading into the Bigs and Littles release
 
-First release of the `biglittle` app (spec: `docs/specs/big-little.md`). It adds one
-migration (`biglittle` 0001, a new table only), one Python package (`igraph==1.0.0`),
+First release of the `biglittle` app (spec: `docs/specs/big-little.md`). It adds two
+migrations (`biglittle` 0001 and 0002, new tables only: the pairings, and uploaded rows
+waiting for review), one Python package (`igraph==1.0.0`),
 two static files (`js/biglittle.js`, `js/family_tree.js`), feature-catalog and
 role-guide entries, and one optional `Config` key. No scheduled tasks, no emails, no new
 environment variables.
@@ -740,11 +741,13 @@ Run the standard flow in [§8](#8-updating-an-existing-deploy). Notes:
 4. Smoke test. As a chapter officer: Members > Bigs & Littles shows the roster with
    Record and Upload buttons; record a Big, then remove it. Open Members > Family Tree
    (plotly.js loads from `cdn.plot.ly`, which the CSP already allows). As a plain member
-   of another chapter, the first chapter's tree redirects to your own. Confirm
-   `/features/` lists the new entries and Rollbar stays quiet.
-5. Rollback: `git checkout <previous sha>` and reload; the new table is harmless if left
-   in place. `python manage.py migrate biglittle zero` drops every recorded pairing, so
-   back up first.
+   of another chapter, the first chapter's tree redirects to your own. Upload a CSV with
+   the names template (`little_full_name,big_full_name`) holding one misspelled name: the
+   row lands on the "Review uploaded names" page, where saving the suggestion records it.
+   Confirm `/features/` lists the new entries and Rollbar stays quiet.
+5. Rollback: `git checkout <previous sha>` and reload; the new tables are harmless if left
+   in place. `python manage.py migrate biglittle zero` drops every recorded pairing and
+   every upload row waiting for review, so back up first.
 
 ---
 

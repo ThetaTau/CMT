@@ -3,7 +3,7 @@ import json
 from dal import autocomplete
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.db.models import Q
+from django.db.models import F, Q
 from django.http import HttpResponse, HttpResponseRedirect
 from django.shortcuts import get_object_or_404
 from django.urls import reverse
@@ -17,8 +17,8 @@ from thetatauCMT.users.models import User
 
 from . import services, tree
 from .filters import BigLittleListFormHelper, BigLittleMemberFilter
-from .forms import BigLittleUploadForm, RecordBigForm
-from .models import BigLittle
+from .forms import BigLittleUploadForm, PendingPairingForm, RecordBigForm
+from .models import BigLittle, PendingPairing
 from .tables import BigLittleMemberTable
 
 PLOTLYJS_URL = f"https://cdn.plot.ly/plotly-{get_plotlyjs_version()}.min.js"
@@ -32,6 +32,15 @@ def _return_url(request):
     if target == "list" or services.can_manage(request.user, request.user.current_chapter):
         return reverse("biglittle:list")
     return reverse("users:detail") + "#big_little"
+
+
+def _report_saved(request, result, little, big):
+    if result.outcome == services.UNCHANGED:
+        messages.info(request, f"No change: {big} was already {little}'s Big.")
+    elif result.outcome == services.CHANGED:
+        messages.success(request, f"Changed {little}'s Big from {result.previous_big} to {big}.")
+    else:
+        messages.success(request, f"Recorded {big} as {little}'s Big.")
 
 
 class BigLittleManagerRequiredMixin(LoginRequiredMixin):
@@ -123,6 +132,7 @@ class BigLittleListView(LoginRequiredMixin, PagedFilteredTableView):
         context["chapter"] = self.request.user.current_chapter
         context["can_manage"] = self.can_manage
         context["manager_roles_label"] = services.manager_roles_label()
+        context["pending_count"] = services.pending_rows(context["chapter"]).count() if self.can_manage else 0
         return context
 
 
@@ -154,20 +164,20 @@ class BigLittleRecordView(BigLittleManagerRequiredMixin, FormView):
         except services.BigLittleError as error:
             form.add_error(None, error)
             return self.form_invalid(form)
-        if result.outcome == services.UNCHANGED:
-            messages.info(self.request, f"No change: {big} was already {little}'s Big.")
-        elif result.outcome == services.CHANGED:
-            messages.success(self.request, f"Changed {little}'s Big from {result.previous_big} to {big}.")
-        else:
-            messages.success(self.request, f"Recorded {big} as {little}'s Big.")
+        _report_saved(self.request, result, little, big)
         return HttpResponseRedirect(reverse("biglittle:list"))
 
 
 class BigLittleUploadView(BigLittleManagerRequiredMixin, FormView):
-    """Record many pairings at once from a CSV of badge numbers; results show on the same page."""
+    """Record many pairings at once from a CSV of badge numbers or names; results show on the same page."""
 
     form_class = BigLittleUploadForm
     template_name = "biglittle/upload.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["pending_count"] = services.pending_rows(self.request.user.current_chapter).count()
+        return context
 
     def form_valid(self, form):
         result = services.import_big_little_csv(
@@ -187,10 +197,66 @@ class BigLittleUploadView(BigLittleManagerRequiredMixin, FormView):
 
 
 class BigLittleUploadTemplateView(BigLittleManagerRequiredMixin, View):
+    """A header-only CSV: badge number columns, or name columns with ``?columns=names``."""
+
     def get(self, request):
-        response = HttpResponse(",".join(services.CSV_HEADERS) + "\r\n", content_type="text/csv")
-        response["Content-Disposition"] = 'attachment; filename="big_little_template.csv"'
+        if request.GET.get("columns") == "names":
+            headers, filename = services.NAME_CSV_HEADERS, "big_little_names_template.csv"
+        else:
+            headers, filename = services.CSV_HEADERS, "big_little_template.csv"
+        response = HttpResponse(",".join(headers) + "\r\n", content_type="text/csv")
+        response["Content-Disposition"] = f'attachment; filename="{filename}"'
         return response
+
+
+class PendingPairingReviewView(BigLittleManagerRequiredMixin, TemplateView):
+    """Uploaded rows naming someone who did not match exactly one member (BLWI-12).
+
+    Each row is its own form: pick a suggestion or search for the member, then save the
+    pairing, or dismiss the row when nobody can tell who the name means.
+    """
+
+    template_name = "biglittle/review.html"
+
+    def get_context_data(self, bound_form=None, **kwargs):
+        context = super().get_context_data(**kwargs)
+        chapter = self.request.user.current_chapter
+        items = list(services.pending_rows(chapter).annotate(uploaded_by_name=F("uploaded_by__name")))
+        choices = services.review_choices(items, chapter)
+        rows = []
+        for item in items:
+            if bound_form is not None and bound_form.item.pk == item.pk:
+                rows.append((item, bound_form))
+            else:
+                rows.append((item, PendingPairingForm(item=item, choices=choices, chapter=chapter)))
+        context.update({"chapter": chapter, "rows": rows})
+        return context
+
+    def post(self, request, *args, **kwargs):
+        chapter = request.user.current_chapter
+        item = PendingPairing.objects.filter(chapter=chapter, pk=_whole_number(request.POST.get("item"))).first()
+        if item is None or item.status != PendingPairing.Status.PENDING:
+            messages.info(request, "That row is no longer waiting for review.")
+            return HttpResponseRedirect(reverse("biglittle:review"))
+        if request.POST.get("action") == "dismiss":
+            services.dismiss_pending(item, request.user)
+            messages.success(
+                request,
+                f'Dismissed line {item.line}: Little "{item.little_text or "None"}", Big "{item.big_text or "None"}".',
+            )
+            return HttpResponseRedirect(reverse("biglittle:review"))
+        choices = services.review_choices([item], chapter)
+        form = PendingPairingForm(request.POST, item=item, choices=choices, chapter=chapter)
+        if form.is_valid():
+            little, big = form.cleaned_data["little_member"], form.cleaned_data["big_member"]
+            try:
+                result = services.save_pending(item, little, big, request.user)
+            except services.BigLittleError as error:
+                form.add_error(None, error)
+            else:
+                _report_saved(request, result, little, big)
+                return HttpResponseRedirect(reverse("biglittle:review"))
+        return self.render_to_response(self.get_context_data(bound_form=form))
 
 
 def _whole_number(value):

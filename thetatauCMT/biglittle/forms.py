@@ -8,6 +8,7 @@ from . import services
 FINAL_BIG_HELP = "The final Big Brother mentor, chosen at initiation, not a temporary one."
 NOT_INITIATED_MESSAGE = "You can record Bigs and Littles after you are initiated."
 MAX_UPLOAD_BYTES = 5 * 1024 * 1024
+SEARCH_HELP = "Used instead of a suggestion when filled in."
 # Edit My Info searches the member's own chapter, never the chapter switcher's.
 OWN_CHAPTER_FORWARD = (forward.Const("own", "scope"), forward.Const("true", "exclude_self"))
 
@@ -94,8 +95,8 @@ class BigLittleUploadForm(forms.Form):
     file = forms.FileField(
         label="CSV file",
         help_text=(
-            "Columns badge_number_big and badge_number_little, with one Little per row. "
-            "Other columns, such as names, are ignored."
+            "One Little per row. Name each side by badge number (badge_number_big, badge_number_little) "
+            "or by full name (big_full_name, little_full_name). Other columns are ignored."
         ),
     )
 
@@ -106,3 +107,47 @@ class BigLittleUploadForm(forms.Form):
         if uploaded.size > MAX_UPLOAD_BYTES:
             raise forms.ValidationError("The file is too large (5 MB at most).")
         return uploaded
+
+
+class PendingPairingForm(forms.Form):
+    """Pick the members an uploaded row means: a suggestion, or anyone found by searching."""
+
+    little = forms.TypedChoiceField(
+        label="Suggested Littles", coerce=int, empty_value=None, required=False, widget=forms.RadioSelect
+    )
+    little_other = member_choice_field("Or search for the Little", help_text=SEARCH_HELP, required=False)
+    big = forms.TypedChoiceField(
+        label="Suggested Bigs", coerce=int, empty_value=None, required=False, widget=forms.RadioSelect
+    )
+    big_other = member_choice_field(
+        "Or search for the Big", help_text=f"{SEARCH_HELP} {FINAL_BIG_HELP}", required=False
+    )
+
+    def __init__(self, *args, item, choices, chapter, **kwargs):
+        super().__init__(*args, prefix=f"row-{item.pk}", **kwargs)
+        self.item = item
+        self.members = services.eligible_members(chapter)
+        for side in services.SIDES:
+            options = choices[item.pk, side]
+            self.fields[side].choices = options
+            if options:
+                self.initial[side] = options[0][0]
+            self.fields[f"{side}_other"].queryset = self.members
+
+    def clean(self):
+        cleaned = super().clean()
+        picked = {}
+        for side in services.SIDES:
+            member = cleaned.get(f"{side}_other")
+            if member is None and cleaned.get(side) is not None:
+                member = self.members.filter(pk=cleaned[side]).first()
+            if member is None and f"{side}_other" not in self.errors:
+                self.add_error(f"{side}_other", f"Choose the {side.title()}, or dismiss this row.")
+            picked[side] = member
+        if picked["little"] is not None and picked["big"] is not None:
+            try:
+                services.validate_pairing(picked["little"], picked["big"])
+            except services.BigLittleError as error:
+                self.add_error(None, error)
+        cleaned["little_member"], cleaned["big_member"] = picked["little"], picked["big"]
+        return cleaned
