@@ -5,7 +5,7 @@ from viewflow.base import Flow, this
 from viewflow.compat import _
 from viewflow.flow import views as flow_views
 
-from core.flows import FilterableFlowViewSet, register_factory
+from core.flows import FilterableFlowViewSet, RerunnableHandler, register_factory
 
 from .models import (
     REVIEWER_APPOINTMENT,
@@ -89,7 +89,7 @@ class NominationFlow(Flow):
     ).Next(this.send_consent_request)
 
     # 2. Issue the tokenized consent link and email the nominee --------------
-    send_consent_request = flow.Handler(
+    send_consent_request = RerunnableHandler(
         this.send_consent_request_func,
         task_title=_("Email Nominee Consent Request"),
     ).Next(this.nominee_consent)
@@ -137,7 +137,7 @@ class NominationFlow(Flow):
         .Else(this.rejection)
     )
 
-    notify_vetting_passed = flow.Handler(
+    notify_vetting_passed = RerunnableHandler(
         this.notify_vetting_passed_func,
         task_title=_("Notify Nominee \u2014 Vetting Passed"),
     ).Next(this.interview)
@@ -161,7 +161,7 @@ class NominationFlow(Flow):
         .Else(this.rejection)
     )
 
-    notify_interview_passed = flow.Handler(
+    notify_interview_passed = RerunnableHandler(
         this.notify_interview_passed_func,
         task_title=_("Notify Nominee \u2014 Interview Passed"),
     ).Next(this.training)
@@ -200,7 +200,7 @@ class NominationFlow(Flow):
         .Else(this.denial_central_office)
     )
 
-    notify_confirmed = flow.Handler(
+    notify_confirmed = RerunnableHandler(
         this.notify_confirmed_func,
         task_title=_("Notify Nominee \u2014 Confirmed"),
     ).Next(this.appointment)
@@ -218,7 +218,7 @@ class NominationFlow(Flow):
         .Next(this.apply_appointment)
     )
 
-    apply_appointment = flow.Handler(
+    apply_appointment = RerunnableHandler(
         this.apply_appointment_func,
         task_title=_("Record Appointment"),
     ).Next(this.appointed)
@@ -226,7 +226,7 @@ class NominationFlow(Flow):
     # --- Non-happy-path handlers -------------------------------------------
     # Vetting / interview failure: thank-you communication + End (retain record;
     # do NOT set not_interested).
-    rejection = flow.Handler(
+    rejection = RerunnableHandler(
         this.mark_rejected,
         task_title=_("Send Thank-you & Close"),
     ).Next(this.rejected)
@@ -245,7 +245,7 @@ class NominationFlow(Flow):
         .Next(this.denied)
     )
 
-    follow_up = flow.Handler(
+    follow_up = RerunnableHandler(
         this.mark_follow_up,
         task_title=_("Flag for Follow-up"),
     ).Next(this.follow_up_wait)

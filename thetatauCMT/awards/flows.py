@@ -4,7 +4,7 @@ from viewflow import flow
 from viewflow.base import Flow, this
 from viewflow.compat import _
 
-from core.flows import FilterableFlowViewSet, register_factory
+from core.flows import FilterableFlowViewSet, RerunnableHandler, register_factory
 
 from .models import AwardNominationProcess
 from .services import get_award_approver, grant_from_nomination
@@ -45,7 +45,7 @@ class AwardNominationFlow(Flow):
         task_title=_("Submit Award Nomination"),
     ).Next(this.notify_submitted)
 
-    notify_submitted = flow.Handler(
+    notify_submitted = RerunnableHandler(
         this.notify_submitted_func,
         task_title=_("Notify Approver"),
     ).Next(this.review)
@@ -63,8 +63,8 @@ class AwardNominationFlow(Flow):
 
     check_result = flow.If(cond=nomination_approved, task_title=_("Approved?")).Then(this.approve).Else(this.reject)
 
-    approve = flow.Handler(this.approve_func, task_title=_("Create Award Grant")).Next(this.approved)
-    reject = flow.Handler(this.reject_func, task_title=_("Close Nomination")).Next(this.rejected)
+    approve = RerunnableHandler(this.approve_func, task_title=_("Create Award Grant")).Next(this.approved)
+    reject = RerunnableHandler(this.reject_func, task_title=_("Close Nomination")).Next(this.rejected)
 
     approved = flow.End(
         task_title=_("Approved"),

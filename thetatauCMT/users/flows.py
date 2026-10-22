@@ -6,7 +6,7 @@ from viewflow.base import Flow, this
 from viewflow.compat import _
 from viewflow.flow import views as flow_views
 
-from core.flows import FilterableFlowViewSet, register_factory
+from core.flows import FilterableFlowViewSet, RerunnableHandler, register_factory
 from thetatauCMT.configs.models import Config
 from thetatauCMT.forms.models import employer_from_text
 from thetatauCMT.forms.notifications import EmailProcessUpdate
@@ -59,7 +59,7 @@ class MemberUpdateFlow(Flow):
         .Else(this.manual_match)
     )
 
-    email_delay = flow.Handler(
+    email_delay = RerunnableHandler(
         this.email_delay_func,
         task_title=_("Send email and then delay."),
     ).Next(this.delay)
@@ -91,7 +91,7 @@ class MemberUpdateFlow(Flow):
         .Case(this.deny_notify, cond=lambda act: act.process.outcome == "denied")
     )
 
-    deny_notify = flow.Handler(
+    deny_notify = RerunnableHandler(
         this.deny_notify_func,
         task_title=_("Deny the Update and Notify"),
     ).Next(this.complete)
@@ -105,7 +105,7 @@ class MemberUpdateFlow(Flow):
         .Else(this.complete)
     )
 
-    update = flow.Handler(
+    update = RerunnableHandler(
         this.update_func,
         task_title=_("Apply the member update"),
     ).Next(this.complete)
