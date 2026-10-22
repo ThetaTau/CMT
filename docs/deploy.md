@@ -755,7 +755,8 @@ Run the standard flow in [§8](#8-updating-an-existing-deploy). Notes:
    missing. Never `loaddata default_configs` on production.
 4. Smoke test. As a chapter officer: Members > Bigs & Littles shows the roster with
    Record and Upload buttons; record a Big, then remove it. Open Members > Family Tree
-   (plotly.js loads from `cdn.plot.ly`, which the CSP already allows). As a plain member
+   (plotly.js loads from `cdn.plot.ly`, which the CSP already allows), find a member with
+   the search box and try the zoom buttons. As a plain member
    of another chapter, the first chapter's tree redirects to your own. Upload a CSV with
    the names template (`little_full_name,big_full_name`) holding one misspelled name: the
    row lands on the "Review uploaded names" page, where saving the suggestion records it.

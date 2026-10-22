@@ -4,8 +4,9 @@
 [Decisions log](#decisions-log)), all eleven original work items built and tested. A follow-up,
 BLWI-12 (names in the CSV upload, plus a review page for names that do not match), is built
 and tested using the defaults of the new questions [Q13 and Q14](#follow-up-questions-name-upload-2026-10-21),
-which are waiting for your answers. Still open: your manual checks in a browser (see
-[Verification](#verification)) and the deploy.
+which are waiting for your answers. BLWI-13 (2026-10-22: member search and zoom on the tree,
+profile links on the review page) is built and tested too. Still open: your manual checks in
+a browser (see [Verification](#verification)) and the deploy.
 
 **How to use this document**
 
@@ -37,6 +38,7 @@ App: `thetatauCMT.biglittle`. URL prefix: `/biglittle/`. URL namespace: `biglitt
 | BLWI-10 | Profile card | 5, 6, 9 | | Done |
 | BLWI-11 | Role guide, QA seed command, docs, full test run | all | Manual checks | Built and tested |
 | BLWI-12 | Names in the CSV upload; review page for names that do not match | 7 | Q13, Q14, manual check | Built and tested |
+| BLWI-13 | Tree: member search and zoom; review page: profile links | 9, 12 | Manual check | Built and tested |
 
 Build order: BLWI-1, 2, 3, then 4, 5, 6 and 7 in any order. BLWI-8 can be built any time
 after BLWI-1. Then 9, 10 and 11.
@@ -57,6 +59,7 @@ after BLWI-1. Then 9, 10 and 11.
 | R10 | A chapter page with a Plotly tree graph (https://plotly.com/python/tree-plots/), usable as an HTML family tree / connection chart. | BLWI-8, BLWI-9 |
 | R11 | Officers can upload a CSV with the headers `badge_number_big,badge_number_little`. | BLWI-7 |
 | R12 | (2026-10-21) A request arrives as `little_full_name, big_full_name`, and nobody knows how well the spelling matches the roster. The CSV upload should handle names, with a way to deal with a name nobody recognizes. | BLWI-12 |
+| R13 | (2026-10-22) On the tree page, a member search just right of the family picker that opens and highlights the member, like the link from a profile. A way to zoom the tree in and out. On the review page, each suggestion links to the member's profile in a new tab. | BLWI-13 |
 
 ## Questions for review
 
@@ -765,6 +768,43 @@ Done when:
 - [ ] Manual check: upload a names file with a typo and an unknown name, then save one and
   dismiss the other on the review page
 
+### BLWI-13: Tree search and zoom; profile links on the review page
+
+Asked for in R13. Built 2026-10-22.
+
+Build:
+
+- Member search on the tree page, right of the family picker, in its own GET form so the
+  family picker keeps working on its own. It is the usual type-to-search picker
+  (`FamilyTreeSearchForm`), backed by `<slug>/tree/members/` (`biglittle:tree-members`,
+  `FamilyTreeMemberAutocomplete`), which lists only people in that chapter's current
+  pairings (`services.tree_members`) and only for viewers allowed to open the tree (Q2).
+  "Find" submits `?member=<id>`, the same link a profile uses, and the found member stays
+  selected in the box.
+- Zoom: the chart now fits the page width instead of scrolling sideways. It opens at a
+  readable size, centered on the highlighted member if there is one (`meta.focusX`), and
+  "Zoom in", "Zoom out" and "Fit to screen" buttons sit above it; dragging pans sideways and
+  a double-click goes back to the opening view. The y axis is fixed, so every generation
+  stays in view. Names are hidden when people sit closer than 60 px apart, and hovering
+  still shows them. This replaces `meta.leafCount` (BLWI-8).
+- "Download picture" exports everything on the page, not just the part on screen, on a
+  white background, up to 16,000 px wide; the Plotly camera button is removed so there is
+  one download.
+- Review page: every suggestion (and the member matched in the file) has a "Profile" link
+  to `biglittle:member`, opening in a new tab, so no username (an email address) is printed.
+- `services.search_members` is shared by both member pickers. Registry: `family-tree` and
+  `review-big-little-names` reworded.
+
+Done when:
+
+- [x] The search lists only this chapter's tree, matches names and badge numbers, needs sign
+  in, is empty for viewers who cannot open the tree, and works for an RD of the region
+- [x] The page has the search and the zoom buttons, keeps the found member selected, and
+  passes the member's position to the chart
+- [x] Every review choice links to the member's profile in a new tab
+- [ ] Manual check: search, zoom in, out and fit, drag, double-click, download, and the
+  profile links, in light and dark themes
+
 ## Verification
 
 ```bash
@@ -793,6 +833,9 @@ add `--reset` to start over):
 - CSV upload by name (the names template), with one misspelled and one unknown name; then
   the review page: save the suggestion for one, dismiss the other, and upload the file again
 - Tree page in light and dark themes, with `?member=`, clicking a name, and the PNG download
+- Tree page search (pick a member and press Find), the zoom buttons, dragging sideways and
+  double-clicking; the downloaded picture shows the whole tree on white
+- Review page: each Profile link opens the member's profile in a new tab
 - Profile card as the member, as a manager and as another member
 
 ## Deployment notes

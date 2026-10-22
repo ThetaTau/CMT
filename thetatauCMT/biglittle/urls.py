@@ -13,4 +13,5 @@ urlpatterns = [
     path("member/<int:pk>/", views.MemberProfileRedirectView.as_view(), name="member"),
     path("<int:pk>/remove/", views.BigLittleRemoveView.as_view(), name="remove"),
     path("<slug:slug>/tree/", views.FamilyTreeView.as_view(), name="tree"),
+    path("<slug:slug>/tree/members/", views.FamilyTreeMemberAutocomplete.as_view(), name="tree-members"),
 ]

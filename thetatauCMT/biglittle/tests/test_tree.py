@@ -105,7 +105,9 @@ def test_the_figure_follows_the_plotly_tree_example():
     assert nodes[1].customdata == ("/biglittle/member/3/",)
     assert highlight.name == "Selected member"
     assert (highlight.x[0], highlight.y[0]) == positions[4]
-    assert figure.layout.meta == {"leafCount": 3}
+    assert figure.layout.meta == {"focusX": positions[4][0]}
+    assert figure.layout.yaxis.fixedrange is True
+    assert tree.build_figure(forest, positions, _url).layout.meta == {}
     json.loads(figure.to_json())
 
 

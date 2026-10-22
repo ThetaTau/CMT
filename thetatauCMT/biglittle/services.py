@@ -131,6 +131,23 @@ def members_without_big(chapter):
     return eligible_members(chapter).filter(~Exists(current))
 
 
+def tree_members(chapter):
+    """Everyone drawn in the chapter's family tree: both people in each current pairing."""
+    links = BigLittle.objects.current().filter(chapter=chapter)
+    return User.objects.filter(Q(pk__in=links.values("big")) | Q(pk__in=links.values("little")))
+
+
+def search_members(queryset, term):
+    """Members whose name contains ``term``, or whose badge number it is."""
+    term = (term or "").strip()
+    if not term:
+        return queryset
+    match = Q(name__icontains=term)
+    if term.isdigit() and len(term) <= MAX_BADGE_DIGITS:
+        match |= Q(badge_number=int(term))
+    return queryset.filter(match)
+
+
 def get_manager_roles():
     """Roles that may manage the whole chapter's pairings besides officers (Q4)."""
     raw = html.unescape(Config.get_value(MANAGER_ROLES_CONFIG_KEY))

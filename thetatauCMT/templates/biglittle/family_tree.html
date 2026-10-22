@@ -2,6 +2,14 @@
 {% load static %}
 {% block title %}{{ chapter }} family tree{% endblock %}
 
+{% block css %}
+  {{ block.super }}
+  <style>
+    #member-search .member-search-field { min-width: 16rem; }
+    #member-search .select2-container { width: 100% !important; }
+  </style>
+{% endblock css %}
+
 {% block content %}
   <div class="page-header d-flex flex-wrap align-items-center gap-2 mb-3">
     <h1 class="page-title mb-0">{{ chapter }} family tree</h1>
@@ -23,8 +31,8 @@
   </div>
   <p class="text-body-secondary">
     Each line runs from a Big down to their Littles, using the final Big chosen at initiation.
-    Hover over a name for details and click it to open the member's profile. Drag to move around
-    and use the toolbar to zoom or download a picture.
+    Hover over a name for details and click it to open the member's profile. Drag the tree
+    sideways to move along it, and use the buttons above it to zoom or download a picture.
   </p>
 
   {% if notice %}
@@ -32,23 +40,53 @@
   {% endif %}
 
   {% if figure %}
-    {% if families|length > 1 %}
-      <form method="get" class="row g-2 align-items-end mb-3" id="family-picker">
-        <div class="col-auto">
-          <label for="family-select" class="form-label">Family</label>
-          <select id="family-select" name="family" class="form-select">
-            <option value="all"{% if selected_family == "all" %} selected{% endif %}>All families ({{ people_count }} people)</option>
-            {% for family in families %}
-              <option value="{{ family.root.pk }}"{% if selected_family == family.root.pk|stringformat:"s" %} selected{% endif %}>Family of {{ family.root.name }} ({{ family.size }} people)</option>
-            {% endfor %}
-          </select>
+    {{ search_form.media }}
+    <div class="d-flex flex-wrap align-items-end gap-3 mb-3">
+      {% if families|length > 1 %}
+        <form method="get" class="row g-2 align-items-end" id="family-picker">
+          <div class="col-auto">
+            <label for="family-select" class="form-label">Family</label>
+            <select id="family-select" name="family" class="form-select">
+              <option value="all"{% if selected_family == "all" %} selected{% endif %}>All families ({{ people_count }} people)</option>
+              {% for family in families %}
+                <option value="{{ family.root.pk }}"{% if selected_family == family.root.pk|stringformat:"s" %} selected{% endif %}>Family of {{ family.root.name }} ({{ family.size }} people)</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-auto">
+            <button type="submit" class="btn btn-primary">Show</button>
+          </div>
+        </form>
+      {% endif %}
+      <form method="get" class="row g-2 align-items-end" id="member-search" role="search">
+        <div class="col-auto member-search-field">
+          <label for="{{ search_form.member.id_for_label }}" class="form-label">{{ search_form.member.label }}</label>
+          {{ search_form.member }}
         </div>
         <div class="col-auto">
-          <button type="submit" class="btn btn-primary">Show</button>
+          <button type="submit" class="btn btn-outline-primary">Find</button>
         </div>
       </form>
-    {% endif %}
-    <div class="overflow-auto border rounded">
+    </div>
+    <div id="family-tree-tools" hidden>
+      <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+        <div class="btn-group btn-group-sm" role="group" aria-label="Zoom the tree">
+          <button type="button" class="btn btn-outline-secondary" data-tree-action="zoom-in">
+            <i class="fas fa-magnifying-glass-plus" aria-hidden="true"></i> Zoom in
+          </button>
+          <button type="button" class="btn btn-outline-secondary" data-tree-action="zoom-out">
+            <i class="fas fa-magnifying-glass-minus" aria-hidden="true"></i> Zoom out
+          </button>
+          <button type="button" class="btn btn-outline-secondary" data-tree-action="fit">
+            <i class="fas fa-expand" aria-hidden="true"></i> Fit to screen
+          </button>
+        </div>
+        <button type="button" class="btn btn-outline-secondary btn-sm" data-tree-action="download">
+          <i class="fas fa-download" aria-hidden="true"></i> Download picture
+        </button>
+      </div>
+    </div>
+    <div class="border rounded">
       <div id="family-tree-chart" role="img" data-filename="{{ chapter.slug }}-family-tree"
            aria-label="Family tree chart for {{ chapter }}. A text version follows below."></div>
     </div>

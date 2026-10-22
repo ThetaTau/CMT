@@ -26,7 +26,8 @@
   <p>
     These rows from Big and Little uploads name someone who did not match exactly one member of
     {{ chapter }}. For each row, choose a suggestion or search for the member, then save the
-    pairing. Saving replaces the Little's current Big, if they have one.
+    pairing. Each suggestion links to the member's profile, which opens in a new tab. Saving
+    replaces the Little's current Big, if they have one.
   </p>
   <p>
     If nobody can tell who a name means, or the person is not on {{ chapter }}'s roster (for
@@ -52,20 +53,12 @@
           <div class="row g-4 mb-2">
             <div class="col-md-6">
               <h3 class="h6">Little in the file: "{{ item.little_text|default:"None" }}"</h3>
-              {% if form.little.field.choices %}
-                {{ form.little|as_crispy_field }}
-              {% else %}
-                <p class="text-body-secondary">No close matches. Search below.</p>
-              {% endif %}
+              {% include "biglittle/_review_choices.html" with field=form.little %}
               {{ form.little_other|as_crispy_field }}
             </div>
             <div class="col-md-6">
               <h3 class="h6">Big in the file: "{{ item.big_text|default:"None" }}"</h3>
-              {% if form.big.field.choices %}
-                {{ form.big|as_crispy_field }}
-              {% else %}
-                <p class="text-body-secondary">No close matches. Search below.</p>
-              {% endif %}
+              {% include "biglittle/_review_choices.html" with field=form.big %}
               {{ form.big_other|as_crispy_field }}
             </div>
           </div>

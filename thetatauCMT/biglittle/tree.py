@@ -258,19 +258,24 @@ def build_figure(forest, positions, profile_url, highlight=None):
         )
     xs = [x for x, _ in positions.values()] or [0]
     generations = int(max((y for _, y in positions.values()), default=0)) + 1
+    meta = {}
+    if highlight in forest.people:
+        # The page opens zoomed in around this member.
+        meta["focusX"] = positions[highlight][0]
     figure.update_layout(
         showlegend=True,
         legend={"orientation": "h", "x": 0, "y": 1.0, "yanchor": "bottom"},
         # Fixed ranges leave room for the labels under the bottom row and at both ends.
         xaxis={"visible": False, "range": [min(xs) - 1, max(xs) + 1]},
-        yaxis={"visible": False, "range": [generations - 0.4, -0.6]},
+        # Zooming and dragging only move sideways; every generation always fits.
+        yaxis={"visible": False, "range": [generations - 0.4, -0.6], "fixedrange": True},
         hovermode="closest",
         dragmode="pan",
         margin={"l": 10, "r": 10, "t": 40, "b": 10},
         height=max(MIN_HEIGHT, GENERATION_HEIGHT * generations + 120),
         paper_bgcolor="rgba(0, 0, 0, 0)",
         plot_bgcolor="rgba(0, 0, 0, 0)",
-        meta={"leafCount": sum(1 for pk in forest.people if pk not in forest.children)},
+        meta=meta,
     )
     return figure
 

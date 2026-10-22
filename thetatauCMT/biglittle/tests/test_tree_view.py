@@ -202,3 +202,62 @@ def test_the_chapter_page_links_the_tree_only_for_viewers_who_can_open_it(auto_l
 
     client, _ = auto_login_user(user=_member(other_chapter))
     assert button not in client.get(page).content.decode()
+
+
+# ---------------------------------------------------------------------------
+# Finding a member, and the zoom buttons
+# ---------------------------------------------------------------------------
+def _search_url(chapter):
+    return reverse("biglittle:tree-members", kwargs={"slug": chapter.slug})
+
+
+def _search(client, chapter, **params):
+    response = client.get(_search_url(chapter), params)
+    assert response.status_code == 200
+    return {int(row["id"]): row["text"] for row in response.json()["results"]}
+
+
+def test_the_search_offers_only_people_in_this_chapters_tree(auto_login_user, chapter, other_chapter, two_families):
+    client, _ = auto_login_user(user=_member(chapter))
+    _member(chapter)
+    _pair(_member(other_chapter), _member(other_chapter))
+
+    assert set(_search(client, chapter)) == {member.pk for family in two_families.values() for member in family}
+
+
+def test_the_search_matches_names_and_badge_numbers(auto_login_user, chapter):
+    client, _ = auto_login_user(user=_member(chapter))
+    big = _member(chapter, name="Ann Rivera", badge_number=314)
+    little = _member(chapter, name="Bo Stone", badge_number=27)
+    _pair(big, little)
+
+    assert _search(client, chapter, q="rivera") == {big.pk: "Ann Rivera (#314)"}
+    assert set(_search(client, chapter, q="27")) == {little.pk}
+
+
+def test_the_search_follows_who_may_view_the_tree(client, auto_login_user, chapter, other_chapter, two_families):
+    assert "login" in client.get(_search_url(chapter)).url
+
+    outsider, _ = auto_login_user(user=_member(other_chapter))
+    assert _search(outsider, chapter) == {}
+    assert outsider.get(reverse("biglittle:tree-members", kwargs={"slug": "no-such-chapter"})).json()["results"] == []
+
+    director = _member(other_chapter)
+    chapter.region.directors.add(director)
+    director_client, _ = auto_login_user(user=director)
+    assert len(_search(director_client, chapter)) == 5
+
+
+def test_the_page_has_the_search_and_keeps_the_found_member_selected(auto_login_user, chapter, two_families):
+    client, _ = auto_login_user(user=_member(chapter))
+    youngest = two_families["big"][2]
+
+    response = client.get(_url(chapter, member=youngest.pk))
+
+    content = response.content.decode()
+    assert 'id="member-search"' in content
+    assert f'data-autocomplete-light-url="{_search_url(chapter)}"' in content
+    assert f'<option value="{youngest.pk}" selected>' in content
+    assert response.context["figure"]["layout"]["meta"]["focusX"] is not None
+    for action in ("zoom-in", "zoom-out", "fit", "download"):
+        assert f'data-tree-action="{action}"' in content

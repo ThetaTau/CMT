@@ -3,7 +3,7 @@ import json
 from dal import autocomplete
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.db.models import F, Q
+from django.db.models import F
 from django.http import HttpResponse, HttpResponseRedirect
 from django.shortcuts import get_object_or_404
 from django.urls import reverse
@@ -17,7 +17,7 @@ from thetatauCMT.users.models import User
 
 from . import services, tree
 from .filters import BigLittleListFormHelper, BigLittleMemberFilter
-from .forms import BigLittleUploadForm, PendingPairingForm, RecordBigForm
+from .forms import BigLittleUploadForm, FamilyTreeSearchForm, PendingPairingForm, RecordBigForm
 from .models import BigLittle, PendingPairing
 from .tables import BigLittleMemberTable
 
@@ -71,14 +71,20 @@ class BigLittleMemberAutocomplete(LoginRequiredMixin, autocomplete.Select2QueryS
         queryset = services.eligible_members(chapter)
         if self.forwarded.get("exclude_self") == "true":
             queryset = queryset.exclude(pk=user.pk)
-        term = (self.q or "").strip()
-        if term:
-            match = Q(name__icontains=term)
-            # Nine digits fits a badge number and stays inside the integer column.
-            if term.isdigit() and len(term) <= 9:
-                match |= Q(badge_number=int(term))
-            queryset = queryset.filter(match)
-        return queryset
+        return services.search_members(queryset, self.q)
+
+    def get_result_label(self, result):
+        return services.member_label(result)
+
+
+class FamilyTreeMemberAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
+    """Type-to-search over the people drawn in one chapter's family tree, for anyone who may view it."""
+
+    def get_queryset(self):
+        chapter = Chapter.objects.filter(slug=self.kwargs["slug"]).first()
+        if chapter is None or not services.can_view_tree(self.request.user, chapter):
+            return User.objects.none()
+        return services.search_members(services.tree_members(chapter).order_by("name"), self.q)
 
     def get_result_label(self, result):
         return services.member_label(result)
@@ -328,6 +334,7 @@ class FamilyTreeView(LoginRequiredMixin, TemplateView):
                 "plotlyjs_url": PLOTLYJS_URL,
                 "families": families,
                 "selected_family": selected_family,
+                "search_form": FamilyTreeSearchForm(chapter=chapter, initial={"member": highlight}),
                 "outline": tree.outline(shown),
                 "people_count": len(forest.people),
                 "notice": notice,

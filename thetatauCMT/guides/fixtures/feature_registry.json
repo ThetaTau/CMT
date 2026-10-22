@@ -254,8 +254,8 @@
         {
           "key": "family-tree",
           "name": "Chapter family tree",
-          "short_description": "Your chapter's Big and Little family lines, drawn as an interactive tree.",
-          "long_description": "Each line runs from a Big down to their Littles, using the final Big chosen at initiation. Hover over a name for details, click it to open the member's profile, pick one family to focus on, or download the tree as a picture. A text version sits under the chart. Open to members of the chapter, its Regional Directors, National Officers and Admins.",
+          "short_description": "Your chapter's Big and Little family lines, drawn as an interactive tree you can search and zoom.",
+          "long_description": "Each line runs from a Big down to their Littles, using the final Big chosen at initiation. Find a member by name or badge number to open their family with them highlighted, or pick one family to focus on. Zoom in and out, drag sideways along the tree, hover over a name for details and click it to open the member's profile, or download the tree as a picture. A text version sits under the chart. Open to members of the chapter, its Regional Directors, National Officers and Admins.",
           "url_name": "biglittle:tree",
           "url_kwargs": {"slug": "@chapter_slug"}
         },
@@ -272,7 +272,7 @@
           "key": "review-big-little-names",
           "name": "Review uploaded Big and Little names",
           "short_description": "Choose who a name from a Big and Little upload means when it did not match exactly one member, or dismiss the row.",
-          "long_description": "Each waiting row shows the names as typed in the file, the member already matched on the other side, and the closest members of your chapter with how alike the names are. Pick a suggestion or search for anyone in the chapter, then save the pairing. Dismiss a row when nobody can tell who a name means or the person is not on your roster; uploading the same file again skips dismissed rows and reuses the members you chose.",
+          "long_description": "Each waiting row shows the names as typed in the file, the member already matched on the other side, and the closest members of your chapter with how alike the names are. Every suggestion links to the member's profile, which opens in a new tab, to help tell who a name means. Pick a suggestion or search for anyone in the chapter, then save the pairing. Dismiss a row when nobody can tell who a name means or the person is not on your roster; uploading the same file again skips dismissed rows and reuses the members you chose.",
           "url_name": "biglittle:review",
           "audience": "officer",
           "roles": ["pledge/new member educator"]

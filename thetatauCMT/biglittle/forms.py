@@ -1,5 +1,6 @@
 from dal import autocomplete, forward
 from django import forms
+from django.urls import reverse
 
 from thetatauCMT.users.models import User
 
@@ -113,11 +114,19 @@ class PendingPairingForm(forms.Form):
     """Pick the members an uploaded row means: a suggestion, or anyone found by searching."""
 
     little = forms.TypedChoiceField(
-        label="Suggested Littles", coerce=int, empty_value=None, required=False, widget=forms.RadioSelect
+        label="Suggested Littles",
+        coerce=int,
+        empty_value=None,
+        required=False,
+        widget=forms.RadioSelect(attrs={"class": "form-check-input"}),
     )
     little_other = member_choice_field("Or search for the Little", help_text=SEARCH_HELP, required=False)
     big = forms.TypedChoiceField(
-        label="Suggested Bigs", coerce=int, empty_value=None, required=False, widget=forms.RadioSelect
+        label="Suggested Bigs",
+        coerce=int,
+        empty_value=None,
+        required=False,
+        widget=forms.RadioSelect(attrs={"class": "form-check-input"}),
     )
     big_other = member_choice_field(
         "Or search for the Big", help_text=f"{SEARCH_HELP} {FINAL_BIG_HELP}", required=False
@@ -151,3 +160,21 @@ class PendingPairingForm(forms.Form):
                 self.add_error(None, error)
         cleaned["little_member"], cleaned["big_member"] = picked["little"], picked["big"]
         return cleaned
+
+
+class FamilyTreeSearchForm(forms.Form):
+    """Find someone in one chapter's family tree; the page then opens and highlights their family."""
+
+    member = forms.ModelChoiceField(
+        queryset=User.objects.none(),
+        label="Find a member",
+        required=False,
+        widget=autocomplete.ModelSelect2(attrs={"data-placeholder": "Type a name or badge number"}),
+    )
+
+    def __init__(self, *args, chapter, **kwargs):
+        super().__init__(*args, **kwargs)
+        field = self.fields["member"]
+        field.queryset = services.tree_members(chapter)
+        field.label_from_instance = services.member_label
+        field.widget.url = reverse("biglittle:tree-members", kwargs={"slug": chapter.slug})

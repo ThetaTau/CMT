@@ -232,6 +232,15 @@ def test_the_page_lists_waiting_rows_with_the_found_member_and_suggestions(offic
     assert "Not Mine" not in content
 
 
+def test_each_choice_links_to_the_members_profile_in_a_new_tab(officer_client, waiting):
+    _, little, big = waiting
+
+    content = officer_client.get(reverse("biglittle:review")).content.decode()
+
+    for member in (little, big):
+        assert f'href="{reverse("biglittle:member", args=[member.pk])}" target="_blank" rel="noopener"' in content
+
+
 def test_saving_a_suggestion_records_the_pairing_and_closes_the_row(officer_client, officer, waiting):
     item, little, big = waiting
 
