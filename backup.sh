@@ -46,7 +46,10 @@ if [ "$RESTORE_TEST" = true ]; then
     echo "An error occurred resetting the staging schema"
     exit
   fi
-  if ! python manage.py dbrestore --database default --decrypt --noinput --passphrase=$PASSPHRASE; then
+  # --if-exists here too (not just DBBACKUP_CONNECTORS[IF_EXISTS]): the schema
+  # wipe above means every --clean drop/alter targets objects that no longer
+  # exist, and this is the testCMT checkout, which may lag the settings change.
+  if ! python manage.py dbrestore --database default --decrypt --noinput --passphrase=$PASSPHRASE --pg-options="--if-exists"; then
     echo "An error occurred restoring database"
     exit
   fi
