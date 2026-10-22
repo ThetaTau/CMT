@@ -18,6 +18,7 @@ from django.utils import timezone
 
 from core.models import ALL_ROLES, user_is_national_officer
 from thetatauCMT.configs.models import Config
+from thetatauCMT.support.services import standing_in, supports
 from thetatauCMT.users.models import User
 
 from .models import BigLittle, PendingPairing
@@ -172,6 +173,9 @@ def can_manage(user, chapter):
         return False
     if user.current_chapter.pk != chapter.pk:
         return False
+    if standing_in(user):
+        # A Chapter Support Specialist sees what the Regent sees, but changes nothing.
+        return False
     if user.is_admin or user.is_national_officer_group:
         return True
     if user.natoff_hidden:
@@ -201,6 +205,8 @@ def can_view_tree(user, chapter):
     if chapter.pk in (user.chapter_id, user.current_chapter.pk):
         return True
     if user.is_admin or user_is_national_officer(user):
+        return True
+    if supports(user, chapter):
         return True
     if user.natoff_hidden or chapter.region_id is None:
         return False

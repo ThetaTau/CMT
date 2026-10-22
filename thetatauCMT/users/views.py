@@ -50,6 +50,9 @@ from thetatauCMT.chapters.models import Chapter
 from thetatauCMT.forms.forms import PledgeDemographicsForm
 from thetatauCMT.notes.tables import UserNoteTable
 from thetatauCMT.submissions.tables import SubmissionTable
+from thetatauCMT.support.forms import CSSInfoForm
+from thetatauCMT.support.services import VIEW_ONLY_MESSAGE as CSS_VIEW_ONLY_MESSAGE
+from thetatauCMT.support.services import css_chapters, wants_css_landing
 
 from .filters import UserListFilter, UserListFilterBase, UserOrgListFilter
 from .forms import (
@@ -88,6 +91,8 @@ class UserRedirectView(LoginRequiredMixin, RedirectView):
     permanent = False
 
     def get_redirect_url(self):
+        if wants_css_landing(self.request.user):
+            return reverse("support:my_chapters")
         return reverse("users:detail")
 
 
@@ -312,6 +317,9 @@ class UserProfileView(LoginRequiredMixin, DetailView):
                 # Regions this member directs (Region.directors M2M). Drives the
                 # prominent "Regional Director" card + generic region contact info.
                 "director_regions": (target.regional_director.all().prefetch_related("chapters").order_by("name")),
+                # Chapters this person serves as a Chapter Support Specialist; every
+                # signed-in member may see them (docs/specs/chapter-support-specialist.md, Q18).
+                "support_chapters": list(css_chapters(target)),
             }
         )
         context["big_little"] = _profile_big_little(target, viewer, is_owner)
@@ -482,6 +490,16 @@ class UserDetailUpdateView(LoginRequiredMixin, MultiFormsView):
         "big": MyBigForm,
         "little": AddLittleForm,
     }
+    css_account = False
+
+    def dispatch(self, request, *args, **kwargs):
+        # A Chapter Support Specialist staff account is not a member, so it gets a short
+        # page without the member sections (docs/specs/chapter-support-specialist.md, Q5).
+        if request.user.is_authenticated and request.user.current_status == "css":
+            self.css_account = True
+            self.form_classes = {"user": CSSInfoForm, "prefs": EmailPreferencesForm}
+            self.template_name = "support/css_my_info.html"
+        return super().dispatch(request, *args, **kwargs)
 
     # send the user back to their own page after a successful update
     def get_success_url(self, form_name=None):
@@ -517,7 +535,10 @@ class UserDetailUpdateView(LoginRequiredMixin, MultiFormsView):
     def user_form_valid(self, form):
         if form.has_changed():
             form.save()
-            messages.success(self.request, "Your member information was updated.")
+            messages.success(
+                self.request,
+                "Your information was updated." if self.css_account else "Your member information was updated.",
+            )
         else:
             messages.info(self.request, "No changes were made.")
         return HttpResponseRedirect(self.get_success_url() + "#user")
@@ -606,6 +627,8 @@ class UserDetailUpdateView(LoginRequiredMixin, MultiFormsView):
                 "object": self.get_object(),
             }
         )
+        if self.css_account:
+            return context
         headers = [""]
         for i in range(4):
             year = BIENNIUM_YEARS[i]
@@ -768,6 +791,10 @@ class UserListView(LoginRequiredMixin, PagedFilteredTableView):
                 messages.ERROR,
                 "Only chapter officers can email members through this method.",
             )
+            return super().get(request, *args, **kwargs)
+        if email_action and getattr(request, "css_view_only", False):
+            # "Email ALL" sends on a page load, so ViewOnlyCSSMiddleware cannot catch it.
+            messages.add_message(self.request, messages.ERROR, CSS_VIEW_ONLY_MESSAGE)
             return super().get(request, *args, **kwargs)
         if csv_action:
             self.object_list = self.get_queryset()

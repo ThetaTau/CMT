@@ -347,7 +347,7 @@ These generate throwaway sample data and are guarded by `core.seed_guard`
 wire any of them into a scheduled task:
 `seed_awards_demo`, `seed_rollbook_qa`, `seed_contact_sync_examples`,
 `seed_dashboard_data`, `seed_pending_national_events`,
-`seed_transition_reports_demo`, `seed_big_little_demo`.
+`seed_transition_reports_demo`, `seed_big_little_demo`, `seed_css_demo`.
 
 The exception is `seed_transition_prompt_set` and `seed_transition_tags`: they
 load real production data and are meant to be run once
@@ -392,6 +392,10 @@ Each accepts a **username**, an **email**, or a **national-officer role name**
 | `PledgeWelcome` | `""` | HTML welcome copy included in the pledge welcome email. |
 | `JOBS_CREATION_EMAIL` | `""` | Recipient list notified on new job postings (whitespace/comma/semicolon separated). |
 | `BIG_LITTLE_MANAGER_ROLES` | `pledge/new member educator` | Roles that may record, change and remove anyone's Big for their chapter and upload a CSV of pairings, besides the chapter officers. Comma-separated role names as they appear on officer records. Missing or blank means the New Member Educator only. |
+| `CSS_MANAGERS` | `""` | Who besides Admins may add Chapter Support Specialists, assign their chapters and remove them: usernames, emails or National Officer role names, one per line or comma separated. Blank means `settings.EXECUTIVE_DIRECTOR`. |
+| `CSS_HOME_CHAPTER` | `""` | Slug of the **inactive** chapter that specialist accounts who are not members belong to. Blank means `central-office`. |
+| `CSS_REALTIME_EMAILS` | `""` | Which Regent emails a specialist gets on CC as sent; the rest arrive in the daily digest. Kind codes are listed in the row's description; `none` sends everything through the digest. Blank means the time-sensitive set in `docs/specs/chapter-support-specialist.md`. |
+| `NATOFF_2FA_REQUIRED_FROM` | `""` | Date (`YYYY-MM-DD`) from which every National Officer must use two-factor sign-in; until then they see a banner. Blank means no requirement for National Officers. Admins and Chapter Support Specialists always need it. |
 
 ### 5.3 Feature flags (`feature_flags.json`)
 
@@ -508,6 +512,8 @@ them daily and let them decide. Use `--dry-run` / `--override` for testing only 
 | `generate_transition_obligations` | daily | Create/refresh Transition Report obligations from officer term ends (looks back 365 days, ahead 45 by default, derived from the [§5.4](#54-transition-reports-keys) offsets) and mark past-due ones `missed`. Officers can also press **Start report** on `/transitions/` before their report is assigned; that creates the same obligation, which this command then reuses. Schedule it before the two below. First-run steps: [§8.1](#81-upgrading-into-the-transition-reports-release-october-2026). |
 | `send_transition_report_reminders` | daily | Due-date reminder ladder (`TRANSITIONS_REMINDER_OFFSETS_DAYS`) plus the once-per-semester broadcast. **Do the first-run baseline in [§8.1](#81-upgrading-into-the-transition-reports-release-october-2026) before scheduling it.** |
 | `send_transition_handoff_notices` | daily | Tells a new officeholder their predecessors' reports are available (sent only when a report exists). |
+| `send_css_digests --period daily` | daily, mornings | Chapter Support Specialists' daily digest: the Regent emails that reach them only by digest, in full, plus a list of the time-sensitive ones they already got on CC. Sends nothing to anyone with nothing new; a second run sends nothing. |
+| `send_css_digests --period monthly` | daily → sends on the **1st** | Monthly summary per chapter for each Chapter Support Specialist: what is still open and last month's emails. A second run the same month sends nothing (`--force` resends). |
 
 > This is the deployment-relevant set; confirm the exact crontab against the live
 > PythonAnywhere **Tasks** page. Every command above is idempotent and safe to
@@ -764,6 +770,46 @@ Run the standard flow in [§8](#8-updating-an-existing-deploy). Notes:
 5. Rollback: `git checkout <previous sha>` and reload; the new tables are harmless if left
    in place. `python manage.py migrate biglittle zero` drops every recorded pairing and
    every upload row waiting for review, so back up first.
+
+### 8.3 Upgrading into the Chapter Support Specialists release
+
+First release of the `support` app (spec: `docs/specs/chapter-support-specialist.md`). Chapter
+Support Specialists (CSSs) are national staff, or members, who advise chapter leadership: in each
+assigned chapter they see what its Regent sees, view only, and they get the Regent's emails. The
+release also requires two-factor sign-in for CSSs and, from a date you choose, for every National
+Officer. Migrations: `support` 0001 (new tables), `users` 0047 and 0048, `tasks` 0010 and
+`guides` 0007 (choice lists and help text only). No new packages, static files or environment
+variables.
+
+Run the standard flow in [§8](#8-updating-an-existing-deploy), then:
+
+1. `python manage.py load_feature_registry` (the new catalog entries and the CSS role guide).
+2. Check the home chapter: production's inactive Central Office chapter must have the slug
+   `central-office`, or set `CSS_HOME_CHAPTER` ([§5.2](#52-setting-keys-default_configsjson)):
+   `python manage.py shell -c "from thetatauCMT.support.services import css_home_chapter; print(css_home_chapter())"`
+   prints the chapter, or explains what is wrong.
+3. Config rows in Django admin, all optional: `CSS_MANAGERS` (blank means the Executive
+   Director), `CSS_REALTIME_EMAILS`, and `NATOFF_2FA_REQUIRED_FROM` once National Officers
+   have been told the date. Until that row has a date, nothing changes for National
+   Officers. Never `loaddata default_configs` on production.
+4. Schedule the two `send_css_digests` tasks ([§7](#7-scheduled-tasks-pythonanywhere-daily)).
+5. Add the specialists: National > Chapter Support Specialists > Add. A new account is emailed a
+   link to set its password and must set up two-factor sign-in at the first sign-in. Assign each
+   specialist's chapters on their page. The CMT sends nothing about assignments; send the
+   official notice yourself. Copy anything useful from a chapter's old "Support Specialist" text
+   (Django admin, Chapters) first: the chapter page shows it only while no specialist is
+   assigned.
+6. A lost phone: in Django admin open **OTP_TOTP > TOTP devices** (and **OTP_STATIC > Static
+   devices** for the backup codes), filter by the person, and delete their devices. They set up
+   two-factor again at their next sign-in.
+7. Smoke test, signed in as a specialist (`seed_css_demo` does the same locally): you land on My
+   Chapters; the bar lists only your chapters and switches between them; officer forms show
+   disabled buttons and refuse a submit with the view-only message; the RMP and Edit My Info
+   still save. As a National Officer, National > Chapter Support Specialists lists them. Confirm
+   `/features/` shows the new entries and Rollbar stays quiet.
+8. Rollback: `git checkout <previous sha>` and reload. The new tables and the CSS role rows are
+   harmless to the older code, which does not know the role: specialists simply lose their
+   access.
 
 ---
 

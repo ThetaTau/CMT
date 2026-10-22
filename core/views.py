@@ -52,15 +52,27 @@ def check_group_membership(user, groups):
 
 
 def group_required(*group_names):
-    """Requires user membership in at least one of the groups passed in."""
+    """Requires user membership in at least one of the groups passed in.
+
+    A Chapter Support Specialist viewing an assigned chapter passes where ``"officer"``
+    is one of the names, the same as that chapter's Regent (view only).
+    """
 
     def in_groups(u):
         if u.is_authenticated:
             if bool(u.groups.filter(name__in=group_names)) | acting_as_admin(u):
                 return True
+            if "officer" in group_names and css_standing_in(u):
+                return True
         return False
 
     return user_passes_test(in_groups)
+
+
+def css_standing_in(user):
+    from thetatauCMT.support.services import standing_in
+
+    return standing_in(user)
 
 
 class NatOfficerRequiredMixin(GroupRequiredMixin):
@@ -182,6 +194,10 @@ class OfficerRequiredMixin(GroupRequiredMixin):
             # a real chapter role or the region-bar impersonation role, which is
             # the same rule ``core.utils.check_officer`` applies to the nav.
             return bool(user.chapter_officer())
+        if css_standing_in(user):
+            # A Chapter Support Specialist viewing an assigned chapter sees what its
+            # Regent sees; ViewOnlyCSSMiddleware refuses any change.
+            return True
         return check_group_membership(user, groups)
 
     def get_login_url(self):
@@ -350,6 +366,15 @@ class TypeFieldFilteredChapterAdd(FormMixin):
 
 class HomeView(LoginRequiredMixin, TemplateView):
     template_name = "pages/home.html"
+
+    def get(self, request, *args, **kwargs):
+        from thetatauCMT.support.services import wants_css_landing
+
+        # A Chapter Support Specialist's Home is their "My Chapters" page (Q24 A); a member
+        # CSS can still reach their member home page with ?member=1.
+        if not request.GET.get("member") and wants_css_landing(request.user):
+            return HttpResponseRedirect(reverse("support:my_chapters"))
+        return super().get(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)

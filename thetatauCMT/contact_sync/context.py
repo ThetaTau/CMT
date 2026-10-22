@@ -11,18 +11,18 @@ from django.http import HttpRequest
 from django.urls import reverse
 
 from .models import UserContactSyncToken
-from .officers import NATIONAL_SCOPE, collect_contacts_for_scope, normalize_scope, scope_display_name
+from .officers import NATIONAL_SCOPE, SUPPORT_SCOPE, collect_contacts_for_scope, normalize_scope, scope_display_name
 from .providers import PROVIDERS
 
 
 def build_sync_modal_context(request: HttpRequest, scope: str) -> dict:
     """Return the template context bag consumed by ``contact_sync/sync_modal.html``.
 
-    ``scope`` is a canonical scope string (``"region:<slug>"`` or ``"national"``);
-    a bare region slug is auto-normalised via :func:`normalize_scope`.
+    ``scope`` is a canonical scope string (``"region:<slug>"``, ``"national"`` or
+    ``"support"``); a bare region slug is auto-normalised via :func:`normalize_scope`.
     """
     canonical = normalize_scope(scope)
-    contacts, region_display = collect_contacts_for_scope(canonical)
+    contacts, region_display = collect_contacts_for_scope(canonical, user=request.user)
     if not region_display:
         region_display = scope_display_name(canonical)
     user = request.user
@@ -67,5 +67,7 @@ def build_sync_modal_context(request: HttpRequest, scope: str) -> dict:
 def _vcard_url_for_scope(scope: str) -> str:
     if scope == NATIONAL_SCOPE:
         return reverse("contact_sync:national_vcard")
+    if scope == SUPPORT_SCOPE:
+        return reverse("contact_sync:support_vcard")
     slug = scope.split(":", 1)[1] if scope.startswith("region:") else scope
     return reverse("contact_sync:region_vcard", kwargs={"region_slug": slug})

@@ -5,6 +5,9 @@ from django.urls import NoReverseMatch, reverse
 from herald import registry
 from herald.base import EmailNotification
 
+from thetatauCMT.support.emails import SupportCopyMixin
+from thetatauCMT.support.models import SupportDigestEntry
+
 CENTRAL_OFFICE_EMAIL = "central.office@thetatau.org"
 
 
@@ -63,7 +66,7 @@ def grant_notification_recipients(grant):
 
 
 @registry.register_decorator()
-class AwardGrantedNotification(EmailNotification):
+class AwardGrantedNotification(SupportCopyMixin, EmailNotification):
     """Notify the recipient + relevant officers that an award was granted."""
 
     render_types = ["html"]
@@ -71,6 +74,11 @@ class AwardGrantedNotification(EmailNotification):
 
     def __init__(self, grant):
         self.to_emails = grant_notification_recipients(grant)
+        if grant.recipient_kind == "member":
+            self.support_chapter = getattr(grant.recipient, "chapter", None)
+        elif grant.recipient_kind == "chapter":
+            self.support_chapter = grant.recipient
+        self.support_kind = SupportDigestEntry.Kind.AWARD
         self.reply_to = [CENTRAL_OFFICE_EMAIL]
         self.subject = f"Award granted: {grant.award_type} \u2014 {grant.recipient_display}"
         self.context = {

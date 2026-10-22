@@ -70,6 +70,9 @@ from thetatauCMT.guides import services as guide_services
 from thetatauCMT.regions.models import Region
 from thetatauCMT.scores.models import ScoreType
 from thetatauCMT.submissions.models import Submission
+from thetatauCMT.support.emails import copy_to_support
+from thetatauCMT.support.models import SupportDigestEntry
+from thetatauCMT.support.services import own_records_chapter
 from thetatauCMT.surveys.notifications import DepledgeSurveyEmail, SurveyEmail
 from thetatauCMT.tasks.models import Task
 from thetatauCMT.trainings.models import Training
@@ -1578,11 +1581,12 @@ class RiskManagementFormView(LoginRequiredMixin, FormView):
         risk_file = view(new_request, pk=form.instance.id)
         file_name = f"Risk Management Form {self.request.user}"
         score_type = ScoreType.objects.filter(slug="rmp").first()
+        records_chapter = own_records_chapter(self.request.user)
         submit_obj = Submission(
             user=self.request.user,
             name=file_name,
             type=score_type,
-            chapter=self.request.user.current_chapter,
+            chapter=records_chapter,
         )
         try:
             retry_google_api(
@@ -1611,7 +1615,7 @@ class RiskManagementFormView(LoginRequiredMixin, FormView):
         obj = form.save()
         Task.mark_complete(
             name="Risk Management Form",
-            chapter=self.request.user.current_chapter,
+            chapter=records_chapter,
             current_roles=self.request.user.current_roles,
             user=self.request.user,
             obj=obj,
@@ -1961,13 +1965,15 @@ def pledge_program_request_revision(request, process_pk):
     )
     if process.approval_comments:
         message += f"<br><br>Reviewer comments:<br>{process.approval_comments}"
-    GenericEmail(
+    email = GenericEmail(
         emails=recipients,
         cc={"central.office@thetatau.org", chapter.region.email},
         addressee=f"{chapter.full_name} Officers",
         subject=f"[CMT] NME Program Revisions Requested for {chapter}",
         message=mark_safe(message),
-    ).send()
+    )
+    copy_to_support(email, chapter, SupportDigestEntry.Kind.NME_REVISION)
+    email.send()
     messages.add_message(
         request,
         messages.INFO,
@@ -2071,7 +2077,7 @@ class AuditFormView(LoginRequiredMixin, OfficerRequiredMixin, UpdateView):
 
     def get_success_url(self):
         if self.request.user.is_authenticated:
-            return reverse("chapters:audit", kwargs={"slug": self.request.user.chapter.slug})
+            return reverse("chapters:audit", kwargs={"slug": self.request.user.current_chapter.slug})
         else:
             return reverse("home")
 
@@ -3752,14 +3758,16 @@ class BylawsCreateView(
     def get_success_url(self):
         if hasattr(self, "object"):
             chapter = self.object.chapter
-            GenericEmail(
+            email = GenericEmail(
                 emails=chapter.council_emails(),
                 cc={"central.office@thetatau.org", chapter.region.email},
                 addressee=f"{chapter.full_name} Officers",
                 subject=f"{chapter.full_name} Bylaws Update",
                 message=f"Updated bylaws were submitted. <br>With the following changes:<br>{self.object.changes} <br><br>Please see attached document.",
                 attachments=[self.object.bylaws],
-            ).send()
+            )
+            copy_to_support(email, chapter, SupportDigestEntry.Kind.BYLAWS)
+            email.send()
             messages.add_message(
                 self.request,
                 messages.INFO,

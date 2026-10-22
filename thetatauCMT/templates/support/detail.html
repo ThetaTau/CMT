@@ -1,0 +1,166 @@
+{% extends "base.html" %}
+{% load i18n crispy_forms_tags %}
+{% block title %}{{ person.name }}: {% trans "Chapter Support Specialist" %}{% endblock %}
+
+{% block content %}
+<nav aria-label="{% trans 'Breadcrumb' %}">
+  <ol class="breadcrumb">
+    <li class="breadcrumb-item"><a href="{% url 'support:list' %}">{% trans "Chapter Support Specialists" %}</a></li>
+    <li class="breadcrumb-item active" aria-current="page">{{ person.name }}</li>
+  </ol>
+</nav>
+<div class="page-header d-flex flex-wrap align-items-center gap-2 mb-3">
+  <h1 class="page-title mb-0">{{ person.name }}</h1>
+  {% if can_manage and is_css %}
+    <form method="post" action="{% url 'support:remove' person.pk %}" class="ms-auto"
+          onsubmit="return confirm('{% blocktrans with name=person.name|escapejs %}Remove {{ name }} as a Chapter Support Specialist? Their assignments end now.{% endblocktrans %}');">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-sm btn-outline-danger">{% trans "Remove as Chapter Support Specialist" %}</button>
+    </form>
+  {% endif %}
+</div>
+
+<dl class="row">
+  <dt class="col-sm-3">{% trans "Email" %}</dt>
+  <dd class="col-sm-9"><a href="mailto:{{ person.email }}">{{ person.email }}</a></dd>
+  <dt class="col-sm-3">{% trans "Account" %}</dt>
+  <dd class="col-sm-9">
+    {% if member %}
+      {% blocktrans with chapter=person.chapter.name %}Member of {{ chapter }}; keeps their membership{% endblocktrans %}
+    {% else %}
+      {% trans "Staff account" %}{% if not person.is_active %} {% trans "(switched off)" %}{% endif %}
+    {% endif %}
+  </dd>
+  <dt class="col-sm-3">{% trans "Role" %}</dt>
+  <dd class="col-sm-9">
+    {% if is_css %}
+      {% blocktrans with start=css_roles.0.start|date:"F j, Y" %}Chapter Support Specialist since {{ start }}{% endblocktrans %}
+    {% else %}
+      {% trans "Not a Chapter Support Specialist now" %}
+    {% endif %}
+  </dd>
+</dl>
+
+<h2 class="h4 mt-4">{% trans "Current chapters" %}</h2>
+{% if current %}
+  <div class="table-responsive">
+    <table class="table align-middle" id="css-current">
+      <thead>
+        <tr>
+          <th scope="col">{% trans "Chapter" %}</th>
+          <th scope="col">{% trans "Since" %}</th>
+          <th scope="col">{% trans "Until" %}</th>
+          <th scope="col">{% trans "Assigned by" %}</th>
+          {% if can_manage %}<th scope="col">{% trans "Notes" %}</th><th scope="col"><span class="visually-hidden">{% trans "Actions" %}</span></th>{% endif %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for assignment in current %}
+          <tr>
+            <td><a href="{% url 'chapters:detail' assignment.chapter.slug %}">{{ assignment.chapter.name }}</a></td>
+            <td>{{ assignment.start|date:"M j, Y" }}</td>
+            <td>{% if assignment.end %}{{ assignment.end|date:"M j, Y" }}{% else %}{% trans "Open" %}{% endif %}</td>
+            <td>{{ assignment.created_by|default:"" }}</td>
+            {% if can_manage %}
+              <td class="small">{{ assignment.notes|linebreaksbr }}</td>
+              <td>
+                <form method="post" action="{% url 'support:end' assignment.pk %}" class="d-flex flex-wrap align-items-center gap-2">
+                  {% csrf_token %}
+                  {% if assignment.start >= today %}
+                    <button type="submit" class="btn btn-sm btn-outline-danger">{% trans "Cancel" %}</button>
+                  {% else %}
+                    <label class="visually-hidden" for="end-{{ assignment.pk }}">{% trans "End date" %}</label>
+                    <input type="date" id="end-{{ assignment.pk }}" name="end" class="form-control form-control-sm w-auto"
+                           value="{{ today|date:'Y-m-d' }}" min="{{ assignment.start|date:'Y-m-d' }}" required
+                           title="{% trans 'Access ends after this date. Choose yesterday to end it now.' %}">
+                    <button type="submit" class="btn btn-sm btn-outline-danger">{% trans "End" %}</button>
+                  {% endif %}
+                </form>
+              </td>
+            {% endif %}
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% else %}
+  <p class="text-muted">{% trans "No chapters right now." %}</p>
+{% endif %}
+
+{% if upcoming %}
+  <h2 class="h4 mt-4">{% trans "Upcoming" %}</h2>
+  <div class="table-responsive">
+    <table class="table align-middle" id="css-upcoming">
+      <thead>
+        <tr>
+          <th scope="col">{% trans "Chapter" %}</th>
+          <th scope="col">{% trans "Starts" %}</th>
+          <th scope="col">{% trans "Until" %}</th>
+          <th scope="col">{% trans "Assigned by" %}</th>
+          {% if can_manage %}<th scope="col">{% trans "Notes" %}</th><th scope="col"><span class="visually-hidden">{% trans "Actions" %}</span></th>{% endif %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for assignment in upcoming %}
+          <tr>
+            <td><a href="{% url 'chapters:detail' assignment.chapter.slug %}">{{ assignment.chapter.name }}</a></td>
+            <td>{{ assignment.start|date:"M j, Y" }}</td>
+            <td>{% if assignment.end %}{{ assignment.end|date:"M j, Y" }}{% else %}{% trans "Open" %}{% endif %}</td>
+            <td>{{ assignment.created_by|default:"" }}</td>
+            {% if can_manage %}
+              <td class="small">{{ assignment.notes|linebreaksbr }}</td>
+              <td>
+                <form method="post" action="{% url 'support:end' assignment.pk %}">
+                  {% csrf_token %}
+                  <button type="submit" class="btn btn-sm btn-outline-danger">{% trans "Cancel" %}</button>
+                </form>
+              </td>
+            {% endif %}
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% endif %}
+
+{% if assign_form %}
+  <div class="card shadow-sm mt-4" id="css-assign">
+    <div class="card-body">
+      <h2 class="h5 card-title">{% trans "Assign a chapter" %}</h2>
+      <form method="post" action="{% url 'support:assign' person.pk %}">
+        {% csrf_token %}
+        {{ assign_form|crispy }}
+        <button type="submit" class="btn btn-primary">{% trans "Assign" %}</button>
+      </form>
+    </div>
+  </div>
+{% endif %}
+
+<h2 class="h4 mt-4">{% trans "Past chapters" %}</h2>
+{% if past %}
+  <div class="table-responsive">
+    <table class="table table-sm align-middle" id="css-past">
+      <thead>
+        <tr>
+          <th scope="col">{% trans "Chapter" %}</th>
+          <th scope="col">{% trans "From" %}</th>
+          <th scope="col">{% trans "To" %}</th>
+          <th scope="col">{% trans "Ended by" %}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for assignment in past %}
+          <tr>
+            <td>{{ assignment.chapter.name }}</td>
+            <td>{{ assignment.start|date:"M j, Y" }}</td>
+            <td>{{ assignment.end|date:"M j, Y" }}</td>
+            <td>{{ assignment.ended_by|default:"" }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% else %}
+  <p class="text-muted">{% trans "None." %}</p>
+{% endif %}
+{% endblock content %}

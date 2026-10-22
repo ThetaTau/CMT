@@ -5,6 +5,7 @@ import os
 from io import BytesIO
 
 from django.conf import settings
+from django.contrib import messages
 from django.core.files.base import ContentFile
 from django.http import HttpResponseRedirect
 from django.urls import reverse
@@ -27,6 +28,7 @@ from core.flows import (
 )
 from core.utils import login_with_service_account, retry_google_api
 from thetatauCMT.configs.models import Config
+from thetatauCMT.support.models import SupportDigestEntry
 from thetatauCMT.surveys.notifications import SurveyEmail
 from thetatauCMT.trainings.models import Training
 from thetatauCMT.users.models import User
@@ -128,6 +130,10 @@ class ReassignTaskView(flow_views.AssignTaskView):
             <button type="submit" name="_assign">Assign</button>
         """
         user = User.objects.get(id=request.POST["user"])
+        if user.current_status == "css":
+            # A Chapter Support Specialist is view only and cannot complete a task (Q21).
+            messages.error(request, f"{user} is a Chapter Support Specialist and cannot complete workflow tasks.")
+            return HttpResponseRedirect(request.get_full_path())
         self.activation.assign(user)
         self.success(_("Task {task} has been assigned to" f"{user}"))
         return HttpResponseRedirect(self.get_success_url())
@@ -1164,6 +1170,7 @@ class DisciplinaryProcessFlow(Flow):
             extra_emails={
                 activation.process.chapter.region.email,
             },
+            support_kind=SupportDigestEntry.Kind.DISCIPLINARY,
         ).send()
 
     def chapter_regent(self, activation):

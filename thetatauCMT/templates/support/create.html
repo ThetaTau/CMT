@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% load i18n crispy_forms_tags %}
+{% block title %}{% trans "Add a Chapter Support Specialist" %}{% endblock %}
+
+{% block content %}
+<nav aria-label="{% trans 'Breadcrumb' %}">
+  <ol class="breadcrumb">
+    <li class="breadcrumb-item"><a href="{% url 'support:list' %}">{% trans "Chapter Support Specialists" %}</a></li>
+    <li class="breadcrumb-item active" aria-current="page">{% trans "Add" %}</li>
+  </ol>
+</nav>
+<h1 class="page-title">{% trans "Add a Chapter Support Specialist" %}</h1>
+<p class="text-muted">
+  {% blocktrans trimmed %}
+    You assign their chapters on the next page. The CMT does not email anyone about assignments;
+    national sends the official notice.
+  {% endblocktrans %}
+</p>
+<div class="card shadow-sm">
+  <div class="card-body">
+    <form method="post">
+      {% csrf_token %}
+      {{ form|crispy }}
+      <button type="submit" class="btn btn-primary">{% trans "Add" %}</button>
+      <a href="{% url 'support:list' %}" class="btn btn-link">{% trans "Cancel" %}</a>
+    </form>
+  </div>
+</div>
+{% endblock content %}

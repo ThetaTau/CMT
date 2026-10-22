@@ -1,0 +1,35 @@
+{% extends "herald/html/base_email.html" %}
+{% block title %}Chapter Support Specialist digest{% endblock %}
+{% block content %}
+<h2 class="null" style="margin: 0;padding: 0;display: block;font-family: Helvetica;font-size: 26px;font-style: normal;font-weight: bold;line-height: 125%;letter-spacing: -1px;text-align: left;color: #606060 !important;">Your chapters' emails</h2>
+<p>Greetings {{ user.first_name|default:user.name }},</p>
+<p>
+  Here are the emails your chapters' officers received since your last digest. Time-sensitive
+  ones reached you as they were sent and are listed at the end.
+</p>
+{% for section in sections %}
+  <h3 style="margin: 24px 0 8px 0;font-size: 20px;"><a href="{{ section.url }}">{{ section.chapter.name }}</a></h3>
+  {% for email in section.emails %}
+    <div style="border: 1px solid #dddddd;padding: 12px;margin: 0 0 16px 0;">
+      <p style="margin: 0 0 8px 0;">
+        <strong>{{ email.subject }}</strong><br>
+        <span style="color: #888888;font-size: 13px;">{{ email.created|date:"M j, g:i A" }}</span>
+      </p>
+      {{ email.body_html|safe }}
+      {% if email.link %}<p><a href="{{ email.link }}">Open in the CMT</a></p>{% endif %}
+    </div>
+  {% endfor %}
+{% endfor %}
+{% if already_sent %}
+  <h3 style="margin: 24px 0 8px 0;font-size: 20px;">Already sent to you</h3>
+  <ul>
+    {% for email in already_sent %}
+      <li>{{ email.chapter.name }}: {{ email.subject }} ({{ email.created|date:"M j, g:i A" }})</li>
+    {% endfor %}
+  </ul>
+{% endif %}
+<p style="color: #888888;font-size: 13px;">
+  Attachments are not repeated here. The chapter's officers or Central Office can send them.
+</p>
+<p>Fraternally,<br>Theta Tau Central Office</p>
+{% endblock content %}

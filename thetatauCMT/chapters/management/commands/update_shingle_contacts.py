@@ -66,7 +66,8 @@ class Command(BaseCommand):
                     if street_name and street_num:
                         value = f"{street_num} {street_name}"
                 elif header_name == "Notify":
-                    value = ", ".join(chapter_obj.council_emails())
+                    # A sheet has no CC, so the chapter's Chapter Support Specialists are listed (Q16).
+                    value = ", ".join(sorted(chapter_obj.council_emails(include_support=True)))
                 elif header_name == "Shopify Customer ID":
                     value = chapter_obj.get_misc_data("shopify", "Not Set")
                 elif header_name in header_align:

@@ -1,0 +1,49 @@
+{% extends "herald/html/base_email.html" %}
+{% block title %}Chapter Support Specialist monthly digest{% endblock %}
+{% block content %}
+<h2 class="null" style="margin: 0;padding: 0;display: block;font-family: Helvetica;font-size: 26px;font-style: normal;font-weight: bold;line-height: 125%;letter-spacing: -1px;text-align: left;color: #606060 !important;">Your chapters in {{ month }}</h2>
+<p>Greetings {{ user.first_name|default:user.name }},</p>
+<p>For each of your chapters: what is still open today, and the chapter emails of {{ month }}.</p>
+{% for section in sections %}
+  <h3 style="margin: 24px 0 8px 0;font-size: 20px;"><a href="{{ section.url }}">{{ section.chapter.name }}</a></h3>
+  <p style="margin: 0 0 4px 0;"><strong>Still open</strong></p>
+  <ul>
+    <li>
+      Officers missing on the CMT:
+      {% if section.missing_officers %}{{ section.missing_officers|join:", " }}{% else %}none{% endif %}
+    </li>
+    <li>
+      Overdue tasks: {{ section.overdue_count }}
+      {% if section.overdue_tasks %}
+        <ul>
+          {% for task_date in section.overdue_tasks %}
+            <li>{{ task_date.task.name }}, due {{ task_date.date|date:"M j" }}</li>
+          {% endfor %}
+          {% if section.overdue_count > section.overdue_tasks|length %}<li>and more on the chapter's task list</li>{% endif %}
+        </ul>
+      {% endif %}
+    </li>
+    <li>
+      Open ballots the chapter has not voted on:
+      {% if section.open_ballots %}
+        <ul>
+          {% for ballot in section.open_ballots %}
+            <li>{{ ballot.name }}, due {{ ballot.due_date|date:"M j" }}</li>
+          {% endfor %}
+        </ul>
+      {% else %}none{% endif %}
+    </li>
+  </ul>
+  <p style="margin: 0 0 4px 0;"><strong>Emails in {{ month }}</strong></p>
+  {% if section.emails %}
+    <ul>
+      {% for email in section.emails %}
+        <li>{{ email.created|date:"M j" }}: {{ email.subject }}</li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p>None.</p>
+  {% endif %}
+{% endfor %}
+<p>Fraternally,<br>Theta Tau Central Office</p>
+{% endblock content %}

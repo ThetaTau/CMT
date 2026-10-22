@@ -150,6 +150,7 @@ LOCAL_APPS = [
     "thetatauCMT.guides.apps.GuidesConfig",
     "thetatauCMT.transitions.apps.TransitionsConfig",
     "thetatauCMT.biglittle.apps.BigLittleConfig",
+    "thetatauCMT.support.apps.SupportConfig",
     # Added after any apps which contain models for which to create signals
     "email_signals",
 ]
@@ -222,12 +223,13 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "watson.middleware.SearchContextMiddleware",
     "core.middleware.OfficerMiddleware",
+    "thetatauCMT.support.middleware.ViewOnlyCSSMiddleware",
     "core.middleware.RMPSignMiddleware",
     "termsandconditions.middleware.TermsAndConditionsRedirectMiddleware",
     "simple_history.middleware.HistoryRequestMiddleware",
     "django_userforeignkey.middleware.UserForeignKeyMiddleware",
     "corsheaders.middleware.CorsMiddleware",
-    "core.middleware.RequireSuperuser2FAMiddleware",
+    "core.middleware.Require2FAMiddleware",
     "core.middleware.PlotlyDashStaleCallbackMiddleware",
     "rollbar.contrib.django.middleware.RollbarNotifierMiddleware",  # Last
 ]
@@ -691,6 +693,9 @@ TERMS_EXCLUDE_URL_LIST = {
     "/electronic_terms/",
     "/forms/pledgeprogram/",
     "/forms/report/",
+    # Two-factor setup comes before the RMP; without this, someone who needs both bounces
+    # between the two pages (core.middleware.Require2FAMiddleware).
+    "/setup/",
 }
 
 # How long a released feature stays "new" -- it is listed in the What's New feed

@@ -46,7 +46,7 @@ def test_middleware_module_imports():
 
     assert hasattr(mod, "OfficerMiddleware")
     assert hasattr(mod, "RMPSignMiddleware")
-    assert hasattr(mod, "RequireSuperuser2FAMiddleware")
+    assert hasattr(mod, "Require2FAMiddleware")
     assert hasattr(mod, "PlotlyDashStaleCallbackMiddleware")
 
 

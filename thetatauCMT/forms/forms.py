@@ -106,8 +106,9 @@ class SetNoValidateField(forms.CharField):
 
 
 class UserSelectForm(forms.Form):
+    # Chapter Support Specialist staff accounts cannot complete workflow tasks (Q21).
     user = forms.ModelChoiceField(
-        queryset=User.objects.all(),
+        queryset=User.objects.exclude(current_status="css"),
         widget=autocomplete.ModelSelect2(url="users:autocomplete", forward=(forward.Const("false", "chapter"),)),
     )
 
