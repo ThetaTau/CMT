@@ -15,6 +15,7 @@ urlpatterns = [
         views.download_national_vcard,
         name="national_vcard",
     ),
+    path("my-chapters/vcard/", views.download_support_vcard, name="support_vcard"),
     path("status/", views.sync_status, name="status"),
     # Provider-specific OAuth + sync endpoints. Kept as flat named URLs so the
     # provider registry can reverse them as f"contact_sync:{key}_..." without

@@ -4,7 +4,7 @@ import factory
 from faker import Faker as FakerLib
 
 _faker = FakerLib()
-from core.models import ADVISOR_ROLES, CHAPTER_OFFICER, NAT_OFFICERS  # noqa: E402
+from core.models import ADVISOR_ROLES, CHAPTER_OFFICER, NAT_OFFICERS, SUPPORT_ROLES  # noqa: E402
 from thetatauCMT.chapters.tests.factories import ChapterCurriculaFactory, ChapterFactory  # noqa: E402
 
 from ..models import (  # noqa: E402
@@ -115,7 +115,12 @@ class UserStatusChangeFactory(factory.django.DjangoModelFactory):
         tzinfo=datetime.timezone.utc,
     )
     user = factory.SubFactory(UserFactory)
-    status = factory.Faker("random_element", elements=[x.value[0] for x in UserStatusChange.STATUS])
+    # The Chapter Support Specialist status changes what an account is, so random statuses
+    # never pick it; tests that want a CSS ask for status="css".
+    status = factory.Faker(
+        "random_element",
+        elements=[x.value[0] for x in UserStatusChange.STATUS if x.value[0] != "css"],
+    )
 
     class Meta:
         model = UserStatusChange
@@ -145,7 +150,12 @@ class UserRoleChangeFactory(factory.django.DjangoModelFactory):
         tzinfo=datetime.timezone.utc,
     )
     user = factory.SubFactory(UserFactory)
-    role = factory.Faker("random_element", elements=[item[0] for item in UserRoleChange.ROLES])
+    # Random roles never make someone a Chapter Support Specialist; tests that want one
+    # pass role=CSS_ROLE.
+    role = factory.Faker(
+        "random_element",
+        elements=[item[0] for item in UserRoleChange.ROLES if item[0] not in SUPPORT_ROLES],
+    )
 
     class Meta:
         model = UserRoleChange

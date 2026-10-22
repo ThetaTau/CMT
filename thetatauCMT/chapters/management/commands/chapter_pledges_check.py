@@ -13,6 +13,8 @@ from herald.models import SentNotification
 from core.models import TODAY_END
 from core.notifications import GenericEmail
 from thetatauCMT.chapters.models import Chapter
+from thetatauCMT.support.emails import copy_to_support
+from thetatauCMT.support.models import SupportDigestEntry
 
 
 class Command(BaseCommand):
@@ -86,13 +88,15 @@ class Command(BaseCommand):
                     chapter_name = chapter.name
                     region_email = "ccd@thetatau.org"
                 cc = [region_email, "central.office@thetatau.org"]
-                result = GenericEmail(
+                email = GenericEmail(
                     emails=emails,
                     subject=subject,
                     message=message,
                     cc=cc,
                     addressee=f"{chapter_name} officers",
-                ).send()
+                )
+                copy_to_support(email, chapter, SupportDigestEntry.Kind.PNM_INITIATION)
+                result = email.send()
                 self.stdout.write(f"    {result}")
             else:
                 self.stdout.write(f"    {chapter} does not need to update CMT\n")

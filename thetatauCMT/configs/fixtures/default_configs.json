@@ -218,5 +218,45 @@
         "description": "Bigs and Littles: roles that may record, change and remove Bigs for their whole chapter and upload a CSV of pairings, in addition to the chapter officers. Comma-separated role names exactly as they appear on officer records (for example: pledge/new member educator, scribe). Blank means the New Member Educator only.",
         "modified": "2026-10-20T00:00:00Z"
     }
+},
+{
+    "model": "configs.config",
+    "pk": null,
+    "fields": {
+        "key": "CSS_MANAGERS",
+        "value": "",
+        "description": "Chapter Support Specialists: who besides Admins may add specialists, assign their chapters and remove them. Usernames, emails or National Officer role names (for example: grand regent), one per line or comma separated. Blank means the Executive Director.",
+        "modified": "2026-10-22T00:00:00Z"
+    }
+},
+{
+    "model": "configs.config",
+    "pk": null,
+    "fields": {
+        "key": "CSS_HOME_CHAPTER",
+        "value": "",
+        "description": "Chapter Support Specialists: slug of the inactive chapter that specialist accounts who are not members belong to. Blank means central-office. It must stay inactive.",
+        "modified": "2026-10-22T00:00:00Z"
+    }
+},
+{
+    "model": "configs.config",
+    "pk": null,
+    "fields": {
+        "key": "CSS_REALTIME_EMAILS",
+        "value": "",
+        "description": "Chapter Support Specialists: the chapter emails they get on CC as sent; every other one reaches them only in the daily digest. Kind codes, one per line or comma separated: officer_monthly, dues, workflow_update, workflow_escalation, award, nme_revision, bylaws, ballot, ballot_receipt, ballot_vote_removed, expulsion, disciplinary, officer_update, pnm_initiation, transition_past_due. 'none' sends everything through the digest. Blank means workflow_escalation, ballot, ballot_receipt, ballot_vote_removed, expulsion, disciplinary, officer_update and transition_past_due.",
+        "modified": "2026-10-22T00:00:00Z"
+    }
+},
+{
+    "model": "configs.config",
+    "pk": null,
+    "fields": {
+        "key": "NATOFF_2FA_REQUIRED_FROM",
+        "value": "",
+        "description": "The date (YYYY-MM-DD) from which every National Officer must use two-factor sign-in. Until then, National Officers without it see a banner with the date. Blank means no requirement for National Officers. Admins and Chapter Support Specialists always need it.",
+        "modified": "2026-10-22T00:00:00Z"
+    }
 }
 ]

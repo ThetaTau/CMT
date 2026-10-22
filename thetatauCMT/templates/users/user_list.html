@@ -22,11 +22,13 @@
         </button>
       </form>
       {# Email ALL: open a modal that spells out exactly which email is sent before anything goes out. #}
+      {% if not request.css_view_only %}
       <button type="button" class="btn btn-danger"
               data-bs-toggle="modal" data-bs-target="#emailAllModal"
               title="Email every member in the current filter a request to complete their RMP and update their profile info.">
         <i class="fa fa-envelope"></i> Email RMP &amp; Info Update to ALL
       </button>
+      {% endif %}
     </div>
   {% endif %}
 </div>
@@ -106,7 +108,7 @@
     {% endblock pagination %}
   </div>
 {% endif %}
-{% if request.is_officer %}
+{% if request.is_officer and not request.css_view_only %}
   {# Confirmation modal describing exactly what the "Email ALL" action does before it fires. #}
   <div class="modal fade" id="emailAllModal" tabindex="-1" aria-labelledby="emailAllModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">

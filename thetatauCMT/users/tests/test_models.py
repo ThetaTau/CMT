@@ -190,7 +190,9 @@ def test_contact_visibility_choices_drop_the_officers_level():
         CONTACT_VISIBILITY_MEMBERS,
     ]
     labels = dict(CONTACT_VISIBILITY_CHOICES)
-    assert labels[CONTACT_VISIBILITY_NO_ONE] == "Only National Officers, Admins, and my chapter's officers"
+    assert labels[CONTACT_VISIBILITY_NO_ONE] == (
+        "Only National Officers, Admins, and my chapter's officers and Chapter Support Specialists"
+    )
 
 
 @pytest.mark.django_db

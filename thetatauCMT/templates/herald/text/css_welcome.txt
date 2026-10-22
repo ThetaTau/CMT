@@ -1,0 +1,10 @@
+*** Your CMT account ***
+------------------------------------------------------------
+Greetings {{ user.first_name }},
+Central Office has set up a Chapter Support Specialist account for you on the Theta Tau Chapter Management Tool (CMT). Sign in with this email address, {{ user.email }}.
+Set your password: {{ set_password_url }}
+The link works once and expires after 3 days. If it has expired, get a new one here: {{ reset_url }}
+The first time you sign in, you will be asked to set up two-factor sign-in with an authenticator app on your phone.
+Fraternally,
+Theta Tau Central Office
+{% include "herald/text/footer.txt" %}

@@ -116,7 +116,9 @@ class Command(BaseCommand):
 
     # ------------------------------------------------------------------ helpers
     def _sync_one(self, *, provider, token: UserContactSyncToken, scope: str, dry_run: bool) -> tuple[int, int]:
-        contacts, scope_display = collect_contacts_for_scope(scope)
+        # A CSS's "support" scope is their own chapters as of today, so an ended
+        # assignment drops that chapter's officers here too (CSSWI-10).
+        contacts, scope_display = collect_contacts_for_scope(scope, user=token.user)
         if not contacts:
             self.stdout.write(f"  [skip] {token.user} / {token.provider} / {scope}: 0 contacts.")
             return 0, 0

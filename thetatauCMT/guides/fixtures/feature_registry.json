@@ -79,6 +79,13 @@
           "url_name": "users:detail"
         },
         {
+          "key": "two-factor-sign-in",
+          "name": "Two-factor sign-in",
+          "short_description": "Protect your account with a code from an authenticator app on your phone.",
+          "long_description": "Required for Admins and Chapter Support Specialists, and for every National Officer from the date Central Office announces (a banner shows the date until then). Anyone else may turn it on too. If you lose your phone, Central Office can remove the old device so you can set up a new one.",
+          "url_name": "two-factor-setup"
+        },
+        {
           "key": "contact-visibility",
           "name": "Who can see my contact info",
           "short_description": "Choose who sees your email, phone number and address.",
@@ -183,6 +190,25 @@
           "long_description": "Scores come from what your chapter submits: events, service, forms and reports. Open a score line to see exactly which submissions counted.",
           "url_name": "scores:list",
           "roles": ["regent"]
+        },
+        {
+          "key": "css-my-chapters",
+          "name": "My Chapters (Chapter Support Specialists)",
+          "short_description": "Your assigned chapters side by side, with a dashboard for all of them.",
+          "long_description": "For Chapter Support Specialists, and your Home page: actives, PNMs, overdue tasks, balance and missing officers for each chapter you support, the region dashboard limited to those chapters, and What's New.",
+          "url_name": "support:my_chapters",
+          "audience": "officer",
+          "roles": ["chapter support specialist"]
+        },
+        {
+          "key": "css-chapter-switcher",
+          "name": "Switch between your chapters",
+          "short_description": "Chapter Support Specialists: the bar under the menu shows the chapter you are viewing; pick another of yours to switch.",
+          "long_description": "Every page follows the chapter you choose, and you see what its Regent sees, view only. You can hide the bar from the account menu.",
+          "url_name": "support:my_chapters",
+          "url_fragment": "css-bar",
+          "audience": "officer",
+          "roles": ["chapter support specialist"]
         },
         {
           "key": "chapter-notes",
@@ -1016,6 +1042,16 @@
           "roles": ["corresponding secretary"]
         },
         {
+          "key": "css-contact-sync",
+          "name": "Sync my chapters' officers",
+          "short_description": "Chapter Support Specialists: keep the executive officers of your chapters in your own address book.",
+          "long_description": "Connect a Google or Microsoft account and the contacts stay up to date as officers change, or download a vCard file instead.",
+          "url_name": "support:my_chapters",
+          "url_fragment": "officer-contacts",
+          "audience": "officer",
+          "roles": ["chapter support specialist"]
+        },
+        {
           "key": "region-contacts-vcard",
           "name": "Sync or download region contacts",
           "short_description": "Put your region's officers and advisors into your own address book.",
@@ -1136,6 +1172,14 @@
           "url_name": "scores:chapterlist",
           "audience": "natoff",
           "roles": ["regional director"]
+        },
+        {
+          "key": "chapter-support-specialists",
+          "name": "Chapter Support Specialists",
+          "short_description": "Who supports which chapters, with each specialist's current and past assignments.",
+          "long_description": "Chapter Support Specialists advise chapter leadership and see what each assigned chapter's Regent sees, view only. Central Office adds specialists and assigns their chapters here; other National Officers can read it.",
+          "url_name": "support:list",
+          "audience": "natoff"
         }
       ]
     },
@@ -1596,6 +1640,55 @@
         {
           "title": "Keep your own details current",
           "body": "Advisers are on the roster too, and the national office contacts you using what is there.",
+          "feature": "edit-my-info",
+          "cadence": "once"
+        }
+      ]
+    },
+    {
+      "role": "chapter support specialist",
+      "title": "Chapter Support Specialist",
+      "summary": "You advise the leadership of the chapters assigned to you. In each one you see what its Regent sees, but view only: the chapter's officers file and change everything, and you help them do it. The Regent's chapter emails come to you too: the time-sensitive ones as they are sent, the rest in a daily digest, and a monthly summary of each chapter.",
+      "steps": [
+        {
+          "title": "Start at My Chapters",
+          "body": "Your chapters side by side: actives, PNMs, overdue tasks, balance and missing officers, with a dashboard for all of them below. It is your Home page.",
+          "feature": "css-my-chapters",
+          "cadence": "ongoing"
+        },
+        {
+          "title": "Switch to the chapter you are working with",
+          "body": "The bar under the menu shows the chapter you are viewing. Pick another of your chapters and every page follows. You see what that chapter's Regent sees, so the Regent's guide, listed beside this one, is your map of what the chapter owes.",
+          "feature": "css-chapter-switcher",
+          "cadence": "ongoing"
+        },
+        {
+          "title": "See what the chapter owes",
+          "body": "The task list shows every outstanding national obligation with its due date. It is the fastest way to tell whether a chapter needs help.",
+          "feature": "chapter-tasks",
+          "cadence": "ongoing"
+        },
+        {
+          "title": "Read the chapter's score",
+          "body": "Scores roll up submissions, events, service hours and attendance, so a falling score usually points at a specific officer who needs help.",
+          "feature": "chapter-scores",
+          "cadence": "ongoing"
+        },
+        {
+          "title": "Keep the officers in your contacts",
+          "body": "Sync your chapters' executive officers to your phone, and they stay current as officers change.",
+          "feature": "css-contact-sync",
+          "cadence": "once"
+        },
+        {
+          "title": "Sign the Risk Management Policies each term",
+          "body": "Like every member and adviser, you sign them each term before you can use the rest of the site.",
+          "feature": "risk-management-policies",
+          "cadence": "each_term"
+        },
+        {
+          "title": "Keep your own details current",
+          "body": "Your chapters and Central Office reach you using what is there.",
           "feature": "edit-my-info",
           "cadence": "once"
         }

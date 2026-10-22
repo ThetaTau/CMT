@@ -15,6 +15,7 @@ from thetatauCMT.configs.models import Config
 from thetatauCMT.forms.models import Audit
 from thetatauCMT.forms.notifications import EmailAdvisorWelcome
 from thetatauCMT.notes.tables import ChapterNoteTable
+from thetatauCMT.support.services import chapter_support_specialists
 from thetatauCMT.users.forms import ExternalUserForm
 from thetatauCMT.users.models import User
 from thetatauCMT.users.tables import UserTable
@@ -194,6 +195,7 @@ class ChapterDetailView(LoginRequiredMixin, MultiFormsView):
         # linked to their member profiles on the chapter detail page.
         region = chapter.region
         context["region_directors"] = region.directors.all().order_by("last_name", "name") if region else []
+        context["support_specialists"] = list(chapter_support_specialists(chapter))
         context["can_view_family_tree"] = can_view_tree(self.request.user, chapter)
         return context
 

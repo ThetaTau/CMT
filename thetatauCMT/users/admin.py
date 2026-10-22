@@ -47,6 +47,7 @@ from thetatauCMT.forms.models import (
     StatusChange,
 )
 from thetatauCMT.notes.admin import UserNote, UserNoteInline
+from thetatauCMT.support.admin import SupportAssignmentInline
 from thetatauCMT.trainings.admin import AssignTrainingMixin, TrainingInline
 
 from .forms import UserAdminBadgeFixForm, UserAdminStatusForm, UserStatusForm, status_options
@@ -526,6 +527,7 @@ class MyUserAdmin(
         UserAlterInline,
         StatusInline,
         RoleInline,
+        SupportAssignmentInline,
         InitiationInline,
         StatusChangeInline,
         DepledgeInline,

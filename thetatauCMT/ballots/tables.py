@@ -96,3 +96,12 @@ class BallotUserTable(CMTTable):
 
     def render_type(self, value):
         return Ballot.TYPES.get_value(value)
+
+
+class BallotChapterStatusTable(BallotUserTable):
+    """The viewed chapter's ballots for a Chapter Support Specialist: voted or not, never how."""
+
+    motion = tables.Column(verbose_name="Chapter vote", default="Not yet")
+
+    def render_motion(self, value):
+        return "Voted" if value == "voted" else "Not yet"

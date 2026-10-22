@@ -1,0 +1,20 @@
+{% extends "herald/html/base_email.html" %}
+{% block title %}Your Theta Tau Chapter Management Tool account{% endblock %}
+{% block content %}
+<h2 class="null" style="margin: 0;padding: 0;display: block;font-family: Helvetica;font-size: 30px;font-style: normal;font-weight: bold;line-height: 125%;letter-spacing: -1px;text-align: left;color: #606060 !important;">Your CMT account</h2>
+<p>Greetings {{ user.first_name }},</p>
+<p>
+  Central Office has set up a Chapter Support Specialist account for you on the Theta Tau
+  Chapter Management Tool (CMT). Sign in with this email address, {{ user.email }}.
+</p>
+<p><a href="{{ set_password_url }}">Set your password</a></p>
+<p>
+  The link works once and expires after 3 days. If it has expired, get a new one here:
+  <a href="{{ reset_url }}">{{ host }}{% url 'account_reset_password' %}</a>
+</p>
+<p>
+  The first time you sign in, you will be asked to set up two-factor sign-in with an
+  authenticator app on your phone.
+</p>
+<p>Fraternally,<br>Theta Tau Central Office</p>
+{% endblock content %}

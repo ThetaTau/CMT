@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+{% block title %}My Info: {{ object.name }}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+  <div class="card shadow-sm mb-4 border-0">
+    <div class="card-body">
+      <div class="d-flex flex-wrap justify-content-between align-items-start gap-3">
+        <div>
+          <h1 class="h2 card-title mb-1">{{ object.name }}</h1>
+          <p class="text-muted mb-0">{{ object.username }} &middot; Chapter Support Specialist</p>
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+          <a class="btn btn-outline-primary btn-sm" href="{% url 'account_email' %}">Update E-Mail</a>
+          <a class="btn btn-outline-warning btn-sm" href="{% url 'password_reset' %}">Change Password</a>
+          <a class="btn btn-outline-warning btn-sm" href="{% url 'two-factor-setup' %}">Setup 2FA</a>
+          <a class="btn btn-outline-warning btn-sm" href="{% url 'two-factor-backup-tokens' %}">Backup 2FA</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card shadow-sm mb-4" id="user">
+    <div class="card-body">
+      <h2 class="h5 card-title">My information</h2>
+      <form class="user" method="POST">
+        {% csrf_token %}
+        {{ forms.user|crispy }}
+        <button class="btn btn-primary" name="action" value="user" type="submit">Update My Information</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="card shadow-sm mb-4" id="email_prefs">
+    <div class="card-body">
+      <h2 class="h5 card-title">Email Preferences / Unsubscribe</h2>
+      <p>
+        Manage which optional Theta Tau mailings you receive. Chapter emails you receive as a
+        Chapter Support Specialist are official chapter business and always come.
+      </p>
+      <form class="prefs" method="POST">
+        {% csrf_token %}
+        {{ forms.prefs|crispy }}
+        <button class="btn btn-primary" name="action" value="prefs" type="submit">Save Email Preferences</button>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock content %}

@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{% trans "Chapter Support Specialists" %}{% endblock %}
+
+{% block content %}
+<div class="page-header d-flex flex-wrap align-items-center gap-2 mb-3">
+  <h1 class="page-title mb-0">{% trans "Chapter Support Specialists" %}</h1>
+  {% if can_manage %}
+    <div class="page-actions ms-auto d-flex flex-wrap gap-2">
+      <a href="{% url 'support:create' %}" class="btn btn-sm btn-primary">
+        <i class="fa fa-user-plus" aria-hidden="true"></i> {% trans "Add a Chapter Support Specialist" %}
+      </a>
+    </div>
+  {% endif %}
+</div>
+<p class="text-muted">
+  {% blocktrans trimmed %}
+    Chapter Support Specialists advise chapter leadership. In each chapter assigned to them they see
+    what the Regent sees, view only, and they get the Regent's chapter emails.
+  {% endblocktrans %}
+</p>
+
+{% if rows %}
+  <div class="table-responsive">
+    <table class="table table-striped align-middle" id="css-directory">
+      <thead>
+        <tr>
+          <th scope="col">{% trans "Name" %}</th>
+          <th scope="col">{% trans "Email" %}</th>
+          <th scope="col">{% trans "Account" %}</th>
+          <th scope="col">{% trans "Chapters" %}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in rows %}
+          <tr>
+            <td><a href="{% url 'support:detail' row.person.pk %}">{{ row.person.name }}</a></td>
+            <td><a href="mailto:{{ row.person.email }}">{{ row.person.email }}</a></td>
+            <td>{% if row.member %}{% blocktrans with chapter=row.person.chapter.name %}Member, {{ chapter }}{% endblocktrans %}{% else %}{% trans "Staff" %}{% endif %}</td>
+            <td>
+              {% for chapter in row.chapters %}<a href="{% url 'chapters:detail' chapter.slug %}">{{ chapter.name }}</a>{% if not forloop.last %}, {% endif %}{% empty %}<span class="text-muted">{% trans "None assigned" %}</span>{% endfor %}
+              {% if row.upcoming %}<span class="badge bg-secondary ms-1">{% blocktrans count upcoming=row.upcoming %}{{ upcoming }} upcoming{% plural %}{{ upcoming }} upcoming{% endblocktrans %}</span>{% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% else %}
+  <p>{% trans "No one is a Chapter Support Specialist right now." %}</p>
+{% endif %}
+{% endblock content %}

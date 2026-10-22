@@ -53,8 +53,11 @@ class TransitionsListView(LoginRequiredMixin, TemplateView):
     def dispatch(self, request, *args, **kwargs):
         self.chapter = None
         if request.user.is_authenticated and request.user.chapter_id:
-            if services.can_view_chapter_dashboard(request.user, request.user.chapter):
-                self.chapter = request.user.chapter
+            # current_chapter, so a CSS (and a National Officer using the switcher)
+            # sees the chapter they are viewing.
+            chapter = request.user.current_chapter
+            if services.can_view_chapter_dashboard(request.user, chapter):
+                self.chapter = chapter
         return super().dispatch(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):

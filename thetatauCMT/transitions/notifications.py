@@ -10,13 +10,16 @@ from django.conf import settings
 from herald import registry
 from herald.base import EmailNotification
 
+from thetatauCMT.support.emails import SupportCopyMixin
+from thetatauCMT.support.models import SupportDigestEntry
+
 
 def _chapter_display_name(chapter):
     return chapter.name if chapter.candidate_chapter else chapter.name + " Chapter"
 
 
 @registry.register_decorator()
-class TransitionReportDueReminder(EmailNotification):
+class TransitionReportDueReminder(SupportCopyMixin, EmailNotification):
     """Per-obligation due-date reminder (TRWI-4 mechanism 1)."""
 
     render_types = ["html"]
@@ -24,6 +27,9 @@ class TransitionReportDueReminder(EmailNotification):
     subject = "Transition Report reminder"
 
     def __init__(self, obligation, emails, past_due, escalate_to_rd):
+        # The Regent is copied only once a report is past due, and so is the chapter's CSS.
+        self.support_chapter = obligation.chapter if past_due else None
+        self.support_kind = SupportDigestEntry.Kind.TRANSITION_PAST_DUE
         self.to_emails = {email for email in emails if email}
         self.cc = []
         self.reply_to = ["central.office@thetatau.org"]

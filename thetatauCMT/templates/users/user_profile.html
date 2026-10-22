@@ -96,7 +96,7 @@
               <a href="{% url 'chapters:detail' slug=object.chapter.slug %}">{{ object.chapter }}</a>
               {% if object.chapter.school %}<span class="text-body-secondary">&middot; {{ object.chapter.school }}</span>{% endif %}
             {% endif %}
-            {% if object.badge_number and object.badge_number != 999999999 %}
+            {% if object.badge_number and object.badge_number != 999999999 and object.current_status != "css" %}
               <span class="mx-2 text-body-secondary">&middot;</span>
               <span class="text-body-secondary">Badge #{{ object.badge_number }}</span>
             {% endif %}
@@ -117,6 +117,12 @@
             {% endif %}
             {% if director_regions %}
               <div><span class="badge bg-primary"><i class="fa fa-compass me-1"></i>Regional Director</span></div>
+            {% endif %}
+            {% if support_chapters %}
+              <div id="css-chapters">
+                <span class="text-body-secondary">Chapter Support Specialist for:</span>
+                {% for chapter in support_chapters %}<a href="{% url 'chapters:detail' chapter.slug %}">{{ chapter.name }}</a>{% if not forloop.last %}, {% endif %}{% endfor %}
+              </div>
             {% endif %}
             {% if object.charter %}
               <div><span class="badge bg-info text-dark">Charter Member</span></div>

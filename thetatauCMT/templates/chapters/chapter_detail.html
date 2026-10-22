@@ -38,7 +38,16 @@
                 <a href="mailto:{{ object.region.email }}">{{ object.region.email }}</a>
               </p>
             {% endif %}
-            {% if object.support_specialist %}
+            {% if support_specialists %}
+              {# Assigned Chapter Support Specialists (docs/specs/chapter-support-specialist.md, Q11, Q18). #}
+              <p class="mt-2 mb-0 small" id="chapter-support-specialists">
+                <span class="text-muted">Chapter Support Specialist{{ support_specialists|length|pluralize }}:</span>
+                {% for specialist in support_specialists %}
+                  <a href="{% url 'users:profile' specialist.username %}">{{ specialist.name }}</a>
+                  (<a href="mailto:{{ specialist.email }}">{{ specialist.email }}</a>){% if not forloop.last %},{% endif %}
+                {% endfor %}
+              </p>
+            {% elif object.support_specialist %}
               <div class="mt-2 small">
                 <span class="text-muted d-block">Chapter Support Specialist:</span>
                 <div class="chapter-support-specialist">{{ object.support_specialist|sanitize_html }}</div>

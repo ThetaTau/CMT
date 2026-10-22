@@ -808,6 +808,14 @@ def get_readable_reports(user, **filters):
     if director_regions:
         scope |= Q(chapter__region__in=director_regions)
         has_scope = True
+    # A Chapter Support Specialist reads every officer's submitted reports for their
+    # assigned chapters, the Regent's scope (Q2 b). Reading only: they never author one.
+    from thetatauCMT.support.services import css_state
+
+    css_chapter_ids = css_state(user).chapter_ids
+    if css_chapter_ids:
+        scope |= Q(chapter_id__in=css_chapter_ids)
+        has_scope = True
     if user.is_national_officer_group:
         other_national_roles = NATIONAL_OFFICER_SCOPED & set(current_roles)
         if other_national_roles:
@@ -1085,6 +1093,11 @@ def can_view_chapter_dashboard(user, chapter):
     if user.is_admin or user.is_national_officer_group:
         return True
     if user.director_regions.filter(pk=chapter.region_id).exists():
+        return True
+    # A Chapter Support Specialist reads their assigned chapters like the Regent (Q2).
+    from thetatauCMT.support.services import supports
+
+    if supports(user, chapter):
         return True
     return user.chapter_id == chapter.pk and user.is_officer_group
 

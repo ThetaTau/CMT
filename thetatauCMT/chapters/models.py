@@ -593,10 +593,24 @@ class Chapter(models.Model, EmailSignalMixin):
         self.misc_data[key] = value
         self.save()
 
-    def council_emails(self):
+    def council_emails(self, include_support=False):
+        """The executive officers' and the chapter's generic emails.
+
+        ``include_support`` adds the chapter's Chapter Support Specialists. Only lists that
+        are not emails pass it (the shingle sheet's "Notify" column); emails CC them instead
+        (``thetatauCMT.support.emails``).
+        """
         officers = self.get_current_officers_council_specific()
         emails = set([officer.email for officer in officers if officer]) | set(self.get_generic_chapter_emails())
+        if include_support:
+            emails |= self.support_specialist_emails()
         return {email for email in emails if email}
+
+    def support_specialist_emails(self):
+        """Emails of the Chapter Support Specialists currently assigned to this chapter."""
+        from thetatauCMT.support.services import chapter_support_specialists
+
+        return {person.email for person in chapter_support_specialists(self) if person.email}
 
     def get_email_specific(self, roles=None):
         # Get the generic and current cor sec emails

@@ -15,6 +15,7 @@ from core.views import (
     PagedFilteredTableView,
     RequestConfig,
 )
+from thetatauCMT.support.services import standing_in
 from thetatauCMT.users.models import UserRoleChange
 
 from .filters import BallotCompleteFilter, BallotFilter, BallotUserFilter
@@ -27,7 +28,14 @@ from .forms import (
 )
 from .models import BALLOT_CHAPTER_ROLES, CHAPTER_VOTE_RULE, Ballot, BallotComplete, can_view_ballot_results
 from .notifications import BallotVoteDeleted, BallotVoteReceipt, send_ballot_notifications
-from .tables import RESULT_COLUMNS, SUBMISSION_REVIEW_COLUMNS, BallotCompleteTable, BallotTable, BallotUserTable
+from .tables import (
+    RESULT_COLUMNS,
+    SUBMISSION_REVIEW_COLUMNS,
+    BallotChapterStatusTable,
+    BallotCompleteTable,
+    BallotTable,
+    BallotUserTable,
+)
 
 
 class BallotResultsRequiredMixin:
@@ -356,6 +364,12 @@ class BallotCompleteCreateView(LoginRequiredMixin, OfficerRequiredMixin, CreateV
         context["voting_chapter"] = user.chapter if chapter_role else None
         context["chapter_vote_rule"] = CHAPTER_VOTE_RULE
         context["ballot_open"] = ballot.is_open
+        if standing_in(user):
+            # Q3: a CSS sees whether the viewed chapter has voted, never how, and cannot vote.
+            chapter = user.current_chapter
+            context["css_chapter"] = chapter
+            context["css_chapter_votes"] = Ballot.chapter_group(chapter) in ballot.voters
+            context["css_chapter_vote"] = ballot.chapter_vote(chapter)
         return context
 
     def form_valid(self, form):
@@ -469,7 +483,10 @@ class BallotUserListView(LoginRequiredMixin, PagedFilteredTableView):
     formhelper_class = BallotUserListFormHelper
 
     def get_queryset(self):
-        qs = Ballot.user_ballots(self.request.user)
+        user = self.request.user
+        # A CSS viewing an assigned chapter sees that chapter's ballots and whether it
+        # has voted (Q3); they have no ballots of their own.
+        qs = Ballot.chapter_ballots(user.current_chapter) if standing_in(user) else Ballot.user_ballots(user)
         cancel = self.request.GET.get("cancel", False)
         request_get = self.request.GET.copy()
         if cancel:
@@ -483,7 +500,8 @@ class BallotUserListView(LoginRequiredMixin, PagedFilteredTableView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        table = BallotUserTable(self.object_list)
+        table_class = BallotChapterStatusTable if standing_in(self.request.user) else BallotUserTable
+        table = table_class(self.object_list)
         RequestConfig(self.request, paginate={"per_page": 30}).configure(table)
         context["table"] = table
         return context

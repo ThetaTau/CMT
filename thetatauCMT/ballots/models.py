@@ -367,6 +367,31 @@ class Ballot(TimeStampedModel):
         )
         return ballot_query_current | ballot_query_past
 
+    @classmethod
+    def chapter_ballots(cls, chapter):
+        """Every ballot ``chapter`` votes on, marked "voted" once its vote is in.
+
+        For a Chapter Support Specialist (Q3): they see the chapter's ballots and whether
+        it has voted, never how. ``motion`` is "voted" or empty, never the vote itself.
+        """
+        group = cls.chapter_group(chapter)
+        if group is None:
+            return cls.objects.none().values("name", "type", "due_date", "voters", "slug", "pk")
+        chapter_vote = BallotComplete.objects.filter(
+            ballot=models.OuterRef("pk"), user__chapter=chapter, role__in=BALLOT_CHAPTER_ROLES
+        )
+        return (
+            cls.objects.values("name", "type", "due_date", "voters", "slug", "pk")
+            .filter(voter_role_query(group))
+            .annotate(
+                motion=models.Case(
+                    models.When(models.Exists(chapter_vote), then=models.Value("voted")),
+                    default=models.Value(""),
+                    output_field=models.CharField(),
+                )
+            )
+        )
+
     def get_completed(self, user):
         query = self.completed.filter(user=user)
         return query.first()

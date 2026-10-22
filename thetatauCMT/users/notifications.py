@@ -12,6 +12,8 @@ from herald.base import EmailNotification
 from thetatauCMT.chapters.models import Chapter
 from thetatauCMT.chapters.tables import ChapterStatusTable
 from thetatauCMT.configs.models import Config
+from thetatauCMT.support.emails import SupportCopyMixin
+from thetatauCMT.support.models import SupportDigestEntry
 from thetatauCMT.tasks.models import TaskDate
 from thetatauCMT.users.models import User
 
@@ -128,11 +130,13 @@ class MemberInfoUpdate(EmailNotification):  # extend from EmailNotification for 
 
 
 @registry.register_decorator()
-class OfficerMonthly(EmailNotification):  # extend from EmailNotification for emails
+class OfficerMonthly(SupportCopyMixin, EmailNotification):  # extend from EmailNotification for emails
     template_name = "officer_monthly"  # name of template, without extension
     subject = "CMT Monthly Update"  # subject of email
 
     def __init__(self, chapter):  # optionally customize the initialization
+        self.support_chapter = chapter
+        self.support_kind = SupportDigestEntry.Kind.OFFICER_MONTHLY
         self.context = {"user": chapter}  # set context for the template rendering
         officer_list, previous = chapter.get_current_officers_council()
         # set list of emails to send to
@@ -289,12 +293,14 @@ class NewOfficers(EmailNotification):  # extend from EmailNotification for email
 
 
 @registry.register_decorator()
-class OfficerUpdateReminder(EmailNotification):  # extend from EmailNotification for emails
+class OfficerUpdateReminder(SupportCopyMixin, EmailNotification):  # extend from EmailNotification for emails
     render_types = ["html"]
     template_name = "officer_update_reminder"  # name of template, without extension
     subject = "Officer update reminder"  # subject of email
 
     def __init__(self, chapter, emails, officers_to_update):  # optionally customize the initialization
+        self.support_chapter = chapter
+        self.support_kind = SupportDigestEntry.Kind.OFFICER_UPDATE
         emails = {email for email in emails if email}
         format_officers = ", ".join(officers_to_update)
         self.to_emails = emails
