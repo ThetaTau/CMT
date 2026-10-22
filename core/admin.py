@@ -3,13 +3,16 @@ from address.models import AddressField
 from django.conf import settings
 from django.contrib import admin, messages
 from django.contrib.admin.helpers import ACTION_CHECKBOX_NAME
+from django.contrib.admin.widgets import AdminTextareaWidget
 from django.db import transaction
 from django.template.response import TemplateResponse
 from django.urls import reverse
 from django.utils.safestring import mark_safe
 from django.utils.text import capfirst
+from email_signals.admin import SignalAdmin
 from herald.admin import SentNotificationAdmin
 from report_builder.admin import ReportAdmin
+from tinymce.models import HTMLField
 
 
 def user_chapter(obj):
@@ -47,6 +50,28 @@ class ReportAdminSync(ReportAdmin):
 
 class SentNotificationAdminUpdate(SentNotificationAdmin):
     raw_id_fields = ["user"]
+
+
+class SignalAdminWithoutBundle(SignalAdmin):
+    """Signal admin that only references static files collectstatic collects.
+
+    Production's manifest storage raises "Missing staticfiles manifest entry"
+    (a 500) for anything else, and the stock ``SignalAdmin`` names two kinds:
+
+    * django-email-signals 2.0.0 was released without the webpack-built
+      ``email_signals/{css,js}/signal_change_form.min.*`` its ``Media`` lists
+      (they were only param autocomplete), so keep just the stock admin media.
+    * ``html_message`` uses the TinyMCE widget, but ``tinymce`` is not in
+      ``INSTALLED_APPS``, so its assets are never collected; edit it as a plain
+      textarea. Pass a widget instance: ``HTMLField.formfield`` swaps the bare
+      ``AdminTextareaWidget`` class back to TinyMCE.
+    """
+
+    formfield_overrides = {HTMLField: {"widget": AdminTextareaWidget()}}
+
+    @property
+    def media(self):
+        return super(SignalAdmin, self).media
 
 
 def city(obj):

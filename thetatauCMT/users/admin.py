@@ -14,6 +14,7 @@ from django.urls import reverse
 from django.utils.html import escape
 from django.utils.safestring import mark_safe
 from django.utils.translation import gettext_lazy as _
+from email_signals.models import Signal
 from herald.models import SentNotification
 from import_export.admin import ImportExportActionModelAdmin, ImportMixin
 from report_builder.admin import Report
@@ -26,6 +27,7 @@ from core.admin import (
     MergeableAdminMixin,
     ReportAdminSync,
     SentNotificationAdminUpdate,
+    SignalAdminWithoutBundle,
     user_chapter,
 )
 from core.forms import ComponentAddressField
@@ -73,6 +75,8 @@ admin.site.unregister(SentNotification)
 admin.site.register(SentNotification, SentNotificationAdminUpdate)
 admin.site.unregister(Address)
 admin.site.register(Address, AddressAdmin)
+admin.site.unregister(Signal)
+admin.site.register(Signal, SignalAdminWithoutBundle)
 
 
 def status(obj):

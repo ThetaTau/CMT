@@ -587,6 +587,21 @@ python manage.py check --deploy                 # resolve anything reported
 > collecting and reloading stays harmless. Keep `--clear` for when you actually
 > need to purge accumulated hashes, and reload immediately afterwards.
 
+> **"Missing staticfiles manifest entry for '…'" is not always a stale manifest.**
+> `collectstatic` only collects what a staticfiles finder can see:
+> `thetatauCMT/static/` plus the `static/` folder of each app in `INSTALLED_APPS`.
+> Check the path from the error first:
+>
+> ```bash
+> python manage.py findstatic email_signals/css/signal_change_form.min.css
+> ```
+>
+> "No matching file found" means no `collectstatic` will ever fix it: the file is
+> missing from the installed package (django-email-signals 2.0.0 shipped without
+> its admin CSS/JS) or its app is not in `INSTALLED_APPS` (`tinymce`). Change the
+> code that references it instead; `thetatauCMT/users/tests/test_admin_static.py`
+> fails for any admin whose media points at such a file.
+
 When upgrading **into** the July release for the first time, also run the
 one-time fixtures in [§4.1](#41-fixtures-not-loaded-by-dbseed-load-manually)
 (`national_region`, `award_types`, `keywords`) and set the new `Config` keys /
