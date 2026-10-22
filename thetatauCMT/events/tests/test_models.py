@@ -1,19 +1,26 @@
 import datetime
+import importlib
+import re
 
 import factory
 import pytest
 from django.contrib.auth.models import Group
 from django.core.exceptions import ValidationError
+from django.db import connection
+from django.db.migrations.executor import MigrationExecutor
 from django.test import override_settings
 from django.utils.text import slugify
 from faker import Faker
 
 from core.models import user_is_national_officer
-from thetatauCMT.events.models import Event
+from thetatauCMT.events.models import Event, event_slug
 from thetatauCMT.events.tests.factories import EventFactory
 from thetatauCMT.scores.models import ScoreType
 
 fake = Faker()
+
+# Names slugify() reduces to "" — the event URLs' <slug:> converter rejects that.
+UNSLUGGABLE_NAMES = ["ΘΤ", "🎉🎉", "???"]
 
 
 def _evt_score_type():
@@ -90,6 +97,60 @@ def test_get_update_url_is_date_slug_based(event):
             "event_slug": slugify("Very Special event"),
         },
     )
+
+
+@pytest.mark.parametrize("name", UNSLUGGABLE_NAMES)
+def test_event_slug_falls_back_when_slugify_is_empty(name):
+    assert slugify(name) == ""
+    slug = event_slug(name)
+    assert re.fullmatch(r"[-a-zA-Z0-9_]+", slug)
+    # Deterministic, so re-saving an event never moves its URLs.
+    assert event_slug(name) == slug
+
+
+def test_event_slug_keeps_slugify_output_and_distinct_fallbacks():
+    assert event_slug("Very Special event") == slugify("Very Special event")
+    assert event_slug("Café ΘΤ") == "cafe"
+    assert event_slug("ΘΤ") != event_slug("ΣΤ")
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("name", UNSLUGGABLE_NAMES)
+def test_unsluggable_event_name_urls_reverse(event_factory, name):
+    """Regression: a name slugifying to "" stored an empty slug, and every link
+    to the event raised NoReverseMatch."""
+    event = event_factory.create(name=name, date=datetime.date(2022, 8, 17))
+    assert event.slug == event_slug(name)
+    urls = [
+        event.get_absolute_url(),
+        event.get_update_url(),
+        event.get_delete_url(),
+        event.get_attendance_url(),
+        event.get_attendance_rollup_url(),
+        event.get_rsvp_url(),
+    ]
+    for url in urls:
+        assert f"/~2022/8/17/{event.slug}/" in url
+    event.save(calculate_score=False)
+    assert event.get_absolute_url() == urls[0]
+
+
+@pytest.mark.django_db
+def test_backfill_migration_repairs_unroutable_slugs(event_factory):
+    migration = importlib.import_module("thetatauCMT.events.migrations.0014_backfill_event_slugs")
+    greek = event_factory.create(name="ΘΤ")
+    soft_deleted = event_factory.create(name="🎉🎉", deleted=True)
+    legacy = event_factory.create(name="Chapter Meeting")
+    Event.all_objects.filter(pk__in=[greek.pk, soft_deleted.pk]).update(slug="")
+    Event.all_objects.filter(pk=legacy.pk).update(slug="legacy-slug")
+
+    state = MigrationExecutor(connection).loader.project_state(("events", "0014_backfill_event_slugs"))
+    migration.backfill_event_slugs(state.apps, None)
+
+    assert Event.all_objects.get(pk=greek.pk).slug == event_slug("ΘΤ")
+    assert Event.all_objects.get(pk=soft_deleted.pk).slug == event_slug("🎉🎉")
+    # Slugs the URL converter already accepts are left alone.
+    assert Event.all_objects.get(pk=legacy.pk).slug == "legacy-slug"
 
 
 @pytest.mark.django_db
@@ -487,6 +548,15 @@ def test_event_table_name_links_to_detail(event):
     # The event name links to the detail page, not the edit page.
     assert f'href="{event.get_absolute_url()}"' in cell
     assert event.get_update_url() not in cell
+
+
+@pytest.mark.django_db
+def test_event_table_links_event_with_unsluggable_name(event_factory):
+    from thetatauCMT.events.tables import EventTable
+
+    event = event_factory.create(name="ΘΤ", date=datetime.date(2022, 8, 17))
+    cell = EventTable(data=[event]).rows[0].get_cell("name")
+    assert f'href="{event.get_absolute_url()}"' in cell
 
 
 def test_event_filter_public_label():
