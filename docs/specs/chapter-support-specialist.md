@@ -906,10 +906,10 @@ time-sensitive (the Config setting `CSS_REALTIME_EMAILS`, S16):
   email's subject and rendered body, so the daily digest carries its content.
 - `council_emails(include_support=False)` gains a flag; only the shingle sheet's "Notify"
   column passes `include_support=True` (Q16), because a sheet has no CC.
-- `send_css_digests --period daily` runs each morning: the previous day's entries for each
-  CSS, grouped by chapter, skipped when there are none. `--period monthly` runs on the 1st:
-  for each chapter, what was sent last month and what is still open (overdue tasks, missing
-  officers, open ballots, forms waiting).
+- `send_css_digests`, one task run each morning: every run sends the daily digest, the
+  previous day's entries for each CSS, grouped by chapter, skipped when there are none. On the
+  1st the same run also sends the monthly digest: for each chapter, what was sent last month
+  and what is still open (overdue tasks, missing officers, open ballots, forms waiting).
 
 ### Email inventory
 
@@ -1215,9 +1215,9 @@ Build:
   `SupportDigestEntry` per CSS (Q25 C).
 - `council_emails(include_support=False)`; `update_shingle_contacts` passes
   `include_support=True` (Q16 B).
-- `send_css_digests --period daily|monthly`, plus two scheduled tasks (daily each morning,
-  monthly on the 1st). Skips anyone with nothing to report, and marks entries as sent so a
-  second run sends nothing.
+- `send_css_digests`, one daily scheduled task: the daily digest each morning, and the
+  monthly digest on the 1st (changed from two tasks, 2026-10-22). Skips anyone with nothing
+  to report, and marks entries as sent so a second run sends nothing.
 
 Built 2026-10-22:
 
@@ -1238,15 +1238,18 @@ Built 2026-10-22:
   or comma separated; `none` sends everything through the digest; unset means the "CC as
   sent" rows. Config list values (this one and `CSS_MANAGERS`) are read one entry per
   paragraph, so typing one per line in the admin's editor works.
-- `send_css_digests --period daily`: each CSS's unsent entries, grouped by chapter, with the
+- `send_css_digests` is one daily task (changed from two at your request, 2026-10-22). Every
+  run sends the daily digest: each CSS's unsent entries, grouped by chapter, with the
   digest-only emails in full and a closing "Already sent to you" list (S17). A day with only
-  time-sensitive emails sends no digest, since the CSS has seen them all.
-  `--period monthly` (sends on the 1st; `--override`, `--force`, `--dry-run`): for each
-  chapter, what is still open today (officers missing on the CMT, overdue tasks, which are
-  mostly forms, and open ballots the chapter has not voted on) and the month's emails in one
-  line each. Workflow steps waiting on officers are not repeated, since each workflow emails
-  on its own. A CSS who already got this month's digest is skipped (checked against the
-  sent-email log).
+  time-sensitive emails sends no digest, since the CSS has seen them all. On the 1st (`--day`
+  picks another day) the same run also sends the monthly digest: for each chapter, what is
+  still open today (officers missing on the CMT, overdue tasks, which are mostly forms, and
+  open ballots the chapter has not voted on) and the month's emails in one line each.
+  Workflow steps waiting on officers are not repeated, since each workflow emails on its own.
+  A CSS who already got this month's digest is skipped (checked against the sent-email log).
+  For manual runs only: `--period daily` or `--period monthly` sends just one digest
+  (`both` is the default), `--override` sends the monthly digest on any day, `--force`
+  resends it, and `--dry-run` reports both without sending.
 - `Chapter.council_emails(include_support=False)` and `Chapter.support_specialist_emails()`;
   `update_shingle_contacts` passes `include_support=True` and now sorts the "Notify" list, so
   the sheet does not change order on every run.
@@ -1357,7 +1360,7 @@ Built 2026-10-22:
   assignments and one ended one. Safe to re-run, including after the demo CSS is removed.
 - The four Config keys (`CSS_MANAGERS`, `CSS_HOME_CHAPTER`, `CSS_REALTIME_EMAILS`,
   `NATOFF_2FA_REQUIRED_FROM`) are in `default_configs.json` as blank, described rows, and in
-  `docs/deploy.md` §5.2. §7 lists the two digest tasks and §8.3 is the upgrade runbook,
+  `docs/deploy.md` §5.2. §7 lists the digest task and §8.3 is the upgrade runbook,
   including how to remove a lost two-factor device.
 - The browser check found one problem, now fixed: the NME reminder (S13) was queued on every
   request, including the dashboard's chart callbacks, so a CSS saw it six times on the next
@@ -1491,7 +1494,8 @@ Manual checks, after `docker exec thetataucmt_local_django python manage.py seed
 - Edit the URL or the posted form to choose an unassigned chapter: refused.
 - End one assignment as a manager; the CSS loses that chapter on the next page load.
 - Run `monthly_chapter_officer_email` and `ballot_reminders` locally and check the CSS is on CC
-  in the local Mailpit inbox. Then run `send_css_digests --period daily` and `--period monthly`.
+  in the local Mailpit inbox. Then run `send_css_digests --override`: the daily digest, plus
+  the monthly one whatever the day.
 - Sync the CSS's chapters' officers to a vCard download.
 - Two-factor: sign in as a National Officer with `NATOFF_2FA_REQUIRED_FROM` in the future (banner)
   and in the past (setup required), then sign in again with password and with Google.
@@ -1512,8 +1516,8 @@ Python packages.
    `CSS_HOME_CHAPTER` defaults to `central-office` (Q23) and `CSS_REALTIME_EMAILS` to the
    "CC as sent" rows (S16), so add those only to change them. Never run
    `loaddata default_configs` on production; it overrides values set in admin.
-5. Two PythonAnywhere scheduled tasks for the digests: `send_css_digests --period daily` each
-   morning, and `send_css_digests --period monthly` (it only sends on the 1st).
+5. One PythonAnywhere scheduled task for the digests: `send_css_digests` each morning. It
+   sends the monthly digest itself on the 1st.
 6. Announce the two-factor requirement to National Officers before the enforcement date.
 7. Create the CSS accounts and assignments. Copy anything useful from each chapter's old
    "Support Specialist" text first (Q11).
@@ -1564,6 +1568,7 @@ follow-up they caused.
 | Q25 | **C.** "Urgent things get notified quickly but a digest still comes to help reduce the amount of emails." Time-sensitive emails CC the CSS as sent; everything else arrives only in the daily digest; plus the monthly digest. | 2026-10-22 | Delivery column added to the [Email inventory](#email-inventory); the time-sensitive list is the Config setting `CSS_REALTIME_EMAILS` (S16); the daily digest also lists the day's time-sensitive emails (S17). `SupportDigestEntry` moved into CSSWI-1 so all the models are reviewed together. |
 | Q26 | **B.** National Officers' region syncs include the region's CSSs, labeled "Chapter Support Specialist". | 2026-10-22 | CSSWI-10. |
 | Q27 | **A.** Announce first: a banner until the date in `NATOFF_2FA_REQUIRED_FROM`, then enforcement. | 2026-10-22 | CSSWI-11. |
+| CSSWI-6 | **Changed.** One scheduled task instead of two: "one task scheduled in pythonanywhere daily and it handles both daily and monthly and only monthly on the 1st." | 2026-10-22 | `send_css_digests` sends the daily digest on every run and the monthly digest on the 1st; `--period` now defaults to `both`. `docs/deploy.md` §7 and §8.3 list the one task. |
 
 ## Gotchas for the build
 

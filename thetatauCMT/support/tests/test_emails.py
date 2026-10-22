@@ -358,15 +358,52 @@ def test_the_monthly_digest_covers_each_chapter_once(alpha, css):
     assert send_monthly_digests(today=first_of_month, force=True) == 1
 
 
-def test_the_command_sends_the_monthly_digest_only_on_its_day(alpha, css, capsys):
+def _run_on(day, *args):
+    """Run the command as if today were ``day``."""
     with mock.patch("thetatauCMT.support.management.commands.send_css_digests.timezone") as clock:
-        clock.localdate.return_value = datetime.date(2026, 10, 2)
-        call_command("send_css_digests", "--period", "monthly")
-    assert "Not the scheduled day" in capsys.readouterr().out
+        clock.localdate.return_value = day
+        call_command("send_css_digests", *args)
+
+
+def _kinds_sent():
+    return [message.subject.split(",")[0] for message in mail.outbox]
+
+
+def test_one_daily_run_sends_the_daily_digest_and_on_the_1st_the_monthly_one(alpha, css, capsys):
+    _entry_for(css, alpha, Kind.DUES, "Alpha dues roster")
+    first_of_month = timezone.localdate().replace(day=1)
+
+    _run_on(first_of_month + datetime.timedelta(days=1))
+    out = capsys.readouterr().out
+    assert "Sent 1 daily digest(s)." in out and "Not the monthly digest's day" in out
+    assert _kinds_sent() == ["Chapter Support Specialist digest"]
+
+    mail.outbox = []
+    _run_on(first_of_month)
+    out = capsys.readouterr().out
+    assert "Sent 0 daily digest(s)." in out and "Sent 1 monthly digest(s)." in out
+    assert _kinds_sent() == ["Chapter Support Specialist monthly digest"]
+
+    mail.outbox = []
+    _run_on(first_of_month)
     assert mail.outbox == []
 
-    call_command("send_css_digests", "--period", "monthly", "--override")
-    assert "Sent 1 monthly digest(s)." in capsys.readouterr().out
+
+def test_a_dry_run_or_a_manual_run_works_on_any_day(alpha, css, capsys):
+    entry = _entry_for(css, alpha, Kind.DUES, "Alpha dues roster")
+    second_of_month = timezone.localdate().replace(day=1) + datetime.timedelta(days=1)
+
+    _run_on(second_of_month, "--dry-run")
+    out = capsys.readouterr().out
+    assert "[dry-run] Would send 1 daily digest(s)." in out and "[dry-run] Would send 1 monthly digest(s)." in out
+    assert mail.outbox == []
+
+    _run_on(second_of_month, "--period", "monthly", "--override")
+    out = capsys.readouterr().out
+    assert "Sent 1 monthly digest(s)." in out and "daily" not in out
+    assert _kinds_sent() == ["Chapter Support Specialist monthly digest"]
+    entry.refresh_from_db()
+    assert entry.daily_sent_at is None
 
 
 # --- lists that are not emails (Q16) ----------------------------------------------------------------

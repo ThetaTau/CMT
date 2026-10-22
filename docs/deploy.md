@@ -512,8 +512,7 @@ them daily and let them decide. Use `--dry-run` / `--override` for testing only 
 | `generate_transition_obligations` | daily | Create/refresh Transition Report obligations from officer term ends (looks back 365 days, ahead 45 by default, derived from the [§5.4](#54-transition-reports-keys) offsets) and mark past-due ones `missed`. Officers can also press **Start report** on `/transitions/` before their report is assigned; that creates the same obligation, which this command then reuses. Schedule it before the two below. First-run steps: [§8.1](#81-upgrading-into-the-transition-reports-release-october-2026). |
 | `send_transition_report_reminders` | daily | Due-date reminder ladder (`TRANSITIONS_REMINDER_OFFSETS_DAYS`) plus the once-per-semester broadcast. **Do the first-run baseline in [§8.1](#81-upgrading-into-the-transition-reports-release-october-2026) before scheduling it.** |
 | `send_transition_handoff_notices` | daily | Tells a new officeholder their predecessors' reports are available (sent only when a report exists). |
-| `send_css_digests --period daily` | daily, mornings | Chapter Support Specialists' daily digest: the Regent emails that reach them only by digest, in full, plus a list of the time-sensitive ones they already got on CC. Sends nothing to anyone with nothing new; a second run sends nothing. |
-| `send_css_digests --period monthly` | daily → sends on the **1st** | Monthly summary per chapter for each Chapter Support Specialist: what is still open and last month's emails. A second run the same month sends nothing (`--force` resends). |
+| `send_css_digests` | daily, mornings → monthly digest on the **1st** | Chapter Support Specialists' digests, one task. Every run sends the daily digest: the Regent emails that reach them only by digest, in full, plus a list of the time-sensitive ones they already got on CC (nothing to anyone with nothing new). On the 1st it also sends the monthly digest: each chapter's open items and last month's emails. Running it again sends nothing twice. If the run on the 1st is missed, run `send_css_digests --period monthly --override` by hand; nobody gets the monthly digest twice. |
 
 > This is the deployment-relevant set; confirm the exact crontab against the live
 > PythonAnywhere **Tasks** page. Every command above is idempotent and safe to
@@ -792,7 +791,8 @@ Run the standard flow in [§8](#8-updating-an-existing-deploy), then:
    Director), `CSS_REALTIME_EMAILS`, and `NATOFF_2FA_REQUIRED_FROM` once National Officers
    have been told the date. Until that row has a date, nothing changes for National
    Officers. Never `loaddata default_configs` on production.
-4. Schedule the two `send_css_digests` tasks ([§7](#7-scheduled-tasks-pythonanywhere-daily)).
+4. Schedule `send_css_digests` as one daily task, in the morning
+   ([§7](#7-scheduled-tasks-pythonanywhere-daily)). It sends the monthly digest itself on the 1st.
 5. Add the specialists: National > Chapter Support Specialists > Add. A new account is emailed a
    link to set its password and must set up two-factor sign-in at the first sign-in. Assign each
    specialist's chapters on their page. The CMT sends nothing about assignments; send the
