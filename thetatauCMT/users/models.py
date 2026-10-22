@@ -24,7 +24,9 @@ from core.models import (
     CHAPTER_OFFICER_CHOICES,
     CHAPTER_ROLES,
     COUNCIL,
+    CSS_STANDS_IN_AS,
     NAT_OFFICERS,
+    SUPPORT_ROLES,
     TODAY,
     TODAY_END,
     TOMORROW,
@@ -131,9 +133,9 @@ def positions_from_text(text):
 
 # Who may see one of a member's contact fields (email / phone / address) on
 # their public profile and in member tables. The member themselves, their
-# chapter's officers, National Officers, and Admins can always see the
-# information regardless of this setting, so the most private level is named
-# for who that really is rather than "no one".
+# chapter's officers and Chapter Support Specialists, National Officers, and
+# Admins can always see the information regardless of this setting, so the most
+# private level is named for who that really is rather than "no one".
 CONTACT_VISIBILITY_NO_ONE = "no_one"
 # Retired level: saved before chapter officers always had access, so it now
 # means exactly the same thing as CONTACT_VISIBILITY_NO_ONE.
@@ -144,7 +146,7 @@ CONTACT_VISIBILITY_MEMBERS = "members"
 CONTACT_VISIBILITY_CHOICES = [
     (
         CONTACT_VISIBILITY_NO_ONE,
-        "Only National Officers, Admins, and my chapter's officers",
+        "Only National Officers, Admins, and my chapter's officers and Chapter Support Specialists",
     ),
     (CONTACT_VISIBILITY_CHAPTER, "Members of my chapter"),
     (CONTACT_VISIBILITY_MEMBERS, "Any member on the site"),
@@ -214,7 +216,7 @@ class User(AbstractUser, EmailSignalMixin):
     nickname = models.CharField(
         max_length=30,
         blank=True,
-        help_text="Other than first name and preferred first name - eg Bud, Skip, Frank The Tank, Etc. Do NOT indicate 'pledge names'",
+        help_text="Other than first name and preferred first name - eg Bud, Skip, Frank The Tank, Etc. Do NOT indicate 'PNM names'",
     )
     email_school = models.EmailField(
         _("School Email"),
@@ -366,7 +368,8 @@ class User(AbstractUser, EmailSignalMixin):
         default=CONTACT_VISIBILITY_NO_ONE,
         help_text=(
             "Who may see your email addresses on your member profile and in member lists. "
-            "Your chapter's officers, National Officers, and Admins can always see them."
+            "Your chapter's officers and Chapter Support Specialists, National Officers, and Admins "
+            "can always see them."
         ),
     )
     phone_visibility = models.CharField(
@@ -376,7 +379,8 @@ class User(AbstractUser, EmailSignalMixin):
         default=CONTACT_VISIBILITY_NO_ONE,
         help_text=(
             "Who may see your phone number on your member profile and in member lists. "
-            "Your chapter's officers, National Officers, and Admins can always see it."
+            "Your chapter's officers and Chapter Support Specialists, National Officers, and Admins "
+            "can always see it."
         ),
     )
     address_visibility = models.CharField(
@@ -386,7 +390,8 @@ class User(AbstractUser, EmailSignalMixin):
         default=CONTACT_VISIBILITY_NO_ONE,
         help_text=(
             "Who may see your mailing address on your member profile and in member lists. "
-            "Your chapter's officers, National Officers, and Admins can always see it."
+            "Your chapter's officers and Chapter Support Specialists, National Officers, and Admins "
+            "can always see it."
         ),
     )
     ##### DENORMALIZED FIELDS #####  # noqa: E266
@@ -464,6 +469,14 @@ class User(AbstractUser, EmailSignalMixin):
         if self.in_national_officer_group:
             if self.altered.all():
                 chapter = self.altered.first().chapter
+            return chapter
+        # A Chapter Support Specialist views the assigned chapter they picked in their
+        # switcher (docs/specs/chapter-support-specialist.md).
+        from thetatauCMT.support.services import css_state
+
+        state = css_state(self)
+        if state.is_css and state.viewing is not None:
+            return state.viewing
         return chapter
 
     @property
@@ -561,10 +574,14 @@ class User(AbstractUser, EmailSignalMixin):
             end__gte=date,
         ).exists()
 
-    def chapter_officer(self, altered=True):
+    def chapter_officer(self, altered=True, stand_in=True):
         """
         An member can have multiple roles need to see if any are officer
         :return: Bool if officer, set of officer roles
+
+        ``stand_in=False`` leaves out the Regent role a Chapter Support Specialist stands
+        in for while viewing an assigned chapter; :attr:`is_officer` uses it so group
+        management never counts that role.
         """
         current_roles = set(self.current_roles) if self.current_roles else set()
         # officer = not current_roles.isdisjoint(CHAPTER_OFFICER)
@@ -577,6 +594,13 @@ class User(AbstractUser, EmailSignalMixin):
                 new_role = self.altered.first().role
                 if new_role is not None and new_role != "":
                     officer_roles.add(new_role)
+        elif altered and stand_in:
+            from thetatauCMT.support.services import css_state
+
+            if css_state(self).standing_in:
+                # Their own chapter roles belong to another chapter, so only the Regent
+                # role they stand in for applies while viewing an assigned chapter.
+                officer_roles = {CSS_STANDS_IN_AS}
         return officer_roles
 
     @property
@@ -638,7 +662,16 @@ class User(AbstractUser, EmailSignalMixin):
 
     @property
     def is_chapter_officer_group(self):
-        return self.groups.filter(name="officer").exists()
+        """In the ``officer`` group, or a Chapter Support Specialist viewing an assigned chapter.
+
+        The CSS part is decided per request from their assignments; a CSS is never added
+        to the group itself.
+        """
+        if self.groups.filter(name="officer").exists():
+            return True
+        from thetatauCMT.support.services import css_state
+
+        return css_state(self).standing_in
 
     @property
     def is_officer_group(self):
@@ -656,7 +689,9 @@ class User(AbstractUser, EmailSignalMixin):
 
     @property
     def is_officer(self):
-        return len(self.chapter_officer()) > 0 or len(self.is_national_officer()) > 0
+        # Raw: drives officer/natoff group membership in UserRoleChange.save, so it must
+        # never count the Regent role a CSS stands in for.
+        return len(self.chapter_officer(stand_in=False)) > 0 or len(self.is_national_officer()) > 0
 
     @property
     def is_advisor(self):
@@ -686,11 +721,11 @@ class User(AbstractUser, EmailSignalMixin):
         """Whether ``viewer`` may see one of this member's contact fields
         (email / phone / address) given that field's ``visibility`` setting.
 
-        The member themselves, officers of their chapter, National Officers,
-        and superusers can always see the information because they need it to
-        run the chapter. Everyone else is limited by the chosen level:
-        ``members`` (any member), ``chapter`` (same chapter), or ``no_one``
-        (nobody else).
+        The member themselves, officers of their chapter, the chapter's Chapter
+        Support Specialists, National Officers, and superusers can always see the
+        information because they need it to run or support the chapter. Everyone
+        else is limited by the chosen level: ``members`` (any member), ``chapter``
+        (same chapter), or ``no_one`` (nobody else).
         """
         if viewer is None or not getattr(viewer, "is_authenticated", False):
             return False
@@ -700,6 +735,10 @@ class User(AbstractUser, EmailSignalMixin):
             return True
         same_chapter = viewer.chapter_id == self.chapter_id
         if same_chapter and viewer.is_chapter_officer_group:
+            return True
+        from thetatauCMT.support.services import supports
+
+        if supports(viewer, self.chapter_id):
             return True
         if visibility == CONTACT_VISIBILITY_MEMBERS:
             return True
@@ -954,6 +993,7 @@ class UserStatusChange(StartEndModel, TimeStampedModel, EmailSignalMixin):
         alumniCC = ("alumniCC", "Alumni")
         alumnipend = ("alumnipend", "Alumni Pending")
         away = ("away", "Away")
+        css = ("css", "Chapter Support Specialist")
         deceased = ("deceased", "Deceased")
         depledge = ("depledge", "Depledge")
         expelled = ("expelled", "Expelled")
@@ -1041,6 +1081,11 @@ class UserRoleChange(StartEndModel, TimeStampedModel, EmailSignalMixin):
             return False
         if not self.is_current:
             return False
+        if self.role in SUPPORT_ROLES:
+            # A Chapter Support Specialist role is given and ended by CSS managers only (S12).
+            from thetatauCMT.support.services import can_manage_css
+
+            return can_manage_css(user)
         if user.pk == self.user_id:
             # The member themselves — never for their own chapter-officer role.
             return self.role not in CHAPTER_OFFICER

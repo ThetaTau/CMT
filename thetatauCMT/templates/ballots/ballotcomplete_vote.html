@@ -41,7 +41,18 @@
         </tr>
     <tr>
       <td colspan="4">
-          {% if complete %}
+          {% if css_chapter %}
+            <h3>Chapter Support Specialists cannot vote.</h3>
+            {% if not css_chapter_votes %}
+              <p>{{ css_chapter.name }} does not vote on this ballot.</p>
+            {% elif css_chapter_vote %}
+              <p>{{ css_chapter.name }} has voted. Its {{ css_chapter_vote.role|title }} cast the vote on {{ css_chapter_vote.created }}.</p>
+            {% elif ballot_open %}
+              <p>{{ css_chapter.name }} has not voted yet. Voting closes {{ ballot.closes_display }}.</p>
+            {% else %}
+              <p>Voting closed on {{ ballot.closes_display }} and {{ css_chapter.name }} did not vote.</p>
+            {% endif %}
+          {% elif complete %}
             Complete:<br>
               <h3>{{ current_vote.get_motion_display }}</h3>
               {{ current_vote.user }}<br>{{ current_vote.role | title }}<br>
@@ -75,9 +86,10 @@
           {% csrf_token %}
           {{ form|crispy }}
           <p class="text-muted">
-            Your vote is secret. Nobody else sees how you voted, and only the Grand
-            Regent and Grand Scribe see the totals. A confirmation that the ballot
-            was submitted, without the vote itself, is emailed to
+            Apart from {% if voting_chapter %}your chapter's Regent and Scribe{% else %}you{% endif %},
+            only the Grand Regent and Grand Scribe, who count the ballots, can see how
+            this ballot is voted. A confirmation that the ballot was submitted, without
+            the vote itself, is emailed to
             {% if voting_chapter %}both the Regent and the Scribe{% else %}you{% endif %}.
           </p>
           <div class="control-group">

@@ -1,7 +1,7 @@
-*** Other Pledge Program Submitted ***
+*** Other NME Program Submitted ***
 ------------------------------------------------------------
 Dear Risk Management Committee,
-{{ user }} from {{ user.chapter }} submitted an other/modified pledge program.
+{{ user }} from {{ user.chapter }} submitted an other/modified NME program.
 Attached is a copy of "{{ file_name }}".
 Please review the document and reach out to {{ user.email }} with any questions/concerns.
 In H&T,

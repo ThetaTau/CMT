@@ -58,13 +58,11 @@ class Submission(TimeStampedModel, EmailSignalMixin):
         self.slug = slugify(self.name)
         cal_score = self.type.calculate_score(self, extra_info=extra_info)
         self.score = cal_score
-        try:
-            with transaction.atomic():
-                super().save()
-        except TimeoutError:
-            pass  # Really want to remove all file uploads, ignore for now
-        except BrokenPipeError:
-            pass
+        # A failed file upload (e.g. a storage timeout) used to be swallowed
+        # here, leaving callers thinking the save succeeded when no row was
+        # ever written -- let it propagate so the view can tell the user.
+        with transaction.atomic():
+            super().save()
         self.type.update_chapter_score(self.chapter, self.date)
 
     def chapter_submissions(self, chapter):

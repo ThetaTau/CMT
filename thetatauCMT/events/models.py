@@ -1,4 +1,5 @@
 import datetime
+import hashlib
 import os
 import uuid
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
@@ -115,6 +116,21 @@ def can_delete_event(user, event):
         if current is not None and current.pk == event.chapter_id:
             return True
     return False
+
+
+def event_slug(name):
+    """The URL slug for an event name; never empty.
+
+    Every event route (detail, edit, delete, attendance, RSVP) uses the
+    ASCII-only ``<slug:>`` converter, so a name ``slugify`` strips entirely
+    (Greek letters such as "ΘΤ", emoji, other scripts, bare punctuation) would
+    make each link to the event raise ``NoReverseMatch``. Such names get a
+    stable slug derived from a hash of the name instead.
+    """
+    slug = slugify(name)
+    if slug:
+        return slug
+    return "event-" + hashlib.sha256(name.encode("utf-8")).hexdigest()[:8]
 
 
 class Event(TimeStampedModel, EmailSignalMixin):
@@ -513,7 +529,7 @@ class Event(TimeStampedModel, EmailSignalMixin):
             raise ValidationError(errors)
 
     def save(self, calculate_score=True, **kwargs):
-        self.slug = slugify(self.name)
+        self.slug = event_slug(self.name)
         # National events are always public and are not tied to a chapter.
         if self.is_national:
             self.is_public = True

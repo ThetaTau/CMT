@@ -80,9 +80,15 @@ def get_or_create_address(street, city, state, postal_code, country, state_code=
             country=country_obj,
             defaults={"code": state_code or ""},
         )
+    elif country_obj is not None:
+        # `Locality.state` is a required (NOT NULL) FK even though many
+        # countries (e.g. Poland) have no state/province to enter. Reuse a
+        # blank placeholder `State` scoped to the country instead of `None`,
+        # which would violate the NOT NULL constraint on `Locality.state_id`.
+        state_obj, _ = State.objects.get_or_create(name="", country=country_obj, defaults={"code": ""})
 
     locality_obj = None
-    if city or postal_code:
+    if (city or postal_code) and state_obj is not None:
         locality_obj, _ = Locality.objects.get_or_create(
             name=city,
             postal_code=postal_code,

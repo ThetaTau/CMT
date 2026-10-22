@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% load static %}
+{% load crispy_forms_tags %}
+{% block title %}Review uploaded names{% endblock %}
+
+{% block css %}
+  {{ block.super }}
+  <style>
+    .pending-pairing .select2-container { width: 100% !important; }
+  </style>
+{% endblock css %}
+
+{% block content %}
+  {% if rows %}{{ rows.0.1.media }}{% endif %}
+  <div class="page-header d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+    <h1 class="page-title mb-0">Review uploaded names</h1>
+    <div class="d-flex flex-wrap gap-2">
+      <a class="btn btn-outline-secondary" href="{% url 'biglittle:list' %}">
+        <i class="fas fa-arrow-left" aria-hidden="true"></i> Back to list
+      </a>
+      <a class="btn btn-outline-secondary" href="{% url 'biglittle:upload' %}">
+        <i class="fas fa-file-csv" aria-hidden="true"></i> Upload CSV
+      </a>
+    </div>
+  </div>
+  <p>
+    These rows from Big and Little uploads name someone who did not match exactly one member of
+    {{ chapter }}. For each row, choose a suggestion or search for the member, then save the
+    pairing. Each suggestion links to the member's profile, which opens in a new tab. Saving
+    replaces the Little's current Big, if they have one.
+  </p>
+  <p>
+    If nobody can tell who a name means, or the person is not on {{ chapter }}'s roster (for
+    example a member of another chapter), dismiss the row. Uploading the same file again skips
+    dismissed rows and reuses the members chosen here.
+  </p>
+
+  {% for item, form in rows %}
+    <section class="card mb-3 pending-pairing" id="row-{{ item.pk }}" aria-labelledby="row-{{ item.pk }}-title">
+      <div class="card-header d-flex flex-wrap align-items-center justify-content-between gap-2">
+        <h2 class="h6 mb-0" id="row-{{ item.pk }}-title">Line {{ item.line }}</h2>
+        <span class="small text-body-secondary">
+          Uploaded {{ item.created|date:"SHORT_DATE_FORMAT" }} by {{ item.uploaded_by_name|default:"None" }}
+        </span>
+      </div>
+      <div class="card-body">
+        <form method="post">
+          {% csrf_token %}
+          <input type="hidden" name="item" value="{{ item.pk }}">
+          {% if form.non_field_errors %}
+            <div class="alert alert-danger" role="alert">{{ form.non_field_errors|join:" " }}</div>
+          {% endif %}
+          <div class="row g-4 mb-2">
+            <div class="col-md-6">
+              <h3 class="h6">Little in the file: "{{ item.little_text|default:"None" }}"</h3>
+              {% include "biglittle/_review_choices.html" with field=form.little %}
+              {{ form.little_other|as_crispy_field }}
+            </div>
+            <div class="col-md-6">
+              <h3 class="h6">Big in the file: "{{ item.big_text|default:"None" }}"</h3>
+              {% include "biglittle/_review_choices.html" with field=form.big %}
+              {{ form.big_other|as_crispy_field }}
+            </div>
+          </div>
+          <div class="d-flex flex-wrap gap-2">
+            <button class="btn btn-primary" type="submit" name="action" value="save">Save pairing</button>
+            <button class="btn btn-outline-danger" type="submit" name="action" value="dismiss"
+                    data-confirm="Dismiss this row without saving it? Uploading the same row again will skip it.">
+              Dismiss row
+            </button>
+          </div>
+        </form>
+      </div>
+    </section>
+  {% empty %}
+    <div class="alert alert-secondary">Nothing is waiting for review.</div>
+  {% endfor %}
+{% endblock content %}
+
+{% block javascript %}
+  {{ block.super }}
+  <script src="{% static 'js/biglittle.js' %}"></script>
+{% endblock javascript %}

@@ -112,6 +112,12 @@ def current_year_term_slug():
     return f"{term}_{current_year()}"
 
 
+def semester_label(given_date):
+    """The semester containing ``given_date``, e.g. "Fall 2024"."""
+    term = {"fa": "Fall", "sp": "Spring"}[SEMESTER[given_date.month]]
+    return f"{term} {given_date.year}"
+
+
 def previous_month_period(today=None):
     """(start, end) dates of the calendar month before ``today`` (default: today)."""
     today = today or timezone.now().date()
@@ -206,10 +212,20 @@ COMMITTEE_CHAIR = {
     "website/social media chair",
 }
 
+# Chapter Support Specialists (docs/specs/chapter-support-specialist.md): national staff
+# assigned to several chapters who see what each chapter's Regent sees. Deliberately kept
+# out of every officer, council and advisor set: ``UserRoleChange.save`` adds anyone holding
+# a NAT_OFFICERS role to the ``natoff`` group, and the chapter role sets feed officer and
+# advisor lists.
+CSS_ROLE = "chapter support specialist"
+SUPPORT_ROLES = {CSS_ROLE}
+# The chapter office a CSS stands in for while viewing one of their assigned chapters.
+CSS_STANDS_IN_AS = "regent"
+
 
 NAT_OFFICERS = sorted(set.union(NATIONAL_OFFICER, COUNCIL))
 ALL_OFFICERS = sorted(set.union(CHAPTER_OFFICER, set(NAT_OFFICERS)))
-ALL_ROLES = sorted(set.union(set(ALL_OFFICERS), COMMITTEE_CHAIR, ADVISOR_ROLES))
+ALL_ROLES = sorted(set.union(set(ALL_OFFICERS), COMMITTEE_CHAIR, ADVISOR_ROLES, SUPPORT_ROLES))
 CHAPTER_ROLES = sorted(set.union(CHAPTER_OFFICER, COMMITTEE_CHAIR, ADVISOR_ROLES))
 
 ALL_OFFICERS_CHOICES = sorted([(officer, officer.title()) for officer in ALL_OFFICERS], key=lambda x: x[0])

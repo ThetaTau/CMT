@@ -680,6 +680,29 @@ def test_detail_view_renders_national_event(auto_login_user, event_factory):
     assert b"National (org-wide)" in response.content
 
 
+@pytest.mark.django_db
+def test_list_and_detail_views_handle_event_with_unsluggable_name(auto_login_user):
+    """Regression: the events table raised NoReverseMatch linking an event whose
+    name slugifies to "" (e.g. only Greek letters)."""
+    client, user = auto_login_user()
+    score_type = _evt_score_type()
+    if score_type is None:
+        pytest.skip("No Evt ScoreType in fixture")
+    event = EventFactory.create(
+        name="ΘΤ",
+        chapter=user.current_chapter,
+        type=score_type,
+        date=datetime.date.today() + datetime.timedelta(days=5),
+    )
+    response = client.get(reverse("events:list"))
+    assert response.status_code == 200
+    assert event.get_absolute_url() in response.content.decode()
+
+    response = client.get(event.get_absolute_url())
+    assert response.status_code == 200
+    assert response.context["object"] == event
+
+
 # ===========================================================================
 # Pending review page: name links to detail (new tab) + details sub-row
 # ===========================================================================

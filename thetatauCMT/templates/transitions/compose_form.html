@@ -1,0 +1,158 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+{% load static %}
+
+{% block title %}{{ report.template.name }}{% endblock %}
+
+{% block content %}
+  <h1>{{ report.template.name }}</h1>
+  <p>
+    {{ obligation.chapter }} -- {{ obligation.position_key|title }} -- due {{ obligation.due_date }}
+    ({{ obligation.get_status_display }})
+  </p>
+  {% if report.template.description %}<p>{{ report.template.description }}</p>{% endif %}
+  {% if report.status == "submitted" %}
+    <p class="text-muted">
+      Submitted {{ report.submitted_at }}. You may keep editing at any time -- there is no lock or deadline.
+    </p>
+  {% else %}
+    <p class="text-muted">
+      This is a draft that only you can see. Save it as often as you like and come back to finish it. It is not
+      submitted, and reminders about the due date continue, until you press Submit.
+    </p>
+  {% endif %}
+
+  {{ form.media }}
+  <form method="post" enctype="multipart/form-data" novalidate>
+    {% csrf_token %}
+    {% for field, prior in fields_with_prior_answers %}
+      {{ field|as_crispy_field }}
+      <p class="text-danger small credential-warning" style="display:none;" data-credential-warning-for="{{ field.auto_id }}">
+        This looks like it might contain an actual password. Say where credentials are stored (e.g. a shared password
+        manager) instead of pasting the password itself.
+      </p>
+      {% if prior %}
+        <details class="mb-3 text-muted">
+          <summary>What your predecessor said</summary>
+          <p style="white-space: pre-wrap;">{{ prior.value }}</p>
+        </details>
+      {% endif %}
+    {% endfor %}
+    {{ form.manual_tags|as_crispy_field }}
+
+    <h2 class="h5 mt-4">Key contacts</h2>
+    <p class="text-muted small">Anyone your successor should be able to reach: name, and what they help with.</p>
+    {{ contacts_formset.management_form|crispy }}
+    <div id="contacts-rows">
+      {% for contact_form in contacts_formset %}
+        <div class="contacts_row_form border rounded p-2 mb-2">
+          {{ contact_form.id }}
+          <div class="row">
+            <div class="col-md-3">{{ contact_form.name|as_crispy_field }}</div>
+            <div class="col-md-3">{{ contact_form.role_or_context|as_crispy_field }}</div>
+            <div class="col-md-2">{{ contact_form.phone|as_crispy_field }}</div>
+            <div class="col-md-2">{{ contact_form.email|as_crispy_field }}</div>
+            <div class="col-md-2">{{ contact_form.notes|as_crispy_field }}</div>
+          </div>
+          {% if contact_form.instance.pk %}
+            <div class="form-check">
+              {{ contact_form.DELETE }}
+              <label class="form-check-label" for="{{ contact_form.DELETE.id_for_label }}">Remove this contact</label>
+            </div>
+          {% else %}
+            <button type="button" class="btn btn-sm btn-outline-secondary remove-formset-row">Remove this row</button>
+          {% endif %}
+        </div>
+      {% endfor %}
+    </div>
+    <template id="contacts-empty-form">
+      <div class="contacts_row_form border rounded p-2 mb-2">
+        {{ contacts_formset.empty_form.id }}
+        <div class="row">
+          <div class="col-md-3">{{ contacts_formset.empty_form.name|as_crispy_field }}</div>
+          <div class="col-md-3">{{ contacts_formset.empty_form.role_or_context|as_crispy_field }}</div>
+          <div class="col-md-2">{{ contacts_formset.empty_form.phone|as_crispy_field }}</div>
+          <div class="col-md-2">{{ contacts_formset.empty_form.email|as_crispy_field }}</div>
+          <div class="col-md-2">{{ contacts_formset.empty_form.notes|as_crispy_field }}</div>
+        </div>
+        <button type="button" class="btn btn-sm btn-outline-secondary remove-formset-row">Remove this row</button>
+      </div>
+    </template>
+    <button type="button" class="btn btn-sm btn-outline-secondary" data-add-formset-row="contacts">
+      + Add another contact
+    </button>
+
+    <h2 class="h5 mt-4">Key dates</h2>
+    <p class="text-muted small">Recurring dates/deadlines, and how far ahead to start each.</p>
+    {{ key_dates_formset.management_form|crispy }}
+    <div id="key_dates-rows">
+      {% for date_form in key_dates_formset %}
+        <div class="key_dates_row_form border rounded p-2 mb-2">
+          {{ date_form.id }}
+          <div class="row">
+            <div class="col-md-5">{{ date_form.label|as_crispy_field }}</div>
+            <div class="col-md-3">{{ date_form.timing|as_crispy_field }}</div>
+            <div class="col-md-4">{{ date_form.lead_time_note|as_crispy_field }}</div>
+          </div>
+          {% if date_form.instance.pk %}
+            <div class="form-check">
+              {{ date_form.DELETE }}
+              <label class="form-check-label" for="{{ date_form.DELETE.id_for_label }}">Remove this date</label>
+            </div>
+          {% else %}
+            <button type="button" class="btn btn-sm btn-outline-secondary remove-formset-row">Remove this row</button>
+          {% endif %}
+        </div>
+      {% endfor %}
+    </div>
+    <template id="key_dates-empty-form">
+      <div class="key_dates_row_form border rounded p-2 mb-2">
+        {{ key_dates_formset.empty_form.id }}
+        <div class="row">
+          <div class="col-md-5">{{ key_dates_formset.empty_form.label|as_crispy_field }}</div>
+          <div class="col-md-3">{{ key_dates_formset.empty_form.timing|as_crispy_field }}</div>
+          <div class="col-md-4">{{ key_dates_formset.empty_form.lead_time_note|as_crispy_field }}</div>
+        </div>
+        <button type="button" class="btn btn-sm btn-outline-secondary remove-formset-row">Remove this row</button>
+      </div>
+    </template>
+    <button type="button" class="btn btn-sm btn-outline-secondary" data-add-formset-row="key_dates">
+      + Add another date
+    </button>
+
+    <button type="submit" name="action" value="draft" class="btn btn-outline-primary mt-3">Save Draft</button>
+    <button type="submit" name="action" value="submit" class="btn btn-primary mt-3">Submit</button>
+  </form>
+
+  <h2 class="mt-4">Attachments</h2>
+  <p class="text-muted small">
+    Commonly useful: budget/financial documents, meeting minutes, vendor or contact info, policy/bylaws copies, event
+    plans, an asset/inventory list.
+  </p>
+  {% if report.attachments.all %}
+    <ul>
+      {% for attachment in report.attachments.all %}
+        <li>
+          <a href="{{ attachment.file.url }}">{{ attachment.file.name }}</a>
+          {% if attachment.get_category_display %} ({{ attachment.get_category_display }}){% endif %}
+          {% if attachment.description %} -- {{ attachment.description }}{% endif %}
+          <form method="post" action="{% url 'transitions:attachment-delete' attachment.public_id %}" style="display:inline;">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-sm btn-outline-danger">Remove</button>
+          </form>
+        </li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+  <form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="add_attachment">
+    {{ attachment_form|crispy }}
+    <button type="submit" class="btn btn-outline-secondary">Add attachment</button>
+  </form>
+{% endblock %}
+
+{% block javascript %}
+  {{ block.super }}
+  <script src="{% static 'js/transitions_compose.js' %}"></script>
+{% endblock javascript %}

@@ -53,8 +53,8 @@ Add two environment variables (see `config/settings/base.py` for the exact
 names). For production this typically lives in `.env` next to the compose file:
 
 ```env
-CONTACT_SYNC_GOOGLE_CLIENT_ID=1234567890-abcd.apps.googleusercontent.com
-CONTACT_SYNC_GOOGLE_CLIENT_SECRET=GOCSPX-your-secret-here
+CONTACT_SYNC_GOOGLE_CLIENT_ID=EXAMPLE_CLIENT_ID.apps.googleusercontent.com
+CONTACT_SYNC_GOOGLE_CLIENT_SECRET=EXAMPLE_CLIENT_SECRET
 ```
 
 Restart the Django service so the new settings load
@@ -110,8 +110,8 @@ Members can revoke access at any time from
 ### 2b. Configure the Django app
 
 ```env
-CONTACT_SYNC_MICROSOFT_CLIENT_ID=00000000-1111-2222-3333-444444444444
-CONTACT_SYNC_MICROSOFT_CLIENT_SECRET=your-client-secret-value
+CONTACT_SYNC_MICROSOFT_CLIENT_ID=EXAMPLE_CLIENT_ID
+CONTACT_SYNC_MICROSOFT_CLIENT_SECRET=EXAMPLE_CLIENT_SECRET
 # Optional — defaults to "common" (personal + any work/school account).
 # Set to a tenant GUID or verified domain to restrict.
 CONTACT_SYNC_MICROSOFT_TENANT=common
@@ -229,10 +229,12 @@ own region — both will run once a week).
 ### Cron / Celery beat integration
 
 A management command drives the actual work — safe to schedule from cron,
-PythonAnywhere, or Celery beat:
+PythonAnywhere, or Celery beat. PythonAnywhere only offers *daily* scheduled
+tasks, so the command self-gates to a single weekday (Thursday by default)
+the same way `job_search_notify` / `region_officer_reminder_digest` do:
 
 ```sh
-# Once a week (e.g. Sunday 06:00) — from a cron-style scheduler:
+# Schedule DAILY; it only actually pushes on --weekday (Thursday by default):
 podman exec thetataucmt_local_django python manage.py weekly_contact_sync
 ```
 
@@ -241,7 +243,11 @@ Options:
 - `--user someone@example.com` — only sync one user's tokens (handy for
   debugging).
 - `--provider google` — only sync one provider.
-- `--dry-run` — print what would happen without actually pushing.
+- `--weekday N` — weekday to actually push on (0=Monday ... 6=Sunday).
+  Default Thursday (3).
+- `--override` — push now regardless of the weekday gate.
+- `--dry-run` — print what would happen without actually pushing; also
+  bypasses the weekday gate so it can be tested on any day.
 
 The command:
 1. Loads every `UserContactSyncToken` with a non-empty `auto_sync_scopes`.

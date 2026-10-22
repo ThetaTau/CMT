@@ -1,0 +1,24 @@
+{% comment %}
+One side's suggestions on the review page, each with a link to the member's profile in a
+new tab so the reviewer can check who it is. Expects ``field``, a radio BoundField.
+{% endcomment %}
+{% if field.field.choices %}
+  <fieldset class="mb-3">
+    <legend class="form-label fs-6">{{ field.label }}</legend>
+    {% for radio in field %}
+      <div class="form-check">
+        {{ radio.tag }}
+        <label class="form-check-label" for="{{ radio.id_for_label }}">{{ radio.choice_label }}</label>
+        <a class="ms-1 small" href="{% url 'biglittle:member' radio.data.value %}" target="_blank" rel="noopener">
+          Profile<span class="visually-hidden"> of {{ radio.choice_label }}, opens in a new tab</span>
+          <i class="fas fa-up-right-from-square" aria-hidden="true"></i>
+        </a>
+      </div>
+    {% endfor %}
+    {% for error in field.errors %}
+      <div class="invalid-feedback d-block">{{ error }}</div>
+    {% endfor %}
+  </fieldset>
+{% else %}
+  <p class="text-body-secondary">No close matches. Search below.</p>
+{% endif %}

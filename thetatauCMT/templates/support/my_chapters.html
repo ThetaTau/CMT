@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% load i18n plotly_dash %}
+{% block title %}{% trans "My Chapters" %}{% endblock %}
+
+{% block content %}
+<div class="page-header d-flex flex-wrap align-items-center gap-2 mb-3">
+  <h1 class="page-title mb-0">{% trans "My Chapters" %}</h1>
+  {% if member %}
+    <div class="page-actions ms-auto">
+      <a class="btn btn-sm btn-outline-secondary" href="{% url 'home' %}?member=1">{% trans "My member home page" %}</a>
+    </div>
+  {% endif %}
+</div>
+<p class="text-muted">
+  {% blocktrans trimmed %}
+    You are the Chapter Support Specialist for these chapters. In each one you see what its
+    Regent sees, view only. Switch to a chapter to open its pages.
+  {% endblocktrans %}
+</p>
+
+{% if rows %}
+  <div class="table-responsive">
+    <table class="table table-striped align-middle" id="css-my-chapters">
+      <thead>
+        <tr>
+          <th scope="col">{% trans "Chapter" %}</th>
+          <th scope="col" class="text-end">{% trans "Actives" %}</th>
+          <th scope="col" class="text-end">{% trans "PNMs" %}</th>
+          <th scope="col" class="text-end">{% trans "Overdue tasks" %}</th>
+          <th scope="col" class="text-end">{% trans "Balance" %}</th>
+          <th scope="col">{% trans "Missing officers" %}</th>
+          <th scope="col"><span class="visually-hidden">{% trans "Switch" %}</span></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in rows %}
+          <tr>
+            <td>
+              <a href="{% url 'chapters:detail' row.chapter.slug %}">{{ row.chapter.name }}</a>
+              {% if row.chapter.pk == viewing.pk %}<span class="badge bg-secondary ms-1">{% trans "Viewing" %}</span>{% endif %}
+            </td>
+            <td class="text-end">{{ row.actives }}</td>
+            <td class="text-end">{{ row.pnms }}</td>
+            <td class="text-end">{{ row.overdue }}</td>
+            <td class="text-end">
+              ${{ row.chapter.balance|floatformat:2 }}
+              {% if row.chapter.balance_date %}<div class="small text-muted">{% blocktrans with day=row.chapter.balance_date|date:"M j, Y" %}as of {{ day }}{% endblocktrans %}</div>{% endif %}
+            </td>
+            <td>{% if row.missing %}{{ row.missing|join:", " }}{% else %}<span class="text-muted">{% trans "None" %}</span>{% endif %}</td>
+            <td class="text-end">
+              {% if row.chapter.pk != viewing.pk %}
+                <form method="post" action="{% url 'support:switch' %}">
+                  {% csrf_token %}
+                  <input type="hidden" name="chapter" value="{{ row.chapter.slug }}">
+                  <input type="hidden" name="next" value="{% url 'chapters:detail' row.chapter.slug %}">
+                  <button type="submit" name="action" value="apply" class="btn btn-sm btn-outline-primary">
+                    {% blocktrans with chapter=row.chapter.name %}Switch to {{ chapter }}{% endblocktrans %}
+                  </button>
+                </form>
+              {% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% else %}
+  <p>{% trans "No chapters assigned. Contact the Central Office." %}</p>
+{% endif %}
+
+{% if contact_sync_available %}
+  <section id="officer-contacts" class="mt-3">
+    <h2 class="h5">{% trans "Officer contacts" %}</h2>
+    <p class="text-muted small mb-2">
+      {% blocktrans trimmed count counter=officer_count %}
+        Add your chapters' {{ counter }} executive officer to your own address book.
+      {% plural %}
+        Add your chapters' {{ counter }} executive officers to your own address book.
+      {% endblocktrans %}
+    </p>
+    <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#contactSyncModal">
+      <i class="fas fa-address-book" aria-hidden="true"></i> {% trans "Sync to Contacts" %}
+    </button>
+    {# Hidden CSRF token so contact_sync/sync_modal.html's fetch() calls can POST safely. #}
+    <form style="display:none">{% csrf_token %}</form>
+    {% include "contact_sync/sync_modal.html" %}
+  </section>
+{% endif %}
+
+{% if rows %}
+  <h2 class="h4 mt-4">{% trans "Dashboard" %}</h2>
+  <div id="cmt-dashboard-scope" data-scope="{{ dashboard_scope }}" hidden></div>
+  <div class="tt-dashboard-wrapper">
+    {% plotly_header %}
+    {% plotly_direct name="RegionDashboard" %}
+    {% plotly_footer %}
+  </div>
+{% endif %}
+{% endblock content %}

@@ -28,5 +28,35 @@
         "description": "Feature flag for the Events Calendar. Set value to \"off\" to hide the Events Calendar links (menu item and calendar icon). Any other value (e.g. \"on\") keeps the Events Calendar enabled.",
         "modified": "2026-07-20T00:00:00Z"
     }
+},
+{
+    "model": "configs.config",
+    "pk": null,
+    "fields": {
+        "key": "TRANSITIONS_COUNCIL_ENABLED",
+        "value": "on",
+        "description": "Transition Reports: whether National Council positions (grand regent, grand scribe, etc.) are in scope. Set value to \"off\" to exclude Council positions from Transition Report obligations. Any other value (e.g. \"on\") keeps them in scope (optional, not required).",
+        "modified": "2026-09-05T00:00:00Z"
+    }
+},
+{
+    "model": "configs.config",
+    "pk": null,
+    "fields": {
+        "key": "TRANSITIONS_NATIONAL_OFFICER_ENABLED",
+        "value": "on",
+        "description": "Transition Reports: whether National Officer positions (regional director, candidate chapter director, etc.) are in scope. Set value to \"off\" to exclude National Officer positions from Transition Report obligations. Any other value (e.g. \"on\") keeps them in scope (optional, not required).",
+        "modified": "2026-09-05T00:00:00Z"
+    }
+},
+{
+    "model": "configs.config",
+    "pk": null,
+    "fields": {
+        "key": "TRANSITIONS_COMMITTEE_CHAIR_ENABLED",
+        "value": "on",
+        "description": "Transition Reports: whether Committee Chair positions are in scope (excludes pledge/new member educator and risk management chair, which are always required Chapter Officer positions). Set value to \"off\" to exclude Committee Chair positions from Transition Report obligations. Any other value (e.g. \"on\") keeps them in scope (optional, not required).",
+        "modified": "2026-09-05T00:00:00Z"
+    }
 }
 ]

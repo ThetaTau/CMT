@@ -4,6 +4,9 @@ import zipfile
 from io import BytesIO, StringIO
 
 import viewflow
+from allauth.account import app_settings as allauth_account_settings
+from allauth.account.models import EmailAddress
+from allauth.account.views import ConfirmEmailView as _AllauthConfirmEmailView
 from allauth.account.views import LoginView
 from dal import autocomplete
 from django import forms
@@ -13,7 +16,7 @@ from django.contrib.auth.tokens import default_token_generator
 from django.contrib.sites.shortcuts import get_current_site
 from django.core import signing
 from django.core.exceptions import ValidationError
-from django.http import HttpResponse, JsonResponse
+from django.http import Http404, HttpResponse, JsonResponse
 from django.http.request import QueryDict
 from django.http.response import HttpResponseRedirect
 from django.shortcuts import get_object_or_404, render
@@ -40,10 +43,16 @@ from core.views import (
     RequestConfig,
     group_required,
 )
+from thetatauCMT.biglittle import services as big_little
+from thetatauCMT.biglittle.forms import AddLittleForm, MyBigForm
+from thetatauCMT.biglittle.models import BigLittle
 from thetatauCMT.chapters.models import Chapter
 from thetatauCMT.forms.forms import PledgeDemographicsForm
 from thetatauCMT.notes.tables import UserNoteTable
 from thetatauCMT.submissions.tables import SubmissionTable
+from thetatauCMT.support.forms import CSSInfoForm
+from thetatauCMT.support.services import VIEW_ONLY_MESSAGE as CSS_VIEW_ONLY_MESSAGE
+from thetatauCMT.support.services import css_chapters, wants_css_landing
 
 from .filters import UserListFilter, UserListFilterBase, UserOrgListFilter
 from .forms import (
@@ -82,6 +91,8 @@ class UserRedirectView(LoginRequiredMixin, RedirectView):
     permanent = False
 
     def get_redirect_url(self):
+        if wants_css_landing(self.request.user):
+            return reverse("support:my_chapters")
         return reverse("users:detail")
 
 
@@ -306,8 +317,12 @@ class UserProfileView(LoginRequiredMixin, DetailView):
                 # Regions this member directs (Region.directors M2M). Drives the
                 # prominent "Regional Director" card + generic region contact info.
                 "director_regions": (target.regional_director.all().prefetch_related("chapters").order_by("name")),
+                # Chapters this person serves as a Chapter Support Specialist; every
+                # signed-in member may see them (docs/specs/chapter-support-specialist.md, Q18).
+                "support_chapters": list(css_chapters(target)),
             }
         )
+        context["big_little"] = _profile_big_little(target, viewer, is_owner)
 
         # Volunteer nominations (#2/#3/#9/#14). Anyone can nominate a member;
         # the member (owner) and National Officers can see the status of the
@@ -404,6 +419,33 @@ class UserProfileView(LoginRequiredMixin, DetailView):
 UserDetailView = UserProfileView
 
 
+def _profile_big_little(target, viewer, is_owner):
+    """The profile's Big and Littles card, or None when the viewer may not see it (Q2)."""
+    chapter = big_little.link_chapter_for(target)
+    can_view_tree = big_little.can_view_tree(viewer, chapter)
+    if not (is_owner or can_view_tree):
+        return None
+    big_link = big_little.current_big_link(target)
+    littles = [link.little for link in big_little.current_little_links(target)]
+    has_pairings = big_link is not None or bool(littles)
+    initiated = big_little.is_initiated(target)
+    edit_url = ""
+    if is_owner:
+        edit_url = reverse("users:detail") + "#big_little"
+    elif big_little.can_manage(viewer, chapter):
+        edit_url = reverse("biglittle:record") + f"?little={target.pk}"
+    tree_url = ""
+    if has_pairings and can_view_tree:
+        tree_url = reverse("biglittle:tree", kwargs={"slug": chapter.slug}) + f"?member={target.pk}"
+    return {
+        "show": has_pairings or (is_owner and initiated),
+        "big": big_link.big if big_link else None,
+        "littles": littles,
+        "edit_url": edit_url if initiated else "",
+        "tree_url": tree_url,
+    }
+
+
 def _role_labels(current_roles):
     """Return a list of ``(slug, label)`` pairs for the user's current roles."""
     if not current_roles:
@@ -445,7 +487,19 @@ class UserDetailUpdateView(LoginRequiredMixin, MultiFormsView):
         "user": UserForm,
         "demo": PledgeDemographicsForm,
         "prefs": EmailPreferencesForm,
+        "big": MyBigForm,
+        "little": AddLittleForm,
     }
+    css_account = False
+
+    def dispatch(self, request, *args, **kwargs):
+        # A Chapter Support Specialist staff account is not a member, so it gets a short
+        # page without the member sections (docs/specs/chapter-support-specialist.md, Q5).
+        if request.user.is_authenticated and request.user.current_status == "css":
+            self.css_account = True
+            self.form_classes = {"user": CSSInfoForm, "prefs": EmailPreferencesForm}
+            self.template_name = "support/css_my_info.html"
+        return super().dispatch(request, *args, **kwargs)
 
     # send the user back to their own page after a successful update
     def get_success_url(self, form_name=None):
@@ -481,7 +535,10 @@ class UserDetailUpdateView(LoginRequiredMixin, MultiFormsView):
     def user_form_valid(self, form):
         if form.has_changed():
             form.save()
-            messages.success(self.request, "Your member information was updated.")
+            messages.success(
+                self.request,
+                "Your information was updated." if self.css_account else "Your member information was updated.",
+            )
         else:
             messages.info(self.request, "No changes were made.")
         return HttpResponseRedirect(self.get_success_url() + "#user")
@@ -528,6 +585,41 @@ class UserDetailUpdateView(LoginRequiredMixin, MultiFormsView):
             form.save()
         return HttpResponseRedirect(self.get_success_url() + "#member_gpaservice")
 
+    def get_big_kwargs(self):
+        return {"user": self.request.user}
+
+    def get_little_kwargs(self):
+        return {"user": self.request.user}
+
+    def get_big_initial(self):
+        big = big_little.current_big(self.request.user)
+        return {"big": big.pk} if big else {}
+
+    def big_form_valid(self, form):
+        big = form.cleaned_data["big"]
+        try:
+            result = big_little.set_big(self.request.user, big, actor=self.request.user, source=BigLittle.Source.MEMBER)
+        except big_little.BigLittleError as error:
+            messages.error(self.request, error.messages[0])
+        else:
+            if result.outcome == big_little.UNCHANGED:
+                messages.info(self.request, "No changes were made.")
+            elif result.outcome == big_little.CHANGED:
+                messages.success(self.request, f"Changed your Big from {result.previous_big} to {big}.")
+            else:
+                messages.success(self.request, f"Recorded {big} as your Big.")
+        return HttpResponseRedirect(self.get_success_url() + "#big_little")
+
+    def little_form_valid(self, form):
+        little = form.cleaned_data["little"]
+        try:
+            big_little.set_big(little, self.request.user, actor=self.request.user, source=BigLittle.Source.MEMBER)
+        except big_little.BigLittleError as error:
+            messages.error(self.request, error.messages[0])
+        else:
+            messages.success(self.request, f"Recorded {little} as your Little.")
+        return HttpResponseRedirect(self.get_success_url() + "#big_little")
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context.update(
@@ -535,6 +627,8 @@ class UserDetailUpdateView(LoginRequiredMixin, MultiFormsView):
                 "object": self.get_object(),
             }
         )
+        if self.css_account:
+            return context
         headers = [""]
         for i in range(4):
             year = BIENNIUM_YEARS[i]
@@ -546,6 +640,15 @@ class UserDetailUpdateView(LoginRequiredMixin, MultiFormsView):
         RequestConfig(self.request, paginate={"per_page": 30}).configure(table)
         context["submission_table"] = table
         context["member_orgs"] = self.request.user.orgs.select_related("organization").order_by("-start")
+        user = self.request.user
+        context["big_little"] = {
+            "initiated": big_little.is_initiated(user),
+            "big_link": big_little.current_big_link(user),
+            "little_links": [
+                {"link": link, "can_remove": big_little.can_remove(user, link)}
+                for link in big_little.current_little_links(user)
+            ],
+        }
         return context
 
     def _get_form_kwargs(self, form_name, bind_form=False):
@@ -688,6 +791,10 @@ class UserListView(LoginRequiredMixin, PagedFilteredTableView):
                 messages.ERROR,
                 "Only chapter officers can email members through this method.",
             )
+            return super().get(request, *args, **kwargs)
+        if email_action and getattr(request, "css_view_only", False):
+            # "Email ALL" sends on a page load, so ViewOnlyCSSMiddleware cannot catch it.
+            messages.add_message(self.request, messages.ERROR, CSS_VIEW_ONLY_MESSAGE)
             return super().get(request, *args, **kwargs)
         if csv_action:
             self.object_list = self.get_queryset()
@@ -872,6 +979,42 @@ class PasswordResetFormNotActive(PasswordResetForm):
                     user_email_school,
                     html_email_template_name=html_email_template_name,
                 )
+
+
+class ConfirmEmailView(_AllauthConfirmEmailView):
+    """An already-confirmed, expired, or tampered key 404s on POST upstream:
+    unlike GET, allauth's post() doesn't guard get_object(). Members double-
+    clicking Confirm (or revisiting a used link) got a bare 404 instead of the
+    same "invalid or expired" page GET already renders; show that instead.
+
+    Mandatory email verification also re-sends a fresh confirmation link on
+    every unverified login attempt (allauth's EmailVerificationStage), so
+    members routinely end up with several valid-until-used links for the
+    same address; confirming via any one dead-ends the rest. get_context_data
+    tells those two "link doesn't work" cases apart so an already-confirmed
+    member is told to log in rather than to request a new confirmation."""
+
+    def post(self, *args, **kwargs):
+        try:
+            return super().post(*args, **kwargs)
+        except Http404:
+            self.object = None
+            return self.render_to_response(self.get_context_data())
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        if not self.object:
+            ctx["already_confirmed_email"] = self._get_already_confirmed_email()
+        return ctx
+
+    def _get_already_confirmed_email(self):
+        # No max_age: a key that is otherwise validly signed but expired
+        # should still let us look up (and report on) the address it was for.
+        try:
+            pk = signing.loads(self.kwargs["key"], salt=allauth_account_settings.SALT)
+        except signing.BadSignature:
+            return None
+        return EmailAddress.objects.filter(pk=pk, verified=True).values_list("email", flat=True).first()
 
 
 class CaptchaLoginView(LoginView):

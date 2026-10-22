@@ -56,11 +56,11 @@ def ballot_closes_at(due_date):
 
 
 def can_view_ballot_results(user):
-    """Whether ``user`` may see the aggregate aye/nay/abstain tallies.
+    """Whether ``user`` may see how each chapter and officer voted, and the tallies.
 
-    Deliberately NOT superusers, Admins or the rest of the National Officers:
-    the ballot is secret. How an individual voted is shown to nobody but the
-    voter, and the counts are shown only to the Grand Regent and Grand Scribe.
+    Only the Grand Regent and Grand Scribe, who count the ballots, whether or not
+    the ballot has closed. Deliberately NOT superusers, Admins or the rest of the
+    National Officers.
     """
     if not getattr(user, "is_authenticated", False):
         return False
@@ -366,6 +366,31 @@ class Ballot(TimeStampedModel):
             .annotate(motion=models.Subquery(voted.values("motion")[:1]))
         )
         return ballot_query_current | ballot_query_past
+
+    @classmethod
+    def chapter_ballots(cls, chapter):
+        """Every ballot ``chapter`` votes on, marked "voted" once its vote is in.
+
+        For a Chapter Support Specialist (Q3): they see the chapter's ballots and whether
+        it has voted, never how. ``motion`` is "voted" or empty, never the vote itself.
+        """
+        group = cls.chapter_group(chapter)
+        if group is None:
+            return cls.objects.none().values("name", "type", "due_date", "voters", "slug", "pk")
+        chapter_vote = BallotComplete.objects.filter(
+            ballot=models.OuterRef("pk"), user__chapter=chapter, role__in=BALLOT_CHAPTER_ROLES
+        )
+        return (
+            cls.objects.values("name", "type", "due_date", "voters", "slug", "pk")
+            .filter(voter_role_query(group))
+            .annotate(
+                motion=models.Case(
+                    models.When(models.Exists(chapter_vote), then=models.Value("voted")),
+                    default=models.Value(""),
+                    output_field=models.CharField(),
+                )
+            )
+        )
 
     def get_completed(self, user):
         query = self.completed.filter(user=user)

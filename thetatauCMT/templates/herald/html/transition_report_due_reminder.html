@@ -1,0 +1,33 @@
+{% extends "herald/html/base_email.html" %}
+{% block title %}Transition Report reminder{% endblock %}
+{% block content %}
+<h1 class="null" style="margin: 0;padding: 0;display: block;font-family: Helvetica;font-size: 40px;font-style: normal;font-weight: bold;line-height: 125%;letter-spacing: -1px;text-align: left;color: #606060 !important;">Transition Report reminder</h1>
+<p>
+The <b>{{ position_key|title }}</b> Transition Report for <b>{{ chapter }}</b>
+{% if past_due %}was due <b>{{ due_date }}</b> and has not been submitted yet.{% else %}is due <b>{{ due_date }}</b>.{% endif %}
+</p>
+{% if has_draft %}
+<p>
+A draft of this report has been started but not submitted. It stays a private draft, and these reminders
+continue, until the officer opens it and presses Submit.
+</p>
+{% endif %}
+<p>
+A Transition Report captures what worked, what didn't, and what a successor needs to know --
+it is the single highest-leverage thing an outgoing officer can leave behind.
+</p>
+{% if past_due %}
+<p>
+This position's report is now past due. The chapter Regent has been included on this reminder
+{% if escalate_to_rd %}along with the Regional Director{% endif %}.
+If this position is vacant with no one to write the report, the Regent (or Regional Director) can
+close it out as not applicable.
+</p>
+{% endif %}
+<p>
+Submit or manage Transition Reports from the Forms page:
+<a href="{{ host }}{% url 'forms:landing' %}">{{ host }}{% url 'forms:landing' %}</a>
+</p>
+<br>
+  {% include "herald/html/rm_contact.html" %}
+{% endblock content %}

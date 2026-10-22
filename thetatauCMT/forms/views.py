@@ -61,6 +61,8 @@ from core.views import (
     SuperuserRequiredMixin,
     group_required,
 )
+from thetatauCMT.biglittle.models import BigLittle
+from thetatauCMT.biglittle.services import BigLittleError, set_big
 from thetatauCMT.chapters.models import Chapter, ChapterCurricula
 from thetatauCMT.configs.models import Config
 from thetatauCMT.forms.notifications import CentralOfficeGenericEmail, TreasurerTermException
@@ -68,6 +70,9 @@ from thetatauCMT.guides import services as guide_services
 from thetatauCMT.regions.models import Region
 from thetatauCMT.scores.models import ScoreType
 from thetatauCMT.submissions.models import Submission
+from thetatauCMT.support.emails import copy_to_support
+from thetatauCMT.support.models import SupportDigestEntry
+from thetatauCMT.support.services import own_records_chapter
 from thetatauCMT.surveys.notifications import DepledgeSurveyEmail, SurveyEmail
 from thetatauCMT.tasks.models import Task
 from thetatauCMT.trainings.models import Training
@@ -276,6 +281,7 @@ FORM_GROUPS = [
             "new-member-education-program",
             "all-nme-programs",
             "initiation-report",
+            "big-little-list",
             "roll-book-page",
             "status-change-graduate",
             "status-change-coop",
@@ -305,6 +311,7 @@ FORM_GROUPS = [
             "all-convention-forms",
             "gear-article",
             "all-gear-articles",
+            "transition-reports",
         ],
     },
     {
@@ -381,6 +388,14 @@ class FormLanding(LoginRequiredMixin, TemplateView):
         context = super().get_context_data(**kwargs)
         user = self.request.user
         groups = guide_services.get_feature_groups(user, FORM_GROUPS, fallback_area_key="forms-workflows")
+        chapter = user.current_chapter
+        if chapter.candidate_chapter:
+            for group in groups:
+                for entry in group["entries"]:
+                    if entry["feature"].key == "resignation":
+                        entry["url"] = reverse("forms:status_new", kwargs={"reason": "resignedCC"})
+                    elif entry["feature"].key == "resignations-list":
+                        entry["url"] = reverse("forms:status_history", kwargs={"reason": "resignedCC"})
         context["groups"] = groups
         context["duty_roles"] = sorted(guide_services.get_duty_roles(user))
         # "For your role" is a pinned view of rows already on the page rather than
@@ -397,7 +412,7 @@ class InitDeplSelectView(LoginRequiredMixin, FormSetView):
     form_class = InitDeplSelectForm
     template_name = "forms/init-depl-select.html"
     factory_kwargs = {"extra": 0}
-    officer_edit = "pledge status"
+    officer_edit = "PNM status"
 
     def get_initial(self):
         pledges = self.request.user.current_chapter.pledges()
@@ -528,7 +543,7 @@ class InitiationView(LoginRequiredMixin, OfficerRequiredMixin, FormView):
     to_depledge = []
     to_defer = []
     next_badge = 999999
-    officer_edit = "pledge status"
+    officer_edit = "PNM status"
 
     def initial_info(self, initiate):
         pledges = self.request.user.current_chapter.pledges()
@@ -581,13 +596,13 @@ class InitiationView(LoginRequiredMixin, OfficerRequiredMixin, FormView):
             )
             context["roll_table"] = RollBookTable(data=data)
         else:
+            chapter = self.request.user.current_chapter
             formset = kwargs.get("formset", None)
             if formset is None:
-                formset = InitiationFormSet(prefix="initiates")
+                formset = InitiationFormSet(prefix="initiates", form_kwargs={"chapter": chapter})
             formset.initial = [
                 {"user": user, "roll": self.next_badge + num} for num, user in enumerate(self.to_initiate)
             ]
-            chapter = self.request.user.current_chapter
             self._configure_badge_field(formset)
             context["is_candidate_chapter"] = chapter.candidate_chapter
             context["formset"] = formset
@@ -610,7 +625,12 @@ class InitiationView(LoginRequiredMixin, OfficerRequiredMixin, FormView):
     def post(self, request, *args, **kwargs):
         initiate = request.session.get("init-selection", None)
         self.initial_info(initiate)
-        formset = InitiationFormSet(request.POST, request.FILES, prefix="initiates")
+        formset = InitiationFormSet(
+            request.POST,
+            request.FILES,
+            prefix="initiates",
+            form_kwargs={"chapter": self.request.user.current_chapter},
+        )
         formset.initial = [
             {"user": user.pk, "roll": self.next_badge + num} for num, user in enumerate(self.to_initiate)
         ]
@@ -626,6 +646,7 @@ class InitiationView(LoginRequiredMixin, OfficerRequiredMixin, FormView):
         update_list = []
         depledge_list = []
         initiations = []
+        bigs_recorded = []
         for form in formset:
             # ``Initiation.user`` is a OneToOneField, so a concurrent double
             # submit of the initiation report (two requests processing the same
@@ -647,6 +668,24 @@ class InitiationView(LoginRequiredMixin, OfficerRequiredMixin, FormView):
                 continue
             update_list.append(member)
             initiations.append(form.instance)
+            big = form.cleaned_data.get("big")
+            if big is not None:
+                try:
+                    set_big(
+                        member,
+                        big,
+                        actor=request.user,
+                        source=BigLittle.Source.INITIATION,
+                        chapter=form.instance.chapter,
+                    )
+                except BigLittleError as error:
+                    messages.add_message(
+                        request,
+                        messages.WARNING,
+                        f"Could not record {big} as {member}'s Big: {error.messages[0]}",
+                    )
+                else:
+                    bigs_recorded.append(member)
         for form in depledge_formset:
             # ``Depledge.user`` is a OneToOneField. A rapid double submit (or
             # re-depledging a PNM who was re-added after a prior depledge) tries
@@ -671,6 +710,12 @@ class InitiationView(LoginRequiredMixin, OfficerRequiredMixin, FormView):
                 request,
                 messages.INFO,
                 "You successfully submitted initiation report for:\n" f"{update_list}",
+            )
+        if bigs_recorded:
+            messages.add_message(
+                request,
+                messages.INFO,
+                f"Recorded the Big for: {', '.join(str(member) for member in bigs_recorded)}.",
             )
         if depledge_list:
             messages.add_message(
@@ -776,9 +821,15 @@ class StatusChangeCreateView(LoginRequiredMixin, OfficerRequiredMixin, StatusCha
         if info is not None and info["multi"]:
             # Graduation is multi-member; send the officer to its select step.
             return redirect("forms:status_graduate_select")
+        if self.reason == "resignedCC" and request.user.is_authenticated and not request.user.is_officer_group:
+            return StatusChangeTypeMixin.dispatch(self, request, *args, **kwargs)
         return super().dispatch(request, *args, **kwargs)
 
     def get_actives(self):
+        if self.reason == "resignedCC" and not self.request.user.is_officer_group:
+            return self.request.user.current_chapter.actives().filter(pk=self.request.user.pk)
+        if self.reason == "resignedCC":
+            return self.request.user.current_chapter.actives().order_by("name")
         return self.request.user.current_chapter.actives().exclude(pk=self.request.user.pk).order_by("name")
 
     def get_form_kwargs(self):
@@ -786,6 +837,7 @@ class StatusChangeCreateView(LoginRequiredMixin, OfficerRequiredMixin, StatusCha
         kwargs["request_user"] = self.request.user
         kwargs["reason"] = self.reason
         kwargs["actives"] = self.get_actives()
+        kwargs["self_resignation"] = self.reason == "resignedCC" and not self.request.user.is_officer_group
         return kwargs
 
     def get_context_data(self, **kwargs):
@@ -793,6 +845,7 @@ class StatusChangeCreateView(LoginRequiredMixin, OfficerRequiredMixin, StatusCha
         context["helper"] = SingleStatusChangeFormHelper()
         context["type_label"] = self.type_info["label"]
         context["reason"] = self.reason
+        context["is_self_resignation"] = self.reason == "resignedCC" and not self.request.user.is_officer_group
         context["history_url"] = reverse("forms:status_history", kwargs={"reason": self.reason})
         return context
 
@@ -826,7 +879,8 @@ class StatusChangeCreateView(LoginRequiredMixin, OfficerRequiredMixin, StatusCha
                         )
                         return self.form_invalid(form)
         response = super().form_valid(form)
-        Task.mark_complete(name="Member Updates", chapter=chapter)
+        if self.request.user.is_officer_group:
+            Task.mark_complete(name="Member Updates", chapter=chapter)
         messages.add_message(
             self.request,
             messages.INFO,
@@ -835,6 +889,8 @@ class StatusChangeCreateView(LoginRequiredMixin, OfficerRequiredMixin, StatusCha
         return response
 
     def get_success_url(self):
+        if self.reason == "resignedCC" and not self.request.user.is_officer_group:
+            return reverse("users:detail")
         return reverse("forms:status_history", kwargs={"reason": self.reason})
 
 
@@ -1525,11 +1581,12 @@ class RiskManagementFormView(LoginRequiredMixin, FormView):
         risk_file = view(new_request, pk=form.instance.id)
         file_name = f"Risk Management Form {self.request.user}"
         score_type = ScoreType.objects.filter(slug="rmp").first()
+        records_chapter = own_records_chapter(self.request.user)
         submit_obj = Submission(
             user=self.request.user,
             name=file_name,
             type=score_type,
-            chapter=self.request.user.current_chapter,
+            chapter=records_chapter,
         )
         try:
             retry_google_api(
@@ -1558,7 +1615,7 @@ class RiskManagementFormView(LoginRequiredMixin, FormView):
         obj = form.save()
         Task.mark_complete(
             name="Risk Management Form",
-            chapter=self.request.user.current_chapter,
+            chapter=records_chapter,
             current_roles=self.request.user.current_roles,
             user=self.request.user,
             obj=obj,
@@ -1885,7 +1942,7 @@ def pledge_program_request_revision(request, process_pk):
     process = PledgeProgramProcess.objects.filter(pk=process_pk).select_related("chapter", "chapter__region").first()
     redirect_to = request.META.get("HTTP_REFERER") or reverse("forms:pledge_program_list")
     if process is None:
-        messages.add_message(request, messages.ERROR, "Requested pledge program could not be found.")
+        messages.add_message(request, messages.ERROR, "Requested new member education program could not be found.")
         return HttpResponseRedirect(redirect_to)
     chapter = process.chapter
     recipients = chapter.council_emails()
@@ -1908,13 +1965,15 @@ def pledge_program_request_revision(request, process_pk):
     )
     if process.approval_comments:
         message += f"<br><br>Reviewer comments:<br>{process.approval_comments}"
-    GenericEmail(
+    email = GenericEmail(
         emails=recipients,
         cc={"central.office@thetatau.org", chapter.region.email},
         addressee=f"{chapter.full_name} Officers",
         subject=f"[CMT] NME Program Revisions Requested for {chapter}",
         message=mark_safe(message),
-    ).send()
+    )
+    copy_to_support(email, chapter, SupportDigestEntry.Kind.NME_REVISION)
+    email.send()
     messages.add_message(
         request,
         messages.INFO,
@@ -2018,7 +2077,7 @@ class AuditFormView(LoginRequiredMixin, OfficerRequiredMixin, UpdateView):
 
     def get_success_url(self):
         if self.request.user.is_authenticated:
-            return reverse("chapters:audit", kwargs={"slug": self.request.user.chapter.slug})
+            return reverse("chapters:audit", kwargs={"slug": self.request.user.current_chapter.slug})
         else:
             return reverse("home")
 
@@ -3556,7 +3615,7 @@ class PledgeProgramProcessCreateView(LoginRequiredMixin, CreateProcessView):
     def activation_done(self, *args, **kwargs):
         """Finish task activation."""
         self.activation.done()
-        self.success("Pledge Program submitted successfully.")
+        self.success("New Member Education Program submitted successfully.")
 
     def form_valid(self, form, *args, **kwargs):
         chapter = self.request.user.current_chapter
@@ -3567,7 +3626,7 @@ class PledgeProgramProcessCreateView(LoginRequiredMixin, CreateProcessView):
             messages.add_message(
                 self.request,
                 messages.ERROR,
-                f"Only executive officers can sign submit pledge program: {*CHAPTER_OFFICER,}\n"
+                f"Only executive officers can sign submit new member education program: {*CHAPTER_OFFICER,}\n"
                 f"Your current roles are: {*current_roles,}",
             )
             return super().form_invalid(form)
@@ -3581,7 +3640,7 @@ class PledgeProgramProcessCreateView(LoginRequiredMixin, CreateProcessView):
                 # ``activation.done()`` with "save() prohibited to prevent data loss".
                 existing = PledgeProgram.objects.filter(chapter=chapter, year=program.year, term=program.term).first()
                 if existing is None:
-                    form.add_error(None, "The pledge program could not be saved, please try again.")
+                    form.add_error(None, "The new member education program could not be saved, please try again.")
                     return self.render_to_response(self.get_context_data(form=form))
                 form.instance.pk = existing.pk
                 form.instance.created = existing.created
@@ -3699,14 +3758,16 @@ class BylawsCreateView(
     def get_success_url(self):
         if hasattr(self, "object"):
             chapter = self.object.chapter
-            GenericEmail(
+            email = GenericEmail(
                 emails=chapter.council_emails(),
                 cc={"central.office@thetatau.org", chapter.region.email},
                 addressee=f"{chapter.full_name} Officers",
                 subject=f"{chapter.full_name} Bylaws Update",
                 message=f"Updated bylaws were submitted. <br>With the following changes:<br>{self.object.changes} <br><br>Please see attached document.",
                 attachments=[self.object.bylaws],
-            ).send()
+            )
+            copy_to_support(email, chapter, SupportDigestEntry.Kind.BYLAWS)
+            email.send()
             messages.add_message(
                 self.request,
                 messages.INFO,

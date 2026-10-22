@@ -390,6 +390,62 @@ def test_resignedcc_available_for_candidate_chapter(auto_login_user):
 
 
 @pytest.mark.django_db
+def test_candidate_member_can_submit_only_their_own_resignation(auto_login_user):
+    from thetatauCMT.forms.models import StatusChange
+
+    client, user = auto_login_user()
+    user.chapter.candidate_chapter = True
+    user.chapter.save(update_fields=["candidate_chapter"])
+    user.current_status = "active"
+    user.save(update_fields=["current_status"])
+    url = reverse("forms:status_new", kwargs={"reason": "resignedCC"})
+
+    response = client.get(url)
+
+    assert response.status_code == 200
+    assert response.context["form"].fields["user"].widget.is_hidden
+    assert list(response.context["form"].fields["user"].queryset) == [user]
+
+    response = client.post(
+        url,
+        {"user": user.pk, "reason": "resignedCC", "date_start": "2026-10-20"},
+    )
+
+    assert response.status_code == 302
+    assert response.url == reverse("users:detail")
+    assert StatusChange.objects.filter(user=user, reason="resignedCC").exists()
+    user.refresh_from_db()
+    assert user.current_status == "alumniCC"
+
+
+@pytest.mark.django_db
+def test_candidate_officer_can_resign_themselves(auto_login_user):
+    from thetatauCMT.forms.models import StatusChange
+
+    client, user = auto_login_user()
+    _add_to_group(user, "officer")
+    user.chapter.candidate_chapter = True
+    user.chapter.save(update_fields=["candidate_chapter"])
+    user.current_status = "active"
+    user.save(update_fields=["current_status"])
+    url = reverse("forms:status_new", kwargs={"reason": "resignedCC"})
+
+    response = client.get(url)
+
+    assert response.status_code == 200
+    assert not response.context["form"].fields["user"].widget.is_hidden
+    assert user in response.context["form"].fields["user"].queryset
+
+    response = client.post(
+        url,
+        {"user": user.pk, "reason": "resignedCC", "date_start": "2026-10-20"},
+    )
+
+    assert response.status_code == 302
+    assert StatusChange.objects.filter(user=user, reason="resignedCC").exists()
+
+
+@pytest.mark.django_db
 def test_graduate_select_officer_returns_200(auto_login_user):
     client, user = auto_login_user()
     _add_to_group(user, "officer")
@@ -3043,9 +3099,14 @@ def test_initiation_view_post_candidate_chapter_without_badge_succeeds(auto_logi
 def test_premature_alumnus_create_view_get(auto_login_user):
     """PrematureAlumnusCreateView GET covers get_context_data."""
     client, user = auto_login_user()
+    _add_to_group(user, "officer")
     url = reverse("viewflow:forms:prematurealumnus:start")
     response = client.get(url, follow=True)
     assert response.status_code == 200
+    content = response.content.decode()
+    assert "must include the completed form" not in content
+    assert "15JqPP-Oqny-NAKFlNSPf0jD2FDG6qd5s" not in content
+    assert 'type="file"' not in content
 
 
 @pytest.mark.django_db
@@ -3907,22 +3968,26 @@ def test_resignation_create_view_get_with_submitted_process(auto_login_user):
     assert response.status_code == 200
 
 
+@pytest.mark.django_db
+def test_resignation_create_view_get_has_no_paperwork_upload(auto_login_user):
+    client, _user = auto_login_user()
+    url = reverse("viewflow:forms:resignation:start")
+    response = client.get(url, follow=True)
+    assert response.status_code == 200
+    content = response.content.decode()
+    assert "written resignation letter" not in content
+    assert 'type="file"' not in content
+
+
 def _valid_resignation_post_data():
-    """Minimal valid ResignationForm POST payload (PDF letter + agreements).
+    """Minimal valid ResignationForm POST payload without a paperwork upload.
 
-    ``b"%PDF-1.4 ..."`` passes ``upload_validator.FileTypeValidator`` (same trick
-    as ``test_bylaws_create_view_form_valid``); ``_viewflow_activation-started``
-    is the viewflow Start-view management form (ActivationDataForm), required so
-    the flow reaches ``form_valid`` (same trick as the nominations Start tests).
+    ``_viewflow_activation-started`` is the viewflow Start-view management form
+    (ActivationDataForm), required so the flow reaches ``form_valid``.
     """
-    import io
-
     from django.utils import timezone
 
-    letter = io.BytesIO(b"%PDF-1.4 fake pdf content")
-    letter.name = "letter.pdf"
     return {
-        "letter": letter,
         "resign": "True",
         "secrets": "True",
         "expel": "True",

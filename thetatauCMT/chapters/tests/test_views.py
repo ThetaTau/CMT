@@ -16,6 +16,32 @@ def _add_to_group(user, group_name):
     user.groups.add(group)
 
 
+def test_dues_sync_action_reports_attachment_failure_and_continues():
+    from unittest.mock import MagicMock, patch
+
+    from thetatauCMT.chapters.models import DuesAttachmentUploadError
+    from thetatauCMT.chapters.views import DuesSyncMixin
+
+    failed_chapter = MagicMock()
+    failed_chapter.__str__.return_value = "Alpha Chapter"
+    failed_chapter.sync_dues.side_effect = DuesAttachmentUploadError("INV-1")
+    successful_chapter = MagicMock()
+    successful_chapter.__str__.return_value = "Beta Chapter"
+    successful_chapter.sync_dues.return_value = "INV-2"
+    queryset = MagicMock()
+    queryset.all.return_value = [failed_chapter, successful_chapter]
+
+    with patch("thetatauCMT.chapters.views.messages.error") as error_message:
+        with patch("thetatauCMT.chapters.views.messages.add_message") as info_message:
+            DuesSyncMixin().sync_dues(object(), queryset)
+
+    error_message.assert_called_once()
+    assert "invoice INV-1 was created" in error_message.call_args.args[1]
+    assert "before retrying the full sync" in error_message.call_args.args[1]
+    successful_chapter.sync_dues.assert_called_once()
+    assert "Beta Chapter: INV-2" in info_message.call_args.args[2]
+
+
 @pytest.mark.django_db
 def test_chapter_detail_view(auto_login_user):
     client, user = auto_login_user()

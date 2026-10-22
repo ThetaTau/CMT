@@ -29,7 +29,7 @@ from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_GET, require_POST
 
 from .models import PROVIDER_CHOICES, UserContactSyncToken
-from .officers import NATIONAL_SCOPE, SYNCED_OFFICER_ROLES, collect_contacts_for_scope, normalize_scope
+from .officers import NATIONAL_SCOPE, SUPPORT_SCOPE, SYNCED_OFFICER_ROLES, collect_contacts_for_scope, normalize_scope
 from .providers import PROVIDERS, get_provider, provider_is_configured
 from .providers.base import ProviderAuthError, ProviderNotConfigured, _apply_token_payload
 from .vcard import VCARD_MIME_TYPE, build_vcard_collection
@@ -43,6 +43,23 @@ def _is_natoff(request: HttpRequest) -> bool:
     if user.is_admin:
         return True
     return getattr(user, "is_national_officer_group", False)
+
+
+def _is_css(request: HttpRequest) -> bool:
+    """A Chapter Support Specialist, who may sync only their own chapters (CSSWI-10)."""
+    from thetatauCMT.support.services import css_state
+
+    return request.user.is_authenticated and css_state(request.user).is_css
+
+
+def _may_connect(request: HttpRequest) -> bool:
+    return _is_natoff(request) or _is_css(request)
+
+
+def _may_sync(request: HttpRequest, scope: str) -> bool:
+    if scope == SUPPORT_SCOPE:
+        return _is_css(request)
+    return _is_natoff(request)
 
 
 def _forbid(request: HttpRequest) -> HttpResponseRedirect:
@@ -126,6 +143,14 @@ def download_national_vcard(request: HttpRequest) -> HttpResponse:
     return _vcard_response(request, NATIONAL_SCOPE, filename_hint="national", redirect_on_empty="forms:natoff")
 
 
+@require_GET
+def download_support_vcard(request: HttpRequest) -> HttpResponse:
+    """A Chapter Support Specialist's chapters' officers (CSSWI-10)."""
+    if not _is_css(request):
+        return _forbid(request)
+    return _vcard_response(request, SUPPORT_SCOPE, filename_hint="my_chapters", redirect_on_empty="support:my_chapters")
+
+
 def _vcard_response(
     request: HttpRequest,
     scope: str,
@@ -135,7 +160,7 @@ def _vcard_response(
     redirect_kwargs: dict | None = None,
 ) -> HttpResponse:
     roles = _parse_roles(request.GET.get("roles"))
-    contacts, scope_display = collect_contacts_for_scope(scope, roles=roles)
+    contacts, scope_display = collect_contacts_for_scope(scope, roles=roles, user=request.user)
     if not contacts:
         messages.warning(request, "No matching officers to export.")
         return redirect(redirect_on_empty, **(redirect_kwargs or {}))
@@ -152,7 +177,7 @@ def _vcard_response(
 # --------------------------------------------------------------------- status
 @require_GET
 def sync_status(request: HttpRequest) -> JsonResponse:
-    if not _is_natoff(request):
+    if not _may_connect(request):
         return JsonResponse({"error": "forbidden"}, status=403)
     out: dict[str, dict] = {}
     tokens = {t.provider: t for t in UserContactSyncToken.objects.filter(user=request.user)}
@@ -179,7 +204,7 @@ def sync_status(request: HttpRequest) -> JsonResponse:
 # --------------------------------------------------------------------- OAuth
 @require_GET
 def oauth_authorize(request: HttpRequest, provider_key: str) -> HttpResponse:
-    if not _is_natoff(request):
+    if not _may_connect(request):
         return _forbid(request)
     if provider_key not in PROVIDERS:
         messages.error(request, "Unknown contact provider.")
@@ -207,7 +232,7 @@ def oauth_authorize(request: HttpRequest, provider_key: str) -> HttpResponse:
 
 @require_GET
 def oauth_callback(request: HttpRequest, provider_key: str) -> HttpResponse:
-    if not _is_natoff(request):
+    if not _may_connect(request):
         return _forbid(request)
     if provider_key not in PROVIDERS:
         messages.error(request, "Unknown contact provider.")
@@ -260,7 +285,7 @@ def oauth_callback(request: HttpRequest, provider_key: str) -> HttpResponse:
 
 @require_POST
 def oauth_disconnect(request: HttpRequest, provider_key: str) -> HttpResponse:
-    if not _is_natoff(request):
+    if not _may_connect(request):
         return _forbid(request)
     if provider_key not in PROVIDERS:
         return JsonResponse({"error": "unknown provider"}, status=400)
@@ -274,7 +299,7 @@ def oauth_disconnect(request: HttpRequest, provider_key: str) -> HttpResponse:
 # --------------------------------------------------------------------- sync
 @require_POST
 def provider_sync(request: HttpRequest, provider_key: str) -> HttpResponse:
-    if not _is_natoff(request):
+    if not _may_connect(request):
         return JsonResponse({"error": "forbidden"}, status=403)
     if provider_key not in PROVIDERS:
         return JsonResponse({"error": "unknown provider"}, status=400)
@@ -286,6 +311,8 @@ def provider_sync(request: HttpRequest, provider_key: str) -> HttpResponse:
     scope = _scope_from_request(request)
     if not scope:
         return JsonResponse({"error": "scope is required"}, status=400)
+    if not _may_sync(request, scope):
+        return JsonResponse({"error": "forbidden"}, status=403)
     try:
         token = UserContactSyncToken.objects.get(user=request.user, provider=provider_key)
     except UserContactSyncToken.DoesNotExist:
@@ -294,7 +321,7 @@ def provider_sync(request: HttpRequest, provider_key: str) -> HttpResponse:
             status=400,
         )
     roles = _parse_roles(request.POST.get("roles"))
-    contacts, scope_display = collect_contacts_for_scope(scope, roles=roles)
+    contacts, scope_display = collect_contacts_for_scope(scope, roles=roles, user=request.user)
     if not contacts:
         return JsonResponse(
             {"ok": True, "count": 0, "scope": scope, "scope_display": scope_display, "message": "No matching officers."}
@@ -333,13 +360,15 @@ def provider_sync(request: HttpRequest, provider_key: str) -> HttpResponse:
 @require_POST
 def provider_auto_sync(request: HttpRequest, provider_key: str) -> HttpResponse:
     """Add or remove a scope from the token's weekly auto-sync list."""
-    if not _is_natoff(request):
+    if not _may_connect(request):
         return JsonResponse({"error": "forbidden"}, status=403)
     if provider_key not in PROVIDERS:
         return JsonResponse({"error": "unknown provider"}, status=400)
     scope = _scope_from_request(request)
     if not scope:
         return JsonResponse({"error": "scope is required"}, status=400)
+    if not _may_sync(request, scope):
+        return JsonResponse({"error": "forbidden"}, status=403)
     enabled_raw = (request.POST.get("enabled") or "").strip().lower()
     enabled = enabled_raw in {"1", "true", "yes", "on"}
     try:

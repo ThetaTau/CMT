@@ -15,6 +15,7 @@ from core.views import (
     PagedFilteredTableView,
     RequestConfig,
 )
+from thetatauCMT.support.services import standing_in
 from thetatauCMT.users.models import UserRoleChange
 
 from .filters import BallotCompleteFilter, BallotFilter, BallotUserFilter
@@ -27,7 +28,14 @@ from .forms import (
 )
 from .models import BALLOT_CHAPTER_ROLES, CHAPTER_VOTE_RULE, Ballot, BallotComplete, can_view_ballot_results
 from .notifications import BallotVoteDeleted, BallotVoteReceipt, send_ballot_notifications
-from .tables import RESULT_COLUMNS, SUBMISSION_REVIEW_COLUMNS, BallotCompleteTable, BallotTable, BallotUserTable
+from .tables import (
+    RESULT_COLUMNS,
+    SUBMISSION_REVIEW_COLUMNS,
+    BallotChapterStatusTable,
+    BallotCompleteTable,
+    BallotTable,
+    BallotUserTable,
+)
 
 
 class BallotResultsRequiredMixin:
@@ -74,6 +82,7 @@ class BallotDetailView(
     formhelper_class = BallotCompleteListFormHelper
     officer_edit = "ballot status"
     officer_edit_type = "view"
+    table_pagination = {"per_page": 200}
 
     def get_object(self, queryset=None):
         return get_ballot_or_404(self.kwargs.get(self.slug_url_kwarg))
@@ -96,33 +105,42 @@ class BallotDetailView(
     def post(self, request, *args, **kwargs):
         return self.get(request, *args, **kwargs)
 
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        show_results = self.show_results
+    def get_table_kwargs(self):
+        return {"exclude": () if self.show_results else SUBMISSION_REVIEW_COLUMNS}
+
+    def get_table_data(self):
+        """Submitted rows plus synthesized "not submitted" rows, as dicts.
+
+        The table is built from these rather than from ``object_list``: its
+        Name/Chapter/Region columns are keys added here, not ``BallotComplete``
+        fields, so sorting the queryset by them raised ``FieldError`` (#1161).
+        Values are plain strings so a sort mixes submitted and outstanding rows.
+        """
         cancel = self.request.GET.get("cancel", False)
         request_get = self.request.GET.copy()
         if cancel:
             request_get = QueryDict()
         want_incomplete = request_get.get("status", "") in ("", "incomplete")
         region = request_get.get("region", "")
-        all_ballots = self.object_list
-        all_ballots = all_ballots.annotate(
-            region=models.Case(
-                models.When(role__in=NAT_OFFICERS, then=models.Value("National")),
-                default=models.F("user__chapter__region__name"),
-                output_field=models.CharField(),
-            ),
-            chapter=models.Case(
-                models.When(role__in=NAT_OFFICERS, then=models.Value("")),
-                default=models.F("user__chapter__name"),
-                output_field=models.CharField(),
-            ),
-            user_name=models.F("user__name"),
-        )
+
+        def annotate_ballots(qs):
+            return qs.annotate(
+                region=models.Case(
+                    models.When(role__in=NAT_OFFICERS, then=models.Value("National")),
+                    default=models.F("user__chapter__region__name"),
+                    output_field=models.CharField(),
+                ),
+                chapter=models.Case(
+                    models.When(role__in=NAT_OFFICERS, then=models.Value("")),
+                    default=models.F("user__chapter__name"),
+                    output_field=models.CharField(),
+                ),
+                user_name=models.F("user__name"),
+            )
+
+        all_ballots = annotate_ballots(self.object_list)
         if region == "national":
             all_ballots = all_ballots.filter(region="National")
-        users = all_ballots.values_list("user", flat=True)
-        chapters = all_ballots.exclude(role__in=NAT_OFFICERS).values_list("chapter", flat=True)
         data = list(
             all_ballots.values(
                 "pk",
@@ -134,6 +152,18 @@ class BallotDetailView(
                 "authority",
             )
         )
+        # Who has actually submitted, regardless of the "status" filter.
+        # `BallotCompleteFilter.filter_status` deliberately empties
+        # `self.object_list` for "incomplete" so the table doesn't also show
+        # the real vote rows; reusing that same queryset here would blank out
+        # the exclude sets below too, so an already-submitted chapter/officer
+        # got synthesized as "Not submitted" right alongside the genuinely
+        # outstanding ones.
+        all_submitted = annotate_ballots(self.filter_class({"region": region}, queryset=self.object.completed.all()).qs)
+        if region == "national":
+            all_submitted = all_submitted.filter(region="National")
+        users = all_submitted.values_list("user", flat=True)
+        chapters = all_submitted.exclude(role__in=NAT_OFFICERS).values_list("chapter", flat=True)
         nat_offs = UserRoleChange.get_current_natoff().exclude(user__in=users)
         incomplete_chapter = []
         nat_offs = nat_offs.filter(role__in=self.object.voters)
@@ -145,39 +175,41 @@ class BallotDetailView(
                 {
                     "pk": None,
                     "user_name": "",
-                    "chapter": chapter,
+                    "chapter": chapter.name,
                     "motion": "Incomplete",
                     "role": "",
-                    "region": chapter.region,
+                    "region": chapter.region.name,
                     "authority": "",
                 }
-                for chapter in chapters
+                for chapter in chapters.select_related("region")
             ]
         incomplete_national = []
         if region == "" or region == "national":
             incomplete_national = [
                 {
                     "pk": None,
-                    "user_name": user.user,
+                    "user_name": user.user.name,
                     "chapter": "",
                     "motion": "Incomplete",
                     "role": user.role,
                     "region": "National",
                     "authority": "",
                 }
-                for user in nat_offs
+                for user in nat_offs.select_related("user")
             ]
         incomplete = []
         if want_incomplete:
             incomplete = incomplete_national + incomplete_chapter
-        exclude = () if show_results else SUBMISSION_REVIEW_COLUMNS
-        table = BallotCompleteTable(data=data + incomplete, exclude=exclude)
-        RequestConfig(self.request, paginate={"per_page": 200}).configure(table)
-        context["table"] = table
+        self.submitted_count = len(data)
+        self.incomplete_count = len(incomplete)
+        return data + incomplete
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
         context["object"] = self.object
-        context["incomplete"] = len(incomplete)
-        context["submitted"] = len(data)
-        context["show_results"] = show_results
+        context["incomplete"] = self.incomplete_count
+        context["submitted"] = self.submitted_count
+        context["show_results"] = self.show_results
         context[self.context_object_name] = self.object
         return context
 
@@ -332,6 +364,12 @@ class BallotCompleteCreateView(LoginRequiredMixin, OfficerRequiredMixin, CreateV
         context["voting_chapter"] = user.chapter if chapter_role else None
         context["chapter_vote_rule"] = CHAPTER_VOTE_RULE
         context["ballot_open"] = ballot.is_open
+        if standing_in(user):
+            # Q3: a CSS sees whether the viewed chapter has voted, never how, and cannot vote.
+            chapter = user.current_chapter
+            context["css_chapter"] = chapter
+            context["css_chapter_votes"] = Ballot.chapter_group(chapter) in ballot.voters
+            context["css_chapter_vote"] = ballot.chapter_vote(chapter)
         return context
 
     def form_valid(self, form):
@@ -399,8 +437,8 @@ class BallotCompleteCreateView(LoginRequiredMixin, OfficerRequiredMixin, CreateV
 class BallotCompleteDeleteView(LoginRequiredMixin, BallotResultsRequiredMixin, DeleteView):
     """Remove a mistaken submission so the vote can be cast again.
 
-    Restricted to the Grand Regent and Grand Scribe, who are also the only
-    people who see the tallies. They never see the motion being removed.
+    Restricted to the Grand Regent and Grand Scribe, the only people who can
+    see how each submission was voted.
     """
 
     model = BallotComplete
@@ -445,7 +483,10 @@ class BallotUserListView(LoginRequiredMixin, PagedFilteredTableView):
     formhelper_class = BallotUserListFormHelper
 
     def get_queryset(self):
-        qs = Ballot.user_ballots(self.request.user)
+        user = self.request.user
+        # A CSS viewing an assigned chapter sees that chapter's ballots and whether it
+        # has voted (Q3); they have no ballots of their own.
+        qs = Ballot.chapter_ballots(user.current_chapter) if standing_in(user) else Ballot.user_ballots(user)
         cancel = self.request.GET.get("cancel", False)
         request_get = self.request.GET.copy()
         if cancel:
@@ -459,7 +500,8 @@ class BallotUserListView(LoginRequiredMixin, PagedFilteredTableView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        table = BallotUserTable(self.object_list)
+        table_class = BallotChapterStatusTable if standing_in(self.request.user) else BallotUserTable
+        table = table_class(self.object_list)
         RequestConfig(self.request, paginate={"per_page": 30}).configure(table)
         context["table"] = table
         return context

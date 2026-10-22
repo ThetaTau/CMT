@@ -106,28 +106,28 @@ class PledgeProgram(YearTermModel, TimeStampedModel, EmailSignalMixin):
         none = ("none", "")
         initiated = (
             "initiated",
-            "We completed new member education and initiated our pledges.",
+            "We completed new member education and initiated our PNMs.",
         )
         still_initiate = (
             "still_initiate",
-            "We completed new member education and voted, we just have to initiate our pledges.",
+            "We completed new member education and voted, we just have to initiate our PNMs.",
         )
         still_vote = (
             "still_vote",
-            "We completed new member education but we still need to vote and initiate our pledges.",
+            "We completed new member education but we still need to vote and initiate our PNMs.",
         )
         not_complete = ("not_complete", "We did not complete new member education.")
 
     chapter = models.ForeignKey(Chapter, on_delete=models.CASCADE, related_name="pledge_programs")
     verbose_remote = "Have you or will you conduct your new member education remotely?"
     remote = models.BooleanField(verbose_remote, choices=BOOL_CHOICES, default=False)
-    verbose_dues = "How much are your chapter's PNM dues, including the pledge fee but NOT including the initiation fee or badge cost?"
+    verbose_dues = "How much are your chapter's PNM dues, including the PNM fee but NOT including the initiation fee or badge cost?"
     dues = models.PositiveIntegerField(verbose_dues, default=0)
     verbose_start = "When did you/do you anticipate starting new member education?"
     date_start = models.DateField(verbose_start, default=timezone.now)
     verbose_complete = "When did you/do you anticipate completing new member education?"
     date_complete = models.DateField(verbose_complete, default=timezone.now)
-    verbose_initiation = "When did you/do you plan to initiate your pledges?"
+    verbose_initiation = "When did you/do you plan to initiate your PNMs?"
     date_initiation = models.DateField(verbose_initiation, default=timezone.now)
     verbose_weeks = "How many weeks is your typical new member education program?"
     weeks = models.PositiveIntegerField(verbose_weeks, default=0)
@@ -145,7 +145,7 @@ class PledgeProgram(YearTermModel, TimeStampedModel, EmailSignalMixin):
     test = models.FileField(upload_to=get_pledge_program_upload_path, null=True, blank=True)
 
     def __str__(self):
-        return f"Pledge Program for {self.chapter}"
+        return f"New Member Education Program for {self.chapter}"
 
     @classmethod
     def signed_this_year(cls, chapter):
@@ -183,7 +183,7 @@ class PledgeProgramProcess(Process, EmailSignalMixin):
         not_reviewed = ("not_reviewed", "Not Reviewed")
 
     approval = models.CharField(
-        verbose_name="Pledge program approval status",
+        verbose_name="New member education program approval status",
         max_length=20,
         choices=[x.value for x in APPROVAL],
         default="not_reviewed",
@@ -199,7 +199,7 @@ class PledgeProgramProcess(Process, EmailSignalMixin):
     )
 
     def __str__(self):
-        return f"Pledge Program Process for {self.chapter}"
+        return f"New Member Education Program Process for {self.chapter}"
 
 
 class Initiation(TimeStampedModel, EmailSignalMixin):

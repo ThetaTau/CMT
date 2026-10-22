@@ -13,6 +13,8 @@ from herald.models import SentNotification
 from core.models import TODAY_END
 from core.notifications import GenericEmail
 from thetatauCMT.chapters.models import Chapter
+from thetatauCMT.support.emails import copy_to_support
+from thetatauCMT.support.models import SupportDigestEntry
 
 
 class Command(BaseCommand):
@@ -50,17 +52,17 @@ class Command(BaseCommand):
                     f"{', '.join(pledges.values_list('name', flat=True))}.<br>"
                     f"Please complete the initiation form as soon as possible."
                 )
-                subject += "Pledge"
+                subject += "PNM"
             if not chapter.pledges_last_x_months():
                 # Once a semester? chapter, RD, CO
                 self.stdout.write("    No pledges last 8 months")
                 already_notified_pledges = SentNotification.objects.filter(
-                    notification_class="core.notifications.GenericEmail",
+                    notification_class=GenericEmail.get_class_path(),
                     html_content__icontains="potential new members in the last 8 months",
                     date_sent__gte=make_aware(TODAY_END - datetime.timedelta(30 * 3)),
                 )
                 if not already_notified_pledges:
-                    if "Pledge" in subject:
+                    if "PNM" in subject:
                         subject += " and "
                         message += "<br><br>"
                     subject += "Initiation"
@@ -86,13 +88,15 @@ class Command(BaseCommand):
                     chapter_name = chapter.name
                     region_email = "ccd@thetatau.org"
                 cc = [region_email, "central.office@thetatau.org"]
-                result = GenericEmail(
+                email = GenericEmail(
                     emails=emails,
                     subject=subject,
                     message=message,
                     cc=cc,
                     addressee=f"{chapter_name} officers",
-                ).send()
+                )
+                copy_to_support(email, chapter, SupportDigestEntry.Kind.PNM_INITIATION)
+                result = email.send()
                 self.stdout.write(f"    {result}")
             else:
                 self.stdout.write(f"    {chapter} does not need to update CMT\n")

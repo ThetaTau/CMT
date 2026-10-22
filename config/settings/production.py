@@ -71,6 +71,7 @@ CONTENT_SECURITY_POLICY_REPORT_ONLY = {
             "'self'",
             "'unsafe-inline'",
             "'unsafe-eval'",  # Plotly/Dash + some inline handlers
+            "https://ajax.aspnetcdn.com",  # jquery-validate (pledge/depledge/update forms)
             "https://cdn.jsdelivr.net",
             "https://cdnjs.cloudflare.com",
             "https://code.jquery.com",

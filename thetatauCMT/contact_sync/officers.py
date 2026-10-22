@@ -53,6 +53,12 @@ NATIONAL_ROLES: tuple[str, ...] = tuple(sorted(COUNCIL | NATIONAL_OFFICER))
 NATIONAL_CHAPTER_LABEL = "National Office"
 NATIONAL_CHAPTER_ABBR = "NAT"
 NATIONAL_SCOPE = "national"
+# A Chapter Support Specialist's own scope: the officers of their assigned chapters,
+# always worked out from the signed-in (or token-owning) CSS, never from the request.
+SUPPORT_SCOPE = "support"
+SUPPORT_SCOPE_DISPLAY = "My chapters"
+SUPPORT_ROLE = "chapter support specialist"
+SUPPORT_ABBR = "CSS"
 
 _WORD_RE = re.compile(r"[A-Za-z]+")
 # Filler words dropped from a role name before we take initials. Keeps
@@ -258,6 +264,14 @@ def collect_region_officer_contacts(
         if not role_filter:
             role_filter = set(SYNCED_OFFICER_ROLES)
     chapters, region_name = _resolve_region_scope(region_slug)
+    out = _chapter_officer_contacts(chapters, role_filter)
+    if roles is None:
+        # A National Officer's region sync also lists the region's CSSs (Q26 B).
+        out.extend(_support_specialist_contacts(chapters))
+    return out, region_name
+
+
+def _chapter_officer_contacts(chapters, role_filter) -> list[OfficerContact]:
     out: list[OfficerContact] = []
     for chapter in chapters:
         for contact in _officers_for_chapter(chapter):
@@ -266,7 +280,44 @@ def collect_region_officer_contacts(
     # Sort by chapter abbr, then role priority (regent first), then name.
     role_priority = {r: i for i, r in enumerate(SYNCED_OFFICER_ROLES)}
     out.sort(key=lambda c: (c.chapter_abbr.lower(), role_priority.get(c.role, 99), c.last_name.lower()))
-    return out, region_name
+    return out
+
+
+def _support_specialist_contacts(chapters) -> list[OfficerContact]:
+    """One card per CSS currently assigned to any of ``chapters``, listing those chapters."""
+    from thetatauCMT.support.services import chapter_support_specialists
+
+    covered: dict[int, tuple] = {}
+    for chapter in sorted(chapters, key=lambda c: c.name):
+        for person in chapter_support_specialists(chapter):
+            covered.setdefault(person.pk, (person, []))[1].append(chapter.name)
+    out = [
+        OfficerContact(
+            chapter_abbr=SUPPORT_ABBR,
+            chapter_name=", ".join(names),
+            role=SUPPORT_ROLE,
+            role_abbr="",
+            first_name=(person.first_name or "").strip(),
+            last_name=(person.last_name or "").strip(),
+            preferred_name=(person.preferred_name or "").strip(),
+            email=(person.email or "").strip(),
+            phone=(person.phone_number or "").strip(),
+            user_pk=person.pk,
+        )
+        for person, names in covered.values()
+    ]
+    out.sort(key=lambda c: (c.last_name.lower(), c.first_name.lower()))
+    return out
+
+
+def collect_support_officer_contacts(user, roles: Iterable[str] | None = None) -> tuple[list[OfficerContact], str]:
+    """The officers of a CSS's assigned chapters (CSSWI-10), never other CSSs (S18)."""
+    from thetatauCMT.support.services import css_chapters
+
+    if user is None or not getattr(user, "is_authenticated", False):
+        return [], SUPPORT_SCOPE_DISPLAY
+    role_filter = {r for r in (roles or []) if r in OFFICER_POSITION_ABBR} or set(SYNCED_OFFICER_ROLES)
+    return _chapter_officer_contacts(list(css_chapters(user)), role_filter), SUPPORT_SCOPE_DISPLAY
 
 
 # --------------------------------------------------------------------- national
@@ -325,6 +376,7 @@ def collect_national_officer_contacts(
 def collect_contacts_for_scope(
     scope: str,
     roles: Iterable[str] | None = None,
+    user=None,
 ) -> tuple[list[OfficerContact], str]:
     """Return contacts for a scope string used by URL / POST endpoints.
 
@@ -332,10 +384,13 @@ def collect_contacts_for_scope(
 
     - ``"national"`` → :func:`collect_national_officer_contacts`
     - ``"region:<slug>"`` → :func:`collect_region_officer_contacts`
+    - ``"support"`` → :func:`collect_support_officer_contacts` for ``user``
 
     A bare region slug (backwards-compatibility with earlier URLs that only
     supported region sync) is also accepted.
     """
+    if scope == SUPPORT_SCOPE:
+        return collect_support_officer_contacts(user, roles=roles)
     if scope == NATIONAL_SCOPE:
         return collect_national_officer_contacts(roles=roles)
     if scope.startswith("region:"):
@@ -348,6 +403,8 @@ def scope_display_name(scope: str) -> str:
     """Human-friendly label for a scope, without hitting the DB when possible."""
     if scope == NATIONAL_SCOPE:
         return "National Officers"
+    if scope == SUPPORT_SCOPE:
+        return SUPPORT_SCOPE_DISPLAY
     slug = scope.split(":", 1)[1] if scope.startswith("region:") else scope
     if slug == "candidate_chapter":
         return "Candidate Chapters"
@@ -358,12 +415,12 @@ def scope_display_name(scope: str) -> str:
 def normalize_scope(raw: str) -> str:
     """Return a canonical scope string from a raw URL/POST value.
 
-    Accepts either the fully-qualified ``"region:<slug>"`` / ``"national"``
-    form or a bare region slug (legacy). Empty input returns the legacy form.
+    Accepts either the fully-qualified ``"region:<slug>"`` / ``"national"`` /
+    ``"support"`` form or a bare region slug (legacy). Empty input returns the legacy form.
     """
     raw = (raw or "").strip()
     if not raw:
         return ""
-    if raw == NATIONAL_SCOPE or raw.startswith("region:"):
+    if raw in (NATIONAL_SCOPE, SUPPORT_SCOPE) or raw.startswith("region:"):
         return raw
     return f"region:{raw}"

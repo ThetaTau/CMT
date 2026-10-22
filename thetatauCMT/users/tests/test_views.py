@@ -51,6 +51,25 @@ def test_user_detail_view_returns_200(auto_login_user):
 
 
 @pytest.mark.django_db
+@pytest.mark.parametrize(
+    "candidate_chapter,expected_url_name",
+    [(True, "forms:status_new"), (False, "forms:resignation")],
+)
+def test_profile_resignation_link_matches_chapter_type(auto_login_user, candidate_chapter, expected_url_name):
+    client, user = auto_login_user()
+    user.chapter.candidate_chapter = candidate_chapter
+    user.chapter.save(update_fields=["candidate_chapter"])
+
+    response = client.get(reverse("users:detail"))
+
+    assert response.status_code == 200
+    expected_url = (
+        reverse(expected_url_name, kwargs={"reason": "resignedCC"}) if candidate_chapter else reverse(expected_url_name)
+    )
+    assert f'href="{expected_url}"' in response.content.decode()
+
+
+@pytest.mark.django_db
 def test_user_detail_view_unauthenticated(client):
     url = reverse("users:detail")
     response = client.get(url)
@@ -495,6 +514,7 @@ def test_user_profile_view_regular_user_can_view(auto_login_user, user_factory):
     assert response.status_code == 200
     # Non-natoff viewers should NOT see the sensitive sections.
     assert b"Notes" not in response.content or b"Add Note" not in response.content
+    assert b"ID number" not in response.content
 
 
 @pytest.mark.django_db
@@ -540,6 +560,27 @@ def test_user_profile_view_superuser_sees_admin_link(auto_login_user, user_facto
         response = client.get(url)
     assert response.status_code == 200
     assert b"users_user_change" in response.content or b"Admin" in response.content
+    assert b"ID number" in response.content
+    assert str(target.pk).encode() in response.content
+
+
+@pytest.mark.django_db
+def test_user_profile_hides_id_when_admin_functionality_is_hidden(auto_login_user, user_factory):
+    from django.test import override_settings
+
+    from thetatauCMT.users.models import UserAlter
+
+    client, user = auto_login_user()
+    user.is_superuser = True
+    user.save()
+    UserAlter.objects.create(user=user, chapter=user.chapter, role=None, hide_admin=True)
+    client.force_login(user)
+    target = user_factory.create()
+    url = reverse("users:profile", kwargs={"username": target.username})
+    with override_settings(DEBUG=True):
+        response = client.get(url)
+    assert response.status_code == 200
+    assert b"ID number" not in response.content
 
 
 @pytest.mark.django_db

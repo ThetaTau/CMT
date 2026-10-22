@@ -254,8 +254,8 @@ def test_tools_include_a_duty_the_task_carries_rather_than_the_roles_field():
     """
     user = _officer("scribe")
     guide = RoleGuideFactory(role="scribe")
-    Task.objects.create(name="Audit", owner="scribe", type="task", description="Audit")
-    linked = Task.objects.create(name="Audit", owner="treasurer", type="task", description="Audit")
+    Task.objects.create(name="Shared audit", owner="scribe", type="task", description="Audit")
+    linked = Task.objects.create(name="Shared audit", owner="treasurer", type="task", description="Audit")
     FeatureFactory(key="mine-audit", roles=[], task=linked)
 
     tools = services.get_role_guide_detail(guide, user)["tools"]
@@ -320,10 +320,10 @@ def test_query_count_does_not_grow_with_the_number_of_steps():
 # The pages
 # ---------------------------------------------------------------------------
 def test_every_seeded_role_guide_renders(auto_login_user, feature_registry):
-    """All ten shipped guides, against the real registry."""
+    """All eleven shipped guides, against the real registry."""
     client, _ = auto_login_user()
     guides = RoleGuide.objects.active()
-    assert guides.count() == 10
+    assert guides.count() == 11
     for guide in guides:
         response = client.get(guide.get_absolute_url())
         assert response.status_code == 200, guide.role

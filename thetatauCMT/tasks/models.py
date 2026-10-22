@@ -144,7 +144,7 @@ class Task(models.Model):
                 # unrelated Risk Management Form submission).
                 score_type = ScoreType.objects.filter(slug="pledge-program").first()
                 file = "forms:pledge_program"
-                submit_name = "Pledge program"
+                submit_name = "New member education program"
                 extra_info = {"unmodified": obj.manual != "other"}
             elif name == "Outstanding Student Member":
                 score_type = ScoreType.objects.filter(slug="osm").first()

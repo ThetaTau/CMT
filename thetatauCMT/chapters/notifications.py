@@ -3,15 +3,19 @@ from herald import registry
 from herald.base import EmailNotification
 
 from core.models import current_term
+from thetatauCMT.support.emails import SupportCopyMixin
+from thetatauCMT.support.models import SupportDigestEntry
 
 
 @registry.register_decorator()
-class DuesReminder(EmailNotification):
+class DuesReminder(SupportCopyMixin, EmailNotification):
     render_types = ["html"]
     template_name = "dues_reminder"
     subject = "Chapter Dues Test Roster"
 
     def __init__(self, chapter, attachment):
+        self.support_chapter = chapter
+        self.support_kind = SupportDigestEntry.Kind.DUES
         officer_list, previous = chapter.get_current_officers_council()
         # set list of emails to send to
         emails = chapter.council_emails()

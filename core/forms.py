@@ -25,6 +25,7 @@ from core.choices import (
     CA_PROVINCE_CODE_TO_NAME,
     CA_PROVINCE_NAME_TO_CODE,
     COUNTRY_CHOICES,
+    STATE_REQUIRED_COUNTRIES,
     UK_REGION_NAME_TO_CODE,
     US_STATE_CODE_TO_NAME,
     US_STATE_NAME_TO_CODE,
@@ -363,6 +364,9 @@ class ComponentAddressField(forms.MultiValueField):
         street, city, state, postal_code, country = (data_list + ["", "", "", "", ""])[:5]
         state = (state or "").strip()
         country = (country or "").strip() or "United States"
+
+        if ((city or "").strip() or (postal_code or "").strip()) and not state and country in STATE_REQUIRED_COUNTRIES:
+            raise forms.ValidationError(f"State / Province is required for {country} addresses.")
 
         # Users can type either the 2-letter code or the full name for US
         # states and Canadian provinces; UK constituent countries only carry a

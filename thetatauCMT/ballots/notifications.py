@@ -23,6 +23,8 @@ from herald.base import EmailNotification
 
 from core.models import CHAPTER_OFFICER
 from core.notifications import capped_recipients
+from thetatauCMT.support.emails import SupportCopyMixin
+from thetatauCMT.support.models import SupportDigestEntry
 
 from .models import BALLOT_CHAPTER_ROLES
 
@@ -133,13 +135,16 @@ def send_ballot_notifications(ballot, reminder=False, final=False):
 
 
 @registry.register_decorator()
-class BallotVoteRequest(EmailNotification):
+class BallotVoteRequest(SupportCopyMixin, EmailNotification):
     """Ask a voter to return their ballot, initially and then every 7 days."""
 
     render_types = ["html"]
     template_name = "ballot_vote_request"
 
     def __init__(self, ballot, emails, addressee, reminder=False, chapter=None, level=LEVEL_VOTERS, final=False):
+        self.support_chapter = chapter
+        self.support_kind = SupportDigestEntry.Kind.BALLOT
+        self.support_link = ballot_vote_url(ballot)
         self.to_emails = capped_recipients(emails, context=f"ballot request {ballot.name}")
         self.cc = []
         self.reply_to = [CENTRAL_OFFICE_EMAIL]
@@ -195,7 +200,7 @@ def grand_officer_emails():
 
 
 @registry.register_decorator()
-class BallotVoteReceipt(EmailNotification):
+class BallotVoteReceipt(SupportCopyMixin, EmailNotification):
     """Confirm that a ballot was recorded, never how it was voted.
 
     A chapter's receipt goes to both the Regent and the Scribe: they were both
@@ -208,6 +213,9 @@ class BallotVoteReceipt(EmailNotification):
 
     def __init__(self, vote):
         chapter = vote.user.chapter if vote.is_chapter_vote else None
+        self.support_chapter = chapter
+        self.support_kind = SupportDigestEntry.Kind.BALLOT_RECEIPT
+        self.support_link = ballot_vote_url(vote.ballot)
         emails = {email for email in vote.user.emails if email}
         if chapter is not None:
             emails |= chapter_reminder_emails(chapter, LEVEL_VOTERS)
@@ -236,7 +244,7 @@ class BallotVoteReceipt(EmailNotification):
 
 
 @registry.register_decorator()
-class BallotVoteDeleted(EmailNotification):
+class BallotVoteDeleted(SupportCopyMixin, EmailNotification):
     """Tell everyone concerned that a submitted ballot was removed.
 
     Goes to the voter, the chapter's officers when it was a chapter vote, and
@@ -248,6 +256,9 @@ class BallotVoteDeleted(EmailNotification):
 
     def __init__(self, vote, removed_by, reason=""):
         chapter = vote.user.chapter if vote.is_chapter_vote else None
+        self.support_chapter = chapter
+        self.support_kind = SupportDigestEntry.Kind.BALLOT_VOTE_REMOVED
+        self.support_link = ballot_vote_url(vote.ballot)
         emails = {email for email in vote.user.emails if email}
         if chapter is not None:
             emails |= set(chapter.get_email_specific(roles=sorted(CHAPTER_OFFICER)))

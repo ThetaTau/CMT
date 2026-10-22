@@ -1,6 +1,7 @@
 import csv
 import datetime
 import io
+import logging
 import warnings
 from datetime import timedelta
 from email.mime.base import MIMEBase
@@ -19,11 +20,12 @@ from django.utils.translation import gettext_lazy as _
 from django_ckeditor_5.fields import CKEditor5Field
 from email_signals.models import EmailSignalMixin
 from herald.models import SentNotification
+from quickbooks.exceptions import QuickbooksException
 from quickbooks.objects.attachable import Attachable, AttachableRef
 from quickbooks.objects.customer import Customer
 
 from core.csv_utils import escape_csv_row
-from core.finances import create_line, get_quickbooks_client, invoice_search
+from core.finances import create_line, get_quickbooks_client, invoice_search, retry_quickbooks_api
 from core.models import (
     ACTIVE_STATUSES,
     ADVISOR_ROLES,
@@ -42,6 +44,15 @@ from thetatauCMT.configs.models import Config
 from thetatauCMT.regions.models import Region
 
 from .notifications import DuesReminder
+
+logger = logging.getLogger(__name__)
+
+
+class DuesAttachmentUploadError(Exception):
+    def __init__(self, invoice_number):
+        self.invoice_number = invoice_number
+        super().__init__(f"Could not upload dues attachment for invoice {invoice_number}.")
+
 
 GREEK_ABR = {
     "a": "alpha",
@@ -582,10 +593,24 @@ class Chapter(models.Model, EmailSignalMixin):
         self.misc_data[key] = value
         self.save()
 
-    def council_emails(self):
+    def council_emails(self, include_support=False):
+        """The executive officers' and the chapter's generic emails.
+
+        ``include_support`` adds the chapter's Chapter Support Specialists. Only lists that
+        are not emails pass it (the shingle sheet's "Notify" column); emails CC them instead
+        (``thetatauCMT.support.emails``).
+        """
         officers = self.get_current_officers_council_specific()
         emails = set([officer.email for officer in officers if officer]) | set(self.get_generic_chapter_emails())
+        if include_support:
+            emails |= self.support_specialist_emails()
         return {email for email in emails if email}
+
+    def support_specialist_emails(self):
+        """Emails of the Chapter Support Specialists currently assigned to this chapter."""
+        from thetatauCMT.support.services import chapter_support_specialists
+
+        return {person.email for person in chapter_support_specialists(self) if person.email}
 
     def get_email_specific(self, roles=None):
         # Get the generic and current cor sec emails
@@ -682,8 +707,11 @@ class Chapter(models.Model, EmailSignalMixin):
                         roles__end__gte=TODAY_END + timedelta(5),
                     )
                     current = current_and_future.first()
+                    # Local import: users.notifications imports Chapter from this module.
+                    from thetatauCMT.users.notifications import OfficerUpdateReminder
+
                     already_notified = SentNotification.objects.filter(
-                        notification_class="thetatauCMT.users.notifications.OfficerUpdateReminder",
+                        notification_class=OfficerUpdateReminder.get_class_path(),
                         recipients__icontains=current.email,
                         date_sent__gte=TODAY_END - timedelta(7),
                     )
@@ -811,9 +839,17 @@ class Chapter(models.Model, EmailSignalMixin):
         attachment.FileName = attachment_path.name
         attachment._FilePath = str(attachment_path.absolute())
         attachment.ContentType = "text/csv"
-        attachment.save(qb=client)
-        if attachment_path.exists():
-            attachment_path.unlink()  # Delete the file when we are done
+        try:
+            retry_quickbooks_api(
+                lambda: attachment.save(qb=client),
+                description=f"Dues CSV attachment upload for {self}",
+            )
+        except QuickbooksException as exc:
+            logger.exception("QuickBooks dues attachment upload failed for %s", self)
+            raise DuesAttachmentUploadError(invoice_obj.DocNumber) from exc
+        finally:
+            if attachment_path.exists():
+                attachment_path.unlink()
         return invoice_obj.DocNumber
 
     def reminder_dues(self):

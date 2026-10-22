@@ -1,0 +1,14 @@
+<div class="d-flex flex-wrap gap-1">
+  <a class="btn btn-sm btn-outline-primary" href="{% url 'biglittle:record' %}?little={{ record.pk }}"
+     aria-label="{% if record.link_pk %}Change{% else %}Record{% endif %} {{ record.name }}'s Big">
+    {% if record.link_pk %}Change{% else %}Record{% endif %}
+  </a>
+  {% if record.link_pk %}
+    <form method="post" action="{% url 'biglittle:remove' record.link_pk %}" class="d-inline"
+          data-confirm="Remove {{ record.big_name }} as {{ record.name }}'s Big?">
+      {% csrf_token %}
+      <input type="hidden" name="return_to" value="list">
+      <button type="submit" class="btn btn-sm btn-outline-danger" aria-label="Remove {{ record.name }}'s Big">Remove</button>
+    </form>
+  {% endif %}
+</div>

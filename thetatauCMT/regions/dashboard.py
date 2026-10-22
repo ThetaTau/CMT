@@ -16,10 +16,12 @@ from django.conf import settings
 from django.db.models import Count
 from django.utils import timezone
 from django_plotly_dash import DjangoDash
+from django_userforeignkey.request import get_current_user
 
 from core.models import ALUMNI_STATUSES, academic_encompass_start_end_date
 from thetatauCMT.chapters.models import Chapter
 from thetatauCMT.regions.models import Region
+from thetatauCMT.support.services import css_dashboard_chapter_ids, css_state
 
 # `serve_locally=False` tells dash-renderer to load plotly.min.js from the
 # Plotly CDN instead of an internal `_dash-component-suites/...` URL.
@@ -58,6 +60,9 @@ CENSUS_STATUSES = ACTIVE_STATUSES + ALUMNI_STATUSES
 
 # Distinct qualitative palette; falls back to Plotly D3 for extra regions.
 REGION_PALETTE = px.colors.qualitative.Bold + px.colors.qualitative.D3
+
+# The scope of a Chapter Support Specialist's landing page: their assigned chapters.
+SUPPORT_SCOPE = "support"
 
 
 def _theme_template(theme):
@@ -102,14 +107,26 @@ def get_scope_chapters(region_slug, include_inactive=False):
     * `national` — all active chapters
     * `candidate_chapter` — all active candidate chapters
     * `chapter_<slug>` — the single chapter with that slug (member home page)
+    * `support` — a Chapter Support Specialist's assigned chapters (their landing page)
     * any other slug — chapters whose region slug matches
 
     Pass `include_inactive=True` to keep closed chapters in scope; the living
     census counts their alumni, every other KPI is about current activity.
+
+    The scope comes from the browser, so a Chapter Support Specialist is held to their
+    own chapters here, on the server, whatever scope a request names.
     """
     qs = Chapter.objects.select_related("region")
     if not include_inactive:
         qs = qs.exclude(active=False)
+    viewer = _signed_in_viewer()
+    limit = css_dashboard_chapter_ids(viewer) if viewer is not None else None
+    if limit is not None:
+        qs = qs.filter(pk__in=limit)
+    if region_slug == SUPPORT_SCOPE:
+        if limit is None:
+            return qs.none()
+        return qs.filter(pk__in=css_state(viewer).chapter_ids)
     if region_slug == "national" or not region_slug:
         return qs
     if region_slug == "candidate_chapter":
@@ -117,6 +134,12 @@ def get_scope_chapters(region_slug, include_inactive=False):
     if region_slug.startswith("chapter_"):
         return qs.filter(slug=region_slug[len("chapter_") :])
     return qs.filter(region__slug=region_slug)
+
+
+def _signed_in_viewer():
+    """The user of the request being served, when there is a signed-in one."""
+    user = get_current_user()
+    return user if getattr(user, "is_authenticated", False) else None
 
 
 def region_options():
@@ -229,6 +252,26 @@ app.layout = html.Div(
                             clearable=False,
                             searchable=False,
                             className="tt-region-selector",
+                        ),
+                    ],
+                ),
+                # A Chapter Support Specialist's chapter filter, shown only on their landing
+                # page; its options come from the server (``populate_support_chapters``).
+                html.Div(
+                    id="support-chapter-col",
+                    style={"display": "none"},
+                    children=[
+                        html.Label(
+                            "Chapter",
+                            htmlFor="support-chapter-selector",
+                            className="form-label small text-body-secondary mb-1",
+                        ),
+                        dcc.Dropdown(
+                            id="support-chapter-selector",
+                            options=[],
+                            value=None,
+                            clearable=False,
+                            searchable=False,
                         ),
                     ],
                 ),
@@ -406,13 +449,36 @@ def sync_region_from_url(pathname):
     Output("region-slug-store", "data"),
     Input("region-selector", "value"),
     Input("scope-override-store", "data"),
+    Input("support-chapter-selector", "value"),
 )
-def store_region(value, override):
+def store_region(value, override, support_choice=None):
     # A forced scope (member home page, locked to the viewer's own chapter)
-    # always wins over the region selector.
+    # always wins over the region selector. On a Chapter Support Specialist's
+    # landing page their chapter filter narrows it; get_scope_chapters still
+    # holds them to their own chapters whatever is chosen.
+    if override == SUPPORT_SCOPE:
+        return support_choice or SUPPORT_SCOPE
     if override:
         return override
     return value or "national"
+
+
+@app.callback(
+    [
+        Output("support-chapter-selector", "options"),
+        Output("support-chapter-selector", "value"),
+        Output("support-chapter-col", "style"),
+    ],
+    Input("scope-override-store", "data"),
+)
+def populate_support_chapters(override):
+    if override != SUPPORT_SCOPE:
+        return [], None, {"display": "none"}
+    chapters = get_scope_chapters(SUPPORT_SCOPE).order_by("name")
+    options = [{"label": "All my chapters", "value": SUPPORT_SCOPE}] + [
+        {"label": chapter.name, "value": f"chapter_{chapter.slug}"} for chapter in chapters
+    ]
+    return options, SUPPORT_SCOPE, {"minWidth": "260px", "flex": "1 1 260px"}
 
 
 # When embedded on the member home page, the template renders a hidden

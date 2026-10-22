@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% load static %}
+{% load render_table from django_tables2 %}
+{% load filter_tags %}
+{% block title %}Bigs and Littles{% endblock %}
+
+{% block content %}
+  <div class="page-header d-flex flex-wrap align-items-center gap-2 mb-3">
+    <h1 class="page-title mb-0">Bigs and Littles</h1>
+    <div class="page-actions d-flex flex-wrap gap-2">
+      <a href="{% url 'biglittle:tree' chapter.slug %}" class="btn btn-outline-primary">
+        <i class="fa-solid fa-sitemap" aria-hidden="true"></i> Family tree
+      </a>
+      {% if can_manage %}
+        <a href="{% url 'biglittle:record' %}" class="btn btn-primary">
+          <i class="fas fa-plus" aria-hidden="true"></i> Record or change a Big
+        </a>
+        <a href="{% url 'biglittle:upload' %}" class="btn btn-outline-secondary">
+          <i class="fas fa-file-csv" aria-hidden="true"></i> Upload CSV
+        </a>
+        {% if pending_count %}
+          <a href="{% url 'biglittle:review' %}" class="btn btn-outline-warning">
+            <i class="fas fa-user-check" aria-hidden="true"></i> Review uploaded names
+            <span class="badge text-bg-warning">{{ pending_count }}<span class="visually-hidden"> waiting</span></span>
+          </a>
+        {% endif %}
+      {% endif %}
+    </div>
+  </div>
+  <p class="text-body-secondary">
+    Every initiated member of {{ chapter }} and their Big: the final Big Brother mentor chosen
+    at initiation, not a temporary one. A new Big replaces the old one.
+  </p>
+  {% if not can_manage %}
+    <p class="text-body-secondary">
+      Record your own Big on <a href="{% url 'users:detail' %}#big_little">Edit My Info</a>.
+      Chapter officers and {{ manager_roles_label }} can record or change anyone's.
+    </p>
+  {% endif %}
+  {% collapsible_filter filter label="Filter Members" collapse_id="bigLittleFilter" %}
+  <div class="table-responsive">
+    {% render_table table %}
+  </div>
+{% endblock content %}
+
+{% block javascript %}
+  {{ block.super }}
+  <script src="{% static 'js/biglittle.js' %}"></script>
+{% endblock javascript %}

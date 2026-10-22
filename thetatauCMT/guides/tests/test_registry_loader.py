@@ -218,6 +218,7 @@ def test_every_referenced_task_slug_exists_in_the_tasks_fixture():
     """`Task.slug` is `slugify(name + owner)`, so these are easy to mistype."""
     seeded = {row["fields"]["slug"] for row in json.loads(TASKS_FIXTURE.read_text(encoding="utf-8"))}
     referenced = {feature["task"] for _, feature in FEATURES if feature.get("task")}
+    referenced |= {step["task"] for guide in REGISTRY["role_guides"] for step in guide["steps"] if step.get("task")}
     assert referenced <= seeded, f"unknown task slug(s): {sorted(referenced - seeded)}"
 
 
@@ -225,6 +226,17 @@ def test_a_task_is_claimed_by_at_most_one_feature():
     """The card shows the task's due date, so two claimants would contradict each other."""
     slugs = [feature["task"] for _, feature in FEATURES if feature.get("task")]
     assert len(slugs) == len(set(slugs))
+
+
+@pytest.mark.django_db
+def test_saving_a_seeded_task_keeps_its_slug():
+    """`Task.save()` re-derives the slug, so a seeded slug in any other form changes the
+    first time the task is saved in the admin and unlinks every entry that names it."""
+    before = dict(Task.objects.values_list("pk", "slug"))
+    assert before
+    for task in Task.objects.all():
+        task.save()
+    assert dict(Task.objects.values_list("pk", "slug")) == before
 
 
 # ---------------------------------------------------------------------------

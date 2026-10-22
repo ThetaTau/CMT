@@ -402,14 +402,16 @@ class EventDeleteView(LoginRequiredMixin, View):
     template_name = "events/event_confirm_delete.html"
 
     def _get_event(self):
+        # Soft-deleted events are included (a live one still wins a date+slug
+        # tie) so a repeat request can be told the event is already gone.
         obj = (
-            Event.objects.filter(
+            Event.all_objects.filter(
                 date__year=self.kwargs["year"],
                 date__month=self.kwargs["month"],
                 date__day=self.kwargs["day"],
                 slug=self.kwargs["event_slug"],
             )
-            .order_by("pk")
+            .order_by("deleted", "pk")
             .first()
         )
         if obj is None:
@@ -422,12 +424,19 @@ class EventDeleteView(LoginRequiredMixin, View):
             return super().dispatch(request, *args, **kwargs)
         self.event = self._get_event()
         if not can_delete_event(request.user, self.event):
+            if self.event.deleted:
+                raise Http404("No event matches the given query.")
             messages.add_message(
                 request,
                 messages.ERROR,
                 "Only officers of this event's chapter can delete it.",
             )
             return HttpResponseRedirect(self.event.get_absolute_url())
+        if self.event.deleted:
+            # A double-clicked confirm button, Back/refresh after deleting, or
+            # another officer's open tab used to 404 here.
+            messages.add_message(request, messages.INFO, f"Event '{self.event.name}' was already deleted.")
+            return HttpResponseRedirect(_safe_next(request, reverse("events:list")))
         return super().dispatch(request, *args, **kwargs)
 
     def get(self, request, *args, **kwargs):

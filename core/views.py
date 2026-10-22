@@ -23,6 +23,7 @@ from thetatauCMT.guides.services import get_role_guides, get_whats_new
 from thetatauCMT.scores.models import ScoreType
 from thetatauCMT.tasks.models import TaskChapter, TaskDate
 from thetatauCMT.tasks.tables import TaskTable
+from thetatauCMT.transitions.services import get_my_open_obligations
 from thetatauCMT.users.models import User
 
 # https://django-allauth.readthedocs.io/en/latest/advanced.html#admin
@@ -51,15 +52,27 @@ def check_group_membership(user, groups):
 
 
 def group_required(*group_names):
-    """Requires user membership in at least one of the groups passed in."""
+    """Requires user membership in at least one of the groups passed in.
+
+    A Chapter Support Specialist viewing an assigned chapter passes where ``"officer"``
+    is one of the names, the same as that chapter's Regent (view only).
+    """
 
     def in_groups(u):
         if u.is_authenticated:
             if bool(u.groups.filter(name__in=group_names)) | acting_as_admin(u):
                 return True
+            if "officer" in group_names and css_standing_in(u):
+                return True
         return False
 
     return user_passes_test(in_groups)
+
+
+def css_standing_in(user):
+    from thetatauCMT.support.services import standing_in
+
+    return standing_in(user)
 
 
 class NatOfficerRequiredMixin(GroupRequiredMixin):
@@ -181,6 +194,10 @@ class OfficerRequiredMixin(GroupRequiredMixin):
             # a real chapter role or the region-bar impersonation role, which is
             # the same rule ``core.utils.check_officer`` applies to the nav.
             return bool(user.chapter_officer())
+        if css_standing_in(user):
+            # A Chapter Support Specialist viewing an assigned chapter sees what its
+            # Regent sees; ViewOnlyCSSMiddleware refuses any change.
+            return True
         return check_group_membership(user, groups)
 
     def get_login_url(self):
@@ -350,6 +367,15 @@ class TypeFieldFilteredChapterAdd(FormMixin):
 class HomeView(LoginRequiredMixin, TemplateView):
     template_name = "pages/home.html"
 
+    def get(self, request, *args, **kwargs):
+        from thetatauCMT.support.services import wants_css_landing
+
+        # A Chapter Support Specialist's Home is their "My Chapters" page (Q24 A); a member
+        # CSS can still reach their member home page with ?member=1.
+        if not request.GET.get("member") and wants_css_landing(request.user):
+            return HttpResponseRedirect(reverse("support:my_chapters"))
+        return super().get(request, *args, **kwargs)
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         qs = TaskDate.incomplete_dates_for_chapter(self.request.user.current_chapter)
@@ -367,6 +393,10 @@ class HomeView(LoginRequiredMixin, TemplateView):
         # where a newly elected officer is already looking -- the tasks below it
         # are the very thing the guide explains.
         context["role_guides"] = get_role_guides(self.request.user)
+        # "My Transition Report Obligations" (TRWI-4) -- the viewer's own open
+        # obligations, derived from positions they hold, alongside the Role
+        # Guide card since both are "here's what's on you right now" prompts.
+        context["my_transition_obligations"] = get_my_open_obligations(self.request.user)
         # Scope the embedded RegionDashboard to the viewer's own chapter so the
         # home page shows the same dashboard as the regional/national views, but
         # auto-filtered. The template renders this into a hidden element that the

@@ -1,7 +1,7 @@
 import django_tables2 as tables
 from django_tables2.utils import A
 
-from core.tables import CMTTable
+from core.tables import EMPTY_VALUE, CMTTable
 
 from .models import Ballot, BallotComplete
 
@@ -9,9 +9,10 @@ from .models import Ballot, BallotComplete
 # Regent and Grand Scribe (see ``models.can_view_ballot_results``).
 RESULT_COLUMNS = ("ayes", "nays", "abstains")
 
-# Per-submission columns only the Grand Regent and Grand Scribe get: how the
-# chapter authorized its vote, and the control to remove a mistaken submission.
-SUBMISSION_REVIEW_COLUMNS = ("authority", "remove")
+# Per-submission columns only the Grand Regent and Grand Scribe get: how each
+# chapter or officer voted, how a chapter authorized its vote, and the control
+# to remove a mistaken submission.
+SUBMISSION_REVIEW_COLUMNS = ("motion", "authority", "remove")
 
 
 class BallotTable(CMTTable):
@@ -56,13 +57,18 @@ class BallotCompleteTable(CMTTable):
 
     class Meta:
         model = BallotComplete
-        # No motion column at any permission level: the vote itself is secret.
-        fields = ("user_name", "chapter", "region", "role", "status", "authority", "remove")
+        fields = ("user_name", "chapter", "region", "role", "status", "motion", "authority", "remove")
         attrs = {"class": "table table-striped table-bordered"}
         empty_text = "There are no ballots matching the search criteria..."
 
     def render_status(self, value):
         return "Not submitted" if str(value).lower() == "incomplete" else "Submitted"
+
+    def render_motion(self, value):
+        # Not-submitted rows carry "Incomplete"; Ballot Returned already says so.
+        if str(value).lower() == "incomplete":
+            return EMPTY_VALUE
+        return BallotComplete.MOTION.get_value(value)
 
     def render_authority(self, value):
         return BallotComplete.AUTHORITY.get_value(value)
@@ -90,3 +96,12 @@ class BallotUserTable(CMTTable):
 
     def render_type(self, value):
         return Ballot.TYPES.get_value(value)
+
+
+class BallotChapterStatusTable(BallotUserTable):
+    """The viewed chapter's ballots for a Chapter Support Specialist: voted or not, never how."""
+
+    motion = tables.Column(verbose_name="Chapter vote", default="Not yet")
+
+    def render_motion(self, value):
+        return "Voted" if value == "voted" else "Not yet"

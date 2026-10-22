@@ -66,7 +66,8 @@
         {
           "key": "my-profile",
           "name": "My profile",
-          "short_description": "Your badge number, status, roles, employment, service hours and award history.",
+          "short_description": "Your badge number, status, roles, Big and Littles, employment, service hours and award history.",
+          "long_description": "Admins can also see the member's internal ID number.",
           "url_name": "users:profile",
           "url_kwargs": {"username": "@username"}
         },
@@ -78,12 +79,27 @@
           "url_name": "users:detail"
         },
         {
+          "key": "two-factor-sign-in",
+          "name": "Two-factor sign-in",
+          "short_description": "Protect your account with a code from an authenticator app on your phone.",
+          "long_description": "Required for Admins and Chapter Support Specialists, and for every National Officer from the date Central Office announces (a banner shows the date until then). Anyone else may turn it on too. If you lose your phone, Central Office can remove the old device so you can set up a new one.",
+          "url_name": "two-factor-setup"
+        },
+        {
           "key": "contact-visibility",
           "name": "Who can see my contact info",
           "short_description": "Choose who sees your email, phone number and address.",
           "long_description": "Set separately for your email, phone and address on your own info page. Your chapter's officers, National Officers and Admins can always see your contact details, because they need them to run the chapter and the fraternity. Beyond that you choose: only those officers, every member of your chapter, or any member on the site. The choice applies to your member profile, to member lists and to exports.",
           "url_name": "users:detail",
           "url_fragment": "user"
+        },
+        {
+          "key": "my-big-little",
+          "name": "My Big and Littles",
+          "short_description": "Record your Big, the final Big Brother mentor chosen at initiation, and add your Littles.",
+          "long_description": "Under 'My Big and Littles' on your own info page, once you are initiated. Pick your Big from your chapter's members; a new Big replaces the old one. You can also add a Little who has no Big recorded yet, and remove a Little you added. To change a Big someone else recorded for one of your Littles, ask a chapter officer or the New Member Educator.",
+          "url_name": "users:detail",
+          "url_fragment": "big_little"
         },
         {
           "key": "profile-picture",
@@ -176,6 +192,25 @@
           "roles": ["regent"]
         },
         {
+          "key": "css-my-chapters",
+          "name": "My Chapters (Chapter Support Specialists)",
+          "short_description": "Your assigned chapters side by side, with a dashboard for all of them.",
+          "long_description": "For Chapter Support Specialists, and your Home page: actives, PNMs, overdue tasks, balance and missing officers for each chapter you support, the region dashboard limited to those chapters, and What's New.",
+          "url_name": "support:my_chapters",
+          "audience": "officer",
+          "roles": ["chapter support specialist"]
+        },
+        {
+          "key": "css-chapter-switcher",
+          "name": "Switch between your chapters",
+          "short_description": "Chapter Support Specialists: the bar under the menu shows the chapter you are viewing; pick another of yours to switch.",
+          "long_description": "Every page follows the chapter you choose, and you see what its Regent sees, view only. You can hide the bar from the account menu.",
+          "url_name": "support:my_chapters",
+          "url_fragment": "css-bar",
+          "audience": "officer",
+          "roles": ["chapter support specialist"]
+        },
+        {
           "key": "chapter-notes",
           "name": "Chapter notes",
           "short_description": "Record a note against a chapter that other National Officers will see.",
@@ -202,7 +237,7 @@
         {
           "key": "chapter-roster",
           "name": "Chapter roster",
-          "short_description": "Every active, pledge and alumnus member of your chapter, with status and contact details.",
+          "short_description": "Every active, PNM and alumnus member of your chapter, with status and contact details.",
           "url_name": "users:list",
           "roles": ["scribe"]
         },
@@ -233,6 +268,40 @@
           "name": "Log external org participation",
           "short_description": "Add an organization a member takes part in outside Theta Tau.",
           "url_name": "users:orgs_add"
+        },
+        {
+          "key": "big-little-list",
+          "name": "Bigs and Littles",
+          "short_description": "See each member's Big and how many Littles they have. Officers and the New Member Educator can record or change anyone's Big.",
+          "long_description": "Lists every initiated member of your chapter with their Big, the final Big Brother mentor chosen at initiation (not a temporary one), and their number of Littles. Filter it to find members with no Big recorded yet. Chapter officers and the New Member Educator can record or change a Big, or remove one entered by mistake. Every member can record their own Big from Edit My Info. A new Big replaces the old one.",
+          "url_name": "biglittle:list",
+          "roles": ["pledge/new member educator", "vice regent"]
+        },
+        {
+          "key": "family-tree",
+          "name": "Chapter family tree",
+          "short_description": "Your chapter's Big and Little family lines, drawn as an interactive tree you can search and zoom.",
+          "long_description": "Each line runs from a Big down to their Littles, using the final Big chosen at initiation. Find a member by name or badge number to open their family with them highlighted, or pick one family to focus on. Zoom in and out, drag sideways along the tree, hover over a name for details and click it to open the member's profile, or download the tree as a picture. A text version sits under the chart. Open to members of the chapter, its Regional Directors, National Officers and Admins.",
+          "url_name": "biglittle:tree",
+          "url_kwargs": {"slug": "@chapter_slug"}
+        },
+        {
+          "key": "upload-big-little",
+          "name": "Upload Bigs and Littles",
+          "short_description": "Record many Bigs at once from a CSV that names each Big and Little by badge number or by full name.",
+          "long_description": "One row per Little, with the columns badge_number_big and badge_number_little, or big_full_name and little_full_name; a Big can appear on several rows. Names are matched to your chapter's roster ignoring capitals, accents, punctuation, word order and suffixes, and a name that matches nobody exactly, or several members, waits on the review page instead of being guessed. Every row is checked before anything is saved, rows with problems are listed so you can fix and upload again, and uploading the same file twice changes nothing. A row that gives a member a different Big replaces the old one. The page offers template files for both formats.",
+          "url_name": "biglittle:upload",
+          "audience": "officer",
+          "roles": ["pledge/new member educator"]
+        },
+        {
+          "key": "review-big-little-names",
+          "name": "Review uploaded Big and Little names",
+          "short_description": "Choose who a name from a Big and Little upload means when it did not match exactly one member, or dismiss the row.",
+          "long_description": "Each waiting row shows the names as typed in the file, the member already matched on the other side, and the closest members of your chapter with how alike the names are. Every suggestion links to the member's profile, which opens in a new tab, to help tell who a name means. Pick a suggestion or search for anyone in the chapter, then save the pairing. Dismiss a row when nobody can tell who a name means or the person is not on your roster; uploading the same file again skips dismissed rows and reuses the members you chose.",
+          "url_name": "biglittle:review",
+          "audience": "officer",
+          "roles": ["pledge/new member educator"]
         },
         {
           "key": "member-search-all",
@@ -415,7 +484,7 @@
           "key": "initiation-report",
           "name": "Initiation report",
           "short_description": "Report the members your chapter has initiated and order their badges.",
-          "long_description": "Select the pledges being initiated, confirm their details, and submit. Badge numbers are assigned by the national office once the report is processed.",
+          "long_description": "Select the PNMs being initiated, confirm their details, and submit. Badge numbers are assigned by the national office once the report is processed. You can also record each new member's Big, the final Big chosen at initiation; the same Big can be picked for two new members, and a Big left blank can be added later.",
           "url_name": "forms:init_selection",
           "audience": "officer",
           "roles": ["scribe", "regent"],
@@ -424,11 +493,11 @@
         {
           "key": "pledge-form",
           "name": "Pledge / new member form",
-          "short_description": "Register a new pledge with the national office.",
-          "long_description": "This is the only form a prospective member fills in themselves, so it works without an account. Pledges must be reported before they can be initiated.",
+          "short_description": "Register a new PNM with the national office.",
+          "long_description": "This is the only form a prospective member fills in themselves, so it works without an account. PNMs must be reported before they can be initiated.",
           "url_name": "forms:pledgeform",
           "audience": "officer",
-          "task": "pledge-forms"
+          "task": "pledge-formsvice-regent"
         },
         {
           "key": "status-change-graduate",
@@ -483,7 +552,7 @@
           "url_name": "viewflow:forms:prematurealumnus:start",
           "audience": "officer",
           "roles": ["scribe"],
-          "task": "premature-alumnus"
+          "task": "premature-alumnusscribe"
         },
         {
           "key": "return-student",
@@ -537,7 +606,15 @@
           "url_name": "forms:officer_add",
           "audience": "officer",
           "roles": ["regent"],
-          "task": "officer-election-report"
+          "task": "officer-election-reportscribe"
+        },
+        {
+          "key": "transition-reports",
+          "name": "Transition Reports",
+          "short_description": "What worked, what didn't, and what your successor needs to know, from the officer or committee chair leaving the position.",
+          "long_description": "Start any time while you hold the position and save a draft as you go; the report is due shortly before your term ends, and you get reminders until it is submitted. It is a short set of prompts about successes, failures, contacts, and unfinished business. Submitted reports are visible to the officer who follows you so nothing gets lost between terms. From the Transition Reports page you can also search past reports by keyword, position, tag, or cycle; National Officers and Admins additionally see a national trend view (tag frequency and which chapters have not yet submitted).",
+          "url_name": "transitions:list",
+          "audience": "officer"
         },
         {
           "key": "national-officers-directory",
@@ -598,7 +675,7 @@
           "url_name": "osmform",
           "audience": "officer",
           "roles": ["regent"],
-          "task": "outstanding-student-member"
+          "task": "outstanding-student-memberregent"
         },
         {
           "key": "all-osm-forms",
@@ -676,7 +753,7 @@
           "long_description": "Several officers each sign off a section, so the audit is not finished until all of them have submitted. Check Chapter tasks to see who is outstanding.",
           "url_name": "forms:audit",
           "audience": "officer",
-          "task": "audit-treasurer"
+          "task": "audittreasurer"
         },
         {
           "key": "all-audits",
@@ -708,7 +785,7 @@
           "url_name": "gear",
           "audience": "officer",
           "roles": ["corresponding secretary"],
-          "task": "gear-article"
+          "task": "gear-articlecorresponding-secretary"
         },
         {
           "key": "all-gear-articles",
@@ -732,7 +809,7 @@
           "short_description": "Put a member or chapter forward for a fraternity award.",
           "long_description": "Nominations are reviewed by the awards committee. Check the award's cycle before you start, because most close well before the award is presented. Regional Directors and National Officers see work across many chapters and are often the only ones placed to nominate it.",
           "url_name": "viewflow:awards:awardnomination:start",
-          "task": "awards",
+          "task": "awardsregent",
           "roles": ["regional director"]
         },
         {
@@ -836,6 +913,7 @@
           "key": "chapter-training-records",
           "name": "Chapter training records",
           "short_description": "Which of your members have completed which required training.",
+          "long_description": "Shows Active, Active Pending and Prospective members by default. Choose All statuses in the filter to also see alumni, members who depledged and everyone else. Each row shows the member's current status and the semester they pledged; filter or sort by either one, for example to check one new member class.",
           "url_name": "trainings:list"
         },
         {
@@ -936,14 +1014,14 @@
           "key": "ballot-results",
           "name": "Ballot status and results",
           "short_description": "Who has and has not returned a ballot.",
-          "long_description": "Any officer can see which chapters and National Officers have returned a ballot. How an individual voted is shown to nobody but the voter, not to Admins and not in the Django admin, and only the Grand Regent and Grand Scribe see the aye, nay and abstain totals. Open a ballot from My ballots or All ballots.",
+          "long_description": "Any officer can see which chapters and National Officers have returned a ballot. Only the Grand Regent and Grand Scribe see how each chapter and officer voted and the aye, nay and abstain totals, both while the ballot is open and after it closes. Admins do not, and votes never appear in the Django admin. Open a ballot from My ballots or All ballots.",
           "audience": "officer"
         },
         {
           "key": "remove-a-ballot-submission",
           "name": "Remove a ballot submission",
           "short_description": "Undo a ballot that was submitted by mistake so it can be cast again.",
-          "long_description": "Only the Grand Regent and Grand Scribe can remove a submission, and they do not see how it was voted. Open the ballot's status page and use Remove on that row. The voter, the chapter's officers and both Grand officers are emailed, and the chapter's ballot task reopens so the vote can be recast before the deadline.",
+          "long_description": "Only the Grand Regent and Grand Scribe can remove a submission. Open the ballot's status page and use Remove on that row. The voter, the chapter's officers and both Grand officers are emailed, without the vote itself, and the chapter's ballot task reopens so the vote can be recast before the deadline.",
           "audience": "natoff",
           "roles": ["grand regent", "grand scribe"]
         }
@@ -962,6 +1040,16 @@
           "long_description": "Connect a Google or Microsoft account and the contacts stay up to date as officers change. A vCard download is available if you would rather not connect an account.",
           "url_name": "contact_sync:status",
           "roles": ["corresponding secretary"]
+        },
+        {
+          "key": "css-contact-sync",
+          "name": "Sync my chapters' officers",
+          "short_description": "Chapter Support Specialists: keep the executive officers of your chapters in your own address book.",
+          "long_description": "Connect a Google or Microsoft account and the contacts stay up to date as officers change, or download a vCard file instead.",
+          "url_name": "support:my_chapters",
+          "url_fragment": "officer-contacts",
+          "audience": "officer",
+          "roles": ["chapter support specialist"]
         },
         {
           "key": "region-contacts-vcard",
@@ -1084,6 +1172,14 @@
           "url_name": "scores:chapterlist",
           "audience": "natoff",
           "roles": ["regional director"]
+        },
+        {
+          "key": "chapter-support-specialists",
+          "name": "Chapter Support Specialists",
+          "short_description": "Who supports which chapters, with each specialist's current and past assignments.",
+          "long_description": "Chapter Support Specialists advise chapter leadership and see what each assigned chapter's Regent sees, view only. Central Office adds specialists and assigns their chapters here; other National Officers can read it.",
+          "url_name": "support:list",
+          "audience": "natoff"
         }
       ]
     },
@@ -1096,7 +1192,7 @@
         {
           "key": "depledge-survey",
           "name": "Depledge survey",
-          "short_description": "Asked of a pledge who leaves before initiation, so the fraternity can learn why.",
+          "short_description": "Asked of a PNM who leaves before initiation, so the fraternity can learn why.",
           "long_description": "Reached only from the personal link in the email sent to the individual, so it is deliberately not listed in the catalog. Retained here so the entry keeps its history rather than being deleted.",
           "url_name": "surveys:depledge",
           "url_kwargs": {"username": "@username"},
@@ -1136,21 +1232,21 @@
           "title": "Complete the annual audit",
           "body": "The audit is signed by the Regent, Vice Regent, Scribe, Treasurer and Corresponding Secretary. Fill it in with your Treasurer, who holds the numbers.",
           "feature": "chapter-audit-form",
-          "task": "audit-regent",
+          "task": "auditregent",
           "cadence": "annual"
         },
         {
           "title": "Nominate your Outstanding Student Member",
           "body": "One member each year. Nominations close well before Convention, so put it on the chapter calendar early.",
           "feature": "osm-form",
-          "task": "outstanding-student-member",
+          "task": "outstanding-student-memberregent",
           "cadence": "annual"
         },
         {
           "title": "Put your members up for awards",
           "body": "Member, chapter and region awards all run through the same nomination flow. Nobody outside the chapter will do this for you.",
           "feature": "award-nomination",
-          "task": "awards",
+          "task": "awardsregent",
           "cadence": "annual"
         },
         {
@@ -1164,6 +1260,12 @@
           "body": "The score rolls up submissions, events, service hours and attendance. Check it mid-term rather than at the end, while there is still time to close a gap.",
           "feature": "chapter-scores",
           "cadence": "ongoing"
+        },
+        {
+          "title": "Write your transition report, and read what came before",
+          "body": "Start your transition report any time and save a draft as you go; it is due shortly before your term as Regent ends. It covers what worked, what did not, and what your successor needs to know. As Regent you can also read every position's past reports for your chapter from the same page, not just your own.",
+          "feature": "transition-reports",
+          "cadence": "each_term"
         }
       ]
     },
@@ -1176,7 +1278,7 @@
           "title": "Submit the pledge form as soon as you pledge a class",
           "body": "The pledge form is what creates candidate records. Until it is filed the candidates do not exist on the roster and cannot be initiated.",
           "feature": "pledge-form",
-          "task": "pledge-forms",
+          "task": "pledge-formsvice-regent",
           "cadence": "each_term"
         },
         {
@@ -1216,8 +1318,14 @@
           "title": "Sign the annual audit",
           "body": "The Treasurer fills it in; you are one of the officers who signs it.",
           "feature": "chapter-audit-form",
-          "task": "audit-vice-regent",
+          "task": "auditvice-regent",
           "cadence": "annual"
+        },
+        {
+          "title": "Write your transition report, and read what came before",
+          "body": "Start your transition report any time and save a draft as you go; it is due shortly before your term as Vice Regent ends. It covers what worked, what did not, and what your successor needs to know. The same page lets you read what past Vice Regents wrote before you.",
+          "feature": "transition-reports",
+          "cadence": "each_term"
         }
       ]
     },
@@ -1230,14 +1338,14 @@
           "title": "Keep the roster current",
           "body": "Add, correct and update members as things change. Invoices, award eligibility and mailing lists all read from the roster, so an error here shows up everywhere else.",
           "feature": "chapter-roster",
-          "task": "member-updates",
+          "task": "member-updatesscribe",
           "cadence": "ongoing"
         },
         {
           "title": "Report officer elections",
           "body": "File within a week of the election. Officer records control who can sign what in this system, so a late report locks your new officers out of their own forms.",
           "feature": "submit-chapter-officers",
-          "task": "officer-election-report",
+          "task": "officer-election-reportscribe",
           "cadence": "annual"
         },
         {
@@ -1250,7 +1358,7 @@
           "title": "Submit premature alumnus requests",
           "body": "For members who need alumnus status before graduating. Requires chapter approval and national review, so start early.",
           "feature": "premature-alumnus",
-          "task": "premature-alumnus",
+          "task": "premature-alumnusscribe",
           "cadence": "each_term"
         },
         {
@@ -1276,8 +1384,14 @@
           "title": "Sign the annual audit",
           "body": "The Treasurer fills it in; you are one of the officers who signs it.",
           "feature": "chapter-audit-form",
-          "task": "audit-scribe",
+          "task": "auditscribe",
           "cadence": "annual"
+        },
+        {
+          "title": "Write your transition report, and read what came before",
+          "body": "Start your transition report any time and save a draft as you go; it is due shortly before your term as Scribe ends. It covers what worked, what did not, and what your successor needs to know. The same page lets you read what past Scribes wrote before you.",
+          "feature": "transition-reports",
+          "cadence": "each_term"
         }
       ]
     },
@@ -1295,7 +1409,7 @@
         {
           "title": "Pay dues on time",
           "body": "Dues are invoiced per member straight from the roster. Late payment affects the chapter's standing, not just its balance.",
-          "task": "dues",
+          "task": "duestreasurer",
           "cadence": "each_term"
         },
         {
@@ -1308,13 +1422,13 @@
           "title": "Lead the annual audit",
           "body": "The audit is mostly your numbers. The other officers sign it, but you are the one who fills it in.",
           "feature": "chapter-audit-form",
-          "task": "audit-treasurer",
+          "task": "audittreasurer",
           "cadence": "annual"
         },
         {
           "title": "Review the chapter inventory",
           "body": "Badges, jewelry, ritual equipment and other chapter property.",
-          "task": "review-inventory",
+          "task": "review-inventorytreasurer",
           "cadence": "annual"
         },
         {
@@ -1329,6 +1443,12 @@
           "feature": "risk-management-policies",
           "task": "risk-management-formtreasurer",
           "cadence": "each_term"
+        },
+        {
+          "title": "Write your transition report, and read what came before",
+          "body": "Start your transition report any time and save a draft as you go; it is due shortly before your term as Treasurer ends. It covers what worked, what did not, and what your successor needs to know. The same page lets you read what past Treasurers wrote before you.",
+          "feature": "transition-reports",
+          "cadence": "each_term"
         }
       ]
     },
@@ -1341,13 +1461,13 @@
           "title": "Write the chapter's Gear article",
           "body": "The Gear is the fraternity's magazine and every chapter contributes. A short article with a photo is enough.",
           "feature": "gear-article",
-          "task": "gear-article",
+          "task": "gear-articlecorresponding-secretary",
           "cadence": "annual"
         },
         {
           "title": "Send the alumni newsletter",
           "body": "Once a year, to the alumni on your roster.",
-          "task": "newsletter-for-alumni",
+          "task": "newsletter-for-alumnicorresponding-secretary",
           "cadence": "annual"
         },
         {
@@ -1373,8 +1493,14 @@
           "title": "Sign the annual audit",
           "body": "The Treasurer fills it in; you are one of the officers who signs it.",
           "feature": "chapter-audit-form",
-          "task": "audit-corresponding-secretary",
+          "task": "auditcorresponding-secretary",
           "cadence": "annual"
+        },
+        {
+          "title": "Write your transition report, and read what came before",
+          "body": "Start your transition report any time and save a draft as you go; it is due shortly before your term as Corresponding Secretary ends. It covers what worked, what did not, and what your successor needs to know. The same page lets you read what past Corresponding Secretaries wrote before you.",
+          "feature": "transition-reports",
+          "cadence": "each_term"
         }
       ]
     },
@@ -1414,9 +1540,21 @@
           "cadence": "annual"
         },
         {
+          "title": "Record each new member's Big",
+          "body": "Record each new member's final Big, the one chosen at initiation, not a temporary one. Bigs can go on the initiation report; on the Bigs and Littles page you can record or change anyone's Big, find members with none recorded, or upload a CSV of badge numbers or names. Members can add their own too.",
+          "feature": "big-little-list",
+          "cadence": "each_term"
+        },
+        {
           "title": "Expect the depledge survey",
           "body": "Any candidate who leaves before initiation is emailed a short survey with their own personal link, so there is no page here to open. Results come back in aggregate, never by name. It is how the fraternity learns why candidates leave.",
           "cadence": "ongoing"
+        },
+        {
+          "title": "Write your transition report, and read what came before",
+          "body": "Start your transition report any time and save a draft as you go; it is due shortly before your term as New Member Educator ends. It covers what worked, what did not, and what your successor needs to know. The same page lets you read what past New Member Educators wrote before you.",
+          "feature": "transition-reports",
+          "cadence": "each_term"
         }
       ]
     },
@@ -1455,6 +1593,12 @@
           "body": "Chapter bylaws are filed here and reviewed nationally. Risk decisions often turn on what they actually say.",
           "feature": "chapter-bylaws",
           "cadence": "once"
+        },
+        {
+          "title": "Write your transition report, and read what came before",
+          "body": "Start your transition report any time and save a draft as you go; it is due shortly before your term as Risk Management Chair ends. It covers what worked, what did not, and what your successor needs to know. The same page lets you read what past chairs wrote before you.",
+          "feature": "transition-reports",
+          "cadence": "each_term"
         }
       ]
     },
@@ -1496,6 +1640,55 @@
         {
           "title": "Keep your own details current",
           "body": "Advisers are on the roster too, and the national office contacts you using what is there.",
+          "feature": "edit-my-info",
+          "cadence": "once"
+        }
+      ]
+    },
+    {
+      "role": "chapter support specialist",
+      "title": "Chapter Support Specialist",
+      "summary": "You advise the leadership of the chapters assigned to you. In each one you see what its Regent sees, but view only: the chapter's officers file and change everything, and you help them do it. The Regent's chapter emails come to you too: the time-sensitive ones as they are sent, the rest in a daily digest, and a monthly summary of each chapter.",
+      "steps": [
+        {
+          "title": "Start at My Chapters",
+          "body": "Your chapters side by side: actives, PNMs, overdue tasks, balance and missing officers, with a dashboard for all of them below. It is your Home page.",
+          "feature": "css-my-chapters",
+          "cadence": "ongoing"
+        },
+        {
+          "title": "Switch to the chapter you are working with",
+          "body": "The bar under the menu shows the chapter you are viewing. Pick another of your chapters and every page follows. You see what that chapter's Regent sees, so the Regent's guide, listed beside this one, is your map of what the chapter owes.",
+          "feature": "css-chapter-switcher",
+          "cadence": "ongoing"
+        },
+        {
+          "title": "See what the chapter owes",
+          "body": "The task list shows every outstanding national obligation with its due date. It is the fastest way to tell whether a chapter needs help.",
+          "feature": "chapter-tasks",
+          "cadence": "ongoing"
+        },
+        {
+          "title": "Read the chapter's score",
+          "body": "Scores roll up submissions, events, service hours and attendance, so a falling score usually points at a specific officer who needs help.",
+          "feature": "chapter-scores",
+          "cadence": "ongoing"
+        },
+        {
+          "title": "Keep the officers in your contacts",
+          "body": "Sync your chapters' executive officers to your phone, and they stay current as officers change.",
+          "feature": "css-contact-sync",
+          "cadence": "once"
+        },
+        {
+          "title": "Sign the Risk Management Policies each term",
+          "body": "Like every member and adviser, you sign them each term before you can use the rest of the site.",
+          "feature": "risk-management-policies",
+          "cadence": "each_term"
+        },
+        {
+          "title": "Keep your own details current",
+          "body": "Your chapters and Central Office reach you using what is there.",
           "feature": "edit-my-info",
           "cadence": "once"
         }
@@ -1607,6 +1800,12 @@
           "body": "You see more of the region's talent than anyone. Nominations are the pipeline for every national volunteer role.",
           "feature": "nominate-for-national-office",
           "cadence": "annual"
+        },
+        {
+          "title": "Read transition reports across your region",
+          "body": "Every submitted transition report for a chapter in your region is open to you: search by position, chapter, tag or cycle to see what an officer said before you visit, and the compliance dashboard shows which chapters still owe one.",
+          "feature": "transition-reports",
+          "cadence": "ongoing"
         }
       ]
     },
@@ -1710,6 +1909,12 @@
           "body": "Ballots are created, distributed and counted here.",
           "feature": "create-a-ballot",
           "cadence": "annual"
+        },
+        {
+          "title": "Read transition reports fraternity-wide",
+          "body": "Every submitted transition report is open to you, searchable by position, chapter, tag or cycle. The trend view shows the themes coming up most often and which chapters have not yet submitted.",
+          "feature": "transition-reports",
+          "cadence": "ongoing"
         }
       ]
     }

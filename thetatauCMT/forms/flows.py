@@ -5,6 +5,7 @@ import os
 from io import BytesIO
 
 from django.conf import settings
+from django.contrib import messages
 from django.core.files.base import ContentFile
 from django.http import HttpResponseRedirect
 from django.urls import reverse
@@ -18,9 +19,16 @@ from viewflow.flow import views as flow_views
 from viewflow.templatetags.viewflow import flowurl as old_flowurl
 from viewflow.templatetags.viewflow import register
 
-from core.flows import AutoAssignUpdateProcessView, FilterableFlowViewSet, NoAssignView, register_factory
+from core.flows import (
+    AutoAssignUpdateProcessView,
+    FilterableFlowViewSet,
+    NoAssignView,
+    RerunnableHandler,
+    register_factory,
+)
 from core.utils import login_with_service_account, retry_google_api
 from thetatauCMT.configs.models import Config
+from thetatauCMT.support.models import SupportDigestEntry
 from thetatauCMT.surveys.notifications import SurveyEmail
 from thetatauCMT.trainings.models import Training
 from thetatauCMT.users.models import User
@@ -122,6 +130,10 @@ class ReassignTaskView(flow_views.AssignTaskView):
             <button type="submit" name="_assign">Assign</button>
         """
         user = User.objects.get(id=request.POST["user"])
+        if user.current_status == "css":
+            # A Chapter Support Specialist is view only and cannot complete a task (Q21).
+            messages.error(request, f"{user} is a Chapter Support Specialist and cannot complete workflow tasks.")
+            return HttpResponseRedirect(request.get_full_path())
         self.activation.assign(user)
         self.success(_("Task {task} has been assigned to" f"{user}"))
         return HttpResponseRedirect(self.get_success_url())
@@ -150,7 +162,7 @@ class PrematureAlumnusFlow(Flow):
         .Else(this.pending_status)
     )
 
-    pending_status = flow.Handler(
+    pending_status = RerunnableHandler(
         this.set_status_email,
         task_title=_("Set pending alumni status, send email."),
     ).Next(this.exec_approve)
@@ -170,7 +182,7 @@ class PrematureAlumnusFlow(Flow):
         .Next(this.check_approve)
     )
 
-    auto_approve = flow.Handler(
+    auto_approve = RerunnableHandler(
         this.auto_approve_func,
         task_title=_("Auto approval checks."),
     ).Next(this.check_approve)
@@ -184,17 +196,17 @@ class PrematureAlumnusFlow(Flow):
         .Else(this.pending_undo)
     )
 
-    alumni_status = flow.Handler(
+    alumni_status = RerunnableHandler(
         this.set_alumni_status,
         task_title=_("Set status alumni"),
     ).Next(this.send)
 
-    pending_undo = flow.Handler(
+    pending_undo = RerunnableHandler(
         this.pending_undo_func,
         task_title=_("Set status active"),
     ).Next(this.send)
 
-    send = flow.Handler(
+    send = RerunnableHandler(
         this.send_approval_complete,
         task_title=_("Send request complete message"),
     ).Next(this.complete)
@@ -365,7 +377,7 @@ class InitiationProcessFlow(Flow):
         .Next(this.invoice_payment)
     )
 
-    send_invoice = flow.Handler(
+    send_invoice = RerunnableHandler(
         this.send_invoice_func,
         task_title=_("Send Invoice"),
     ).Next(this.invoice_payment)
@@ -381,12 +393,12 @@ class InitiationProcessFlow(Flow):
         .Next(this.invoice_payment_email)
     )
 
-    invoice_payment_email = flow.Handler(
+    invoice_payment_email = RerunnableHandler(
         this.send_invoice_payment_email,
         task_title=_("Send Initiation Process Complete Emails"),
     ).Next(this.shingle_order)
 
-    shingle_order = flow.Handler(
+    shingle_order = RerunnableHandler(
         this.shingle_order_func,
         task_title=_("Send shingle order to Collegiate Regalia"),
     ).Next(this.complete)
@@ -497,7 +509,7 @@ class ConventionFlow(Flow):
 
     start = flow.Start(ConventionCreateView, task_title=_("Submit Convention Form")).Next(this.email_signers)
 
-    email_signers = flow.Handler(
+    email_signers = RerunnableHandler(
         this.email_signers_func,
         task_title=_("Email Signers"),
     ).Next(this.assign_approval)
@@ -599,7 +611,7 @@ class PledgeProcessFlow(Flow):
         .Next(this.send_invoice)
     )
 
-    send_invoice = flow.Handler(
+    send_invoice = RerunnableHandler(
         this.send_invoice_func,
         task_title=_("Send Invoice"),
     ).Next(this.invoice_payment)
@@ -615,7 +627,7 @@ class PledgeProcessFlow(Flow):
         .Next(this.invoice_payment_email)
     )
 
-    invoice_payment_email = flow.Handler(
+    invoice_payment_email = RerunnableHandler(
         this.send_invoice_payment_email,
         task_title=_("Send Invoice Payment Email"),
     ).Next(this.complete)
@@ -673,7 +685,7 @@ class OSMFlow(Flow):
 
     start = flow.Start(OSMCreateView, task_title=_("Submit OSM Form")).Next(this.email_signers)
 
-    email_signers = flow.Handler(
+    email_signers = RerunnableHandler(
         this.email_signers_func,
         task_title=_("Email Signers"),
     ).Next(this.assign_approval)
@@ -694,7 +706,7 @@ class OSMFlow(Flow):
 
     join_flow = flow.Join().Next(this.email_nominate)
 
-    email_nominate = flow.Handler(
+    email_nominate = RerunnableHandler(
         this.email_nomination,
         task_title=_("Email Nominate"),
     ).Next(this.end)
@@ -755,7 +767,7 @@ class AlumniExclusionFlow(Flow):
 
     start = flow.Start(AlumniExclusionCreateView, task_title=_("Submit Alumni Exclusion Form")).Next(this.email_rd)
 
-    email_rd = flow.Handler(
+    email_rd = RerunnableHandler(
         this.email_rds_func,
         task_title=_("Email RDs"),
     ).Next(this.review)
@@ -768,7 +780,7 @@ class AlumniExclusionFlow(Flow):
         task_result_summary=_("Exclusion was: {{ process.get_regional_director_veto_display  }}"),
     ).Next(this.email_result)
 
-    email_result = flow.Handler(
+    email_result = RerunnableHandler(
         this.email_result_func,
         task_title=_("Email Alumni Exclusion Result"),
     ).Next(this.end)
@@ -825,14 +837,14 @@ class DisciplinaryProcessFlow(Flow):
         this.email_form1_rescheduled
     )
 
-    email_form1_rescheduled = flow.Handler(
+    email_form1_rescheduled = RerunnableHandler(
         this.email_all,
         task_title=_("Email Form 1 Rescheduled"),
     ).Next(this.delay)
 
     start = flow.Start(DisciplinaryCreateView, task_title=_("Submit Disciplinary Form")).Next(this.email_form1)
 
-    email_form1 = flow.Handler(
+    email_form1 = RerunnableHandler(
         this.email_all,
         task_title=_("Email Form 1 Result"),
     ).Next(this.delay)
@@ -843,7 +855,7 @@ class DisciplinaryProcessFlow(Flow):
         task_title=_("Wait Until Trial"),
     ).Next(this.email_regent)
 
-    email_regent = flow.Handler(
+    email_regent = RerunnableHandler(
         this.email_regent_func,
         task_title=_("Email Regent Form 2"),
     ).Next(this.submit_form2)
@@ -861,7 +873,7 @@ class DisciplinaryProcessFlow(Flow):
         .Default(this.exec_approve)
     )
 
-    reschedule = flow.Handler(
+    reschedule = RerunnableHandler(
         this.reschedule_func,
         task_title=_("Reschedule Disciplinary Process"),
     ).Next(this.end_reschedule)
@@ -890,17 +902,17 @@ class DisciplinaryProcessFlow(Flow):
         .Default(this.email_outcome_letter)
     )
 
-    reject_fix = flow.Handler(
+    reject_fix = RerunnableHandler(
         this.email_regent_func,
         task_title=_("Reject Chapter Fix"),
     ).Next(this.submit_form2)
 
-    accept_done = flow.Handler(
+    accept_done = RerunnableHandler(
         this.accept_done_func,
         task_title=_("Accept File Done"),
     ).Next(this.end)
 
-    email_outcome_letter = flow.Handler(
+    email_outcome_letter = RerunnableHandler(
         this.email_all,
         task_title=_("Email Outcome Letter"),
     ).Next(this.delay_ec)
@@ -935,7 +947,7 @@ class DisciplinaryProcessFlow(Flow):
         .Next(this.email_final)
     )
 
-    email_final = flow.Handler(
+    email_final = RerunnableHandler(
         this.email_all,
         task_title=_("Email Final Result"),
     ).Next(this.end)
@@ -1158,6 +1170,7 @@ class DisciplinaryProcessFlow(Flow):
             extra_emails={
                 activation.process.chapter.region.email,
             },
+            support_kind=SupportDigestEntry.Kind.DISCIPLINARY,
         ).send()
 
     def chapter_regent(self, activation):
@@ -1215,7 +1228,7 @@ class ResignationFlow(Flow):
 
     start = flow.Start(ResignationCreateView, task_title=_("Submit Resignation Form")).Next(this.email_signers)
 
-    email_signers = flow.Handler(
+    email_signers = RerunnableHandler(
         this.email_signers_func,
         task_title=_("Email Signers"),
     ).Next(this.assign_approval)
@@ -1260,12 +1273,12 @@ class ResignationFlow(Flow):
         .Else(this.email_complete)
     )
 
-    resign_status = flow.Handler(
+    resign_status = RerunnableHandler(
         this.set_resign_status,
         task_title=_("Set status resigned"),
     ).Next(this.email_complete)
 
-    email_complete = flow.Handler(
+    email_complete = RerunnableHandler(
         this.email_complete_func,
         task_title=_("Email Complete"),
     ).Next(this.end)
@@ -1336,12 +1349,12 @@ class ReturnStudentFlow(Flow):
 
     start = flow.Start(ReturnStudentCreateView, task_title=_("Request Return Student")).Next(this.active_status)
 
-    active_status = flow.Handler(
+    active_status = RerunnableHandler(
         this.set_active_status,
         task_title=_("Set status active"),
     ).Next(this.send)
 
-    send = flow.Handler(
+    send = RerunnableHandler(
         this.send_approval_complete,
         task_title=_("Send request complete message"),
     ).Next(this.complete)
@@ -1388,16 +1401,16 @@ class PledgeProgramProcessFlow(Flow):
     """
 
     process_class = PledgeProgramProcess
-    process_title = _("Pledge Program Process")
-    process_description = _("This process is for chapter pledge programs.")
+    process_title = _("New Member Education Program Process")
+    process_description = _("This process is for chapter new member education programs.")
 
-    start = flow.Start(PledgeProgramProcessCreateView, task_title=_("Submit Pledge Program For Review")).Next(
-        this.email_all
-    )
+    start = flow.Start(
+        PledgeProgramProcessCreateView, task_title=_("Submit New Member Education Program For Review")
+    ).Next(this.email_all)
 
-    email_all = flow.Handler(
+    email_all = RerunnableHandler(
         this.email_all_func,
-        task_title=_("Email All Pledge Program"),
+        task_title=_("Email All New Member Education Program"),
     ).Next(this.review)
 
     review = (
@@ -1405,7 +1418,7 @@ class PledgeProgramProcessFlow(Flow):
             AutoAssignUpdateProcessView,
             fields=["approval", "approval_comments"],
             task_title=_("Central Office Review"),
-            task_description=_("Review of Pledge Program by Central Office"),
+            task_description=_("Review of New Member Education Program by Central Office"),
             task_result_summary=_("Message was: {{ process.get_approval_display  }}"),
         )
         .Permission("auth.central_office")
@@ -1420,22 +1433,22 @@ class PledgeProgramProcessFlow(Flow):
         .Default(this.end)
     )
 
-    reject_fix = flow.Handler(
+    reject_fix = RerunnableHandler(
         this.reject_fix_func,
-        task_title=_("Reject Fix Pledge Program"),
+        task_title=_("Reject Fix New Member Education Program"),
     ).Next(this.end_reject)
 
-    approve = flow.Handler(
+    approve = RerunnableHandler(
         this.approve_func,
-        task_title=_("Approve Pledge Program"),
+        task_title=_("Approve New Member Education Program"),
     ).Next(this.end)
 
     end_reject = flow.End(
-        task_title=_("Pledge Program Process Rejected"),
+        task_title=_("New Member Education Program Process Rejected"),
     )
 
     end = flow.End(
-        task_title=_("Pledge Program Process Complete"),
+        task_title=_("New Member Education Program Process Complete"),
     )
 
     def email_all_func(self, activation):
@@ -1449,12 +1462,12 @@ class PledgeProgramProcessFlow(Flow):
         chapter = model_obj.chapter
         EmailProcessUpdate(
             model_obj,
-            complete_step="Pledge Program Submitted",
+            complete_step="New Member Education Program Submitted",
             next_step="Central Office Review",
             state="Pending Central Office Review",
             message=(
                 "This if a notification that the Central Office has "
-                "received the pledge program for you chapter.<br>"
+                "received the new member education program for you chapter.<br>"
                 "Here is a link to the program under review: "
                 f"<a href='https://docs.google.com/document/d/{chapter.nme_file_id}/edit' target='_blank'>NME Program</a>"
             ),
@@ -1472,12 +1485,12 @@ class PledgeProgramProcessFlow(Flow):
         chapter = model_obj.chapter
         EmailProcessUpdate(
             activation,
-            complete_step="Pledge Program Reviewed",
+            complete_step="New Member Education Program Reviewed",
             next_step="Chapter Resubmit",
-            state="Chapter Pledge Program Rejected",
+            state="Chapter New Member Education Program Rejected",
             message=(
                 "This is a notification that the Central Office has "
-                "rejected the pledge program for you chapter."
+                "rejected the new member education program for you chapter."
                 "Please review the notes and resubmit ASAP.<br>"
                 "Here is a link to the program under review: "
                 f"<a href='https://docs.google.com/document/d/{chapter.nme_file_id}/edit' target='_blank'>NME Program</a>"
@@ -1534,12 +1547,12 @@ class PledgeProgramProcessFlow(Flow):
             )
         EmailProcessUpdate(
             activation,
-            complete_step="Pledge Program Reviewed",
+            complete_step="New Member Education Program Reviewed",
             next_step="Complete",
-            state="Chapter Pledge Program Approved",
+            state="Chapter New Member Education Program Approved",
             message=(
                 "This is a notification that the Central Office has "
-                "approved the pledge program for you chapter."
+                "approved the new member education program for you chapter."
                 "Attached is the final approved program."
             ),
             fields=["approval", "approval_comments"],
@@ -1593,12 +1606,12 @@ class HSEducationFlow(Flow):
         .Default(this.end)
     )
 
-    reject_fix = flow.Handler(
+    reject_fix = RerunnableHandler(
         this.reject_fix_func,
         task_title=_("Reject Fix H&S Education Program"),
     ).Next(this.end_reject)
 
-    approve = flow.Handler(
+    approve = RerunnableHandler(
         this.approve_func,
         task_title=_("Approve H&S Education Program"),
     ).Next(this.end)

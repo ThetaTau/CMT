@@ -1,7 +1,9 @@
 {% load static i18n %}
 {% load crispy_forms_tags %}
 {% load custom_tags %}
+{% load support_tags %}
 {% user_alter_form as user_alter_form %}
+{% css_switcher as css_switch %}
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -155,6 +157,7 @@
                         <li><a class="dropdown-item" href="{% url 'users:gpas' %}">{% trans "GPAs" %}</a></li>
                       {% endif %}
                       <li><a class="dropdown-item" href="{% url 'users:service' %}">{% trans "Service Hours" %}</a></li>
+                      <li><a class="dropdown-item" href="{% url 'biglittle:tree' request.user.current_chapter.slug %}">{% trans "Family Tree" %}</a></li>
                       {% if request.is_officer or request.is_nat_officer %}
                         <li><a class="dropdown-item" href="{% url 'users:orgs' %}">{% trans "External Orgs" %}</a></li>
                       {% endif %}
@@ -212,6 +215,7 @@
                         <li><a class="dropdown-item" href="{% url 'events:list_all' %}">{% trans "All Events" %}</a></li>
                         <li><a class="dropdown-item" href="{% url 'events:pending' %}">{% trans "Pending Event Reviews" %}</a></li>
                         <li><a class="dropdown-item" href="{% url 'email_tracking:member_communication' %}">{% trans "Member Email Communication" %}</a></li>
+                        <li><a class="dropdown-item" href="{% url 'support:list' %}">{% trans "Chapter Support Specialists" %}</a></li>
                         <li><hr class="dropdown-divider"></li>
                         <li><a class="dropdown-item" href="https://apps.ed.thetatau.org/authn/login?tpa_hint=oa2-cmt" target="_blank" rel="noopener noreferrer">{% trans "Training Portal" %}</a></li>
                       </ul>
@@ -281,16 +285,21 @@
                       <li><a class="dropdown-item" href="{% url 'users:profile' username=request.user.username %}">{% trans "My Profile" %}</a></li>
                       <li><a class="dropdown-item" href="{% url 'users:detail' %}">{% trans "Edit My Info" %}</a></li>
                       <li><a class="dropdown-item" href="{% url 'guides:role-guides' %}">{% trans "What am I responsible for?" %}</a></li>
-                      {% if request.in_natoff_group or request.user.is_superuser %}
+                      {% if request.is_css %}
+                        <li><a class="dropdown-item" href="{% url 'support:my_chapters' %}">{% trans "My Chapters" %}</a></li>
+                      {% endif %}
+                      {% if request.in_natoff_group or request.is_css or request.user.is_superuser %}
                         <li><hr class="dropdown-divider"></li>
                       {% endif %}
-                      {% if request.in_natoff_group %}
+                      {% if request.in_natoff_group or request.is_css %}
                         <li>
                           <button id="region-bar-toggle" type="button" class="dropdown-item">
                             <span class="region-bar-label-hide">{% trans "Hide region bar" %}</span>
                             <span class="region-bar-label-show">{% trans "Show region bar" %}</span>
                           </button>
                         </li>
+                      {% endif %}
+                      {% if request.in_natoff_group %}
                         <li>
                           <form method="post" action="{% url 'users:toggle_natoff' %}" class="d-grid m-0">
                             {% csrf_token %}
@@ -371,6 +380,38 @@
         </div>
       </nav>
     {% endif %}
+    {% if css_switch %}
+      {# Chapter Support Specialist bar: switch between assigned chapters only (docs/specs/chapter-support-specialist.md, S3). #}
+      <nav id="css-bar" class="navbar tt-region-bar border-bottom py-1" aria-label="{% trans 'Chapter Support Specialist chapters' %}">
+        <div class="container-fluid d-flex flex-wrap align-items-center gap-2">
+          <span class="navbar-brand mb-0 h6 me-2">
+            <i class="fa-solid fa-life-ring" aria-hidden="true"></i>
+            {% trans "Chapter Support Specialist" %}
+          </span>
+          {% if css_switch.chapters %}
+            <span class="badge bg-secondary">{{ css_switch.current.name }}</span>
+            {% if css_switch.view_only %}
+              <span class="badge bg-info text-dark">{% trans "View only" %}</span>
+            {% endif %}
+            <a class="small" href="{% url 'support:my_chapters' %}">{% trans "My Chapters" %}</a>
+            <form class="d-flex flex-wrap align-items-center gap-2 ms-auto" action="{% url 'support:switch' %}" method="post">
+              {% csrf_token %}
+              <label class="visually-hidden" for="css-bar-chapter">{% trans "Chapter to view" %}</label>
+              <select id="css-bar-chapter" name="chapter" class="form-select form-select-sm w-auto">
+                {% for chapter in css_switch.chapters %}
+                  <option value="{{ chapter.slug }}"{% if chapter.pk == css_switch.current.pk %} selected{% endif %}>{{ chapter.name }}</option>
+                {% endfor %}
+              </select>
+              <input type="hidden" name="next" value="{{ request.get_full_path }}"/>
+              <button type="submit" class="btn btn-sm btn-primary" name="action" value="apply">{% trans "Apply" %}</button>
+              <button type="submit" class="btn btn-sm btn-outline-secondary" name="action" value="reset">{% trans "Reset" %}</button>
+            </form>
+          {% else %}
+            <span class="small">{% trans "No chapters assigned. Contact the Central Office." %}</span>
+          {% endif %}
+        </div>
+      </nav>
+    {% endif %}
     </div>
     <main id="main-content" tabindex="-1">
     <div class="container">
@@ -378,6 +419,13 @@
           {% for message in messages %}
               <div class="alert {% if message.tags %}alert-{{ message.tags }}{% endif %}">{{ message }}</div>
           {% endfor %}
+      {% endif %}
+      {% if request.natoff_2fa_due %}
+        {# National Officers without two-factor sign-in, before it is required (core.middleware.Require2FAMiddleware). #}
+        <div class="alert alert-warning" role="status" id="natoff-2fa-banner">
+          {% blocktrans with due=request.natoff_2fa_due|date:"F j, Y" %}National Officers must use two-factor sign-in from {{ due }}.{% endblocktrans %}
+          <a href="{% url 'two-factor-setup' %}" class="alert-link">{% trans "Set it up now" %}</a>
+        </div>
       {% endif %}
       {% block content %}
       {% endblock content %}
@@ -563,5 +611,21 @@
 
 
     {% endblock javascript %}
+    {% if css_switch.view_only %}
+      {# Forms a Chapter Support Specialist cannot submit are marked by ViewOnlyCSSMiddleware (S14). #}
+      <script>
+        (function () {
+          var message = "{{ css_switch.message|escapejs }}";
+          document.querySelectorAll('form[data-css-view-only]').forEach(function (form) {
+            form.querySelectorAll('button, input').forEach(function (control) {
+              if (control.type === 'submit' || control.type === 'image') {
+                control.disabled = true;
+                control.title = message;
+              }
+            });
+          });
+        })();
+      </script>
+    {% endif %}
   </body>
 </html>

@@ -6,6 +6,13 @@
 {% load render_table from django_tables2 %}
 {% block title %}Member: {{ object.username }}{% endblock %}
 
+{% block css %}
+  {{ block.super }}
+  <style>
+    #big_little .select2-container { width: 100% !important; }
+  </style>
+{% endblock css %}
+
 {% block content %}
 <div class="container py-4">
   {% if object.name %}
@@ -39,7 +46,11 @@
               <a class="btn btn-outline-warning btn-sm" href="{% url 'two-factor-setup' %}">Setup 2FA</a>
               <a class="btn btn-outline-warning btn-sm" href="{% url 'two-factor-backup-tokens' %}">Backup 2FA</a>
               <a class="btn btn-outline-danger btn-sm" href="{% url 'two-factor-remove' %}">Remove 2FA</a>
-              <a class="btn btn-outline-danger btn-sm" href="{% url 'forms:resignation' %}">Resign Membership</a>
+              {% if object.chapter.candidate_chapter %}
+                <a class="btn btn-outline-danger btn-sm" href="{% url 'forms:status_new' reason='resignedCC' %}">Resign Membership</a>
+              {% else %}
+                <a class="btn btn-outline-danger btn-sm" href="{% url 'forms:resignation' %}">Resign Membership</a>
+              {% endif %}
             </div>
           {% endif %}
         </div>
@@ -70,11 +81,11 @@
 
     <div class="accordion-item" id="user">
       <h2 class="accordion-header" id="heading-user">
-        <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#user-info-collapse" aria-expanded="true" aria-controls="user-info-collapse">
+        <button class="accordion-button{% if forms.big.errors or forms.little.errors %} collapsed{% endif %}" type="button" data-bs-toggle="collapse" data-bs-target="#user-info-collapse" aria-expanded="{% if forms.big.errors or forms.little.errors %}false{% else %}true{% endif %}" aria-controls="user-info-collapse">
           Update Member Information
         </button>
       </h2>
-      <div id="user-info-collapse" class="accordion-collapse collapse show" aria-labelledby="heading-user" data-bs-parent="#user-accordion">
+      <div id="user-info-collapse" class="accordion-collapse collapse{% if not forms.big.errors and not forms.little.errors %} show{% endif %}" aria-labelledby="heading-user" data-bs-parent="#user-accordion">
         <div class="accordion-body">
           <form class="user" method="POST">
             <script type="text/javascript" src="{% static 'admin/js/vendor/jquery/jquery.js' %}"></script>
@@ -116,7 +127,7 @@
             These data will also never be broken down to the
             point where a casual observer would be able to
             identify individual members from the data
-            (we will never share data about an individual pledge
+            (we will never share data about an individual PNM
             class, or a very small chapter.)</p>
           <p>We will never use these data to target
             communications or programming advertisements to you.</p>
@@ -230,6 +241,73 @@
       </div>
     </div>
 
+    {% with has_errors=forms.big.errors|default:forms.little.errors %}
+    <div class="accordion-item" id="big_little">
+      <h2 class="accordion-header" id="heading-big-little">
+        <button class="accordion-button{% if not has_errors %} collapsed{% endif %}" type="button" data-bs-toggle="collapse" data-bs-target="#user-big-little-collapse" aria-expanded="{% if has_errors %}true{% else %}false{% endif %}" aria-controls="user-big-little-collapse">
+          My Big and Littles
+        </button>
+      </h2>
+      <div id="user-big-little-collapse" class="accordion-collapse collapse{% if has_errors %} show{% endif %}" aria-labelledby="heading-big-little" data-bs-parent="#user-accordion">
+        <div class="accordion-body">
+          {% if not big_little.initiated %}
+            <p class="text-body-secondary mb-0">You can record your Big after you are initiated.</p>
+          {% else %}
+            <p class="text-body-secondary">
+              Your Big is your final Big Brother mentor, the one chosen at initiation, not a
+              temporary one. A new Big replaces the old one.
+            </p>
+            <h3 class="h6">My Big</h3>
+            {% if big_little.big_link %}
+              <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+                <a href="{% url 'users:profile' big_little.big_link.big.username %}">{{ big_little.big_link.big }}</a>
+                <form method="post" action="{% url 'biglittle:remove' big_little.big_link.pk %}"
+                      data-confirm="Remove {{ big_little.big_link.big }} as your Big?">
+                  {% csrf_token %}
+                  <input type="hidden" name="return_to" value="myinfo">
+                  <button type="submit" class="btn btn-sm btn-outline-danger">Remove</button>
+                </form>
+              </div>
+            {% else %}
+              <p class="text-body-secondary">None recorded.</p>
+            {% endif %}
+            <form class="big" method="POST">
+              {% csrf_token %}
+              {{ forms.big|crispy }}
+              <button class="btn btn-primary" name="action" value="big" type="submit">Save My Big</button>
+            </form>
+
+            <h3 class="h6 mt-4">My Littles</h3>
+            {% if big_little.little_links %}
+              <ul class="list-unstyled">
+                {% for row in big_little.little_links %}
+                  <li class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                    <a href="{% url 'users:profile' row.link.little.username %}">{{ row.link.little }}</a>
+                    {% if row.can_remove %}
+                      <form method="post" action="{% url 'biglittle:remove' row.link.pk %}"
+                            data-confirm="Remove {{ row.link.little }} as your Little?">
+                        {% csrf_token %}
+                        <input type="hidden" name="return_to" value="myinfo">
+                        <button type="submit" class="btn btn-sm btn-outline-danger" aria-label="Remove {{ row.link.little }} as your Little">Remove</button>
+                      </form>
+                    {% endif %}
+                  </li>
+                {% endfor %}
+              </ul>
+            {% else %}
+              <p class="text-body-secondary">None recorded.</p>
+            {% endif %}
+            <form class="little" method="POST">
+              {% csrf_token %}
+              {{ forms.little|crispy }}
+              <button class="btn btn-primary" name="action" value="little" type="submit">Add Little</button>
+            </form>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    {% endwith %}
+
     <div class="accordion-item" id="email_prefs">
       <h2 class="accordion-header" id="heading-prefs">
         <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#user-prefs-collapse" aria-expanded="false" aria-controls="user-prefs-collapse">
@@ -277,6 +355,7 @@
 {% block javascript %}
 {{ block.super }}
 <script src="{% static 'js/dynamic_formset.js' %}"></script>
+<script src="{% static 'js/biglittle.js' %}"></script>
 <script type="text/javascript">
   // Scroll any accordion item into view when it opens, so the header sits at the top.
   document.querySelectorAll('#user-accordion .accordion-collapse').forEach(function (el) {

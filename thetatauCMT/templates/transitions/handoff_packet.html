@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+
+{% block title %}Transition Report handoff packet{% endblock %}
+
+{% block content %}
+  <p><a href="{% url 'transitions:list' %}">&laquo; Back to Transition Reports</a></p>
+  <h1>{{ position_key|title }} handoff packet</h1>
+  <p>{{ chapter }} -- every Transition Report you can read for this position, most recent first.</p>
+
+  {% if reports %}
+    {% for report in reports %}
+      <div class="card mb-3">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <span>{{ report.author }} -- submitted {{ report.submitted_at }}</span>
+          {% if report.pk in acknowledged_report_ids %}
+            <span class="badge bg-secondary">Read</span>
+          {% else %}
+            <form method="post" action="{% url 'transitions:acknowledge' report.public_id %}">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-sm btn-outline-secondary">Mark as read</button>
+            </form>
+          {% endif %}
+        </div>
+        <div class="card-body">
+          {% for answer in report.answers.all %}
+            <h3 class="h6">{{ answer.prompt_label_snapshot }}</h3>
+            <p style="white-space: pre-wrap;">{{ answer.value }}</p>
+          {% endfor %}
+          {% if report.attachments.all %}
+            <h3 class="h6">Attachments</h3>
+            <ul>
+              {% for attachment in report.attachments.all %}
+                <li><a href="{{ attachment.file.url }}">{{ attachment.description|default:attachment.file.name }}</a></li>
+              {% endfor %}
+            </ul>
+          {% endif %}
+        </div>
+      </div>
+    {% endfor %}
+  {% else %}
+    <p>No Transition Reports are available to read for this position yet.</p>
+  {% endif %}
+{% endblock %}

@@ -38,6 +38,14 @@ if [ "$RESTORE_TEST" = true ]; then
   fi
   export GNUPGHOME="/home/Venturafranklin/thetatauCMT/secrets"
   export DBBACKUP_STORAGE_LOCATION="/home/Venturafranklin/thetatauCMT/database_backups"
+  # Wipe the staging schema first: restoring on top of a schema that has
+  # drifted from production (e.g. a column later altered to an identity
+  # column) makes pg_restore's --clean ALTER/DROP statements fail because
+  # they assume the target already matches the dump's shape.
+  if ! echo "DROP SCHEMA public CASCADE; CREATE SCHEMA public;" | python manage.py dbshell -- -v ON_ERROR_STOP=1; then
+    echo "An error occurred resetting the staging schema"
+    exit
+  fi
   if ! python manage.py dbrestore --database default --decrypt --noinput --passphrase=$PASSPHRASE; then
     echo "An error occurred restoring database"
     exit

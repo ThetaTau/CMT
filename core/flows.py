@@ -5,14 +5,15 @@ from django.db.models import Q
 from django.urls import NoReverseMatch, reverse
 from django.utils.safestring import mark_safe
 from material.frontend import frontend_url
-from viewflow import flow, frontend
-from viewflow.activation import STATUS, Activation, now
+from viewflow import flow, frontend, signals
+from viewflow.activation import STATUS, Activation, all_leading_canceled, now
 from viewflow.compat import _
 from viewflow.flow import views as flow_views
 from viewflow.flow.views.mixins import FlowListMixin
 from viewflow.frontend.views import AllArchiveListView, AllQueueListView, AllTaskListView, ProcessListView
 from viewflow.frontend.viewset import FlowViewSet, FrontendViewSet
 from viewflow.fsm import TransitionNotAllowed
+from viewflow.nodes.handler import HandlerActivation
 
 
 def complete_activation(activation):
@@ -36,6 +37,40 @@ def complete_activation(activation):
     except TransitionNotAllowed:
         return False
     return True
+
+
+class RerunnableHandlerActivation(HandlerActivation):
+    """Handler activation whose "Perform" also works after an "Undo".
+
+    Unlike every other node, viewflow lets a finished handler be undone
+    (DONE -> NEW) while the task it led to is still open. Performing it again
+    then ran the callback and raised ``TransitionNotAllowed`` from
+    ``activate_next``, whose ``all_leading_canceled`` condition fails while that
+    following task exists (#1162). This is viewflow's ``perform``, except that it
+    only activates the outgoing nodes if no earlier run of the task already did.
+    """
+
+    @Activation.status.transition(source=STATUS.NEW)
+    def perform(self):
+        with self.exception_guard():
+            self.task.started = now()
+            signals.task_started.send(sender=self.flow_class, process=self.process, task=self.task)
+
+            self.execute()
+
+            self.task.finished = now()
+            self.set_status(STATUS.DONE)
+            self.task.save()
+            signals.task_finished.send(sender=self.flow_class, process=self.process, task=self.task)
+
+            if all_leading_canceled(self):
+                self.activate_next()
+
+
+class RerunnableHandler(flow.Handler):
+    """``flow.Handler`` with ``RerunnableHandlerActivation``; use it for every handler node."""
+
+    activation_class = RerunnableHandlerActivation
 
 
 class AutoAssignUpdateProcessView(flow_views.UpdateProcessView):

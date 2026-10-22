@@ -9,6 +9,7 @@ from viewflow.models import Task
 from core.flows import cancel_process
 from thetatauCMT.forms.forms import DisciplinaryForm1
 from thetatauCMT.forms.notifications import CentralOfficeGenericEmail, EmailProcessUpdate
+from thetatauCMT.support.models import SupportDigestEntry
 from thetatauCMT.users.models import User
 
 
@@ -258,6 +259,8 @@ class Command(BaseCommand):
                 email_officers=email_officers,
                 attachments=attachments,
                 extra_emails=extra_emails,
+                # The 14 and 30 day escalations copy the officers; their CSSs get them at once.
+                support_kind=SupportDigestEntry.Kind.WORKFLOW_ESCALATION if email_officers else None,
             ).send()
         if cancelled:
             message = "The following processes were cancelled after over " "60 days of no update:<ul>"

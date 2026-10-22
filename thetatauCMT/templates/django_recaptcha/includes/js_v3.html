@@ -13,7 +13,10 @@
                 grecaptcha.execute('{{ public_key }}', {% if action %}{action: '{{ action|escape }}'}{% else %}{}{% endif %})
                     .then(function (token) {
                         element.value = token;
-                        element.form.submit();
+                        // Some forms have a submit button named "submit" (crispy's
+                        // Submit("submit", ...)), which shadows form.submit as a
+                        // property, so call the native method explicitly instead.
+                        HTMLFormElement.prototype.submit.call(element.form);
                     });
             });
         });

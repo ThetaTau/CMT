@@ -4,7 +4,7 @@
     "pk": 25,
     "fields": {
       "name": "Annual Report Review",
-      "slug": "annual-report-review",
+      "slug": "annual-report-reviewscribe",
       "owner": "scribe",
       "type": "task",
       "days_advance": 90,
@@ -32,7 +32,7 @@
     "pk": 27,
     "fields": {
       "name": "Audit",
-      "slug": "audit-treasurer",
+      "slug": "audittreasurer",
       "owner": "treasurer",
       "type": "form",
       "days_advance": 30,
@@ -46,7 +46,7 @@
     "pk": 28,
     "fields": {
       "name": "Awards",
-      "slug": "awards",
+      "slug": "awardsregent",
       "owner": "regent",
       "type": "form",
       "days_advance": 90,
@@ -60,7 +60,7 @@
     "pk": 29,
     "fields": {
       "name": "Credentials",
-      "slug": "credentials",
+      "slug": "credentialsregent",
       "owner": "regent",
       "type": "sub",
       "days_advance": 90,
@@ -74,7 +74,7 @@
     "pk": 30,
     "fields": {
       "name": "Dues",
-      "slug": "dues",
+      "slug": "duestreasurer",
       "owner": "treasurer",
       "type": "bal",
       "days_advance": 30,
@@ -88,7 +88,7 @@
     "pk": 31,
     "fields": {
       "name": "Gear Article",
-      "slug": "gear-article",
+      "slug": "gear-articlecorresponding-secretary",
       "owner": "corresponding secretary",
       "type": "sub",
       "days_advance": 90,
@@ -102,7 +102,7 @@
     "pk": 32,
     "fields": {
       "name": "Hall of Fame",
-      "slug": "hall-of-fame",
+      "slug": "hall-of-fameregent",
       "owner": "regent",
       "type": "sub",
       "days_advance": 90,
@@ -144,7 +144,7 @@
     "pk": 35,
     "fields": {
       "name": "Lock-in",
-      "slug": "lock-in",
+      "slug": "lock-inregent",
       "owner": "regent",
       "type": "sub",
       "days_advance": 90,
@@ -158,7 +158,7 @@
     "pk": 36,
     "fields": {
       "name": "Member Updates",
-      "slug": "member-updates",
+      "slug": "member-updatesscribe",
       "owner": "scribe",
       "type": "form",
       "days_advance": 30,
@@ -172,7 +172,7 @@
     "pk": 37,
     "fields": {
       "name": "Newsletter for Alumni",
-      "slug": "newsletter-for-alumni",
+      "slug": "newsletter-for-alumnicorresponding-secretary",
       "owner": "corresponding secretary",
       "type": "sub",
       "days_advance": 90,
@@ -186,7 +186,7 @@
     "pk": 38,
     "fields": {
       "name": "Outstanding Student Member",
-      "slug": "outstanding-student-member",
+      "slug": "outstanding-student-memberregent",
       "owner": "regent",
       "type": "sub",
       "days_advance": 90,
@@ -200,7 +200,7 @@
     "pk": 39,
     "fields": {
       "name": "Pledge Forms",
-      "slug": "pledge-forms",
+      "slug": "pledge-formsvice-regent",
       "owner": "vice regent",
       "type": "form",
       "days_advance": 30,
@@ -228,7 +228,7 @@
     "pk": 41,
     "fields": {
       "name": "Review Inventory",
-      "slug": "review-inventory",
+      "slug": "review-inventorytreasurer",
       "owner": "treasurer",
       "type": "sub",
       "days_advance": 90,
@@ -256,7 +256,7 @@
     "pk": 43,
     "fields": {
       "name": "Scholarship",
-      "slug": "scholarship",
+      "slug": "scholarshipregent",
       "owner": "regent",
       "type": "sub",
       "days_advance": 90,
@@ -270,7 +270,7 @@
     "pk": 44,
     "fields": {
       "name": "Officer Election Report",
-      "slug": "officer-election-report",
+      "slug": "officer-election-reportscribe",
       "owner": "scribe",
       "type": "form",
       "days_advance": 30,
@@ -340,7 +340,7 @@
     "pk": 49,
     "fields": {
       "name": "Audit",
-      "slug": "audit-scribe",
+      "slug": "auditscribe",
       "owner": "scribe",
       "type": "form",
       "days_advance": 30,
@@ -354,7 +354,7 @@
     "pk": 50,
     "fields": {
       "name": "Audit",
-      "slug": "audit-vice-regent",
+      "slug": "auditvice-regent",
       "owner": "vice regent",
       "type": "form",
       "days_advance": 30,
@@ -368,7 +368,7 @@
     "pk": 51,
     "fields": {
       "name": "Audit",
-      "slug": "audit-regent",
+      "slug": "auditregent",
       "owner": "regent",
       "type": "form",
       "days_advance": 30,
@@ -382,7 +382,7 @@
     "pk": 52,
     "fields": {
       "name": "Audit",
-      "slug": "audit-corresponding-secretary",
+      "slug": "auditcorresponding-secretary",
       "owner": "corresponding secretary",
       "type": "form",
       "days_advance": 30,
@@ -396,7 +396,7 @@
     "pk": 53,
     "fields": {
       "name": "Annual Report Final Review",
-      "slug": "annual-report-final-review",
+      "slug": "annual-report-final-reviewscribe",
       "owner": "scribe",
       "type": "form",
       "days_advance": 30,
@@ -424,7 +424,7 @@
     "pk": 55,
     "fields": {
       "name": "Premature Alumnus",
-      "slug": "premature-alumnus",
+      "slug": "premature-alumnusscribe",
       "owner": "scribe",
       "type": "form",
       "days_advance": 30,
@@ -438,7 +438,7 @@
     "pk": 56,
     "fields": {
       "name": "TightRope",
-      "slug": "tightrope",
+      "slug": "tightroperegent",
       "owner": "regent",
       "type": "form",
       "days_advance": 30,

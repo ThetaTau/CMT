@@ -96,7 +96,7 @@
               <a href="{% url 'chapters:detail' slug=object.chapter.slug %}">{{ object.chapter }}</a>
               {% if object.chapter.school %}<span class="text-body-secondary">&middot; {{ object.chapter.school }}</span>{% endif %}
             {% endif %}
-            {% if object.badge_number and object.badge_number != 999999999 %}
+            {% if object.badge_number and object.badge_number != 999999999 and object.current_status != "css" %}
               <span class="mx-2 text-body-secondary">&middot;</span>
               <span class="text-body-secondary">Badge #{{ object.badge_number }}</span>
             {% endif %}
@@ -117,6 +117,12 @@
             {% endif %}
             {% if director_regions %}
               <div><span class="badge bg-primary"><i class="fa fa-compass me-1"></i>Regional Director</span></div>
+            {% endif %}
+            {% if support_chapters %}
+              <div id="css-chapters">
+                <span class="text-body-secondary">Chapter Support Specialist for:</span>
+                {% for chapter in support_chapters %}<a href="{% url 'chapters:detail' chapter.slug %}">{{ chapter.name }}</a>{% if not forloop.last %}, {% endif %}{% endfor %}
+              </div>
             {% endif %}
             {% if object.charter %}
               <div><span class="badge bg-info text-dark">Charter Member</span></div>
@@ -239,6 +245,10 @@
         </div>
         <div class="card-body">
           <dl class="row mb-0">
+            {% if is_superuser %}
+              <dt class="col-sm-5">ID number</dt>
+              <dd class="col-sm-7">{{ object.pk }}</dd>
+            {% endif %}
             {% if initiation %}
               <dt class="col-sm-5">Initiation date</dt>
               <dd class="col-sm-7">{{ initiation.date|date:"F j, Y" }}
@@ -325,6 +335,48 @@
         </div>
       </div>
     </div>
+
+    {# ---------- Big and Littles ---------- #}
+    {% if big_little.show %}
+      <div class="col-md-6" id="big-little-card">
+        <div class="card h-100">
+          <div class="card-header bg-body-tertiary d-flex flex-wrap align-items-center justify-content-between gap-2">
+            <h5 class="mb-0"><i class="fa-solid fa-sitemap me-2" aria-hidden="true"></i>Big and Littles</h5>
+            {% if big_little.edit_url %}
+              <a href="{{ big_little.edit_url }}" class="btn btn-sm btn-outline-primary" aria-label="Edit Big and Littles">Edit</a>
+            {% endif %}
+          </div>
+          <div class="card-body">
+            {% if big_little.big or big_little.littles %}
+              <dl class="row mb-0">
+                <dt class="col-sm-4">Big</dt>
+                <dd class="col-sm-8">
+                  {% if big_little.big %}
+                    <a href="{% url 'users:profile' big_little.big.username %}">{{ big_little.big }}</a>
+                  {% else %}
+                    None recorded
+                  {% endif %}
+                </dd>
+                <dt class="col-sm-4">Littles</dt>
+                <dd class="col-sm-8">
+                  {% for little in big_little.littles %}<a href="{% url 'users:profile' little.username %}">{{ little }}</a>{% if not forloop.last %}, {% endif %}{% empty %}None recorded{% endfor %}
+                </dd>
+              </dl>
+              {% if big_little.tree_url %}
+                <a href="{{ big_little.tree_url }}" class="d-inline-block mt-2">
+                  <i class="fa-solid fa-sitemap me-1" aria-hidden="true"></i>View in the family tree
+                </a>
+              {% endif %}
+            {% else %}
+              <p class="mb-0 text-body-secondary">
+                You have not recorded your Big yet.
+                <a href="{% url 'users:detail' %}#big_little">Record it on Edit My Info</a>.
+              </p>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    {% endif %}
 
     {# ---------- Employment ---------- #}
     {% if has_employment %}

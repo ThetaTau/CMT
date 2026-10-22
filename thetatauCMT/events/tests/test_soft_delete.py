@@ -6,6 +6,8 @@ Acceptance criteria covered by name:
     * a regular member cannot soft-delete an event
     * an officer of a different chapter cannot soft-delete the event
     * a National Officer can soft-delete any event
+    * a repeat request to the delete URL says "already deleted" instead of 404
+    * a soft-deleted event stays hidden (404) from users who could not delete it
     * a soft-deleted event is hidden from the default and reverse managers
     * a soft-deleted event is removed from scoring
     * a soft-deleted event can be restored
@@ -16,6 +18,7 @@ import datetime
 import pytest
 from django.contrib.auth.models import Group
 from django.db.models import Sum
+from django.urls import reverse
 
 from thetatauCMT.chapters.models import GREEK_ABR
 from thetatauCMT.events.models import Event
@@ -136,6 +139,45 @@ def test_national_officer_can_delete_event(auto_login_user, chapter_factory):
 
     assert response.status_code == 302
     assert not Event.objects.filter(pk=event.pk).exists()
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("method", ["get", "post"])
+def test_repeat_request_after_delete_says_already_deleted(auto_login_user, chapter_factory, method):
+    """Regression: hitting the delete URL again (a double-clicked confirm button,
+    Back/refresh, another officer's open tab) 404'd once the event was deleted."""
+    chapter = chapter_factory.create(name=GREEK[0])
+    officer = UserFactory.create(chapter=chapter, name="Repeat Officer")
+    client, _ = auto_login_user(user=officer)
+    _make_chapter_officer(officer, client)
+    event = _event(chapter, "Boulevarding with Theta Tau")
+    url = event.get_delete_url()
+    client.post(url)
+
+    response = getattr(client, method)(url, follow=True)
+
+    assert response.redirect_chain[-1][0] == reverse("events:list")
+    messages = [str(message) for message in response.context["messages"]]
+    assert "Event 'Boulevarding with Theta Tau' was already deleted." in messages
+    assert Event.all_objects.get(pk=event.pk).deleted_by_id == officer.pk
+
+
+@pytest.mark.django_db
+def test_deleted_event_stays_hidden_from_users_who_cannot_delete_it(auto_login_user, chapter_factory):
+    chapter = chapter_factory.create(name=GREEK[0])
+    event = _event(chapter, "Hidden After Delete")
+    event.soft_delete(UserFactory.create(name="Earlier Deleter"))
+    client, _ = auto_login_user()  # plain member, no officer group
+
+    assert client.get(event.get_delete_url()).status_code == 404
+
+
+@pytest.mark.django_db
+def test_delete_url_for_unknown_event_is_404(auto_login_user):
+    client, _ = auto_login_user()
+    url = reverse("events:delete", kwargs={"year": 2026, "month": 9, "day": 26, "event_slug": "no-such-event"})
+
+    assert client.get(url).status_code == 404
 
 
 # ===========================================================================

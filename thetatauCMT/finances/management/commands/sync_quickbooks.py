@@ -39,7 +39,9 @@ class Command(BaseCommand):
         pledge_function_tasks = Task.objects.filter(**query)
         function_tasks = init_function_tasks | pledge_function_tasks
         outstanding_invoice_tasks = {
-            str(task.flow_process.invoice): task for task in function_tasks if task.flow_process.invoice != "999999999"
+            str(task.flow_process.invoice): task
+            for task in function_tasks
+            if str(task.flow_process.invoice) != "999999999"
         }
         self.stdout.write(f"Found {len(outstanding_invoice_tasks)} outstanding_invoice_tasks")
         client = get_quickbooks_client()

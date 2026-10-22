@@ -11,6 +11,8 @@ from core.models import current_term, current_year
 from thetatauCMT.configs.models import Config
 from thetatauCMT.forms.models import Badge
 from thetatauCMT.forms.tables import BadgeTable, SignTable
+from thetatauCMT.support.emails import SupportCopyMixin
+from thetatauCMT.support.models import SupportDigestEntry
 from thetatauCMT.users.models import User
 
 
@@ -136,7 +138,7 @@ class EmailAdvisorWelcome(EmailNotification):  # extend from EmailNotification f
 @registry.register_decorator()
 class EmailPledgeOther(EmailNotification):  # extend from EmailNotification for emails
     template_name = "pledge_other"  # name of template, without extension
-    subject = "[CMT] Other Pledge Program"  # subject of email
+    subject = "[CMT] Other NME Program Submitted"  # subject of email
 
     def __init__(self, user, file):
         self.to_emails = set(["risk@thetatau.org"])  # set list of emails to send to
@@ -375,7 +377,7 @@ class EmailPledgeOfficer(EmailNotification):
 
 
 @registry.register_decorator()
-class EmailProcessUpdate(EmailNotification):
+class EmailProcessUpdate(SupportCopyMixin, EmailNotification):
     render_types = ["html"]
     template_name = "process"
 
@@ -393,7 +395,11 @@ class EmailProcessUpdate(EmailNotification):
         attachments=None,
         extra_emails=None,
         direct_user=None,
+        support_kind=None,
     ):
+        """``support_kind`` names the Chapter Support Specialist copy of an email that goes
+        to the Regent without ``email_officers``, or a time-sensitive one (CSSWI-6). An
+        ``email_officers`` email is otherwise a workflow update for the daily digest."""
         emails = set()
         user = direct_user
         obj = None
@@ -439,6 +445,9 @@ class EmailProcessUpdate(EmailNotification):
             emails.add(chapter.region.email)
         self.to_emails = {user.email}  # set list of emails to send to
         self.cc = list(set({"central.office@thetatau.org"} | emails))
+        if email_officers or support_kind:
+            self.support_chapter = chapter
+            self.support_kind = support_kind or SupportDigestEntry.Kind.WORKFLOW_UPDATE
         self.reply_to = [
             "central.office@thetatau.org",
         ]
@@ -459,7 +468,8 @@ class EmailProcessUpdate(EmailNotification):
         files = []
         if hasattr(model_obj, "form"):
             file = model_obj.form
-            files.append(file)
+            if file.name:
+                files.append(file)
         if attachments:
             for attachment in attachments:
                 model_obj_orig = None
@@ -534,12 +544,14 @@ class EmailProcessUpdate(EmailNotification):
 
 
 @registry.register_decorator()
-class EmailScribeExpulsion(EmailNotification):
+class EmailScribeExpulsion(SupportCopyMixin, EmailNotification):
     render_types = ["html"]
     template_name = "scribe_expulsion"
 
     def __init__(self, user, date):
         chapter = user.current_chapter
+        self.support_chapter = chapter
+        self.support_kind = SupportDigestEntry.Kind.EXPULSION
         emails = chapter.get_email_specific(["scribe", "regent"])
         self.to_emails = set(emails)  # set list of emails to send to
         self.reply_to = [

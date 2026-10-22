@@ -10,17 +10,19 @@ from django.views.generic import RedirectView, TemplateView
 from core.forms import MultiFormsView
 from core.models import CHAPTER_OFFICER
 from core.views import LoginRequiredMixin, PagedFilteredTableView, RequestConfig
+from thetatauCMT.biglittle.services import can_view_tree
 from thetatauCMT.configs.models import Config
 from thetatauCMT.forms.models import Audit
 from thetatauCMT.forms.notifications import EmailAdvisorWelcome
 from thetatauCMT.notes.tables import ChapterNoteTable
+from thetatauCMT.support.services import chapter_support_specialists
 from thetatauCMT.users.forms import ExternalUserForm
 from thetatauCMT.users.models import User
 from thetatauCMT.users.tables import UserTable
 
 from .filters import ChapterListFilter
 from .forms import ChapterForm, ChapterFormHelper
-from .models import Chapter
+from .models import Chapter, DuesAttachmentUploadError
 from .tables import AuditTable, ChapterCurriculaTable, ChapterTable
 
 
@@ -193,6 +195,8 @@ class ChapterDetailView(LoginRequiredMixin, MultiFormsView):
         # linked to their member profiles on the chapter detail page.
         region = chapter.region
         context["region_directors"] = region.directors.all().order_by("last_name", "name") if region else []
+        context["support_specialists"] = list(chapter_support_specialists(chapter))
+        context["can_view_family_tree"] = can_view_tree(self.request.user, chapter)
         return context
 
     def get_form_kwargs(self, form_name, bind_form=False):
@@ -506,11 +510,25 @@ class ChapterListView(LoginRequiredMixin, PagedFilteredTableView):
 
 class DuesSyncMixin:
     def sync_dues(self, request, queryset):
-        message = "Sync complete for chapters: <br>"
+        synced = []
         for chapter in queryset.all():
-            invoice_number = chapter.sync_dues(request)
-            message += f"{chapter}: {invoice_number}<br>"
-        messages.add_message(request, messages.INFO, mark_safe(message))
+            try:
+                invoice_number = chapter.sync_dues(request)
+            except DuesAttachmentUploadError as exc:
+                messages.error(
+                    request,
+                    f"{chapter}: invoice {exc.invoice_number} was created, but its dues CSV could not be attached. "
+                    "Check the invoice in QuickBooks before retrying the full sync.",
+                )
+                continue
+            if invoice_number:
+                synced.append(f"{chapter}: {invoice_number}")
+        if synced:
+            messages.add_message(
+                request,
+                messages.INFO,
+                mark_safe("Sync complete for chapters: <br>" + "<br>".join(synced)),
+            )
 
     sync_dues.short_description = "Sync selected chapters dues to Quickbooks"
 

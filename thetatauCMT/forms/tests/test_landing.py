@@ -135,6 +135,19 @@ def test_a_member_does_not_see_officer_forms(feature_registry, auto_login_user):
     assert "forms:officer" in rendered
 
 
+def test_candidate_chapter_resignation_links_use_status_change_pages(feature_registry, auto_login_user):
+    client, user = auto_login_user()
+    _in_group(user, "officer")
+    user.chapter.candidate_chapter = True
+    user.chapter.save(update_fields=["candidate_chapter"])
+
+    response = client.get(reverse("forms:landing"))
+    entries = {entry["feature"].key: entry for group in response.context["groups"] for entry in group["entries"]}
+
+    assert entries["resignation"]["url"] == reverse("forms:status_new", kwargs={"reason": "resignedCC"})
+    assert entries["resignations-list"]["url"] == reverse("forms:status_history", kwargs={"reason": "resignedCC"})
+
+
 def test_an_officer_sees_officer_forms(feature_registry, auto_login_user):
     _, user = auto_login_user()
     _in_group(user, "officer")

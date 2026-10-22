@@ -164,6 +164,8 @@ def retry_on_deadlock(
 
 
 def check_officer(request):
+    from thetatauCMT.support.services import css_state
+
     user = request.user
     if getattr(user, "natoff_hidden", False):
         # National Officer previewing the site as a member: officer status now
@@ -171,6 +173,16 @@ def check_officer(request):
         # never from ``natoff`` / ``officer`` group membership.
         if user.chapter_officer():
             request.is_officer = True
+        return request
+    state = css_state(user)
+    if state.is_css and not getattr(request, "in_natoff_group", False):
+        # Raw "is a Chapter Support Specialist": shows their chapter switcher bar.
+        request.is_css = True
+    if state.standing_in:
+        # Viewing an assigned chapter: sees what its Regent sees, but view only
+        # (thetatauCMT.support.middleware.ViewOnlyCSSMiddleware).
+        request.is_officer = True
+        request.css_view_only = True
         return request
     if user.groups.filter(name__in=["officer", "natoff"]).exists():
         request.is_officer = True

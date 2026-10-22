@@ -148,6 +148,9 @@ LOCAL_APPS = [
     "thetatauCMT.awards.apps.AwardsConfig",
     "thetatauCMT.email_tracking.apps.EmailTrackingConfig",
     "thetatauCMT.guides.apps.GuidesConfig",
+    "thetatauCMT.transitions.apps.TransitionsConfig",
+    "thetatauCMT.biglittle.apps.BigLittleConfig",
+    "thetatauCMT.support.apps.SupportConfig",
     # Added after any apps which contain models for which to create signals
     "email_signals",
 ]
@@ -220,12 +223,14 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "watson.middleware.SearchContextMiddleware",
     "core.middleware.OfficerMiddleware",
+    "thetatauCMT.support.middleware.ViewOnlyCSSMiddleware",
     "core.middleware.RMPSignMiddleware",
     "termsandconditions.middleware.TermsAndConditionsRedirectMiddleware",
     "simple_history.middleware.HistoryRequestMiddleware",
     "django_userforeignkey.middleware.UserForeignKeyMiddleware",
     "corsheaders.middleware.CorsMiddleware",
-    "core.middleware.RequireSuperuser2FAMiddleware",
+    "core.middleware.Require2FAMiddleware",
+    "core.middleware.PlotlyDashStaleCallbackMiddleware",
     "rollbar.contrib.django.middleware.RollbarNotifierMiddleware",  # Last
 ]
 
@@ -311,9 +316,9 @@ CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap5"
 # https://django-tables2.readthedocs.io/en/latest/pages/custom-rendering.html#available-templates
 DJANGO_TABLES2_TEMPLATE = "django_tables2/bootstrap5.html"
 
-# A ballot is secret: nobody but the voter sees how they voted, so the vote rows
-# must not be reportable. Applies to BallotComplete both as a report's root
-# model and when traversing to it from User or Ballot.
+# Only the voter and the Grand Regent and Grand Scribe may see how a ballot was
+# voted, so the vote rows must not be reportable. Applies to BallotComplete both
+# as a report's root model and when traversing to it from User or Ballot.
 REPORT_BUILDER_EXCLUDE = ["ballots.ballotcomplete"]
 
 # FIXTURES
@@ -503,6 +508,9 @@ DBBACKUP_CONNECTORS = {
         "CONNECTOR": "dbbackup.db.postgresql.PgDumpBinaryConnector",
         # Sometimes this is needed for restore on local dev machine
         # "SINGLE_TRANSACTION": False,
+        # backup.sh wipes the restore-test schema first, so pg_restore's own
+        # --clean drop statements target objects that no longer exist
+        "IF_EXISTS": True,
     }
 }
 if DBBACKUP_LOCAL:
@@ -685,6 +693,9 @@ TERMS_EXCLUDE_URL_LIST = {
     "/electronic_terms/",
     "/forms/pledgeprogram/",
     "/forms/report/",
+    # Two-factor setup comes before the RMP; without this, someone who needs both bounces
+    # between the two pages (core.middleware.Require2FAMiddleware).
+    "/setup/",
 }
 
 # How long a released feature stays "new" -- it is listed in the What's New feed
