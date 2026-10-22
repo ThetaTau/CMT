@@ -80,11 +80,11 @@ def _row_for(response, member):
 )
 def test_training_list_shows_current_status_and_semester_pledged(auto_login_user, pnm_start, semester):
     client, viewer = auto_login_user()
-    member = _member_with_training(viewer.chapter, current_status="alumni", pnm_starts=[pnm_start])
+    member = _member_with_training(viewer.chapter, current_status="activepend", pnm_starts=[pnm_start])
 
     row = _row_for(client.get(reverse("trainings:list")), member)
 
-    assert (row.get_cell("current_status"), row.get_cell("pledge_semester")) == ("Alumni", semester)
+    assert (row.get_cell("current_status"), row.get_cell("pledge_semester")) == ("Active Pending", semester)
 
 
 @pytest.mark.django_db
@@ -110,7 +110,7 @@ def test_training_list_semester_pledged_is_none_without_a_pnm_status(auto_login_
 @pytest.mark.django_db
 def test_training_list_sorts_by_current_status_and_semester_pledged(auto_login_user):
     client, viewer = auto_login_user()
-    alumnus = _member_with_training(viewer.chapter, current_status="alumni", pnm_starts=[datetime.date(2021, 9, 1)])
+    active = _member_with_training(viewer.chapter, current_status="active", pnm_starts=[datetime.date(2021, 9, 1)])
     pnm = _member_with_training(viewer.chapter, current_status="pnm", pnm_starts=[datetime.date(2024, 9, 1)])
 
     def members_sorted_by(sort):
@@ -118,8 +118,31 @@ def test_training_list_sorts_by_current_status_and_semester_pledged(auto_login_u
         assert response.status_code == 200
         return [row.record.user for row in response.context["table"].rows]
 
-    assert members_sorted_by("pledge_semester") == [alumnus, pnm]
-    assert members_sorted_by("-current_status") == [pnm, alumnus]
+    assert members_sorted_by("pledge_semester") == [active, pnm]
+    assert members_sorted_by("-current_status") == [pnm, active]
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    "params, shows_everyone",
+    [
+        ({}, False),
+        ({"sort": "pledge_semester"}, False),
+        ({"current_status": "roster"}, False),
+        ({"current_status": ""}, True),
+        ({"cancel": "Clear"}, True),
+    ],
+)
+def test_training_list_defaults_to_active_active_pending_and_prospective(auto_login_user, params, shows_everyone):
+    client, viewer = auto_login_user()
+    roster_statuses = ("active", "activeCC", "activepend", "pnm")
+    roster = {_member_with_training(viewer.chapter, current_status=status) for status in roster_statuses}
+    others = {_member_with_training(viewer.chapter, current_status=status) for status in ("depledge", "alumni", "")}
+
+    response = client.get(reverse("trainings:list"), params)
+
+    expected = roster | others if shows_everyone else roster
+    assert {row.record.user for row in response.context["table"].rows} == expected
 
 
 @pytest.mark.django_db

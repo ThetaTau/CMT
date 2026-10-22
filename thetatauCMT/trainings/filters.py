@@ -8,12 +8,15 @@ from thetatauCMT.users.models import UserStatusChange
 
 from .models import Training
 
+ROSTER_STATUSES = ["active", "activeCC", "activepend", "pnm"]
+
 
 class TrainingListFilter(django_filters.FilterSet):
     # Candidate chapter statuses (e.g. "activeCC") share their base status's label.
     current_status = django_filters.ChoiceFilter(
         label="Current status",
-        choices=[status.value for status in UserStatusChange.STATUS if not status.name.endswith("CC")],
+        choices=[("roster", "Active, Active Pending and Prospective")]
+        + [status.value for status in UserStatusChange.STATUS if not status.name.endswith("CC")],
         method="filter_current_status",
         empty_label="All statuses",
     )
@@ -56,7 +59,8 @@ class TrainingListFilter(django_filters.FilterSet):
         ]
 
     def filter_current_status(self, queryset, field_name, value):
-        return queryset.filter(user__current_status__in=[value, f"{value}CC"])
+        statuses = ROSTER_STATUSES if value == "roster" else [value, f"{value}CC"]
+        return queryset.filter(user__current_status__in=statuses)
 
     def filter_pledge_semester(self, queryset, field_name, value):
         term, year = value.split("-")

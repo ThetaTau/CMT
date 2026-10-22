@@ -28,6 +28,13 @@ class TrainingListView(LoginRequiredMixin, PagedFilteredTableView):
     formhelper_class = TrainingListFormHelper
     filter_user_chapter = True
 
+    def get_queryset(self, **kwargs):
+        # Default to the roster statuses; "Clear" (cancel) shows everyone, like the officer roster.
+        request_get = self.request.GET.copy()
+        if not self.request.GET.get("cancel") and "current_status" not in request_get:
+            request_get["current_status"] = "roster"
+        return super().get_queryset(request_get=request_get, **kwargs)
+
 
 class CommunityEduCompletionView(LoginRequiredMixin, SuperuserRequiredMixin, TemplateView):
     """Admin tool: calculate Vector/CommunityEdu completion % per chapter.

@@ -887,7 +887,7 @@
           "key": "chapter-training-records",
           "name": "Chapter training records",
           "short_description": "Which of your members have completed which required training.",
-          "long_description": "Each row also shows the member's current status and the semester they pledged. Filter or sort by either one, for example to check one new member class.",
+          "long_description": "Shows Active, Active Pending and Prospective members by default. Choose All statuses in the filter to also see alumni, members who depledged and everyone else. Each row shows the member's current status and the semester they pledged; filter or sort by either one, for example to check one new member class.",
           "url_name": "trainings:list"
         },
         {
