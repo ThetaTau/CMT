@@ -74,6 +74,7 @@ class BallotDetailView(
     formhelper_class = BallotCompleteListFormHelper
     officer_edit = "ballot status"
     officer_edit_type = "view"
+    table_pagination = {"per_page": 200}
 
     def get_object(self, queryset=None):
         return get_ballot_or_404(self.kwargs.get(self.slug_url_kwarg))
@@ -96,9 +97,17 @@ class BallotDetailView(
     def post(self, request, *args, **kwargs):
         return self.get(request, *args, **kwargs)
 
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        show_results = self.show_results
+    def get_table_kwargs(self):
+        return {"exclude": () if self.show_results else SUBMISSION_REVIEW_COLUMNS}
+
+    def get_table_data(self):
+        """Submitted rows plus synthesized "not submitted" rows, as dicts.
+
+        The table is built from these rather than from ``object_list``: its
+        Name/Chapter/Region columns are keys added here, not ``BallotComplete``
+        fields, so sorting the queryset by them raised ``FieldError`` (#1161).
+        Values are plain strings so a sort mixes submitted and outstanding rows.
+        """
         cancel = self.request.GET.get("cancel", False)
         request_get = self.request.GET.copy()
         if cancel:
@@ -158,39 +167,41 @@ class BallotDetailView(
                 {
                     "pk": None,
                     "user_name": "",
-                    "chapter": chapter,
+                    "chapter": chapter.name,
                     "motion": "Incomplete",
                     "role": "",
-                    "region": chapter.region,
+                    "region": chapter.region.name,
                     "authority": "",
                 }
-                for chapter in chapters
+                for chapter in chapters.select_related("region")
             ]
         incomplete_national = []
         if region == "" or region == "national":
             incomplete_national = [
                 {
                     "pk": None,
-                    "user_name": user.user,
+                    "user_name": user.user.name,
                     "chapter": "",
                     "motion": "Incomplete",
                     "role": user.role,
                     "region": "National",
                     "authority": "",
                 }
-                for user in nat_offs
+                for user in nat_offs.select_related("user")
             ]
         incomplete = []
         if want_incomplete:
             incomplete = incomplete_national + incomplete_chapter
-        exclude = () if show_results else SUBMISSION_REVIEW_COLUMNS
-        table = BallotCompleteTable(data=data + incomplete, exclude=exclude)
-        RequestConfig(self.request, paginate={"per_page": 200}).configure(table)
-        context["table"] = table
+        self.submitted_count = len(data)
+        self.incomplete_count = len(incomplete)
+        return data + incomplete
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
         context["object"] = self.object
-        context["incomplete"] = len(incomplete)
-        context["submitted"] = len(data)
-        context["show_results"] = show_results
+        context["incomplete"] = self.incomplete_count
+        context["submitted"] = self.submitted_count
+        context["show_results"] = self.show_results
         context[self.context_object_name] = self.object
         return context
 

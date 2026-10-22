@@ -482,6 +482,37 @@ def test_ballot_detail_view_incomplete_filter_excludes_chapters_that_voted(auto_
 
 
 @pytest.mark.django_db
+@pytest.mark.parametrize("sort", ["user_name", "chapter", "region", "-region", "role", "motion"])
+def test_ballot_detail_view_sorts_by_every_column(auto_login_user, sort):
+    """Regression for #1161: the Region, Chapter and Name headers 500'd with
+    ``FieldError``. Those keys exist only on the view's rows, not on
+    ``BallotComplete``, yet a second table built from the raw queryset was
+    ordered by them."""
+    client, user = auto_login_user(make_officer="grand regent")
+    _make_natoff(user, client)
+    ballot = _create_ballot(voters=["all_chapters", "grand regent"])
+    BallotComplete(ballot=ballot, user=UserFactory.create(), motion="aye", role="regent").save()
+    response = client.get(reverse("ballots:detail", kwargs={"slug": ballot.slug}) + f"?sort={sort}")
+    assert response.status_code == 200
+
+
+@pytest.mark.django_db
+def test_ballot_detail_view_sort_orders_submitted_and_outstanding_rows_together(auto_login_user):
+    client, user = auto_login_user(make_officer="grand regent")
+    _make_natoff(user, client)
+    ballot = _create_ballot(voters=["all_chapters", "grand regent"])
+    voted_chapter = ChapterFactory.create(name="alpha")
+    ChapterFactory.create(name="beta")
+    BallotComplete(ballot=ballot, user=UserFactory.create(chapter=voted_chapter), motion="aye", role="regent").save()
+    url = reverse("ballots:detail", kwargs={"slug": ballot.slug})
+    for sort in ("user_name", "chapter", "region", "-region", "role"):
+        response = client.get(f"{url}?sort={sort}")
+        values = [row.record[sort.lstrip("-")] for row in response.context["table"].rows]
+        assert response.context["incomplete"] and response.context["submitted"] == 1
+        assert values == sorted(values, reverse=sort.startswith("-")), sort
+
+
+@pytest.mark.django_db
 def test_ballot_detail_view_requires_an_officer(auto_login_user):
     client, user = auto_login_user()
     ballot = _create_ballot()
