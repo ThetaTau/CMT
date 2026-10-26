@@ -1551,6 +1551,27 @@ def test_send_handoff_notices_sends_when_predecessor_reports_exist():
     assert HandoffNotice.objects.filter(role_change__user=successor, role_change__role="treasurer").exists()
 
 
+def test_send_handoff_notices_links_a_position_with_a_slash():
+    """Regression: the email's packet link raised NoReverseMatch for "pledge/new member
+    educator", stopping the daily run before the notice was recorded, so every later
+    run stopped at the same officer."""
+    from django.urls import reverse
+
+    position_key = "pledge/new member educator"
+    chapter = ChapterFactory()
+    _report(chapter, position_key, UserFactory(chapter=chapter))
+    successor = UserFactory(chapter=chapter)
+    _role_change(chapter, position_key, TODAY + datetime.timedelta(days=180), start=TODAY, user=successor)
+
+    sent = services.send_handoff_notices()
+
+    assert sent == 1
+    email = mail.outbox[0]
+    bodies = [email.body] + [content for content, _mime in getattr(email, "alternatives", [])]
+    assert any(reverse("transitions:packet", args=[chapter.pk, position_key]) in body for body in bodies)
+    assert HandoffNotice.objects.filter(role_change__user=successor, role_change__role=position_key).exists()
+
+
 def test_send_handoff_notices_skips_the_email_but_still_records_when_nothing_to_read():
     chapter = ChapterFactory()
     successor = UserFactory(chapter=chapter)

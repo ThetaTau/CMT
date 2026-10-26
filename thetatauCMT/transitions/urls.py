@@ -24,7 +24,8 @@ urlpatterns = [
         views.TransitionTagAutocomplete.as_view(create_field="name"),
         name="tag-autocomplete",
     ),
-    path("packet/<int:chapter_pk>/<str:position_key>/", views.HandoffPacketView.as_view(), name="packet"),
+    # <path:>, not <str:>: position keys such as "pledge/new member educator" contain a "/".
+    path("packet/<int:chapter_pk>/<path:position_key>/", views.HandoffPacketView.as_view(), name="packet"),
     path("reports/<uuid:pk>/acknowledge/", views.AcknowledgeReportView.as_view(), name="acknowledge"),
     path("dashboard/chapter/<int:chapter_pk>/", views.ReportSearchView.as_view(), name="chapter-dashboard"),
     path("dashboard/rates/", views.ComplianceRatesView.as_view(), name="rates-dashboard"),

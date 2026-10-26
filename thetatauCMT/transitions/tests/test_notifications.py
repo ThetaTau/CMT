@@ -140,3 +140,15 @@ def test_handoff_packet_available_context():
     assert notif.context["position_key"] == "treasurer"
     assert notif.context["chapter_pk"] == chapter.pk
     assert notif.context["report_count"] == 3
+
+
+def test_handoff_packet_available_email_links_a_position_with_a_slash():
+    from django.urls import reverse
+
+    chapter = ChapterFactory()
+    user = UserFactory(chapter=chapter)
+    notif = HandoffPacketAvailable(user, "pledge/new member educator", chapter, 1)
+
+    body = notif.render("html", notif.get_context_data())
+
+    assert reverse("transitions:packet", args=[chapter.pk, "pledge/new member educator"]) in body

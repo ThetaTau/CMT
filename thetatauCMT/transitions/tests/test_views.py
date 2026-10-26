@@ -9,7 +9,14 @@ from thetatauCMT.users.models import UserRoleChange
 from thetatauCMT.users.tests.factories import UserFactory
 
 from .. import services
-from ..models import ReportAttachment, ReportObligation, ReportTemplate, TemplatePrompt, TransitionReport
+from ..models import (
+    POSITION_KEY_TO_TYPE,
+    ReportAttachment,
+    ReportObligation,
+    ReportTemplate,
+    TemplatePrompt,
+    TransitionReport,
+)
 
 pytestmark = pytest.mark.django_db
 
@@ -433,6 +440,55 @@ def test_handoff_packet_view_shows_read_badge_after_acknowledging(auto_login_use
     body = response.content.decode()
     assert "Read</span>" in body
     assert "Mark as read" not in body
+
+
+# ---------------------------------------------------------------------------
+# Position keys containing "/" (pledge/new member educator and three chairs)
+# ---------------------------------------------------------------------------
+SLASHED_POSITION_KEYS = sorted(key for key in POSITION_KEY_TO_TYPE if "/" in key)
+
+
+def test_every_position_key_round_trips_through_the_packet_url():
+    from urllib.parse import unquote
+
+    from django.urls import resolve
+
+    assert SLASHED_POSITION_KEYS
+    for position_key in POSITION_KEY_TO_TYPE:
+        # A real request decodes the path before resolving it (spaces arrive as %20).
+        match = resolve(unquote(reverse("transitions:packet", args=[89, position_key])))
+        assert match.kwargs == {"chapter_pk": 89, "position_key": position_key}
+
+
+@pytest.mark.parametrize("position_key", SLASHED_POSITION_KEYS)
+def test_transitions_list_renders_for_a_position_with_a_slash(auto_login_user, position_key):
+    """Regression: holding e.g. "pledge/new member educator" 500'd the whole page with
+    NoReverseMatch, because the packet URL could not take a "/" in the key."""
+    client, officer = auto_login_user()
+    officer.current_roles = [position_key]
+    officer.save(update_fields=["current_roles"])
+
+    response = client.get(reverse("transitions:list"))
+
+    assert response.status_code == 200
+    assert reverse("transitions:packet", args=[officer.chapter.pk, position_key]) in response.content.decode()
+
+
+def test_handoff_packet_for_a_position_with_a_slash_shows_and_acknowledges_reports(auto_login_user):
+    client, successor = auto_login_user()
+    successor.current_roles = ["pledge/new member educator"]
+    successor.save(update_fields=["current_roles"])
+    report = _report(successor.chapter, "pledge/new member educator", UserFactory(chapter=successor.chapter))
+    packet_url = reverse("transitions:packet", args=[successor.chapter.pk, "pledge/new member educator"])
+
+    response = client.get(packet_url)
+
+    assert response.status_code == 200
+    assert response.context["position_key"] == "pledge/new member educator"
+    assert response.context["reports"] == [report]
+    response = client.post(reverse("transitions:acknowledge", args=[report.public_id]))
+    assert response.status_code == 302
+    assert response.url == packet_url
 
 
 # ---------------------------------------------------------------------------
