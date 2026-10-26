@@ -40,6 +40,17 @@ def _safe_next(request, default):
     return default
 
 
+def _saved_event_url(event):
+    """Where to land after saving ``event``.
+
+    The events list only shows the user's own chapter's events, so a national event
+    (no chapter) never appears there; open the event itself instead.
+    """
+    if event is not None and event.pk and event.chapter_id is None:
+        return event.get_absolute_url()
+    return reverse("events:list")
+
+
 def apply_event_workflow_fields(event, user, recompute_approval=True):
     """Apply the national / public / approval rules to an event before saving.
 
@@ -199,7 +210,7 @@ class EventCreateView(
     grouped_forms = {"eventpage": ["event", "picture"]}
 
     def get_success_url(self):
-        return reverse("events:list")
+        return _saved_event_url(self.object)
 
     def get_event_kwargs(self):
         """Inject the acting user so the event form can gate the national flag."""
@@ -227,6 +238,7 @@ class EventCreateView(
             event_form.add_error("date", message)
             forms["event"] = event_form
             return self.render_to_response(self.get_context_data(forms=forms))
+        self.object = event
         for picture_form in picture_forms:
             if picture_form.is_valid() and picture_form.instance.image.name != "":
                 picture_form.instance.event = event_form.instance
@@ -388,7 +400,7 @@ class EventUpdateView(
         return HttpResponseRedirect(self.get_success_url())
 
     def get_success_url(self):
-        return reverse("events:list")
+        return _saved_event_url(self.object)
 
 
 class EventDeleteView(LoginRequiredMixin, View):

@@ -611,6 +611,7 @@
 
 
     {% endblock javascript %}
+    {% include "core/_rich_text_required.html" %}
     {% if css_switch.view_only %}
       {# Forms a Chapter Support Specialist cannot submit are marked by ViewOnlyCSSMiddleware (S14). #}
       <script>

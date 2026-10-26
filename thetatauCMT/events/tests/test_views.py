@@ -5,9 +5,11 @@ Uses the auto_login_user fixture which handles RMPSignMiddleware.
 
 import datetime
 import json
+import re
 
 import pytest
 from django.contrib.auth.models import Group
+from django.test import override_settings
 from django.urls import reverse
 
 from thetatauCMT.events.models import Event
@@ -521,6 +523,70 @@ def test_create_national_event_not_tied_to_chapter_and_auto_approved(auto_login_
     assert event.is_public is True
     assert event.chapter_id is None
     assert event.approval_status == Event.ApprovalStatus.APPROVED
+
+
+@pytest.mark.django_db
+@override_settings(DEBUG=True)  # superusers bypass Require2FAMiddleware only when DEBUG
+def test_superuser_creating_a_national_event_lands_on_the_event(auto_login_user, admin_user):
+    """The events list only shows the user's own chapter's events, so a national
+    event (no chapter) never appears there; open the new event instead."""
+    client, _ = auto_login_user(user=admin_user)
+    score_type = _evt_score_type()
+    if score_type is None:
+        pytest.skip("No Evt ScoreType in fixture")
+    response = client.post(
+        reverse("events:add"), _event_create_post_data(score_type, name="Atlantic Regionals", is_national=True)
+    )
+    event = Event.objects.get(name="Atlantic Regionals")
+    assert event.is_national is True
+    assert event.chapter_id is None
+    assert response.status_code == 302
+    assert response.url == event.get_absolute_url()
+
+
+@pytest.mark.django_db
+def test_creating_a_chapter_event_returns_to_the_events_list(auto_login_user):
+    client, user = auto_login_user()
+    _make_chapter_officer(user, client)
+    score_type = _evt_score_type()
+    if score_type is None:
+        pytest.skip("No Evt ScoreType in fixture")
+    response = client.post(reverse("events:add"), _event_create_post_data(score_type, name="Chapter Social"))
+    assert Event.objects.get(name="Chapter Social").chapter_id == user.current_chapter.pk
+    assert response.status_code == 302
+    assert response.url == reverse("events:list")
+
+
+@pytest.mark.django_db
+@override_settings(DEBUG=True)  # superusers bypass Require2FAMiddleware only when DEBUG
+def test_editing_a_national_event_lands_on_the_event(auto_login_user, admin_user, event_factory):
+    client, _ = auto_login_user(user=admin_user)
+    score_type = _evt_score_type()
+    if score_type is None:
+        pytest.skip("No Evt ScoreType in fixture")
+    event = event_factory.create(name="Atlantic Regionals", is_national=True, chapter=None, type=score_type)
+    data = _event_create_post_data(
+        score_type, name="Atlantic Regionals", date=event.date.isoformat(), description="Updated", is_national=True
+    )
+    response = client.post(event.get_update_url(), data)
+    event.refresh_from_db()
+    assert event.description == "Updated"
+    assert response.status_code == 302
+    assert response.url == event.get_absolute_url()
+
+
+@pytest.mark.django_db
+def test_event_create_page_reports_an_empty_description(auto_login_user):
+    """The rich-text editor hides the required description textarea, so the browser
+    blocked Submit on an empty description without saying why. ``base.html``
+    includes ``core/_rich_text_required.html``, which reports it under the editor."""
+    client, user = auto_login_user()
+    _make_chapter_officer(user, client)
+    content = client.get(reverse("events:add")).content.decode()
+    textarea = re.search(r'<textarea[^>]*name="description"[^>]*>', content).group(0)
+    assert "required" in textarea
+    assert "django_ckeditor_5" in textarea
+    assert "rich-text-required" in content
 
 
 # ===========================================================================

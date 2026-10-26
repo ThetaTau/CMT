@@ -1,0 +1,37 @@
+{% comment %}
+Rich-text (CKEditor 5) fields hide the <textarea> they edit. When a required one is
+empty the browser still blocks the submit, but it cannot point at a hidden field, so
+it shows nothing and Submit just appears to do nothing. Report the problem under the
+editor instead, and move the cursor there when it is the first thing to fix.
+{% endcomment %}
+<script>
+  (function () {
+    document.addEventListener('invalid', function (event) {
+      var field = event.target;
+      if (!field.classList || !field.classList.contains('django_ckeditor_5')) { return; }
+      event.preventDefault();
+      var box = field.closest('.ck-editor-container') || field.parentNode;
+      var message = box.querySelector('.rich-text-required');
+      if (!message) {
+        message = document.createElement('div');
+        message.className = 'invalid-feedback d-block rich-text-required';
+        box.appendChild(message);
+      }
+      message.textContent = field.validationMessage;
+      var editor = window.editors && window.editors[field.id];
+      if (editor && !field.dataset.requiredWatch) {
+        field.dataset.requiredWatch = '1';
+        editor.model.document.on('change:data', function () {
+          var shown = box.querySelector('.rich-text-required');
+          if (shown && editor.getData()) { shown.remove(); }
+        });
+      }
+      var firstInvalid = field.form && field.form.querySelector('input:invalid, select:invalid, textarea:invalid');
+      if (firstInvalid === field) {
+        // Focus first: CKEditor's focus() puts back the scroll position it found.
+        if (editor) { editor.editing.view.focus(); }
+        box.scrollIntoView({ block: 'center' });
+      }
+    }, true);
+  })();
+</script>
