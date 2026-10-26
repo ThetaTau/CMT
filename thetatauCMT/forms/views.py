@@ -3504,11 +3504,9 @@ class ResignationSignView(LoginRequiredMixin, UpdateProcessView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        fields = ResignationForm._meta.fields[:]
-        fields.remove("letter")
         info = {}
         model_obj = self.object
-        for field in fields:
+        for field in ResignationForm._meta.fields:
             if isinstance(field, dict):
                 info.update(field)
                 continue

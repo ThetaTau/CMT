@@ -4054,6 +4054,82 @@ def test_resignation_create_view_integrityerror_is_caught(auto_login_user):
     assert ResignationProcess.objects.filter(user=user).count() == 0
 
 
+def _start_resignation(member, officer1, officer2):
+    """A submitted resignation, waiting on both officers' signatures."""
+    from thetatauCMT.forms.flows import ResignationFlow
+
+    activation = ResignationFlow.start.activation_class()
+    activation.initialize(ResignationFlow.start, None)
+    process = activation.process
+    process.user = member
+    process.chapter = member.chapter
+    process.officer1 = officer1
+    process.officer2 = officer2
+    for answer in ("resign", "secrets", "expel", "return_evidence", "obligation", "fee"):
+        setattr(process, answer, True)
+    process.signature = member.name
+    activation.prepare()
+    activation.done()
+    # done() opens the flow lock's atomic block and leaves closing it to viewflow's
+    # view decorator; unclosed, it rolls everything back once the activation is freed.
+    activation.lock.__exit__(None, None, None)
+    return process
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    "node_name, officer_field, signature",
+    [
+        (
+            "assign_o1",
+            "officer1",
+            {
+                "good_standing": "True",
+                "returned": "True",
+                "financial": "True",
+                "fee_paid": "True",
+                "approved_o1": "True",
+                "signature_o1": "Officer One",
+            },
+        ),
+        ("assign_o2", "officer2", {"approved_o2": "True", "signature_o2": "Officer Two"}),
+    ],
+)
+def test_resignation_officer_can_open_and_sign(auto_login_user, node_name, officer_field, signature):
+    """Regression: both officer signature pages 500'd with ``ValueError: list.remove(x)``
+    once #1175 dropped the letter upload from ``ResignationForm``, because
+    ``ResignationSignView`` still removed ``"letter"`` from that form's fields."""
+    from django.utils import timezone
+    from viewflow.activation import STATUS
+    from viewflow.models import Task
+
+    from thetatauCMT.forms.flows import ResignationFlow
+    from thetatauCMT.forms.models import ResignationProcess
+    from thetatauCMT.users.tests.factories import UserFactory
+
+    member = UserFactory.create()
+    process = _start_resignation(
+        member, UserFactory.create(chapter=member.chapter), UserFactory.create(chapter=member.chapter)
+    )
+    task = Task.objects.get(process=process, flow_task=getattr(ResignationFlow, node_name))
+    client, _ = auto_login_user(user=getattr(process, officer_field))
+    url = f"/workflow/forms/resignation/{process.pk}/{node_name}/{task.pk}/"
+
+    response = client.get(url)
+
+    assert response.status_code == 200
+    info = {str(key): value for key, value in response.context["info"].items()}
+    assert info[str(ResignationProcess.verbose_resign)] == "Yes"
+    assert "Resignation Letter" not in info
+
+    started = timezone.now().strftime("%Y-%m-%d %H:%M:%S")
+    response = client.post(url, {**signature, "_viewflow_activation-started": started})
+
+    assert response.status_code == 302
+    task.refresh_from_db()
+    assert task.status == STATUS.DONE
+
+
 # ─── PledgeProgramListView CSV with officers (lines 1403-1406) ───────────────
 
 
