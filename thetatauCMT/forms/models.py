@@ -1518,6 +1518,7 @@ class PledgeProcess(Process, EmailSignalMixin):
             "Suffix (such as Jr., III)",
             "Nickname",
             "Parent / Guardian Name",
+            "Parent / Guardian Email",
             "School E-mail",
             "Personal Email",
             "Mobile Number:",

@@ -3527,6 +3527,33 @@ def test_pledge_process_csvs_download(auto_login_user):
     assert response.status_code == 200
 
 
+@pytest.mark.django_db
+def test_pledge_process_csvs_crm_download_includes_parent_email(auto_login_user):
+    """Regression: the CRM export 500'd with ``ValueError: dict contains fields not in
+    fieldnames: 'Parent / Guardian Email'`` because #961 added the parent email to each
+    row but not to the CSV header."""
+    import csv
+    import io
+
+    from thetatauCMT.forms.models import Pledge
+    from thetatauCMT.forms.tests.factories import PledgeProcessFactory
+
+    client, user = auto_login_user()
+    _add_to_group(user, "natoff")
+    process = PledgeProcessFactory.create()
+    pledge = process.pledges.first()
+    Pledge.objects.filter(pk=pledge.pk).update(parent_name="Pat Parent", parent_email="pat.parent@example.com")
+    url = reverse("forms:pledge_csv", kwargs={"process_pk": process.pk, "csv_type": "crm"})
+
+    response = client.get(url)
+
+    assert response.status_code == 200
+    rows = list(csv.DictReader(io.StringIO(response.content.decode())))
+    assert len(rows) == process.pledges.count()
+    parent_rows = [row for row in rows if row["Parent / Guardian Name"] == "Pat Parent"]
+    assert [row["Parent / Guardian Email"] for row in parent_rows] == ["pat.parent@example.com"]
+
+
 # ─── RoleChangeCreateView POST with a chapter-officer role ────────────────────
 
 
