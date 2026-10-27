@@ -401,7 +401,9 @@ def create_css_account(*, first_name, last_name, email):
 
     from thetatauCMT.users.models import User
 
-    email = email.strip()
+    # Sign-in and password reset look addresses up lowercased and exactly (allauth stores
+    # every email that way), so an account saved as "First.Last@..." could never be found.
+    email = email.strip().lower()
     existing = (
         User.objects.filter(Q(username__iexact=email) | Q(email__iexact=email) | Q(emailaddress__email__iexact=email))
         .distinct()

@@ -1105,8 +1105,10 @@ Built 2026-10-22:
 - NME banner (S13): shown to a CSS for the chapter being viewed, as information without the
   submit link.
 - Edit My Info (Q5): a CSS staff account (status `css`) gets a short page: name, pronouns,
-  email and phone with their visibility, and email preferences. A member CSS keeps the full
-  page.
+  email visibility, phone and its visibility, and email preferences. As on the members' page,
+  the address itself is changed with "Update E-Mail" (fixed 2026-10-27: the short page first
+  let a CSS type a new address, and one typed with capitals could no longer sign in). A
+  member CSS keeps the full page.
 - Workflows (Q21 A): the Reassign picker leaves CSS staff accounts out, and a posted one is
   refused, so no task can get stuck with someone who cannot complete it. A member CSS is
   still a member of their own chapter and can be given tasks there. A CSS standing in cannot
@@ -1189,7 +1191,9 @@ Built 2026-10-22:
 - `support:create`: first name, last name and email. A new person gets a staff account
   (status `css`, the Central Office home chapter, the CSS role from today, and a verified
   email so the first sign-in needs no extra verification email) and a welcome email with a
-  one-time set-password link (`EmailSupportWelcome`; it says nothing about chapters, Q17). If
+  one-time set-password link (`EmailSupportWelcome`; it says nothing about chapters, Q17). The
+  email is stored in lowercase, as sign-in and password reset look it up (fixed 2026-10-27,
+  see the Decisions log; migration `support` 0002 repaired the accounts made before). If
   the email already belongs to someone, including a secondary email, they keep their account,
   status and chapter and gain the role, with no email (Q9). A switched-off member account is
   refused; a former CSS staff account is switched back on and emailed again.
@@ -1509,7 +1513,8 @@ Production is PythonAnywhere (see `docs/deploy.md`, which has the full steps in 
 Python packages.
 
 1. `python manage.py migrate` (`support` 0001; `users` 0047 and 0048, `tasks` 0010 and
-   `guides` 0007, which change choice lists and help text only)
+   `guides` 0007, which change choice lists and help text only; and, in the 2026-10-27
+   follow-up, `support` 0002, which lowercases the emails of CSS accounts made before then)
 2. No new static files this release, so `collectstatic` is not needed; Reload the web app
 3. `python manage.py load_feature_registry`
 4. Config rows in Django admin: `CSS_MANAGERS`, and `NATOFF_2FA_REQUIRED_FROM` (Q27).
@@ -1569,6 +1574,7 @@ follow-up they caused.
 | Q26 | **B.** National Officers' region syncs include the region's CSSs, labeled "Chapter Support Specialist". | 2026-10-22 | CSSWI-10. |
 | Q27 | **A.** Announce first: a banner until the date in `NATOFF_2FA_REQUIRED_FROM`, then enforcement. | 2026-10-22 | CSSWI-11. |
 | CSSWI-6 | **Changed.** One scheduled task instead of two: "one task scheduled in pythonanywhere daily and it handles both daily and monthly and only monthly on the 1st." | 2026-10-22 | `send_css_digests` sends the daily digest on every run and the monthly digest on the 1st; `--period` now defaults to `both`. `docs/deploy.md` §7 and §8.3 list the one task. |
+| CSSWI-5 | **Bug fix.** In production, every new CSS who tried to reset their password got "no account was found for this email address". The Add page saved the email as typed (`Angela.Seegel@...`), but allauth looks addresses up lowercased and exactly. | 2026-10-27 | New accounts store the email in lowercase; migration `support` 0002 lowercases the accounts already made (email, username and their allauth email rows); the CSS Edit My Info no longer edits the address itself (members change it with "Update E-Mail"). Specialists then use "Forgot password?". Steps: `docs/deploy.md` §8.3. |
 
 ## Gotchas for the build
 
@@ -1592,5 +1598,10 @@ follow-up they caused.
 - **Test Regents with `make_regent()`.** `UserFactory(make_officer=True)` first saves a
   random role, which can be a National Officer role and put the user in `natoff`; use
   `support.tests.factories.make_regent()` when a test compares a CSS with a Regent.
+- **Store emails in lowercase.** allauth 65 finds accounts by an exact match on the lowercased
+  address, for password resets and email sign-in alike, and its migration 0006 lowercased
+  every stored email once. Code that writes `User.email` or `EmailAddress.email` directly,
+  without allauth's forms or `EmailAddress.objects.add_email`, must lowercase it, or the
+  account becomes unfindable (the 2026-10-27 bug).
 - **The dashboard trusts the browser's scope today.** The CSS scope must come from
   `request.user` on the server (CSSWI-8), and the contact-sync scope likewise (CSSWI-10).

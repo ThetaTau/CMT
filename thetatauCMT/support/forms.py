@@ -8,7 +8,11 @@ from .services import css_chapters
 
 
 class CSSInfoForm(forms.ModelForm):
-    """Edit My Info for a Chapter Support Specialist staff account (Q5): no member fields."""
+    """Edit My Info for a Chapter Support Specialist staff account (Q5): no member fields.
+
+    As on the members' page, the address itself is changed with "Update E-Mail", which keeps
+    sign-in working: it stores the address the way sign-in looks it up and verifies it.
+    """
 
     class Meta:
         model = User
@@ -17,7 +21,6 @@ class CSSInfoForm(forms.ModelForm):
             "preferred_name",
             "last_name",
             "preferred_pronouns",
-            "email",
             "email_visibility",
             "phone_number",
             "phone_visibility",
@@ -25,6 +28,9 @@ class CSSInfoForm(forms.ModelForm):
         labels = {
             "email_visibility": "Who can see my email?",
             "phone_visibility": "Who can see my phone number?",
+        }
+        help_texts = {
+            "email_visibility": "To change the address itself, use Update E-Mail at the top of this page.",
         }
 
 

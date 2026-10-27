@@ -325,3 +325,54 @@ def test_the_welcome_email_demo_args():
 
     assert isinstance(user, User)
     assert EmailSupportWelcome(user).context["set_password_url"].startswith("http://testserver/reset/")
+
+
+# --- the new account must be findable at sign-in -----------------------------------------------
+# allauth looks emails up lowercased and exact, for password resets and sign-in alike, so an
+# account stored as "Angela.Seegel@..." was reported as unknown.
+
+UNKNOWN_ACCOUNT = "no account was found"
+NEW_PASSWORD = "Css-Reset-Pass-2026!"
+
+
+def _reset_links(entered):
+    mail.outbox = []
+    Client().post(reverse("account_reset_password"), {"email": entered})
+    (message,) = mail.outbox
+    assert UNKNOWN_ACCOUNT not in message.body, entered
+    return re.findall(r"http://testserver(/accounts/password/reset/key/\S+/)", message.body)
+
+
+@pytest.mark.parametrize("typed", ["Angela.Seegel@ThetaTau.engineering", "angela.seegel@thetatau.engineering"])
+def test_a_new_css_can_reset_their_password_whatever_the_case(auto_login_user, typed):
+    central_office()
+    client, _ = _manager(auto_login_user)
+
+    client.post(reverse("support:create"), {"first_name": "Angela", "last_name": "Seegel", "email": typed})
+
+    person = User.objects.get(email__iexact=typed)
+    assert person.email == person.username == typed.lower()
+    assert list(EmailAddress.objects.filter(user=person).values_list("email", "verified", "primary")) == [
+        (typed.lower(), True, True)
+    ]
+    for entered in (typed, typed.lower(), typed.upper()):
+        assert len(_reset_links(entered)) == 1, entered
+
+
+@override_settings(DEBUG=True)  # the sign-in form only skips its captcha in DEBUG
+def test_a_new_css_sets_a_password_from_the_reset_email_and_signs_in(auto_login_user):
+    central_office()
+    client, _ = _manager(auto_login_user)
+    client.post(
+        reverse("support:create"), {"first_name": "Angela", "last_name": "Seegel", "email": "Angela.Seegel@Example.org"}
+    )
+    (link,) = _reset_links("Angela.Seegel@Example.org")
+    visitor = Client()
+
+    form_page = visitor.get(link, follow=True)
+    done = visitor.post(form_page.redirect_chain[-1][0], {"password1": NEW_PASSWORD, "password2": NEW_PASSWORD})
+    signed_in = visitor.post(reverse("login"), {"login": "ANGELA.Seegel@example.org", "password": NEW_PASSWORD})
+
+    assert done.status_code == 302
+    assert signed_in.status_code == 302
+    assert visitor.session["_auth_user_id"] == str(User.objects.get(email="angela.seegel@example.org").pk)

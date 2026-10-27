@@ -278,7 +278,8 @@ def test_a_css_staff_account_gets_the_short_my_info_page(auto_login_user):
             "preferred_name": "",
             "last_name": css.last_name,
             "preferred_pronouns": "they/them",
-            "email": css.email,
+            # Not a field here: an address typed with capitals could not sign in.
+            "email": "Someone.Else@Example.org",
             "email_visibility": CONTACT_VISIBILITY_NO_ONE,
             "phone_number": "5125551234",
             "phone_visibility": CONTACT_VISIBILITY_NO_ONE,
@@ -288,6 +289,7 @@ def test_a_css_staff_account_gets_the_short_my_info_page(auto_login_user):
     assert response.status_code == 302
     assert "Your information was updated." in _messages(response)
     assert _fresh(css).phone_number == "5125551234"
+    assert _fresh(css).email == css.email
 
 
 def test_a_member_still_gets_the_full_my_info_page(auto_login_user):

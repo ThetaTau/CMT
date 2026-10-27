@@ -811,6 +811,18 @@ Run the standard flow in [§8](#8-updating-an-existing-deploy), then:
    harmless to the older code, which does not know the role: specialists simply lose their
    access.
 
+**Follow-up fix (2026-10-27): password reset said "no account was found".** The Add page saved
+each new specialist's email exactly as typed, capitals included (`Angela.Seegel@...`). Sign-in
+and password reset (allauth) store and look up every email in lowercase, so those accounts could
+not be found. New accounts are now saved in lowercase, and migration `support` 0002 repairs the
+accounts already made: the standard [§8](#8-updating-an-existing-deploy) flow's `migrate` runs
+it, with nothing else to do. Afterwards, tell the specialists to use **Forgot password?** on the
+sign-in page; it now finds them whatever capitals they type. The set-password links from their
+first welcome emails no longer work (they expire after 3 days anyway). In the rare case an
+address is already verified on another account, or the lowercase username is taken, the
+migration leaves that part alone and names the account in the `migrate` output; sort it out in
+Django admin (Users, and Accounts > Email addresses).
+
 ---
 
 ## 9. Backups & tested restore
