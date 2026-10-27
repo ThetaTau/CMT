@@ -108,9 +108,9 @@ def test_render_task_link_url_resource():
 
 
 # ---------------------------------------------------------------------------
-# Tasks copied from the Audit task kept its link (tasks migration 0011)
+# Tasks copied from the Audit task kept its link. Production rows were fixed by hand in the
+# admin (no migration, 2026-10-27); these check the fixture matches.
 # ---------------------------------------------------------------------------
-AUDIT_COPIES = ("premature-alumnusscribe", "annual-report-final-reviewscribe", "tightroperegent")
 
 
 @pytest.mark.django_db
@@ -125,29 +125,6 @@ def test_premature_alumnus_task_links_to_the_premature_alumnus_form():
 
     task = Task.objects.get(slug="premature-alumnusscribe")
     assert reverse("viewflow:forms:prematurealumnus:start") in task.render_task_link
-
-
-@pytest.mark.django_db
-def test_migration_repoints_the_tasks_copied_from_the_audit_task():
-    import importlib
-
-    from django.db import connection
-    from django.db.migrations.executor import MigrationExecutor
-
-    migration = importlib.import_module("thetatauCMT.tasks.migrations.0011_fix_tasks_linking_to_audit")
-    Task.objects.filter(slug__in=AUDIT_COPIES).update(resource="forms:audit")
-    Task.objects.filter(slug="tightroperegent").update(resource="https://example.org/tightrope")
-    state = MigrationExecutor(connection).loader.project_state(("tasks", "0011_fix_tasks_linking_to_audit"))
-
-    migration.fix_task_links(state.apps, None)
-
-    assert dict(Task.objects.filter(slug__in=AUDIT_COPIES).values_list("slug", "resource")) == {
-        "premature-alumnusscribe": "viewflow:forms:prematurealumnus:start",
-        "annual-report-final-reviewscribe": "",
-        # Changed by hand in the admin, so left alone.
-        "tightroperegent": "https://example.org/tightrope",
-    }
-    assert set(Task.objects.filter(name="Audit").values_list("resource", flat=True)) == {"forms:audit"}
 
 
 # ---------------------------------------------------------------------------
